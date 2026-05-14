@@ -44,6 +44,10 @@ next-env.d.ts
 android/app/build/
 android/.gradle/
 
+# signing keys (NEVER commit)
+*.jks
+*.keystore
+
 # tauri (Rust build artifacts)
 src-tauri/target/
 src-tauri/resources/SumatraPDF.exe

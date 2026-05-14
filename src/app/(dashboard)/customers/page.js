@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import Head from 'next/head';
+import * as XLSX from 'xlsx';
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
@@ -43,7 +44,11 @@ import {
   FaStore,
   FaWhatsapp,
   FaToggleOn,
-  FaToggleOff
+  FaToggleOff,
+  FaUpload,
+  FaFileExcel,
+  FaCloudUploadAlt,
+  FaCheck
 } from 'react-icons/fa';
 
 // Reuse full-page content as embedded tabs (standalone /offers and /customer-app remain live)
@@ -250,25 +255,120 @@ const CustomerForm = React.memo(({
             </div>
           </div>
 
-          {/* Date of Birth */}
-          <div style={{ marginBottom: '24px' }}>
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '16px', marginBottom: '16px' }}>
+            {/* Date of Birth */}
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                {t('customers.form.dateOfBirth')}
+              </label>
+              <input
+                type="date"
+                value={customerForm.dob}
+                onChange={(e) => setCustomerForm({ ...customerForm, dob: e.target.value })}
+                style={{
+                  width: '100%', padding: '12px 16px', border: '1px solid #d1d5db',
+                  borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: '#f9fafb'
+                }}
+              />
+            </div>
+            {/* Anniversary */}
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                Anniversary
+              </label>
+              <input
+                type="date"
+                value={customerForm.anniversary || ''}
+                onChange={(e) => setCustomerForm({ ...customerForm, anniversary: e.target.value })}
+                style={{
+                  width: '100%', padding: '12px 16px', border: '1px solid #d1d5db',
+                  borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: '#f9fafb'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Address */}
+          <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-              {t('customers.form.dateOfBirth')}
+              Address
             </label>
             <input
-              type="date"
-              value={customerForm.dob}
-              onChange={(e) => setCustomerForm({ ...customerForm, dob: e.target.value })}
+              type="text"
+              value={customerForm.address || ''}
+              onChange={(e) => setCustomerForm({ ...customerForm, address: e.target.value })}
               style={{
-                width: '100%',
-                padding: '12px 16px',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                fontSize: '14px',
-                outline: 'none',
-                backgroundColor: '#f9fafb'
+                width: '100%', padding: '12px 16px', border: '1px solid #d1d5db',
+                borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: '#f9fafb'
               }}
+              placeholder="Customer address"
             />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '16px', marginBottom: '16px' }}>
+            {/* Locality */}
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                Locality
+              </label>
+              <input
+                type="text"
+                value={customerForm.locality || ''}
+                onChange={(e) => setCustomerForm({ ...customerForm, locality: e.target.value })}
+                style={{
+                  width: '100%', padding: '12px 16px', border: '1px solid #d1d5db',
+                  borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: '#f9fafb'
+                }}
+                placeholder="Area / Locality"
+              />
+            </div>
+            {/* GST Number */}
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                GST Number
+              </label>
+              <input
+                type="text"
+                value={customerForm.gstNumber || ''}
+                onChange={(e) => setCustomerForm({ ...customerForm, gstNumber: e.target.value })}
+                style={{
+                  width: '100%', padding: '12px 16px', border: '1px solid #d1d5db',
+                  borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: '#f9fafb'
+                }}
+                placeholder="GSTIN"
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '16px', marginBottom: '24px' }}>
+            {/* Source */}
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                Source
+              </label>
+              <input
+                type="text"
+                value={customerForm.source || ''}
+                onChange={(e) => setCustomerForm({ ...customerForm, source: e.target.value })}
+                style={{
+                  width: '100%', padding: '12px 16px', border: '1px solid #d1d5db',
+                  borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: '#f9fafb'
+                }}
+                placeholder="Walk-in, Online, etc."
+              />
+            </div>
+            {/* Do Not Contact */}
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', paddingTop: isMobile ? '0' : '28px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                <input
+                  type="checkbox"
+                  checked={customerForm.doNotContact || false}
+                  onChange={(e) => setCustomerForm({ ...customerForm, doNotContact: e.target.checked })}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+                Do Not Contact
+              </label>
+            </div>
           </div>
 
           {/* Buttons */}
@@ -320,6 +420,480 @@ const CustomerForm = React.memo(({
 
 CustomerForm.displayName = 'CustomerForm';
 
+// ==================== Bulk Import Modal ====================
+const CUSTOMER_FIELDS = [
+  { key: 'name', label: 'Name' },
+  { key: 'phone', label: 'Phone', required: true },
+  { key: 'email', label: 'Email' },
+  { key: 'city', label: 'City' },
+  { key: 'dob', label: 'Date of Birth' },
+  { key: 'address', label: 'Address' },
+  { key: 'locality', label: 'Locality' },
+  { key: 'anniversary', label: 'Anniversary' },
+  { key: 'gstNumber', label: 'GST Number' },
+  { key: 'source', label: 'Source' },
+  { key: 'doNotContact', label: 'Do Not Contact' },
+  { key: 'createdAt', label: 'Created Date' },
+];
+
+const AUTO_MAP = {
+  'name': 'name', 'customer name': 'name', 'full name': 'name',
+  'phone': 'phone', 'phone number': 'phone', 'mobile': 'phone', 'mobile number': 'phone', 'contact': 'phone', 'contact number': 'phone',
+  'email': 'email', 'email id': 'email', 'email address': 'email',
+  'city': 'city', 'town': 'city',
+  'date of birth': 'dob', 'dob': 'dob', 'birthday': 'dob', 'birth date': 'dob',
+  'address': 'address', 'primary address': 'address',
+  'locality': 'locality', 'primary locality': 'locality', 'area': 'locality',
+  'anniversary': 'anniversary', 'date of anniversary': 'anniversary',
+  'gst no': 'gstNumber', 'gst number': 'gstNumber', 'gstin': 'gstNumber', 'gst': 'gstNumber',
+  'source': 'source', 'from where': 'source',
+  'do not contact': 'doNotContact', 'do not send any updates': 'doNotContact', 'dnd': 'doNotContact',
+  'created': 'createdAt', 'created at': 'createdAt', 'created date': 'createdAt', 'date created': 'createdAt',
+};
+
+function excelDateToISO(serial) {
+  if (!serial || typeof serial !== 'number') return serial;
+  // Excel serial date: days since 1900-01-01 (with the 1900 leap year bug)
+  const utcDays = Math.floor(serial) - 25569;
+  const date = new Date(utcDays * 86400 * 1000);
+  return date.toISOString().split('T')[0];
+}
+
+function cleanPhone(val) {
+  if (!val) return '';
+  let s = String(val).trim();
+  // Strip Excel text prefix
+  if (s.startsWith("'")) s = s.substring(1);
+  // Strip non-digit except leading +
+  const digits = s.replace(/\D/g, '');
+  // Normalize Indian phone
+  if (digits.length === 12 && digits.startsWith('91')) return digits.substring(2);
+  if (digits.length === 11 && digits.startsWith('0')) return digits.substring(1);
+  if (digits.length === 10) return digits;
+  return digits;
+}
+
+const BulkImportModal = React.memo(({ restaurantId, isMobile, onClose, onComplete }) => {
+  const [step, setStep] = useState(1); // 1=upload, 2=map, 3=preview, 4=importing
+  const [fileName, setFileName] = useState('');
+  const [rawRows, setRawRows] = useState([]); // all rows from sheet
+  const [columns, setColumns] = useState([]); // header column names
+  const [mapping, setMapping] = useState({}); // colName -> fieldKey
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0, chunk: 0, totalChunks: 0 });
+  const [importResult, setImportResult] = useState(null); // { created, updated, skipped, errors }
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = React.useRef(null);
+
+  const handleFile = useCallback((file) => {
+    if (!file) return;
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+      // Find header row — look for a row containing "Phone" or "Name"
+      let headerIdx = 0;
+      for (let i = 0; i < Math.min(json.length, 10); i++) {
+        const row = json[i].map(c => String(c).toLowerCase().trim());
+        if (row.some(c => ['phone', 'name', 'mobile', 'email', 'phone number'].includes(c))) {
+          headerIdx = i;
+          break;
+        }
+      }
+
+      const headers = json[headerIdx].map(h => String(h).trim()).filter(h => h);
+      const dataRows = json.slice(headerIdx + 1).filter(row => row.some(cell => cell !== '' && cell != null));
+
+      setColumns(headers);
+      setRawRows(dataRows);
+
+      // Auto-map columns
+      const autoMap = {};
+      headers.forEach(col => {
+        const lower = col.toLowerCase().trim();
+        if (AUTO_MAP[lower]) {
+          autoMap[col] = AUTO_MAP[lower];
+        }
+      });
+      setMapping(autoMap);
+      setStep(2);
+    };
+    reader.readAsArrayBuffer(file);
+  }, []);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  }, [handleFile]);
+
+  // Build mapped records from raw data
+  const mappedRecords = React.useMemo(() => {
+    if (!columns.length || !rawRows.length) return [];
+    const colIdxMap = {};
+    columns.forEach((col, idx) => {
+      if (mapping[col]) colIdxMap[mapping[col]] = idx;
+    });
+
+    return rawRows.map(row => {
+      const record = {};
+      Object.entries(colIdxMap).forEach(([field, idx]) => {
+        let val = row[idx];
+        if (val === undefined || val === null) val = '';
+        // Clean up values
+        if (field === 'phone') {
+          val = cleanPhone(val);
+        } else if (['dob', 'anniversary', 'createdAt'].includes(field)) {
+          val = typeof val === 'number' ? excelDateToISO(val) : String(val).trim();
+        } else if (field === 'doNotContact') {
+          const s = String(val).toLowerCase().trim();
+          val = ['yes', 'true', '1', 'y'].includes(s);
+        } else {
+          val = String(val).trim();
+        }
+        if (val !== '' && val !== false) record[field] = val;
+      });
+      return record;
+    }).filter(r => r.phone && r.phone.length >= 10);
+  }, [columns, rawRows, mapping]);
+
+  const totalRawRows = rawRows.length;
+  const validCount = mappedRecords.length;
+  const skippedCount = totalRawRows - validCount;
+
+  // Stats for preview
+  const fieldStats = React.useMemo(() => {
+    const stats = {};
+    CUSTOMER_FIELDS.forEach(f => {
+      stats[f.key] = mappedRecords.filter(r => r[f.key]).length;
+    });
+    return stats;
+  }, [mappedRecords]);
+
+  const startImport = useCallback(async () => {
+    setStep(4);
+    const CHUNK_SIZE = 200;
+    const chunks = [];
+    for (let i = 0; i < mappedRecords.length; i += CHUNK_SIZE) {
+      chunks.push(mappedRecords.slice(i, i + CHUNK_SIZE));
+    }
+
+    const totals = { created: 0, updated: 0, skipped: 0, errors: [] };
+    setImportProgress({ current: 0, total: mappedRecords.length, chunk: 0, totalChunks: chunks.length });
+
+    for (let i = 0; i < chunks.length; i++) {
+      try {
+        const result = await apiClient.bulkImportCustomers(restaurantId, chunks[i]);
+        totals.created += result.created || 0;
+        totals.updated += result.updated || 0;
+        totals.skipped += result.skipped || 0;
+        if (result.errors) totals.errors.push(...result.errors);
+      } catch (err) {
+        totals.errors.push({ row: i * CHUNK_SIZE, error: err.message || 'Chunk failed' });
+      }
+      setImportProgress({
+        current: Math.min((i + 1) * CHUNK_SIZE, mappedRecords.length),
+        total: mappedRecords.length,
+        chunk: i + 1,
+        totalChunks: chunks.length,
+      });
+    }
+
+    setImportResult(totals);
+  }, [mappedRecords, restaurantId]);
+
+  if (typeof document === 'undefined') return null;
+
+  const modalStyle = {
+    position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)',
+    display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
+    zIndex: 9999, padding: isMobile ? '0' : '32px',
+  };
+  const panelStyle = {
+    backgroundColor: 'white', borderRadius: isMobile ? '16px 16px 0 0' : '16px',
+    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', width: '100%',
+    maxWidth: isMobile ? '100%' : '680px', maxHeight: isMobile ? '94vh' : '90vh',
+    display: 'flex', flexDirection: 'column',
+  };
+  const headerStyle = {
+    padding: isMobile ? '16px 20px' : '20px 24px', borderBottom: '1px solid #f3f4f6',
+    flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+  };
+  const bodyStyle = { padding: isMobile ? '16px 20px' : '20px 24px', overflowY: 'auto', flex: 1 };
+  const inputStyle = {
+    width: '100%', padding: '8px 12px', border: '1px solid #d1d5db',
+    borderRadius: '6px', fontSize: '13px', outline: 'none', backgroundColor: '#f9fafb',
+  };
+  const btnPrimary = {
+    backgroundColor: '#111827', color: 'white', border: 'none', borderRadius: '8px',
+    padding: '10px 20px', fontSize: '14px', fontWeight: '600', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', gap: '6px',
+  };
+  const btnSecondary = {
+    backgroundColor: 'white', color: '#374151', border: '1px solid #e5e7eb',
+    borderRadius: '8px', padding: '10px 20px', fontSize: '14px', fontWeight: '600', cursor: 'pointer',
+  };
+
+  return createPortal(
+    <div style={modalStyle} onClick={(e) => { if (e.target === e.currentTarget && step !== 4) onClose(); }}>
+      <div style={panelStyle}>
+        {/* Header */}
+        <div style={headerStyle}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: isMobile ? '17px' : '20px', fontWeight: '700', color: '#1f2937' }}>
+              Import Customers
+            </h2>
+            {step < 4 && (
+              <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#6b7280' }}>
+                Step {step} of 3: {step === 1 ? 'Upload File' : step === 2 ? 'Map Columns' : 'Preview & Import'}
+              </p>
+            )}
+          </div>
+          {step !== 4 && (
+            <button onClick={onClose} style={{ background: '#f3f4f6', border: 'none', borderRadius: '8px', color: '#6b7280', padding: '8px', cursor: 'pointer' }}>
+              <FaTimes size={16} />
+            </button>
+          )}
+        </div>
+
+        {/* Body */}
+        <div style={bodyStyle}>
+          {/* Step 1: File Upload */}
+          {step === 1 && (
+            <div>
+              <div
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  border: `2px dashed ${dragOver ? '#3b82f6' : '#d1d5db'}`,
+                  borderRadius: '12px', padding: '48px 24px', textAlign: 'center',
+                  cursor: 'pointer', backgroundColor: dragOver ? '#eff6ff' : '#fafafa',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <FaCloudUploadAlt size={40} color={dragOver ? '#3b82f6' : '#9ca3af'} />
+                <p style={{ margin: '12px 0 4px', fontSize: '15px', fontWeight: '600', color: '#374151' }}>
+                  Drop your file here or click to browse
+                </p>
+                <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>
+                  Supports .xls, .xlsx, .csv files
+                </p>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xls,.xlsx,.csv"
+                style={{ display: 'none' }}
+                onChange={(e) => handleFile(e.target.files[0])}
+              />
+            </div>
+          )}
+
+          {/* Step 2: Column Mapping */}
+          {step === 2 && (
+            <div>
+              <div style={{ marginBottom: '16px', padding: '10px 14px', backgroundColor: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd' }}>
+                <div style={{ fontSize: '13px', fontWeight: '600', color: '#0369a1' }}>
+                  <FaFileExcel style={{ marginRight: '6px' }} />{fileName} — {totalRawRows} rows found
+                </div>
+              </div>
+
+              <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                Map your file columns to customer fields:
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {columns.map(col => (
+                  <div key={col} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{
+                      flex: 1, fontSize: '13px', color: '#374151', padding: '8px 12px',
+                      backgroundColor: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {col}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#9ca3af' }}>→</div>
+                    <select
+                      value={mapping[col] || ''}
+                      onChange={(e) => setMapping(prev => {
+                        const next = { ...prev };
+                        if (e.target.value) next[col] = e.target.value;
+                        else delete next[col];
+                        return next;
+                      })}
+                      style={{ ...inputStyle, flex: 1, cursor: 'pointer' }}
+                    >
+                      <option value="">-- Skip --</option>
+                      {CUSTOMER_FIELDS.map(f => (
+                        <option key={f.key} value={f.key} disabled={Object.values(mapping).includes(f.key) && mapping[col] !== f.key}>
+                          {f.label}{f.required ? ' *' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+
+              {!Object.values(mapping).includes('phone') && (
+                <div style={{ marginTop: '12px', padding: '10px', backgroundColor: '#fef2f2', borderRadius: '8px', border: '1px solid #fecaca', fontSize: '13px', color: '#dc2626' }}>
+                  <FaExclamationTriangle style={{ marginRight: '6px' }} />
+                  Phone mapping is required. Please map a column to Phone.
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '20px' }}>
+                <button style={btnSecondary} onClick={() => { setStep(1); setRawRows([]); setColumns([]); setMapping({}); setFileName(''); }}>Back</button>
+                <button
+                  style={{ ...btnPrimary, opacity: Object.values(mapping).includes('phone') ? 1 : 0.5 }}
+                  disabled={!Object.values(mapping).includes('phone')}
+                  onClick={() => setStep(3)}
+                >
+                  Next: Preview
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Preview */}
+          {step === 3 && (
+            <div>
+              {/* Stats */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '16px' }}>
+                <div style={{ padding: '12px', backgroundColor: '#f0fdf4', borderRadius: '8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '22px', fontWeight: '700', color: '#16a34a' }}>{validCount}</div>
+                  <div style={{ fontSize: '12px', color: '#15803d' }}>Valid records</div>
+                </div>
+                <div style={{ padding: '12px', backgroundColor: '#fefce8', borderRadius: '8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '22px', fontWeight: '700', color: '#ca8a04' }}>{skippedCount}</div>
+                  <div style={{ fontSize: '12px', color: '#a16207' }}>Skipped (no phone)</div>
+                </div>
+                <div style={{ padding: '12px', backgroundColor: '#f0f9ff', borderRadius: '8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '22px', fontWeight: '700', color: '#0284c7' }}>{totalRawRows}</div>
+                  <div style={{ fontSize: '12px', color: '#0369a1' }}>Total rows</div>
+                </div>
+              </div>
+
+              {/* Field coverage */}
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Field coverage:</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {CUSTOMER_FIELDS.filter(f => fieldStats[f.key] > 0).map(f => (
+                    <span key={f.key} style={{
+                      padding: '3px 10px', backgroundColor: '#f3f4f6', borderRadius: '12px',
+                      fontSize: '12px', color: '#374151',
+                    }}>
+                      {f.label}: {fieldStats[f.key]}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Preview table */}
+              <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Preview (first 10 rows):</div>
+              <div style={{ overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px', marginBottom: '16px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f9fafb' }}>
+                      {CUSTOMER_FIELDS.filter(f => fieldStats[f.key] > 0).map(f => (
+                        <th key={f.key} style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid #e5e7eb', fontWeight: '600', whiteSpace: 'nowrap' }}>{f.label}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mappedRecords.slice(0, 10).map((row, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                        {CUSTOMER_FIELDS.filter(f => fieldStats[f.key] > 0).map(f => (
+                          <td key={f.key} style={{ padding: '6px 10px', whiteSpace: 'nowrap', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {f.key === 'doNotContact' ? (row[f.key] ? 'Yes' : 'No') : (row[f.key] || '-')}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button style={btnSecondary} onClick={() => setStep(2)}>Back</button>
+                <button style={btnPrimary} onClick={startImport}>
+                  <FaUpload size={13} />
+                  Import {validCount} Customers
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Importing / Done */}
+          {step === 4 && (
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              {!importResult ? (
+                <>
+                  <FaSpinner className="animate-spin" size={32} color="#3b82f6" style={{ marginBottom: '16px' }} />
+                  <p style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: '0 0 8px' }}>
+                    Importing Customers...
+                  </p>
+                  <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 16px' }}>
+                    {importProgress.current}/{importProgress.total} (chunk {importProgress.chunk}/{importProgress.totalChunks})
+                  </p>
+                  {/* Progress bar */}
+                  <div style={{ width: '100%', height: '8px', backgroundColor: '#e5e7eb', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${importProgress.total > 0 ? (importProgress.current / importProgress.total * 100) : 0}%`,
+                      height: '100%', backgroundColor: '#3b82f6', borderRadius: '4px', transition: 'width 0.3s',
+                    }} />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <FaCheckCircle size={40} color="#16a34a" style={{ marginBottom: '16px' }} />
+                  <p style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: '0 0 16px' }}>
+                    Import Complete
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '20px' }}>
+                    <div style={{ padding: '14px', backgroundColor: '#f0fdf4', borderRadius: '8px' }}>
+                      <div style={{ fontSize: '24px', fontWeight: '700', color: '#16a34a' }}>{importResult.created}</div>
+                      <div style={{ fontSize: '12px', color: '#15803d' }}>Created</div>
+                    </div>
+                    <div style={{ padding: '14px', backgroundColor: '#eff6ff', borderRadius: '8px' }}>
+                      <div style={{ fontSize: '24px', fontWeight: '700', color: '#2563eb' }}>{importResult.updated}</div>
+                      <div style={{ fontSize: '12px', color: '#1d4ed8' }}>Updated</div>
+                    </div>
+                    <div style={{ padding: '14px', backgroundColor: '#fefce8', borderRadius: '8px' }}>
+                      <div style={{ fontSize: '24px', fontWeight: '700', color: '#ca8a04' }}>{importResult.skipped}</div>
+                      <div style={{ fontSize: '12px', color: '#a16207' }}>Skipped</div>
+                    </div>
+                  </div>
+                  {importResult.errors.length > 0 && (
+                    <div style={{ textAlign: 'left', marginBottom: '16px', padding: '10px', backgroundColor: '#fef2f2', borderRadius: '8px', border: '1px solid #fecaca', fontSize: '12px', maxHeight: '120px', overflowY: 'auto' }}>
+                      <div style={{ fontWeight: '600', color: '#dc2626', marginBottom: '4px' }}>{importResult.errors.length} errors:</div>
+                      {importResult.errors.slice(0, 10).map((err, i) => (
+                        <div key={i} style={{ color: '#991b1b' }}>Row {err.row}: {err.error}</div>
+                      ))}
+                      {importResult.errors.length > 10 && <div style={{ color: '#991b1b' }}>...and {importResult.errors.length - 10} more</div>}
+                    </div>
+                  )}
+                  <button style={btnPrimary} onClick={() => { onComplete(); onClose(); }}>
+                    <FaCheck size={13} /> Done
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+});
+
+BulkImportModal.displayName = 'BulkImportModal';
+
 const Customers = () => {
   const router = useRouter();
   const { formatCurrency, getCurrencySymbol } = useCurrency();
@@ -349,7 +923,13 @@ const Customers = () => {
     phone: '',
     email: '',
     city: '',
-    dob: ''
+    dob: '',
+    address: '',
+    locality: '',
+    anniversary: '',
+    gstNumber: '',
+    source: '',
+    doNotContact: false,
   });
   const [formErrors, setFormErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -386,6 +966,9 @@ const Customers = () => {
   const [addPhoneInput, setAddPhoneInput] = useState('');
   const [addingMember, setAddingMember] = useState(false);
   const [removingMemberId, setRemovingMemberId] = useState(null);
+
+  // Bulk import state
+  const [showBulkImportModal, setShowBulkImportModal] = useState(false);
 
   // Bulk delete state
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
@@ -1089,6 +1672,12 @@ const Customers = () => {
         email: customerForm.email || null,
         city: customerForm.city || null,
         dob: customerForm.dob || null,
+        address: customerForm.address || null,
+        locality: customerForm.locality || null,
+        anniversary: customerForm.anniversary || null,
+        gstNumber: customerForm.gstNumber || null,
+        source: customerForm.source || null,
+        doNotContact: customerForm.doNotContact || false,
         restaurantId: restaurantId
       };
 
@@ -1117,7 +1706,7 @@ const Customers = () => {
       }
 
       // Reset form
-      setCustomerForm({ name: '', phone: '', email: '', city: '', dob: '' });
+      setCustomerForm({ name: '', phone: '', email: '', city: '', dob: '', address: '', locality: '', anniversary: '', gstNumber: '', source: '', doNotContact: false });
       setFormErrors({});
       setSelectedCustomer(null);
 
@@ -1193,7 +1782,13 @@ const Customers = () => {
       phone: customer.phone || '',
       email: customer.email || '',
       city: customer.city || '',
-      dob: customer.dob || ''
+      dob: customer.dob || '',
+      address: customer.address || '',
+      locality: customer.locality || '',
+      anniversary: customer.anniversary || '',
+      gstNumber: customer.gstNumber || '',
+      source: customer.source || '',
+      doNotContact: customer.doNotContact || false,
     });
     setShowEditModal(true);
   };
@@ -1269,14 +1864,14 @@ const Customers = () => {
   // Helper functions for modal management
   const closeAddModal = () => {
     setShowAddModal(false);
-    setCustomerForm({ name: '', phone: '', email: '', city: '', dob: '' });
+    setCustomerForm({ name: '', phone: '', email: '', city: '', dob: '', address: '', locality: '', anniversary: '', gstNumber: '', source: '', doNotContact: false });
     setFormErrors({});
     setSelectedCustomer(null);
   };
 
   const closeEditModal = () => {
     setShowEditModal(false);
-    setCustomerForm({ name: '', phone: '', email: '', city: '', dob: '' });
+    setCustomerForm({ name: '', phone: '', email: '', city: '', dob: '', address: '', locality: '', anniversary: '', gstNumber: '', source: '', doNotContact: false });
     setFormErrors({});
     setSelectedCustomer(null);
   };
@@ -1578,28 +2173,52 @@ const Customers = () => {
             </div>
 
             {engagementTab === 'customers' && canAddCustomer && (
-            <button
-              onClick={() => isOnline && setShowAddModal(true)}
-              disabled={!isOnline}
-              title={!isOnline ? 'Go online to add customers' : ''}
-              style={{
-                backgroundColor: '#111827',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                padding: isMobile ? '8px 12px' : '10px 18px',
-                fontSize: isMobile ? '12px' : '14px',
-                fontWeight: '600',
-                cursor: !isOnline ? 'not-allowed' : 'pointer',
-                opacity: !isOnline ? 0.5 : 1,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <FaPlus size={isMobile ? 12 : 13} />
-              {isMobile ? t('customers.add') : t('customers.addCustomer')}
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => isOnline && setShowBulkImportModal(true)}
+                disabled={!isOnline}
+                title={!isOnline ? 'Go online to import' : 'Import from XLS/CSV'}
+                style={{
+                  backgroundColor: 'white',
+                  color: '#374151',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: isMobile ? '8px 12px' : '10px 14px',
+                  fontSize: isMobile ? '12px' : '14px',
+                  fontWeight: '600',
+                  cursor: !isOnline ? 'not-allowed' : 'pointer',
+                  opacity: !isOnline ? 0.5 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <FaUpload size={isMobile ? 11 : 12} />
+                {!isMobile && 'Import'}
+              </button>
+              <button
+                onClick={() => isOnline && setShowAddModal(true)}
+                disabled={!isOnline}
+                title={!isOnline ? 'Go online to add customers' : ''}
+                style={{
+                  backgroundColor: '#111827',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: isMobile ? '8px 12px' : '10px 18px',
+                  fontSize: isMobile ? '12px' : '14px',
+                  fontWeight: '600',
+                  cursor: !isOnline ? 'not-allowed' : 'pointer',
+                  opacity: !isOnline ? 0.5 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <FaPlus size={isMobile ? 12 : 13} />
+                {isMobile ? t('customers.add') : t('customers.addCustomer')}
+              </button>
+            </div>
             )}
           </div>
 
@@ -2850,7 +3469,7 @@ const Customers = () => {
 
       {/* Modals */}
       {showAddModal && (
-        <CustomerForm 
+        <CustomerForm
           isEdit={false}
           customerForm={customerForm}
           setCustomerForm={setCustomerForm}
@@ -2859,6 +3478,14 @@ const Customers = () => {
           onSubmit={handleSubmit}
           onClose={closeAddModal}
           isMobile={isMobile}
+        />
+      )}
+      {showBulkImportModal && (
+        <BulkImportModal
+          restaurantId={restaurantId}
+          isMobile={isMobile}
+          onClose={() => setShowBulkImportModal(false)}
+          onComplete={() => loadCustomers(false, 1)}
         />
       )}
       {showEditModal && (

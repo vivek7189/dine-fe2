@@ -71,6 +71,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('hub-event', handler);
   },
 
+  // Open URL in system browser (for desktop auth flow)
+  openExternal: (url) => ipcRenderer.invoke('electron:openExternal', url),
+
   // Image helpers
   getImageUrl: (urlOrLocal) => ipcRenderer.invoke('electron:getImageUrl', urlOrLocal),
 
@@ -82,5 +85,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('electron:saveOrderDirect', orderData),
 
   // Build version marker for debugging
-  buildVersion: 'v1.4.8-fix17',
+  buildVersion: 'v1.5.0',
 });

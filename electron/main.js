@@ -410,3 +410,15 @@ ipcMain.handle('electron:restartApp', async () => {
 ipcMain.handle('electron:getVersion', async () => {
   return app.getVersion();
 });
+
+// ──── IPC: Open external URL in system browser (for desktop auth flow) ────
+
+ipcMain.handle('electron:openExternal', async (_event, url) => {
+  const { shell } = require('electron');
+  // Only allow https URLs for security
+  if (url && url.startsWith('https://')) {
+    await shell.openExternal(url);
+    return { success: true };
+  }
+  return { success: false, error: 'Invalid URL' };
+});

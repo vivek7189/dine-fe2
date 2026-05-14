@@ -4093,13 +4093,24 @@ function RestaurantPOSContent() {
 
         if (response.data) {
           // Compute new/changed items for incremental KOT display
-          const existingItemIds = new Set((currentOrder.items || []).map(i => i.menuItemId));
-          const newItems = cart.filter(item => !existingItemIds.has(item.id));
+          const existingItemsArr = currentOrder.items || [];
+          const existingItemMap = new Map(existingItemsArr.map(i => [i.menuItemId, i]));
+          const cartItemIds = new Set(cart.map(i => i.id));
+
+          const newItems = cart.filter(item => !existingItemMap.has(item.id));
           const updatedItems = cart.filter(item => {
-            const existing = (currentOrder.items || []).find(i => i.menuItemId === item.id);
+            const existing = existingItemMap.get(item.id);
             return existing && existing.quantity !== item.quantity;
           });
           const incrementalItems = [...newItems, ...updatedItems];
+
+          // Detect removed items for KOT
+          const removedKotItems = existingItemsArr
+            .filter(existing => !cartItemIds.has(existing.menuItemId))
+            .map(item => ({
+              name: item.name, quantity: item.quantity, notes: item.notes || '',
+              isRemoved: true,
+            }));
 
           // If the order was in 'saved' status, update it to 'confirmed' to send to KOT
           // This happens when user loads a saved order and clicks "Update Order"
@@ -4128,12 +4139,23 @@ function RestaurantPOSContent() {
             kotData: {
               orderId: currentOrder.id,
               dailyOrderId: currentOrder.dailyOrderId,
-              items: (incrementalItems.length > 0 ? incrementalItems : cart).map(item => ({
-                name: item.name, quantity: item.quantity || 1, notes: item.notes || '',
-                isNew: newItems.includes(item),
-                isUpdated: updatedItems.includes(item),
-              })),
-              isIncremental: incrementalItems.length > 0,
+              items: (incrementalItems.length > 0 ? incrementalItems : cart).map(item => {
+                const isNew = newItems.includes(item);
+                const isUpdated = updatedItems.includes(item);
+                const existing = isUpdated ? existingItemMap.get(item.id) : null;
+                const quantityDelta = existing ? (item.quantity - existing.quantity) : 0;
+                return {
+                  name: item.name,
+                  quantity: isUpdated && quantityDelta > 0 ? quantityDelta : (item.quantity || 1),
+                  notes: item.notes || '',
+                  isNew,
+                  isUpdated,
+                  quantityDelta: isUpdated ? quantityDelta : 0,
+                  previousQuantity: existing ? existing.quantity : 0,
+                };
+              }),
+              removedItems: removedKotItems,
+              isIncremental: incrementalItems.length > 0 || removedKotItems.length > 0,
               tableNumber: roomForKot ? null : tableToUseForKot,
               roomNumber: roomForKot || null,
               floorName: selectedTable?.floor || null,

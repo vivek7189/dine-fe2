@@ -5,14 +5,48 @@ import { useSearchParams } from 'next/navigation';
 import Pusher from 'pusher-js';
 import { printDocument } from '../../utils/printBridge';
 import { isWeb } from '../../utils/platform';
+import { renderKOT } from '../../utils/printTemplates/index';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
 const PUSHER_KEY = process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec';
 const PUSHER_CLUSTER = process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2';
 
 // KOT Receipt Component - Styled for 80mm thermal printer
-const KOTReceipt = ({ order, restaurantName, onPrint, isPrinting }) => {
+const KOTReceipt = ({ order, restaurantName, onPrint, isPrinting, kotUpdatePrintMode }) => {
   const receiptRef = useRef(null);
+
+  // Determine if this order has been updated (items changed since original order)
+  // Check item flags directly — don't rely solely on needsReprint which can be false for first-time prints
+  const hasItemChanges = order.items?.some(i => i.isNew || i.isUpdated) || (order.removedItems?.length > 0);
+  const isUpdateReprint = hasItemChanges && (order.updateHistory?.length > 0 || order.needsReprint);
+  const removedItems = order.removedItems || [];
+  const newItems = isUpdateReprint ? order.items.filter(i => i.isNew) : [];
+  const updatedItemsInc = isUpdateReprint ? order.items.filter(i => i.isUpdated && i.quantityDelta > 0) : [];
+  const updatedItemsDec = isUpdateReprint ? order.items.filter(i => i.isUpdated && i.quantityDelta < 0) : [];
+  const unchangedItems = isUpdateReprint ? order.items.filter(i => !i.isNew && !i.isUpdated) : order.items;
+  const hasChanges = newItems.length > 0 || updatedItemsInc.length > 0 || updatedItemsDec.length > 0 || removedItems.length > 0;
+
+  // In delta mode for updates: only show changed items. In detailed mode: show everything with markings.
+  const useDeltaMode = kotUpdatePrintMode !== 'detailed';
+  const showFullOrder = !isUpdateReprint || !useDeltaMode;
+
+  const renderItemRow = (item, index, { showDelta, isRemoved } = {}) => {
+    const displayQty = showDelta && item.quantityDelta != null ? Math.abs(item.quantityDelta) : (isRemoved ? (item.previousQuantity || item.quantity) : item.quantity);
+    const label = isRemoved ? ' [CANCEL]' : (showDelta && item.quantityDelta > 0 ? ' [+NEW]' : '');
+    return (
+      <div key={index} className="item-row" style={isRemoved ? { textDecoration: 'line-through' } : {}}>
+        <div className="item-main">
+          <span className="item-qty">{displayQty}x</span>
+          <span className="item-name">{item.name}{label}</span>
+        </div>
+        {item.variant && <div className="item-variant">  [{item.variant}]</div>}
+        {item.selectedVariant?.name && <div className="item-variant">  [{item.selectedVariant.name}]</div>}
+        {(item.customizations || []).map((c, i) => <div key={i} className="customization">  + {c.name || c}</div>)}
+        {(item.selectedCustomizations || []).map((c, i) => <div key={i} className="customization">  + {c.name || c}</div>)}
+        {item.notes && <div className="item-notes">  Note: {item.notes}</div>}
+      </div>
+    );
+  };
 
   return (
     <div className="kot-receipt-wrapper">
@@ -20,7 +54,7 @@ const KOTReceipt = ({ order, restaurantName, onPrint, isPrinting }) => {
         {/* Header */}
         <div className="receipt-header">
           <div className="restaurant-name">{restaurantName}</div>
-          <div className="receipt-title">--- KITCHEN ORDER ---</div>
+          <div className="receipt-title">{isUpdateReprint && hasChanges ? '--- KOT UPDATE ---' : '--- KITCHEN ORDER ---'}</div>
         </div>
 
         {/* Order Info - Two Column Layout */}
@@ -68,37 +102,41 @@ const KOTReceipt = ({ order, restaurantName, onPrint, isPrinting }) => {
             <span>ITEM</span>
           </div>
           <div className="receipt-divider">--------------------------------</div>
-          {order.items.map((item, index) => (
-            <div key={index} className="item-row">
-              <div className="item-main">
-                <span className="item-qty">{item.quantity}x</span>
-                <span className="item-name">{item.name}</span>
-              </div>
-              {item.variant && (
-                <div className="item-variant">  [{item.variant}]</div>
+
+          {isUpdateReprint && hasChanges ? (
+            <>
+              {/* Detailed mode: show unchanged items first */}
+              {showFullOrder && unchangedItems.map((item, index) => renderItemRow(item, index))}
+              {showFullOrder && unchangedItems.length > 0 && (removedItems.length > 0 || newItems.length > 0 || updatedItemsInc.length > 0 || updatedItemsDec.length > 0) && (
+                <div className="receipt-divider">- - - - - - - - - - - - - - - -</div>
               )}
-              {item.selectedVariant?.name && (
-                <div className="item-variant">  [{item.selectedVariant.name}]</div>
+              {/* Cancelled / removed items */}
+              {removedItems.length > 0 && (
+                <>
+                  <div className="item-row" style={{ fontWeight: 'bold', textAlign: 'center' }}>*** CANCELLED ***</div>
+                  {removedItems.map((item, index) => renderItemRow(item, `rem-${index}`, { isRemoved: true }))}
+                </>
               )}
-              {item.customizations && item.customizations.length > 0 && (
-                <div className="item-customizations">
-                  {item.customizations.map((c, i) => (
-                    <div key={i} className="customization">  + {c.name || c}</div>
-                  ))}
-                </div>
+              {/* Reduced quantity items */}
+              {updatedItemsDec.length > 0 && (
+                <>
+                  <div className="item-row" style={{ fontWeight: 'bold', textAlign: 'center' }}>*** REDUCED ***</div>
+                  {updatedItemsDec.map((item, index) => renderItemRow(item, `dec-${index}`, { showDelta: true, isRemoved: true }))}
+                </>
               )}
-              {item.selectedCustomizations && item.selectedCustomizations.length > 0 && (
-                <div className="item-customizations">
-                  {item.selectedCustomizations.map((c, i) => (
-                    <div key={i} className="customization">  + {c.name || c}</div>
-                  ))}
-                </div>
+              {/* New items added */}
+              {(newItems.length > 0 || updatedItemsInc.length > 0) && (
+                <>
+                  <div className="item-row" style={{ fontWeight: 'bold', textAlign: 'center' }}>*** NEW ITEMS ***</div>
+                  {updatedItemsInc.map((item, index) => renderItemRow(item, `inc-${index}`, { showDelta: true }))}
+                  {newItems.map((item, index) => renderItemRow(item, `new-${index}`))}
+                </>
               )}
-              {item.notes && (
-                <div className="item-notes">  Note: {item.notes}</div>
-              )}
-            </div>
-          ))}
+            </>
+          ) : (
+            // Normal order or no changes — print all items as usual
+            order.items.map((item, index) => renderItemRow(item, index))
+          )}
         </div>
 
         <div className="receipt-divider">--------------------------------</div>
@@ -106,7 +144,10 @@ const KOTReceipt = ({ order, restaurantName, onPrint, isPrinting }) => {
         {/* Footer */}
         <div className="receipt-footer">
           <div className="total-items">
-            Total Items: {order.items.reduce((sum, item) => sum + (item.quantity || 1), 0)}
+            {isUpdateReprint && hasChanges && useDeltaMode
+              ? `Changes: +${newItems.length + updatedItemsInc.length} new, ${removedItems.length + updatedItemsDec.length} removed`
+              : `Total Items: ${order.items.reduce((sum, item) => sum + (item.quantity || 1), 0)}`
+            }
           </div>
           {order.specialInstructions && (
             <div className="special-instructions">
@@ -150,9 +191,13 @@ const PrintKOTContent = () => {
   const [isPrinting, setIsPrinting] = useState(false);
   const [printQueue, setPrintQueue] = useState([]);
   const [stats, setStats] = useState({ total: 0, printed: 0 });
+  const [kotUpdatePrintMode, setKotUpdatePrintMode] = useState('delta'); // 'delta' or 'detailed'
+  const [printSettingsState, setPrintSettingsState] = useState({}); // Full print settings from API
 
   const pollingIntervalRef = useRef(null);
   const printFrameRef = useRef(null);
+  const kotUpdatePrintModeRef = useRef('delta'); // ref for use inside printOrder callback
+  const printSettingsRef = useRef({}); // ref for use inside printOrder callback
 
   // Load printed orders from localStorage
   useEffect(() => {
@@ -201,213 +246,36 @@ const PrintKOTContent = () => {
   const printOrder = useCallback(async (order) => {
     setIsPrinting(true);
 
+    // Determine if this is an update reprint
+    const hasItemChanges = order.items?.some(i => i.isNew || i.isUpdated) || ((order.removedItems || []).length > 0);
+    const isUpdateReprint = hasItemChanges && (order.updateHistory?.length > 0 || order.needsReprint);
+
+    // Build kotData in the format expected by the template system
+    const kotData = {
+      restaurantName: restaurantName,
+      restaurantPhone: order.restaurantPhone || '',
+      orderId: order.kotId || order.id,
+      dailyOrderId: order.dailyOrderId || order.kotId,
+      tableNumber: order.tableNumber || '',
+      roomNumber: order.roomNumber || '',
+      floorName: order.floorName || '',
+      customerName: order.customerName || '',
+      orderType: order.orderType || '',
+      waiterName: order.staffInfo?.waiterName || order.waiterName || '',
+      specialInstructions: order.specialInstructions || order.notes || '',
+      items: order.items || [],
+      removedItems: order.removedItems || [],
+      isIncremental: isUpdateReprint,
+      currencySymbol: order.currencySymbol || '',
+    };
+
     try {
-      // Create a hidden iframe for printing
-      const printContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <title>KOT - ${order.kotId}</title>
-          <style>
-            @page {
-              size: 72mm auto;
-              margin: 0;
-            }
-            * {
-              margin: 0;
-              padding: 0;
-              box-sizing: border-box;
-            }
-            body {
-              font-family: 'Courier New', Courier, monospace;
-              font-size: 12px;
-              line-height: 1.4;
-              width: 72mm;
-              padding: 3mm;
-              background: white;
-              color: black;
-            }
-            .header {
-              text-align: center;
-              margin-bottom: 8px;
-            }
-            .restaurant-name {
-              font-size: 16px;
-              font-weight: bold;
-              text-transform: uppercase;
-            }
-            .kot-title {
-              font-size: 14px;
-              font-weight: bold;
-              margin-top: 4px;
-            }
-            .divider {
-              text-align: center;
-              margin: 6px 0;
-              font-size: 12px;
-            }
-            .info-section {
-              margin: 8px 0;
-            }
-            .info-grid {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 2px 8px;
-            }
-            .info-cell {
-              display: flex;
-              gap: 4px;
-            }
-            .info-cell .label {
-              font-weight: normal;
-              white-space: nowrap;
-            }
-            .info-cell .value {
-              font-weight: bold;
-            }
-            .info-full {
-              grid-column: 1 / -1;
-              display: flex;
-              gap: 4px;
-            }
-            .items-section {
-              margin: 8px 0;
-            }
-            .items-header {
-              display: flex;
-              font-weight: bold;
-              margin-bottom: 4px;
-            }
-            .items-header .qty {
-              width: 30px;
-            }
-            .item {
-              margin: 6px 0;
-            }
-            .item-main {
-              display: flex;
-            }
-            .item-qty {
-              width: 30px;
-              font-weight: bold;
-            }
-            .item-name {
-              font-weight: bold;
-              flex: 1;
-            }
-            .item-variant, .item-custom, .item-note {
-              margin-left: 30px;
-              font-size: 11px;
-            }
-            .item-note {
-              font-style: italic;
-            }
-            .footer {
-              margin-top: 8px;
-              text-align: center;
-            }
-            .total-items {
-              font-weight: bold;
-              font-size: 13px;
-            }
-            .order-notes {
-              margin-top: 6px;
-              font-style: italic;
-              text-align: left;
-            }
-            .special-instructions {
-              margin-top: 8px;
-              padding: 6px;
-              border: 1px dashed #000;
-              text-align: center;
-              font-weight: bold;
-            }
-            .special-instructions div {
-              margin-top: 4px;
-              font-weight: normal;
-              text-align: left;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div class="restaurant-name">${restaurantName}</div>
-            <div class="kot-title">--- KITCHEN ORDER ---</div>
-          </div>
+      // Generate print HTML using the template system
+      const pSettings = printSettingsRef.current || {};
+      const templateHtml = renderKOT(kotData, pSettings, {});
 
-          <div class="divider">--------------------------------</div>
-
-          <div class="info-section">
-            <div class="info-grid">
-              <div class="info-cell">
-                <span class="label">Order#:</span>
-                <span class="value">${order.dailyOrderId || order.kotId}</span>
-              </div>
-              ${order.tableNumber ? `
-              <div class="info-cell">
-                <span class="label">Table:</span>
-                <span class="value">${order.tableNumber}</span>
-              </div>
-              ` : ''}
-              ${order.roomNumber ? `
-              <div class="info-cell">
-                <span class="label">Room:</span>
-                <span class="value">${order.roomNumber}</span>
-              </div>
-              ` : ''}
-              <div class="info-cell">
-                <span class="label">Time:</span>
-                <span class="value">${order.formattedTime}</span>
-              </div>
-              <div class="info-cell">
-                <span class="label">Date:</span>
-                <span class="value">${order.formattedDate}</span>
-              </div>
-              ${order.staffInfo?.waiterName ? `
-              <div class="info-cell">
-                <span class="label">Waiter:</span>
-                <span class="value">${order.staffInfo.waiterName}</span>
-              </div>
-              ` : ''}
-            </div>
-          </div>
-
-          <div class="divider">--------------------------------</div>
-
-          <div class="items-section">
-            <div class="items-header">
-              <span class="qty">QTY</span>
-              <span>ITEM</span>
-            </div>
-            <div class="divider">--------------------------------</div>
-            ${order.items.map(item => `
-              <div class="item">
-                <div class="item-main">
-                  <span class="item-qty">${item.quantity}x</span>
-                  <span class="item-name">${item.name}</span>
-                </div>
-                ${item.variant ? `<div class="item-variant">[${item.variant}]</div>` : ''}
-                ${item.selectedVariant?.name ? `<div class="item-variant">[${item.selectedVariant.name}]</div>` : ''}
-                ${(item.customizations || []).map(c => `<div class="item-custom">+ ${c.name || c}</div>`).join('')}
-                ${(item.selectedCustomizations || []).map(c => `<div class="item-custom">+ ${c.name || c}</div>`).join('')}
-                ${item.notes ? `<div class="item-note">Note: ${item.notes}</div>` : ''}
-              </div>
-            `).join('')}
-          </div>
-
-          <div class="divider">--------------------------------</div>
-
-          <div class="footer">
-            <div class="total-items">
-              Total Items: ${order.items.reduce((sum, item) => sum + (item.quantity || 1), 0)}
-            </div>
-            ${order.specialInstructions ? `<div class="special-instructions"><strong>*** SPECIAL INSTRUCTIONS ***</strong><div>${order.specialInstructions}</div></div>` : ''}
-            ${order.notes ? `<div class="order-notes"><strong>Notes:</strong> ${order.notes}</div>` : ''}
-          </div>
-
-          <div class="divider">================================</div>
-
+      // Add print trigger script for web iframe printing
+      const printContent = templateHtml.replace('</body>', `
           <script>
             window.onload = function() {
               window.print();
@@ -416,9 +284,7 @@ const PrintKOTContent = () => {
               };
             };
           </script>
-        </body>
-        </html>
-      `;
+        </body>`);
 
       if (!isWeb()) {
         // Native (Capacitor/Tauri): send HTML directly to thermal printer
@@ -487,6 +353,17 @@ const PrintKOTContent = () => {
       const data = await response.json();
 
       if (data.success && data.orders) {
+        // Update print settings from server
+        if (data.printSettings) {
+          setPrintSettingsState(data.printSettings);
+          printSettingsRef.current = data.printSettings;
+          if (data.printSettings.kotUpdatePrintMode) {
+            const mode = data.printSettings.kotUpdatePrintMode;
+            setKotUpdatePrintMode(mode);
+            kotUpdatePrintModeRef.current = mode;
+          }
+        }
+
         // Filter out already printed orders (from localStorage)
         const newOrders = data.orders.filter(
           order => !printedOrders.includes(order.id)
@@ -679,6 +556,7 @@ const PrintKOTContent = () => {
                 restaurantName={restaurantName}
                 onPrint={printOrder}
                 isPrinting={isPrinting}
+                kotUpdatePrintMode={kotUpdatePrintMode}
               />
             ))}
           </div>

@@ -7,8 +7,8 @@ android {
         applicationId "com.dineopen.pos"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
-        versionName "1.0.1"
+        versionCode 3
+        versionName "1.5.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -18,7 +18,7 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file('/Users/vivek/dineopen-upload-key.jks')
+            storeFile file('../dineopen-upload-key.jks')
             storePassword 'dineopen2026'
             keyAlias 'dineopen'
             keyPassword 'dineopen2026'
@@ -49,6 +49,7 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+    implementation project(':capacitor-dine-printer')
 }
 
 apply from: 'capacitor.build.gradle'

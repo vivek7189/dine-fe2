@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { auth } from '../../../firebase';
 import {
   signInWithPhoneNumber,
@@ -28,7 +28,7 @@ const countries = [
 
 export default function DesktopAuthPage() {
   const [sessionId, setSessionId] = useState(null);
-  const [step, setStep] = useState('method'); // method, phone, otp, email-login, success
+  const [step, setStep] = useState('method'); // method, phone, sending-otp, otp, email-login, success
   const [method, setMethod] = useState('phone'); // phone, google, email
   const [phoneNumber, setPhoneNumber] = useState('');
   const [selectedCountry, setSelectedCountry] = useState(countries[0]);
@@ -44,10 +44,14 @@ export default function DesktopAuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  // Track if phone was pre-filled from URL (desktop app flow)
+  const [isPrefilledPhone, setIsPrefilledPhone] = useState(false);
+  const autoSendRef = useRef(false);
+
   const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
 
   useEffect(() => {
-    // Get session ID from URL params
+    // Get session ID and optional phone params from URL
     const params = new URLSearchParams(window.location.search);
     const sid = params.get('session');
     if (sid) {
@@ -55,7 +59,58 @@ export default function DesktopAuthPage() {
     } else {
       setError('Invalid session. Please try again from the desktop app.');
     }
+
+    // Pre-fill phone number if passed from desktop app
+    const phoneParam = params.get('phone');
+    const dialCodeParam = params.get('dialCode');
+    if (phoneParam) {
+      setPhoneNumber(phoneParam);
+      setIsPrefilledPhone(true);
+      if (dialCodeParam) {
+        const match = countries.find(c => c.dialCode === dialCodeParam);
+        if (match) setSelectedCountry(match);
+      }
+      // Go straight to "sending OTP" screen — auto-send will fire from the next effect
+      setMethod('phone');
+      setStep('sending-otp');
+    }
   }, []);
+
+  // Auto-send OTP when phone is pre-filled and we have a session
+  useEffect(() => {
+    if (!isPrefilledPhone || !sessionId || step !== 'sending-otp' || autoSendRef.current) return;
+    if (!phoneNumber || phoneNumber.length < 7) return;
+    autoSendRef.current = true;
+
+    const sendOtp = async () => {
+      try {
+        // Setup reCAPTCHA
+        if (!window.recaptchaVerifier) {
+          window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            size: 'invisible',
+            callback: () => {},
+            'expired-callback': () => setError('reCAPTCHA expired. Please try again.')
+          });
+        }
+        const fullPhone = `${selectedCountry.dialCode}${phoneNumber}`;
+        const appVerifier = window.recaptchaVerifier;
+        const result = await signInWithPhoneNumber(auth, fullPhone, appVerifier);
+        setVerificationId(result);
+        setStep('otp');
+      } catch (err) {
+        console.error('Auto-send OTP error:', err);
+        if (err.code === 'auth/invalid-phone-number') setError('Invalid phone number format');
+        else if (err.code === 'auth/too-many-requests') setError('Too many requests. Try again later.');
+        else setError('Failed to send OTP. Please try again.');
+        // Fall back to manual phone step so user can retry
+        setStep('phone');
+      }
+    };
+
+    // Small delay to ensure reCAPTCHA container is in DOM
+    const timer = setTimeout(sendOtp, 300);
+    return () => clearTimeout(timer);
+  }, [isPrefilledPhone, sessionId, step, phoneNumber, selectedCountry]);
 
   const setupRecaptcha = () => {
     try {
@@ -267,6 +322,19 @@ export default function DesktopAuthPage() {
             </div>
           )}
 
+          {/* Sending OTP screen — shown while auto-sending OTP for pre-filled phone */}
+          {step === 'sending-otp' && (
+            <div style={{ textAlign: 'center', padding: '32px 16px' }}>
+              <FaSpinner className="animate-spin" style={{ fontSize: 28, color: '#dc2626', margin: '0 auto 16px' }} />
+              <h3 style={{ fontSize: 16, fontWeight: 600, color: '#111', marginBottom: 8 }}>
+                Sending OTP...
+              </h3>
+              <p style={{ fontSize: 14, color: '#666', lineHeight: 1.5 }}>
+                Sending verification code to <strong>{selectedCountry.dialCode} {phoneNumber}</strong>
+              </p>
+            </div>
+          )}
+
           {/* Method selection */}
           {step === 'method' && (
             <div>
@@ -371,7 +439,7 @@ export default function DesktopAuthPage() {
           {step === 'otp' && (
             <form onSubmit={handleOtpVerify}>
               <p style={{ fontSize: 14, color: '#666', marginBottom: 16 }}>
-                Enter the 6-digit code sent to <strong>{selectedCountry.dialCode}{phoneNumber}</strong>
+                Enter the 6-digit code sent to <strong>{selectedCountry.dialCode} {phoneNumber}</strong>
               </p>
               <input
                 type="text"

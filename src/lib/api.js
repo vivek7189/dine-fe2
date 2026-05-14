@@ -2355,6 +2355,13 @@ class ApiClient {
     });
   }
 
+  async bulkImportCustomers(restaurantId, customers) {
+    return this.request('/api/customers/bulk-import', {
+      method: 'POST',
+      body: { restaurantId, customers },
+    });
+  }
+
   // ==================== EMAIL METHODS ====================
 
   // Send welcome email to new user

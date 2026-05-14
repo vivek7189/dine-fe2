@@ -2286,7 +2286,13 @@ const OrderSummary = ({
               {orderSuccess?.kotData && (orderSuccess?.message?.includes('placed') || orderSuccess?.message?.includes('Updated') || orderSuccess?.message?.includes('Kitchen')) && (
                 <>
                   <div style={{ textAlign: 'center', marginBottom: '12px', padding: '12px', backgroundColor: '#fff', borderRadius: '8px', border: '2px dashed #22c55e', fontFamily: 'monospace', fontSize: '14px', color: '#14532d' }}>
-                    <div style={{ fontWeight: 'bold', fontSize: '15px', borderBottom: '2px dashed #22c55e', paddingBottom: '6px', marginBottom: '8px' }}>--- {t('invoice.kitchenOrder')} ---</div>
+                    {(() => {
+                      const kd = orderSuccess.kotData;
+                      const kdRemoved = kd.removedItems || [];
+                      const kdHasChanges = kd.isIncremental && ((kd.items || []).length > 0 || kdRemoved.length > 0);
+                      const kdTitle = kdHasChanges ? (t('invoice.kotUpdate') || 'KOT UPDATE') : t('invoice.kitchenOrder');
+                      return <div style={{ fontWeight: 'bold', fontSize: '15px', borderBottom: '2px dashed #22c55e', paddingBottom: '6px', marginBottom: '8px' }}>--- {kdTitle} ---</div>;
+                    })()}
                     <div style={{ marginBottom: '6px', fontSize: '14px' }}>{orderSuccess.kotData.restaurantName || 'Restaurant'}</div>
                     <div style={{ textAlign: 'left', marginBottom: '8px', fontSize: '13px' }}>
                       <div><strong>{t('invoice.orderHash')}:</strong> {orderSuccess.kotData.dailyOrderId ?? orderSuccess.kotData.orderId ?? '—'}</div>
@@ -2298,24 +2304,64 @@ const OrderSummary = ({
                       {orderSuccess.kotData.customerName && <div><strong>{t('invoice.customer')}:</strong> {orderSuccess.kotData.customerName}</div>}
                       {orderSuccess.kotData.orderType && <div><strong>{t('invoice.type')}:</strong> {orderSuccess.kotData.orderType}</div>}
                     </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid #86efac' }}>
-                          <th style={{ textAlign: 'left', padding: '4px 6px', backgroundColor: '#f0fdf4' }}>{t('invoice.item')}</th>
-                          <th style={{ textAlign: 'center', padding: '4px 6px', backgroundColor: '#f0fdf4', width: '36px' }}>{t('invoice.qty')}</th>
-                          <th style={{ textAlign: 'left', padding: '4px 6px', backgroundColor: '#f0fdf4' }}>{t('invoice.note')}</th>
+                    {(() => {
+                      const kd = orderSuccess.kotData;
+                      const kdRemoved = kd.removedItems || [];
+                      const kdHasChanges = kd.isIncremental && ((kd.items || []).length > 0 || kdRemoved.length > 0);
+                      const kdReducedItems = kdHasChanges ? (kd.items || []).filter(i => i.isUpdated && i.quantityDelta < 0) : [];
+                      const kdNewAndInc = kdHasChanges ? (kd.items || []).filter(i => i.isNew || (i.isUpdated && i.quantityDelta > 0)) : [];
+                      const kdUnmarked = kdHasChanges ? (kd.items || []).filter(i => !i.isNew && !i.isUpdated) : (kd.items || []);
+
+                      const renderRow = (item, idx, opts = {}) => (
+                        <tr key={`${opts.prefix || ''}-${idx}`} style={{ borderBottom: '1px solid #dcfce7', textDecoration: opts.isRemoved ? 'line-through' : 'none', color: opts.isRemoved ? '#ef4444' : 'inherit' }}>
+                          <td style={{ padding: '4px 6px' }}>
+                            {item.name || '—'}
+                            {opts.label && <span style={{ fontSize: '9px', fontWeight: 'bold', marginLeft: '4px', color: opts.labelColor || '#666' }}>{opts.label}</span>}
+                          </td>
+                          <td style={{ padding: '4px 6px', textAlign: 'center' }}>{opts.isRemoved && opts.showDelta ? Math.abs(item.quantityDelta) : (item.quantity || 1)}</td>
+                          <td style={{ padding: '4px 6px', color: '#6b7280' }}>{item.notes || '—'}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {(orderSuccess.kotData.items || []).map((i, idx) => (
-                          <tr key={idx} style={{ borderBottom: '1px solid #dcfce7' }}>
-                            <td style={{ padding: '4px 6px' }}>{i.name || '—'}</td>
-                            <td style={{ padding: '4px 6px', textAlign: 'center' }}>{i.quantity || 1}</td>
-                            <td style={{ padding: '4px 6px', color: '#6b7280' }}>{i.notes || '—'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                      );
+
+                      return (
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid #86efac' }}>
+                              <th style={{ textAlign: 'left', padding: '4px 6px', backgroundColor: '#f0fdf4' }}>{t('invoice.item')}</th>
+                              <th style={{ textAlign: 'center', padding: '4px 6px', backgroundColor: '#f0fdf4', width: '36px' }}>{t('invoice.qty')}</th>
+                              <th style={{ textAlign: 'left', padding: '4px 6px', backgroundColor: '#f0fdf4' }}>{t('invoice.note')}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {kdHasChanges ? (
+                              <>
+                                {kdRemoved.length > 0 && (
+                                  <>
+                                    <tr><td colSpan={3} style={{ textAlign: 'center', fontWeight: 'bold', padding: '4px', backgroundColor: '#fee2e2', color: '#dc2626', fontSize: '11px' }}>CANCELLED</td></tr>
+                                    {kdRemoved.map((i, idx) => renderRow(i, idx, { prefix: 'rem', isRemoved: true }))}
+                                  </>
+                                )}
+                                {kdReducedItems.length > 0 && (
+                                  <>
+                                    <tr><td colSpan={3} style={{ textAlign: 'center', fontWeight: 'bold', padding: '4px', backgroundColor: '#fef3c7', color: '#d97706', fontSize: '11px' }}>REDUCED</td></tr>
+                                    {kdReducedItems.map((i, idx) => renderRow(i, idx, { prefix: 'dec', isRemoved: true, showDelta: true }))}
+                                  </>
+                                )}
+                                {kdNewAndInc.length > 0 && (
+                                  <>
+                                    <tr><td colSpan={3} style={{ textAlign: 'center', fontWeight: 'bold', padding: '4px', backgroundColor: '#dcfce7', color: '#16a34a', fontSize: '11px' }}>NEW ITEMS</td></tr>
+                                    {kdNewAndInc.map((i, idx) => renderRow(i, idx, { prefix: 'new', label: i.isUpdated ? `+${i.quantityDelta}` : 'NEW', labelColor: '#16a34a' }))}
+                                  </>
+                                )}
+                                {kdUnmarked.map((i, idx) => renderRow(i, idx, { prefix: 'unk' }))}
+                              </>
+                            ) : (
+                              (kd.items || []).map((i, idx) => renderRow(i, idx))
+                            )}
+                          </tbody>
+                        </table>
+                      );
+                    })()}
                     {orderSuccess.kotData.specialInstructions && (
                       <div style={{ marginTop: '8px', padding: '8px', backgroundColor: '#fef3c7', border: '1px dashed #f59e0b', borderRadius: '4px', textAlign: 'left' }}>
                         <div style={{ fontWeight: 'bold', fontSize: '11px', color: '#92400e', marginBottom: '4px' }}>*** {t('invoice.specialInstructions')} ***</div>
@@ -2335,10 +2381,15 @@ const OrderSummary = ({
                         return;
                       }
                       const k = orderSuccess.kotData;
-                      const tableOrRoom = k.roomNumber ? `${t('invoice.room')}: ${k.roomNumber}` : (k.tableNumber ? `${t('invoice.table')}: ${k.tableNumber}${k.floorName ? ` · ${k.floorName}` : ''}` : '');
-                      const totalItems = (k.items || []).reduce((sum, i) => sum + (i.quantity || 1), 0);
-                      const specialInstructionsHtml = k.specialInstructions ? `<div class="divider">--------------------------------</div><div class="special-instructions"><strong>*** ${t('invoice.specialInstructions')} ***</strong><div>${(k.specialInstructions || '').replace(/</g,'&lt;')}</div></div>` : '';
-                      const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${k.dailyOrderId || k.orderId}</title><style>${getKOTPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body><div class="kot-header"><div class="restaurant-name">${(k.restaurantName || 'Restaurant').replace(/</g,'&lt;')}</div><div class="kot-title">--- ${t('invoice.kitchenOrder')} ---</div></div><div class="divider">--------------------------------</div><div class="kot-info"><div><strong>${t('invoice.orderHash')}:</strong> ${k.dailyOrderId || k.orderId}</div>${tableOrRoom ? `<div><strong>${k.roomNumber ? t('invoice.room') : t('invoice.table')}:</strong> ${k.roomNumber || k.tableNumber}</div>` : ''}<div><strong>${t('invoice.time')}:</strong> ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</div><div><strong>${t('invoice.date')}:</strong> ${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</div>${k.customerName ? `<div><strong>${t('invoice.customer')}:</strong> ${(k.customerName || '').replace(/</g,'&lt;')}</div>` : ''}${k.orderType ? `<div><strong>${t('invoice.type')}:</strong> ${k.orderType}</div>` : ''}${k.waiterName ? `<div><strong>${t('invoice.waiter')}:</strong> ${(k.waiterName || '').replace(/</g,'&lt;')}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">${t('invoice.qty')} &nbsp; ${t('invoice.item')}</div><div class="divider">--------------------------------</div>${(k.items || []).map(i => `<div class="item"><div class="item-main"><span class="item-qty">${i.quantity || 1}x</span><span class="item-name">${(i.name || '').replace(/</g,'&lt;')}</span></div>${i.selectedVariant?.name ? `<div class="item-detail">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${(c.name || c || '').toString().replace(/</g,'&lt;')}</div>`).join('')}${i.notes ? `<div class="item-note">${t('invoice.note')}: ${(i.notes || '').replace(/</g,'&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div><div class="kot-footer">${t('invoice.totalItems')}: ${totalItems}</div>${specialInstructionsHtml}<div class="divider">================================</div></body></html>`;
+                      const kotLabels = {
+                        kitchenOrder: t('invoice.kitchenOrder'), kotUpdate: t('invoice.kotUpdate') || 'KOT UPDATE',
+                        orderHash: t('invoice.orderHash'), table: t('invoice.table'), room: t('invoice.room'),
+                        time: t('invoice.time'), date: t('invoice.date'), customer: t('invoice.customer'),
+                        type: t('invoice.type'), waiter: t('invoice.waiter'), qty: t('invoice.qty'),
+                        item: t('invoice.item'), totalItems: t('invoice.totalItems'),
+                        specialInstructions: t('invoice.specialInstructions'), note: t('invoice.note'),
+                      };
+                      const kotContent = generateKOTHTML(k, printSettings || {}, kotLabels);
                       const newPw = window.open('', '_blank', 'width=400,height=600');
                       if (newPw) {
                         kotPrintWindowRef.current = newPw;
@@ -2879,19 +2930,52 @@ const OrderSummary = ({
                     }}>
                       {item.name}
                       {/* Show indicator for items from original order */}
-                      {currentOrder && currentOrder.items && currentOrder.items.some(origItem => origItem.menuItemId === item.id) && (
-                        <span style={{
-                          fontSize: '8px',
-                          fontWeight: 'bold',
-                          color: '#f59e0b',
-                          backgroundColor: '#fef3c7',
-                          padding: '1px 4px',
-                          borderRadius: '3px',
-                          border: '1px solid #f59e0b'
-                        }}>
-                          ORIGINAL
-                        </span>
-                      )}
+                      {currentOrder && currentOrder.items && (() => {
+                        const origItem = currentOrder.items.find(o => o.menuItemId === item.id);
+                        if (!origItem) return null;
+                        const qtyDelta = item.quantity - (origItem.quantity || 0);
+                        return (
+                          <>
+                            <span style={{
+                              fontSize: '8px',
+                              fontWeight: 'bold',
+                              color: '#f59e0b',
+                              backgroundColor: '#fef3c7',
+                              padding: '1px 4px',
+                              borderRadius: '3px',
+                              border: '1px solid #f59e0b'
+                            }}>
+                              ORIGINAL
+                            </span>
+                            {qtyDelta > 0 && (
+                              <span style={{
+                                fontSize: '8px',
+                                fontWeight: 'bold',
+                                color: '#10b981',
+                                backgroundColor: '#d1fae5',
+                                padding: '1px 4px',
+                                borderRadius: '3px',
+                                border: '1px solid #10b981'
+                              }}>
+                                +{qtyDelta} NEW
+                              </span>
+                            )}
+                            {qtyDelta < 0 && (
+                              <span style={{
+                                fontSize: '8px',
+                                fontWeight: 'bold',
+                                color: '#ef4444',
+                                backgroundColor: '#fee2e2',
+                                padding: '1px 4px',
+                                borderRadius: '3px',
+                                border: '1px solid #ef4444'
+                              }}>
+                                {qtyDelta}
+                              </span>
+                            )}
+                          </>
+                        );
+                      })()}
                       {/* Show indicator for newly added items */}
                       {currentOrder && (!currentOrder.items || !currentOrder.items.some(origItem => origItem.menuItemId === item.id)) && (
                         <span style={{

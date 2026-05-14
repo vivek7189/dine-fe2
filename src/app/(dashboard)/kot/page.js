@@ -1208,39 +1208,57 @@ const KitchenOrderTicket = () => {
                           if (!Array.isArray(kot.items)) return null;
                           const hasUpdateHistory = kot.updateHistory && kot.updateHistory.length > 0;
                           const originalItems = hasUpdateHistory ? kot.items.filter(item => !item.isNew && !item.isUpdated) : kot.items;
-                          const newItems = hasUpdateHistory ? kot.items.filter(item => item.isNew || item.isUpdated) : [];
-                          const allItemsToRender = [...originalItems, ...newItems];
-                          const firstNewItem = newItems[0];
-                          const addedTime = firstNewItem?.addedAt ? new Date(firstNewItem.addedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
+                          const newItems = hasUpdateHistory ? kot.items.filter(item => item.isNew) : [];
+                          const updatedItems = hasUpdateHistory ? kot.items.filter(item => item.isUpdated) : [];
+                          const removedItems = hasUpdateHistory ? (kot.removedItems || []) : [];
+                          const firstChangedItem = [...newItems, ...updatedItems][0];
+                          const addedTime = (firstChangedItem?.addedAt || firstChangedItem?.updatedAt)
+                            ? new Date(firstChangedItem.addedAt || firstChangedItem.updatedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+                            : '';
 
-                          const renderItem = (item, index, totalCount) => {
-                            const isNewItem = hasUpdateHistory && item.isNew;
-                            const isUpdatedItem = hasUpdateHistory && item.isUpdated;
+                          const renderItem = (item, index, totalCount, options = {}) => {
+                            const { isNewItem, isUpdatedItem, isRemovedItem, showDelta } = options;
+                            // For updated items, show only the delta quantity (what was added/removed)
+                            const displayQuantity = showDelta && item.quantityDelta != null
+                              ? Math.abs(item.quantityDelta)
+                              : item.quantity;
+                            const isDeltaPositive = item.quantityDelta > 0;
+                            const isDeltaNegative = item.quantityDelta < 0;
+
                             return (
                               <div key={index} style={{
                                 display: 'flex', alignItems: 'flex-start', gap: '10px',
                                 padding: '7px 0',
-                                borderBottom: index < totalCount - 1 ? '1px solid #f3f4f6' : 'none'
+                                borderBottom: index < totalCount - 1 ? '1px solid #f3f4f6' : 'none',
+                                opacity: isRemovedItem ? 0.7 : 1,
+                                textDecoration: isRemovedItem ? 'line-through' : 'none'
                               }}>
                                 <span style={{
-                                  fontSize: '14px', fontWeight: '700', color: '#374151',
+                                  fontSize: '14px', fontWeight: '700',
+                                  color: isRemovedItem ? '#ef4444' : isDeltaNegative ? '#f59e0b' : '#374151',
                                   minWidth: '26px', textAlign: 'right'
                                 }}>
-                                  {item.quantity}×
+                                  {isRemovedItem ? item.previousQuantity : displayQuantity}×
                                 </span>
                                 <div style={{ flex: 1 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937' }}>
+                                    <span style={{ fontSize: '13px', fontWeight: '600', color: isRemovedItem ? '#ef4444' : '#1f2937' }}>
                                       {item.name}
                                     </span>
                                     {isNewItem && <span style={{ fontSize: '8px', fontWeight: '700', color: 'white', backgroundColor: '#22c55e', padding: '1px 4px', borderRadius: '3px' }}>{t('kot.new')}</span>}
-                                    {isUpdatedItem && <span style={{ fontSize: '8px', fontWeight: '700', color: 'white', backgroundColor: '#f59e0b', padding: '1px 4px', borderRadius: '3px' }}>{t('kot.upd')}</span>}
+                                    {isUpdatedItem && isDeltaPositive && (
+                                      <span style={{ fontSize: '8px', fontWeight: '700', color: 'white', backgroundColor: '#22c55e', padding: '1px 4px', borderRadius: '3px' }}>+{item.quantityDelta} {t('kot.new')}</span>
+                                    )}
+                                    {isUpdatedItem && isDeltaNegative && (
+                                      <span style={{ fontSize: '8px', fontWeight: '700', color: 'white', backgroundColor: '#f59e0b', padding: '1px 4px', borderRadius: '3px' }}>{item.quantityDelta}</span>
+                                    )}
+                                    {isRemovedItem && <span style={{ fontSize: '8px', fontWeight: '700', color: 'white', backgroundColor: '#ef4444', padding: '1px 4px', borderRadius: '3px' }}>VOID</span>}
                                     {item.spiceLevel && item.spiceLevel !== 'mild' && (
                                       <FaFire size={10} style={{ color: item.spiceLevel === 'hot' ? '#ef4444' : '#f59e0b' }} />
                                     )}
-                                    {currentRestaurant?.posSettings?.showPriceOnKot && item.price != null && (
+                                    {currentRestaurant?.posSettings?.showPriceOnKot && item.price != null && !isRemovedItem && (
                                       <span style={{ fontSize: '11px', fontWeight: '500', color: '#6b7280', marginLeft: 'auto' }}>
-                                        {formatCurrency(item.price * (item.quantity || 1))}
+                                        {formatCurrency(item.price * (displayQuantity || 1))}
                                       </span>
                                     )}
                                   </div>
@@ -1272,7 +1290,26 @@ const KitchenOrderTicket = () => {
                           return (
                             <>
                               {originalItems.map((item, index) => renderItem(item, index, originalItems.length))}
-                              {newItems.length > 0 && hasUpdateHistory && (
+                              {/* Removed items section */}
+                              {removedItems.length > 0 && hasUpdateHistory && (
+                                <div style={{
+                                  textAlign: 'center',
+                                  padding: '6px 8px',
+                                  margin: '4px 0',
+                                  background: 'linear-gradient(90deg, transparent, #fee2e2, transparent)',
+                                  borderTop: '1px dashed #ef4444',
+                                  borderBottom: '1px dashed #ef4444',
+                                  fontSize: '10px',
+                                  fontWeight: '600',
+                                  color: '#dc2626',
+                                  letterSpacing: '0.5px',
+                                }}>
+                                  ✦ CANCELLED ITEMS ✦
+                                </div>
+                              )}
+                              {removedItems.map((item, index) => renderItem(item, index, removedItems.length, { isRemovedItem: true }))}
+                              {/* New/updated items section */}
+                              {(newItems.length > 0 || updatedItems.length > 0) && hasUpdateHistory && (
                                 <div style={{
                                   textAlign: 'center',
                                   padding: '6px 8px',
@@ -1288,7 +1325,29 @@ const KitchenOrderTicket = () => {
                                   ✦ NEW ITEMS {addedTime ? `(${addedTime})` : ''} ✦
                                 </div>
                               )}
-                              {newItems.map((item, index) => renderItem(item, index, newItems.length))}
+                              {updatedItems.filter(item => item.quantityDelta > 0).map((item, index) => renderItem(item, index, updatedItems.filter(i => i.quantityDelta > 0).length, { isUpdatedItem: true, showDelta: true }))}
+                              {newItems.map((item, index) => renderItem(item, index, newItems.length, { isNewItem: true }))}
+                              {/* Items with reduced quantity — shown in cancelled section style */}
+                              {updatedItems.filter(item => item.quantityDelta < 0).length > 0 && removedItems.length === 0 && (
+                                <div style={{
+                                  textAlign: 'center',
+                                  padding: '6px 8px',
+                                  margin: '4px 0',
+                                  background: 'linear-gradient(90deg, transparent, #fef3c7, transparent)',
+                                  borderTop: '1px dashed #f59e0b',
+                                  borderBottom: '1px dashed #f59e0b',
+                                  fontSize: '10px',
+                                  fontWeight: '600',
+                                  color: '#d97706',
+                                  letterSpacing: '0.5px',
+                                }}>
+                                  ✦ REDUCED ITEMS ✦
+                                </div>
+                              )}
+                              {updatedItems.filter(item => item.quantityDelta < 0).map((item, index) => {
+                                const reducedItems = updatedItems.filter(i => i.quantityDelta < 0);
+                                return renderItem(item, index, reducedItems.length, { isUpdatedItem: true, showDelta: true });
+                              })}
                             </>
                           );
                         })()}

@@ -118,6 +118,7 @@ const CustomerAppSettings = dynamic(() => import('../customer-app/page'), { ssr:
 import { getAllCountriesWithCurrency, getCurrencyByCountryCode } from '../../../lib/currencyData';
 import { FEATURE_OPS, OP_LABELS, ADMIN_TAB_LABELS, ADMIN_TAB_ID_TO_KEY, resolveFeaturePermissions } from '@/lib/permissions';
 import { getPrintFontSizes, getPrintFontFamily, PRINT_FONTS } from '../../../utils/printFontSizes';
+import { KOT_TEMPLATE_LIST, BILL_TEMPLATE_LIST, renderKOT, renderBill } from '../../../utils/printTemplates/index';
 
 // Reusable shimmer skeleton for tab content while restaurants load
 const AdminTabSkeleton = ({ variant = 'single' }) => (
@@ -3048,7 +3049,8 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
     setSaving(true);
     setSaveNotification(null);
     try {
-      const response = await apiClient.updatePrintSettings(selectedRestaurant.id, printSettings);
+      const { _previewTab, ...settingsToSave } = printSettings;
+      const response = await apiClient.updatePrintSettings(selectedRestaurant.id, settingsToSave);
       if (response.success) {
         setSaveNotification({ type: 'success', message: 'Print settings saved successfully!' });
         setTimeout(() => setSaveNotification(null), 3000);
@@ -3717,95 +3719,210 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                   </div>
                 </div>
 
-                {/* Live preview */}
-                <div style={{
-                  maxHeight: '480px',
-                  overflowY: 'auto',
-                  borderRadius: '8px'
-                }}>
-                  <p style={{ fontSize: '11px', fontWeight: '600', color: '#9ca3af', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Live Preview (80mm receipt)
+                {/* Print Template Selection */}
+                <div style={{ marginBottom: '16px' }}>
+                  <p style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', margin: '0 0 8px 0' }}>
+                    KOT Print Template
                   </p>
-                  {(() => {
-                    const f = getPrintFontSizes(printSettings.billFontScale || 100);
-                    const ff = getPrintFontFamily(printSettings.billFontFamily);
-                    const rName = selectedRestaurant?.name || 'My Restaurant';
-                    return (
-                      <div style={{
-                        fontFamily: ff,
-                        maxWidth: '80mm',
-                        margin: '0 auto',
-                        backgroundColor: 'white',
-                        padding: '16px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '4px',
-                        fontSize: f.body,
-                        lineHeight: f.lineHeight,
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-                      }}>
-                        {(() => {
-                          const logo = printSettings.receiptLogo;
-                          const hasLogo = logo?.enabled && logo?.url;
-                          const logoPos = logo?.position || 'center';
-                          const nameAlign = logo?.nameAlignment || 'center';
-                          const logoSize = logo?.size || 60;
-                          const nameEl = <div style={{ fontSize: f.restaurantName, fontWeight: 'bold', textTransform: 'uppercase', textAlign: nameAlign }}>{rName}</div>;
-                          const titleEl = <div style={{ fontSize: f.billTitle, fontWeight: 'bold', marginTop: '4px', textAlign: nameAlign }}>--- BILL ---</div>;
-                          const logoEl = hasLogo ? <img src={logo.url} alt="" style={{ width: `${logoSize}px`, height: 'auto', objectFit: 'contain', ...(logoPos === 'center' ? { margin: '0 auto 4px', display: 'block' } : { flexShrink: 0 }) }} /> : null;
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                    {KOT_TEMPLATE_LIST.map((tpl) => {
+                      const isSelected = (printSettings.kotTemplate || 'classic') === tpl.id;
+                      return (
+                        <button
+                          key={tpl.id}
+                          onClick={() => setPrintSettings(prev => ({ ...prev, kotTemplate: tpl.id }))}
+                          style={{
+                            padding: '8px 10px',
+                            border: isSelected ? '2px solid #111827' : '1px solid #e5e7eb',
+                            borderRadius: '8px',
+                            background: isSelected ? '#f9fafb' : 'white',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            transition: 'all 0.15s'
+                          }}
+                        >
+                          <span style={{
+                            fontSize: '13px',
+                            fontWeight: isSelected ? '700' : '500',
+                            color: isSelected ? '#111827' : '#374151',
+                            display: 'block',
+                            lineHeight: '1.3'
+                          }}>
+                            {tpl.name}
+                          </span>
+                          <span style={{
+                            fontSize: '10px',
+                            color: '#9ca3af',
+                            display: 'block',
+                            marginTop: '2px'
+                          }}>
+                            {tpl.description}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
-                          if (hasLogo && logoPos === 'center') {
-                            return <div style={{ textAlign: 'center', marginBottom: '8px' }}>{logoEl}{nameEl}{titleEl}</div>;
-                          }
-                          if (hasLogo && (logoPos === 'left' || logoPos === 'right')) {
-                            return (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexDirection: logoPos === 'right' ? 'row-reverse' : 'row' }}>
-                                {logoEl}
-                                <div style={{ flex: 1, textAlign: nameAlign }}>{nameEl}{titleEl}</div>
-                              </div>
-                            );
-                          }
-                          return <div style={{ textAlign: nameAlign, marginBottom: '8px' }}>{nameEl}{titleEl}</div>;
-                        })()}
-                        <div style={{ textAlign: 'center', margin: '6px 0', color: '#9ca3af', fontSize: f.info }}>- - - - - - - - - - - - - - - -</div>
-                        <div style={{ margin: '8px 0', fontSize: f.info }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}><span>Bill#:</span><span><strong>1042</strong></span></div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}><span>Date:</span><span>06 Apr 2026 2:30 PM</span></div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}><span>Table:</span><span>T-5</span></div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}><span>Payment:</span><span>CASH</span></div>
-                        </div>
-                        <div style={{ textAlign: 'center', margin: '6px 0', color: '#9ca3af', fontSize: f.info }}>- - - - - - - - - - - - - - - -</div>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', margin: '8px 0' }}>
-                          <thead>
-                            <tr>
-                              <th style={{ textAlign: 'left', borderBottom: '1px dashed #000', padding: '4px', fontSize: f.th }}>Item</th>
-                              <th style={{ textAlign: 'center', borderBottom: '1px dashed #000', padding: '4px', fontSize: f.th }}>Qty</th>
-                              <th style={{ textAlign: 'right', borderBottom: '1px dashed #000', padding: '4px', fontSize: f.th }}>Amt</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr><td style={{ fontSize: f.td, padding: f.tdPadding }}>Butter Chicken</td><td style={{ textAlign: 'center', fontSize: f.td, padding: f.tdPadding }}>1</td><td style={{ textAlign: 'right', fontSize: f.td, padding: f.tdPadding }}>₹320.00</td></tr>
-                            <tr><td style={{ fontSize: f.td, padding: f.tdPadding }}>Garlic Naan</td><td style={{ textAlign: 'center', fontSize: f.td, padding: f.tdPadding }}>2</td><td style={{ textAlign: 'right', fontSize: f.td, padding: f.tdPadding }}>₹90.00</td></tr>
-                            <tr><td style={{ fontSize: f.td, padding: f.tdPadding }}>Masala Dosa</td><td style={{ textAlign: 'center', fontSize: f.td, padding: f.tdPadding }}>1</td><td style={{ textAlign: 'right', fontSize: f.td, padding: f.tdPadding }}>₹120.00</td></tr>
-                          </tbody>
-                        </table>
-                        <div style={{ borderTop: '1px dashed #000', marginTop: '8px', paddingTop: '4px', fontSize: f.totalSection }}>
-                          <div style={{ fontSize: f.info, margin: '8px 0' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}><span>Subtotal:</span><span>₹530.00</span></div>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0', fontSize: f.info }}><span>GST (5%)</span><span>₹26.50</span></div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: f.totalRow, marginTop: '4px' }}>
-                            <span>TOTAL:</span><span>₹556.50</span>
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'center', margin: '6px 0', color: '#9ca3af', fontSize: f.info }}>=  =  =  =  =  =  =  =  =  =  =</div>
-                        <div style={{ marginTop: '12px', textAlign: 'center', fontSize: f.footer }}>
-                          <p style={{ margin: '0 0 4px 0' }}>Thank you for dining with us!</p>
-                          <p style={{ fontSize: f.poweredBy, margin: 0, opacity: 0.6 }}>Powered by DineOpen</p>
+                <div style={{ marginBottom: '16px' }}>
+                  <p style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', margin: '0 0 8px 0' }}>
+                    Bill Print Template
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                    {BILL_TEMPLATE_LIST.map((tpl) => {
+                      const isSelected = (printSettings.billTemplate || 'classic') === tpl.id;
+                      return (
+                        <button
+                          key={tpl.id}
+                          onClick={() => setPrintSettings(prev => ({ ...prev, billTemplate: tpl.id }))}
+                          style={{
+                            padding: '8px 10px',
+                            border: isSelected ? '2px solid #111827' : '1px solid #e5e7eb',
+                            borderRadius: '8px',
+                            background: isSelected ? '#f9fafb' : 'white',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            transition: 'all 0.15s'
+                          }}
+                        >
+                          <span style={{
+                            fontSize: '13px',
+                            fontWeight: isSelected ? '700' : '500',
+                            color: isSelected ? '#111827' : '#374151',
+                            display: 'block',
+                            lineHeight: '1.3'
+                          }}>
+                            {tpl.name}
+                          </span>
+                          <span style={{
+                            fontSize: '10px',
+                            color: '#9ca3af',
+                            display: 'block',
+                            marginTop: '2px'
+                          }}>
+                            {tpl.description}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Live preview — KOT and Bill tabs */}
+                {(() => {
+                  const previewTab = printSettings._previewTab || 'bill';
+                  const rName = selectedRestaurant?.name || 'My Restaurant';
+
+                  // Sample KOT data
+                  const sampleKotData = {
+                    restaurantName: rName,
+                    restaurantPhone: '+91 98765 43210',
+                    orderId: 'ORD-2048',
+                    dailyOrderId: '1042',
+                    tableNumber: 'T-5',
+                    roomNumber: '',
+                    floorName: 'Ground Floor',
+                    customerName: '',
+                    orderType: 'Dine In',
+                    waiterName: 'Rahul',
+                    specialInstructions: 'No onion in Butter Chicken',
+                    items: [
+                      { name: 'Butter Chicken', quantity: 1, price: 320, categoryName: 'Main Course', variant: 'Full', notes: '' },
+                      { name: 'Garlic Naan', quantity: 2, price: 45, categoryName: 'Breads', variant: '', notes: '' },
+                      { name: 'Masala Dosa', quantity: 1, price: 120, categoryName: 'South Indian', variant: '', notes: 'Extra chutney' },
+                    ],
+                    removedItems: [],
+                    isIncremental: false,
+                    currencySymbol: selectedRestaurant?.currencySymbol || '₹',
+                  };
+
+                  // Sample Bill data
+                  const sampleBillData = {
+                    restaurantName: rName,
+                    dailyOrderId: '1042',
+                    id: 'INV-2048',
+                    currencySymbol: selectedRestaurant?.currencySymbol || '₹',
+                    tableNumber: 'T-5',
+                    floorName: 'Ground Floor',
+                    customerName: 'Walk-in',
+                    waiterName: 'Rahul',
+                    paymentMethod: 'cash',
+                    items: [
+                      { name: 'Butter Chicken', quantity: 1, price: 320, total: 320, categoryName: 'Main Course', variant: 'Full' },
+                      { name: 'Garlic Naan', quantity: 2, price: 45, total: 90, categoryName: 'Breads' },
+                      { name: 'Masala Dosa', quantity: 1, price: 120, total: 120, categoryName: 'South Indian' },
+                    ],
+                    subtotal: 530,
+                    taxBreakdown: [{ name: 'GST', rate: 5, amount: 26.50 }],
+                    grandTotal: 556.50,
+                    offerDiscount: 0,
+                    manualDiscount: 0,
+                    loyaltyDiscount: 0,
+                    couponDiscount: 0,
+                    serviceChargeAmount: 0,
+                    tipAmount: 0,
+                    roundOffAmount: 0,
+                    cashReceived: 600,
+                    changeReturned: 43.50,
+                  };
+
+                  const previewHtml = previewTab === 'kot'
+                    ? renderKOT(sampleKotData, printSettings, {})
+                    : renderBill(sampleBillData, printSettings, {});
+
+                  return (
+                    <div style={{ borderRadius: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <p style={{ fontSize: '11px', fontWeight: '600', color: '#9ca3af', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Live Preview (80mm)
+                        </p>
+                        <div style={{ display: 'flex', gap: '4px', background: '#f3f4f6', borderRadius: '6px', padding: '2px' }}>
+                          {['kot', 'bill'].map(tab => (
+                            <button
+                              key={tab}
+                              onClick={() => setPrintSettings(prev => ({ ...prev, _previewTab: tab }))}
+                              style={{
+                                padding: '4px 12px',
+                                fontSize: '11px',
+                                fontWeight: previewTab === tab ? '700' : '500',
+                                color: previewTab === tab ? '#111827' : '#6b7280',
+                                background: previewTab === tab ? 'white' : 'transparent',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                boxShadow: previewTab === tab ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.03em',
+                              }}
+                            >
+                              {tab}
+                            </button>
+                          ))}
                         </div>
                       </div>
-                    );
-                  })()}
-                </div>
+                      <div style={{
+                        maxHeight: '520px',
+                        overflowY: 'auto',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                        background: 'white',
+                      }}>
+                        <iframe
+                          srcDoc={previewHtml}
+                          title={`${previewTab} preview`}
+                          style={{
+                            width: '100%',
+                            minHeight: '420px',
+                            border: 'none',
+                            display: 'block',
+                          }}
+                          sandbox="allow-same-origin"
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           {/* /RIGHT COLUMN end */}

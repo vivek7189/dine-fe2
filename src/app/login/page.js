@@ -354,6 +354,7 @@ const Login = () => {
   const [isElectronApp, setIsElectronApp] = useState(false);
   const [desktopSessionId, setDesktopSessionId] = useState(null);
   const [desktopAuthPolling, setDesktopAuthPolling] = useState(false);
+  const [desktopAuthSuccess, setDesktopAuthSuccess] = useState(false);
 
   // Capture ?ref= parameter from URL and store in sessionStorage
   // This persists through OAuth redirects and page reloads during login flow
@@ -397,14 +398,15 @@ const Login = () => {
           const data = await res.json();
 
           if (!data.pending && data.token) {
-            // Auth successful — store token and redirect
+            // Auth successful — show success state immediately, then process in background
             console.log('🖥️ Desktop auth session received!');
+            setDesktopAuthPolling(false);
+            setDesktopAuthSuccess(true);
+            setLoading(false);
+
             apiClient.setToken(data.token);
             if (data.user) apiClient.setUser(data.user);
             triggerDashboardPrefetch();
-
-            setDesktopAuthPolling(false);
-            setLoading(false);
 
             // Fetch restaurants for the user
             try {
@@ -452,24 +454,35 @@ const Login = () => {
     return () => { cancelled = true; };
   }, [desktopAuthPolling, desktopSessionId, router]);
 
-  // Open browser for desktop auth (used when in Tauri app)
-  const openDesktopAuth = async () => {
+  // Open browser for desktop auth (used in Tauri and Electron apps)
+  // Optional params: { phone, dialCode } to pre-fill phone OTP flow in browser
+  const openDesktopAuth = async (params = {}) => {
     const sessionId = crypto.randomUUID();
     setDesktopSessionId(sessionId);
     setDesktopAuthPolling(true);
     setLoading(true);
     setError('');
 
-    const authUrl = `https://www.dineopen.com/desktop-auth?session=${sessionId}`;
+    let authUrl = `https://www.dineopen.com/desktop-auth?session=${sessionId}`;
+    if (params.phone) {
+      authUrl += `&phone=${encodeURIComponent(params.phone)}`;
+    }
+    if (params.dialCode) {
+      authUrl += `&dialCode=${encodeURIComponent(params.dialCode)}`;
+    }
 
-    // Open URL in system browser using Tauri shell plugin
-    try {
-      // Tauri v2: use @tauri-apps/plugin-shell (dynamic import to avoid breaking web)
-      const { open } = await import('@tauri-apps/plugin-shell');
-      await open(authUrl);
-    } catch (e) {
-      console.warn('Tauri shell open failed, using window.open:', e);
-      window.open(authUrl, '_blank');
+    if (isElectronApp && window.electronAPI?.openExternal) {
+      // Electron: use shell.openExternal via IPC
+      await window.electronAPI.openExternal(authUrl);
+    } else {
+      // Tauri: use @tauri-apps/plugin-shell (dynamic import to avoid breaking web)
+      try {
+        const { open } = await import('@tauri-apps/plugin-shell');
+        await open(authUrl);
+      } catch (e) {
+        console.warn('Shell open failed, using window.open:', e);
+        window.open(authUrl, '_blank');
+      }
     }
   };
 
@@ -684,9 +697,12 @@ const Login = () => {
   }, [otp, isFirebaseOTP, loading, demoAutoLoginTriggered, autoSubmitTriggered]);
 
   // Setup Firebase reCAPTCHA - only after auth check is complete and DOM is ready
+  // Skip entirely for desktop apps (Electron/Tauri) which use backend OTP instead
   useEffect(() => {
     // Don't setup reCAPTCHA while checking auth (DOM element not rendered yet)
     if (isCheckingAuth) return;
+    // Desktop apps use backend OTP — reCAPTCHA not needed and won't work on app:// protocol
+    if (isElectronApp || isTauriApp) return;
 
     if (step === 'phone') {
       // Small delay to ensure DOM is fully rendered
@@ -794,7 +810,7 @@ const Login = () => {
     setLoading(true);
     
     try {
-      // Check if it's a dummy account OR Tauri desktop app — use backend OTP (reCAPTCHA doesn't work in Tauri)
+      // Check if it's a dummy account OR Tauri desktop app — use backend OTP (bypasses Firebase reCAPTCHA)
       if ((selectedCountry.code === 'IN' && isDummyAccount(phoneNumber)) || isTauriApp) {
         // Use backend OTP (bypasses Firebase reCAPTCHA)
         const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
@@ -814,6 +830,11 @@ const Login = () => {
         } else {
           setError(data.message || 'Failed to send OTP');
         }
+      } else if (isElectronApp) {
+        // Electron desktop app: open browser for phone OTP (reCAPTCHA doesn't work on app:// protocol)
+        // Browser handles Firebase SMS + OTP verification, Electron polls for result
+        openDesktopAuth({ phone: phoneNumber, dialCode: selectedCountry.dialCode });
+        return;
       } else {
         // Use Firebase OTP for real numbers with international format
         const fullPhoneNumber = `${selectedCountry.dialCode}${phoneNumber}`;
@@ -1256,8 +1277,8 @@ const Login = () => {
       setGoogleLoading(true);
       setError('');
 
-      // Tauri desktop app: open browser for Google auth
-      if (isTauriApp) {
+      // Desktop app: open system browser for Google auth (popup doesn't work in Tauri/Electron)
+      if (isTauriApp || isElectronApp) {
         setGoogleLoading(false);
         openDesktopAuth();
         return;
@@ -1797,8 +1818,32 @@ const Login = () => {
             </div>
           )}
 
+          {/* Desktop Auth Success - shown after browser login succeeds, while setting up */}
+          {desktopAuthSuccess && (
+            <div style={{
+              textAlign: 'center',
+              padding: '32px 16px',
+              marginBottom: '20px',
+              background: '#f0fdf4',
+              borderRadius: '12px',
+              border: '1px solid #bbf7d0'
+            }}>
+              <FaCheck style={{ fontSize: 32, color: '#16a34a', margin: '0 auto 12px' }} />
+              <h3 style={{ fontSize: 17, fontWeight: 600, color: '#14532d', marginBottom: 6 }}>
+                Login Successful!
+              </h3>
+              <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5, marginBottom: 4 }}>
+                You can close the browser window now.
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 12 }}>
+                <FaSpinner className="animate-spin" style={{ fontSize: 14, color: '#16a34a' }} />
+                <span style={{ fontSize: 13, color: '#16a34a', fontWeight: 500 }}>Setting up your account...</span>
+              </div>
+            </div>
+          )}
+
           {/* Desktop Auth Polling - shown when waiting for browser login */}
-          {desktopAuthPolling && (
+          {desktopAuthPolling && !desktopAuthSuccess && (
             <div style={{
               textAlign: 'center',
               padding: '32px 16px',
@@ -1825,7 +1870,7 @@ const Login = () => {
           )}
 
           {/* Auth Method Selector for Owner Login - Always visible for Phone/Email */}
-          {loginType === 'owner' && !desktopAuthPolling && (step === 'phone' || step === 'otp' || step === 'email-login' || step === 'email-register' || step === 'email-otp' || step === 'pin-login') && (
+          {loginType === 'owner' && !desktopAuthPolling && !desktopAuthSuccess && (step === 'phone' || step === 'otp' || step === 'email-login' || step === 'email-register' || step === 'email-otp' || step === 'pin-login') && (
             <div style={{ marginBottom: '20px' }}>
               <div style={{
                 display: 'flex',
@@ -1943,7 +1988,7 @@ const Login = () => {
           )}
 
           {/* PIN Login Form */}
-          {desktopAuthPolling ? null : loginType === 'owner' && step === 'pin-login' ? (
+          {(desktopAuthPolling || desktopAuthSuccess) ? null : loginType === 'owner' && step === 'pin-login' ? (
             <>
               <div style={{ textAlign: "center", marginBottom: "24px" }}>
                 <div style={{

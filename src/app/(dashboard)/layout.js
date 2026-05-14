@@ -78,8 +78,8 @@ function DashboardLayoutContent({ children }) {
   const [nativePrintSettings, setNativePrintSettings] = useState(null);
   const [hasDefaultMenu, setHasDefaultMenu] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
-  // Check if current page is dashboard
-  const isDashboardPage = pathname === '/dashboard' || pathname === '/dashboard/bar';
+  // Check if current page is dashboard or billing — these pages hide the sidebar
+  const isDashboardPage = pathname === '/dashboard' || pathname === '/dashboard/bar' || pathname === '/billing';
 
   // Prefetch dashboard data when browser is idle (skips if already on /dashboard)
   useIdlePrefetch(pathname);

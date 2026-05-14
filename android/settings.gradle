@@ -2,4 +2,7 @@ include ':app'
 include ':capacitor-cordova-android-plugins'
 project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor-cordova-android-plugins/')
 
+include ':capacitor-dine-printer'
+project(':capacitor-dine-printer').projectDir = new File('../plugins/capacitor-dine-printer/android')
+
 apply from: 'capacitor.settings.gradle'
