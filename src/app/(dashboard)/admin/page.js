@@ -9610,6 +9610,22 @@ const Admin = () => {
               </div>
             </div>
 
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
+              <button
+                type="button"
+                onClick={() => setPosSettings(prev => ({ ...prev, enableScheduleOrder: !prev.enableScheduleOrder }))}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+              >
+                {posSettings.enableScheduleOrder
+                  ? <FaToggleOn size={28} color="#ef4444" />
+                  : <FaToggleOff size={28} color="#d1d5db" />}
+              </button>
+              <div>
+                <span style={{ fontSize: '13px', color: '#374151' }}>Schedule Order</span>
+                <div style={{ fontSize: '11px', color: '#9ca3af' }}>Show schedule icon to allow orders to be placed for a future date/time</div>
+              </div>
+            </div>
+
             {/* Divider */}
             <div style={{ borderTop: '1px solid #f3e8f0', margin: '20px 0' }} />
 

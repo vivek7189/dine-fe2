@@ -4578,7 +4578,7 @@ const OrderSummary = ({
           )}
 
           {/* Schedule for Later — collapsible date/time row */}
-          {!billingMode && setIsScheduledOrder && isScheduledOrder && (
+          {!billingMode && posSettings.enableScheduleOrder && setIsScheduledOrder && isScheduledOrder && (
             <div style={{
               display: 'flex', gap: '6px', marginBottom: '6px',
               padding: '8px 10px', borderRadius: '8px',
@@ -4595,8 +4595,8 @@ const OrderSummary = ({
           {/* First Row - Save and Place Order (hidden in billing mode) */}
           {!billingMode && (
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
-              {/* Schedule toggle button */}
-              {setIsScheduledOrder && cart.length > 0 && (
+              {/* Schedule toggle button — hidden unless enabled in POS settings */}
+              {posSettings.enableScheduleOrder && setIsScheduledOrder && cart.length > 0 && (
                 <button
                   onClick={() => {
                     const next = !isScheduledOrder;
