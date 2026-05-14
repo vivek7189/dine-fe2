@@ -1503,22 +1503,24 @@ const Customers = () => {
     return () => window.removeEventListener('restaurantChanged', handleRestaurantChange);
   }, []);
 
-  // Debounced search - reload from server when search term changes
-  const searchTimerRef = React.useRef(null);
-  const isInitialMount = React.useRef(true);
+  // Search — triggered on Enter key or search button click (not on every keystroke)
+  const [activeSearch, setActiveSearch] = useState(''); // the term currently applied
+  const executeSearch = React.useCallback((term) => {
+    const q = (term || '').trim();
+    setActiveSearch(q);
+    setCurrentPage(1);
+    loadCustomers(false, 1, q);
+  }, [restaurantId]);
+
+  // Also clear results when search box is emptied
+  const prevSearchRef = React.useRef('');
   useEffect(() => {
     if (!restaurantId) return;
-    // Skip the initial mount (restaurantId effect handles that)
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
+    if (prevSearchRef.current && searchTerm === '' && activeSearch !== '') {
+      // User cleared the search box — reload all
+      executeSearch('');
     }
-    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-    searchTimerRef.current = setTimeout(() => {
-      setCurrentPage(1);
-      loadCustomers(false, 1, searchTerm);
-    }, 400);
-    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
+    prevSearchRef.current = searchTerm;
   }, [searchTerm]);
 
   const loadCustomers = async (useCache = true, page = currentPage, search = '') => {
@@ -2477,9 +2479,9 @@ const Customers = () => {
                   <FaUsers size={12} />
                   {totalCustomers.toLocaleString()} Customers
                 </div>
-                {searchTerm && customers.length > 0 && (
+                {activeSearch && customers.length > 0 && (
                   <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                    showing results for &ldquo;{searchTerm}&rdquo;
+                    showing results for &ldquo;{activeSearch}&rdquo;
                   </span>
                 )}
               </div>
@@ -2487,30 +2489,53 @@ const Customers = () => {
             <div style={{ display: 'flex', gap: isMobile ? '8px' : '16px', flexWrap: 'wrap', alignItems: 'center' }}>
               {/* Search */}
               <div style={{ flex: 1, minWidth: isMobile ? '150px' : '200px' }}>
-                <div style={{ position: 'relative' }}>
-                  <FaSearch style={{
-                    position: 'absolute',
-                    left: isMobile ? '8px' : '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: '#9ca3af',
-                    fontSize: isMobile ? '12px' : '14px'
-                  }} />
-                  <input
-                    type="text"
-                    placeholder={isMobile ? t('customers.searchPlaceholderShort') : t('customers.searchPlaceholder')}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                <div style={{ position: 'relative', display: 'flex', gap: '6px' }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <FaSearch style={{
+                      position: 'absolute',
+                      left: isMobile ? '8px' : '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: '#9ca3af',
+                      fontSize: isMobile ? '12px' : '14px'
+                    }} />
+                    <input
+                      type="text"
+                      placeholder={isMobile ? t('customers.searchPlaceholderShort') : 'Search by name, phone, email, or city... (press Enter)'}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') executeSearch(searchTerm); }}
+                      style={{
+                        width: '100%',
+                        padding: isMobile ? '8px 8px 8px 28px' : '12px 12px 12px 40px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: isMobile ? '8px' : '10px',
+                        fontSize: isMobile ? '12px' : '14px',
+                        outline: 'none',
+                        backgroundColor: '#f9fafb'
+                      }}
+                    />
+                  </div>
+                  <button
+                    onClick={() => executeSearch(searchTerm)}
                     style={{
-                      width: '100%',
-                      padding: isMobile ? '8px 8px 8px 28px' : '12px 12px 12px 40px',
-                      border: '1px solid #d1d5db',
+                      padding: isMobile ? '8px 12px' : '10px 16px',
+                      backgroundColor: '#111827',
+                      color: 'white',
+                      border: 'none',
                       borderRadius: isMobile ? '8px' : '10px',
-                      fontSize: isMobile ? '12px' : '14px',
-                      outline: 'none',
-                      backgroundColor: '#f9fafb'
+                      fontSize: isMobile ? '12px' : '13px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      whiteSpace: 'nowrap',
                     }}
-                  />
+                  >
+                    <FaSearch size={12} />
+                    {!isMobile && 'Search'}
+                  </button>
                 </div>
               </div>
 
@@ -3183,7 +3208,7 @@ const Customers = () => {
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <button
-                  onClick={function() { if (currentPage > 1) { var p = currentPage - 1; setCurrentPage(p); loadCustomers(false, p, searchTerm); } }}
+                  onClick={function() { if (currentPage > 1) { var p = currentPage - 1; setCurrentPage(p); loadCustomers(false, p, activeSearch); } }}
                   disabled={currentPage <= 1}
                   style={{
                     padding: isMobile ? '6px 10px' : '8px 14px',
@@ -3216,7 +3241,7 @@ const Customers = () => {
                     return (
                       <button
                         key={p}
-                        onClick={function() { setCurrentPage(p); loadCustomers(false, p, searchTerm); }}
+                        onClick={function() { setCurrentPage(p); loadCustomers(false, p, activeSearch); }}
                         style={{
                           padding: isMobile ? '6px 10px' : '8px 12px',
                           backgroundColor: currentPage === p ? '#111827' : '#f3f4f6',
@@ -3235,7 +3260,7 @@ const Customers = () => {
                   });
                 })()}
                 <button
-                  onClick={function() { if (currentPage < totalPages) { var p = currentPage + 1; setCurrentPage(p); loadCustomers(false, p, searchTerm); } }}
+                  onClick={function() { if (currentPage < totalPages) { var p = currentPage + 1; setCurrentPage(p); loadCustomers(false, p, activeSearch); } }}
                   disabled={currentPage >= totalPages}
                   style={{
                     padding: isMobile ? '6px 10px' : '8px 14px',
