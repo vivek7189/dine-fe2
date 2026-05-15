@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { FaPlus, FaTrash, FaClock, FaUtensils, FaUsers, FaSearch, FaEdit, FaEye, FaLeaf, FaCoffee, FaFlask, FaLink } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaClock, FaUtensils, FaUsers, FaSearch, FaEdit, FaEye, FaLeaf, FaCoffee, FaFlask, FaLink, FaFileUpload } from 'react-icons/fa';
 import dynamic from 'next/dynamic';
 import { convertUnits } from '../utils/unitConversion';
 const InventoryDownloadPDFButton = dynamic(() => import('./pdf/InventoryDownloadPDFButton'), { ssr: false });
@@ -25,6 +25,7 @@ export default function RecipesTab({
   handleViewRecipe,
   permissions = { read: true, add: true, update: true, delete: true },
   currentRestaurant,
+  onBulkImport,
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -86,17 +87,32 @@ export default function RecipesTab({
           </p>
         </div>
         {permissions.add && (
-          <button
-            onClick={() => setShowAddRecipeModal(true)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '10px 20px', background: 'linear-gradient(135deg, #059669, #10b981)', color: '#fff',
-              border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600,
-              cursor: 'pointer', boxShadow: '0 2px 8px rgba(5,150,105,0.3)',
-            }}
-          >
-            <FaPlus size={13} /> Add Recipe
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => setShowAddRecipeModal(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '10px 20px', background: 'linear-gradient(135deg, #059669, #10b981)', color: '#fff',
+                border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600,
+                cursor: 'pointer', boxShadow: '0 2px 8px rgba(5,150,105,0.3)',
+              }}
+            >
+              <FaPlus size={13} /> Add Recipe
+            </button>
+            {onBulkImport && (
+              <button
+                onClick={onBulkImport}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '10px 20px', background: 'linear-gradient(135deg, #2563eb, #3b82f6)', color: '#fff',
+                  border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600,
+                  cursor: 'pointer', boxShadow: '0 2px 8px rgba(37,99,235,0.3)',
+                }}
+              >
+                <FaFileUpload size={13} /> Bulk Import
+              </button>
+            )}
+          </div>
         )}
         <InventoryDownloadPDFButton
           reportType="recipes"

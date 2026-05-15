@@ -19,6 +19,7 @@ import ProductionTab from './components/ProductionTab';
 import DistributionTab from './components/DistributionTab';
 import InventoryModals from './components/InventoryModals';
 import WasteModals from './components/WasteModals';
+import SmartImportModal from './components/SmartImportModal';
 // SmartImportModal is now integrated into AddEditItemModal (InventoryModals.js)
 
 export default function InventoryManagement() {
@@ -31,6 +32,7 @@ export default function InventoryManagement() {
   const setError = invError ? setInvError : (v) => {};
   const success = invSuccess || waste.success;
   const setSuccess = invSuccess ? setInvSuccess : (v) => {};
+  const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -309,6 +311,7 @@ export default function InventoryManagement() {
             handleDeleteRecipe={inventory.handleDeleteRecipe}
             permissions={permissions}
             currentRestaurant={inventory.currentRestaurant}
+            onBulkImport={() => setShowBulkImportModal(true)}
           />
         )}
 
@@ -422,6 +425,15 @@ export default function InventoryManagement() {
       {/* All Modals */}
       <InventoryModals {...inventory} formatCurrency={formatCurrency} />
       <WasteModals waste={waste} inventoryItems={inventory.inventoryItems} recipes={inventory.recipes} formatCurrency={formatCurrency} />
+      {showBulkImportModal && inventory.currentRestaurant && (
+        <SmartImportModal
+          isOpen={showBulkImportModal}
+          onClose={() => setShowBulkImportModal(false)}
+          restaurantId={inventory.currentRestaurant.id}
+          onSuccess={() => inventory.loadInventoryData()}
+          initialMode="file"
+        />
+      )}
     </div>
   );
 }
