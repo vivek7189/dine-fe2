@@ -71,7 +71,7 @@ function StepInput({ text, setText, imageFiles, setImageFiles, inputMode, setInp
 
   const handleFiles = useCallback((files) => {
     const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 20 * 1024 * 1024; // 20MB
     const valid = [];
     for (const f of files) {
       if (!validTypes.includes(f.type) && !f.name.match(/\.(jpg|jpeg|png|webp|heic|heif)$/i)) continue;
@@ -79,7 +79,7 @@ function StepInput({ text, setText, imageFiles, setImageFiles, inputMode, setInp
       valid.push(f);
     }
     if (valid.length > 0) {
-      setImageFiles(prev => [...prev, ...valid].slice(0, 2)); // max 2 images
+      setImageFiles(prev => [...prev, ...valid].slice(0, 4)); // max 4 images
     }
   }, [setImageFiles]);
 
@@ -224,7 +224,7 @@ function StepInput({ text, setText, imageFiles, setImageFiles, inputMode, setInp
                   Drop invoice image here or click to upload
                 </div>
                 <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                  JPG, PNG, WebP &bull; Max 10MB &bull; Up to 2 images
+                  JPG, PNG, WebP &bull; Max 20MB &bull; Up to 4 images
                 </div>
                 <div style={{
                   marginTop: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px',
@@ -265,7 +265,7 @@ function StepInput({ text, setText, imageFiles, setImageFiles, inputMode, setInp
                       </div>
                     </div>
                   ))}
-                  {imageFiles.length < 2 && (
+                  {imageFiles.length < 4 && (
                     <button
                       onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
                       style={{
