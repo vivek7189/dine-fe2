@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { FaMagic, FaTrash, FaCheck, FaTimes, FaArrowLeft, FaChevronDown, FaChevronUp, FaExclamationTriangle, FaLeaf, FaDrumstickBite, FaFileImage, FaCloudUploadAlt, FaPaste, FaKeyboard, FaCamera, FaTruck } from 'react-icons/fa';
+import { FaMagic, FaTrash, FaCheck, FaTimes, FaArrowLeft, FaChevronDown, FaChevronUp, FaExclamationTriangle, FaLeaf, FaDrumstickBite, FaFileImage, FaCloudUploadAlt, FaPaste, FaKeyboard, FaCamera, FaTruck, FaFileExcel } from 'react-icons/fa';
 import apiClient from '../../../../lib/api';
 
 const primaryBtn = {
@@ -63,8 +63,9 @@ function Spinner() {
 
 // ─── Step 1: Input (Text or Image) ──────────────────────────────────────────
 
-function StepInput({ text, setText, imageFiles, setImageFiles, inputMode, setInputMode, onParse, onParseImage, loading, error }) {
+function StepInput({ text, setText, imageFiles, setImageFiles, inputMode, setInputMode, onParse, onParseImage, onParseFile, spreadsheetFile, setSpreadsheetFile, loading, error }) {
   const fileInputRef = useRef(null);
+  const spreadsheetInputRef = useRef(null);
   const dropZoneRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -114,9 +115,27 @@ function StepInput({ text, setText, imageFiles, setImageFiles, inputMode, setInp
     setImageFiles(prev => prev.filter((_, i) => i !== idx));
   };
 
+  const handleSpreadsheetFiles = useCallback((files) => {
+    const validExts = ['.csv', '.xlsx', '.xls'];
+    for (const f of files) {
+      const ext = f.name.substring(f.name.lastIndexOf('.')).toLowerCase();
+      if (validExts.includes(ext)) {
+        setSpreadsheetFile(f);
+        return;
+      }
+    }
+  }, [setSpreadsheetFile]);
+
+  const handleSpreadsheetDrop = useCallback((e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    handleSpreadsheetFiles(e.dataTransfer.files);
+  }, [handleSpreadsheetFiles]);
+
   const tabs = [
     { id: 'text', label: 'Paste Text', icon: FaKeyboard },
     { id: 'image', label: 'Upload Invoice', icon: FaCamera },
+    { id: 'file', label: 'Upload File', icon: FaFileExcel },
   ];
 
   return (
@@ -267,6 +286,83 @@ function StepInput({ text, setText, imageFiles, setImageFiles, inputMode, setInp
         </>
       )}
 
+      {/* File Mode */}
+      {inputMode === 'file' && (
+        <>
+          <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 14px 0', lineHeight: 1.6 }}>
+            Upload a CSV or Excel file with your inventory items or recipes. The system will automatically detect the format and extract the data.
+          </p>
+          <div
+            onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleSpreadsheetDrop}
+            onClick={() => !spreadsheetFile && spreadsheetInputRef.current?.click()}
+            style={{
+              border: `2px dashed ${isDragging ? '#059669' : '#d1d5db'}`,
+              borderRadius: '14px', padding: spreadsheetFile ? '20px 24px' : '48px 24px',
+              textAlign: 'center', cursor: spreadsheetFile ? 'default' : 'pointer',
+              backgroundColor: isDragging ? '#f0fdf4' : '#fafcfe',
+              transition: 'all 0.2s',
+              minHeight: spreadsheetFile ? 'auto' : '200px',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <input
+              ref={spreadsheetInputRef}
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              style={{ display: 'none' }}
+              onChange={e => { if (e.target.files?.length) { handleSpreadsheetFiles(e.target.files); } e.target.value = ''; }}
+            />
+            {!spreadsheetFile ? (
+              <>
+                <FaFileExcel size={36} style={{ color: '#059669', marginBottom: '12px' }} />
+                <div style={{ fontSize: '15px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>
+                  Drop your spreadsheet here or click to upload
+                </div>
+                <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                  CSV, XLSX, XLS files supported
+                </div>
+                <div style={{
+                  marginTop: '16px', padding: '12px 16px', backgroundColor: '#f0fdf4', borderRadius: '10px',
+                  fontSize: '12px', color: '#166534', lineHeight: 1.7, textAlign: 'left', maxWidth: '400px'
+                }}>
+                  <strong>Supported formats:</strong><br />
+                  &bull; Recipe sheets (recipes with ingredients &amp; quantities)<br />
+                  &bull; Inventory tables (Name, Unit, Category, Stock, Cost columns)
+                </div>
+              </>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', width: '100%' }}>
+                <div style={{
+                  width: '48px', height: '48px', borderRadius: '12px', flexShrink: 0,
+                  background: 'linear-gradient(135deg, #059669, #10b981)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <FaFileExcel size={22} style={{ color: 'white' }} />
+                </div>
+                <div style={{ flex: 1, textAlign: 'left' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#1f2937' }}>{spreadsheetFile.name}</div>
+                  <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
+                    {(spreadsheetFile.size / 1024).toFixed(1)} KB
+                  </div>
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setSpreadsheetFile(null); }}
+                  style={{
+                    background: '#fef2f2', border: 'none', color: '#ef4444', cursor: 'pointer',
+                    padding: '8px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                    display: 'flex', alignItems: 'center', gap: '4px'
+                  }}
+                >
+                  <FaTimes size={10} /> Remove
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
       {error && (
         <div style={{ marginTop: '10px', padding: '10px 14px', backgroundColor: '#fef2f2', borderRadius: '8px', color: '#dc2626', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <FaExclamationTriangle size={12} /> {error}
@@ -274,17 +370,17 @@ function StepInput({ text, setText, imageFiles, setImageFiles, inputMode, setInp
       )}
       <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
         <button
-          onClick={inputMode === 'text' ? onParse : onParseImage}
-          disabled={(inputMode === 'text' ? !text.trim() : imageFiles.length === 0) || loading}
+          onClick={inputMode === 'text' ? onParse : inputMode === 'image' ? onParseImage : onParseFile}
+          disabled={(inputMode === 'text' ? !text.trim() : inputMode === 'image' ? imageFiles.length === 0 : !spreadsheetFile) || loading}
           style={{
             ...primaryBtn,
-            opacity: ((inputMode === 'text' ? !text.trim() : imageFiles.length === 0) || loading) ? 0.6 : 1,
-            cursor: ((inputMode === 'text' ? !text.trim() : imageFiles.length === 0) || loading) ? 'not-allowed' : 'pointer',
+            opacity: ((inputMode === 'text' ? !text.trim() : inputMode === 'image' ? imageFiles.length === 0 : !spreadsheetFile) || loading) ? 0.6 : 1,
+            cursor: ((inputMode === 'text' ? !text.trim() : inputMode === 'image' ? imageFiles.length === 0 : !spreadsheetFile) || loading) ? 'not-allowed' : 'pointer',
             padding: '12px 28px', fontSize: '14px'
           }}
         >
-          {loading ? <Spinner /> : <FaMagic size={14} />}
-          {loading ? 'Analyzing...' : inputMode === 'image' ? 'Extract with AI' : 'Parse with AI'}
+          {loading ? <Spinner /> : inputMode === 'file' ? <FaFileExcel size={14} /> : <FaMagic size={14} />}
+          {loading ? 'Analyzing...' : inputMode === 'image' ? 'Extract with AI' : inputMode === 'file' ? 'Upload & Parse' : 'Parse with AI'}
         </button>
       </div>
     </div>
@@ -757,7 +853,8 @@ export default function SmartImportModal({ isOpen, onClose, restaurantId, onSucc
   const [step, setStep] = useState(1);
   const [text, setText] = useState('');
   const [imageFiles, setImageFiles] = useState([]);
-  const [inputMode, setInputMode] = useState(initialMode || 'text'); // 'text' or 'image'
+  const [spreadsheetFile, setSpreadsheetFile] = useState(null);
+  const [inputMode, setInputMode] = useState(initialMode || 'text'); // 'text', 'image', or 'file'
   const [parsedData, setParsedData] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -775,6 +872,7 @@ export default function SmartImportModal({ isOpen, onClose, restaurantId, onSucc
     setStep(1);
     setText('');
     setImageFiles([]);
+    setSpreadsheetFile(null);
     setInputMode(initialMode || 'text');
     setParsedData(null);
     setResult(null);
@@ -838,6 +936,41 @@ export default function SmartImportModal({ isOpen, onClose, restaurantId, onSucc
       setStep(2);
     } catch (err) {
       setError(err.message || 'Failed to analyze invoice image. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleParseFile = async () => {
+    if (!spreadsheetFile) return;
+    setLoading(true);
+    setError('');
+    try {
+      const formData = new FormData();
+      formData.append('file', spreadsheetFile);
+      formData.append('mode', 'file');
+
+      const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      const response = await fetch(`${baseUrl}/api/inventory/${restaurantId}/smart-import/parse`, {
+        method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || errData.message || 'Failed to parse file');
+      }
+
+      const res = await response.json();
+      setParsedData(res.data);
+      setIsInvoiceMode(false);
+      setStep(2);
+    } catch (err) {
+      setError(err.message || 'Failed to parse file. Please check the format and try again.');
     } finally {
       setLoading(false);
     }
@@ -924,10 +1057,13 @@ export default function SmartImportModal({ isOpen, onClose, restaurantId, onSucc
               setText={setText}
               imageFiles={imageFiles}
               setImageFiles={setImageFiles}
+              spreadsheetFile={spreadsheetFile}
+              setSpreadsheetFile={setSpreadsheetFile}
               inputMode={inputMode}
               setInputMode={setInputMode}
               onParse={handleParse}
               onParseImage={handleParseImage}
+              onParseFile={handleParseFile}
               loading={loading}
               error={error}
             />
