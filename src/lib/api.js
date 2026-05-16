@@ -2362,6 +2362,11 @@ class ApiClient {
     });
   }
 
+  async getCustomerReports(restaurantIds, period = 'all', limit = 20) {
+    const params = new URLSearchParams({ restaurantIds: restaurantIds.join(','), period, limit: String(limit) });
+    return this.request(`/api/customers/reports?${params.toString()}`);
+  }
+
   // ==================== EMAIL METHODS ====================
 
   // Send welcome email to new user

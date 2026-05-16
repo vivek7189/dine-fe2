@@ -48,7 +48,9 @@ import {
   FaUpload,
   FaFileExcel,
   FaCloudUploadAlt,
-  FaCheck
+  FaCheck,
+  FaChartBar,
+  FaDownload
 } from 'react-icons/fa';
 
 // Reuse full-page content as embedded tabs (standalone /offers and /customer-app remain live)
@@ -933,7 +935,13 @@ const Customers = () => {
   });
   const [formErrors, setFormErrors] = useState({});
   const [saving, setSaving] = useState(false);
-  const [engagementTab, setEngagementTab] = useState('customers'); // 'customers' | 'offers' | 'loyalty' | 'your-app'
+  const [engagementTab, setEngagementTab] = useState('customers'); // 'customers' | 'offers' | 'loyalty' | 'your-app' | 'reports'
+
+  // Reports tab state
+  const [reportsData, setReportsData] = useState(null);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [reportsPeriod, setReportsPeriod] = useState('all');
+  const [reportsRestaurantFilter, setReportsRestaurantFilter] = useState('current');
 
   // Permission gating
   const custUserData = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
@@ -1112,6 +1120,35 @@ const Customers = () => {
       loadGroups();
     }
   }, [restaurantId]);
+
+  // Load reports when Reports tab is active or filters change
+  const loadReports = useCallback(async () => {
+    if (!restaurantId) return;
+    setReportsLoading(true);
+    try {
+      let ids;
+      if (reportsRestaurantFilter === 'all') {
+        ids = restaurants.map(r => r.id);
+      } else if (reportsRestaurantFilter === 'current') {
+        ids = [restaurantId];
+      } else {
+        ids = [reportsRestaurantFilter];
+      }
+      if (!ids.length) ids = [restaurantId];
+      const data = await apiClient.getCustomerReports(ids, reportsPeriod);
+      setReportsData(data);
+    } catch (err) {
+      console.error('Failed to load reports:', err);
+    } finally {
+      setReportsLoading(false);
+    }
+  }, [reportsRestaurantFilter, reportsPeriod, restaurantId, restaurants]);
+
+  useEffect(() => {
+    if (engagementTab === 'reports' && restaurantId) {
+      loadReports();
+    }
+  }, [engagementTab, reportsPeriod, reportsRestaurantFilter, restaurantId]);
 
   // Groups API helpers
   const loadGroups = async () => {
@@ -2242,6 +2279,7 @@ const Customers = () => {
               { id: 'customers', label: 'Customers', mobileLabel: 'Customers', icon: FaUsers },
               { id: 'offers', label: 'Offers & Discounts', mobileLabel: 'Offers', icon: FaTag },
               { id: 'loyalty', label: 'Loyalty Program', mobileLabel: 'Loyalty', icon: FaGift },
+              { id: 'reports', label: 'Reports', mobileLabel: 'Reports', icon: FaChartBar },
               { id: 'app-settings', label: 'App Settings', mobileLabel: 'Settings', icon: FaCog },
               { id: 'your-app', label: 'Your App', mobileLabel: 'App', icon: FaMobileAlt },
             ].map(function(tab) {
@@ -3505,6 +3543,395 @@ const Customers = () => {
                 Request App
                 <FaArrowRight size={12} />
               </button>
+            </div>
+          )}
+
+          {/* Reports Tab */}
+          {engagementTab === 'reports' && (
+            <div style={{ padding: isMobile ? '16px' : '24px' }}>
+              {/* Filters Row */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '24px', alignItems: 'center' }}>
+                {/* Restaurant selector */}
+                <select
+                  value={reportsRestaurantFilter}
+                  onChange={function(e) { setReportsRestaurantFilter(e.target.value); }}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    backgroundColor: '#fff',
+                    cursor: 'pointer',
+                    minWidth: '160px'
+                  }}
+                >
+                  <option value="current">{restaurant?.name || 'Current Restaurant'}</option>
+                  {restaurants.length > 1 && <option value="all">All Restaurants</option>}
+                  {restaurants.length > 1 && restaurants.map(function(r) {
+                    if (r.id === restaurantId) return null;
+                    return <option key={r.id} value={r.id}>{r.name}</option>;
+                  })}
+                </select>
+
+                {/* Period filter pills */}
+                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                  {[
+                    { id: 'all', label: 'All Time' },
+                    { id: 'this_week', label: 'This Week' },
+                    { id: 'this_month', label: 'This Month' },
+                    { id: 'last_month', label: 'Last Month' },
+                  ].map(function(p) {
+                    var isActive = reportsPeriod === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={function() { setReportsPeriod(p.id); }}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          border: isActive ? '1px solid #ef4444' : '1px solid #e5e7eb',
+                          background: isActive ? '#fef2f2' : '#fff',
+                          color: isActive ? '#dc2626' : '#6b7280',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {reportsLoading ? (
+                <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+                  <FaSpinner size={24} style={{ color: '#ef4444', animation: 'spin 1s linear infinite' }} />
+                  <p style={{ marginTop: '12px', color: '#6b7280', fontSize: '14px' }}>Loading reports...</p>
+                </div>
+              ) : reportsData ? (
+                <div>
+                  {/* Summary Cards */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+                    gap: '12px',
+                    marginBottom: '32px'
+                  }}>
+                    {[
+                      { label: 'Total Customers', value: reportsData.summary.totalCustomers.toLocaleString(), isCurrency: false },
+                      { label: 'Total Revenue', value: formatCurrency(reportsData.summary.totalRevenue), isCurrency: true },
+                      { label: 'Total Discounts', value: formatCurrency(reportsData.summary.totalDiscounts), isCurrency: true },
+                      { label: 'Avg Order Value', value: formatCurrency(reportsData.summary.avgOrderValue), isCurrency: true },
+                    ].map(function(card, idx) {
+                      return (
+                        <div key={idx} style={{
+                          background: '#fff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '10px',
+                          padding: isMobile ? '14px' : '20px',
+                          textAlign: 'center'
+                        }}>
+                          <p style={{ margin: '0 0 4px 0', fontSize: '11px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{card.label}</p>
+                          <p style={{ margin: 0, fontSize: isMobile ? '18px' : '22px', fontWeight: '700', color: '#111827' }}>
+                            {card.value}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Top by Discount */}
+                  {reportsData.topByDiscount && reportsData.topByDiscount.length > 0 && (
+                    <div style={{ marginBottom: '32px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>Top Customers by Discount</h3>
+                        <button
+                          onClick={function() {
+                            var showRestaurant = reportsRestaurantFilter === 'all';
+                            var cols = [
+                              { label: 'Name', key: 'name' },
+                              { label: 'Phone', key: 'phone' },
+                              { label: 'Total Discount', key: 'totalDiscount' },
+                              { label: 'Total Spent', key: 'totalSpent' },
+                              { label: 'Orders', key: 'orderCount' },
+                            ];
+                            if (showRestaurant) cols.push({ label: 'Restaurant', key: 'restaurantName' });
+                            var data = reportsData.topByDiscount.map(function(row) {
+                              var obj = {};
+                              cols.forEach(function(col) { obj[col.label] = row[col.key]; });
+                              return obj;
+                            });
+                            var ws = XLSX.utils.json_to_sheet(data);
+                            var wb = XLSX.utils.book_new();
+                            XLSX.utils.book_append_sheet(wb, ws, 'Report');
+                            XLSX.writeFile(wb, 'top_customers_by_discount.xlsx');
+                          }}
+                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#6b7280' }}
+                        >
+                          <FaDownload size={10} /> Export
+                        </button>
+                      </div>
+                      <div style={{ overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                          <thead>
+                            <tr style={{ background: '#f9fafb' }}>
+                              <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>#</th>
+                              <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Customer</th>
+                              <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Total Discount</th>
+                              <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Total Spent</th>
+                              <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Orders</th>
+                              {reportsRestaurantFilter === 'all' && <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Restaurant</th>}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {reportsData.topByDiscount.map(function(row, i) {
+                              return (
+                                <tr key={row.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                                  <td style={{ padding: '10px 12px', color: '#9ca3af' }}>{i + 1}</td>
+                                  <td style={{ padding: '10px 12px' }}>
+                                    <div style={{ fontWeight: '600', color: '#111827' }}>{row.name || 'Unknown'}</div>
+                                    <div style={{ fontSize: '11px', color: '#6b7280' }}>{row.phone}</div>
+                                  </td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#dc2626' }}>₹{row.totalDiscount.toLocaleString()}</td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#374151' }}>₹{row.totalSpent.toLocaleString()}</td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#374151' }}>{row.orderCount}</td>
+                                  {reportsRestaurantFilter === 'all' && <td style={{ padding: '10px 12px', color: '#6b7280', fontSize: '12px' }}>{row.restaurantName}</td>}
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Top by Spending */}
+                  {reportsData.topBySpending && reportsData.topBySpending.length > 0 && (
+                    <div style={{ marginBottom: '32px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>Top Customers by Spending</h3>
+                        <button
+                          onClick={function() {
+                            var showRestaurant = reportsRestaurantFilter === 'all';
+                            var cols = [
+                              { label: 'Name', key: 'name' },
+                              { label: 'Phone', key: 'phone' },
+                              { label: 'Total Spent', key: 'totalSpent' },
+                              { label: 'Total Discount', key: 'totalDiscount' },
+                              { label: 'Orders', key: 'orderCount' },
+                            ];
+                            if (showRestaurant) cols.push({ label: 'Restaurant', key: 'restaurantName' });
+                            var data = reportsData.topBySpending.map(function(row) {
+                              var obj = {};
+                              cols.forEach(function(col) { obj[col.label] = row[col.key]; });
+                              return obj;
+                            });
+                            var ws = XLSX.utils.json_to_sheet(data);
+                            var wb = XLSX.utils.book_new();
+                            XLSX.utils.book_append_sheet(wb, ws, 'Report');
+                            XLSX.writeFile(wb, 'top_customers_by_spending.xlsx');
+                          }}
+                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#6b7280' }}
+                        >
+                          <FaDownload size={10} /> Export
+                        </button>
+                      </div>
+                      <div style={{ overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                          <thead>
+                            <tr style={{ background: '#f9fafb' }}>
+                              <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>#</th>
+                              <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Customer</th>
+                              <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Total Spent</th>
+                              <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Total Discount</th>
+                              <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Orders</th>
+                              {reportsRestaurantFilter === 'all' && <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Restaurant</th>}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {reportsData.topBySpending.map(function(row, i) {
+                              return (
+                                <tr key={row.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                                  <td style={{ padding: '10px 12px', color: '#9ca3af' }}>{i + 1}</td>
+                                  <td style={{ padding: '10px 12px' }}>
+                                    <div style={{ fontWeight: '600', color: '#111827' }}>{row.name || 'Unknown'}</div>
+                                    <div style={{ fontSize: '11px', color: '#6b7280' }}>{row.phone}</div>
+                                  </td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#059669' }}>₹{row.totalSpent.toLocaleString()}</td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#dc2626' }}>₹{row.totalDiscount.toLocaleString()}</td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#374151' }}>{row.orderCount}</td>
+                                  {reportsRestaurantFilter === 'all' && <td style={{ padding: '10px 12px', color: '#6b7280', fontSize: '12px' }}>{row.restaurantName}</td>}
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Top by Orders */}
+                  {reportsData.topByOrders && reportsData.topByOrders.length > 0 && (
+                    <div style={{ marginBottom: '32px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>Top Customers by Orders</h3>
+                        <button
+                          onClick={function() {
+                            var showRestaurant = reportsRestaurantFilter === 'all';
+                            var cols = [
+                              { label: 'Name', key: 'name' },
+                              { label: 'Phone', key: 'phone' },
+                              { label: 'Orders', key: 'orderCount' },
+                              { label: 'Total Spent', key: 'totalSpent' },
+                              { label: 'Total Discount', key: 'totalDiscount' },
+                            ];
+                            if (showRestaurant) cols.push({ label: 'Restaurant', key: 'restaurantName' });
+                            var data = reportsData.topByOrders.map(function(row) {
+                              var obj = {};
+                              cols.forEach(function(col) { obj[col.label] = row[col.key]; });
+                              return obj;
+                            });
+                            var ws = XLSX.utils.json_to_sheet(data);
+                            var wb = XLSX.utils.book_new();
+                            XLSX.utils.book_append_sheet(wb, ws, 'Report');
+                            XLSX.writeFile(wb, 'top_customers_by_orders.xlsx');
+                          }}
+                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#6b7280' }}
+                        >
+                          <FaDownload size={10} /> Export
+                        </button>
+                      </div>
+                      <div style={{ overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                          <thead>
+                            <tr style={{ background: '#f9fafb' }}>
+                              <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>#</th>
+                              <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Customer</th>
+                              <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Orders</th>
+                              <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Total Spent</th>
+                              <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Total Discount</th>
+                              {reportsRestaurantFilter === 'all' && <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Restaurant</th>}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {reportsData.topByOrders.map(function(row, i) {
+                              return (
+                                <tr key={row.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                                  <td style={{ padding: '10px 12px', color: '#9ca3af' }}>{i + 1}</td>
+                                  <td style={{ padding: '10px 12px' }}>
+                                    <div style={{ fontWeight: '600', color: '#111827' }}>{row.name || 'Unknown'}</div>
+                                    <div style={{ fontSize: '11px', color: '#6b7280' }}>{row.phone}</div>
+                                  </td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#2563eb' }}>{row.orderCount}</td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#374151' }}>₹{row.totalSpent.toLocaleString()}</td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#dc2626' }}>₹{row.totalDiscount.toLocaleString()}</td>
+                                  {reportsRestaurantFilter === 'all' && <td style={{ padding: '10px 12px', color: '#6b7280', fontSize: '12px' }}>{row.restaurantName}</td>}
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Group Stats */}
+                  {reportsData.groupStats && reportsData.groupStats.length > 0 && (
+                    <div style={{ marginBottom: '32px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>Group Report</h3>
+                        <button
+                          onClick={function() {
+                            var showRestaurant = reportsRestaurantFilter === 'all';
+                            var cols = [
+                              { label: 'Group', key: 'groupName' },
+                              { label: 'Members', key: 'memberCount' },
+                              { label: 'Revenue', key: 'totalRevenue' },
+                              { label: 'Avg Spending', key: 'avgSpending' },
+                              { label: 'Discounts', key: 'totalDiscount' },
+                              { label: 'Orders', key: 'totalOrders' },
+                            ];
+                            if (showRestaurant) cols.push({ label: 'Restaurant', key: 'restaurantName' });
+                            var data = reportsData.groupStats.map(function(row) {
+                              var obj = {};
+                              cols.forEach(function(col) { obj[col.label] = row[col.key]; });
+                              return obj;
+                            });
+                            var ws = XLSX.utils.json_to_sheet(data);
+                            var wb = XLSX.utils.book_new();
+                            XLSX.utils.book_append_sheet(wb, ws, 'Report');
+                            XLSX.writeFile(wb, 'group_report.xlsx');
+                          }}
+                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#6b7280' }}
+                        >
+                          <FaDownload size={10} /> Export
+                        </button>
+                      </div>
+                      <div style={{ overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                          <thead>
+                            <tr style={{ background: '#f9fafb' }}>
+                              <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Group</th>
+                              <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Members</th>
+                              <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Revenue</th>
+                              <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Avg Spend</th>
+                              <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Discounts</th>
+                              <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Orders</th>
+                              {reportsRestaurantFilter === 'all' && <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Restaurant</th>}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {reportsData.groupStats.map(function(row) {
+                              return (
+                                <tr key={row.groupId} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                                  <td style={{ padding: '10px 12px' }}>
+                                    <span style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      padding: '3px 10px',
+                                      borderRadius: '12px',
+                                      fontSize: '12px',
+                                      fontWeight: '600',
+                                      backgroundColor: row.color + '15',
+                                      color: row.color,
+                                      border: '1px solid ' + row.color + '30'
+                                    }}>
+                                      {row.groupName}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#374151' }}>{row.memberCount}</td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#059669' }}>₹{row.totalRevenue.toLocaleString()}</td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#374151' }}>₹{row.avgSpending.toLocaleString()}</td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#dc2626' }}>₹{row.totalDiscount.toLocaleString()}</td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#374151' }}>{row.totalOrders}</td>
+                                  {reportsRestaurantFilter === 'all' && <td style={{ padding: '10px 12px', color: '#6b7280', fontSize: '12px' }}>{row.restaurantName}</td>}
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Empty state if no data */}
+                  {reportsData.topByDiscount.length === 0 && reportsData.topBySpending.length === 0 && reportsData.topByOrders.length === 0 && (
+                    <div style={{ textAlign: 'center', padding: '40px 20px', color: '#6b7280' }}>
+                      <FaChartBar size={32} style={{ color: '#d1d5db', marginBottom: '12px' }} />
+                      <p style={{ margin: 0, fontSize: '14px' }}>No order data found for the selected period.</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '60px 20px', color: '#6b7280' }}>
+                  <FaChartBar size={32} style={{ color: '#d1d5db', marginBottom: '12px' }} />
+                  <p style={{ margin: 0, fontSize: '14px' }}>Select filters to generate reports.</p>
+                </div>
+              )}
             </div>
           )}
         </div>

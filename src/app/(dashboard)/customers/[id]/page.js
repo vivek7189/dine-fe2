@@ -25,7 +25,9 @@ import {
   FaHandHoldingUsd,
   FaWallet,
   FaChevronDown,
-  FaChevronUp
+  FaChevronUp,
+  FaDownload,
+  FaPercent
 } from 'react-icons/fa';
 
 var CustomerDetail = function() {
@@ -53,6 +55,7 @@ var CustomerDetail = function() {
   var [creditForm, setCreditForm] = useState({ amount: '', reason: 'advance_payment', notes: '' });
   var [addingCredit, setAddingCredit] = useState(false);
   var [expandedOrderId, setExpandedOrderId] = useState(null);
+  var [statsPeriod, setStatsPeriod] = useState('all');
   var isMobileEmbed = typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
 
   useEffect(function() {
@@ -256,7 +259,82 @@ var CustomerDetail = function() {
 
   var outstandingBalance = creditData.outstandingBalance || customer.outstandingBalance || 0;
 
-  var sortedOrders = orderHistory.slice().sort(function(a, b) {
+  // Time period filtering
+  var periodLabels = { all: 'All Time', today: 'Today', week: 'This Week', month: 'This Month', lastMonth: 'Last Month' };
+  var filteredOrders = (function() {
+    if (statsPeriod === 'all') return orderHistory;
+    var now = new Date();
+    var startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var start, end;
+    if (statsPeriod === 'today') {
+      start = startOfToday;
+      end = new Date(startOfToday.getTime() + 86400000);
+    } else if (statsPeriod === 'week') {
+      var dayOfWeek = now.getDay() || 7; // Mon=1
+      start = new Date(startOfToday);
+      start.setDate(start.getDate() - (dayOfWeek - 1));
+      end = new Date(startOfToday.getTime() + 86400000);
+    } else if (statsPeriod === 'month') {
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = new Date(startOfToday.getTime() + 86400000);
+    } else if (statsPeriod === 'lastMonth') {
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      end = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+    return orderHistory.filter(function(o) {
+      var d = parseDate(o.orderDate);
+      return d && d >= start && d < end;
+    });
+  })();
+
+  // Filtered stats
+  var filteredTotalOrders = filteredOrders.length;
+  var filteredTotalSpent = filteredOrders.reduce(function(sum, o) { return sum + (o.finalAmount || o.totalAmount || 0); }, 0);
+  var filteredAvgOrder = filteredTotalOrders > 0 ? filteredTotalSpent / filteredTotalOrders : 0;
+
+  // Discount/savings stats from filtered orders
+  var savingsStats = filteredOrders.reduce(function(acc, o) {
+    acc.offerDiscount += (o.discountAmount || o.offerDiscount || 0);
+    acc.manualDiscount += (o.manualDiscount || 0);
+    acc.loyaltyDiscount += (o.loyaltyDiscount || 0);
+    acc.couponDiscount += (o.couponDiscount || 0);
+    acc.compItemCount += (o.compItems ? o.compItems.length : 0);
+    if ((o.discountAmount || 0) > 0 || (o.manualDiscount || 0) > 0 || (o.loyaltyDiscount || 0) > 0 || (o.couponDiscount || 0) > 0) {
+      acc.ordersWithDiscount += 1;
+    }
+    return acc;
+  }, { offerDiscount: 0, manualDiscount: 0, loyaltyDiscount: 0, couponDiscount: 0, compItemCount: 0, ordersWithDiscount: 0 });
+  savingsStats.totalSavings = savingsStats.offerDiscount + savingsStats.manualDiscount + savingsStats.loyaltyDiscount + savingsStats.couponDiscount;
+
+  // CSV download helper
+  var downloadReport = function() {
+    var rows = [['Date', 'Order #', 'Subtotal', 'Offer Discount', 'Manual Discount', 'Loyalty Discount', 'Coupon Discount', 'Total Discount', 'Final Amount', 'Status']];
+    filteredOrders.forEach(function(o) {
+      var d = parseDate(o.orderDate);
+      rows.push([
+        d ? d.toLocaleDateString() + ' ' + d.toLocaleTimeString() : '',
+        o.orderNumber || o.orderId || '',
+        (o.subtotal || o.totalAmount || 0).toFixed(2),
+        (o.discountAmount || o.offerDiscount || 0).toFixed(2),
+        (o.manualDiscount || 0).toFixed(2),
+        (o.loyaltyDiscount || 0).toFixed(2),
+        (o.couponDiscount || 0).toFixed(2),
+        (o.totalDiscountAmount || 0).toFixed(2),
+        (o.finalAmount || o.totalAmount || 0).toFixed(2),
+        o.status || ''
+      ]);
+    });
+    var csv = rows.map(function(r) { return r.join(','); }).join('\n');
+    var blob = new Blob([csv], { type: 'text/csv' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = (customer.name || 'customer') + '_report_' + statsPeriod + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  var sortedOrders = filteredOrders.slice().sort(function(a, b) {
     return (parseDate(b.orderDate) || new Date(0)) - (parseDate(a.orderDate) || new Date(0));
   });
 
@@ -373,12 +451,37 @@ var CustomerDetail = function() {
         </div>
       </div>
 
-      {/* Stats Cards - overlapping the header */}
+      {/* Period Filter + Stats Cards */}
       <div style={{
         padding: isMobile ? '0 10px' : '0 32px',
         marginTop: isMobile ? '-36px' : '-48px',
         marginBottom: isMobile ? '14px' : '20px'
       }}>
+        {/* Period Filter Pills */}
+        <div style={{
+          display: 'flex', gap: '4px', marginBottom: '12px',
+          overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none',
+          background: 'white', borderRadius: '10px', padding: '4px',
+          border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+          width: 'fit-content'
+        }}>
+          {['all', 'today', 'week', 'month', 'lastMonth'].map(function(p) {
+            return (
+              <button key={p} onClick={function() { setStatsPeriod(p); }}
+                style={{
+                  padding: isMobile ? '6px 12px' : '6px 16px',
+                  fontSize: '12px', fontWeight: '600', borderRadius: '8px',
+                  border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+                  transition: 'all 0.15s',
+                  background: statsPeriod === p ? '#1e293b' : 'transparent',
+                  color: statsPeriod === p ? 'white' : '#64748b',
+                }}>
+                {periodLabels[p]}
+              </button>
+            );
+          })}
+        </div>
+
         {isMobile ? (
         /* Mobile: Horizontal scroll stats */
         <div style={{
@@ -387,9 +490,9 @@ var CustomerDetail = function() {
           scrollbarWidth: 'none', paddingBottom: '4px'
         }}>
           {[
-            { value: totalOrders, label: 'Orders', gradient: 'linear-gradient(90deg, #3b82f6, #60a5fa)' },
-            { value: formatCurrency(totalSpent), label: 'Spent', gradient: 'linear-gradient(90deg, #10b981, #34d399)' },
-            { value: formatCurrency(avgOrderValue), label: 'Avg Order', gradient: 'linear-gradient(90deg, #8b5cf6, #a78bfa)' },
+            { value: filteredTotalOrders, label: 'Orders', gradient: 'linear-gradient(90deg, #3b82f6, #60a5fa)' },
+            { value: formatCurrency(filteredTotalSpent), label: 'Spent', gradient: 'linear-gradient(90deg, #10b981, #34d399)' },
+            { value: formatCurrency(filteredAvgOrder), label: 'Avg Order', gradient: 'linear-gradient(90deg, #8b5cf6, #a78bfa)' },
             { value: currentPoints, label: 'Points', gradient: 'linear-gradient(90deg, #f59e0b, #fbbf24)', color: '#f59e0b' },
             { value: formatCurrency(walletData.walletBalance), label: 'Wallet', gradient: 'linear-gradient(90deg, #06b6d4, #22d3ee)', color: '#06b6d4' },
             { value: formatCurrency(outstandingBalance), label: 'Due', gradient: outstandingBalance > 0 ? 'linear-gradient(90deg, #ef4444, #f87171)' : 'linear-gradient(90deg, #10b981, #34d399)', color: outstandingBalance > 0 ? '#ef4444' : '#10b981' },
@@ -421,7 +524,7 @@ var CustomerDetail = function() {
             textAlign: 'center', position: 'relative', overflow: 'hidden'
           }}>
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #3b82f6, #60a5fa)' }}></div>
-            <p style={{ margin: 0, fontSize: isMobile ? '24px' : '30px', fontWeight: '800', color: '#1e293b' }}>{totalOrders}</p>
+            <p style={{ margin: 0, fontSize: isMobile ? '24px' : '30px', fontWeight: '800', color: '#1e293b' }}>{filteredTotalOrders}</p>
             <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Orders</p>
           </div>
           <div style={{
@@ -430,7 +533,7 @@ var CustomerDetail = function() {
             textAlign: 'center', position: 'relative', overflow: 'hidden'
           }}>
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #10b981, #34d399)' }}></div>
-            <p style={{ margin: 0, fontSize: isMobile ? '24px' : '30px', fontWeight: '800', color: '#1e293b' }}>{formatCurrency(totalSpent)}</p>
+            <p style={{ margin: 0, fontSize: isMobile ? '24px' : '30px', fontWeight: '800', color: '#1e293b' }}>{formatCurrency(filteredTotalSpent)}</p>
             <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Spent</p>
           </div>
           <div style={{
@@ -439,7 +542,7 @@ var CustomerDetail = function() {
             textAlign: 'center', position: 'relative', overflow: 'hidden'
           }}>
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #8b5cf6, #a78bfa)' }}></div>
-            <p style={{ margin: 0, fontSize: isMobile ? '24px' : '30px', fontWeight: '800', color: '#1e293b' }}>{formatCurrency(avgOrderValue)}</p>
+            <p style={{ margin: 0, fontSize: isMobile ? '24px' : '30px', fontWeight: '800', color: '#1e293b' }}>{formatCurrency(filteredAvgOrder)}</p>
             <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Avg Order</p>
           </div>
           <div style={{
@@ -516,6 +619,85 @@ var CustomerDetail = function() {
                 </div>
               </div>
             )}
+
+            {/* Savings Summary Card */}
+            <div style={{
+              backgroundColor: 'white', borderRadius: '14px', border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: '20px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{
+                    width: '28px', height: '28px', borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #8b5cf6, #a78bfa)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <FaPercent size={11} style={{ color: 'white' }} />
+                  </div>
+                  Savings Summary
+                </h3>
+                <button onClick={downloadReport} title="Download CSV report" style={{
+                  background: 'none', border: '1px solid #e5e7eb', borderRadius: '6px',
+                  cursor: 'pointer', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px',
+                  fontSize: '11px', color: '#64748b', fontWeight: '500'
+                }}>
+                  <FaDownload size={10} /> CSV
+                </button>
+              </div>
+              <p style={{ margin: '0 0 12px', fontSize: '11px', color: '#94a3b8', fontWeight: '500' }}>{periodLabels[statsPeriod]}</p>
+              {savingsStats.totalSavings > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{
+                    background: 'linear-gradient(135deg, #faf5ff, #f3e8ff)',
+                    borderRadius: '10px', padding: '12px', textAlign: 'center',
+                    border: '1px solid #e9d5ff'
+                  }}>
+                    <p style={{ margin: 0, fontSize: '22px', fontWeight: '800', color: '#7c3aed' }}>{formatCurrency(savingsStats.totalSavings)}</p>
+                    <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#8b5cf6', fontWeight: '600', textTransform: 'uppercase' }}>Total Discounts Given</p>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
+                    {savingsStats.offerDiscount > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '12px', color: '#64748b' }}>Offer Discounts</span>
+                        <span style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>{formatCurrency(savingsStats.offerDiscount)}</span>
+                      </div>
+                    )}
+                    {savingsStats.manualDiscount > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '12px', color: '#64748b' }}>Manual Discounts</span>
+                        <span style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>{formatCurrency(savingsStats.manualDiscount)}</span>
+                      </div>
+                    )}
+                    {savingsStats.loyaltyDiscount > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '12px', color: '#64748b' }}>Loyalty Discounts</span>
+                        <span style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>{formatCurrency(savingsStats.loyaltyDiscount)}</span>
+                      </div>
+                    )}
+                    {savingsStats.couponDiscount > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '12px', color: '#64748b' }}>Coupon Discounts</span>
+                        <span style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>{formatCurrency(savingsStats.couponDiscount)}</span>
+                      </div>
+                    )}
+                    {savingsStats.compItemCount > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '12px', color: '#64748b' }}>Comp Items</span>
+                        <span style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>{savingsStats.compItemCount} items</span>
+                      </div>
+                    )}
+                    <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '6px', marginTop: '2px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>Orders with discounts</span>
+                      <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b' }}>{savingsStats.ordersWithDiscount} of {filteredTotalOrders}</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8', textAlign: 'center', padding: '12px 0' }}>
+                  No discounts {statsPeriod === 'all' ? 'given yet' : 'in ' + periodLabels[statsPeriod].toLowerCase()}
+                </p>
+              )}
+            </div>
 
             {/* Redemption History */}
             {redemptionHistory.length > 0 && (
@@ -853,7 +1035,7 @@ var CustomerDetail = function() {
                 fontSize: isMobile ? '11px' : '12px', fontWeight: '600', backgroundColor: '#f1f5f9',
                 color: '#64748b', padding: '2px 10px', borderRadius: '20px'
               }}>
-                {orderHistory.length}
+                {statsPeriod !== 'all' ? filteredTotalOrders + ' / ' + orderHistory.length : orderHistory.length}
               </span>
             </h3>
             {sortedOrders.length > 0 ? (
@@ -1039,6 +1221,12 @@ var CustomerDetail = function() {
                               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <span style={{ color: '#7c3aed' }}>Loyalty Points</span>
                                 <span style={{ color: '#7c3aed' }}>-{formatCurrency(order.loyaltyDiscount)}</span>
+                              </div>
+                            )}
+                            {(order.couponDiscount || 0) > 0 && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: '#16a34a' }}>Coupon{order.couponCode ? ` (${order.couponCode})` : ''}</span>
+                                <span style={{ color: '#16a34a' }}>-{formatCurrency(order.couponDiscount)}</span>
                               </div>
                             )}
                             {order.serviceChargeAmount > 0 && (

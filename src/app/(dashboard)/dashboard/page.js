@@ -1463,6 +1463,21 @@ function RestaurantPOSContent() {
     const tableIdParam = searchParams.get('tableId');
 
     if (tableParam) {
+      // When starting a NEW order from tables page (no orderId = not editing existing order),
+      // clear the cart so stale items from previous sessions don't carry over
+      const orderId = searchParams.get('orderId');
+      if (!orderId) {
+        setCart([]);
+        setCurrentOrder(null);
+        setActiveSavedOrderId(null);
+        setCustomerName('');
+        setCustomerMobile('');
+        setCustomerData(null);
+        setOrderSuccess(null);
+        setOrderComplete(false);
+        localStorage.removeItem('dine_cart');
+      }
+
       setSelectedTable({
         id: tableIdParam || null,
         name: tableParam,
@@ -4022,6 +4037,7 @@ function RestaurantPOSContent() {
     // Extract tax information and special instructions from taxData passed by OrderSummary
     const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null, specialInstructions = null, offerIds = [], manualDiscount = 0, offerDiscount: offerDiscountAmt = 0, selectedOfferName: offerName = '', totalDiscountAmount: discountTotal = 0,
       redeemLoyaltyPoints = 0, loyaltyDiscount: loyaltyDiscAmt = 0,
+      couponDiscount: couponDiscAmt = null, couponCode = null, couponId = null,
       serviceChargeRate = null, serviceChargeAmount: scAmount = null, tipAmount: tipAmt = null, tipPercentage: tipPct = null,
       cashReceived = null, changeReturned = null, splitPayments: splitPay = null, roundOffAmount: roundOff = null,
       partialPayAmount: partialPay = null, compItems: compData = null, voidItems: voidData = null, managerPin: mgrPin = null,
@@ -4260,7 +4276,15 @@ function RestaurantPOSContent() {
           // Discount fields
           offerIds: offerIds && offerIds.length > 0 ? offerIds : [],
           manualDiscount: manualDiscount || 0,
+          discountAmount: offerDiscountAmt || 0,
+          offerDiscount: offerDiscountAmt || 0,
+          selectedOfferName: offerName || null,
+          totalDiscountAmount: discountTotal || 0,
           redeemLoyaltyPoints: redeemLoyaltyPoints || 0,
+          loyaltyDiscount: loyaltyDiscAmt || 0,
+          couponDiscount: couponDiscAmt || null,
+          couponCode: couponCode || null,
+          couponId: couponId || null,
           walletRedeemAmount: walletRedeem || null,
           customerPhone: customerMobile || null,
           // Special instructions for kitchen
@@ -7253,6 +7277,7 @@ function RestaurantPOSContent() {
                 onAddToCart={addToCart}
                 onUpdateCartItemQuantity={updateCartItemQuantity}
                 onTableNumberChange={setTableNumber}
+                onChangeTable={() => setShowTableSelector(true)}
                 onCustomerNameChange={setCustomerName}
                 onCustomerMobileChange={setCustomerMobile}
                 inRoomDiningEnabled={inRoomDiningEnabled}
@@ -7448,6 +7473,7 @@ function RestaurantPOSContent() {
             onAddToCart={addToCart}
             onUpdateCartItemQuantity={updateCartItemQuantity}
             onTableNumberChange={setTableNumber}
+            onChangeTable={() => setShowTableSelector(true)}
             onCustomerNameChange={setCustomerName}
             onCustomerMobileChange={setCustomerMobile}
             inRoomDiningEnabled={inRoomDiningEnabled}
@@ -7540,6 +7566,7 @@ function RestaurantPOSContent() {
                     onToggleFavorite={handleToggleFavorite}
                 onUpdateCartItemQuantity={updateCartItemQuantity}
                     onTableNumberChange={setTableNumber}
+                    onChangeTable={() => setShowTableSelector(true)}
                     onCustomerNameChange={setCustomerName}
                     onCustomerMobileChange={setCustomerMobile}
                     inRoomDiningEnabled={inRoomDiningEnabled}
@@ -7929,7 +7956,11 @@ function RestaurantPOSContent() {
       )}
 
       {/* Table Selector Modal */}
-      {showTableSelector && (
+      {showTableSelector && (() => {
+        const allFloorTables = tablesData.floors?.flatMap(f => (f.tables || []).map(t => ({ ...t, floorName: f.name || f.floorName }))) || [];
+        const selectorTables = allFloorTables.length > 0 ? allFloorTables : (tablesData.tables || []);
+        const floorNames = [...new Set(selectorTables.map(t => t.floorName).filter(Boolean))];
+        return (
         <div style={{
           position: 'fixed',
           inset: 0,
@@ -7945,207 +7976,150 @@ function RestaurantPOSContent() {
             borderRadius: '16px',
             boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
             width: '100%',
-            maxWidth: '400px'
+            maxWidth: selectorTables.length > 0 ? '600px' : '400px',
+            maxHeight: '80vh',
+            display: 'flex',
+            flexDirection: 'column'
           }}>
-            <div style={{ padding: '24px', borderBottom: '1px solid #e5e7eb' }}>
-              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
-                {inRoomDiningEnabled ? t('dashboard.selectLocation') : t('dashboard.tableNumber')}
-              </h2>
-              <p style={{ color: '#6b7280', margin: '4px 0 0 0', fontSize: '14px' }}>
-                {inRoomDiningEnabled ? t('dashboard.enterTableOrRoom') : t('dashboard.enterTableNumber')}
-              </p>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb', flexShrink: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+                    {inRoomDiningEnabled ? t('dashboard.selectLocation') : 'Select Table'}
+                  </h2>
+                  {tableNumber && (
+                    <p style={{ color: '#6b7280', margin: '4px 0 0 0', fontSize: '13px' }}>
+                      Currently: <strong>Table {tableNumber}</strong>
+                    </p>
+                  )}
+                </div>
+                <button onClick={() => { setShowTableSelector(false); setManualTableNumber(''); setManualRoomNumber(''); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#6b7280' }}>
+                  <FaTimes size={18} />
+                </button>
+              </div>
             </div>
-            
-            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Location Type Selector (Table or Room) - Only show if in-room dining is enabled */}
+
+            <div style={{ padding: '16px 24px', overflowY: 'auto', flex: 1 }}>
+              {/* Room/Table type selector for in-room dining */}
               {inRoomDiningEnabled && (
-                <div>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                    {t('dashboard.locationType')}
-                  </label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLocationType('table');
-                        setManualRoomNumber('');
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: '10px 16px',
-                        borderRadius: '8px',
-                        border: '2px solid',
-                        backgroundColor: locationType === 'table' ? '#e53e3e' : 'white',
-                        color: locationType === 'table' ? 'white' : '#374151',
-                        borderColor: locationType === 'table' ? '#e53e3e' : '#e5e7eb',
-                        fontWeight: '600',
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      <FaTable size={14} />
-                      {t('dashboard.table')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLocationType('room');
-                        setManualTableNumber('');
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: '10px 16px',
-                        borderRadius: '8px',
-                        border: '2px solid',
-                        backgroundColor: locationType === 'room' ? '#e53e3e' : 'white',
-                        color: locationType === 'room' ? 'white' : '#374151',
-                        borderColor: locationType === 'room' ? '#e53e3e' : '#e5e7eb',
-                        fontWeight: '600',
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      <FaBed size={14} />
-                      {t('dashboard.room')}
-                    </button>
-                  </div>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                  <button type="button" onClick={() => { setLocationType('table'); setManualRoomNumber(''); }}
+                    style={{ flex: 1, padding: '8px 14px', borderRadius: '8px', border: '2px solid', backgroundColor: locationType === 'table' ? '#e53e3e' : 'white', color: locationType === 'table' ? 'white' : '#374151', borderColor: locationType === 'table' ? '#e53e3e' : '#e5e7eb', fontWeight: '600', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                    <FaTable size={12} /> {t('dashboard.table')}
+                  </button>
+                  <button type="button" onClick={() => { setLocationType('room'); setManualTableNumber(''); }}
+                    style={{ flex: 1, padding: '8px 14px', borderRadius: '8px', border: '2px solid', backgroundColor: locationType === 'room' ? '#e53e3e' : 'white', color: locationType === 'room' ? 'white' : '#374151', borderColor: locationType === 'room' ? '#e53e3e' : '#e5e7eb', fontWeight: '600', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                    <FaBed size={12} /> {t('dashboard.room')}
+                  </button>
                 </div>
               )}
 
-              {/* Table Number Input */}
-              {(!inRoomDiningEnabled || locationType === 'table') && (
-                <div>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                    {t('dashboard.tableNumber')}
-                  </label>
-                  <input
-                    type="text"
-                    value={manualTableNumber}
-                    onChange={(e) => setManualTableNumber(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleManualTableSelection()}
-                    placeholder={t('dashboard.tablePlaceholder')}
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      border: '2px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      outline: 'none',
-                      backgroundColor: '#f9fafb'
-                    }}
-                  />
-                </div>
-              )}
-
-              {/* Room Number Input */}
+              {/* Room number input */}
               {inRoomDiningEnabled && locationType === 'room' && (
-                <div>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                    {t('dashboard.roomNumber')}
-                  </label>
-                  <input
-                    type="text"
-                    value={manualRoomNumber}
-                    onChange={(e) => setManualRoomNumber(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleManualRoomSelection()}
-                    placeholder={t('dashboard.roomPlaceholder')}
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      border: '2px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      outline: 'none',
-                      backgroundColor: '#f9fafb'
-                    }}
-                  />
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>{t('dashboard.roomNumber')}</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input type="text" value={manualRoomNumber} onChange={(e) => setManualRoomNumber(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleManualRoomSelection()}
+                      placeholder={t('dashboard.roomPlaceholder')}
+                      style={{ flex: 1, padding: '10px 14px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: '#f9fafb' }} />
+                    <button onClick={handleManualRoomSelection} disabled={!manualRoomNumber.trim()}
+                      style={{ padding: '10px 16px', backgroundColor: manualRoomNumber.trim() ? '#e53e3e' : '#d1d5db', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '13px', cursor: manualRoomNumber.trim() ? 'pointer' : 'not-allowed' }}>
+                      Select
+                    </button>
+                  </div>
                 </div>
               )}
 
-              {!inRoomDiningEnabled && (
-                <div style={{ padding: '16px', backgroundColor: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <FaChair size={16} color="#0284c7" />
-                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#0284c7' }}>
-                      {t('dashboard.needManageTables')}
-                    </span>
+              {/* Visual Table Grid */}
+              {(!inRoomDiningEnabled || locationType === 'table') && selectorTables.length > 0 && (
+                <div>
+                  {/* Manual input row */}
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                    <input type="text" value={manualTableNumber} onChange={(e) => setManualTableNumber(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleManualTableSelection()}
+                      placeholder="Type table number..."
+                      style={{ flex: 1, padding: '10px 14px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: '#f9fafb' }} />
+                    <button onClick={handleManualTableSelection} disabled={!manualTableNumber.trim()}
+                      style={{ padding: '10px 16px', backgroundColor: manualTableNumber.trim() ? '#e53e3e' : '#d1d5db', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '13px', cursor: manualTableNumber.trim() ? 'pointer' : 'not-allowed' }}>
+                      Select
+                    </button>
                   </div>
-                  <p style={{ fontSize: '12px', color: '#075985', margin: 0, lineHeight: '1.4' }}>
-                    {t('dashboard.visitTableManagement')}
-                  </p>
+
+                  {/* Table cards by floor */}
+                  {(floorNames.length > 0 ? floorNames : [null]).map(floor => {
+                    const floorTables = floor ? selectorTables.filter(t => t.floorName === floor) : selectorTables;
+                    return (
+                      <div key={floor || 'all'} style={{ marginBottom: '16px' }}>
+                        {floor && <div style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>{floor}</div>}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px' }}>
+                          {floorTables.map(tbl => {
+                            const tblName = tbl.name || tbl.number || tbl.tableName || '';
+                            const tblNumber = tbl.number || tbl.name || tbl.tableName || '';
+                            const isOccupied = tbl.status === 'occupied';
+                            const isCurrent = tableNumber && (String(tblNumber) === String(tableNumber) || String(tblName) === String(tableNumber));
+                            return (
+                              <button key={tbl.id || tblName} onClick={() => {
+                                if (!isCurrent) {
+                                  setTableNumber(String(tblNumber));
+                                  setSelectedTable(tbl);
+                                  setShowTableSelector(false);
+                                  setManualTableNumber('');
+                                  // Clear from-tables localStorage to prevent stale state
+                                  if (typeof window !== 'undefined') {
+                                    const url = new URL(window.location.href);
+                                    url.searchParams.delete('tableId');
+                                    url.searchParams.delete('tableNo');
+                                    window.history.replaceState({}, '', url.toString());
+                                  }
+                                }
+                              }}
+                              style={{
+                                padding: '10px 6px',
+                                borderRadius: '10px',
+                                border: isCurrent ? '2px solid #ef4444' : '1px solid #e5e7eb',
+                                backgroundColor: isCurrent ? '#fef2f2' : isOccupied ? '#fff7ed' : '#f0fdf4',
+                                cursor: isCurrent ? 'default' : 'pointer',
+                                textAlign: 'center',
+                                transition: 'all 0.15s',
+                              }}>
+                                <FaChair size={14} style={{ color: isCurrent ? '#ef4444' : isOccupied ? '#f97316' : '#16a34a', marginBottom: '4px' }} />
+                                <div style={{ fontSize: '13px', fontWeight: '700', color: isCurrent ? '#ef4444' : '#374151' }}>{tblName}</div>
+                                <div style={{ fontSize: '9px', color: isCurrent ? '#ef4444' : isOccupied ? '#f97316' : '#16a34a', fontWeight: 500, marginTop: '2px' }}>
+                                  {isCurrent ? 'Current' : isOccupied ? 'Occupied' : 'Available'}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
-            </div>
-            
-            <div style={{ padding: '24px', backgroundColor: '#f9fafb', display: 'flex', gap: '12px' }}>
-              <button
-                onClick={() => {
-                  setShowTableSelector(false);
-                  setLocationType('table');
-                  setManualTableNumber('');
-                  setManualRoomNumber('');
-                }}
-                style={{
-                  flex: 1,
-                  backgroundColor: '#6b7280',
-                  color: 'white',
-                  padding: '12px 24px',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                onClick={inRoomDiningEnabled && locationType === 'room' ? handleManualRoomSelection : handleManualTableSelection}
-                disabled={inRoomDiningEnabled && locationType === 'room' 
-                  ? !manualRoomNumber.trim() 
-                  : !manualTableNumber.trim()}
-                style={{
-                  flex: 1,
-                  backgroundColor: (inRoomDiningEnabled && locationType === 'room' ? manualRoomNumber.trim() : manualTableNumber.trim()) 
-                    ? '#e53e3e' : '#d1d5db',
-                  color: 'white',
-                  padding: '12px 24px',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  border: 'none',
-                  cursor: (inRoomDiningEnabled && locationType === 'room' ? manualRoomNumber.trim() : manualTableNumber.trim()) 
-                    ? 'pointer' : 'not-allowed',
-                  fontSize: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px'
-                }}
-              >
-                {inRoomDiningEnabled && locationType === 'room' ? (
-                  <>
-                    <FaBed size={14} />
-                    {t('dashboard.selectRoom')}
-                  </>
-                ) : (
-                  <>
-                    <FaTable size={14} />
-                    {t('dashboard.tableNumber')}
-                  </>
-                )}
-              </button>
+
+              {/* Fallback: manual input only when no tables data */}
+              {(!inRoomDiningEnabled || locationType === 'table') && selectorTables.length === 0 && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>{t('dashboard.tableNumber')}</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input type="text" value={manualTableNumber} onChange={(e) => setManualTableNumber(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleManualTableSelection()}
+                      placeholder={t('dashboard.tablePlaceholder')}
+                      style={{ flex: 1, padding: '10px 14px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: '#f9fafb' }} />
+                    <button onClick={handleManualTableSelection} disabled={!manualTableNumber.trim()}
+                      style={{ padding: '10px 16px', backgroundColor: manualTableNumber.trim() ? '#e53e3e' : '#d1d5db', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '13px', cursor: manualTableNumber.trim() ? 'pointer' : 'not-allowed' }}>
+                      Select
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Reset Tables Confirmation Modal */}
       {showResetConfirm && (() => {

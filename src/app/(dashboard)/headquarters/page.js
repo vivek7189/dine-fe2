@@ -203,6 +203,7 @@ export function HeadquartersContent({ embedded = false }) {
     return [];
   });
   const [dateRange, setDateRange] = useState({ preset: 'today', startDate: '', endDate: '' });
+  const [chartView, setChartView] = useState('auto'); // 'auto' | 'hourly' | 'daily' | 'weekly'
   const [staffFilters, setStaffFilters] = useState({ role: '', status: '', search: '' });
   const [menuFilters, setMenuFilters] = useState({ category: '', search: '' });
   const [inventoryFilters, setInventoryFilters] = useState({ stockStatus: '', category: '', search: '' });
@@ -1683,15 +1684,51 @@ export function HeadquartersContent({ embedded = false }) {
     const prevHourlyData = analyticsData?.previousDayRevenueByHour || [];
     const hasPrevHourly = dateRange.preset === 'today' && prevHourlyData.length > 0;
 
-    const revenueChartData = (analyticsData?.revenueByDay || []).map(d => {
+    // Available view options based on date range
+    const chartViewOptions = dateRange.preset === 'today'
+      ? ['hourly']
+      : dateRange.preset === '7d'
+        ? ['daily']
+        : dateRange.preset === '30d'
+          ? ['daily', 'weekly']
+          : ['daily', 'weekly'];
+
+    // Determine effective chart granularity
+    const defaultView = dateRange.preset === 'today' ? 'hourly' : 'daily';
+    const effectiveView = chartView === 'auto' ? defaultView
+      : chartViewOptions.includes(chartView) ? chartView : defaultView;
+
+    // Helper to aggregate data by week
+    const aggregateWeekly = (data) => {
+      const weeks = {};
+      data.forEach(d => {
+        const date = new Date(d.date);
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        const key = weekStart.toISOString().split('T')[0];
+        if (!weeks[key]) weeks[key] = { date: key, revenue: 0, orders: 0 };
+        weeks[key].revenue += d.revenue || 0;
+        weeks[key].orders += d.orders || 0;
+      });
+      return Object.values(weeks);
+    };
+
+    const rawData = analyticsData?.revenueByDay || [];
+    const chartSourceData = effectiveView === 'weekly' ? aggregateWeekly(rawData) : rawData;
+
+    const formatLabel = (d) => {
       const date = new Date(d.date);
-      const label = dateRange.preset === 'today'
-        ? date.toLocaleTimeString('en-US', { hour: '2-digit' })
-        : dateRange.preset === '7d'
-          ? date.toLocaleDateString('en-US', { weekday: 'short' })
-          : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      const entry = { label, value: d.revenue };
-      if (hasPrevHourly) {
+      if (effectiveView === 'hourly') return date.toLocaleTimeString('en-US', { hour: '2-digit' });
+      if (effectiveView === 'weekly') return `W${Math.ceil(date.getDate() / 7)} ${date.toLocaleDateString('en-US', { month: 'short' })}`;
+      // daily
+      return dateRange.preset === '7d'
+        ? date.toLocaleDateString('en-US', { weekday: 'short' })
+        : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+
+    const revenueChartData = chartSourceData.map(d => {
+      const entry = { label: formatLabel(d), value: d.revenue };
+      if (hasPrevHourly && effectiveView === 'hourly') {
         const hourStr = d.date.split('T')[1]?.substring(0, 2);
         const prev = prevHourlyData.find(p => p.hour === hourStr);
         entry.prevValue = prev ? prev.revenue : 0;
@@ -1699,15 +1736,9 @@ export function HeadquartersContent({ embedded = false }) {
       return entry;
     });
 
-    const ordersChartData = (analyticsData?.revenueByDay || []).map(d => {
-      const date = new Date(d.date);
-      const label = dateRange.preset === 'today'
-        ? date.toLocaleTimeString('en-US', { hour: '2-digit' })
-        : dateRange.preset === '7d'
-          ? date.toLocaleDateString('en-US', { weekday: 'short' })
-          : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      const entry = { label, value: d.orders };
-      if (hasPrevHourly) {
+    const ordersChartData = chartSourceData.map(d => {
+      const entry = { label: formatLabel(d), value: d.orders };
+      if (hasPrevHourly && effectiveView === 'hourly') {
         const hourStr = d.date.split('T')[1]?.substring(0, 2);
         const prev = prevHourlyData.find(p => p.hour === hourStr);
         entry.prevValue = prev ? prev.orders : 0;
@@ -1795,26 +1826,41 @@ export function HeadquartersContent({ embedded = false }) {
               <div>
                 <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937', margin: 0 }}>{t('hq.revenueTrend')}</h3>
                 <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                  {dateRange.preset === 'today' ? t('hq.hourlyBreakdown') : t('hq.dailyBreakdown')}
+                  {effectiveView === 'hourly' ? t('hq.hourlyBreakdown') : effectiveView === 'weekly' ? t('hq.weeklyBreakdown') : t('hq.dailyBreakdown')}
                 </span>
               </div>
-              {refreshing ? (
-                <div style={{ width: '90px', height: '28px', borderRadius: '20px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'hqShimmer 1.5s ease-in-out infinite' }} />
-              ) : (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 12px',
-                  backgroundColor: '#dcfce7',
-                  borderRadius: '20px'
-                }}>
-                  <FaRupeeSign size={12} style={{ color: '#16a34a' }} />
-                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#16a34a' }}>
-                    {formatCurrency ? formatCurrency(filteredTotalRevenue) : `₹${filteredTotalRevenue.toLocaleString()}`}
-                  </span>
-                </div>
-              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {chartViewOptions.length > 1 && (
+                  <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                    {chartViewOptions.map(v => (
+                      <button key={v} onClick={() => setChartView(v)} style={{
+                        padding: '4px 10px', fontSize: '11px', fontWeight: 500, border: 'none', cursor: 'pointer',
+                        backgroundColor: effectiveView === v ? '#16a34a' : '#fff',
+                        color: effectiveView === v ? '#fff' : '#6b7280',
+                      }}>
+                        {v === 'hourly' ? t('hq.hourly') : v === 'daily' ? t('hq.daily') : t('hq.weekly')}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {refreshing ? (
+                  <div style={{ width: '90px', height: '28px', borderRadius: '20px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'hqShimmer 1.5s ease-in-out infinite' }} />
+                ) : (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    backgroundColor: '#dcfce7',
+                    borderRadius: '20px'
+                  }}>
+                    <FaRupeeSign size={12} style={{ color: '#16a34a' }} />
+                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#16a34a' }}>
+                      {formatCurrency ? formatCurrency(filteredTotalRevenue) : `₹${filteredTotalRevenue.toLocaleString()}`}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
             <div style={{ height: 180, width: '100%' }}>
               {(!analyticsData || refreshing) ? (
@@ -1887,26 +1933,41 @@ export function HeadquartersContent({ embedded = false }) {
               <div>
                 <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937', margin: 0 }}>{t('hq.ordersTrend')}</h3>
                 <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                  {dateRange.preset === 'today' ? t('hq.hourlyBreakdown') : t('hq.dailyBreakdown')}
+                  {effectiveView === 'hourly' ? t('hq.hourlyBreakdown') : effectiveView === 'weekly' ? t('hq.weeklyBreakdown') : t('hq.dailyBreakdown')}
                 </span>
               </div>
-              {refreshing ? (
-                <div style={{ width: '80px', height: '28px', borderRadius: '20px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'hqShimmer 1.5s ease-in-out infinite 0.1s' }} />
-              ) : (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 12px',
-                  backgroundColor: '#dbeafe',
-                  borderRadius: '20px'
-                }}>
-                  <FaShoppingCart size={12} style={{ color: '#3b82f6' }} />
-                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#3b82f6' }}>
-                    {filteredTotalOrders} {t('hq.orders')}
-                  </span>
-                </div>
-              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {chartViewOptions.length > 1 && (
+                  <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                    {chartViewOptions.map(v => (
+                      <button key={v} onClick={() => setChartView(v)} style={{
+                        padding: '4px 10px', fontSize: '11px', fontWeight: 500, border: 'none', cursor: 'pointer',
+                        backgroundColor: effectiveView === v ? '#3b82f6' : '#fff',
+                        color: effectiveView === v ? '#fff' : '#6b7280',
+                      }}>
+                        {v === 'hourly' ? t('hq.hourly') : v === 'daily' ? t('hq.daily') : t('hq.weekly')}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {refreshing ? (
+                  <div style={{ width: '80px', height: '28px', borderRadius: '20px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'hqShimmer 1.5s ease-in-out infinite 0.1s' }} />
+                ) : (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    backgroundColor: '#dbeafe',
+                    borderRadius: '20px'
+                  }}>
+                    <FaShoppingCart size={12} style={{ color: '#3b82f6' }} />
+                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#3b82f6' }}>
+                      {filteredTotalOrders} {t('hq.orders')}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
             <div style={{ height: 180, width: '100%' }}>
               {(!analyticsData || refreshing) ? (

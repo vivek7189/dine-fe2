@@ -72,6 +72,7 @@ const OrderSummary = ({
   onAddToCart,
   onUpdateCartItemQuantity,
   onTableNumberChange,
+  onChangeTable,
   onCustomerNameChange,
   onCustomerMobileChange,
   processing,
@@ -1948,9 +1949,11 @@ const OrderSummary = ({
             </div>
           </div>
           
-          <button 
+          <button
             onClick={() => {
-               if (typeof onTableNumberChange === 'function') {
+               if (typeof onChangeTable === 'function') {
+                 onChangeTable();
+               } else if (typeof onTableNumberChange === 'function') {
                  onTableNumberChange('');
                }
             }}
