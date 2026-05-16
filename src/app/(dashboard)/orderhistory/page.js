@@ -63,7 +63,12 @@ import {
   FaSortAmountDown,
   FaSortAmountUp,
   FaUsers,
+  FaCalendarCheck,
+  FaConciergeBell,
 } from 'react-icons/fa';
+import dynamic from 'next/dynamic';
+const BookingList = dynamic(() => import('../../../components/bookings/BookingList'), { ssr: false });
+const BookingDetail = dynamic(() => import('../../../components/bookings/BookingDetail'), { ssr: false });
 
 // Merge pending offline orders into the order list so they show immediately
 async function mergeOfflineOrderHistory(existingOrders, restaurantId) {
@@ -106,7 +111,7 @@ const OrderHistory = () => {
 
   // View mode: 'orders' or 'summary' — persisted in URL
   const urlView = searchParams.get('view');
-  const [activeView, setActiveView] = useState(urlView === 'summary' ? 'summary' : urlView === 'scheduled' ? 'scheduled' : 'orders');
+  const [activeView, setActiveView] = useState(urlView === 'summary' ? 'summary' : urlView === 'scheduled' ? 'scheduled' : urlView === 'bookings' ? 'bookings' : 'orders');
 
   // Sales Summary state
   const [summaryData, setSummaryData] = useState(null);
@@ -155,6 +160,13 @@ const OrderHistory = () => {
   const [billingTableNumber, setBillingTableNumber] = useState('');
   const [markPaidOrderId, setMarkPaidOrderId] = useState(null);
   const [markPaidSubmitting, setMarkPaidSubmitting] = useState(false);
+
+  // Bookings tab state
+  const [bookingsData, setBookingsData] = useState([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
+  const [bookingsFilters, setBookingsFilters] = useState({ type: '', status: '', startDate: '', endDate: '', search: '' });
+  const [bookingsDetailOpen, setBookingsDetailOpen] = useState(false);
+  const [bookingsSelectedBooking, setBookingsSelectedBooking] = useState(null);
   const [deleteConfirmOrderId, setDeleteConfirmOrderId] = useState(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(null);
@@ -1563,6 +1575,8 @@ const OrderHistory = () => {
       params.set('view', 'summary');
     } else if (view === 'scheduled') {
       params.set('view', 'scheduled');
+    } else if (view === 'bookings') {
+      params.set('view', 'bookings');
     } else {
       params.delete('view');
     }
@@ -1576,7 +1590,24 @@ const OrderHistory = () => {
     if (view === 'scheduled' && restaurantId) {
       fetchScheduledOrders();
     }
+    if (view === 'bookings' && restaurantId) {
+      fetchBookingsData();
+    }
   }, [restaurantId, summaryData, fetchScheduledOrders]);
+
+  // Fetch bookings for the Bookings tab
+  const fetchBookingsData = useCallback(async () => {
+    if (!restaurantId) return;
+    setBookingsLoading(true);
+    try {
+      const resp = await apiClient.getBookings(restaurantId, bookingsFilters);
+      setBookingsData(resp.bookings || []);
+    } catch (err) {
+      console.error('Failed to load bookings:', err);
+    } finally {
+      setBookingsLoading(false);
+    }
+  }, [restaurantId, bookingsFilters]);
 
   const fetchSummaryData = useCallback(async (period) => {
     if (!restaurantId) return;
@@ -1625,7 +1656,17 @@ const OrderHistory = () => {
     if (activeView === 'scheduled' && restaurantId && scheduledOrders.length === 0 && !scheduledLoading) {
       fetchScheduledOrders();
     }
+    if (activeView === 'bookings' && restaurantId && bookingsData.length === 0 && !bookingsLoading) {
+      fetchBookingsData();
+    }
   }, [activeView, restaurantId]);
+
+  // Refetch bookings when filters change
+  useEffect(() => {
+    if (activeView === 'bookings' && restaurantId) {
+      fetchBookingsData();
+    }
+  }, [bookingsFilters]);
 
   const toggleSummarySort = (field) => {
     if (summarySortBy === field) {
@@ -2064,6 +2105,17 @@ const OrderHistory = () => {
             >
               <FaChartPie className="text-xs" />
               {t('orderHistory.salesSummary')}
+            </button>
+            <button
+              onClick={() => switchView('bookings')}
+              className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm font-medium transition-all ${
+                activeView === 'bookings'
+                  ? 'bg-amber-500 text-white shadow-md shadow-amber-200'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <FaCalendarCheck className="text-xs" />
+              Bookings
             </button>
           </div>
 
@@ -4241,6 +4293,49 @@ const OrderHistory = () => {
               </div>
             );
           })()}
+        </div>
+      )}
+
+      {/* Bookings Tab Content */}
+      {activeView === 'bookings' && (
+        <div className="flex-1 p-3 sm:px-6 sm:py-4 overflow-y-auto">
+          <BookingList
+            bookings={bookingsData.map(b => ({
+              ...b,
+              booking_number: b.bookingNumber,
+              customer_name: b.customer?.name || '',
+              customer_phone: b.customer?.phone || '',
+              event_name: b.eventName,
+              event_date: b.eventDate,
+              guests: b.guestCount,
+              total_amount: b.totalAmount,
+              paid_amount: b.paidAmount,
+              balance_amount: b.balanceAmount,
+            }))}
+            loading={bookingsLoading}
+            onView={function(booking) { setBookingsSelectedBooking(booking); setBookingsDetailOpen(true); }}
+            onEdit={function() {}}
+            onAddPayment={function() {}}
+            onComplete={function() {}}
+            onCancel={function() {}}
+            onShareInvoice={function() {}}
+            isMobile={isMobile}
+            formatCurrency={formatCurrency}
+            filters={bookingsFilters}
+            onFiltersChange={setBookingsFilters}
+          />
+          {bookingsDetailOpen && bookingsSelectedBooking && (
+            <BookingDetail
+              booking={bookingsSelectedBooking}
+              isOpen={bookingsDetailOpen}
+              onClose={function() { setBookingsDetailOpen(false); setBookingsSelectedBooking(null); }}
+              onAddPayment={function() {}}
+              onComplete={function() {}}
+              onShareInvoice={function() {}}
+              formatCurrency={formatCurrency}
+              isMobile={isMobile}
+            />
+          )}
         </div>
       )}
 

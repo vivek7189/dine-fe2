@@ -83,7 +83,8 @@ import {
   FaTh,
   FaList,
   FaParking,
-  FaCalendarCheck
+  FaCalendarCheck,
+  FaDoorOpen
 } from 'react-icons/fa';
 // ShiftScheduling moved to /shifts page df
 import dynamic from 'next/dynamic';
