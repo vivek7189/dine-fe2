@@ -95,6 +95,7 @@ const en = {
       googleReviews: 'Google Reviews',
       spaces: 'Spaces',
       parking: 'Parking',
+      bookings: 'Bookings',
       profile: 'Profile',
       logout: 'Logout',
       collapseMenu: 'Collapse Menu',

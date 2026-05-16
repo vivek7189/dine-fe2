@@ -149,6 +149,7 @@ const OrderHistory = () => {
   const [billingModalCart, setBillingModalCart] = useState([]);
   const [billingModalPaymentMethod, setBillingModalPaymentMethod] = useState('cash');
   const [billingModalProcessing, setBillingModalProcessing] = useState(false);
+  const [billingOrderSuccess, setBillingOrderSuccess] = useState(null);
   const [billingCustomerName, setBillingCustomerName] = useState('');
   const [billingCustomerMobile, setBillingCustomerMobile] = useState('');
   const [billingTableNumber, setBillingTableNumber] = useState('');
@@ -954,6 +955,7 @@ const OrderHistory = () => {
     setBillingModalOrder(null);
     setBillingModalCart([]);
     setBillingModalProcessing(false);
+    setBillingOrderSuccess(null);
     setBillingCustomerName('');
     setBillingCustomerMobile('');
     setBillingTableNumber('');
@@ -1075,22 +1077,18 @@ const OrderHistory = () => {
         paymentStatus: isPartialPayment ? 'partial' : 'completed',
       });
 
-      if (printSettings?.manualPrintEnabled === false) {
-        try {
-          await apiClient.requestManualPrint(order.id, 'bill');
-        } catch (printError) {
-          console.error('Auto-print failed:', printError);
-        }
-      }
-
       setOrders(prevOrders => prevOrders.map(o =>
         o.id === order.id ? { ...o, status: 'completed', paymentStatus: isPartialPayment ? 'partial' : 'paid' } : o
       ));
       setScheduledOrders(prev => prev.map(o =>
         o.id === order.id ? { ...o, status: 'completed', paymentStatus: isPartialPayment ? 'partial' : 'paid' } : o
       ));
-      closeBillingModal();
-      setTimeout(() => fetchOrders(false), 500);
+      // Don't close modal here — let OrderSummary generate invoice + print first
+      // Modal will auto-close after invoice is generated and print is triggered
+      setTimeout(() => {
+        closeBillingModal();
+        fetchOrders(false);
+      }, 3000);
 
       return { orderId: order.id };
     } catch (error) {
@@ -3238,8 +3236,8 @@ const OrderHistory = () => {
                     onCustomerMobileChange={(val) => setBillingCustomerMobile(val)}
                     processing={billingModalProcessing}
                     placingOrder={false}
-                    orderSuccess={false}
-                    setOrderSuccess={() => {}}
+                    orderSuccess={billingOrderSuccess}
+                    setOrderSuccess={setBillingOrderSuccess}
                     error={null}
                     getTotalAmount={getBillingModalTotalAmount}
                     tableNumber={billingTableNumber}

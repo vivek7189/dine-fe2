@@ -715,7 +715,6 @@ export function HeadquartersContent({ embedded = false }) {
       padding: isMobile ? '14px' : '20px',
       boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
       border: '1px solid #f1f5f9',
-      borderLeft: `4px solid ${color}`,
       position: 'relative',
       overflow: 'hidden'
     }}>

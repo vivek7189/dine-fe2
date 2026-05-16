@@ -8,7 +8,7 @@ const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const BOOKING_COLORS = {
   catering: '#10b981',
   advance_order: '#3b82f6',
-  venue: '#8b5cf6',
+  venue: '#ef4444',
 };
 
 function getMonthDays(year, month) {
@@ -110,6 +110,10 @@ export default function BookingCalendar({ bookings = [], onDayClick, onBookingCl
       width: '100%',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontSize: isMobile ? '12px' : '14px',
+      background: '#ffffff',
+      borderRadius: '12px',
+      padding: isMobile ? '12px' : '20px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
     },
     header: {
       display: 'flex',
@@ -118,6 +122,8 @@ export default function BookingCalendar({ bookings = [], onDayClick, onBookingCl
       marginBottom: '16px',
       flexWrap: 'wrap',
       gap: '8px',
+      paddingBottom: '12px',
+      borderBottom: '2px solid #fef2f2',
     },
     navGroup: {
       display: 'flex',
@@ -125,8 +131,8 @@ export default function BookingCalendar({ bookings = [], onDayClick, onBookingCl
       gap: '8px',
     },
     navButton: {
-      background: 'none',
-      border: '1px solid #e2e8f0',
+      background: '#fff',
+      border: '1px solid #fecaca',
       borderRadius: '6px',
       padding: '6px 10px',
       cursor: 'pointer',
@@ -134,17 +140,17 @@ export default function BookingCalendar({ bookings = [], onDayClick, onBookingCl
       alignItems: 'center',
       justifyContent: 'center',
       fontSize: '14px',
-      color: '#374151',
+      color: '#ef4444',
     },
     todayButton: {
-      background: '#f8fafc',
-      border: '1px solid #e2e8f0',
+      background: '#fef2f2',
+      border: '1px solid #fecaca',
       borderRadius: '6px',
       padding: '6px 12px',
       cursor: 'pointer',
       fontSize: isMobile ? '11px' : '13px',
-      color: '#374151',
-      fontWeight: 500,
+      color: '#dc2626',
+      fontWeight: 600,
     },
     monthLabel: {
       fontSize: isMobile ? '16px' : '20px',
@@ -180,7 +186,7 @@ export default function BookingCalendar({ bookings = [], onDayClick, onBookingCl
       transition: 'background 0.15s',
     },
     dayCellToday: {
-      background: '#eff6ff',
+      background: '#fef2f2',
     },
     dayCellHasBookings: {
       background: '#fafbfc',
@@ -193,7 +199,7 @@ export default function BookingCalendar({ bookings = [], onDayClick, onBookingCl
       padding: '2px 4px',
     },
     dayNumberToday: {
-      background: '#3b82f6',
+      background: '#ef4444',
       color: '#ffffff',
       borderRadius: '50%',
       width: isMobile ? '20px' : '24px',

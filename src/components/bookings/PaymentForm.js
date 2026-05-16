@@ -38,10 +38,10 @@ export default function PaymentForm({ isOpen, onClose, onSave, booking, isMobile
 
   return createPortal(
     <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
-      <div style={{ background: '#fff', borderRadius: '12px', width: '100%', maxWidth: '400px' }}>
-        <div style={{ padding: '18px 20px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ background: '#fff', borderRadius: '12px', width: '100%', maxWidth: '400px', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+        <div style={{ padding: '18px 20px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '3px solid #ef4444', borderRadius: '12px 12px 0 0' }}>
           <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#1f2937' }}>
-            <FaMoneyBill size={14} style={{ marginRight: '8px', color: '#7c3aed' }} />
+            <FaMoneyBill size={14} style={{ marginRight: '8px', color: '#ef4444' }} />
             Record Payment
           </h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><FaTimes size={16} /></button>

@@ -104,7 +104,7 @@ export default function BookingList({
     }
 
     if (booking.status === 'completed') {
-      actions.push({ icon: FaFileInvoice, title: 'Share Invoice', onClick: () => onShareInvoice(booking), color: '#8b5cf6' });
+      actions.push({ icon: FaFileInvoice, title: 'Share Invoice', onClick: () => onShareInvoice(booking), color: '#ef4444' });
     }
 
     return actions;
@@ -117,10 +117,12 @@ export default function BookingList({
       flexWrap: 'wrap',
       gap: '12px',
       padding: '16px',
-      backgroundColor: '#f9fafb',
-      borderRadius: '8px',
+      backgroundColor: '#ffffff',
+      borderRadius: '10px',
       marginBottom: '16px',
       alignItems: 'center',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+      border: '1px solid #f3f4f6',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         <FaFilter size={12} color="#6b7280" />
@@ -205,9 +207,13 @@ export default function BookingList({
           textAlign: 'center',
           padding: '60px 20px',
           color: '#6b7280',
-          backgroundColor: '#f9fafb',
-          borderRadius: '8px',
+          backgroundColor: '#fef2f2',
+          borderRadius: '10px',
+          border: '1px solid #fecaca',
         }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#fee2e2', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
+            <FaSearch size={18} color="#ef4444" />
+          </div>
           <p style={{ fontSize: '16px', fontWeight: 500, marginBottom: '8px' }}>No bookings found</p>
           <p style={{ fontSize: '14px' }}>Try adjusting your filters or search criteria.</p>
         </div>
@@ -224,9 +230,10 @@ export default function BookingList({
           {bookings.map((booking) => (
             <div key={booking.id || booking.booking_number} style={{
               border: '1px solid #e5e7eb',
-              borderRadius: '8px',
+              borderRadius: '10px',
               padding: '16px',
               backgroundColor: '#fff',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ fontWeight: 600, fontSize: '14px' }}>#{booking.booking_number}</span>
@@ -274,7 +281,7 @@ export default function BookingList({
       <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
           <thead>
-            <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+            <tr style={{ backgroundColor: '#fef2f2', borderBottom: '1px solid #e5e7eb' }}>
               {['Booking #', 'Type', 'Customer', 'Event', 'Date', 'Guests', 'Amount', 'Paid/Balance', 'Status', 'Actions'].map((header) => (
                 <th key={header} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>
                   {header}

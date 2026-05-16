@@ -5,7 +5,7 @@
 import {
   esc, getBillLabels, buildIdentityHtml, getSublineHtml,
   buildBillItemRows, buildTaxHtml, buildDiscountHtml, buildChargesHtml,
-  buildPaymentHtml, calcGrandTotal, formatDateTime,
+  buildPaymentHtml, buildDeliveryAddressHtml, calcGrandTotal, formatDateTime,
   getBillPrintCSS, getBillHeaderHTML, wrapInDocument,
 } from '../helpers';
 
@@ -23,6 +23,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
   const discountHtml = buildDiscountHtml(invoice, L, cs);
   const chargesHtml = buildChargesHtml(invoice, L, cs);
   const paymentHtml = buildPaymentHtml(invoice, L, cs);
+  const deliveryHtml = buildDeliveryAddressHtml(invoice);
   const grandTotal = calcGrandTotal(invoice);
 
   const identityHtml = buildIdentityHtml(invoice);
@@ -42,6 +43,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
       (invoice.customerName ? `<div><span>${L.customer}:</span><span>${esc(invoice.customerName)}</span></div>` : '') +
       `<div><span>${L.payment}:</span><span>${(invoice.paymentMethod || 'CASH').toUpperCase()}</span></div>` +
     `</div>` +
+    deliveryHtml +
     `<div class="divider">--------------------------------</div>` +
     `<table><thead><tr><th style="text-align:left;width:52%;">${L.itemCol}</th><th style="text-align:center;width:10%;">${L.qtyCol}</th><th style="text-align:right;width:38%;">${L.amt}</th></tr></thead><tbody>${itemsHtml}</tbody></table>` +
     `<div class="total-section">` +

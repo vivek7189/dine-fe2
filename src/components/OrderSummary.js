@@ -54,7 +54,8 @@ import {
   FaCalendarAlt,
   FaTruck,
   FaPencilAlt,
-  FaEdit
+  FaEdit,
+  FaMapMarkerAlt
 } from 'react-icons/fa';
 
 const OrderSummary = ({
@@ -277,6 +278,9 @@ const OrderSummary = ({
 
   // Delivery Person Info
   const [deliveryInfo, setDeliveryInfo] = useState({ personName: '', personPhone: '', cashHandedOver: false });
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [addressForm, setAddressForm] = useState({ building: '', landmark: '', city: '', state: '', pincode: '' });
   const [staffList, setStaffList] = useState([]);
   const [staffListLoaded, setStaffListLoaded] = useState(false);
   const [showStaffDropdown, setShowStaffDropdown] = useState(false);
@@ -371,8 +375,23 @@ const OrderSummary = ({
   useEffect(() => {
     if (orderType !== 'delivery') {
       setDeliveryInfo({ personName: '', personPhone: '', cashHandedOver: false });
+      setDeliveryAddress('');
+      setAddressForm({ building: '', landmark: '', city: '', state: '', pincode: '' });
     }
   }, [orderType]);
+
+  // Auto-fill delivery address from customer lookup
+  useEffect(() => {
+    if (orderType === 'delivery' && lookupStatus === 'found' && customerData) {
+      const parts = [customerData.address, customerData.locality, customerData.city].filter(Boolean);
+      if (parts.length > 0) {
+        setDeliveryAddress(parts.join(', '));
+      }
+    } else if (orderType === 'delivery' && (lookupStatus === 'not_found' || lookupStatus === 'idle')) {
+      setDeliveryAddress('');
+      setAddressForm({ building: '', landmark: '', city: '', state: '', pincode: '' });
+    }
+  }, [orderType, lookupStatus, customerData]);
 
   const kotPrintWindowRef = useRef(null);
   const invoicePrintWindowRef = useRef(null);
@@ -1298,6 +1317,13 @@ const OrderSummary = ({
         customerPhone: customerMobile || '',
         paymentMethod: paymentMethod || 'cash',
         orderType: orderType || 'dine_in',
+        // Delivery fields for receipt printing
+        deliveryAddress: orderType === 'delivery' ? (deliveryAddress || null) : null,
+        deliveryInfo: orderType === 'delivery' ? {
+          personName: deliveryInfo.personName || null,
+          personPhone: deliveryInfo.personPhone || null,
+          cashHandedOver: deliveryInfo.cashHandedOver || false,
+        } : null,
         generatedAt: new Date().toISOString(),
         _offlineGenerated: true,
       };
@@ -1356,6 +1382,7 @@ const OrderSummary = ({
         personPhone: deliveryInfo.personPhone || null,
         cashHandedOver: deliveryInfo.cashHandedOver || false,
       } : null,
+      deliveryAddress: orderType === 'delivery' ? (deliveryAddress || null) : null,
       walletRedeemAmount: useWallet && parseFloat(walletRedeemAmount) > 0 ? parseFloat(walletRedeemAmount) : null,
       walletCustomerId: useWallet && parseFloat(walletRedeemAmount) > 0 ? customerData?.id : null,
     };
@@ -1746,6 +1773,114 @@ const OrderSummary = ({
               <FaMoneyBillWave size={11} />
               {deliveryInfo.cashHandedOver ? 'Cash ✓' : 'Cash'}
             </button>
+          </div>
+
+          {/* Delivery Address Row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', position: 'relative' }}>
+            <FaMapMarkerAlt size={10} style={{ color: '#ea580c', flexShrink: 0 }} />
+            {deliveryAddress ? (
+              <span
+                onClick={() => setShowAddressModal(true)}
+                style={{
+                  flex: 1, fontSize: '11px', color: '#374151', cursor: 'pointer',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  padding: '4px 0',
+                }}
+                title={deliveryAddress}
+              >
+                {deliveryAddress}
+              </span>
+            ) : (
+              <span style={{ flex: 1, fontSize: '11px', color: '#9ca3af', fontStyle: 'italic' }}>
+                No delivery address
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                // Parse existing address into form fields if available
+                if (deliveryAddress && !addressForm.building) {
+                  setAddressForm(prev => ({ ...prev, building: deliveryAddress }));
+                }
+                setShowAddressModal(true);
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: '24px', height: '24px', borderRadius: '6px',
+                border: '1.5px solid #fdba74', background: 'white',
+                cursor: 'pointer', flexShrink: 0, padding: 0,
+              }}
+              title={deliveryAddress ? 'Edit delivery address' : 'Add delivery address'}
+            >
+              {deliveryAddress ? <FaPencilAlt size={9} style={{ color: '#ea580c' }} /> : <FaPlus size={9} style={{ color: '#ea580c' }} />}
+            </button>
+
+            {/* Address Modal — small floating card, no overlay */}
+            {showAddressModal && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                background: 'white', border: '1.5px solid #fdba74', borderRadius: '10px',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.15)', padding: '10px',
+                marginTop: '4px',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#9a3412', textTransform: 'uppercase' }}>Delivery Address</span>
+                  <button type="button" onClick={() => setShowAddressModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}>
+                    <FaTimes size={10} style={{ color: '#9ca3af' }} />
+                  </button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  <input
+                    type="text" placeholder="Building / Street"
+                    value={addressForm.building}
+                    onChange={(e) => setAddressForm(prev => ({ ...prev, building: e.target.value }))}
+                    style={{ width: '100%', padding: '6px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '11px', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                  <input
+                    type="text" placeholder="Landmark"
+                    value={addressForm.landmark}
+                    onChange={(e) => setAddressForm(prev => ({ ...prev, landmark: e.target.value }))}
+                    style={{ width: '100%', padding: '6px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '11px', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                  <div style={{ display: 'flex', gap: '5px' }}>
+                    <input
+                      type="text" placeholder="City"
+                      value={addressForm.city}
+                      onChange={(e) => setAddressForm(prev => ({ ...prev, city: e.target.value }))}
+                      style={{ flex: 1, padding: '6px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '11px', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                    <input
+                      type="text" placeholder="State"
+                      value={addressForm.state}
+                      onChange={(e) => setAddressForm(prev => ({ ...prev, state: e.target.value }))}
+                      style={{ flex: 1, padding: '6px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '11px', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                    <input
+                      type="text" placeholder="Pincode"
+                      value={addressForm.pincode}
+                      onChange={(e) => setAddressForm(prev => ({ ...prev, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+                      style={{ width: '90px', padding: '6px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '11px', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const parts = [addressForm.building, addressForm.landmark, addressForm.city, addressForm.state, addressForm.pincode].filter(Boolean);
+                        setDeliveryAddress(parts.join(', '));
+                        setShowAddressModal(false);
+                      }}
+                      style={{
+                        flex: 1, padding: '6px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 700,
+                        border: 'none', background: '#ea580c', color: 'white', cursor: 'pointer',
+                      }}
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

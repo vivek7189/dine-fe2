@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useParams } from 'next/navigation';
+import * as XLSX from 'xlsx';
 import apiClient from '../../../../lib/api';
 import { useCurrency } from '../../../../contexts/CurrencyContext';
 import {
@@ -27,7 +28,10 @@ import {
   FaChevronDown,
   FaChevronUp,
   FaDownload,
-  FaPercent
+  FaPercent,
+  FaFileExcel,
+  FaFileCsv,
+  FaFilePdf
 } from 'react-icons/fa';
 
 var CustomerDetail = function() {
@@ -56,6 +60,7 @@ var CustomerDetail = function() {
   var [addingCredit, setAddingCredit] = useState(false);
   var [expandedOrderId, setExpandedOrderId] = useState(null);
   var [statsPeriod, setStatsPeriod] = useState('all');
+  var [exportDropdown, setExportDropdown] = useState(false);
   var isMobileEmbed = typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
 
   useEffect(function() {
@@ -64,6 +69,16 @@ var CustomerDetail = function() {
     window.addEventListener('resize', checkMobile);
     return function() { window.removeEventListener('resize', checkMobile); };
   }, []);
+
+  // Close export dropdown on outside click
+  useEffect(function() {
+    if (!exportDropdown) return;
+    var handler = function(e) {
+      if (!e.target.closest('[data-export-dropdown]')) setExportDropdown(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return function() { document.removeEventListener('mousedown', handler); };
+  }, [exportDropdown]);
 
   useEffect(function() {
     if (customerId) loadCustomer();
@@ -306,12 +321,13 @@ var CustomerDetail = function() {
   }, { offerDiscount: 0, manualDiscount: 0, loyaltyDiscount: 0, couponDiscount: 0, compItemCount: 0, ordersWithDiscount: 0 });
   savingsStats.totalSavings = savingsStats.offerDiscount + savingsStats.manualDiscount + savingsStats.loyaltyDiscount + savingsStats.couponDiscount;
 
-  // CSV download helper
-  var downloadReport = function() {
-    var rows = [['Date', 'Order #', 'Subtotal', 'Offer Discount', 'Manual Discount', 'Loyalty Discount', 'Coupon Discount', 'Total Discount', 'Final Amount', 'Status']];
-    filteredOrders.forEach(function(o) {
+  // Export helper — supports csv, xlsx, pdf
+  var downloadReport = function(format) {
+    setExportDropdown(false);
+    var headers = ['Date', 'Order #', 'Subtotal', 'Offer Discount', 'Manual Discount', 'Loyalty Discount', 'Coupon Discount', 'Total Discount', 'Final Amount', 'Status'];
+    var dataRows = filteredOrders.map(function(o) {
       var d = parseDate(o.orderDate);
-      rows.push([
+      return [
         d ? d.toLocaleDateString() + ' ' + d.toLocaleTimeString() : '',
         o.orderNumber || o.orderId || '',
         (o.subtotal || o.totalAmount || 0).toFixed(2),
@@ -322,16 +338,40 @@ var CustomerDetail = function() {
         (o.totalDiscountAmount || 0).toFixed(2),
         (o.finalAmount || o.totalAmount || 0).toFixed(2),
         o.status || ''
-      ]);
+      ];
     });
-    var csv = rows.map(function(r) { return r.join(','); }).join('\n');
-    var blob = new Blob([csv], { type: 'text/csv' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = (customer.name || 'customer') + '_report_' + statsPeriod + '.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+    var filename = (customer.name || 'customer') + '_report_' + statsPeriod;
+
+    if (format === 'csv' || format === 'xlsx') {
+      var ws = XLSX.utils.aoa_to_sheet([headers].concat(dataRows));
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Report');
+      XLSX.writeFile(wb, filename + (format === 'csv' ? '.csv' : '.xlsx'), format === 'csv' ? { bookType: 'csv' } : undefined);
+    } else if (format === 'pdf') {
+      var html = '<html><head><title>' + filename + '</title><style>';
+      html += 'body{font-family:Arial,sans-serif;padding:24px;color:#1f2937}';
+      html += 'h2{font-size:16px;margin-bottom:12px}';
+      html += 'table{width:100%;border-collapse:collapse;font-size:11px}';
+      html += 'th{background:#f3f4f6;padding:6px 8px;text-align:left;border-bottom:2px solid #d1d5db;font-weight:600}';
+      html += 'td{padding:6px 8px;border-bottom:1px solid #e5e7eb}';
+      html += 'tr:nth-child(even){background:#f9fafb}';
+      html += '@media print{body{padding:0}}';
+      html += '</style></head><body>';
+      html += '<h2>' + (customer.name || 'Customer') + ' — Order Report (' + statsPeriod + ')</h2>';
+      html += '<table><thead><tr>';
+      headers.forEach(function(h) { html += '<th>' + h + '</th>'; });
+      html += '</tr></thead><tbody>';
+      dataRows.forEach(function(row) {
+        html += '<tr>';
+        row.forEach(function(val) { html += '<td>' + (val || '') + '</td>'; });
+        html += '</tr>';
+      });
+      html += '</tbody></table></body></html>';
+      var w = window.open('', '_blank', 'width=900,height=600');
+      w.document.write(html);
+      w.document.close();
+      setTimeout(function() { w.print(); }, 400);
+    }
   };
 
   var sortedOrders = filteredOrders.slice().sort(function(a, b) {
@@ -636,13 +676,35 @@ var CustomerDetail = function() {
                   </div>
                   Savings Summary
                 </h3>
-                <button onClick={downloadReport} title="Download CSV report" style={{
-                  background: 'none', border: '1px solid #e5e7eb', borderRadius: '6px',
-                  cursor: 'pointer', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px',
-                  fontSize: '11px', color: '#64748b', fontWeight: '500'
-                }}>
-                  <FaDownload size={10} /> CSV
-                </button>
+                <div data-export-dropdown style={{ position: 'relative' }}>
+                  <button onClick={function() { setExportDropdown(!exportDropdown); }} title="Export report" style={{
+                    background: 'none', border: '1px solid #e5e7eb', borderRadius: '6px',
+                    cursor: 'pointer', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px',
+                    fontSize: '11px', color: '#64748b', fontWeight: '500'
+                  }}>
+                    <FaDownload size={10} /> Export
+                  </button>
+                  {exportDropdown && (
+                    <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '4px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 100, minWidth: '120px', overflow: 'hidden' }}>
+                      {[
+                        { fmt: 'xlsx', label: 'Excel', icon: FaFileExcel, color: '#16a34a' },
+                        { fmt: 'csv', label: 'CSV', icon: FaFileCsv, color: '#2563eb' },
+                        { fmt: 'pdf', label: 'PDF', icon: FaFilePdf, color: '#dc2626' },
+                      ].map(function(opt) {
+                        var Icon = opt.icon;
+                        return (
+                          <button key={opt.fmt} onClick={function() { downloadReport(opt.fmt); }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12px', color: '#374151', textAlign: 'left' }}
+                            onMouseEnter={function(e) { e.currentTarget.style.background = '#f3f4f6'; }}
+                            onMouseLeave={function(e) { e.currentTarget.style.background = 'none'; }}
+                          >
+                            <Icon size={12} style={{ color: opt.color }} /> {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
               <p style={{ margin: '0 0 12px', fontSize: '11px', color: '#94a3b8', fontWeight: '500' }}>{periodLabels[statsPeriod]}</p>
               {savingsStats.totalSavings > 0 ? (

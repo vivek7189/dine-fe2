@@ -2363,8 +2363,10 @@ class ApiClient {
     });
   }
 
-  async getCustomerReports(restaurantIds, period = 'all', limit = 20) {
+  async getCustomerReports(restaurantIds, period = 'this_week', limit = 20, fromDate, toDate) {
     const params = new URLSearchParams({ restaurantIds: restaurantIds.join(','), period, limit: String(limit) });
+    if (fromDate) params.set('from', fromDate);
+    if (toDate) params.set('to', toDate);
     return this.request(`/api/customers/reports?${params.toString()}`);
   }
 

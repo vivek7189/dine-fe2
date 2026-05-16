@@ -1463,7 +1463,7 @@ const TableManagement = () => {
                         borderRadius: '12px',
                         border: isOccupied ? 'none' : `1px solid ${sInfo.border}`,
                         boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                        padding: '0', position: 'relative', overflow: 'hidden',
+                        padding: '0', position: 'relative', overflow: 'visible',
                         minHeight: '120px', display: 'flex', flexDirection: 'column',
                         opacity: 0, animation: `tblFadeIn 0.3s ease-out ${idx * 0.03}s forwards`,
                       }} onClick={() => setActiveDropdown(isDropdownOpen ? null : table.id)}
@@ -1629,60 +1629,16 @@ const TableManagement = () => {
                                 </button>
                               )}
                               {isOccupied && (
-                                <div style={{ display: 'flex', gap: '6px', position: 'relative' }}>
-                                  {/* Move Order button */}
-                                  {posSettings.moveOrderEnabled && table.currentOrderId && (
-                                    <button className="tbl-action" onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleTableAction('move-order', table);
-                                    }} style={{
-                                      width: '32px', height: '32px', padding: 0,
-                                      background: 'white', border: '1px solid #e5e7eb', color: '#6b7280',
-                                      borderRadius: '6px', cursor: 'pointer',
-                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    }} title="Move Order">
-                                      <FaExchangeAlt size={11} />
-                                    </button>
-                                  )}
-                                  {/* Print button with dropdown */}
-                                  <div style={{ position: 'relative' }}>
-                                    <button className="tbl-action" onClick={(e) => { e.stopPropagation(); setPrintDropdownTable(printDropdownTable === table.id ? null : table.id); }} style={{
-                                      width: '32px', height: '32px', background: printingTables[table.id] ? '#dbeafe' : 'white', border: '1px solid #e5e7eb', color: printingTables[table.id] ? '#3b82f6' : '#374151',
-                                      borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                                    }}>
-                                      {printingTables[table.id] ? <FaSpinner size={10} className="spin" /> : <FaPrint size={10} />}
-                                    </button>
-                                    {printDropdownTable === table.id && (
-                                      <div onClick={(e) => e.stopPropagation()} style={{
-                                        position: 'absolute', bottom: '100%', left: 0, marginBottom: '4px',
-                                        background: 'white', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                                        border: '1px solid #e5e7eb', zIndex: 50, minWidth: '120px', overflow: 'hidden',
-                                      }}>
-                                        <button onClick={() => { handlePrintBill(table); setPrintDropdownTable(null); }} style={{
-                                          width: '100%', padding: '8px 12px', border: 'none', background: 'white', cursor: 'pointer',
-                                          fontSize: '11px', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: '6px',
-                                          borderBottom: '1px solid #f3f4f6',
-                                        }}>
-                                          <FaReceipt size={10} /> Print Bill
-                                        </button>
-                                        <button onClick={() => { handlePrintKOT(table); setPrintDropdownTable(null); }} style={{
-                                          width: '100%', padding: '8px 12px', border: 'none', background: 'white', cursor: 'pointer',
-                                          fontSize: '11px', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: '6px',
-                                        }}>
-                                          <FaPrint size={10} /> Print KOT
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                  {/* Add items button */}
+                                <div style={{ display: 'flex', gap: '5px', position: 'relative' }}>
+                                  {/* Add items — primary action */}
                                   <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('view-order', table); }} style={{
-                                    flex: 1, padding: '8px', background: 'white', border: '1px solid #e5e7eb', color: '#374151',
-                                    borderRadius: '6px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                                    flex: 1, padding: '7px 8px', background: 'white', border: '1px solid #e5e7eb', color: '#374151',
+                                    borderRadius: '8px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
                                   }}>
-                                    <FaPlus size={9} /> Add
+                                    <FaPlus size={9} style={{ color: '#059669' }} /> Add
                                   </button>
-                                  {/* Complete Bill button */}
+                                  {/* Complete Bill — primary action */}
                                   <button className="tbl-action" onClick={(e) => {
                                     e.stopPropagation();
                                     if (table.currentOrderId) {
@@ -1692,12 +1648,64 @@ const TableManagement = () => {
                                       handleTableAction('make-available', table);
                                     }
                                   }} style={{
-                                    padding: '6px 10px', background: '#dc2626', border: 'none', color: 'white',
-                                    borderRadius: '6px', fontSize: '10px', fontWeight: 600, cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', flexShrink: 0,
+                                    flex: 1, padding: '7px 8px', background: '#dc2626', border: 'none', color: 'white',
+                                    borderRadius: '8px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
                                   }}>
                                     <FaReceipt size={9} /> Bill
                                   </button>
+                                  {/* Print + Move — combined in one icon menu */}
+                                  <div style={{ position: 'relative' }}>
+                                    <button className="tbl-action" onClick={(e) => { e.stopPropagation(); setPrintDropdownTable(printDropdownTable === table.id ? null : table.id); }} style={{
+                                      width: '32px', height: '32px', padding: 0,
+                                      background: printingTables[table.id]
+                                        ? 'linear-gradient(135deg, #dbeafe, #bfdbfe)'
+                                        : printDropdownTable === table.id ? 'linear-gradient(135deg, #fef3c7, #fde68a)' : 'rgba(0,0,0,0.03)',
+                                      color: printingTables[table.id] ? '#3b82f6' : printDropdownTable === table.id ? '#b45309' : '#6b7280',
+                                      border: 'none', borderRadius: '8px', cursor: 'pointer',
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                                    }}>
+                                      {printingTables[table.id] ? <FaSpinner size={10} className="spin" /> : <FaPrint size={11} />}
+                                    </button>
+                                    {printDropdownTable === table.id && (
+                                      <div onClick={(e) => e.stopPropagation()} style={{
+                                        position: 'absolute', bottom: '100%', right: 0, marginBottom: '4px',
+                                        background: 'white', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                                        border: '1px solid #e5e7eb', zIndex: 999, minWidth: '140px', overflow: 'hidden',
+                                        padding: '4px 0',
+                                      }}>
+                                        {posSettings.moveOrderEnabled && table.currentOrderId && (
+                                          <button onClick={(e) => { e.stopPropagation(); setPrintDropdownTable(null); handleTableAction('move-order', table); }} style={{
+                                            width: '100%', padding: '8px 12px', border: 'none', background: 'transparent', cursor: 'pointer',
+                                            fontSize: '11px', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: '8px',
+                                          }}
+                                          onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
+                                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                          >
+                                            <FaExchangeAlt size={10} style={{ color: '#6366f1' }} /> Move Order
+                                          </button>
+                                        )}
+                                        <button onClick={() => { handlePrintBill(table); setPrintDropdownTable(null); }} style={{
+                                          width: '100%', padding: '8px 12px', border: 'none', background: 'transparent', cursor: 'pointer',
+                                          fontSize: '11px', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: '8px',
+                                        }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                        >
+                                          <FaReceipt size={10} style={{ color: '#10b981' }} /> Print Bill
+                                        </button>
+                                        <button onClick={() => { handlePrintKOT(table); setPrintDropdownTable(null); }} style={{
+                                          width: '100%', padding: '8px 12px', border: 'none', background: 'transparent', cursor: 'pointer',
+                                          fontSize: '11px', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: '8px',
+                                        }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                        >
+                                          <FaUtensils size={10} style={{ color: '#f59e0b' }} /> Print KOT
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               )}
                               {tableStatus === 'reserved' && (

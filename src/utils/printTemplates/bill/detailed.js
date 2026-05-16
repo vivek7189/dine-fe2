@@ -4,7 +4,7 @@
 
 import {
   esc, getBillLabels, buildIdentityHtml,
-  buildChargesHtml, buildPaymentHtml, calcGrandTotal, formatDateTime,
+  buildChargesHtml, buildPaymentHtml, buildDeliveryAddressHtml, calcGrandTotal, formatDateTime,
   getPrintFontSizes, getPrintFontFamily, getBillHeaderHTML, wrapInDocument,
 } from '../helpers';
 
@@ -85,6 +85,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
 
   const chargesHtml = buildChargesHtml(invoice, L, cs);
   const paymentHtml = buildPaymentHtml(invoice, L, cs);
+  const deliveryHtml = buildDeliveryAddressHtml(invoice);
   const grandTotal = calcGrandTotal(invoice);
 
   const identityHtml = buildIdentityHtml(invoice);
@@ -107,6 +108,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
     (invoice.tableNumber ? `<div class="info-line"><span>${L.table}: ${invoice.tableNumber}${invoice.floorName ? ` · ${invoice.floorName}` : ''}</span><span>${(invoice.paymentMethod || 'CASH').toUpperCase()}</span></div>` : '') +
     (invoice.customerName ? `<div class="info-line"><span>${L.customer}: ${esc(invoice.customerName)}</span></div>` : '') +
     (waiterInfo ? `<div class="info-line"><span>#${invoice.dailyOrderId || invoice.id || 'N/A'}</span></div>` : '') +
+    deliveryHtml +
     `<div class="divider">- - - - - - - - - - - - - - - - -</div>` +
     // Items
     itemsHtml +

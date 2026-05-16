@@ -281,7 +281,7 @@ export default function Sidebar({ isDashboardPage = false }) {
     { id: 'google-reviews', name: t('nav.googleReviews'), icon: FaGoogle, href: '/admin?tab=google-reviews', color: '#ea4335', roles: ['owner', 'admin', 'manager'] },
     { id: 'spaces', name: t('nav.spaces'), icon: FaDoorOpen, href: '/spaces', color: '#0d9488', roles: ['owner', 'admin', 'manager'] },
     { id: 'parking', name: t('nav.parking') || 'Parking', icon: FaParking, href: '/parking', color: '#0369a1', roles: ['owner', 'admin', 'manager'] },
-    { id: 'bookings', name: t('nav.bookings') || 'Bookings', icon: FaCalendarCheck, href: '/bookings', color: '#7c3aed', roles: ['owner', 'admin', 'manager'] },
+    { id: 'bookings', name: t('nav.bookings') || 'Bookings', icon: FaCalendarCheck, href: '/bookings', color: '#ef4444', roles: ['owner', 'admin', 'manager'] },
     // --- Settings (always last) ---
     { id: 'admin', name: t('nav.admin'), icon: FaCog, href: '/admin', color: '#64748b', roles: ['owner', 'admin', 'manager', 'employee', 'cashier', 'sales', 'waiter'] },
     { id: 'profile', name: t('nav.profile'), icon: FaUser, href: '/profile', color: '#ec4899', roles: ['owner', 'admin', 'manager', 'waiter', 'employee', 'cashier', 'sales'] },

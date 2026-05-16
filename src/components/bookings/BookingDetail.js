@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { FaTimes, FaCalendarAlt, FaClock, FaUsers, FaMapMarkerAlt, FaPhone, FaEnvelope, FaMoneyBill, FaCheck, FaFileInvoice } from 'react-icons/fa';
 
 const TYPE_LABELS = { catering: 'Catering', advance_order: 'Advance Order', venue: 'Venue Booking' };
-const TYPE_COLORS = { catering: '#10b981', advance_order: '#3b82f6', venue: '#8b5cf6' };
+const TYPE_COLORS = { catering: '#10b981', advance_order: '#3b82f6', venue: '#ef4444' };
 const STATUS_COLORS = { confirmed: '#3b82f6', in_progress: '#f59e0b', completed: '#10b981', cancelled: '#ef4444' };
 
 export default function BookingDetail({ booking, isOpen, onClose, onAddPayment, onComplete, onShareInvoice, formatCurrency, isMobile }) {
@@ -15,9 +15,9 @@ export default function BookingDetail({ booking, isOpen, onClose, onAddPayment, 
 
   return createPortal(
     <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', zIndex: 9999 }}>
-      <div style={{ background: '#fff', borderRadius: isMobile ? '16px 16px 0 0' : '12px', width: '100%', maxWidth: '600px', maxHeight: isMobile ? '90vh' : '85vh', overflow: 'auto' }}>
+      <div style={{ background: '#fff', borderRadius: isMobile ? '16px 16px 0 0' : '12px', width: '100%', maxWidth: '600px', maxHeight: isMobile ? '90vh' : '85vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
         {/* Header */}
-        <div style={{ padding: '18px 20px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
+        <div style={{ padding: '18px 20px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: '#fff', zIndex: 1, borderTop: '3px solid #ef4444', borderRadius: isMobile ? '16px 16px 0 0' : '12px 12px 0 0' }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '700', color: '#1f2937' }}>{booking.bookingNumber}</h3>
             <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
@@ -32,7 +32,7 @@ export default function BookingDetail({ booking, isOpen, onClose, onAddPayment, 
           {/* Event Info */}
           <div style={{ marginBottom: '20px' }}>
             <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: '700', color: '#374151' }}>Event Details</h4>
-            <div style={{ background: '#f9fafb', padding: '14px', borderRadius: '8px', display: 'grid', gap: '8px' }}>
+            <div style={{ background: '#f9fafb', padding: '14px', borderRadius: '8px', display: 'grid', gap: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)', border: '1px solid #f3f4f6' }}>
               {booking.eventName && <div style={{ fontSize: '15px', fontWeight: '600', color: '#1f2937' }}>{booking.eventName}</div>}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '13px', color: '#4b5563' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><FaCalendarAlt size={11} /> {booking.eventDate}{booking.eventEndDate ? ' - ' + booking.eventEndDate : ''}</span>

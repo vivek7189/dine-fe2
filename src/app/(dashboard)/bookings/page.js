@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
-import { FaCalendarCheck, FaPlus, FaList, FaCalendarAlt, FaDoorOpen, FaSpinner } from 'react-icons/fa';
+import { FaCalendarCheck, FaPlus, FaList, FaCalendarAlt, FaDoorOpen, FaSpinner, FaArrowLeft } from 'react-icons/fa';
 import BookingList from '../../../components/bookings/BookingList';
 import BookingCalendar from '../../../components/bookings/BookingCalendar';
 import BookingForm from '../../../components/bookings/BookingForm';
@@ -315,7 +315,7 @@ export default function BookingsPage() {
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-        <FaSpinner size={24} style={{ color: '#7c3aed', animation: 'spin 1s linear infinite' }} />
+        <FaSpinner size={24} style={{ color: '#ef4444', animation: 'spin 1s linear infinite' }} />
       </div>
     );
   }
@@ -327,104 +327,135 @@ export default function BookingsPage() {
   ];
 
   return (
-    <div style={{ padding: isMobile ? '16px' : '24px 32px', maxWidth: '1400px', margin: '0 auto' }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 32px', maxWidth: '1400px', margin: '0 auto', background: '#f9fafb', minHeight: '100vh' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <FaCalendarCheck size={22} style={{ color: '#7c3aed' }} />
-          <h1 style={{ margin: 0, fontSize: isMobile ? '20px' : '24px', fontWeight: '700', color: '#1f2937' }}>Bookings</h1>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '12px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+          <button
+            onClick={function() { router.back(); }}
+            style={{
+              padding: '8px', borderRadius: '8px', border: '1px solid #e5e7eb',
+              background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', marginTop: '2px',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+            }}
+          >
+            <FaArrowLeft size={14} style={{ color: '#6b7280' }} />
+          </button>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <FaCalendarCheck size={22} style={{ color: '#ef4444' }} />
+              <h1 style={{ margin: 0, fontSize: isMobile ? '20px' : '24px', fontWeight: '700', color: '#1f2937' }}>Bookings</h1>
+            </div>
+            <p style={{ margin: '4px 0 0 32px', fontSize: '13px', color: '#6b7280', fontWeight: '400' }}>
+              Manage advance orders, catering & venue bookings
+            </p>
+          </div>
         </div>
         <button
           onClick={function() { setEditingBooking(null); setShowForm(true); }}
           style={{
             padding: '10px 18px', borderRadius: '8px', border: 'none',
-            background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', color: '#fff',
+            background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff',
             fontSize: '14px', fontWeight: '600', cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: '6px',
-            boxShadow: '0 2px 8px rgba(124,58,237,0.3)'
+            boxShadow: '0 2px 8px rgba(239,68,68,0.2)'
           }}
         >
           <FaPlus size={12} /> New Booking
         </button>
       </div>
 
-      {/* Tabs */}
+      {/* White card wrapper */}
       <div style={{
-        display: 'flex', gap: '4px', marginBottom: '20px',
-        background: '#f3f4f6', borderRadius: '10px', padding: '4px',
-        width: 'fit-content'
+        background: '#fff',
+        borderRadius: '12px',
+        padding: isMobile ? '16px' : '24px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)'
       }}>
-        {tabs.map(function(tab) {
-          var TabIcon = tab.icon;
-          var isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={function() { setActiveTab(tab.id); }}
-              style={{
-                padding: isMobile ? '8px 12px' : '8px 16px', borderRadius: '7px',
-                border: 'none', background: isActive ? '#fff' : 'transparent',
-                color: isActive ? '#7c3aed' : '#6b7280',
-                fontWeight: '600', fontSize: '13px', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: '6px',
-                boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                transition: 'all 0.2s'
-              }}
-            >
-              <TabIcon size={13} />
-              {!isMobile && tab.label}
-            </button>
-          );
-        })}
+        {/* Tabs */}
+        <div style={{
+          display: 'flex', gap: '4px', marginBottom: '20px',
+          background: '#fff', borderRadius: '10px', padding: '4px',
+          width: 'fit-content',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          border: '1px solid #f3f4f6'
+        }}>
+          {tabs.map(function(tab) {
+            var TabIcon = tab.icon;
+            var isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={function() { setActiveTab(tab.id); }}
+                style={{
+                  padding: isMobile ? '8px 12px' : '8px 16px', borderRadius: '7px',
+                  border: 'none', background: isActive ? '#fff' : 'transparent',
+                  color: isActive ? '#ef4444' : '#6b7280',
+                  fontWeight: '600', fontSize: '13px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  borderBottom: isActive ? '2px solid #ef4444' : '2px solid transparent',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <TabIcon size={13} />
+                {!isMobile && tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'list' && (
+          <BookingList
+            bookings={bookings.map(b => ({
+              ...b,
+              booking_number: b.bookingNumber,
+              customer_name: b.customer?.name || '',
+              customer_phone: b.customer?.phone || '',
+              event_name: b.eventName,
+              event_date: b.eventDate,
+              guests: b.guestCount,
+              total_amount: b.totalAmount,
+              paid_amount: b.paidAmount,
+              balance_amount: b.balanceAmount,
+            }))}
+            loading={bookingsLoading}
+            onView={handleView}
+            onEdit={handleEdit}
+            onAddPayment={handleAddPayment}
+            onComplete={handleComplete}
+            onCancel={handleCancel}
+            onShareInvoice={handleShareInvoice}
+            isMobile={isMobile}
+            formatCurrency={formatCurrency}
+            filters={filters}
+            onFiltersChange={setFilters}
+          />
+        )}
+
+        {activeTab === 'calendar' && (
+          <BookingCalendar
+            bookings={calendarBookings}
+            onDayClick={handleCalendarDayClick}
+            onBookingClick={handleCalendarBookingClick}
+            isMobile={isMobile}
+          />
+        )}
+
+        {activeTab === 'venues' && (
+          <VenueManager
+            venues={venues}
+            loading={venuesLoading}
+            onSave={handleVenueSave}
+            onDelete={handleVenueDelete}
+            isMobile={isMobile}
+          />
+        )}
       </div>
-
-      {/* Tab Content */}
-      {activeTab === 'list' && (
-        <BookingList
-          bookings={bookings.map(b => ({
-            ...b,
-            booking_number: b.bookingNumber,
-            customer_name: b.customer?.name || '',
-            customer_phone: b.customer?.phone || '',
-            event_name: b.eventName,
-            event_date: b.eventDate,
-            guests: b.guestCount,
-            total_amount: b.totalAmount,
-            paid_amount: b.paidAmount,
-            balance_amount: b.balanceAmount,
-          }))}
-          loading={bookingsLoading}
-          onView={handleView}
-          onEdit={handleEdit}
-          onAddPayment={handleAddPayment}
-          onComplete={handleComplete}
-          onCancel={handleCancel}
-          onShareInvoice={handleShareInvoice}
-          isMobile={isMobile}
-          formatCurrency={formatCurrency}
-          filters={filters}
-          onFiltersChange={setFilters}
-        />
-      )}
-
-      {activeTab === 'calendar' && (
-        <BookingCalendar
-          bookings={calendarBookings}
-          onDayClick={handleCalendarDayClick}
-          onBookingClick={handleCalendarBookingClick}
-          isMobile={isMobile}
-        />
-      )}
-
-      {activeTab === 'venues' && (
-        <VenueManager
-          venues={venues}
-          loading={venuesLoading}
-          onSave={handleVenueSave}
-          onDelete={handleVenueDelete}
-          isMobile={isMobile}
-        />
-      )}
 
       {/* Modals */}
       <BookingForm

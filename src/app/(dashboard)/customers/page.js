@@ -50,7 +50,9 @@ import {
   FaCloudUploadAlt,
   FaCheck,
   FaChartBar,
-  FaDownload
+  FaDownload,
+  FaFilePdf,
+  FaFileCsv
 } from 'react-icons/fa';
 
 // Reuse full-page content as embedded tabs (standalone /offers and /customer-app remain live)
@@ -911,6 +913,9 @@ const Customers = () => {
   const [showOrderHistory, setShowOrderHistory] = useState(false);
   const [sortBy, setSortBy] = useState('lastOrderDate');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [customerRestaurantFilter, setCustomerRestaurantFilter] = useState('current');
+  const [customerDateFrom, setCustomerDateFrom] = useState('');
+  const [customerDateTo, setCustomerDateTo] = useState('');
   const [isMobile, setIsMobile] = useState(false);
   const isMobileEmbed = typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
   const [currentLanguage, setCurrentLanguage] = useState('en');
@@ -940,8 +945,60 @@ const Customers = () => {
   // Reports tab state
   const [reportsData, setReportsData] = useState(null);
   const [reportsLoading, setReportsLoading] = useState(false);
-  const [reportsPeriod, setReportsPeriod] = useState('all');
+  const [reportsPeriod, setReportsPeriod] = useState('this_week');
+  const [reportsCustomFrom, setReportsCustomFrom] = useState('');
+  const [reportsCustomTo, setReportsCustomTo] = useState('');
   const [reportsRestaurantFilter, setReportsRestaurantFilter] = useState('current');
+  const [exportDropdown, setExportDropdown] = useState(null); // which section's export dropdown is open
+
+  // Export helper: supports xlsx, csv, pdf
+  var exportReportData = function(data, cols, filename, format) {
+    setExportDropdown(null);
+    if (format === 'xlsx' || format === 'csv') {
+      var rows = data.map(function(row) {
+        var obj = {};
+        cols.forEach(function(col) { obj[col.label] = row[col.key]; });
+        return obj;
+      });
+      var ws = XLSX.utils.json_to_sheet(rows);
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Report');
+      if (format === 'csv') {
+        XLSX.writeFile(wb, filename + '.csv', { bookType: 'csv' });
+      } else {
+        XLSX.writeFile(wb, filename + '.xlsx');
+      }
+    } else if (format === 'pdf') {
+      // Build a printable HTML table and trigger print-to-PDF
+      var html = '<html><head><title>' + filename + '</title><style>';
+      html += 'body{font-family:Arial,sans-serif;padding:24px;color:#1f2937}';
+      html += 'h2{font-size:16px;margin-bottom:12px}';
+      html += 'table{width:100%;border-collapse:collapse;font-size:12px}';
+      html += 'th{background:#f3f4f6;padding:8px 10px;text-align:left;border-bottom:2px solid #d1d5db;font-weight:600}';
+      html += 'td{padding:8px 10px;border-bottom:1px solid #e5e7eb}';
+      html += 'tr:nth-child(even){background:#f9fafb}';
+      html += '@media print{body{padding:0}}';
+      html += '</style></head><body>';
+      html += '<h2>' + filename.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); }) + '</h2>';
+      html += '<table><thead><tr>';
+      cols.forEach(function(col) { html += '<th>' + col.label + '</th>'; });
+      html += '</tr></thead><tbody>';
+      data.forEach(function(row) {
+        html += '<tr>';
+        cols.forEach(function(col) {
+          var val = row[col.key];
+          if (typeof val === 'number') val = val.toLocaleString();
+          html += '<td>' + (val || '') + '</td>';
+        });
+        html += '</tr>';
+      });
+      html += '</tbody></table></body></html>';
+      var w = window.open('', '_blank', 'width=800,height=600');
+      w.document.write(html);
+      w.document.close();
+      setTimeout(function() { w.print(); }, 400);
+    }
+  };
 
   // Permission gating
   const custUserData = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
@@ -1115,6 +1172,16 @@ const Customers = () => {
     loadUserAndRestaurant();
   }, [router]);
 
+  // Close export dropdown on outside click
+  useEffect(() => {
+    if (!exportDropdown) return;
+    var handler = function(e) {
+      if (!e.target.closest('[data-export-dropdown]')) setExportDropdown(null);
+    };
+    document.addEventListener('mousedown', handler);
+    return function() { document.removeEventListener('mousedown', handler); };
+  }, [exportDropdown]);
+
   // Load customers when restaurant is set
   useEffect(() => {
     if (restaurantId) {
@@ -1126,6 +1193,7 @@ const Customers = () => {
   // Load reports when Reports tab is active or filters change
   const loadReports = useCallback(async () => {
     if (!restaurantId) return;
+    if (reportsPeriod === 'custom' && (!reportsCustomFrom || !reportsCustomTo)) return;
     setReportsLoading(true);
     try {
       let ids;
@@ -1137,20 +1205,24 @@ const Customers = () => {
         ids = [reportsRestaurantFilter];
       }
       if (!ids.length) ids = [restaurantId];
-      const data = await apiClient.getCustomerReports(ids, reportsPeriod);
+      const data = await apiClient.getCustomerReports(
+        ids, reportsPeriod, 20,
+        reportsPeriod === 'custom' ? reportsCustomFrom : undefined,
+        reportsPeriod === 'custom' ? reportsCustomTo : undefined
+      );
       setReportsData(data);
     } catch (err) {
       console.error('Failed to load reports:', err);
     } finally {
       setReportsLoading(false);
     }
-  }, [reportsRestaurantFilter, reportsPeriod, restaurantId, restaurants]);
+  }, [reportsRestaurantFilter, reportsPeriod, reportsCustomFrom, reportsCustomTo, restaurantId, restaurants]);
 
   useEffect(() => {
     if (engagementTab === 'reports' && restaurantId) {
       loadReports();
     }
-  }, [engagementTab, reportsPeriod, reportsRestaurantFilter, restaurantId]);
+  }, [engagementTab, loadReports, restaurantId]);
 
   // Groups API helpers
   const loadGroups = async () => {
@@ -1885,12 +1957,26 @@ const Customers = () => {
   const activeGroup = activeGroupId ? groups.find(g => g.id === activeGroupId) : null;
   const filteredCustomers = [...customers]
     .filter(c => {
-      if (!activeGroup) return true;
-      const ids = activeGroup.customerIds || [];
-      const phones = activeGroup.customerPhones || [];
-      if (c.id && ids.includes(c.id)) return true;
-      if (c.phone && phones.includes(c.phone)) return true;
-      return false;
+      // Group filter
+      if (activeGroup) {
+        const ids = activeGroup.customerIds || [];
+        const phones = activeGroup.customerPhones || [];
+        if (!(c.id && ids.includes(c.id)) && !(c.phone && phones.includes(c.phone))) return false;
+      }
+      // Restaurant filter
+      if (customerRestaurantFilter && customerRestaurantFilter !== 'current' && customerRestaurantFilter !== 'all') {
+        if (c.restaurantId && c.restaurantId !== customerRestaurantFilter) return false;
+      }
+      // Date filter
+      if (customerDateFrom) {
+        const created = c.createdAt ? new Date(c.createdAt._seconds ? c.createdAt._seconds * 1000 : c.createdAt) : null;
+        if (!created || created < new Date(customerDateFrom + 'T00:00:00')) return false;
+      }
+      if (customerDateTo) {
+        const created = c.createdAt ? new Date(c.createdAt._seconds ? c.createdAt._seconds * 1000 : c.createdAt) : null;
+        if (!created || created > new Date(customerDateTo + 'T23:59:59')) return false;
+      }
+      return true;
     })
     .sort((a, b) => {
       let aValue = a[sortBy];
@@ -2586,6 +2672,74 @@ const Customers = () => {
                     {!isMobile && 'Search'}
                   </button>
                 </div>
+              </div>
+
+              {/* Restaurant & Date Filters */}
+              {restaurants.length > 1 && (
+                <select
+                  value={customerRestaurantFilter}
+                  onChange={(e) => setCustomerRestaurantFilter(e.target.value)}
+                  style={{
+                    padding: isMobile ? '8px' : '12px 14px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: isMobile ? '8px' : '10px',
+                    fontSize: isMobile ? '12px' : '13px',
+                    outline: 'none',
+                    backgroundColor: '#f9fafb',
+                    color: '#374151',
+                    minWidth: isMobile ? '100px' : '140px'
+                  }}
+                >
+                  <option value="current">{restaurant?.name || 'Current'}</option>
+                  <option value="all">All Restaurants</option>
+                  {restaurants.filter(r => r.id !== restaurantId).map(r => (
+                    <option key={r.id} value={r.id}>{r.name}</option>
+                  ))}
+                </select>
+              )}
+              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                <input
+                  type="date"
+                  value={customerDateFrom}
+                  onChange={(e) => setCustomerDateFrom(e.target.value)}
+                  title="Created from"
+                  style={{
+                    padding: isMobile ? '7px 6px' : '11px 10px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: isMobile ? '8px' : '10px',
+                    fontSize: isMobile ? '11px' : '13px',
+                    outline: 'none',
+                    backgroundColor: '#f9fafb',
+                    color: customerDateFrom ? '#374151' : '#9ca3af',
+                    maxWidth: isMobile ? '120px' : '150px'
+                  }}
+                />
+                <span style={{ fontSize: '11px', color: '#9ca3af' }}>to</span>
+                <input
+                  type="date"
+                  value={customerDateTo}
+                  onChange={(e) => setCustomerDateTo(e.target.value)}
+                  title="Created to"
+                  style={{
+                    padding: isMobile ? '7px 6px' : '11px 10px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: isMobile ? '8px' : '10px',
+                    fontSize: isMobile ? '11px' : '13px',
+                    outline: 'none',
+                    backgroundColor: '#f9fafb',
+                    color: customerDateTo ? '#374151' : '#9ca3af',
+                    maxWidth: isMobile ? '120px' : '150px'
+                  }}
+                />
+                {(customerDateFrom || customerDateTo) && (
+                  <button
+                    onClick={() => { setCustomerDateFrom(''); setCustomerDateTo(''); }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '4px', fontSize: '12px' }}
+                    title="Clear dates"
+                  >
+                    <FaTimes size={10} />
+                  </button>
+                )}
               </div>
 
               {/* Sort - More Compact */}
@@ -3587,12 +3741,13 @@ const Customers = () => {
                 </select>
 
                 {/* Period filter pills */}
-                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
                   {[
-                    { id: 'all', label: 'All Time' },
                     { id: 'this_week', label: 'This Week' },
                     { id: 'this_month', label: 'This Month' },
                     { id: 'last_month', label: 'Last Month' },
+                    { id: 'last_3_months', label: 'Last 3 Months' },
+                    { id: 'custom', label: 'Custom' },
                   ].map(function(p) {
                     var isActive = reportsPeriod === p.id;
                     return (
@@ -3614,6 +3769,23 @@ const Customers = () => {
                       </button>
                     );
                   })}
+                  {reportsPeriod === 'custom' && (
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <input
+                        type="date"
+                        value={reportsCustomFrom}
+                        onChange={function(e) { setReportsCustomFrom(e.target.value); }}
+                        style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '12px', color: '#374151' }}
+                      />
+                      <span style={{ fontSize: '12px', color: '#9ca3af' }}>to</span>
+                      <input
+                        type="date"
+                        value={reportsCustomTo}
+                        onChange={function(e) { setReportsCustomTo(e.target.value); }}
+                        style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '12px', color: '#374151' }}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -3659,31 +3831,42 @@ const Customers = () => {
                     <div style={{ marginBottom: '32px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                         <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>Top Customers by Discount</h3>
-                        <button
-                          onClick={function() {
-                            var showRestaurant = reportsRestaurantFilter === 'all';
-                            var cols = [
-                              { label: 'Name', key: 'name' },
-                              { label: 'Phone', key: 'phone' },
-                              { label: 'Total Discount', key: 'totalDiscount' },
-                              { label: 'Total Spent', key: 'totalSpent' },
-                              { label: 'Orders', key: 'orderCount' },
-                            ];
-                            if (showRestaurant) cols.push({ label: 'Restaurant', key: 'restaurantName' });
-                            var data = reportsData.topByDiscount.map(function(row) {
-                              var obj = {};
-                              cols.forEach(function(col) { obj[col.label] = row[col.key]; });
-                              return obj;
-                            });
-                            var ws = XLSX.utils.json_to_sheet(data);
-                            var wb = XLSX.utils.book_new();
-                            XLSX.utils.book_append_sheet(wb, ws, 'Report');
-                            XLSX.writeFile(wb, 'top_customers_by_discount.xlsx');
-                          }}
-                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#6b7280' }}
-                        >
-                          <FaDownload size={10} /> Export
-                        </button>
+                        <div data-export-dropdown style={{ position: 'relative' }}>
+                          <button
+                            onClick={function() { setExportDropdown(exportDropdown === 'discount' ? null : 'discount'); }}
+                            style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#6b7280' }}
+                          >
+                            <FaDownload size={10} /> Export
+                          </button>
+                          {exportDropdown === 'discount' && (
+                            <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '4px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 100, minWidth: '120px', overflow: 'hidden' }}>
+                              {[
+                                { fmt: 'xlsx', label: 'Excel', icon: FaFileExcel, color: '#16a34a' },
+                                { fmt: 'csv', label: 'CSV', icon: FaFileCsv, color: '#2563eb' },
+                                { fmt: 'pdf', label: 'PDF', icon: FaFilePdf, color: '#dc2626' },
+                              ].map(function(opt) {
+                                var Icon = opt.icon;
+                                return (
+                                  <button key={opt.fmt} onClick={function() {
+                                    var showR = reportsRestaurantFilter === 'all';
+                                    var cols = [
+                                      { label: 'Name', key: 'name' }, { label: 'Phone', key: 'phone' },
+                                      { label: 'Total Discount', key: 'totalDiscount' }, { label: 'Total Spent', key: 'totalSpent' },
+                                      { label: 'Orders', key: 'orderCount' },
+                                    ];
+                                    if (showR) cols.push({ label: 'Restaurant', key: 'restaurantName' });
+                                    exportReportData(reportsData.topByDiscount, cols, 'top_customers_by_discount', opt.fmt);
+                                  }} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12px', color: '#374151', textAlign: 'left' }}
+                                    onMouseEnter={function(e) { e.currentTarget.style.background = '#f3f4f6'; }}
+                                    onMouseLeave={function(e) { e.currentTarget.style.background = 'none'; }}
+                                  >
+                                    <Icon size={12} style={{ color: opt.color }} /> {opt.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div style={{ overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
@@ -3724,31 +3907,42 @@ const Customers = () => {
                     <div style={{ marginBottom: '32px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                         <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>Top Customers by Spending</h3>
-                        <button
-                          onClick={function() {
-                            var showRestaurant = reportsRestaurantFilter === 'all';
-                            var cols = [
-                              { label: 'Name', key: 'name' },
-                              { label: 'Phone', key: 'phone' },
-                              { label: 'Total Spent', key: 'totalSpent' },
-                              { label: 'Total Discount', key: 'totalDiscount' },
-                              { label: 'Orders', key: 'orderCount' },
-                            ];
-                            if (showRestaurant) cols.push({ label: 'Restaurant', key: 'restaurantName' });
-                            var data = reportsData.topBySpending.map(function(row) {
-                              var obj = {};
-                              cols.forEach(function(col) { obj[col.label] = row[col.key]; });
-                              return obj;
-                            });
-                            var ws = XLSX.utils.json_to_sheet(data);
-                            var wb = XLSX.utils.book_new();
-                            XLSX.utils.book_append_sheet(wb, ws, 'Report');
-                            XLSX.writeFile(wb, 'top_customers_by_spending.xlsx');
-                          }}
-                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#6b7280' }}
-                        >
-                          <FaDownload size={10} /> Export
-                        </button>
+                        <div data-export-dropdown style={{ position: 'relative' }}>
+                          <button
+                            onClick={function() { setExportDropdown(exportDropdown === 'spending' ? null : 'spending'); }}
+                            style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#6b7280' }}
+                          >
+                            <FaDownload size={10} /> Export
+                          </button>
+                          {exportDropdown === 'spending' && (
+                            <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '4px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 100, minWidth: '120px', overflow: 'hidden' }}>
+                              {[
+                                { fmt: 'xlsx', label: 'Excel', icon: FaFileExcel, color: '#16a34a' },
+                                { fmt: 'csv', label: 'CSV', icon: FaFileCsv, color: '#2563eb' },
+                                { fmt: 'pdf', label: 'PDF', icon: FaFilePdf, color: '#dc2626' },
+                              ].map(function(opt) {
+                                var Icon = opt.icon;
+                                return (
+                                  <button key={opt.fmt} onClick={function() {
+                                    var showR = reportsRestaurantFilter === 'all';
+                                    var cols = [
+                                      { label: 'Name', key: 'name' }, { label: 'Phone', key: 'phone' },
+                                      { label: 'Total Spent', key: 'totalSpent' }, { label: 'Total Discount', key: 'totalDiscount' },
+                                      { label: 'Orders', key: 'orderCount' },
+                                    ];
+                                    if (showR) cols.push({ label: 'Restaurant', key: 'restaurantName' });
+                                    exportReportData(reportsData.topBySpending, cols, 'top_customers_by_spending', opt.fmt);
+                                  }} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12px', color: '#374151', textAlign: 'left' }}
+                                    onMouseEnter={function(e) { e.currentTarget.style.background = '#f3f4f6'; }}
+                                    onMouseLeave={function(e) { e.currentTarget.style.background = 'none'; }}
+                                  >
+                                    <Icon size={12} style={{ color: opt.color }} /> {opt.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div style={{ overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
@@ -3789,31 +3983,42 @@ const Customers = () => {
                     <div style={{ marginBottom: '32px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                         <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>Top Customers by Orders</h3>
-                        <button
-                          onClick={function() {
-                            var showRestaurant = reportsRestaurantFilter === 'all';
-                            var cols = [
-                              { label: 'Name', key: 'name' },
-                              { label: 'Phone', key: 'phone' },
-                              { label: 'Orders', key: 'orderCount' },
-                              { label: 'Total Spent', key: 'totalSpent' },
-                              { label: 'Total Discount', key: 'totalDiscount' },
-                            ];
-                            if (showRestaurant) cols.push({ label: 'Restaurant', key: 'restaurantName' });
-                            var data = reportsData.topByOrders.map(function(row) {
-                              var obj = {};
-                              cols.forEach(function(col) { obj[col.label] = row[col.key]; });
-                              return obj;
-                            });
-                            var ws = XLSX.utils.json_to_sheet(data);
-                            var wb = XLSX.utils.book_new();
-                            XLSX.utils.book_append_sheet(wb, ws, 'Report');
-                            XLSX.writeFile(wb, 'top_customers_by_orders.xlsx');
-                          }}
-                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#6b7280' }}
-                        >
-                          <FaDownload size={10} /> Export
-                        </button>
+                        <div data-export-dropdown style={{ position: 'relative' }}>
+                          <button
+                            onClick={function() { setExportDropdown(exportDropdown === 'orders' ? null : 'orders'); }}
+                            style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#6b7280' }}
+                          >
+                            <FaDownload size={10} /> Export
+                          </button>
+                          {exportDropdown === 'orders' && (
+                            <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '4px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 100, minWidth: '120px', overflow: 'hidden' }}>
+                              {[
+                                { fmt: 'xlsx', label: 'Excel', icon: FaFileExcel, color: '#16a34a' },
+                                { fmt: 'csv', label: 'CSV', icon: FaFileCsv, color: '#2563eb' },
+                                { fmt: 'pdf', label: 'PDF', icon: FaFilePdf, color: '#dc2626' },
+                              ].map(function(opt) {
+                                var Icon = opt.icon;
+                                return (
+                                  <button key={opt.fmt} onClick={function() {
+                                    var showR = reportsRestaurantFilter === 'all';
+                                    var cols = [
+                                      { label: 'Name', key: 'name' }, { label: 'Phone', key: 'phone' },
+                                      { label: 'Orders', key: 'orderCount' }, { label: 'Total Spent', key: 'totalSpent' },
+                                      { label: 'Total Discount', key: 'totalDiscount' },
+                                    ];
+                                    if (showR) cols.push({ label: 'Restaurant', key: 'restaurantName' });
+                                    exportReportData(reportsData.topByOrders, cols, 'top_customers_by_orders', opt.fmt);
+                                  }} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12px', color: '#374151', textAlign: 'left' }}
+                                    onMouseEnter={function(e) { e.currentTarget.style.background = '#f3f4f6'; }}
+                                    onMouseLeave={function(e) { e.currentTarget.style.background = 'none'; }}
+                                  >
+                                    <Icon size={12} style={{ color: opt.color }} /> {opt.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div style={{ overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
@@ -3854,32 +4059,42 @@ const Customers = () => {
                     <div style={{ marginBottom: '32px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                         <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>Group Report</h3>
-                        <button
-                          onClick={function() {
-                            var showRestaurant = reportsRestaurantFilter === 'all';
-                            var cols = [
-                              { label: 'Group', key: 'groupName' },
-                              { label: 'Members', key: 'memberCount' },
-                              { label: 'Revenue', key: 'totalRevenue' },
-                              { label: 'Avg Spending', key: 'avgSpending' },
-                              { label: 'Discounts', key: 'totalDiscount' },
-                              { label: 'Orders', key: 'totalOrders' },
-                            ];
-                            if (showRestaurant) cols.push({ label: 'Restaurant', key: 'restaurantName' });
-                            var data = reportsData.groupStats.map(function(row) {
-                              var obj = {};
-                              cols.forEach(function(col) { obj[col.label] = row[col.key]; });
-                              return obj;
-                            });
-                            var ws = XLSX.utils.json_to_sheet(data);
-                            var wb = XLSX.utils.book_new();
-                            XLSX.utils.book_append_sheet(wb, ws, 'Report');
-                            XLSX.writeFile(wb, 'group_report.xlsx');
-                          }}
-                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#6b7280' }}
-                        >
-                          <FaDownload size={10} /> Export
-                        </button>
+                        <div data-export-dropdown style={{ position: 'relative' }}>
+                          <button
+                            onClick={function() { setExportDropdown(exportDropdown === 'groups' ? null : 'groups'); }}
+                            style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#6b7280' }}
+                          >
+                            <FaDownload size={10} /> Export
+                          </button>
+                          {exportDropdown === 'groups' && (
+                            <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '4px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 100, minWidth: '120px', overflow: 'hidden' }}>
+                              {[
+                                { fmt: 'xlsx', label: 'Excel', icon: FaFileExcel, color: '#16a34a' },
+                                { fmt: 'csv', label: 'CSV', icon: FaFileCsv, color: '#2563eb' },
+                                { fmt: 'pdf', label: 'PDF', icon: FaFilePdf, color: '#dc2626' },
+                              ].map(function(opt) {
+                                var Icon = opt.icon;
+                                return (
+                                  <button key={opt.fmt} onClick={function() {
+                                    var showR = reportsRestaurantFilter === 'all';
+                                    var cols = [
+                                      { label: 'Group', key: 'groupName' }, { label: 'Members', key: 'memberCount' },
+                                      { label: 'Revenue', key: 'totalRevenue' }, { label: 'Avg Spending', key: 'avgSpending' },
+                                      { label: 'Discounts', key: 'totalDiscount' }, { label: 'Orders', key: 'totalOrders' },
+                                    ];
+                                    if (showR) cols.push({ label: 'Restaurant', key: 'restaurantName' });
+                                    exportReportData(reportsData.groupStats, cols, 'group_report', opt.fmt);
+                                  }} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12px', color: '#374151', textAlign: 'left' }}
+                                    onMouseEnter={function(e) { e.currentTarget.style.background = '#f3f4f6'; }}
+                                    onMouseLeave={function(e) { e.currentTarget.style.background = 'none'; }}
+                                  >
+                                    <Icon size={12} style={{ color: opt.color }} /> {opt.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div style={{ overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>

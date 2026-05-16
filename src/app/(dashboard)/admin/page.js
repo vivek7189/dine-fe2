@@ -82,7 +82,8 @@ import {
   FaTicketAlt,
   FaTh,
   FaList,
-  FaParking
+  FaParking,
+  FaCalendarCheck
 } from 'react-icons/fa';
 // ShiftScheduling moved to /shifts page df
 import dynamic from 'next/dynamic';
@@ -4612,6 +4613,7 @@ const Admin = () => {
     { id: 'multiPricing', name: 'Multi-Tier Pricing', icon: FaLayerGroup, description: 'Per-item pricing for AC/Non-AC/Takeaway and custom rules', color: '#8b5cf6' },
     { id: 'google-reviews', name: 'Google Reviews', icon: FaGoogle, description: 'Manage, reply & collect Google Reviews', color: '#ea4335' },
     { id: 'parking', name: 'Parking Management', icon: FaParking, description: 'Vehicle parking lot management with tickets & QR scanning', color: '#0369a1' },
+    { id: 'bookings', name: 'Bookings & Catering', icon: FaCalendarCheck, description: 'Advance orders, catering, and venue/hall booking management', color: '#ef4444' },
   ];
 
   useEffect(() => {
@@ -10386,7 +10388,7 @@ const Admin = () => {
                   },
                   {
                     key: 'partialPaymentEnabled',
-                    name: 'Partial Payment',
+                    name: 'Credit Book / Khatabook',
                     desc: 'Khata / credit tracking',
                     icon: FaReceipt,
                     expandedContent: null

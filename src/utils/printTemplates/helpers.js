@@ -154,6 +154,16 @@ export function buildPaymentHtml(invoice, L, cs) {
   return splitPaymentHtml + cashReceivedHtml + partialPayHtml + walletPayHtml;
 }
 
+// Build delivery address + driver info HTML for receipt (flag-based: only shows for delivery orders)
+export function buildDeliveryAddressHtml(invoice) {
+  if (invoice.orderType !== 'delivery') return '';
+  const parts = [];
+  if (invoice.deliveryAddress) parts.push(esc(invoice.deliveryAddress));
+  if (invoice.deliveryInfo?.personName) parts.push(`Driver: ${esc(invoice.deliveryInfo.personName)}${invoice.deliveryInfo.personPhone ? ` (${esc(invoice.deliveryInfo.personPhone)})` : ''}`);
+  if (parts.length === 0) return '';
+  return `<div class="bill-info" style="margin:4px 0;"><div style="text-align:center;font-weight:bold;font-size:11px;text-transform:uppercase;">Delivery</div>${parts.map(p => `<div style="text-align:center;font-size:10px;">${p}</div>`).join('')}</div>`;
+}
+
 // Calculate grand total from invoice data
 export function calcGrandTotal(invoice) {
   const totalDiscount = (invoice.discountAmount || 0) + (invoice.manualDiscount || 0) + (invoice.loyaltyDiscount || 0);

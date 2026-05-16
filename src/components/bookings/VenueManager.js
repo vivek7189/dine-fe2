@@ -65,7 +65,7 @@ export default function VenueManager({ venues, loading, onSave, onDelete, isMobi
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#1f2937' }}>Venues & Halls</h3>
-        <button onClick={openAdd} style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', color: '#fff', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <button onClick={openAdd} style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 8px rgba(239,68,68,0.3)' }}>
           <FaPlus size={11} /> Add Venue
         </button>
       </div>
@@ -81,15 +81,15 @@ export default function VenueManager({ venues, loading, onSave, onDelete, isMobi
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
           {venues.map(function(venue) {
             return (
-              <div key={venue.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '16px', position: 'relative' }}>
+              <div key={venue.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '16px', position: 'relative', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', transition: 'box-shadow 0.2s, transform 0.2s' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                   <div>
                     <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>{venue.name}</h4>
                     {venue.description && <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>{venue.description}</p>}
                   </div>
                   <div style={{ display: 'flex', gap: '6px' }}>
-                    <button onClick={function() { openEdit(venue); }} style={{ padding: '5px 8px', borderRadius: '5px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', color: '#6b7280' }}><FaEdit size={11} /></button>
-                    <button onClick={function() { onDelete(venue.id); }} style={{ padding: '5px 8px', borderRadius: '5px', border: '1px solid #fecaca', background: '#fff', cursor: 'pointer', color: '#ef4444' }}><FaTrash size={11} /></button>
+                    <button onClick={function() { openEdit(venue); }} style={{ padding: '5px 8px', borderRadius: '5px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer', color: '#6b7280', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}><FaEdit size={11} /></button>
+                    <button onClick={function() { onDelete(venue.id); }} style={{ padding: '5px 8px', borderRadius: '5px', border: '1px solid #fecaca', background: '#fef2f2', cursor: 'pointer', color: '#ef4444', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}><FaTrash size={11} /></button>
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', fontSize: '12px', color: '#4b5563' }}>
@@ -122,8 +122,8 @@ export default function VenueManager({ venues, loading, onSave, onDelete, isMobi
       {/* Venue Modal */}
       {showModal && typeof document !== 'undefined' && createPortal(
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
-          <div style={{ background: '#fff', borderRadius: '12px', width: '100%', maxWidth: '500px', maxHeight: '90vh', overflow: 'auto' }}>
-            <div style={{ padding: '20px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: '12px', width: '100%', maxWidth: '500px', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+            <div style={{ padding: '20px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '3px solid #ef4444', borderRadius: '12px 12px 0 0' }}>
               <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '700' }}>{editing ? 'Edit Venue' : 'Add Venue'}</h3>
               <button onClick={function() { setShowModal(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><FaTimes size={16} /></button>
             </div>
@@ -171,14 +171,14 @@ export default function VenueManager({ venues, loading, onSave, onDelete, isMobi
                 <input value={form.amenities} onChange={function(e) { setForm({ ...form, amenities: e.target.value }); }} style={{ width: '100%', padding: '9px 12px', borderRadius: '7px', border: '1px solid #d1d5db', fontSize: '14px' }} placeholder="AC, Projector, Stage, Sound System" />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <button type="button" onClick={function() { setForm({ ...form, allowMultipleBookings: !form.allowMultipleBookings }); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: form.allowMultipleBookings ? '#7c3aed' : '#9ca3af' }}>
+                <button type="button" onClick={function() { setForm({ ...form, allowMultipleBookings: !form.allowMultipleBookings }); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: form.allowMultipleBookings ? '#ef4444' : '#9ca3af' }}>
                   {form.allowMultipleBookings ? <FaToggleOn size={22} /> : <FaToggleOff size={22} />}
                 </button>
                 <span style={{ fontSize: '13px', color: '#374151' }}>Allow multiple bookings for same time slot</span>
               </div>
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', paddingTop: '10px', borderTop: '1px solid #f3f4f6' }}>
                 <button type="button" onClick={function() { setShowModal(false); }} style={{ padding: '9px 18px', borderRadius: '7px', border: '1px solid #d1d5db', background: '#fff', fontSize: '13px', fontWeight: '600', cursor: 'pointer', color: '#374151' }}>Cancel</button>
-                <button type="submit" disabled={saving} style={{ padding: '9px 18px', borderRadius: '7px', border: 'none', background: '#7c3aed', color: '#fff', fontSize: '13px', fontWeight: '600', cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
+                <button type="submit" disabled={saving} style={{ padding: '9px 18px', borderRadius: '7px', border: 'none', background: '#ef4444', color: '#fff', fontSize: '13px', fontWeight: '600', cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
                   <FaSave size={11} style={{ marginRight: '5px' }} />{saving ? 'Saving...' : 'Save'}
                 </button>
               </div>

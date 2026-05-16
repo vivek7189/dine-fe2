@@ -695,7 +695,7 @@ export default function DashboardTablesPanel({
                     flexDirection: 'column',
                     minHeight: '120px',
                     position: 'relative',
-                    overflow: 'hidden',
+                    overflow: 'visible',
                     boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
                   }}
                 >
@@ -733,160 +733,129 @@ export default function DashboardTablesPanel({
                   <div style={{ padding: '12px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                     {/* Header */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span style={{ fontSize: '16px', fontWeight: 800, color: '#111827', lineHeight: 1.1 }}>
                             {t.name || t.number}
                           </span>
-                          {isOccupied && t.lastOrderTime && (() => {
-                            const elapsed = getTimeElapsed(t.lastOrderTime);
-                            if (!elapsed) return null;
-                            const isOverADay = elapsed.includes('d');
-                            return (
-                              <span style={{
-                                fontSize: '10px',
-                                fontWeight: 700,
-                                color: isOverADay ? '#dc2626' : '#92400e',
-                                whiteSpace: 'nowrap',
-                              }}>
-                                {elapsed}
-                              </span>
-                            );
-                          })()}
+                          {/* Status: dot for available, small dot+elapsed for occupied, tiny badge for others */}
+                          {isAvailable ? (
+                            <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 0 2px #d1fae5', flexShrink: 0 }} title="Available" />
+                          ) : isOccupied ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
+                              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f59e0b' }} />
+                              {t.lastOrderTime && (() => {
+                                const elapsed = getTimeElapsed(t.lastOrderTime);
+                                if (!elapsed) return null;
+                                const isOverADay = elapsed.includes('d');
+                                return (
+                                  <span style={{ fontSize: '10px', fontWeight: 700, color: isOverADay ? '#dc2626' : '#92400e', whiteSpace: 'nowrap' }}>
+                                    {elapsed}
+                                  </span>
+                                );
+                              })()}
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: '9px', fontWeight: 600, color: config.color, whiteSpace: 'nowrap' }}>
+                              {config.label}
+                            </span>
+                          )}
                         </div>
                         <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <FaChair size={9} />
                           {t.capacity || '-'} Seats
                         </div>
                       </div>
-                      {/* Move & Print icons for occupied tables — compact, in header area */}
-                      {isOccupied && t.currentOrderId && (
-                        <div style={{ display: 'flex', gap: '3px', marginRight: '4px', flexShrink: 0 }}>
-                          {posSettings.moveOrderEnabled && (
+                      {/* Single ··· menu for occupied tables — combines Move, Print Bill, Print KOT */}
+                      {isOccupied && t.currentOrderId && (() => {
+                        const tableId = t.id || t.currentOrderId;
+                        const isPrinting = printingTables[tableId];
+                        const isDropdownOpen = printDropdownTable === tableId;
+                        return (
+                          <div style={{ position: 'relative', flexShrink: 0 }}>
                             <button
                               className="btn-action"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setMoveModalTable({ ...t, floorId: group.info?.id, floorName: group.info?.name || group.name });
+                                setPrintDropdownTable(prev => prev === tableId ? null : tableId);
                               }}
                               style={{
-                                width: '24px', height: '24px', padding: 0,
-                                background: '#ffffff', color: '#9ca3af',
-                                border: '1px solid #e5e7eb', borderRadius: '5px',
+                                width: '26px', height: '26px', padding: 0,
+                                background: isPrinting
+                                  ? 'linear-gradient(135deg, #dbeafe, #bfdbfe)'
+                                  : isDropdownOpen ? 'linear-gradient(135deg, #fef3c7, #fde68a)' : 'rgba(0,0,0,0.04)',
+                                color: isPrinting ? '#3b82f6' : isDropdownOpen ? '#b45309' : '#6b7280',
+                                border: 'none', borderRadius: '8px',
                                 cursor: 'pointer', display: 'flex',
                                 alignItems: 'center', justifyContent: 'center',
+                                transition: 'all 0.15s ease',
                               }}
-                              title="Move Order"
+                              title="Actions"
                             >
-                              <FaExchangeAlt size={9} />
+                              {isPrinting ? <FaSpinner size={10} className="animate-spin" /> : <FaPrint size={11} />}
                             </button>
-                          )}
-                          {(() => {
-                            const tableId = t.id || t.currentOrderId;
-                            const isPrinting = printingTables[tableId];
-                            const isDropdownOpen = printDropdownTable === tableId;
-                            return (
-                              <div style={{ position: 'relative' }}>
-                                <button
-                                  className="btn-action"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (!isPrinting && t.currentOrderId) {
-                                      setPrintDropdownTable(prev => prev === tableId ? null : tableId);
-                                    }
-                                  }}
-                                  disabled={isPrinting}
-                                  style={{
-                                    width: '24px', height: '24px', padding: 0,
-                                    background: isPrinting
-                                      ? 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)'
-                                      : isDropdownOpen ? '#f3f4f6' : '#ffffff',
-                                    color: isPrinting ? '#3b82f6' : '#9ca3af',
-                                    border: isPrinting ? '1px solid #93c5fd' : '1px solid #e5e7eb',
-                                    borderRadius: '5px',
-                                    cursor: isPrinting ? 'not-allowed' : 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center', justifyContent: 'center',
-                                    position: 'relative', overflow: 'visible',
-                                    opacity: isPrinting ? 0.85 : 1,
-                                    transition: 'all 0.2s ease'
-                                  }}
-                                  title={isPrinting ? 'Printing...' : 'Print'}
-                                >
-                                  {isPrinting ? <FaSpinner size={9} className="animate-spin" /> : <FaPrint size={9} />}
-                                </button>
-                                {isDropdownOpen && (
-                                  <div
-                                    onClick={(e) => e.stopPropagation()}
-                                    style={{
-                                      position: 'absolute', top: '100%', right: 0,
-                                      marginTop: '4px', background: '#ffffff',
-                                      border: '1px solid #e5e7eb', borderRadius: '8px',
-                                      boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
-                                      zIndex: 50, minWidth: '130px', overflow: 'hidden',
+                            {isDropdownOpen && (
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                  position: 'absolute', top: '100%', right: 0,
+                                  marginTop: '4px', background: '#ffffff',
+                                  border: '1px solid #e5e7eb', borderRadius: '10px',
+                                  boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                                  zIndex: 999, minWidth: '140px', overflow: 'hidden',
+                                  padding: '4px 0',
+                                }}
+                              >
+                                {posSettings.moveOrderEnabled && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setPrintDropdownTable(null);
+                                      setMoveModalTable({ ...t, floorId: group.info?.id, floorName: group.info?.name || group.name });
                                     }}
+                                    style={{
+                                      width: '100%', padding: '8px 12px', display: 'flex',
+                                      alignItems: 'center', gap: '8px', fontSize: '12px',
+                                      fontWeight: 500, color: '#374151', background: 'transparent',
+                                      border: 'none', cursor: 'pointer',
+                                    }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                                   >
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); handlePrintBill(t); }}
-                                      style={{
-                                        width: '100%', padding: '8px 12px', display: 'flex',
-                                        alignItems: 'center', gap: '8px', fontSize: '12px',
-                                        fontWeight: 500, color: '#374151', background: 'transparent',
-                                        border: 'none', cursor: 'pointer', borderBottom: '1px solid #f3f4f6',
-                                      }}
-                                      onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; }}
-                                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                                    >
-                                      <FaReceipt size={10} style={{ color: '#10b981' }} /> Print Bill
-                                    </button>
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); handlePrintKOT(t); }}
-                                      style={{
-                                        width: '100%', padding: '8px 12px', display: 'flex',
-                                        alignItems: 'center', gap: '8px', fontSize: '12px',
-                                        fontWeight: 500, color: '#374151', background: 'transparent',
-                                        border: 'none', cursor: 'pointer',
-                                      }}
-                                      onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; }}
-                                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                                    >
-                                      <FaUtensils size={10} style={{ color: '#f59e0b' }} /> Print KOT
-                                    </button>
-                                  </div>
+                                    <FaExchangeAlt size={10} style={{ color: '#6366f1' }} /> Move Order
+                                  </button>
                                 )}
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handlePrintBill(t); }}
+                                  style={{
+                                    width: '100%', padding: '8px 12px', display: 'flex',
+                                    alignItems: 'center', gap: '8px', fontSize: '12px',
+                                    fontWeight: 500, color: '#374151', background: 'transparent',
+                                    border: 'none', cursor: 'pointer',
+                                  }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                >
+                                  <FaReceipt size={10} style={{ color: '#10b981' }} /> Print Bill
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handlePrintKOT(t); }}
+                                  style={{
+                                    width: '100%', padding: '8px 12px', display: 'flex',
+                                    alignItems: 'center', gap: '8px', fontSize: '12px',
+                                    fontWeight: 500, color: '#374151', background: 'transparent',
+                                    border: 'none', cursor: 'pointer',
+                                  }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                >
+                                  <FaUtensils size={10} style={{ color: '#f59e0b' }} /> Print KOT
+                                </button>
                               </div>
-                            );
-                          })()}
-                        </div>
-                      )}
-                      {/* Small Status Dot for Available, Badge for others */}
-                      {isAvailable ? (
-                         <div style={{ 
-                           width: '8px', 
-                           height: '8px', 
-                           borderRadius: '50%', 
-                           background: '#10b981',
-                           boxShadow: '0 0 0 2px #d1fae5'
-                         }} title="Available" />
-                      ) : (
-                        <div style={{
-                          background: config.bg,
-                          color: config.color,
-                          padding: '3px 8px',
-                          borderRadius: '12px',
-                          fontSize: '9px',
-                          fontWeight: 700,
-                          textTransform: 'uppercase',
-                          border: `1px solid ${config.border}`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          whiteSpace: 'nowrap',
-                          flexShrink: 0,
-                        }}>
-                          {config.label}
-                        </div>
-                      )}
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Content - Show order total (with tax) for occupied tables, icon for others */}
