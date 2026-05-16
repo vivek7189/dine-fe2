@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import {
   AreaChart as RechartsAreaChart, Area, BarChart as RechartsBarChart, Bar,
+  ComposedChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import {
@@ -616,7 +618,7 @@ export function HeadquartersContent({ embedded = false }) {
       const name = dashboardData?.restaurants?.find(r => r.id === selectedRestaurants[0])?.name;
       return name && name.length > 12 ? name.substring(0, 12) + '...' : name || '1 selected';
     }
-    return `${selected} ${t('hq.ofTotal')} ${total}`;
+    return t('hq.ofTotal', { selected, total });
   };
 
   // Check if filtering (not all selected)
@@ -629,16 +631,40 @@ export function HeadquartersContent({ embedded = false }) {
     return { today: t('hq.today'), '7d': t('hq.days7'), '30d': t('hq.days30'), '90d': t('hq.days90') }[dateRange.preset] || t('hq.select');
   };
 
-  // Dynamic headline based on date filter
+  // Dynamic headline based on date filter + restaurant selection
   const getDynamicHeadline = () => {
-    const headlines = {
-      today: { title: t('hq.todaysOverview'), subtitle: t('hq.howBusinessToday') },
-      '7d': { title: t('hq.thisWeek'), subtitle: t('hq.weekPerformance') },
-      '30d': { title: t('hq.thisMonth'), subtitle: t('hq.monthlyTrends') },
-      '90d': { title: t('hq.thisQuarter'), subtitle: t('hq.quarterReview') },
-      custom: { title: t('hq.customPeriod'), subtitle: `${dateRange.startDate} to ${dateRange.endDate}` }
+    const total = dashboardData?.restaurants?.length || 0;
+    const selected = selectedRestaurants.length;
+
+    // Period-based titles
+    const periodTitles = {
+      today: t('hq.todaysOverview'),
+      '7d': t('hq.thisWeek'),
+      '30d': t('hq.thisMonth'),
+      '90d': t('hq.thisQuarter'),
+      custom: t('hq.customPeriod')
     };
-    return headlines[dateRange.preset] || headlines['7d'];
+    const periodTitle = periodTitles[dateRange.preset] || periodTitles['7d'];
+
+    // Context-aware subtitle based on restaurant selection
+    let subtitle;
+    if (selected === 1) {
+      const name = dashboardData?.restaurants?.find(r => r.id === selectedRestaurants[0])?.name;
+      subtitle = name || t('hq.howBusinessToday');
+    } else if (selected > 0 && selected < total) {
+      subtitle = `${selected} of ${total} ${t('hq.locations')}`;
+    } else {
+      const defaultSubtitles = {
+        today: t('hq.howBusinessToday'),
+        '7d': t('hq.weekPerformance'),
+        '30d': t('hq.monthlyTrends'),
+        '90d': t('hq.quarterReview'),
+        custom: `${dateRange.startDate} to ${dateRange.endDate}`
+      };
+      subtitle = defaultSubtitles[dateRange.preset] || defaultSubtitles['7d'];
+    }
+
+    return { title: periodTitle, subtitle };
   };
 
   // Not authorized yet — show nothing while redirect happens
@@ -676,13 +702,19 @@ export function HeadquartersContent({ embedded = false }) {
   const isDataLoading = !dashboardData || refreshing;
 
   // Metric Card — shows shimmer when data not yet loaded
-  const MetricCard = ({ icon: Icon, label, value, subtitle, color = '#ef4444' }) => (
+  const comparisonLabel = dateRange.preset === 'today' ? 'vs yesterday'
+    : dateRange.preset === '7d' ? 'vs prev 7d'
+    : dateRange.preset === '30d' ? 'vs prev 30d'
+    : 'vs prev period';
+
+  const MetricCard = ({ icon: Icon, label, value, subtitle, color = '#ef4444', delta }) => (
     <div style={{
       backgroundColor: 'white',
       borderRadius: isMobile ? '14px' : '16px',
       padding: isMobile ? '14px' : '20px',
       boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
       border: '1px solid #f1f5f9',
+      borderLeft: `4px solid ${color}`,
       position: 'relative',
       overflow: 'hidden'
     }}>
@@ -724,6 +756,23 @@ export function HeadquartersContent({ embedded = false }) {
             </div>
             <div style={{ fontSize: isMobile ? '11px' : '13px', color: '#6b7280' }}>{label}</div>
             {subtitle && <div style={{ fontSize: isMobile ? '10px' : '12px', color: '#6b7280', marginTop: '2px' }}>{subtitle}</div>}
+            {delta !== undefined && delta !== null && (
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: isMobile ? '10px' : '12px',
+                fontWeight: '600',
+                color: delta >= 0 ? '#16a34a' : '#dc2626',
+                marginTop: '6px',
+                padding: '2px 8px',
+                borderRadius: '8px',
+                backgroundColor: delta >= 0 ? '#f0fdf4' : '#fef2f2',
+              }}>
+                {delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}%
+                <span style={{ fontWeight: 400, opacity: 0.8, marginLeft: '2px' }}>{comparisonLabel}</span>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -1080,7 +1129,7 @@ export function HeadquartersContent({ embedded = false }) {
   };
 
   // Email Preferences Modal
-  const EmailModal = () => (
+  const EmailModal = () => typeof document === 'undefined' ? null : createPortal(
     <div style={{
       position: 'fixed',
       top: 0,
@@ -1091,7 +1140,7 @@ export function HeadquartersContent({ embedded = false }) {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 1002,
+      zIndex: 10002,
       padding: '20px'
     }}>
       <div style={{
@@ -1351,7 +1400,8 @@ export function HeadquartersContent({ embedded = false }) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 
   // Restaurant Selector
@@ -1630,6 +1680,9 @@ export function HeadquartersContent({ embedded = false }) {
   // Overview Tab (Combined with Analytics)
   const renderOverviewTab = () => {
     // Prepare chart data with proper labels
+    const prevHourlyData = analyticsData?.previousDayRevenueByHour || [];
+    const hasPrevHourly = dateRange.preset === 'today' && prevHourlyData.length > 0;
+
     const revenueChartData = (analyticsData?.revenueByDay || []).map(d => {
       const date = new Date(d.date);
       const label = dateRange.preset === 'today'
@@ -1637,7 +1690,13 @@ export function HeadquartersContent({ embedded = false }) {
         : dateRange.preset === '7d'
           ? date.toLocaleDateString('en-US', { weekday: 'short' })
           : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      return { label, value: d.revenue };
+      const entry = { label, value: d.revenue };
+      if (hasPrevHourly) {
+        const hourStr = d.date.split('T')[1]?.substring(0, 2);
+        const prev = prevHourlyData.find(p => p.hour === hourStr);
+        entry.prevValue = prev ? prev.revenue : 0;
+      }
+      return entry;
     });
 
     const ordersChartData = (analyticsData?.revenueByDay || []).map(d => {
@@ -1647,7 +1706,13 @@ export function HeadquartersContent({ embedded = false }) {
         : dateRange.preset === '7d'
           ? date.toLocaleDateString('en-US', { weekday: 'short' })
           : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      return { label, value: d.orders };
+      const entry = { label, value: d.orders };
+      if (hasPrevHourly) {
+        const hourStr = d.date.split('T')[1]?.substring(0, 2);
+        const prev = prevHourlyData.find(p => p.hour === hourStr);
+        entry.prevValue = prev ? prev.orders : 0;
+      }
+      return entry;
     });
 
     const orderTypeData = analyticsData?.ordersByType?.map(t => ({ label: t.type, value: t.count })) || [];
@@ -1680,7 +1745,10 @@ export function HeadquartersContent({ embedded = false }) {
           <MetricCard
             icon={FaStore}
             label={isFiltering ? t('hq.selectedRestaurants') : t('hq.totalRestaurants')}
-            value={filteredTotalRestaurants}
+            value={isFiltering && selectedRestaurants.length === 1
+              ? (dashboardData?.restaurants?.find(r => r.id === selectedRestaurants[0])?.name || filteredTotalRestaurants)
+              : filteredTotalRestaurants}
+            subtitle={isFiltering && selectedRestaurants.length > 1 ? `of ${allRestaurants.length} ${t('hq.locations')}` : null}
             color="#8b5cf6"
           />
           <MetricCard
@@ -1689,18 +1757,21 @@ export function HeadquartersContent({ embedded = false }) {
             value={formatCurrency ? formatCurrency(filteredTotalRevenue) : `₹${filteredTotalRevenue.toLocaleString()}`}
             subtitle={filteredTotalRevenueWithTax > filteredTotalRevenue ? `${t('hq.inclTax')} ${formatCurrency ? formatCurrency(filteredTotalRevenueWithTax) : `₹${filteredTotalRevenueWithTax.toLocaleString()}`}` : null}
             color="#16a34a"
+            delta={analyticsData?.revenueChange}
           />
           <MetricCard
             icon={FaShoppingCart}
             label={t('hq.totalOrders')}
             value={filteredTotalOrders}
             color="#3b82f6"
+            delta={analyticsData?.ordersChange}
           />
           <MetricCard
             icon={FaChartLine}
             label={t('hq.avgOrderValue')}
             value={formatCurrency ? formatCurrency(filteredAvgOrderValue) : `₹${filteredAvgOrderValue.toFixed(0)}`}
             color="#f59e0b"
+            delta={analyticsData?.avgOrderValueChange}
           />
         </div>
 
@@ -1716,7 +1787,9 @@ export function HeadquartersContent({ embedded = false }) {
             backgroundColor: 'white',
             borderRadius: '20px',
             padding: '24px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
+            boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+            minWidth: 0,
+            overflow: 'hidden'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
@@ -1752,47 +1825,50 @@ export function HeadquartersContent({ embedded = false }) {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <RechartsBarChart data={revenueChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#16a34a" stopOpacity={0.9} />
-                        <stop offset="100%" stopColor="#16a34a" stopOpacity={0.6} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                    <XAxis
-                      dataKey="label"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: '#6b7280', fontSize: 11 }}
-                      dy={8}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: '#6b7280', fontSize: 11 }}
-                      tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v}
-                      width={45}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'white',
-                        border: 'none',
-                        borderRadius: '12px',
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-                        padding: '12px 16px'
-                      }}
-                      formatter={(value) => [formatCurrency ? formatCurrency(value) : `₹${value.toLocaleString()}`, t('hq.revenue')]}
-                      labelStyle={{ color: '#374151', fontWeight: 600, marginBottom: 4 }}
-                      cursor={{ fill: 'rgba(22, 163, 74, 0.1)' }}
-                    />
-                    <Bar
-                      dataKey="value"
-                      fill="url(#revenueGradient)"
-                      radius={[6, 6, 0, 0]}
-                      maxBarSize={50}
-                    />
-                  </RechartsBarChart>
+                  {hasPrevHourly ? (
+                    <ComposedChart data={revenueChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#16a34a" stopOpacity={0.9} />
+                          <stop offset="100%" stopColor="#16a34a" stopOpacity={0.6} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                      <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 11 }} dy={8} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 11 }} tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} width={45} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: 'white', border: 'none', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.15)', padding: '12px 16px' }}
+                        formatter={(value, name) => [
+                          formatCurrency ? formatCurrency(value) : `₹${value.toLocaleString()}`,
+                          name === 'prevValue' ? t('hq.yesterday') || 'Yesterday' : t('hq.today') || 'Today'
+                        ]}
+                        labelStyle={{ color: '#374151', fontWeight: 600, marginBottom: 4 }}
+                        cursor={{ fill: 'rgba(22, 163, 74, 0.1)' }}
+                      />
+                      <Legend formatter={(value) => value === 'prevValue' ? (t('hq.yesterday') || 'Yesterday') : (t('hq.today') || 'Today')} />
+                      <Bar dataKey="value" fill="url(#revenueGradient)" radius={[6, 6, 0, 0]} maxBarSize={50} />
+                      <Line dataKey="prevValue" stroke="#9ca3af" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3, fill: '#9ca3af' }} />
+                    </ComposedChart>
+                  ) : (
+                    <RechartsBarChart data={revenueChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#16a34a" stopOpacity={0.9} />
+                          <stop offset="100%" stopColor="#16a34a" stopOpacity={0.6} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                      <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 11 }} dy={8} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 11 }} tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} width={45} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: 'white', border: 'none', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.15)', padding: '12px 16px' }}
+                        formatter={(value) => [formatCurrency ? formatCurrency(value) : `₹${value.toLocaleString()}`, t('hq.revenue')]}
+                        labelStyle={{ color: '#374151', fontWeight: 600, marginBottom: 4 }}
+                        cursor={{ fill: 'rgba(22, 163, 74, 0.1)' }}
+                      />
+                      <Bar dataKey="value" fill="url(#revenueGradient)" radius={[6, 6, 0, 0]} maxBarSize={50} />
+                    </RechartsBarChart>
+                  )}
                 </ResponsiveContainer>
               )}
             </div>
@@ -1803,7 +1879,9 @@ export function HeadquartersContent({ embedded = false }) {
             backgroundColor: 'white',
             borderRadius: '20px',
             padding: '24px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
+            boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+            minWidth: 0,
+            overflow: 'hidden'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
@@ -1839,48 +1917,48 @@ export function HeadquartersContent({ embedded = false }) {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <RechartsAreaChart data={ordersChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="ordersGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
-                        <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                    <XAxis
-                      dataKey="label"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: '#6b7280', fontSize: 11 }}
-                      dy={8}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: '#6b7280', fontSize: 11 }}
-                      width={35}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'white',
-                        border: 'none',
-                        borderRadius: '12px',
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-                        padding: '12px 16px'
-                      }}
-                      formatter={(value) => [`${value} ${t('hq.orders')}`, t('hq.orders')]}
-                      labelStyle={{ color: '#374151', fontWeight: 600, marginBottom: 4 }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="value"
-                      stroke="#3b82f6"
-                      strokeWidth={2.5}
-                      fill="url(#ordersGradient)"
-                      dot={{ r: 4, fill: '#3b82f6', stroke: 'white', strokeWidth: 2 }}
-                      activeDot={{ r: 6, fill: '#3b82f6', stroke: 'white', strokeWidth: 2 }}
-                    />
-                  </RechartsAreaChart>
+                  {hasPrevHourly ? (
+                    <ComposedChart data={ordersChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="ordersGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
+                          <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                      <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 11 }} dy={8} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 11 }} width={35} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: 'white', border: 'none', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.15)', padding: '12px 16px' }}
+                        formatter={(value, name) => [
+                          `${value} ${t('hq.orders')}`,
+                          name === 'prevValue' ? t('hq.yesterday') || 'Yesterday' : t('hq.today') || 'Today'
+                        ]}
+                        labelStyle={{ color: '#374151', fontWeight: 600, marginBottom: 4 }}
+                      />
+                      <Legend formatter={(value) => value === 'prevValue' ? (t('hq.yesterday') || 'Yesterday') : (t('hq.today') || 'Today')} />
+                      <Area type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2.5} fill="url(#ordersGradient)" dot={{ r: 4, fill: '#3b82f6', stroke: 'white', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#3b82f6', stroke: 'white', strokeWidth: 2 }} />
+                      <Line dataKey="prevValue" stroke="#9ca3af" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3, fill: '#9ca3af' }} />
+                    </ComposedChart>
+                  ) : (
+                    <RechartsAreaChart data={ordersChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="ordersGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
+                          <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                      <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 11 }} dy={8} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 11 }} width={35} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: 'white', border: 'none', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.15)', padding: '12px 16px' }}
+                        formatter={(value) => [`${value} ${t('hq.orders')}`, t('hq.orders')]}
+                        labelStyle={{ color: '#374151', fontWeight: 600, marginBottom: 4 }}
+                      />
+                      <Area type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2.5} fill="url(#ordersGradient)" dot={{ r: 4, fill: '#3b82f6', stroke: 'white', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#3b82f6', stroke: 'white', strokeWidth: 2 }} />
+                    </RechartsAreaChart>
+                  )}
                 </ResponsiveContainer>
               )}
             </div>
@@ -1888,9 +1966,9 @@ export function HeadquartersContent({ embedded = false }) {
         </div>
 
         {/* Two Column Layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: '24px', marginBottom: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '3fr 2fr', gap: '24px', marginBottom: '24px' }}>
           {/* Restaurant Performance */}
-          <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', minWidth: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <div>
                 <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>{t('hq.restaurantRankings')}</h3>
@@ -1944,7 +2022,7 @@ export function HeadquartersContent({ embedded = false }) {
           </div>
 
           {/* Quick Stats Sidebar */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0 }}>
             {/* Order Types */}
             <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937', marginBottom: '16px' }}>{t('hq.orderTypes')}</h3>
@@ -1956,13 +2034,16 @@ export function HeadquartersContent({ embedded = false }) {
               ) : (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <DonutChart data={orderTypeData} size={140} />
+                    <DonutChart data={orderTypeData} size={150} />
                   </div>
                   <div style={{ marginTop: '16px' }}>
                     {analyticsData?.ordersByType?.slice(0, 3).map((type, i) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderTop: i > 0 ? '1px solid #f1f5f9' : 'none' }}>
                         <span style={{ fontSize: '13px', color: '#6b7280', textTransform: 'capitalize' }}>{type.type.replace('_', ' ')}</span>
-                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{type.percentage}%</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '12px', color: '#9ca3af' }}>{type.count}</span>
+                          <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{type.percentage}%</span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -2003,7 +2084,7 @@ export function HeadquartersContent({ embedded = false }) {
                     }}>{i + 1}</div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{item.name}</div>
-                      <div style={{ fontSize: '12px', color: '#6b7280' }}>{item.orders} {t('hq.sold')}</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>{t('hq.sold', { count: item.orders })}</div>
                     </div>
                     <div style={{ fontSize: '14px', fontWeight: '600', color: '#16a34a' }}>
                       {formatCurrency ? formatCurrency(item.revenue) : `₹${item.revenue}`}
@@ -2447,7 +2528,7 @@ export function HeadquartersContent({ embedded = false }) {
               })}
               {selectedRestaurants.length > 3 && (
                 <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: '500' }}>
-                  +{selectedRestaurants.length - 3} {t('hq.more')}
+                  {t('hq.more', { count: selectedRestaurants.length - 3 })}
                 </span>
               )}
             </div>
@@ -2494,6 +2575,10 @@ export function HeadquartersContent({ embedded = false }) {
             orgData={orgData || (() => { try { const r = JSON.parse(localStorage.getItem('selectedRestaurant')); return r ? { id: r.id, name: r.name, settings: {} } : null; } catch { return null; } })()}
             outlets={orgData ? orgOutlets : { outlet: [], central_kitchen: [], warehouse: [] }}
             formatCurrency={formatCurrency}
+            selectedRestaurants={selectedRestaurants}
+            setSelectedRestaurants={setSelectedRestaurants}
+            allRestaurants={dashboardData?.restaurants || []}
+            dateRange={dateRange}
           />
         )}
       </div>

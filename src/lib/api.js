@@ -783,7 +783,7 @@ class ApiClient {
   async googleLogin(token) {
     const response = await this.request('/api/auth/google', {
       method: 'POST',
-      body: { token },
+      body: { token, platform: 'dine-frontend' },
     });
     
     if (response.token) {
@@ -803,7 +803,7 @@ class ApiClient {
   async verifyPhoneOTP(phone, otp, name) {
     const response = await this.request('/api/auth/phone/verify-otp', {
       method: 'POST',
-      body: { phone, otp, name },
+      body: { phone, otp, name, platform: 'dine-frontend' },
     });
     
     if (response.token) {
@@ -1385,7 +1385,7 @@ class ApiClient {
   async pinLogin(identifier, pin) {
     const response = await this.request('/api/auth/pin/login', {
       method: 'POST',
-      body: { identifier, pin },
+      body: { identifier, pin, platform: 'dine-frontend' },
     });
     if (response.token) {
       this.setToken(response.token);
@@ -3441,14 +3441,17 @@ class ApiClient {
     const q = new URLSearchParams();
     if (params.startDate) q.append('startDate', params.startDate);
     if (params.endDate) q.append('endDate', params.endDate);
+    if (params.restaurantIds && Array.isArray(params.restaurantIds)) {
+      params.restaurantIds.forEach(id => q.append('restaurantIds[]', id));
+    }
     const qs = q.toString();
     return this.request(`/api/hq-reports/${orgId}/${reportType}${qs ? `?${qs}` : ''}`);
   }
-  getInventoryComparison(orgId) { return this.request(`/api/hq-reports/${orgId}/inventory-comparison`); }
+  getInventoryComparison(orgId, params = {}) { return this.getHQReport(orgId, 'inventory-comparison', params); }
   getConsolidatedPL(orgId, params = {}) { return this.getHQReport(orgId, 'consolidated-pl', params); }
   getKitchenReports(orgId, params = {}) { return this.getHQReport(orgId, 'kitchen-reports', params); }
   getWarehouseMetrics(orgId, params = {}) { return this.getHQReport(orgId, 'warehouse-metrics', params); }
-  getIndentTracking(orgId) { return this.request(`/api/hq-reports/${orgId}/indent-tracking`); }
+  getIndentTracking(orgId, params = {}) { return this.getHQReport(orgId, 'indent-tracking', params); }
   getMenuPerformance(orgId, params = {}) { return this.getHQReport(orgId, 'menu-performance', params); }
   getOutletRanking(orgId, params = {}) { return this.getHQReport(orgId, 'outlet-ranking', params); }
   getSalesSummary(orgId, params = {}) { return this.getHQReport(orgId, 'sales-summary', params); }
@@ -3461,10 +3464,23 @@ class ApiClient {
   getOrderAnalytics(orgId, params = {}) { return this.getHQReport(orgId, 'order-analytics', params); }
   getRevenueTrends(orgId, params = {}) { return this.getHQReport(orgId, 'revenue-trends', params); }
   getWalletLoyaltyReport(orgId, params = {}) { return this.getHQReport(orgId, 'wallet-loyalty', params); }
+  getReportSummaries(orgId, params = {}) {
+    const q = new URLSearchParams();
+    if (params.startDate) q.append('startDate', params.startDate);
+    if (params.endDate) q.append('endDate', params.endDate);
+    if (params.restaurantIds && Array.isArray(params.restaurantIds)) {
+      params.restaurantIds.forEach(id => q.append('restaurantIds[]', id));
+    }
+    const qs = q.toString();
+    return this.request(`/api/hq-reports/${orgId}/summaries${qs ? '?' + qs : ''}`);
+  }
   exportHQReport(orgId, reportType, params = {}) {
     const q = new URLSearchParams();
     if (params.startDate) q.append('startDate', params.startDate);
     if (params.endDate) q.append('endDate', params.endDate);
+    if (params.restaurantIds && Array.isArray(params.restaurantIds)) {
+      params.restaurantIds.forEach(id => q.append('restaurantIds[]', id));
+    }
     const qs = q.toString();
     return this.request(`/api/hq-reports/${orgId}/export/${reportType}${qs ? `?${qs}` : ''}`, { rawResponse: true });
   }

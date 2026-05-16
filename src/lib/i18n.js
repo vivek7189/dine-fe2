@@ -52,7 +52,7 @@ export const t = (key, params = {}) => {
   // Replace parameters in translation
   if (typeof translation === 'string') {
     return translation.replace(/\{\{(\w+)\}\}/g, (match, param) => {
-      return params[param] || match;
+      return params[param] !== undefined && params[param] !== null ? params[param] : match;
     });
   }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   FaChartLine,
   FaBoxes,
@@ -27,6 +27,9 @@ import {
   FaFileExcel,
   FaFileCsv,
   FaChevronDown,
+  FaStore,
+  FaCheck,
+  FaTimes,
 } from 'react-icons/fa';
 import apiClient from '../../../../lib/api';
 
@@ -997,9 +1000,10 @@ const SalesSummaryView = ({ data, formatCurrency }) => {
 
 const StaffPerformanceView = ({ data, formatCurrency }) => {
   if (!data || !data.staffRankings || data.staffRankings.length === 0) return <EmptyState message="No staff data for this period." />;
-  const { staffRankings, totalStaff } = data;
+  const { staffRankings, totalStaff, roleBreakdown } = data;
   const topPerformer = staffRankings[0];
   const totalTips = staffRankings.reduce((s, st) => s + (st.tipsEarned || 0), 0);
+  const distinctRoles = new Set(staffRankings.map(s => s.role).filter(Boolean));
 
   return (
     <div>
@@ -1010,11 +1014,29 @@ const StaffPerformanceView = ({ data, formatCurrency }) => {
         <div style={styles.statCard('#d97706')}><div style={styles.statValue('#d97706')}>{formatCurrency(totalTips)}</div><div style={styles.statLabel}>Total Tips</div></div>
       </div>
 
+      {/* Role Breakdown */}
+      {roleBreakdown && roleBreakdown.length > 0 && (
+        <div style={{ marginBottom: '20px' }}>
+          <h4 style={{ fontSize: '15px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>Performance by Role</h4>
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(roleBreakdown.length, 4)}, 1fr)`, gap: '12px' }}>
+            {roleBreakdown.map((r, i) => (
+              <div key={i} style={{ padding: '14px 16px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #f1f5f9', textAlign: 'center' }}>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151', textTransform: 'capitalize', marginBottom: '4px' }}>{r.role}</div>
+                <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                  {r.staffCount} staff &middot; {r.totalOrders} orders &middot; {formatCurrency(r.totalSales)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div style={styles.tableWrap}>
         <table style={styles.table}>
           <thead><tr>
             <th style={{ ...styles.th, textAlign: 'center', width: '60px' }}>Rank</th>
             <th style={styles.th}>Staff Name</th>
+            {distinctRoles.size > 0 && <th style={styles.th}>Role</th>}
             <th style={styles.th}>Outlet(s)</th>
             <th style={{ ...styles.th, textAlign: 'right' }}>Orders</th>
             <th style={{ ...styles.th, textAlign: 'right' }}>Sales</th>
@@ -1026,6 +1048,7 @@ const StaffPerformanceView = ({ data, formatCurrency }) => {
               <tr key={s.staffId || idx} style={s.rank <= 3 ? { background: s.rank === 1 ? '#fefce8' : s.rank === 2 ? '#f8fafc' : '#fffbeb' } : undefined}>
                 <td style={{ ...styles.td(false), textAlign: 'center', background: 'transparent' }}><div style={styles.rankBadge(s.rank)}>{s.rank}</div></td>
                 <td style={{ ...styles.td(false), background: 'transparent', fontWeight: s.rank <= 3 ? '700' : '500' }}>{s.staffName}</td>
+                {distinctRoles.size > 0 && <td style={{ ...styles.td(false), background: 'transparent', fontSize: '13px', color: '#6b7280', textTransform: 'capitalize' }}>{s.role || '—'}</td>}
                 <td style={{ ...styles.td(false), background: 'transparent', fontSize: '13px', color: '#6b7280' }}>{(s.outlets || []).join(', ')}</td>
                 <td style={{ ...styles.td(false), textAlign: 'right', background: 'transparent' }}>{s.ordersHandled}</td>
                 <td style={{ ...styles.td(false), textAlign: 'right', background: 'transparent', fontWeight: '700', color: '#16a34a' }}>{formatCurrency(s.totalSales)}</td>
@@ -1784,7 +1807,7 @@ const SpinnerKeyframes = () => (
 
 // ---- Main Component ----
 
-export default function HQReportsTab({ orgData, outlets, formatCurrency, restaurantData: restaurantDataProp }) {
+export default function HQReportsTab({ orgData, outlets, formatCurrency, restaurantData: restaurantDataProp, selectedRestaurants, setSelectedRestaurants, allRestaurants, dateRange }) {
   const [activeReport, setActiveReport] = useState(null);
   const [startDate, setStartDate] = useState(getDefaultStartDate);
   const [endDate, setEndDate] = useState(getDefaultEndDate);
@@ -1793,6 +1816,46 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [summaries, setSummaries] = useState(null);
+  const [showRestaurantPicker, setShowRestaurantPicker] = useState(false);
+  const restaurantPickerRef = useRef(null);
+
+  // Close restaurant picker on click outside
+  useEffect(() => {
+    if (!showRestaurantPicker) return;
+    const handleClick = (e) => {
+      if (restaurantPickerRef.current && !restaurantPickerRef.current.contains(e.target)) {
+        setShowRestaurantPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showRestaurantPicker]);
+
+  // Sync date range from parent Overview tab when it changes
+  useEffect(() => {
+    if (!dateRange) return;
+    if (dateRange.preset === 'today') {
+      const today = new Date().toISOString().split('T')[0];
+      setStartDate(today);
+      setEndDate(today);
+    } else if (dateRange.preset === '7d') {
+      const end = new Date();
+      const start = new Date(end);
+      start.setDate(start.getDate() - 6);
+      setStartDate(start.toISOString().split('T')[0]);
+      setEndDate(end.toISOString().split('T')[0]);
+    } else if (dateRange.preset === '30d') {
+      const end = new Date();
+      const start = new Date(end);
+      start.setDate(start.getDate() - 29);
+      setStartDate(start.toISOString().split('T')[0]);
+      setEndDate(end.toISOString().split('T')[0]);
+    } else if (dateRange.startDate && dateRange.endDate) {
+      setStartDate(dateRange.startDate);
+      setEndDate(dateRange.endDate);
+    }
+  }, [dateRange]);
 
   // Get restaurant data for logo - from prop or localStorage
   const restaurantData = restaurantDataProp || (() => {
@@ -1853,11 +1916,15 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
 
     try {
       let result;
-      const dateParams = { startDate, endDate };
+      const dateParams = {
+        startDate,
+        endDate,
+        restaurantIds: selectedRestaurants?.length > 0 ? selectedRestaurants : undefined,
+      };
 
       switch (reportKey) {
         case REPORT_TYPES.INVENTORY:
-          result = await apiClient.getInventoryComparison(orgId);
+          result = await apiClient.getInventoryComparison(orgId, dateParams);
           break;
         case REPORT_TYPES.PL:
           result = await apiClient.getConsolidatedPL(orgId, dateParams);
@@ -1869,7 +1936,7 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
           result = await apiClient.getWarehouseMetrics(orgId, dateParams);
           break;
         case REPORT_TYPES.INDENT:
-          result = await apiClient.getIndentTracking(orgId);
+          result = await apiClient.getIndentTracking(orgId, dateParams);
           break;
         case REPORT_TYPES.MENU:
           result = await apiClient.getMenuPerformance(orgId, dateParams);
@@ -1918,7 +1985,41 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
     } finally {
       setLoading(false);
     }
-  }, [orgId, startDate, endDate]);
+  }, [orgId, startDate, endDate, selectedRestaurants]);
+
+  // Load report summaries for card previews when on grid view
+  useEffect(() => {
+    if (activeReport || !orgId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiClient.getReportSummaries(orgId, { startDate, endDate, restaurantIds: selectedRestaurants?.length > 0 ? selectedRestaurants : undefined });
+        if (!cancelled && res?.summaries) setSummaries(res.summaries);
+      } catch (e) {
+        // Silently fail — previews are optional
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [activeReport, orgId, startDate, endDate, selectedRestaurants]);
+
+  const getPreviewText = (reportKey) => {
+    if (!summaries) return null;
+    const s = summaries[reportKey];
+    if (!s) return null;
+    const fmt = (v) => formatCurrency ? formatCurrency(v) : `₹${Number(v).toLocaleString()}`;
+    switch (reportKey) {
+      case 'sales': return `${fmt(s.revenue)} · ${s.orders} orders`;
+      case 'pl': return `${s.margin}% margin`;
+      case 'inventory': return `${s.lowStock} low stock`;
+      case 'category': return s.topCategory ? `Top: ${s.topCategory}` : null;
+      case 'discount': return fmt(s.totalDiscount);
+      case 'tax': return fmt(s.totalTax);
+      case 'payment': return s.topMethod ? `Top: ${s.topMethod.toUpperCase()}` : null;
+      case 'order-analytics': return `${s.orders} orders`;
+      case 'revenue-trends': return fmt(s.revenue);
+      default: return null;
+    }
+  };
 
   const handleSelectReport = (reportKey) => {
     setActiveReport(reportKey);
@@ -1941,7 +2042,7 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
     if (!orgId || !activeReport) return;
     setExporting(true);
     try {
-      const response = await apiClient.exportHQReport(orgId, getExportType(activeReport), { startDate, endDate });
+      const response = await apiClient.exportHQReport(orgId, getExportType(activeReport), { startDate, endDate, restaurantIds: selectedRestaurants?.length > 0 ? selectedRestaurants : undefined });
       if (response && response.blob) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -2122,6 +2223,108 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
     return (
       <div style={styles.container}>
         <SpinnerKeyframes />
+        {/* Restaurant selector */}
+        <div ref={restaurantPickerRef} style={{ position: 'relative', marginBottom: '12px' }}>
+          <button
+            onClick={() => setShowRestaurantPicker(!showRestaurantPicker)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              padding: '8px 14px',
+              backgroundColor: selectedRestaurants?.length > 0 ? '#f0fdf4' : '#f8fafc',
+              borderRadius: '10px',
+              border: `1px solid ${selectedRestaurants?.length > 0 ? '#bbf7d0' : '#e2e8f0'}`,
+              cursor: 'pointer', fontSize: '13px', fontWeight: '500',
+              color: selectedRestaurants?.length > 0 ? '#15803d' : '#6b7280',
+              transition: 'all 0.15s',
+            }}
+          >
+            <FaStore style={{ fontSize: '13px' }} />
+            {selectedRestaurants?.length > 0
+              ? selectedRestaurants.length === 1
+                ? (allRestaurants?.find(r => r.id === selectedRestaurants[0])?.name || '1 restaurant')
+                : `${selectedRestaurants.length} of ${allRestaurants?.length || '?'} restaurants`
+              : `All restaurants (${allRestaurants?.length || 0})`}
+            <FaChevronDown size={10} style={{ marginLeft: '4px', transform: showRestaurantPicker ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />
+          </button>
+          {showRestaurantPicker && allRestaurants?.length > 0 && (
+            <div style={{
+              position: 'absolute', top: '100%', left: 0, marginTop: '4px', zIndex: 50,
+              backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb',
+              boxShadow: '0 8px 30px rgba(0,0,0,0.12)', minWidth: '280px', maxHeight: '320px',
+              overflow: 'auto',
+            }}>
+              {/* Select All */}
+              <div
+                onClick={() => { setSelectedRestaurants([]); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '10px',
+                  padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6',
+                  backgroundColor: !selectedRestaurants?.length ? '#f0fdf4' : 'white',
+                  transition: 'background 0.1s',
+                }}
+              >
+                <div style={{
+                  width: '18px', height: '18px', borderRadius: '4px',
+                  border: !selectedRestaurants?.length ? '2px solid #16a34a' : '2px solid #d1d5db',
+                  backgroundColor: !selectedRestaurants?.length ? '#16a34a' : 'white',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {!selectedRestaurants?.length && <FaCheck size={10} style={{ color: 'white' }} />}
+                </div>
+                <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>All Restaurants</span>
+              </div>
+              {/* Individual restaurants */}
+              {allRestaurants.map(r => {
+                const isSelected = selectedRestaurants?.includes(r.id);
+                return (
+                  <div
+                    key={r.id}
+                    onClick={() => {
+                      if (!setSelectedRestaurants) return;
+                      if (isSelected) {
+                        const next = selectedRestaurants.filter(id => id !== r.id);
+                        setSelectedRestaurants(next);
+                      } else {
+                        setSelectedRestaurants([...(selectedRestaurants || []), r.id]);
+                      }
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      padding: '10px 14px', cursor: 'pointer',
+                      backgroundColor: isSelected ? '#f0fdf4' : 'white',
+                      transition: 'background 0.1s',
+                    }}
+                    onMouseEnter={e => { if (!isSelected) e.currentTarget.style.backgroundColor = '#f9fafb'; }}
+                    onMouseLeave={e => { if (!isSelected) e.currentTarget.style.backgroundColor = 'white'; }}
+                  >
+                    <div style={{
+                      width: '18px', height: '18px', borderRadius: '4px',
+                      border: isSelected ? '2px solid #16a34a' : '2px solid #d1d5db',
+                      backgroundColor: isSelected ? '#16a34a' : 'white',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                      {isSelected && <FaCheck size={10} style={{ color: 'white' }} />}
+                    </div>
+                    <span style={{ fontSize: '13px', color: '#374151', fontWeight: isSelected ? '600' : '400' }}>{r.name}</span>
+                  </div>
+                );
+              })}
+              {/* Done button */}
+              <div style={{ padding: '8px 14px', borderTop: '1px solid #f3f4f6' }}>
+                <button
+                  onClick={() => setShowRestaurantPicker(false)}
+                  style={{
+                    width: '100%', padding: '8px', borderRadius: '8px', border: 'none',
+                    backgroundColor: '#16a34a', color: 'white', fontSize: '13px', fontWeight: '600',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
         <div style={{ marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
             <FaCalendarAlt style={{ color: '#6b7280', fontSize: '14px' }} />
@@ -2165,6 +2368,11 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
               >
                 <Icon style={styles.reportCardIcon(false)} />
                 <span style={styles.reportCardLabel(false)}>{card.label}</span>
+                {getPreviewText(card.key) && (
+                  <span style={{ fontSize: '11px', color: '#6b7280', marginTop: '6px', fontWeight: '500' }}>
+                    {getPreviewText(card.key)}
+                  </span>
+                )}
               </div>
             );
           })}
@@ -2220,6 +2428,16 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
             Apply
           </button>
         </div>
+      </div>
+
+      {/* Restaurant context indicator */}
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginBottom: '10px', padding: '5px 12px', backgroundColor: selectedRestaurants?.length > 0 ? '#f0fdf4' : '#f8fafc', borderRadius: '8px', border: `1px solid ${selectedRestaurants?.length > 0 ? '#bbf7d0' : '#e2e8f0'}`, fontSize: '12px', color: selectedRestaurants?.length > 0 ? '#15803d' : '#6b7280', fontWeight: '500' }}>
+        <FaStore style={{ fontSize: '11px' }} />
+        {selectedRestaurants?.length > 0
+          ? selectedRestaurants.length === 1
+            ? (allRestaurants?.find(r => r.id === selectedRestaurants[0])?.name || '1 restaurant')
+            : `${selectedRestaurants.length} of ${allRestaurants?.length || '?'} restaurants`
+          : 'All restaurants'}
       </div>
 
       {/* Export Dropdown — above report card */}

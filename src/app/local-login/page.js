@@ -53,7 +53,8 @@ const LocalLogin = () => {
         },
         body: JSON.stringify({
           [loginType]: loginValue,
-          password: password.trim()
+          password: password.trim(),
+          platform: 'dine-frontend'
         })
       });
 
