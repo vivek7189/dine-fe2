@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
-import { FaCalendarCheck, FaPlus, FaList, FaCalendarAlt, FaDoorOpen, FaSpinner, FaArrowLeft } from 'react-icons/fa';
+import { FaCalendarCheck, FaPlus, FaList, FaCalendarAlt, FaDoorOpen, FaSpinner, FaArrowLeft, FaCog, FaConciergeBell, FaClipboardList, FaToggleOn, FaToggleOff } from 'react-icons/fa';
 import BookingList from '../../../components/bookings/BookingList';
 import BookingCalendar from '../../../components/bookings/BookingCalendar';
 import BookingForm from '../../../components/bookings/BookingForm';
@@ -37,6 +37,11 @@ export default function BookingsPage() {
   // Venues state
   const [venues, setVenues] = useState([]);
   const [venuesLoading, setVenuesLoading] = useState(false);
+
+  // Booking type settings
+  const [bookingSettings, setBookingSettings] = useState({ enableCatering: true, enableAdvanceOrder: true, enableVenueBooking: true });
+  const [showSettings, setShowSettings] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
 
   // Modals
   const [showForm, setShowForm] = useState(false);
@@ -80,6 +85,18 @@ export default function BookingsPage() {
 
         if (rid) {
           setRestaurantId(rid);
+          // Load booking type settings from restaurant
+          try {
+            const restData = await apiClient.getRestaurants();
+            const rest = (restData.restaurants || []).find(r => r.id === rid);
+            if (rest && rest.bookingSettings) {
+              setBookingSettings({
+                enableCatering: rest.bookingSettings.enableCatering !== false,
+                enableAdvanceOrder: rest.bookingSettings.enableAdvanceOrder !== false,
+                enableVenueBooking: rest.bookingSettings.enableVenueBooking !== false,
+              });
+            }
+          } catch (e) { /* ignore settings load failure */ }
         }
       } catch (err) {
         console.error('Failed to load restaurant:', err);
@@ -311,6 +328,31 @@ export default function BookingsPage() {
     handleView(booking);
   }
 
+  async function toggleBookingSetting(key) {
+    const updated = { ...bookingSettings, [key]: !bookingSettings[key] };
+    // Ensure at least one type is enabled
+    if (!updated.enableCatering && !updated.enableAdvanceOrder && !updated.enableVenueBooking) return;
+    setBookingSettings(updated);
+    setSettingsSaving(true);
+    try {
+      await apiClient.updateRestaurant(restaurantId, { bookingSettings: updated });
+    } catch (err) {
+      console.error('Failed to save booking settings:', err);
+    } finally {
+      setSettingsSaving(false);
+    }
+  }
+
+  // Close settings dropdown on outside click
+  useEffect(() => {
+    if (!showSettings) return;
+    function handleClick(e) {
+      if (!e.target.closest('[data-settings-dropdown]')) setShowSettings(false);
+    }
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [showSettings]);
+
   // Loading state
   if (loading) {
     return (
@@ -323,7 +365,7 @@ export default function BookingsPage() {
   const tabs = [
     { id: 'list', label: 'Bookings', icon: FaList },
     { id: 'calendar', label: 'Calendar', icon: FaCalendarAlt },
-    { id: 'venues', label: 'Venues', icon: FaDoorOpen },
+    ...(bookingSettings.enableVenueBooking !== false ? [{ id: 'venues', label: 'Venues', icon: FaDoorOpen }] : []),
   ];
 
   return (
@@ -354,18 +396,79 @@ export default function BookingsPage() {
             </p>
           </div>
         </div>
-        <button
-          onClick={function() { setEditingBooking(null); setShowForm(true); }}
-          style={{
-            padding: '10px 18px', borderRadius: '8px', border: 'none',
-            background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff',
-            fontSize: '14px', fontWeight: '600', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: '6px',
-            boxShadow: '0 2px 8px rgba(239,68,68,0.2)'
-          }}
-        >
-          <FaPlus size={12} /> New Booking
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Settings gear */}
+          <div style={{ position: 'relative' }} data-settings-dropdown>
+            <button
+              onClick={function(e) { e.stopPropagation(); setShowSettings(!showSettings); }}
+              style={{
+                padding: '9px', borderRadius: '8px', border: '1px solid #e5e7eb',
+                background: showSettings ? '#fef2f2' : '#fff', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                color: showSettings ? '#ef4444' : '#6b7280'
+              }}
+              title="Booking type settings"
+            >
+              <FaCog size={15} />
+            </button>
+            {showSettings && (
+              <div style={{
+                position: 'absolute', top: '100%', right: 0, marginTop: '6px',
+                background: '#fff', borderRadius: '10px', border: '1px solid #e5e7eb',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: '12px', minWidth: '240px',
+                zIndex: 100
+              }}>
+                <div style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Enable Booking Types
+                </div>
+                {[
+                  { key: 'enableCatering', label: 'Catering', icon: FaConciergeBell, color: '#f59e0b' },
+                  { key: 'enableAdvanceOrder', label: 'Advance Order', icon: FaClipboardList, color: '#3b82f6' },
+                  { key: 'enableVenueBooking', label: 'Venue Booking', icon: FaDoorOpen, color: '#8b5cf6' },
+                ].map(function(item) {
+                  var enabled = bookingSettings[item.key];
+                  var Icon = item.icon;
+                  return (
+                    <div
+                      key={item.key}
+                      onClick={function() { toggleBookingSetting(item.key); }}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '8px 6px', borderRadius: '6px', cursor: 'pointer',
+                        marginBottom: '2px', transition: 'background 0.15s',
+                        background: enabled ? '#f9fafb' : 'transparent'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Icon size={13} style={{ color: enabled ? item.color : '#d1d5db' }} />
+                        <span style={{ fontSize: '13px', fontWeight: '500', color: enabled ? '#1f2937' : '#9ca3af' }}>{item.label}</span>
+                      </div>
+                      {enabled ? (
+                        <FaToggleOn size={20} style={{ color: '#ef4444' }} />
+                      ) : (
+                        <FaToggleOff size={20} style={{ color: '#d1d5db' }} />
+                      )}
+                    </div>
+                  );
+                })}
+                {settingsSaving && <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '6px', textAlign: 'center' }}>Saving...</div>}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={function() { setEditingBooking(null); setShowForm(true); }}
+            style={{
+              padding: '10px 18px', borderRadius: '8px', border: 'none',
+              background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff',
+              fontSize: '14px', fontWeight: '600', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '6px',
+              boxShadow: '0 2px 8px rgba(239,68,68,0.2)'
+            }}
+          >
+            <FaPlus size={12} /> New Booking
+          </button>
+        </div>
       </div>
 
       {/* White card wrapper */}
@@ -466,6 +569,7 @@ export default function BookingsPage() {
         venues={venues}
         restaurantId={restaurantId}
         isMobile={isMobile}
+        bookingSettings={bookingSettings}
       />
 
       <BookingDetail

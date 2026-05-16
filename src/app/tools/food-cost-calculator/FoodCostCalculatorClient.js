@@ -47,7 +47,7 @@ export default function FoodCostCalculatorClient() {
 
   useEffect(() => {
     calculateResults();
-  }, [ingredients, portions, sellingPrice, targetFoodCost]);
+  }, [ingredients, portions, sellingPrice, targetFoodCost]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const calculateResults = () => {
     const ingredientCosts = ingredients.map(ing => {

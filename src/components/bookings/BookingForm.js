@@ -5,9 +5,15 @@ import { createPortal } from 'react-dom';
 import { FaTimes, FaSearch, FaPlus, FaTrash, FaCheck, FaExclamationTriangle, FaConciergeBell, FaClipboardList, FaDoorOpen, FaArrowLeft } from 'react-icons/fa';
 import apiClient from '../../lib/api';
 
-export default function BookingForm({ isOpen, onClose, onSave, editingBooking, venues, restaurantId, isMobile }) {
+export default function BookingForm({ isOpen, onClose, onSave, editingBooking, venues, restaurantId, isMobile, bookingSettings }) {
+  const enabledTypes = [];
+  if (!bookingSettings || bookingSettings.enableCatering !== false) enabledTypes.push('catering');
+  if (!bookingSettings || bookingSettings.enableAdvanceOrder !== false) enabledTypes.push('advance_order');
+  if (!bookingSettings || bookingSettings.enableVenueBooking !== false) enabledTypes.push('venue');
+  const defaultType = enabledTypes[0] || 'catering';
+
   const [formData, setFormData] = useState({
-    type: 'catering',
+    type: defaultType,
     customer: { phone: '', name: '', email: '', address: { street: '', building: '', landmark: '', city: '', state: '', pincode: '' } },
     eventName: '',
     eventDate: '',
@@ -79,6 +85,13 @@ export default function BookingForm({ isOpen, onClose, onSave, editingBooking, v
       });
     }
   }, [editingBooking]);
+
+  // When form opens fresh (not editing), set default type to first enabled type
+  useEffect(() => {
+    if (isOpen && !editingBooking && enabledTypes.length > 0 && !enabledTypes.includes(formData.type)) {
+      setFormData(prev => ({ ...prev, type: enabledTypes[0] }));
+    }
+  }, [isOpen, editingBooking]);
 
   if (!isOpen) return null;
 
@@ -178,12 +191,13 @@ export default function BookingForm({ isOpen, onClose, onSave, editingBooking, v
     onSave({ ...formData, subtotal, discountAmount, taxAmount, serviceCharge, totalAmount });
   };
 
-  // Type options with icons
-  const typeOptions = [
+  // Type options with icons — filtered by bookingSettings
+  const allTypeOptions = [
     { value: 'catering', label: 'Catering', icon: <FaConciergeBell size={20} /> },
     { value: 'advance_order', label: 'Advance Order', icon: <FaClipboardList size={20} /> },
     { value: 'venue', label: 'Venue Booking', icon: <FaDoorOpen size={20} /> },
   ];
+  const typeOptions = allTypeOptions.filter(opt => enabledTypes.includes(opt.value));
 
   // Styles
   const styles = {

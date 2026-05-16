@@ -97,6 +97,14 @@ const tools = [
   { name: 'Menu Description AI', href: '/tools/menu-description-generator' },
   { name: 'Bill Splitter', href: '/tools/bill-splitter' },
   { name: 'Tip Calculator', href: '/tools/tip-calculator' },
+  { name: 'Menu Card Maker', href: '/tools/menu-card-maker' },
+  { name: 'Business Plan Generator', href: '/tools/business-plan-generator' },
+  { name: 'Calorie Calculator', href: '/tools/calorie-calculator' },
+  { name: 'Shift Scheduler', href: '/tools/shift-scheduler' },
+  { name: 'Restaurant Quiz', href: '/tools/restaurant-quiz' },
+  { name: 'Logo Maker', href: '/tools/logo-maker' },
+  { name: 'Electricity Calculator', href: '/tools/electricity-calculator' },
+  { name: 'Daily Sales Report', href: '/tools/daily-sales-report' },
 ];
 
 const guides = [
