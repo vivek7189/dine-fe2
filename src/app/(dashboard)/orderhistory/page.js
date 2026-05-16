@@ -69,6 +69,7 @@ import {
 import dynamic from 'next/dynamic';
 const BookingList = dynamic(() => import('../../../components/bookings/BookingList'), { ssr: false });
 const BookingDetail = dynamic(() => import('../../../components/bookings/BookingDetail'), { ssr: false });
+const BookingForm = dynamic(() => import('../../../components/bookings/BookingForm'), { ssr: false });
 
 // Merge pending offline orders into the order list so they show immediately
 async function mergeOfflineOrderHistory(existingOrders, restaurantId) {
@@ -167,6 +168,10 @@ const OrderHistory = () => {
   const [bookingsFilters, setBookingsFilters] = useState({ type: '', status: '', startDate: '', endDate: '', search: '' });
   const [bookingsDetailOpen, setBookingsDetailOpen] = useState(false);
   const [bookingsSelectedBooking, setBookingsSelectedBooking] = useState(null);
+  const [bookingsFormOpen, setBookingsFormOpen] = useState(false);
+  const [bookingsEditingBooking, setBookingsEditingBooking] = useState(null);
+  const [bookingSettings, setBookingSettings] = useState({ enableCatering: true, enableAdvanceOrder: true, enableVenueBooking: true });
+  const [bookingVenues, setBookingVenues] = useState([]);
   const [deleteConfirmOrderId, setDeleteConfirmOrderId] = useState(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(null);
@@ -1592,6 +1597,7 @@ const OrderHistory = () => {
     }
     if (view === 'bookings' && restaurantId) {
       fetchBookingsData();
+      loadBookingMeta();
     }
   }, [restaurantId, summaryData, fetchScheduledOrders]);
 
@@ -1608,6 +1614,75 @@ const OrderHistory = () => {
       setBookingsLoading(false);
     }
   }, [restaurantId, bookingsFilters]);
+
+  // Load booking settings + venues when bookings tab first opens
+  const loadBookingMeta = useCallback(async () => {
+    if (!restaurantId) return;
+    try {
+      const restData = JSON.parse(localStorage.getItem('selectedRestaurant') || '{}');
+      if (restData.bookingSettings) setBookingSettings(restData.bookingSettings);
+      const venuesResp = await apiClient.request('/api/bookings/' + restaurantId + '/venues');
+      setBookingVenues(venuesResp.venues || []);
+    } catch (err) {
+      console.error('Failed to load booking meta:', err);
+    }
+  }, [restaurantId]);
+
+  const handleBookingSave = useCallback(async (formData) => {
+    if (!restaurantId) return;
+    try {
+      const payload = {
+        type: formData.type,
+        customer: formData.customer,
+        eventName: formData.eventName,
+        eventDate: formData.eventDate,
+        eventEndDate: formData.endDate || null,
+        eventTime: formData.startTime || null,
+        eventEndTime: formData.endTime || null,
+        guestCount: Number(formData.guestCount) || 0,
+        specialInstructions: formData.specialInstructions || '',
+        venue: formData.type === 'venue' && formData.venueId ? {
+          venueId: formData.venueId,
+          venueName: (bookingVenues.find(v => v.id === formData.venueId) || {}).name || '',
+        } : null,
+        items: (formData.items || []).map(item => ({
+          id: item.id || String(Date.now()),
+          name: item.name,
+          price: Number(item.price) || 0,
+          quantity: Number(item.qty) || 1,
+          isCustom: item.isCustom || false,
+          notes: item.notes || null,
+          category: item.category || null,
+        })),
+        subtotal: formData.subtotal || 0,
+        discount: formData.discount && formData.discount.value ? {
+          type: formData.discount.type || 'percentage',
+          value: Number(formData.discount.value) || 0,
+          amount: formData.discountAmount || 0,
+        } : null,
+        taxAmount: Number(formData.taxAmount) || 0,
+        serviceCharge: Number(formData.serviceCharge) || 0,
+        totalAmount: formData.totalAmount || 0,
+        payments: formData.payment && formData.payment.enabled && formData.payment.amount ? [{
+          amount: Number(formData.payment.amount),
+          method: formData.payment.method || 'cash',
+          date: new Date().toISOString(),
+          type: 'advance',
+        }] : [],
+        trackExpense: formData.trackInExpenses || false,
+      };
+      if (bookingsEditingBooking) {
+        await apiClient.updateBooking(restaurantId, bookingsEditingBooking.id, payload);
+      } else {
+        await apiClient.createBooking(restaurantId, payload);
+      }
+      setBookingsFormOpen(false);
+      setBookingsEditingBooking(null);
+      fetchBookingsData();
+    } catch (err) {
+      alert('Failed to save booking: ' + (err.message || 'Unknown error'));
+    }
+  }, [restaurantId, bookingsEditingBooking, fetchBookingsData, bookingVenues]);
 
   const fetchSummaryData = useCallback(async (period) => {
     if (!restaurantId) return;
@@ -1658,6 +1733,7 @@ const OrderHistory = () => {
     }
     if (activeView === 'bookings' && restaurantId && bookingsData.length === 0 && !bookingsLoading) {
       fetchBookingsData();
+      loadBookingMeta();
     }
   }, [activeView, restaurantId]);
 
@@ -4299,6 +4375,21 @@ const OrderHistory = () => {
       {/* Bookings Tab Content */}
       {activeView === 'bookings' && (
         <div className="flex-1 p-3 sm:px-6 sm:py-4 overflow-y-auto">
+          {/* New Booking button */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+            <button
+              onClick={function() { setBookingsEditingBooking(null); setBookingsFormOpen(true); }}
+              style={{
+                padding: '9px 18px', borderRadius: '10px', border: 'none',
+                background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#fff',
+                fontSize: '13px', fontWeight: '600', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '6px',
+                boxShadow: '0 2px 8px rgba(245,158,11,0.25)'
+              }}
+            >
+              <FaCalendarCheck size={12} /> New Booking
+            </button>
+          </div>
           <BookingList
             bookings={bookingsData.map(b => ({
               ...b,
@@ -4314,11 +4405,39 @@ const OrderHistory = () => {
             }))}
             loading={bookingsLoading}
             onView={function(booking) { setBookingsSelectedBooking(booking); setBookingsDetailOpen(true); }}
-            onEdit={function() {}}
-            onAddPayment={function() {}}
-            onComplete={function() {}}
-            onCancel={function() {}}
-            onShareInvoice={function() {}}
+            onEdit={function(booking) { setBookingsEditingBooking(booking); setBookingsFormOpen(true); }}
+            onAddPayment={async function(booking) {
+              var amountStr = prompt('Payment amount:');
+              if (!amountStr) return;
+              var amount = parseFloat(amountStr);
+              if (isNaN(amount) || amount <= 0) { alert('Invalid amount'); return; }
+              var method = prompt('Payment method (cash/card/upi):', 'cash') || 'cash';
+              try {
+                await apiClient.addBookingPayment(restaurantId, booking.id, { amount: amount, method: method });
+                fetchBookingsData();
+              } catch (err) { alert('Failed: ' + (err.message || '')); }
+            }}
+            onComplete={async function(booking) {
+              if (!confirm('Mark this booking as completed?')) return;
+              try {
+                await apiClient.completeBooking(restaurantId, booking.id);
+                fetchBookingsData();
+              } catch (err) { alert('Failed: ' + (err.message || '')); }
+            }}
+            onCancel={async function(booking) {
+              var reason = prompt('Reason for cancellation (optional):');
+              if (reason === null) return;
+              try {
+                await apiClient.deleteBooking(restaurantId, booking.id, reason);
+                fetchBookingsData();
+              } catch (err) { alert('Failed: ' + (err.message || '')); }
+            }}
+            onShareInvoice={async function(booking) {
+              try {
+                var resp = await apiClient.getBookingInvoice(restaurantId, booking.id);
+                if (resp.invoice) { setBookingsSelectedBooking(resp.invoice); setBookingsDetailOpen(true); }
+              } catch (err) { alert('Failed: ' + (err.message || '')); }
+            }}
             isMobile={isMobile}
             formatCurrency={formatCurrency}
             filters={bookingsFilters}
@@ -4329,13 +4448,48 @@ const OrderHistory = () => {
               booking={bookingsSelectedBooking}
               isOpen={bookingsDetailOpen}
               onClose={function() { setBookingsDetailOpen(false); setBookingsSelectedBooking(null); }}
-              onAddPayment={function() {}}
-              onComplete={function() {}}
-              onShareInvoice={function() {}}
+              onAddPayment={async function(booking) {
+                var amountStr = prompt('Payment amount:');
+                if (!amountStr) return;
+                var amount = parseFloat(amountStr);
+                if (isNaN(amount) || amount <= 0) { alert('Invalid amount'); return; }
+                var method = prompt('Payment method (cash/card/upi):', 'cash') || 'cash';
+                try {
+                  await apiClient.addBookingPayment(restaurantId, booking.id, { amount: amount, method: method });
+                  fetchBookingsData();
+                  // Refresh the detail view
+                  var resp = await apiClient.getBooking(restaurantId, booking.id);
+                  if (resp.booking) setBookingsSelectedBooking(resp.booking);
+                } catch (err) { alert('Failed: ' + (err.message || '')); }
+              }}
+              onComplete={async function(booking) {
+                if (!confirm('Mark this booking as completed?')) return;
+                try {
+                  await apiClient.completeBooking(restaurantId, booking.id);
+                  fetchBookingsData();
+                  setBookingsDetailOpen(false);
+                } catch (err) { alert('Failed: ' + (err.message || '')); }
+              }}
+              onShareInvoice={async function(booking) {
+                try {
+                  var resp = await apiClient.getBookingInvoice(restaurantId, booking.id);
+                  if (resp.invoice) { setBookingsSelectedBooking(resp.invoice); }
+                } catch (err) { alert('Failed: ' + (err.message || '')); }
+              }}
               formatCurrency={formatCurrency}
               isMobile={isMobile}
             />
           )}
+          <BookingForm
+            isOpen={bookingsFormOpen}
+            onClose={function() { setBookingsFormOpen(false); setBookingsEditingBooking(null); }}
+            onSave={handleBookingSave}
+            editingBooking={bookingsEditingBooking}
+            venues={bookingVenues}
+            restaurantId={restaurantId}
+            isMobile={isMobile}
+            bookingSettings={bookingSettings}
+          />
         </div>
       )}
 
