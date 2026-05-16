@@ -791,13 +791,19 @@ export default function useInventory() {
       servings: recipe.servings || 1,
       prepTime: recipe.prepTime || 0,
       cookTime: recipe.cookTime || 0,
-      ingredients: (recipe.ingredients || []).map(ing => ({
+      ingredients: (Array.isArray(recipe.ingredients) ? recipe.ingredients : []).map(ing => ({
         inventoryItemId: ing.inventoryItemId || '',
         inventoryItemName: ing.inventoryItemName || '',
         quantity: ing.quantity || 0,
         unit: ing.unit || '',
       })),
-      instructions: recipe.instructions && recipe.instructions.length > 0 ? recipe.instructions : [''],
+      instructions: Array.isArray(recipe.instructions) && recipe.instructions.length > 0
+        ? recipe.instructions
+        : (typeof recipe.instructions === 'string' && recipe.instructions.trim()
+          ? recipe.instructions.split('\n').filter(s => s.trim()).length > 0
+            ? recipe.instructions.split('\n').filter(s => s.trim())
+            : [recipe.instructions.trim()]
+          : ['']),
       notes: recipe.notes || '',
     });
     setShowEditRecipeModal(true);

@@ -194,7 +194,7 @@ function StockReport({ data }) {
 }
 
 function RecipesReport({ data }) {
-  const recipes = data?.recipes || [];
+  const recipes = Array.isArray(data?.recipes) ? data.recipes : [];
 
   if (recipes.length === 0) {
     return <Text style={styles.noData}>No recipes found.</Text>;
@@ -203,8 +203,12 @@ function RecipesReport({ data }) {
   return (
     <View>
       {recipes.map((recipe, rIdx) => {
-        const ingredients = recipe.ingredients || [];
-        const instructions = recipe.instructions || [];
+        const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+        const instructions = Array.isArray(recipe.instructions)
+          ? recipe.instructions.filter(s => typeof s === 'string' && s.trim())
+          : (typeof recipe.instructions === 'string' && recipe.instructions.trim()
+            ? recipe.instructions.split('\n').filter(s => s.trim())
+            : []);
         const totalCost = ingredients.reduce((sum, ing) => sum + (ing.cost || 0), 0);
 
         return (
@@ -221,9 +225,9 @@ function RecipesReport({ data }) {
                 </View>
                 {ingredients.map((ing, iIdx) => (
                   <View key={iIdx} style={styles.tableRow}>
-                    <Text style={[styles.cellText, recipeCols.name]}>{ing.name || '-'}</Text>
-                    <Text style={[styles.cellText, recipeCols.qty]}>{ing.quantity ?? '-'}</Text>
-                    <Text style={[styles.cellText, recipeCols.unit]}>{ing.unit || '-'}</Text>
+                    <Text style={[styles.cellText, recipeCols.name]}>{String(ing.name || ing.inventoryItemName || '-')}</Text>
+                    <Text style={[styles.cellText, recipeCols.qty]}>{ing.quantity != null ? String(ing.quantity) : '-'}</Text>
+                    <Text style={[styles.cellText, recipeCols.unit]}>{String(ing.unit || '-')}</Text>
                     <Text style={[styles.cellText, recipeCols.cost]}>{formatCurrency(ing.cost)}</Text>
                   </View>
                 ))}
@@ -240,7 +244,7 @@ function RecipesReport({ data }) {
                 <Text style={[styles.statLabel, { marginBottom: 4 }]}>Instructions</Text>
                 {instructions.map((step, sIdx) => (
                   <Text key={sIdx} style={styles.instructionItem}>
-                    {sIdx + 1}. {step}
+                    {sIdx + 1}. {String(step)}
                   </Text>
                 ))}
               </View>
