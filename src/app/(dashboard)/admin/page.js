@@ -4526,6 +4526,10 @@ const Admin = () => {
   // Full-screen saving overlay state
   const [generalSaving, setGeneralSaving] = useState(false);
 
+  // Booking type toggles
+  const [bookingSettings, setBookingSettings] = useState({ enableCatering: true, enableAdvanceOrder: true, enableVenueBooking: true });
+  const [bookingSettingsSaving, setBookingSettingsSaving] = useState(false);
+
   // PIN settings state
   const [pinStatus, setPinStatus] = useState({ pinEnabled: false, pinUpdatedAt: null });
   const [pinFormMode, setPinFormMode] = useState('idle'); // 'idle', 'set', 'change', 'disable'
@@ -4928,6 +4932,7 @@ const Admin = () => {
           setSelectedRestaurant(restaurant);
           setPosSettings(restaurant.posSettings || {});
           setBusinessType(restaurant.businessType || 'restaurant');
+          setBookingSettings(restaurant.bookingSettings || { enableCatering: true, enableAdvanceOrder: true, enableVenueBooking: true });
           // Always sync localStorage with resolved restaurant
           localStorage.setItem('selectedRestaurantId', restaurant.id);
           localStorage.setItem('selectedRestaurant', JSON.stringify(restaurant));
@@ -4954,6 +4959,7 @@ const Admin = () => {
         setSelectedRestaurant(restaurant);
         setPosSettings(restaurant.posSettings || {});
         setBusinessType(restaurant.businessType || 'restaurant');
+        setBookingSettings(restaurant.bookingSettings || { enableCatering: true, enableAdvanceOrder: true, enableVenueBooking: true });
       }
     };
 
@@ -8863,7 +8869,7 @@ const Admin = () => {
               </div>
               <div>
                 <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: 0 }}>General Settings</h2>
-                <p style={{ color: '#6b7280', margin: '2px 0 0 0', fontSize: '13px' }}>Language & default restaurant</p>
+                <p style={{ color: '#6b7280', margin: '2px 0 0 0', fontSize: '13px' }}>Language, default restaurant & booking types</p>
               </div>
             </div>
 
@@ -8948,6 +8954,72 @@ const Admin = () => {
                   })}
                 </div>
               )}
+            </div>
+
+            {/* Divider */}
+            <div style={{ height: '1px', background: '#f1f5f9', margin: '0 0 24px 0' }} />
+
+            {/* Booking Types Section */}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <FaCalendarCheck size={13} color="#ef4444" />
+                <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>Booking Types</span>
+                <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 400 }}>Enable or disable for this restaurant</span>
+              </div>
+              <p style={{ fontSize: '11px', color: '#9ca3af', margin: '0 0 12px 22px' }}>At least one type must remain enabled</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {[
+                  { key: 'enableCatering', label: 'Catering', desc: 'Event catering with custom menus', icon: FaConciergeBell, color: '#f59e0b' },
+                  { key: 'enableAdvanceOrder', label: 'Advance Order', desc: 'Pre-orders for pickup or delivery', icon: FaClipboardList, color: '#3b82f6' },
+                  { key: 'enableVenueBooking', label: 'Venue / Hall Booking', desc: 'Reserve venues or banquet halls', icon: FaDoorOpen, color: '#8b5cf6' },
+                ].map(function(item) {
+                  var enabled = bookingSettings[item.key] !== false;
+                  var Icon = item.icon;
+                  return (
+                    <div
+                      key={item.key}
+                      onClick={function() {
+                        var updated = { ...bookingSettings, [item.key]: !enabled };
+                        if (!updated.enableCatering && !updated.enableAdvanceOrder && !updated.enableVenueBooking) return;
+                        setBookingSettings(updated);
+                        if (selectedRestaurant?.id) {
+                          setBookingSettingsSaving(true);
+                          apiClient.updateRestaurant(selectedRestaurant.id, { bookingSettings: updated }).catch(function(err) {
+                            console.error('Failed to save booking settings:', err);
+                          }).finally(function() { setBookingSettingsSaving(false); });
+                        }
+                      }}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '10px 12px', borderRadius: '10px', cursor: 'pointer',
+                        border: enabled ? '1px solid ' + item.color + '30' : '1px solid #f1f5f9',
+                        background: enabled ? item.color + '08' : '#fafafa',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{
+                          width: '32px', height: '32px', borderRadius: '8px',
+                          background: enabled ? item.color + '18' : '#f1f5f9',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}>
+                          <Icon size={14} style={{ color: enabled ? item.color : '#d1d5db' }} />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: '600', color: enabled ? '#1f2937' : '#9ca3af' }}>{item.label}</div>
+                          <div style={{ fontSize: '11px', color: enabled ? '#6b7280' : '#d1d5db' }}>{item.desc}</div>
+                        </div>
+                      </div>
+                      {enabled ? (
+                        <FaToggleOn size={22} style={{ color: item.color, flexShrink: 0 }} />
+                      ) : (
+                        <FaToggleOff size={22} style={{ color: '#d1d5db', flexShrink: 0 }} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {bookingSettingsSaving && <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '6px', textAlign: 'center' }}>Saving...</div>}
             </div>
 
             {/* Save Button */}
