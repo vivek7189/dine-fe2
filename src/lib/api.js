@@ -2322,9 +2322,10 @@ class ApiClient {
   }
 
   // Customer Management API methods
-  async getCustomers(restaurantId, page = 1, pageSize = 50, search = '') {
+  async getCustomers(restaurantId, page = 1, pageSize = 50, search = '', cursor = '') {
     let url = `/api/customers/${restaurantId}?page=${page}&pageSize=${pageSize}`;
     if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (cursor) url += `&cursor=${encodeURIComponent(cursor)}`;
     return this.request(url);
   }
 
@@ -2365,6 +2366,77 @@ class ApiClient {
   async getCustomerReports(restaurantIds, period = 'all', limit = 20) {
     const params = new URLSearchParams({ restaurantIds: restaurantIds.join(','), period, limit: String(limit) });
     return this.request(`/api/customers/reports?${params.toString()}`);
+  }
+
+  // ==================== BOOKINGS & CATERING ====================
+
+  async getBookings(restaurantId, filters = {}) {
+    const params = new URLSearchParams();
+    if (filters.status) params.set('status', filters.status);
+    if (filters.type) params.set('type', filters.type);
+    if (filters.startDate) params.set('startDate', filters.startDate);
+    if (filters.endDate) params.set('endDate', filters.endDate);
+    if (filters.search) params.set('search', filters.search);
+    if (filters.page) params.set('page', String(filters.page));
+    if (filters.pageSize) params.set('pageSize', String(filters.pageSize));
+    const qs = params.toString();
+    return this.request(`/api/bookings/${restaurantId}${qs ? '?' + qs : ''}`);
+  }
+
+  async getBooking(restaurantId, bookingId) {
+    return this.request(`/api/bookings/${restaurantId}/${bookingId}`);
+  }
+
+  async createBooking(restaurantId, data) {
+    return this.request(`/api/bookings/${restaurantId}`, { method: 'POST', body: data });
+  }
+
+  async updateBooking(restaurantId, bookingId, data) {
+    return this.request(`/api/bookings/${restaurantId}/${bookingId}`, { method: 'PATCH', body: data });
+  }
+
+  async deleteBooking(restaurantId, bookingId, reason) {
+    return this.request(`/api/bookings/${restaurantId}/${bookingId}`, { method: 'DELETE', body: { reason } });
+  }
+
+  async getBookingCalendar(restaurantId, startDate, endDate) {
+    return this.request(`/api/bookings/${restaurantId}/calendar?startDate=${startDate}&endDate=${endDate}`);
+  }
+
+  async getBookingVenues(restaurantId) {
+    return this.request(`/api/bookings/${restaurantId}/venues`);
+  }
+
+  async createBookingVenue(restaurantId, data) {
+    return this.request(`/api/bookings/${restaurantId}/venues`, { method: 'POST', body: data });
+  }
+
+  async updateBookingVenue(restaurantId, venueId, data) {
+    return this.request(`/api/bookings/${restaurantId}/venues/${venueId}`, { method: 'PATCH', body: data });
+  }
+
+  async deleteBookingVenue(restaurantId, venueId) {
+    return this.request(`/api/bookings/${restaurantId}/venues/${venueId}`, { method: 'DELETE' });
+  }
+
+  async checkVenueAvailability(restaurantId, venueId, date, startTime, endTime, endDate) {
+    const params = new URLSearchParams({ date });
+    if (startTime) params.set('startTime', startTime);
+    if (endTime) params.set('endTime', endTime);
+    if (endDate) params.set('endDate', endDate);
+    return this.request(`/api/bookings/${restaurantId}/venues/${venueId}/availability?${params.toString()}`);
+  }
+
+  async addBookingPayment(restaurantId, bookingId, payment) {
+    return this.request(`/api/bookings/${restaurantId}/${bookingId}/payment`, { method: 'POST', body: payment });
+  }
+
+  async completeBooking(restaurantId, bookingId) {
+    return this.request(`/api/bookings/${restaurantId}/${bookingId}/complete`, { method: 'POST' });
+  }
+
+  async getBookingInvoice(restaurantId, bookingId) {
+    return this.request(`/api/bookings/${restaurantId}/${bookingId}/invoice`, { method: 'POST' });
   }
 
   // ==================== EMAIL METHODS ====================

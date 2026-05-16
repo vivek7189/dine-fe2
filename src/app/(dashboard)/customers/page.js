@@ -997,6 +997,8 @@ const Customers = () => {
   const [totalCustomers, setTotalCustomers] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const PAGE_SIZE = 50;
+  // Cursor map for efficient pagination (avoids Firestore offset reads)
+  const pageCursorsRef = React.useRef({});
 
   // Language detection
   useEffect(() => {
@@ -1606,12 +1608,21 @@ const Customers = () => {
       }
 
       // Fetch fresh data with pagination and search
-      const response = await apiClient.getCustomers(restaurantId, page, PAGE_SIZE, search);
+      // Reset cursor cache when going to page 1 (new search, data refresh, etc.)
+      if (page === 1) pageCursorsRef.current = {};
+      // Use cursor for efficient pagination if available (avoids Firestore offset reads)
+      const cursor = !search ? (pageCursorsRef.current[page] || '') : '';
+      const response = await apiClient.getCustomers(restaurantId, page, PAGE_SIZE, search, cursor);
       const freshCustomers = response.customers || [];
       setCustomers(freshCustomers);
       setTotalCustomers(response.total || 0);
       setTotalPages(response.totalPages || 1);
       setCurrentPage(response.page || page);
+
+      // Store cursor for next page navigation
+      if (response.nextCursor && !search) {
+        pageCursorsRef.current[(response.page || page) + 1] = response.nextCursor;
+      }
 
       // Cache the data (page 1 with no search only)
       if (page === 1 && !search) {
