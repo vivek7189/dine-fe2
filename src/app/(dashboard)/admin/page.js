@@ -473,50 +473,50 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
                           Show tax breakdown on bill receipt
                         </label>
                       )}
-
-                      {/* Tax Inclusive Items Picker */}
-                      {menuItems.length > 0 && (
-                        <div style={{ marginTop: '12px', marginLeft: '24px' }}>
-                          <p style={{ fontSize: '11px', fontWeight: 600, color: '#166534', margin: '0 0 6px 0' }}>Tax Inclusive Items</p>
-                          <p style={{ fontSize: '10px', color: '#6b7280', margin: '0 0 8px 0' }}>
-                            Mark specific items whose price already includes tax. Tax will be back-calculated from these items.
-                          </p>
-                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                            {menuItems.filter(item => item.taxInclusive === true).map(item => (
-                              <span key={item.id} style={{
-                                fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7',
-                                padding: '2px 6px', borderRadius: '8px', border: '1px solid #bbf7d0',
-                                display: 'flex', alignItems: 'center', gap: '3px'
-                              }}>
-                                {item.name}
-                                <button onClick={() => setItemTaxInclusive(item.id, null)}
-                                  style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: 0, fontSize: '12px', lineHeight: 1 }}>
-                                  x
-                                </button>
-                              </span>
-                            ))}
-                          </div>
-                          {showTaxInclusiveItemPicker ? (
-                            <div style={{ marginTop: '4px', display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
-                              <select defaultValue="" onChange={(e) => { if (e.target.value) { setItemTaxInclusive(e.target.value, true); setShowTaxInclusiveItemPicker(false); } }}
-                                style={{ flex: 1, minWidth: '120px', padding: '3px 6px', fontSize: '11px', borderRadius: '6px', border: '1px solid #d1d5db', outline: 'none' }}>
-                                <option value="">Select an item...</option>
-                                {menuItems.filter(item => item.taxInclusive !== true).map(item => (
-                                  <option key={item.id} value={item.id}>{item.name} {item.category ? `(${item.category})` : ''}</option>
-                                ))}
-                              </select>
-                              <button onClick={() => setShowTaxInclusiveItemPicker(false)}
-                                style={{ background: 'none', border: '1px solid #d1d5db', color: '#6b7280', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>Cancel</button>
-                            </div>
-                          ) : (
-                            <button onClick={() => setShowTaxInclusiveItemPicker(true)}
-                              style={{ marginTop: '3px', background: 'none', border: '1px dashed #86efac', color: '#166534', padding: '2px 8px', borderRadius: '6px', fontSize: '10px', cursor: 'pointer' }}>
-                              + Add Item
-                            </button>
-                          )}
-                        </div>
-                      )}
                     </div>
+
+                    {/* Tax Inclusive Items Picker */}
+                    {menuItems.length > 0 && (
+                      <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#f0fdf4', borderRadius: '10px', border: '1px solid #bbf7d0' }}>
+                        <p style={{ fontSize: '12px', fontWeight: 600, color: '#166534', margin: '0 0 4px 0' }}>Tax Inclusive Items</p>
+                        <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 8px 0' }}>
+                          Mark specific items whose price already includes tax. Tax will be back-calculated from these items.
+                        </p>
+                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                          {menuItems.filter(item => item.taxInclusive === true).map(item => (
+                            <span key={item.id} style={{
+                              fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7',
+                              padding: '2px 6px', borderRadius: '8px', border: '1px solid #bbf7d0',
+                              display: 'flex', alignItems: 'center', gap: '3px'
+                            }}>
+                              {item.name}
+                              <button onClick={() => setItemTaxInclusive(item.id, null)}
+                                style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: 0, fontSize: '12px', lineHeight: 1 }}>
+                                x
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                        {showTaxInclusiveItemPicker ? (
+                          <div style={{ marginTop: '4px', display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <select defaultValue="" onChange={(e) => { if (e.target.value) { setItemTaxInclusive(e.target.value, true); setShowTaxInclusiveItemPicker(false); } }}
+                              style={{ flex: 1, minWidth: '120px', padding: '3px 6px', fontSize: '11px', borderRadius: '6px', border: '1px solid #d1d5db', outline: 'none' }}>
+                              <option value="">Select an item...</option>
+                              {menuItems.filter(item => item.taxInclusive !== true).map(item => (
+                                <option key={item.id} value={item.id}>{item.name} {item.category ? `(${item.category})` : ''}</option>
+                              ))}
+                            </select>
+                            <button onClick={() => setShowTaxInclusiveItemPicker(false)}
+                              style={{ background: 'none', border: '1px solid #d1d5db', color: '#6b7280', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>Cancel</button>
+                          </div>
+                        ) : (
+                          <button onClick={() => setShowTaxInclusiveItemPicker(true)}
+                            style={{ marginTop: '3px', background: 'none', border: '1px dashed #86efac', color: '#166534', padding: '2px 8px', borderRadius: '6px', fontSize: '10px', cursor: 'pointer' }}>
+                            + Add Item
+                          </button>
+                        )}
+                      </div>
+                    )}
 
                     {/* Taxes */}
                     <div style={{ marginBottom: '16px' }}>

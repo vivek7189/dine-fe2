@@ -2167,6 +2167,8 @@ class ApiClient {
       body: { taxSettings },
     });
     this.invalidateCache(`/api/admin/tax/${restaurantId}`);
+    // Clear localStorage cache so dashboard picks up changes immediately
+    try { localStorage.removeItem(`dine_tax_${restaurantId}`); } catch (_) {}
     return result;
   }
 

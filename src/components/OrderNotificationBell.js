@@ -29,6 +29,7 @@ export default function OrderNotificationBell({
   onMarkAllRead,
   onClearAll,
   onToggleSound,
+  hideButton = false,
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -78,7 +79,7 @@ export default function OrderNotificationBell({
           borderRadius: '10px',
           width: '40px',
           height: '40px',
-          display: 'flex',
+          display: hideButton ? 'none' : 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',

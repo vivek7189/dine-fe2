@@ -134,11 +134,12 @@ export default function TableBillingModal({
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
       const paymentAmount = finalAmount ?? order.finalAmount ?? order.totalAmount ?? getModalTotalAmount();
-      const isPartialPayment = partialPayAmount && partialPayAmount > 0 && partialPayAmount < paymentAmount;
+      const isPartialPayment = partialPayAmount != null && partialPayAmount >= 0 && partialPayAmount < paymentAmount;
+      const isFullDue = partialPayAmount != null && partialPayAmount === 0;
 
       const updateData = {
         status: 'completed',
-        paymentStatus: isPartialPayment ? 'partial' : 'paid',
+        paymentStatus: isFullDue ? 'due' : (isPartialPayment ? 'partial' : 'paid'),
         paymentMethod: splitPayments ? 'split' : modalPaymentMethod,
         completedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -155,8 +156,8 @@ export default function TableBillingModal({
         ...(roundOffAmount && roundOffAmount !== 0 && { roundOffAmount }),
         ...(compItems && { compItems }),
         ...(voidItems && { voidItems }),
-        ...(isPartialPayment && {
-          partialPayAmount,
+        ...((isPartialPayment || isFullDue) && {
+          partialPayAmount: partialPayAmount,
           paidAmount: partialPayAmount,
           outstandingAmount: Math.round((paymentAmount - partialPayAmount) * 100) / 100,
         }),

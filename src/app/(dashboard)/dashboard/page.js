@@ -2881,7 +2881,7 @@ function RestaurantPOSContent() {
           orderType,
           paymentMethod,
           status: 'completed', // Mark as completed
-          paymentStatus: partialPay ? 'partial' : 'paid', // Mark payment status
+          paymentStatus: partialPay != null ? (partialPay === 0 ? 'due' : 'partial') : 'paid', // Mark payment status
           completedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           // Tax information from OrderSummary
@@ -2902,9 +2902,9 @@ function RestaurantPOSContent() {
           changeReturned: changeReturned || null,
           splitPayments: splitPay || null,
           roundOffAmount: roundOff || null,
-          partialPayAmount: partialPay || null,
-          paidAmount: partialPay ? Math.round(Number(partialPay) * 100) / 100 : null,
-          outstandingAmount: partialPay ? Math.round(((finalAmount || (subtotal || getTotalAmount()) + totalTax) - Number(partialPay)) * 100) / 100 : null,
+          partialPayAmount: partialPay != null ? partialPay : null,
+          paidAmount: partialPay != null ? Math.round(Number(partialPay) * 100) / 100 : null,
+          outstandingAmount: partialPay != null ? Math.round(((finalAmount || (subtotal || getTotalAmount()) + totalTax) - Number(partialPay)) * 100) / 100 : null,
           compItems: compData || null,
           voidItems: voidData || null,
           // Discount/offer fields
@@ -2969,7 +2969,7 @@ function RestaurantPOSContent() {
               amount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
               userId: currentUser.id,
               restaurantId: selectedRestaurant.id,
-              paymentStatus: partialPay ? 'partial' : 'completed'
+              paymentStatus: partialPay != null ? (partialPay === 0 ? 'due' : 'partial') : 'completed'
             };
             await queueOfflineOrder({
               ...updateData,
@@ -3037,7 +3037,7 @@ function RestaurantPOSContent() {
             amount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
             userId: currentUser.id,
             restaurantId: selectedRestaurant.id,
-            paymentStatus: partialPay ? 'partial' : 'completed'
+            paymentStatus: partialPay != null ? (partialPay === 0 ? 'due' : 'partial') : 'completed'
           });
 
           // Redeem wallet balance if used
@@ -3194,9 +3194,9 @@ function RestaurantPOSContent() {
         changeReturned: changeReturned || null,
         splitPayments: splitPay || null,
         roundOffAmount: roundOff || null,
-        partialPayAmount: partialPay || null,
-        paidAmount: partialPay ? Math.round(Number(partialPay) * 100) / 100 : null,
-        outstandingAmount: partialPay ? Math.round(((finalAmount || (subtotal || getTotalAmount()) + totalTax) - Number(partialPay)) * 100) / 100 : null,
+        partialPayAmount: partialPay != null ? partialPay : null,
+        paidAmount: partialPay != null ? Math.round(Number(partialPay) * 100) / 100 : null,
+        outstandingAmount: partialPay != null ? Math.round(((finalAmount || (subtotal || getTotalAmount()) + totalTax) - Number(partialPay)) * 100) / 100 : null,
         ...(isScheduledOrder && scheduledDate && scheduledTime ? {
           isScheduled: true,
           scheduledFor: new Date(`${scheduledDate}T${scheduledTime}`).toISOString(),
@@ -3238,7 +3238,7 @@ function RestaurantPOSContent() {
               amount: paymentAmount,
               userId: currentUser.id,
               restaurantId: selectedRestaurant.id,
-              paymentStatus: partialPay ? 'partial' : 'completed'
+              paymentStatus: partialPay != null ? (partialPay === 0 ? 'due' : 'partial') : 'completed'
             };
             const offlineIdempotencyKey = generateIdempotencyKey();
             await queueOfflineOrder({
@@ -3315,7 +3315,7 @@ function RestaurantPOSContent() {
             amount: paymentAmount,
             userId: currentUser.id,
             restaurantId: selectedRestaurant.id,
-            paymentStatus: partialPay ? 'partial' : 'completed'
+            paymentStatus: partialPay != null ? (partialPay === 0 ? 'due' : 'partial') : 'completed'
           });
           console.log('✅ Cash payment verified:', paymentResult);
       } else if (paymentMethod === 'upi') {
@@ -3325,7 +3325,7 @@ function RestaurantPOSContent() {
             amount: paymentAmount,
             userId: currentUser.id,
             restaurantId: selectedRestaurant.id,
-            paymentStatus: partialPay ? 'partial' : 'completed'
+            paymentStatus: partialPay != null ? (partialPay === 0 ? 'due' : 'partial') : 'completed'
           });
           console.log('✅ UPI payment verified:', paymentResult);
       } else if (paymentMethod === 'card') {
@@ -3335,7 +3335,7 @@ function RestaurantPOSContent() {
             amount: paymentAmount,
             userId: currentUser.id,
             restaurantId: selectedRestaurant.id,
-            paymentStatus: partialPay ? 'partial' : 'completed'
+            paymentStatus: partialPay != null ? (partialPay === 0 ? 'due' : 'partial') : 'completed'
           });
           console.log('✅ Card payment verified:', paymentResult);
         }
@@ -4313,9 +4313,9 @@ function RestaurantPOSContent() {
           changeReturned: changeReturned || null,
           splitPayments: splitPay || null,
           roundOffAmount: roundOff || null,
-          partialPayAmount: partialPay || null,
-          paidAmount: partialPay ? Math.round(Number(partialPay) * 100) / 100 : null,
-          outstandingAmount: partialPay ? Math.round(((finalAmount || (subtotal || getTotalAmount()) + totalTax) - Number(partialPay)) * 100) / 100 : null,
+          partialPayAmount: partialPay != null ? partialPay : null,
+          paidAmount: partialPay != null ? Math.round(Number(partialPay) * 100) / 100 : null,
+          outstandingAmount: partialPay != null ? Math.round(((finalAmount || (subtotal || getTotalAmount()) + totalTax) - Number(partialPay)) * 100) / 100 : null,
           compItems: compData || null,
           voidItems: voidData || null,
           ...(isScheduledOrder && scheduledDate && scheduledTime ? {

@@ -432,6 +432,7 @@ function DashboardLayoutContent({ children }) {
                 onMarkAllRead={markAllOrdersRead}
                 onClearAll={clearAllOrders}
                 onToggleSound={toggleOrderSound}
+                hideButton={pathname === '/dashboard'}
               />
             </div>
             )}
