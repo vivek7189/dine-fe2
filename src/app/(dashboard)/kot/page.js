@@ -37,11 +37,21 @@ import { useCurrency } from '../../../contexts/CurrencyContext';
 
 // ─── Tab Definitions ───
 const TABS = [
+  { key: 'all', label: 'All Active', statuses: ['pending', 'confirmed', 'preparing', 'ready'], color: '#ef4444', activeColor: '#ef4444' },
   { key: 'new', label: t('kot.tabNew'), statuses: ['pending', 'confirmed'], color: '#f59e0b', activeColor: '#f59e0b' },
   { key: 'cooking', label: t('kot.tabCooking'), statuses: ['preparing'], color: '#3b82f6', activeColor: '#3b82f6' },
   { key: 'ready', label: t('kot.tabReady'), statuses: ['ready'], color: '#22c55e', activeColor: '#22c55e' },
   { key: 'done', label: t('kot.tabDone'), statuses: ['completed'], color: '#6b7280', activeColor: '#6b7280' },
 ];
+
+// ─── Status Colors for Cards ───
+const STATUS_COLORS = {
+  pending:   { label: 'NEW',     color: '#f59e0b', bg: '#fffbeb', border: '#f59e0b', actionColor: '#f59e0b' },
+  confirmed: { label: 'NEW',     color: '#f59e0b', bg: '#fffbeb', border: '#f59e0b', actionColor: '#f59e0b' },
+  preparing: { label: 'COOKING', color: '#3b82f6', bg: '#eff6ff', border: '#3b82f6', actionColor: '#3b82f6' },
+  ready:     { label: 'READY',   color: '#22c55e', bg: '#f0fdf4', border: '#22c55e', actionColor: '#22c55e' },
+  completed: { label: 'DONE',    color: '#6b7280', bg: '#f9fafb', border: '#9ca3af', actionColor: '#6b7280' },
+};
 
 // ─── Timer Aging Colors ───
 const getTimerColor = (minutes) => {
@@ -128,7 +138,7 @@ const KitchenOrderTicket = () => {
   const router = useRouter();
   const { formatCurrency } = useCurrency();
   const [kotOrders, setKotOrders] = useState([]);
-  const [selectedTab, setSelectedTab] = useState('new');
+  const [selectedTab, setSelectedTab] = useState('all');
   const [dateFilter, setDateFilter] = useState('today');
   const [selectedKot, setSelectedKot] = useState(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -526,8 +536,10 @@ const KitchenOrderTicket = () => {
         delete next[orderId];
         return next;
       });
-      // Auto-switch to the target tab so user sees the card there
-      setSelectedTab(targetTab);
+      // Auto-switch to the target tab only if filtering a specific status (not "all")
+      if (selectedTab !== 'all') {
+        setSelectedTab(targetTab);
+      }
     }, 1500);
   };
 
@@ -691,8 +703,9 @@ const KitchenOrderTicket = () => {
     .sort((a, b) => {
       const aTime = new Date(a.kotTime || a.createdAt || a.timestamp).getTime();
       const bTime = new Date(b.kotTime || b.createdAt || b.timestamp).getTime();
-      // Newest first across all tabs — new orders appear on top
-      return bTime - aTime;
+      // Done tab: newest first. All others: oldest first (urgent orders on top)
+      if (selectedTab === 'done') return bTime - aTime;
+      return aTime - bTime;
     });
 
   // Tab counts
@@ -726,7 +739,7 @@ const KitchenOrderTicket = () => {
               </div>
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              {[1, 2, 3, 4].map(i => (
+              {[1, 2, 3, 4, 5].map(i => (
                 <div key={i} style={{ width: '90px', height: '36px', borderRadius: '20px', background: '#e5e7eb', animation: 'shimmer 1.5s infinite' }} />
               ))}
             </div>
@@ -737,10 +750,10 @@ const KitchenOrderTicket = () => {
               <div key={i} style={{
                 borderRadius: '16px',
                 border: '1px solid #e5e7eb',
+                borderLeft: '4px solid #e5e7eb',
                 overflow: 'hidden',
                 background: 'white'
               }}>
-                <div style={{ height: '6px', background: '#e5e7eb', animation: 'shimmer 1.5s infinite' }} />
                 <div style={{ padding: '16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                     <div style={{ width: '120px', height: '16px', borderRadius: '4px', background: '#e5e7eb', animation: 'shimmer 1.5s infinite' }} />
@@ -852,7 +865,7 @@ const KitchenOrderTicket = () => {
                 </h1>
                 <p style={{ color: '#6b7280', margin: 0, fontSize: isClient && isMobile ? '11px' : '13px' }}>
                   {currentRestaurant?.name || t('kot.restaurant')}
-                  {' '}&middot;{' '}{t('kot.ordersInQueue', { count: filteredOrders.length })}
+                  {' '}&middot;{' '}{t('kot.ordersInQueue', { count: (tabCounts.new || 0) + (tabCounts.cooking || 0) + (tabCounts.ready || 0) })}
                   {isPollingActive && (
                     <span style={{ color: '#22c55e' }}> &middot; {t('kot.live')}</span>
                   )}
@@ -946,13 +959,13 @@ const KitchenOrderTicket = () => {
                     border: isActive ? 'none' : '1px solid #e5e7eb',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
-                    backgroundColor: isActive ? '#ef4444' : 'white',
+                    backgroundColor: isActive ? tab.activeColor : 'white',
                     color: isActive ? 'white' : '#6b7280',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
                     whiteSpace: 'nowrap',
-                    boxShadow: isActive ? '0 2px 8px rgba(239, 68, 68, 0.3)' : 'none'
+                    boxShadow: isActive ? `0 2px 8px ${tab.activeColor}40` : 'none'
                   }}
                 >
                   {tab.label}
@@ -991,30 +1004,31 @@ const KitchenOrderTicket = () => {
                 const isDeleting = deletingOrderId === kot.id;
                 const itemCount = Array.isArray(kot.items) ? kot.items.length : 0;
 
-                // Determine primary action
+                // Determine primary action based on order status (not selected tab)
+                const statusConfig = STATUS_COLORS[kot.status] || STATUS_COLORS.pending;
                 let actionButton = null;
-                if (selectedTab === 'new') {
+                if (['pending', 'confirmed'].includes(kot.status)) {
                   actionButton = {
                     label: t('kot.startCooking'),
                     icon: FaPlay,
-                    color: '#ef4444',
-                    shadow: 'rgba(239, 68, 68, 0.3)',
+                    color: statusConfig.actionColor,
+                    shadow: `${statusConfig.actionColor}40`,
                     onClick: () => startCooking(kot.kotId, kot.id)
                   };
-                } else if (selectedTab === 'cooking') {
+                } else if (kot.status === 'preparing') {
                   actionButton = {
                     label: t('kot.markReady'),
                     icon: FaCheckCircle,
-                    color: '#ef4444',
-                    shadow: 'rgba(239, 68, 68, 0.3)',
+                    color: statusConfig.actionColor,
+                    shadow: `${statusConfig.actionColor}40`,
                     onClick: () => markReady(kot.kotId, kot.id)
                   };
-                } else if (selectedTab === 'ready') {
+                } else if (kot.status === 'ready') {
                   actionButton = {
                     label: t('kot.doneBtnLabel'),
                     icon: FaCheck,
-                    color: '#ef4444',
-                    shadow: 'rgba(239, 68, 68, 0.3)',
+                    color: statusConfig.actionColor,
+                    shadow: `${statusConfig.actionColor}40`,
                     onClick: () => markDone(kot.kotId, kot.id)
                   };
                 }
@@ -1029,6 +1043,7 @@ const KitchenOrderTicket = () => {
                       backgroundColor: 'white',
                       borderRadius: '16px',
                       overflow: 'hidden',
+                      borderLeft: `4px solid ${statusConfig.border}`,
                       boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04)',
                       transition: 'all 0.3s ease',
                       position: 'relative',
@@ -1062,32 +1077,46 @@ const KitchenOrderTicket = () => {
                     )}
 
                     {/* Transition overlay — "Moving to Cooking/Ready/Done" */}
-                    {isTransitioning && (
-                      <div style={{
-                        position: 'absolute', inset: 0,
-                        background: 'linear-gradient(135deg, rgba(239,68,68,0.08), rgba(239,68,68,0.15))',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 5,
-                        borderRadius: '16px', backdropFilter: 'blur(2px)'
-                      }}>
-                        <FaCheckCircle size={24} style={{ color: '#ef4444', marginBottom: '6px' }} />
-                        <span style={{ fontSize: '13px', fontWeight: '700', color: '#ef4444' }}>
-                          {t('kot.movedTo', { label: transitionInfo.label })}
-                        </span>
-                      </div>
-                    )}
+                    {isTransitioning && (() => {
+                      const targetColor = (STATUS_COLORS[transitionInfo?.newStatus] || STATUS_COLORS.preparing).color;
+                      return (
+                        <div style={{
+                          position: 'absolute', inset: 0,
+                          background: `linear-gradient(135deg, ${targetColor}10, ${targetColor}20)`,
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 5,
+                          borderRadius: '16px', backdropFilter: 'blur(2px)'
+                        }}>
+                          <FaCheckCircle size={24} style={{ color: targetColor, marginBottom: '6px' }} />
+                          <span style={{ fontSize: '13px', fontWeight: '700', color: targetColor }}>
+                            {t('kot.movedTo', { label: transitionInfo.label })}
+                          </span>
+                        </div>
+                      );
+                    })()}
 
                     {/* Card Header */}
                     <div style={{
                       padding: '12px 16px',
-                      background: selectedTab === 'done'
-                        ? 'linear-gradient(135deg, #f8f9fa, #f1f3f5)'
-                        : 'linear-gradient(135deg, #fef2f2, #fff5f5)',
+                      background: `linear-gradient(135deg, ${statusConfig.bg}, white)`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      borderBottom: '1px solid rgba(0,0,0,0.04)'
+                      borderBottom: `1px solid ${statusConfig.border}20`
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        {/* Status Badge */}
+                        <span style={{
+                          background: statusConfig.color,
+                          color: 'white',
+                          fontSize: '9px',
+                          fontWeight: '700',
+                          padding: '3px 7px',
+                          borderRadius: '4px',
+                          letterSpacing: '0.5px',
+                          lineHeight: 1,
+                        }}>
+                          {statusConfig.label}
+                        </span>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                           <span style={{
                             fontSize: '15px', fontWeight: '800', color: '#1f2937',
@@ -1153,7 +1182,7 @@ const KitchenOrderTicket = () => {
 
                       {/* Timer + View */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {selectedTab === 'cooking' && timers[kot.id] != null && (
+                        {kot.status === 'preparing' && timers[kot.id] != null && (
                           <div style={{
                             fontSize: '11px', fontWeight: '700', color: '#3b82f6',
                             backgroundColor: '#eff6ff', padding: '4px 8px', borderRadius: '8px',
@@ -1538,17 +1567,17 @@ const KitchenOrderTicket = () => {
                 <GiChefToque size={36} style={{ color: '#9ca3af' }} />
               </div>
               <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                {t('kot.noOrders', { tab: currentTab.label })}
+                {selectedTab === 'all' ? 'No active orders' : t('kot.noOrders', { tab: currentTab.label })}
               </h3>
               <p style={{ fontSize: '14px', color: '#9ca3af', marginBottom: '20px', maxWidth: '320px' }}>
-                {selectedTab === 'new' && t('kot.newOrdersWillAppear')}
+                {(selectedTab === 'all' || selectedTab === 'new') && t('kot.newOrdersWillAppear')}
                 {selectedTab === 'cooking' && t('kot.startCookingFromNew')}
                 {selectedTab === 'ready' && t('kot.ordersAppearWhenDone')}
                 {selectedTab === 'done' && t('kot.completedOrdersShow')}
               </p>
-              {selectedTab !== 'new' && (
+              {selectedTab !== 'new' && selectedTab !== 'all' && (
                 <button
-                  onClick={() => setSelectedTab('new')}
+                  onClick={() => setSelectedTab('all')}
                   style={{
                     padding: '10px 24px', backgroundColor: '#ef4444', color: 'white',
                     border: 'none', borderRadius: '10px', fontWeight: '600',
@@ -1556,12 +1585,45 @@ const KitchenOrderTicket = () => {
                     boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)'
                   }}
                 >
-                  {t('kot.viewNewOrders')}
+                  View All Orders
                 </button>
               )}
             </div>
           )}
         </div>
+
+        {/* ─── Summary Bar ─── */}
+        {((tabCounts.new || 0) + (tabCounts.cooking || 0) + (tabCounts.ready || 0) + (tabCounts.done || 0)) > 0 && (
+          <div style={{
+            padding: isClient && isMobile ? '8px 12px' : '10px 20px',
+            background: 'white',
+            borderTop: '1px solid #e5e7eb',
+            display: 'flex',
+            gap: isClient && isMobile ? '10px' : '20px',
+            justifyContent: 'center',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            fontSize: isClient && isMobile ? '11px' : '13px',
+            fontWeight: '600',
+          }}>
+            <span style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} />
+              {tabCounts.new || 0} New
+            </span>
+            <span style={{ color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6', display: 'inline-block' }} />
+              {tabCounts.cooking || 0} Cooking
+            </span>
+            <span style={{ color: '#22c55e', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+              {tabCounts.ready || 0} Ready
+            </span>
+            <span style={{ color: '#6b7280', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#9ca3af', display: 'inline-block' }} />
+              {tabCounts.done || 0} Done
+            </span>
+          </div>
+        )}
 
         {/* ─── Undo Toast ─── */}
         {undoToast && (

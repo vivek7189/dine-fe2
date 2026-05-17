@@ -2888,6 +2888,13 @@ const Customers = () => {
                                   {customer.loyaltyPoints} pts
                                 </span>
                               )}
+                              {customer.outstandingBalance > 0 && (
+                                <span style={{
+                                  padding: '1px 6px', backgroundColor: '#fef2f2', color: '#dc2626',
+                                  fontSize: '9px', fontWeight: '700', borderRadius: '8px',
+                                  border: '1px solid #fecaca'
+                                }}>Due: {formatCurrency(customer.outstandingBalance)}</span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -3194,6 +3201,12 @@ const Customers = () => {
                         <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{formatCurrency(Number(customer.totalSpent || 0))}</p>
                         <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>{t('customers.stats.spent')}</p>
                       </div>
+                      {customer.outstandingBalance > 0 && (
+                        <div style={{ textAlign: 'center' }}>
+                          <p style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: '#dc2626' }}>{formatCurrency(customer.outstandingBalance)}</p>
+                          <p style={{ margin: 0, fontSize: '12px', color: '#dc2626' }}>Due</p>
+                        </div>
+                      )}
                       {(() => {
                         const raw = customer.lastOrderDate;
                         if (raw == null || raw === '') return null;

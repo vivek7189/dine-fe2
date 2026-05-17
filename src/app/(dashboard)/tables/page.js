@@ -17,14 +17,20 @@ import {
   FaHome, FaEdit, FaEllipsisV, FaCalendarAlt, FaTools, FaTimes, FaPhoneAlt,
   FaUser, FaChevronDown, FaEye, FaChevronLeft, FaChevronRight, FaSearch,
   FaLayerGroup, FaConciergeBell, FaArrowRight, FaSpinner, FaArrowUp, FaArrowDown, FaSortAmountDown, FaQrcode,
-  FaPrint, FaReceipt, FaExchangeAlt
+  FaPrint, FaReceipt, FaExchangeAlt, FaTruck
 } from 'react-icons/fa';
+import dynamic from 'next/dynamic';
 import { createPortal } from 'react-dom';
 import QRCode from 'qrcode';
 import { getBillPrintCSS, getBillHeaderHTML } from '../../../utils/printFontSizes';
 import { printDocument, supportsNativeAutoPrint } from '../../../utils/printBridge';
 import TableBillingModal from '../../../components/TableBillingModal';
 import MoveOrderModal from '../../../components/MoveOrderModal';
+
+const DeliveryTakeawayPanel = dynamic(
+  () => import('../../../components/DeliveryTakeawayPanel'),
+  { ssr: false }
+);
 
 const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
   const [qrCodes, setQrCodes] = useState(new Map());
@@ -257,6 +263,8 @@ const TableManagement = () => {
   const [error, setError] = useState('');
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
   const [userRole, setUserRole] = useState(null);
+  const [activeMainTab, setActiveMainTab] = useState('tables');
+  const [pusherRefreshSignal, setPusherRefreshSignal] = useState(0);
 
   // Print state
   const [printSettings, setPrintSettings] = useState(null);
@@ -541,6 +549,7 @@ const TableManagement = () => {
       const handleEvent = (eventName) => (data) => {
         console.log(`📡 Tables: Received '${eventName}'`, data);
         debouncedRefresh();
+        setPusherRefreshSignal(prev => prev + 1);
       };
 
       channel.bind('order-created', handleEvent('order-created'));
@@ -1277,43 +1286,68 @@ const TableManagement = () => {
               )}
             </div>
 
-            {/* Action buttons */}
-            <button onClick={() => { setBookingFromHeader(true); setSelectedTable(null); setBookingData(prev => ({ ...prev, bookingDate: selectedDate })); setShowBookingForm(true); }} style={{
-              display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
-              background: 'linear-gradient(135deg, #22c55e, #16a34a)', border: 'none', color: 'white',
-              fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(34,197,94,0.3)',
-            }}>
-              <FaCalendarAlt size={12} /> {t('tables.book')}
-            </button>
-            {canResetTables && (
-              <button onClick={handleResetAllTables} style={{
-                display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
-                background: 'linear-gradient(135deg, #ef4444, #dc2626)', border: 'none', color: 'white',
-                fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(239,68,68,0.3)',
-              }}>
-                <FaTools size={11} /> {t('tables.resetAll')}
-              </button>
+            {/* Action buttons — only show for tables tab */}
+            {activeMainTab === 'tables' && (
+              <>
+                <button onClick={() => { setBookingFromHeader(true); setSelectedTable(null); setBookingData(prev => ({ ...prev, bookingDate: selectedDate })); setShowBookingForm(true); }} style={{
+                  display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #22c55e, #16a34a)', border: 'none', color: 'white',
+                  fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(34,197,94,0.3)',
+                }}>
+                  <FaCalendarAlt size={12} /> {t('tables.book')}
+                </button>
+                {canResetTables && (
+                  <button onClick={handleResetAllTables} style={{
+                    display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #ef4444, #dc2626)', border: 'none', color: 'white',
+                    fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(239,68,68,0.3)',
+                  }}>
+                    <FaTools size={11} /> {t('tables.resetAll')}
+                  </button>
+                )}
+                {canAddTable && (
+                  <button onClick={() => setShowAddModal(true)} style={{
+                    display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #3b82f6, #2563eb)', border: 'none', color: 'white',
+                    fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(59,130,246,0.3)',
+                  }}>
+                    <FaPlus size={11} /> {t('tables.add')}
+                  </button>
+                )}
+                <button onClick={() => setShowQRModal(true)} style={{
+                  display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', border: 'none', color: 'white',
+                  fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(139,92,246,0.3)',
+                }}>
+                  <FaQrcode size={12} /> QR Codes
+                </button>
+              </>
             )}
-            {canAddTable && (
-              <button onClick={() => setShowAddModal(true)} style={{
-                display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
-                background: 'linear-gradient(135deg, #3b82f6, #2563eb)', border: 'none', color: 'white',
-                fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(59,130,246,0.3)',
-              }}>
-                <FaPlus size={11} /> {t('tables.add')}
-              </button>
-            )}
-            <button onClick={() => setShowQRModal(true)} style={{
-              display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
-              background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', border: 'none', color: 'white',
-              fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(139,92,246,0.3)',
-            }}>
-              <FaQrcode size={12} /> QR Codes
-            </button>
           </div>
         </div>
 
-        {/* Row 2: Quick Stats */}
+        {/* Main Tab Toggle: Tables vs Delivery/Takeaway */}
+        <div style={{ display: 'flex', gap: '4px', marginBottom: '12px', backgroundColor: '#f1f5f9', borderRadius: '12px', padding: '4px' }}>
+          {[
+            { key: 'tables', label: t('tables.tableManagement') || 'Tables', icon: FaChair },
+            { key: 'delivery-takeaway', label: 'Delivery / Takeaway', icon: FaTruck },
+          ].map(tab => (
+            <button key={tab.key} onClick={() => setActiveMainTab(tab.key)} style={{
+              flex: 1, padding: '9px 16px', borderRadius: '10px', border: 'none',
+              fontSize: '13px', fontWeight: '600', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              transition: 'all 0.2s',
+              backgroundColor: activeMainTab === tab.key ? 'white' : 'transparent',
+              color: activeMainTab === tab.key ? '#1f2937' : '#6b7280',
+              boxShadow: activeMainTab === tab.key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+            }}>
+              <tab.icon size={13} /> {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Row 2: Quick Stats — only for tables tab */}
+        {activeMainTab === 'tables' && (
         <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
           {[
             { label: t('tables.total'), count: totalTables, bg: '#f8fafc', dot: '#64748b', border: '#e2e8f0' },
@@ -1333,8 +1367,10 @@ const TableManagement = () => {
           ))}
           {loadingTableStatuses && <div style={{ width: '16px', height: '16px', border: '2px solid #f3f4f6', borderTop: '2px solid #ef4444', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />}
         </div>
+        )}
 
-        {/* Row 3: Floor Pills */}
+        {/* Row 3: Floor Pills — only for tables tab */}
+        {activeMainTab === 'tables' && (
         <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
           <button onClick={() => setSelectedFloorId('all')} style={{
             padding: '7px 16px', borderRadius: '24px', border: 'none', fontSize: '13px', fontWeight: '600',
@@ -1378,9 +1414,22 @@ const TableManagement = () => {
             </button>
           )}
         </div>
+        )}
       </div>
 
-      {/* ─── SCROLLABLE CONTENT ─── */}
+      {/* ─── DELIVERY/TAKEAWAY PANEL ─── */}
+      {activeMainTab === 'delivery-takeaway' && (
+        <DeliveryTakeawayPanel
+          restaurantId={selectedRestaurant?.id}
+          isMobile={isMobile}
+          refreshSignal={pusherRefreshSignal}
+          formatCurrency={formatCurrency}
+        />
+      )}
+
+      {/* ─── SCROLLABLE CONTENT (Tables view) ─── */}
+      {activeMainTab === 'tables' && (
+      <>
       <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '16px' : '24px', position: 'relative' }}>
 
         {/* Loading overlay when changing dates */}
@@ -1949,6 +1998,8 @@ const TableManagement = () => {
           )}
         </div>
       </div>
+      </>
+      )}
 
       {/* ─── DELETE FLOOR CONFIRMATION MODAL ─── */}
       {deleteFloorConfirm && (

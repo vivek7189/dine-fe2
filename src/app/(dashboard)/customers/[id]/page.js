@@ -61,6 +61,11 @@ var CustomerDetail = function() {
   var [expandedOrderId, setExpandedOrderId] = useState(null);
   var [statsPeriod, setStatsPeriod] = useState('all');
   var [exportDropdown, setExportDropdown] = useState(false);
+  var [showBulkSettle, setShowBulkSettle] = useState(false);
+  var [bulkPaymentAmount, setBulkPaymentAmount] = useState('');
+  var [selectedSettleOrders, setSelectedSettleOrders] = useState([]);
+  var [bulkUpdateOrderStatus, setBulkUpdateOrderStatus] = useState(false);
+  var [bulkSettling, setBulkSettling] = useState(false);
   var isMobileEmbed = typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
 
   useEffect(function() {
@@ -220,6 +225,31 @@ var CustomerDetail = function() {
       alert(err.message || 'Failed to add credit');
     } finally {
       setAddingCredit(false);
+    }
+  };
+
+  var handleBulkSettle = async function() {
+    if (bulkSettling || selectedSettleOrders.length === 0 || !bulkPaymentAmount) return;
+    try {
+      setBulkSettling(true);
+      await apiClient.bulkSettleCredit(customerId, {
+        orderIds: selectedSettleOrders,
+        totalAmount: parseFloat(bulkPaymentAmount),
+        paymentMethod: 'cash',
+        updateOrderStatus: bulkUpdateOrderStatus
+      });
+      var data = await apiClient.getCustomerCreditHistory(customerId);
+      setCreditData(data);
+      await loadCustomer();
+      setShowBulkSettle(false);
+      setBulkPaymentAmount('');
+      setSelectedSettleOrders([]);
+      setBulkUpdateOrderStatus(false);
+    } catch (err) {
+      console.error('Error bulk settling credit:', err);
+      alert(err.message || 'Failed to settle credit');
+    } finally {
+      setBulkSettling(false);
     }
   };
 
@@ -612,6 +642,15 @@ var CustomerDetail = function() {
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: outstandingBalance > 0 ? 'linear-gradient(90deg, #ef4444, #f87171)' : 'linear-gradient(90deg, #10b981, #34d399)' }}></div>
             <p style={{ margin: 0, fontSize: isMobile ? '24px' : '30px', fontWeight: '800', color: outstandingBalance > 0 ? '#ef4444' : '#10b981' }}>{formatCurrency(outstandingBalance)}</p>
             <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Outstanding</p>
+            {outstandingBalance > 0 && (
+              <button onClick={function() { setShowBulkSettle(true); }} style={{
+                marginTop: '8px', padding: '4px 12px', fontSize: '11px', fontWeight: '600',
+                background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px',
+                cursor: 'pointer'
+              }}>
+                Receive Payment
+              </button>
+            )}
           </div>
         </div>
         )}
@@ -851,6 +890,52 @@ var CustomerDetail = function() {
                               {settlingCredit === entry.orderId ? 'Settling...' : 'Settle ' + formatCurrency(entry.outstandingAmount)}
                             </button>
                           )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Settlement / Payment History */}
+            {(creditData.settlementHistory || []).length > 0 && (
+              <div style={{
+                backgroundColor: 'white', borderRadius: '14px', border: '1px solid #e5e7eb',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: '20px'
+              }}>
+                <h3 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: '700', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{
+                    width: '28px', height: '28px', borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #10b981, #34d399)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <FaCheckCircle size={13} style={{ color: 'white' }} />
+                  </div>
+                  Payment History
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '260px', overflowY: 'auto' }}>
+                  {(creditData.settlementHistory || []).map(function(entry, index) {
+                    var entryDate = new Date(entry.date);
+                    return (
+                      <div key={index} style={{
+                        padding: '10px 12px', backgroundColor: '#f0fdf4', borderRadius: '8px',
+                        border: '1px solid #bbf7d0', fontSize: '13px'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <span style={{ fontWeight: '700', color: '#166534' }}>
+                            {formatCurrency(entry.amount || entry.settledAmount)}
+                          </span>
+                          <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                            {entryDate.toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
+                          <span style={{ color: '#6b7280' }}>
+                            {(entry.paymentMethod || 'cash').charAt(0).toUpperCase() + (entry.paymentMethod || 'cash').slice(1)}
+                            {' \u00B7 '}
+                            {(entry.orderNumbers || []).map(function(n) { return '#' + n; }).join(', ')}
+                          </span>
                         </div>
                       </div>
                     );
@@ -1107,8 +1192,9 @@ var CustomerDetail = function() {
                   var isExpanded = expandedOrderId === orderId;
                   var orderDate = parseDate(order.orderDate);
                   var statusBadge = (function() {
-                    if (order.status === 'completed') return { label: 'Completed', bg: '#dcfce7', color: '#166534' };
-                    if (order.outstandingAmount > 0) return { label: 'Partial', bg: '#fef2f2', color: '#dc2626' };
+                    if (order.paymentStatus === 'due' || (order.outstandingAmount > 0 && order.paidAmount === 0)) return { label: 'Due (Udhar)', bg: '#fee2e2', color: '#dc2626' };
+                    if (order.paymentStatus === 'partial' || order.outstandingAmount > 0) return { label: 'Partial', bg: '#fef3c7', color: '#92400e' };
+                    if (order.status === 'completed' || order.paymentStatus === 'paid') return { label: 'Paid', bg: '#dcfce7', color: '#166534' };
                     if (order.status === 'pending') return { label: 'Pending', bg: '#fef9c3', color: '#854d0e' };
                     if (order.status === 'confirmed') return { label: 'Confirmed', bg: '#dbeafe', color: '#1e40af' };
                     return null;
@@ -1436,6 +1522,198 @@ var CustomerDetail = function() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Bulk Settle Modal */}
+      {showBulkSettle && typeof document !== 'undefined' && createPortal(
+        <div style={{
+          position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
+          zIndex: 9999, padding: isMobile ? '0' : '32px',
+          paddingBottom: isMobileEmbed ? '70px' : (isMobile ? '0' : '32px'),
+        }}>
+          <div style={{
+            backgroundColor: 'white', borderRadius: isMobile ? '16px 16px 0 0' : '14px',
+            width: isMobile ? '100%' : '480px', maxHeight: isMobile ? '85vh' : '80vh',
+            overflow: 'hidden', display: 'flex', flexDirection: 'column'
+          }}>
+            {/* Header */}
+            <div style={{
+              padding: '16px 20px', borderBottom: '1px solid #e5e7eb',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#1e293b' }}>Receive Payment</h3>
+              <button onClick={function() { setShowBulkSettle(false); setBulkPaymentAmount(''); setSelectedSettleOrders([]); setBulkUpdateOrderStatus(false); }} style={{
+                background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#6b7280'
+              }}>
+                <FaTimes size={16} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: '16px 20px', overflowY: 'auto', flex: 1 }}>
+              {/* Amount input */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>
+                  Amount Received
+                </label>
+                <input
+                  type="number"
+                  placeholder="Enter amount"
+                  value={bulkPaymentAmount}
+                  onChange={function(e) {
+                    setBulkPaymentAmount(e.target.value);
+                    setSelectedSettleOrders([]);
+                  }}
+                  style={{
+                    width: '100%', padding: '10px 12px', border: '1.5px solid #d1d5db', borderRadius: '10px',
+                    fontSize: '16px', fontWeight: '700', outline: 'none', boxSizing: 'border-box'
+                  }}
+                  autoFocus
+                />
+              </div>
+
+              {/* Order selection */}
+              {parseFloat(bulkPaymentAmount) > 0 && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>
+                    Select orders to settle:
+                  </label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '240px', overflowY: 'auto' }}>
+                    {(function() {
+                      var unsettled = creditData.creditHistory.filter(function(e) { return !e.settledAt && e.outstandingAmount > 0; });
+                      var payAmount = parseFloat(bulkPaymentAmount) || 0;
+                      var selectedTotal = unsettled.filter(function(e) { return selectedSettleOrders.includes(e.orderId); })
+                        .reduce(function(sum, e) { return sum + e.outstandingAmount; }, 0);
+
+                      return unsettled.map(function(entry) {
+                        var isSelected = selectedSettleOrders.includes(entry.orderId);
+                        var wouldExceed = !isSelected && (selectedTotal + entry.outstandingAmount > payAmount);
+                        var entryDate = new Date(entry.date);
+
+                        return (
+                          <label key={entry.orderId} style={{
+                            display: 'flex', alignItems: 'center', gap: '10px',
+                            padding: '10px 12px', borderRadius: '8px',
+                            backgroundColor: isSelected ? '#f0fdf4' : wouldExceed ? '#f9fafb' : '#f8fafc',
+                            border: isSelected ? '1.5px solid #86efac' : '1px solid #e5e7eb',
+                            cursor: wouldExceed ? 'not-allowed' : 'pointer',
+                            opacity: wouldExceed ? 0.5 : 1,
+                            transition: 'all 0.15s'
+                          }}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              disabled={wouldExceed}
+                              onChange={function() {
+                                if (isSelected) {
+                                  setSelectedSettleOrders(selectedSettleOrders.filter(function(id) { return id !== entry.orderId; }));
+                                } else if (!wouldExceed) {
+                                  setSelectedSettleOrders([].concat(selectedSettleOrders, [entry.orderId]));
+                                }
+                              }}
+                              style={{ accentColor: '#16a34a', width: '16px', height: '16px', cursor: wouldExceed ? 'not-allowed' : 'pointer' }}
+                            />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
+                                  #{entry.orderNumber}
+                                </span>
+                                <span style={{ fontSize: '13px', fontWeight: '700', color: isSelected ? '#16a34a' : '#dc2626' }}>
+                                  {formatCurrency(entry.outstandingAmount)}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>
+                                {entryDate.toLocaleDateString()}
+                                {entry.paidAmount > 0 ? ' \u00B7 Paid ' + formatCurrency(entry.paidAmount) + ' of ' + formatCurrency(entry.totalAmount) : ' \u00B7 Full due'}
+                              </div>
+                            </div>
+                            {isSelected && (
+                              <FaCheckCircle size={14} style={{ color: '#16a34a', flexShrink: 0 }} />
+                            )}
+                          </label>
+                        );
+                      });
+                    })()}
+                  </div>
+
+                  {/* Summary */}
+                  {selectedSettleOrders.length > 0 && (
+                    <div style={{
+                      marginTop: '12px', padding: '10px 12px', backgroundColor: '#f0fdf4',
+                      borderRadius: '8px', border: '1px solid #bbf7d0'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '4px' }}>
+                        <span style={{ color: '#475569' }}>Selected ({selectedSettleOrders.length} orders)</span>
+                        <span style={{ fontWeight: '700', color: '#166534' }}>
+                          {formatCurrency(creditData.creditHistory
+                            .filter(function(e) { return selectedSettleOrders.includes(e.orderId); })
+                            .reduce(function(sum, e) { return sum + e.outstandingAmount; }, 0)
+                          )}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                        <span style={{ color: '#6b7280' }}>Remaining from {formatCurrency(parseFloat(bulkPaymentAmount))}</span>
+                        <span style={{ color: '#6b7280' }}>
+                          {formatCurrency(Math.max(0, parseFloat(bulkPaymentAmount) - creditData.creditHistory
+                            .filter(function(e) { return selectedSettleOrders.includes(e.orderId); })
+                            .reduce(function(sum, e) { return sum + e.outstandingAmount; }, 0)
+                          ))}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Update order status checkbox */}
+                  <label style={{
+                    display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px',
+                    fontSize: '12px', color: '#475569', cursor: 'pointer'
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={bulkUpdateOrderStatus}
+                      onChange={function(e) { setBulkUpdateOrderStatus(e.target.checked); }}
+                      style={{ accentColor: '#16a34a' }}
+                    />
+                    Also mark selected orders as Completed
+                  </label>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div style={{
+              padding: '12px 20px', borderTop: '1px solid #e5e7eb',
+              display: 'flex', gap: '10px', justifyContent: 'flex-end'
+            }}>
+              <button onClick={function() { setShowBulkSettle(false); setBulkPaymentAmount(''); setSelectedSettleOrders([]); setBulkUpdateOrderStatus(false); }} style={{
+                padding: '8px 18px', borderRadius: '8px', border: '1px solid #d1d5db',
+                background: 'white', fontSize: '13px', fontWeight: '600', color: '#374151', cursor: 'pointer'
+              }}>
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkSettle}
+                disabled={bulkSettling || selectedSettleOrders.length === 0}
+                style={{
+                  padding: '8px 18px', borderRadius: '8px', border: 'none',
+                  background: (bulkSettling || selectedSettleOrders.length === 0) ? '#d1d5db' : '#16a34a',
+                  fontSize: '13px', fontWeight: '600', color: 'white',
+                  cursor: (bulkSettling || selectedSettleOrders.length === 0) ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '6px'
+                }}
+              >
+                {bulkSettling && <FaSpinner className="animate-spin" size={12} />}
+                {bulkSettling ? 'Settling...' : 'Settle ' + formatCurrency(
+                  creditData.creditHistory
+                    .filter(function(e) { return selectedSettleOrders.includes(e.orderId); })
+                    .reduce(function(sum, e) { return sum + e.outstandingAmount; }, 0)
+                )}
+              </button>
+            </div>
           </div>
         </div>,
         document.body

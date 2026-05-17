@@ -33,4 +33,4 @@ try {
   };
 }
 
-export { auth, isFirebaseConfigured };
+export { app, auth, isFirebaseConfigured };

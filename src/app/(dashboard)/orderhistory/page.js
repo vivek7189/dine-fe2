@@ -138,6 +138,7 @@ const OrderHistory = () => {
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [restaurantId, setRestaurantId] = useState(null);
   const [restaurant, setRestaurant] = useState(null);
+  const [allowOrderDelete, setAllowOrderDelete] = useState(false);
   const [user, setUser] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isCompactView, setIsCompactView] = useState(false);
@@ -298,6 +299,9 @@ const OrderHistory = () => {
   const getStatusStyle = (status, orderFlow, lastStatus, order) => {
     if (order?._isOffline) return { bg: '#fef3c7', text: '#92400e', border: '#fde68a', label: `${t('orderHistory.pendingSync')} (${order.syncStatus || 'queued'})` };
     // syncSource === 'offline' orders now show their real status — separate "Offline" chip is added in the UI
+    if (orderFlow?.isDirectBilling && order?.paymentStatus === 'due') {
+      return { bg: '#fee2e2', text: '#dc2626', border: '#fca5a5', label: 'Due (Udhar)' };
+    }
     if (orderFlow?.isDirectBilling && (order?.paymentStatus === 'partial' || order?.outstandingAmount > 0)) {
       return { bg: '#fef3c7', text: '#92400e', border: '#fde68a', label: t('orderHistory.partialPayment') };
     }
@@ -603,6 +607,7 @@ const OrderHistory = () => {
           console.log('✅ OrderHistory: Restaurant set successfully:', finalRestaurantId);
           setRestaurantId(finalRestaurantId);
           setRestaurant(finalRestaurant);
+          setAllowOrderDelete(finalRestaurant?.orderSettings?.allowOrderDelete === true);
         } else {
           console.error('❌ OrderHistory: No restaurant ID available');
           setError('No restaurant found. Please contact support.');
@@ -735,7 +740,10 @@ const OrderHistory = () => {
       if (newId && newId !== restaurantId) {
         console.log('📡 OrderHistory: Restaurant changed, switching to', newId);
         setRestaurantId(newId);
-        if (newRestaurant) setRestaurant(newRestaurant);
+        if (newRestaurant) {
+          setRestaurant(newRestaurant);
+          setAllowOrderDelete(newRestaurant?.orderSettings?.allowOrderDelete === true);
+        }
       }
     };
     window.addEventListener('restaurantChanged', handleRestaurantChange);
@@ -2748,6 +2756,15 @@ const OrderHistory = () => {
                                     <FaTimesCircle size={11} />
                                   </button>
                                 )}
+                                {allowOrderDelete && order.status !== 'deleted' && (
+                                  <button
+                                    onClick={() => handleDeleteOrder(order.id)}
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors"
+                                    title="Delete Order"
+                                  >
+                                    <FaTrash size={10} />
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -3171,7 +3188,14 @@ const OrderHistory = () => {
                                 <FaEdit /> Edit Order
                               </button>
                             )}
-                            {/* Delete button hidden by request — use Cancel instead */}
+                            {allowOrderDelete && order.status !== 'deleted' && (
+                              <button
+                                onClick={() => handleDeleteOrder(order.id)}
+                                className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-all flex items-center gap-1.5"
+                              >
+                                <FaTrash /> Delete
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>

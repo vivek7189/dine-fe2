@@ -84,7 +84,8 @@ import {
   FaList,
   FaParking,
   FaCalendarCheck,
-  FaDoorOpen
+  FaDoorOpen,
+  FaBell
 } from 'react-icons/fa';
 // ShiftScheduling moved to /shifts page df
 import dynamic from 'next/dynamic';
@@ -185,6 +186,7 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
   const [categories, setCategories] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [showItemPicker, setShowItemPicker] = useState(null);
+  const [showTaxInclusiveItemPicker, setShowTaxInclusiveItemPicker] = useState(false);
 
   // --- Business Identity state ---
   const [biSettings, setBiSettings] = useState({
@@ -326,6 +328,12 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
       setMenuItems(prev => prev.map(item => item.id === itemId ? { ...item, taxGroupId: groupId || null } : item));
     } catch (error) { showError('Failed to update item tax group'); }
   };
+  const setItemTaxInclusive = async (itemId, value) => {
+    try {
+      await apiClient.updateMenuItem(itemId, { taxInclusive: value }, selectedRestaurant.id);
+      setMenuItems(prev => prev.map(item => item.id === itemId ? { ...item, taxInclusive: value } : item));
+    } catch (error) { showError('Failed to update item'); }
+  };
 
   const identityConfig = COUNTRY_IDENTITY_FIELDS[countryCode] || DEFAULT_IDENTITY_FIELDS;
   const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', outline: 'none', boxSizing: 'border-box' };
@@ -434,6 +442,72 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
 
                 {taxSettings.enabled && (
                   <div>
+                    {/* GST Inclusive Pricing */}
+                    <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#f0fdf4', borderRadius: '10px', border: '1px solid #bbf7d0' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
+                        <input type="checkbox"
+                          checked={taxSettings.taxInclusivePricing || false}
+                          onChange={(e) => setTaxSettings(prev => ({ ...prev, taxInclusivePricing: e.target.checked }))}
+                          style={{ width: '16px', height: '16px' }} />
+                        Menu prices include GST (Inclusive Pricing)
+                      </label>
+                      <p style={{ color: '#6b7280', fontSize: '11px', margin: '4px 0 0 24px' }}>
+                        When enabled, all menu prices are treated as GST-inclusive. Tax will be back-calculated from the price. Individual items can override this setting from the menu editor.
+                      </p>
+                      {taxSettings.taxInclusivePricing && (
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600, color: '#374151', cursor: 'pointer', marginTop: '8px', marginLeft: '24px' }}>
+                          <input type="checkbox"
+                            checked={taxSettings.showInclusiveTaxOnBill !== false}
+                            onChange={(e) => setTaxSettings(prev => ({ ...prev, showInclusiveTaxOnBill: e.target.checked }))}
+                            style={{ width: '14px', height: '14px' }} />
+                          Show tax breakdown on bill receipt
+                        </label>
+                      )}
+
+                      {/* Tax Inclusive Items Picker */}
+                      {menuItems.length > 0 && (
+                        <div style={{ marginTop: '12px', marginLeft: '24px' }}>
+                          <p style={{ fontSize: '11px', fontWeight: 600, color: '#166534', margin: '0 0 6px 0' }}>Tax Inclusive Items</p>
+                          <p style={{ fontSize: '10px', color: '#6b7280', margin: '0 0 8px 0' }}>
+                            Mark specific items whose price already includes tax. Tax will be back-calculated from these items.
+                          </p>
+                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            {menuItems.filter(item => item.taxInclusive === true).map(item => (
+                              <span key={item.id} style={{
+                                fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7',
+                                padding: '2px 6px', borderRadius: '8px', border: '1px solid #bbf7d0',
+                                display: 'flex', alignItems: 'center', gap: '3px'
+                              }}>
+                                {item.name}
+                                <button onClick={() => setItemTaxInclusive(item.id, null)}
+                                  style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: 0, fontSize: '12px', lineHeight: 1 }}>
+                                  x
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                          {showTaxInclusiveItemPicker ? (
+                            <div style={{ marginTop: '4px', display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
+                              <select defaultValue="" onChange={(e) => { if (e.target.value) { setItemTaxInclusive(e.target.value, true); setShowTaxInclusiveItemPicker(false); } }}
+                                style={{ flex: 1, minWidth: '120px', padding: '3px 6px', fontSize: '11px', borderRadius: '6px', border: '1px solid #d1d5db', outline: 'none' }}>
+                                <option value="">Select an item...</option>
+                                {menuItems.filter(item => item.taxInclusive !== true).map(item => (
+                                  <option key={item.id} value={item.id}>{item.name} {item.category ? `(${item.category})` : ''}</option>
+                                ))}
+                              </select>
+                              <button onClick={() => setShowTaxInclusiveItemPicker(false)}
+                                style={{ background: 'none', border: '1px solid #d1d5db', color: '#6b7280', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>Cancel</button>
+                            </div>
+                          ) : (
+                            <button onClick={() => setShowTaxInclusiveItemPicker(true)}
+                              style={{ marginTop: '3px', background: 'none', border: '1px dashed #86efac', color: '#166534', padding: '2px 8px', borderRadius: '6px', fontSize: '10px', cursor: 'pointer' }}>
+                              + Add Item
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
                     {/* Taxes */}
                     <div style={{ marginBottom: '16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
@@ -2995,6 +3069,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
     // Dashboard UI settings
     kotPrinterEnabled: true,
     manualPrintEnabled: true,
+    showSuccessNotifications: true,
     showKOTSummaryAfterOrder: true,
     showBillSummaryAfterBilling: true,
     // Auto-print triggers
@@ -3196,6 +3271,13 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
       section: 'web'
     },
     // Display settings (shared)
+    {
+      key: 'showSuccessNotifications',
+      title: 'Show Success Notifications',
+      description: 'Show success messages (order placed, billing complete) on the billing screen. Errors always show.',
+      icon: <FaBell size={18} />,
+      section: 'display'
+    },
     {
       key: 'showKOTSummaryAfterOrder',
       title: 'Show KOT Summary After Order',
@@ -4669,6 +4751,8 @@ const Admin = () => {
     serviceChargeEnabled: false,
     serviceChargeRate: 10,
     serviceChargeLabel: 'Service Charge',
+    serviceChargeShowOnDashboard: false,
+    serviceChargeAllowRateEdit: false,
     roundOffEnabled: false,
     roundOffTo: 1,
     tipsEnabled: false,
@@ -10325,22 +10409,61 @@ const Admin = () => {
                     desc: 'Auto-add % charge to bills',
                     icon: FaConciergeBell,
                     expandedContent: (
-                      <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                        <div style={{ width: '80px' }}>
-                          <label style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '3px' }}>Rate %</label>
-                          <input type="number" min="0" max="100" value={billingSettings.serviceChargeRate}
-                            onChange={(e) => updateBillingSetting('serviceChargeRate', Number(e.target.value))}
-                            onClick={(e) => e.stopPropagation()}
-                            style={{ width: '100%', padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px', outline: 'none' }}
-                          />
+                      <div style={{ marginTop: '8px' }}>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <div style={{ width: '80px' }}>
+                            <label style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '3px' }}>Rate %</label>
+                            <input type="number" min="0" max="100" value={billingSettings.serviceChargeRate}
+                              onChange={(e) => updateBillingSetting('serviceChargeRate', Number(e.target.value))}
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ width: '100%', padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px', outline: 'none' }}
+                            />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <label style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '3px' }}>Bill label</label>
+                            <input type="text" value={billingSettings.serviceChargeLabel}
+                              onChange={(e) => updateBillingSetting('serviceChargeLabel', e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ width: '100%', padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px', outline: 'none' }}
+                            />
+                          </div>
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <label style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '3px' }}>Bill label</label>
-                          <input type="text" value={billingSettings.serviceChargeLabel}
-                            onChange={(e) => updateBillingSetting('serviceChargeLabel', e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
-                            style={{ width: '100%', padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px', outline: 'none' }}
-                          />
+                        {/* Dashboard toggle options */}
+                        <div style={{ marginTop: '10px', padding: '8px 10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+                            onClick={(e) => { e.stopPropagation(); updateBillingSetting('serviceChargeShowOnDashboard', !billingSettings.serviceChargeShowOnDashboard); }}>
+                            <span style={{ fontSize: '11px', fontWeight: 600, color: '#475569' }}>Show toggle on POS Dashboard</span>
+                            <div style={{
+                              width: '30px', height: '16px', borderRadius: '8px',
+                              background: billingSettings.serviceChargeShowOnDashboard ? '#16a34a' : '#cbd5e1',
+                              position: 'relative', transition: 'background 0.2s'
+                            }}>
+                              <div style={{
+                                width: '12px', height: '12px', borderRadius: '50%',
+                                background: 'white', position: 'absolute', top: '2px',
+                                left: billingSettings.serviceChargeShowOnDashboard ? '16px' : '2px',
+                                transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.15)'
+                              }} />
+                            </div>
+                          </div>
+                          {billingSettings.serviceChargeShowOnDashboard && (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #e2e8f0', cursor: 'pointer' }}
+                              onClick={(e) => { e.stopPropagation(); updateBillingSetting('serviceChargeAllowRateEdit', !billingSettings.serviceChargeAllowRateEdit); }}>
+                              <span style={{ fontSize: '11px', fontWeight: 600, color: '#475569' }}>Allow rate edit on Dashboard</span>
+                              <div style={{
+                                width: '30px', height: '16px', borderRadius: '8px',
+                                background: billingSettings.serviceChargeAllowRateEdit ? '#16a34a' : '#cbd5e1',
+                                position: 'relative', transition: 'background 0.2s'
+                              }}>
+                                <div style={{
+                                  width: '12px', height: '12px', borderRadius: '50%',
+                                  background: 'white', position: 'absolute', top: '2px',
+                                  left: billingSettings.serviceChargeAllowRateEdit ? '16px' : '2px',
+                                  transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.15)'
+                                }} />
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )

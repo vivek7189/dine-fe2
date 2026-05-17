@@ -31,7 +31,8 @@ import {
   FaDoorOpen,
   FaPhoneAlt,
   FaParking,
-  FaCalendarCheck
+  FaCalendarCheck,
+  FaWhatsapp
 } from 'react-icons/fa';
 import { BiRestaurant } from 'react-icons/bi';
 import Link from 'next/link';
@@ -275,6 +276,7 @@ export default function Sidebar({ isDashboardPage = false }) {
     // --- Tools & Extras ---
     { id: 'dineai', name: t('nav.dineai'), icon: FaRobot, href: '/dineai', color: '#6366f1', roles: ['owner', 'admin', 'manager'] },
     { id: 'phone-agent', name: 'Phone Agent', icon: FaPhoneAlt, href: '/phone-agent', color: '#059669', roles: ['owner', 'admin'] },
+    { id: 'whatsapp-ordering', name: 'WhatsApp Ordering', icon: FaWhatsapp, href: '/whatsapp-ordering', color: '#25D366', roles: ['owner', 'admin'] },
     { id: 'hotel', name: t('nav.hotel'), icon: FaBuilding, href: '/hotel', color: '#6366f1', roles: ['owner', 'admin', 'manager'] },
     { id: 'books', name: t('nav.books'), icon: FaBook, href: '/books', color: '#2563eb', roles: ['owner', 'admin'] },
     { id: 'invoice', name: t('nav.invoice'), icon: FaFileInvoice, href: '/invoice', color: '#0ea5e9', roles: ['owner', 'admin', 'manager'] },
@@ -327,6 +329,7 @@ export default function Sidebar({ isDashboardPage = false }) {
         'books': 'admin',
         'dineai': 'analytics',
         'phone-agent': 'analytics',
+        'whatsapp-ordering': 'analytics',
         'shifts': 'admin',
         'register': 'completeBill',
         'attendance': 'admin',

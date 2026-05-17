@@ -5,7 +5,7 @@
 import {
   esc, getBillLabels, buildIdentityHtml,
   buildChargesHtml, buildPaymentHtml, buildDeliveryAddressHtml, calcGrandTotal, formatDateTime,
-  getPrintFontSizes, getPrintFontFamily, getBillHeaderHTML, wrapInDocument,
+  getPrintFontSizes, getPrintFontFamily, getBillHeaderHTML, wrapInDocument, buildInclusiveTaxNote,
 } from '../helpers';
 
 export const id = 'detailed';
@@ -79,9 +79,11 @@ export function render(invoice, printSettings = {}, labels = {}) {
   }
 
   // Tax
-  const taxRows = (invoice.taxBreakdown || []).map(tax =>
-    `<div class="row"><span>${tax.name} (${tax.rate}%):</span><span>${cs}${(tax.amount || 0).toFixed(2)}</span></div>`
+  const showIncl = invoice.showInclusiveTaxOnBill !== false;
+  const taxRows = (invoice.taxBreakdown || []).filter(tax => !tax.inclusive || showIncl).map(tax =>
+    `<div class="row"><span>${tax.name} (${tax.rate}%)${tax.inclusive ? ' (incl.)' : ''}:</span><span>${cs}${(tax.amount || 0).toFixed(2)}</span></div>`
   ).join('');
+  const inclusiveNote = buildInclusiveTaxNote(invoice);
 
   const chargesHtml = buildChargesHtml(invoice, L, cs);
   const paymentHtml = buildPaymentHtml(invoice, L, cs);
@@ -125,6 +127,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
     `<div class="grand-total"><span>${L.total}:</span><span>${cs}${grandTotal.toFixed(2)}</span></div>` +
     // Payment details
     paymentHtml +
+    inclusiveNote +
     `<div class="divider">- - - - - - - - - - - - - - - - -</div>` +
     // Footer
     `<div class="bill-footer"><p style="font-weight:bold;text-transform:uppercase;">${L.footer}</p><p style="font-size:10px;margin-top:4px;">${L.poweredBy}</p></div>` +

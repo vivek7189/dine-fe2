@@ -4,7 +4,7 @@
 import {
   esc, getBillLabels, buildIdentityHtml,
   buildChargesHtml, buildPaymentHtml, buildDeliveryAddressHtml, calcGrandTotal, formatDateTime,
-  getPrintFontSizes, wrapInDocument,
+  getPrintFontSizes, wrapInDocument, buildInclusiveTaxNote,
 } from '../helpers';
 
 export const id = 'minimal';
@@ -56,9 +56,11 @@ export function render(invoice, printSettings = {}, labels = {}) {
     discountRows += `<div class="row" style="display:flex;justify-content:space-between;margin:3px 0;color:#b45309;"><span>${L.loyaltyRedeem}:</span><span>-${cs}${invoice.loyaltyDiscount.toFixed(2)}</span></div>`;
 
   // Tax
-  const taxRows = (invoice.taxBreakdown || []).map(tax =>
-    `<div class="row" style="display:flex;justify-content:space-between;margin:3px 0;"><span>${tax.name} (${tax.rate}%):</span><span>${cs}${(tax.amount || 0).toFixed(2)}</span></div>`
+  const showIncl = invoice.showInclusiveTaxOnBill !== false;
+  const taxRows = (invoice.taxBreakdown || []).filter(tax => !tax.inclusive || showIncl).map(tax =>
+    `<div class="row" style="display:flex;justify-content:space-between;margin:3px 0;"><span>${tax.name} (${tax.rate}%)${tax.inclusive ? ' (incl.)' : ''}:</span><span>${cs}${(tax.amount || 0).toFixed(2)}</span></div>`
   ).join('');
+  const inclusiveNote = buildInclusiveTaxNote(invoice);
 
   const chargesHtml = buildChargesHtml(invoice, L, cs);
   const paymentHtml = buildPaymentHtml(invoice, L, cs);
@@ -95,6 +97,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
       chargesHtml +
       `<div class="grand-total"><span>${L.total}</span><span>${cs}${grandTotal.toFixed(2)}</span></div>` +
       paymentHtml +
+      inclusiveNote +
     `</div>` +
     // Footer
     `<div class="footer"><p>${L.footer}</p><p style="margin-top:4px;">${L.poweredBy}</p></div>`;

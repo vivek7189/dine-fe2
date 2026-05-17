@@ -498,7 +498,7 @@ const CustomDropdown = ({ value, onChange, options, placeholder, style = {} }) =
 };
 
 // Ultra Compact Menu Item Card Component
-const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onGenerateRecipe, generatingRecipeFor, hasRecipe, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp }) => {
+const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onGenerateRecipe, generatingRecipeFor, hasRecipe, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, taxInclusiveGlobal }) => {
   const { formatCurrency: formatCurrencyHook } = useCurrency();
   const formatCurrency = formatCurrencyProp || formatCurrencyHook;
 
@@ -716,6 +716,18 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
             }}>
               {categories.find(c => c.id === item.category)?.name || t('menu.mainCourse')}
             </span>
+            {(item.taxInclusive === true || (taxInclusiveGlobal && item.taxInclusive !== false)) && (
+              <span style={{
+                backgroundColor: '#dbeafe',
+                color: '#1e40af',
+                padding: '4px 8px',
+                borderRadius: '10px',
+                fontSize: '10px',
+                fontWeight: '600'
+              }}>
+                GST incl.
+              </span>
+            )}
         </div>
         
           {item.description && (
@@ -2043,11 +2055,50 @@ const MenuManagement = () => {
     dineInPrice: '',
     takeawayPrice: '',
     deliveryPrice: '',
+    // Tax inclusive override (null = follow restaurant setting)
+    taxInclusive: null,
+    // Inventory direct deduction
+    deductionQuantity: 1,
   });
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [multiPricingEnabled, setMultiPricingEnabled] = useState(false);
   const [activePricingRules, setActivePricingRules] = useState([]);
   const [pricingRulesExpanded, setPricingRulesExpanded] = useState(true);
+  const [stockTrackSuggestion, setStockTrackSuggestion] = useState(null);
+
+  // AI Smart Detection: Suggest inventory tracking for packaged/countable items
+  const detectDirectTrackableItem = useCallback((itemName) => {
+    if (!itemName || itemName.length < 2) { setStockTrackSuggestion(null); return; }
+    const name = itemName.toLowerCase().trim();
+    const directTrackPatterns = [
+      // Bottled items
+      { pattern: /\b(water|soda|cola|pepsi|coke|sprite|fanta|mirinda|thumbs?\s*up|limca|maaza|frooti|appy|redbull|monster|beer|wine)\b/i, unit: 'bottle', label: 'Bottled item' },
+      { pattern: /\b(bottle|can|tin|tetra\s*pack|pet)\b/i, unit: 'bottle', label: 'Packaged beverage' },
+      // Packaged food
+      { pattern: /\b(bread|bun|pav|roti|naan|paratha)\s*(packet|pack|loaf)?\b/i, unit: 'pcs', label: 'Packaged item' },
+      { pattern: /\b(chips|lays|kurkure|biscuit|cookie|wafer|namkeen|snack)\b/i, unit: 'pcs', label: 'Packaged snack' },
+      { pattern: /\b(cigarette|gutka|pan\s*masala|matchbox)\b/i, unit: 'pcs', label: 'Countable item' },
+      { pattern: /\b(ice\s*cream|cone|cup|tub|scoop)\b/i, unit: 'pcs', label: 'Countable item' },
+      // Eggs, fruits
+      { pattern: /\b(egg|anda|boiled\s*egg)\b/i, unit: 'pcs', label: 'Countable item' },
+      // Ready-made items
+      { pattern: /\b(samosa|vada\s*pav|puff|sandwich|burger|wrap|roll|momo|dumpling)\b/i, unit: 'pcs', label: 'Prepared countable item' },
+      // Desserts
+      { pattern: /\b(gulab\s*jamun|rasgulla|laddu|ladoo|barfi|jalebi|cake\s*slice)\b/i, unit: 'pcs', label: 'Countable dessert' },
+      // Retail items
+      { pattern: /\b(packet|pack|pouch|sachet|box|carton|piece)\b/i, unit: 'pcs', label: 'Packaged item' },
+      // Quantity indicators in name
+      { pattern: /\b(\d+\s*(ml|ltr|l|gm|g|kg|pcs|pc))\b/i, unit: 'pcs', label: 'Sized item - track by piece' },
+    ];
+
+    for (const { pattern, unit, label } of directTrackPatterns) {
+      if (pattern.test(name)) {
+        setStockTrackSuggestion({ unit, label, itemName: itemName });
+        return;
+      }
+    }
+    setStockTrackSuggestion(null);
+  }, []);
 
   // Name matching constants for channel rules
   const TAKEAWAY_NAMES = ['takeaway', 'take away', 'take-away'];
@@ -2632,6 +2683,7 @@ const MenuManagement = () => {
       isStockManaged: item.isStockManaged || false,
       lowStockThreshold: item.lowStockThreshold ?? 5,
       stockUnit: item.stockUnit || 'pcs',
+      deductionQuantity: item.deductionQuantity ?? 1,
       variants: item.variants || [],
       customizations: item.customizations || [],
       spiritCategory: item.spiritCategory || '',
@@ -2647,6 +2699,7 @@ const MenuManagement = () => {
       servingSize: item.servingSize || '',
       scoopOptions: item.scoopOptions?.toString() || '',
       pricingRules: item.pricingRules || {},
+      taxInclusive: item.taxInclusive != null ? item.taxInclusive : null,
       // Pre-populate channel prices from pricing rules
       dineInPrice: (() => {
         const rule = activePricingRules.find(r => DINEIN_NAMES.includes((r.name || '').toLowerCase().trim()));
@@ -2682,6 +2735,7 @@ const MenuManagement = () => {
       setOperationLoading(false);
     }
   };
+
 
   const handleBulkDeleteClick = () => {
     if (!isOnline) { alert('You are offline. Go online to make changes.'); return; }
@@ -3951,6 +4005,7 @@ const MenuManagement = () => {
                   multiPricingEnabled={multiPricingEnabled}
                   activePricingRules={activePricingRules}
                   formatCurrency={formatCurrency}
+                  taxInclusiveGlobal={currentRestaurant?.taxSettings?.taxInclusivePricing}
                 />
                 </div>
               ))}
@@ -4004,22 +4059,22 @@ const MenuManagement = () => {
                     {/* # */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <div style={{
-                        width: '14px',
-                        height: '14px',
-                        borderRadius: '3px',
-                        border: `2px solid ${item.isVeg ? '#22c55e' : '#ef4444'}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0
-                      }}>
-                        <div style={{
-                          width: '6px',
-                          height: '6px',
-                          backgroundColor: item.isVeg ? '#22c55e' : '#ef4444',
-                          borderRadius: item.isVeg ? '1px' : '50%'
-                        }} />
-                      </div>
+                          width: '14px',
+                          height: '14px',
+                          borderRadius: '3px',
+                          border: `2px solid ${item.isVeg ? '#22c55e' : '#ef4444'}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          <div style={{
+                            width: '6px',
+                            height: '6px',
+                            backgroundColor: item.isVeg ? '#22c55e' : '#ef4444',
+                            borderRadius: item.isVeg ? '1px' : '50%'
+                          }} />
+                        </div>
                       <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500' }}>{index + 1}</span>
                     </div>
                     {/* Item Name */}
@@ -4064,6 +4119,19 @@ const MenuManagement = () => {
                         )}
                         {item.isFavorite && (
                           <FaStar size={10} style={{ color: '#f59e0b', flexShrink: 0 }} />
+                        )}
+                        {(item.taxInclusive === true || (currentRestaurant?.taxSettings?.taxInclusivePricing && item.taxInclusive !== false)) && (
+                          <span style={{
+                            backgroundColor: '#dbeafe',
+                            color: '#1e40af',
+                            padding: '1px 5px',
+                            borderRadius: '4px',
+                            fontSize: '9px',
+                            fontWeight: '600',
+                            flexShrink: 0
+                          }}>
+                            GST incl.
+                          </span>
                         )}
                       </div>
                     </div>
@@ -4494,7 +4562,7 @@ const MenuManagement = () => {
                     type="text"
                     required
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) => { setFormData({...formData, name: e.target.value}); detectDirectTrackableItem(e.target.value); }}
                     style={{
                       width: '100%',
                       padding: '12px 16px',
@@ -4613,6 +4681,35 @@ const MenuManagement = () => {
                     onFocus={(e) => e.target.style.borderColor = btype.accent}
                     onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                   />
+                </div>
+
+                {/* Tax Inclusive Override */}
+                <div>
+                  <label style={{
+                    display: 'block', marginBottom: '6px', fontWeight: '600',
+                    fontSize: '13px', color: '#374151'
+                  }}>
+                    Tax Pricing
+                  </label>
+                  <select
+                    value={formData.taxInclusive === null || formData.taxInclusive === undefined ? 'default' : formData.taxInclusive ? 'inclusive' : 'exclusive'}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        taxInclusive: val === 'default' ? null : val === 'inclusive'
+                      }));
+                    }}
+                    style={{
+                      width: '100%', padding: '12px 16px', border: '1px solid #e5e7eb',
+                      borderRadius: '6px', fontSize: '13px', outline: 'none',
+                      backgroundColor: 'white', color: '#374151'
+                    }}
+                  >
+                    <option value="default">Follow restaurant setting</option>
+                    <option value="inclusive">Price includes tax</option>
+                    <option value="exclusive">Add tax on top</option>
+                  </select>
                 </div>
 
                 {/* Channel & Zone Prices — Tree Layout */}
@@ -4943,70 +5040,124 @@ const MenuManagement = () => {
                   </div>
                 )}
 
+                {/* AI Stock Suggestion Banner */}
+                {stockTrackSuggestion && !formData.isStockManaged && (
+                  <div style={{
+                    marginBottom: '12px', padding: '10px 14px', backgroundColor: '#fefce8', borderRadius: '10px',
+                    border: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: '10px',
+                    animation: 'fadeIn 0.3s ease'
+                  }}>
+                    <span style={{ fontSize: '18px' }}>💡</span>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: '12px', fontWeight: '600', color: '#92400e', margin: 0 }}>
+                        {stockTrackSuggestion.label} detected
+                      </p>
+                      <p style={{ fontSize: '11px', color: '#a16207', margin: '2px 0 0 0' }}>
+                        &quot;{formData.name}&quot; looks like a directly countable item. Enable stock tracking to auto-deduct inventory on each sale.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({
+                        ...prev,
+                        isStockManaged: true,
+                        stockUnit: stockTrackSuggestion.unit || 'pcs',
+                        deductionQuantity: 1
+                      }))}
+                      style={{
+                        padding: '6px 14px', backgroundColor: '#f59e0b', color: 'white', border: 'none',
+                        borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer',
+                        whiteSpace: 'nowrap', flexShrink: 0
+                      }}
+                    >
+                      Enable Tracking
+                    </button>
+                  </div>
+                )}
+
                 {/* Stock Tracking */}
-                <div style={{ marginBottom: '16px', padding: '12px 14px', backgroundColor: '#f0f9ff', borderRadius: '10px', border: '1px solid #bae6fd' }}>
+                <div style={{ marginBottom: '16px', padding: '12px 14px', backgroundColor: formData.isStockManaged ? '#ecfdf5' : '#f0f9ff', borderRadius: '10px', border: `1px solid ${formData.isStockManaged ? '#86efac' : '#bae6fd'}`, transition: 'all 0.2s ease' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: formData.isStockManaged ? '12px' : '0' }}>
                     <input
                       type="checkbox"
                       id="isStockManaged"
                       checked={formData.isStockManaged || false}
                       onChange={(e) => setFormData(prev => ({...prev, isStockManaged: e.target.checked}))}
-                      style={{ width: '16px', height: '16px', accentColor: '#0284c7', cursor: 'pointer', flexShrink: 0 }}
+                      style={{ width: '16px', height: '16px', accentColor: formData.isStockManaged ? '#16a34a' : '#0284c7', cursor: 'pointer', flexShrink: 0 }}
                     />
                     <div style={{ flex: 1 }}>
-                      <label htmlFor="isStockManaged" style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#0c4a6e', cursor: 'pointer' }}>
+                      <label htmlFor="isStockManaged" style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: formData.isStockManaged ? '#166534' : '#0c4a6e', cursor: 'pointer' }}>
                         {t('menu.trackStockCount')}
                       </label>
-                      <p style={{ fontSize: '11px', color: '#0369a1', margin: '2px 0 0 0' }}>
-                        {t('menu.stockSynced')}
+                      <p style={{ fontSize: '11px', color: formData.isStockManaged ? '#15803d' : '#0369a1', margin: '2px 0 0 0' }}>
+                        {formData.isStockManaged ? 'Inventory will auto-deduct when this item is sold' : t('menu.stockSynced')}
                       </p>
                     </div>
+                    {formData.isStockManaged && (
+                      <span style={{ fontSize: '11px', fontWeight: '600', color: '#16a34a', backgroundColor: '#dcfce7', padding: '2px 8px', borderRadius: '4px' }}>Active</span>
+                    )}
                   </div>
                   {formData.isStockManaged && (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>{t('menu.unitLabel')}</label>
-                        <select
-                          value={formData.stockUnit || 'pcs'}
-                          onChange={(e) => setFormData(prev => ({...prev, stockUnit: e.target.value}))}
-                          style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box', backgroundColor: 'white', cursor: 'pointer' }}
-                        >
-                          <option value="pcs">{t('menu.unitCountPcs')}</option>
-                          <option value="kg">{t('menu.unitKg')}</option>
-                          <option value="gram">{t('menu.unitGram')}</option>
-                          <option value="liter">{t('menu.unitLiter')}</option>
-                          <option value="ml">{t('menu.unitMl')}</option>
-                          <option value="bottle">{t('menu.unitBottles')}</option>
-                          <option value="dozen">{t('menu.unitDozen')}</option>
-                          <option value="box">{t('menu.unitBox')}</option>
-                          <option value="plate">{t('menu.unitPlate')}</option>
-                          <option value="slice">{t('menu.unitSlice')}</option>
-                        </select>
+                    <div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>{t('menu.unitLabel')}</label>
+                          <select
+                            value={formData.stockUnit || 'pcs'}
+                            onChange={(e) => setFormData(prev => ({...prev, stockUnit: e.target.value}))}
+                            style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box', backgroundColor: 'white', cursor: 'pointer' }}
+                          >
+                            <option value="pcs">{t('menu.unitCountPcs')}</option>
+                            <option value="kg">{t('menu.unitKg')}</option>
+                            <option value="gram">{t('menu.unitGram')}</option>
+                            <option value="liter">{t('menu.unitLiter')}</option>
+                            <option value="ml">{t('menu.unitMl')}</option>
+                            <option value="bottle">{t('menu.unitBottles')}</option>
+                            <option value="dozen">{t('menu.unitDozen')}</option>
+                            <option value="box">{t('menu.unitBox')}</option>
+                            <option value="plate">{t('menu.unitPlate')}</option>
+                            <option value="slice">{t('menu.unitSlice')}</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                            {(() => { const u = formData.stockUnit || 'pcs'; const labels = { pcs: t('menu.stockLabelQuantity'), kg: t('menu.stockLabelKg'), gram: t('menu.stockLabelGram'), liter: t('menu.stockLabelLiter'), ml: t('menu.stockLabelMl'), bottle: t('menu.stockLabelBottle'), dozen: t('menu.stockLabelDozen'), box: t('menu.stockLabelBox'), plate: t('menu.stockLabelPlate'), slice: t('menu.stockLabelSlice') }; return labels[u] || t('menu.stockLabelDefault'); })()}
+                          </label>
+                          <input
+                            type="number"
+                            value={formData.stockQuantity ?? ''}
+                            onChange={(e) => setFormData(prev => ({...prev, stockQuantity: e.target.value === '' ? null : parseInt(e.target.value)}))}
+                            placeholder="e.g., 100"
+                            min="0"
+                            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>{t('menu.lowAlertAt')}</label>
+                          <input
+                            type="number"
+                            value={formData.lowStockThreshold ?? 5}
+                            onChange={(e) => setFormData(prev => ({...prev, lowStockThreshold: parseInt(e.target.value) || 5}))}
+                            placeholder={t('menu.lowAlertPlaceholder')}
+                            min="1"
+                            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Deduct/Sale</label>
+                          <input
+                            type="number"
+                            value={formData.deductionQuantity ?? 1}
+                            onChange={(e) => setFormData(prev => ({...prev, deductionQuantity: parseInt(e.target.value) || 1}))}
+                            placeholder="1"
+                            min="1"
+                            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-                          {(() => { const u = formData.stockUnit || 'pcs'; const labels = { pcs: t('menu.stockLabelQuantity'), kg: t('menu.stockLabelKg'), gram: t('menu.stockLabelGram'), liter: t('menu.stockLabelLiter'), ml: t('menu.stockLabelMl'), bottle: t('menu.stockLabelBottle'), dozen: t('menu.stockLabelDozen'), box: t('menu.stockLabelBox'), plate: t('menu.stockLabelPlate'), slice: t('menu.stockLabelSlice') }; return labels[u] || t('menu.stockLabelDefault'); })()}
-                        </label>
-                        <input
-                          type="number"
-                          value={formData.stockQuantity ?? ''}
-                          onChange={(e) => setFormData(prev => ({...prev, stockQuantity: e.target.value === '' ? null : parseInt(e.target.value)}))}
-                          placeholder="e.g., 100"
-                          min="0"
-                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>{t('menu.lowAlertAt')}</label>
-                        <input
-                          type="number"
-                          value={formData.lowStockThreshold ?? 5}
-                          onChange={(e) => setFormData(prev => ({...prev, lowStockThreshold: parseInt(e.target.value) || 5}))}
-                          placeholder={t('menu.lowAlertPlaceholder')}
-                          min="1"
-                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
-                        />
-                      </div>
+                      <p style={{ fontSize: '10px', color: '#6b7280', margin: '8px 0 0 0' }}>
+                        Each sale of this item will deduct {formData.deductionQuantity || 1} {formData.stockUnit || 'pcs'} from inventory. No recipe needed for direct items.
+                      </p>
                     </div>
                   )}
                 </div>
@@ -5473,6 +5624,7 @@ const MenuManagement = () => {
           restaurantId={currentRestaurant?.id}
           onMenuItemsAdded={handleMenuItemsAdded}
           currentMenuItems={menuItems}
+          taxSettings={currentRestaurant?.taxSettings}
         />,
         document.body
       )}

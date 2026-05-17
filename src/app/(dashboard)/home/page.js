@@ -213,7 +213,6 @@ export default function HomePage() {
   const [isBar, setIsBar] = useState(false);
   const [recentOrders, setRecentOrders] = useState([]);
   const [tables, setTables] = useState(null);
-
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
     checkMobile();
@@ -446,24 +445,26 @@ export default function HomePage() {
           </p>
         </div>
 
-        {canAccess('dashboard') && (
-          <button
-            onClick={() => navigateTo(posPath)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '8px',
-              padding: '12px 24px', borderRadius: '12px',
-              background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-              border: 'none', cursor: 'pointer',
-              fontSize: '14px', fontWeight: '700', color: 'white',
-              boxShadow: '0 4px 14px rgba(239,68,68,0.3)',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 6px 20px rgba(239,68,68,0.4)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-            onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 4px 14px rgba(239,68,68,0.3)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-          >
-            <FaPlus size={11} /> {t('home.startTakingOrders')}
-          </button>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {canAccess('dashboard') && (
+            <button
+              onClick={() => navigateTo(posPath)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '12px 24px', borderRadius: '12px',
+                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                border: 'none', cursor: 'pointer',
+                fontSize: '14px', fontWeight: '700', color: 'white',
+                boxShadow: '0 4px 14px rgba(239,68,68,0.3)',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 6px 20px rgba(239,68,68,0.4)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 4px 14px rgba(239,68,68,0.3)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <FaPlus size={11} /> {t('home.startTakingOrders')}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Quick Actions */}

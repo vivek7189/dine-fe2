@@ -28,6 +28,7 @@ const BulkMenuUpload = ({
   mode = 'outlet', // 'outlet' | 'template'
   orgId = null,
   templateId = null,
+  taxSettings = null,
 }) => {
   const { formatCurrency } = useCurrency();
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -39,6 +40,7 @@ const BulkMenuUpload = ({
   const [previewMode, setPreviewMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
   const [editingItem, setEditingItem] = useState(null);
+  const [markTaxInclusive, setMarkTaxInclusive] = useState(null); // null = follow global, true = inclusive, false = exclusive
   const fileInputRef = useRef(null);
 
   const handleFileSelect = (event) => {
@@ -205,8 +207,11 @@ const BulkMenuUpload = ({
                 }
               }
             } else {
-              // Outlet mode: existing bulk save
-              const saveResponse = await apiClient.bulkSaveMenuItems(restaurantId, allMenuItems, response.extractedCategories || []);
+              // Outlet mode: existing bulk save — apply taxInclusive override if set
+              const itemsToSave = markTaxInclusive != null
+                ? allMenuItems.map(item => ({ ...item, taxInclusive: markTaxInclusive }))
+                : allMenuItems;
+              const saveResponse = await apiClient.bulkSaveMenuItems(restaurantId, itemsToSave, response.extractedCategories || []);
               savedCount = saveResponse.savedCount || 0;
             }
 
@@ -341,8 +346,11 @@ const BulkMenuUpload = ({
           }
         }
       } else {
-        // Outlet mode: existing bulk save
-        const response = await apiClient.bulkSaveMenuItems(restaurantId, selectedItems, extractedCategories);
+        // Outlet mode: existing bulk save — apply taxInclusive override if set
+        const itemsToSave = markTaxInclusive != null
+          ? selectedItems.map(item => ({ ...item, taxInclusive: markTaxInclusive }))
+          : selectedItems;
+        const response = await apiClient.bulkSaveMenuItems(restaurantId, itemsToSave, extractedCategories);
         if (response.success === false) {
           setError(response.error || 'Save failed');
           return;
@@ -408,6 +416,7 @@ const BulkMenuUpload = ({
     setExtractedCategories([]);
     setSelectedItems([]);
     setEditingItem(null);
+    setMarkTaxInclusive(null);
     setPreviewMode(false);
     setError('');
     setSuccess('');
@@ -656,6 +665,42 @@ const BulkMenuUpload = ({
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Tax Inclusive Option */}
+              {taxSettings?.enabled && uploadedFiles.length > 0 && (
+                <div style={{
+                  marginBottom: '16px',
+                  padding: '12px 16px',
+                  backgroundColor: '#f8fafc',
+                  borderRadius: '10px',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '6px' }}>
+                    Tax Pricing for uploaded items
+                  </label>
+                  <select
+                    value={markTaxInclusive === null || markTaxInclusive === undefined ? 'default' : markTaxInclusive ? 'inclusive' : 'exclusive'}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setMarkTaxInclusive(val === 'default' ? null : val === 'inclusive');
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #d1d5db',
+                      fontSize: '13px',
+                      color: '#374151',
+                      backgroundColor: 'white',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="default">Follow restaurant setting{taxSettings?.taxInclusivePricing ? ' (Inclusive)' : ' (Exclusive)'}</option>
+                    <option value="inclusive">All prices include GST</option>
+                    <option value="exclusive">All prices exclude GST (add tax on top)</option>
+                  </select>
                 </div>
               )}
 

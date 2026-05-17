@@ -111,11 +111,24 @@ export function buildBillItemRows(items, cs) {
 }
 
 // Build tax breakdown rows HTML
-export function buildTaxHtml(taxBreakdown, cs) {
-  return (taxBreakdown || []).map(tax =>
-    `<tr><td colspan="2" style="text-align:left;">${tax.name} (${tax.rate}%)</td>` +
-    `<td style="text-align:right;">${cs}${(tax.amount || 0).toFixed(2)}</td></tr>`
-  ).join('');
+// options.showInclusiveTax: when false, hides inclusive tax lines from the bill
+export function buildTaxHtml(taxBreakdown, cs, options) {
+  const showIncl = !options || options.showInclusiveTax !== false;
+  return (taxBreakdown || [])
+    .filter(tax => !tax.inclusive || showIncl)
+    .map(tax => {
+      const inclLabel = tax.inclusive ? ' (incl.)' : '';
+      return `<tr><td colspan="2" style="text-align:left;">${tax.name} (${tax.rate}%)${inclLabel}</td>` +
+        `<td style="text-align:right;">${cs}${(tax.amount || 0).toFixed(2)}</td></tr>`;
+    }).join('');
+}
+
+// Build "prices inclusive of GST" footer note
+export function buildInclusiveTaxNote(invoice) {
+  if (invoice.taxInclusiveMode === 'inclusive' || invoice.taxInclusiveMode === 'mixed') {
+    return '<div style="text-align:center;font-size:9px;margin-top:4px;color:#6b7280;">* Prices are inclusive of applicable taxes</div>';
+  }
+  return '';
 }
 
 // Build discount HTML (offer, manual, loyalty)
@@ -147,8 +160,8 @@ export function buildPaymentHtml(invoice, L, cs) {
     ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">${L.splitPayment}:</div>${invoice.splitPayments.map(sp => `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${(sp.method || 'Cash').toUpperCase()}:</span><span>${cs}${(sp.amount || 0).toFixed(2)}</span></div>`).join('')}</div>` : '';
   const cashReceivedHtml = (invoice.cashReceived > 0)
     ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.cashReceived}:</span><span>${cs}${invoice.cashReceived.toFixed(2)}</span></div>${(invoice.changeReturned > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.change}:</span><span>${cs}${invoice.changeReturned.toFixed(2)}</span></div>` : ''}</div>` : '';
-  const partialPayHtml = (invoice.paidAmount > 0 && invoice.outstandingAmount > 0)
-    ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">${L.partialPayment}:</div><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.paid}:</span><span>${cs}${invoice.paidAmount.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;margin:2px 0;color:#dc2626;"><span>${L.outstanding}:</span><span>${cs}${invoice.outstandingAmount.toFixed(2)}</span></div></div>` : '';
+  const partialPayHtml = (invoice.outstandingAmount > 0)
+    ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">${invoice.paidAmount === 0 ? (L.duePayment || 'Due (Udhar)') : L.partialPayment}:</div>${invoice.paidAmount > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.paid}:</span><span>${cs}${invoice.paidAmount.toFixed(2)}</span></div>` : ''}<div style="display:flex;justify-content:space-between;margin:2px 0;color:#dc2626;font-weight:bold;"><span>${L.outstanding || 'Outstanding'}:</span><span>${cs}${invoice.outstandingAmount.toFixed(2)}</span></div></div>` : '';
   const walletPayHtml = (invoice.walletRedeemAmount || 0) > 0
     ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.walletApplied}:</span><span>-${cs}${invoice.walletRedeemAmount.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;margin:2px 0;font-weight:bold;"><span>${L.amountToPay}:</span><span>${cs}${Math.max(0, (invoice.grandTotal || 0) - invoice.walletRedeemAmount).toFixed(2)}</span></div></div>` : '';
   return splitPaymentHtml + cashReceivedHtml + partialPayHtml + walletPayHtml;

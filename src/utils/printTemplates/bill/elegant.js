@@ -5,7 +5,7 @@ import {
   esc, getBillLabels, buildIdentityHtml, getSublineHtml,
   buildBillItemRows, buildTaxHtml, buildDiscountHtml, buildChargesHtml,
   buildPaymentHtml, buildDeliveryAddressHtml, calcGrandTotal, formatDateTime,
-  getPrintFontSizes, getBillHeaderHTML, wrapInDocument,
+  getPrintFontSizes, getBillHeaderHTML, wrapInDocument, buildInclusiveTaxNote,
 } from '../helpers';
 
 export const id = 'elegant';
@@ -31,7 +31,8 @@ export function render(invoice, printSettings = {}, labels = {}) {
   const items = invoice.items || [];
 
   const itemsHtml = buildBillItemRows(items, cs);
-  const taxHtml = buildTaxHtml(invoice.taxBreakdown, cs);
+  const taxHtml = buildTaxHtml(invoice.taxBreakdown, cs, { showInclusiveTax: invoice.showInclusiveTaxOnBill !== false });
+  const inclusiveNote = buildInclusiveTaxNote(invoice);
   const discountHtml = buildDiscountHtml(invoice, L, cs);
   const chargesHtml = buildChargesHtml(invoice, L, cs);
   const paymentHtml = buildPaymentHtml(invoice, L, cs);
@@ -64,6 +65,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
       chargesHtml +
       `<div class="total-row"><span>${L.total}:</span><span>${cs}${grandTotal.toFixed(2)}</span></div>` +
       paymentHtml +
+      inclusiveNote +
     `</div>` +
     `<div class="divider">════════════════════════════</div>` +
     `<div class="bill-footer"><p>${L.footer}</p><p style="font-size:10px;margin-top:6px;">${L.poweredBy}</p></div>`;

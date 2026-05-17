@@ -5,7 +5,7 @@ import {
   esc, getBillLabels, buildIdentityHtml, getSublineHtml,
   buildBillItemRows, buildTaxHtml, buildDiscountHtml, buildChargesHtml,
   buildPaymentHtml, buildDeliveryAddressHtml, calcGrandTotal, formatDateTime,
-  getPrintFontSizes, getPrintFontFamily, wrapInDocument,
+  getPrintFontSizes, getPrintFontFamily, wrapInDocument, buildInclusiveTaxNote,
 } from '../helpers';
 
 export const id = 'compact';
@@ -32,13 +32,17 @@ export function render(invoice, printSettings = {}, labels = {}) {
 
   const itemsHtml = buildBillItemRows(items, cs);
   const taxBreakdown = invoice.taxBreakdown || [];
+  const showIncl = invoice.showInclusiveTaxOnBill !== false;
+  const inclusiveNote = buildInclusiveTaxNote(invoice);
   // Compact: single-line tax summary if only one tax type
   let taxHtml;
-  if (taxBreakdown.length === 1) {
-    const tax = taxBreakdown[0];
-    taxHtml = `<div style="display:flex;justify-content:space-between;margin:1px 0;"><span>${tax.name} (${tax.rate}%):</span><span>${cs}${(tax.amount || 0).toFixed(2)}</span></div>`;
+  const visibleTaxes = taxBreakdown.filter(t => !t.inclusive || showIncl);
+  if (visibleTaxes.length === 1) {
+    const tax = visibleTaxes[0];
+    const inclLabel = tax.inclusive ? ' (incl.)' : '';
+    taxHtml = `<div style="display:flex;justify-content:space-between;margin:1px 0;"><span>${tax.name} (${tax.rate}%)${inclLabel}:</span><span>${cs}${(tax.amount || 0).toFixed(2)}</span></div>`;
   } else {
-    taxHtml = taxBreakdown.length > 0 ? `<table style="margin:2px 0;"><tbody>${buildTaxHtml(taxBreakdown, cs)}</tbody></table>` : '';
+    taxHtml = visibleTaxes.length > 0 ? `<table style="margin:2px 0;"><tbody>${buildTaxHtml(taxBreakdown, cs, { showInclusiveTax: showIncl })}</tbody></table>` : '';
   }
   const discountHtml = buildDiscountHtml(invoice, L, cs);
   const chargesHtml = buildChargesHtml(invoice, L, cs);
@@ -67,6 +71,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
       chargesHtml +
       `<div class="total-row"><span>${L.total}:</span><span>${cs}${grandTotal.toFixed(2)}</span></div>` +
       paymentHtml +
+      inclusiveNote +
     `</div>` +
     `<div class="divider">================================</div>` +
     `<div class="bill-footer"><p>${L.footer}</p></div>`;

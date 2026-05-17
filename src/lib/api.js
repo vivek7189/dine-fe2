@@ -3048,6 +3048,13 @@ class ApiClient {
     });
   }
 
+  async bulkSettleCredit(customerId, data) {
+    return this.request(`/api/customers/${customerId}/bulk-settle-credit`, {
+      method: 'POST',
+      body: data,
+    });
+  }
+
   async getCustomerWallet(customerId) {
     return this.request(`/api/customers/${customerId}/wallet`);
   }

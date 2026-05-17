@@ -54,7 +54,8 @@ import {
   FaBed,
   FaThList,
   FaTools,
-  FaCalendarAlt
+  FaCalendarAlt,
+  FaBell
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 import { performLogout } from '../../../lib/logout';
@@ -91,7 +92,8 @@ function RestaurantPOSContent() {
   const [tablesData, setTablesData] = useState({ floors: [], tables: [] });
   const [recentlyUpdatedTableId, setRecentlyUpdatedTableId] = useState(null);
   const [tablesRefreshing, setTablesRefreshing] = useState(false);
-  
+  const [orderUnreadCount, setOrderUnreadCount] = useState(0);
+
   // Ref to track if initial data has been loaded (prevents duplicate calls)
   const initialDataLoadedRef = useRef(false);
   
@@ -186,6 +188,13 @@ function RestaurantPOSContent() {
 
   // POS settings from restaurant config (dashboard customization)
   const posSettings = useMemo(() => selectedRestaurant?.posSettings || {}, [selectedRestaurant]);
+
+  // Listen for order notification unread count from layout
+  useEffect(() => {
+    const handler = (e) => setOrderUnreadCount(e.detail?.count || 0);
+    window.addEventListener('orderUnreadCountChanged', handler);
+    return () => window.removeEventListener('orderUnreadCountChanged', handler);
+  }, []);
 
   // Track which restaurant's default order type we've applied
   const appliedDefaultOrderTypeRef = useRef(null);
@@ -6051,6 +6060,44 @@ function RestaurantPOSContent() {
 
             {/* Right Section - Navigation Icons (Bigger, Right Aligned) */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {/* Notification Bell — hidden when showSuccessNotifications is disabled */}
+              {printSettings?.showSuccessNotifications !== false && (
+              <div
+                style={{
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  padding: '6px 12px',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('toggleOrderNotificationBell'));
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <FaBell size={22} color={orderUnreadCount > 0 ? '#ef4444' : '#9ca3af'} />
+                {orderUnreadCount > 0 && (
+                  <span style={{
+                    position: 'absolute', top: '2px', right: '6px',
+                    background: '#ef4444', color: 'white', fontSize: '9px', fontWeight: '700',
+                    borderRadius: '10px', minWidth: '16px', height: '16px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '0 3px', border: '2px solid white',
+                    animation: 'bellPulse 2s infinite',
+                  }}>
+                    {orderUnreadCount > 99 ? '99+' : orderUnreadCount}
+                  </span>
+                )}
+                <span style={{ fontSize: '10px', fontWeight: '600', color: orderUnreadCount > 0 ? '#ef4444' : '#6b7280', marginTop: '3px' }}>
+                  {orderUnreadCount > 0 ? `${orderUnreadCount} New` : 'Alerts'}
+                </span>
+              </div>
+              )}
+
               {/* Order History */}
               <Link href="/orderhistory" style={{ textDecoration: 'none' }}>
                 <div style={{

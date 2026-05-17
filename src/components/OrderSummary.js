@@ -55,7 +55,8 @@ import {
   FaTruck,
   FaPencilAlt,
   FaEdit,
-  FaMapMarkerAlt
+  FaMapMarkerAlt,
+  FaExclamationTriangle
 } from 'react-icons/fa';
 
 const OrderSummary = ({
@@ -302,18 +303,26 @@ const OrderSummary = ({
   const [tipAmount, setTipAmount] = useState(0);
   const [tipPercentage, setTipPercentage] = useState(null);
   const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
+  const [serviceChargeOverride, setServiceChargeOverride] = useState(null); // null=default, true=force on, false=force off
+  const [serviceChargeRateOverride, setServiceChargeRateOverride] = useState(null); // null=use billingSettings rate
   const [roundOffAmount, setRoundOffAmount] = useState(0);
   const [compVoidItems, setCompVoidItems] = useState([]);
   const [compVoidType, setCompVoidType] = useState('comp');
   const [compVoidReason, setCompVoidReason] = useState('');
   const [managerPin, setManagerPin] = useState('');
   const [partialPayAmount, setPartialPayAmount] = useState('');
+  const [fullDueMode, setFullDueMode] = useState(false);
 
   // Calculate service charge
   const calcServiceCharge = useCallback((discountedAmount) => {
-    if (!billingSettings.serviceChargeEnabled || !billingSettings.serviceChargeRate) return 0;
-    return Math.round(discountedAmount * billingSettings.serviceChargeRate / 100 * 100) / 100;
-  }, [billingSettings.serviceChargeEnabled, billingSettings.serviceChargeRate]);
+    // If user explicitly turned off SC for this order
+    if (serviceChargeOverride === false) return 0;
+    // If SC is not enabled globally and user hasn't forced it on
+    if (!billingSettings.serviceChargeEnabled && serviceChargeOverride !== true) return 0;
+    const rate = serviceChargeRateOverride !== null ? serviceChargeRateOverride : billingSettings.serviceChargeRate;
+    if (!rate) return 0;
+    return Math.round(discountedAmount * rate / 100 * 100) / 100;
+  }, [billingSettings.serviceChargeEnabled, billingSettings.serviceChargeRate, serviceChargeOverride, serviceChargeRateOverride]);
 
   // Calculate round-off
   const calcRoundOff = useCallback((amount) => {
@@ -473,6 +482,7 @@ const OrderSummary = ({
       setCompVoidReason('');
       setManagerPin('');
       setPartialPayAmount('');
+      setFullDueMode(false);
     }
   }, [cart?.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -508,6 +518,7 @@ const OrderSummary = ({
       setCompVoidReason('');
       setManagerPin('');
       setPartialPayAmount('');
+      setFullDueMode(false);
       setWaSent(false);
       setWaSending(false);
     }
@@ -846,6 +857,13 @@ const OrderSummary = ({
     return (unitPrice || 0) + (extras || 0);
   };
   
+  // Determine if an item's price includes tax (inclusive pricing)
+  const isItemTaxInclusive = useCallback((item, settings) => {
+    if (item.taxInclusive === true) return true;
+    if (item.taxInclusive === false) return false;
+    return settings?.taxInclusivePricing === true;
+  }, []);
+
   // Resolve which taxes apply to a given item (per-item > category > restaurant default)
   // When a tax group has alsoApplyGlobalTax: true, both group taxes AND global taxes apply.
   const resolveTaxesForItem = useCallback((item, settings, categories) => {
@@ -942,10 +960,13 @@ const OrderSummary = ({
       }, 0);
 
       const taxTotals = {};
+      let inclusiveTaxTotal = 0;
+      let exclusiveTaxTotal = 0;
       for (const cartItem of cart) {
         const itemUnitPrice = getItemUnitPrice(cartItem);
         const itemTotal = itemUnitPrice * (cartItem.quantity || 1);
         const isDiscountable = cartItem.discountApplicable !== false;
+        const isInclusive = isItemTaxInclusive(cartItem, taxSettings);
         // Proportional discount share: only among discountable items
         const itemDiscShare = (isDiscountable && discountableSubtotal > 0)
           ? (itemTotal / discountableSubtotal) * discTotal
@@ -956,12 +977,18 @@ const OrderSummary = ({
         const itemTaxableWithSC = itemTaxable + itemSCShare;
         // Resolve taxes for this item
         const itemTaxes = resolveTaxesForItem(cartItem, taxSettings, restaurantCategories);
+        const totalRate = itemTaxes.reduce((sum, t) => sum + (t.rate || 0), 0);
         for (const tax of itemTaxes) {
-          const amt = Math.round((itemTaxableWithSC * (tax.rate || 0) / 100) * 100) / 100;
-          const key = `${tax.name || 'Tax'}|${tax.rate || 0}`;
-          if (!taxTotals[key]) taxTotals[key] = { name: tax.name || 'Tax', rate: tax.rate || 0, amount: 0 };
+          // Inclusive: back-calculate tax from price. Exclusive: add on top.
+          const amt = isInclusive
+            ? Math.round((itemTaxableWithSC * (tax.rate || 0) / (100 + totalRate)) * 100) / 100
+            : Math.round((itemTaxableWithSC * (tax.rate || 0) / 100) * 100) / 100;
+          const key = `${tax.name || 'Tax'}|${tax.rate || 0}|${isInclusive}`;
+          if (!taxTotals[key]) taxTotals[key] = { name: tax.name || 'Tax', rate: tax.rate || 0, amount: 0, inclusive: isInclusive };
           taxTotals[key].amount += amt;
           totalTaxAmount += amt;
+          if (isInclusive) inclusiveTaxTotal += amt;
+          else exclusiveTaxTotal += amt;
         }
       }
       calculatedTaxes = Object.values(taxTotals).map(tx => ({
@@ -969,46 +996,60 @@ const OrderSummary = ({
         amount: Math.round(tx.amount * 100) / 100
       }));
       totalTaxAmount = Math.round(totalTaxAmount * 100) / 100;
+      exclusiveTaxTotal = Math.round(exclusiveTaxTotal * 100) / 100;
     } else {
       // Flat tax calculation (original behavior — no tax groups)
       const taxableAmount = discountedAmt + sc;
+      const isGlobalInclusive = taxSettings.taxInclusivePricing === true;
+      let inclusiveTaxTotal = 0;
+      let exclusiveTaxTotal = 0;
       if (taxSettings.taxes && taxSettings.taxes.length > 0) {
-        taxSettings.taxes.forEach(tax => {
-          if (tax.enabled) {
-            const taxAmount = taxableAmount * (tax.rate / 100);
+        const enabledTaxes = taxSettings.taxes.filter(tax => tax.enabled);
+        const totalRate = enabledTaxes.reduce((sum, t) => sum + (t.rate || 0), 0);
+        enabledTaxes.forEach(tax => {
+            const taxAmount = isGlobalInclusive
+              ? taxableAmount * (tax.rate / (100 + totalRate))
+              : taxableAmount * (tax.rate / 100);
             calculatedTaxes.push({
               name: tax.name,
               rate: tax.rate,
-              amount: taxAmount
+              amount: taxAmount,
+              inclusive: isGlobalInclusive
             });
             totalTaxAmount += taxAmount;
-          }
+            if (isGlobalInclusive) inclusiveTaxTotal += taxAmount;
+            else exclusiveTaxTotal += taxAmount;
         });
       } else if (taxSettings.defaultTaxRate && !Array.isArray(taxSettings.taxes)) {
-        // Legacy fallback: only apply defaultTaxRate when taxes array doesn't exist (old data)
-        // If taxes: [] exists (user cleared all taxes), respect that — no tax
-        const taxAmount = taxableAmount * (taxSettings.defaultTaxRate / 100);
+        const taxAmount = isGlobalInclusive
+          ? taxableAmount * (taxSettings.defaultTaxRate / (100 + taxSettings.defaultTaxRate))
+          : taxableAmount * (taxSettings.defaultTaxRate / 100);
         calculatedTaxes.push({
           name: 'GST',
           rate: taxSettings.defaultTaxRate,
-          amount: taxAmount
+          amount: taxAmount,
+          inclusive: isGlobalInclusive
         });
         totalTaxAmount = taxAmount;
+        if (isGlobalInclusive) inclusiveTaxTotal = taxAmount;
+        else exclusiveTaxTotal = taxAmount;
       }
+      exclusiveTaxTotal = Math.round(exclusiveTaxTotal * 100) / 100;
     }
 
     console.log('Calculated taxes:', calculatedTaxes, 'Total tax:', totalTaxAmount, 'Discount:', discTotal);
     setTaxBreakdown(calculatedTaxes);
     setTotalTax(totalTaxAmount);
 
-    // After tax, add tip and round-off
-    const afterTax = discountedAmt + sc + totalTaxAmount;
+    // After tax, add tip and round-off — only add exclusive tax (inclusive is already in discountedAmt)
+    const exclusiveTax = calculatedTaxes.filter(t => !t.inclusive).reduce((sum, t) => sum + (t.amount || 0), 0);
+    const afterTax = discountedAmt + sc + Math.round(exclusiveTax * 100) / 100;
     const withTip = afterTax + tipAmount;
     const ro = calcRoundOff(withTip);
     setRoundOffAmount(ro);
     setGrandTotal(withTip + ro);
 
-  }, [cart, restaurantId, getTotalAmount, taxSettings, offerDiscount, getManualDiscountAmount, getLoyaltyDiscountAmount, appliedCoupon, tipAmount, calcServiceCharge, calcRoundOff, resolveTaxesForItem, restaurantCategories]);
+  }, [cart, restaurantId, getTotalAmount, taxSettings, offerDiscount, getManualDiscountAmount, getLoyaltyDiscountAmount, appliedCoupon, tipAmount, calcServiceCharge, calcRoundOff, resolveTaxesForItem, isItemTaxInclusive, restaurantCategories]);
   
   // Calculate tax when cart changes — useLayoutEffect ensures billing totals
   // are recalculated synchronously before paint, preventing stale grandTotal
@@ -1223,6 +1264,9 @@ const OrderSummary = ({
   const shouldShowOrderSummary = () => {
     if (!orderSuccess?.show) return false;
 
+    // Master toggle: if disabled, never show success notifications
+    if (printSettings?.showSuccessNotifications === false) return false;
+
     // Determine if this is a kitchen order or billing order
     const isKitchenOrder = orderSuccess?.message?.includes('placed') ||
                            orderSuccess?.message?.includes('Updated') ||
@@ -1236,6 +1280,18 @@ const OrderSummary = ({
       return printSettings?.showBillSummaryAfterBilling !== false;
     }
   };
+
+  // Auto-clear orderSuccess when success notifications are disabled so cart resets
+  useEffect(() => {
+    if (orderSuccess?.show && printSettings?.showSuccessNotifications === false) {
+      const timer = setTimeout(() => {
+        setOrderSuccess(null);
+        setInvoice(null);
+        setShowInvoicePermanently(false);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [orderSuccess?.show, printSettings?.showSuccessNotifications]);
 
   // Helper function to check if manual print button should be shown
   const shouldShowManualPrint = () => {
@@ -1349,9 +1405,15 @@ const OrderSummary = ({
     const allOfferIds = offerSettings?.allowMultipleOffers && selectedOfferIds.length > 0
       ? selectedOfferIds
       : (selectedOfferId ? [selectedOfferId] : []);
+    // Determine tax inclusive mode from taxBreakdown
+    const hasInclusive = taxBreakdown.some(t => t.inclusive);
+    const hasExclusive = taxBreakdown.some(t => !t.inclusive);
+    const taxInclusiveMode = (hasInclusive && hasExclusive) ? 'mixed' : hasInclusive ? 'inclusive' : 'exclusive';
     return {
       taxBreakdown,
       totalTax,
+      taxInclusiveMode,
+      showInclusiveTaxOnBill: taxSettings?.showInclusiveTaxOnBill !== false,
       finalAmount: grandTotal ?? getTotalAmount(),
       subtotal: getTotalAmount(),
       specialInstructions: specialInstructions.trim() || null,
@@ -1375,7 +1437,8 @@ const OrderSummary = ({
       roundOffAmount: roundOffAmount !== 0 ? roundOffAmount : null,
       compItems: compVoidItems.filter(cv => cv.type === 'comp').length > 0 ? compVoidItems.filter(cv => cv.type === 'comp') : null,
       voidItems: compVoidItems.filter(cv => cv.type === 'void').length > 0 ? compVoidItems.filter(cv => cv.type === 'void') : null,
-      partialPayAmount: parseFloat(partialPayAmount) > 0 ? parseFloat(partialPayAmount) : null,
+      partialPayAmount: fullDueMode ? 0 : (parseFloat(partialPayAmount) > 0 ? parseFloat(partialPayAmount) : null),
+      fullDue: fullDueMode || undefined,
       managerPin: managerPin || null,
       deliveryInfo: orderType === 'delivery' ? {
         personName: deliveryInfo.personName || null,
@@ -1418,6 +1481,11 @@ const OrderSummary = ({
   };
 
   const handleProcessOrder = async () => {
+    // Full Due requires a customer
+    if (fullDueMode && lookupStatus !== 'found') {
+      alert('Customer phone number is required for due (udhar) orders. Please enter a valid customer phone first.');
+      return;
+    }
     // Intercept UPI — show QR modal before processing
     if (paymentMethod === 'upi' && upiConfigured) {
       setPendingUpiAction('complete');
@@ -2645,7 +2713,7 @@ const OrderSummary = ({
                       )}
                       {invoice?.taxBreakdown?.map((tax, idx) => (
                         <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
-                          <span>{tax.name} ({tax.rate}%)</span>
+                          <span>{tax.name} ({tax.rate}%){tax.inclusive ? ' (incl.)' : ''}</span>
                           <span>{formatCurrency(tax.amount || 0)}</span>
                         </div>
                       ))}
@@ -2708,14 +2776,18 @@ const OrderSummary = ({
                           )}
                         </div>
                       )}
-                      {(invoice?.paidAmount > 0 && invoice?.outstandingAmount > 0) && (
+                      {(invoice?.outstandingAmount > 0) && (
                         <div style={{ borderTop: '1px dashed #22c55e', paddingTop: '4px', marginTop: '4px' }}>
-                          <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '2px' }}>{t('invoice.partialPayment')}:</div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
-                            <span>{t('invoice.paid')}:</span>
-                            <span>{formatCurrency(invoice.paidAmount)}</span>
+                          <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '2px', color: invoice?.paidAmount === 0 ? '#dc2626' : undefined }}>
+                            {invoice?.paidAmount === 0 ? 'Due (Udhar):' : `${t('invoice.partialPayment')}:`}
                           </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px', color: '#dc2626' }}>
+                          {invoice?.paidAmount > 0 && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
+                              <span>{t('invoice.paid')}:</span>
+                              <span>{formatCurrency(invoice.paidAmount)}</span>
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px', color: '#dc2626', fontWeight: 700 }}>
                             <span>{t('invoice.outstanding')}:</span>
                             <span>{formatCurrency(invoice.outstandingAmount)}</span>
                           </div>
@@ -2752,7 +2824,7 @@ const OrderSummary = ({
                         return parts.length > 0 ? `<div style="font-size:9px;color:#6b7280;">${parts.join(' · ')}</div>` : '';
                       };
                       const itemsHtml = billItems.map(item => `<tr><td style="text-align:left;">${(item.name || '').replace(/</g,'&lt;')}${getSublineHtml(item)}</td><td style="text-align:center;">${item.quantity || 1}</td><td style="text-align:right;">${currencySymbol}${((item.price || item.total/item.quantity || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`).join('');
-                      const taxHtml = (invoice?.taxBreakdown || []).map(tax => `<tr><td colspan="2" style="text-align:left;">${tax.name} (${tax.rate}%)</td><td style="text-align:right;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td></tr>`).join('');
+                      const taxHtml = (invoice?.taxBreakdown || []).map(tax => `<tr><td colspan="2" style="text-align:left;">${tax.name} (${tax.rate}%)${tax.inclusive ? ' (incl.)' : ''}</td><td style="text-align:right;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td></tr>`).join('');
                       const printTotalDiscount = (invoice?.discountAmount || 0) + (invoice?.manualDiscount || 0) + (invoice?.loyaltyDiscount || 0) + (invoice?.couponDiscount || 0);
                       const offerName = typeof invoice?.appliedOffer === 'string' ? invoice.appliedOffer : (invoice?.appliedOffer?.name || invoice?.selectedOfferName || '');
                       const offerDiscHtml = (invoice?.discountAmount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>${t('invoice.offer')}${offerName ? ` (${offerName})` : ''}:</span><span>-${currencySymbol}${(invoice.discountAmount).toFixed(2)}</span></div>` : '';
@@ -2765,7 +2837,7 @@ const OrderSummary = ({
                       const roundOffHtml = (invoice?.roundOffAmount != null && invoice?.roundOffAmount !== 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.roundOff')}:</span><span>${invoice.roundOffAmount > 0 ? '+' : ''}${currencySymbol}${invoice.roundOffAmount.toFixed(2)}</span></div>` : '';
                       const splitPaymentHtml = (invoice?.splitPayments?.length >= 2) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">${t('invoice.splitPayment')}:</div>${invoice.splitPayments.map(sp => `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${(sp.method || 'Cash').toUpperCase()}:</span><span>${currencySymbol}${(sp.amount || 0).toFixed(2)}</span></div>`).join('')}</div>` : '';
                       const cashReceivedHtml = (invoice?.cashReceived > 0) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.cashReceived')}:</span><span>${currencySymbol}${invoice.cashReceived.toFixed(2)}</span></div>${(invoice?.changeReturned > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.change')}:</span><span>${currencySymbol}${invoice.changeReturned.toFixed(2)}</span></div>` : ''}</div>` : '';
-                      const partialPayHtml = (invoice?.paidAmount > 0 && invoice?.outstandingAmount > 0) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">${t('invoice.partialPayment')}:</div><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.paid')}:</span><span>${currencySymbol}${invoice.paidAmount.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;margin:2px 0;color:#dc2626;"><span>${t('invoice.outstanding')}:</span><span>${currencySymbol}${invoice.outstandingAmount.toFixed(2)}</span></div></div>` : '';
+                      const partialPayHtml = (invoice?.outstandingAmount > 0) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">${invoice?.paidAmount === 0 ? 'Due (Udhar)' : t('invoice.partialPayment')}:</div>${invoice?.paidAmount > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.paid')}:</span><span>${currencySymbol}${invoice.paidAmount.toFixed(2)}</span></div>` : ''}<div style="display:flex;justify-content:space-between;margin:2px 0;color:#dc2626;font-weight:bold;"><span>${t('invoice.outstanding')}:</span><span>${currencySymbol}${invoice.outstandingAmount.toFixed(2)}</span></div></div>` : '';
                       const walletPayHtml = (invoice?.walletRedeemAmount || 0) > 0 ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('dashboard.walletApplied')}:</span><span>-${currencySymbol}${invoice.walletRedeemAmount.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;margin:2px 0;font-weight:bold;"><span>${t('dashboard.amountToPay')}:</span><span>${currencySymbol}${Math.max(0, (invoice?.grandTotal || 0) - invoice.walletRedeemAmount).toFixed(2)}</span></div></div>` : '';
                       const printGrandTotal = invoice?.grandTotal || ((invoice?.subtotal || 0) - printTotalDiscount + (invoice?.taxBreakdown?.reduce((sum, tax) => sum + (tax.amount || 0), 0) || 0) + (invoice?.serviceChargeAmount || 0) + (invoice?.tipAmount || 0) + (invoice?.roundOffAmount || 0));
                       // Build identity lines for print header
@@ -3572,10 +3644,10 @@ const OrderSummary = ({
                       <span style={{ color: '#bbf7d0' }}>Discount: -{formatCurrency(totalDiscountAmount)}</span>
                     )}
                     {serviceChargeAmount > 0 && (
-                      <span>{billingSettings.serviceChargeLabel || 'Service Charge'} ({billingSettings.serviceChargeRate}%): {formatCurrency(serviceChargeAmount)}</span>
+                      <span>{billingSettings.serviceChargeLabel || 'Service Charge'} ({serviceChargeRateOverride !== null ? serviceChargeRateOverride : billingSettings.serviceChargeRate}%): {formatCurrency(serviceChargeAmount)}</span>
                     )}
                     {taxBreakdown.map((tax, index) => (
-                      <span key={index}>{tax.name} ({tax.rate}%): {formatCurrency(tax.amount || 0)}</span>
+                      <span key={index}>{tax.name} ({tax.rate}%){tax.inclusive ? ' (incl.)' : ''}: {formatCurrency(tax.amount || 0)}</span>
                     ))}
                     {tipAmount > 0 && (
                       <span style={{ color: '#fef08a' }}>Tip: {formatCurrency(tipAmount)}</span>
@@ -3616,7 +3688,8 @@ const OrderSummary = ({
                 const hasAnything = hasOffers || hasLoyalty || totalDiscountAmount > 0 || specialInstructions;
                 const showOffers = hasAnything && cart.length > 0;
                 const showDiscount = canEditManualDiscount && cart.length > 0;
-                if (!showOffers && !showDiscount) return null;
+                const showSC = billingSettings.serviceChargeEnabled && billingSettings.serviceChargeShowOnDashboard && cart.length > 0;
+                if (!showOffers && !showDiscount && !showSC) return null;
 
                 const activeOfferCount = (offerSettings?.allowMultipleOffers ? selectedOfferIds : (selectedOfferId ? [selectedOfferId] : [])).length;
                 const loyaltyDisc = getLoyaltyDiscountAmount();
@@ -3701,6 +3774,53 @@ const OrderSummary = ({
                           <span style={{ fontSize: '10px', fontWeight: 600, color: '#16a34a', whiteSpace: 'nowrap' }}>
                             -{formatCurrency(getManualDiscountAmount())}
                           </span>
+                        )}
+                      </div>
+                    )}
+                    {showSC && (
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '0',
+                        borderRadius: '10px', border: '1px solid #e5e7eb', overflow: 'hidden',
+                        background: '#fafafa', flexShrink: 0,
+                      }}>
+                        {/* ON/OFF pill toggle */}
+                        <button
+                          onClick={() => setServiceChargeOverride(serviceChargeOverride === false ? null : false)}
+                          style={{
+                            padding: '4px 8px', border: 'none', cursor: 'pointer',
+                            fontSize: '9px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px',
+                            background: serviceChargeOverride !== false ? '#dcfce7' : '#fee2e2',
+                            color: serviceChargeOverride !== false ? '#16a34a' : '#dc2626',
+                            transition: 'all 0.2s',
+                          }}
+                        >
+                          <FaConciergeBell size={8} />
+                          SC
+                        </button>
+                        {/* Rate display / edit */}
+                        {serviceChargeOverride !== false && billingSettings.serviceChargeAllowRateEdit ? (
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.5"
+                            value={serviceChargeRateOverride !== null ? serviceChargeRateOverride : billingSettings.serviceChargeRate}
+                            onChange={(e) => setServiceChargeRateOverride(Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
+                            style={{
+                              width: '36px', padding: '4px 2px', border: 'none', borderLeft: '1px solid #e5e7eb',
+                              fontSize: '10px', fontWeight: 700, outline: 'none', background: 'white', textAlign: 'center',
+                            }}
+                          />
+                        ) : serviceChargeOverride !== false ? (
+                          <span style={{ padding: '4px 6px', fontSize: '10px', fontWeight: 700, color: '#374151', borderLeft: '1px solid #e5e7eb' }}>
+                            {serviceChargeRateOverride !== null ? serviceChargeRateOverride : billingSettings.serviceChargeRate}
+                          </span>
+                        ) : null}
+                        {serviceChargeOverride !== false && (
+                          <span style={{ fontSize: '9px', color: '#6b7280', paddingRight: '6px' }}>%</span>
+                        )}
+                        {serviceChargeOverride === false && (
+                          <span style={{ padding: '4px 8px', fontSize: '9px', fontWeight: 700, color: '#dc2626', borderLeft: '1px solid #fecaca' }}>OFF</span>
                         )}
                       </div>
                     )}
@@ -3834,6 +3954,19 @@ const OrderSummary = ({
                       </span>
                       <style>{`@keyframes custSpin{to{transform:translateY(-50%) rotate(360deg)}}`}</style>
                     </div>
+                    )}
+
+                    {/* Customer Due Warning */}
+                    {lookupStatus === 'found' && customerData?.outstandingBalance > 0 && (
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '4px',
+                        padding: '3px 8px', background: '#fef2f2', border: '1px solid #fecaca',
+                        borderRadius: '8px', fontSize: '10px', fontWeight: 700, color: '#dc2626',
+                        flexShrink: 0,
+                      }}>
+                        <FaExclamationTriangle size={9} />
+                        Due: {formatCurrency(customerData.outstandingBalance)}
+                      </div>
                     )}
 
                     {/* Customer Name — always visible, pre-filled when customer found */}
@@ -4171,7 +4304,7 @@ const OrderSummary = ({
                 return visible;
               })() && { id: 'split', icon: FaCreditCard, label: 'Settlement', color: '#3b82f6' },
               billingSettings.tipsEnabled && { id: 'tip', icon: FaHandHoldingUsd, label: 'Tip', color: '#f59e0b' },
-              billingSettings.partialPaymentEnabled && { id: 'partial', icon: FaWallet, label: 'Partial', color: '#8b5cf6' },
+              billingSettings.partialPaymentEnabled && { id: 'partial', icon: FaWallet, label: 'Credit', color: '#8b5cf6' },
               billingSettings.compVoidEnabled && { id: 'comp', icon: FaGift, label: 'Comp', color: '#ec4899' },
               billingSettings.compVoidEnabled && { id: 'void', icon: FaBan, label: 'Void', color: '#6b7280' },
             ].filter(Boolean);
@@ -4188,7 +4321,7 @@ const OrderSummary = ({
                     const hasValue = (tool.id === 'cash' && cashReceived) ||
                       (tool.id === 'tip' && tipAmount > 0) ||
                       (tool.id === 'split' && splitPayments.some(sp => sp.amount > 0)) ||
-                      (tool.id === 'partial' && parseFloat(partialPayAmount) > 0) ||
+                      (tool.id === 'partial' && (parseFloat(partialPayAmount) > 0 || fullDueMode)) ||
                       ((tool.id === 'comp' || tool.id === 'void') && compVoidItems.length > 0);
                     return (
                       <button
@@ -4489,50 +4622,90 @@ const OrderSummary = ({
                   </div>
                 )}
 
-                {/* Partial Payment Panel */}
+                {/* Credit / Due Payment Panel */}
                 {activeBillingPanel === 'partial' && (
                   <div style={{
-                    background: '#f5f3ff',
-                    border: '1px solid #ddd6fe',
+                    background: fullDueMode ? '#fef2f2' : '#f5f3ff',
+                    border: `1px solid ${fullDueMode ? '#fecaca' : '#ddd6fe'}`,
                     borderRadius: '10px',
                     padding: '12px',
+                    transition: 'all 0.2s',
                   }}>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#5b21b6', marginBottom: '8px' }}>
-                      Partial Payment — Total: {formatCurrency(grandTotal)}
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: fullDueMode ? '#991b1b' : '#5b21b6', marginBottom: '8px' }}>
+                      Credit / Udhar — Total: {formatCurrency(grandTotal)}
                     </div>
-                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '8px' }}>
-                      <input
-                        type="number"
-                        placeholder="Amount to pay now"
-                        value={partialPayAmount}
-                        onChange={(e) => setPartialPayAmount(e.target.value)}
+                    {/* Mode Toggle: Partial vs Full Due */}
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
+                      <button
+                        onClick={() => { setFullDueMode(false); }}
                         style={{
-                          flex: 1,
-                          padding: '8px 10px',
-                          border: '1.5px solid #c4b5fd',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          fontWeight: 700,
-                          outline: 'none',
-                          background: 'white'
+                          flex: 1, padding: '6px 0', borderRadius: '8px', fontSize: '11px', fontWeight: 700,
+                          cursor: 'pointer', border: 'none', transition: 'all 0.2s',
+                          background: !fullDueMode ? '#ede9fe' : '#f3f4f6',
+                          color: !fullDueMode ? '#7c3aed' : '#6b7280',
+                          outline: !fullDueMode ? '2px solid #8b5cf6' : 'none',
                         }}
-                        autoFocus
-                      />
+                      >
+                        Partial Pay
+                      </button>
+                      <button
+                        onClick={() => { setFullDueMode(true); setPartialPayAmount(''); }}
+                        style={{
+                          flex: 1, padding: '6px 0', borderRadius: '8px', fontSize: '11px', fontWeight: 700,
+                          cursor: 'pointer', border: 'none', transition: 'all 0.2s',
+                          background: fullDueMode ? '#fee2e2' : '#f3f4f6',
+                          color: fullDueMode ? '#dc2626' : '#6b7280',
+                          outline: fullDueMode ? '2px solid #dc2626' : 'none',
+                        }}
+                      >
+                        Full Due (Udhar)
+                      </button>
                     </div>
-                    {parseFloat(partialPayAmount) > 0 && (
+                    {/* Partial mode: amount input */}
+                    {!fullDueMode && (
+                      <>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '8px' }}>
+                          <input
+                            type="number"
+                            placeholder="Amount to pay now"
+                            value={partialPayAmount}
+                            onChange={(e) => setPartialPayAmount(e.target.value)}
+                            style={{
+                              flex: 1, padding: '8px 10px', border: '1.5px solid #c4b5fd', borderRadius: '8px',
+                              fontSize: '14px', fontWeight: 700, outline: 'none', background: 'white'
+                            }}
+                            autoFocus
+                          />
+                        </div>
+                        {parseFloat(partialPayAmount) > 0 && (
+                          <div style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            padding: '8px 12px', background: '#ede9fe', borderRadius: '8px', fontWeight: 700
+                          }}>
+                            <span style={{ fontSize: '12px', color: '#374151' }}>Outstanding (Khata)</span>
+                            <span style={{ fontSize: '16px', color: '#7c3aed' }}>
+                              {formatCurrency(Math.max(0, grandTotal - parseFloat(partialPayAmount)))}
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {/* Full Due mode: show outstanding = total */}
+                    {fullDueMode && (
                       <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '8px 12px',
-                        background: '#ede9fe',
-                        borderRadius: '8px',
-                        fontWeight: 700
+                        padding: '10px 12px', background: '#fee2e2', borderRadius: '8px',
                       }}>
-                        <span style={{ fontSize: '12px', color: '#374151' }}>Outstanding (Khata)</span>
-                        <span style={{ fontSize: '16px', color: '#7c3aed' }}>
-                          {formatCurrency(Math.max(0, grandTotal - parseFloat(partialPayAmount)))}
-                        </span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 700 }}>
+                          <span style={{ fontSize: '12px', color: '#374151' }}>Outstanding (Udhar)</span>
+                          <span style={{ fontSize: '18px', color: '#dc2626' }}>
+                            {formatCurrency(grandTotal)}
+                          </span>
+                        </div>
+                        {lookupStatus !== 'found' && (
+                          <div style={{ marginTop: '6px', fontSize: '10px', color: '#dc2626', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <FaExclamationTriangle size={9} /> Customer phone required for due orders
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -4826,7 +4999,8 @@ const OrderSummary = ({
                       roundOffAmount: roundOffAmount !== 0 ? roundOffAmount : null,
                       compItems: compVoidItems.filter(cv => cv.type === 'comp').length > 0 ? compVoidItems.filter(cv => cv.type === 'comp') : null,
                       voidItems: compVoidItems.filter(cv => cv.type === 'void').length > 0 ? compVoidItems.filter(cv => cv.type === 'void') : null,
-                      partialPayAmount: parseFloat(partialPayAmount) > 0 ? parseFloat(partialPayAmount) : null,
+                      partialPayAmount: fullDueMode ? 0 : (parseFloat(partialPayAmount) > 0 ? parseFloat(partialPayAmount) : null),
+      fullDue: fullDueMode || undefined,
                       managerPin: managerPin || null,
                     };
                     onSaveOrder(taxData);
@@ -5758,7 +5932,7 @@ const OrderSummary = ({
                 )}
                 {taxBreakdown.map((tax, idx) => (
                   <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span>{tax.name} ({tax.rate}%)</span>
+                    <span>{tax.name} ({tax.rate}%){tax.inclusive ? ' (incl.)' : ''}</span>
                     <span style={{ fontWeight: 500 }}>{formatCurrency(tax.amount || 0)}</span>
                   </div>
                 ))}

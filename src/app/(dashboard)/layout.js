@@ -8,8 +8,11 @@ import { DineAIProvider } from '../../contexts/DineAIContext';
 import { CurrencyProvider } from '../../contexts/CurrencyContext';
 import DineAIButton from '../../components/dineai/DineAIButton';
 import BulkMenuUpload from '../../components/BulkMenuUpload';
+import OrderNotificationBell from '../../components/OrderNotificationBell';
+import OrderNotificationToast from '../../components/OrderNotificationToast';
 import { useIdlePrefetch } from '../../hooks/useIdlePrefetch';
 import { useAutoPrint } from '../../hooks/useAutoPrint';
+import { useOrderNotifications } from '../../hooks/useOrderNotifications';
 import { isWeb, isTauri, isElectron } from '../../utils/platform';
 import { isAutoUpdateEnabled, checkForUpdates, restartApp } from '../../utils/autoUpdater';
 import apiClient from '../../lib/api';
@@ -38,6 +41,7 @@ const ROUTE_ACCESS_MAP = {
   '/automation': 'admin',
   '/spaces': 'admin',
   '/parking': 'parking',
+  '/whatsapp-ordering': 'analytics',
 };
 
 // Pages accessible to everyone (no permission check needed)
@@ -69,6 +73,7 @@ function checkRouteAccess(pathname, user, pageAccess) {
 function DashboardLayoutContent({ children }) {
   const [isMobile, setIsMobile] = useState(false);
   const [selectedRestaurantId, setSelectedRestaurantId] = useState(null);
+  const [notificationOrderTypes, setNotificationOrderTypes] = useState(null);
   const [isClient, setIsClient] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [accessChecked, setAccessChecked] = useState(false);
@@ -80,6 +85,31 @@ function DashboardLayoutContent({ children }) {
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   // Check if current page is dashboard or billing — these pages hide the sidebar
   const isDashboardPage = pathname === '/dashboard' || pathname === '/dashboard/bar' || pathname === '/billing';
+
+  // ─── Order Notifications (global Pusher listener) ───
+  const {
+    notifications: orderNotifications,
+    unreadCount: orderUnreadCount,
+    toasts: orderToasts,
+    soundEnabled: orderSoundEnabled,
+    markAsRead: markOrderRead,
+    markAllRead: markAllOrdersRead,
+    clearAll: clearAllOrders,
+    dismissToast: dismissOrderToast,
+    toggleSound: toggleOrderSound,
+  } = useOrderNotifications(selectedRestaurantId, notificationOrderTypes);
+
+  // Broadcast unread count to child pages (dashboard, home) via CustomEvent
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('orderUnreadCountChanged', { detail: { count: orderUnreadCount } }));
+  }, [orderUnreadCount]);
+
+  // Listen for mark-all-read from child pages (dashboard/home badge clicks)
+  useEffect(() => {
+    const handler = () => markAllOrdersRead();
+    window.addEventListener('markAllOrderNotificationsRead', handler);
+    return () => window.removeEventListener('markAllOrderNotificationsRead', handler);
+  }, [markAllOrdersRead]);
 
   // Prefetch dashboard data when browser is idle (skips if already on /dashboard)
   useIdlePrefetch(pathname);
@@ -242,6 +272,12 @@ function DashboardLayoutContent({ children }) {
       if (savedRestaurantId) {
         setSelectedRestaurantId(savedRestaurantId);
       }
+      // Load notification order types from restaurant settings
+      try {
+        const restaurant = JSON.parse(localStorage.getItem('selectedRestaurant') || 'null');
+        const types = restaurant?.orderSettings?.notificationOrderTypes;
+        setNotificationOrderTypes(types && types.length > 0 ? types : ['online']);
+      } catch { setNotificationOrderTypes(['online']); }
     };
 
     getSelectedRestaurant();
@@ -251,6 +287,12 @@ function DashboardLayoutContent({ children }) {
       console.log('Restaurant changed in layout:', event.detail);
       setHasDefaultMenu(false); // Reset on switch; checkDefaultMenu or demoModeActivated will set true if needed
       setSelectedRestaurantId(event.detail.restaurantId);
+      // Update notification order types from new restaurant
+      try {
+        const restaurant = event.detail?.restaurant || JSON.parse(localStorage.getItem('selectedRestaurant') || 'null');
+        const types = restaurant?.orderSettings?.notificationOrderTypes;
+        setNotificationOrderTypes(types && types.length > 0 ? types : ['online']);
+      } catch { setNotificationOrderTypes(['online']); }
     };
 
     window.addEventListener('restaurantChanged', handleRestaurantChange);
@@ -373,6 +415,32 @@ function DashboardLayoutContent({ children }) {
                 {accessChecked ? children : null}
               </div>
             </main>
+
+            {/* Order Notification Bell — fixed top-right, only on home & dashboard */}
+            {(pathname === '/home' || pathname === '/dashboard') && (
+            <div style={{
+              position: 'fixed',
+              top: '14px',
+              right: '20px',
+              zIndex: 9998,
+            }}>
+              <OrderNotificationBell
+                notifications={orderNotifications}
+                unreadCount={orderUnreadCount}
+                soundEnabled={orderSoundEnabled}
+                onMarkAsRead={markOrderRead}
+                onMarkAllRead={markAllOrdersRead}
+                onClearAll={clearAllOrders}
+                onToggleSound={toggleOrderSound}
+              />
+            </div>
+            )}
+
+            {/* Order Notification Toasts */}
+            <OrderNotificationToast
+              toasts={orderToasts}
+              onDismiss={dismissOrderToast}
+            />
 
             {/* DineAI Floating Button */}
             <DineAIButton />
