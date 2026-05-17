@@ -434,7 +434,17 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
                 {/* Tax Enable/Disable */}
                 <div style={{ marginBottom: '16px' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={taxSettings.enabled} onChange={(e) => setTaxSettings(prev => ({ ...prev, enabled: e.target.checked }))} style={{ width: '16px', height: '16px' }} />
+                    <input type="checkbox" checked={taxSettings.enabled} onChange={(e) => {
+                      const enabling = e.target.checked;
+                      setTaxSettings(prev => {
+                        const updated = { ...prev, enabled: enabling };
+                        // Auto-add default GST 5% for Indian restaurants when enabling tax for the first time
+                        if (enabling && countryCode === 'IN' && (!prev.taxes || prev.taxes.length === 0)) {
+                          updated.taxes = [{ id: `tax_${Date.now()}`, name: 'GST', rate: 5, enabled: true, type: 'percentage' }];
+                        }
+                        return updated;
+                      });
+                    }} style={{ width: '16px', height: '16px' }} />
                     Enable Tax Calculation
                   </label>
                   <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0 24px' }}>Automatically calculate and add taxes to orders</p>
