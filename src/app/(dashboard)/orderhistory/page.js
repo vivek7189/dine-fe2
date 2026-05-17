@@ -3620,7 +3620,7 @@ const OrderHistory = () => {
       )}
 
       {/* Delete order confirmation modal */}
-      {deleteConfirmOrderId && (
+      {deleteConfirmOrderId && typeof document !== 'undefined' && createPortal(
         <>
           <style dangerouslySetInnerHTML={{ __html: `
             @keyframes deleteBackdropIn { from { opacity: 0; } to { opacity: 1; } }
@@ -3638,8 +3638,8 @@ const OrderHistory = () => {
               onClick={() => !deleteSubmitting && (setDeleteConfirmOrderId(null), setDeleteError(null))}
             />
             <div
-              className="relative w-full max-w-[min(90vw,400px)] rounded-2xl shadow-2xl border-2 border-gray-200 bg-white overflow-hidden"
-              style={{ animation: 'deleteDialogIn 0.35s cubic-bezier(0.34,1.56,0.64,1)' }}
+              className="relative w-full max-w-md rounded-2xl shadow-2xl border-2 border-gray-200 bg-white overflow-hidden"
+              style={{ animation: 'deleteDialogIn 0.35s cubic-bezier(0.34,1.56,0.64,1)', minWidth: '340px' }}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-5 sm:p-6 text-center">
@@ -3686,7 +3686,8 @@ const OrderHistory = () => {
               </div>
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
 
       {/* ========== EDIT COMPLETED ORDER MODAL ========== */}
