@@ -1835,7 +1835,7 @@ const OrderHistory = () => {
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto">
             {/* Info strip */}
-            <div className="grid grid-cols-3 divide-x divide-gray-100 border-b border-gray-100 bg-gray-50/50">
+            <div className={`grid ${order.assignedStaff?.name ? 'grid-cols-4' : 'grid-cols-3'} divide-x divide-gray-100 border-b border-gray-100 bg-gray-50/50`}>
               <div className="px-4 py-3">
                 <div className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">{t('orderHistory.customer')}</div>
                 <div className="text-sm font-semibold text-gray-900 truncate">{order.customerDisplay?.name || t('orderHistory.walkIn')}</div>
@@ -1857,6 +1857,13 @@ const OrderHistory = () => {
                 <div className="text-sm font-semibold text-gray-900 capitalize">{order.orderType?.replace('-', ' ') || t('orderHistory.type.dineIn')}</div>
                 <div className="text-xs text-gray-400 capitalize">{order.paymentMethod || t('orderHistory.unpaid')}</div>
               </div>
+              {order.assignedStaff?.name && (
+                <div className="px-4 py-3">
+                  <div className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">Assigned Staff</div>
+                  <div className="text-sm font-semibold text-gray-900 truncate">{order.assignedStaff.name}</div>
+                  <div className="text-xs text-gray-400">Staff</div>
+                </div>
+              )}
             </div>
 
             {/* Items */}
@@ -2607,6 +2614,11 @@ const OrderHistory = () => {
                                     {sourceChip.label}
                                   </span>
                                 )}
+                                {order.assignedStaff?.name && (
+                                  <span style={{ display: 'inline-flex', padding: '1px 5px', backgroundColor: '#f0fdf4', color: '#166534', borderRadius: '4px', fontSize: '9px', fontWeight: '600', border: '1px solid #bbf7d0', width: 'fit-content' }}>
+                                    Staff: {order.assignedStaff.name}
+                                  </span>
+                                )}
                               </div>
                             </td>
                             {/* Payment */}
@@ -2923,6 +2935,11 @@ const OrderHistory = () => {
                               {sourceChip && (
                                 <span className={`inline-flex px-1.5 py-0.5 rounded-md text-[10px] font-medium border ${sourceChip.className}`}>
                                   {sourceChip.label}
+                                </span>
+                              )}
+                              {order.assignedStaff?.name && (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 6px', backgroundColor: '#f0fdf4', color: '#166534', borderRadius: '6px', fontSize: '10px', fontWeight: '600', border: '1px solid #bbf7d0' }}>
+                                  Staff: {order.assignedStaff.name}
                                 </span>
                               )}
                               {order.isScheduled && order.scheduledFor && (

@@ -160,6 +160,7 @@ function RestaurantPOSContent() {
   const [customerName, setCustomerName] = useState('');
   const [customerMobile, setCustomerMobile] = useState('');
   const [customerData, setCustomerData] = useState(null); // From customer lookup hook in OrderSummary
+  const [assignedStaff, setAssignedStaff] = useState(null); // { name, id } for staff assignment
   const [orderLookup, setOrderLookup] = useState(''); // For table number or order ID lookup
   const [currentOrder, setCurrentOrder] = useState(null); // Current order being viewed/updated
   const [orderSearchLoading, setOrderSearchLoading] = useState(false); // Loading state for order search
@@ -1479,7 +1480,7 @@ function RestaurantPOSContent() {
         setCart([]);
         setCurrentOrder(null);
         setActiveSavedOrderId(null);
-        setCustomerName('');
+        setCustomerName(''); setAssignedStaff(null);
         setCustomerMobile('');
         setCustomerData(null);
         setOrderSuccess(null);
@@ -1793,7 +1794,7 @@ function RestaurantPOSContent() {
       setCart([]);
       setCurrentOrder(null);
       setActiveSavedOrderId(null);
-      setCustomerName('');
+      setCustomerName(''); setAssignedStaff(null);
       setCustomerMobile('');
       setCustomerData(null);
       setTableNumber('');
@@ -2140,7 +2141,7 @@ function RestaurantPOSContent() {
   const handleFreshOrder = () => {
     setCart([]);
     setTableNumber('');
-    setCustomerName('');
+    setCustomerName(''); setAssignedStaff(null);
     setCustomerMobile('');
     setCustomerData(null);
     setOrderLookup('');
@@ -2368,6 +2369,8 @@ function RestaurantPOSContent() {
             setCustomerName(String(order.customerInfo.name || ''));
             setCustomerMobile(String(order.customerInfo.phone || ''));
           }
+          // Set assigned staff if available
+          if (order.assignedStaff) setAssignedStaff(order.assignedStaff);
           
         // Show appropriate notification based on mode
         if (mode === 'view') {
@@ -2930,7 +2933,8 @@ function RestaurantPOSContent() {
             roomNumber: isRoomOrder ? (roomNumber || currentOrder.roomNumber || null) : null,
             floorName: selectedTable?.floor || null
           },
-          customerId: customerData?.id || null
+          customerId: customerData?.id || null,
+          assignedStaff: assignedStaff || null
         };
 
         // If split payment, override payment method
@@ -2998,7 +3002,7 @@ function RestaurantPOSContent() {
                 setSelectedTable(null);
                 setCart([]);
                 setTableNumber('');
-                setCustomerName('');
+                setCustomerName(''); setAssignedStaff(null);
                 setCustomerMobile('');
                 setCustomerData(null);
                 localStorage.removeItem('dine_cart');
@@ -3084,7 +3088,7 @@ function RestaurantPOSContent() {
               setViewMode('tables');
               setCart([]);
               setTableNumber('');
-              setCustomerName('');
+              setCustomerName(''); setAssignedStaff(null);
               setCustomerMobile('');
               setCustomerData(null);
               setManualTableNumber('');
@@ -3161,6 +3165,7 @@ function RestaurantPOSContent() {
             floorName: selectedTable?.floor || null
         },
         customerId: customerData?.id || null,
+        assignedStaff: assignedStaff || null,
         // Tax information from OrderSummary
         totalAmount: subtotal || getTotalAmount(),
         taxBreakdown: taxBreakdown,
@@ -3264,7 +3269,7 @@ function RestaurantPOSContent() {
                 setSelectedTable(null);
                 setCart([]);
                 setTableNumber('');
-                setCustomerName('');
+                setCustomerName(''); setAssignedStaff(null);
                 setCustomerMobile('');
                 setCustomerData(null);
                 localStorage.removeItem('dine_cart');
@@ -3385,7 +3390,7 @@ function RestaurantPOSContent() {
           setViewMode('tables');
           setCart([]);
           setTableNumber('');
-          setCustomerName('');
+          setCustomerName(''); setAssignedStaff(null);
           setCustomerMobile('');
           setCustomerData(null);
           setManualTableNumber('');
@@ -3674,7 +3679,7 @@ function RestaurantPOSContent() {
         setTableNumber('');
         setManualTableNumber('');
         setManualRoomNumber('');
-        setCustomerName('');
+        setCustomerName(''); setAssignedStaff(null);
         setCustomerMobile('');
       }
 
@@ -3761,6 +3766,7 @@ function RestaurantPOSContent() {
           phone: customerMobile || null,
         },
         customerId: customerData?.id || null,
+        assignedStaff: assignedStaff || null,
         orderType,
         tableNumber: finalTableNumber || null,
         paymentMethod,
@@ -3786,7 +3792,7 @@ function RestaurantPOSContent() {
           setTableNumber('');
           setManualTableNumber('');
           setManualRoomNumber('');
-          setCustomerName('');
+          setCustomerName(''); setAssignedStaff(null);
           setCustomerMobile('');
           setCurrentOrder(null);
           setActiveSavedOrderId(null);
@@ -3816,7 +3822,7 @@ function RestaurantPOSContent() {
         setTableNumber('');
         setManualTableNumber('');
         setManualRoomNumber('');
-        setCustomerName('');
+        setCustomerName(''); setAssignedStaff(null);
         setCustomerMobile('');
         setCurrentOrder(null);
         setActiveSavedOrderId(null);
@@ -3843,7 +3849,7 @@ function RestaurantPOSContent() {
         setTableNumber('');
         setManualTableNumber('');
         setManualRoomNumber('');
-        setCustomerName('');
+        setCustomerName(''); setAssignedStaff(null);
         setCustomerMobile('');
         setCurrentOrder(null);
         setActiveSavedOrderId(null);
@@ -3977,7 +3983,7 @@ function RestaurantPOSContent() {
             setSelectedTable(null);
             setCart([]);
             setTableNumber('');
-            setCustomerName('');
+            setCustomerName(''); setAssignedStaff(null);
             setCustomerMobile('');
             setCustomerData(null);
             localStorage.removeItem('dine_cart');
@@ -4111,7 +4117,8 @@ function RestaurantPOSContent() {
           lastUpdatedBy: {
             name: 'Staff Member',
             id: 'staff-001'
-          }
+          },
+          assignedStaff: assignedStaff || null
         };
 
         const response = await apiClient.updateOrder(currentOrder.id, updateData);
@@ -4202,7 +4209,7 @@ function RestaurantPOSContent() {
               setViewMode('tables');
               setCart([]);
               setTableNumber('');
-              setCustomerName('');
+              setCustomerName(''); setAssignedStaff(null);
               setCustomerMobile('');
               setCustomerData(null);
               setManualTableNumber('');
@@ -4265,6 +4272,7 @@ function RestaurantPOSContent() {
             floorName: selectedTable?.floor || null
           },
           customerId: customerData?.id || null,
+          assignedStaff: assignedStaff || null,
           orderType,
           paymentMethod,
           staffInfo: (() => {
@@ -4525,7 +4533,7 @@ function RestaurantPOSContent() {
                 // Don't use switchView here — it clears orderSuccess which kills auto-print
                 setViewMode('tables');
                 setTableNumber('');
-                setCustomerName('');
+                setCustomerName(''); setAssignedStaff(null);
                 setCustomerMobile('');
                 setCustomerData(null);
                 setManualTableNumber('');
@@ -4705,7 +4713,7 @@ function RestaurantPOSContent() {
     setTableNumber('');
     setCurrentOrder(null);
     setActiveSavedOrderId(null);
-    setCustomerName('');
+    setCustomerName(''); setAssignedStaff(null);
     setCustomerMobile('');
     setCustomerData(null);
     setManualTableNumber('');
@@ -4745,7 +4753,7 @@ function RestaurantPOSContent() {
       setCurrentOrder(null);
       setActiveSavedOrderId(null);
       setTableNumber('');
-      setCustomerName('');
+      setCustomerName(''); setAssignedStaff(null);
       setCustomerMobile('');
       setCustomerData(null);
       setManualTableNumber('');
@@ -7398,7 +7406,7 @@ function RestaurantPOSContent() {
                   setCart([]);
                   setCurrentOrder(null);
                   setOrderLookup('');
-                  setCustomerName('');
+                  setCustomerName(''); setAssignedStaff(null);
                   setCustomerMobile('');
                   setOrderType('dine-in');
                   setPaymentMethod('cash');
@@ -7516,6 +7524,8 @@ function RestaurantPOSContent() {
             onPlaceOrder={placeOrder}
             onUpdateWithoutKOT={updateOrderWithoutKOT}
             onPlaceOrderAndPrint={placeOrderAndPrint}
+            assignedStaff={assignedStaff}
+            onAssignedStaffChange={setAssignedStaff}
             onRemoveFromCart={removeFromCart}
             onAddToCart={addToCart}
             onUpdateCartItemQuantity={updateCartItemQuantity}
@@ -7608,6 +7618,8 @@ function RestaurantPOSContent() {
                     onPlaceOrder={placeOrder}
                     onUpdateWithoutKOT={updateOrderWithoutKOT}
                     onPlaceOrderAndPrint={placeOrderAndPrint}
+            assignedStaff={assignedStaff}
+            onAssignedStaffChange={setAssignedStaff}
                     onRemoveFromCart={removeFromCart}
                     onAddToCart={addToCart}
                     onToggleFavorite={handleToggleFavorite}

@@ -235,10 +235,11 @@ export function HeadquartersContent({ embedded = false }) {
   const [isMobile, setIsMobile] = useState(false);
   const [emailPreferences, setEmailPreferences] = useState({
     emailEnabled: false,
-    reportEmail: '',
+    reportEmails: [],
     timezone: 'Asia/Kolkata',
     reportTime: '08:00'
   });
+  const [newEmailInput, setNewEmailInput] = useState('');
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
   const [testEmailSent, setTestEmailSent] = useState(false);
   const [aiInsightsRemaining, setAiInsightsRemaining] = useState(10);
@@ -269,7 +270,7 @@ export function HeadquartersContent({ embedded = false }) {
       setUser(userData);
       setAuthorized(true);
       setLoading(false); // Show page shell immediately
-      setEmailPreferences(prev => ({ ...prev, reportEmail: userData.email || '' }));
+      setEmailPreferences(prev => ({ ...prev, reportEmails: prev.reportEmails?.length > 0 ? prev.reportEmails : (userData.email ? [userData.email] : []) }));
       // Read business type for CTA routing
       try {
         const savedR = localStorage.getItem('selectedRestaurant');
@@ -396,7 +397,13 @@ export function HeadquartersContent({ embedded = false }) {
     try {
       const response = await apiClient.getEmailPreferences();
       if (response.success && response.preferences) {
-        setEmailPreferences(response.preferences);
+        const prefs = { ...response.preferences };
+        // Backward compat: convert old single reportEmail to reportEmails array
+        if (!prefs.reportEmails && prefs.reportEmail) {
+          prefs.reportEmails = [prefs.reportEmail];
+        }
+        if (!prefs.reportEmails) prefs.reportEmails = [];
+        setEmailPreferences(prefs);
       }
     } catch (error) {
       console.error('Error loading email preferences:', error);
@@ -1114,11 +1121,12 @@ export function HeadquartersContent({ embedded = false }) {
 
   // Send test email handler
   const sendTestEmail = async () => {
-    if (!emailPreferences.reportEmail) return;
+    const emails = emailPreferences.reportEmails || [];
+    if (emails.length === 0) return;
     try {
       setSendingTestEmail(true);
       setTestEmailSent(false);
-      await apiClient.sendTestReport(emailPreferences.reportEmail);
+      await apiClient.sendTestReport(emails);
       setTestEmailSent(true);
       setTimeout(() => setTestEmailSent(false), 5000);
     } catch (error) {
@@ -1272,25 +1280,81 @@ export function HeadquartersContent({ embedded = false }) {
             </button>
           </div>
 
-          {/* Email input */}
+          {/* Email input — multi-email chips (max 5) */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '8px' }}>
-              {t('hq.emailAddress')}
+            <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span>{t('hq.emailAddress')}</span>
+              <span style={{ fontSize: '11px', fontWeight: '500', color: '#9ca3af' }}>
+                {emailPreferences.reportEmails?.length || 0}/5
+              </span>
             </label>
-            <input
-              type="email"
-              value={emailPreferences.reportEmail}
-              onChange={(e) => setEmailPreferences(prev => ({ ...prev, reportEmail: e.target.value }))}
-              placeholder={t('hq.emailPlaceholder')}
-              style={{
-                width: '100%',
-                padding: '14px 16px',
-                borderRadius: '12px',
-                border: '2px solid #e5e7eb',
-                fontSize: '14px',
-                transition: 'border-color 0.2s'
-              }}
-            />
+            <div style={{
+              width: '100%',
+              padding: '10px 12px',
+              borderRadius: '12px',
+              border: '2px solid #e5e7eb',
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '6px',
+              alignItems: 'center',
+              minHeight: '48px',
+              transition: 'border-color 0.2s',
+              cursor: 'text'
+            }} onClick={(e) => { const inp = e.currentTarget.querySelector('input'); if (inp) inp.focus(); }}>
+              {(emailPreferences.reportEmails || []).map((email, i) => (
+                <span key={i} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '4px',
+                  padding: '4px 10px', borderRadius: '20px',
+                  background: '#eff6ff', color: '#1d4ed8', fontSize: '13px', fontWeight: '500',
+                  border: '1px solid #bfdbfe', lineHeight: 1.3
+                }}>
+                  {email}
+                  <button onClick={(e) => {
+                    e.stopPropagation();
+                    setEmailPreferences(prev => ({
+                      ...prev,
+                      reportEmails: prev.reportEmails.filter((_, idx) => idx !== i)
+                    }));
+                  }} style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: '#6b7280', fontSize: '14px', lineHeight: 1, padding: '0 2px',
+                    fontWeight: '700'
+                  }}>×</button>
+                </span>
+              ))}
+              {(emailPreferences.reportEmails?.length || 0) < 5 && (
+                <input
+                  type="email"
+                  value={newEmailInput}
+                  onChange={(e) => setNewEmailInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ',') {
+                      e.preventDefault();
+                      const val = newEmailInput.trim().replace(/,$/, '');
+                      if (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) && !(emailPreferences.reportEmails || []).includes(val)) {
+                        setEmailPreferences(prev => ({ ...prev, reportEmails: [...(prev.reportEmails || []), val] }));
+                        setNewEmailInput('');
+                      }
+                    }
+                  }}
+                  onBlur={() => {
+                    const val = newEmailInput.trim().replace(/,$/, '');
+                    if (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) && !(emailPreferences.reportEmails || []).includes(val) && (emailPreferences.reportEmails?.length || 0) < 5) {
+                      setEmailPreferences(prev => ({ ...prev, reportEmails: [...(prev.reportEmails || []), val] }));
+                      setNewEmailInput('');
+                    }
+                  }}
+                  placeholder={(emailPreferences.reportEmails?.length || 0) === 0 ? t('hq.emailPlaceholder') : 'Add another...'}
+                  style={{
+                    border: 'none', outline: 'none', flex: 1, minWidth: '120px',
+                    fontSize: '14px', padding: '4px 0', background: 'transparent'
+                  }}
+                />
+              )}
+            </div>
+            {(emailPreferences.reportEmails?.length || 0) >= 5 && (
+              <div style={{ fontSize: '11px', color: '#f59e0b', marginTop: '4px' }}>Maximum 5 email addresses</div>
+            )}
           </div>
 
           {/* Time and Timezone row */}
@@ -1342,7 +1406,7 @@ export function HeadquartersContent({ embedded = false }) {
             {/* Send Test Email */}
             <button
               onClick={sendTestEmail}
-              disabled={sendingTestEmail || !emailPreferences.reportEmail}
+              disabled={sendingTestEmail || !(emailPreferences.reportEmails?.length > 0)}
               style={{
                 flex: 1,
                 padding: '14px',
@@ -1352,8 +1416,8 @@ export function HeadquartersContent({ embedded = false }) {
                 color: testEmailSent ? '#22c55e' : '#ef4444',
                 fontSize: '14px',
                 fontWeight: '600',
-                cursor: sendingTestEmail || !emailPreferences.reportEmail ? 'not-allowed' : 'pointer',
-                opacity: !emailPreferences.reportEmail ? 0.5 : 1,
+                cursor: sendingTestEmail || !(emailPreferences.reportEmails?.length > 0) ? 'not-allowed' : 'pointer',
+                opacity: !(emailPreferences.reportEmails?.length > 0) ? 0.5 : 1,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1683,14 +1747,20 @@ export function HeadquartersContent({ embedded = false }) {
     const prevHourlyData = analyticsData?.previousDayRevenueByHour || [];
     const hasPrevHourly = dateRange.preset === 'today' && prevHourlyData.length > 0;
 
-    // Available view options based on date range
-    const chartViewOptions = dateRange.preset === 'today'
-      ? ['hourly']
-      : dateRange.preset === '7d'
-        ? ['daily']
-        : dateRange.preset === '30d'
-          ? ['daily', 'weekly']
-          : ['daily', 'weekly'];
+    // Available view options — always show all three, button clicks auto-adjust date range
+    const chartViewOptions = ['hourly', 'daily', 'weekly'];
+
+    // Handler for chart view toggle — auto-adjusts date range for meaningful data
+    const handleChartViewChange = (v) => {
+      setChartView(v);
+      if (v === 'hourly' && dateRange.preset !== 'today') {
+        setDateRange({ preset: 'today', startDate: '', endDate: '' });
+      } else if (v === 'daily' && dateRange.preset === 'today') {
+        setDateRange({ preset: '7d', startDate: '', endDate: '' });
+      } else if (v === 'weekly' && (dateRange.preset === 'today' || dateRange.preset === '7d')) {
+        setDateRange({ preset: '30d', startDate: '', endDate: '' });
+      }
+    };
 
     // Determine effective chart granularity
     const defaultView = dateRange.preset === 'today' ? 'hourly' : 'daily';
@@ -1829,19 +1899,17 @@ export function HeadquartersContent({ embedded = false }) {
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {chartViewOptions.length > 1 && (
-                  <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
-                    {chartViewOptions.map(v => (
-                      <button key={v} onClick={() => setChartView(v)} style={{
-                        padding: '4px 10px', fontSize: '11px', fontWeight: 500, border: 'none', cursor: 'pointer',
-                        backgroundColor: effectiveView === v ? '#16a34a' : '#fff',
-                        color: effectiveView === v ? '#fff' : '#6b7280',
-                      }}>
-                        {v === 'hourly' ? t('hq.hourly') : v === 'daily' ? t('hq.daily') : t('hq.weekly')}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                  {chartViewOptions.map(v => (
+                    <button key={v} onClick={() => handleChartViewChange(v)} style={{
+                      padding: '4px 10px', fontSize: '11px', fontWeight: 500, border: 'none', cursor: 'pointer',
+                      backgroundColor: effectiveView === v ? '#16a34a' : '#fff',
+                      color: effectiveView === v ? '#fff' : '#6b7280',
+                    }}>
+                      {v === 'hourly' ? t('hq.hourly') : v === 'daily' ? t('hq.daily') : t('hq.weekly')}
+                    </button>
+                  ))}
+                </div>
                 {refreshing ? (
                   <div style={{ width: '90px', height: '28px', borderRadius: '20px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'hqShimmer 1.5s ease-in-out infinite' }} />
                 ) : (
@@ -1936,19 +2004,17 @@ export function HeadquartersContent({ embedded = false }) {
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {chartViewOptions.length > 1 && (
-                  <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
-                    {chartViewOptions.map(v => (
-                      <button key={v} onClick={() => setChartView(v)} style={{
-                        padding: '4px 10px', fontSize: '11px', fontWeight: 500, border: 'none', cursor: 'pointer',
-                        backgroundColor: effectiveView === v ? '#3b82f6' : '#fff',
-                        color: effectiveView === v ? '#fff' : '#6b7280',
-                      }}>
-                        {v === 'hourly' ? t('hq.hourly') : v === 'daily' ? t('hq.daily') : t('hq.weekly')}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                  {chartViewOptions.map(v => (
+                    <button key={v} onClick={() => handleChartViewChange(v)} style={{
+                      padding: '4px 10px', fontSize: '11px', fontWeight: 500, border: 'none', cursor: 'pointer',
+                      backgroundColor: effectiveView === v ? '#3b82f6' : '#fff',
+                      color: effectiveView === v ? '#fff' : '#6b7280',
+                    }}>
+                      {v === 'hourly' ? t('hq.hourly') : v === 'daily' ? t('hq.daily') : t('hq.weekly')}
+                    </button>
+                  ))}
+                </div>
                 {refreshing ? (
                   <div style={{ width: '80px', height: '28px', borderRadius: '20px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'hqShimmer 1.5s ease-in-out infinite 0.1s' }} />
                 ) : (
@@ -2200,7 +2266,7 @@ export function HeadquartersContent({ embedded = false }) {
               <div style={{ fontSize: isMobile ? '14px' : '15px', fontWeight: '700', color: '#1f2937' }}>{t('hq.dailyEmailReports')}</div>
               <div style={{ fontSize: isMobile ? '12px' : '13px', color: '#6b7280', marginTop: '2px' }}>
                 {emailPreferences.emailEnabled
-                  ? t('hq.enabledSendingTo', { email: emailPreferences.reportEmail || 'your email' })
+                  ? t('hq.enabledSendingTo', { email: (emailPreferences.reportEmails || []).join(', ') || 'your email' })
                   : t('hq.getDailySummaries')}
               </div>
             </div>

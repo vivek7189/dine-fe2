@@ -292,10 +292,15 @@ const TableManagement = () => {
   const [bookingStep, setBookingStep] = useState(1);
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
   const [actionLoading, setActionLoading] = useState(false); // loading for add/edit table, floor, reset, status change
+  const actionLockRef = useRef(false); // prevent double-click on add/bulk actions
   const [hoveredTableId, setHoveredTableId] = useState(null);
   const [floorModalTab, setFloorModalTab] = useState('details'); // 'details' | 'order'
   const [floorOrderList, setFloorOrderList] = useState([]); // for reordering
   const [savingFloorOrder, setSavingFloorOrder] = useState(false);
+
+  // Quick view modal
+  const [quickViewOrder, setQuickViewOrder] = useState(null);
+  const [quickViewLoading, setQuickViewLoading] = useState(null);
 
   // Billing modal state (shared component)
   const [billingModalOpen, setBillingModalOpen] = useState(false);
@@ -819,12 +824,14 @@ const TableManagement = () => {
   };
 
   const addTable = async () => {
+    if (actionLockRef.current) return;
     if (!isOnline) { showError('You are offline. Go online to make changes.'); return; }
     if (!newTable.name.trim() || !selectedFloorForTable || !selectedRestaurant) return;
+    actionLockRef.current = true;
     setActionLoading(true);
     try {
       const selectedFloor = floors.find(f => f.id === selectedFloorForTable);
-      if (!selectedFloor) { showError('Floor not found'); setActionLoading(false); return; }
+      if (!selectedFloor) { showError('Floor not found'); setActionLoading(false); actionLockRef.current = false; return; }
       const response = await apiClient.createTable(selectedRestaurant.id, {
         name: newTable.name.trim(), capacity: parseInt(newTable.capacity),
         type: newTable.type, floor: selectedFloor.name, status: 'available'
@@ -834,10 +841,11 @@ const TableManagement = () => {
       setSelectedFloorForTable(null); setShowAddModal(false);
       showSuccess(t('tables.tableAddedSuccess'));
     } catch (err) { showError(`Failed to add table: ${err.message}`); }
-    finally { setActionLoading(false); }
+    finally { setActionLoading(false); actionLockRef.current = false; }
   };
 
   const bulkAddTables = async () => {
+    if (actionLockRef.current) return;
     if (!bulkTableData.fromNumber || !bulkTableData.toNumber || !selectedFloorForTable || !selectedRestaurant) {
       showError(t('tables.fillAllFields')); return;
     }
@@ -845,6 +853,7 @@ const TableManagement = () => {
     if (isNaN(from) || isNaN(to)) { showError(t('tables.fromToMustBeNumbers')); return; }
     if (from > to) { showError(t('tables.fromMustBeLessThanTo')); return; }
     if (to - from > 100) { showError(t('tables.maxTablesAtOnce')); return; }
+    actionLockRef.current = true;
     setActionLoading(true);
     try {
       const selectedFloor = floors.find(f => f.id === selectedFloorForTable);
@@ -859,7 +868,7 @@ const TableManagement = () => {
       setSelectedFloorForTable(null); setShowAddModal(false);
       showSuccess(t('tables.createdTablesSuccess', { created: response.created }) + (response.skipped > 0 ? ' ' + t('tables.skippedTables', { skipped: response.skipped }) : ''));
     } catch (err) { showError(`Failed: ${err.message}`); }
-    finally { setActionLoading(false); }
+    finally { setActionLoading(false); actionLockRef.current = false; }
   };
 
   const updateTableStatus = async (tableId, newStatus, additionalData = {}) => {
@@ -1040,6 +1049,21 @@ const TableManagement = () => {
     win.document.close();
     win.focus();
     setTimeout(() => win.print(), 500);
+  };
+
+  const handleQuickView = async (e, table) => {
+    e.stopPropagation();
+    if (!table.currentOrderId || quickViewLoading) return;
+    setQuickViewLoading(table.id);
+    try {
+      const response = await apiClient.getOrderById(table.currentOrderId);
+      const order = response.orders?.[0] || response.order || response;
+      setQuickViewOrder({ ...order, tableName: table.name });
+    } catch (err) {
+      console.error('Quick view failed:', err);
+    } finally {
+      setQuickViewLoading(null);
+    }
   };
 
   const handleTableAction = (action, table) => {
@@ -1326,95 +1350,88 @@ const TableManagement = () => {
           </div>
         </div>
 
-        {/* Main Tab Toggle: Tables vs Delivery/Takeaway */}
-        <div style={{ display: 'flex', gap: '4px', marginBottom: '12px', backgroundColor: '#f1f5f9', borderRadius: '12px', padding: '4px' }}>
-          {[
-            { key: 'tables', label: t('tables.tableManagement') || 'Tables', icon: FaChair },
-            { key: 'delivery-takeaway', label: 'Delivery / Takeaway', icon: FaTruck },
-          ].map(tab => (
-            <button key={tab.key} onClick={() => setActiveMainTab(tab.key)} style={{
-              flex: 1, padding: '9px 16px', borderRadius: '10px', border: 'none',
-              fontSize: '13px', fontWeight: '600', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-              transition: 'all 0.2s',
-              backgroundColor: activeMainTab === tab.key ? 'white' : 'transparent',
-              color: activeMainTab === tab.key ? '#1f2937' : '#6b7280',
-              boxShadow: activeMainTab === tab.key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-            }}>
-              <tab.icon size={13} /> {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Row 2: Quick Stats — only for tables tab */}
-        {activeMainTab === 'tables' && (
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-          {[
-            { label: t('tables.total'), count: totalTables, bg: '#f8fafc', dot: '#64748b', border: '#e2e8f0' },
-            { label: isToday ? t('tables.available') : t('tables.free'), count: stats.available, bg: '#f0fdf4', dot: '#22c55e', border: '#bbf7d0' },
-            ...(isToday && stats.occupied > 0 ? [{ label: t('tables.occupied'), count: stats.occupied, bg: '#fefce8', dot: '#f59e0b', border: '#fde68a' }] : []),
-            ...(stats.reserved > 0 ? [{ label: isToday ? t('tables.reserved') : t('tables.booked'), count: stats.reserved, bg: '#eff6ff', dot: '#3b82f6', border: '#bfdbfe' }] : []),
-            ...(isToday && stats.other > 0 ? [{ label: t('tables.other'), count: stats.other, bg: '#fef2f2', dot: '#ef4444', border: '#fecaca' }] : []),
-          ].map(s => (
-            <div key={s.label} style={{
-              display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px',
-              backgroundColor: s.bg, borderRadius: '10px', border: `1px solid ${s.border}`,
-            }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: s.dot }} />
-              <span style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937' }}>{s.count}</span>
-              <span style={{ fontSize: '12px', fontWeight: '500', color: '#6b7280' }}>{s.label}</span>
-            </div>
-          ))}
-          {loadingTableStatuses && <div style={{ width: '16px', height: '16px', border: '2px solid #f3f4f6', borderTop: '2px solid #ef4444', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />}
-        </div>
-        )}
-
-        {/* Row 3: Floor Pills — only for tables tab */}
-        {activeMainTab === 'tables' && (
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
-          <button onClick={() => setSelectedFloorId('all')} style={{
-            padding: '7px 16px', borderRadius: '24px', border: 'none', fontSize: '13px', fontWeight: '600',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap',
-            transition: 'all 0.2s',
-            ...(selectedFloorId === 'all'
-              ? { backgroundColor: '#ef4444', color: 'white', boxShadow: '0 2px 8px rgba(239,68,68,0.3)' }
-              : { backgroundColor: 'white', color: '#475569', border: '1px solid #e2e8f0' }),
-          }}>
-            {t('tables.allFloors')}
-            <span style={{
-              padding: '1px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '700',
-              backgroundColor: selectedFloorId === 'all' ? 'rgba(255,255,255,0.25)' : '#f1f5f9',
-            }}>{totalTables}</span>
-          </button>
-          {floors.map(floor => {
-            const floorTableCount = (floor.tables || []).length;
-            const active = selectedFloorId === floor.id;
-            return (
-              <button key={floor.id} onClick={() => setSelectedFloorId(floor.id)} style={{
-                padding: '7px 16px', borderRadius: '24px', border: active ? 'none' : '1px solid #e2e8f0',
-                fontSize: '13px', fontWeight: active ? '600' : '500', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', transition: 'all 0.2s',
-                backgroundColor: active ? '#ef4444' : 'white', color: active ? 'white' : '#475569',
-                boxShadow: active ? '0 2px 8px rgba(239,68,68,0.3)' : 'none',
+        {/* Tab Toggle + Stats + Floor Pills — compact single bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+          {/* Tab toggle — compact pill */}
+          <div style={{ display: 'flex', gap: '2px', backgroundColor: '#f1f5f9', borderRadius: '10px', padding: '3px', flexShrink: 0 }}>
+            {[
+              { key: 'tables', label: t('tables.tableManagement') || 'Tables', icon: FaChair },
+              { key: 'delivery-takeaway', label: 'Delivery / Takeaway', icon: FaTruck },
+            ].map(tab => (
+              <button key={tab.key} onClick={() => setActiveMainTab(tab.key)} style={{
+                padding: '6px 14px', borderRadius: '8px', border: 'none',
+                fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.2s', whiteSpace: 'nowrap',
+                backgroundColor: activeMainTab === tab.key ? 'white' : 'transparent',
+                color: activeMainTab === tab.key ? '#1f2937' : '#9ca3af',
+                boxShadow: activeMainTab === tab.key ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
               }}>
-                {floor.name}
-                <span style={{
-                  padding: '1px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '700',
-                  backgroundColor: active ? 'rgba(255,255,255,0.25)' : '#f1f5f9',
-                }}>{floorTableCount}</span>
+                <tab.icon size={11} /> {tab.label}
               </button>
-            );
-          })}
-          {canAddTable && (
-            <button onClick={() => setShowAddFloor(true)} style={{
-              padding: '7px 16px', borderRadius: '24px', border: '1px dashed #d1d5db', backgroundColor: 'transparent',
-              color: '#9ca3af', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap',
+            ))}
+          </div>
+
+          {/* Divider */}
+          {activeMainTab === 'tables' && <div style={{ width: '1px', height: '20px', backgroundColor: '#e2e8f0', flexShrink: 0 }} />}
+
+          {/* Floor pills — inline */}
+          {activeMainTab === 'tables' && <>
+            <button onClick={() => setSelectedFloorId('all')} style={{
+              padding: '5px 12px', borderRadius: '20px', border: 'none', fontSize: '12px', fontWeight: '600',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', transition: 'all 0.2s', flexShrink: 0,
+              ...(selectedFloorId === 'all'
+                ? { backgroundColor: '#ef4444', color: 'white', boxShadow: '0 2px 6px rgba(239,68,68,0.25)' }
+                : { backgroundColor: 'white', color: '#475569', border: '1px solid #e2e8f0' }),
             }}>
-              <FaPlus size={10} /> {t('tables.floor')}
+              {t('tables.allFloors')}
+              <span style={{ padding: '0 6px', borderRadius: '8px', fontSize: '10px', fontWeight: '700', backgroundColor: selectedFloorId === 'all' ? 'rgba(255,255,255,0.25)' : '#f1f5f9' }}>{totalTables}</span>
             </button>
+            {floors.map(floor => {
+              const floorTableCount = (floor.tables || []).length;
+              const active = selectedFloorId === floor.id;
+              return (
+                <button key={floor.id} onClick={() => setSelectedFloorId(floor.id)} style={{
+                  padding: '5px 12px', borderRadius: '20px', border: active ? 'none' : '1px solid #e2e8f0',
+                  fontSize: '12px', fontWeight: active ? '600' : '500', cursor: 'pointer', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', transition: 'all 0.2s',
+                  backgroundColor: active ? '#ef4444' : 'white', color: active ? 'white' : '#475569',
+                  boxShadow: active ? '0 2px 6px rgba(239,68,68,0.25)' : 'none',
+                }}>
+                  {floor.name}
+                  <span style={{ padding: '0 6px', borderRadius: '8px', fontSize: '10px', fontWeight: '700', backgroundColor: active ? 'rgba(255,255,255,0.25)' : '#f1f5f9' }}>{floorTableCount}</span>
+                </button>
+              );
+            })}
+            {canAddTable && (
+              <button onClick={() => setShowAddFloor(true)} style={{
+                padding: '5px 12px', borderRadius: '20px', border: '1px dashed #d1d5db', backgroundColor: 'transparent',
+                color: '#9ca3af', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', flexShrink: 0,
+              }}>
+                <FaPlus size={9} /> {t('tables.floor')}
+              </button>
+            )}
+          </>}
+
+          {/* Stats — pushed to right */}
+          {activeMainTab === 'tables' && (
+            <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto', alignItems: 'center', flexShrink: 0 }}>
+              {[
+                { label: t('tables.total'), count: totalTables, dot: '#64748b' },
+                { label: isToday ? t('tables.available') : t('tables.free'), count: stats.available, dot: '#22c55e' },
+                ...(isToday && stats.occupied > 0 ? [{ label: t('tables.occupied'), count: stats.occupied, dot: '#f59e0b' }] : []),
+                ...(stats.reserved > 0 ? [{ label: isToday ? t('tables.reserved') : t('tables.booked'), count: stats.reserved, dot: '#3b82f6' }] : []),
+                ...(isToday && stats.other > 0 ? [{ label: t('tables.other'), count: stats.other, dot: '#ef4444' }] : []),
+              ].map(s => (
+                <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', whiteSpace: 'nowrap' }}>
+                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: s.dot }} />
+                  <span style={{ fontWeight: '700', color: '#1f2937' }}>{s.count}</span>
+                  <span style={{ fontWeight: '500', color: '#9ca3af' }}>{s.label}</span>
+                </div>
+              ))}
+              {loadingTableStatuses && <div style={{ width: '14px', height: '14px', border: '2px solid #f3f4f6', borderTop: '2px solid #ef4444', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />}
+            </div>
           )}
         </div>
-        )}
       </div>
 
       {/* ─── DELIVERY/TAKEAWAY PANEL ─── */}
@@ -1544,6 +1561,14 @@ const TableManagement = () => {
                               </div>
                               <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 <FaChair size={9} /> {table.capacity || '-'} {t('tables.seats')}
+                                {isOccupied && table.currentOrderId && (
+                                  <button onClick={(e) => handleQuickView(e, table)} title="Quick view order" style={{
+                                    background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
+                                    color: '#6b7280', display: 'flex', alignItems: 'center', marginLeft: '2px',
+                                  }}>
+                                    {quickViewLoading === table.id ? <FaSpinner size={10} className="animate-spin" /> : <FaEye size={10} />}
+                                  </button>
+                                )}
                               </div>
                             </div>
                             {isAvailable ? (
@@ -2058,7 +2083,7 @@ const TableManagement = () => {
       )}
 
       {/* ─── ADD TABLE MODAL ─── */}
-      {showAddModal && (
+      {showAddModal && createPortal(
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => setShowAddModal(false)}>
           <div style={{ backgroundColor: 'white', borderRadius: '20px', boxShadow: '0 24px 48px rgba(0,0,0,0.12)', width: '100%', maxWidth: '480px', maxHeight: '85vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: '24px 24px 0' }}>
@@ -2130,11 +2155,12 @@ const TableManagement = () => {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ─── ADD/EDIT FLOOR MODAL ─── */}
-      {(showAddFloor || showEditFloor) && (
+      {(showAddFloor || showEditFloor) && createPortal(
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => { setShowAddFloor(false); setShowEditFloor(false); setFloorModalTab('details'); }}>
           <div style={{ backgroundColor: 'white', borderRadius: '20px', boxShadow: '0 24px 48px rgba(0,0,0,0.12)', width: '100%', maxWidth: '420px', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: '24px' }}>
@@ -2219,7 +2245,8 @@ const TableManagement = () => {
               </>)}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ─── BOOKING MODAL (3-step wizard) ─── */}
@@ -2242,7 +2269,7 @@ const TableManagement = () => {
         });
         const hasTimeConflict = selectedTable && bookingConflicts[selectedTable.id]?.length > 0;
 
-        return (
+        return createPortal(
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(6px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => { setShowBookingForm(false); setBookingStep(1); }}>
           <div style={{
             backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 24px 80px rgba(0,0,0,0.18)',
@@ -2533,7 +2560,8 @@ const TableManagement = () => {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
         );
       })()}
 
@@ -2607,6 +2635,81 @@ const TableManagement = () => {
             setMoveModalTable(null);
           }}
         />
+      )}
+
+      {/* Quick View Order Modal */}
+      {quickViewOrder && createPortal(
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => setQuickViewOrder(null)}>
+          <div style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 24px 48px rgba(0,0,0,0.15)', width: '100%', maxWidth: '400px', maxHeight: '80vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: '15px', fontWeight: '700', color: '#111827' }}>Table {quickViewOrder.tableName}</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>Order #{quickViewOrder.orderNumber || quickViewOrder.id?.slice(-6)}</div>
+              </div>
+              <button onClick={() => setQuickViewOrder(null)} style={{ width: '28px', height: '28px', borderRadius: '8px', border: 'none', backgroundColor: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FaTimes size={12} color="#6b7280" />
+              </button>
+            </div>
+            <div style={{ padding: '12px 20px' }}>
+              {(quickViewOrder.items || []).map((item, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '6px 0', borderBottom: i < (quickViewOrder.items || []).length - 1 ? '1px solid #f8fafc' : 'none' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', fontWeight: '500', color: '#1f2937' }}>
+                      <span style={{ color: '#6b7280', marginRight: '4px' }}>{item.quantity || 1}x</span>
+                      {item.name}
+                    </div>
+                    {item.variant && <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '1px', paddingLeft: '20px' }}>{typeof item.variant === 'object' ? item.variant.name : item.variant}</div>}
+                    {item.customizations?.length > 0 && <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '1px', paddingLeft: '20px' }}>{item.customizations.map(c => c.name || c).join(', ')}</div>}
+                  </div>
+                  <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', flexShrink: 0, marginLeft: '12px' }}>
+                    {formatCurrency((item.price || 0) * (item.quantity || 1))}
+                  </div>
+                </div>
+              ))}
+              {(!quickViewOrder.items || quickViewOrder.items.length === 0) && (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#9ca3af', fontSize: '13px' }}>No items in this order</div>
+              )}
+            </div>
+            <div style={{ padding: '12px 20px', borderTop: '1px dashed #e2e8f0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {quickViewOrder.subtotal != null && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6b7280' }}>
+                  <span>Subtotal</span><span>{formatCurrency(quickViewOrder.subtotal)}</span>
+                </div>
+              )}
+              {(quickViewOrder.taxes || quickViewOrder.taxBreakdown || []).map((tax, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6b7280' }}>
+                  <span>{tax.name || 'Tax'}</span><span>{formatCurrency(tax.amount || 0)}</span>
+                </div>
+              ))}
+              {quickViewOrder.discount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#059669' }}>
+                  <span>Discount</span><span>-{formatCurrency(quickViewOrder.discount)}</span>
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', fontWeight: '700', color: '#111827', marginTop: '4px', paddingTop: '6px', borderTop: '1px solid #e2e8f0' }}>
+                <span>Total</span><span>{formatCurrency(quickViewOrder.finalAmount || quickViewOrder.total || 0)}</span>
+              </div>
+            </div>
+            <div style={{ padding: '12px 20px 16px', display: 'flex', gap: '8px' }}>
+              <button onClick={() => {
+                setQuickViewOrder(null);
+                router.push(`/dashboard?orderId=${quickViewOrder.id}&mode=edit`);
+              }} style={{
+                flex: 1, padding: '10px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: '600',
+                background: '#059669', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              }}>
+                <FaPlus size={10} /> Add Items
+              </button>
+              <button onClick={() => setQuickViewOrder(null)} style={{
+                padding: '10px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '13px', fontWeight: '600',
+                background: 'white', color: '#6b7280', cursor: 'pointer',
+              }}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       <NotificationContainer />

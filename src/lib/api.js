@@ -3258,11 +3258,14 @@ class ApiClient {
     });
   }
 
-  // Send test email report
-  async sendTestReport(email) {
+  // Send test email report (accepts single email string or array)
+  async sendTestReport(emailOrEmails) {
+    const body = Array.isArray(emailOrEmails)
+      ? { emails: emailOrEmails }
+      : { email: emailOrEmails };
     return this.request('/api/ai/send-test-report', {
       method: 'POST',
-      body: { email }
+      body
     });
   }
 

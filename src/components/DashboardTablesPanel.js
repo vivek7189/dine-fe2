@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { FaEye, FaReceipt, FaTimes, FaMinus, FaChevronUp, FaWindowMaximize, FaChair, FaClock, FaUserFriends, FaUtensils, FaTools, FaBan, FaPrint, FaPlus, FaEllipsisH, FaCreditCard, FaExchangeAlt, FaTrash, FaSpinner } from 'react-icons/fa';
 import apiClient from '../lib/api';
@@ -93,6 +94,10 @@ export default function DashboardTablesPanel({
 
   // Move order modal
   const [moveModalTable, setMoveModalTable] = useState(null);
+
+  // Quick view modal
+  const [quickViewOrder, setQuickViewOrder] = useState(null);
+  const [quickViewLoading, setQuickViewLoading] = useState(null); // holds tableId while loading
 
   // Ref for the recently updated table card
   const updatedTableRef = useRef(null);
@@ -225,6 +230,21 @@ export default function DashboardTablesPanel({
     }
     if (sliderOpen) handleSliderClose();
     if (onTakeOrder) onTakeOrder(table.name || table.number, { id: table.id, floor: floorName, floorId: floorId || null, capacity: table.capacity });
+  };
+
+  const handleQuickView = async (e, table) => {
+    e.stopPropagation();
+    if (!table.currentOrderId || quickViewLoading) return;
+    setQuickViewLoading(table.id);
+    try {
+      const response = await apiClient.getOrderById(table.currentOrderId);
+      const order = response.orders?.[0] || response.order || response;
+      setQuickViewOrder({ ...order, tableName: table.name || table.number });
+    } catch (err) {
+      console.error('Quick view failed:', err);
+    } finally {
+      setQuickViewLoading(null);
+    }
   };
 
   const closeSlider = () => {
@@ -766,13 +786,32 @@ export default function DashboardTablesPanel({
                           {t.capacity || '-'} Seats
                         </div>
                       </div>
-                      {/* Single ··· menu for occupied tables — combines Move, Print Bill, Print KOT */}
+                      {/* Action icons for occupied tables — Quick View + Print/Actions menu */}
                       {isOccupied && t.currentOrderId && (() => {
                         const tableId = t.id || t.currentOrderId;
                         const isPrinting = printingTables[tableId];
                         const isDropdownOpen = printDropdownTable === tableId;
                         return (
-                          <div style={{ position: 'relative', flexShrink: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                            {/* Quick View Eye Button */}
+                            <button
+                              className="btn-action"
+                              onClick={(e) => handleQuickView(e, t)}
+                              title="Quick view order"
+                              style={{
+                                width: '26px', height: '26px', padding: 0,
+                                background: quickViewLoading === t.id ? 'linear-gradient(135deg, #dbeafe, #bfdbfe)' : 'rgba(0,0,0,0.04)',
+                                color: quickViewLoading === t.id ? '#3b82f6' : '#6b7280',
+                                border: 'none', borderRadius: '8px',
+                                cursor: 'pointer', display: 'flex',
+                                alignItems: 'center', justifyContent: 'center',
+                                transition: 'all 0.15s ease',
+                              }}
+                            >
+                              {quickViewLoading === t.id ? <FaSpinner size={11} className="animate-spin" /> : <FaEye size={12} />}
+                            </button>
+                            {/* Print / Actions Menu */}
+                            <div style={{ position: 'relative' }}>
                             <button
                               className="btn-action"
                               onClick={(e) => {
@@ -853,6 +892,7 @@ export default function DashboardTablesPanel({
                                 </button>
                               </div>
                             )}
+                          </div>
                           </div>
                         );
                       })()}
@@ -1389,6 +1429,84 @@ export default function DashboardTablesPanel({
               </div>
             )}
           </div>
+      )}
+      {/* Quick View Order Modal */}
+      {quickViewOrder && createPortal(
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => setQuickViewOrder(null)}>
+          <div style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 24px 48px rgba(0,0,0,0.15)', width: '100%', maxWidth: '400px', maxHeight: '80vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: '15px', fontWeight: '700', color: '#111827' }}>Table {quickViewOrder.tableName}</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>Order #{quickViewOrder.orderNumber || quickViewOrder.id?.slice(-6)}</div>
+              </div>
+              <button onClick={() => setQuickViewOrder(null)} style={{ width: '28px', height: '28px', borderRadius: '8px', border: 'none', backgroundColor: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FaTimes size={12} color="#6b7280" />
+              </button>
+            </div>
+            {/* Items */}
+            <div style={{ padding: '12px 20px' }}>
+              {(quickViewOrder.items || []).map((item, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '6px 0', borderBottom: i < (quickViewOrder.items || []).length - 1 ? '1px solid #f8fafc' : 'none' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', fontWeight: '500', color: '#1f2937' }}>
+                      <span style={{ color: '#6b7280', marginRight: '4px' }}>{item.quantity || 1}x</span>
+                      {item.name}
+                    </div>
+                    {item.variant && <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '1px', paddingLeft: '20px' }}>{typeof item.variant === 'object' ? item.variant.name : item.variant}</div>}
+                    {item.customizations?.length > 0 && <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '1px', paddingLeft: '20px' }}>{item.customizations.map(c => c.name || c).join(', ')}</div>}
+                  </div>
+                  <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', flexShrink: 0, marginLeft: '12px' }}>
+                    {formatCurrency((item.price || 0) * (item.quantity || 1))}
+                  </div>
+                </div>
+              ))}
+              {(!quickViewOrder.items || quickViewOrder.items.length === 0) && (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#9ca3af', fontSize: '13px' }}>No items in this order</div>
+              )}
+            </div>
+            {/* Totals */}
+            <div style={{ padding: '12px 20px', borderTop: '1px dashed #e2e8f0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {quickViewOrder.subtotal != null && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6b7280' }}>
+                  <span>Subtotal</span><span>{formatCurrency(quickViewOrder.subtotal)}</span>
+                </div>
+              )}
+              {(quickViewOrder.taxes || quickViewOrder.taxBreakdown || []).map((tax, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6b7280' }}>
+                  <span>{tax.name || 'Tax'}</span><span>{formatCurrency(tax.amount || 0)}</span>
+                </div>
+              ))}
+              {quickViewOrder.discount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#059669' }}>
+                  <span>Discount</span><span>-{formatCurrency(quickViewOrder.discount)}</span>
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', fontWeight: '700', color: '#111827', marginTop: '4px', paddingTop: '6px', borderTop: '1px solid #e2e8f0' }}>
+                <span>Total</span><span>{formatCurrency(quickViewOrder.finalAmount || quickViewOrder.total || 0)}</span>
+              </div>
+            </div>
+            {/* Actions */}
+            <div style={{ padding: '12px 20px 16px', display: 'flex', gap: '8px' }}>
+              <button onClick={() => {
+                setQuickViewOrder(null);
+                router.push(`/dashboard?orderId=${quickViewOrder.id}&mode=edit&from=tables`);
+              }} style={{
+                flex: 1, padding: '10px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: '600',
+                background: '#059669', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              }}>
+                <FaPlus size={10} /> Add Items
+              </button>
+              <button onClick={() => setQuickViewOrder(null)} style={{
+                padding: '10px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '13px', fontWeight: '600',
+                background: 'white', color: '#6b7280', cursor: 'pointer',
+              }}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

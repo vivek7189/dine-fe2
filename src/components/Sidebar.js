@@ -32,7 +32,8 @@ import {
   FaPhoneAlt,
   FaParking,
   FaCalendarCheck,
-  FaWhatsapp
+  FaWhatsapp,
+  FaThLarge
 } from 'react-icons/fa';
 import { BiRestaurant } from 'react-icons/bi';
 import Link from 'next/link';
@@ -269,21 +270,12 @@ export default function Sidebar({ isDashboardPage = false }) {
     { id: 'menu', name: t('nav.menu'), icon: FaUtensils, href: '/menu', color: '#10b981', roles: ['owner', 'admin', 'manager'] },
     { id: 'inventory', name: t('nav.inventory'), icon: FaBoxes, href: '/inventory', color: '#059669', roles: ['owner', 'admin', 'manager'] },
     { id: 'customers', name: t('nav.customers'), icon: FaUsers, href: '/customers', color: '#8b5cf6', roles: ['owner', 'admin', 'manager'] },
-    { id: 'shifts', name: t('nav.shifts'), icon: FaCalendarAlt, href: '/shifts', color: '#f97316', roles: ['owner', 'admin', 'manager'] },
-    { id: 'register', name: t('nav.register'), icon: FaCashRegister, href: '/register', color: '#16a34a', roles: ['owner', 'admin', 'manager', 'cashier'] },
     { id: 'attendance', name: t('nav.attendance'), icon: FaUserClock, href: '/attendance', color: '#ef4444', roles: ['owner', 'admin', 'manager'] },
     { id: 'billing', name: t('nav.billing'), icon: FaCreditCard, href: '/billing', color: '#06b6d4', roles: ['owner', 'admin'] },
     // --- Tools & Extras ---
-    { id: 'dineai', name: t('nav.dineai'), icon: FaRobot, href: '/dineai', color: '#6366f1', roles: ['owner', 'admin', 'manager'] },
-    { id: 'phone-agent', name: 'Phone Agent', icon: FaPhoneAlt, href: '/phone-agent', color: '#059669', roles: ['owner', 'admin'] },
-    { id: 'whatsapp-ordering', name: 'WhatsApp Ordering', icon: FaWhatsapp, href: '/whatsapp-ordering', color: '#25D366', roles: ['owner', 'admin'] },
-    { id: 'hotel', name: t('nav.hotel'), icon: FaBuilding, href: '/hotel', color: '#6366f1', roles: ['owner', 'admin', 'manager'] },
-    { id: 'books', name: t('nav.books'), icon: FaBook, href: '/books', color: '#2563eb', roles: ['owner', 'admin'] },
     { id: 'invoice', name: t('nav.invoice'), icon: FaFileInvoice, href: '/invoice', color: '#0ea5e9', roles: ['owner', 'admin', 'manager'] },
-    { id: 'google-reviews', name: t('nav.googleReviews'), icon: FaGoogle, href: '/admin?tab=google-reviews', color: '#ea4335', roles: ['owner', 'admin', 'manager'] },
-    { id: 'spaces', name: t('nav.spaces'), icon: FaDoorOpen, href: '/spaces', color: '#0d9488', roles: ['owner', 'admin', 'manager'] },
-    { id: 'parking', name: t('nav.parking') || 'Parking', icon: FaParking, href: '/parking', color: '#0369a1', roles: ['owner', 'admin', 'manager'] },
-    { id: 'bookings', name: t('nav.bookings') || 'Bookings', icon: FaCalendarCheck, href: '/bookings', color: '#ef4444', roles: ['owner', 'admin', 'manager'] },
+    // --- More (groups advanced features) ---
+    { id: 'more', name: 'More', icon: FaThLarge, href: '/more', color: '#6366f1', roles: ['owner', 'admin', 'manager'] },
     // --- Settings (always last) ---
     { id: 'admin', name: t('nav.admin'), icon: FaCog, href: '/admin', color: '#64748b', roles: ['owner', 'admin', 'manager', 'employee', 'cashier', 'sales', 'waiter'] },
     { id: 'profile', name: t('nav.profile'), icon: FaUser, href: '/profile', color: '#ec4899', roles: ['owner', 'admin', 'manager', 'waiter', 'employee', 'cashier', 'sales'] },
@@ -294,7 +286,7 @@ export default function Sidebar({ isDashboardPage = false }) {
 
     // These pages are always visible (not hideable via feature selection)
     // but still respect role-based access below
-    const alwaysVisibleIds = ['home', 'profile', 'orders', 'admin', 'billing'];
+    const alwaysVisibleIds = ['home', 'profile', 'orders', 'admin', 'billing', 'more'];
 
     // Check if page is in notAllowedPages array (hide for this user)
     // Skip for always-visible pages

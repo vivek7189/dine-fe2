@@ -270,25 +270,32 @@ export default function BookingsPage() {
   }
 
   async function handleComplete(booking) {
-    if (!confirm('Mark this booking as completed?')) return;
     try {
       await apiClient.completeBooking(restaurantId, booking.id);
       loadBookings();
       if (showDetail) setShowDetail(false);
     } catch (err) {
-      alert('Failed to complete: ' + (err.message || ''));
+      throw err;
     }
   }
 
-  async function handleCancel(booking) {
-    const reason = prompt('Reason for cancellation (optional):');
-    if (reason === null) return; // user clicked cancel
+  async function handleCancel(booking, reason) {
+    try {
+      await apiClient.deleteBooking(restaurantId, booking.id, reason || '');
+      loadBookings();
+      if (showDetail) setShowDetail(false);
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  async function handleDelete(booking, reason) {
     try {
       await apiClient.deleteBooking(restaurantId, booking.id, reason);
       loadBookings();
       if (showDetail) setShowDetail(false);
     } catch (err) {
-      alert('Failed to cancel: ' + (err.message || ''));
+      throw err;
     }
   }
 
@@ -298,7 +305,7 @@ export default function BookingsPage() {
       setInvoiceData(resp.invoice);
       setShowInvoice(true);
     } catch (err) {
-      alert('Failed to generate invoice: ' + (err.message || ''));
+      console.error('Failed to generate invoice:', err);
     }
   }
 
@@ -532,6 +539,7 @@ export default function BookingsPage() {
             onAddPayment={handleAddPayment}
             onComplete={handleComplete}
             onCancel={handleCancel}
+            onDelete={handleDelete}
             onShareInvoice={handleShareInvoice}
             isMobile={isMobile}
             formatCurrency={formatCurrency}

@@ -9795,6 +9795,22 @@ const Admin = () => {
               </div>
             </div>
 
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
+              <button
+                type="button"
+                onClick={() => setPosSettings(prev => ({ ...prev, showAssignStaff: !prev.showAssignStaff }))}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+              >
+                {posSettings.showAssignStaff
+                  ? <FaToggleOn size={28} color="#ef4444" />
+                  : <FaToggleOff size={28} color="#d1d5db" />}
+              </button>
+              <div>
+                <span style={{ fontSize: '13px', color: '#374151' }}>Assign Staff to Orders</span>
+                <div style={{ fontSize: '11px', color: '#9ca3af' }}>Show staff assignment field on the billing panel</div>
+              </div>
+            </div>
+
             {/* Divider */}
             <div style={{ borderTop: '1px solid #f3e8f0', margin: '20px 0' }} />
 
