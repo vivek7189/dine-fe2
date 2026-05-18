@@ -5645,6 +5645,7 @@ const Admin = () => {
         setFeedbackSettings({ whatsappAutoSend: saved.whatsappAutoSend || false, qrOnBill: saved.qrOnBill || false, defaultFormId: saved.defaultFormId || '' });
       }).finally(() => setLoadingFeedbackSettings(false));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, selectedRestaurant?.id]);
 
   const handleSaveFeedbackSettings = async () => {
@@ -11906,7 +11907,7 @@ const Admin = () => {
                     {feedbackForms.map(f => <option key={f.id} value={f.id}>{f.title}</option>)}
                   </select>
                   {feedbackForms.length === 0 && (
-                    <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '6px' }}>No active feedback forms. Create one from the <a href="/feedback" style={{ color: '#ef4444', textDecoration: 'underline' }}>Feedback page</a>.</p>
+                    <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '6px' }}>No active feedback forms. Create one from the <Link href="/feedback" style={{ color: '#ef4444', textDecoration: 'underline' }}>Feedback page</Link>.</p>
                   )}
                 </div>
               </div>
