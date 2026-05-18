@@ -281,7 +281,7 @@ function NavigationContent({ isHidden = false }) {
 
         // Set restaurant data for staff and owners
         if (parsedUser.restaurantId && !['owner', 'customer', 'admin'].includes(parsedUser.role)) {
-          // Non-admin staff: use their single assigned restaurant from login data
+          // Staff: use their assigned restaurant from login data
           if (parsedUser.restaurant) {
             setSelectedRestaurant(parsedUser.restaurant);
           } else {
@@ -305,6 +305,18 @@ function NavigationContent({ isHidden = false }) {
             } catch (error) {
               console.error('Error fetching restaurant data:', error);
             }
+          }
+          // Load multi-restaurant list for staff from localStorage (set at login)
+          try {
+            const staffRests = localStorage.getItem('staffRestaurants');
+            if (staffRests) {
+              const parsed = JSON.parse(staffRests);
+              if (Array.isArray(parsed) && parsed.length > 1) {
+                setAllRestaurants(parsed);
+              }
+            }
+          } catch (e) {
+            // ignore parse errors
           }
         } else if (parsedUser.role === 'owner' || parsedUser.role === 'customer' || parsedUser.role === 'admin') {
           // For owners, get all their restaurants
@@ -365,11 +377,35 @@ function NavigationContent({ isHidden = false }) {
     performLogout();
   };
 
-  const handleRestaurantChange = (restaurant) => {
+  const handleRestaurantChange = async (restaurant) => {
+    setShowRestaurantDropdown(false);
+
+    // For staff roles (not owner/customer), call switch-restaurant API to get new JWT
+    const staffRoles = ['admin', 'manager', 'waiter', 'employee', 'cashier', 'sales'];
+    if (staffRoles.includes(user?.role)) {
+      try {
+        const switchRes = await apiClient.switchRestaurant(restaurant.id);
+        if (switchRes.success) {
+          apiClient.setToken(switchRes.token);
+          // Update user data with new restaurant
+          const currentUser = apiClient.getUser();
+          const updatedUser = {
+            ...currentUser,
+            restaurantId: restaurant.id,
+            restaurant: switchRes.restaurant,
+            owner: switchRes.owner
+          };
+          apiClient.setUser(updatedUser);
+        }
+      } catch (error) {
+        console.error('Error switching restaurant:', error);
+        return;
+      }
+    }
+
     setSelectedRestaurant(restaurant);
     localStorage.setItem('selectedRestaurantId', restaurant.id);
     localStorage.setItem('selectedRestaurant', JSON.stringify(restaurant));
-    setShowRestaurantDropdown(false);
 
     // Dispatch custom event for other components to listen to
     window.dispatchEvent(new CustomEvent('restaurantChanged', {
@@ -883,7 +919,7 @@ function NavigationContent({ isHidden = false }) {
             )}
             
             {/* Restaurant Selector - Desktop Only */}
-            {!isMobile && (user?.role === 'owner' || user?.role === 'customer' || user?.role === 'admin') && allRestaurants.length > 1 && (
+            {!isMobile && allRestaurants.length > 1 && (
               <div style={{ position: 'relative', zIndex: 1000 }} data-restaurant-dropdown>
                 <button
                     onClick={(e) => {
@@ -1078,7 +1114,7 @@ function NavigationContent({ isHidden = false }) {
             )}
 
             {/* Staff Restaurant Chip - Non-clickable display */}
-            {!isMobile && (user?.role === 'waiter' || user?.role === 'manager' || user?.role === 'employee') && selectedRestaurant && (
+            {!isMobile && (user?.role === 'waiter' || user?.role === 'manager' || user?.role === 'employee') && selectedRestaurant && allRestaurants.length <= 1 && (
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',

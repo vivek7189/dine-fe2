@@ -847,6 +847,75 @@ class ApiClient {
     });
   }
 
+  // Sub-restaurant endpoints
+  async getSubRestaurants(restaurantId) {
+    return this.request(`/api/restaurants/${restaurantId}/sub-restaurants`);
+  }
+
+  async createSubRestaurant(restaurantId, data) {
+    return this.request(`/api/restaurants/${restaurantId}/sub-restaurants`, {
+      method: 'POST',
+      body: data,
+    });
+  }
+
+  async updateSubRestaurant(restaurantId, subId, data) {
+    return this.request(`/api/restaurants/${restaurantId}/sub-restaurants/${subId}`, {
+      method: 'PATCH',
+      body: data,
+    });
+  }
+
+  async deleteSubRestaurant(restaurantId, subId) {
+    return this.request(`/api/restaurants/${restaurantId}/sub-restaurants/${subId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Feedback Forms
+  async getFeedbackForms(restaurantId) {
+    return this.request(`/api/feedback/${restaurantId}/forms`);
+  }
+  async createFeedbackForm(restaurantId, data) {
+    return this.request(`/api/feedback/${restaurantId}/forms`, { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } });
+  }
+  async getFeedbackForm(restaurantId, formId) {
+    return this.request(`/api/feedback/${restaurantId}/forms/${formId}`);
+  }
+  async updateFeedbackForm(restaurantId, formId, data) {
+    return this.request(`/api/feedback/${restaurantId}/forms/${formId}`, { method: 'PUT', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } });
+  }
+  async deleteFeedbackForm(restaurantId, formId) {
+    return this.request(`/api/feedback/${restaurantId}/forms/${formId}`, { method: 'DELETE' });
+  }
+  async generateFeedbackFormAI(restaurantId, prompt, restaurantType) {
+    return this.request(`/api/feedback/${restaurantId}/forms/ai-generate`, { method: 'POST', body: JSON.stringify({ prompt, restaurantType }), headers: { 'Content-Type': 'application/json' } });
+  }
+  async getFeedbackAnalytics(restaurantId, formId, params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/api/feedback/${restaurantId}/forms/${formId}/analytics${query ? '?' + query : ''}`);
+  }
+  async getFeedbackOverview(restaurantId, days = 30) {
+    return this.request(`/api/feedback/${restaurantId}/analytics/overview?days=${days}`);
+  }
+  async getFeedbackResponses(restaurantId, params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/api/feedback/${restaurantId}/responses${query ? '?' + query : ''}`);
+  }
+  async exportFeedbackResponses(restaurantId, params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/api/feedback/${restaurantId}/responses/export${query ? '?' + query : ''}`);
+  }
+  async generateFeedbackInsights(restaurantId, formId) {
+    return this.request(`/api/feedback/${restaurantId}/forms/${formId}/ai-insights`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+  }
+  async getFeedbackTemplates() {
+    return this.request('/api/feedback/templates/list');
+  }
+  async getFeedbackTemplate(templateId) {
+    return this.request(`/api/feedback/templates/${templateId}`);
+  }
+
   // Menu endpoints
   async getMenu(restaurantId, category = null) {
     const query = category ? `?category=${category}` : '';
@@ -1136,6 +1205,7 @@ class ApiClient {
     if (options.period) params.append('period', options.period);
     if (options.startDate) params.append('startDate', options.startDate);
     if (options.endDate) params.append('endDate', options.endDate);
+    if (options.subRestaurantId) params.append('subRestaurantId', options.subRestaurantId);
     const qs = params.toString();
     return this.request(`/api/analytics/${restaurantId}/daily-summary${qs ? '?' + qs : ''}`);
   }
@@ -1338,6 +1408,31 @@ class ApiClient {
   async deleteStaff(staffId) {
     return this.request(`/api/staff/${staffId}`, {
       method: 'DELETE',
+    });
+  }
+
+  // Multi-restaurant staff access
+  async getStaffRestaurants(staffId) {
+    return this.request(`/api/staff/${staffId}/restaurants`);
+  }
+
+  async assignStaffRestaurant(staffId, restaurantId) {
+    return this.request(`/api/staff/${staffId}/restaurants`, {
+      method: 'POST',
+      body: { restaurantId },
+    });
+  }
+
+  async removeStaffRestaurant(staffId, restaurantId) {
+    return this.request(`/api/staff/${staffId}/restaurants/${restaurantId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async switchRestaurant(restaurantId) {
+    return this.request('/api/auth/staff/switch-restaurant', {
+      method: 'POST',
+      body: { restaurantId },
     });
   }
 

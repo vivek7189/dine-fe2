@@ -38,6 +38,7 @@ function BillingContent() {
   const [cancelling, setCancelling] = useState(false);
   const [billingHistory, setBillingHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' or 'yearly'
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
   const RAZORPAY_KEY = process.env.NEXT_PUBLIC_RAZORPAY_KEY || 'rzp_live_lMZVjvewP7tKIL';
@@ -169,75 +170,172 @@ function BillingContent() {
     }
   };
 
-  // Indian plans (Razorpay)
+  // Indian plans (Razorpay) — monthly & yearly variants
   const indianPlanData = {
-    INR: [
-      {
-        id: 'free-trial',
-        name: 'Free Trial',
-        price: 0,
-        period: '30 days',
-        description: '30 days free, no credit card required',
-        popular: false,
-        features: [
-          'AI Agent (Voice/Chat)',
-          'Unlimited menu items',
-          'Unlimited restaurant locations',
-          'Complete POS system',
-          'Unlimited tables & floors',
-          'Real-time kitchen display',
-          'Staff management',
-          'Analytics & reports',
-          'Inventory management',
-          'Email support',
-          'Full access for 30 days'
-        ]
-      },
-      {
-        id: 'spark-monthly',
-        name: 'Spark',
-        price: 300,
-        period: 'month',
-        description: 'Everything you need to run your restaurant',
-        popular: true,
-        features: [
-          'AI Agent (Voice/Chat)',
-          'Unlimited menu items',
-          'Unlimited restaurant locations',
-          'Complete POS system',
-          'Unlimited tables & floors',
-          'Real-time kitchen display',
-          'Staff management',
-          'Analytics & reports',
-          'Inventory management',
-          'Customer loyalty programs',
-          'Priority support'
-        ]
-      },
-      {
-        id: 'spark-yearly',
-        name: 'Spark Yearly',
-        price: 2500,
-        period: 'year',
-        description: 'Save ₹1,100 with annual billing',
-        popular: false,
-        savings: '₹1,100',
-        features: [
-          'AI Agent (Voice/Chat)',
-          'Unlimited menu items',
-          'Unlimited restaurant locations',
-          'Complete POS system',
-          'Unlimited tables & floors',
-          'Real-time kitchen display',
-          'Staff management',
-          'Analytics & reports',
-          'Inventory management',
-          'Customer loyalty programs',
-          'Priority support',
-          '2 months free!'
-        ]
-      }
-    ]
+    INR: {
+      monthly: [
+        {
+          id: 'free-trial',
+          name: 'Free Trial',
+          price: 0,
+          period: '30 days',
+          description: '30 days free, no credit card required',
+          popular: false,
+          features: [
+            'AI Agent (Voice/Chat)',
+            'Unlimited menu items',
+            '1 restaurant location',
+            'Complete POS system',
+            'Unlimited tables & floors',
+            'Real-time kitchen display',
+            'Staff management',
+            'Basic analytics',
+            'Email support',
+            'Full access for 30 days'
+          ]
+        },
+        {
+          id: 'starter-monthly',
+          name: 'Starter',
+          price: 299,
+          period: 'month',
+          description: 'For new restaurants & cafes',
+          popular: false,
+          features: [
+            'AI Agent (Voice/Chat)',
+            'Unlimited menu items',
+            '1 restaurant location',
+            'Complete POS system',
+            'Unlimited tables & floors',
+            'Real-time kitchen display',
+            '3 staff accounts',
+            'Analytics & reports',
+            'Inventory management',
+            'Email support'
+          ]
+        },
+        {
+          id: 'growth-monthly',
+          name: 'Growth',
+          price: 899,
+          period: 'month',
+          description: 'For busy restaurants',
+          popular: true,
+          features: [
+            'Everything in Starter',
+            'Up to 5 locations',
+            '10 staff accounts',
+            'Advanced analytics',
+            'Priority support',
+            'Customer loyalty programs',
+            'Multi-store management',
+            'Data backup'
+          ]
+        },
+        {
+          id: 'pro-monthly',
+          name: 'Pro',
+          price: 1799,
+          period: 'month',
+          description: 'For restaurant chains',
+          popular: false,
+          features: [
+            'Everything in Growth',
+            'Unlimited locations',
+            'Unlimited staff accounts',
+            'API access',
+            'Custom integrations',
+            'Dedicated support',
+            'White-label options',
+            'Advanced AI features'
+          ]
+        }
+      ],
+      yearly: [
+        {
+          id: 'free-trial',
+          name: 'Free Trial',
+          price: 0,
+          period: '30 days',
+          description: '30 days free, no credit card required',
+          popular: false,
+          features: [
+            'AI Agent (Voice/Chat)',
+            'Unlimited menu items',
+            '1 restaurant location',
+            'Complete POS system',
+            'Unlimited tables & floors',
+            'Real-time kitchen display',
+            'Staff management',
+            'Basic analytics',
+            'Email support',
+            'Full access for 30 days'
+          ]
+        },
+        {
+          id: 'starter-yearly',
+          name: 'Starter',
+          price: 3000,
+          period: 'year',
+          monthlyEquivalent: 250,
+          description: 'Save ₹588/year',
+          popular: false,
+          savings: '₹588',
+          features: [
+            'AI Agent (Voice/Chat)',
+            'Unlimited menu items',
+            '1 restaurant location',
+            'Complete POS system',
+            'Unlimited tables & floors',
+            'Real-time kitchen display',
+            '3 staff accounts',
+            'Analytics & reports',
+            'Inventory management',
+            'Email support'
+          ]
+        },
+        {
+          id: 'growth-yearly',
+          name: 'Growth',
+          price: 8988,
+          period: 'year',
+          monthlyEquivalent: 749,
+          description: 'Save ₹1,800/year',
+          popular: true,
+          savings: '₹1,800',
+          features: [
+            'Everything in Starter',
+            'Up to 5 locations',
+            '10 staff accounts',
+            'Advanced analytics',
+            'Priority support',
+            'Customer loyalty programs',
+            'Multi-store management',
+            'Data backup'
+          ]
+        },
+        {
+          id: 'pro-yearly',
+          name: 'Pro',
+          price: 17988,
+          period: 'year',
+          monthlyEquivalent: 1499,
+          description: 'Save ₹3,600/year',
+          popular: false,
+          savings: '₹3,600',
+          features: [
+            'Everything in Growth',
+            'Unlimited locations',
+            'Unlimited staff accounts',
+            'API access',
+            'Custom integrations',
+            'Dedicated support',
+            'White-label options',
+            'Advanced AI features'
+          ]
+        }
+      ]
+    }
   };
 
   // International plans (Dodo Payments) - USD only
@@ -555,7 +653,7 @@ function BillingContent() {
     }
   };
 
-  // ── Handle Razorpay payment (Indian) ──
+  // ── Handle Razorpay payment (Indian) — now uses Subscriptions API ──
   const handleRazorpayPayment = async (plan) => {
     try {
       setPaymentProcessing(true);
@@ -605,50 +703,40 @@ function BillingContent() {
       const userEmail = user.email || user.phoneNumber || user.phone || `user-${user.uid || user.id}@example.com`;
       const userPhone = user.phoneNumber || user.phone || '';
 
-      const paymentData = {
-        planId: plan.id,
-        amount: plan.price,
-        currency: 'INR',
-        email: userEmail,
-        userId: user.uid || user.id,
-        phone: userPhone
-      };
-
-      if (!paymentData.amount || !paymentData.planId || !paymentData.email || !paymentData.userId) {
-        showNotification('error', 'Missing payment information. Please try again.');
-        return;
-      }
-
-      const orderResponse = await fetch(`${API_BASE_URL}/api/payments/create-order`, {
+      // Create Razorpay subscription via backend
+      const subResponse = await fetch(`${API_BASE_URL}/api/payments/create-subscription`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(paymentData)
+        body: JSON.stringify({
+          planId: plan.id,
+          email: userEmail,
+          userId: user.uid || user.id,
+          phone: userPhone
+        })
       });
 
-      if (!orderResponse.ok) {
-        const errorData = await orderResponse.json();
-        throw new Error(errorData.error || 'Failed to create order');
+      if (!subResponse.ok) {
+        const errorData = await subResponse.json();
+        throw new Error(errorData.error || 'Failed to create subscription');
       }
 
-      const orderData = await orderResponse.json();
+      const subData = await subResponse.json();
 
       const options = {
         key: RAZORPAY_KEY,
-        amount: orderData.order.amount,
-        currency: orderData.order.currency,
+        subscription_id: subData.subscription.id,
         name: 'DineOpen',
-        description: `${plan.name} Subscription - DineOpen`,
-        order_id: orderData.order.id,
+        description: `${plan.name} Plan - DineOpen (${plan.period === 'year' ? 'Annual' : 'Monthly'})`,
         prefill: {
           name: user.displayName || '',
-          email: user.email || user.phoneNumber || '',
-          contact: user.phoneNumber || ''
+          email: userEmail,
+          contact: userPhone
         },
         theme: { color: '#ef4444' },
         handler: function (response) {
           verifyPayment({
             razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_order_id: response.razorpay_order_id,
+            razorpay_subscription_id: response.razorpay_subscription_id,
             razorpay_signature: response.razorpay_signature,
             planId: plan.id,
             userId: user.uid || user.id
@@ -659,7 +747,6 @@ function BillingContent() {
       const razorpay = new window.Razorpay(options);
       razorpay.on('payment.failed', function (response) {
         showNotification('error', 'Payment failed. Please try again.');
-        // Report failure to backend for email notification
         fetch(`${API_BASE_URL}/api/payments/report-status`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -669,30 +756,11 @@ function BillingContent() {
             amount: plan.price,
             currency: 'INR',
             userId: user.uid || user.id,
-            email: user.email || user.phoneNumber || '',
-            phone: user.phoneNumber || '',
+            email: userEmail,
+            phone: userPhone,
             gateway: 'Razorpay',
-            orderId: orderData.order.id,
+            orderId: subData.subscription.id,
             reason: response?.error?.description || response?.error?.reason || 'Payment failed on Razorpay'
-          })
-        }).catch(() => {});
-      });
-      razorpay.on('payment.cancelled', function () {
-        // Report cancellation
-        fetch(`${API_BASE_URL}/api/payments/report-status`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            status: 'cancelled',
-            planId: plan.id,
-            amount: plan.price,
-            currency: 'INR',
-            userId: user.uid || user.id,
-            email: user.email || user.phoneNumber || '',
-            phone: user.phoneNumber || '',
-            gateway: 'Razorpay',
-            orderId: orderData.order.id,
-            reason: 'User cancelled the payment'
           })
         }).catch(() => {});
       });
@@ -802,24 +870,20 @@ function BillingContent() {
           showNotification('error', data.error || 'Failed to cancel subscription');
         }
       } else {
-        // For Razorpay, just update subscription to free
-        const response = await fetch(`${API_BASE_URL}/api/payments/update-subscription`, {
+        // For Razorpay, cancel subscription properly
+        const response = await fetch(`${API_BASE_URL}/api/payments/cancel-subscription`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId,
-            email: user.email || '',
-            planId: 'free-trial'
-          })
+          body: JSON.stringify({ userId })
         });
 
         const data = await response.json();
         if (data.success) {
-          showNotification('success', 'Subscription cancelled.');
+          showNotification('success', data.message || 'Subscription cancelled.');
           setShowCancelModal(false);
           setTimeout(() => window.location.reload(), 2000);
         } else {
-          showNotification('error', 'Failed to cancel subscription');
+          showNotification('error', data.error || 'Failed to cancel subscription');
         }
       }
     } catch (error) {
@@ -870,7 +934,7 @@ function BillingContent() {
   };
 
   const currentPlans = (() => {
-    if (currency === 'INR') return indianPlanData.INR;
+    if (currency === 'INR') return indianPlanData.INR[billingCycle] || indianPlanData.INR.monthly;
     return internationalPlanData.USD;
   })();
 
@@ -883,38 +947,33 @@ function BillingContent() {
     currentSubscription.status === 'active';
 
   // Helper: does current subscription match this plan?
-  // Also checks that the plan card is on the correct currency tab
   const checkIsCurrentPlan = (plan) => {
     if (!currentSubscription) return false;
     const subPlanId = (currentSubscription.planId || '').toLowerCase();
     const planId = plan.id.toLowerCase();
     const subCurrency = (currentSubscription.currency || 'USD').toUpperCase();
 
-    // Free trial match: show on both tabs (trial is currency-agnostic)
+    // Free trial match: show on both tabs
     if (planId === 'free-trial') {
       return subPlanId === 'free-trial' || subPlanId === 'starter' || subPlanId === 'free';
     }
 
-    // For paid plans, only show "YOUR PLAN" on the matching currency tab
-    // INR plans (spark-monthly, spark-yearly) → only on INR tab
-    // USD plans (spark, blaze) → only on USD tab
-    const isINRPlan = planId === 'spark-monthly' || planId === 'spark-yearly';
+    // INR plans should only match on INR tab, USD on USD tab
+    const isINRPlan = planId.includes('monthly') || planId.includes('yearly') || planId === 'spark-monthly' || planId === 'spark-yearly';
     const isUSDPlan = planId === 'spark' || planId === 'blaze';
-
     if (isINRPlan && currency !== 'INR') return false;
     if (isUSDPlan && currency !== 'USD') return false;
 
-    // Direct planId match (e.g., 'spark-monthly' === 'spark-monthly')
+    // Direct planId match
     if (subPlanId === planId) return true;
 
-    // Spark (USD) matches only USD subscriptions
+    // Match base plan name (e.g., starter-monthly matches starter-yearly and vice versa)
+    const subBase = subPlanId.replace('-monthly', '').replace('-yearly', '');
+    const planBase = planId.replace('-monthly', '').replace('-yearly', '');
+    if (subBase === planBase && subBase !== 'free') return true;
+
+    // Legacy matches
     if (planId === 'spark' && subPlanId === 'spark' && subCurrency === 'USD') return true;
-
-    // spark-monthly/spark-yearly only match INR subscriptions
-    if (planId === 'spark-monthly' && subPlanId === 'spark-monthly') return true;
-    if (planId === 'spark-yearly' && subPlanId === 'spark-yearly') return true;
-
-    // Blaze/Flame match
     if (planId === 'blaze' && (subPlanId === 'blaze' || subPlanId === 'flame')) return true;
 
     return false;
@@ -1399,6 +1458,40 @@ function BillingContent() {
               {currency === 'USD' ? '\u00B7 Cards, PayPal' : '\u00B7 UPI, Cards, Netbanking'}
             </span>
           </div>
+
+          {/* Monthly / Yearly toggle — only for INR */}
+          {currency === 'INR' && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '4px',
+              backgroundColor: '#f3f4f6', padding: '4px', borderRadius: '10px'
+            }}>
+              {['monthly', 'yearly'].map((cycle) => (
+                <button
+                  key={cycle}
+                  onClick={() => setBillingCycle(cycle)}
+                  style={{
+                    padding: '8px 20px', borderRadius: '8px', border: 'none',
+                    backgroundColor: billingCycle === cycle ? '#1f2937' : 'transparent',
+                    color: billingCycle === cycle ? 'white' : '#6b7280',
+                    fontWeight: '600', fontSize: '13px', cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex', alignItems: 'center', gap: '6px'
+                  }}
+                >
+                  {cycle === 'monthly' ? 'Monthly' : 'Yearly'}
+                  {cycle === 'yearly' && (
+                    <span style={{
+                      backgroundColor: billingCycle === 'yearly' ? '#10b981' : '#dcfce7',
+                      color: billingCycle === 'yearly' ? 'white' : '#166534',
+                      padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '700'
+                    }}>
+                      Save 17%
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Paid Plan Renewal / Expiration Banner */}
@@ -1621,10 +1714,24 @@ function BillingContent() {
                       </div>
                     ) : (
                       <div>
-                        <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#1f2937' }}>
-                          {formatCurrency(plan.price)}
-                        </span>
-                        <span style={{ fontSize: '14px', color: '#6b7280' }}>/{plan.period}</span>
+                        {plan.monthlyEquivalent ? (
+                          <>
+                            <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#1f2937' }}>
+                              {formatCurrency(plan.monthlyEquivalent)}
+                            </span>
+                            <span style={{ fontSize: '14px', color: '#6b7280' }}>/mo</span>
+                            <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>
+                              Billed {formatCurrency(plan.price)}/{plan.period}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#1f2937' }}>
+                              {formatCurrency(plan.price)}
+                            </span>
+                            <span style={{ fontSize: '14px', color: '#6b7280' }}>/{plan.period}</span>
+                          </>
+                        )}
                         {plan.savings && (
                           <div style={{
                             marginTop: '4px', backgroundColor: '#dcfce7', color: '#166534',

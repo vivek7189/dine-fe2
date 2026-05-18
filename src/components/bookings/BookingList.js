@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   FaEye, FaEdit, FaMoneyBill, FaCheck, FaTimes, FaFileInvoice, FaSpinner,
   FaSearch, FaFilter, FaTrash, FaDownload, FaEllipsisV, FaCalendarAlt,
@@ -113,11 +114,11 @@ function ActionMenu({ booking, onView, onEdit, onAddPayment, onComplete, onCance
 // ─── Confirmation Modal ───
 function ConfirmModal({ isOpen, title, message, confirmLabel, confirmColor, onConfirm, onClose, showReason, loading }) {
   const [reason, setReason] = useState('');
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
     <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 10000,
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 10300,
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
@@ -178,7 +179,8 @@ function ConfirmModal({ isOpen, title, message, confirmLabel, confirmColor, onCo
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

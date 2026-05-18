@@ -134,6 +134,8 @@ function RestaurantPOSContent() {
   const [menuItems, setMenuItems] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+  const [subRestaurants, setSubRestaurants] = useState([]);
+  const [selectedSubRestaurant, setSelectedSubRestaurant] = useState(null);
   const [tables, setTables] = useState([]);
   const [floors, setFloors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -560,24 +562,32 @@ function RestaurantPOSContent() {
     };
   }, []);
 
+  // Sub-restaurant menu filtering: use own menu when menuMode='own'
+  const effectiveMenuItems = useMemo(() => {
+    if (selectedSubRestaurant?.menuMode === 'own' && selectedSubRestaurant.menu?.items?.length > 0) {
+      return selectedSubRestaurant.menu.items;
+    }
+    return menuItems || [];
+  }, [selectedSubRestaurant, menuItems]);
+
   // Generate dynamic categories based on actual menu items
   const getDynamicCategories = () => {
-    if (!menuItems || menuItems.length === 0) {
+    if (!effectiveMenuItems || effectiveMenuItems.length === 0) {
       return [
         { id: 'all-items', name: t('dashboard.allItems'), emoji: '🍽️', count: 0 },
         { id: 'favorites', name: t('dashboard.favorites'), emoji: '❤️', count: 0 }
       ];
     }
-    
+
     // Get unique categories from menu items
     const categoryMap = new Map();
-    categoryMap.set('all-items', { id: 'all-items', name: t('dashboard.allItems'), emoji: '🍽️', count: menuItems.length });
-    
+    categoryMap.set('all-items', { id: 'all-items', name: t('dashboard.allItems'), emoji: '🍽️', count: effectiveMenuItems.length });
+
     // Count favorites
-    const favoritesCount = menuItems.filter(item => item.isFavorite === true).length;
+    const favoritesCount = effectiveMenuItems.filter(item => item.isFavorite === true).length;
     categoryMap.set('favorites', { id: 'favorites', name: t('dashboard.favorites'), emoji: '❤️', count: favoritesCount });
-    
-    menuItems.forEach(item => {
+
+    effectiveMenuItems.forEach(item => {
       if (item.category) {
         const categoryId = item.category.toLowerCase();
         if (categoryMap.has(categoryId)) {
@@ -1019,6 +1029,19 @@ function RestaurantPOSContent() {
               saveEssentialData(`pricingRules_${restaurant.id}`, { enabled: mp?.enabled, rules: mp?.rules || [] });
             } catch { /* ignore — backward compatible */ }
 
+            // Load sub-restaurants
+            try {
+              const subRes = await apiClient.getSubRestaurants(restaurant.id);
+              const activeSubs = (subRes.subRestaurants || []).filter(s => s.status === 'active');
+              setSubRestaurants(activeSubs);
+              // Restore previously selected sub-restaurant
+              const savedSubId = localStorage.getItem('selectedSubRestaurantId');
+              if (savedSubId) {
+                const savedSub = activeSubs.find(s => s.id === savedSubId);
+                if (savedSub) setSelectedSubRestaurant(savedSub);
+              }
+            } catch { setSubRestaurants([]); }
+
             console.log('✅ Fresh data loaded and cached');
           } catch (error) {
             console.error('Error fetching fresh data:', error);
@@ -1158,6 +1181,8 @@ function RestaurantPOSContent() {
   useEffect(() => {
     const handleRestaurantChange = async (event) => {
       console.log('🏪 Dashboard page: Restaurant changed, reloading data', event.detail);
+      setSelectedSubRestaurant(null);
+      localStorage.removeItem('selectedSubRestaurantId');
       setRestaurantChangeLoading(true); // Show loading overlay
       try {
         // Skip restaurant load since we already have the list, just reload menu/floors
@@ -1672,7 +1697,27 @@ function RestaurantPOSContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, selectedRestaurant?.id]);
 
-  const filteredItemsBase = (menuItems || []).filter(item => {
+  // Sub-restaurant table/floor filtering: filter by assigned floors/sections when tableMode='shared'
+  const effectiveTablesData = useMemo(() => {
+    if (!selectedSubRestaurant || selectedSubRestaurant.tableMode !== 'shared') {
+      return tablesData;
+    }
+    const assignedFloorIds = selectedSubRestaurant.assignedFloorIds || [];
+    const assignedSections = (selectedSubRestaurant.assignedSections || []).map(s => s.toLowerCase().trim());
+    let filteredFloors = tablesData.floors || [];
+    if (assignedFloorIds.length > 0) {
+      filteredFloors = filteredFloors.filter(f => assignedFloorIds.includes(f.id));
+    }
+    if (assignedSections.length > 0 && assignedFloorIds.length === 0) {
+      filteredFloors = filteredFloors.filter(f => {
+        const floorSection = (f.section || f.name || '').toLowerCase().trim();
+        return assignedSections.includes(floorSection);
+      });
+    }
+    return { ...tablesData, floors: filteredFloors };
+  }, [selectedSubRestaurant, tablesData]);
+
+  const filteredItemsBase = (effectiveMenuItems).filter(item => {
     // Hide out-of-stock items if setting enabled
     if (posSettings.hideOutOfStock) {
       const stockManaged = item.isStockManaged && typeof item.stockQuantity === 'number';
@@ -3206,6 +3251,9 @@ function RestaurantPOSContent() {
           isScheduled: true,
           scheduledFor: new Date(`${scheduledDate}T${scheduledTime}`).toISOString(),
         } : {}),
+        // Sub-restaurant
+        subRestaurantId: selectedSubRestaurant?.id || null,
+        subRestaurantName: selectedSubRestaurant?.name || null,
       };
 
         // If split payment, override payment method
@@ -4330,6 +4378,9 @@ function RestaurantPOSContent() {
             isScheduled: true,
             scheduledFor: new Date(`${scheduledDate}T${scheduledTime}`).toISOString(),
           } : {}),
+          // Sub-restaurant
+          subRestaurantId: selectedSubRestaurant?.id || null,
+          subRestaurantName: selectedSubRestaurant?.name || null,
         };
 
         // If split payment, override payment method
@@ -6033,7 +6084,7 @@ function RestaurantPOSContent() {
             {viewMode === 'tables' && ['owner', 'admin'].includes(JSON.parse(localStorage.getItem('user') || '{}').role) && (
               <button
                 onClick={() => {
-                  const allTables = tablesData.tables?.length > 0 ? tablesData.tables : tablesData.floors?.flatMap(f => f.tables || []) || [];
+                  const allTables = effectiveTablesData.tables?.length > 0 ? effectiveTablesData.tables : effectiveTablesData.floors?.flatMap(f => f.tables || []) || [];
                   const occupiedCount = allTables.filter(t => t.status === 'occupied').length;
                   if (occupiedCount === 0) {
                     setNotification({ type: 'info', title: t('dashboard.noTablesToReset'), message: t('dashboard.allTablesAvailable'), show: true });
@@ -6204,6 +6255,49 @@ function RestaurantPOSContent() {
           </div>
         )}
 
+        {/* Sub-Restaurant Selector */}
+        {subRestaurants.length > 0 && (
+          <div style={{
+            position: 'absolute',
+            top: isMobile ? '60px' : '66px',
+            left: isMobile ? '12px' : '160px',
+            right: isMobile ? '12px' : 'auto',
+            zIndex: 20,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            <select
+              value={selectedSubRestaurant?.id || ''}
+              onChange={(e) => {
+                const sub = subRestaurants.find(s => s.id === e.target.value) || null;
+                setSelectedSubRestaurant(sub);
+                localStorage.setItem('selectedSubRestaurantId', sub?.id || '');
+              }}
+              style={{
+                padding: '6px 28px 6px 10px',
+                borderRadius: '8px',
+                border: '1px solid #e5e7eb',
+                backgroundColor: selectedSubRestaurant ? '#fef7f0' : '#fff',
+                fontSize: '12px',
+                fontWeight: 600,
+                color: '#374151',
+                cursor: 'pointer',
+                appearance: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 8px center',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
+              }}
+            >
+              <option value="">All Sections</option>
+              {subRestaurants.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Desktop Category Sidebar - Part of Menu Section */}
         {!isMobile && viewMode === 'orders' && categoryViewMode === 'sidebar' && (
           <div style={{
@@ -6225,10 +6319,10 @@ function RestaurantPOSContent() {
             }} className="hide-scrollbar">
               {categories.map((category, index) => {
                 const categoryItems = category.id === 'all-items'
-                  ? (menuItems || [])
+                  ? effectiveMenuItems
                   : category.id === 'favorites'
-                  ? (menuItems || []).filter(item => item.isFavorite === true)
-                  : (menuItems || []).filter(item => item.category?.toLowerCase() === category.id);
+                  ? effectiveMenuItems.filter(item => item.isFavorite === true)
+                  : effectiveMenuItems.filter(item => item.category?.toLowerCase() === category.id);
                 const isSelected = selectedCategory === category.id;
 
                 return (
@@ -6328,10 +6422,10 @@ function RestaurantPOSContent() {
               <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', flex: 1 }}>
                 {categories.map((category) => {
                   const categoryItems = category.id === 'all-items'
-                    ? (menuItems || [])
+                    ? effectiveMenuItems
                     : category.id === 'favorites'
-                    ? (menuItems || []).filter(item => item.isFavorite === true)
-                    : (menuItems || []).filter(item => item.category?.toLowerCase() === category.id);
+                    ? effectiveMenuItems.filter(item => item.isFavorite === true)
+                    : effectiveMenuItems.filter(item => item.category?.toLowerCase() === category.id);
                   const isSelected = selectedCategory === category.id;
 
                   return (
@@ -6837,10 +6931,10 @@ function RestaurantPOSContent() {
                 {categories.map((category, index) => {
                   const isSelected = selectedCategory === category.id;
                   const categoryItems = category.id === 'all-items'
-                    ? (menuItems || [])
+                    ? effectiveMenuItems
                     : category.id === 'favorites'
-                    ? (menuItems || []).filter(item => item.isFavorite === true)
-                    : (menuItems || []).filter(item => item.category?.toLowerCase() === category.id);
+                    ? effectiveMenuItems.filter(item => item.isFavorite === true)
+                    : effectiveMenuItems.filter(item => item.category?.toLowerCase() === category.id);
 
                   return (
                     <button
@@ -7312,8 +7406,8 @@ function RestaurantPOSContent() {
             </div>
             ) : (
               <DashboardTablesPanel
-                floors={tablesData.floors}
-                tables={tablesData.tables}
+                floors={effectiveTablesData.floors}
+                tables={effectiveTablesData.tables}
                 isRefreshing={tablesRefreshing}
                 selectedRestaurant={selectedRestaurant}
                 recentlyUpdatedTableId={recentlyUpdatedTableId}
@@ -7752,9 +7846,9 @@ function RestaurantPOSContent() {
               msOverflowStyle: 'none'
             }} className="hide-scrollbar">
               {categories.map((category) => {
-                const categoryItems = category.id === 'all-items' 
-                  ? (menuItems || [])
-                  : (menuItems || []).filter(item => item.category?.toLowerCase() === category.id);
+                const categoryItems = category.id === 'all-items'
+                  ? effectiveMenuItems
+                  : effectiveMenuItems.filter(item => item.category?.toLowerCase() === category.id);
                 const isSelected = selectedCategory === category.id;
                 
                 return (
@@ -8016,8 +8110,8 @@ function RestaurantPOSContent() {
 
       {/* Table Selector Modal */}
       {showTableSelector && (() => {
-        const allFloorTables = tablesData.floors?.flatMap(f => (f.tables || []).map(t => ({ ...t, floorName: f.name || f.floorName }))) || [];
-        const selectorTables = allFloorTables.length > 0 ? allFloorTables : (tablesData.tables || []);
+        const allFloorTables = effectiveTablesData.floors?.flatMap(f => (f.tables || []).map(t => ({ ...t, floorName: f.name || f.floorName }))) || [];
+        const selectorTables = allFloorTables.length > 0 ? allFloorTables : (effectiveTablesData.tables || []);
         const floorNames = [...new Set(selectorTables.map(t => t.floorName).filter(Boolean))];
         return (
         <div style={{
@@ -8182,7 +8276,7 @@ function RestaurantPOSContent() {
 
       {/* Reset Tables Confirmation Modal */}
       {showResetConfirm && (() => {
-        const allTables = tablesData.tables?.length > 0 ? tablesData.tables : tablesData.floors?.flatMap(f => f.tables || []) || [];
+        const allTables = effectiveTablesData.tables?.length > 0 ? effectiveTablesData.tables : effectiveTablesData.floors?.flatMap(f => f.tables || []) || [];
         const occupiedCount = allTables.filter(t => t.status === 'occupied').length;
         return (
           <div style={{

@@ -5,6 +5,7 @@ import {
   esc, getBillLabels, buildIdentityHtml,
   buildChargesHtml, buildPaymentHtml, buildDeliveryAddressHtml, calcGrandTotal, formatDateTime,
   getPrintFontSizes, wrapInDocument, buildInclusiveTaxNote,
+  buildFeedbackSection,
 } from '../helpers';
 
 export const id = 'minimal';
@@ -99,6 +100,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
       paymentHtml +
       inclusiveNote +
     `</div>` +
+    buildFeedbackSection(printSettings) +
     // Footer
     `<div class="footer"><p>${L.footer}</p><p style="margin-top:4px;">${L.poweredBy}</p></div>`;
 

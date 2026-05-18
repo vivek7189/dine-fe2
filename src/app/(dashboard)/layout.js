@@ -42,6 +42,7 @@ const ROUTE_ACCESS_MAP = {
   '/spaces': 'admin',
   '/parking': 'parking',
   '/whatsapp-ordering': 'analytics',
+  '/feedback': 'admin',
 };
 
 // Pages accessible to everyone (no permission check needed)

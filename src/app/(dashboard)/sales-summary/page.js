@@ -39,6 +39,10 @@ export default function SalesSummaryPage() {
   const [customEndDate, setCustomEndDate] = useState(urlEndDate || '');
   const [showCustomPicker, setShowCustomPicker] = useState(urlPeriod === 'custom');
 
+  // Sub-restaurant filtering
+  const [subRestaurants, setSubRestaurants] = useState([]);
+  const [selectedSubRestaurant, setSelectedSubRestaurant] = useState('');
+
   // Active tab
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -93,6 +97,22 @@ export default function SalesSummaryPage() {
     loadUser();
   }, []);
 
+  // Load sub-restaurants when restaurant changes
+  useEffect(() => {
+    if (!restaurantId) return;
+    const loadSubRestaurants = async () => {
+      try {
+        const res = await apiClient.getSubRestaurants(restaurantId);
+        setSubRestaurants(res.subRestaurants || []);
+      } catch (err) {
+        console.error('Error loading sub-restaurants:', err);
+        setSubRestaurants([]);
+      }
+    };
+    loadSubRestaurants();
+    setSelectedSubRestaurant('');
+  }, [restaurantId]);
+
   const fetchSummary = useCallback(async () => {
     if (!restaurantId) return;
     setLoading(true);
@@ -104,6 +124,9 @@ export default function SalesSummaryPage() {
       } else if (activePeriod !== 'custom') {
         options.period = activePeriod;
       }
+      if (selectedSubRestaurant) {
+        options.subRestaurantId = selectedSubRestaurant;
+      }
       const res = await apiClient.getDailySummary(restaurantId, options);
       if (res?.success) setSummary(res.summary);
     } catch (err) {
@@ -111,7 +134,7 @@ export default function SalesSummaryPage() {
     } finally {
       setLoading(false);
     }
-  }, [restaurantId, activePeriod, customStartDate, customEndDate]);
+  }, [restaurantId, activePeriod, customStartDate, customEndDate, selectedSubRestaurant]);
 
   useEffect(() => {
     if (restaurantId) fetchSummary();
@@ -276,6 +299,26 @@ export default function SalesSummaryPage() {
             </div>
           )}
 
+          {/* Sub-restaurant Filter */}
+          {subRestaurants.length > 0 && (
+            <div className="flex items-center gap-2 mt-3">
+              <span className="text-xs text-gray-500 font-medium">Section:</span>
+              <div className="relative">
+                <select
+                  value={selectedSubRestaurant}
+                  onChange={e => setSelectedSubRestaurant(e.target.value)}
+                  className="appearance-none bg-white border border-gray-300 rounded-lg px-3 py-1.5 pr-8 text-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none cursor-pointer"
+                >
+                  <option value="">All Sections</option>
+                  {subRestaurants.map(sr => (
+                    <option key={sr.id} value={sr.id}>{sr.name}</option>
+                  ))}
+                </select>
+                <FaChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none" />
+              </div>
+            </div>
+          )}
+
           {/* Section Tabs */}
           <div className="flex items-center gap-2 mt-4 overflow-x-auto pb-1">
             {tabs.map(t => (
@@ -357,6 +400,68 @@ export default function SalesSummaryPage() {
                 <div className="text-xl sm:text-2xl font-bold text-gray-900">{summary.uniqueCustomers || 0}</div>
               </div>
             </div>
+
+            {/* Sub-restaurant Breakdown (only when viewing all sections) */}
+            {!selectedSubRestaurant && summary.subRestaurantBreakdown && summary.subRestaurantBreakdown.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <h3 className="text-base font-bold text-gray-800">Section-wise Breakdown</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase">
+                        <th className="px-4 py-2.5 font-semibold">Section</th>
+                        <th className="px-4 py-2.5 font-semibold text-center">Orders</th>
+                        <th className="px-4 py-2.5 font-semibold text-right">Revenue</th>
+                        <th className="px-4 py-2.5 font-semibold text-right">% of Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {summary.subRestaurantBreakdown.map((sr) => {
+                        const totalRev = summary.subRestaurantBreakdown.reduce((s, r) => s + r.totalRevenue, 0);
+                        const pct = totalRev > 0 ? ((sr.totalRevenue / totalRev) * 100) : 0;
+                        return (
+                          <tr
+                            key={sr.subRestaurantId}
+                            className="hover:bg-gray-50/80 transition-colors cursor-pointer"
+                            onClick={() => setSelectedSubRestaurant(sr.subRestaurantId)}
+                          >
+                            <td className="px-4 py-3 font-medium text-gray-800 text-sm">{sr.subRestaurantName}</td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="inline-flex items-center justify-center bg-blue-50 text-blue-700 font-bold text-sm px-3 py-0.5 rounded-full min-w-[40px]">
+                                {sr.totalOrders}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-right font-semibold text-gray-800 text-sm">{formatCurrency(sr.totalRevenue)}</td>
+                            <td className="px-4 py-3 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <div className="w-16 bg-gray-100 rounded-full h-1.5">
+                                  <div className="h-1.5 rounded-full bg-rose-400" style={{ width: `${Math.min(pct, 100)}%` }} />
+                                </div>
+                                <span className="text-xs text-gray-500 w-10 text-right">{pct.toFixed(1)}%</span>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-gray-50 border-t-2 border-gray-200 font-bold">
+                        <td className="px-4 py-3 text-gray-800">Total</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="inline-flex items-center justify-center bg-blue-100 text-blue-800 font-bold text-sm px-3 py-0.5 rounded-full">
+                            {summary.subRestaurantBreakdown.reduce((s, r) => s + r.totalOrders, 0)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right text-emerald-700 text-sm">{formatCurrency(summary.subRestaurantBreakdown.reduce((s, r) => s + r.totalRevenue, 0))}</td>
+                        <td className="px-4 py-3 text-right text-xs text-gray-500">100%</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* Daily Revenue Trend (only for multi-day periods) */}
             {summary.dailyRevenue && summary.dailyRevenue.length > 1 && (

@@ -124,6 +124,17 @@ export function buildTaxHtml(taxBreakdown, cs, options) {
 }
 
 // Build "prices inclusive of GST" footer note
+export function buildFeedbackSection(printSettings = {}) {
+  if (!printSettings.feedbackQREnabled || !printSettings.feedbackFormUrl) return '';
+  const url = printSettings.feedbackFormUrl;
+  const qrDataUrl = printSettings.feedbackQRDataUrl;
+  return `<div style="text-align:center;margin-top:8px;padding-top:8px;border-top:1px dashed #ccc;">` +
+    `<div style="font-size:11px;font-weight:bold;margin-bottom:4px;">📝 Rate your experience</div>` +
+    (qrDataUrl ? `<img src="${qrDataUrl}" style="width:80px;height:80px;margin:4px auto;display:block;" />` : '') +
+    `<div style="font-size:9px;color:#666;word-break:break-all;">${url}</div>` +
+    `</div>`;
+}
+
 export function buildInclusiveTaxNote(invoice) {
   if (invoice.taxInclusiveMode === 'inclusive' || invoice.taxInclusiveMode === 'mixed') {
     return '<div style="text-align:center;font-size:9px;margin-top:4px;color:#6b7280;">* Prices are inclusive of applicable taxes</div>';

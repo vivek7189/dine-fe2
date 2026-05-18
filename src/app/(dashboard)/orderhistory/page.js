@@ -65,6 +65,8 @@ import {
   FaUsers,
   FaCalendarCheck,
   FaConciergeBell,
+  FaUndoAlt,
+  FaStore,
 } from 'react-icons/fa';
 import dynamic from 'next/dynamic';
 const BookingList = dynamic(() => import('../../../components/bookings/BookingList'), { ssr: false });
@@ -148,6 +150,9 @@ const OrderHistory = () => {
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
   const [paymentStatusDropdownOpen, setPaymentStatusDropdownOpen] = useState(false);
+  const [subRestaurants, setSubRestaurants] = useState([]);
+  const [filterSubRestaurant, setFilterSubRestaurant] = useState('all');
+  const [subRestaurantDropdownOpen, setSubRestaurantDropdownOpen] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [expandedOrders, setExpandedOrders] = useState(new Set());
   const [selectedOrderForModal, setSelectedOrderForModal] = useState(null);
@@ -182,6 +187,15 @@ const OrderHistory = () => {
   const [cancelReason, setCancelReason] = useState('');
   const [cancelSubmitting, setCancelSubmitting] = useState(false);
   const [cancelError, setCancelError] = useState(null);
+  // Refund modal state
+  const [refundModalOrder, setRefundModalOrder] = useState(null);
+  const [refundAmount, setRefundAmount] = useState('');
+  const [refundReason, setRefundReason] = useState('');
+  const [refundType, setRefundType] = useState('full'); // 'full' or 'partial'
+  const [refundSubmitting, setRefundSubmitting] = useState(false);
+  const [refundError, setRefundError] = useState(null);
+  // Scroll-aware collapsing header
+  const [isScrolled, setIsScrolled] = useState(false);
   // Edit Completed Order state
   const [editCompletedOrder, setEditCompletedOrder] = useState(null);
   const [editCompletedForm, setEditCompletedForm] = useState({});
@@ -239,6 +253,7 @@ const OrderHistory = () => {
       if (!event.target.closest('.custom-dropdown')) {
         setStatusDropdownOpen(false);
         setTypeDropdownOpen(false);
+        setSubRestaurantDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -292,7 +307,7 @@ const OrderHistory = () => {
   /** Maps status string to display label (for "Deleted (was: X)" and similar). */
   const getStatusDisplayLabel = (s) => {
     if (!s) return t('orderHistory.unknown') || 'Unknown';
-    const map = { completed: t('orderHistory.status.completed'), confirmed: t('orderHistory.status.confirmed'), pending: t('orderHistory.status.pending'), cancelled: t('orderHistory.status.cancelled'), deleted: t('orderHistory.status.deleted') };
+    const map = { completed: t('orderHistory.status.completed'), confirmed: t('orderHistory.status.confirmed'), pending: t('orderHistory.status.pending'), cancelled: t('orderHistory.status.cancelled'), deleted: t('orderHistory.status.deleted'), refunded: 'Refunded' };
     return map[s] || (s.charAt(0).toUpperCase() + s.slice(1));
   };
 
@@ -311,6 +326,7 @@ const OrderHistory = () => {
     if (status === 'confirmed') return { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', label: t('orderHistory.status.confirmed') };
     if (status === 'pending') return { bg: '#fef3c7', text: '#92400e', border: '#fde68a', label: t('orderHistory.status.pending') };
     if (status === 'cancelled') return { bg: '#fee2e2', text: '#991b1b', border: '#fecaca', label: t('orderHistory.status.cancelled') };
+    if (status === 'refunded') return { bg: '#fef3c7', text: '#92400e', border: '#fde68a', label: 'Refunded' };
     if (status === 'deleted') {
       const wasLabel = lastStatus ? getStatusDisplayLabel(lastStatus) : null;
       const label = wasLabel ? `${t('orderHistory.status.deleted')} (was: ${wasLabel})` : t('orderHistory.status.deleted');
@@ -404,13 +420,14 @@ const OrderHistory = () => {
   }, [dateFilterMode, customStartDate, customEndDate]);
 
   // Check if any non-default filters are active
-  const hasActiveFilters = selectedStatus !== 'all' || selectedOrderType !== 'all' || selectedPaymentMethod !== 'all' || selectedPaymentStatus !== 'all' || dateFilterMode !== 'today' || myOrdersOnly || searchTerm.trim();
+  const hasActiveFilters = selectedStatus !== 'all' || selectedOrderType !== 'all' || selectedPaymentMethod !== 'all' || selectedPaymentStatus !== 'all' || filterSubRestaurant !== 'all' || dateFilterMode !== 'today' || myOrdersOnly || searchTerm.trim();
 
   const activeFilterCount = [
     selectedStatus !== 'all',
     selectedOrderType !== 'all',
     selectedPaymentMethod !== 'all',
     selectedPaymentStatus !== 'all',
+    filterSubRestaurant !== 'all',
     dateFilterMode !== 'today',
     myOrdersOnly,
   ].filter(Boolean).length;
@@ -421,6 +438,7 @@ const OrderHistory = () => {
     setSelectedOrderType('all');
     setSelectedPaymentMethod('all');
     setSelectedPaymentStatus('all');
+    setFilterSubRestaurant('all');
     setDateFilterMode('today');
     setMyOrdersOnly(false);
     setSearchTerm('');
@@ -732,6 +750,22 @@ const OrderHistory = () => {
     loadWa();
   }, [restaurantId]);
 
+  // Fetch sub-restaurants when restaurantId changes
+  useEffect(() => {
+    if (!restaurantId) return;
+    const fetchSubRestaurants = async () => {
+      try {
+        const response = await apiClient.getSubRestaurants(restaurantId);
+        setSubRestaurants(response?.subRestaurants || []);
+      } catch (err) {
+        console.log('Sub-restaurants not available:', err.message);
+        setSubRestaurants([]);
+      }
+    };
+    fetchSubRestaurants();
+    setFilterSubRestaurant('all');
+  }, [restaurantId]);
+
   // Listen for restaurant changes — update state so Pusher reconnects via dependency
   useEffect(() => {
     const handleRestaurantChange = (event) => {
@@ -859,6 +893,21 @@ const OrderHistory = () => {
   // Reset to page 1 only when filters change (not when currentPage changes – that was breaking Next/Prev)
   useEffect(() => { setCurrentPage(1); }, [selectedStatus, selectedOrderType, myOrdersOnly, searchTerm, dateFilterMode, selectedPaymentMethod, selectedPaymentStatus, customStartDate, customEndDate]);
 
+  // Scroll-aware collapsing header — only for orders view (other views have no stat cards)
+  useEffect(() => {
+    if (activeView !== 'orders') {
+      setIsScrolled(false);
+      return;
+    }
+    const scrollEl = document.querySelector('main.overflow-auto') || window;
+    const handleScroll = () => {
+      const scrollTop = scrollEl === window ? window.scrollY : scrollEl.scrollTop;
+      setIsScrolled(scrollTop > 80);
+    };
+    scrollEl.addEventListener('scroll', handleScroll, { passive: true });
+    return () => scrollEl.removeEventListener('scroll', handleScroll);
+  }, [activeView]);
+
   const handleSearch = (e) => { e.preventDefault(); fetchOrders(); };
   const handlePageChange = (newPage) => { if (newPage >= 1 && newPage <= totalPages) setCurrentPage(newPage); };
   
@@ -937,13 +986,73 @@ const OrderHistory = () => {
       setCancelModalOrderId(null);
       setCancelReason('');
       fetchOrders();
-      setDeleteSuccess(t('orderHistory.status.cancelled') || 'Order cancelled');
+      setDeleteSuccess(t('orderHistory.status.cancelled') || 'Order cancelled — all calculations reversed');
       setTimeout(() => setDeleteSuccess(null), 4000);
     } catch (error) {
       console.error('Error cancelling:', error);
       setCancelError(error.message || 'Failed to cancel order');
     } finally {
       setCancelSubmitting(false);
+    }
+  };
+
+  // ─── Refund handlers ───
+  const handleOpenRefund = (order) => {
+    const amount = order.finalAmount || order.totalAmount || 0;
+    setRefundModalOrder(order);
+    setRefundAmount(String(amount));
+    setRefundType('full');
+    setRefundReason('');
+    setRefundError(null);
+  };
+
+  const closeRefundModal = () => {
+    if (refundSubmitting) return;
+    setRefundModalOrder(null);
+    setRefundAmount('');
+    setRefundReason('');
+    setRefundError(null);
+  };
+
+  const submitRefund = async () => {
+    if (!refundModalOrder) return;
+    const amount = parseFloat(refundAmount);
+    const maxAmount = refundModalOrder.finalAmount || refundModalOrder.totalAmount || 0;
+    if (!amount || amount <= 0) {
+      setRefundError('Please enter a valid refund amount');
+      return;
+    }
+    if (amount > maxAmount) {
+      setRefundError(`Refund cannot exceed order total (${formatCurrency(maxAmount)})`);
+      return;
+    }
+    if (!refundReason.trim()) {
+      setRefundError('Please provide a reason for the refund');
+      return;
+    }
+
+    setRefundSubmitting(true);
+    setRefundError(null);
+    try {
+      const result = await apiClient.processRefund(refundModalOrder.id, {
+        refundAmount: amount,
+        refundReason: refundReason.trim(),
+        refundType: amount >= maxAmount ? 'full' : 'partial'
+      });
+      setRefundModalOrder(null);
+      fetchOrders();
+      const isFullRefund = amount >= maxAmount;
+      setDeleteSuccess(
+        isFullRefund
+          ? `Full refund of ${formatCurrency(amount)} processed. All calculations reversed.`
+          : `Partial refund of ${formatCurrency(amount)} recorded.`
+      );
+      setTimeout(() => setDeleteSuccess(null), 5000);
+    } catch (error) {
+      console.error('Error processing refund:', error);
+      setRefundError(error.message || 'Failed to process refund');
+    } finally {
+      setRefundSubmitting(false);
     }
   };
 
@@ -1535,10 +1644,13 @@ const OrderHistory = () => {
 
     // Fallback: client-side calculation from current page (before analytics loads)
     const validOrders = orders.filter(order => {
-      return order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'saved';
+      return !['cancelled', 'deleted', 'saved', 'refunded'].includes(order.status);
     });
 
-    const totalRevenue = validOrders.reduce((sum, order) => sum + calculateOrderTotal(order), 0);
+    const totalRevenue = validOrders.reduce((sum, order) => {
+      const refundAdj = order.refundAmount || 0;
+      return sum + calculateOrderTotal(order) - refundAdj;
+    }, 0);
     const orderCount = validOrders.length;
     const completedCount = validOrders.filter(o => o.status === 'completed').length;
 
@@ -1546,9 +1658,10 @@ const OrderHistory = () => {
     const paymentBreakdown = {};
     validOrders.forEach(order => {
       const method = (order.paymentMethod || 'cash').toLowerCase();
+      const refundAdj = order.refundAmount || 0;
       if (!paymentBreakdown[method]) paymentBreakdown[method] = { count: 0, total: 0 };
       paymentBreakdown[method].count += 1;
-      paymentBreakdown[method].total += calculateOrderTotal(order);
+      paymentBreakdown[method].total += calculateOrderTotal(order) - refundAdj;
     });
 
     return { totalRevenue, orderCount, completedCount, paymentBreakdown };
@@ -1819,6 +1932,11 @@ const OrderHistory = () => {
                   {modalSourceChip && (
                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${modalSourceChip.className}`}>
                       {modalSourceChip.label}
+                    </span>
+                  )}
+                  {order.subRestaurantName && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 6px', backgroundColor: '#fff7ed', color: '#9a3412', borderRadius: '4px', fontSize: '10px', fontWeight: '600', border: '1px solid #fed7aa' }}>
+                      <FaStore size={8} /> {order.subRestaurantName}
                     </span>
                   )}
                 </div>
@@ -2100,6 +2218,7 @@ const OrderHistory = () => {
     { value: 'confirmed', label: t('orderHistory.status.confirmed') },
     { value: 'completed', label: t('orderHistory.status.completed') },
     { value: 'cancelled', label: t('orderHistory.status.cancelled') },
+    { value: 'refunded', label: 'Refunded' },
     { value: 'deleted', label: t('orderHistory.status.deleted') }
   ];
 
@@ -2120,26 +2239,36 @@ const OrderHistory = () => {
 
   const partialPaymentEnabled = restaurant?.billingSettings?.partialPaymentEnabled;
 
+  const subRestaurantOptions = [
+    { value: 'all', label: 'All Outlets' },
+    ...subRestaurants.map(sr => ({ value: sr.id, label: sr.name }))
+  ];
+
+  // Client-side sub-restaurant filtering
+  const displayedOrders = filterSubRestaurant !== 'all'
+    ? orders.filter(order => order.subRestaurantId === filterSubRestaurant)
+    : orders;
+
   const stats = calculateStats();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
       <OfflineBanner />
-      {/* Header Section — on mobile: single row with title + list/grid toggle to save space */}
-      <div className="bg-white shadow-sm border-b sticky top-0 z-20">
+      {/* Header Section — collapses on scroll for more content space */}
+      <div className={`bg-white shadow-sm border-b sticky top-0 z-20 transition-shadow duration-300 ${isScrolled ? 'shadow-md' : ''}`}>
         <div className="w-full px-3 sm:px-6 lg:px-8">
-          <div className="py-3 sm:py-4 flex flex-row items-center justify-between gap-3 sm:gap-4">
+          <div className={`flex flex-row items-center justify-between gap-3 sm:gap-4 transition-all duration-300 ${isScrolled ? 'py-1.5 sm:py-2' : 'py-3 sm:py-4'}`}>
             <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-              <div className="bg-gradient-to-br from-red-500 to-red-600 p-2 sm:p-3 rounded-lg sm:rounded-xl shadow-lg flex-shrink-0">
-                <FaReceipt className="text-white text-base sm:text-xl" />
+              <div className={`bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg flex-shrink-0 flex items-center justify-center transition-all duration-300 ${isScrolled ? 'w-7 h-7 sm:w-8 sm:h-8' : 'p-2 sm:p-3 sm:rounded-xl'}`}>
+                <FaReceipt className={`text-white transition-all duration-300 ${isScrolled ? 'text-xs sm:text-sm' : 'text-base sm:text-xl'}`} />
               </div>
               <div className="min-w-0">
-                <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{t('orderHistory.title')}</h1>
-                <p className="text-xs sm:text-sm text-gray-500 mt-0.5 hidden sm:block">{restaurant?.name}</p>
+                <h1 className={`font-bold text-gray-900 truncate transition-all duration-300 ${isScrolled ? 'text-sm sm:text-base' : 'text-lg sm:text-2xl'}`}>{t('orderHistory.title')}</h1>
+                <p className={`text-xs sm:text-sm text-gray-500 mt-0.5 hidden sm:block transition-all duration-300 overflow-hidden ${isScrolled ? 'max-h-0 opacity-0 mt-0' : 'max-h-6 opacity-100'}`}>{restaurant?.name}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-              <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-lg">
+              <div className={`hidden sm:flex items-center gap-2 text-sm text-gray-600 bg-gray-50 rounded-lg transition-all duration-300 ${isScrolled ? 'px-2 py-1 text-xs' : 'px-3 py-1.5'}`}>
                 <span className="font-medium">{totalOrders}</span>
                 <span className="text-gray-400">{t('orderHistory.orders')}</span>
               </div>
@@ -2162,11 +2291,13 @@ const OrderHistory = () => {
             </div>
           </div>
 
-          {/* View Tabs: Orders | Summary */}
-          <div className="flex items-center gap-1 pb-2 sm:pb-3 border-b border-gray-100">
+          {/* View Tabs: Orders | Summary — compact on scroll */}
+          <div className={`flex items-center gap-1 border-b border-gray-100 transition-all duration-300 ${isScrolled ? 'pb-1.5 sm:pb-1.5' : 'pb-2 sm:pb-3'}`}>
             <button
               onClick={() => switchView('orders')}
-              className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex items-center gap-1.5 rounded-lg font-medium transition-all duration-300 ${
+                isScrolled ? 'px-2.5 sm:px-3 py-1 sm:py-1 text-xs' : 'px-3 sm:px-4 py-1.5 sm:py-2 text-sm'
+              } ${
                 activeView === 'orders'
                   ? 'bg-red-600 text-white shadow-md shadow-red-200'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -2177,7 +2308,9 @@ const OrderHistory = () => {
             </button>
             <button
               onClick={() => switchView('scheduled')}
-              className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex items-center gap-1.5 rounded-lg font-medium transition-all duration-300 ${
+                isScrolled ? 'px-2.5 sm:px-3 py-1 sm:py-1 text-xs' : 'px-3 sm:px-4 py-1.5 sm:py-2 text-sm'
+              } ${
                 activeView === 'scheduled'
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -2188,7 +2321,9 @@ const OrderHistory = () => {
             </button>
             <button
               onClick={() => switchView('summary')}
-              className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex items-center gap-1.5 rounded-lg font-medium transition-all duration-300 ${
+                isScrolled ? 'px-2.5 sm:px-3 py-1 sm:py-1 text-xs' : 'px-3 sm:px-4 py-1.5 sm:py-2 text-sm'
+              } ${
                 activeView === 'summary'
                   ? 'bg-rose-600 text-white shadow-md shadow-rose-200'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -2199,7 +2334,9 @@ const OrderHistory = () => {
             </button>
             <button
               onClick={() => switchView('bookings')}
-              className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex items-center gap-1.5 rounded-lg font-medium transition-all duration-300 ${
+                isScrolled ? 'px-2.5 sm:px-3 py-1 sm:py-1 text-xs' : 'px-3 sm:px-4 py-1.5 sm:py-2 text-sm'
+              } ${
                 activeView === 'bookings'
                   ? 'bg-amber-500 text-white shadow-md shadow-amber-200'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -2210,69 +2347,108 @@ const OrderHistory = () => {
             </button>
           </div>
 
-          {/* Summary Stats Cards — only in orders view */}
+          {/* Summary Stats — only in orders view; full cards or compact inline strip based on scroll */}
           {activeView === 'orders' && (<>
-          {/* Summary Stats Cards — 2x2 on mobile, 4-col on desktop (same as original) */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-3 pb-2 sm:pb-3">
-            {/* Revenue */}
-            <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
-                <div className="bg-green-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
-                  <span className="text-white text-xs sm:text-sm font-bold leading-none">{getCurrencySymbol()}</span>
+          {/* Expanded stat cards — hidden when scrolled */}
+          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isScrolled ? 'max-h-0 opacity-0 pb-0' : 'max-h-40 opacity-100 pb-2 sm:pb-3'}`}>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-3">
+              {/* Revenue */}
+              <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
+                  <div className="bg-green-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
+                    <span className="text-white text-xs sm:text-sm font-bold leading-none">{getCurrencySymbol()}</span>
+                  </div>
+                  <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">{t('orderHistory.revenue')}</span>
                 </div>
-                <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">{t('orderHistory.revenue')}</span>
+                <div className="text-sm sm:text-lg font-bold text-gray-900 leading-tight">{formatCurrency(stats.totalRevenue)}</div>
+                {stats.totalRevenueWithTax > stats.totalRevenue && (
+                  <div className="text-[10px] sm:text-[12px] text-green-700/70 mt-0.5 leading-tight">{t('orderHistory.inclTax')} {formatCurrency(stats.totalRevenueWithTax)}</div>
+                )}
               </div>
-              <div className="text-sm sm:text-lg font-bold text-gray-900 leading-tight">{formatCurrency(stats.totalRevenue)}</div>
-              {stats.totalRevenueWithTax > stats.totalRevenue && (
-                <div className="text-[10px] sm:text-[12px] text-green-700/70 mt-0.5 leading-tight">{t('orderHistory.inclTax')} {formatCurrency(stats.totalRevenueWithTax)}</div>
-              )}
+              {/* Orders */}
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
+                  <div className="bg-blue-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
+                    <FaShoppingBag className="text-white text-xs sm:text-sm" />
+                  </div>
+                  <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">{t('orderHistory.orders')}</span>
+                </div>
+                <div className="text-sm sm:text-lg font-bold text-gray-900 leading-tight">{stats.orderCount}</div>
+              </div>
+              {/* Payment Breakdown */}
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
+                  <div className="bg-purple-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
+                    <FaCreditCard className="text-white text-xs sm:text-sm" />
+                  </div>
+                  <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">{t('orderHistory.payments')}</span>
+                </div>
+                {stats.paymentBreakdown && Object.keys(stats.paymentBreakdown).length > 0 ? (
+                  <div className="space-y-1">
+                    {Object.entries(stats.paymentBreakdown)
+                      .sort((a, b) => b[1].total - a[1].total)
+                      .map(([method, data]) => {
+                        const colors = { cash: 'text-emerald-600', upi: 'text-violet-600', card: 'text-sky-600', online: 'text-cyan-600' };
+                        const color = colors[method] || 'text-gray-600';
+                        return (
+                          <div key={method} className="flex items-center justify-between">
+                            <span className={`text-[10px] sm:text-xs font-semibold capitalize ${color}`}>{method}</span>
+                            <span className="text-[10px] sm:text-xs font-bold text-gray-900">{formatCurrency(data.total)} <span className="font-normal text-gray-400 text-[9px]">({data.count})</span></span>
+                          </div>
+                        );
+                      })}
+                  </div>
+                ) : (
+                  <div className="text-sm sm:text-lg font-bold text-gray-900 leading-tight">--</div>
+                )}
+              </div>
+              {/* Completed */}
+              <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
+                  <div className="bg-amber-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
+                    <FaCheckCircle className="text-white text-xs sm:text-sm" />
+                  </div>
+                  <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">{t('orderHistory.completed')}</span>
+                </div>
+                <div className="text-sm sm:text-lg font-bold text-gray-900 leading-tight">{stats.completedCount}</div>
+              </div>
             </div>
-            {/* Orders */}
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
-                <div className="bg-blue-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
-                  <FaShoppingBag className="text-white text-xs sm:text-sm" />
-                </div>
-                <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">{t('orderHistory.orders')}</span>
+          </div>
+
+          {/* Compact inline stat strip — visible only when scrolled */}
+          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isScrolled ? 'max-h-10 opacity-100' : 'max-h-0 opacity-0'}`}>
+            <div className="flex items-center gap-3 sm:gap-5 py-1.5 text-xs">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-green-500" />
+                <span className="text-gray-500">{t('orderHistory.revenue')}</span>
+                <span className="font-bold text-gray-900">{formatCurrency(stats.totalRevenueWithTax || stats.totalRevenue)}</span>
               </div>
-              <div className="text-sm sm:text-lg font-bold text-gray-900 leading-tight">{stats.orderCount}</div>
-            </div>
-            {/* Payment Breakdown — replaces Avg Value */}
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
-                <div className="bg-purple-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
-                  <FaCreditCard className="text-white text-xs sm:text-sm" />
-                </div>
-                <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">{t('orderHistory.payments')}</span>
+              <div className="w-px h-3.5 bg-gray-200" />
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                <span className="font-bold text-gray-900">{stats.orderCount}</span>
+                <span className="text-gray-500">{t('orderHistory.orders')}</span>
               </div>
-              {stats.paymentBreakdown && Object.keys(stats.paymentBreakdown).length > 0 ? (
-                <div className="space-y-1">
+              <div className="w-px h-3.5 bg-gray-200" />
+              {stats.paymentBreakdown && Object.keys(stats.paymentBreakdown).length > 0 && (
+                <>
                   {Object.entries(stats.paymentBreakdown)
                     .sort((a, b) => b[1].total - a[1].total)
-                    .map(([method, data]) => {
-                      const colors = { cash: 'text-emerald-600', upi: 'text-violet-600', card: 'text-sky-600', online: 'text-cyan-600' };
-                      const color = colors[method] || 'text-gray-600';
-                      return (
-                        <div key={method} className="flex items-center justify-between">
-                          <span className={`text-[10px] sm:text-xs font-semibold capitalize ${color}`}>{method}</span>
-                          <span className="text-[10px] sm:text-xs font-bold text-gray-900">{formatCurrency(data.total)} <span className="font-normal text-gray-400 text-[9px]">({data.count})</span></span>
-                        </div>
-                      );
-                    })}
-                </div>
-              ) : (
-                <div className="text-sm sm:text-lg font-bold text-gray-900 leading-tight">--</div>
+                    .slice(0, 2)
+                    .map(([method, data]) => (
+                      <div key={method} className="flex items-center gap-1.5">
+                        <span className="text-gray-500 capitalize">{method}</span>
+                        <span className="font-bold text-gray-900">{formatCurrency(data.total)}</span>
+                      </div>
+                    ))}
+                  <div className="w-px h-3.5 bg-gray-200" />
+                </>
               )}
-            </div>
-            {/* Completed */}
-            <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
-                <div className="bg-amber-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
-                  <FaCheckCircle className="text-white text-xs sm:text-sm" />
-                </div>
-                <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">{t('orderHistory.completed')}</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-amber-500" />
+                <span className="font-bold text-gray-900">{stats.completedCount}</span>
+                <span className="text-gray-500">{t('orderHistory.completed')}</span>
               </div>
-              <div className="text-sm sm:text-lg font-bold text-gray-900 leading-tight">{stats.completedCount}</div>
             </div>
           </div>
 
@@ -2415,7 +2591,7 @@ const OrderHistory = () => {
               </div>
               <FilterDropdown
                 isOpen={statusDropdownOpen}
-                onToggle={() => { setStatusDropdownOpen(!statusDropdownOpen); setTypeDropdownOpen(false); setPaymentStatusDropdownOpen(false); }}
+                onToggle={() => { setStatusDropdownOpen(!statusDropdownOpen); setTypeDropdownOpen(false); setPaymentStatusDropdownOpen(false); setSubRestaurantDropdownOpen(false); }}
                 selectedValue={selectedStatus}
                 options={statusOptions}
                 onSelect={setSelectedStatus}
@@ -2424,13 +2600,24 @@ const OrderHistory = () => {
               />
               <FilterDropdown
                 isOpen={typeDropdownOpen}
-                onToggle={() => { setTypeDropdownOpen(!typeDropdownOpen); setStatusDropdownOpen(false); setPaymentStatusDropdownOpen(false); }}
+                onToggle={() => { setTypeDropdownOpen(!typeDropdownOpen); setStatusDropdownOpen(false); setPaymentStatusDropdownOpen(false); setSubRestaurantDropdownOpen(false); }}
                 selectedValue={selectedOrderType}
                 options={typeOptions}
                 onSelect={setSelectedOrderType}
                 placeholder={t('orderHistory.type.all')}
                 icon={FaUtensils}
               />
+              {subRestaurants.length > 0 && (
+                <FilterDropdown
+                  isOpen={subRestaurantDropdownOpen}
+                  onToggle={() => { setSubRestaurantDropdownOpen(!subRestaurantDropdownOpen); setStatusDropdownOpen(false); setTypeDropdownOpen(false); setPaymentStatusDropdownOpen(false); }}
+                  selectedValue={filterSubRestaurant}
+                  options={subRestaurantOptions}
+                  onSelect={setFilterSubRestaurant}
+                  placeholder="All Outlets"
+                  icon={FaStore}
+                />
+              )}
               {partialPaymentEnabled && (
                 <button
                   onClick={() => setSelectedPaymentStatus(selectedPaymentStatus === 'partial' ? 'all' : 'partial')}
@@ -2540,7 +2727,7 @@ const OrderHistory = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {orders.map((order) => {
+                    {displayedOrders.map((order) => {
                       const statusStyle = getStatusStyle(order.status, order.orderFlow, order.lastStatus, order);
                       const breakdown = getOrderBreakdown(order);
                       const itemCount = Array.isArray(order.items) ? order.items.length : 0;
@@ -2619,6 +2806,11 @@ const OrderHistory = () => {
                                     Staff: {order.assignedStaff.name}
                                   </span>
                                 )}
+                                {order.subRestaurantName && (
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', padding: '1px 5px', backgroundColor: '#fff7ed', color: '#9a3412', borderRadius: '4px', fontSize: '9px', fontWeight: '600', border: '1px solid #fed7aa', width: 'fit-content' }}>
+                                    <FaStore size={7} /> {order.subRestaurantName}
+                                  </span>
+                                )}
                               </div>
                             </td>
                             {/* Payment */}
@@ -2643,7 +2835,7 @@ const OrderHistory = () => {
                             {/* Actions */}
                             <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center justify-center gap-1">
-                                {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
+                                {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && (
                                   <button
                                     onClick={() => handleMarkCompleted(order.id)}
                                     className="w-7 h-7 rounded-lg flex items-center justify-center text-green-600 bg-green-50 hover:bg-green-100 border border-green-200 transition-colors"
@@ -2759,13 +2951,22 @@ const OrderHistory = () => {
                                     <FaEdit size={10} />
                                   </button>
                                 )}
-                                {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
+                                {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && (
                                   <button
                                     onClick={() => handleCancelOrder(order.id)}
                                     className="w-7 h-7 rounded-lg flex items-center justify-center text-red-500 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors"
                                     title={t('orderHistory.cancel')}
                                   >
                                     <FaTimesCircle size={11} />
+                                  </button>
+                                )}
+                                {order.status === 'completed' && !order.refundedAt && (
+                                  <button
+                                    onClick={() => handleOpenRefund(order)}
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center text-orange-600 bg-orange-50 hover:bg-orange-100 border border-orange-200 transition-colors"
+                                    title="Refund"
+                                  >
+                                    <FaUndoAlt size={10} />
                                   </button>
                                 )}
                                 {allowOrderDelete && order.status !== 'deleted' && (
@@ -2904,7 +3105,7 @@ const OrderHistory = () => {
             </div>
           ) : (
             <div className="space-y-2.5">
-            {orders.map((order) => {
+            {displayedOrders.map((order) => {
               const statusStyle = getStatusStyle(order.status, order.orderFlow, order.lastStatus, order);
               const orderTotal = calculateOrderTotal(order);
               const breakdown = getOrderBreakdown(order);
@@ -2940,6 +3141,11 @@ const OrderHistory = () => {
                               {order.assignedStaff?.name && (
                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 6px', backgroundColor: '#f0fdf4', color: '#166534', borderRadius: '6px', fontSize: '10px', fontWeight: '600', border: '1px solid #bbf7d0' }}>
                                   Staff: {order.assignedStaff.name}
+                                </span>
+                              )}
+                              {order.subRestaurantName && (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 6px', backgroundColor: '#fff7ed', color: '#9a3412', borderRadius: '6px', fontSize: '10px', fontWeight: '600', border: '1px solid #fed7aa' }}>
+                                  <FaStore size={8} /> {order.subRestaurantName}
                                 </span>
                               )}
                               {order.isScheduled && order.scheduledFor && (
@@ -3085,7 +3291,7 @@ const OrderHistory = () => {
                             </div>
                           </div>
                           <div className="flex items-center gap-1.5 flex-shrink-0">
-                            {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
+                            {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && (
                               <button
                                 onClick={() => handleMarkCompleted(order.id)}
                                 className="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-all flex items-center gap-1.5"
@@ -3181,12 +3387,20 @@ const OrderHistory = () => {
                                 </div>
                               )}
                             </div>
-                            {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
+                            {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && (
                               <button
                                 onClick={() => handleCancelOrder(order.id)}
                                 className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-all flex items-center gap-1.5"
                               >
                                 <FaTimesCircle /> {t('orderHistory.cancel')}
+                              </button>
+                            )}
+                            {order.status === 'completed' && !order.refundedAt && (
+                              <button
+                                onClick={() => handleOpenRefund(order)}
+                                className="px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded-md hover:bg-orange-100 transition-all flex items-center gap-1.5"
+                              >
+                                <FaUndoAlt /> Refund
                               </button>
                             )}
                             {order.status !== 'deleted' && order.status !== 'completed' && !order.orderFlow?.isDirectBilling && (
@@ -3634,6 +3848,177 @@ const OrderHistory = () => {
             </div>
           </div>
         </>
+      )}
+
+      {/* Refund modal */}
+      {refundModalOrder && typeof document !== 'undefined' && createPortal(
+        <>
+          <style dangerouslySetInnerHTML={{ __html: `
+            @keyframes refundBackdropIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes refundDialogIn { from { opacity: 0; transform: scale(0.92) translateY(16px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+          ` }} />
+          <div
+            className="fixed inset-0 z-[10300] flex items-center justify-center p-4 sm:p-6"
+            style={{ animation: 'refundBackdropIn 0.2s ease-out' }}
+            aria-modal="true"
+            role="dialog"
+          >
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={closeRefundModal}
+            />
+            <div
+              className="relative w-full max-w-[min(92vw,480px)] rounded-2xl shadow-2xl border-2 border-gray-200 bg-white overflow-hidden"
+              style={{ animation: 'refundDialogIn 0.35s cubic-bezier(0.34,1.56,0.64,1)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-5 sm:p-6">
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center flex-shrink-0">
+                    <FaUndoAlt className="text-orange-600 text-xl" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-900">
+                      Refund Order #{refundModalOrder.dailyOrderId || refundModalOrder.orderNumber || ''}
+                    </h2>
+                    <p className="text-xs sm:text-sm text-gray-500">
+                      Order total: {formatCurrency(refundModalOrder.finalAmount || refundModalOrder.totalAmount || 0)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Full / Partial toggle */}
+                <div className="flex gap-2 mb-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRefundType('full');
+                      setRefundAmount(String(refundModalOrder.finalAmount || refundModalOrder.totalAmount || 0));
+                      if (refundError) setRefundError(null);
+                    }}
+                    className={`flex-1 px-3 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${
+                      refundType === 'full'
+                        ? 'bg-orange-50 border-orange-300 text-orange-700'
+                        : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
+                    }`}
+                  >
+                    Full Refund
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRefundType('partial');
+                      setRefundAmount('');
+                      if (refundError) setRefundError(null);
+                    }}
+                    className={`flex-1 px-3 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${
+                      refundType === 'partial'
+                        ? 'bg-orange-50 border-orange-300 text-orange-700'
+                        : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
+                    }`}
+                  >
+                    Partial Refund
+                  </button>
+                </div>
+
+                {/* Info banner */}
+                {refundType === 'full' ? (
+                  <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-xs text-amber-800">
+                      <span className="font-semibold">Full refund</span> will reverse all calculations — inventory, loyalty points, customer stats, and promo usage will be restored.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-xs text-blue-800">
+                      <span className="font-semibold">Partial refund</span> records the refund amount. Order stays completed in reports. No inventory/loyalty reversals.
+                    </p>
+                  </div>
+                )}
+
+                {/* Refund amount */}
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
+                  Refund Amount <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max={refundModalOrder.finalAmount || refundModalOrder.totalAmount || 0}
+                  value={refundAmount}
+                  onChange={(e) => { setRefundAmount(e.target.value); if (refundError) setRefundError(null); }}
+                  disabled={refundSubmitting || refundType === 'full'}
+                  placeholder="Enter refund amount"
+                  className="w-full px-3 py-2.5 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 disabled:bg-gray-50 mb-3"
+                />
+
+                {/* Reason */}
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
+                  Reason <span className="text-red-600">*</span>
+                </label>
+                <textarea
+                  value={refundReason}
+                  onChange={(e) => { setRefundReason(e.target.value); if (refundError) setRefundError(null); }}
+                  disabled={refundSubmitting}
+                  rows={2}
+                  placeholder="e.g. Customer complaint, wrong item, quality issue..."
+                  className="w-full px-3 py-2.5 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 resize-none disabled:bg-gray-50"
+                />
+
+                {/* Quick reason chips */}
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {['Customer Complaint', 'Wrong Item Served', 'Quality Issue', 'Overcharged', 'Item Not Received'].map(r => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => { setRefundReason(r); if (refundError) setRefundError(null); }}
+                      disabled={refundSubmitting}
+                      className="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-full transition-colors disabled:opacity-60"
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+
+                {refundError && (
+                  <p className="text-sm text-red-600 mt-3">{refundError}</p>
+                )}
+
+                {/* Actions */}
+                <div className="flex flex-col-reverse sm:flex-row gap-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={closeRefundModal}
+                    disabled={refundSubmitting}
+                    className="min-h-[44px] w-full sm:flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border-2 border-gray-200 rounded-xl hover:bg-gray-200 disabled:opacity-60 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={submitRefund}
+                    disabled={refundSubmitting || !refundAmount || !refundReason.trim()}
+                    className="min-h-[44px] w-full sm:flex-1 px-4 py-2 text-sm font-medium text-white bg-orange-600 border-2 border-orange-600 rounded-xl hover:bg-orange-700 flex items-center justify-center gap-2 disabled:opacity-60 transition-all"
+                  >
+                    {refundSubmitting ? (
+                      <>
+                        <FaSpinner className="animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <FaUndoAlt />
+                        {refundType === 'full' ? `Refund ${formatCurrency(parseFloat(refundAmount) || 0)}` : `Refund ${formatCurrency(parseFloat(refundAmount) || 0)}`}
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>,
+        document.body
       )}
 
       {/* Delete order confirmation modal */}
@@ -4291,7 +4676,7 @@ const OrderHistory = () => {
                               {items.length > 4 && <span className="text-gray-400"> +{items.length - 4} more</span>}
                             </div>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
-                              {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
+                              {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && (
                                 <button
                                   onClick={() => handleMarkCompleted(order.id)}
                                   className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-all"
@@ -4305,7 +4690,7 @@ const OrderHistory = () => {
                               >
                                 <FaEye className="text-[10px]" /> View
                               </button>
-                              {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
+                              {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && (
                                 <button
                                   onClick={() => setCancelModalOrderId(order.id)}
                                   className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all"
@@ -4383,7 +4768,7 @@ const OrderHistory = () => {
                                       )}
                                       <span className="text-xs text-gray-400 hidden sm:inline">{itemCount} items</span>
                                       <span className="font-bold text-sm text-gray-900 w-20 text-right">{formatCurrency(order.finalAmount || order.totalAmount || 0)}</span>
-                                      {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
+                                      {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && (
                                         <button
                                           onClick={() => handleMarkCompleted(order.id)}
                                           className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-all"
@@ -4466,11 +4851,15 @@ const OrderHistory = () => {
                 fetchBookingsData();
               } catch (err) { alert('Failed: ' + (err.message || '')); }
             }}
-            onCancel={async function(booking) {
-              var reason = prompt('Reason for cancellation (optional):');
-              if (reason === null) return;
+            onCancel={async function(booking, reason) {
               try {
-                await apiClient.deleteBooking(restaurantId, booking.id, reason);
+                await apiClient.deleteBooking(restaurantId, booking.id, reason || '');
+                fetchBookingsData();
+              } catch (err) { alert('Failed: ' + (err.message || '')); }
+            }}
+            onDelete={async function(booking, reason) {
+              try {
+                await apiClient.deleteBooking(restaurantId, booking.id, reason || '');
                 fetchBookingsData();
               } catch (err) { alert('Failed: ' + (err.message || '')); }
             }}
@@ -4905,6 +5294,7 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
                     )}
                     {order.customerDisplay?.floorName && !order.roomNumber && !order.customerDisplay?.roomNumber && !order.customerInfo?.roomNumber && <p>{t('orderHistory.floorLabel')} {order.customerDisplay.floorName}</p>}
                     {order.orderType && <p>{t('orderHistory.typeLabel')} <span className="capitalize">{order.orderType.replace('-', ' ')}</span></p>}
+                    {order.subRestaurantName && <p>Outlet: <span className="font-semibold">{order.subRestaurantName}</span></p>}
                     {order.paymentMethod && <p>{t('orderHistory.paymentLabel')} <span className="capitalize">{order.paymentMethod}</span></p>}
                   </div>
                 </div>

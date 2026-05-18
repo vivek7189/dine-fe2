@@ -6,6 +6,7 @@ import {
   buildBillItemRows, buildTaxHtml, buildDiscountHtml, buildChargesHtml,
   buildPaymentHtml, buildDeliveryAddressHtml, calcGrandTotal, formatDateTime,
   getPrintFontSizes, getPrintFontFamily, wrapInDocument, buildInclusiveTaxNote,
+  buildFeedbackSection,
 } from '../helpers';
 
 export const id = 'compact';
@@ -74,6 +75,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
       inclusiveNote +
     `</div>` +
     `<div class="divider">================================</div>` +
+    buildFeedbackSection(printSettings) +
     `<div class="bill-footer"><p>${L.footer}</p></div>`;
 
   return wrapInDocument(`${L.billLabel} #${invoice.dailyOrderId || invoice.id || 'N/A'}`, css, bodyHtml);

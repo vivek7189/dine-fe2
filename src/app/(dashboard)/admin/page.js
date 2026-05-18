@@ -85,7 +85,11 @@ import {
   FaParking,
   FaCalendarCheck,
   FaDoorOpen,
-  FaBell
+  FaBell,
+  FaCommentDots,
+  FaWhatsapp,
+  FaQrcode,
+  FaLink
 } from 'react-icons/fa';
 // ShiftScheduling moved to /shifts page df
 import dynamic from 'next/dynamic';
@@ -4524,7 +4528,18 @@ const Admin = () => {
   const [editingStaff, setEditingStaff] = useState(false);
   const [editStaffForm, setEditStaffForm] = useState({ name: '', phone: '', email: '', role: '', pageAccess: {} });
   const [editStaffSaving, setEditStaffSaving] = useState(false);
+  const [staffRestaurants, setStaffRestaurants] = useState([]);
+  const [loadingStaffRestaurants, setLoadingStaffRestaurants] = useState(false);
   const [staffViewMode, setStaffViewMode] = useState('card');
+  const [subRestaurants, setSubRestaurants] = useState([]);
+  const [feedbackSettings, setFeedbackSettings] = useState({ whatsappAutoSend: false, qrOnBill: false, defaultFormId: '' });
+  const [feedbackForms, setFeedbackForms] = useState([]);
+  const [loadingFeedbackSettings, setLoadingFeedbackSettings] = useState(false);
+  const [savingFeedbackSettings, setSavingFeedbackSettings] = useState(false);
+  const [loadingSubRestaurants, setLoadingSubRestaurants] = useState(false);
+  const [showAddSubRestaurantModal, setShowAddSubRestaurantModal] = useState(false);
+  const [editingSubRestaurant, setEditingSubRestaurant] = useState(null);
+  const [subRestaurantForm, setSubRestaurantForm] = useState({ name: '', description: '', menuMode: 'shared', tableMode: 'shared', assignedSections: [], assignedFloorIds: [] });
   const [searchTerm, setSearchTerm] = useState('');
   const [authorized, setAuthorized] = useState(false);
   const [newRestaurant, setNewRestaurant] = useState({
@@ -4855,12 +4870,14 @@ const Admin = () => {
     ]},
     { label: 'MANAGE', items: [
       { id: 'restaurants', label: 'Restaurants', icon: FaStore },
+      { id: 'sub-restaurants', label: 'Sub-Restaurants', icon: FaLayerGroup },
       { id: 'staff', label: 'Staff', icon: FaUsers },
     ]},
     { label: 'OPERATIONS', items: [
       { id: 'order-management', label: 'Order Management', icon: FaReceipt },
       { id: 'offers', label: 'Offers & Discounts', icon: FaTag },
       { id: 'loyalty', label: 'Loyalty Program', icon: FaStar },
+      { id: 'feedback-settings', label: 'Feedback Forms', icon: FaCommentDots },
     ]},
     { label: 'INTEGRATIONS', items: [
       { id: 'google-reviews', label: 'Google Reviews', icon: FaGoogle },
@@ -5500,6 +5517,146 @@ const Admin = () => {
     } finally {
       setEditStaffSaving(false);
     }
+  };
+
+  // Fetch staff restaurants when selectedStaff changes
+  useEffect(() => {
+    if (selectedStaff && (currentUserRole === 'owner' || currentUserRole === 'admin')) {
+      setLoadingStaffRestaurants(true);
+      apiClient.getStaffRestaurants(selectedStaff.id)
+        .then(res => setStaffRestaurants(res.restaurants || []))
+        .catch(() => setStaffRestaurants([]))
+        .finally(() => setLoadingStaffRestaurants(false));
+    } else {
+      setStaffRestaurants([]);
+    }
+  }, [selectedStaff?.id]);
+
+  const handleAddStaffRestaurant = async (restaurantId) => {
+    if (!selectedStaff) return;
+    try {
+      await apiClient.assignStaffRestaurant(selectedStaff.id, restaurantId);
+      const res = await apiClient.getStaffRestaurants(selectedStaff.id);
+      setStaffRestaurants(res.restaurants || []);
+      // Update restaurantCount in staff list
+      const newCount = (res.restaurants || []).length;
+      setStaff(prev => prev.map(m => m.id === selectedStaff.id ? { ...m, restaurantCount: newCount } : m));
+      showSuccess('Restaurant access added');
+    } catch (error) {
+      showError(error.message || 'Failed to add restaurant access');
+    }
+  };
+
+  const handleRemoveStaffRestaurant = async (restaurantId) => {
+    if (!selectedStaff) return;
+    try {
+      await apiClient.removeStaffRestaurant(selectedStaff.id, restaurantId);
+      const res = await apiClient.getStaffRestaurants(selectedStaff.id);
+      setStaffRestaurants(res.restaurants || []);
+      const newCount = (res.restaurants || []).length;
+      setStaff(prev => prev.map(m => m.id === selectedStaff.id ? { ...m, restaurantCount: newCount } : m));
+      showSuccess('Restaurant access removed');
+    } catch (error) {
+      showError(error.message || 'Failed to remove restaurant access');
+    }
+  };
+
+  const loadSubRestaurants = async () => {
+    if (!selectedRestaurant) return;
+    setLoadingSubRestaurants(true);
+    try {
+      const res = await apiClient.getSubRestaurants(selectedRestaurant.id);
+      setSubRestaurants(res.subRestaurants || []);
+    } catch (err) {
+      console.error('Error loading sub-restaurants:', err);
+      setSubRestaurants([]);
+    } finally {
+      setLoadingSubRestaurants(false);
+    }
+  };
+
+  const handleCreateSubRestaurant = async () => {
+    if (!selectedRestaurant || !subRestaurantForm.name.trim()) {
+      showWarning('Name is required');
+      return;
+    }
+    try {
+      await apiClient.createSubRestaurant(selectedRestaurant.id, subRestaurantForm);
+      showSuccess('Sub-restaurant created!');
+      setShowAddSubRestaurantModal(false);
+      setSubRestaurantForm({ name: '', description: '', menuMode: 'shared', tableMode: 'shared', assignedSections: [], assignedFloorIds: [] });
+      loadSubRestaurants();
+    } catch (err) {
+      showError(err.message || 'Failed to create sub-restaurant');
+    }
+  };
+
+  const handleUpdateSubRestaurant = async () => {
+    if (!selectedRestaurant || !editingSubRestaurant) return;
+    try {
+      await apiClient.updateSubRestaurant(selectedRestaurant.id, editingSubRestaurant.id, subRestaurantForm);
+      showSuccess('Sub-restaurant updated!');
+      setEditingSubRestaurant(null);
+      setSubRestaurantForm({ name: '', description: '', menuMode: 'shared', tableMode: 'shared', assignedSections: [], assignedFloorIds: [] });
+      loadSubRestaurants();
+    } catch (err) {
+      showError(err.message || 'Failed to update sub-restaurant');
+    }
+  };
+
+  const handleDeleteSubRestaurant = async (subId) => {
+    if (!selectedRestaurant) return;
+    try {
+      await apiClient.deleteSubRestaurant(selectedRestaurant.id, subId);
+      showSuccess('Sub-restaurant deleted');
+      loadSubRestaurants();
+    } catch (err) {
+      showError(err.message || 'Failed to delete sub-restaurant');
+    }
+  };
+
+  const handleToggleSubRestaurantStatus = async (sub) => {
+    if (!selectedRestaurant) return;
+    const newStatus = sub.status === 'active' ? 'inactive' : 'active';
+    try {
+      await apiClient.updateSubRestaurant(selectedRestaurant.id, sub.id, { status: newStatus });
+      showSuccess(`Sub-restaurant ${newStatus === 'active' ? 'activated' : 'deactivated'}`);
+      loadSubRestaurants();
+    } catch (err) {
+      showError(err.message || 'Failed to update status');
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'sub-restaurants' && selectedRestaurant) {
+      loadSubRestaurants();
+    }
+  }, [activeTab, selectedRestaurant?.id]);
+
+  useEffect(() => {
+    if (activeTab === 'feedback-settings' && selectedRestaurant) {
+      setLoadingFeedbackSettings(true);
+      Promise.all([
+        apiClient.getFeedbackForms(selectedRestaurant.id).catch(() => ({ forms: [] })),
+        apiClient.request(`/api/restaurants/${selectedRestaurant.id}`).catch(() => null),
+      ]).then(([formsRes, restRes]) => {
+        setFeedbackForms((formsRes.forms || []).filter(f => f.status === 'active'));
+        const saved = restRes?.restaurant?.feedbackSettings || restRes?.feedbackSettings || {};
+        setFeedbackSettings({ whatsappAutoSend: saved.whatsappAutoSend || false, qrOnBill: saved.qrOnBill || false, defaultFormId: saved.defaultFormId || '' });
+      }).finally(() => setLoadingFeedbackSettings(false));
+    }
+  }, [activeTab, selectedRestaurant?.id]);
+
+  const handleSaveFeedbackSettings = async () => {
+    if (!selectedRestaurant) return;
+    setSavingFeedbackSettings(true);
+    try {
+      await apiClient.request(`/api/restaurants/${selectedRestaurant.id}`, { method: 'PUT', body: JSON.stringify({ feedbackSettings }), headers: { 'Content-Type': 'application/json' } });
+      showNotification?.('Feedback settings saved', 'success');
+    } catch (err) {
+      console.error('Error saving feedback settings:', err);
+      showNotification?.('Failed to save settings', 'error');
+    } finally { setSavingFeedbackSettings(false); }
   };
 
   const filteredRestaurants = restaurants.filter(restaurant =>
@@ -6335,6 +6492,7 @@ const Admin = () => {
                     <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Phone</th>
                     <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Role</th>
                     <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Status</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Restaurants</th>
                     <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>User ID</th>
                     <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Last Login</th>
                     <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Actions</th>
@@ -6376,6 +6534,15 @@ const Admin = () => {
                             color: isInactive ? '#dc2626' : '#15803d',
                             border: isInactive ? '1px solid #fecaca' : '1px solid #bbf7d0'
                           }}>{isInactive ? 'Inactive' : 'Active'}</span>
+                        </td>
+                        <td style={{ padding: '10px 16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                          <span style={{
+                            padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700,
+                            letterSpacing: '0.04em',
+                            backgroundColor: (member.restaurantCount || 1) > 1 ? '#dbeafe' : '#f3f4f6',
+                            color: (member.restaurantCount || 1) > 1 ? '#1d4ed8' : '#6b7280',
+                            border: (member.restaurantCount || 1) > 1 ? '1px solid #93c5fd' : '1px solid #e5e7eb'
+                          }}>{member.restaurantCount || 1}</span>
                         </td>
                         <td style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}>
                           {member.loginId ? (
@@ -6507,9 +6674,18 @@ const Admin = () => {
                       }}>
                         {roleInfo.label}
                       </span>
+                      {(member.restaurantCount || 1) > 1 && (
+                        <span style={{
+                          padding: '3px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 700,
+                          backgroundColor: '#dbeafe', color: '#1d4ed8', border: '1px solid #93c5fd',
+                          flexShrink: 0
+                        }}>
+                          {member.restaurantCount} restaurants
+                        </span>
+                      )}
                     </div>
                   </div>
-                  
+
                   {/* Staff Details */}
                   <div style={{ padding: '14px 20px' }}>
                     {/* Login Credentials Section */}
@@ -7111,7 +7287,147 @@ const Admin = () => {
             </p>
           </div>
         )}
+
+        {/* Sub-Restaurants Tab Content */}
+        {activeTab === 'sub-restaurants' && (
+          <div style={{ padding: isClient && isMobile ? '12px' : '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#1e293b', margin: 0 }}>Sub-Restaurants</h2>
+              <button
+                onClick={() => { setSubRestaurantForm({ name: '', description: '', menuMode: 'shared', tableMode: 'shared', assignedSections: [], assignedFloorIds: [] }); setShowAddSubRestaurantModal(true); }}
+                style={{ padding: '8px 16px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <FaPlus size={11} /> Add Sub-Restaurant
+              </button>
+            </div>
+
+            {loadingSubRestaurants ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>Loading...</div>
+            ) : subRestaurants.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '60px 20px', color: '#6b7280' }}>
+                <FaLayerGroup size={40} style={{ opacity: 0.3, marginBottom: '12px' }} />
+                <p style={{ fontSize: '15px', fontWeight: 500 }}>No sub-restaurants yet</p>
+                <p style={{ fontSize: '13px' }}>Create sub-restaurants to manage different sections like Bar, Dine-In, etc.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: isClient && isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
+                {subRestaurants.map(sub => (
+                  <div key={sub.id} style={{
+                    backgroundColor: 'white', borderRadius: '14px', border: '1px solid #e5e7eb',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden',
+                    opacity: sub.status === 'inactive' ? 0.6 : 1
+                  }}>
+                    <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#111827', margin: 0 }}>{sub.name}</h3>
+                          {sub.description && <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0' }}>{sub.description}</p>}
+                        </div>
+                        <span style={{
+                          padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700,
+                          textTransform: 'uppercase',
+                          backgroundColor: sub.status === 'active' ? '#f0fdf4' : '#fef2f2',
+                          color: sub.status === 'active' ? '#15803d' : '#dc2626',
+                          border: sub.status === 'active' ? '1px solid #bbf7d0' : '1px solid #fecaca'
+                        }}>{sub.status}</span>
+                      </div>
+                    </div>
+                    <div style={{ padding: '12px 20px' }}>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                        <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, backgroundColor: sub.menuMode === 'shared' ? '#dbeafe' : '#fef3c7', color: sub.menuMode === 'shared' ? '#1d4ed8' : '#92400e' }}>
+                          Menu: {sub.menuMode === 'shared' ? 'Shared' : 'Own'}
+                        </span>
+                        <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, backgroundColor: sub.tableMode === 'shared' ? '#dbeafe' : '#fef3c7', color: sub.tableMode === 'shared' ? '#1d4ed8' : '#92400e' }}>
+                          Tables: {sub.tableMode === 'shared' ? 'Shared' : 'Own'}
+                        </span>
+                      </div>
+                      {sub.tableMode === 'shared' && sub.assignedSections && sub.assignedSections.length > 0 && (
+                        <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px' }}>
+                          Sections: {sub.assignedSections.join(', ')}
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => {
+                          setEditingSubRestaurant(sub);
+                          setSubRestaurantForm({ name: sub.name, description: sub.description || '', menuMode: sub.menuMode, tableMode: sub.tableMode, assignedSections: sub.assignedSections || [], assignedFloorIds: sub.assignedFloorIds || [] });
+                          setShowAddSubRestaurantModal(true);
+                        }} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #d1d5db', backgroundColor: '#fff', fontSize: '12px', fontWeight: 500, cursor: 'pointer', color: '#374151' }}>Edit</button>
+                        <button onClick={() => handleToggleSubRestaurantStatus(sub)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #d1d5db', backgroundColor: '#fff', fontSize: '12px', fontWeight: 500, cursor: 'pointer', color: sub.status === 'active' ? '#dc2626' : '#15803d' }}>
+                          {sub.status === 'active' ? 'Deactivate' : 'Activate'}
+                        </button>
+                        <button onClick={() => { if (confirm('Delete this sub-restaurant?')) handleDeleteSubRestaurant(sub.id); }} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #fecaca', backgroundColor: '#fef2f2', fontSize: '12px', fontWeight: 500, cursor: 'pointer', color: '#dc2626' }}>Delete</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Sub-Restaurant Add/Edit Modal */}
+      {showAddSubRestaurantModal && typeof document !== 'undefined' && createPortal(
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '20px', width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#1e293b' }}>
+                {editingSubRestaurant ? 'Edit Sub-Restaurant' : 'Add Sub-Restaurant'}
+              </h2>
+              <button onClick={() => { setShowAddSubRestaurantModal(false); setEditingSubRestaurant(null); }} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#6b7280' }}>×</button>
+            </div>
+            <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Name *</label>
+                <input value={subRestaurantForm.name} onChange={e => setSubRestaurantForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Bar Section, Dine-In Area" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Description</label>
+                <input value={subRestaurantForm.description} onChange={e => setSubRestaurantForm(p => ({ ...p, description: e.target.value }))} placeholder="Optional description" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Menu Mode</label>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  {['shared', 'own'].map(mode => (
+                    <label key={mode} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: '#374151' }}>
+                      <input type="radio" name="menuMode" checked={subRestaurantForm.menuMode === mode} onChange={() => setSubRestaurantForm(p => ({ ...p, menuMode: mode }))} />
+                      {mode === 'shared' ? 'Share parent menu' : 'Own menu'}
+                    </label>
+                  ))}
+                </div>
+                {subRestaurantForm.menuMode === 'own' && (
+                  <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '6px' }}>You can manage the menu items from the Menu page after selecting this sub-restaurant.</p>
+                )}
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Table Mode</label>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  {['shared', 'own'].map(mode => (
+                    <label key={mode} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: '#374151' }}>
+                      <input type="radio" name="tableMode" checked={subRestaurantForm.tableMode === mode} onChange={() => setSubRestaurantForm(p => ({ ...p, tableMode: mode }))} />
+                      {mode === 'shared' ? 'Share parent tables (by section)' : 'Own tables'}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              {subRestaurantForm.tableMode === 'shared' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Assigned Sections (comma-separated)</label>
+                  <input value={subRestaurantForm.assignedSections.join(', ')} onChange={e => setSubRestaurantForm(p => ({ ...p, assignedSections: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))} placeholder="e.g. Bar, Patio" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }} />
+                  <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>Enter the section names that match your table/floor sections</p>
+                </div>
+              )}
+            </div>
+            <div style={{ padding: '16px 24px', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button onClick={() => { setShowAddSubRestaurantModal(false); setEditingSubRestaurant(null); }} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer', color: '#374151' }}>Cancel</button>
+              <button onClick={editingSubRestaurant ? handleUpdateSubRestaurant : handleCreateSubRestaurant} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                {editingSubRestaurant ? 'Save Changes' : 'Create'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Add Restaurant Modal */}
       {showAddRestaurantModal && typeof document !== 'undefined' && createPortal(
@@ -8648,6 +8964,78 @@ const Admin = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Restaurant Access Section — owner/admin only */}
+              {(currentUserRole === 'owner' || currentUserRole === 'admin') && (
+                <div style={{
+                  backgroundColor: '#f8fafc',
+                  padding: isClient && isMobile ? '12px' : '16px',
+                  borderRadius: '12px',
+                  border: '1px solid #f1f5f9',
+                  marginBottom: '16px'
+                }}>
+                  <h3 style={{ fontWeight: '600', color: '#1f2937', marginBottom: isClient && isMobile ? '8px' : '12px', fontSize: isClient && isMobile ? '14px' : '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FaStore size={14} style={{ color: '#6366f1' }} />
+                    Restaurant Access
+                  </h3>
+                  {loadingStaffRestaurants ? (
+                    <div style={{ fontSize: '13px', color: '#6b7280' }}>Loading...</div>
+                  ) : (
+                    <>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                        {staffRestaurants.length === 0 ? (
+                          <div style={{ fontSize: '13px', color: '#6b7280' }}>No restaurant assignments found</div>
+                        ) : staffRestaurants.map(sr => (
+                          <div key={sr.restaurantId || sr.id} style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '8px 12px', backgroundColor: '#fff', borderRadius: '8px',
+                            border: '1px solid #e5e7eb'
+                          }}>
+                            <div>
+                              <div style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>{sr.restaurantName || sr.name || 'Unknown'}</div>
+                              {(sr.restaurantAddress || sr.address) && (
+                                <div style={{ fontSize: '11px', color: '#6b7280' }}>{sr.restaurantAddress || sr.address}</div>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => handleRemoveStaffRestaurant(sr.restaurantId || sr.id)}
+                              disabled={staffRestaurants.length <= 1}
+                              style={{
+                                padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600,
+                                border: '1px solid #fecaca', backgroundColor: '#fef2f2', color: '#dc2626',
+                                cursor: staffRestaurants.length <= 1 ? 'not-allowed' : 'pointer',
+                                opacity: staffRestaurants.length <= 1 ? 0.4 : 1
+                              }}
+                            >Remove</button>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Add restaurant dropdown — show restaurants not yet assigned */}
+                      {(() => {
+                        const assignedIds = new Set(staffRestaurants.map(sr => sr.restaurantId || sr.id));
+                        const availableToAdd = restaurants.filter(r => !assignedIds.has(r.id));
+                        if (availableToAdd.length === 0) return null;
+                        return (
+                          <select
+                            onChange={(e) => { if (e.target.value) { handleAddStaffRestaurant(e.target.value); e.target.value = ''; } }}
+                            defaultValue=""
+                            style={{
+                              width: '100%', padding: '8px 12px', borderRadius: '8px', fontSize: '13px',
+                              border: '1px solid #d1d5db', backgroundColor: '#fff', color: '#374151',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <option value="" disabled>+ Add restaurant access...</option>
+                            {availableToAdd.map(r => (
+                              <option key={r.id} value={r.id}>{r.name}</option>
+                            ))}
+                          </select>
+                        );
+                      })()}
+                    </>
+                  )}
+                </div>
+              )}
 
               {/* Page Access Permissions — editable in edit mode, read-only otherwise */}
               {editingStaff ? (
@@ -11479,6 +11867,52 @@ const Admin = () => {
             <div style={{ textAlign: 'center', padding: '40px 20px', color: '#6b7280' }}>
               <FaStar size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
               <p style={{ fontSize: '16px', margin: 0 }}>Please select a restaurant to manage loyalty settings</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Feedback Settings Tab */}
+      {activeTab === 'feedback-settings' && (
+        <div style={{ padding: isClient && isMobile ? '12px' : '24px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#1e293b', margin: '0 0 20px 0' }}>Feedback Form Settings</h2>
+          {loadingFeedbackSettings ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}><FaSpinner className="animate-spin" style={{ fontSize: '24px', margin: '0 auto 8px' }} /> Loading...</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '600px' }}>
+              <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}><FaWhatsapp color="#25d366" /> Auto-send via WhatsApp</div>
+                    <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>Send feedback form link to customers after order completion</div>
+                  </div>
+                  <button onClick={() => setFeedbackSettings(p => ({ ...p, whatsappAutoSend: !p.whatsappAutoSend }))} style={{ width: '44px', height: '24px', borderRadius: '12px', border: 'none', cursor: 'pointer', backgroundColor: feedbackSettings.whatsappAutoSend ? '#ef4444' : '#d1d5db', position: 'relative', transition: 'background-color 0.2s' }}>
+                    <div style={{ width: '20px', height: '20px', borderRadius: '10px', backgroundColor: 'white', position: 'absolute', top: '2px', left: feedbackSettings.whatsappAutoSend ? '22px' : '2px', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                  </button>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}><FaQrcode color="#6b7280" /> QR Code on Bill</div>
+                    <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>Add feedback form QR code to printed bills</div>
+                  </div>
+                  <button onClick={() => setFeedbackSettings(p => ({ ...p, qrOnBill: !p.qrOnBill }))} style={{ width: '44px', height: '24px', borderRadius: '12px', border: 'none', cursor: 'pointer', backgroundColor: feedbackSettings.qrOnBill ? '#ef4444' : '#d1d5db', position: 'relative', transition: 'background-color 0.2s' }}>
+                    <div style={{ width: '20px', height: '20px', borderRadius: '10px', backgroundColor: 'white', position: 'absolute', top: '2px', left: feedbackSettings.qrOnBill ? '22px' : '2px', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                  </button>
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}><FaLink color="#6b7280" /> Default Feedback Form</div>
+                  <select value={feedbackSettings.defaultFormId} onChange={e => setFeedbackSettings(p => ({ ...p, defaultFormId: e.target.value }))} style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', color: '#374151' }}>
+                    <option value="">No form selected</option>
+                    {feedbackForms.map(f => <option key={f.id} value={f.id}>{f.title}</option>)}
+                  </select>
+                  {feedbackForms.length === 0 && (
+                    <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '6px' }}>No active feedback forms. Create one from the <a href="/feedback" style={{ color: '#ef4444', textDecoration: 'underline' }}>Feedback page</a>.</p>
+                  )}
+                </div>
+              </div>
+              <button onClick={handleSaveFeedbackSettings} disabled={savingFeedbackSettings} style={{ alignSelf: 'flex-start', padding: '10px 24px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white', fontSize: '14px', fontWeight: 600, cursor: 'pointer', opacity: savingFeedbackSettings ? 0.6 : 1 }}>
+                {savingFeedbackSettings ? 'Saving...' : 'Save Settings'}
+              </button>
             </div>
           )}
         </div>

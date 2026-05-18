@@ -13,7 +13,8 @@ import {
   FaEdit,
   FaTimes,
   FaChevronDown,
-  FaSearch
+  FaSearch,
+  FaStore
 } from 'react-icons/fa';
 import { auth } from '../../../firebase';
 import {
@@ -243,6 +244,9 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false); // Separate loading state for Google login
   const [error, setError] = useState('');
+  const [showRestaurantPicker, setShowRestaurantPicker] = useState(false);
+  const [availableRestaurants, setAvailableRestaurants] = useState([]);
+  const [pendingLoginData, setPendingLoginData] = useState(null);
 
   // Auth check state - start with checking true to show loading first
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
@@ -1479,6 +1483,16 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
+        // Check if staff has multi-restaurant access
+        if (data.multiRestaurant && data.restaurants && data.restaurants.length > 1) {
+          // Store login data temporarily and show restaurant picker
+          setPendingLoginData(data);
+          setAvailableRestaurants(data.restaurants);
+          setShowRestaurantPicker(true);
+          setLoading(false);
+          return;
+        }
+
         // Store auth token in both cookie (for cross-subdomain) and localStorage
         apiClient.setToken(data.token);
 
@@ -1489,6 +1503,10 @@ const Login = () => {
           owner: data.owner
         };
         apiClient.setUser(userData); // Stores in both cookie and localStorage
+        // Store staff restaurants for nav switcher
+        if (data.multiRestaurant && data.restaurants) {
+          localStorage.setItem('staffRestaurants', JSON.stringify(data.restaurants));
+        }
         // Staff: detect country if not already stored
         if (!localStorage.getItem('selectedCountryCode')) {
           const { countryCode } = detectCountry();
@@ -1504,6 +1522,57 @@ const Login = () => {
     } catch (error) {
       setError('Network error. Please try again.');
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRestaurantSelect = async (restaurant) => {
+    if (!pendingLoginData) return;
+    setLoading(true);
+    setError('');
+    try {
+      // First set the token from the initial login
+      apiClient.setToken(pendingLoginData.token);
+
+      // If selected restaurant is different from primary, switch to get new JWT
+      if (restaurant.id !== pendingLoginData.user.restaurantId) {
+        const switchRes = await apiClient.switchRestaurant(restaurant.id);
+        if (switchRes.success) {
+          apiClient.setToken(switchRes.token);
+          const userData = {
+            ...pendingLoginData.user,
+            restaurantId: restaurant.id,
+            restaurant: switchRes.restaurant,
+            owner: switchRes.owner
+          };
+          apiClient.setUser(userData);
+        } else {
+          setError('Failed to switch restaurant');
+          setLoading(false);
+          return;
+        }
+      } else {
+        const userData = {
+          ...pendingLoginData.user,
+          restaurant: pendingLoginData.restaurant,
+          owner: pendingLoginData.owner
+        };
+        apiClient.setUser(userData);
+      }
+
+      // Store staff restaurants for nav switcher
+      localStorage.setItem('staffRestaurants', JSON.stringify(pendingLoginData.restaurants));
+
+      if (!localStorage.getItem('selectedCountryCode')) {
+        const { countryCode } = detectCountry();
+        if (countryCode) localStorage.setItem('selectedCountryCode', countryCode);
+      }
+      triggerDashboardPrefetch();
+      setShowRestaurantPicker(false);
+      setPendingLoginData(null);
+      router.replace(getRefRedirectPath());
+    } catch (error) {
+      setError('Failed to select restaurant. Please try again.');
       setLoading(false);
     }
   };
@@ -1538,6 +1607,92 @@ const Login = () => {
             50% { transform: scale(1.05); opacity: 0.8; }
           }
         `}</style>
+      </div>
+    );
+  }
+
+  // Restaurant picker for multi-restaurant staff
+  if (showRestaurantPicker && availableRestaurants.length > 0) {
+    return (
+      <div style={{
+        height: '100vh', backgroundColor: '#fef7f0',
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', padding: '20px'
+      }}>
+        <div style={{
+          background: '#fff', borderRadius: '20px', padding: '32px',
+          maxWidth: '440px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.1)'
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+            <div style={{
+              width: '48px', height: '48px', borderRadius: '12px',
+              background: 'linear-gradient(135deg, #e53e3e, #dc2626)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 12px'
+            }}>
+              <FaUtensils size={20} color="white" />
+            </div>
+            <h2 style={{ margin: '0 0 4px', fontSize: '20px', fontWeight: 700, color: '#1e293b' }}>
+              Select Restaurant
+            </h2>
+            <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
+              You have access to multiple restaurants. Choose one to continue.
+            </p>
+          </div>
+
+          {error && (
+            <div style={{
+              padding: '10px 14px', borderRadius: '8px', marginBottom: '16px',
+              backgroundColor: '#fef2f2', color: '#dc2626', fontSize: '13px',
+              border: '1px solid #fecaca'
+            }}>{error}</div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {availableRestaurants.map(r => (
+              <button
+                key={r.id}
+                onClick={() => handleRestaurantSelect(r)}
+                disabled={loading}
+                style={{
+                  padding: '14px 16px', borderRadius: '12px', border: '1px solid #e5e7eb',
+                  backgroundColor: '#fff', cursor: loading ? 'not-allowed' : 'pointer',
+                  textAlign: 'left', transition: 'all 0.15s',
+                  display: 'flex', alignItems: 'center', gap: '12px'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#dc2626'; e.currentTarget.style.backgroundColor = '#fef7f0'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.backgroundColor = '#fff'; }}
+              >
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '10px',
+                  backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <FaStore size={14} color="#dc2626" />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {r.name}
+                  </div>
+                  {r.address && (
+                    <div style={{ fontSize: '12px', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {r.address}
+                    </div>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => { setShowRestaurantPicker(false); setPendingLoginData(null); setAvailableRestaurants([]); setError(''); }}
+            style={{
+              marginTop: '16px', width: '100%', padding: '10px', borderRadius: '8px',
+              border: '1px solid #e5e7eb', backgroundColor: 'transparent', color: '#6b7280',
+              fontSize: '13px', cursor: 'pointer', fontWeight: 500
+            }}
+          >Back to Login</button>
+        </div>
       </div>
     );
   }
