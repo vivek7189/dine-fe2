@@ -303,6 +303,9 @@ const OrderSummary = ({
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [addressForm, setAddressForm] = useState({ building: '', landmark: '', city: '', state: '', pincode: '' });
+  const [deliveryStaffList, setDeliveryStaffList] = useState([]);
+  const [deliveryStaffLoaded, setDeliveryStaffLoaded] = useState(false);
+  const [showDeliveryStaffDropdown, setShowDeliveryStaffDropdown] = useState(false);
 
   // Loyalty Points Redemption State
   const [redeemLoyaltyPoints, setRedeemLoyaltyPoints] = useState(0);
@@ -390,13 +393,13 @@ const OrderSummary = ({
 
   // Fetch staff list when delivery is selected (for delivery person search)
   useEffect(() => {
-    if (orderType === 'delivery' && restaurantId && !staffListLoaded) {
+    if (orderType === 'delivery' && restaurantId && !deliveryStaffLoaded) {
       apiClient.getStaff(restaurantId).then(res => {
-        setStaffList(res?.staff || []);
-        setStaffListLoaded(true);
-      }).catch(() => setStaffListLoaded(true));
+        setDeliveryStaffList(res?.staff || []);
+        setDeliveryStaffLoaded(true);
+      }).catch(() => setDeliveryStaffLoaded(true));
     }
-  }, [orderType, restaurantId, staffListLoaded]);
+  }, [orderType, restaurantId, deliveryStaffLoaded]);
 
   // Reset delivery info when switching away from delivery
   useEffect(() => {
@@ -1772,10 +1775,10 @@ const OrderSummary = ({
                 value={deliveryInfo.personName}
                 onChange={(e) => {
                   setDeliveryInfo(prev => ({ ...prev, personName: e.target.value }));
-                  setShowStaffDropdown(true);
+                  setShowDeliveryStaffDropdown(true);
                 }}
-                onFocus={() => setShowStaffDropdown(true)}
-                onBlur={() => setTimeout(() => setShowStaffDropdown(false), 200)}
+                onFocus={() => setShowDeliveryStaffDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDeliveryStaffDropdown(false), 200)}
                 style={{
                   width: '100%', padding: '7px 10px',
                   border: '1.5px solid #fdba74',
@@ -1785,9 +1788,9 @@ const OrderSummary = ({
                   boxSizing: 'border-box',
                 }}
               />
-              {showStaffDropdown && staffList.length > 0 && (() => {
+              {showDeliveryStaffDropdown && deliveryStaffList.length > 0 && (() => {
                 const q = (deliveryInfo.personName || '').toLowerCase();
-                const filtered = staffList.filter(s =>
+                const filtered = deliveryStaffList.filter(s =>
                   (s.name || '').toLowerCase().includes(q)
                 );
                 if (filtered.length === 0 || (filtered.length === 1 && filtered[0].name === deliveryInfo.personName)) return null;
@@ -1803,7 +1806,7 @@ const OrderSummary = ({
                         setDeliveryInfo(prev => ({
                           ...prev, personName: s.name, personPhone: s.phone || prev.personPhone
                         }));
-                        setShowStaffDropdown(false);
+                        setShowDeliveryStaffDropdown(false);
                       }} style={{
                         padding: '7px 10px', fontSize: '12px', cursor: 'pointer',
                         color: '#374151', borderBottom: '1px solid #f3f4f6',

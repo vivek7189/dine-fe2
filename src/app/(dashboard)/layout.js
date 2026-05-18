@@ -83,8 +83,8 @@ function DashboardLayoutContent({ children }) {
   const [nativePrintSettings, setNativePrintSettings] = useState(null);
   const [hasDefaultMenu, setHasDefaultMenu] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
-  // Check if current page is dashboard or billing — these pages hide the sidebar
-  const isDashboardPage = pathname === '/dashboard' || pathname === '/dashboard/bar' || pathname === '/billing';
+  // Check if current page is dashboard (POS) — these pages hide the sidebar for full-width billing panel
+  const isDashboardPage = pathname === '/dashboard' || pathname === '/dashboard/bar';
 
   // ─── Order Notifications (global Pusher listener) ───
   const {
