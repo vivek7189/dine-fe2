@@ -14,6 +14,7 @@ import {
   FaCalendarCheck,
   FaCalendarAlt,
   FaCashRegister,
+  FaShareAlt,
 } from 'react-icons/fa';
 
 const features = [
@@ -56,6 +57,14 @@ const features = [
     icon: FaWhatsapp,
     gradient: 'linear-gradient(135deg, #25D366, #128C7E)',
     href: '/whatsapp-ordering',
+  },
+  {
+    id: 'social-media',
+    name: 'Social Media',
+    description: 'Schedule and publish posts on Instagram, Twitter, LinkedIn, and more',
+    icon: FaShareAlt,
+    gradient: 'linear-gradient(135deg, #ec4899, #f97316)',
+    href: '/social-media',
   },
   {
     id: 'hotel',

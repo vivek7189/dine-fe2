@@ -42,6 +42,7 @@ const ROUTE_ACCESS_MAP = {
   '/spaces': 'admin',
   '/parking': 'parking',
   '/whatsapp-ordering': 'analytics',
+  '/social-media': 'analytics',
   '/feedback': 'admin',
 };
 

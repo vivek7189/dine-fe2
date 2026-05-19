@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   FaChartBar, FaCar, FaClock, FaMoneyBillWave, FaCalendarAlt,
   FaArrowLeft, FaDownload, FaCreditCard, FaWallet, FaMobileAlt,
-  FaChartLine, FaLayerGroup, FaMapMarkerAlt, FaPercent
+  FaChartLine, FaLayerGroup, FaMapMarkerAlt, FaPercent, FaFilePdf,
+  FaSpinner
 } from 'react-icons/fa';
 import apiClient from '../../../../lib/api';
 import Link from 'next/link';
@@ -135,11 +136,13 @@ export default function ParkingReportsPage() {
 
   const presets = getDatePresets();
   const summary = reports?.summary || {};
+  const reportConfig = reports?.config || {};
   const vehicleTypes = reports?.vehicleTypes || [];
   const zones = reports?.zones || [];
   const dailyRevenue = reports?.dailyRevenue || [];
   const hourlyDistribution = reports?.hourlyDistribution || [];
   const paymentMethods = reports?.paymentMethods || {};
+  const currency = summary.currency || reportConfig.currency || 'AED';
 
   const maxVehicleTypeCount = Math.max(...vehicleTypes.map(v => v.count || 0), 1);
   const maxZoneCount = Math.max(...zones.map(z => z.totalVehicles || 0), 1);
@@ -147,6 +150,41 @@ export default function ParkingReportsPage() {
   const maxHourlyCount = Math.max(...hourlyDistribution.map(h => h.count || 0), 1);
 
   const totalPayments = (paymentMethods.cash || 0) + (paymentMethods.card || 0) + (paymentMethods.digital || 0);
+
+  // PDF Download
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+  const handleDownloadPDF = async () => {
+    setPdfGenerating(true);
+    try {
+      const { pdf } = await import('@react-pdf/renderer');
+      const { ParkingReportPDFDocument } = await import('./ParkingReportPDF');
+      const blob = await pdf(
+        <ParkingReportPDFDocument
+          config={reportConfig}
+          summary={summary}
+          vehicleTypes={vehicleTypes}
+          zones={zones}
+          dailyRevenue={dailyRevenue}
+          paymentMethods={paymentMethods}
+          dateRange={`${new Date(startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} – ${new Date(endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`}
+          currency={currency}
+        />
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Parking-Report-${startDate}-to-${endDate}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setPdfGenerating(false);
+    }
+  };
 
   // ================================================================
   // RENDER
@@ -189,6 +227,22 @@ export default function ParkingReportsPage() {
             <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>Analytics and revenue insights</p>
           </div>
         </div>
+        {!loading && reports && (
+          <button
+            onClick={handleDownloadPDF}
+            disabled={pdfGenerating}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '10px 20px', borderRadius: 10, border: 'none',
+              background: pdfGenerating ? '#94a3b8' : PRIMARY,
+              color: '#fff', fontWeight: 600, fontSize: 13, cursor: pdfGenerating ? 'wait' : 'pointer',
+              boxShadow: '0 2px 8px rgba(3,105,161,0.2)',
+            }}
+          >
+            {pdfGenerating ? <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <FaFilePdf size={14} />}
+            {pdfGenerating ? 'Generating...' : 'Download PDF'}
+          </button>
+        )}
       </div>
 
       {/* Date Range Picker */}
@@ -246,7 +300,7 @@ export default function ParkingReportsPage() {
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 12 }}>
             <SummaryCard
               icon={FaMoneyBillWave} label="Total Revenue"
-              value={formatCurrency(summary.totalRevenue || 0)} prefix={summary.currency || 'AED'}
+              value={formatCurrency(summary.totalRevenue || 0)} prefix={currency}
               color={SUCCESS}
             />
             <SummaryCard
@@ -261,7 +315,7 @@ export default function ParkingReportsPage() {
             />
             <SummaryCard
               icon={FaChartLine} label="Avg Revenue/Vehicle"
-              value={formatCurrency(summary.averageRevenuePerVehicle || 0)} prefix={summary.currency || 'AED'}
+              value={formatCurrency(summary.averageRevenuePerVehicle || 0)} prefix={currency}
               color="#8b5cf6"
             />
           </div>
@@ -307,7 +361,7 @@ export default function ParkingReportsPage() {
                   <div key={z.zoneId || z.zoneName || i}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                       <span style={{ fontSize: 13, fontWeight: 500, color: '#334155' }}>{z.zoneName || 'Zone'}</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{z.totalVehicles} vehicles &middot; {formatCurrency(z.revenue || 0)}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{z.totalVehicles} vehicles &middot; {currency} {formatCurrency(z.revenue || 0)}</span>
                     </div>
                     <div style={{ height: 24, background: '#f1f5f9', borderRadius: 6, overflow: 'hidden' }}>
                       <div style={{
@@ -330,21 +384,30 @@ export default function ParkingReportsPage() {
           {totalPayments === 0 ? (
             <EmptyChart message="No payment data" />
           ) : (
-            <div style={{ display: 'flex', gap: isMobile ? 12 : 24, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
-              <PaymentBlock
-                icon={FaWallet} label="Cash" count={paymentMethods.cash || 0}
-                total={totalPayments} color="#16a34a"
-              />
-              <PaymentBlock
-                icon={FaCreditCard} label="Card" count={paymentMethods.card || 0}
-                total={totalPayments} color="#0369a1"
-              />
-              <PaymentBlock
-                icon={FaMobileAlt} label="Digital" count={paymentMethods.digital || 0}
-                total={totalPayments} color="#8b5cf6"
-              />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Revenue by payment method */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                <div style={{ padding: 14, borderRadius: 12, background: '#f0fdf4', border: '1px solid #bbf7d0', textAlign: 'center' }}>
+                  <FaWallet size={18} color="#16a34a" style={{ marginBottom: 6 }} />
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#15803d' }}>{currency} {formatCurrency(paymentMethods.cashRevenue || 0)}</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#16a34a', marginTop: 2 }}>Cash</div>
+                  <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{paymentMethods.cash || 0} transactions</div>
+                </div>
+                <div style={{ padding: 14, borderRadius: 12, background: '#eff6ff', border: '1px solid #bfdbfe', textAlign: 'center' }}>
+                  <FaCreditCard size={18} color="#0369a1" style={{ marginBottom: 6 }} />
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#1d4ed8' }}>{currency} {formatCurrency(paymentMethods.cardRevenue || 0)}</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#0369a1', marginTop: 2 }}>Card</div>
+                  <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{paymentMethods.card || 0} transactions</div>
+                </div>
+                <div style={{ padding: 14, borderRadius: 12, background: '#f5f3ff', border: '1px solid #ddd6fe', textAlign: 'center' }}>
+                  <FaMobileAlt size={18} color="#7c3aed" style={{ marginBottom: 6 }} />
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#6d28d9' }}>{currency} {formatCurrency(paymentMethods.digitalRevenue || 0)}</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#7c3aed', marginTop: 2 }}>Digital</div>
+                  <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{paymentMethods.digital || 0} transactions</div>
+                </div>
+              </div>
               {/* Stacked bar */}
-              <div style={{ width: '100%', marginTop: 8 }}>
+              <div>
                 <div style={{ height: 32, borderRadius: 8, overflow: 'hidden', display: 'flex' }}>
                   {paymentMethods.cash > 0 && (
                     <div style={{ height: '100%', width: `${((paymentMethods.cash || 0) / totalPayments) * 100}%`, background: '#16a34a', transition: 'width 0.5s ease' }} />
@@ -355,6 +418,11 @@ export default function ParkingReportsPage() {
                   {paymentMethods.digital > 0 && (
                     <div style={{ height: '100%', width: `${((paymentMethods.digital || 0) / totalPayments) * 100}%`, background: '#8b5cf6', transition: 'width 0.5s ease' }} />
                   )}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 11, color: '#6b7280' }}>
+                  <span>Cash {totalPayments > 0 ? Math.round((paymentMethods.cash || 0) / totalPayments * 100) : 0}%</span>
+                  <span>Card {totalPayments > 0 ? Math.round((paymentMethods.card || 0) / totalPayments * 100) : 0}%</span>
+                  <span>Digital {totalPayments > 0 ? Math.round((paymentMethods.digital || 0) / totalPayments * 100) : 0}%</span>
                 </div>
               </div>
             </div>
@@ -472,6 +540,7 @@ export default function ParkingReportsPage() {
       <style jsx global>{`
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );

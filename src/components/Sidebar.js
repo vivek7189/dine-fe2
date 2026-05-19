@@ -324,6 +324,7 @@ export default function Sidebar({ isDashboardPage = false }) {
         'dineai': 'analytics',
         'phone-agent': 'analytics',
         'whatsapp-ordering': 'analytics',
+        'social-media': 'analytics',
         'shifts': 'admin',
         'register': 'completeBill',
         'attendance': 'admin',
