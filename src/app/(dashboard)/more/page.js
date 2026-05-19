@@ -15,6 +15,7 @@ import {
   FaCalendarAlt,
   FaCashRegister,
   FaShareAlt,
+  FaCommentDots,
 } from 'react-icons/fa';
 
 const features = [
@@ -113,6 +114,14 @@ const features = [
     icon: FaCalendarCheck,
     gradient: 'linear-gradient(135deg, #ef4444, #f97316)',
     href: '/bookings',
+  },
+  {
+    id: 'feedback',
+    name: 'Feedback',
+    description: 'Collect and manage customer feedback and suggestions',
+    icon: FaCommentDots,
+    gradient: 'linear-gradient(135deg, #f59e0b, #fbbf24)',
+    href: '/feedback',
   },
 ];
 

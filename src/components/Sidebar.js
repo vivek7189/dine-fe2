@@ -34,7 +34,6 @@ import {
   FaCalendarCheck,
   FaWhatsapp,
   FaThLarge,
-  FaCommentDots
 } from 'react-icons/fa';
 import { BiRestaurant } from 'react-icons/bi';
 import Link from 'next/link';
@@ -271,7 +270,6 @@ export default function Sidebar({ isDashboardPage = false }) {
     { id: 'menu', name: t('nav.menu'), icon: FaUtensils, href: '/menu', color: '#10b981', roles: ['owner', 'admin', 'manager'] },
     { id: 'inventory', name: t('nav.inventory'), icon: FaBoxes, href: '/inventory', color: '#059669', roles: ['owner', 'admin', 'manager'] },
     { id: 'customers', name: t('nav.customers'), icon: FaUsers, href: '/customers', color: '#8b5cf6', roles: ['owner', 'admin', 'manager'] },
-    { id: 'feedback', name: 'Feedback', icon: FaCommentDots, href: '/feedback', color: '#f59e0b', roles: ['owner', 'admin', 'manager'] },
     { id: 'attendance', name: t('nav.attendance'), icon: FaUserClock, href: '/attendance', color: '#ef4444', roles: ['owner', 'admin', 'manager'] },
     { id: 'billing', name: t('nav.billing'), icon: FaCreditCard, href: '/billing', color: '#06b6d4', roles: ['owner', 'admin'] },
     // --- Tools & Extras ---
@@ -329,7 +327,6 @@ export default function Sidebar({ isDashboardPage = false }) {
         'register': 'completeBill',
         'attendance': 'admin',
         'google-reviews': 'admin',
-        'feedback': 'admin',
         'spaces': 'admin',
         'parking': 'parking',
         'bookings': 'bookings',

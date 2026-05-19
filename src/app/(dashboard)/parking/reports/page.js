@@ -190,11 +190,21 @@ export default function ParkingReportsPage() {
   const handleDownloadPDF = async () => {
     setPdfGenerating(true);
     try {
+      // Convert logo URL to base64 via backend proxy to avoid CORS issues with GCP Storage
+      let pdfConfig = { ...reportConfig };
+      if (pdfConfig.logo) {
+        try {
+          const proxyRes = await apiClient.imageToBase64(pdfConfig.logo);
+          if (proxyRes?.base64) pdfConfig.logo = proxyRes.base64;
+        } catch (e) {
+          console.warn('Logo base64 proxy failed:', e.message);
+        }
+      }
       const { pdf } = await import('@react-pdf/renderer');
       const { ParkingReportPDFDocument } = await import('./ParkingReportPDF');
       const blob = await pdf(
         <ParkingReportPDFDocument
-          config={reportConfig}
+          config={pdfConfig}
           summary={summary}
           vehicleTypes={vehicleTypes}
           zones={zones}
