@@ -10,9 +10,8 @@ extraMetadata:
   main: electron/main.js
 
 publish:
-  provider: github
-  owner: kevinjane71
-  repo: dine-frontend
+  provider: gcs
+  bucket: dineopen-releases
 
 win:
   icon: electron/icons/icon.ico

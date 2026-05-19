@@ -1,7 +1,7 @@
 // Shared helpers for all print templates.
 // Extracted from printHtmlGenerator.js to avoid duplication across templates.
 
-export { getBillPrintCSS, getKOTPrintCSS, getBillHeaderHTML, getPrintFontSizes, getPrintFontFamily } from '../printFontSizes';
+export { getBillPrintCSS, getKOTPrintCSS, getBillHeaderHTML, getPrintFontSizes, getPrintFontFamily, getContentWidth } from '../printFontSizes';
 
 // HTML-escape a string
 export const esc = (str) => String(str ?? '').replace(/</g, '&lt;').replace(/>/g, '&gt;');

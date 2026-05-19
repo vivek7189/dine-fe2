@@ -3098,6 +3098,8 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
     billFontSize: 'medium',
     billFontScale: 100,
     billFontFamily: 'default',
+    // Paper size (58mm or 80mm thermal printer)
+    printerWidth: 80,
     tokenBillingEnabled: false,
     enableUpdateWithoutKOT: false,
     enableKOTAndPrint: false,
@@ -3715,6 +3717,38 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                 </div>
 
                 <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Paper Size
+                </p>
+                <p style={{ color: '#9ca3af', margin: '0 0 12px 0', fontSize: '12px' }}>
+                  Select the thermal paper width your printer uses.
+                </p>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+                  {[
+                    { value: 80, label: '80mm', desc: 'Standard (most printers)' },
+                    { value: 58, label: '58mm', desc: 'Compact / mobile printers' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setPrintSettings(prev => ({ ...prev, printerWidth: opt.value }))}
+                      style={{
+                        flex: 1,
+                        padding: '12px 8px',
+                        borderRadius: '8px',
+                        border: (printSettings.printerWidth || 80) === opt.value ? '2px solid #ef4444' : '1px solid #d1d5db',
+                        background: (printSettings.printerWidth || 80) === opt.value ? '#fef2f2' : 'white',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <div style={{ fontWeight: '700', fontSize: '15px', color: (printSettings.printerWidth || 80) === opt.value ? '#ef4444' : '#111827' }}>
+                        {opt.label}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>{opt.desc}</div>
+                    </button>
+                  ))}
+                </div>
+
+                <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Bill Print Font Size
                 </p>
                 <p style={{ color: '#9ca3af', margin: '0 0 16px 0', fontSize: '12px' }}>
@@ -3972,7 +4006,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                     <div style={{ borderRadius: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                         <p style={{ fontSize: '11px', fontWeight: '600', color: '#9ca3af', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          Live Preview (80mm)
+                          Live Preview ({printSettings.printerWidth || 80}mm)
                         </p>
                         <div style={{ display: 'flex', gap: '4px', background: '#f3f4f6', borderRadius: '6px', padding: '2px' }}>
                           {['kot', 'bill'].map(tab => (

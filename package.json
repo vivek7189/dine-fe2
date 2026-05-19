@@ -22,7 +22,9 @@
     "electron:export": "node scripts/build-electron.js",
     "electron:rebuild": "npx electron-rebuild -f -w better-sqlite3",
     "electron:build": "node scripts/build-electron.js && npx electron-builder --config electron-builder.yml",
-    "electron:build:publish": "node scripts/build-electron.js && npx electron-builder --config electron-builder.yml --publish always"
+    "electron:build:publish": "node scripts/build-electron.js && npx electron-builder --config electron-builder.yml --publish always",
+    "release:gcs": "node scripts/release-gcs.js",
+    "release:gcs:upload": "node scripts/release-gcs.js --upload-only"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",

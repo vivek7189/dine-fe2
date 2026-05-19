@@ -33,7 +33,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
   const headerHtml = getBillHeaderHTML(esc(invoice.restaurantName || 'Restaurant'), identityHtml, receiptLogo, `--- ${L.billTitle} ---`);
 
   const { combined: dateStr } = formatDateTime();
-  const css = getBillPrintCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily);
+  const css = getBillPrintCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily, printSettings.printerWidth);
 
   const bodyHtml =
     headerHtml +

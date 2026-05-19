@@ -5,7 +5,7 @@
 import {
   esc, getBillLabels, buildIdentityHtml,
   buildChargesHtml, buildPaymentHtml, buildDeliveryAddressHtml, calcGrandTotal, formatDateTime,
-  getPrintFontSizes, getPrintFontFamily, getBillHeaderHTML, wrapInDocument, buildInclusiveTaxNote,
+  getPrintFontSizes, getPrintFontFamily, getContentWidth, getBillHeaderHTML, wrapInDocument, buildInclusiveTaxNote,
   buildFeedbackSection,
 } from '../helpers';
 
@@ -13,7 +13,7 @@ export const id = 'detailed';
 export const name = 'Detailed';
 export const description = 'Item-level discounts and qty breakdown. Monospace receipt style.';
 
-function getDetailedBillCSS(scaleOrPreset, fontId) {
+function getDetailedBillCSS(scaleOrPreset, fontId, printerWidth) {
   let scale = 100;
   if (typeof scaleOrPreset === 'number' && scaleOrPreset >= 50 && scaleOrPreset <= 150) scale = scaleOrPreset;
   else if (typeof scaleOrPreset === 'string') {
@@ -23,7 +23,8 @@ function getDetailedBillCSS(scaleOrPreset, fontId) {
   const f = getPrintFontSizes(scale);
   // Force monospace for receipt feel
   const ff = "'Courier New', Courier, monospace";
-  return `@page{size:72mm auto;margin:0;}*{box-sizing:border-box;}body{font-family:${ff};margin:0;padding:2mm 2mm;font-size:${f.body};line-height:${f.lineHeight};width:72mm;max-width:72mm;overflow:hidden;} .bill-header{text-align:center;margin-bottom:6px;} .restaurant-name{font-size:${f.restaurantName};font-weight:bold;text-transform:uppercase;letter-spacing:1px;} .receipt-title{font-size:${f.totalRow};font-weight:bold;text-align:center;margin:6px 0;} .bill-title{font-size:${f.billTitle};font-weight:bold;margin-top:4px;} .bill-logo{max-width:100%;height:auto;display:block;} .divider{text-align:center;margin:4px 0;overflow:hidden;letter-spacing:1px;} .info-line{display:flex;justify-content:space-between;margin:2px 0;font-size:${f.info};} .item-row{display:flex;justify-content:space-between;margin:3px 0;font-size:${f.td};} .item-row span:last-child{text-align:right;flex-shrink:0;white-space:nowrap;} .item-sub{margin-left:16px;font-size:${f.itemDetail};color:#333;margin:1px 0;} .total-section{margin-top:4px;font-size:${f.totalSection};} .total-section .row{display:flex;justify-content:space-between;margin:2px 0;} .grand-total{display:flex;justify-content:space-between;font-weight:bold;font-size:${f.totalRow};margin:6px 0;} .bill-footer{margin-top:8px;text-align:center;font-size:${f.footer};} .bill-info{margin:4px 0;font-size:${f.info};} .bill-info div{display:flex;justify-content:space-between;margin:2px 0;gap:4px;} .bill-info div span:first-child{flex-shrink:0;} .bill-info div span:last-child{text-align:right;}`;
+  const cw = getContentWidth(printerWidth);
+  return `@page{size:${cw} auto;margin:0;}*{box-sizing:border-box;}body{font-family:${ff};margin:0;padding:2mm 2mm;font-size:${f.body};line-height:${f.lineHeight};width:${cw};max-width:${cw};overflow:hidden;} .bill-header{text-align:center;margin-bottom:6px;} .restaurant-name{font-size:${f.restaurantName};font-weight:bold;text-transform:uppercase;letter-spacing:1px;} .receipt-title{font-size:${f.totalRow};font-weight:bold;text-align:center;margin:6px 0;} .bill-title{font-size:${f.billTitle};font-weight:bold;margin-top:4px;} .bill-logo{max-width:100%;height:auto;display:block;} .divider{text-align:center;margin:4px 0;overflow:hidden;letter-spacing:1px;} .info-line{display:flex;justify-content:space-between;margin:2px 0;font-size:${f.info};} .item-row{display:flex;justify-content:space-between;margin:3px 0;font-size:${f.td};} .item-row span:last-child{text-align:right;flex-shrink:0;white-space:nowrap;} .item-sub{margin-left:16px;font-size:${f.itemDetail};color:#333;margin:1px 0;} .total-section{margin-top:4px;font-size:${f.totalSection};} .total-section .row{display:flex;justify-content:space-between;margin:2px 0;} .grand-total{display:flex;justify-content:space-between;font-weight:bold;font-size:${f.totalRow};margin:6px 0;} .bill-footer{margin-top:8px;text-align:center;font-size:${f.footer};} .bill-info{margin:4px 0;font-size:${f.info};} .bill-info div{display:flex;justify-content:space-between;margin:2px 0;gap:4px;} .bill-info div span:first-child{flex-shrink:0;} .bill-info div span:last-child{text-align:right;}`;
 }
 
 export function render(invoice, printSettings = {}, labels = {}) {
@@ -93,7 +94,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
 
   const identityHtml = buildIdentityHtml(invoice);
   const receiptLogo = printSettings.receiptLogo || null;
-  const css = getDetailedBillCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily);
+  const css = getDetailedBillCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily, printSettings.printerWidth);
 
   // Waiter/cashier info
   const waiterInfo = invoice.waiterName || invoice.cashierName || '';

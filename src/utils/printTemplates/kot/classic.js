@@ -22,7 +22,7 @@ export function render(kotData, printSettings = {}, labels = {}) {
   const { html: itemsHtml, footerText, hasChanges } = buildKOTItemsSections(k, renderRow, L);
   const title = hasChanges ? L.kotUpdate : L.kitchenOrder;
 
-  const css = getKOTPrintCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily);
+  const css = getKOTPrintCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily, printSettings.printerWidth);
 
   // Build table/room inline text
   const tableStr = k.roomNumber

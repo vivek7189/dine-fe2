@@ -1990,32 +1990,50 @@ function RestaurantPOSContent() {
     });
   };
 
-  const getTotalAmount = () => {
-    const total = cart.reduce((sum, item) => {
-      let base;
-      if (item?.selectedVariant?.price != null) {
-        base = item.selectedVariant.price;
-      } else if (multiPricingEnabled && activePricingRuleId) {
-        // Check per-item pricing override
-        const perItemPrice = item?.pricingRules?.[activePricingRuleId];
-        const parsed = perItemPrice != null ? Number(perItemPrice) : NaN;
-        if (!isNaN(parsed) && parsed >= 0) {
-          base = parsed;
-        } else {
-          // No per-item price for this rule — use original base price
-          base = typeof item?.basePrice === 'number' ? item.basePrice
-            : typeof item?.price === 'number' ? item.price : 0;
-        }
+  // Returns the effective per-unit price for a cart item (variant + customizations included)
+  const getEffectiveItemPrice = (item) => {
+    let base;
+    if (item?.selectedVariant?.price != null) {
+      base = item.selectedVariant.price;
+    } else if (multiPricingEnabled && activePricingRuleId) {
+      const perItemPrice = item?.pricingRules?.[activePricingRuleId];
+      const parsed = perItemPrice != null ? Number(perItemPrice) : NaN;
+      if (!isNaN(parsed) && parsed >= 0) {
+        base = parsed;
       } else {
-        base = typeof item?.price === 'number' ? item.price : 0;
+        base = typeof item?.basePrice === 'number' ? item.basePrice
+          : typeof item?.price === 'number' ? item.price : 0;
       }
-      const extras = Array.isArray(item?.selectedCustomizations)
-        ? item.selectedCustomizations.reduce((s, c) => s + (c?.price || 0), 0)
-        : (typeof item?.customizationPrice === 'number' ? item.customizationPrice : 0);
-      const unit = (base || 0) + (extras || 0);
-      const itemTotal = unit * (item.quantity || 1);
-      return sum + itemTotal;
-    }, 0);
+    } else {
+      base = typeof item?.price === 'number' ? item.price : 0;
+    }
+    const extras = Array.isArray(item?.selectedCustomizations)
+      ? item.selectedCustomizations.reduce((s, c) => s + (c?.price || 0), 0)
+      : (typeof item?.customizationPrice === 'number' ? item.customizationPrice : 0);
+    return (base || 0) + (extras || 0);
+  };
+
+  // Builds a standardized item payload for all API calls (POST/PATCH)
+  const buildItemPayload = (item) => {
+    const effectivePrice = getEffectiveItemPrice(item);
+    return {
+      menuItemId: item.id,
+      name: item.name,
+      price: effectivePrice,
+      quantity: item.quantity,
+      total: effectivePrice * (item.quantity || 1),
+      notes: item.notes || '',
+      category: item.category || '',
+      categoryId: item.categoryId || null,
+      taxGroupId: item.taxGroupId || null,
+      selectedVariant: item.selectedVariant || null,
+      selectedCustomizations: Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [],
+      basePrice: typeof item.basePrice === 'number' ? item.basePrice : item.price,
+    };
+  };
+
+  const getTotalAmount = () => {
+    const total = cart.reduce((sum, item) => sum + getEffectiveItemPrice(item) * (item.quantity || 1), 0);
     console.log(`💰 Cart total: ${total}`);
     return total;
   };
@@ -2912,15 +2930,7 @@ function RestaurantPOSContent() {
         
         // Update existing order with completed status
         const updateData = {
-          items: cart.map(item => ({
-            menuItemId: item.id,
-            quantity: item.quantity,
-            notes: item.notes || '',
-            name: item.name,
-            price: item.price,
-            category: item.category || '',
-            taxGroupId: item.taxGroupId || null,
-          })),
+          items: cart.map(buildItemPayload),
           tableNumber: !isRoomOrder ? (tableToUse || currentOrder.tableNumber) : null,
           roomNumber: isRoomOrder ? (roomNumber || currentOrder.roomNumber) : null, // NEW: Include room number
           floorId: selectedTable?.floorId || null,
@@ -3190,18 +3200,7 @@ function RestaurantPOSContent() {
             phone: currentUser?.phone || null,
           role: currentUser?.role || 'waiter'
         },
-        items: cart.map(item => ({
-          menuItemId: item.id,
-          quantity: item.quantity,
-          notes: item.notes || '',
-          name: item.name,
-          // Pass configuration so backend can price and persist for KOT
-          selectedVariant: item.selectedVariant || null,
-          selectedCustomizations: Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [],
-          basePrice: typeof item.basePrice === 'number' ? item.basePrice : item.price,
-          category: item.category || '',
-          taxGroupId: item.taxGroupId || null,
-        })),
+        items: cart.map(buildItemPayload),
         customerInfo: {
             name: customerName || 'Walk-in Customer',
             phone: customerMobile || null,
@@ -3495,11 +3494,7 @@ function RestaurantPOSContent() {
         try {
           const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
           const billingData = {
-            items: cart.map(item => ({
-              menuItemId: item.id, quantity: item.quantity, notes: item.notes || '',
-              name: item.name, price: item.price, category: item.category || '',
-              taxGroupId: item.taxGroupId || null,
-            })),
+            items: cart.map(buildItemPayload),
             restaurantId: selectedRestaurant.id,
             orderType, paymentMethod, status: 'completed',
             paymentStatus: 'paid',
@@ -3797,18 +3792,7 @@ function RestaurantPOSContent() {
         restaurantId: selectedRestaurant.id,
         name: autoName,
         type: 'parked',
-        items: cart.map(item => ({
-          menuItemId: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity || 1,
-          notes: item.notes || '',
-          selectedVariant: item.selectedVariant || null,
-          selectedCustomizations: Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [],
-          basePrice: typeof item.basePrice === 'number' ? item.basePrice : item.price,
-          category: item.category || '',
-          taxGroupId: item.taxGroupId || null,
-        })),
+        items: cart.map(buildItemPayload),
         customerInfo: {
           name: customerName || null,
           phone: customerMobile || null,
@@ -3925,16 +3909,7 @@ function RestaurantPOSContent() {
         restaurantId: selectedRestaurant.id,
         name: templateName || `Template - ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`,
         type: 'template',
-        items: cart.map(item => ({
-          menuItemId: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity || 1,
-          notes: item.notes || '',
-          selectedVariant: item.selectedVariant || null,
-          selectedCustomizations: Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [],
-          basePrice: typeof item.basePrice === 'number' ? item.basePrice : item.price
-        })),
+        items: cart.map(buildItemPayload),
         orderType: orderType || 'dine-in',
       };
 
@@ -3979,18 +3954,7 @@ function RestaurantPOSContent() {
       const tableToUse = tableNumber || selectedTable?.number || currentOrder.tableNumber;
 
       const updateData = {
-        items: cart.map(item => ({
-          menuItemId: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          total: item.price * item.quantity,
-          notes: item.notes || '',
-          category: item.category || '',
-          categoryId: item.categoryId || null,
-          selectedVariant: item.selectedVariant || null,
-          selectedCustomizations: item.selectedCustomizations || null,
-        })),
+        items: cart.map(buildItemPayload),
         tableNumber: tableToUse || currentOrder.tableNumber,
         floorId: selectedTable?.floorId || null,
         floorName: selectedTable?.floor || null,
@@ -4133,18 +4097,7 @@ function RestaurantPOSContent() {
       if (currentOrder) {
         // Update existing order
         const updateData = {
-          items: cart.map(item => ({
-            menuItemId: item.id,
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-            total: item.price * item.quantity,
-            notes: item.notes || '',
-            category: item.category || '',
-            categoryId: item.categoryId || null,
-            selectedVariant: item.selectedVariant || null,
-            selectedCustomizations: item.selectedCustomizations || null,
-          })),
+          items: cart.map(buildItemPayload),
           tableNumber: tableToUse || currentOrder.tableNumber,
           floorId: selectedTable?.floorId || null,
           floorName: selectedTable?.floor || null,
@@ -4304,14 +4257,7 @@ function RestaurantPOSContent() {
           floorId: selectedTable?.floorId || null,
           floorName: selectedTable?.floor || null,
           tableId: selectedTable?.id || null,
-          items: cart.map(item => ({
-            menuItemId: item.id,
-            quantity: item.quantity,
-            notes: item.notes || '',
-            selectedVariant: item.selectedVariant || null,
-            selectedCustomizations: Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [],
-            basePrice: typeof item.basePrice === 'number' ? item.basePrice : item.price
-          })),
+          items: cart.map(buildItemPayload),
           customerInfo: {
             name: customerName || null,
             phone: customerMobile || null,

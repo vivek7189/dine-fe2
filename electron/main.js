@@ -244,7 +244,7 @@ app.on('will-quit', () => {
 
 // ──── IPC: Printing ────
 
-ipcMain.handle('electron:print', async (event, { html, copies, type }) => {
+ipcMain.handle('electron:print', async (event, { html, copies, type, printerWidth }) => {
   const settings = loadSettings();
   // Route to the correct printer based on job type
   let deviceName;
@@ -256,8 +256,12 @@ ipcMain.handle('electron:print', async (event, { html, copies, type }) => {
     deviceName = settings.defaultPrinter || undefined;
   }
 
+  // Paper width in microns (58mm or 80mm, default 80mm)
+  const widthMicrons = printerWidth === 58 ? 58000 : 80000;
+
   console.log('[Print] type:', type || 'unknown', 'copies:', copies || 1,
-    'printer:', deviceName || '(system default)', 'html:', html?.length || 0);
+    'printer:', deviceName || '(system default)', 'paper:', (printerWidth || 80) + 'mm',
+    'html:', html?.length || 0);
 
   // Ensure persistent print window exists
   if (!printWindow || printWindow.isDestroyed()) {
@@ -277,7 +281,7 @@ ipcMain.handle('electron:print', async (event, { html, copies, type }) => {
     const pdfPath = path.join(app.getPath('desktop'), `DineOpen-print-${Date.now()}.pdf`);
     const pdfData = await printWindow.webContents.printToPDF({
       printBackground: true,
-      pageSize: { width: 80000, height: 297000 },
+      pageSize: { width: widthMicrons, height: 297000 },
     });
     fs.writeFileSync(pdfPath, pdfData);
     return { success: true, fallback: 'pdf', path: pdfPath };
@@ -290,10 +294,11 @@ ipcMain.handle('electron:print', async (event, { html, copies, type }) => {
       deviceName,
       copies: copies || 1,
       printBackground: true,
-      // Force 80mm thermal paper size (in microns: 80mm = 80000, height auto = long roll)
-      pageSize: { width: 80000, height: 297000 },
-      // Zero margins so content fills full paper width (margins handled in CSS)
-      margins: { marginType: 'none' },
+      // Thermal paper size in microns (58mm or 80mm width, long roll height)
+      pageSize: { width: widthMicrons, height: 297000 },
+      // Use printable area so the printer driver reports its non-printable margins
+      // and Chromium offsets content accordingly (prevents left/right cutoff)
+      margins: { marginType: 'printableArea' },
     },
     (success, failureReason) => {
       if (success) {
@@ -351,15 +356,12 @@ ipcMain.handle('electron:getPrinterConfig', async () => {
 let autoUpdater;
 try {
   autoUpdater = require('electron-updater').autoUpdater;
-  autoUpdater.autoDownload = false;
+  autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
 
-  // GitHub token for accessing releases (read-only, works with private or public repo)
   autoUpdater.setFeedURL({
-    provider: 'github',
-    owner: 'kevinjane71',
-    repo: 'dine-frontend',
-    token: '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',
+    provider: 'gcs',
+    bucket: 'dineopen-releases',
   });
 
   autoUpdater.on('error', (err) => {

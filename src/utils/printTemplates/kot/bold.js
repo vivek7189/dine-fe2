@@ -4,14 +4,14 @@
 
 import {
   esc, getKOTLabels, formatDateTime,
-  getPrintFontSizes, getPrintFontFamily, wrapInDocument,
+  getPrintFontSizes, getPrintFontFamily, getContentWidth, wrapInDocument,
 } from '../helpers';
 
 export const id = 'bold';
 export const name = 'Bold';
 export const description = 'Extra large item names with prices. Easy to read from a distance.';
 
-function getBoldKOTCSS(scaleOrPreset, fontId) {
+function getBoldKOTCSS(scaleOrPreset, fontId, printerWidth) {
   let scale = 100;
   if (typeof scaleOrPreset === 'number' && scaleOrPreset >= 50 && scaleOrPreset <= 150) scale = scaleOrPreset;
   else if (typeof scaleOrPreset === 'string') {
@@ -20,8 +20,9 @@ function getBoldKOTCSS(scaleOrPreset, fontId) {
   }
   const f = getPrintFontSizes(scale);
   const ff = getPrintFontFamily(fontId);
+  const cw = getContentWidth(printerWidth);
   const s = (base) => Math.max(8, Math.round(base * scale / 100));
-  return `@page{size:72mm auto;margin:0;}*{box-sizing:border-box;}body{font-family:${ff};margin:0;padding:2mm 2mm;font-size:${f.body};line-height:1.4;width:72mm;max-width:72mm;overflow:hidden;} .header{text-align:center;margin-bottom:4px;} .restaurant-name{font-size:${s(22)}px;font-weight:bold;text-transform:uppercase;} .phone{font-size:${f.info};} .order-type{font-size:${s(18)}px;font-weight:bold;text-transform:uppercase;margin:4px 0;} .divider{text-align:center;margin:4px 0;letter-spacing:1px;} .info{font-size:${f.info};margin:4px 0;} .info div{margin:2px 0;} .item{margin:8px 0;} .item-name{font-size:${s(24)}px;font-weight:900;text-transform:uppercase;word-wrap:break-word;overflow-wrap:break-word;} .item-qty{font-size:${s(22)}px;font-weight:900;} .item-variant{font-size:${s(18)}px;font-weight:bold;text-transform:uppercase;margin-top:2px;} .item-detail{font-size:${f.info};color:#333;margin-left:4px;} .item-note{font-size:${f.info};font-style:italic;color:#555;margin-left:4px;} .item-price{font-size:${s(18)}px;font-weight:bold;text-align:right;} .footer{text-align:center;font-weight:bold;font-size:${s(16)}px;margin:6px 0;} .total{text-align:center;font-size:${f.info};margin:2px 0;}`;
+  return `@page{size:${cw} auto;margin:0;}*{box-sizing:border-box;}body{font-family:${ff};margin:0;padding:2mm 2mm;font-size:${f.body};line-height:1.4;width:${cw};max-width:${cw};overflow:hidden;} .header{text-align:center;margin-bottom:4px;} .restaurant-name{font-size:${s(22)}px;font-weight:bold;text-transform:uppercase;} .phone{font-size:${f.info};} .order-type{font-size:${s(18)}px;font-weight:bold;text-transform:uppercase;margin:4px 0;} .divider{text-align:center;margin:4px 0;letter-spacing:1px;} .info{font-size:${f.info};margin:4px 0;} .info div{margin:2px 0;} .item{margin:8px 0;} .item-name{font-size:${s(24)}px;font-weight:900;text-transform:uppercase;word-wrap:break-word;overflow-wrap:break-word;} .item-qty{font-size:${s(22)}px;font-weight:900;} .item-variant{font-size:${s(18)}px;font-weight:bold;text-transform:uppercase;margin-top:2px;} .item-detail{font-size:${f.info};color:#333;margin-left:4px;} .item-note{font-size:${f.info};font-style:italic;color:#555;margin-left:4px;} .item-price{font-size:${s(18)}px;font-weight:bold;text-align:right;} .footer{text-align:center;font-weight:bold;font-size:${s(16)}px;margin:6px 0;} .total{text-align:center;font-size:${f.info};margin:2px 0;}`;
 }
 
 export function render(kotData, printSettings = {}, labels = {}) {
@@ -80,7 +81,7 @@ export function render(kotData, printSettings = {}, labels = {}) {
     totalItems = (k.items || []).reduce((sum, i) => sum + (i.quantity || 1), 0);
   }
 
-  const css = getBoldKOTCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily);
+  const css = getBoldKOTCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily, printSettings.printerWidth);
 
   const bodyHtml =
     `<div class="header">` +

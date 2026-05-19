@@ -191,6 +191,7 @@ async function printViaElectron({ html, type, printSettings }) {
     await window.electronAPI.print(html, {
       type,
       copies: type === 'kot' ? (printSettings.kotCopies || 1) : 1,
+      printerWidth: printSettings.printerWidth || 80,
     });
   } catch (err) {
     console.error('Electron print failed, falling back to window.print:', err);

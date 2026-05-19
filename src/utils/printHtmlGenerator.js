@@ -3,6 +3,7 @@
 // Delegates to the template system for KOT and Bill rendering.
 
 import { renderKOT, renderBill } from './printTemplates/index';
+import { getContentWidth } from './printFontSizes';
 
 /**
  * Generate complete bill/invoice HTML for thermal printing.
@@ -43,10 +44,11 @@ const VEHICLE_TYPE_AR = {
 
 const PAYMENT_AR = { cash: 'نقداً', card: 'بطاقة', digital: 'رقمي' };
 
-function parkingSlipCSS() {
+function parkingSlipCSS(printerWidth) {
+  const cw = getContentWidth(printerWidth);
   return `
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Courier New', monospace; font-size: 12px; width: 72mm; max-width: 72mm; padding: 2mm; }
+    body { font-family: 'Courier New', monospace; font-size: 12px; width: ${cw}; max-width: ${cw}; padding: 2mm; }
     .center { text-align: center; }
     .rtl { direction: rtl; text-align: right; }
     .bold { font-weight: bold; }
@@ -62,7 +64,7 @@ function parkingSlipCSS() {
     .qr img { width: 140px; height: 140px; }
     .header-name { font-size: 16px; font-weight: bold; text-align: center; margin: 2px 0; }
     .amount { font-size: 22px; font-weight: bold; text-align: center; margin: 8px 0; }
-    @media print { body { width: 72mm; } }
+    @media print { body { width: ${cw}; } }
   `;
 }
 
