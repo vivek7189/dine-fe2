@@ -195,14 +195,22 @@ export default function ParkingDashboardPage() {
       setPrevStats(stats);
     }
     try {
-      const [configRes, statsRes, zonesRes, ratesRes] = await Promise.allSettled([
+      const [configRes, statsRes, zonesRes, ratesRes, printRes] = await Promise.allSettled([
         apiClient.getParkingConfig(restaurantId),
         apiClient.getParkingDashboardStats(restaurantId),
         apiClient.getParkingZones(restaurantId),
-        apiClient.getParkingRates(restaurantId)
+        apiClient.getParkingRates(restaurantId),
+        apiClient.getPrintSettings(restaurantId)
       ]);
       const fetchedConfig = configRes.status === 'fulfilled' ? configRes.value.config : null;
-      if (fetchedConfig) setConfig(fetchedConfig);
+      // Merge receipt logo from admin print settings as fallback
+      if (fetchedConfig) {
+        const ps = printRes.status === 'fulfilled' ? printRes.value.printSettings : null;
+        if (!fetchedConfig.logo && ps?.receiptLogo?.url && ps.receiptLogo.enabled !== false) {
+          fetchedConfig.logo = ps.receiptLogo.url;
+        }
+        setConfig(fetchedConfig);
+      }
       if (statsRes.status === 'fulfilled') setStats(statsRes.value.stats);
       const fetchedZones = zonesRes.status === 'fulfilled' ? (zonesRes.value.zones || []) : [];
       const fetchedRates = ratesRes.status === 'fulfilled' ? (ratesRes.value.rates || []) : [];

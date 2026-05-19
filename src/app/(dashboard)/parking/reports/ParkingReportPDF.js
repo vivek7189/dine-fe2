@@ -4,6 +4,14 @@ import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/render
 
 // ── Helpers ──────────────────────────────────────────────────────
 
+// Safely extract a display string from values that might be {en, ar} objects or plain strings
+function safeStr(val) {
+  if (!val) return '';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'object' && val !== null) return val.en || val.ar || val.url || Object.values(val).find(v => typeof v === 'string') || '';
+  return String(val);
+}
+
 function fmtCurrency(amount, curr) {
   if (amount == null || isNaN(amount)) return `${curr || ''} 0`;
   return `${curr || ''} ${Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -92,18 +100,20 @@ const s = StyleSheet.create({
 // ── Header ───────────────────────────────────────────────────────
 
 function ReportHeader({ logoUrl, lotName, reportTitle, dateRange }) {
+  const safeLogo = safeStr(logoUrl);
+  const safeName = safeStr(lotName);
   return (
     <View fixed>
       <View style={s.headerBar} />
       <View style={s.headerBrand}>
-        {logoUrl ? <Image src={logoUrl} style={s.logo} /> : null}
+        {safeLogo ? <Image src={safeLogo} style={s.logo} /> : null}
         <View>
-          {lotName ? <Text style={s.orgName}>{lotName}</Text> : null}
+          {safeName ? <Text style={s.orgName}>{safeName}</Text> : null}
           <Text style={{ fontSize: 8, color: C.gray500 }}>Parking Management</Text>
         </View>
       </View>
-      <Text style={s.reportTitle}>{reportTitle}</Text>
-      {dateRange ? <Text style={s.dateRange}>{dateRange}</Text> : null}
+      <Text style={s.reportTitle}>{safeStr(reportTitle) || 'Report'}</Text>
+      {dateRange ? <Text style={s.dateRange}>{safeStr(dateRange)}</Text> : null}
       <Text style={s.genDate}>Generated on {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</Text>
     </View>
   );
@@ -139,8 +149,8 @@ export function ParkingReportPDFDocument({
       <Page size="A4" style={s.page}>
         {/* Header with Logo & Parking Name */}
         <ReportHeader
-          logoUrl={config.logo || null}
-          lotName={config.lotName || 'Parking'}
+          logoUrl={safeStr(config.logo) || null}
+          lotName={safeStr(config.lotName) || 'Parking'}
           reportTitle="Parking Revenue Report"
           dateRange={dateRange}
         />
@@ -236,7 +246,7 @@ export function ParkingReportPDFDocument({
               </View>
               {vehicleTypes.map((vt, i) => (
                 <View key={vt.type || i} style={i % 2 === 0 ? s.tRow : s.tRowAlt} wrap={false}>
-                  <Text style={[s.td, { flex: 2, textTransform: 'capitalize' }]}>{vt.type}</Text>
+                  <Text style={[s.td, { flex: 2, textTransform: 'capitalize' }]}>{safeStr(vt.type)}</Text>
                   <Text style={[s.td, { flex: 1, textAlign: 'right' }]}>{vt.count}</Text>
                   <Text style={[s.td, { flex: 1, textAlign: 'right' }]}>{vt.percentage || 0}%</Text>
                   <Text style={[s.tdBold, { flex: 2, textAlign: 'right' }]}>{fmtCurrency(vt.revenue, currency)}</Text>
@@ -258,7 +268,7 @@ export function ParkingReportPDFDocument({
               </View>
               {zones.map((z, i) => (
                 <View key={z.zoneId || i} style={i % 2 === 0 ? s.tRow : s.tRowAlt} wrap={false}>
-                  <Text style={[s.td, { flex: 2 }]}>{z.zoneName}</Text>
+                  <Text style={[s.td, { flex: 2 }]}>{safeStr(z.zoneName)}</Text>
                   <Text style={[s.td, { flex: 1, textAlign: 'right' }]}>{z.totalVehicles}</Text>
                   <Text style={[s.tdBold, { flex: 2, textAlign: 'right' }]}>{fmtCurrency(z.revenue, currency)}</Text>
                 </View>

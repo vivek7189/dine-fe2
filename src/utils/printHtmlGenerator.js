@@ -23,6 +23,14 @@ export function generateKOTHTML(kotData, printSettings = {}, labels = {}) {
 // esc helper used by parking slip generators below
 const esc = (str) => String(str ?? '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+// Safely extract a display string from values that might be {en, ar} objects or plain strings
+function safeStr(val) {
+  if (!val) return '';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'object' && val !== null) return val.en || val.ar || val.url || Object.values(val).find(v => typeof v === 'string') || '';
+  return String(val);
+}
+
 // ═════════════════════════════════════════════════════════
 // PARKING SLIP GENERATORS
 // 80mm thermal receipt, dual language (English / Arabic)
@@ -74,7 +82,7 @@ function dualRow(labelEn, labelAr, value, showAr = true) {
  * @param {object} config - Parking config
  */
 export function generateParkingSlipHTML(ticket, config = {}) {
-  const lang = config.printLanguage || 'dual';
+  const lang = safeStr(config.printLanguage) || 'dual';
   const showAr = lang === 'dual' || lang === 'ar';
   const showEn = lang === 'dual' || lang === 'en';
 
@@ -84,18 +92,28 @@ export function generateParkingSlipHTML(ticket, config = {}) {
 
   const vtAr = VEHICLE_TYPE_AR[ticket.vehicleType] || ticket.vehicleType;
 
+  const logoUrl = safeStr(config.logo);
+  const lotName = safeStr(config.lotName) || 'Parking';
+  const lotNameAr = safeStr(config.lotNameAr);
+  const address = safeStr(config.address);
+  const addressAr = safeStr(config.addressAr);
+  const receiptHeader = safeStr(config.receiptHeader);
+  const receiptHeaderAr = safeStr(config.receiptHeaderAr);
+  const receiptFooter = safeStr(config.receiptFooter);
+  const receiptFooterAr = safeStr(config.receiptFooterAr);
+
   let logoHtml = '';
-  if (config.logo) {
-    logoHtml = `<div class="center"><img src="${config.logo}" style="max-height:40px;max-width:60mm;margin-bottom:4px;" /></div>`;
+  if (logoUrl) {
+    logoHtml = `<div class="center"><img src="${logoUrl}" style="max-height:40px;max-width:60mm;margin-bottom:4px;" /></div>`;
   }
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Parking - ${ticket.ticketNumber}</title>
 <style>${parkingSlipCSS()}</style></head><body>
 <div class="divider">================================</div>
 ${logoHtml}
-<div class="header-name">${showEn ? esc(config.lotName || 'Parking') : ''}${showAr && showEn ? ' | ' : ''}${showAr ? esc(config.lotNameAr || '') : ''}</div>
-${config.address ? `<div class="center" style="font-size:10px;">${showEn ? esc(config.address) : ''}${showAr ? '<br/>' + esc(config.addressAr || '') : ''}</div>` : ''}
-${config.receiptHeader ? `<div class="center" style="font-size:10px;">${esc(config.receiptHeader)}${showAr && config.receiptHeaderAr ? '<br/>' + esc(config.receiptHeaderAr) : ''}</div>` : ''}
+<div class="header-name">${showEn ? esc(lotName) : ''}${showAr && showEn ? ' | ' : ''}${showAr ? esc(lotNameAr) : ''}</div>
+${address ? `<div class="center" style="font-size:10px;">${showEn ? esc(address) : ''}${showAr ? '<br/>' + esc(addressAr) : ''}</div>` : ''}
+${receiptHeader ? `<div class="center" style="font-size:10px;">${esc(receiptHeader)}${showAr && receiptHeaderAr ? '<br/>' + esc(receiptHeaderAr) : ''}</div>` : ''}
 <div class="divider">================================</div>
 <div class="big">${showEn ? 'PARKING TICKET' : ''}${showAr ? (showEn ? ' | ' : '') + 'تذكرة موقف' : ''}</div>
 <div class="divider">--------------------------------</div>
@@ -114,7 +132,7 @@ ${ticket.rateName ? dualRow('Rate', 'التعرفة', ticket.rateName, showAr) :
 ${ticket.qrCodeDataUrl ? `<div class="qr"><img src="${ticket.qrCodeDataUrl}" /><div style="font-size:10px;">${showEn ? 'Scan to verify' : ''}${showAr ? (showEn ? ' | ' : '') + 'امسح للتحقق' : ''}</div></div>` : ''}
 <div class="divider">================================</div>
 <div class="center" style="font-size:10px;">${showEn ? 'Keep this ticket safe' : ''}${showAr ? '<br/>يرجى الاحتفاظ بالتذكرة' : ''}</div>
-${config.receiptFooter ? `<div class="center" style="font-size:10px;margin-top:4px;">${esc(config.receiptFooter)}${showAr && config.receiptFooterAr ? '<br/>' + esc(config.receiptFooterAr) : ''}</div>` : ''}
+${receiptFooter ? `<div class="center" style="font-size:10px;margin-top:4px;">${esc(receiptFooter)}${showAr && receiptFooterAr ? '<br/>' + esc(receiptFooterAr) : ''}</div>` : ''}
 <div class="divider">================================</div>
 </body></html>`;
 }
@@ -125,7 +143,7 @@ ${config.receiptFooter ? `<div class="center" style="font-size:10px;margin-top:4
  * @param {object} config - Parking config
  */
 export function generateParkingExitSlipHTML(ticket, config = {}) {
-  const lang = config.printLanguage || 'dual';
+  const lang = safeStr(config.printLanguage) || 'dual';
   const showAr = lang === 'dual' || lang === 'ar';
   const showEn = lang === 'dual' || lang === 'en';
 
@@ -137,22 +155,30 @@ export function generateParkingExitSlipHTML(ticket, config = {}) {
 
   const vtAr = VEHICLE_TYPE_AR[ticket.vehicleType] || ticket.vehicleType;
   const payAr = PAYMENT_AR[ticket.paymentMethod] || ticket.paymentMethod || '';
-  const currency = ticket.currency || config.currency || 'AED';
+  const currency = safeStr(ticket.currency) || safeStr(config.currency) || 'AED';
 
   const durationMin = ticket.duration || ticket.durationMinutes || 0;
   const durationStr = ticket.durationFormatted || `${Math.floor(durationMin / 60)}h ${durationMin % 60}m`;
 
+  const logoUrl = safeStr(config.logo);
+  const lotName = safeStr(config.lotName) || 'Parking';
+  const lotNameAr = safeStr(config.lotNameAr);
+  const address = safeStr(config.address);
+  const addressAr = safeStr(config.addressAr);
+  const receiptFooter = safeStr(config.receiptFooter);
+  const receiptFooterAr = safeStr(config.receiptFooterAr);
+
   let logoHtml = '';
-  if (config.logo) {
-    logoHtml = `<div class="center"><img src="${config.logo}" style="max-height:40px;max-width:60mm;margin-bottom:4px;" /></div>`;
+  if (logoUrl) {
+    logoHtml = `<div class="center"><img src="${logoUrl}" style="max-height:40px;max-width:60mm;margin-bottom:4px;" /></div>`;
   }
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Exit - ${ticket.ticketNumber}</title>
 <style>${parkingSlipCSS()}</style></head><body>
 <div class="divider">================================</div>
 ${logoHtml}
-<div class="header-name">${showEn ? esc(config.lotName || 'Parking') : ''}${showAr && showEn ? ' | ' : ''}${showAr ? esc(config.lotNameAr || '') : ''}</div>
-${config.address ? `<div class="center" style="font-size:10px;">${showEn ? esc(config.address) : ''}${showAr ? '<br/>' + esc(config.addressAr || '') : ''}</div>` : ''}
+<div class="header-name">${showEn ? esc(lotName) : ''}${showAr && showEn ? ' | ' : ''}${showAr ? esc(lotNameAr) : ''}</div>
+${address ? `<div class="center" style="font-size:10px;">${showEn ? esc(address) : ''}${showAr ? '<br/>' + esc(addressAr) : ''}</div>` : ''}
 <div class="divider">================================</div>
 <div class="big">${showEn ? 'EXIT RECEIPT' : ''}${showAr ? (showEn ? ' | ' : '') + 'إيصال خروج' : ''}</div>
 <div class="divider">--------------------------------</div>
@@ -173,7 +199,7 @@ ${ticket.discountAmount ? `<div class="center" style="font-size:11px;">Discount:
 ${dualRow('Payment', 'الدفع', `${showEn ? (ticket.paymentMethod || 'Cash') : ''}${showAr ? (showEn ? ' | ' : '') + payAr : ''}`, false)}
 <div class="divider">================================</div>
 <div class="center" style="font-size:12px;font-weight:bold;">${showEn ? 'Thank you' : ''}${showAr ? (showEn ? ' | ' : '') + 'شكراً لكم' : ''}</div>
-${config.receiptFooter ? `<div class="center" style="font-size:10px;margin-top:4px;">${esc(config.receiptFooter)}${showAr && config.receiptFooterAr ? '<br/>' + esc(config.receiptFooterAr) : ''}</div>` : ''}
+${receiptFooter ? `<div class="center" style="font-size:10px;margin-top:4px;">${esc(receiptFooter)}${showAr && receiptFooterAr ? '<br/>' + esc(receiptFooterAr) : ''}</div>` : ''}
 <div class="divider">================================</div>
 </body></html>`;
 }

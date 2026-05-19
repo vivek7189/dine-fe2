@@ -31,6 +31,14 @@ function formatCurrency(val) {
   return Number(val).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
+// Safely extract display string from values that might be {en, ar} objects
+function safeStr(val) {
+  if (!val) return '';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'object' && val !== null) return val.en || val.ar || val.url || Object.values(val).find(v => typeof v === 'string') || '';
+  return String(val);
+}
+
 function formatDuration(minutes) {
   if (!minutes && minutes !== 0) return '-';
   const h = Math.floor(minutes / 60);
@@ -110,8 +118,20 @@ export default function ParkingReportsPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.getParkingReports(restaurantId, { startDate, endDate });
-      setReports(res?.reports || null);
+      const [reportsRes, printRes] = await Promise.allSettled([
+        apiClient.getParkingReports(restaurantId, { startDate, endDate }),
+        apiClient.getPrintSettings(restaurantId)
+      ]);
+      const rData = reportsRes.status === 'fulfilled' ? (reportsRes.value?.reports || null) : null;
+      // Merge receipt logo from admin print settings as fallback
+      if (rData?.config) {
+        const ps = printRes.status === 'fulfilled' ? printRes.value?.printSettings : null;
+        if (!rData.config.logo && ps?.receiptLogo?.url && ps.receiptLogo.enabled !== false) {
+          rData.config.logo = ps.receiptLogo.url;
+        }
+      }
+      setReports(rData);
+      if (reportsRes.status === 'rejected') throw reportsRes.reason;
     } catch (e) {
       console.error('Failed to load reports:', e);
       setError(e.message || 'Failed to load reports');
@@ -335,7 +355,7 @@ export default function ParkingReportsPage() {
                 {vehicleTypes.map((vt, i) => (
                   <div key={vt.type || i}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ fontSize: 13, fontWeight: 500, color: '#334155', textTransform: 'capitalize' }}>{vt.type || 'Unknown'}</span>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: '#334155', textTransform: 'capitalize' }}>{safeStr(vt.type) || 'Unknown'}</span>
                       <span style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{vt.count} ({vt.percentage || Math.round((vt.count / (summary.totalVehicles || 1)) * 100)}%)</span>
                     </div>
                     <div style={{ height: 24, background: '#f1f5f9', borderRadius: 6, overflow: 'hidden' }}>
@@ -360,7 +380,7 @@ export default function ParkingReportsPage() {
                 {zones.map((z, i) => (
                   <div key={z.zoneId || z.zoneName || i}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ fontSize: 13, fontWeight: 500, color: '#334155' }}>{z.zoneName || 'Zone'}</span>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: '#334155' }}>{safeStr(z.zoneName) || 'Zone'}</span>
                       <span style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{z.totalVehicles} vehicles &middot; {currency} {formatCurrency(z.revenue || 0)}</span>
                     </div>
                     <div style={{ height: 24, background: '#f1f5f9', borderRadius: 6, overflow: 'hidden' }}>
