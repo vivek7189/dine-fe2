@@ -5,7 +5,7 @@ import {
   FaChartBar, FaCar, FaClock, FaMoneyBillWave, FaCalendarAlt,
   FaArrowLeft, FaDownload, FaCreditCard, FaWallet, FaMobileAlt,
   FaChartLine, FaLayerGroup, FaMapMarkerAlt, FaPercent, FaFilePdf,
-  FaSpinner
+  FaSpinner, FaUserTie, FaFileExcel, FaFileCsv, FaUsers, FaUser
 } from 'react-icons/fa';
 import apiClient from '../../../../lib/api';
 import Link from 'next/link';
@@ -81,6 +81,19 @@ export default function ParkingReportsPage() {
   const [startDate, setStartDate] = useState(defaultStart.toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(today);
   const [activePreset, setActivePreset] = useState('Last 7 Days');
+
+  // Download state
+  const [reportFormat, setReportFormat] = useState('xlsx');
+  const [downloading, setDownloading] = useState(false);
+  const [downloadType, setDownloadType] = useState(null);
+  const [staffFilter, setStaffFilter] = useState('all');
+
+  // User info
+  const [user, setUser] = useState(null);
+  useEffect(() => {
+    try { setUser(JSON.parse(localStorage.getItem('user') || '{}')); } catch { setUser({}); }
+  }, []);
+  const isOwnerOrAdmin = user?.role === 'owner' || user?.role === 'admin';
 
   // --- Responsive ---
   useEffect(() => {
@@ -169,6 +182,7 @@ export default function ParkingReportsPage() {
   const maxDailyRevenue = Math.max(...dailyRevenue.map(d => d.revenue || 0), 1);
   const maxHourlyCount = Math.max(...hourlyDistribution.map(h => h.count || 0), 1);
 
+  const operators = reports?.operators || [];
   const totalPayments = (paymentMethods.cash || 0) + (paymentMethods.card || 0) + (paymentMethods.digital || 0);
 
   // PDF Download
@@ -186,6 +200,7 @@ export default function ParkingReportsPage() {
           zones={zones}
           dailyRevenue={dailyRevenue}
           paymentMethods={paymentMethods}
+          operators={operators}
           dateRange={`${new Date(startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} – ${new Date(endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`}
           currency={currency}
         />
@@ -203,6 +218,23 @@ export default function ParkingReportsPage() {
       alert('Failed to generate PDF. Please try again.');
     } finally {
       setPdfGenerating(false);
+    }
+  };
+
+  // Excel/CSV Download
+  const handleDownloadReport = async (staffId) => {
+    if (!restaurantId) return;
+    setDownloading(true);
+    setDownloadType(staffId ? 'my' : 'all');
+    try {
+      await apiClient.downloadParkingReport(restaurantId, {
+        startDate, endDate, staffId, format: reportFormat,
+      });
+    } catch (err) {
+      alert(err.message || 'Failed to download report');
+    } finally {
+      setDownloading(false);
+      setDownloadType(null);
     }
   };
 
@@ -248,20 +280,9 @@ export default function ParkingReportsPage() {
           </div>
         </div>
         {!loading && reports && (
-          <button
-            onClick={handleDownloadPDF}
-            disabled={pdfGenerating}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '10px 20px', borderRadius: 10, border: 'none',
-              background: pdfGenerating ? '#94a3b8' : PRIMARY,
-              color: '#fff', fontWeight: 600, fontSize: 13, cursor: pdfGenerating ? 'wait' : 'pointer',
-              boxShadow: '0 2px 8px rgba(3,105,161,0.2)',
-            }}
-          >
-            {pdfGenerating ? <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <FaFilePdf size={14} />}
-            {pdfGenerating ? 'Generating...' : 'Download PDF'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#64748b' }}>
+            <FaDownload size={12} /> Scroll down to download reports
+          </div>
         )}
       </div>
 
@@ -300,6 +321,97 @@ export default function ParkingReportsPage() {
           </div>
         </div>
       </div>
+
+      {/* Download Report Section */}
+      {!loading && reports && (
+        <div style={{ padding: isMobile ? '0 16px 16px' : '0 32px 20px' }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: isMobile ? 16 : 20, border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <FaDownload size={16} color={PRIMARY} />
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1e293b', margin: 0 }}>Download Parking Report</h3>
+            </div>
+            <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 14px 0' }}>
+              Download detailed reports — your own or all staff. Includes sales breakdown, payment methods, and transaction details.
+            </p>
+
+            {/* Format selector */}
+            <div style={{ display: 'flex', gap: 0, marginBottom: 14 }}>
+              {[{ id: 'xlsx', label: 'Excel', icon: FaFileExcel }, { id: 'csv', label: 'CSV', icon: FaFileCsv }].map((f, i) => (
+                <button key={f.id} onClick={() => setReportFormat(f.id)} style={{
+                  padding: '8px 18px', border: `1px solid ${reportFormat === f.id ? PRIMARY : '#e2e8f0'}`,
+                  background: reportFormat === f.id ? PRIMARY_LIGHT : '#fff',
+                  color: reportFormat === f.id ? PRIMARY_DARK : '#475569',
+                  fontWeight: reportFormat === f.id ? 600 : 400, fontSize: 13, cursor: 'pointer',
+                  borderRadius: i === 0 ? '8px 0 0 8px' : '0 8px 8px 0',
+                  borderLeft: i > 0 ? 'none' : undefined,
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                  <f.icon size={13} /> {f.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Staff filter for owner/admin */}
+            {isOwnerOrAdmin && operators.length > 1 && (
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 4 }}>Staff Filter</label>
+                <select value={staffFilter} onChange={e => setStaffFilter(e.target.value)} style={{
+                  padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13, color: '#334155', minWidth: 200, outline: 'none',
+                }}>
+                  <option value="all">All Staff</option>
+                  {operators.map(op => <option key={op.id} value={op.id}>{safeStr(op.name)}</option>)}
+                </select>
+              </div>
+            )}
+
+            {/* Download buttons */}
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => handleDownloadReport(user?.id || user?.userId)}
+                disabled={downloading}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8, padding: '11px 22px', borderRadius: 10, border: 'none',
+                  background: downloading && downloadType === 'my' ? '#94a3b8' : PRIMARY,
+                  color: '#fff', fontWeight: 600, fontSize: 13, cursor: downloading ? 'wait' : 'pointer',
+                }}
+              >
+                {downloading && downloadType === 'my' ? <FaSpinner size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <FaUser size={13} />}
+                {downloading && downloadType === 'my' ? 'Downloading...' : `Download My Report (${reportFormat.toUpperCase()})`}
+              </button>
+              {isOwnerOrAdmin && (
+                <button
+                  onClick={() => handleDownloadReport(staffFilter !== 'all' ? staffFilter : null)}
+                  disabled={downloading}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '11px 22px', borderRadius: 10, border: 'none',
+                    background: downloading && downloadType === 'all' ? '#94a3b8' : '#7c3aed',
+                    color: '#fff', fontWeight: 600, fontSize: 13, cursor: downloading ? 'wait' : 'pointer',
+                  }}
+                >
+                  {downloading && downloadType === 'all' ? <FaSpinner size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <FaUsers size={13} />}
+                  {downloading && downloadType === 'all' ? 'Downloading...' : `${staffFilter !== 'all' ? 'Staff' : 'All Staff'} Report (${reportFormat.toUpperCase()})`}
+                </button>
+              )}
+              <button
+                onClick={handleDownloadPDF}
+                disabled={pdfGenerating}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8, padding: '11px 22px', borderRadius: 10, border: 'none',
+                  background: pdfGenerating ? '#94a3b8' : '#dc2626',
+                  color: '#fff', fontWeight: 600, fontSize: 13, cursor: pdfGenerating ? 'wait' : 'pointer',
+                }}
+              >
+                {pdfGenerating ? <FaSpinner size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <FaFilePdf size={13} />}
+                {pdfGenerating ? 'Generating...' : 'Download PDF'}
+              </button>
+            </div>
+
+            <p style={{ fontSize: 11, color: '#94a3b8', margin: '10px 0 0 0' }}>
+              Report includes: Staff Summary, Payment Breakdown (Cash/Card/Digital), Daily Revenue, Transaction Details {reportFormat === 'xlsx' ? '— Excel has 4 separate sheets' : ''}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Error State */}
       {error && !loading && (
@@ -341,6 +453,57 @@ export default function ParkingReportsPage() {
           </div>
         )}
       </div>
+
+      {/* Staff Performance Table */}
+      {!loading && isOwnerOrAdmin && operators.length > 0 && (
+        <div style={{ padding: isMobile ? '0 16px 16px' : '0 32px 20px' }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: 20, border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+              <FaUserTie size={16} color={PRIMARY} />
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1e293b', margin: 0 }}>Staff Performance</h3>
+            </div>
+            <div style={{ overflowX: 'auto', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 700 }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc' }}>
+                    <th style={thStyle}>Staff</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Vehicles</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Revenue ({currency})</th>
+                    <th style={{ ...thStyle, textAlign: 'right', color: SUCCESS }}>Cash</th>
+                    <th style={{ ...thStyle, textAlign: 'right', color: PRIMARY }}>Card</th>
+                    <th style={{ ...thStyle, textAlign: 'right', color: '#7c3aed' }}>Digital</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Avg Duration</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {operators.map((op, i) => (
+                    <tr key={op.id || i} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? '#fff' : '#f9fafb' }}>
+                      <td style={{ ...tdStyle, fontWeight: 600 }}>{safeStr(op.name)}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right' }}>{op.vehicles}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>{formatCurrency(op.revenue)}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: SUCCESS }}>{formatCurrency(op.cashRevenue)}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: PRIMARY }}>{formatCurrency(op.cardRevenue)}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: '#7c3aed' }}>{formatCurrency(op.digitalRevenue)}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right' }}>{formatDuration(op.avgDuration)}</td>
+                    </tr>
+                  ))}
+                  {operators.length > 1 && (
+                    <tr style={{ background: '#f0f9ff', borderTop: '2px solid #e2e8f0' }}>
+                      <td style={{ ...tdStyle, fontWeight: 700 }}>TOTAL</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700 }}>{operators.reduce((s, o) => s + (o.vehicles || 0), 0)}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700 }}>{formatCurrency(operators.reduce((s, o) => s + (o.revenue || 0), 0))}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: SUCCESS }}>{formatCurrency(operators.reduce((s, o) => s + (o.cashRevenue || 0), 0))}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: PRIMARY }}>{formatCurrency(operators.reduce((s, o) => s + (o.cardRevenue || 0), 0))}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#7c3aed' }}>{formatCurrency(operators.reduce((s, o) => s + (o.digitalRevenue || 0), 0))}</td>
+                      <td style={tdStyle}></td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Charts Grid */}
       <div style={{ padding: isMobile ? '0 16px 16px' : '0 32px 20px' }}>
@@ -479,13 +642,16 @@ export default function ParkingReportsPage() {
                 })}
               </div>
 
-              {/* Table */}
+              {/* Table with payment breakdown */}
               <div style={{ maxHeight: 300, overflowY: 'auto', borderRadius: 8, border: '1px solid #e2e8f0' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', position: 'sticky', top: 0 }}>
                       <th style={thStyle}>Date</th>
                       <th style={{ ...thStyle, textAlign: 'right' }}>Revenue</th>
+                      <th style={{ ...thStyle, textAlign: 'right', color: SUCCESS }}>Cash</th>
+                      <th style={{ ...thStyle, textAlign: 'right', color: PRIMARY }}>Card</th>
+                      <th style={{ ...thStyle, textAlign: 'right', color: '#7c3aed' }}>Digital</th>
                       <th style={{ ...thStyle, textAlign: 'right' }}>Vehicles</th>
                     </tr>
                   </thead>
@@ -496,6 +662,9 @@ export default function ParkingReportsPage() {
                           {new Date(d.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </td>
                         <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: SUCCESS }}>{formatCurrency(d.revenue)}</td>
+                        <td style={{ ...tdStyle, textAlign: 'right', fontSize: 12, color: '#16a34a' }}>{formatCurrency(d.cashRevenue || 0)}</td>
+                        <td style={{ ...tdStyle, textAlign: 'right', fontSize: 12, color: PRIMARY }}>{formatCurrency(d.cardRevenue || 0)}</td>
+                        <td style={{ ...tdStyle, textAlign: 'right', fontSize: 12, color: '#7c3aed' }}>{formatCurrency(d.digitalRevenue || 0)}</td>
                         <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 500 }}>{d.vehicleCount || 0}</td>
                       </tr>
                     ))}

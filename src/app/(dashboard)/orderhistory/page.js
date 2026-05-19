@@ -222,6 +222,45 @@ const OrderHistory = () => {
   const [scheduledViewMode, setScheduledViewMode] = useState('list'); // 'list' or 'calendar'
   const [scheduledDateFilter, setScheduledDateFilter] = useState('upcoming'); // 'upcoming', 'today', 'thisWeek', 'thisMonth', 'all', 'past'
 
+  // Staff reassignment state
+  const [historyStaffList, setHistoryStaffList] = useState([]);
+  const [historyStaffQuery, setHistoryStaffQuery] = useState('');
+  const [historyStaffDropdownOpen, setHistoryStaffDropdownOpen] = useState(false);
+  const [historyStaffFetched, setHistoryStaffFetched] = useState(false);
+  const [editingStaffOrderId, setEditingStaffOrderId] = useState(null);
+  const [reassigningStaff, setReassigningStaff] = useState(false);
+
+  const fetchHistoryStaffList = async () => {
+    if (historyStaffFetched || !restaurantId) return;
+    setHistoryStaffFetched(true);
+    try {
+      const res = await apiClient.getWaiters(restaurantId);
+      setHistoryStaffList(res.waiters || []);
+    } catch { setHistoryStaffFetched(false); }
+  };
+
+  const filteredHistoryStaff = historyStaffList.filter(s =>
+    !historyStaffQuery || s.name?.toLowerCase().includes(historyStaffQuery.toLowerCase())
+  );
+
+  const handleReassignStaff = async (order, staffData) => {
+    setReassigningStaff(true);
+    try {
+      await apiClient.updateOrder(order.id, { assignedStaff: staffData, restaurantId });
+      setOrders(prev => prev.map(o => o.id === order.id ? { ...o, assignedStaff: staffData } : o));
+      if (selectedOrderForModal?.id === order.id) {
+        setSelectedOrderForModal(prev => ({ ...prev, assignedStaff: staffData }));
+      }
+    } catch (e) {
+      console.error('Failed to reassign staff:', e);
+    } finally {
+      setReassigningStaff(false);
+      setEditingStaffOrderId(null);
+      setHistoryStaffQuery('');
+      setHistoryStaffDropdownOpen(false);
+    }
+  };
+
   useEffect(() => {
     if (!printDropdownOrderId) return;
     const handler = () => setPrintDropdownOrderId(null);
@@ -1953,7 +1992,7 @@ const OrderHistory = () => {
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto">
             {/* Info strip */}
-            <div className={`grid ${order.assignedStaff?.name ? 'grid-cols-4' : 'grid-cols-3'} divide-x divide-gray-100 border-b border-gray-100 bg-gray-50/50`}>
+            <div className="grid grid-cols-4 divide-x divide-gray-100 border-b border-gray-100 bg-gray-50/50">
               <div className="px-4 py-3">
                 <div className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">{t('orderHistory.customer')}</div>
                 <div className="text-sm font-semibold text-gray-900 truncate">{order.customerDisplay?.name || t('orderHistory.walkIn')}</div>
@@ -1975,13 +2014,90 @@ const OrderHistory = () => {
                 <div className="text-sm font-semibold text-gray-900 capitalize">{order.orderType?.replace('-', ' ') || t('orderHistory.type.dineIn')}</div>
                 <div className="text-xs text-gray-400 capitalize">{order.paymentMethod || t('orderHistory.unpaid')}</div>
               </div>
-              {order.assignedStaff?.name && (
-                <div className="px-4 py-3">
-                  <div className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">Assigned Staff</div>
-                  <div className="text-sm font-semibold text-gray-900 truncate">{order.assignedStaff.name}</div>
-                  <div className="text-xs text-gray-400">Staff</div>
-                </div>
-              )}
+              <div className="px-4 py-3" style={{ position: 'relative' }}>
+                <div className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">Assigned Staff</div>
+                {editingStaffOrderId === order.id ? (
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      autoFocus
+                      type="text"
+                      placeholder="Search or type name..."
+                      value={historyStaffQuery}
+                      onFocus={() => { fetchHistoryStaffList(); setHistoryStaffDropdownOpen(true); }}
+                      onBlur={() => setTimeout(() => {
+                        setHistoryStaffDropdownOpen(false);
+                        if (historyStaffQuery.trim()) {
+                          handleReassignStaff(order, { name: historyStaffQuery.trim(), id: null });
+                        } else if (!historyStaffQuery && !reassigningStaff) {
+                          setEditingStaffOrderId(null);
+                        }
+                      }, 200)}
+                      onChange={(e) => setHistoryStaffQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && historyStaffQuery.trim()) {
+                          e.target.blur();
+                        } else if (e.key === 'Escape') {
+                          setHistoryStaffQuery('');
+                          setEditingStaffOrderId(null);
+                          setHistoryStaffDropdownOpen(false);
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '4px 8px',
+                        border: '2px solid #3b82f6',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        color: '#1f2937',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    {historyStaffDropdownOpen && filteredHistoryStaff.length > 0 && (
+                      <div style={{
+                        position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                        background: 'white', borderRadius: '8px', border: '1px solid #e2e8f0',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: '150px', overflow: 'auto', marginTop: '4px',
+                      }}>
+                        {filteredHistoryStaff.map(s => (
+                          <div key={s.id} onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleReassignStaff(order, { name: s.name, id: s.id });
+                          }} style={{
+                            padding: '6px 10px', cursor: 'pointer', fontSize: '11px',
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            borderBottom: '1px solid #f8fafc',
+                          }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                          >
+                            <span style={{ fontWeight: 500, color: '#1f2937' }}>{s.name}</span>
+                            <span style={{ fontSize: '9px', color: '#9ca3af' }}>{s.role}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => {
+                      setEditingStaffOrderId(order.id);
+                      setHistoryStaffQuery('');
+                      setHistoryStaffFetched(false);
+                    }}
+                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    title="Click to assign or reassign staff"
+                  >
+                    <div className="text-sm font-semibold text-gray-900 truncate">
+                      {order.assignedStaff?.name || <span className="text-gray-400 font-normal">Not assigned</span>}
+                    </div>
+                    <FaEdit size={10} className="text-gray-400 flex-shrink-0" />
+                  </div>
+                )}
+                {reassigningStaff && editingStaffOrderId === order.id && (
+                  <div className="text-[10px] text-blue-500 mt-0.5">Saving...</div>
+                )}
+              </div>
             </div>
 
             {/* Items */}

@@ -139,6 +139,7 @@ export function ParkingReportPDFDocument({
   zones = [],
   dailyRevenue = [],
   paymentMethods = {},
+  operators = [],
   dateRange,
   currency = 'AED',
 }) {
@@ -196,6 +197,33 @@ export function ParkingReportPDFDocument({
           </View>
         </View>
 
+        {/* Staff Performance Table */}
+        {operators.length > 0 && (
+          <>
+            <Text style={s.sectionTitle}>Staff Performance</Text>
+            <View>
+              <View style={s.tHead}>
+                <Text style={[s.th, { flex: 2 }]}>Staff</Text>
+                <Text style={[s.th, { flex: 1, textAlign: 'right' }]}>Vehicles</Text>
+                <Text style={[s.th, { flex: 1.5, textAlign: 'right' }]}>Revenue</Text>
+                <Text style={[s.th, { flex: 1, textAlign: 'right' }]}>Cash</Text>
+                <Text style={[s.th, { flex: 1, textAlign: 'right' }]}>Card</Text>
+                <Text style={[s.th, { flex: 1, textAlign: 'right' }]}>Digital</Text>
+              </View>
+              {operators.map((op, i) => (
+                <View key={op.id || i} style={i % 2 === 0 ? s.tRow : s.tRowAlt} wrap={false}>
+                  <Text style={[s.td, { flex: 2 }]}>{safeStr(op.name)}</Text>
+                  <Text style={[s.td, { flex: 1, textAlign: 'right' }]}>{op.vehicles}</Text>
+                  <Text style={[s.tdBold, { flex: 1.5, textAlign: 'right' }]}>{fmtCurrency(op.revenue, currency)}</Text>
+                  <Text style={[s.td, { flex: 1, textAlign: 'right', color: C.green }]}>{fmtCurrency(op.cashRevenue, currency)}</Text>
+                  <Text style={[s.td, { flex: 1, textAlign: 'right', color: C.blue }]}>{fmtCurrency(op.cardRevenue, currency)}</Text>
+                  <Text style={[s.td, { flex: 1, textAlign: 'right', color: C.purple }]}>{fmtCurrency(op.digitalRevenue, currency)}</Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+
         {/* Daily Revenue Table */}
         {dailyRevenue.length > 0 && (
           <>
@@ -203,18 +231,24 @@ export function ParkingReportPDFDocument({
             <View>
               <View style={s.tHead}>
                 <Text style={[s.th, { flex: 2 }]}>Date</Text>
-                <Text style={[s.th, { flex: 2, textAlign: 'right' }]}>Revenue</Text>
-                <Text style={[s.th, { flex: 1, textAlign: 'right' }]}>Vehicles</Text>
+                <Text style={[s.th, { flex: 1.5, textAlign: 'right' }]}>Revenue</Text>
+                <Text style={[s.th, { flex: 1, textAlign: 'right' }]}>Cash</Text>
+                <Text style={[s.th, { flex: 1, textAlign: 'right' }]}>Card</Text>
+                <Text style={[s.th, { flex: 1, textAlign: 'right' }]}>Digital</Text>
+                <Text style={[s.th, { flex: 0.8, textAlign: 'right' }]}>Vehicles</Text>
               </View>
               {dailyRevenue.map((d, i) => (
                 <View key={d.date || i} style={i % 2 === 0 ? s.tRow : s.tRowAlt} wrap={false}>
                   <Text style={[s.td, { flex: 2 }]}>
                     {new Date(d.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </Text>
-                  <Text style={[s.tdBold, { flex: 2, textAlign: 'right', color: C.green }]}>
+                  <Text style={[s.tdBold, { flex: 1.5, textAlign: 'right', color: C.green }]}>
                     {fmtCurrency(d.revenue, currency)}
                   </Text>
-                  <Text style={[s.td, { flex: 1, textAlign: 'right' }]}>
+                  <Text style={[s.td, { flex: 1, textAlign: 'right' }]}>{fmtCurrency(d.cashRevenue, currency)}</Text>
+                  <Text style={[s.td, { flex: 1, textAlign: 'right' }]}>{fmtCurrency(d.cardRevenue, currency)}</Text>
+                  <Text style={[s.td, { flex: 1, textAlign: 'right' }]}>{fmtCurrency(d.digitalRevenue, currency)}</Text>
+                  <Text style={[s.td, { flex: 0.8, textAlign: 'right' }]}>
                     {d.vehicleCount || 0}
                   </Text>
                 </View>
@@ -222,10 +256,13 @@ export function ParkingReportPDFDocument({
               {/* Total row */}
               <View style={[s.tHead, { marginTop: 0 }]}>
                 <Text style={[s.th, { flex: 2, fontSize: 9 }]}>TOTAL</Text>
-                <Text style={[s.th, { flex: 2, textAlign: 'right', fontSize: 9, color: C.green }]}>
+                <Text style={[s.th, { flex: 1.5, textAlign: 'right', fontSize: 9, color: C.green }]}>
                   {fmtCurrency(summary.totalRevenue, currency)}
                 </Text>
-                <Text style={[s.th, { flex: 1, textAlign: 'right', fontSize: 9 }]}>
+                <Text style={[s.th, { flex: 1, textAlign: 'right', fontSize: 9 }]}>{fmtCurrency(paymentMethods.cashRevenue, currency)}</Text>
+                <Text style={[s.th, { flex: 1, textAlign: 'right', fontSize: 9 }]}>{fmtCurrency(paymentMethods.cardRevenue, currency)}</Text>
+                <Text style={[s.th, { flex: 1, textAlign: 'right', fontSize: 9 }]}>{fmtCurrency(paymentMethods.digitalRevenue, currency)}</Text>
+                <Text style={[s.th, { flex: 0.8, textAlign: 'right', fontSize: 9 }]}>
                   {fmtNum(summary.totalVehicles)}
                 </Text>
               </View>

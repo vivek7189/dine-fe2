@@ -4250,64 +4250,64 @@ const OrderSummary = ({
                           />
                         </div>
                       ))}
+
+                    {/* Assign Staff Field — inline with other inputs */}
+                    {posSettings.showAssignStaff && onAssignedStaffChange && (
+                      <div style={{ position: 'relative', flex: isMobile ? '0 0 auto' : '1', minWidth: isMobile ? '100%' : '120px' }}>
+                        <input
+                          type="text"
+                          placeholder="Assign Staff"
+                          value={staffQuery !== '' ? staffQuery : (assignedStaff?.name || '')}
+                          onFocus={() => { fetchStaffList(); setStaffDropdownOpen(true); }}
+                          onBlur={() => setTimeout(() => setStaffDropdownOpen(false), 200)}
+                          onChange={(e) => {
+                            setStaffQuery(e.target.value);
+                            onAssignedStaffChange(e.target.value ? { name: e.target.value, id: null } : null);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: isMobile ? '10px 12px' : '8px 10px',
+                            border: `2px solid ${assignedStaff?.name ? '#22c55e' : '#d1d5db'}`,
+                            borderRadius: '6px',
+                            fontSize: '13px',
+                            color: '#1f2937',
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                            transition: 'border-color 0.2s',
+                          }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.target.blur(); } }}
+                        />
+                        {staffDropdownOpen && filteredStaff.length > 0 && (
+                          <div style={{
+                            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+                            background: 'white', borderRadius: '10px', border: '1px solid #e2e8f0',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: '150px', overflow: 'auto', marginTop: '4px',
+                          }}>
+                            {filteredStaff.map(s => (
+                              <div key={s.id} onMouseDown={(e) => {
+                                e.preventDefault();
+                                onAssignedStaffChange({ name: s.name, id: s.id });
+                                setStaffQuery('');
+                                setStaffDropdownOpen(false);
+                              }} style={{
+                                padding: '8px 12px', cursor: 'pointer', fontSize: '12px',
+                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                borderBottom: '1px solid #f8fafc',
+                              }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                              >
+                                <span style={{ fontWeight: 500, color: '#1f2937' }}>{s.name}</span>
+                                <span style={{ fontSize: '10px', color: '#9ca3af' }}>{s.role}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     </div>
                   );
                 })()}
-
-              {/* Assign Staff Field */}
-              {posSettings.showAssignStaff && onAssignedStaffChange && (
-                <div style={{ position: 'relative', marginBottom: '10px' }}>
-                  <input
-                    type="text"
-                    placeholder="Assign Staff"
-                    value={staffQuery !== '' ? staffQuery : (assignedStaff?.name || '')}
-                    onFocus={() => { fetchStaffList(); setStaffDropdownOpen(true); }}
-                    onBlur={() => setTimeout(() => setStaffDropdownOpen(false), 200)}
-                    onChange={(e) => {
-                      setStaffQuery(e.target.value);
-                      onAssignedStaffChange(e.target.value ? { name: e.target.value, id: null } : null);
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: isMobile ? '10px 12px' : '8px 10px',
-                      border: `2px solid ${assignedStaff?.name ? '#22c55e' : '#d1d5db'}`,
-                      borderRadius: '10px',
-                      fontSize: '13px',
-                      color: '#1f2937',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                      transition: 'border-color 0.2s',
-                    }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.target.blur(); } }}
-                  />
-                  {staffDropdownOpen && filteredStaff.length > 0 && (
-                    <div style={{
-                      position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
-                      background: 'white', borderRadius: '10px', border: '1px solid #e2e8f0',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: '150px', overflow: 'auto', marginTop: '4px',
-                    }}>
-                      {filteredStaff.map(s => (
-                        <div key={s.id} onMouseDown={(e) => {
-                          e.preventDefault();
-                          onAssignedStaffChange({ name: s.name, id: s.id });
-                          setStaffQuery('');
-                          setStaffDropdownOpen(false);
-                        }} style={{
-                          padding: '8px 12px', cursor: 'pointer', fontSize: '12px',
-                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                          borderBottom: '1px solid #f8fafc',
-                        }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                          onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-                        >
-                          <span style={{ fontWeight: 500, color: '#1f2937' }}>{s.name}</span>
-                          <span style={{ fontSize: '10px', color: '#9ca3af' }}>{s.role}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
 
               {/* Payment Method Selection */}
               <div style={{ marginBottom: '16px' }}>

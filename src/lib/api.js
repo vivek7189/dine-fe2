@@ -3735,6 +3735,35 @@ class ApiClient {
     return this.request(`/api/parking/reports/${restaurantId}${query ? `?${query}` : ''}`);
   }
 
+  async downloadParkingReport(restaurantId, { startDate, endDate, staffId, format = 'xlsx' } = {}) {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (staffId) params.append('staffId', staffId);
+    params.append('format', format);
+
+    const extMap = { csv: '.csv', xlsx: '.xlsx' };
+    const ext = extMap[format] || '.csv';
+
+    const token = this.getToken();
+    const response = await fetch(`${this.baseURL}/api/parking/reports/${restaurantId}/download?${params.toString()}`, {
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ error: 'Download failed' }));
+      throw new Error(err.error || 'Download failed');
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `parking-report-${startDate || 'all'}${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   // Convert an image URL to base64 via backend proxy (avoids CORS on GCP Storage)
   async imageToBase64(url) {
     return this.request(`/api/utils/image-to-base64?url=${encodeURIComponent(url)}`);
