@@ -291,7 +291,7 @@ export default function BookingsPage() {
 
   async function handleDelete(booking, reason) {
     try {
-      await apiClient.deleteBooking(restaurantId, booking.id, reason);
+      await apiClient.deleteBooking(restaurantId, booking.id, reason, { permanent: true });
       loadBookings();
       if (showDetail) setShowDetail(false);
     } catch (err) {
@@ -432,7 +432,7 @@ export default function BookingsPage() {
                 {[
                   { key: 'enableCatering', label: 'Catering', icon: FaConciergeBell, color: '#f59e0b' },
                   { key: 'enableAdvanceOrder', label: 'Advance Order', icon: FaClipboardList, color: '#3b82f6' },
-                  { key: 'enableVenueBooking', label: 'Venue Booking', icon: FaDoorOpen, color: '#8b5cf6' },
+                  { key: 'enableVenueBooking', label: 'Venue / Place Booking', icon: FaDoorOpen, color: '#ef4444' },
                 ].map(function(item) {
                   var enabled = bookingSettings[item.key];
                   var Icon = item.icon;
@@ -578,6 +578,7 @@ export default function BookingsPage() {
         restaurantId={restaurantId}
         isMobile={isMobile}
         bookingSettings={bookingSettings}
+        onVenuesChange={setVenues}
       />
 
       <BookingDetail

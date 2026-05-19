@@ -11,7 +11,7 @@ import {
 const typeColors = {
   catering: { bg: '#dcfce7', color: '#166534', dot: '#22c55e' },
   advance_order: { bg: '#dbeafe', color: '#1e40af', dot: '#3b82f6' },
-  venue: { bg: '#f3e8ff', color: '#6b21a8', dot: '#8b5cf6' },
+  venue: { bg: '#fef2f2', color: '#991b1b', dot: '#ef4444' },
 };
 
 const statusColors = {

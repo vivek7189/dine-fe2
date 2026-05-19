@@ -2494,8 +2494,8 @@ class ApiClient {
     return this.request(`/api/bookings/${restaurantId}/${bookingId}`, { method: 'PATCH', body: data });
   }
 
-  async deleteBooking(restaurantId, bookingId, reason) {
-    return this.request(`/api/bookings/${restaurantId}/${bookingId}`, { method: 'DELETE', body: { reason } });
+  async deleteBooking(restaurantId, bookingId, reason, { permanent = false } = {}) {
+    return this.request(`/api/bookings/${restaurantId}/${bookingId}`, { method: 'DELETE', body: { reason, permanent } });
   }
 
   async getBookingCalendar(restaurantId, startDate, endDate) {

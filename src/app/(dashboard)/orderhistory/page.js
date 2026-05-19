@@ -4975,7 +4975,7 @@ const OrderHistory = () => {
             }}
             onDelete={async function(booking, reason) {
               try {
-                await apiClient.deleteBooking(restaurantId, booking.id, reason || '');
+                await apiClient.deleteBooking(restaurantId, booking.id, reason || '', { permanent: true });
                 fetchBookingsData();
               } catch (err) { alert('Failed: ' + (err.message || '')); }
             }}
@@ -5036,6 +5036,7 @@ const OrderHistory = () => {
             restaurantId={restaurantId}
             isMobile={isMobile}
             bookingSettings={bookingSettings}
+            onVenuesChange={setBookingVenues}
           />
         </div>
       )}
