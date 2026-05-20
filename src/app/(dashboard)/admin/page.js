@@ -4172,7 +4172,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                       </a>
                     ) : (
                       <a
-                        href="https://drive.google.com/file/d/1qWD8WNheEmkOYoJ69ANm6XH4L8_1y2GB/view?usp=sharing"
+                        href="https://drive.google.com/file/d/1FRnzoqyoAul7ZcBRFIIrUr8ZsF-2UtZG/view?usp=sharing"
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
@@ -4237,7 +4237,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                       </a>
                     ) : (
                       <a
-                        href="https://drive.google.com/file/d/1qWD8WNheEmkOYoJ69ANm6XH4L8_1y2GB/view?usp=sharing"
+                        href="https://drive.google.com/file/d/1FRnzoqyoAul7ZcBRFIIrUr8ZsF-2UtZG/view?usp=sharing"
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
@@ -4311,7 +4311,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
 
 /** App Download Tab — simple Google Drive download links for Windows + Mac */
 function AppDownloadTab() {
-  const WINDOWS_DOWNLOAD_URL = 'https://drive.google.com/file/d/1qWD8WNheEmkOYoJ69ANm6XH4L8_1y2GB/view?usp=sharing';
+  const WINDOWS_DOWNLOAD_URL = 'https://drive.google.com/file/d/1FRnzoqyoAul7ZcBRFIIrUr8ZsF-2UtZG/view?usp=sharing';
   const MAC_DOWNLOAD_URL = 'https://drive.google.com/file/d/1q5D7zLYfn_XEBdB8AlZFOiZEkI7zeMHy/view?usp=sharing';
 
   const btnStyle = (bg, shadow) => ({
@@ -4332,7 +4332,7 @@ function AppDownloadTab() {
           <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: '#111827' }}>Download Desktop App</h2>
           <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
             Install the DineOpen POS app on your desktop for billing, orders, and more
-            <span style={{ marginLeft: '8px', padding: '2px 8px', background: '#dbeafe', color: '#1d4ed8', borderRadius: '6px', fontSize: '12px', fontWeight: '600' }}>v1.4.2</span>
+            <span style={{ marginLeft: '8px', padding: '2px 8px', background: '#dbeafe', color: '#1d4ed8', borderRadius: '6px', fontSize: '12px', fontWeight: '600' }}>v1.5.4</span>
           </p>
         </div>
       </div>
