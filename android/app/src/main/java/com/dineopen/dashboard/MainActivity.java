@@ -1,4 +1,4 @@
-package com.dineopen.pos;
+package com.dineopen.dashboard;
 
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;

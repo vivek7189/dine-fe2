@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.dineopen.pos"
+    namespace "com.dineopen.dashboard"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.dineopen.pos"
+        applicationId "com.dineopen.dashboard"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 4

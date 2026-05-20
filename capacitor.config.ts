@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.dineopen.pos',
-  appName: 'DineOpen POS',
+  appId: 'com.dineopen.dashboard',
+  appName: 'DineOpen Dashboard',
   webDir: 'dist',
   server: {
     url: 'https://www.dineopen.com/login',
@@ -13,7 +13,7 @@ const config: CapacitorConfig = {
   ios: {
     backgroundColor: '#ffffff',
     contentInset: 'automatic',
-    scheme: 'DineOpen POS',
+    scheme: 'DineOpen Dashboard',
   },
   plugins: {},
 };
