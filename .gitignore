@@ -43,11 +43,16 @@ next-env.d.ts
 # capacitor (Android build artifacts)
 android/app/build/
 android/.gradle/
+android/app/google-services.json
+
+# capacitor plugin build artifacts
+plugins/**/build/
 
 # capacitor (iOS build artifacts)
 ios/App/Pods/
 ios/App/Podfile.lock
 ios/build/
+ios/App/App.xcodeproj/xcshareddata/
 
 # signing keys (NEVER commit)
 *.jks
