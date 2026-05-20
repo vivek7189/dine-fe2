@@ -10,8 +10,7 @@ extraMetadata:
   main: electron/main.js
 
 publish:
-  provider: gcs
-  bucket: dineopen-releases
+  provider: github
 
 win:
   icon: electron/icons/icon.ico
