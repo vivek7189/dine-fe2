@@ -14,17 +14,31 @@ export interface PrintOptions {
 export interface PrinterInfo {
   /** Printer display name */
   name: string;
-  /** Bluetooth MAC address or USB identifier */
+  /** Bluetooth MAC address, serial:path, tcp:host:port, or usb:vid:pid */
   address: string;
-  /** Connection type: bluetooth, usb, or network */
-  type: 'bluetooth' | 'usb' | 'network';
+  /** Connection type */
+  type: 'bluetooth' | 'usb' | 'network' | 'serial';
+}
+
+export interface PrinterConfig {
+  /** Default printer address */
+  defaultPrinter?: string | null;
+  /** KOT printer address (falls back to default if null) */
+  kotPrinter?: string | null;
+  /** Bill printer address (falls back to default if null) */
+  billPrinter?: string | null;
+}
+
+export interface DiagnoseResult {
+  /** Human-readable diagnostic report */
+  report: string;
 }
 
 export interface DinePrinterPlugin {
   /** Print HTML content to the configured thermal printer */
   print(options: PrintOptions): Promise<void>;
 
-  /** Scan for nearby Bluetooth/USB printers */
+  /** Scan for nearby Bluetooth/USB/network/built-in printers */
   scanPrinters(): Promise<{ printers: PrinterInfo[] }>;
 
   /** Set the default printer for future print jobs */
@@ -35,4 +49,13 @@ export interface DinePrinterPlugin {
 
   /** Check if the default printer is currently connected */
   isConnected(): Promise<{ connected: boolean }>;
+
+  /** Set printer routing config (KOT/Bill/Default printer assignments) */
+  setPrinterConfig(config: PrinterConfig): Promise<void>;
+
+  /** Get printer routing config */
+  getPrinterConfig(): Promise<PrinterConfig>;
+
+  /** Run printer diagnostics — returns device info, detected printers, config */
+  diagnose(): Promise<DiagnoseResult>;
 }

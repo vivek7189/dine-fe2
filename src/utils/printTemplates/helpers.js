@@ -77,7 +77,15 @@ export function buildKOTItemsSections(kotData, renderRowFn, labels = {}) {
     const reducedItems = (k.items || []).filter(i => i.isUpdated && i.quantityDelta < 0);
     if (reducedItems.length > 0) {
       sections.push('<div style="text-align:center;font-weight:bold;margin:3px 0 1px;">*** REDUCED ***</div>');
-      reducedItems.forEach(i => sections.push(renderRowFn({ ...i, quantity: Math.abs(i.quantityDelta) }, { isRemoved: true })));
+      reducedItems.forEach(i => {
+        // Show reduced quantity and the remaining quantity for kitchen clarity
+        const reducedQty = Math.abs(i.quantityDelta);
+        const remainingQty = i.quantity || 0;
+        const nameWithQty = remainingQty > 0
+          ? `${i.name} (now ${remainingQty})`
+          : i.name;
+        sections.push(renderRowFn({ ...i, name: nameWithQty, quantity: reducedQty }, { isRemoved: true }));
+      });
     }
     const newAndInc = (k.items || []).filter(i => i.isNew || (i.isUpdated && i.quantityDelta > 0));
     if (newAndInc.length > 0) {
@@ -106,7 +114,7 @@ export function buildBillItemRows(items, cs) {
   return items.map(item =>
     `<tr><td style="text-align:left;">${esc(item.name)}${getSublineHtml(item)}</td>` +
     `<td style="text-align:center;">${item.quantity || 1}</td>` +
-    `<td style="text-align:right;">${cs}${((item.price || item.total / (item.quantity || 1) || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`
+    `<td style="text-align:right;">${cs}${(Math.round(((item.price || Math.round((item.total || 0) / (item.quantity || 1) * 100) / 100 || 0) * (item.quantity || 1)) * 100) / 100).toFixed(2)}</td></tr>`
   ).join('');
 }
 
@@ -174,7 +182,7 @@ export function buildPaymentHtml(invoice, L, cs) {
   const partialPayHtml = (invoice.outstandingAmount > 0)
     ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">${invoice.paidAmount === 0 ? (L.duePayment || 'Due (Udhar)') : L.partialPayment}:</div>${invoice.paidAmount > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.paid}:</span><span>${cs}${invoice.paidAmount.toFixed(2)}</span></div>` : ''}<div style="display:flex;justify-content:space-between;margin:2px 0;color:#dc2626;font-weight:bold;"><span>${L.outstanding || 'Outstanding'}:</span><span>${cs}${invoice.outstandingAmount.toFixed(2)}</span></div></div>` : '';
   const walletPayHtml = (invoice.walletRedeemAmount || 0) > 0
-    ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.walletApplied}:</span><span>-${cs}${invoice.walletRedeemAmount.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;margin:2px 0;font-weight:bold;"><span>${L.amountToPay}:</span><span>${cs}${Math.max(0, (invoice.grandTotal || 0) - invoice.walletRedeemAmount).toFixed(2)}</span></div></div>` : '';
+    ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.walletApplied}:</span><span>-${cs}${invoice.walletRedeemAmount.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;margin:2px 0;font-weight:bold;"><span>${L.amountToPay}:</span><span>${cs}${(Math.round(Math.max(0, (invoice.grandTotal || 0) - invoice.walletRedeemAmount) * 100) / 100).toFixed(2)}</span></div></div>` : '';
   return splitPaymentHtml + cashReceivedHtml + partialPayHtml + walletPayHtml;
 }
 

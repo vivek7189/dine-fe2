@@ -333,7 +333,8 @@ function DashboardLayoutContent({ children }) {
                 backgroundColor: '#f9fafb',
                 width: (isMobile || isDashboardPage) ? '100%' : `calc(100% - ${sidebarCollapsed ? '70px' : '240px'})`,
                 marginLeft: (isMobile || isDashboardPage) ? '0' : (sidebarCollapsed ? '70px' : '240px'),
-                height: '100vh'
+                height: '100vh',
+                paddingTop: isMobile ? 'var(--sat, 0px)' : '0',
               }}
             >
               {/* Auto-update ready banner (Tauri only) */}

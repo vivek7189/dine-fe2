@@ -25,6 +25,12 @@ body {
 }
 
 :root {
+  /* Safe area insets for Capacitor/mobile notch devices */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+
   --primary-red: #e53e3e;
   --primary-red-dark: #c53030;
   --primary-red-light: #feb2b2;

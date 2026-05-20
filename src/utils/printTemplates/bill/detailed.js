@@ -36,8 +36,8 @@ export function render(invoice, printSettings = {}, labels = {}) {
   // Detailed items: show price breakdown per item
   const itemsHtml = items.map(item => {
     const qty = item.quantity || 1;
-    const unitPrice = item.price || (item.total ? item.total / qty : 0);
-    const lineTotal = unitPrice * qty;
+    const unitPrice = item.price || (item.total ? Math.round((item.total / qty) * 100) / 100 : 0);
+    const lineTotal = Math.round(unitPrice * qty * 100) / 100;
     const variant = item.selectedVariant?.name || item.variant || '';
     const custs = item.selectedCustomizations || item.customizations || [];
 

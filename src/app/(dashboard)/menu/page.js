@@ -1958,6 +1958,7 @@ const MenuManagement = () => {
   const router = useRouter();
   const { formatCurrency, getCurrencySymbol } = useCurrency();
   const { isOnline } = useNetworkStatus();
+  const [isMobile, setIsMobile] = useState(false);
   const [menuItems, setMenuItems] = useState([]);
   const [categories, setCategories] = useState([]); // Dynamic: from backend or from menu photo extraction
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -2114,6 +2115,14 @@ const MenuManagement = () => {
   // Mobile detection with client-side hydration safety
   useEffect(() => {
     setIsClient(true);
+  }, []);
+
+  // Mobile detection for responsive layout
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
   }, []);
 
   // Close "More" dropdown on outside click
@@ -3593,7 +3602,7 @@ const MenuManagement = () => {
           marginBottom: '14px'
         }}>
           {/* Title row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', paddingLeft: isMobile ? '48px' : '0' }}>
             <div>
               <h1 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
                 {t('menu.title')}

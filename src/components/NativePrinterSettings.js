@@ -1,13 +1,21 @@
 'use client';
 
-// Printer device selection UI for native apps (Capacitor/Tauri).
+// Printer device selection UI for native apps (Capacitor/Tauri/Electron).
 // Returns null on web — no UI change for web users.
-// Shows: scan for printers, select default, test print, connection status.
+// Shows: scan for printers, select default, KOT/Bill routing, test print, diagnostics.
 
 import { useState, useEffect, useCallback } from 'react';
 import { isWeb, isCapacitor, isTauri, isElectron } from '../utils/platform';
 import { printDocument } from '../utils/printBridge';
-import { FaBluetooth, FaPrint, FaSync, FaCheckCircle, FaTimesCircle, FaUsb, FaWifi, FaStethoscope } from 'react-icons/fa';
+import { FaBluetooth, FaPrint, FaSync, FaCheckCircle, FaTimesCircle, FaUsb, FaWifi, FaStethoscope, FaMicrochip } from 'react-icons/fa';
+
+// Icon for printer type
+function PrinterIcon({ type }) {
+  if (type === 'bluetooth') return <FaBluetooth style={{ color: '#3b82f6' }} />;
+  if (type === 'network') return <FaWifi style={{ color: '#8b5cf6' }} />;
+  if (type === 'serial') return <FaMicrochip style={{ color: '#ea580c' }} />;
+  return <FaUsb style={{ color: '#6b7280' }} />;
+}
 
 export default function NativePrinterSettings({ restaurantId }) {
   const [printers, setPrinters] = useState([]);
@@ -24,6 +32,9 @@ export default function NativePrinterSettings({ restaurantId }) {
   const [isDiagnosing, setIsDiagnosing] = useState(false);
   const [appVersion, setAppVersion] = useState(null);
   const isElectronPlatform = !isWeb() && isElectron();
+  const isCapacitorPlatform = !isWeb() && isCapacitor();
+  // Show printer routing for both Electron and Capacitor
+  const supportsRouting = isElectronPlatform || isCapacitorPlatform;
 
   const scanPrinters = useCallback(async () => {
     setIsScanning(true);
@@ -70,23 +81,31 @@ export default function NativePrinterSettings({ restaurantId }) {
     }
   }, []);
 
-  // Assign a printer to a specific role (Electron multi-printer)
+  // Assign a printer to a specific role (KOT/Bill routing)
   const assignPrinter = useCallback(async (role, printer) => {
-    if (!isElectronPlatform) return;
     const config = {};
     if (role === 'kot') {
-      config.kotPrinter = printer ? printer.name : null;
+      config.kotPrinter = printer ? printer.address || printer.name : null;
       setKotPrinter(printer);
     } else if (role === 'bill') {
-      config.billPrinter = printer ? printer.name : null;
+      config.billPrinter = printer ? printer.address || printer.name : null;
       setBillPrinter(printer);
     }
     try {
-      await window.electronAPI.setPrinterConfig(config);
+      if (isCapacitorPlatform) {
+        const { DinePrinter } = await import('capacitor-dine-printer');
+        await DinePrinter.setPrinterConfig(config);
+      } else if (isElectronPlatform) {
+        // Electron uses printer name, not address
+        const electronConfig = {};
+        if (role === 'kot') electronConfig.kotPrinter = printer ? printer.name : null;
+        if (role === 'bill') electronConfig.billPrinter = printer ? printer.name : null;
+        await window.electronAPI.setPrinterConfig(electronConfig);
+      }
     } catch (err) {
       console.error('Failed to save printer config:', err);
     }
-  }, [isElectronPlatform]);
+  }, [isElectronPlatform, isCapacitorPlatform]);
 
   const makeTestHtml = (label) => `
     <!DOCTYPE html><html><head>
@@ -138,7 +157,11 @@ export default function NativePrinterSettings({ restaurantId }) {
     setIsDiagnosing(true);
     setDiagReport(null);
     try {
-      if (isTauri()) {
+      if (isCapacitor()) {
+        const { DinePrinter } = await import('capacitor-dine-printer');
+        const result = await DinePrinter.diagnose();
+        setDiagReport(result.report);
+      } else if (isTauri()) {
         const { invoke } = await import('@tauri-apps/api/core');
         const report = await invoke('diagnose_print');
         setDiagReport(report);
@@ -162,7 +185,7 @@ export default function NativePrinterSettings({ restaurantId }) {
     }
   }, []);
 
-  // Check connection status on mount
+  // Check connection status and load printer config on mount
   useEffect(() => {
     if (isWeb()) return;
     const checkConnection = async () => {
@@ -175,6 +198,16 @@ export default function NativePrinterSettings({ restaurantId }) {
             const status = await DinePrinter.isConnected();
             setIsConnected(status.connected);
           }
+          // Load KOT/Bill routing config
+          try {
+            const config = await DinePrinter.getPrinterConfig();
+            if (config?.kotPrinter) {
+              setKotPrinter({ name: config.kotPrinter, address: config.kotPrinter, type: 'unknown' });
+            }
+            if (config?.billPrinter) {
+              setBillPrinter({ name: config.billPrinter, address: config.billPrinter, type: 'unknown' });
+            }
+          } catch (e) { /* getPrinterConfig not available in older versions */ }
         } else if (isTauri()) {
           const { invoke } = await import('@tauri-apps/api/core');
           const defaultPrinter = await invoke('get_default_printer');
@@ -204,6 +237,12 @@ export default function NativePrinterSettings({ restaurantId }) {
 
   // Don't render on web (after all hooks)
   if (webPlatform) return null;
+
+  // Find printer by address from the scanned list (for dropdown display)
+  const findPrinterByAddress = (address) => {
+    if (!address) return null;
+    return printers.find(p => p.address === address) || { name: address, address, type: 'unknown' };
+  };
 
   return (
     <div style={{
@@ -245,7 +284,7 @@ export default function NativePrinterSettings({ restaurantId }) {
           alignItems: 'center',
           gap: '8px',
         }}>
-          {selectedPrinter.type === 'bluetooth' ? <FaBluetooth style={{ color: '#3b82f6' }} /> : selectedPrinter.type === 'network' ? <FaWifi style={{ color: '#8b5cf6' }} /> : <FaUsb style={{ color: '#6b7280' }} />}
+          <PrinterIcon type={selectedPrinter.type} />
           <span style={{ fontWeight: 500 }}>{selectedPrinter.name}</span>
           <span style={{ color: '#9ca3af', fontSize: '11px' }}>{selectedPrinter.address}</span>
         </div>
@@ -302,10 +341,13 @@ export default function NativePrinterSettings({ restaurantId }) {
                 }),
               }}
             >
-              {printer.type === 'bluetooth' ? <FaBluetooth style={{ color: '#3b82f6' }} /> : printer.type === 'network' ? <FaWifi style={{ color: '#8b5cf6' }} /> : <FaUsb style={{ color: '#6b7280' }} />}
+              <PrinterIcon type={printer.type} />
               <div>
                 <div style={{ fontWeight: 500 }}>{printer.name}</div>
-                <div style={{ fontSize: '11px', color: '#9ca3af' }}>{printer.address}</div>
+                <div style={{ fontSize: '11px', color: '#9ca3af' }}>
+                  {printer.address}
+                  {printer.type === 'serial' && <span style={{ marginLeft: '6px', color: '#ea580c', fontWeight: 500 }}>(Built-in)</span>}
+                </div>
               </div>
               {selectedPrinter?.address === printer.address && (
                 <FaCheckCircle style={{ color: '#16a34a', marginLeft: 'auto' }} />
@@ -315,8 +357,8 @@ export default function NativePrinterSettings({ restaurantId }) {
         </div>
       )}
 
-      {/* KOT / Bill Printer Assignment (Electron only) */}
-      {isElectronPlatform && printers.length > 0 && (
+      {/* KOT / Bill Printer Assignment (Electron + Capacitor) */}
+      {supportsRouting && printers.length > 0 && (
         <div style={{
           marginTop: '12px', padding: '12px', backgroundColor: '#eff6ff',
           borderRadius: '8px', border: '1px solid #bfdbfe',
@@ -332,9 +374,9 @@ export default function NativePrinterSettings({ restaurantId }) {
             </div>
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               <select
-                value={kotPrinter?.name || ''}
+                value={kotPrinter?.address || kotPrinter?.name || ''}
                 onChange={(e) => {
-                  const p = printers.find(pr => pr.name === e.target.value);
+                  const p = printers.find(pr => pr.address === e.target.value || pr.name === e.target.value);
                   assignPrinter('kot', p || null);
                 }}
                 style={{
@@ -344,7 +386,9 @@ export default function NativePrinterSettings({ restaurantId }) {
               >
                 <option value="">Use default printer</option>
                 {printers.map((p, i) => (
-                  <option key={p.address || i} value={p.name}>{p.name}</option>
+                  <option key={p.address || i} value={isElectronPlatform ? p.name : p.address}>
+                    {p.name}{p.type === 'serial' ? ' (Built-in)' : ''}
+                  </option>
                 ))}
               </select>
               <button
@@ -369,9 +413,9 @@ export default function NativePrinterSettings({ restaurantId }) {
             </div>
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               <select
-                value={billPrinter?.name || ''}
+                value={billPrinter?.address || billPrinter?.name || ''}
                 onChange={(e) => {
-                  const p = printers.find(pr => pr.name === e.target.value);
+                  const p = printers.find(pr => pr.address === e.target.value || pr.name === e.target.value);
                   assignPrinter('bill', p || null);
                 }}
                 style={{
@@ -381,7 +425,9 @@ export default function NativePrinterSettings({ restaurantId }) {
               >
                 <option value="">Use default printer</option>
                 {printers.map((p, i) => (
-                  <option key={p.address || i} value={p.name}>{p.name}</option>
+                  <option key={p.address || i} value={isElectronPlatform ? p.name : p.address}>
+                    {p.name}{p.type === 'serial' ? ' (Built-in)' : ''}
+                  </option>
                 ))}
               </select>
               <button

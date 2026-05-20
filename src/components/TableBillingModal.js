@@ -64,17 +64,21 @@ export default function TableBillingModal({
 
           const cartItems = (ord.items || []).map(item => {
             const menuItem = menuItems?.find(m => m.id === (item.menuItemId || item.id));
+            // Refresh price from current menu to avoid stale pricing
+            const refreshedPrice = item.selectedVariant?.price != null
+              ? item.selectedVariant.price
+              : (menuItem?.price ?? item.price ?? 0);
             return {
               id: item.menuItemId || item.id,
-              name: item.name,
-              price: item.price || 0,
+              name: menuItem?.name || item.name,
+              price: refreshedPrice,
               quantity: item.quantity || 1,
               selectedVariant: item.selectedVariant,
               selectedCustomizations: item.selectedCustomizations,
-              basePrice: item.basePrice || item.price || 0,
+              basePrice: menuItem?.price ?? item.basePrice ?? item.price ?? 0,
               pricingRules: menuItem?.pricingRules || item.pricingRules || {},
               category: item.category || menuItem?.category || '',
-              taxGroupId: item.taxGroupId || menuItem?.taxGroupId || null,
+              taxGroupId: menuItem?.taxGroupId || item.taxGroupId || null,
               cartId: `${item.menuItemId || item.id}-${Date.now()}-${Math.random()}`
             };
           });

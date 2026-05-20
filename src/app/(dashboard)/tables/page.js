@@ -1275,7 +1275,7 @@ const TableManagement = () => {
       <div style={{ backgroundColor: 'white', borderBottom: '1px solid #f1f5f9', padding: isMobile ? '12px 16px' : '16px 24px' }}>
         {/* Row 1: Title + Date + Actions */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingLeft: isMobile ? '48px' : '0' }}>
             <div style={{ width: '42px', height: '42px', background: 'linear-gradient(135deg, #ef4444, #dc2626)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(239,68,68,0.3)' }}>
               <FaChair color="white" size={18} />
             </div>

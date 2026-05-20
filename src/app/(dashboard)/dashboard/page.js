@@ -1940,8 +1940,23 @@ function RestaurantPOSContent() {
     }
   };
 
+  // State for pre-selecting variant/customizations when editing existing cart item
+  const [customizationInitial, setCustomizationInitial] = useState({ variant: null, customizations: null, quantity: null });
+
   // Handler to open customization modal
   const handleItemCustomization = (item) => {
+    // Check if this item is already in the cart with a variant/customization
+    // If so, pre-select those values in the modal
+    const existingCartItem = cart.find(ci => ci.id === item.id && ci.selectedVariant);
+    if (existingCartItem) {
+      setCustomizationInitial({
+        variant: existingCartItem.selectedVariant || null,
+        customizations: existingCartItem.selectedCustomizations || null,
+        quantity: existingCartItem.quantity || null,
+      });
+    } else {
+      setCustomizationInitial({ variant: null, customizations: null, quantity: null });
+    }
     setSelectedItemForCustomization(item);
     setCustomizationModalOpen(true);
   };
@@ -1950,6 +1965,7 @@ function RestaurantPOSContent() {
   const handleCloseCustomizationModal = () => {
     setCustomizationModalOpen(false);
     setSelectedItemForCustomization(null);
+    setCustomizationInitial({ variant: null, customizations: null, quantity: null });
   };
 
   // Handle short code search
@@ -2029,6 +2045,9 @@ function RestaurantPOSContent() {
       selectedVariant: item.selectedVariant || null,
       selectedCustomizations: Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [],
       basePrice: typeof item.basePrice === 'number' ? item.basePrice : item.price,
+      menuPrice: typeof item.menuPrice === 'number' ? item.menuPrice : null,
+      priceEdited: item.priceEdited === true,
+      ...(item.isCustomItem ? { isCustomItem: true } : {}),
     };
   };
 
@@ -2308,18 +2327,34 @@ function RestaurantPOSContent() {
           
           // Look up category from menu items if not in order data
           const matchedMenu = menuItems.find(m => m.id === id);
+          // Refresh price from current menu for pending/active orders
+          // Use variant price if variant selected, otherwise use menu price
+          const refreshedPrice = item.selectedVariant?.price != null
+            ? item.selectedVariant.price
+            : (matchedMenu?.price ?? price ?? 0);
+          // basePrice should reflect the variant price when variant is selected,
+          // not the base menu price — this ensures correct price edit detection
+          const variantPrice = item.selectedVariant?.price;
+          const effectiveBasePrice = variantPrice != null
+            ? variantPrice
+            : (matchedMenu?.price ?? (typeof item.basePrice === 'number' ? item.basePrice : (price || 0)));
           return {
             id: id,
-            name: name,
-            price: price || 0,
+            name: matchedMenu?.name || name,
+            price: refreshedPrice,
             quantity: parseInt(item.quantity) || 1,
             category: item.category || item.menuItem?.category || matchedMenu?.category || '',
-            taxGroupId: item.taxGroupId || matchedMenu?.taxGroupId || null,
+            taxGroupId: matchedMenu?.taxGroupId || item.taxGroupId || null,
+            selectedVariant: item.selectedVariant || null,
+            selectedCustomizations: Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [],
+            basePrice: effectiveBasePrice,
+            isCustomItem: item.isCustomItem || false,
+            pricingRules: matchedMenu?.pricingRules || item.pricingRules || {},
             // Store original data for reference
             originalData: item
           };
         }) : [];
-        
+
         // If we have unknown items, try to fetch menu items and match them BEFORE setting cart
         const hasUnknownItems = orderItems.some(item => item.name === 'Unknown Item');
         if (hasUnknownItems && selectedRestaurant?.id) {
@@ -2864,11 +2899,14 @@ function RestaurantPOSContent() {
     // Extract tax information and special instructions from taxData passed by OrderSummary
     const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null, specialInstructions = null, offerIds = [], manualDiscount = 0, offerDiscount: offerDiscountAmt = 0, selectedOfferName: offerName = '', totalDiscountAmount: discountTotal = 0,
       redeemLoyaltyPoints = 0, loyaltyDiscount: loyaltyDiscAmt = 0,
+      couponDiscount: couponDiscAmt = null, couponCode = null, couponId = null,
       serviceChargeRate = null, serviceChargeAmount: scAmount = null, tipAmount: tipAmt = null, tipPercentage: tipPct = null,
       cashReceived = null, changeReturned = null, splitPayments: splitPay = null, roundOffAmount: roundOff = null,
       partialPayAmount: partialPay = null, compItems: compData = null, voidItems: voidData = null, managerPin: mgrPin = null,
-      deliveryInfo: deliveryInfoData = null,
+      deliveryInfo: deliveryInfoData = null, deliveryAddress: deliveryAddr1 = null,
       walletRedeemAmount: walletRedeem = null, walletCustomerId: walletCustId = null,
+      serviceChargeEnabled: scEnabled = null, manualDiscountType: mdType = null,
+      manualDiscountValue: mdValue = null, taxInclusiveMode: taxInclMode = null,
     } = taxData;
 
     // Check if order is completed and disable action
@@ -2939,7 +2977,7 @@ function RestaurantPOSContent() {
           orderType,
           paymentMethod,
           status: 'completed', // Mark as completed
-          paymentStatus: partialPay != null ? (partialPay === 0 ? 'due' : 'partial') : 'paid', // Mark payment status
+          paymentStatus: partialPay != null ? (partialPay === 0 ? 'due' : (partialPay < (finalAmount || (subtotal || getTotalAmount()) + totalTax) ? 'partial' : 'paid')) : 'paid', // Mark payment status
           completedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           // Tax information from OrderSummary
@@ -2951,6 +2989,7 @@ function RestaurantPOSContent() {
           specialInstructions: specialInstructions || null,
           // Delivery info
           deliveryInfo: deliveryInfoData || null,
+          deliveryAddress: deliveryAddr1 || null,
           // Billing feature fields
           serviceChargeRate: serviceChargeRate || null,
           serviceChargeAmount: scAmount || null,
@@ -2976,6 +3015,17 @@ function RestaurantPOSContent() {
           redeemLoyaltyPoints: redeemLoyaltyPoints || 0,
           loyaltyDiscount: loyaltyDiscAmt || 0,
           walletRedeemAmount: walletRedeem || null,
+          walletCustomerId: walletCustId || null,
+          // Coupon fields
+          couponDiscount: couponDiscAmt || null,
+          couponCode: couponCode || null,
+          couponId: couponId || null,
+          // Extra billing fields
+          manualDiscountType: mdType || null,
+          manualDiscountValue: mdValue != null ? mdValue : null,
+          serviceChargeEnabled: scEnabled,
+          managerPin: mgrPin || null,
+          taxInclusiveMode: taxInclMode || null,
           lastUpdatedBy: {
             name: currentUser.name || 'Staff',
             id: currentUser.id,
@@ -3218,6 +3268,8 @@ function RestaurantPOSContent() {
         // Discount fields
         offerIds: offerIds && offerIds.length > 0 ? offerIds : [],
         manualDiscount: manualDiscount || 0,
+        manualDiscountType: mdType || null,
+        manualDiscountValue: mdValue != null ? mdValue : null,
         discountAmount: offerDiscountAmt || 0,
         offerDiscount: offerDiscountAmt || 0,
         totalDiscountAmount: discountTotal || 0,
@@ -3226,17 +3278,24 @@ function RestaurantPOSContent() {
         redeemLoyaltyPoints: redeemLoyaltyPoints || 0,
         loyaltyDiscount: loyaltyDiscAmt || 0,
         walletRedeemAmount: walletRedeem || null,
+        walletCustomerId: walletCustId || null,
+        // Coupon fields
+        couponDiscount: couponDiscAmt || null,
+        couponCode: couponCode || null,
+        couponId: couponId || null,
         customerPhone: customerMobile || null,
         // Special instructions for kitchen
         specialInstructions: specialInstructions || null,
         notes: isRoomOrder ? `Room order for Room ${roomNumber}` : '',
         // Delivery info
         deliveryInfo: deliveryInfoData || null,
+        deliveryAddress: deliveryAddr1 || null,
         // Multi-tier pricing rule
         pricingRuleId: activePricingRuleId || null,
         // Billing feature fields
         serviceChargeRate: serviceChargeRate || null,
         serviceChargeAmount: scAmount || null,
+        serviceChargeEnabled: scEnabled,
         tipAmount: tipAmt || null,
         tipPercentage: tipPct || null,
         cashReceived: cashReceived || null,
@@ -3246,6 +3305,10 @@ function RestaurantPOSContent() {
         partialPayAmount: partialPay != null ? partialPay : null,
         paidAmount: partialPay != null ? Math.round(Number(partialPay) * 100) / 100 : null,
         outstandingAmount: partialPay != null ? Math.round(((finalAmount || (subtotal || getTotalAmount()) + totalTax) - Number(partialPay)) * 100) / 100 : null,
+        compItems: compData || null,
+        voidItems: voidData || null,
+        managerPin: mgrPin || null,
+        taxInclusiveMode: taxInclMode || null,
         ...(isScheduledOrder && scheduledDate && scheduledTime ? {
           isScheduled: true,
           scheduledFor: new Date(`${scheduledDate}T${scheduledTime}`).toISOString(),
@@ -3635,19 +3698,30 @@ function RestaurantPOSContent() {
       const cartItems = savedCart.items?.map(item => {
         const itemId = item.menuItemId || item.id;
         const matchedMenu = menuItems.find(m => m.id === itemId);
+        // Refresh price from current menu to avoid stale pricing
+        const refreshedPrice = item.selectedVariant?.price != null
+          ? item.selectedVariant.price
+          : (matchedMenu?.price ?? item.price);
+        // basePrice should reflect variant price when variant is selected
+        const savedVariantPrice = item.selectedVariant?.price;
+        const savedBasePrice = savedVariantPrice != null
+          ? savedVariantPrice
+          : (matchedMenu?.price ?? item.basePrice ?? item.price);
         return {
           id: itemId,
-          name: item.name,
-          price: item.price,
+          name: matchedMenu?.name || item.name,
+          price: refreshedPrice,
           quantity: item.quantity || 1,
           image: item.image || null,
           shortCode: item.shortCode || '',
           notes: item.notes || '',
           selectedVariant: item.selectedVariant || null,
           selectedCustomizations: item.selectedCustomizations || [],
-          basePrice: item.basePrice || item.price,
+          basePrice: savedBasePrice,
+          isCustomItem: item.isCustomItem || false,
           category: item.category || matchedMenu?.category || '',
-          taxGroupId: item.taxGroupId || matchedMenu?.taxGroupId || null,
+          taxGroupId: matchedMenu?.taxGroupId || item.taxGroupId || null,
+          pricingRules: matchedMenu?.pricingRules || item.pricingRules || {},
         };
       }) || [];
 
@@ -3950,7 +4024,14 @@ function RestaurantPOSContent() {
 
     setPlacingOrder(true);
     try {
-      const { taxBreakdown = [], totalTax = 0, finalAmount, subtotal, specialInstructions, deliveryInfo: deliveryInfoData, walletRedeemAmount: walletRedeem } = taxData;
+      const { taxBreakdown = [], totalTax = 0, finalAmount, subtotal, specialInstructions,
+        offerIds = [], manualDiscount = 0, offerDiscount: offerDiscountAmt = 0, selectedOfferName: offerName = '', totalDiscountAmount: discountTotal = 0,
+        redeemLoyaltyPoints = 0, loyaltyDiscount: loyaltyDiscAmt = 0,
+        couponDiscount: couponDiscAmt = null, couponCode = null, couponId = null,
+        serviceChargeRate = null, serviceChargeAmount: scAmount = null, tipAmount: tipAmt = null, tipPercentage: tipPct = null,
+        cashReceived = null, changeReturned = null, splitPayments: splitPay = null, roundOffAmount: roundOff = null,
+        partialPayAmount: partialPay = null, compItems: compData = null, voidItems: voidData = null, managerPin: mgrPin = null,
+        deliveryInfo: deliveryInfoData, deliveryAddress: deliveryAddr, walletRedeemAmount: walletRedeem } = taxData;
       const tableToUse = tableNumber || selectedTable?.number || currentOrder.tableNumber;
 
       const updateData = {
@@ -3965,9 +4046,45 @@ function RestaurantPOSContent() {
         taxBreakdown: taxBreakdown,
         taxAmount: totalTax,
         finalAmount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
+        // Discount & billing fields
+        manualDiscount: manualDiscount || 0,
+        manualDiscountType: taxData.manualDiscountType || null,
+        manualDiscountValue: taxData.manualDiscountValue != null ? taxData.manualDiscountValue : null,
+        offerIds: offerIds || [],
+        discountAmount: offerDiscountAmt || 0,
+        offerDiscount: offerDiscountAmt || 0,
+        selectedOfferName: offerName || null,
+        totalDiscountAmount: discountTotal || 0,
+        redeemLoyaltyPoints: redeemLoyaltyPoints || 0,
+        loyaltyDiscount: loyaltyDiscAmt || 0,
+        couponDiscount: couponDiscAmt || null,
+        couponCode: couponCode || null,
+        couponId: couponId || null,
+        serviceChargeRate: serviceChargeRate || null,
+        serviceChargeAmount: scAmount || null,
+        serviceChargeEnabled: taxData.serviceChargeEnabled != null ? taxData.serviceChargeEnabled : null,
+        tipAmount: tipAmt || null,
+        tipPercentage: tipPct || null,
+        cashReceived: cashReceived || null,
+        changeReturned: changeReturned || null,
+        splitPayments: splitPay || null,
+        roundOffAmount: roundOff || null,
+        partialPayAmount: partialPay != null ? partialPay : null,
+        compItems: compData || null,
+        voidItems: voidData || null,
+        managerPin: mgrPin || null,
         specialInstructions: specialInstructions || null,
         deliveryInfo: deliveryInfoData || null,
+        deliveryAddress: deliveryAddr || null,
         walletRedeemAmount: walletRedeem || null,
+        walletCustomerId: taxData.walletCustomerId || null,
+        taxInclusiveMode: taxData.taxInclusiveMode || null,
+        customerId: customerData?.id || currentOrder.customerId || null,
+        customerInfo: {
+          name: customerName || currentOrder.customerInfo?.name || 'Walk-in Customer',
+          phone: customerMobile || currentOrder.customerInfo?.phone || null,
+          tableNumber: tableToUse || currentOrder.tableNumber || null,
+        },
         skipKOT: true,
         updatedAt: new Date().toISOString(),
         lastUpdatedBy: { name: 'Staff Member', id: 'staff-001' }
@@ -4068,7 +4185,7 @@ function RestaurantPOSContent() {
       serviceChargeRate = null, serviceChargeAmount: scAmount = null, tipAmount: tipAmt = null, tipPercentage: tipPct = null,
       cashReceived = null, changeReturned = null, splitPayments: splitPay = null, roundOffAmount: roundOff = null,
       partialPayAmount: partialPay = null, compItems: compData = null, voidItems: voidData = null, managerPin: mgrPin = null,
-      deliveryInfo: deliveryInfoData = null,
+      deliveryInfo: deliveryInfoData = null, deliveryAddress: deliveryAddr2 = null,
       walletRedeemAmount: walletRedeem = null, walletCustomerId: walletCustId = null,
     } = taxData;
 
@@ -4109,11 +4226,49 @@ function RestaurantPOSContent() {
           taxBreakdown: taxBreakdown,
           taxAmount: totalTax,
           finalAmount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
+          // Discount & billing fields
+          manualDiscount: manualDiscount || 0,
+          manualDiscountType: taxData.manualDiscountType || null,
+          manualDiscountValue: taxData.manualDiscountValue != null ? taxData.manualDiscountValue : null,
+          offerIds: offerIds || [],
+          discountAmount: offerDiscountAmt || 0,
+          offerDiscount: offerDiscountAmt || 0,
+          selectedOfferName: offerName || null,
+          totalDiscountAmount: discountTotal || 0,
+          redeemLoyaltyPoints: redeemLoyaltyPoints || 0,
+          loyaltyDiscount: loyaltyDiscAmt || 0,
+          couponDiscount: couponDiscAmt || null,
+          couponCode: couponCode || null,
+          couponId: couponId || null,
+          // Service charge
+          serviceChargeRate: serviceChargeRate || null,
+          serviceChargeAmount: scAmount || null,
+          serviceChargeEnabled: taxData.serviceChargeEnabled != null ? taxData.serviceChargeEnabled : null,
+          // Tip & rounding
+          tipAmount: tipAmt || null,
+          tipPercentage: tipPct || null,
+          cashReceived: cashReceived || null,
+          changeReturned: changeReturned || null,
+          splitPayments: splitPay || null,
+          roundOffAmount: roundOff || null,
+          partialPayAmount: partialPay != null ? partialPay : null,
+          compItems: compData || null,
+          voidItems: voidData || null,
+          managerPin: mgrPin || null,
           // Special instructions for kitchen
           specialInstructions: specialInstructions || null,
           // Delivery info
           deliveryInfo: deliveryInfoData || null,
+          deliveryAddress: deliveryAddr2 || null,
           walletRedeemAmount: walletRedeem || null,
+          walletCustomerId: walletCustId || null,
+          taxInclusiveMode: taxData.taxInclusiveMode || null,
+          customerId: customerData?.id || currentOrder.customerId || null,
+          customerInfo: {
+            name: customerName || currentOrder.customerInfo?.name || 'Walk-in Customer',
+            phone: customerMobile || currentOrder.customerInfo?.phone || null,
+            tableNumber: tableToUse || currentOrder.tableNumber || null,
+          },
           updatedAt: new Date().toISOString(),
           lastUpdatedBy: {
             name: 'Staff Member',
@@ -4287,6 +4442,8 @@ function RestaurantPOSContent() {
           // Discount fields
           offerIds: offerIds && offerIds.length > 0 ? offerIds : [],
           manualDiscount: manualDiscount || 0,
+          manualDiscountType: taxData.manualDiscountType || null,
+          manualDiscountValue: taxData.manualDiscountValue != null ? taxData.manualDiscountValue : null,
           discountAmount: offerDiscountAmt || 0,
           offerDiscount: offerDiscountAmt || 0,
           selectedOfferName: offerName || null,
@@ -4297,18 +4454,21 @@ function RestaurantPOSContent() {
           couponCode: couponCode || null,
           couponId: couponId || null,
           walletRedeemAmount: walletRedeem || null,
+          walletCustomerId: walletCustId || null,
           customerPhone: customerMobile || null,
           // Special instructions for kitchen
           specialInstructions: specialInstructions || null,
           notes: isRoomOrder ? `Room order for Room ${roomNumber}` : '',
           // Delivery info
           deliveryInfo: deliveryInfoData || null,
+          deliveryAddress: deliveryAddr2 || null,
           status: 'confirmed', // Place order to kitchen
           // Multi-tier pricing rule
           pricingRuleId: activePricingRuleId || null,
           // Billing feature fields
           serviceChargeRate: serviceChargeRate || null,
           serviceChargeAmount: scAmount || null,
+          serviceChargeEnabled: taxData.serviceChargeEnabled != null ? taxData.serviceChargeEnabled : null,
           tipAmount: tipAmt || null,
           tipPercentage: tipPct || null,
           cashReceived: cashReceived || null,
@@ -4320,6 +4480,8 @@ function RestaurantPOSContent() {
           outstandingAmount: partialPay != null ? Math.round(((finalAmount || (subtotal || getTotalAmount()) + totalTax) - Number(partialPay)) * 100) / 100 : null,
           compItems: compData || null,
           voidItems: voidData || null,
+          managerPin: mgrPin || null,
+          taxInclusiveMode: taxData.taxInclusiveMode || null,
           ...(isScheduledOrder && scheduledDate && scheduledTime ? {
             isScheduled: true,
             scheduledFor: new Date(`${scheduledDate}T${scheduledTime}`).toISOString(),
@@ -8543,6 +8705,9 @@ function RestaurantPOSContent() {
         item={selectedItemForCustomization}
         onClose={handleCloseCustomizationModal}
         onAddToCart={addToCart}
+        initialVariant={customizationInitial.variant}
+        initialCustomizations={customizationInitial.customizations}
+        initialQuantity={customizationInitial.quantity}
       />
 
       {/* RAG Initializer */}

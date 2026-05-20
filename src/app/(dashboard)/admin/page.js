@@ -3473,17 +3473,17 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                 </div>
               </div>
 
-              {/* Desktop App — Auto-Print (only visible in Tauri) */}
+              {/* Native App — Auto-Print (visible in Tauri, Electron, Capacitor) */}
               {!isWeb() && (
                 <div style={{ marginBottom: '20px', padding: '14px 16px', background: '#f0fdf4', borderRadius: '10px', border: '1px solid #bbf7d0' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                     <FaDesktop size={14} style={{ color: '#16a34a' }} />
                     <p style={{ fontSize: '13px', fontWeight: '600', color: '#15803d', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      Desktop App — Auto-Print
+                      Native App — Silent Auto-Print
                     </p>
                   </div>
                   <p style={{ fontSize: '11px', color: '#166534', margin: '0 0 10px 0' }}>
-                    Prints silently to your default printer. No dialog box.
+                    Prints silently to your configured printer. No dialog box. Supports built-in, Bluetooth, WiFi, and USB printers.
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {settingsConfig.filter(s => s.section === 'tauri').map((setting) => (
@@ -4651,6 +4651,8 @@ const Admin = () => {
   const [isClient, setIsClient] = useState(false);
   const [orderManagementSeqEnabled, setOrderManagementSeqEnabled] = useState(false);
   const [orderManagementSaving, setOrderManagementSaving] = useState(false);
+  const [notifyOwnerOnCancelWA, setNotifyOwnerOnCancelWA] = useState(false);
+  const [notifyOwnerOnCancelWASaving, setNotifyOwnerOnCancelWASaving] = useState(false);
   // Edit Completed Orders
   const [editCompletedSearch, setEditCompletedSearch] = useState('');
   const [editCompletedSearching, setEditCompletedSearching] = useState(false);
@@ -4976,6 +4978,7 @@ const Admin = () => {
   useEffect(() => {
     if (activeTab === 'order-management' && selectedRestaurant) {
       setOrderManagementSeqEnabled(!!(selectedRestaurant.orderSettings && selectedRestaurant.orderSettings.sequentialOrderIdEnabled));
+      setNotifyOwnerOnCancelWA(!!(selectedRestaurant.orderSettings?.notifyOwnerOnCancelWhatsApp));
     }
     // Load permitted users for edit completed orders
     if (activeTab === 'order-management') {
@@ -11892,6 +11895,106 @@ const Admin = () => {
               </div>
             )}
           </div>
+
+          {/* WhatsApp Cancel/Delete Notification Card */}
+          {selectedRestaurant && (
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '16px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.06), 0 2px 8px rgba(34,197,94,0.06)',
+              padding: '32px',
+              border: '1px solid #f1f5f9',
+              marginTop: '24px'
+            }}>
+              <div style={{ marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid #f3e8f0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
+                  <div style={{
+                    width: '44px', height: '44px', borderRadius: '14px',
+                    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 4px 14px rgba(34,197,94,0.35)'
+                  }}>
+                    <FaBell size={20} color="white" />
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+                      Cancel/Delete Alerts
+                    </h2>
+                    <p style={{ color: '#6b7280', margin: '4px 0 0 0', fontSize: '14px' }}>
+                      WhatsApp notification when orders are cancelled or deleted
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                <button
+                  type="button"
+                  onClick={() => setNotifyOwnerOnCancelWA(prev => !prev)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {notifyOwnerOnCancelWA
+                    ? <FaToggleOn size={28} color="#22c55e" />
+                    : <FaToggleOff size={28} color="#d1d5db" />}
+                </button>
+                <div>
+                  <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
+                    Send WhatsApp alert to owner
+                  </span>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                    Notify via WhatsApp when any staff cancels or deletes an order
+                  </div>
+                </div>
+              </div>
+              <p style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '16px' }}>
+                Requires WhatsApp to be connected in Automation settings. Alert is sent to the restaurant owner phone number.
+              </p>
+              <button
+                onClick={async () => {
+                  if (!selectedRestaurant?.id) return;
+                  setNotifyOwnerOnCancelWASaving(true);
+                  try {
+                    await apiClient.updateRestaurant(selectedRestaurant.id, {
+                      orderSettings: { notifyOwnerOnCancelWhatsApp: notifyOwnerOnCancelWA }
+                    });
+                    setRestaurants(prev => prev.map(r => r.id === selectedRestaurant.id
+                      ? { ...r, orderSettings: { ...(r.orderSettings || {}), notifyOwnerOnCancelWhatsApp: notifyOwnerOnCancelWA } }
+                      : r
+                    ));
+                    setSelectedRestaurant(prev => prev && prev.id === selectedRestaurant.id
+                      ? { ...prev, orderSettings: { ...(prev.orderSettings || {}), notifyOwnerOnCancelWhatsApp: notifyOwnerOnCancelWA } }
+                      : prev
+                    );
+                    showSuccess('Settings saved successfully!');
+                  } catch (err) {
+                    console.error(err);
+                    showError('Failed to save. Please try again.');
+                  } finally {
+                    setNotifyOwnerOnCancelWASaving(false);
+                  }
+                }}
+                disabled={notifyOwnerOnCancelWASaving}
+                style={{
+                  width: '100%',
+                  padding: '14px 20px',
+                  borderRadius: '12px',
+                  fontWeight: '600',
+                  fontSize: '15px',
+                  border: 'none',
+                  cursor: notifyOwnerOnCancelWASaving ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px',
+                  background: notifyOwnerOnCancelWASaving ? '#9ca3af' : 'linear-gradient(135deg, #22c55e, #16a34a)',
+                  color: 'white',
+                  boxShadow: notifyOwnerOnCancelWASaving ? 'none' : '0 4px 14px rgba(34,197,94,0.35)'
+                }}
+              >
+                {notifyOwnerOnCancelWASaving ? <FaSpinner style={{ animation: 'spin 1s linear infinite' }} size={16} /> : <FaSave size={16} />}
+                {notifyOwnerOnCancelWASaving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

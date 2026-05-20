@@ -170,8 +170,10 @@ const OrderSummary = ({
     return parts;
   };
 
+  // Track whether edit-mode pre-fill (SC, discount) is still pending — prevents amount flicker
+  const [editPreFillPending, setEditPreFillPending] = useState(false);
   // Unified flag: disables ALL order buttons when any action is in progress
-  const orderBusy = processing || placingOrder || savingOrder;
+  const orderBusy = processing || placingOrder || savingOrder || editPreFillPending;
   // True when editing a loaded saved order (disable save button, keep place order text normal)
   const isEditingSavedOrder = currentOrder && currentOrder.status === 'saved';
 
@@ -312,6 +314,8 @@ const OrderSummary = ({
   const [sliderDragging, setSliderDragging] = useState(false);
   const [sliderLocalValue, setSliderLocalValue] = useState(0);
   const loyaltyPreFilled = useRef(false);
+  const editPreFilled = useRef(false);
+  const offersPreFilled = useRef(false);
   const prevCustomerId = useRef(null);
 
   // Offers & Rewards Modal
@@ -489,6 +493,9 @@ const OrderSummary = ({
       setUseWallet(false);
       setWalletRedeemAmount('');
       loyaltyPreFilled.current = false;
+      editPreFilled.current = false;
+      offersPreFilled.current = false;
+      setEditPreFillPending(false);
       prevCustomerId.current = null;
       initialLookupDone.current = false;
       clearCustomer();
@@ -498,6 +505,8 @@ const OrderSummary = ({
       setTipAmount(0);
       setTipPercentage(null);
       setServiceChargeAmount(0);
+      setServiceChargeOverride(null);
+      setServiceChargeRateOverride(null);
       setRoundOffAmount(0);
       setCompVoidItems([]);
       setCompVoidReason('');
@@ -524,6 +533,9 @@ const OrderSummary = ({
       setUseWallet(false);
       setWalletRedeemAmount('');
       loyaltyPreFilled.current = false;
+      editPreFilled.current = false;
+      offersPreFilled.current = false;
+      setEditPreFillPending(false);
       prevCustomerId.current = null;
       initialLookupDone.current = false;
       clearCustomer();
@@ -534,6 +546,8 @@ const OrderSummary = ({
       setTipAmount(0);
       setTipPercentage(null);
       setServiceChargeAmount(0);
+      setServiceChargeOverride(null);
+      setServiceChargeRateOverride(null);
       setRoundOffAmount(0);
       setCompVoidItems([]);
       setCompVoidReason('');
@@ -765,14 +779,14 @@ const OrderSummary = ({
     if (manualDiscountTypeState === 'percentage') {
       return Math.round((subtotal * val / 100) * 100) / 100;
     }
-    return Math.min(val, subtotal);
+    return Math.round(Math.min(val, subtotal) * 100) / 100;
   }, [manualDiscountValue, manualDiscountTypeState, getTotalAmount]);
 
   // Loyalty discount calculation — points / redemptionRate = discount amount
   // redemptionRate=1 → 1pt=₹1, redemptionRate=10 → 10pts=₹1, redemptionRate=100 → 100pts=₹1
   const getLoyaltyDiscountAmount = useCallback(() => {
     if (!loyaltySettings?.enabled || !redeemLoyaltyPoints || redeemLoyaltyPoints <= 0) return 0;
-    const redemptionRate = loyaltySettings.redemptionRate || 1;
+    const redemptionRate = Math.max(1, Number(loyaltySettings.redemptionRate) || 1);
     return Math.round((redeemLoyaltyPoints / redemptionRate) * 100) / 100;
   }, [redeemLoyaltyPoints, loyaltySettings]);
 
@@ -852,7 +866,8 @@ const OrderSummary = ({
 
   // Compute unit price for an item considering variant and selected customizations
   // Uses item.price (which reflects the active pricing rule) over item.basePrice
-  const getItemUnitPrice = (cartItem) => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const getItemUnitPrice = useCallback((cartItem) => {
     let unitPrice;
     if (cartItem?.selectedVariant?.price != null) {
       unitPrice = cartItem.selectedVariant.price;
@@ -872,11 +887,24 @@ const OrderSummary = ({
       unitPrice = typeof cartItem?.price === 'number' ? cartItem.price
         : typeof cartItem?.basePrice === 'number' ? cartItem.basePrice : 0;
     }
-    const extras = Array.isArray(cartItem?.selectedCustomizations)
-      ? cartItem.selectedCustomizations.reduce((sum, c) => sum + (c?.price || 0), 0)
-      : (typeof cartItem?.customizationPrice === 'number' ? cartItem.customizationPrice : 0);
+    // Validate customization prices against current menu when possible
+    let extras = 0;
+    if (Array.isArray(cartItem?.selectedCustomizations) && cartItem.selectedCustomizations.length > 0) {
+      const menuItem = menuItems.find(m => m.id === cartItem.id);
+      const menuCustomizations = menuItem?.customizations || [];
+      extras = cartItem.selectedCustomizations.reduce((sum, c) => {
+        // Try to find the matching customization in current menu for price validation
+        if (menuCustomizations.length > 0) {
+          const menuCust = menuCustomizations.find(mc => mc.id === c.id || mc.name === c.name);
+          if (menuCust && typeof menuCust.price === 'number') return sum + menuCust.price;
+        }
+        return sum + (c?.price || 0);
+      }, 0);
+    } else if (typeof cartItem?.customizationPrice === 'number') {
+      extras = cartItem.customizationPrice;
+    }
     return (unitPrice || 0) + (extras || 0);
-  };
+  }, [multiPricingEnabled, activePricingRuleId, menuItems]);
   
   // Determine if an item's price includes tax (inclusive pricing)
   const isItemTaxInclusive = useCallback((item, settings) => {
@@ -993,17 +1021,21 @@ const OrderSummary = ({
           ? (itemTotal / discountableSubtotal) * discTotal
           : 0;
         const itemTaxable = Math.max(0, itemTotal - itemDiscShare);
-        // Service charge distributed across all items
-        const itemSCShare = subtotal > 0 ? (itemTotal / subtotal) * sc : 0;
+        // Service charge distributed proportional to post-discount taxable amount
+        const postDiscSubtotal = Math.max(0, subtotal - discTotal);
+        const itemSCShare = postDiscSubtotal > 0
+          ? (itemTaxable / postDiscSubtotal) * sc
+          : (subtotal > 0 ? (itemTotal / subtotal) * sc : 0);
         const itemTaxableWithSC = itemTaxable + itemSCShare;
         // Resolve taxes for this item
         const itemTaxes = resolveTaxesForItem(cartItem, taxSettings, restaurantCategories);
         const totalRate = itemTaxes.reduce((sum, t) => sum + (t.rate || 0), 0);
         for (const tax of itemTaxes) {
           // Inclusive: back-calculate tax from price. Exclusive: add on top.
+          // Accumulate raw (unrounded) values — round only final slab totals
           const amt = isInclusive
-            ? Math.round((itemTaxableWithSC * (tax.rate || 0) / (100 + totalRate)) * 100) / 100
-            : Math.round((itemTaxableWithSC * (tax.rate || 0) / 100) * 100) / 100;
+            ? (itemTaxableWithSC * (tax.rate || 0) / (100 + totalRate))
+            : (itemTaxableWithSC * (tax.rate || 0) / 100);
           const key = `${tax.name || 'Tax'}|${tax.rate || 0}|${isInclusive}`;
           if (!taxTotals[key]) taxTotals[key] = { name: tax.name || 'Tax', rate: tax.rate || 0, amount: 0, inclusive: isInclusive };
           taxTotals[key].amount += amt;
@@ -1104,6 +1136,118 @@ const OrderSummary = ({
       loyaltyPreFilled.current = true;
     }
   }, [currentOrder, customerData]);
+
+  // Flag that pre-fill is needed when entering edit mode (prevents amount flicker)
+  useEffect(() => {
+    if (currentOrder && cart?.length === 0 && !editPreFilled.current) {
+      setEditPreFillPending(true);
+    }
+  }, [currentOrder, cart?.length]);
+
+  // Pre-populate service charge and manual discount when editing an existing order
+  useEffect(() => {
+    if (editPreFilled.current) return;
+    if (!currentOrder || cart?.length === 0) return;
+
+    // Service charge toggle state
+    if (currentOrder.serviceChargeEnabled === true) {
+      setServiceChargeOverride(true);
+    } else if (currentOrder.serviceChargeEnabled === false) {
+      setServiceChargeOverride(false);
+    } else if (billingSettings.serviceChargeEnabled && (!currentOrder.serviceChargeAmount || currentOrder.serviceChargeAmount <= 0)) {
+      // Backward compat: SC is globally enabled but order had no SC amount → was explicitly off
+      setServiceChargeOverride(false);
+    }
+
+    // Service charge rate override (only set if order rate differs from current global rate)
+    if (currentOrder.serviceChargeRate != null && currentOrder.serviceChargeRate > 0 && billingSettings.serviceChargeRate != null && currentOrder.serviceChargeRate !== billingSettings.serviceChargeRate) {
+      setServiceChargeRateOverride(currentOrder.serviceChargeRate);
+    }
+
+    // Manual discount
+    if (currentOrder.manualDiscountValue != null && currentOrder.manualDiscountValue > 0) {
+      setManualDiscountValue(String(currentOrder.manualDiscountValue));
+      setManualDiscountTypeState(currentOrder.manualDiscountType || 'flat');
+    } else if (currentOrder.manualDiscount > 0) {
+      // Backward compat: old orders only have the computed amount, restore as flat
+      setManualDiscountValue(String(currentOrder.manualDiscount));
+      setManualDiscountTypeState(currentOrder.manualDiscountType || 'flat');
+    }
+
+    // Coupon code - restore if one was applied (re-validation happens on next apply)
+    if (currentOrder.couponCode && !appliedCoupon) {
+      setCouponCode(currentOrder.couponCode);
+      // Restore as applied coupon so the discount shows immediately
+      if (currentOrder.couponDiscount > 0) {
+        setAppliedCoupon({
+          id: currentOrder.couponId || null,
+          code: currentOrder.couponCode,
+          discountAmount: currentOrder.couponDiscount,
+        });
+      }
+    }
+
+    // Tip - restore for billing mode (completing an order that already had a tip)
+    if (billingMode && currentOrder.tipAmount > 0) {
+      setTipAmount(currentOrder.tipAmount);
+      if (currentOrder.tipPercentage) setTipPercentage(currentOrder.tipPercentage);
+    }
+
+    // Delivery info - restore person name, phone, cash handed over, and address
+    if (currentOrder.deliveryInfo) {
+      setDeliveryInfo({
+        personName: currentOrder.deliveryInfo.personName || '',
+        personPhone: currentOrder.deliveryInfo.personPhone || '',
+        cashHandedOver: currentOrder.deliveryInfo.cashHandedOver || false,
+      });
+    }
+    if (currentOrder.deliveryAddress) {
+      setDeliveryAddress(currentOrder.deliveryAddress);
+    }
+
+    editPreFilled.current = true;
+    setEditPreFillPending(false);
+  }, [currentOrder, cart?.length, billingSettings.serviceChargeRate, billingSettings.serviceChargeEnabled]);
+
+  // Re-select previously applied offers in edit mode (runs after offer engine loads offers)
+  useEffect(() => {
+    if (offersPreFilled.current) return;
+    if (!currentOrder || cart?.length === 0) return;
+    if (!applicableOffers || applicableOffers.length === 0) return;
+
+    // Get previously applied offer IDs from the order
+    const prevOfferIds = currentOrder.offerIds || (currentOrder.appliedOffer ? [currentOrder.appliedOffer.id || currentOrder.appliedOffer._id] : []);
+    if (prevOfferIds.length === 0) {
+      offersPreFilled.current = true;
+      return;
+    }
+
+    // Only re-select offers that are still applicable (validated by the offer engine)
+    const stillApplicable = prevOfferIds.filter(oid =>
+      applicableOffers.some(o => (o.id || o._id) === oid)
+    );
+
+    if (stillApplicable.length === 0) {
+      offersPreFilled.current = true;
+      return;
+    }
+
+    if (offerSettings.allowMultipleOffers) {
+      // Multi-offer mode: toggle each applicable offer (toggleOffer respects maxOffersAllowed)
+      stillApplicable.forEach(oid => {
+        if (!selectedOfferIds.includes(oid)) {
+          toggleOffer(oid);
+        }
+      });
+    } else {
+      // Single-offer mode: select the first applicable one
+      if (!selectedOfferId) {
+        setSelectedOfferId(stillApplicable[0]);
+      }
+    }
+
+    offersPreFilled.current = true;
+  }, [currentOrder, cart?.length, applicableOffers, offerSettings.allowMultipleOffers, selectedOfferIds, selectedOfferId, setSelectedOfferId, toggleOffer]);
 
   // Voice Assistant Functions
   const fuzzyMatchMenuItems = (transcript, menuItems) => {
@@ -1266,7 +1410,7 @@ const OrderSummary = ({
   };
 
   // Force recalculation when cart items change (for edit mode)
-  const cartKey = cart.map(item => `${item.id}-${item.quantity}-${item.price}`).join(',');
+  const cartKey = cart.map(item => `${item.id}-${item.quantity}-${Math.round((item.price || 0) * 100)}`).join(',');
   useEffect(() => {
     if (cart.length > 0) {
       console.log('🔄 Cart items changed, forcing tax recalculation');
@@ -1448,8 +1592,11 @@ const OrderSummary = ({
       couponDiscount: getCouponDiscountAmount() > 0 ? getCouponDiscountAmount() : null,
       couponCode: appliedCoupon?.code || null,
       couponId: appliedCoupon?.id || null,
-      serviceChargeRate: serviceChargeAmount > 0 ? billingSettings.serviceChargeRate : null,
+      serviceChargeRate: serviceChargeAmount > 0 ? (serviceChargeRateOverride !== null ? serviceChargeRateOverride : billingSettings.serviceChargeRate) : null,
       serviceChargeAmount: serviceChargeAmount > 0 ? serviceChargeAmount : null,
+      serviceChargeEnabled: serviceChargeOverride,
+      manualDiscountType: manualDiscountTypeState,
+      manualDiscountValue: manualDiscountValue !== '' ? parseFloat(manualDiscountValue) : null,
       tipAmount: tipAmount > 0 ? tipAmount : null,
       tipPercentage: tipPercentage || null,
       cashReceived: cashReceivedNum > 0 ? cashReceivedNum : null,
@@ -1548,6 +1695,7 @@ const OrderSummary = ({
       display: 'flex',
       flexDirection: 'column',
       boxShadow: isMobile || billingMode ? 'none' : '-2px 0 8px rgba(0, 0, 0, 0.04)',
+      ...(isMobile && !billingMode ? { paddingTop: 'env(safe-area-inset-top, 0px)' } : {}),
       ...(billingMode ? {} : { overflow: 'hidden' })
     }}>
       {/* Header - More Compact, even smaller in billing mode */}
@@ -1555,7 +1703,7 @@ const OrderSummary = ({
         background: billingMode
           ? 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'
           : 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)',
-        padding: billingMode ? '10px 16px' : '14px 16px',
+        padding: billingMode ? '10px 16px' : (isMobile ? '10px 12px' : '14px 16px'),
         color: billingMode ? '#1e293b' : 'white',
         position: 'relative',
         overflow: 'hidden',
@@ -1576,14 +1724,16 @@ const OrderSummary = ({
           }} />
         )}
         
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
+        <div style={{
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          alignItems: isMobile ? 'stretch' : 'center',
           justifyContent: 'space-between',
+          gap: isMobile ? '6px' : '0',
           position: 'relative',
           zIndex: 2
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
             {/* Back Button for Mobile */}
             {isMobile && onClose && (
               <button
@@ -1667,7 +1817,7 @@ const OrderSummary = ({
               ).filter(ot => ot.enabled);
               const i18nMap = { 'dine-in': t('dashboard.dineIn'), 'takeaway': t('dashboard.takeaway') };
               return (
-            <div style={{ display: 'flex', gap: isMobile ? '3px' : '4px' }}>
+            <div style={{ display: 'flex', gap: isMobile ? '3px' : '4px', flexWrap: 'wrap' }}>
               {enabledTypes.map((ot) => {
                 const isDisabled = hasTable && ot.id !== 'dine-in';
                 return (
@@ -2697,7 +2847,7 @@ const OrderSummary = ({
                               })()}
                             </td>
                             <td style={{ padding: '3px 6px', textAlign: 'center' }}>{item.quantity || 1}</td>
-                            <td style={{ padding: '3px 6px', textAlign: 'right' }}>{formatCurrency((item.price || item.total/(item.quantity||1) || 0) * (item.quantity || 1))}</td>
+                            <td style={{ padding: '3px 6px', textAlign: 'right' }}>{formatCurrency(Math.round(((item.price || Math.round((item.total || 0) / (item.quantity || 1) * 100) / 100) || 0) * (item.quantity || 1) * 100) / 100)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -2844,7 +2994,7 @@ const OrderSummary = ({
                         if (item.servingSize) parts.push(item.servingSize);
                         return parts.length > 0 ? `<div style="font-size:9px;color:#6b7280;">${parts.join(' · ')}</div>` : '';
                       };
-                      const itemsHtml = billItems.map(item => `<tr><td style="text-align:left;">${(item.name || '').replace(/</g,'&lt;')}${getSublineHtml(item)}</td><td style="text-align:center;">${item.quantity || 1}</td><td style="text-align:right;">${currencySymbol}${((item.price || item.total/item.quantity || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`).join('');
+                      const itemsHtml = billItems.map(item => `<tr><td style="text-align:left;">${(item.name || '').replace(/</g,'&lt;')}${getSublineHtml(item)}</td><td style="text-align:center;">${item.quantity || 1}</td><td style="text-align:right;">${currencySymbol}${((item.price || (item.total / (item.quantity || 1)) || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`).join('');
                       const taxHtml = (invoice?.taxBreakdown || []).map(tax => `<tr><td colspan="2" style="text-align:left;">${tax.name} (${tax.rate}%)${tax.inclusive ? ' (incl.)' : ''}</td><td style="text-align:right;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td></tr>`).join('');
                       const printTotalDiscount = (invoice?.discountAmount || 0) + (invoice?.manualDiscount || 0) + (invoice?.loyaltyDiscount || 0) + (invoice?.couponDiscount || 0);
                       const offerName = typeof invoice?.appliedOffer === 'string' ? invoice.appliedOffer : (invoice?.appliedOffer?.name || invoice?.selectedOfferName || '');
@@ -3321,11 +3471,20 @@ const OrderSummary = ({
                             onBlur={(e) => {
                               const newPrice = parseFloat(e.target.value);
                               if (!isNaN(newPrice) && newPrice >= 0) {
-                                setCart(prev => prev.map(c =>
-                                  (c.cartId || c.id) === (item.cartId || item.id)
-                                    ? { ...c, price: newPrice, basePrice: newPrice }
-                                    : c
-                                ));
+                                setCart(prev => prev.map(c => {
+                                  if ((c.cartId || c.id) !== (item.cartId || item.id)) return c;
+                                  // Preserve original menu price on first edit; keep it on subsequent edits
+                                  const originalMenuPrice = c.menuPrice != null
+                                    ? c.menuPrice
+                                    : (typeof c.basePrice === 'number' ? c.basePrice : c.price);
+                                  return {
+                                    ...c,
+                                    price: newPrice,
+                                    basePrice: newPrice,
+                                    menuPrice: originalMenuPrice,
+                                    priceEdited: newPrice !== originalMenuPrice,
+                                  };
+                                }));
                               }
                               setEditingPriceId(null);
                             }}
@@ -3647,19 +3806,21 @@ const OrderSummary = ({
           {/* (Discount controls moved inline with special instructions below) */}
 
           {/* Total - Red bar */}
-          <div style={{ padding: '4px 12px 6px 12px' }}>
+          <div style={{ padding: isMobile ? '2px 8px 4px 8px' : '4px 12px 6px 12px' }}>
             <div style={{
               background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)',
               color: 'white',
-              padding: '12px 14px',
+              padding: isMobile ? '8px 10px' : '12px 14px',
               borderRadius: '8px',
-              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
+              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+              opacity: editPreFillPending ? 0.5 : 1,
+              transition: 'opacity 0.2s ease',
             }}>
               {/* Total with Subtotal & Tax on left, Amount on right */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '4px' }}>{t('common.total')}</div>
-                  <div style={{ fontSize: '11px', opacity: 0.9, display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: isMobile ? '12px' : '14px', fontWeight: 'bold', marginBottom: isMobile ? '2px' : '4px' }}>{t('common.total')}</div>
+                  <div style={{ fontSize: isMobile ? '9px' : '11px', opacity: 0.9, display: 'flex', gap: isMobile ? '6px' : '12px', flexWrap: 'wrap' }}>
                     <span>Subtotal: {formatCurrency(getTotalAmount())}</span>
                     {totalDiscountAmount > 0 && (
                       <span style={{ color: '#bbf7d0' }}>Discount: -{formatCurrency(totalDiscountAmount)}</span>
@@ -3678,7 +3839,7 @@ const OrderSummary = ({
                     )}
                   </div>
                 </div>
-                <span style={{ fontSize: '22px', fontWeight: 'bold' }}>{formatCurrency(grandTotal !== null ? grandTotal : getTotalAmount())}</span>
+                <span style={{ fontSize: isMobile ? '18px' : '22px', fontWeight: 'bold' }}>{formatCurrency(grandTotal !== null ? grandTotal : Math.max(0, getTotalAmount() - totalDiscountAmount + exclusiveTaxAmount + serviceChargeAmount + tipAmount + roundOffAmount))}</span>
               </div>
               {useWallet && parseFloat(walletRedeemAmount) > 0 && (
                 <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.25)' }}>
@@ -3701,7 +3862,7 @@ const OrderSummary = ({
 
           {/* Actions Section */}
           {!shouldShowOrderSummary() && (
-            <div style={{ padding: '6px 12px 12px 12px' }}>
+            <div style={{ padding: isMobile ? '4px 8px 8px 8px' : '6px 12px 12px 12px' }}>
               {/* Offers & Discount Row — side by side */}
               {(() => {
                 const hasOffers = genericOffers.length > 0 || personalizedOffers.length > 0;
@@ -3720,7 +3881,7 @@ const OrderSummary = ({
                 const hasApplied = activeOfferCount > 0 || loyaltyDisc > 0 || couponDisc > 0;
 
                 return (
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch', marginBottom: '6px' }}>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch', marginBottom: isMobile ? '4px' : '6px' }}>
                     {showOffers && (
                       <button
                         onClick={() => setShowOffersModal(true)}
@@ -3916,16 +4077,15 @@ const OrderSummary = ({
                   const isValidLocation = locationType === 'room' ? isValidRoom : isValidTable;
                   
                   return (
-                <div style={{ 
-                  display: 'flex', 
-                  flexDirection: isMobile ? 'column' : 'row',
-                      gap: isMobile ? '8px' : '6px',
-                      alignItems: isMobile ? 'stretch' : 'center',
-                      flexWrap: 'wrap'
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(120px, 1fr))',
+                  gap: '6px',
+                  alignItems: 'start',
                   }}>
                     {/* Customer Mobile + Lookup (Phone First) */}
                     {!posSettings.hideMobile && (
-                    <div style={{ position: 'relative', flex: isMobile ? '0 0 auto' : '1', minWidth: isMobile ? '100%' : '120px' }}>
+                    <div style={{ position: 'relative' }}>
                     <input
                       type="tel"
                       placeholder={posSettings.mobileLabel || 'Mobile Number'}
@@ -3933,7 +4093,7 @@ const OrderSummary = ({
                         maxLength={getPhoneMinLength(countryCode) + 3}
                       style={{
                           width: '100%',
-                        padding: isMobile ? '10px 12px' : '8px 10px',
+                        padding: isMobile ? '8px 10px' : '8px 10px',
                         paddingRight: '36px',
                           border: `1.5px solid ${
                             lookupStatus === 'error' ? '#ef4444' :
@@ -3942,7 +4102,7 @@ const OrderSummary = ({
                             isValidMobile ? '#22c55e' : '#e5e7eb'
                           }`,
                         borderRadius: '8px',
-                        fontSize: isMobile ? '14px' : '12px',
+                        fontSize: isMobile ? '12px' : '12px',
                         outline: 'none',
                         backgroundColor: lookupStatus === 'found' ? '#f0fdf4' : lookupStatus === 'error' ? '#fef2f2' : '#ffffff',
                         transition: 'border-color 0.2s, box-shadow 0.2s, background-color 0.2s',
@@ -4040,7 +4200,7 @@ const OrderSummary = ({
                         display: 'flex', alignItems: 'center', gap: '4px',
                         padding: '3px 8px', background: '#fef2f2', border: '1px solid #fecaca',
                         borderRadius: '8px', fontSize: '10px', fontWeight: 700, color: '#dc2626',
-                        flexShrink: 0,
+                        flexShrink: 0, gridColumn: '1 / -1',
                       }}>
                         <FaExclamationTriangle size={9} />
                         Due: {formatCurrency(customerData.outstandingBalance)}
@@ -4049,18 +4209,18 @@ const OrderSummary = ({
 
                     {/* Customer Name — always visible, pre-filled when customer found */}
                     {!posSettings.hideCustomerName && (
-                    <div style={{ position: 'relative', flex: isMobile ? '0 0 auto' : '1', minWidth: isMobile ? '100%' : '120px' }}>
+                    <div style={{ position: 'relative' }}>
                     <input
                       type="text"
                       placeholder={posSettings.customerNameLabel || t('dashboard.customerName')}
                       value={customerName || ''}
                       style={{
                           width: '100%',
-                        padding: isMobile ? '10px 12px' : '8px 10px',
-                        paddingRight: (lookupStatus === 'found' && customerData) ? '36px' : (isMobile ? '12px' : '10px'),
+                        padding: isMobile ? '8px 10px' : '8px 10px',
+                        paddingRight: (lookupStatus === 'found' && customerData) ? '36px' : '10px',
                           border: `1.5px solid ${(lookupStatus === 'found' && customerData) ? '#0891b2' : isValidName ? '#22c55e' : '#e5e7eb'}`,
                         borderRadius: '8px',
-                        fontSize: isMobile ? '14px' : '12px',
+                        fontSize: '12px',
                         outline: 'none',
                         backgroundColor: (lookupStatus === 'found' && customerData) ? '#ecfeff' : '#ffffff',
                         transition: 'border-color 0.2s, box-shadow 0.2s',
@@ -4100,9 +4260,8 @@ const OrderSummary = ({
                       <button
                         onClick={() => setShowOffersModal(true)}
                         style={{
-                          width: isMobile ? '100%' : 'auto',
-                          flex: isMobile ? '0 0 auto' : '0 0 auto',
-                          padding: isMobile ? '8px 14px' : '6px 12px',
+                          gridColumn: '1 / -1',
+                          padding: isMobile ? '6px 10px' : '6px 12px',
                           borderRadius: '10px',
                           border: 'none',
                           background: 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)',
@@ -4143,9 +4302,8 @@ const OrderSummary = ({
                     {/* New Customer indicator — when phone entered but no profile found */}
                     {lookupStatus === 'not_found' && customerMobile && (
                       <div style={{
-                        width: isMobile ? '100%' : 'auto',
-                        flex: isMobile ? '0 0 auto' : '0 0 auto',
-                        padding: isMobile ? '6px 12px' : '5px 10px',
+                        gridColumn: '1 / -1',
+                        padding: isMobile ? '5px 10px' : '5px 10px',
                         borderRadius: '8px',
                         border: '1px solid #bbf7d0',
                         backgroundColor: '#f0fdf4',
@@ -4169,12 +4327,11 @@ const OrderSummary = ({
                           placeholder={posSettings.tableLabel || 'Table No'}
                           value={tableNumber || ''}
                           style={{
-                            flex: '0 0 auto',
-                            width: isMobile ? '100%' : '80px',
-                            padding: isMobile ? '10px 12px' : '8px 10px',
+                            width: '100%',
+                            padding: isMobile ? '8px 10px' : '8px 10px',
                             border: `2px solid ${isValidTable ? '#22c55e' : '#d1d5db'}`,
                             borderRadius: '6px',
-                            fontSize: isMobile ? '14px' : '12px',
+                            fontSize: '12px',
                             outline: 'none',
                             backgroundColor: '#f9fafb',
                             transition: 'border-color 0.2s'
@@ -4195,13 +4352,11 @@ const OrderSummary = ({
                         />
                       ) : (
                         /* Combined Table/Room Selector with Input Box */
-                        <div style={{ 
-                          display: 'flex', 
-                          gap: '4px', 
+                        <div style={{
+                          display: 'flex',
+                          gap: '4px',
                           alignItems: 'stretch',
-                          width: isMobile ? '100%' : 'auto',
-                          flex: '0 0 auto',
-                          minWidth: isMobile ? '100%' : 'auto'
+                          width: '100%',
                         }}>
                           <div style={{ display: 'flex', gap: '0', flexShrink: 0 }}>
                             <button
@@ -4313,12 +4468,12 @@ const OrderSummary = ({
                 })()}
 
               {/* Payment Method Selection */}
-              <div style={{ marginBottom: '16px' }}>
+              <div style={{ marginBottom: isMobile ? '6px' : '16px' }}>
                 <div style={{
-                  fontSize: '12px',
+                  fontSize: isMobile ? '10px' : '12px',
                   fontWeight: '700',
                   color: '#1f2937',
-                  marginBottom: '8px',
+                  marginBottom: isMobile ? '4px' : '8px',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px'
@@ -4943,7 +5098,15 @@ const OrderSummary = ({
 
           {/* Action Buttons — sits at bottom of scroll in billing mode */}
           <div style={{
-            padding: billingMode ? '12px 16px 16px 16px' : '6px 12px 12px 12px',
+            padding: billingMode ? '12px 16px 16px 16px' : (isMobile ? '6px 8px calc(6px + env(safe-area-inset-bottom, 0px)) 8px' : '6px 12px 12px 12px'),
+            ...(isMobile ? {
+              position: 'sticky',
+              bottom: 0,
+              backgroundColor: '#ffffff',
+              borderTop: '1px solid #e5e7eb',
+              boxShadow: '0 -4px 12px rgba(0,0,0,0.08)',
+              zIndex: 10,
+            } : {}),
             ...(billingMode ? {
               backgroundColor: '#f8fafc',
               borderTop: '2px solid #e2e8f0',
@@ -4984,7 +5147,7 @@ const OrderSummary = ({
 
           {/* First Row - Save and Place Order (hidden in billing mode) */}
           {!billingMode && (
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: isMobile ? '4px' : '8px', marginBottom: isMobile ? '4px' : '8px', flexWrap: 'wrap' }}>
               {/* Schedule toggle button — hidden unless enabled in POS settings */}
               {posSettings.enableScheduleOrder && setIsScheduledOrder && cart.length > 0 && (
                 <button
@@ -5032,7 +5195,7 @@ const OrderSummary = ({
                       ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
                       : 'linear-gradient(135deg, #3b82f6, #2563eb)',
                     color: 'white',
-                    padding: '10px 8px',
+                    padding: isMobile ? '8px 6px' : '10px 8px',
                     borderRadius: '8px',
                     fontWeight: '600',
                     border: 'none',
@@ -5071,7 +5234,7 @@ const OrderSummary = ({
                       totalDiscountAmount: offerDiscount + getManualDiscountAmount() + getLoyaltyDiscountAmount(),
                       redeemLoyaltyPoints: redeemLoyaltyPoints > 0 ? redeemLoyaltyPoints : 0,
                       loyaltyDiscount: getLoyaltyDiscountAmount(),
-                      serviceChargeRate: serviceChargeAmount > 0 ? billingSettings.serviceChargeRate : null,
+                      serviceChargeRate: serviceChargeAmount > 0 ? (serviceChargeRateOverride !== null ? serviceChargeRateOverride : billingSettings.serviceChargeRate) : null,
                       serviceChargeAmount: serviceChargeAmount > 0 ? serviceChargeAmount : null,
                       tipAmount: tipAmount > 0 ? tipAmount : null,
                       tipPercentage: tipPercentage || null,
@@ -5095,7 +5258,7 @@ const OrderSummary = ({
                     ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
                     : 'linear-gradient(135deg, #f97316, #ea580c)',
                   color: 'white',
-                  padding: '10px 8px',
+                  padding: isMobile ? '8px 6px' : '10px 8px',
                   borderRadius: '8px',
                   fontWeight: '600',
                   border: 'none',
@@ -5139,7 +5302,7 @@ const OrderSummary = ({
                     ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
                     : 'linear-gradient(135deg, #ef4444, #dc2626)',
                   color: 'white',
-                  padding: '10px 8px',
+                  padding: isMobile ? '8px 6px' : '10px 8px',
                   borderRadius: '8px',
                   fontWeight: '600',
                   border: 'none',
@@ -5183,7 +5346,7 @@ const OrderSummary = ({
                       ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
                       : 'linear-gradient(135deg, #991b1b, #7f1d1d)',
                     color: 'white',
-                    padding: '10px 8px',
+                    padding: isMobile ? '8px 6px' : '10px 8px',
                     borderRadius: '8px',
                     fontWeight: '600',
                     border: 'none',
@@ -5570,8 +5733,8 @@ const OrderSummary = ({
                                 const next = !useWallet;
                                 setUseWallet(next);
                                 if (next) {
-                                  const billAmount = grandTotal !== null ? grandTotal : getTotalAmount();
-                                  setWalletRedeemAmount(String(Math.round(Math.min(walletBalance, billAmount) * 100) / 100));
+                                  const billAmount = grandTotal !== null ? grandTotal : Math.max(0, getTotalAmount() - totalDiscountAmount + exclusiveTaxAmount + serviceChargeAmount + tipAmount + roundOffAmount);
+                                  setWalletRedeemAmount(String(Math.round(Math.min(walletBalance, Math.max(0, billAmount)) * 100) / 100));
                                 } else {
                                   setWalletRedeemAmount('');
                                 }
@@ -5610,8 +5773,8 @@ const OrderSummary = ({
                             />
                             <button
                               onClick={() => {
-                                const billAmount = grandTotal !== null ? grandTotal : getTotalAmount();
-                                setWalletRedeemAmount(String(Math.round(Math.min(walletBalance, billAmount) * 100) / 100));
+                                const billAmount = grandTotal !== null ? grandTotal : Math.max(0, getTotalAmount() - totalDiscountAmount + exclusiveTaxAmount + serviceChargeAmount + tipAmount + roundOffAmount);
+                                setWalletRedeemAmount(String(Math.round(Math.min(walletBalance, Math.max(0, billAmount)) * 100) / 100));
                               }}
                               style={{
                                 padding: '4px 8px', borderRadius: '6px', fontSize: '9px', fontWeight: 700,

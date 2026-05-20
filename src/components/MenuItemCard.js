@@ -38,12 +38,15 @@ const MenuItemCard = ({
   // Handle card click - if needs customization, open modal; otherwise add directly
   const handleCardClick = (e) => {
     if (isOutOfStock) return;
-    if (needsCustomization && onItemClick) {
-      e.stopPropagation();
-      onItemClick(item);
-    } else if (!needsCustomization) {
-      onAddToCart(item);
+    if (needsCustomization) {
+      // Must open customization modal — never add directly without variant/customization selection
+      if (onItemClick) {
+        e.stopPropagation();
+        onItemClick(item);
+      }
+      return;
     }
+    onAddToCart(item);
   };
   
   // Hooks must be called at the top level, before any conditional returns

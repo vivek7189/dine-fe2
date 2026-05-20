@@ -1210,6 +1210,16 @@ class ApiClient {
     return this.request(`/api/analytics/${restaurantId}/daily-summary${qs ? '?' + qs : ''}`);
   }
 
+  async getCancelledOrdersReport(restaurantId, options = {}) {
+    const params = new URLSearchParams();
+    if (options.period) params.append('period', options.period);
+    if (options.startDate) params.append('startDate', options.startDate);
+    if (options.endDate) params.append('endDate', options.endDate);
+    if (options.type) params.append('type', options.type);
+    const qs = params.toString();
+    return this.request(`/api/analytics/${restaurantId}/cancelled-orders${qs ? '?' + qs : ''}`);
+  }
+
   // Table management endpoints
   async getTables(restaurantId) {
     return this.request(`/api/tables/${restaurantId}`);

@@ -401,8 +401,8 @@ export default function Sidebar({ isDashboardPage = false }) {
       <button
         id="sidebar-hamburger"
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="md:hidden fixed top-4 left-4 z-[10001] p-3 bg-white rounded-xl shadow-lg"
-        style={{ border: '1px solid rgba(0,0,0,0.1)' }}
+        className="md:hidden fixed z-[10001] p-2.5 bg-white rounded-xl shadow-lg"
+        style={{ border: '1px solid rgba(0,0,0,0.1)', top: 'max(12px, var(--sat, 0px))', left: '12px' }}
       >
         <FaBars size={20} color="#374151" />
       </button>

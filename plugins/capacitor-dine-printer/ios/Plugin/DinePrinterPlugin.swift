@@ -20,6 +20,8 @@ public class DinePrinterPlugin: CAPPlugin {
     private static let prefsDefaultPrinter = "DinePrinter_defaultAddress"
     private static let prefsDefaultPrinterName = "DinePrinter_defaultName"
     private static let prefsAirPrintURL = "DinePrinter_airprintURL"
+    private static let prefsKotPrinter = "DinePrinter_kotPrinterAddress"
+    private static let prefsBillPrinter = "DinePrinter_billPrinterAddress"
 
     private let btManager = BluetoothPrinterManager.shared
 
@@ -35,7 +37,7 @@ public class DinePrinterPlugin: CAPPlugin {
             return
         }
 
-        let defaultAddress = UserDefaults.standard.string(forKey: DinePrinterPlugin.prefsDefaultPrinter)
+        let defaultAddress = getRoutedPrinterAddress(type: type)
 
         if let address = defaultAddress, !address.isEmpty, !address.hasPrefix("airprint:") {
             // BLE thermal printer — silent print
@@ -137,6 +139,94 @@ public class DinePrinterPlugin: CAPPlugin {
             let connected = btManager.isConnected(address: address)
             call.resolve(["connected": connected])
         }
+    }
+
+    // MARK: – setPrinterConfig()
+
+    @objc func setPrinterConfig(_ call: CAPPluginCall) {
+        let defaults = UserDefaults.standard
+
+        if let kotPrinter = call.getString("kotPrinter") {
+            if kotPrinter.isEmpty {
+                defaults.removeObject(forKey: DinePrinterPlugin.prefsKotPrinter)
+            } else {
+                defaults.set(kotPrinter, forKey: DinePrinterPlugin.prefsKotPrinter)
+            }
+        }
+        if let billPrinter = call.getString("billPrinter") {
+            if billPrinter.isEmpty {
+                defaults.removeObject(forKey: DinePrinterPlugin.prefsBillPrinter)
+            } else {
+                defaults.set(billPrinter, forKey: DinePrinterPlugin.prefsBillPrinter)
+            }
+        }
+        if let defaultPrinter = call.getString("defaultPrinter") {
+            if defaultPrinter.isEmpty {
+                defaults.removeObject(forKey: DinePrinterPlugin.prefsDefaultPrinter)
+            } else {
+                defaults.set(defaultPrinter, forKey: DinePrinterPlugin.prefsDefaultPrinter)
+            }
+        }
+
+        call.resolve()
+    }
+
+    // MARK: – getPrinterConfig()
+
+    @objc func getPrinterConfig(_ call: CAPPluginCall) {
+        let defaults = UserDefaults.standard
+        call.resolve([
+            "defaultPrinter": defaults.string(forKey: DinePrinterPlugin.prefsDefaultPrinter) as Any,
+            "kotPrinter": defaults.string(forKey: DinePrinterPlugin.prefsKotPrinter) as Any,
+            "billPrinter": defaults.string(forKey: DinePrinterPlugin.prefsBillPrinter) as Any,
+        ])
+    }
+
+    // MARK: – diagnose()
+
+    @objc func diagnose(_ call: CAPPluginCall) {
+        var report = "=== DinePrinter Diagnostics (iOS) ===\n\n"
+
+        report += "Device: \(UIDevice.current.model)\n"
+        report += "iOS: \(UIDevice.current.systemVersion)\n\n"
+
+        let defaults = UserDefaults.standard
+        let defaultAddr = defaults.string(forKey: DinePrinterPlugin.prefsDefaultPrinter)
+        let kotAddr = defaults.string(forKey: DinePrinterPlugin.prefsKotPrinter)
+        let billAddr = defaults.string(forKey: DinePrinterPlugin.prefsBillPrinter)
+
+        report += "--- Saved Config ---\n"
+        report += "Default: \(defaultAddr ?? "(none)")\n"
+        report += "KOT:     \(kotAddr ?? "(use default)")\n"
+        report += "Bill:    \(billAddr ?? "(use default)")\n\n"
+
+        report += "--- Bluetooth ---\n"
+        report += "BLE connected: \(defaultAddr != nil ? String(btManager.isConnected(address: defaultAddr!)) : "N/A")\n\n"
+
+        report += "--- AirPrint ---\n"
+        report += "Available: \(UIPrintInteractionController.isPrintingAvailable)\n"
+
+        call.resolve(["report": report])
+    }
+
+    // MARK: – Private Helpers
+
+    /// Get the printer address for the given job type, with fallback to default.
+    private func getRoutedPrinterAddress(type: String) -> String? {
+        let defaults = UserDefaults.standard
+        var address: String? = nil
+
+        if type == "kot" {
+            address = defaults.string(forKey: DinePrinterPlugin.prefsKotPrinter)
+        } else if type == "bill" {
+            address = defaults.string(forKey: DinePrinterPlugin.prefsBillPrinter)
+        }
+
+        if address == nil || address?.isEmpty == true {
+            address = defaults.string(forKey: DinePrinterPlugin.prefsDefaultPrinter)
+        }
+
+        return address
     }
 
     // MARK: – System Print Fallback

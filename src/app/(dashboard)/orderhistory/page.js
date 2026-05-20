@@ -67,6 +67,7 @@ import {
   FaConciergeBell,
   FaUndoAlt,
   FaStore,
+  FaTruck,
 } from 'react-icons/fa';
 import dynamic from 'next/dynamic';
 const BookingList = dynamic(() => import('../../../components/bookings/BookingList'), { ssr: false });
@@ -933,18 +934,37 @@ const OrderHistory = () => {
   useEffect(() => { setCurrentPage(1); }, [selectedStatus, selectedOrderType, myOrdersOnly, searchTerm, dateFilterMode, selectedPaymentMethod, selectedPaymentStatus, customStartDate, customEndDate]);
 
   // Scroll-aware collapsing header — only for orders view (other views have no stat cards)
+  // Uses wide hysteresis + cooldown to prevent layout-thrashing flicker
   useEffect(() => {
     if (activeView !== 'orders') {
       setIsScrolled(false);
       return;
     }
     const scrollEl = document.querySelector('main.overflow-auto') || window;
+    let rafId = null;
+    let cooldown = false;
     const handleScroll = () => {
-      const scrollTop = scrollEl === window ? window.scrollY : scrollEl.scrollTop;
-      setIsScrolled(scrollTop > 80);
+      if (rafId || cooldown) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        const scrollTop = scrollEl === window ? window.scrollY : scrollEl.scrollTop;
+        setIsScrolled(prev => {
+          const next = prev ? (scrollTop < 20) ? false : prev   // expand only at near-top
+                            : (scrollTop > 120) ? true : prev;  // collapse well past stat cards
+          if (next !== prev) {
+            // Lock out further changes during the CSS transition (300ms)
+            cooldown = true;
+            setTimeout(() => { cooldown = false; }, 350);
+          }
+          return next;
+        });
+      });
     };
     scrollEl.addEventListener('scroll', handleScroll, { passive: true });
-    return () => scrollEl.removeEventListener('scroll', handleScroll);
+    return () => {
+      scrollEl.removeEventListener('scroll', handleScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, [activeView]);
 
   const handleSearch = (e) => { e.preventDefault(); fetchOrders(); };
@@ -1151,16 +1171,23 @@ const OrderHistory = () => {
       compItems, voidItems, partialPayAmount, manualDiscount, offerDiscount,
       offerIds, selectedOfferName, totalDiscountAmount, specialInstructions,
       redeemLoyaltyPoints, loyaltyDiscount,
+      serviceChargeEnabled, manualDiscountType, manualDiscountValue,
+      fullDue,
+      couponDiscount, couponCode, couponId,
+      walletRedeemAmount, walletCustomerId,
+      deliveryInfo: deliveryInfoData, deliveryAddress: deliveryAddrData,
+      managerPin, taxInclusiveMode,
     } = taxData;
 
     try {
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
       const paymentAmount = finalAmount || order.finalAmount || order.totalAmount || getBillingModalTotalAmount();
-      const isPartialPayment = partialPayAmount && partialPayAmount > 0 && partialPayAmount < paymentAmount;
+      const isFullDue = fullDue === true || (partialPayAmount != null && partialPayAmount === 0);
+      const isPartialPayment = !isFullDue && partialPayAmount && partialPayAmount > 0 && partialPayAmount < paymentAmount;
 
       const updateData = {
         status: 'completed',
-        paymentStatus: isPartialPayment ? 'partial' : 'paid',
+        paymentStatus: isFullDue ? 'due' : (isPartialPayment ? 'partial' : 'paid'),
         paymentMethod: splitPayments ? 'split' : billingModalPaymentMethod,
         completedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -1171,23 +1198,48 @@ const OrderHistory = () => {
           finalAmount,
         }),
         ...(serviceChargeAmount > 0 && { serviceChargeAmount, serviceChargeRate }),
+        ...(serviceChargeEnabled != null && { serviceChargeEnabled }),
         ...(tipAmount > 0 && { tipAmount, tipPercentage }),
         ...(cashReceived > 0 && { cashReceived, changeReturned }),
         ...(splitPayments && { splitPayments }),
         ...(roundOffAmount && roundOffAmount !== 0 && { roundOffAmount }),
         ...(compItems && { compItems }),
         ...(voidItems && { voidItems }),
+        // Full Due: send partialPayAmount=0, paidAmount=0, outstandingAmount=full amount
+        ...(isFullDue && {
+          partialPayAmount: 0,
+          paidAmount: 0,
+          outstandingAmount: Math.round(paymentAmount * 100) / 100,
+        }),
         ...(isPartialPayment && {
           partialPayAmount,
           paidAmount: partialPayAmount,
           outstandingAmount: Math.round((paymentAmount - partialPayAmount) * 100) / 100,
         }),
-        ...(manualDiscount > 0 && { manualDiscount }),
-        ...(offerDiscount > 0 && { offerDiscount, offerIds, selectedOfferName }),
-        ...(totalDiscountAmount > 0 && { totalDiscountAmount }),
-        ...(specialInstructions && { specialInstructions }),
-        ...(redeemLoyaltyPoints > 0 && { redeemLoyaltyPoints }),
-        ...(loyaltyDiscount > 0 && { loyaltyDiscount }),
+        // Discount fields — always include so zeros can clear previous values
+        manualDiscount: manualDiscount || 0,
+        manualDiscountType: manualDiscountType || null,
+        manualDiscountValue: manualDiscountValue != null ? manualDiscountValue : null,
+        offerDiscount: offerDiscount || 0,
+        offerIds: offerIds && offerIds.length > 0 ? offerIds : [],
+        selectedOfferName: selectedOfferName || null,
+        totalDiscountAmount: totalDiscountAmount || 0,
+        specialInstructions: specialInstructions || null,
+        redeemLoyaltyPoints: redeemLoyaltyPoints || 0,
+        loyaltyDiscount: loyaltyDiscount || 0,
+        // Coupon fields
+        couponDiscount: couponDiscount || null,
+        couponCode: couponCode || null,
+        couponId: couponId || null,
+        // Wallet fields
+        walletRedeemAmount: walletRedeemAmount || null,
+        walletCustomerId: walletCustomerId || null,
+        // Delivery fields
+        deliveryInfo: deliveryInfoData || order.deliveryInfo || null,
+        deliveryAddress: deliveryAddrData || order.deliveryAddress || null,
+        // Manager pin & tax mode
+        managerPin: managerPin || null,
+        taxInclusiveMode: taxInclusiveMode || null,
         customerId: order.customerId || null,
         tableNumber: billingTableNumber || order.tableNumber || null,
         customerInfo: {
@@ -1212,10 +1264,10 @@ const OrderHistory = () => {
         const paymentData = {
           orderId: order.id,
           paymentMethod: splitPayments ? 'split' : billingModalPaymentMethod,
-          amount: isPartialPayment ? partialPayAmount : paymentAmount,
+          amount: isFullDue ? 0 : (isPartialPayment ? partialPayAmount : paymentAmount),
           userId: currentUser.id,
           restaurantId,
-          paymentStatus: isPartialPayment ? 'partial' : 'completed',
+          paymentStatus: isFullDue ? 'due' : (isPartialPayment ? 'partial' : 'paid'),
         };
         await queueOfflineOrder({
           ...updateData,
@@ -1226,11 +1278,12 @@ const OrderHistory = () => {
           idempotencyKey: generateIdempotencyKey(),
         });
         // Optimistic local update
+        const offlinePayStatus = isFullDue ? 'due' : (isPartialPayment ? 'partial' : 'paid');
         setOrders(prevOrders => prevOrders.map(o =>
-          o.id === order.id ? { ...o, status: 'completed', paymentStatus: isPartialPayment ? 'partial' : 'paid' } : o
+          o.id === order.id ? { ...o, status: 'completed', paymentStatus: offlinePayStatus } : o
         ));
         setScheduledOrders(prev => prev.map(o =>
-          o.id === order.id ? { ...o, status: 'completed', paymentStatus: isPartialPayment ? 'partial' : 'paid' } : o
+          o.id === order.id ? { ...o, status: 'completed', paymentStatus: offlinePayStatus } : o
         ));
         closeBillingModal();
         setDeleteSuccess('Order billed offline — will sync when online');
@@ -1244,17 +1297,18 @@ const OrderHistory = () => {
       await apiClient.verifyPayment({
         orderId: order.id,
         paymentMethod: splitPayments ? 'split' : billingModalPaymentMethod,
-        amount: isPartialPayment ? partialPayAmount : paymentAmount,
+        amount: isFullDue ? 0 : (isPartialPayment ? partialPayAmount : paymentAmount),
         userId: currentUser.id,
         restaurantId,
-        paymentStatus: isPartialPayment ? 'partial' : 'completed',
+        paymentStatus: isFullDue ? 'due' : (isPartialPayment ? 'partial' : 'paid'),
       });
 
+      const resolvedPaymentStatus = isFullDue ? 'due' : (isPartialPayment ? 'partial' : 'paid');
       setOrders(prevOrders => prevOrders.map(o =>
-        o.id === order.id ? { ...o, status: 'completed', paymentStatus: isPartialPayment ? 'partial' : 'paid' } : o
+        o.id === order.id ? { ...o, status: 'completed', paymentStatus: resolvedPaymentStatus } : o
       ));
       setScheduledOrders(prev => prev.map(o =>
-        o.id === order.id ? { ...o, status: 'completed', paymentStatus: isPartialPayment ? 'partial' : 'paid' } : o
+        o.id === order.id ? { ...o, status: 'completed', paymentStatus: resolvedPaymentStatus } : o
       ));
       // Don't close modal here — let OrderSummary generate invoice + print first
       // Modal will auto-close after invoice is generated and print is triggered
@@ -1642,6 +1696,11 @@ const OrderHistory = () => {
       const amt = parseFloat(order.loyaltyDiscount.toFixed(2));
       discountAmount += amt;
       discountLines.push({ name: 'Loyalty Points', amount: amt });
+    }
+    if (order.couponDiscount && order.couponDiscount > 0) {
+      const amt = parseFloat(order.couponDiscount.toFixed(2));
+      discountAmount += amt;
+      discountLines.push({ name: order.couponCode ? `Coupon (${order.couponCode})` : 'Coupon Discount', amount: amt });
     }
 
     // Billing feature amounts
@@ -2107,20 +2166,38 @@ const OrderHistory = () => {
                 {order.items?.map((item, i) => (
                   <div key={i} className="flex items-start justify-between py-2.5">
                     <div className="flex-1 min-w-0 pr-4">
-                      <div className="text-sm font-medium text-gray-900">{item.name}</div>
-                      {item.variant && (
+                      <div className="text-sm font-medium text-gray-900">
+                        {item.name}
+                        {item.isCustomItem && (
+                          <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700 border border-purple-200">
+                            CUSTOM
+                          </span>
+                        )}
+                        {item.priceEdited && (
+                          <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                            PRICE EDITED
+                          </span>
+                        )}
+                      </div>
+                      {item.priceEdited && item.menuPrice != null && (
+                        <div className="text-[11px] text-amber-600 mt-0.5">
+                          Menu: <span className="line-through">{formatCurrency(item.menuPrice)}</span> &rarr; {formatCurrency(item.price)}
+                        </div>
+                      )}
+                      {(item.selectedVariant || item.variant) && (
                         <span className="text-[11px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded mt-0.5 inline-block">
-                          {item.variant.name}
+                          Variant: {(item.selectedVariant || item.variant)?.name || item.selectedVariant || item.variant}
                         </span>
                       )}
-                      {item.addons?.length > 0 && (
-                        <div className="text-[11px] text-gray-400 mt-0.5">+ {item.addons.map(a => a.name).join(', ')}</div>
+                      {(item.selectedCustomizations?.length > 0 || item.addons?.length > 0) && (
+                        <div className="text-[11px] text-gray-400 mt-0.5">+ {(item.selectedCustomizations || item.addons).map(a => a.name).join(', ')}</div>
                       )}
                       {item.notes && (
                         <div className="text-[11px] text-amber-600 mt-0.5 italic">{item.notes}</div>
                       )}
                     </div>
-                    <div className="flex items-center gap-4 shrink-0">
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-[11px] text-gray-400 w-14 text-right">{formatCurrency(item.price)}</span>
                       <span className="text-xs text-gray-400 w-8 text-center">x{item.quantity}</span>
                       <span className="text-sm font-semibold text-gray-900 w-20 text-right">{formatCurrency(item.total || (item.price * item.quantity))}</span>
                     </div>
@@ -2132,6 +2209,33 @@ const OrderHistory = () => {
             {order.notes && (
               <div className="mx-5 mb-4 px-3 py-2.5 bg-amber-50 rounded-lg text-xs text-amber-800">
                 <span className="font-semibold">{t('orderHistory.orderNote')}:</span> {order.notes}
+              </div>
+            )}
+
+            {/* Delivery Info */}
+            {(order.deliveryInfo?.personName || order.deliveryInfo?.personPhone || order.deliveryAddress) && (
+              <div className="mx-5 mb-4 px-3 py-2.5 bg-blue-50 rounded-lg text-xs text-blue-800">
+                <div className="font-semibold mb-1.5 flex items-center gap-1.5">
+                  <FaTruck className="text-[10px]" /> Delivery Details
+                </div>
+                {order.deliveryInfo?.personName && (
+                  <div className="flex items-center gap-1 mb-0.5">
+                    <span className="text-blue-500">Person:</span> <span className="font-medium">{order.deliveryInfo.personName}</span>
+                  </div>
+                )}
+                {order.deliveryInfo?.personPhone && (
+                  <div className="flex items-center gap-1 mb-0.5">
+                    <span className="text-blue-500">Phone:</span> <span className="font-medium">{order.deliveryInfo.personPhone}</span>
+                  </div>
+                )}
+                {order.deliveryAddress && (
+                  <div className="flex items-center gap-1 mb-0.5">
+                    <span className="text-blue-500">Address:</span> <span className="font-medium">{order.deliveryAddress}</span>
+                  </div>
+                )}
+                {order.deliveryInfo?.cashHandedOver && (
+                  <div className="mt-1 text-[11px] text-green-700 bg-green-50 px-2 py-0.5 rounded inline-block">Cash handed over</div>
+                )}
               </div>
             )}
 
@@ -2155,7 +2259,7 @@ const OrderHistory = () => {
                 {/* Manual discount */}
                 {order.manualDiscount > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>{t('orderHistory.manualDiscount')}</span>
+                    <span>{t('orderHistory.manualDiscount')}{order.manualDiscountType === 'percentage' && order.manualDiscountValue ? ` (${order.manualDiscountValue}%)` : ''}</span>
                     <span className="font-medium">-{formatCurrency(order.manualDiscount)}</span>
                   </div>
                 )}
@@ -2164,6 +2268,13 @@ const OrderHistory = () => {
                   <div className="flex justify-between text-sm" style={{ color: '#b45309' }}>
                     <span>{t('orderHistory.loyaltyRedeem')}{order.redeemLoyaltyPoints ? ` (${order.redeemLoyaltyPoints} pts)` : ''}</span>
                     <span className="font-medium">-{formatCurrency(order.loyaltyDiscount)}</span>
+                  </div>
+                )}
+                {/* Coupon discount */}
+                {order.couponDiscount > 0 && (
+                  <div className="flex justify-between text-sm text-purple-600">
+                    <span>Coupon{order.couponCode ? ` (${order.couponCode})` : ''}</span>
+                    <span className="font-medium">-{formatCurrency(order.couponDiscount)}</span>
                   </div>
                 )}
                 {order.serviceChargeAmount > 0 && (
@@ -2176,7 +2287,7 @@ const OrderHistory = () => {
                 {order.taxBreakdown && order.taxBreakdown.length > 0 ? (
                   order.taxBreakdown.map((tax, idx) => (
                     <div key={idx} className="flex justify-between text-sm text-gray-500">
-                      <span>{tax.name} ({tax.rate}%)</span>
+                      <span>{tax.name} ({tax.rate}%){tax.inclusive ? ' (Incl.)' : ''}</span>
                       <span className="font-medium">{formatCurrency(tax.amount || 0)}</span>
                     </div>
                   ))
@@ -2202,6 +2313,12 @@ const OrderHistory = () => {
                   <span className="text-base font-bold text-gray-900">{t('orderHistory.total')}</span>
                   <span className="text-base font-bold text-red-600">{formatCurrency(orderTotal)}</span>
                 </div>
+                {order.taxInclusiveMode === 'inclusive' && (
+                  <div className="text-[10px] text-gray-400 text-right mt-0.5">(Tax inclusive pricing)</div>
+                )}
+                {order.taxInclusiveMode === 'mixed' && (
+                  <div className="text-[10px] text-gray-400 text-right mt-0.5">(Mixed tax: some items inclusive)</div>
+                )}
               </div>
 
               {/* Wallet Applied */}
@@ -2247,6 +2364,30 @@ const OrderHistory = () => {
                   {order.outstandingAmount > 0 && (
                     <div className="flex justify-between text-red-600 font-semibold mt-0.5"><span>{t('orderHistory.outstanding')}</span><span>{formatCurrency(order.outstandingAmount)}</span></div>
                   )}
+                </div>
+              )}
+
+              {/* Comp/Void items */}
+              {order.compItems && order.compItems.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-200 text-xs">
+                  <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Comp Items</div>
+                  {order.compItems.map((ci, i) => (
+                    <div key={i} className="flex justify-between text-gray-500">
+                      <span>{ci.name || ci.itemName} x{ci.quantity || 1}</span>
+                      <span className="text-green-600">{ci.reason || 'Complimentary'}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {order.voidItems && order.voidItems.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-200 text-xs">
+                  <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Void Items</div>
+                  {order.voidItems.map((vi, i) => (
+                    <div key={i} className="flex justify-between text-gray-500">
+                      <span>{vi.name || vi.itemName} x{vi.quantity || 1}</span>
+                      <span className="text-red-500">{vi.reason || 'Voided'}</span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -2372,7 +2513,7 @@ const OrderHistory = () => {
       <OfflineBanner />
       {/* Header Section — collapses on scroll for more content space */}
       <div className={`bg-white shadow-sm border-b sticky top-0 z-20 transition-shadow duration-300 ${isScrolled ? 'shadow-md' : ''}`}>
-        <div className="w-full px-3 sm:px-6 lg:px-8">
+        <div className="w-full pl-14 pr-3 sm:px-6 lg:px-8">
           <div className={`flex flex-row items-center justify-between gap-3 sm:gap-4 transition-all duration-300 ${isScrolled ? 'py-1.5 sm:py-2' : 'py-3 sm:py-4'}`}>
             <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
               <div className={`bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg flex-shrink-0 flex items-center justify-center transition-all duration-300 ${isScrolled ? 'w-7 h-7 sm:w-8 sm:h-8' : 'p-2 sm:p-3 sm:rounded-xl'}`}>
@@ -2466,7 +2607,7 @@ const OrderHistory = () => {
           {/* Summary Stats — only in orders view; full cards or compact inline strip based on scroll */}
           {activeView === 'orders' && (<>
           {/* Expanded stat cards — hidden when scrolled */}
-          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isScrolled ? 'max-h-0 opacity-0 pb-0' : 'max-h-40 opacity-100 pb-2 sm:pb-3'}`}>
+          <div style={{ willChange: 'max-height, opacity' }} className={`overflow-hidden transition-[max-height,opacity,padding] duration-300 ease-in-out ${isScrolled ? 'max-h-0 opacity-0 pb-0' : 'max-h-40 opacity-100 pb-2 sm:pb-3'}`}>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-3">
               {/* Revenue */}
               <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
@@ -2532,7 +2673,7 @@ const OrderHistory = () => {
           </div>
 
           {/* Compact inline stat strip — visible only when scrolled */}
-          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isScrolled ? 'max-h-10 opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div style={{ willChange: 'max-height, opacity' }} className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${isScrolled ? 'max-h-10 opacity-100' : 'max-h-0 opacity-0'}`}>
             <div className="flex items-center gap-3 sm:gap-5 py-1.5 text-xs">
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-green-500" />
@@ -3111,8 +3252,9 @@ const OrderHistory = () => {
                                         <thead>
                                           <tr className="bg-gray-50 border-b border-gray-100">
                                             <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-gray-400 uppercase">Item</th>
+                                            <th className="px-3 py-1.5 text-right text-[10px] font-semibold text-gray-400 uppercase w-16">Unit</th>
                                             <th className="px-3 py-1.5 text-center text-[10px] font-semibold text-gray-400 uppercase w-12">Qty</th>
-                                            <th className="px-3 py-1.5 text-right text-[10px] font-semibold text-gray-400 uppercase w-20">Price</th>
+                                            <th className="px-3 py-1.5 text-right text-[10px] font-semibold text-gray-400 uppercase w-20">Total</th>
                                           </tr>
                                         </thead>
                                         <tbody>
@@ -3120,8 +3262,18 @@ const OrderHistory = () => {
                                             <tr key={idx} className="border-b border-gray-50 last:border-0">
                                               <td className="px-3 py-1.5 text-gray-700">
                                                 {item.name}
+                                                {item.isCustomItem && (
+                                                  <span className="ml-1 text-[8px] font-bold text-purple-600">CUSTOM</span>
+                                                )}
+                                                {item.priceEdited && (
+                                                  <span className="ml-1 text-[8px] font-bold text-amber-600">EDITED</span>
+                                                )}
                                                 {item.notes && <div className="text-[10px] text-amber-600 italic mt-0.5">{item.notes}</div>}
+                                                {item.priceEdited && item.menuPrice != null && (
+                                                  <div className="text-[9px] text-amber-500">{formatCurrency(item.menuPrice)} &rarr; {formatCurrency(item.price)}</div>
+                                                )}
                                               </td>
+                                              <td className="px-3 py-1.5 text-right text-gray-500">{formatCurrency(item.price)}</td>
                                               <td className="px-3 py-1.5 text-center text-gray-600">{item.quantity}</td>
                                               <td className="px-3 py-1.5 text-right font-medium text-gray-900">{formatCurrency(item.total || (item.price * item.quantity))}</td>
                                             </tr>
@@ -4257,7 +4409,7 @@ const OrderHistory = () => {
                   <div className="bg-gray-50 rounded-xl p-3 text-sm text-gray-700 space-y-1">
                     {(editCompletedOrder.items || []).map((item, i) => (
                       <div key={i} className="flex justify-between">
-                        <span>{item.quantity}x {item.name}{item.variant?.name ? ` (${item.variant.name})` : ''}</span>
+                        <span>{item.quantity}x {item.name}{(item.selectedVariant?.name || item.variant?.name) ? ` (${item.selectedVariant?.name || item.variant?.name})` : ''}</span>
                         <span className="font-medium">{formatCurrency(item.total || item.price * item.quantity)}</span>
                       </div>
                     ))}
@@ -5305,7 +5457,8 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
   const offerDiscount = b?.discountAmount ?? order.discountAmount ?? 0;
   const manualDiscountAmt = b?.manualDiscount ?? order.manualDiscount ?? 0;
   const loyaltyDiscountAmt = b?.loyaltyDiscount ?? order.loyaltyDiscount ?? 0;
-  const totalDiscount = b?.totalDiscount ?? (offerDiscount + manualDiscountAmt + loyaltyDiscountAmt);
+  const couponDiscountAmt = order.couponDiscount ?? 0;
+  const totalDiscount = b?.totalDiscount ?? (offerDiscount + manualDiscountAmt + loyaltyDiscountAmt + couponDiscountAmt);
   const invoiceNumber = b?.dailyOrderId || order.dailyOrderId || order.orderNumber || (order.id ? order.id.slice(-4).toUpperCase() : 'N/A');
   
   return (
@@ -5432,19 +5585,38 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
                     {order.items?.map((item, i) => (
                       <tr key={i} className="border-b border-gray-200">
                         <td className="py-3 px-4">
-                          <div className="font-medium text-gray-900">{item.name}</div>
-                          {item.variant && (
-                            <div className="text-xs text-gray-500 mt-1">{t('orderHistory.variantLabel')} {item.variant.name}</div>
+                          <div className="font-medium text-gray-900">
+                            {item.name}
+                            {item.isCustomItem && (
+                              <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700 border border-purple-200">
+                                CUSTOM ITEM
+                              </span>
+                            )}
+                            {item.priceEdited && (
+                              <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                                PRICE EDITED
+                              </span>
+                            )}
+                          </div>
+                          {(item.selectedVariant || item.variant) && (
+                            <div className="text-xs text-gray-500 mt-1">{t('orderHistory.variantLabel')} {(item.selectedVariant || item.variant)?.name || item.selectedVariant || item.variant}</div>
                           )}
-                          {item.addons?.length > 0 && (
-                            <div className="text-xs text-gray-500 mt-1">{t('orderHistory.addonsLabel')} {item.addons.map(a => a.name).join(', ')}</div>
+                          {(item.selectedCustomizations?.length > 0 || item.addons?.length > 0) && (
+                            <div className="text-xs text-gray-500 mt-1">{t('orderHistory.addonsLabel')} {(item.selectedCustomizations || item.addons).map(a => a.name).join(', ')}</div>
                           )}
                           {item.notes && (
                             <div className="text-xs text-amber-700 mt-1 italic">{t('orderHistory.noteLabel')} {item.notes}</div>
                           )}
                         </td>
                         <td className="py-3 px-4 text-center text-gray-700">{item.quantity}</td>
-                        <td className="py-3 px-4 text-right text-gray-700">{formatCurrency(item.price)}</td>
+                        <td className="py-3 px-4 text-right text-gray-700">
+                          {formatCurrency(item.price)}
+                          {item.priceEdited && item.menuPrice != null && (
+                            <div className="text-[10px] text-amber-600">
+                              was <span className="line-through">{formatCurrency(item.menuPrice)}</span>
+                            </div>
+                          )}
+                        </td>
                         <td className="py-3 px-4 text-right font-semibold text-gray-900">{formatCurrency(item.total || (item.price * item.quantity))}</td>
                       </tr>
                     ))}
@@ -5485,12 +5657,31 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
                         <span>-{formatCurrency(loyaltyDiscountAmt)}</span>
                       </div>
                     )}
-                    {taxAmount > 0 && (
+                    {order.couponDiscount > 0 && (
+                      <div className="flex justify-between text-green-600">
+                        <span>{order.couponCode ? `Coupon (${order.couponCode})` : 'Coupon Discount'}</span>
+                        <span>-{formatCurrency(order.couponDiscount)}</span>
+                      </div>
+                    )}
+                    {order.serviceChargeAmount > 0 && (
+                      <div className="flex justify-between text-gray-700">
+                        <span>Service Charge{order.serviceChargeRate ? ` (${order.serviceChargeRate}%)` : ''}</span>
+                        <span>{formatCurrency(order.serviceChargeAmount)}</span>
+                      </div>
+                    )}
+                    {order.taxBreakdown && order.taxBreakdown.length > 0 ? (
+                      order.taxBreakdown.map((tax, idx) => (
+                        <div key={idx} className="flex justify-between text-gray-700">
+                          <span>{tax.name} ({tax.rate}%){tax.inclusive ? ' (Incl.)' : ''}</span>
+                          <span>{formatCurrency(tax.amount || 0)}</span>
+                        </div>
+                      ))
+                    ) : taxAmount > 0 ? (
                       <div className="flex justify-between text-gray-700">
                         <span>{t('orderHistory.taxLabel')}</span>
                         <span>{formatCurrency(taxAmount)}</span>
                       </div>
-                    )}
+                    ) : null}
                     {totalDiscount > 0 && (
                       <div className="flex justify-between text-green-600 text-sm">
                         <span>{t('orderHistory.youSaved')}</span>

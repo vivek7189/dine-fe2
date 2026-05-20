@@ -10,7 +10,10 @@ const ItemCustomizationModal = ({
   isOpen,
   onClose,
   onAddToCart,
-  currentQuantity = 0
+  currentQuantity = 0,
+  initialVariant = null,
+  initialCustomizations = null,
+  initialQuantity = null,
 }) => {
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const { formatCurrency } = useCurrency();
@@ -22,7 +25,7 @@ const ItemCustomizationModal = ({
   const hasVariants = item?.variants && Array.isArray(item.variants) && item.variants.length > 0;
   const hasCustomizations = item?.customizations && Array.isArray(item.customizations) && item.customizations.length > 0;
 
-  // Initialize default variant if only one exists
+  // Initialize variant/customization selection when modal opens
   useEffect(() => {
     // Only run when modal opens with a valid item
     if (!isOpen || !item) {
@@ -33,13 +36,31 @@ const ItemCustomizationModal = ({
       return;
     }
 
-    // Auto-select variant if only one exists
-    if (item.variants && Array.isArray(item.variants) && item.variants.length === 1) {
+    // Pre-select variant from initialVariant (e.g. editing existing cart item)
+    if (initialVariant && item.variants && Array.isArray(item.variants)) {
+      const matched = item.variants.find(v => v.name === initialVariant.name) || initialVariant;
+      setSelectedVariant(matched);
+    } else if (item.variants && Array.isArray(item.variants) && item.variants.length === 1) {
+      // Auto-select variant if only one exists
       setSelectedVariant(item.variants[0]);
     } else {
       setSelectedVariant(null);
     }
-  }, [isOpen, item]);
+
+    // Pre-select customizations from initialCustomizations
+    if (initialCustomizations && Array.isArray(initialCustomizations) && initialCustomizations.length > 0) {
+      setSelectedCustomizations(initialCustomizations);
+    } else {
+      setSelectedCustomizations([]);
+    }
+
+    // Pre-set quantity
+    if (initialQuantity && initialQuantity > 0) {
+      setQuantity(initialQuantity);
+    } else {
+      setQuantity(1);
+    }
+  }, [isOpen, item, initialVariant, initialCustomizations, initialQuantity]);
 
   // Early return AFTER all hooks
   if (!isOpen || !item) return null;
