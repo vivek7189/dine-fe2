@@ -158,16 +158,28 @@ const OrderEditModal = ({
     }
   };
 
-  // Calculate totals
+  // Calculate totals using the order's actual tax rate (derived from stored tax data)
   const calculateTotals = () => {
-    if (!order?.items) return { subtotal: 0, tax: 0, total: 0 };
-    
+    if (!order?.items) return { subtotal: 0, tax: 0, total: 0, taxRate: 0 };
+
     const subtotal = order.items.reduce((sum, item) => sum + (item.total || 0), 0);
-    const taxRate = 0.05; // 5% GST
-    const tax = subtotal * taxRate;
+
+    // Derive effective tax rate from the order's stored tax data rather than hardcoding.
+    // Priority: taxBreakdown rates > computed from taxAmount/subtotal > 0
+    let taxRate = 0;
+    if (order.taxBreakdown && order.taxBreakdown.length > 0) {
+      taxRate = order.taxBreakdown.reduce((sum, t) => sum + (t.rate || 0), 0) / 100;
+    } else {
+      const origSubtotal = order.subtotalAmount || order.totalAmount;
+      if (order.taxAmount > 0 && origSubtotal > 0) {
+        taxRate = order.taxAmount / origSubtotal;
+      }
+    }
+
+    const tax = Math.round(subtotal * taxRate * 100) / 100;
     const total = subtotal + tax;
-    
-    return { subtotal, tax, total };
+
+    return { subtotal, tax, total, taxRate };
   };
 
   const totals = calculateTotals();
@@ -191,10 +203,12 @@ const OrderEditModal = ({
         customerInfo,
         notes,
         updatedAt: new Date().toISOString(),
-        lastUpdatedBy: {
-          name: 'Staff Member',
-          id: 'staff-001'
-        }
+        lastUpdatedBy: (() => {
+          try {
+            const u = JSON.parse(localStorage.getItem('user') || '{}');
+            return { name: u.name || u.username || 'Staff Member', id: u.id || u._id || 'unknown' };
+          } catch { return { name: 'Staff Member', id: 'unknown' }; }
+        })()
       };
 
       const response = await apiClient.updateOrder(order.id, updateData);
@@ -234,7 +248,22 @@ const OrderEditModal = ({
         completedAt: new Date().toISOString(),
         totalAmount: totals.total,
         taxAmount: totals.tax,
-        subtotalAmount: totals.subtotal
+        subtotalAmount: totals.subtotal,
+        // Preserve existing discount/offer/billing fields from the order
+        discountAmount: order.discountAmount || 0,
+        manualDiscount: order.manualDiscount || 0,
+        manualDiscountType: order.manualDiscountType || null,
+        manualDiscountValue: order.manualDiscountValue || 0,
+        offerDiscount: order.offerDiscount || 0,
+        couponDiscount: order.couponDiscount || 0,
+        couponCode: order.couponCode || null,
+        couponId: order.couponId || null,
+        loyaltyDiscount: order.loyaltyDiscount || 0,
+        serviceChargeAmount: order.serviceChargeAmount || 0,
+        tipAmount: order.tipAmount || 0,
+        roundOff: order.roundOff || 0,
+        taxBreakdown: order.taxBreakdown || [],
+        finalAmount: totals.total,
       };
 
       const response = await apiClient.updateOrder(order.id, billingData);
@@ -505,7 +534,7 @@ const OrderEditModal = ({
                         <span>{formatCurrency(totals.subtotal)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span>GST (5%):</span>
+                        <span>Tax ({totals.taxRate > 0 ? `${Math.round(totals.taxRate * 100)}%` : '0%'}):</span>
                         <span>{formatCurrency(totals.tax)}</span>
                       </div>
                       <div className="flex justify-between font-semibold text-lg border-t border-gray-300 pt-2">

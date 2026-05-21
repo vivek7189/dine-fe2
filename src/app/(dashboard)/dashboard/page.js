@@ -4085,7 +4085,12 @@ function RestaurantPOSContent() {
         },
         skipKOT: true,
         updatedAt: new Date().toISOString(),
-        lastUpdatedBy: { name: 'Staff Member', id: 'staff-001' }
+        lastUpdatedBy: (() => {
+          try {
+            const u = JSON.parse(localStorage.getItem('user') || '{}');
+            return { name: u.name || u.username || 'Staff Member', id: u.id || u._id || 'unknown' };
+          } catch { return { name: 'Staff Member', id: 'unknown' }; }
+        })()
       };
 
       const response = await apiClient.updateOrder(currentOrder.id, updateData);
@@ -4182,6 +4187,7 @@ function RestaurantPOSContent() {
       couponDiscount: couponDiscAmt = null, couponCode = null, couponId = null,
       serviceChargeRate = null, serviceChargeAmount: scAmount = null, tipAmount: tipAmt = null, tipPercentage: tipPct = null,
       cashReceived = null, changeReturned = null, splitPayments: splitPay = null, roundOffAmount: roundOff = null,
+      fullDue: isFullDue = false,
       partialPayAmount: partialPay = null, compItems: compData = null, voidItems: voidData = null, managerPin: mgrPin = null,
       deliveryInfo: deliveryInfoData = null, deliveryAddress: deliveryAddr2 = null,
       walletRedeemAmount: walletRedeem = null, walletCustomerId: walletCustId = null,
@@ -4268,10 +4274,12 @@ function RestaurantPOSContent() {
             tableNumber: tableToUse || currentOrder.tableNumber || null,
           },
           updatedAt: new Date().toISOString(),
-          lastUpdatedBy: {
-            name: 'Staff Member',
-            id: 'staff-001'
-          },
+          lastUpdatedBy: (() => {
+            try {
+              const u = JSON.parse(localStorage.getItem('user') || '{}');
+              return { name: u.name || u.username || 'Staff Member', id: u.id || u._id || 'unknown' };
+            } catch { return { name: 'Staff Member', id: 'unknown' }; }
+          })(),
           assignedStaff: assignedStaff || null
         };
 
@@ -4473,9 +4481,11 @@ function RestaurantPOSContent() {
           changeReturned: changeReturned || null,
           splitPayments: splitPay || null,
           roundOffAmount: roundOff || null,
+          fullDue: isFullDue || false,
           partialPayAmount: partialPay != null ? partialPay : null,
           paidAmount: partialPay != null ? Math.round(Number(partialPay) * 100) / 100 : null,
           outstandingAmount: partialPay != null ? Math.round(((finalAmount || (subtotal || getTotalAmount()) + totalTax) - Number(partialPay)) * 100) / 100 : null,
+          paymentStatus: isFullDue ? 'due' : (partialPay != null && partialPay > 0 && partialPay < (finalAmount || (subtotal || getTotalAmount()) + totalTax) ? 'partial' : null),
           compItems: compData || null,
           voidItems: voidData || null,
           managerPin: mgrPin || null,

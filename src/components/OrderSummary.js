@@ -3912,7 +3912,7 @@ const OrderSummary = ({
           {/* Actions Section */}
           {!shouldShowOrderSummary() && (
             <div style={{ padding: isMobile ? '4px 8px 8px 8px' : '6px 12px 12px 12px' }}>
-              {/* Offers & Discount Row — side by side */}
+              {/* Offers, Discount, SC, Staff — horizontal scroll row */}
               {(() => {
                 const hasOffers = genericOffers.length > 0 || personalizedOffers.length > 0;
                 const hasLoyalty = loyaltySettings?.enabled && customerData && lookupStatus === 'found';
@@ -3930,12 +3930,14 @@ const OrderSummary = ({
                 const hasApplied = activeOfferCount > 0 || loyaltyDisc > 0 || couponDisc > 0;
 
                 return (
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch', marginBottom: isMobile ? '4px' : '6px' }}>
+                  <div style={{ overflowX: 'auto', marginBottom: isMobile ? '4px' : '6px', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                    <style>{`.billing-scroll-row::-webkit-scrollbar { display: none; }`}</style>
+                    <div className="billing-scroll-row" style={{ display: 'flex', gap: '6px', alignItems: 'stretch', whiteSpace: 'nowrap', minWidth: 'min-content' }}>
                     {showOffers && (
                       <button
                         onClick={() => setShowOffersModal(true)}
                         style={{
-                          flex: 1, minWidth: 0, padding: '4px 6px', borderRadius: '8px',
+                          flexShrink: 0, padding: '4px 6px', borderRadius: '8px',
                           border: hasApplied ? '1.5px solid #86efac' : '1.5px dashed #d1d5db',
                           background: hasApplied
                             ? 'linear-gradient(135deg, #f0fdf4, #ecfdf5)'
@@ -3948,7 +3950,7 @@ const OrderSummary = ({
                         onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; }}
                       >
                         <FaTag size={9} style={{ color: hasApplied ? '#16a34a' : '#9ca3af', flexShrink: 0 }} />
-                        <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                        <div style={{ textAlign: 'left' }}>
                           {hasApplied ? (
                             <span style={{ fontSize: '10px', fontWeight: 700, color: '#15803d', whiteSpace: 'nowrap' }}>
                               -{formatCurrency(totalDiscountAmount)}
@@ -3965,9 +3967,8 @@ const OrderSummary = ({
                     )}
                     {showDiscount && (
                       <div style={{
-                        display: 'flex', alignItems: 'center', gap: '4px', flex: '0 1 auto',
+                        display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0,
                         padding: '4px 8px', borderRadius: '10px', border: '1px solid #e5e7eb', background: '#fafafa',
-                        minWidth: 0,
                       }}>
                         <span style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', whiteSpace: 'nowrap' }}>Discount</span>
                         <input
@@ -4015,7 +4016,6 @@ const OrderSummary = ({
                         borderRadius: '10px', border: '1px solid #e5e7eb', overflow: 'hidden',
                         background: '#fafafa', flexShrink: 0,
                       }}>
-                        {/* ON/OFF pill toggle */}
                         <button
                           onClick={() => setServiceChargeOverride(serviceChargeOverride === false ? null : false)}
                           style={{
@@ -4029,7 +4029,6 @@ const OrderSummary = ({
                           <FaConciergeBell size={8} />
                           SC
                         </button>
-                        {/* Rate display / edit */}
                         {serviceChargeOverride !== false && billingSettings.serviceChargeAllowRateEdit ? (
                           <input
                             type="number"
@@ -4057,7 +4056,7 @@ const OrderSummary = ({
                       </div>
                     )}
                     {showStaffAssign && (
-                      <div style={{ position: 'relative', flex: '1 1 0', minWidth: 0 }}>
+                      <div style={{ position: 'relative', flexShrink: 0, minWidth: '100px' }}>
                         <input
                           type="text"
                           placeholder="Assign Staff"
@@ -4112,6 +4111,7 @@ const OrderSummary = ({
                         )}
                       </div>
                     )}
+                    </div>
                   </div>
                 );
               })()}
