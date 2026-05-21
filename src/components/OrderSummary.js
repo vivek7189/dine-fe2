@@ -754,19 +754,6 @@ const OrderSummary = ({
 
   const getTokenSlipTheme = (index) => tokenSlipPalette[index % tokenSlipPalette.length];
 
-  // Debug: Log cart prop received by OrderSummary
-  console.log('📋 OrderSummary: Received cart prop:', cart);
-  console.log('📋 OrderSummary: Cart length:', cart?.length);
-  if (cart?.length > 0) {
-    console.log('📋 OrderSummary: First cart item:', cart[0]);
-    console.log('📋 OrderSummary: All cart items:', cart.map(item => ({
-      id: item.id,
-      name: item.name,
-      price: item.price,
-      quantity: item.quantity
-    })));
-  }
-  
   // Check if mobile
   useEffect(() => {
     const checkMobile = () => {
@@ -969,7 +956,7 @@ const OrderSummary = ({
   }, []);
 
   const calculateTax = useCallback(() => {
-    console.log('Calculating tax for cart:', cart.length, 'items, restaurantId:', restaurantId);
+    // Tax calculation started
     if (cart.length === 0 || !restaurantId) {
       setTaxBreakdown([]);
       setTotalTax(0);
@@ -979,7 +966,7 @@ const OrderSummary = ({
 
     // Use cached tax settings instead of calling API
     if (!taxSettings?.enabled) {
-      console.log('Tax not enabled for this restaurant');
+      // Tax not enabled — skip tax calculation
       setTaxBreakdown([]);
       setTotalTax(0);
       // Apply discounts even if tax is disabled
@@ -1023,8 +1010,6 @@ const OrderSummary = ({
       }, 0);
 
       const taxTotals = {};
-      let inclusiveTaxTotal = 0;
-      let exclusiveTaxTotal = 0;
       for (const cartItem of cart) {
         const itemUnitPrice = getItemUnitPrice(cartItem);
         const itemTotal = itemUnitPrice * (cartItem.quantity || 1);
@@ -1054,8 +1039,6 @@ const OrderSummary = ({
           if (!taxTotals[key]) taxTotals[key] = { name: tax.name || 'Tax', rate: tax.rate || 0, amount: 0, inclusive: isInclusive };
           taxTotals[key].amount += amt;
           totalTaxAmount += amt;
-          if (isInclusive) inclusiveTaxTotal += amt;
-          else exclusiveTaxTotal += amt;
         }
       }
       calculatedTaxes = Object.values(taxTotals).map(tx => ({
@@ -1063,13 +1046,10 @@ const OrderSummary = ({
         amount: Math.round(tx.amount * 100) / 100
       }));
       totalTaxAmount = Math.round(totalTaxAmount * 100) / 100;
-      exclusiveTaxTotal = Math.round(exclusiveTaxTotal * 100) / 100;
     } else {
       // Flat tax calculation (original behavior — no tax groups)
       const taxableAmount = discountedAmt + sc;
       const isGlobalInclusive = taxSettings.taxInclusivePricing === true;
-      let inclusiveTaxTotal = 0;
-      let exclusiveTaxTotal = 0;
       if (taxSettings.taxes && taxSettings.taxes.length > 0) {
         const enabledTaxes = taxSettings.taxes.filter(tax => tax.enabled);
         const totalRate = enabledTaxes.reduce((sum, t) => sum + (t.rate || 0), 0);
@@ -1084,8 +1064,6 @@ const OrderSummary = ({
               inclusive: isGlobalInclusive
             });
             totalTaxAmount += taxAmount;
-            if (isGlobalInclusive) inclusiveTaxTotal += taxAmount;
-            else exclusiveTaxTotal += taxAmount;
         });
       } else if (taxSettings.defaultTaxRate && !Array.isArray(taxSettings.taxes)) {
         const taxAmount = isGlobalInclusive
@@ -1098,13 +1076,10 @@ const OrderSummary = ({
           inclusive: isGlobalInclusive
         });
         totalTaxAmount = taxAmount;
-        if (isGlobalInclusive) inclusiveTaxTotal = taxAmount;
-        else exclusiveTaxTotal = taxAmount;
       }
-      exclusiveTaxTotal = Math.round(exclusiveTaxTotal * 100) / 100;
     }
 
-    console.log('Calculated taxes:', calculatedTaxes, 'Total tax:', totalTaxAmount, 'Discount:', discTotal);
+    // Tax calculation complete
     setTaxBreakdown(calculatedTaxes);
     setTotalTax(totalTaxAmount);
 
@@ -1263,9 +1238,12 @@ const OrderSummary = ({
     );
 
     if (stillApplicable.length === 0) {
-      // No saved offers found — might be waiting for customer groups to load
-      // Only finalize if no customer data (customer-specific offers won't appear)
-      if (!customerData) offersPreFilled.current = true;
+      // No saved offers found — might be waiting for customer groups to load.
+      // Finalize if: no customer data, OR customer groups have already loaded
+      // (meaning applicableOffers is complete and saved offers are truly gone)
+      if (!customerData || customerOfferGroups?.length > 0 || !currentOrder.customerId) {
+        offersPreFilled.current = true;
+      }
       return;
     }
 
@@ -1301,7 +1279,19 @@ const OrderSummary = ({
     if (stillApplicable.length >= prevOfferIds.length) {
       offersPreFilled.current = true;
     }
-  }, [currentOrder, cart?.length, applicableOffers, offerSettings.allowMultipleOffers]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentOrder, cart?.length, applicableOffers, offerSettings.allowMultipleOffers, customerOfferGroups?.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Safety: finalize offersPreFilled after 3s even if customer groups never load
+  // (prevents stale saved offerDiscount from being used indefinitely)
+  useEffect(() => {
+    if (!currentOrder || offersPreFilled.current) return;
+    const timer = setTimeout(() => {
+      if (!offersPreFilled.current) {
+        offersPreFilled.current = true;
+      }
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [currentOrder]);
 
   // Voice Assistant Functions
   const fuzzyMatchMenuItems = (transcript, menuItems) => {
@@ -1471,7 +1461,7 @@ const OrderSummary = ({
   const cartKey = cart.map(item => `${item.id}-${item.quantity}-${Math.round((item.price || 0) * 100)}`).join(',');
   useEffect(() => {
     if (cart.length > 0) {
-      console.log('🔄 Cart items changed, forcing tax recalculation');
+      // Cart items changed — force tax recalculation
       // Small delay to ensure cart state is fully updated
       setTimeout(() => {
         if (!editPreFillPendingRef.current) {
@@ -1482,8 +1472,7 @@ const OrderSummary = ({
   }, [cartKey]); // eslint-disable-line react-hooks/exhaustive-deps
   
   // Debug logging
-  console.log('OrderSummary orderSuccess:', orderSuccess);
-  console.log('Tax state - taxBreakdown:', taxBreakdown, 'totalTax:', totalTax, 'grandTotal:', grandTotal);
+  // Debug logging removed for performance (ran on every render)
 
   // Helper function to check if order summary should be shown based on print settings
   const shouldShowOrderSummary = () => {
@@ -1674,7 +1663,7 @@ const OrderSummary = ({
         cashHandedOver: deliveryInfo.cashHandedOver || false,
       } : null,
       deliveryAddress: orderType === 'delivery' ? (deliveryAddress || null) : null,
-      walletRedeemAmount: useWallet && parseFloat(walletRedeemAmount) > 0 ? parseFloat(walletRedeemAmount) : null,
+      walletRedeemAmount: useWallet && parseFloat(walletRedeemAmount) > 0 ? Math.min(parseFloat(walletRedeemAmount), grandTotal ?? getTotalAmount()) : null,
       walletCustomerId: useWallet && parseFloat(walletRedeemAmount) > 0 ? customerData?.id : null,
     };
   };

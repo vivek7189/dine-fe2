@@ -99,7 +99,7 @@ export default function TableBillingModal({
         setLoading(false);
       }
     })();
-  }, [open, table?.currentOrderId, selectedRestaurant?.id]);
+  }, [open, table?.currentOrderId, selectedRestaurant?.id, menuItems?.length]);
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -138,14 +138,20 @@ export default function TableBillingModal({
       compItems, voidItems, partialPayAmount, manualDiscount, offerDiscount,
       offerIds, selectedOfferName, totalDiscountAmount, specialInstructions,
       redeemLoyaltyPoints, loyaltyDiscount,
+      serviceChargeEnabled, manualDiscountType, manualDiscountValue,
+      fullDue,
+      couponDiscount, couponCode, couponId,
+      walletRedeemAmount, walletCustomerId,
+      deliveryInfo: deliveryInfoData, deliveryAddress: deliveryAddrData,
+      managerPin, taxInclusiveMode,
     } = taxData;
 
     try {
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
       const paymentAmount = finalAmount ?? order.finalAmount ?? order.totalAmount ?? getModalTotalAmount();
-      const isPartialPayment = partialPayAmount != null && partialPayAmount >= 0 && partialPayAmount < paymentAmount;
-      const isFullDue = partialPayAmount != null && partialPayAmount === 0;
+      const isFullDue = fullDue === true || (partialPayAmount != null && partialPayAmount === 0);
+      const isPartialPayment = !isFullDue && partialPayAmount && partialPayAmount > 0 && partialPayAmount < paymentAmount;
 
       const updateData = {
         status: 'completed',
@@ -160,23 +166,48 @@ export default function TableBillingModal({
           finalAmount: finalAmount
         }),
         ...(serviceChargeAmount > 0 && { serviceChargeAmount, serviceChargeRate }),
+        ...(serviceChargeEnabled != null && { serviceChargeEnabled }),
         ...(tipAmount > 0 && { tipAmount, tipPercentage }),
         ...(cashReceived > 0 && { cashReceived, changeReturned }),
         ...(splitPayments && { splitPayments }),
         ...(roundOffAmount && roundOffAmount !== 0 && { roundOffAmount }),
         ...(compItems && { compItems }),
         ...(voidItems && { voidItems }),
-        ...((isPartialPayment || isFullDue) && {
-          partialPayAmount: partialPayAmount,
+        // Full Due: send partialPayAmount=0, paidAmount=0, outstandingAmount=full amount
+        ...(isFullDue && {
+          partialPayAmount: 0,
+          paidAmount: 0,
+          outstandingAmount: Math.round(paymentAmount * 100) / 100,
+        }),
+        ...(isPartialPayment && {
+          partialPayAmount,
           paidAmount: partialPayAmount,
           outstandingAmount: Math.round((paymentAmount - partialPayAmount) * 100) / 100,
         }),
-        ...(manualDiscount > 0 && { manualDiscount }),
-        ...(offerDiscount > 0 && { offerDiscount, offerIds, selectedOfferName }),
-        ...(totalDiscountAmount > 0 && { totalDiscountAmount }),
-        ...(specialInstructions && { specialInstructions }),
-        ...(redeemLoyaltyPoints > 0 && { redeemLoyaltyPoints }),
-        ...(loyaltyDiscount > 0 && { loyaltyDiscount }),
+        // Discount fields — always include so zeros can clear previous values
+        manualDiscount: manualDiscount || 0,
+        manualDiscountType: manualDiscountType || null,
+        manualDiscountValue: manualDiscountValue != null ? manualDiscountValue : null,
+        offerDiscount: offerDiscount || 0,
+        offerIds: offerIds && offerIds.length > 0 ? offerIds : [],
+        selectedOfferName: selectedOfferName || null,
+        totalDiscountAmount: totalDiscountAmount || 0,
+        specialInstructions: specialInstructions || null,
+        redeemLoyaltyPoints: redeemLoyaltyPoints || 0,
+        loyaltyDiscount: loyaltyDiscount || 0,
+        // Coupon fields
+        couponDiscount: couponDiscount || null,
+        couponCode: couponCode || null,
+        couponId: couponId || null,
+        // Wallet fields
+        walletRedeemAmount: walletRedeemAmount || null,
+        walletCustomerId: walletCustomerId || null,
+        // Delivery fields
+        deliveryInfo: deliveryInfoData || order.deliveryInfo || null,
+        deliveryAddress: deliveryAddrData || order.deliveryAddress || null,
+        // Manager pin & tax mode
+        managerPin: managerPin || null,
+        taxInclusiveMode: taxInclusiveMode || null,
         customerId: order.customerId || null,
         customerInfo: {
           name: modalCustomerName || order.customerInfo?.name || '',
