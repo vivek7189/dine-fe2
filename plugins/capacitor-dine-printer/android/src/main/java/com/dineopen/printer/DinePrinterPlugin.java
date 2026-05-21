@@ -18,6 +18,10 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.text.Layout;
+import android.util.Base64;
 import android.util.Log;
 
 import com.getcapacitor.JSArray;
@@ -110,6 +114,12 @@ public class DinePrinterPlugin extends Plugin {
     private String cachedSerialPort = null;
     // Cached vendor SDK name (e.g. "Sunmi", "ZCS")
     private String cachedVendorSdk = null;
+
+    // ZCS SmartPOS SDK — initialized lazily on first use
+    private Object zcsPrinterObj = null;       // com.zcs.sdk.Printer
+    private Object zcsDriverManager = null;    // com.zcs.sdk.DriverManager
+    private boolean zcsInitialized = false;
+    private boolean zcsAvailable = false;
 
     @PluginMethod
     public void print(PluginCall call) {
@@ -676,6 +686,338 @@ public class DinePrinterPlugin extends Plugin {
         }).start();
     }
 
+    /**
+     * Get real-time printer status — paper, temperature, busy, etc.
+     * Returns structured status for ZCS devices, generic for others.
+     */
+    @PluginMethod
+    public void getPrinterStatus(PluginCall call) {
+        new Thread(() -> {
+            JSObject result = new JSObject();
+            String vendorName = detectVendorSdk();
+            result.put("vendorSdk", vendorName);
+
+            if ("ZCS".equals(vendorName) && initZcsSdk()) {
+                int statusCode = getZcsPrinterStatusCode();
+                String statusStr;
+                switch (statusCode) {
+                    case 0:   statusStr = "ready"; break;
+                    case 1:   statusStr = "busy"; break;
+                    case 240: statusStr = "no_paper"; break;
+                    case 243: statusStr = "overheated"; break;
+                    default:  statusStr = (statusCode == -1) ? "unknown" : "error"; break;
+                }
+                result.put("status", statusStr);
+                result.put("statusCode", statusCode);
+            } else {
+                // Non-ZCS: check if we have a working printer at all
+                String defaultAddr = getDefaultPrinterAddress();
+                if (defaultAddr != null) {
+                    result.put("status", "ready");
+                } else {
+                    result.put("status", "unknown");
+                }
+            }
+            call.resolve(result);
+        }).start();
+    }
+
+    /**
+     * Get device capabilities — what features the current hardware supports.
+     */
+    @PluginMethod
+    public void getDeviceCapabilities(PluginCall call) {
+        new Thread(() -> {
+            JSObject result = new JSObject();
+            String vendorName = detectVendorSdk();
+            result.put("vendorSdk", vendorName);
+
+            boolean isZcs = "ZCS".equals(vendorName) && initZcsSdk() && zcsPrinterObj != null;
+
+            if (isZcs) {
+                // Check cutter support
+                boolean supportsCutter = false;
+                try {
+                    java.lang.reflect.Method isSupportCutter = zcsPrinterObj.getClass().getMethod("isSupportCutter");
+                    Object cutterResult = isSupportCutter.invoke(zcsPrinterObj);
+                    supportsCutter = (cutterResult instanceof Boolean) && (Boolean) cutterResult;
+                } catch (Throwable t) { /* not supported */ }
+
+                // Check label print support
+                boolean supportsLabel = false;
+                try {
+                    java.lang.reflect.Method isSupportLabel = zcsPrinterObj.getClass().getMethod("isSupportLabelPrint");
+                    Object labelResult = isSupportLabel.invoke(zcsPrinterObj);
+                    supportsLabel = (labelResult instanceof Boolean) && (Boolean) labelResult;
+                } catch (Throwable t) { /* not supported */ }
+
+                result.put("supportsCutter", supportsCutter);
+                result.put("supports80mm", true);
+                result.put("supportsQRCode", true);
+                result.put("supportsBarcode", true);
+                result.put("supportsBitmap", true);
+                result.put("supportsCashDrawer", true);
+                result.put("supportsLabelPrint", supportsLabel);
+            } else {
+                // Non-ZCS: ESC/POS fallbacks
+                result.put("supportsCutter", true);   // ESC/POS GS V command
+                result.put("supports80mm", true);
+                result.put("supportsQRCode", true);    // ZXing bitmap fallback
+                result.put("supportsBarcode", true);   // ZXing bitmap fallback
+                result.put("supportsBitmap", true);    // ESC/POS raster
+                result.put("supportsCashDrawer", true); // ESC p command
+                result.put("supportsLabelPrint", false);
+            }
+            call.resolve(result);
+        }).start();
+    }
+
+    /**
+     * Print a QR code natively.
+     * ZCS: uses setPrintAppendQRCode. Others: generates bitmap via ZXing, sends as ESC/POS raster.
+     */
+    @PluginMethod
+    public void printQRCode(PluginCall call) {
+        String content = call.getString("content");
+        if (content == null || content.isEmpty()) {
+            call.reject("QR code content is required");
+            return;
+        }
+        int size = call.getInt("size", 200);
+
+        new Thread(() -> {
+            try {
+                String vendorName = detectVendorSdk();
+                if ("ZCS".equals(vendorName) && initZcsSdk() && zcsPrinterObj != null) {
+                    // ZCS native QR code
+                    int status = getZcsPrinterStatusCode();
+                    if (status == 240) { call.reject("NO_PAPER", "Printer is out of paper"); return; }
+
+                    java.lang.reflect.Method appendQR = zcsPrinterObj.getClass().getMethod(
+                        "setPrintAppendQRCode", String.class, int.class, int.class, Layout.Alignment.class);
+                    appendQR.invoke(zcsPrinterObj, content, size, size, Layout.Alignment.ALIGN_CENTER);
+
+                    java.lang.reflect.Method printStart = zcsPrinterObj.getClass().getMethod("setPrintStart");
+                    printStart.invoke(zcsPrinterObj);
+
+                    Log.i(TAG, "ZCS QR code printed natively");
+                    call.resolve();
+                } else {
+                    // Fallback: generate QR bitmap via ZXing, convert to ESC/POS raster
+                    Bitmap qrBitmap = generateQRBitmap(content, size);
+                    if (qrBitmap != null) {
+                        byte[] rasterData = bitmapToEscPosRaster(qrBitmap, Layout.Alignment.ALIGN_CENTER);
+                        sendEscPosToDefaultPrinter(rasterData);
+                        call.resolve();
+                    } else {
+                        call.reject("GENERATION_FAILED", "Failed to generate QR code bitmap");
+                    }
+                }
+            } catch (Throwable t) {
+                Log.e(TAG, "printQRCode failed", t);
+                call.reject("SDK_ERROR", t.getMessage());
+            }
+        }).start();
+    }
+
+    /**
+     * Print a barcode natively.
+     * ZCS: uses setPrintAppendBarCode. Others: generates bitmap via ZXing, sends as ESC/POS raster.
+     */
+    @PluginMethod
+    public void printBarcode(PluginCall call) {
+        String data = call.getString("data");
+        if (data == null || data.isEmpty()) {
+            call.reject("Barcode data is required");
+            return;
+        }
+        String format = call.getString("format", "CODE_128");
+        int width = call.getInt("width", 360);
+        int height = call.getInt("height", 100);
+        boolean showText = call.getBoolean("showText", true);
+
+        new Thread(() -> {
+            try {
+                String vendorName = detectVendorSdk();
+                if ("ZCS".equals(vendorName) && initZcsSdk() && zcsPrinterObj != null) {
+                    int status = getZcsPrinterStatusCode();
+                    if (status == 240) { call.reject("NO_PAPER", "Printer is out of paper"); return; }
+
+                    // Resolve BarcodeFormat enum
+                    Class<?> barcodeFormatClass = Class.forName("com.google.zxing.BarcodeFormat");
+                    Object barcodeFormat;
+                    try {
+                        barcodeFormat = Enum.valueOf((Class<Enum>) barcodeFormatClass, format);
+                    } catch (IllegalArgumentException e) {
+                        barcodeFormat = Enum.valueOf((Class<Enum>) barcodeFormatClass, "CODE_128");
+                    }
+
+                    java.lang.reflect.Method appendBarcode = zcsPrinterObj.getClass().getMethod(
+                        "setPrintAppendBarCode",
+                        Context.class, String.class, int.class, int.class, boolean.class,
+                        Layout.Alignment.class, barcodeFormatClass);
+                    appendBarcode.invoke(zcsPrinterObj, getContext(), data, width, height, showText,
+                        Layout.Alignment.ALIGN_CENTER, barcodeFormat);
+
+                    java.lang.reflect.Method printStart = zcsPrinterObj.getClass().getMethod("setPrintStart");
+                    printStart.invoke(zcsPrinterObj);
+
+                    Log.i(TAG, "ZCS barcode printed natively");
+                    call.resolve();
+                } else {
+                    // Fallback: generate barcode bitmap via ZXing
+                    Bitmap barcodeBitmap = generateBarcodeBitmap(data, format, width, height);
+                    if (barcodeBitmap != null) {
+                        byte[] rasterData = bitmapToEscPosRaster(barcodeBitmap, Layout.Alignment.ALIGN_CENTER);
+                        sendEscPosToDefaultPrinter(rasterData);
+                        if (showText) {
+                            // Print the barcode text below
+                            byte[] textBytes = ("\n" + data + "\n").getBytes("UTF-8");
+                            java.io.ByteArrayOutputStream combined = new java.io.ByteArrayOutputStream();
+                            combined.write(new byte[]{ 0x1B, 0x61, 0x01 }); // center
+                            combined.write(textBytes);
+                            combined.write(new byte[]{ 0x1B, 0x61, 0x00 }); // left
+                            sendEscPosToDefaultPrinter(combined.toByteArray());
+                        }
+                        call.resolve();
+                    } else {
+                        call.reject("GENERATION_FAILED", "Failed to generate barcode bitmap");
+                    }
+                }
+            } catch (Throwable t) {
+                Log.e(TAG, "printBarcode failed", t);
+                call.reject("SDK_ERROR", t.getMessage());
+            }
+        }).start();
+    }
+
+    /**
+     * Print a bitmap image (logo, signature, etc.).
+     * Accepts base64-encoded image data.
+     */
+    @PluginMethod
+    public void printBitmap(PluginCall call) {
+        String base64 = call.getString("base64");
+        if (base64 == null || base64.isEmpty()) {
+            call.reject("base64 image data is required");
+            return;
+        }
+        String alignment = call.getString("alignment", "center");
+        int maxWidth = call.getInt("maxWidth", 384);
+
+        new Thread(() -> {
+            try {
+                // Decode base64 to bitmap
+                byte[] imageBytes = Base64.decode(base64, Base64.DEFAULT);
+                Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+                if (bitmap == null) {
+                    call.reject("DECODE_FAILED", "Failed to decode base64 image");
+                    return;
+                }
+
+                // Scale if wider than maxWidth
+                if (bitmap.getWidth() > maxWidth) {
+                    float scale = (float) maxWidth / bitmap.getWidth();
+                    int newHeight = (int) (bitmap.getHeight() * scale);
+                    bitmap = Bitmap.createScaledBitmap(bitmap, maxWidth, newHeight, true);
+                }
+
+                Layout.Alignment align = "left".equals(alignment) ? Layout.Alignment.ALIGN_NORMAL
+                    : "right".equals(alignment) ? Layout.Alignment.ALIGN_OPPOSITE
+                    : Layout.Alignment.ALIGN_CENTER;
+
+                String vendorName = detectVendorSdk();
+                if ("ZCS".equals(vendorName) && initZcsSdk() && zcsPrinterObj != null) {
+                    int status = getZcsPrinterStatusCode();
+                    if (status == 240) { call.reject("NO_PAPER", "Printer is out of paper"); return; }
+
+                    java.lang.reflect.Method appendBitmap = zcsPrinterObj.getClass().getMethod(
+                        "setPrintAppendBitmap", Bitmap.class, Layout.Alignment.class);
+                    appendBitmap.invoke(zcsPrinterObj, bitmap, align);
+
+                    java.lang.reflect.Method printStart = zcsPrinterObj.getClass().getMethod("setPrintStart");
+                    printStart.invoke(zcsPrinterObj);
+
+                    Log.i(TAG, "ZCS bitmap printed natively");
+                } else {
+                    // ESC/POS raster fallback
+                    byte[] rasterData = bitmapToEscPosRaster(bitmap, align);
+                    sendEscPosToDefaultPrinter(rasterData);
+                }
+                call.resolve();
+            } catch (Throwable t) {
+                Log.e(TAG, "printBitmap failed", t);
+                call.reject("SDK_ERROR", t.getMessage());
+            }
+        }).start();
+    }
+
+    /**
+     * Cut paper — uses cutter if available, otherwise sends ESC/POS cut command.
+     */
+    @PluginMethod
+    public void cutPaper(PluginCall call) {
+        new Thread(() -> {
+            try {
+                String vendorName = detectVendorSdk();
+                if ("ZCS".equals(vendorName) && initZcsSdk() && zcsPrinterObj != null) {
+                    try {
+                        java.lang.reflect.Method isSupportCutter = zcsPrinterObj.getClass().getMethod("isSupportCutter");
+                        Object cutterResult = isSupportCutter.invoke(zcsPrinterObj);
+                        if (cutterResult instanceof Boolean && (Boolean) cutterResult) {
+                            java.lang.reflect.Method openCutter = zcsPrinterObj.getClass().getMethod("openPrnCutter", byte.class);
+                            openCutter.invoke(zcsPrinterObj, (byte) 1);
+                            Log.i(TAG, "ZCS paper cut via native cutter");
+                            call.resolve();
+                            return;
+                        }
+                    } catch (Throwable t) {
+                        Log.w(TAG, "ZCS cutter failed, falling back to ESC/POS: " + t.getMessage());
+                    }
+                }
+
+                // ESC/POS cut: feed + full cut
+                byte[] cutCmd = new byte[]{ 0x1B, 0x64, 0x04, 0x1D, 0x56, 0x00 };
+                sendEscPosToDefaultPrinter(cutCmd);
+                call.resolve();
+            } catch (Throwable t) {
+                Log.e(TAG, "cutPaper failed", t);
+                call.reject("SDK_ERROR", t.getMessage());
+            }
+        }).start();
+    }
+
+    /**
+     * Open cash drawer — ZCS native openBox() or ESC/POS pulse command.
+     */
+    @PluginMethod
+    public void openCashDrawer(PluginCall call) {
+        new Thread(() -> {
+            try {
+                String vendorName = detectVendorSdk();
+                if ("ZCS".equals(vendorName) && initZcsSdk() && zcsPrinterObj != null) {
+                    try {
+                        java.lang.reflect.Method openBox = zcsPrinterObj.getClass().getMethod("openBox");
+                        openBox.invoke(zcsPrinterObj);
+                        Log.i(TAG, "ZCS cash drawer opened via native SDK");
+                        call.resolve();
+                        return;
+                    } catch (Throwable t) {
+                        Log.w(TAG, "ZCS openBox failed, falling back to ESC/POS: " + t.getMessage());
+                    }
+                }
+
+                // ESC/POS cash drawer pulse: ESC p 0 25 250
+                byte[] drawerCmd = new byte[]{ 0x1B, 0x70, 0x00, 0x19, (byte) 0xFA };
+                sendEscPosToDefaultPrinter(drawerCmd);
+                call.resolve();
+            } catch (Throwable t) {
+                Log.e(TAG, "openCashDrawer failed", t);
+                call.reject("SDK_ERROR", t.getMessage());
+            }
+        }).start();
+    }
+
     // --- Private helpers ---
 
     /**
@@ -878,58 +1220,115 @@ public class DinePrinterPlugin extends Plugin {
     }
 
     /**
-     * ZCS printer via SDK reflection or serial port.
-     * ZCS Z108 and similar devices.
+     * Initialize ZCS SmartPOS SDK.
+     * Called lazily on first ZCS operation. Safe to call multiple times.
+     * Returns true if ZCS SDK is available and initialized on this device.
+     */
+    private boolean initZcsSdk() {
+        if (zcsInitialized) return zcsAvailable;
+        zcsInitialized = true;
+        try {
+            Class<?> dmClass = Class.forName("com.zcs.sdk.DriverManager");
+            java.lang.reflect.Method getInstance = dmClass.getMethod("getInstance");
+            zcsDriverManager = getInstance.invoke(null);
+
+            // Get Sys device and init SDK
+            java.lang.reflect.Method getBaseSys = dmClass.getMethod("getBaseSysDevice");
+            Object sys = getBaseSys.invoke(zcsDriverManager);
+
+            java.lang.reflect.Method sdkInit = sys.getClass().getMethod("sdkInit");
+            Object statusObj = sdkInit.invoke(sys);
+            int status = (statusObj instanceof Integer) ? (Integer) statusObj : -1;
+
+            if (status != 0) {
+                // Try power on and re-init
+                try {
+                    java.lang.reflect.Method sysPowerOn = sys.getClass().getMethod("sysPowerOn");
+                    sysPowerOn.invoke(sys);
+                    Thread.sleep(1000);
+                    statusObj = sdkInit.invoke(sys);
+                    status = (statusObj instanceof Integer) ? (Integer) statusObj : -1;
+                } catch (Exception e) {
+                    Log.w(TAG, "ZCS sysPowerOn failed: " + e.getMessage());
+                }
+            }
+
+            if (status == 0) {
+                // Get Printer instance
+                java.lang.reflect.Method getPrinter = dmClass.getMethod("getPrinter");
+                zcsPrinterObj = getPrinter.invoke(zcsDriverManager);
+                zcsAvailable = true;
+                Log.i(TAG, "ZCS SmartPOS SDK initialized successfully");
+            } else {
+                Log.w(TAG, "ZCS SDK init returned status: " + status);
+            }
+        } catch (ClassNotFoundException e) {
+            Log.d(TAG, "ZCS SDK not available on this device");
+        } catch (Throwable t) {
+            Log.w(TAG, "ZCS SDK init failed: " + t.getMessage());
+        }
+        return zcsAvailable;
+    }
+
+    /**
+     * Get ZCS printer status code via SDK.
+     * Returns -1 if not available. Status codes: 0=ready, 1=busy, 240=paper out, etc.
+     */
+    private int getZcsPrinterStatusCode() {
+        if (!initZcsSdk() || zcsPrinterObj == null) return -1;
+        try {
+            java.lang.reflect.Method getStatus = zcsPrinterObj.getClass().getMethod("getPrinterStatus");
+            Object statusObj = getStatus.invoke(zcsPrinterObj);
+            return (statusObj instanceof Integer) ? (Integer) statusObj : -1;
+        } catch (Throwable t) {
+            Log.w(TAG, "ZCS getPrinterStatus failed: " + t.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * ZCS printer via native SDK.
+     * Uses direct SDK calls for printing ESC/POS data.
+     * Falls back to raw serial bytes if SDK fails.
      */
     private void printViaZcs(byte[] escposData) throws Exception {
-        try {
-            // Try ZCS SDK: com.zcs.sdk.Printer
-            Class<?> printerClass = Class.forName("com.zcs.sdk.Printer");
-            java.lang.reflect.Method getInstance = printerClass.getMethod("getInstance");
-            Object printer = getInstance.invoke(null);
-
-            // getPrinterStatus() — 0 means ready
-            java.lang.reflect.Method getStatus = printerClass.getMethod("getPrinterStatus");
-            Object statusObj = getStatus.invoke(printer);
-            int status = (statusObj instanceof Integer) ? (Integer) statusObj : -1;
-            Log.i(TAG, "ZCS printer status: " + status);
-
-            // write(byte[]) or printRawData(byte[])
+        if (initZcsSdk() && zcsPrinterObj != null) {
             try {
-                java.lang.reflect.Method writeMethod = printerClass.getMethod("write", byte[].class);
-                writeMethod.invoke(printer, escposData);
-                // Feed and cut
-                writeMethod.invoke(printer, new byte[]{ 0x1B, 0x64, 0x04 });
-                writeMethod.invoke(printer, new byte[]{ 0x1D, 0x56, 0x00 });
-                Log.i(TAG, "ZCS SDK print successful via write()");
-                return;
-            } catch (NoSuchMethodException e) {
-                // Try alternative method names
-            }
+                // Check printer status first
+                int status = getZcsPrinterStatusCode();
+                // SdkResult.SDK_PRN_STATUS_PAPEROUT = 240 (0xF0)
+                if (status == 240) {
+                    throw new Exception("ZCS printer: out of paper");
+                }
 
-            try {
-                java.lang.reflect.Method printRaw = printerClass.getMethod("printRawData", byte[].class);
-                printRaw.invoke(printer, escposData);
-                Log.i(TAG, "ZCS SDK print successful via printRawData()");
-                return;
-            } catch (NoSuchMethodException e) {
-                // Try alternative
-            }
+                // Use setPrintString to send raw ESC/POS data
+                java.lang.reflect.Method setPrintString = zcsPrinterObj.getClass().getMethod("setPrintString", byte[].class);
+                setPrintString.invoke(zcsPrinterObj, escposData);
 
-            // Try sendData
-            try {
-                java.lang.reflect.Method sendData = printerClass.getMethod("sendData", byte[].class);
-                sendData.invoke(printer, escposData);
-                Log.i(TAG, "ZCS SDK print successful via sendData()");
-                return;
-            } catch (NoSuchMethodException e) {
-                // Fall through to raw bytes
-            }
+                // Start the print job
+                java.lang.reflect.Method setPrintStart = zcsPrinterObj.getClass().getMethod("setPrintStart");
+                setPrintStart.invoke(zcsPrinterObj);
 
-        } catch (ClassNotFoundException e) {
-            Log.d(TAG, "ZCS SDK class not found, trying raw bytes");
-        } catch (Exception e) {
-            Log.w(TAG, "ZCS SDK failed: " + e.getMessage());
+                // Try to cut paper if supported
+                try {
+                    java.lang.reflect.Method isSupportCutter = zcsPrinterObj.getClass().getMethod("isSupportCutter");
+                    Object cutterSupported = isSupportCutter.invoke(zcsPrinterObj);
+                    if (cutterSupported instanceof Boolean && (Boolean) cutterSupported) {
+                        java.lang.reflect.Method openCutter = zcsPrinterObj.getClass().getMethod("openPrnCutter", byte.class);
+                        openCutter.invoke(zcsPrinterObj, (byte) 1);
+                    }
+                } catch (Throwable t) {
+                    Log.d(TAG, "ZCS cutter not available: " + t.getMessage());
+                }
+
+                Log.i(TAG, "ZCS SDK print successful");
+                return;
+            } catch (Exception e) {
+                Log.w(TAG, "ZCS SDK print failed: " + e.getMessage());
+                if (e.getMessage() != null && e.getMessage().contains("out of paper")) {
+                    throw e;
+                }
+            }
         }
 
         // Fallback: try raw serial bytes
@@ -1310,6 +1709,11 @@ public class DinePrinterPlugin extends Plugin {
             // Pre-process: normalize whitespace within tags
             String h = html;
 
+            // Strip entire <head>, <style>, <script> blocks (content included)
+            h = h.replaceAll("(?is)<head[^>]*>.*?</head>", "");
+            h = h.replaceAll("(?is)<style[^>]*>.*?</style>", "");
+            h = h.replaceAll("(?is)<script[^>]*>.*?</script>", "");
+
             // Process block elements and inline formatting
             // Replace <br> with newline markers
             h = h.replaceAll("(?i)<br\\s*/?>", "\n");
@@ -1459,5 +1863,184 @@ public class DinePrinterPlugin extends Plugin {
             });
             webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null);
         });
+    }
+
+    /**
+     * Send raw ESC/POS data to the default printer.
+     * Routes through vendor SDK, serial, TCP, or Bluetooth based on saved config.
+     */
+    private void sendEscPosToDefaultPrinter(byte[] data) throws Exception {
+        String defaultAddress = getDefaultPrinterAddress();
+
+        // Vendor SDK
+        if (defaultAddress != null && defaultAddress.startsWith("vendor:")) {
+            printViaVendorSdk(defaultAddress, data);
+            return;
+        }
+
+        // Serial port
+        if (defaultAddress != null && defaultAddress.startsWith("serial:")) {
+            String portPath = defaultAddress.replace("serial:", "");
+            File dev = new File(portPath);
+            FileOutputStream fos = new FileOutputStream(dev);
+            fos.write(data);
+            fos.flush();
+            fos.close();
+            return;
+        }
+
+        // TCP
+        if (defaultAddress != null && defaultAddress.startsWith("tcp:")) {
+            String[] hp = parseTcpAddress(defaultAddress);
+            Socket socket = new Socket();
+            socket.connect(new InetSocketAddress(hp[0], Integer.parseInt(hp[1])), TCP_CONNECT_TIMEOUT);
+            OutputStream out = socket.getOutputStream();
+            out.write(data);
+            out.flush();
+            socket.close();
+            return;
+        }
+
+        // Auto-detect: try vendor SDK first
+        String vendorName = detectVendorSdk();
+        if (vendorName != null) {
+            printViaVendorSdk("vendor:" + vendorName, data);
+            return;
+        }
+
+        // Try raw serial
+        printViaRawBytes(data);
+    }
+
+    /**
+     * Generate QR code bitmap using ZXing library.
+     */
+    private Bitmap generateQRBitmap(String content, int size) {
+        try {
+            Class<?> writerClass = Class.forName("com.google.zxing.qrcode.QRCodeWriter");
+            Object writer = writerClass.newInstance();
+            Class<?> barcodeFormatClass = Class.forName("com.google.zxing.BarcodeFormat");
+            Object qrFormat = Enum.valueOf((Class<Enum>) barcodeFormatClass, "QR_CODE");
+
+            java.lang.reflect.Method encode = writerClass.getMethod("encode", String.class, barcodeFormatClass, int.class, int.class);
+            Object bitMatrix = encode.invoke(writer, content, qrFormat, size, size);
+
+            java.lang.reflect.Method getWidth = bitMatrix.getClass().getMethod("getWidth");
+            java.lang.reflect.Method getHeight = bitMatrix.getClass().getMethod("getHeight");
+            java.lang.reflect.Method get = bitMatrix.getClass().getMethod("get", int.class, int.class);
+
+            int w = (Integer) getWidth.invoke(bitMatrix);
+            int h = (Integer) getHeight.invoke(bitMatrix);
+
+            int[] pixels = new int[w * h];
+            for (int y = 0; y < h; y++) {
+                for (int x = 0; x < w; x++) {
+                    boolean isBlack = (Boolean) get.invoke(bitMatrix, x, y);
+                    pixels[y * w + x] = isBlack ? 0xFF000000 : 0xFFFFFFFF;
+                }
+            }
+            Bitmap bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+            bitmap.setPixels(pixels, 0, w, 0, 0, w, h);
+            return bitmap;
+        } catch (Throwable t) {
+            Log.w(TAG, "QR code generation failed: " + t.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Generate barcode bitmap using ZXing library.
+     */
+    private Bitmap generateBarcodeBitmap(String data, String format, int width, int height) {
+        try {
+            Class<?> writerClass = Class.forName("com.google.zxing.MultiFormatWriter");
+            Object writer = writerClass.newInstance();
+            Class<?> barcodeFormatClass = Class.forName("com.google.zxing.BarcodeFormat");
+            Object barcodeFormat;
+            try {
+                barcodeFormat = Enum.valueOf((Class<Enum>) barcodeFormatClass, format);
+            } catch (IllegalArgumentException e) {
+                barcodeFormat = Enum.valueOf((Class<Enum>) barcodeFormatClass, "CODE_128");
+            }
+
+            java.lang.reflect.Method encode = writerClass.getMethod("encode", String.class, barcodeFormatClass, int.class, int.class);
+            Object bitMatrix = encode.invoke(writer, data, barcodeFormat, width, height);
+
+            java.lang.reflect.Method getWidth = bitMatrix.getClass().getMethod("getWidth");
+            java.lang.reflect.Method getHeight = bitMatrix.getClass().getMethod("getHeight");
+            java.lang.reflect.Method get = bitMatrix.getClass().getMethod("get", int.class, int.class);
+
+            int w = (Integer) getWidth.invoke(bitMatrix);
+            int h = (Integer) getHeight.invoke(bitMatrix);
+
+            int[] pixels = new int[w * h];
+            for (int y = 0; y < h; y++) {
+                for (int x = 0; x < w; x++) {
+                    boolean isBlack = (Boolean) get.invoke(bitMatrix, x, y);
+                    pixels[y * w + x] = isBlack ? 0xFF000000 : 0xFFFFFFFF;
+                }
+            }
+            Bitmap bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+            bitmap.setPixels(pixels, 0, w, 0, 0, w, h);
+            return bitmap;
+        } catch (Throwable t) {
+            Log.w(TAG, "Barcode generation failed: " + t.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Convert a Bitmap to ESC/POS raster image command bytes.
+     * Uses GS v 0 command for raster bit image printing.
+     */
+    private byte[] bitmapToEscPosRaster(Bitmap bitmap, Layout.Alignment alignment) {
+        try {
+            int width = bitmap.getWidth();
+            int height = bitmap.getHeight();
+
+            // Ensure width is multiple of 8
+            int byteWidth = (width + 7) / 8;
+
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+
+            // Set alignment
+            byte alignByte = 0x00; // left
+            if (alignment == Layout.Alignment.ALIGN_CENTER) alignByte = 0x01;
+            else if (alignment == Layout.Alignment.ALIGN_OPPOSITE) alignByte = 0x02;
+            out.write(new byte[]{ 0x1B, 0x61, alignByte });
+
+            // GS v 0 — raster bit image
+            // Format: 1D 76 30 m xL xH yL yH d1...dk
+            out.write(new byte[]{ 0x1D, 0x76, 0x30, 0x00 });
+            out.write(new byte[]{ (byte)(byteWidth & 0xFF), (byte)((byteWidth >> 8) & 0xFF) });
+            out.write(new byte[]{ (byte)(height & 0xFF), (byte)((height >> 8) & 0xFF) });
+
+            // Convert pixels to monochrome raster data
+            for (int y = 0; y < height; y++) {
+                for (int byteX = 0; byteX < byteWidth; byteX++) {
+                    int b = 0;
+                    for (int bit = 0; bit < 8; bit++) {
+                        int x = byteX * 8 + bit;
+                        if (x < width) {
+                            int pixel = bitmap.getPixel(x, y);
+                            int gray = (((pixel >> 16) & 0xFF) + ((pixel >> 8) & 0xFF) + (pixel & 0xFF)) / 3;
+                            if (gray < 128) { // dark pixel = print
+                                b |= (0x80 >> bit);
+                            }
+                        }
+                    }
+                    out.write(b);
+                }
+            }
+
+            // Reset alignment
+            out.write(new byte[]{ 0x1B, 0x61, 0x00 });
+            out.write("\n".getBytes());
+
+            return out.toByteArray();
+        } catch (IOException e) {
+            Log.e(TAG, "bitmapToEscPosRaster failed", e);
+            return new byte[0];
+        }
     }
 }

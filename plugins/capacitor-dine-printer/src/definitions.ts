@@ -34,6 +34,34 @@ export interface DiagnoseResult {
   report: string;
 }
 
+export interface PrinterStatus {
+  /** Printer status */
+  status: 'ready' | 'no_paper' | 'overheated' | 'busy' | 'error' | 'unknown';
+  /** Detected vendor SDK name, or null if none */
+  vendorSdk: string | null;
+  /** Raw vendor-specific status code (ZCS only) */
+  statusCode?: number;
+}
+
+export interface DeviceCapabilities {
+  /** Detected vendor SDK name, or null */
+  vendorSdk: string | null;
+  /** Device has a paper cutter */
+  supportsCutter: boolean;
+  /** Device supports 80mm paper */
+  supports80mm: boolean;
+  /** Device can print QR codes */
+  supportsQRCode: boolean;
+  /** Device can print barcodes */
+  supportsBarcode: boolean;
+  /** Device can print bitmap images */
+  supportsBitmap: boolean;
+  /** Device has a cash drawer port */
+  supportsCashDrawer: boolean;
+  /** Device supports label printing */
+  supportsLabelPrint: boolean;
+}
+
 export interface DinePrinterPlugin {
   /** Print HTML content to the configured thermal printer */
   print(options: PrintOptions): Promise<void>;
@@ -58,4 +86,25 @@ export interface DinePrinterPlugin {
 
   /** Run printer diagnostics — returns device info, detected printers, config */
   diagnose(): Promise<DiagnoseResult>;
+
+  /** Get real-time printer status (paper, temperature, etc.) */
+  getPrinterStatus(): Promise<PrinterStatus>;
+
+  /** Get device hardware capabilities */
+  getDeviceCapabilities(): Promise<DeviceCapabilities>;
+
+  /** Print a QR code */
+  printQRCode(options: { content: string; size?: number }): Promise<void>;
+
+  /** Print a barcode */
+  printBarcode(options: { data: string; format?: string; width?: number; height?: number; showText?: boolean }): Promise<void>;
+
+  /** Print a bitmap image from base64 data */
+  printBitmap(options: { base64: string; alignment?: 'left' | 'center' | 'right'; maxWidth?: number }): Promise<void>;
+
+  /** Cut paper */
+  cutPaper(): Promise<void>;
+
+  /** Open cash drawer */
+  openCashDrawer(): Promise<void>;
 }

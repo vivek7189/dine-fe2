@@ -2045,6 +2045,7 @@ function RestaurantPOSContent() {
       basePrice: typeof item.basePrice === 'number' ? item.basePrice : item.price,
       menuPrice: typeof item.menuPrice === 'number' ? item.menuPrice : null,
       priceEdited: item.priceEdited === true,
+      ...(item.appliedPricingRuleId ? { appliedPricingRuleId: item.appliedPricingRuleId } : {}),
       ...(item.isCustomItem ? { isCustomItem: true } : {}),
     };
   };
