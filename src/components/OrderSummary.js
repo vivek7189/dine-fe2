@@ -172,6 +172,7 @@ const OrderSummary = ({
 
   // Track whether edit-mode pre-fill (SC, discount) is still pending — prevents amount flicker
   const [editPreFillPending, setEditPreFillPending] = useState(false);
+  const editPreFillPendingRef = useRef(false); // Synchronous flag for cross-hook blocking
   // Unified flag: disables ALL order buttons when any action is in progress
   const orderBusy = processing || placingOrder || savingOrder || editPreFillPending;
   // True when editing a loaded saved order (disable save button, keep place order text normal)
@@ -316,6 +317,7 @@ const OrderSummary = ({
   const loyaltyPreFilled = useRef(false);
   const editPreFilled = useRef(false);
   const offersPreFilled = useRef(false);
+  const offersReselectedIds = useRef(null); // Track which saved offer IDs have been re-selected
   const prevCustomerId = useRef(null);
 
   // Offers & Rewards Modal
@@ -495,6 +497,8 @@ const OrderSummary = ({
       loyaltyPreFilled.current = false;
       editPreFilled.current = false;
       offersPreFilled.current = false;
+      offersReselectedIds.current = null;
+      editPreFillPendingRef.current = false;
       setEditPreFillPending(false);
       prevCustomerId.current = null;
       initialLookupDone.current = false;
@@ -535,6 +539,8 @@ const OrderSummary = ({
       loyaltyPreFilled.current = false;
       editPreFilled.current = false;
       offersPreFilled.current = false;
+      offersReselectedIds.current = null;
+      editPreFillPendingRef.current = false;
       setEditPreFillPending(false);
       prevCustomerId.current = null;
       initialLookupDone.current = false;
@@ -790,13 +796,21 @@ const OrderSummary = ({
     return Math.round((redeemLoyaltyPoints / redemptionRate) * 100) / 100;
   }, [redeemLoyaltyPoints, loyaltySettings]);
 
+  // Effective offer discount: use the offer engine's computed value once re-selection is complete,
+  // otherwise fall back to the saved order's offer discount while offers are still loading/re-selecting.
+  // This prevents the billing total from showing a partial discount (e.g., auto-applied generic offer
+  // of ₹23 when saved order had ₹58 from generic + customer-specific offers combined).
+  const effectiveOfferDiscount = offersPreFilled.current
+    ? offerDiscount
+    : (currentOrder?.offerDiscount > 0 ? currentOrder.offerDiscount : offerDiscount);
+
   // Loyalty points to earn on this order
   const getLoyaltyPointsToEarn = useCallback(() => {
     if (!loyaltySettings?.enabled) return 0;
     const earnPerAmount = loyaltySettings.earnPerAmount || 100;
     const pointsRate = loyaltySettings.pointsEarned || 4;
     const subtotal = getTotalAmount();
-    const discTotal = offerDiscount + getManualDiscountAmount();
+    const discTotal = effectiveOfferDiscount + getManualDiscountAmount();
     const loyaltyDisc = getLoyaltyDiscountAmount();
     // If redeeming and not allowed to earn, return 0
     if (redeemLoyaltyPoints > 0 && !loyaltySettings.earnPointsOnRedemption) return 0;
@@ -804,13 +818,13 @@ const OrderSummary = ({
       ? Math.max(0, subtotal - discTotal)
       : Math.max(0, subtotal - discTotal - loyaltyDisc);
     return Math.floor(eligibleAmount / earnPerAmount) * pointsRate;
-  }, [loyaltySettings, getTotalAmount, offerDiscount, getManualDiscountAmount, getLoyaltyDiscountAmount, redeemLoyaltyPoints]);
+  }, [loyaltySettings, getTotalAmount, effectiveOfferDiscount, getManualDiscountAmount, getLoyaltyDiscountAmount, redeemLoyaltyPoints]);
 
   // Coupon discount
   const getCouponDiscountAmount = () => appliedCoupon?.discountAmount || 0;
 
   // Total discount for display
-  const totalDiscountAmount = offerDiscount + getManualDiscountAmount() + getLoyaltyDiscountAmount() + getCouponDiscountAmount();
+  const totalDiscountAmount = effectiveOfferDiscount + getManualDiscountAmount() + getLoyaltyDiscountAmount() + getCouponDiscountAmount();
 
   // Discount settings from taxSettings
   const discountSettings = taxSettings?.discountSettings || {};
@@ -830,7 +844,7 @@ const OrderSummary = ({
       const res = await apiClient.validateCoupon(restaurantId, code.trim(), customerMobile || '', getTotalAmount());
       if (res.valid) {
         // Stacking check
-        if (!offerSettings?.allowCouponsWithOffers && offerDiscount > 0) {
+        if (!offerSettings?.allowCouponsWithOffers && effectiveOfferDiscount > 0) {
           setCouponError('Remove offers to use a coupon');
           setCouponLoading(false);
           return;
@@ -971,7 +985,7 @@ const OrderSummary = ({
       // Apply discounts even if tax is disabled
       const subtotal = getTotalAmount();
       const loyaltyDiscAmt = getLoyaltyDiscountAmount();
-      const discTotal = offerDiscount + getManualDiscountAmount() + loyaltyDiscAmt + getCouponDiscountAmount();
+      const discTotal = effectiveOfferDiscount + getManualDiscountAmount() + loyaltyDiscAmt + getCouponDiscountAmount();
       const discountedAmt = Math.max(0, subtotal - discTotal);
       const sc = calcServiceCharge(discountedAmt);
       setServiceChargeAmount(sc);
@@ -987,7 +1001,7 @@ const OrderSummary = ({
     // Apply discounts before tax (offers + manual + loyalty + coupon)
     const loyaltyDiscAmt = getLoyaltyDiscountAmount();
     const couponDiscAmt = getCouponDiscountAmount();
-    const discTotal = offerDiscount + getManualDiscountAmount() + loyaltyDiscAmt + couponDiscAmt;
+    const discTotal = effectiveOfferDiscount + getManualDiscountAmount() + loyaltyDiscAmt + couponDiscAmt;
     const discountedAmt = Math.max(0, subtotal - discTotal);
 
     // Service charge (after discounts, before tax)
@@ -1102,12 +1116,25 @@ const OrderSummary = ({
     setRoundOffAmount(ro);
     setGrandTotal(withTip + ro);
 
-  }, [cart, restaurantId, getTotalAmount, taxSettings, offerDiscount, getManualDiscountAmount, getLoyaltyDiscountAmount, appliedCoupon, tipAmount, calcServiceCharge, calcRoundOff, resolveTaxesForItem, isItemTaxInclusive, restaurantCategories]);
+  }, [cart, restaurantId, getTotalAmount, taxSettings, effectiveOfferDiscount, getManualDiscountAmount, getLoyaltyDiscountAmount, appliedCoupon, tipAmount, calcServiceCharge, calcRoundOff, resolveTaxesForItem, isItemTaxInclusive, restaurantCategories]);
   
+  // Flag that pre-fill is needed when entering edit mode (prevents amount flicker)
+  // Must run BEFORE the tax calculation useLayoutEffect to prevent wrong totals
+  // Uses ref for synchronous cross-hook visibility (useState batches and can cancel out)
+  useLayoutEffect(() => {
+    if (currentOrder && !editPreFilled.current) {
+      editPreFillPendingRef.current = true;
+      setEditPreFillPending(true);
+    }
+  }, [currentOrder]);
+
   // Calculate tax when cart changes — useLayoutEffect ensures billing totals
   // are recalculated synchronously before paint, preventing stale grandTotal
   // when offerDiscount changes (avoids showing discount but wrong total)
+  // IMPORTANT: Check the REF (not state) because useState updates are batched
+  // and not visible to other hooks in the same render cycle
   useLayoutEffect(() => {
+    if (editPreFillPendingRef.current) return; // Wait for pre-fill to complete before calculating
     if (cart.length > 0 && restaurantId && taxSettings) {
       calculateTax();
     } else {
@@ -1115,7 +1142,7 @@ const OrderSummary = ({
       setTotalTax(0);
       setGrandTotal(getTotalAmount());
     }
-  }, [calculateTax, cart, restaurantId, getTotalAmount, taxSettings, offerDiscount, manualDiscountValue, manualDiscountTypeState, redeemLoyaltyPoints, tipAmount, billingSettings, appliedCoupon]);
+  }, [calculateTax, cart, restaurantId, getTotalAmount, taxSettings, effectiveOfferDiscount, manualDiscountValue, manualDiscountTypeState, redeemLoyaltyPoints, tipAmount, billingSettings, appliedCoupon, editPreFillPending]);
 
   // Pre-populate special instructions when editing an existing order
   useEffect(() => {
@@ -1137,15 +1164,10 @@ const OrderSummary = ({
     }
   }, [currentOrder, customerData]);
 
-  // Flag that pre-fill is needed when entering edit mode (prevents amount flicker)
-  useEffect(() => {
-    if (currentOrder && cart?.length === 0 && !editPreFilled.current) {
-      setEditPreFillPending(true);
-    }
-  }, [currentOrder, cart?.length]);
-
   // Pre-populate service charge and manual discount when editing an existing order
-  useEffect(() => {
+  // Uses useLayoutEffect so values are set synchronously BEFORE tax calculation re-triggers,
+  // preventing the flash of wrong totals (e.g. showing ₹207 before settling to ₹184)
+  useLayoutEffect(() => {
     if (editPreFilled.current) return;
     if (!currentOrder || cart?.length === 0) return;
 
@@ -1206,12 +1228,25 @@ const OrderSummary = ({
     }
 
     editPreFilled.current = true;
-    setEditPreFillPending(false);
+    editPreFillPendingRef.current = false;
+    // Do NOT call setEditPreFillPending(false) here — the setState(true) from hook 1 must
+    // survive batching to trigger a re-render. A separate useEffect clears it after re-render.
   }, [currentOrder, cart?.length, billingSettings.serviceChargeRate, billingSettings.serviceChargeEnabled]);
 
-  // Re-select previously applied offers in edit mode (runs after offer engine loads offers)
+  // Clear the editPreFillPending state after pre-fill completes and re-render settles.
+  // This must be a separate useEffect (not useLayoutEffect) so it runs AFTER the tax
+  // calculation layout effect has already re-run with the correct pre-filled values.
   useEffect(() => {
-    if (offersPreFilled.current) return;
+    if (editPreFillPending && editPreFilled.current) {
+      setEditPreFillPending(false);
+    }
+  }, [editPreFillPending]);
+
+  // Re-select previously applied offers in edit mode (runs after offer engine loads offers)
+  // Must override any auto-applied offers — the saved order's offer selection takes priority.
+  // Tracks which offer IDs have been re-selected so it can re-run when customer-specific
+  // offers become available (customerGroupIds loads async → applicableOffers updates).
+  useEffect(() => {
     if (!currentOrder || cart?.length === 0) return;
     if (!applicableOffers || applicableOffers.length === 0) return;
 
@@ -1228,26 +1263,45 @@ const OrderSummary = ({
     );
 
     if (stillApplicable.length === 0) {
-      offersPreFilled.current = true;
+      // No saved offers found — might be waiting for customer groups to load
+      // Only finalize if no customer data (customer-specific offers won't appear)
+      if (!customerData) offersPreFilled.current = true;
       return;
     }
 
+    // Check if we've already re-selected exactly these offers (avoid re-running)
+    const prevReselected = offersReselectedIds.current;
+    if (prevReselected && stillApplicable.length === prevReselected.length &&
+        stillApplicable.every(id => prevReselected.includes(id))) {
+      return; // Already re-selected these exact offers
+    }
+
     if (offerSettings.allowMultipleOffers) {
-      // Multi-offer mode: toggle each applicable offer (toggleOffer respects maxOffersAllowed)
+      // Multi-offer mode: first remove any auto-applied offers that weren't in the saved order,
+      // then add the saved offers that are still applicable
+      selectedOfferIds.forEach(oid => {
+        if (!stillApplicable.includes(oid)) {
+          toggleOffer(oid); // toggleOffer removes if already selected
+        }
+      });
       stillApplicable.forEach(oid => {
         if (!selectedOfferIds.includes(oid)) {
           toggleOffer(oid);
         }
       });
     } else {
-      // Single-offer mode: select the first applicable one
-      if (!selectedOfferId) {
-        setSelectedOfferId(stillApplicable[0]);
-      }
+      // Single-offer mode: always re-select the saved offer (override auto-apply)
+      // Use the best-matching saved offer (not just the first)
+      setSelectedOfferId(stillApplicable[0]);
     }
 
-    offersPreFilled.current = true;
-  }, [currentOrder, cart?.length, applicableOffers, offerSettings.allowMultipleOffers, selectedOfferIds, selectedOfferId, setSelectedOfferId, toggleOffer]);
+    offersReselectedIds.current = [...stillApplicable];
+
+    // Only finalize when all saved offers are accounted for
+    if (stillApplicable.length >= prevOfferIds.length) {
+      offersPreFilled.current = true;
+    }
+  }, [currentOrder, cart?.length, applicableOffers, offerSettings.allowMultipleOffers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Voice Assistant Functions
   const fuzzyMatchMenuItems = (transcript, menuItems) => {
@@ -1410,13 +1464,19 @@ const OrderSummary = ({
   };
 
   // Force recalculation when cart items change (for edit mode)
+  // Uses a ref to always call the LATEST calculateTax (avoids stale closure in setTimeout
+  // overwriting correct values calculated by the useLayoutEffect during pre-fill)
+  const calculateTaxRef = useRef(calculateTax);
+  calculateTaxRef.current = calculateTax;
   const cartKey = cart.map(item => `${item.id}-${item.quantity}-${Math.round((item.price || 0) * 100)}`).join(',');
   useEffect(() => {
     if (cart.length > 0) {
       console.log('🔄 Cart items changed, forcing tax recalculation');
       // Small delay to ensure cart state is fully updated
       setTimeout(() => {
-        calculateTax();
+        if (!editPreFillPendingRef.current) {
+          calculateTaxRef.current();
+        }
       }, 100);
     }
   }, [cartKey]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1584,9 +1644,9 @@ const OrderSummary = ({
       specialInstructions: specialInstructions.trim() || null,
       offerIds: allOfferIds,
       manualDiscount: getManualDiscountAmount(),
-      offerDiscount,
-      selectedOfferName,
-      totalDiscountAmount: offerDiscount + getManualDiscountAmount() + getLoyaltyDiscountAmount() + getCouponDiscountAmount(),
+      offerDiscount: effectiveOfferDiscount,
+      selectedOfferName: selectedOfferName || currentOrder?.selectedOfferName || null,
+      totalDiscountAmount: effectiveOfferDiscount + getManualDiscountAmount() + getLoyaltyDiscountAmount() + getCouponDiscountAmount(),
       redeemLoyaltyPoints: redeemLoyaltyPoints > 0 ? redeemLoyaltyPoints : 0,
       loyaltyDiscount: getLoyaltyDiscountAmount(),
       couponDiscount: getCouponDiscountAmount() > 0 ? getCouponDiscountAmount() : null,
@@ -3839,7 +3899,7 @@ const OrderSummary = ({
                     )}
                   </div>
                 </div>
-                <span style={{ fontSize: isMobile ? '18px' : '22px', fontWeight: 'bold' }}>{formatCurrency(grandTotal !== null ? grandTotal : Math.max(0, getTotalAmount() - totalDiscountAmount + exclusiveTaxAmount + serviceChargeAmount + tipAmount + roundOffAmount))}</span>
+                <span style={{ fontSize: isMobile ? '18px' : '22px', fontWeight: 'bold' }}>{formatCurrency(editPreFillPending && currentOrder?.finalAmount != null ? currentOrder.finalAmount : (grandTotal !== null ? grandTotal : Math.max(0, getTotalAmount() - totalDiscountAmount + totalTax + serviceChargeAmount + tipAmount + roundOffAmount)))}</span>
               </div>
               {useWallet && parseFloat(walletRedeemAmount) > 0 && (
                 <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.25)' }}>
@@ -5229,9 +5289,9 @@ const OrderSummary = ({
                       specialInstructions: specialInstructions.trim() || null,
                       offerIds: saveOfferIds,
                       manualDiscount: getManualDiscountAmount(),
-                      offerDiscount,
-                      selectedOfferName,
-                      totalDiscountAmount: offerDiscount + getManualDiscountAmount() + getLoyaltyDiscountAmount(),
+                      offerDiscount: effectiveOfferDiscount,
+                      selectedOfferName: selectedOfferName || currentOrder?.selectedOfferName || null,
+                      totalDiscountAmount: effectiveOfferDiscount + getManualDiscountAmount() + getLoyaltyDiscountAmount(),
                       redeemLoyaltyPoints: redeemLoyaltyPoints > 0 ? redeemLoyaltyPoints : 0,
                       loyaltyDiscount: getLoyaltyDiscountAmount(),
                       serviceChargeRate: serviceChargeAmount > 0 ? (serviceChargeRateOverride !== null ? serviceChargeRateOverride : billingSettings.serviceChargeRate) : null,
@@ -5733,7 +5793,7 @@ const OrderSummary = ({
                                 const next = !useWallet;
                                 setUseWallet(next);
                                 if (next) {
-                                  const billAmount = grandTotal !== null ? grandTotal : Math.max(0, getTotalAmount() - totalDiscountAmount + exclusiveTaxAmount + serviceChargeAmount + tipAmount + roundOffAmount);
+                                  const billAmount = grandTotal !== null ? grandTotal : Math.max(0, getTotalAmount() - totalDiscountAmount + totalTax + serviceChargeAmount + tipAmount + roundOffAmount);
                                   setWalletRedeemAmount(String(Math.round(Math.min(walletBalance, Math.max(0, billAmount)) * 100) / 100));
                                 } else {
                                   setWalletRedeemAmount('');
@@ -5773,7 +5833,7 @@ const OrderSummary = ({
                             />
                             <button
                               onClick={() => {
-                                const billAmount = grandTotal !== null ? grandTotal : Math.max(0, getTotalAmount() - totalDiscountAmount + exclusiveTaxAmount + serviceChargeAmount + tipAmount + roundOffAmount);
+                                const billAmount = grandTotal !== null ? grandTotal : Math.max(0, getTotalAmount() - totalDiscountAmount + totalTax + serviceChargeAmount + tipAmount + roundOffAmount);
                                 setWalletRedeemAmount(String(Math.round(Math.min(walletBalance, Math.max(0, billAmount)) * 100) / 100));
                               }}
                               style={{
@@ -6058,7 +6118,7 @@ const OrderSummary = ({
                     {(customerData.loyaltyPoints || 0) > 0 && (() => {
                       const redemptionRate = loyaltySettings.redemptionRate || 1;
                       const maxPct = loyaltySettings.maxRedemptionPercent || 20;
-                      const afterOtherDisc = Math.max(0, getTotalAmount() - offerDiscount - getManualDiscountAmount());
+                      const afterOtherDisc = Math.max(0, getTotalAmount() - effectiveOfferDiscount - getManualDiscountAmount());
                       const maxDiscByPct = (afterOtherDisc * maxPct) / 100;
                       const maxPointsByPct = Math.floor(maxDiscByPct * redemptionRate);
                       const maxRedeemable = Math.min(customerData.loyaltyPoints, maxPointsByPct);
@@ -6154,10 +6214,10 @@ const OrderSummary = ({
                   <span>Subtotal</span>
                   <span style={{ fontWeight: 600, color: '#334155' }}>{formatCurrency(getTotalAmount())}</span>
                 </div>
-                {offerDiscount > 0 && (
+                {effectiveOfferDiscount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span style={{ color: '#16a34a' }}>Offers</span>
-                    <span style={{ fontWeight: 600, color: '#16a34a' }}>-{formatCurrency(offerDiscount)}</span>
+                    <span style={{ color: '#16a34a' }}>{selectedOfferName || currentOrder?.selectedOfferName || 'Offers'}</span>
+                    <span style={{ fontWeight: 600, color: '#16a34a' }}>-{formatCurrency(effectiveOfferDiscount)}</span>
                   </div>
                 )}
                 {getLoyaltyDiscountAmount() > 0 && (

@@ -1121,14 +1121,24 @@ const OrderHistory = () => {
 
     const cartItems = (order.items || []).map(item => {
       const menuItem = menuItems?.find(m => m.id === (item.menuItemId || item.id));
+      // Use variant price for refreshedPrice when variant is selected
+      const refreshedPrice = item.selectedVariant?.price != null
+        ? item.selectedVariant.price
+        : (menuItem?.price ?? item.price ?? 0);
+      // basePrice should use variant price when variant is selected
+      const variantPriceVal = item.selectedVariant?.price;
+      const itemBasePrice = variantPriceVal != null
+        ? variantPriceVal
+        : (menuItem?.price ?? item.basePrice ?? item.price ?? 0);
       return {
         id: item.menuItemId || item.id,
-        name: item.name,
-        price: item.price || 0,
+        name: menuItem?.name || item.name,
+        price: refreshedPrice,
         quantity: item.quantity || 1,
         selectedVariant: item.selectedVariant,
         selectedCustomizations: item.selectedCustomizations,
-        basePrice: item.basePrice || item.price || 0,
+        basePrice: itemBasePrice,
+        isCustomItem: item.isCustomItem || false,
         pricingRules: menuItem?.pricingRules || item.pricingRules || {},
         category: item.category || menuItem?.category || '',
         taxGroupId: item.taxGroupId || menuItem?.taxGroupId || null,

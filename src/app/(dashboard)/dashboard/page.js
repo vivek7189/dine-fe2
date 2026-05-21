@@ -100,6 +100,7 @@ function RestaurantPOSContent() {
   // Customization modal state
   const [customizationModalOpen, setCustomizationModalOpen] = useState(false);
   const [selectedItemForCustomization, setSelectedItemForCustomization] = useState(null);
+  const [customizationInitial, setCustomizationInitial] = useState({ variant: null, customizations: null, quantity: null });
   const [quickSearch, setQuickSearch] = useState('');
   const [shortCodeSearch, setShortCodeSearch] = useState('');
   const [orderType, setOrderType] = useState('dine-in');
@@ -1939,9 +1940,6 @@ function RestaurantPOSContent() {
       console.error('Error toggling favorite:', error);
     }
   };
-
-  // State for pre-selecting variant/customizations when editing existing cart item
-  const [customizationInitial, setCustomizationInitial] = useState({ variant: null, customizations: null, quantity: null });
 
   // Handler to open customization modal
   const handleItemCustomization = (item) => {

@@ -68,6 +68,11 @@ export default function TableBillingModal({
             const refreshedPrice = item.selectedVariant?.price != null
               ? item.selectedVariant.price
               : (menuItem?.price ?? item.price ?? 0);
+            // basePrice should use variant price when variant is selected
+            const variantPriceVal = item.selectedVariant?.price;
+            const itemBasePrice = variantPriceVal != null
+              ? variantPriceVal
+              : (menuItem?.price ?? item.basePrice ?? item.price ?? 0);
             return {
               id: item.menuItemId || item.id,
               name: menuItem?.name || item.name,
@@ -75,7 +80,8 @@ export default function TableBillingModal({
               quantity: item.quantity || 1,
               selectedVariant: item.selectedVariant,
               selectedCustomizations: item.selectedCustomizations,
-              basePrice: menuItem?.price ?? item.basePrice ?? item.price ?? 0,
+              basePrice: itemBasePrice,
+              isCustomItem: item.isCustomItem || false,
               pricingRules: menuItem?.pricingRules || item.pricingRules || {},
               category: item.category || menuItem?.category || '',
               taxGroupId: menuItem?.taxGroupId || item.taxGroupId || null,
