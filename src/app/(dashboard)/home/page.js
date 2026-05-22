@@ -17,6 +17,7 @@ import apiClient from '../../../lib/api';
 import { t } from '../../../lib/i18n';
 import { setCachedData, getCachedData } from '../../../lib/offlineDb';
 import OfflineBanner from '../../../components/OfflineBanner';
+import { useDineBot } from '../../../components/DineBotProvider';
 
 // ─── Onboarding Checklist Widget ─────────────────────────────
 function OnboardingChecklist({ onDismiss }) {
@@ -204,6 +205,7 @@ export default function HomePage() {
   const router = useRouter();
   const { startLoading } = useLoading();
   const { getCurrencySymbol } = useCurrency();
+  const { openDineBot } = useDineBot();
   const [user, setUser] = useState(null);
   const [pageAccess, setPageAccess] = useState(null);
   const [notAllowedPages, setNotAllowedPages] = useState([]);
@@ -464,6 +466,24 @@ export default function HomePage() {
               <FaPlus size={11} /> {t('home.startTakingOrders')}
             </button>
           )}
+          {/* DineBot AI */}
+          <button
+            onClick={() => {
+              const r = JSON.parse(localStorage.getItem('selectedRestaurant') || '{}');
+              if (r?.id) openDineBot(r.id);
+            }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '10px 16px', borderRadius: '12px',
+              background: 'white', border: '1.5px solid #fecaca',
+              cursor: 'pointer', fontSize: '13px', fontWeight: '600',
+              color: '#ef4444', transition: 'all 0.2s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.borderColor = '#ef4444'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = '#fecaca'; }}
+          >
+            <FaRobot size={14} /> DineBot
+          </button>
         </div>
       </div>
 

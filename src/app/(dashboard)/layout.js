@@ -17,6 +17,7 @@ import { isWeb, isTauri, isElectron } from '../../utils/platform';
 import { isAutoUpdateEnabled, checkForUpdates, restartApp } from '../../utils/autoUpdater';
 import apiClient from '../../lib/api';
 import { FaCloudUploadAlt, FaArrowRight, FaUtensils } from 'react-icons/fa';
+import { DineBotProvider } from '../../components/DineBotProvider';
 
 // Maps route segments to pageAccess keys — mirrors Sidebar accessMap
 const ROUTE_ACCESS_MAP = {
@@ -306,6 +307,7 @@ function DashboardLayoutContent({ children }) {
 
   return (
     <CurrencyProvider>
+    <DineBotProvider>
       <DineAIProvider>
         <style>{`
           @keyframes pageFadeIn {
@@ -469,6 +471,7 @@ function DashboardLayoutContent({ children }) {
             )}
           </div>
       </DineAIProvider>
+    </DineBotProvider>
     </CurrencyProvider>
   );
 }

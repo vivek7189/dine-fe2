@@ -2406,15 +2406,9 @@ class ApiClient {
 
   // ==================== DINEBOT METHODS ====================
 
-  // Send query to DineBot (Simple Intent-Based API)
+  // Send query to DineBot (Function Calling Agent with role-based access)
   async queryDineBot(query, restaurantId) {
-    // SECURITY: Commented out to prevent exposing sensitive token data in console logs
-    // console.log('🤖 DineBot queryDineBot called with:', { query, restaurantId });
-    const token = this.getToken();
-    // SECURITY: Commented out to prevent exposing sensitive token data in console logs
-    // console.log('🔑 Token in queryDineBot:', !!token, token ? token.substring(0, 20) + '...' : 'null');
-    
-    return this.request('/api/dinebot/query', {
+    return this.request('/api/chatbot/intelligent-query', {
       method: 'POST',
       body: {
         query: query,

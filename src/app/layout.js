@@ -4,6 +4,7 @@ import TokenExtractor from '../components/TokenExtractor'
 import { Analytics } from "@vercel/analytics/next"
 import { LoadingProvider } from '../contexts/LoadingContext'
 import PostHogProvider from '../components/PostHogProvider'
+import WebsiteChatbot from '../components/WebsiteChatbot'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -78,6 +79,7 @@ export default function RootLayout({ children }) {
           <LoadingProvider>
             <TokenExtractor />
             {children}
+            <WebsiteChatbot />
           </LoadingProvider>
         </PostHogProvider>
         <Analytics />

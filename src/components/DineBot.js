@@ -47,13 +47,12 @@ const DineBot = ({ restaurantId, isOpen, onClose }) => {
   const handleSendMessage = async () => {
     if (!inputText.trim() || isLoading || !restaurantId) return;
 
-    // Check if user is authenticated
-    const token = localStorage.getItem('authToken');
+    // Check if user is authenticated (use apiClient which checks both cookies and localStorage)
+    const token = apiClient.getToken();
     if (!token) {
-      console.error('❌ No authentication token found');
       const errorMessage = {
         id: Date.now() + 1,
-        text: "❌ You need to be logged in to use DineBot. Please refresh the page and log in again.",
+        text: "You need to be logged in to use DineBot. Please refresh the page and log in again.",
         sender: 'bot',
         timestamp: new Date(),
         isError: true
@@ -74,13 +73,8 @@ const DineBot = ({ restaurantId, isOpen, onClose }) => {
     setIsLoading(true);
 
     try {
-      // SECURITY: Commented out to prevent exposing sensitive token data in console logs
-      // console.log('🤖 DineBot query attempt:', { inputText, restaurantId });
-      // console.log('🔑 Auth token available:', !!localStorage.getItem('authToken'));
-      // console.log('🔑 Token value:', localStorage.getItem('authToken')?.substring(0, 20) + '...');
-      
       const response = await apiClient.queryDineBot(inputText, restaurantId);
-      
+
       if (response.success) {
         const botMessage = {
           id: Date.now() + 1,
@@ -88,18 +82,20 @@ const DineBot = ({ restaurantId, isOpen, onClose }) => {
           sender: 'bot',
           timestamp: new Date(),
           data: response.data,
-          intent: response.intent,
-          confidence: response.confidence
+          functionCalled: response.functionCalled,
         };
         setMessages(prev => [...prev, botMessage]);
       } else {
         throw new Error(response.error || 'Failed to process query');
       }
     } catch (error) {
-      console.error('DineBot query error:', error);
+      // Don't show auth errors — the apiClient handles 401 redirect
+      if (error.message?.includes('Session expired') || error.message?.includes('deactivated')) {
+        return;
+      }
       const errorMessage = {
         id: Date.now() + 1,
-        text: `Sorry, I couldn't process your request. ${error.message || 'Please try again.'}`,
+        text: `Sorry, I couldn't process your request. Please try again.`,
         sender: 'bot',
         timestamp: new Date(),
         isError: true

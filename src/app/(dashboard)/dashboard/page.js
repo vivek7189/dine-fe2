@@ -55,7 +55,8 @@ import {
   FaThList,
   FaTools,
   FaCalendarAlt,
-  FaBell
+  FaBell,
+  FaRobot
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 import { performLogout } from '../../../lib/logout';
@@ -68,11 +69,13 @@ import { useSyncEngine } from '../../../hooks/useSyncEngine';
 import { setCachedData, getCachedData, saveEssentialData, getEssentialData } from '../../../lib/offlineDb';
 import { canPerform } from '../../../lib/permissions';
 import { useHubEvents } from '../../../hooks/useHubEvents';
+import { useDineBot } from '../../../components/DineBotProvider';
 
 function RestaurantPOSContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isLoading } = useLoading();
+  const { openDineBot } = useDineBot();
 
   // Offline sync engine
   const { pendingCount, isOnline, isSyncing, lastSyncEvent, networkTransition, clearTransition, manualSync, queueOfflineOrder, generateIdempotencyKey, offlineEnabled } = useSyncEngine(apiClient);
@@ -6368,6 +6371,28 @@ function RestaurantPOSContent() {
                   <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>{t('dashboard.customers')}</span>
                 </div>
               </Link>
+
+              {/* DineBot AI */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  padding: '6px 12px',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onClick={() => {
+                  const r = JSON.parse(localStorage.getItem('selectedRestaurant') || '{}');
+                  if (r?.id) openDineBot(r.id);
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <FaRobot size={22} color="#ef4444" />
+                <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>DineBot</span>
+              </div>
             </div>
           </div>
         )}
