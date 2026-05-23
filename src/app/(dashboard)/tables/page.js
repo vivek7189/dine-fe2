@@ -26,6 +26,8 @@ import { getBillPrintCSS, getBillHeaderHTML } from '../../../utils/printFontSize
 import { printDocument, supportsNativeAutoPrint } from '../../../utils/printBridge';
 import TableBillingModal from '../../../components/TableBillingModal';
 import MoveOrderModal from '../../../components/MoveOrderModal';
+import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
+import { database } from '../../../../firebase';
 
 const DeliveryTakeawayPanel = dynamic(
   () => import('../../../components/DeliveryTakeawayPanel'),
@@ -522,59 +524,56 @@ const TableManagement = () => {
     return () => window.removeEventListener('restaurantChanged', handleRestaurantChange);
   }, []);
 
-  // ─── Pusher subscription for real-time table/order updates ───
+  // ─── Firebase RTDB subscription for real-time table/order updates (replaces Pusher) ───
   const loadFloorsRef = useRef(null);
   useEffect(() => { loadFloorsRef.current = loadFloorsAndTables; });
 
   useEffect(() => {
-    if (!selectedRestaurant?.id) return;
+    const restaurantId = selectedRestaurant?.id;
+    if (!restaurantId || !database) return;
 
-    const restaurantId = selectedRestaurant.id;
-    let pusher = null;
-    let channel = null;
     let debounceTimer = null;
+    const now = Date.now();
+    const ordersRef = query(ref(database, `events/${restaurantId}/orders`), orderByChild('ts'), startAt(now));
+    const tablesRef = query(ref(database, `events/${restaurantId}/tables`), orderByChild('ts'), startAt(now));
 
-    // Dynamic import to avoid SSR/prerender issues
-    import('pusher-js').then((PusherModule) => {
-      const Pusher = PusherModule.default;
-      pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec', {
-        cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2',
-      });
+    console.log(`📡 Tables: Subscribed to Firebase RTDB events/${restaurantId}/orders & tables`);
 
-      const channelName = `restaurant-${restaurantId}`;
-      channel = pusher.subscribe(channelName);
+    const debouncedRefresh = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => loadFloorsRef.current?.(restaurantId, true), 1000);
+    };
 
-      console.log(`📡 Tables: Subscribed to '${channelName}'`);
-
-      const debouncedRefresh = () => {
-        if (debounceTimer) clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => loadFloorsRef.current?.(restaurantId, true), 1000);
-      };
-
-      const handleEvent = (eventName) => (data) => {
-        console.log(`📡 Tables: Received '${eventName}'`, data);
+    const handleOrderEvent = (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+      const orderEvents = ['order-created', 'order-updated', 'order-status-updated', 'order-completed', 'order-deleted'];
+      if (orderEvents.includes(data.type)) {
+        console.log(`📡 Tables: Received '${data.type}'`, data);
         debouncedRefresh();
         setPusherRefreshSignal(prev => prev + 1);
-      };
+      }
+    };
 
-      channel.bind('order-created', handleEvent('order-created'));
-      channel.bind('order-updated', handleEvent('order-updated'));
-      channel.bind('order-status-updated', handleEvent('order-status-updated'));
-      channel.bind('order-completed', handleEvent('order-completed'));
-      channel.bind('order-deleted', handleEvent('order-deleted'));
-      channel.bind('table-status-updated', handleEvent('table-status-updated'));
-      channel.bind('tables-reset', handleEvent('tables-reset'));
-    });
+    const handleTableEvent = (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+      const tableEvents = ['table-status-updated', 'tables-reset'];
+      if (tableEvents.includes(data.type)) {
+        console.log(`📡 Tables: Received '${data.type}'`, data);
+        debouncedRefresh();
+        setPusherRefreshSignal(prev => prev + 1);
+      }
+    };
+
+    onChildAdded(ordersRef, handleOrderEvent);
+    onChildAdded(tablesRef, handleTableEvent);
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
-      if (channel) {
-        channel.unbind_all();
-        if (pusher) {
-          pusher.unsubscribe(channel.name);
-          pusher.disconnect();
-        }
-      }
+      console.log(`📡 Tables: Unsubscribing from Firebase RTDB`);
+      off(ordersRef, 'child_added', handleOrderEvent);
+      off(tablesRef, 'child_added', handleTableEvent);
     };
   }, [selectedRestaurant?.id]);
 

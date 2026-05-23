@@ -3,7 +3,9 @@
 import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Pusher from 'pusher-js';
+// import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
+import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
+import { database } from '../../../../firebase';
 import Onboarding from '../../../components/Onboarding';
 import EmptyMenuPrompt from '../../../components/EmptyMenuPrompt';
 import MenuItemCard from '../../../components/MenuItemCard';
@@ -2120,35 +2122,25 @@ function RestaurantPOSContent() {
     },
   });
 
-  // Pusher subscription for real-time table status updates
+  // Firebase RTDB subscription for real-time updates (replaces Pusher)
   useEffect(() => {
-    if (!selectedRestaurant?.id) return;
+    if (!selectedRestaurant?.id || !database) return;
 
     const restaurantId = selectedRestaurant.id;
+    const now = Date.now();
 
-    // Initialize Pusher
-    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec', {
-      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2',
-    });
+    console.log(`📡 Dashboard: Subscribing to Firebase RTDB for restaurant '${restaurantId}'`);
 
-    // Subscribe to restaurant-specific channel
-    const channelName = `restaurant-${restaurantId}`;
-    const channel = pusher.subscribe(channelName);
-
-    console.log(`📡 Dashboard: Subscribed to Pusher channel '${channelName}' for table updates`);
-
-    // Debounce rapid Pusher events — separate timers for table vs order events
+    // Debounce rapid events — separate timers for table vs order events
     let tableDebounce = null;
     let orderDebounce = null;
+    let menuDebounce = null;
 
-    // Table events: refresh quickly (1s debounce) — these directly affect table view
     const debouncedTableRefresh = () => {
       if (tableDebounce) clearTimeout(tableDebounce);
       tableDebounce = setTimeout(() => prefetchTablesRef.current(restaurantId), 1000);
     };
 
-    // Order events: refresh less aggressively (3s debounce) — only matters for table
-    // status badges. Skip entirely if user is actively in billing flow (cart has items).
     const debouncedOrderRefresh = () => {
       if (orderDebounce) clearTimeout(orderDebounce);
       orderDebounce = setTimeout(() => {
@@ -2156,68 +2148,68 @@ function RestaurantPOSContent() {
       }, 3000);
     };
 
-    // Bind events with appropriate refresh strategy
-    channel.bind('order-created', (data) => {
-      console.log(`📡 Dashboard: Received 'order-created' event:`, data);
-      debouncedOrderRefresh();
-    });
-    channel.bind('order-updated', (data) => {
-      console.log(`📡 Dashboard: Received 'order-updated' event:`, data);
-      debouncedOrderRefresh();
-    });
-    channel.bind('order-status-updated', (data) => {
-      console.log(`📡 Dashboard: Received 'order-status-updated' event:`, data);
-      debouncedOrderRefresh();
-    });
-    channel.bind('order-completed', (data) => {
-      console.log(`📡 Dashboard: Received 'order-completed' event:`, data);
-      // Completed orders release tables — refresh quickly
-      debouncedTableRefresh();
-    });
-    channel.bind('order-deleted', (data) => {
-      console.log(`📡 Dashboard: Received 'order-deleted' event:`, data);
-      debouncedTableRefresh();
-    });
-    channel.bind('table-status-updated', (data) => {
-      console.log(`📡 Dashboard: Received 'table-status-updated' event:`, data);
-      debouncedTableRefresh();
-    });
-    channel.bind('order-voided', (data) => {
-      console.log(`📡 Dashboard: Received 'order-voided' event:`, data);
-      debouncedOrderRefresh();
-      // Show notification only for owner/admin
-      try {
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        if (user.role === 'owner' || user.role === 'admin') {
-          setNotification({
-            type: 'error',
-            title: `Order #${data.dailyOrderId || data.orderNumber || '?'} Voided`,
-            message: `Cancelled by ${data.cancelledBy || 'Staff'}${data.reason ? ` — ${data.reason}` : ''}. Amount: ${data.totalAmount || 0}`,
-            show: true
-          });
-        }
-      } catch (e) { /* ignore parse errors */ }
-    });
-
-    // Menu events: refresh menu data when another user/terminal edits menu
-    let menuDebounce = null;
     const debouncedMenuRefresh = () => {
       if (menuDebounce) clearTimeout(menuDebounce);
       menuDebounce = setTimeout(() => refreshMenuRef.current?.(restaurantId), 1500);
     };
-    channel.bind('menu-updated', debouncedMenuRefresh);
-    channel.bind('menu-item-created', debouncedMenuRefresh);
-    channel.bind('menu-item-deleted', debouncedMenuRefresh);
+
+    // Subscribe to orders/ path
+    const ordersRef = query(ref(database, `events/${restaurantId}/orders`), orderByChild('ts'), startAt(now));
+    const handleOrderEvent = (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+      console.log(`📡 Dashboard: Received '${data.type}' event:`, data);
+
+      if (data.type === 'order-completed' || data.type === 'order-deleted') {
+        debouncedTableRefresh();
+      } else if (data.type === 'order-voided') {
+        debouncedOrderRefresh();
+        try {
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          if (user.role === 'owner' || user.role === 'admin') {
+            setNotification({
+              type: 'error',
+              title: `Order #${data.dailyOrderId || data.orderNumber || '?'} Voided`,
+              message: `Cancelled by ${data.cancelledBy || 'Staff'}${data.reason ? ` — ${data.reason}` : ''}. Amount: ${data.totalAmount || 0}`,
+              show: true
+            });
+          }
+        } catch (e) { /* ignore parse errors */ }
+      } else {
+        debouncedOrderRefresh();
+      }
+    };
+    onChildAdded(ordersRef, handleOrderEvent);
+
+    // Subscribe to tables/ path
+    const tablesRef = query(ref(database, `events/${restaurantId}/tables`), orderByChild('ts'), startAt(now));
+    const handleTableEvent = (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+      console.log(`📡 Dashboard: Received '${data.type}' event:`, data);
+      debouncedTableRefresh();
+    };
+    onChildAdded(tablesRef, handleTableEvent);
+
+    // Subscribe to menu/ path
+    const menuRef = query(ref(database, `events/${restaurantId}/menu`), orderByChild('ts'), startAt(now));
+    const handleMenuEvent = (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+      console.log(`📡 Dashboard: Received '${data.type}' event:`, data);
+      debouncedMenuRefresh();
+    };
+    onChildAdded(menuRef, handleMenuEvent);
 
     // Cleanup on unmount
     return () => {
       if (tableDebounce) clearTimeout(tableDebounce);
       if (orderDebounce) clearTimeout(orderDebounce);
       if (menuDebounce) clearTimeout(menuDebounce);
-      console.log(`📡 Dashboard: Unsubscribing from channel '${channelName}'`);
-      channel.unbind_all();
-      pusher.unsubscribe(channelName);
-      pusher.disconnect();
+      console.log(`📡 Dashboard: Unsubscribing from Firebase RTDB`);
+      off(ordersRef, 'child_added', handleOrderEvent);
+      off(tablesRef, 'child_added', handleTableEvent);
+      off(menuRef, 'child_added', handleMenuEvent);
     };
   }, [selectedRestaurant?.id]); // Only re-subscribe when restaurant changes
 

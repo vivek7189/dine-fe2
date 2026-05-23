@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import apiClient from '../../../lib/api';
 import * as attendanceApi from '../../../services/attendanceApi';
-import Pusher from 'pusher-js';
+// import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
+import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
+import { database } from '../../../../firebase';
 import {
   FaCalendarAlt, FaClock, FaUmbrellaBeach, FaCog, FaSpinner, FaStore,
   FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaPlus, FaChevronLeft,
@@ -466,16 +468,22 @@ export default function AttendancePage() {
     return () => clearInterval(liveRefreshRef.current);
   }, [activeTab, restaurantId]);
 
-  // Pusher real-time location updates
+  // Firebase RTDB real-time location updates
   useEffect(() => {
-    if (activeTab !== 'tracking' || !restaurantId) return;
+    if (activeTab !== 'tracking' || !restaurantId || !database) return;
 
-    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec', {
-      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2',
-    });
-    const channel = pusher.subscribe(`restaurant-${restaurantId}`);
+    const now = Date.now();
+    const eventsRef = query(
+      ref(database, `events/${restaurantId}/tables`),
+      orderByChild('ts'),
+      startAt(now)
+    );
 
-    channel.bind('staff-location-updated', (data) => {
+    const handler = (snapshot) => {
+      const event = snapshot.val();
+      if (!event) return;
+      if (event.type !== 'staff-location-updated') return;
+      const data = event;
       setLiveLocations(prev => {
         const idx = prev.findIndex(l => l.staffId === data.staffId);
         const updated = {
@@ -494,12 +502,12 @@ export default function AttendancePage() {
         }
         return [...prev, updated];
       });
-    });
+    };
+
+    onChildAdded(eventsRef, handler);
 
     return () => {
-      channel.unbind_all();
-      pusher.unsubscribe(`restaurant-${restaurantId}`);
-      pusher.disconnect();
+      off(eventsRef, 'child_added', handler);
     };
   }, [activeTab, restaurantId]);
 

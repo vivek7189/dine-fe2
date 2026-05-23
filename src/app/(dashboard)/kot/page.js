@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Pusher from 'pusher-js';
+// import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
+import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
+import { database } from '../../../../firebase';
 import {
   FaPrint,
   FaClock,
@@ -312,8 +314,8 @@ const KitchenOrderTicket = () => {
     loadKotData(true, true);
   }, [loadKotData]);
 
-  // ─── Pusher Subscription (same pattern as orderhistory) ───
-  const [pusherRestaurantId, setPusherRestaurantId] = useState(() => {
+  // ─── Firebase RTDB Subscription (replaces Pusher) ───
+  const [rtdbRestaurantId, setRtdbRestaurantId] = useState(() => {
     if (typeof window === 'undefined') return null;
     const userData = localStorage.getItem('user');
     if (!userData) return null;
@@ -325,60 +327,55 @@ const KitchenOrderTicket = () => {
   });
 
   useEffect(() => {
-    if (!pusherRestaurantId) return;
+    if (!rtdbRestaurantId || !database) return;
 
-    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec', {
-      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2',
-    });
-
-    const channelName = `restaurant-${pusherRestaurantId}`;
-    const channel = pusher.subscribe(channelName);
+    const now = Date.now();
     setIsPollingActive(true);
 
-    console.log(`📡 KOT Pusher: Subscribed to '${channelName}'`);
+    console.log(`📡 KOT RTDB: Subscribed to events/${rtdbRestaurantId}/orders`);
 
     // Debounce — if multiple events arrive within 1s, only fetch once
     let debounceTimer = null;
     const handleOrderEvent = (eventName, data) => {
-      console.log(`📡 KOT Pusher: Received '${eventName}'`, data);
+      console.log(`📡 KOT RTDB: Received '${eventName}'`, data);
       setPollCount(prev => prev + 1);
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         loadKotDataRef.current(false, false);
       }, 1000);
-      // Play sound for new orders (uses ref to avoid stale closure)
       if (eventName === 'order-created' && soundEnabledRef.current) {
         playSound('newOrder');
       }
     };
 
-    channel.bind('order-created', (data) => handleOrderEvent('order-created', data));
-    channel.bind('order-status-updated', (data) => handleOrderEvent('order-status-updated', data));
-    channel.bind('order-updated', (data) => handleOrderEvent('order-updated', data));
-    channel.bind('order-deleted', (data) => handleOrderEvent('order-deleted', data));
-    channel.bind('order-voided', (data) => {
-      console.log(`📡 KOT: Received 'order-voided' event:`, data);
-      handleOrderEvent('order-deleted', data);
-      try {
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        if (user.role === 'owner' || user.role === 'admin') {
-          setNotification({
-            show: true, type: 'error',
-            message: `Order #${data.dailyOrderId || data.orderNumber || '?'} VOIDED by ${data.cancelledBy || 'Staff'}${data.reason ? ` — ${data.reason}` : ''}`
-          });
-        }
-      } catch (e) { /* ignore */ }
-    });
+    const ordersRef = query(ref(database, `events/${rtdbRestaurantId}/orders`), orderByChild('ts'), startAt(now));
+    const handleSnapshot = (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+      if (data.type === 'order-voided') {
+        handleOrderEvent('order-deleted', data);
+        try {
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          if (user.role === 'owner' || user.role === 'admin') {
+            setNotification({
+              show: true, type: 'error',
+              message: `Order #${data.dailyOrderId || data.orderNumber || '?'} VOIDED by ${data.cancelledBy || 'Staff'}${data.reason ? ` — ${data.reason}` : ''}`
+            });
+          }
+        } catch (e) { /* ignore */ }
+      } else {
+        handleOrderEvent(data.type, data);
+      }
+    };
+    onChildAdded(ordersRef, handleSnapshot);
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
-      console.log(`📡 KOT Pusher: Unsubscribing from '${channelName}'`);
-      channel.unbind_all();
-      pusher.unsubscribe(channelName);
-      pusher.disconnect();
+      console.log(`📡 KOT RTDB: Unsubscribing`);
+      off(ordersRef, 'child_added', handleSnapshot);
       setIsPollingActive(false);
     };
-  }, [pusherRestaurantId]);
+  }, [rtdbRestaurantId]);
 
   // ─── Restaurant Change ───
   useEffect(() => {
@@ -386,18 +383,18 @@ const KitchenOrderTicket = () => {
       initialLoadDone.current = false;
       loadKotData(true, true);
       const newId = event.detail?.restaurantId || localStorage.getItem('selectedRestaurantId');
-      if (newId) setPusherRestaurantId(newId);
+      if (newId) setRtdbRestaurantId(newId);
     };
     window.addEventListener('restaurantChanged', handleRestaurantChange);
     return () => window.removeEventListener('restaurantChanged', handleRestaurantChange);
   }, [loadKotData]);
 
-  // Also set pusherRestaurantId once currentRestaurant loads (for owner/admin first visit)
+  // Also set rtdbRestaurantId once currentRestaurant loads (for owner/admin first visit)
   useEffect(() => {
-    if (currentRestaurant?.id && !pusherRestaurantId) {
-      setPusherRestaurantId(currentRestaurant.id);
+    if (currentRestaurant?.id && !rtdbRestaurantId) {
+      setRtdbRestaurantId(currentRestaurant.id);
     }
-  }, [currentRestaurant, pusherRestaurantId]);
+  }, [currentRestaurant, rtdbRestaurantId]);
 
   // ─── Cleanup on unmount ───
   useEffect(() => {
@@ -703,9 +700,8 @@ const KitchenOrderTicket = () => {
     .sort((a, b) => {
       const aTime = new Date(a.kotTime || a.createdAt || a.timestamp).getTime();
       const bTime = new Date(b.kotTime || b.createdAt || b.timestamp).getTime();
-      // Done tab: newest first. All others: oldest first (urgent orders on top)
-      if (selectedTab === 'done') return bTime - aTime;
-      return aTime - bTime;
+      // Newest first for all tabs (new orders appear on top)
+      return bTime - aTime;
     });
 
   // Tab counts
@@ -823,7 +819,7 @@ const KitchenOrderTicket = () => {
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #f9fafb, #f3f4f6)' }}>
       <OfflineBanner />
-      <div style={{ height: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
 
         {/* ─── Background Loading Bar ─── */}
         {(backgroundLoading || refreshing) && (
@@ -1592,38 +1588,6 @@ const KitchenOrderTicket = () => {
           )}
         </div>
 
-        {/* ─── Summary Bar ─── */}
-        {((tabCounts.new || 0) + (tabCounts.cooking || 0) + (tabCounts.ready || 0) + (tabCounts.done || 0)) > 0 && (
-          <div style={{
-            padding: isClient && isMobile ? '8px 12px' : '10px 20px',
-            background: 'white',
-            borderTop: '1px solid #e5e7eb',
-            display: 'flex',
-            gap: isClient && isMobile ? '10px' : '20px',
-            justifyContent: 'center',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            fontSize: isClient && isMobile ? '11px' : '13px',
-            fontWeight: '600',
-          }}>
-            <span style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} />
-              {tabCounts.new || 0} New
-            </span>
-            <span style={{ color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6', display: 'inline-block' }} />
-              {tabCounts.cooking || 0} Cooking
-            </span>
-            <span style={{ color: '#22c55e', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
-              {tabCounts.ready || 0} Ready
-            </span>
-            <span style={{ color: '#6b7280', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#9ca3af', display: 'inline-block' }} />
-              {tabCounts.done || 0} Done
-            </span>
-          </div>
-        )}
 
         {/* ─── Undo Toast ─── */}
         {undoToast && (

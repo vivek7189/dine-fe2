@@ -2,14 +2,16 @@
 
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Pusher from 'pusher-js';
+// import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
+import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
+import { database } from '../../../firebase';
 import { printDocument } from '../../utils/printBridge';
 import { isWeb } from '../../utils/platform';
 import { renderKOT } from '../../utils/printTemplates/index';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
-const PUSHER_KEY = process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec';
-const PUSHER_CLUSTER = process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2';
+// const PUSHER_KEY = process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec'; // COMMENTED OUT — replaced by Firebase RTDB
+// const PUSHER_CLUSTER = process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2'; // COMMENTED OUT — replaced by Firebase RTDB
 
 // KOT Receipt Component - Styled for 80mm thermal printer
 const KOTReceipt = ({ order, restaurantName, onPrint, isPrinting, kotUpdatePrintMode }) => {
@@ -414,50 +416,47 @@ const PrintKOTContent = () => {
     }
   }, [isPolling, fetchPendingOrders]);
 
-  // Pusher real-time subscription + 60s fallback poll (instead of 5s)
+  // Firebase RTDB real-time subscription + 60s fallback poll
   useEffect(() => {
-    if (!restaurantId) return;
+    if (!restaurantId || !database) return;
 
     // Initial fetch
     fetchPendingOrders();
 
-    // Start 60-second fallback poll (safety net in case Pusher misses events)
+    // Start 60-second fallback poll (safety net in case Firebase misses events)
     pollingIntervalRef.current = setInterval(fetchPendingOrders, 60000);
     setIsPolling(true);
 
-    // Subscribe to Pusher for real-time order notifications
-    let pusher;
-    let channel;
-    try {
-      pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
-      const channelName = `restaurant-${restaurantId}`;
-      channel = pusher.subscribe(channelName);
+    // Subscribe to Firebase RTDB for real-time order notifications
+    const now = Date.now();
+    const eventsRef = query(
+      ref(database, `events/${restaurantId}/kot`),
+      orderByChild('ts'),
+      startAt(now)
+    );
 
-      // Fetch immediately when a new order arrives (real-time, no polling delay)
-      const handleOrderEvent = () => {
-        fetchPendingOrders();
-      };
+    const handleOrderEvent = () => {
+      fetchPendingOrders();
+    };
 
-      channel.bind('order-created', handleOrderEvent);
-      channel.bind('order-status-updated', handleOrderEvent);
-      channel.bind('order-updated', handleOrderEvent);
+    const handler = (snapshot) => {
+      const event = snapshot.val();
+      if (!event) return;
+      // React to order-related KOT events
+      if (['order-created', 'order-status-updated', 'order-updated'].includes(event.type)) {
+        handleOrderEvent();
+      }
+    };
 
-      console.log(`📡 KOT Printer: Subscribed to Pusher channel '${channelName}'`);
-    } catch (err) {
-      console.error('Pusher connection failed, relying on 60s polling:', err);
-    }
+    onChildAdded(eventsRef, handler);
+
+    console.log(`Firebase RTDB: KOT Printer subscribed to events/${restaurantId}/kot`);
 
     return () => {
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
       }
-      if (channel) {
-        channel.unbind_all();
-      }
-      if (pusher) {
-        pusher.unsubscribe(`restaurant-${restaurantId}`);
-        pusher.disconnect();
-      }
+      off(eventsRef, 'child_added', handler);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantId]);

@@ -1,8 +1,8 @@
 'use client';
 
 // Auto-print hook for native platforms (Electron/Capacitor/Tauri).
-// Listens to Pusher AND LAN Hub events for real-time auto-printing.
-// Works both online (Pusher + cloud API) and offline (LAN hub + local API).
+// Listens to Firebase RTDB AND LAN Hub events for real-time auto-printing.
+// Works both online (Firebase RTDB + cloud API) and offline (LAN hub + local API).
 //
 // Flow: event arrives → fetch render data (cloud or local) → generate HTML locally → print
 //
@@ -15,9 +15,11 @@ import { generateKOTHTML, generateBillHTML } from '../utils/printHtmlGenerator';
 import { buildTokenSlipHTML } from '../utils/printFontSizes';
 import { isElectron } from '../utils/platform';
 import apiClient from '../lib/api';
+import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
+import { database } from '../../firebase';
 
-const PUSHER_KEY = process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec';
-const PUSHER_CLUSTER = process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2';
+// const PUSHER_KEY = process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec';
+// const PUSHER_CLUSTER = process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2';
 
 // Track recently printed order IDs to prevent duplicates (max 50)
 const recentlyPrinted = new Set();
@@ -178,34 +180,43 @@ export function useAutoPrint(restaurantId, printSettings) {
     }
   }, [restaurantId, printSettings, processQueue, printTokensForOrder]);
 
-  // ──── Pusher events (online) ────
+  // ──── Firebase RTDB events (online) — replaces Pusher ────
   useEffect(() => {
-    if (!supportsNativeAutoPrint() || !restaurantId) return;
+    if (!supportsNativeAutoPrint() || !restaurantId || !database) return;
     if (!printSettings?.autoPrintOnKOT && !printSettings?.autoPrintOnBilling) return;
     if (!printSettings?.usePusherForKOT) return;
 
-    let channel;
+    const now = Date.now();
+    const kotRef = query(ref(database, `events/${restaurantId}/kot`), orderByChild('ts'), startAt(now));
+    const billingRef = query(ref(database, `events/${restaurantId}/billing`), orderByChild('ts'), startAt(now));
 
-    import('pusher-js').then(({ default: Pusher }) => {
-      const pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
-      pusherRef.current = pusher;
+    console.log(`🖨️ AutoPrint: Subscribed to Firebase RTDB events/${restaurantId}/kot & billing`);
 
-      channel = pusher.subscribe(`restaurant-${restaurantId}`);
+    const handleKotEvent = (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+      if (data.type === 'order-created') {
+        handleKotCreated(data);
+      } else if (data.type === 'kot-print-request') {
+        handleKotPrintRequest(data);
+      }
+    };
 
-      channel.bind('order-created', handleKotCreated);
-      channel.bind('kot-print-request', handleKotPrintRequest);
-      channel.bind('billing-print-request', handleBillingPrint);
-    });
+    const handleBillingEvent = (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+      if (data.type === 'billing-print-request') {
+        handleBillingPrint(data);
+      }
+    };
+
+    onChildAdded(kotRef, handleKotEvent);
+    onChildAdded(billingRef, handleBillingEvent);
 
     return () => {
-      if (channel) {
-        channel.unbind_all();
-      }
-      if (pusherRef.current) {
-        pusherRef.current.unsubscribe(`restaurant-${restaurantId}`);
-        pusherRef.current.disconnect();
-        pusherRef.current = null;
-      }
+      console.log(`🖨️ AutoPrint: Unsubscribing from Firebase RTDB`);
+      off(kotRef, 'child_added', handleKotEvent);
+      off(billingRef, 'child_added', handleBillingEvent);
     };
   }, [restaurantId, printSettings, handleKotCreated, handleKotPrintRequest, handleBillingPrint]);
 

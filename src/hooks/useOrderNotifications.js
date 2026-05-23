@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
-import Pusher from 'pusher-js';
+// import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
+import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
+import { database } from '../../firebase';
 
 const STORAGE_KEY = 'orderNotifications';
 const SOUND_KEY = 'orderNotifSound';
@@ -160,29 +162,27 @@ export function useOrderNotifications(restaurantId, notificationOrderTypes = nul
     return () => clearTimeout(timer);
   }, [toasts]);
 
-  // ─── Pusher Subscription ───
+  // ─── Firebase RTDB Subscription (replaces Pusher) ───
   useEffect(() => {
-    if (!restaurantId) return;
+    if (!restaurantId || !database) return;
 
-    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec', {
-      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2',
-    });
+    const now = Date.now();
+    const ordersRef = query(ref(database, `events/${restaurantId}/orders`), orderByChild('ts'), startAt(now));
 
-    const channelName = `restaurant-${restaurantId}`;
-    const channel = pusher.subscribe(channelName);
+    console.log(`🔔 OrderNotifications: Subscribed to Firebase RTDB events/${restaurantId}/orders`);
 
-    console.log(`🔔 OrderNotifications: Subscribed to '${channelName}'`);
-
-    channel.bind('order-created', (data) => {
-      console.log('🔔 OrderNotifications: New order received', data);
-      addNotification(data);
-    });
+    const handleEvent = (snapshot) => {
+      const data = snapshot.val();
+      if (data && data.type === 'order-created') {
+        console.log('🔔 OrderNotifications: New order received', data);
+        addNotification(data);
+      }
+    };
+    onChildAdded(ordersRef, handleEvent);
 
     return () => {
-      console.log(`🔔 OrderNotifications: Unsubscribing from '${channelName}'`);
-      channel.unbind_all();
-      pusher.unsubscribe(channelName);
-      pusher.disconnect();
+      console.log(`🔔 OrderNotifications: Unsubscribing from Firebase RTDB`);
+      off(ordersRef, 'child_added', handleEvent);
     };
   }, [restaurantId, addNotification]);
 

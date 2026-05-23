@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import Pusher from 'pusher-js';
+// import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
+import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
+import { database } from '../../firebase';
 import apiClient from '../lib/api';
 
 /**
@@ -512,18 +514,24 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     loadOffers();
   }, [restaurantId]); // Only re-fetch when restaurant changes
 
-  // Pusher: real-time offer sync — re-fetch when offers are created/updated/deleted
+  // Firebase RTDB: real-time offer sync — re-fetch when offers are created/updated/deleted
   useEffect(() => {
-    if (!restaurantId) return;
+    if (!restaurantId || !database) return;
 
-    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec', {
-      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2',
-    });
-
-    const channel = pusher.subscribe(`restaurant-${restaurantId}`);
+    const now = Date.now();
+    const eventsRef = query(
+      ref(database, `events/${restaurantId}/menu`),
+      orderByChild('ts'),
+      startAt(now)
+    );
 
     let debounceTimer = null;
-    channel.bind('offer-updated', () => {
+    const handler = (snapshot) => {
+      const event = snapshot.val();
+      if (!event) return;
+      // Only react to offer-related events
+      if (event.type !== 'offer-updated') return;
+
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(async () => {
         // Invalidate caches so next load is fresh
@@ -560,16 +568,16 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
             // Settings fetch is best-effort
           }
         } catch (err) {
-          console.error('[useOfferEngine] Pusher re-fetch failed:', err);
+          console.error('[useOfferEngine] Firebase RTDB re-fetch failed:', err);
         }
       }, 1000);
-    });
+    };
+
+    onChildAdded(eventsRef, handler);
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
-      channel.unbind_all();
-      pusher.unsubscribe(`restaurant-${restaurantId}`);
-      pusher.disconnect();
+      off(eventsRef, 'child_added', handler);
     };
   }, [restaurantId]);
 

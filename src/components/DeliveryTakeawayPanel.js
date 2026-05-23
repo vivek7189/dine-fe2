@@ -9,6 +9,8 @@ import {
 } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import { t } from '../lib/i18n';
+import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
+import { database } from '../../firebase';
 
 // Status config — colors match the tables page pattern
 const statusConfig = {
@@ -117,33 +119,33 @@ export default function DeliveryTakeawayPanel({ restaurantId, isMobile, refreshS
   // Initial load
   useEffect(() => { fetchOrders(true); }, [restaurantId]);
 
-  // Own Pusher subscription for real-time order updates
+  // Firebase RTDB subscription for real-time order updates (replaces Pusher)
   const fetchOrdersRef = useRef(fetchOrders);
   useEffect(() => { fetchOrdersRef.current = fetchOrders; });
   useEffect(() => {
-    if (!restaurantId) return;
-    let pusher = null;
-    let channel = null;
+    if (!restaurantId || !database) return;
     let debounceTimer = null;
-    import('pusher-js').then((PusherModule) => {
-      const Pusher = PusherModule.default;
-      pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec', {
-        cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2',
-      });
-      channel = pusher.subscribe(`restaurant-${restaurantId}`);
-      const refresh = () => {
+
+    const now = Date.now();
+    const ordersRef = query(ref(database, `events/${restaurantId}/orders`), orderByChild('ts'), startAt(now));
+
+    console.log(`🚚 DeliveryTakeawayPanel: Subscribed to Firebase RTDB events/${restaurantId}/orders`);
+
+    const handleEvent = (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+      const orderEvents = ['order-created', 'order-updated', 'order-status-updated', 'order-completed', 'order-deleted'];
+      if (orderEvents.includes(data.type)) {
         if (debounceTimer) clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => fetchOrdersRef.current?.(false), 1200);
-      };
-      channel.bind('order-created', refresh);
-      channel.bind('order-updated', refresh);
-      channel.bind('order-status-updated', refresh);
-      channel.bind('order-completed', refresh);
-      channel.bind('order-deleted', refresh);
-    });
+      }
+    };
+    onChildAdded(ordersRef, handleEvent);
+
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
-      if (channel) { channel.unbind_all(); if (pusher) { pusher.unsubscribe(channel.name); pusher.disconnect(); } }
+      console.log(`🚚 DeliveryTakeawayPanel: Unsubscribing from Firebase RTDB`);
+      off(ordersRef, 'child_added', handleEvent);
     };
   }, [restaurantId]);
 

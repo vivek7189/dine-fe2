@@ -3,7 +3,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Pusher from 'pusher-js';
+// import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
+import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
+import { database } from '../../../../firebase';
 import apiClient from '../../../lib/api';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
 import { getCachedOrderHistoryData, setCachedOrderHistoryData } from '../../../utils/dashboardCache';
@@ -824,26 +826,22 @@ const OrderHistory = () => {
     return () => window.removeEventListener('restaurantChanged', handleRestaurantChange);
   }, [restaurantId]);
 
-  // Stable ref for fetchOrders so Pusher doesn't re-subscribe on every render
+  // Stable ref for fetchOrders so Firebase handler doesn't re-subscribe on every render
   const fetchOrdersRef = useRef(fetchOrders);
   useEffect(() => { fetchOrdersRef.current = fetchOrders; }, [fetchOrders]);
 
-  // Pusher subscription for real-time order updates
+  // Firebase RTDB subscription for real-time order updates
   useEffect(() => {
-    if (!restaurantId) return;
+    if (!restaurantId || !database) return;
 
-    // Initialize Pusher
-    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec', {
-      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2',
-    });
+    const now = Date.now();
+    const eventsRef = query(
+      ref(database, `events/${restaurantId}/orders`),
+      orderByChild('ts'),
+      startAt(now)
+    );
 
-    // Subscribe to restaurant-specific channel
-    const channelName = `restaurant-${restaurantId}`;
-    const channel = pusher.subscribe(channelName);
-
-    console.log(`📡 Pusher: Subscribed to channel '${channelName}'`);
-
-    // Smart incremental sync — batch Pusher events, fetch only changed orders
+    // Smart incremental sync — batch Firebase events, fetch only changed orders
     // Collects orderIds over 2s window, then fetches them individually and merges
     let pendingIds = new Set();
     let batchTimer = null;
@@ -894,39 +892,36 @@ const OrderHistory = () => {
       batchTimer = setTimeout(flushBatch, 2000);
     };
 
-    // order-created: fetch full order and prepend to list
-    channel.bind('order-created', (data) => {
-      console.log(`📡 Pusher: Received 'order-created' event:`, data);
-      queueOrderFetch(data?.orderId);
-    });
+    const handler = (snapshot) => {
+      const event = snapshot.val();
+      if (!event) return;
 
-    // order-status-updated: fetch full updated order and merge
-    channel.bind('order-status-updated', (data) => {
-      console.log(`📡 Pusher: Received 'order-status-updated' event:`, data);
-      queueOrderFetch(data?.orderId);
-    });
-
-    // order-updated: fetch full updated order and merge
-    channel.bind('order-updated', (data) => {
-      console.log(`📡 Pusher: Received 'order-updated' event:`, data);
-      queueOrderFetch(data?.orderId);
-    });
-
-    // order-deleted: remove from local state immediately (no fetch needed)
-    channel.bind('order-deleted', (data) => {
-      console.log(`📡 Pusher: Received 'order-deleted' event:`, data);
-      if (data?.orderId) {
-        setOrders(prev => prev.filter(o => o.id !== data.orderId));
+      if (event.type === 'order-created') {
+        console.log(`Firebase RTDB: Received 'order-created' event:`, event);
+        queueOrderFetch(event.orderId);
+      } else if (event.type === 'order-status-updated') {
+        console.log(`Firebase RTDB: Received 'order-status-updated' event:`, event);
+        queueOrderFetch(event.orderId);
+      } else if (event.type === 'order-updated') {
+        console.log(`Firebase RTDB: Received 'order-updated' event:`, event);
+        queueOrderFetch(event.orderId);
+      } else if (event.type === 'order-deleted') {
+        console.log(`Firebase RTDB: Received 'order-deleted' event:`, event);
+        if (event.orderId) {
+          setOrders(prev => prev.filter(o => o.id !== event.orderId));
+        }
       }
-    });
+    };
+
+    onChildAdded(eventsRef, handler);
+
+    console.log(`Firebase RTDB: Subscribed to events/${restaurantId}/orders`);
 
     // Cleanup on unmount
     return () => {
       if (batchTimer) clearTimeout(batchTimer);
-      console.log(`📡 Pusher: Unsubscribing from channel '${channelName}'`);
-      channel.unbind_all();
-      pusher.unsubscribe(channelName);
-      pusher.disconnect();
+      console.log(`Firebase RTDB: Unsubscribing from events/${restaurantId}/orders`);
+      off(eventsRef, 'child_added', handler);
     };
   }, [restaurantId]); // Only re-subscribe when restaurant changes
 

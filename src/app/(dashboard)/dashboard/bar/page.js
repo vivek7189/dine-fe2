@@ -3,7 +3,9 @@
 import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Pusher from 'pusher-js';
+// import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
+import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
+import { database } from '../../../../../firebase';
 import apiClient from '../../../../lib/api';
 import { t } from '../../../../lib/i18n';
 import { useCurrency } from '../../../../contexts/CurrencyContext';
@@ -168,27 +170,32 @@ function BarPOSContent() {
     loadLoyaltyAndOffers(selectedRestaurant.id);
   }, [selectedRestaurant?.id]);
 
-  // Pusher: real-time offer sync
+  // Firebase RTDB: real-time offer sync
   useEffect(() => {
-    if (!selectedRestaurant?.id) return;
+    if (!selectedRestaurant?.id || !database) return;
     const rid = selectedRestaurant.id;
 
-    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec', {
-      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2',
-    });
-    const channel = pusher.subscribe(`restaurant-${rid}`);
+    const now = Date.now();
+    const eventsRef = query(
+      ref(database, `events/${rid}/menu`),
+      orderByChild('ts'),
+      startAt(now)
+    );
 
     let debounceTimer = null;
-    channel.bind('offer-updated', () => {
+    const handler = (snapshot) => {
+      const event = snapshot.val();
+      if (!event) return;
+      if (event.type !== 'offer-updated') return;
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => loadLoyaltyAndOffers(rid), 1000);
-    });
+    };
+
+    onChildAdded(eventsRef, handler);
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
-      channel.unbind_all();
-      pusher.unsubscribe(`restaurant-${rid}`);
-      pusher.disconnect();
+      off(eventsRef, 'child_added', handler);
     };
   }, [selectedRestaurant?.id]);
 
