@@ -150,6 +150,18 @@ const OrderSummary = ({
   assignedStaff = null,
   onAssignedStaffChange,
 }) => {
+  // Persistent SC override — stored per restaurant in localStorage
+  const scOverrideKey = restaurantId ? `dineopen_sc_override_${restaurantId}` : null;
+  const readScOverride = () => {
+    if (!scOverrideKey) return null;
+    try {
+      const val = localStorage.getItem(scOverrideKey);
+      if (val === 'true') return true;
+      if (val === 'false') return false;
+      return null;
+    } catch { return null; }
+  };
+
   // Business-type-aware billing labels (i18n — Arabic gets bilingual ar/en)
   const billingLabels = {
     restaurant: { billTitle: t('invoice.billInvoice'), itemCol: t('invoice.item'), qtyCol: t('invoice.qty'), customerLabel: t('invoice.customer'), footer: t('invoice.footerRestaurant'), billLabel: t('invoice.bill') },
@@ -334,8 +346,19 @@ const OrderSummary = ({
   const [tipAmount, setTipAmount] = useState(0);
   const [tipPercentage, setTipPercentage] = useState(null);
   const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
-  const [serviceChargeOverride, setServiceChargeOverride] = useState(null); // null=default, true=force on, false=force off
+  const [serviceChargeOverride, setServiceChargeOverride] = useState(() => readScOverride()); // persisted per device
   const [serviceChargeRateOverride, setServiceChargeRateOverride] = useState(null); // null=use billingSettings rate
+
+  // Wrapper that persists SC override to localStorage when user clicks the toggle
+  const setServiceChargeOverridePersistent = useCallback((val) => {
+    setServiceChargeOverride(val);
+    if (scOverrideKey) {
+      try {
+        if (val === null) localStorage.removeItem(scOverrideKey);
+        else localStorage.setItem(scOverrideKey, String(val));
+      } catch {}
+    }
+  }, [scOverrideKey]);
   const [roundOffAmount, setRoundOffAmount] = useState(0);
   const [compVoidItems, setCompVoidItems] = useState([]);
   const [compVoidType, setCompVoidType] = useState('comp');
@@ -513,7 +536,7 @@ const OrderSummary = ({
       setTipAmount(0);
       setTipPercentage(null);
       setServiceChargeAmount(0);
-      setServiceChargeOverride(null);
+      setServiceChargeOverride(readScOverride());
       setServiceChargeRateOverride(null);
       setRoundOffAmount(0);
       setCompVoidItems([]);
@@ -556,7 +579,7 @@ const OrderSummary = ({
       setTipAmount(0);
       setTipPercentage(null);
       setServiceChargeAmount(0);
-      setServiceChargeOverride(null);
+      setServiceChargeOverride(readScOverride());
       setServiceChargeRateOverride(null);
       setRoundOffAmount(0);
       setCompVoidItems([]);
@@ -4067,7 +4090,7 @@ const OrderSummary = ({
                         background: '#fafafa', flexShrink: 0,
                       }}>
                         <button
-                          onClick={() => setServiceChargeOverride(serviceChargeOverride === false ? null : false)}
+                          onClick={() => setServiceChargeOverridePersistent(serviceChargeOverride === false ? true : false)}
                           style={{
                             padding: '4px 8px', border: 'none', cursor: 'pointer',
                             fontSize: '9px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px',
