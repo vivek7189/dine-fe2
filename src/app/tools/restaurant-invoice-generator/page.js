@@ -5,8 +5,8 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Free Restaurant Invoice & Bill Generator India | DineOpen',
-  description: 'Generate GST-compliant restaurant invoices and bills for free. Automatic tax calculation, multiple payment modes, digital receipts via WhatsApp.',
-  keywords: 'restaurant invoice generator India, GST bill generator restaurant, restaurant billing software free, food bill maker, restaurant receipt generator',
+  description: 'Generate GST-compliant restaurant invoices with your logo for free. Download PDF, print, or share — no signup needed. Automatic CGST/SGST split, discount support.',
+  keywords: 'restaurant invoice generator India, GST bill generator restaurant, restaurant billing software free, food bill maker, restaurant receipt generator, restaurant invoice PDF download, restaurant bill with logo',
   openGraph: {
     title: 'Free Restaurant Invoice & Bill Generator India | DineOpen',
     description: 'Generate GST-compliant restaurant invoices for free with automatic tax calculation.',
