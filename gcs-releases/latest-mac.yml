@@ -1,0 +1,11 @@
+version: 1.7.4
+files:
+  - url: DineOpen POS-1.7.4-arm64.zip
+    sha512: 7tU2rPGVHqXvtK1Fc0aXeTe3fOIvPzg99SEq7n/rXAIDgDq5LRxr69yzarvA+2CFMt2QFLcHT9sfHs8Dp9pBdA==
+    size: 301226915
+  - url: DineOpen POS-1.7.4-arm64.dmg
+    sha512: zcQLk3ltvdAHaUNGTWCpeLo5ge/j5wbH1tHShjbS6E73FfMy+l7zj9xqKoGUccFJFNuSqoU2djhzkOXOlLXOWw==
+    size: 312646679
+path: DineOpen POS-1.7.4-arm64.zip
+sha512: 7tU2rPGVHqXvtK1Fc0aXeTe3fOIvPzg99SEq7n/rXAIDgDq5LRxr69yzarvA+2CFMt2QFLcHT9sfHs8Dp9pBdA==
+releaseDate: '2026-05-24T17:34:53.560Z'

@@ -4,7 +4,7 @@
 
 import {
   esc, getBillLabels, buildIdentityHtml,
-  buildChargesHtml, buildPaymentHtml, buildDeliveryAddressHtml, calcGrandTotal, formatDateTime,
+  buildChargesHtml, buildPaymentHtml, buildEcrPaymentHtml, buildDeliveryAddressHtml, calcGrandTotal, formatDateTime,
   getPrintFontSizes, getPrintFontFamily, getContentWidth, getBillHeaderHTML, wrapInDocument, buildInclusiveTaxNote,
   buildFeedbackSection,
 } from '../helpers';
@@ -89,6 +89,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
 
   const chargesHtml = buildChargesHtml(invoice, L, cs);
   const paymentHtml = buildPaymentHtml(invoice, L, cs);
+  const ecrHtml = buildEcrPaymentHtml(invoice);
   const deliveryHtml = buildDeliveryAddressHtml(invoice);
   const grandTotal = calcGrandTotal(invoice);
 
@@ -129,6 +130,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
     `<div class="grand-total"><span>${L.total}:</span><span>${cs}${grandTotal.toFixed(2)}</span></div>` +
     // Payment details
     paymentHtml +
+    ecrHtml +
     inclusiveNote +
     `<div class="divider">- - - - - - - - - - - - - - - - -</div>` +
     buildFeedbackSection(printSettings) +

@@ -97,6 +97,7 @@ import GoogleReviews from '../../../components/GoogleReviews';
 import OfflineDataTab from '../../../components/OfflineDataTab';
 import TerminalsTab from '../../../components/lan/TerminalsTab';
 import WhatsAppTab from '../../../components/WhatsAppTab';
+import EcrTerminalSettings from '../../../components/EcrTerminalSettings';
 import { useNotification } from '../../../components/Notification';
 
 // Reusable confirmation modal to replace native confirm() ff
@@ -124,7 +125,7 @@ const OffersManagement = dynamic(() => import('../offers/page'), { ssr: false })
 const CustomerAppSettings = dynamic(() => import('../customer-app/page'), { ssr: false });
 import { getAllCountriesWithCurrency, getCurrencyByCountryCode } from '../../../lib/currencyData';
 import { FEATURE_OPS, OP_LABELS, ADMIN_TAB_LABELS, ADMIN_TAB_ID_TO_KEY, resolveFeaturePermissions } from '@/lib/permissions';
-import { getPrintFontSizes, getPrintFontFamily, PRINT_FONTS } from '../../../utils/printFontSizes';
+import { getPrintFontSizes, getPrintFontFamily, PRINT_FONTS, getContentWidthRange } from '../../../utils/printFontSizes';
 import { KOT_TEMPLATE_LIST, BILL_TEMPLATE_LIST, renderKOT, renderBill } from '../../../utils/printTemplates/index';
 
 // Reusable shimmer skeleton for tab content while restaurants load
@@ -3851,6 +3852,120 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                   </div>
                 </div>
 
+                {/* Print Width Slider */}
+                {(() => {
+                  const range = getContentWidthRange(printSettings.printerWidth || 80);
+                  const val = printSettings.printContentWidth || range.default;
+                  return (
+                    <div style={{ marginBottom: '16px' }}>
+                      <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 4px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Print Width
+                      </p>
+                      <p style={{ color: '#9ca3af', margin: '0 0 12px 0', fontSize: '12px' }}>
+                        Reduce if prints are clipped on the edges. Makes the printed content narrower.
+                      </p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '12px', color: '#6b7280' }}>{range.min}mm</span>
+                        <span style={{
+                          fontSize: '15px', fontWeight: '700', color: '#111827',
+                          background: '#f3f4f6', borderRadius: '8px', padding: '4px 12px'
+                        }}>
+                          {val}mm
+                        </span>
+                        <span style={{ fontSize: '12px', color: '#6b7280' }}>{range.max}mm</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={range.min}
+                        max={range.max}
+                        step="1"
+                        value={val}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value);
+                          setPrintSettings(prev => ({ ...prev, printContentWidth: v }));
+                        }}
+                        style={{
+                          width: '100%',
+                          height: '6px',
+                          borderRadius: '3px',
+                          appearance: 'none',
+                          WebkitAppearance: 'none',
+                          background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${((val - range.min) * 100) / (range.max - range.min)}%, #e5e7eb ${((val - range.min) * 100) / (range.max - range.min)}%, #e5e7eb 100%)`,
+                          outline: 'none',
+                          cursor: 'pointer'
+                        }}
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                        <span style={{ fontSize: '10px', color: '#9ca3af' }}>Narrower</span>
+                        <button
+                          onClick={() => setPrintSettings(prev => ({ ...prev, printContentWidth: range.default }))}
+                          style={{
+                            fontSize: '10px', color: '#ef4444', background: 'none', border: 'none',
+                            cursor: 'pointer', fontWeight: '600', padding: 0, textDecoration: 'underline'
+                          }}
+                        >
+                          Reset to default ({range.default}mm)
+                        </button>
+                        <span style={{ fontSize: '10px', color: '#9ca3af' }}>Wider</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Left Margin Slider */}
+                <div style={{ marginBottom: '16px' }}>
+                  <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 4px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Left Margin
+                  </p>
+                  <p style={{ color: '#9ca3af', margin: '0 0 12px 0', fontSize: '12px' }}>
+                    Shift content to the right if prints are cut off on the left side.
+                  </p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '12px', color: '#6b7280' }}>0mm</span>
+                    <span style={{
+                      fontSize: '15px', fontWeight: '700', color: '#111827',
+                      background: '#f3f4f6', borderRadius: '8px', padding: '4px 12px'
+                    }}>
+                      {printSettings.printLeftMargin ?? 2}mm
+                    </span>
+                    <span style={{ fontSize: '12px', color: '#6b7280' }}>10mm</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="10"
+                    step="1"
+                    value={printSettings.printLeftMargin ?? 2}
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value);
+                      setPrintSettings(prev => ({ ...prev, printLeftMargin: v }));
+                    }}
+                    style={{
+                      width: '100%',
+                      height: '6px',
+                      borderRadius: '3px',
+                      appearance: 'none',
+                      WebkitAppearance: 'none',
+                      background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${((printSettings.printLeftMargin ?? 2) * 100) / 10}%, #e5e7eb ${((printSettings.printLeftMargin ?? 2) * 100) / 10}%, #e5e7eb 100%)`,
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                    <span style={{ fontSize: '10px', color: '#9ca3af' }}>No margin</span>
+                    <button
+                      onClick={() => setPrintSettings(prev => ({ ...prev, printLeftMargin: 2 }))}
+                      style={{
+                        fontSize: '10px', color: '#ef4444', background: 'none', border: 'none',
+                        cursor: 'pointer', fontWeight: '600', padding: 0, textDecoration: 'underline'
+                      }}
+                    >
+                      Reset to default (2mm)
+                    </button>
+                    <span style={{ fontSize: '10px', color: '#9ca3af' }}>More margin</span>
+                  </div>
+                </div>
+
                 {/* Print Template Selection */}
                 <div style={{ marginBottom: '16px' }}>
                   <p style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', margin: '0 0 8px 0' }}>
@@ -4918,6 +5033,7 @@ const Admin = () => {
     { label: 'INTEGRATIONS', items: [
       { id: 'google-reviews', label: 'Google Reviews', icon: FaGoogle },
       { id: 'whatsapp', label: 'WhatsApp', icon: FaPhone },
+      { id: 'ecr-terminal', label: 'ECR Terminal', icon: FaCashRegister },
     ]},
   ];
   // Filter admin tabs based on user's pageAccess.admin sub-permissions
@@ -12189,6 +12305,21 @@ const Admin = () => {
         <WhatsAppTab
           selectedRestaurant={selectedRestaurant}
         />
+      )}
+
+      {activeTab === 'ecr-terminal' && !(loading && restaurants.length === 0) && (
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          padding: '24px',
+          border: '1px solid #f1f5f9'
+        }}>
+          <EcrTerminalSettings
+            restaurantId={selectedRestaurant?.id}
+            selectedRestaurant={selectedRestaurant}
+          />
+        </div>
       )}
 
       {activeTab === 'offline-data' && (

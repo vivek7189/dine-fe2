@@ -186,6 +186,18 @@ export function buildPaymentHtml(invoice, L, cs) {
   return splitPaymentHtml + cashReceivedHtml + partialPayHtml + walletPayHtml;
 }
 
+// Build ECR card terminal payment details HTML for receipt (NAPS Qatar)
+export function buildEcrPaymentHtml(invoice) {
+  if (!invoice.ecrResponse) return '';
+  const ecr = invoice.ecrResponse;
+  return `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;">` +
+    `<div style="font-weight:bold;margin-bottom:2px;text-align:center;">Card Payment Details</div>` +
+    (ecr.CardType || ecr.CardNumber ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>Card:</span><span>${ecr.CardType || ''} ${ecr.CardNumber || ''}</span></div>` : '') +
+    (ecr.ApprovalCode ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>Approval:</span><span>${ecr.ApprovalCode}</span></div>` : '') +
+    (ecr.RRN ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>RRN:</span><span>${ecr.RRN}</span></div>` : '') +
+    `</div>`;
+}
+
 // Build delivery address + driver info HTML for receipt (flag-based: only shows for delivery orders)
 export function buildDeliveryAddressHtml(invoice) {
   if (invoice.orderType !== 'delivery') return '';

@@ -354,18 +354,41 @@ ipcMain.handle('electron:getPrinterConfig', async () => {
 // ──── IPC: Auto-update ────
 
 let autoUpdater;
+let updateDownloaded = false;
+let downloadedZipPath = null;
+
 try {
   autoUpdater = require('electron-updater').autoUpdater;
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = false; // We handle install manually
 
   autoUpdater.setFeedURL({
-    provider: 'gcs',
-    bucket: 'dineopen-releases',
+    provider: 'generic',
+    url: 'https://storage.googleapis.com/dineopen-releases',
   });
 
   autoUpdater.on('error', (err) => {
     console.error('[AutoUpdater] Error:', err.message);
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    updateDownloaded = true;
+    // electron-updater provides the downloaded file path directly
+    if (info.downloadedFile) {
+      downloadedZipPath = info.downloadedFile;
+    } else {
+      // Fallback: find it in the updater cache
+      const cacheDir = path.join(app.getPath('home'), 'Library', 'Caches', 'dine-frontend-updater', 'pending');
+      const zipFile = info.files?.find(f => f.url.endsWith('.zip'));
+      if (zipFile) {
+        downloadedZipPath = path.join(cacheDir, path.basename(zipFile.url));
+      }
+    }
+    console.log('[AutoUpdater] Update downloaded:', info.version, 'zip:', downloadedZipPath, 'exists:', downloadedZipPath ? fs.existsSync(downloadedZipPath) : false);
+  });
+
+  autoUpdater.on('download-progress', (progress) => {
+    console.log(`[AutoUpdater] Download progress: ${Math.round(progress.percent)}%`);
   });
 } catch (err) {
   console.warn('[AutoUpdater] electron-updater not available:', err.message);
@@ -375,7 +398,7 @@ ipcMain.handle('electron:checkForUpdates', async () => {
   if (!autoUpdater) return { available: false, error: 'updater not available' };
   try {
     console.log('[AutoUpdater] Current version:', app.getVersion());
-    console.log('[AutoUpdater] Checking GitHub for updates...');
+    console.log('[AutoUpdater] Checking GCS for updates...');
     const result = await autoUpdater.checkForUpdates();
     console.log('[AutoUpdater] Check result:', JSON.stringify(result?.updateInfo || null));
     if (result && result.updateInfo) {
@@ -385,6 +408,7 @@ ipcMain.handle('electron:checkForUpdates', async () => {
       if (remoteVersion !== localVersion) {
         console.log('[AutoUpdater] Update available! Downloading...');
         await autoUpdater.downloadUpdate();
+        console.log('[AutoUpdater] Download complete, updateDownloaded =', updateDownloaded);
         return {
           available: true,
           version: remoteVersion,
@@ -401,16 +425,98 @@ ipcMain.handle('electron:checkForUpdates', async () => {
 });
 
 ipcMain.handle('electron:restartApp', async () => {
-  if (autoUpdater) {
-    autoUpdater.quitAndInstall();
+  console.log('[AutoUpdater] Restart requested, updateDownloaded =', updateDownloaded, 'zip:', downloadedZipPath);
+  if (updateDownloaded && downloadedZipPath && fs.existsSync(downloadedZipPath)) {
+    // Bypass Squirrel.Mac (which requires code signing) — manually extract zip and replace app
+    const appPath = path.dirname(path.dirname(path.dirname(app.getAppPath()))); // .app bundle
+    console.log('[AutoUpdater] Manual install: extracting', downloadedZipPath, 'to replace', appPath);
+    try {
+      const { execSync } = require('child_process');
+      const tmpDir = path.join(app.getPath('temp'), 'dineopen-update');
+      // Clean and extract
+      execSync(`rm -rf "${tmpDir}" && mkdir -p "${tmpDir}"`);
+      execSync(`ditto -xk "${downloadedZipPath}" "${tmpDir}"`);
+      // Find the .app inside the extracted zip
+      const extracted = fs.readdirSync(tmpDir).find(f => f.endsWith('.app'));
+      if (!extracted) throw new Error('No .app found in update zip');
+      const extractedApp = path.join(tmpDir, extracted);
+      console.log('[AutoUpdater] Extracted:', extractedApp);
+      // Replace the current app — use a shell script that waits for app to quit
+      const script = `
+        sleep 1
+        rm -rf "${appPath}"
+        mv "${extractedApp}" "${appPath}"
+        rm -rf "${tmpDir}"
+        open "${appPath}"
+      `;
+      const scriptPath = path.join(app.getPath('temp'), 'dineopen-update.sh');
+      fs.writeFileSync(scriptPath, script, { mode: 0o755 });
+      // Launch the updater script detached so it survives app quit
+      const { spawn } = require('child_process');
+      spawn('bash', [scriptPath], { detached: true, stdio: 'ignore' }).unref();
+      console.log('[AutoUpdater] Update script launched, quitting app...');
+      setTimeout(() => app.exit(0), 500);
+      return { restarting: true };
+    } catch (err) {
+      console.error('[AutoUpdater] Manual install failed:', err);
+      return { restarting: false, error: err.message };
+    }
   } else {
-    app.relaunch();
-    app.exit(0);
+    console.log('[AutoUpdater] No update downloaded, just relaunching...');
+    setTimeout(() => {
+      app.relaunch();
+      app.exit(0);
+    }, 500);
+    return { restarting: true };
   }
 });
 
 ipcMain.handle('electron:getVersion', async () => {
   return app.getVersion();
+});
+
+// ──── IPC: ECR Payment Terminal (NAPS Qatar) ────
+// Direct HTTPS call to payment terminal on local network.
+// Bypasses browser CORS/self-signed cert restrictions.
+
+ipcMain.handle('electron:ecrRequest', async (_event, { url, method, body, timeoutMs }) => {
+  const https = require('https');
+  return new Promise((resolve, reject) => {
+    const urlObj = new URL(url);
+    const postData = JSON.stringify(body || {});
+    const req = https.request(
+      {
+        hostname: urlObj.hostname,
+        port: urlObj.port || 8443,
+        path: urlObj.pathname,
+        method: method || 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData),
+        },
+        rejectUnauthorized: false, // NAPS terminals use self-signed certificates
+        timeout: timeoutMs || 120000,
+      },
+      (res) => {
+        let data = '';
+        res.on('data', (chunk) => (data += chunk));
+        res.on('end', () => {
+          try {
+            resolve(JSON.parse(data));
+          } catch {
+            resolve({ raw: data });
+          }
+        });
+      }
+    );
+    req.on('error', (err) => reject(new Error(`ECR terminal error: ${err.message}`)));
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('ECR terminal timeout — no response within the allowed time'));
+    });
+    req.write(postData);
+    req.end();
+  });
 });
 
 // ──── IPC: Open external URL in system browser (for desktop auth flow) ────

@@ -71,6 +71,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('hub-event', handler);
   },
 
+  // ECR Payment Terminal (NAPS Qatar) — direct HTTPS to terminal on local network
+  ecrRequest: (params) =>
+    ipcRenderer.invoke('electron:ecrRequest', params),
+
   // Open URL in system browser (for desktop auth flow)
   openExternal: (url) => ipcRenderer.invoke('electron:openExternal', url),
 

@@ -3020,6 +3020,8 @@ function RestaurantPOSContent() {
           serviceChargeEnabled: scEnabled,
           managerPin: mgrPin || null,
           taxInclusiveMode: taxInclMode || null,
+          // ECR card terminal response (NAPS Qatar)
+          ecrResponse: taxData.ecrResponse || null,
           lastUpdatedBy: {
             name: currentUser.name || 'Staff',
             id: currentUser.id,
@@ -3303,6 +3305,8 @@ function RestaurantPOSContent() {
         voidItems: voidData || null,
         managerPin: mgrPin || null,
         taxInclusiveMode: taxInclMode || null,
+        // ECR card terminal response (NAPS Qatar)
+        ecrResponse: taxData.ecrResponse || null,
         ...(isScheduledOrder && scheduledDate && scheduledTime ? {
           isScheduled: true,
           scheduledFor: new Date(`${scheduledDate}T${scheduledTime}`).toISOString(),
@@ -7588,6 +7592,7 @@ function RestaurantPOSContent() {
                 menuItems={menuItems}
                 printSettings={printSettings}
                 upiSettings={upiSettings}
+                ecrSettings={selectedRestaurant?.ecrSettings ? { ...selectedRestaurant.ecrSettings, restaurantId: selectedRestaurant.id } : null}
                 whatsappConnected={whatsappConnected}
                 billingSettings={selectedRestaurant?.billingSettings || {}}
                 multiPricingEnabled={multiPricingEnabled}
@@ -7810,6 +7815,7 @@ function RestaurantPOSContent() {
             autoSelectedRule={autoSelectedRule}
             setAutoSelectedRule={setAutoSelectedRule}
             upiSettings={upiSettings}
+            ecrSettings={selectedRestaurant?.ecrSettings ? { ...selectedRestaurant.ecrSettings, restaurantId: selectedRestaurant.id } : null}
             whatsappConnected={whatsappConnected}
             isScheduledOrder={isScheduledOrder}
             setIsScheduledOrder={setIsScheduledOrder}

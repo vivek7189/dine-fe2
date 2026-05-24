@@ -3053,6 +3053,18 @@ class ApiClient {
     });
   }
 
+  // ==================== ECR TERMINAL (NAPS QATAR) ====================
+
+  // Proxy ECR request to terminal via backend (web platform only)
+  async ecrProxy(data) {
+    return this.request('/api/ecr/proxy', { method: 'POST', body: data });
+  }
+
+  // Test ECR terminal connectivity
+  async ecrTest(terminalIp, port) {
+    return this.request('/api/ecr/test', { method: 'POST', body: { terminalIp, port } });
+  }
+
   // ==================== PRICING SETTINGS ====================
 
   // Get pricing settings

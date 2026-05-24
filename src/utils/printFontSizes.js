@@ -4,11 +4,31 @@
 // Supports custom font family via billFontFamily (safe system fonts)
 // Used by all print templates (OrderSummary, DashboardTablesPanel, orderhistory, bar)
 
-// Map physical paper width to CSS content width (printable area).
+// Default content widths per paper size (printable area).
 // 80mm paper → 72mm printable, 58mm paper → 48mm printable.
-export const getContentWidth = (printerWidth) => {
+const DEFAULT_CONTENT_WIDTH = { 80: 72, 58: 48 };
+
+// Map physical paper width to CSS content width.
+// Accepts optional custom override (printContentWidth) in mm.
+export const getContentWidth = (printerWidth, printContentWidth) => {
+  if (typeof printContentWidth === 'number' && printContentWidth > 0) {
+    return `${printContentWidth}mm`;
+  }
   if (printerWidth === 58) return '48mm';
   return '72mm';
+};
+
+// Get the valid range for printContentWidth slider based on paper size.
+export const getContentWidthRange = (printerWidth) => {
+  if (printerWidth === 58) return { min: 38, max: 52, default: 48 };
+  return { min: 58, max: 76, default: 72 };
+};
+
+// Build padding string from optional left margin override.
+// Default: 2mm uniform. With printLeftMargin: left side is custom, rest stays 2mm.
+const getPrintPadding = (printLeftMargin) => {
+  const left = typeof printLeftMargin === 'number' && printLeftMargin >= 0 ? printLeftMargin : 2;
+  return `2mm 2mm 2mm ${left}mm`;
 };
 
 // Safe system fonts that work on all OS without installation
@@ -81,12 +101,14 @@ export const getPrintFontFamily = (fontId) => {
   return found ? found.family : "'Courier New', Courier, monospace";
 };
 
-// Generate the common CSS <style> block for bill/invoice print templates
-export const getBillPrintCSS = (scaleOrPreset, fontId, printerWidth) => {
+// Generate the common CSS <style> block for bill/invoice print templates.
+// 4th arg (printSettings) is optional — used to read printContentWidth and printLeftMargin.
+export const getBillPrintCSS = (scaleOrPreset, fontId, printerWidth, printSettings) => {
   const f = getPrintFontSizes(scaleOrPreset);
   const ff = getPrintFontFamily(fontId);
-  const cw = getContentWidth(printerWidth);
-  return `@page{size:${cw} auto;margin:0;}*{box-sizing:border-box;}body{font-family:${ff};margin:0;padding:2mm 2mm;font-size:${f.body};line-height:${f.lineHeight};width:${cw};max-width:${cw};overflow:hidden;} .bill-header{text-align:center;margin-bottom:8px;} .restaurant-name{font-size:${f.restaurantName};font-weight:bold;text-transform:uppercase;word-wrap:break-word;overflow-wrap:break-word;} .bill-title{font-size:${f.billTitle};font-weight:bold;margin-top:4px;} .bill-logo{max-width:100%;height:auto;display:block;} .divider{text-align:center;margin:6px 0;overflow:hidden;} .bill-info{margin:8px 0;font-size:${f.info};} .bill-info div{display:flex;justify-content:space-between;margin:3px 0;gap:4px;} .bill-info div span:first-child{flex-shrink:0;} .bill-info div span:last-child{text-align:right;flex-shrink:1;min-width:0;word-wrap:break-word;overflow-wrap:break-word;} .info-row{display:flex;justify-content:space-between;margin:2px 0;} table{width:100%;border-collapse:collapse;margin:8px 0;table-layout:fixed;} th{text-align:left;border-bottom:1px dashed #000;padding:2px;font-size:${f.th};} td{font-size:${f.td};padding:${f.tdPadding};word-wrap:break-word;overflow-wrap:break-word;} td:last-child{text-align:right;overflow:hidden;text-overflow:clip;white-space:nowrap;} .total-section{border-top:1px dashed #000;margin-top:8px;padding-top:4px;font-size:${f.totalSection};} .total-section div[style*="flex"]{flex-wrap:nowrap;} .total-section div[style*="flex"] span:last-child{flex-shrink:0;white-space:nowrap;} .total-row{display:flex;justify-content:space-between;font-weight:bold;font-size:${f.totalRow};margin-top:4px;} .total-row span:last-child{flex-shrink:0;white-space:nowrap;} .bill-footer{margin-top:12px;text-align:center;font-size:${f.footer};}`;
+  const cw = getContentWidth(printerWidth, printSettings?.printContentWidth);
+  const pad = getPrintPadding(printSettings?.printLeftMargin);
+  return `@page{size:${cw} auto;margin:0;}*{box-sizing:border-box;}body{font-family:${ff};margin:0;padding:${pad};font-size:${f.body};line-height:${f.lineHeight};width:${cw};max-width:${cw};overflow:hidden;} .bill-header{text-align:center;margin-bottom:8px;} .restaurant-name{font-size:${f.restaurantName};font-weight:bold;text-transform:uppercase;word-wrap:break-word;overflow-wrap:break-word;} .bill-title{font-size:${f.billTitle};font-weight:bold;margin-top:4px;} .bill-logo{max-width:100%;height:auto;display:block;} .divider{text-align:center;margin:6px 0;overflow:hidden;} .bill-info{margin:8px 0;font-size:${f.info};} .bill-info div{display:flex;justify-content:space-between;margin:3px 0;gap:4px;} .bill-info div span:first-child{flex-shrink:0;} .bill-info div span:last-child{text-align:right;flex-shrink:1;min-width:0;word-wrap:break-word;overflow-wrap:break-word;} .info-row{display:flex;justify-content:space-between;margin:2px 0;} table{width:100%;border-collapse:collapse;margin:8px 0;table-layout:fixed;} th{text-align:left;border-bottom:1px dashed #000;padding:2px;font-size:${f.th};} td{font-size:${f.td};padding:${f.tdPadding};word-wrap:break-word;overflow-wrap:break-word;} td:last-child{text-align:right;overflow:hidden;text-overflow:clip;white-space:nowrap;} .total-section{border-top:1px dashed #000;margin-top:8px;padding-top:4px;font-size:${f.totalSection};} .total-section div[style*="flex"]{flex-wrap:nowrap;} .total-section div[style*="flex"] span:last-child{flex-shrink:0;white-space:nowrap;} .total-row{display:flex;justify-content:space-between;font-weight:bold;font-size:${f.totalRow};margin-top:4px;} .total-row span:last-child{flex-shrink:0;white-space:nowrap;} .bill-footer{margin-top:12px;text-align:center;font-size:${f.footer};}`;
 };
 
 // Generate bill header HTML with optional logo and configurable alignment.
@@ -118,11 +140,13 @@ export const getBillHeaderHTML = (restaurantName, identityHtml, receiptLogo, bil
 };
 
 // Generate the common CSS <style> block for KOT print templates
-export const getKOTPrintCSS = (scaleOrPreset, fontId, printerWidth) => {
+// 4th arg (printSettings) is optional — used to read printContentWidth and printLeftMargin.
+export const getKOTPrintCSS = (scaleOrPreset, fontId, printerWidth, printSettings) => {
   const f = getPrintFontSizes(scaleOrPreset);
   const ff = getPrintFontFamily(fontId);
-  const cw = getContentWidth(printerWidth);
-  return `@page{size:${cw} auto;margin:0;}*{box-sizing:border-box;}body{font-family:${ff};margin:0;padding:2mm 2mm;font-size:${f.body};line-height:${f.lineHeight};width:${cw};max-width:${cw};overflow:hidden;} .kot-header{text-align:center;margin-bottom:4px;} .restaurant-name{font-size:${f.restaurantName};font-weight:bold;text-transform:uppercase;word-wrap:break-word;overflow-wrap:break-word;} .kot-title{font-size:${f.billTitle};font-weight:bold;margin-top:2px;} .divider{text-align:center;margin:3px 0;overflow:hidden;} .kot-info{margin:4px 0;font-size:${f.info};} .kot-info div{margin:1px 0;} .kot-info-row{display:flex;justify-content:space-between;margin:1px 0;} .kot-info-row span{flex:0 0 auto;} .item{margin:3px 0;} .item-main{display:flex;font-size:${f.body};} .item-qty{width:30px;flex-shrink:0;font-weight:bold;} .item-name{font-weight:bold;word-wrap:break-word;overflow-wrap:break-word;overflow:hidden;} .item-detail{margin-left:30px;font-size:${f.itemDetail};word-wrap:break-word;overflow-wrap:break-word;} .item-note{margin-left:30px;font-size:${f.itemDetail};font-style:italic;word-wrap:break-word;overflow-wrap:break-word;} .kot-footer{text-align:center;margin-top:4px;font-weight:bold;font-size:${f.body};} .special-instructions{margin:4px 0;padding:4px;border:1px dashed #000;text-align:center;font-size:${f.info};} .special-instructions strong{display:block;margin-bottom:2px;} .special-instructions div{text-align:left;}`;
+  const cw = getContentWidth(printerWidth, printSettings?.printContentWidth);
+  const pad = getPrintPadding(printSettings?.printLeftMargin);
+  return `@page{size:${cw} auto;margin:0;}*{box-sizing:border-box;}body{font-family:${ff};margin:0;padding:${pad};font-size:${f.body};line-height:${f.lineHeight};width:${cw};max-width:${cw};overflow:hidden;} .kot-header{text-align:center;margin-bottom:4px;} .restaurant-name{font-size:${f.restaurantName};font-weight:bold;text-transform:uppercase;word-wrap:break-word;overflow-wrap:break-word;} .kot-title{font-size:${f.billTitle};font-weight:bold;margin-top:2px;} .divider{text-align:center;margin:3px 0;overflow:hidden;} .kot-info{margin:4px 0;font-size:${f.info};} .kot-info div{margin:1px 0;} .kot-info-row{display:flex;justify-content:space-between;margin:1px 0;} .kot-info-row span{flex:0 0 auto;} .item{margin:3px 0;} .item-main{display:flex;font-size:${f.body};} .item-qty{width:30px;flex-shrink:0;font-weight:bold;} .item-name{font-weight:bold;word-wrap:break-word;overflow-wrap:break-word;overflow:hidden;} .item-detail{margin-left:30px;font-size:${f.itemDetail};word-wrap:break-word;overflow-wrap:break-word;} .item-note{margin-left:30px;font-size:${f.itemDetail};font-style:italic;word-wrap:break-word;overflow-wrap:break-word;} .kot-footer{text-align:center;margin-top:4px;font-weight:bold;font-size:${f.body};} .special-instructions{margin:4px 0;padding:4px;border:1px dashed #000;text-align:center;font-size:${f.info};} .special-instructions strong{display:block;margin-bottom:2px;} .special-instructions div{text-align:left;}`;
 };
 
 // Generate full HTML for a category-wise token slip (food court mode).
@@ -143,12 +167,13 @@ const getTokenSlipCSS = (printSettings = {}, { combined = false } = {}) => {
   const f = getPrintFontSizes(printSettings.billFontScale || 100);
   const ff = getPrintFontFamily(printSettings.billFontFamily);
   const scale = getTokenSlipScale(printSettings);
-  const cw = getContentWidth(printSettings.printerWidth);
+  const cw = getContentWidth(printSettings.printerWidth, printSettings.printContentWidth);
+  const pad = getPrintPadding(printSettings.printLeftMargin);
 
   return `
 @page{size:${cw} auto;margin:0;}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:${ff};font-size:${f.body};line-height:${f.lineHeight};${combined ? 'background:#f3f4f6;padding:16px;' : `width:${cw};padding:6px 8px;`}}
+body{font-family:${ff};font-size:${f.body};line-height:${f.lineHeight};${combined ? 'background:#f3f4f6;padding:16px;' : `width:${cw};padding:${pad};`}}
 .token-slip{width:${combined ? cw : '100%'};background:white;color:black;${combined ? 'padding:8px 12px;margin:0 auto 16px;box-shadow:0 8px 24px rgba(15,23,42,0.12);page-break-after:always;break-after:page;' : ''}}
 .token-slip:last-child{page-break-after:auto;break-after:auto;}
 .token-label{text-align:center;font-size:${s(48, scale)}px;font-weight:900;padding:${s(12, scale)}px 4px;border:3px dashed #000;margin:4px 0;letter-spacing:3px;line-height:1.1;}

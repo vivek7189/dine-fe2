@@ -10,7 +10,8 @@ extraMetadata:
   main: electron/main.js
 
 publish:
-  provider: github
+  provider: generic
+  url: https://storage.googleapis.com/dineopen-releases
 
 win:
   icon: electron/icons/icon.ico
@@ -18,7 +19,9 @@ win:
     - nsis
 mac:
   icon: electron/icons/icon.icns
-  target: dmg
+  target:
+    - dmg
+    - zip
   category: public.app-category.business
   identity: null
   artifactName: "${productName}-${version}-${arch}.${ext}"

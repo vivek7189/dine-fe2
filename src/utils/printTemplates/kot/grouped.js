@@ -92,7 +92,7 @@ export function render(kotData, printSettings = {}, labels = {}) {
   }
 
   const title = hasChanges ? L.kotUpdate : L.kitchenOrder;
-  const css = getKOTPrintCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily, printSettings.printerWidth);
+  const css = getKOTPrintCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily, printSettings.printerWidth, printSettings);
 
   const tableStr = k.roomNumber
     ? `<span><strong>${L.room}:</strong> ${k.roomNumber}</span>`

@@ -13,6 +13,9 @@ import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '
 
 const CustomerDetailModal = dynamic(() => import('./CustomerDetailModal'), { ssr: false });
 import UpiPaymentModal from './UpiPaymentModal';
+import EcrStatusModal from './EcrStatusModal';
+import useEcr from '../services/ecr/useEcr';
+import { ECR_STATUS, ECR_RESPONSE_CODES } from '../services/ecr/ecrConstants';
 import {
   FaShoppingCart,
   FaTimes,
@@ -133,6 +136,7 @@ const OrderSummary = ({
   autoSelectedRule = false,
   setAutoSelectedRule,
   upiSettings = {},
+  ecrSettings = null,
   whatsappConnected = false,
   // Scheduled/future order props
   isScheduledOrder = false,
@@ -1609,6 +1613,17 @@ const OrderSummary = ({
   
   const upiConfigured = upiSettings?.upiEnabled && upiSettings?.upiId;
 
+  // ECR payment terminal hook
+  const {
+    status: ecrStatus,
+    lastResponse: ecrLastResponse,
+    error: ecrError,
+    doPurchase: ecrDoPurchase,
+    reset: ecrReset,
+    cancel: ecrCancel,
+  } = useEcr(ecrSettings);
+  const ecrEnabled = !!ecrSettings?.enabled;
+
   // Build tax data helper (shared by Place Order, Complete Billing, and UPI confirm)
   const buildTaxData = () => {
     const cashReceivedNum = parseFloat(cashReceived) || 0;
@@ -1707,6 +1722,34 @@ const OrderSummary = ({
     if (paymentMethod === 'upi' && upiConfigured) {
       setPendingUpiAction('complete');
       setShowUpiQr(true);
+      return;
+    }
+    // Intercept Card Terminal (ECR) — initiate terminal payment before processing
+    if (paymentMethod === 'card-terminal' && ecrEnabled) {
+      const taxData = buildTaxData();
+      const amount = taxData.finalAmount;
+      const txnId = `TXN-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      try {
+        const resp = await ecrDoPurchase(amount, txnId);
+        if (resp?.ResponseCode === ECR_RESPONSE_CODES.APPROVED) {
+          // Attach ECR response to tax data and proceed with order
+          taxData.ecrResponse = resp;
+          if (typeof onProcessOrder === 'function') {
+            const result = await onProcessOrder(taxData);
+            if (result && result.orderId) {
+              await generateInvoice(result.orderId);
+              if (appliedCoupon?.id) {
+                apiClient.redeemCoupon(restaurantId, appliedCoupon.id, result.orderId).catch(err => console.warn('Coupon redeem (non-blocking):', err));
+                setAppliedCoupon(null);
+              }
+            }
+          }
+        }
+        // If declined/error, the EcrStatusModal will show the status — user can retry or cancel
+      } catch (err) {
+        console.error('ECR terminal error:', err);
+        // EcrStatusModal handles error display
+      }
       return;
     }
     if (typeof onProcessOrder === 'function') {
@@ -2873,6 +2916,13 @@ const OrderSummary = ({
                       {invoice?.tableNumber && <div><strong>{t('invoice.table')}:</strong> {invoice.tableNumber}{invoice?.floorName ? ` · ${invoice.floorName}` : ''}</div>}
                       {invoice?.customerName && <div><strong>{bLabels.customerLabel}:</strong> {invoice.customerName}</div>}
                       <div><strong>{t('invoice.payment')}:</strong> {(invoice?.paymentMethod || 'CASH').toUpperCase()}</div>
+                      {invoice?.ecrResponse && (
+                        <div style={{ marginTop: '4px', padding: '4px 0', borderTop: '1px dashed #d1d5db', fontSize: '11px' }}>
+                          {invoice.ecrResponse.CardType && <div><strong>Card:</strong> {invoice.ecrResponse.CardType} {invoice.ecrResponse.CardNumber || ''}</div>}
+                          {invoice.ecrResponse.ApprovalCode && <div><strong>Approval:</strong> {invoice.ecrResponse.ApprovalCode}</div>}
+                          {invoice.ecrResponse.RRN && <div><strong>RRN:</strong> {invoice.ecrResponse.RRN}</div>}
+                        </div>
+                      )}
                     </div>
                     {/* Items table */}
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginBottom: '8px' }}>
@@ -3074,7 +3124,7 @@ const OrderSummary = ({
                       const receiptLogo = printSettings?.receiptLogo || null;
                       const billHeaderHtml = getBillHeaderHTML((invoice?.restaurantName || 'Restaurant').replace(/</g,'&lt;'), identityHtml, receiptLogo, `--- ${bLabels.billTitle} ---`);
 
-                      const invoiceContent = `<!DOCTYPE html><html><head><title>${bLabels.billLabel} #${invoice?.dailyOrderId || invoice?.id || 'N/A'}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body>${billHeaderHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div><span>${bLabels.billLabel}#:</span><span><strong>${invoice?.dailyOrderId || invoice?.id || 'N/A'}</strong></span></div><div><span>${t('invoice.date')}:</span><span>${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})} ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</span></div>${invoice?.tableNumber ? `<div><span>${t('invoice.table')}:</span><span>${invoice.tableNumber}${invoice?.floorName ? ` · ${invoice.floorName}` : ''}</span></div>` : ''}${invoice?.customerName ? `<div><span>${bLabels.customerLabel}:</span><span>${(invoice.customerName || '').replace(/</g,'&lt;')}</span></div>` : ''}<div><span>${t('invoice.payment')}:</span><span>${(invoice?.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;width:55%;">${bLabels.itemCol}</th><th style="text-align:center;width:15%;">${bLabels.qtyCol}</th><th style="text-align:right;width:30%;">${t('invoice.amt')}</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>${t('invoice.subtotal')}:</span><span>${currencySymbol}${(invoice?.subtotal || 0).toFixed(2)}</span></div>${discountHtml}</div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}${serviceChargeHtml}${tipHtml}${roundOffHtml}<div class="total-row"><span>${t('invoice.total')}:</span><span>${currencySymbol}${printGrandTotal.toFixed(2)}</span></div>${splitPaymentHtml}${cashReceivedHtml}${partialPayHtml}${walletPayHtml}</div><div class="divider">================================</div><div class="bill-footer"><p>${bLabels.footer}</p><p style="font-size:10px;margin-top:4px;">${t('invoice.poweredBy')}</p></div></body></html>`;
+                      const invoiceContent = `<!DOCTYPE html><html><head><title>${bLabels.billLabel} #${invoice?.dailyOrderId || invoice?.id || 'N/A'}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily, printSettings?.printerWidth, printSettings)}</style></head><body>${billHeaderHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div><span>${bLabels.billLabel}#:</span><span><strong>${invoice?.dailyOrderId || invoice?.id || 'N/A'}</strong></span></div><div><span>${t('invoice.date')}:</span><span>${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})} ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</span></div>${invoice?.tableNumber ? `<div><span>${t('invoice.table')}:</span><span>${invoice.tableNumber}${invoice?.floorName ? ` · ${invoice.floorName}` : ''}</span></div>` : ''}${invoice?.customerName ? `<div><span>${bLabels.customerLabel}:</span><span>${(invoice.customerName || '').replace(/</g,'&lt;')}</span></div>` : ''}<div><span>${t('invoice.payment')}:</span><span>${(invoice?.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;width:55%;">${bLabels.itemCol}</th><th style="text-align:center;width:15%;">${bLabels.qtyCol}</th><th style="text-align:right;width:30%;">${t('invoice.amt')}</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>${t('invoice.subtotal')}:</span><span>${currencySymbol}${(invoice?.subtotal || 0).toFixed(2)}</span></div>${discountHtml}</div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}${serviceChargeHtml}${tipHtml}${roundOffHtml}<div class="total-row"><span>${t('invoice.total')}:</span><span>${currencySymbol}${printGrandTotal.toFixed(2)}</span></div>${splitPaymentHtml}${cashReceivedHtml}${partialPayHtml}${walletPayHtml}</div><div class="divider">================================</div><div class="bill-footer"><p>${bLabels.footer}</p><p style="font-size:10px;margin-top:4px;">${t('invoice.poweredBy')}</p></div></body></html>`;
                       win.document.write(invoiceContent);
                       win.document.close();
                       win.focus();
@@ -4531,14 +4581,17 @@ const OrderSummary = ({
                   {t('dashboard.paymentMethod')}
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
-                  {(Array.isArray(posSettings.paymentMethods)
-                    ? posSettings.paymentMethods.filter(pm => pm.enabled)
-                    : [
-                        { id: 'cash', label: t('dashboard.cash') },
-                        ...(!posSettings.hideUPI ? [{ id: 'upi', label: t('dashboard.upi') }] : []),
-                        ...(!posSettings.hideCard ? [{ id: 'card', label: t('dashboard.card') }] : [])
-                      ]
-                  ).map((method) => {
+                  {[
+                    ...(Array.isArray(posSettings.paymentMethods)
+                      ? posSettings.paymentMethods.filter(pm => pm.enabled)
+                      : [
+                          { id: 'cash', label: t('dashboard.cash') },
+                          ...(!posSettings.hideUPI ? [{ id: 'upi', label: t('dashboard.upi') }] : []),
+                          ...(!posSettings.hideCard ? [{ id: 'card', label: t('dashboard.card') }] : [])
+                        ]
+                    ),
+                    ...(ecrEnabled ? [{ id: 'card-terminal', label: 'Card (Terminal)' }] : []),
+                  ].map((method) => {
                     const isSelected = paymentMethod === method.id;
                     return (
                       <button
@@ -6507,6 +6560,18 @@ const OrderSummary = ({
         upiQrCodeUrl={upiSettings?.upiQrCodeUrl}
         upiDisplayName={upiSettings?.upiDisplayName}
         formatCurrency={formatCurrency}
+      />
+      {/* ECR Payment Terminal Status Modal */}
+      <EcrStatusModal
+        status={ecrStatus}
+        error={ecrError}
+        lastResponse={ecrLastResponse}
+        onCancel={ecrCancel}
+        onRetry={() => {
+          ecrReset();
+          handleProcessOrder();
+        }}
+        onDismiss={ecrReset}
       />
     </div>
   );

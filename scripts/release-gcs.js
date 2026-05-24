@@ -3,18 +3,17 @@
 /**
  * Release to GCS script
  *
- * What it does:
- * 1. Builds the Electron app locally (.dmg on Mac, .exe on Windows)
- * 2. Copies all release files (installer + yml + blockmap) to gcs-releases/ folder
- * 3. Uploads everything in gcs-releases/ to the GCS bucket (dineopen-releases)
+ * Workflow:
+ * 1. Push a git tag (v1.8.0) → GitHub Actions builds Windows .exe
+ * 2. Download the exe artifact from GitHub Actions → put files in gcs-releases/
+ * 3. On your Mac, run: npm run release:gcs
+ *    - Builds .dmg locally
+ *    - Copies .dmg + latest-mac.yml + blockmap to gcs-releases/
+ *    - Uploads everything in gcs-releases/ (exe + dmg + yml files) to GCS
  *
  * Usage:
- *   npm run release:gcs          — build + upload
+ *   npm run release:gcs          — build .dmg locally + upload all files to GCS
  *   npm run release:gcs:upload   — upload only (skip build, just upload whatever is in gcs-releases/)
- *
- * For Windows .exe:
- *   Build on a Windows machine, then manually copy the .exe, latest.yml, and .blockmap
- *   into the gcs-releases/ folder. Then run `npm run release:gcs:upload` to upload everything.
  */
 
 const { execSync } = require('child_process');
@@ -36,33 +35,52 @@ function ensureDir(dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
-// Step 1: Build (unless --upload-only)
-if (!skipBuild) {
-  console.log('=== Building Electron app ===');
-  run('npm run electron:build');
+ensureDir(RELEASES_DIR);
+
+// Step 1: Check if Windows exe files are already in gcs-releases/
+const existingFiles = fs.existsSync(RELEASES_DIR)
+  ? fs.readdirSync(RELEASES_DIR).filter(f => fs.statSync(path.join(RELEASES_DIR, f)).isFile())
+  : [];
+
+const hasExe = existingFiles.some(f => /\.exe$/.test(f));
+const hasLatestYml = existingFiles.some(f => f === 'latest.yml');
+
+if (hasExe && hasLatestYml) {
+  console.log('=== Windows files found in gcs-releases/ ===');
+  existingFiles.filter(f => /\.exe|latest\.yml|\.exe\.blockmap/.test(f))
+    .forEach(f => console.log(`  ✓ ${f}`));
+} else if (!skipBuild) {
+  console.log('=== WARNING: No Windows .exe files in gcs-releases/ ===');
+  console.log('  Download the exe artifact from GitHub Actions and put these files in gcs-releases/:');
+  console.log('    - DineOpen-POS-{version}-setup.exe');
+  console.log('    - DineOpen-POS-{version}-setup.exe.blockmap');
+  console.log('    - latest.yml');
+  console.log('');
+  console.log('  Continuing with Mac build only...\n');
 }
 
-// Step 2: Copy release files from dist-electron/ to gcs-releases/
+// Step 2: Build .dmg locally (unless --upload-only)
 if (!skipBuild) {
-  console.log('\n=== Copying release files to gcs-releases/ ===');
-  ensureDir(RELEASES_DIR);
+  console.log('=== Building Mac .dmg locally ===');
+  run('npm run electron:build');
+
+  console.log('\n=== Copying Mac release files to gcs-releases/ ===');
 
   if (!fs.existsSync(DIST_DIR)) {
     console.error('ERROR: dist-electron/ not found. Build may have failed.');
     process.exit(1);
   }
 
-  const files = fs.readdirSync(DIST_DIR);
+  const distFiles = fs.readdirSync(DIST_DIR);
 
-  // Files we care about: .dmg, .exe, .blockmap, latest.yml, latest-mac.yml, latest-linux.yml
-  const releasePatterns = [/\.dmg$/, /\.exe$/, /\.blockmap$/, /^latest.*\.yml$/];
+  // Copy .dmg, .blockmap, and latest-mac.yml from dist-electron/ to gcs-releases/
+  const macPatterns = [/\.dmg$/, /\.dmg\.blockmap$/, /\.zip$/, /\.zip\.blockmap$/, /^latest-mac\.yml$/];
 
   let copied = 0;
-  for (const file of files) {
-    if (releasePatterns.some(p => p.test(file))) {
+  for (const file of distFiles) {
+    if (macPatterns.some(p => p.test(file))) {
       const src = path.join(DIST_DIR, file);
       const dest = path.join(RELEASES_DIR, file);
-      // Only copy files, not directories
       if (fs.statSync(src).isFile()) {
         fs.copyFileSync(src, dest);
         console.log(`  Copied: ${file}`);
@@ -70,11 +88,11 @@ if (!skipBuild) {
       }
     }
   }
-  console.log(`  ${copied} file(s) copied to gcs-releases/`);
+  console.log(`  ${copied} Mac file(s) copied to gcs-releases/`);
 }
 
-// Step 3: Upload everything in gcs-releases/ to GCS
-console.log('\n=== Uploading to GCS ===');
+// Step 3: Validate before upload
+console.log('\n=== Validating gcs-releases/ ===');
 
 const uploadFiles = fs.readdirSync(RELEASES_DIR).filter(f => {
   return fs.statSync(path.join(RELEASES_DIR, f)).isFile();
@@ -85,10 +103,21 @@ if (uploadFiles.length === 0) {
   process.exit(1);
 }
 
-console.log('Files to upload:');
+const finalHasExe = uploadFiles.some(f => /\.exe$/.test(f));
+const finalHasDmg = uploadFiles.some(f => /\.dmg$/.test(f));
+const finalHasLatestYml = uploadFiles.some(f => f === 'latest.yml');
+const finalHasLatestMacYml = uploadFiles.some(f => f === 'latest-mac.yml');
+
+console.log(`  Windows .exe:       ${finalHasExe ? '✓' : '✗ MISSING'}`);
+console.log(`  latest.yml:         ${finalHasLatestYml ? '✓' : '✗ MISSING (auto-update for Windows won\'t work)'}`);
+console.log(`  Mac .dmg:           ${finalHasDmg ? '✓' : '✗ MISSING'}`);
+console.log(`  latest-mac.yml:     ${finalHasLatestMacYml ? '✓' : '✗ MISSING (auto-update for Mac won\'t work)'}`);
+
+console.log('\nFiles to upload:');
 uploadFiles.forEach(f => console.log(`  - ${f}`));
 
-// Upload all files
+// Step 4: Upload everything to GCS
+console.log('\n=== Uploading to GCS ===');
 run(`gsutil -m cp "${RELEASES_DIR}"/* ${BUCKET}/`);
 
 console.log('\n=== Done! ===');
@@ -97,3 +126,7 @@ console.log('\nPublic URLs:');
 uploadFiles.forEach(f => {
   console.log(`  https://storage.googleapis.com/dineopen-releases/${encodeURIComponent(f)}`);
 });
+
+if (!finalHasExe || !finalHasDmg) {
+  console.log('\n⚠️  Some platform files were missing. Auto-update will only work for platforms that were uploaded.');
+}
