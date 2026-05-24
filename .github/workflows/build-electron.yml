@@ -58,7 +58,7 @@ jobs:
         with:
           name: windows-release-v${{ steps.version.outputs.version }}
           path: |
-            dist-electron/*-setup.exe
+            dist-electron/*Setup*.exe
             dist-electron/*.exe.blockmap
             dist-electron/latest.yml
           retention-days: 30
