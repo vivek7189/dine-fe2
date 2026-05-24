@@ -4020,7 +4020,7 @@ const OrderHistory = () => {
       })(), document.body)}
 
       {/* Cancel order modal — replaces native prompt() */}
-      {cancelModalOrderId && (
+      {cancelModalOrderId && typeof document !== 'undefined' && createPortal(
         <>
           <style dangerouslySetInnerHTML={{ __html: `
             @keyframes cancelBackdropIn { from { opacity: 0; } to { opacity: 1; } }
@@ -4120,8 +4120,8 @@ const OrderHistory = () => {
               </div>
             </div>
           </div>
-        </>
-      )}
+        </>,
+      document.body)}
 
       {/* Refund modal */}
       {refundModalOrder && typeof document !== 'undefined' && createPortal(
