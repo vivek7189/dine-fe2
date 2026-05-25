@@ -1897,7 +1897,12 @@ function RestaurantPOSContent() {
         const updated = [...prevCart];
         updated[existingIndex] = {
           ...updated[existingIndex],
-          quantity: (updated[existingIndex].quantity || 0) + (item.quantity || 1)
+          quantity: (updated[existingIndex].quantity || 0) + (item.quantity || 1),
+          // Update price/basePrice to latest values so that pricing rule
+          // changes between repeated adds of the same item are reflected.
+          price: item.price,
+          basePrice: item.basePrice ?? updated[existingIndex].basePrice,
+          appliedPricingRuleId: item.appliedPricingRuleId ?? updated[existingIndex].appliedPricingRuleId,
         };
         return updated;
       }
@@ -2033,6 +2038,15 @@ function RestaurantPOSContent() {
       }
     } else {
       base = typeof item?.price === 'number' ? item.price : 0;
+    }
+    // Last resort: if base is still 0 and this isn't intentionally free,
+    // try looking up the current menu price to avoid billing ₹0 by mistake.
+    if (base === 0 && item?.id) {
+      const menuItem = (menuItems || []).find(m => m.id === item.id);
+      if (menuItem && typeof menuItem.price === 'number' && menuItem.price > 0) {
+        base = menuItem.price;
+        console.warn(`⚠️ getEffectiveItemPrice: resolved ₹0 price for "${item.name}" to menu price ₹${menuItem.price}`);
+      }
     }
     const extras = Array.isArray(item?.selectedCustomizations)
       ? item.selectedCustomizations.reduce((s, c) => s + (c?.price || 0), 0)
@@ -2331,16 +2345,19 @@ function RestaurantPOSContent() {
           const matchedMenu = menuItems.find(m => m.id === id);
           // Refresh price from current menu for pending/active orders
           // Use variant price if variant selected, otherwise use menu price
+          const menuBasePrice = matchedMenu?.price ?? price ?? 0;
           const refreshedPrice = item.selectedVariant?.price != null
             ? item.selectedVariant.price
-            : (matchedMenu?.price ?? price ?? 0);
+            : menuBasePrice;
           // basePrice should reflect the variant price when variant is selected,
           // not the base menu price — this ensures correct price edit detection
           const variantPrice = item.selectedVariant?.price;
           const effectiveBasePrice = variantPrice != null
             ? variantPrice
             : (matchedMenu?.price ?? (typeof item.basePrice === 'number' ? item.basePrice : (price || 0)));
-          return {
+
+          // Build the cart item first with base menu price
+          const cartItem = {
             id: id,
             name: matchedMenu?.name || name,
             price: refreshedPrice,
@@ -2355,6 +2372,17 @@ function RestaurantPOSContent() {
             // Store original data for reference
             originalData: item
           };
+
+          // Apply active pricing rule to loaded items (non-variant only)
+          // so that saved orders reflect the current pricing context
+          if (multiPricingEnabled && activePricingRuleId && !item.selectedVariant) {
+            const rulePrice = getItemDisplayPrice(cartItem);
+            cartItem.price = rulePrice;
+            cartItem.basePrice = effectiveBasePrice;
+            cartItem.appliedPricingRuleId = activePricingRuleId;
+          }
+
+          return cartItem;
         }) : [];
 
         // If we have unknown items, try to fetch menu items and match them BEFORE setting cart
