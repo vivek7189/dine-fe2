@@ -1,6 +1,6 @@
 [package]
 name = "dineopen-pos"
-version = "1.8.0"
+version = "1.8.1"
 description = "DineOpen POS Desktop App"
 edition = "2021"
 
