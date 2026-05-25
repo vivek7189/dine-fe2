@@ -569,11 +569,13 @@ function RestaurantPOSContent() {
   }, []);
 
   // Sub-restaurant menu filtering: use own menu when menuMode='own'
+  // Shallow-copy items to prevent downstream mutations (e.g. pricing rule
+  // adjustments) from corrupting the original menu data source.
   const effectiveMenuItems = useMemo(() => {
     if (selectedSubRestaurant?.menuMode === 'own' && selectedSubRestaurant.menu?.items?.length > 0) {
-      return selectedSubRestaurant.menu.items;
+      return selectedSubRestaurant.menu.items.map(item => ({ ...item }));
     }
-    return menuItems || [];
+    return (menuItems || []).map(item => ({ ...item }));
   }, [selectedSubRestaurant, menuItems]);
 
   // Generate dynamic categories based on actual menu items
@@ -1772,8 +1774,11 @@ function RestaurantPOSContent() {
     setCart(prevCart => prevCart.map(item => {
       // Find the original menu item to get pricingRules overrides
       const menuItem = menuItems.find(m => m.id === item.id || m._id === item._id);
-      // Resolve true base price: prefer stored basePrice, then _originalPrice, then menu item's price, then cart price
-      const basePrice = item.basePrice ?? item._originalPrice ?? menuItem?.price ?? item.price;
+      // Resolve true base price: the authoritative source is the menu item's
+      // original price. Cart-stored basePrice can become stale or corrupted
+      // (e.g. set to a pricing-rule price instead of the original), so we
+      // prefer the current menu item's price when available.
+      const basePrice = menuItem?.price ?? item._originalPrice ?? item.basePrice ?? item.price;
       let newPrice = basePrice;
       if (activePricingRuleId) {
         // Priority 1: Check per-item override from menu item's pricingRules (handle both number and string)
@@ -1816,10 +1821,13 @@ function RestaurantPOSContent() {
   }, [activePricingRuleId, multiPricingEnabled, menuItems]);
 
   // Apply display prices to filtered items for rendering
+  // IMPORTANT: Always spread-copy each item to avoid shared object references.
+  // Without copying, the re-pricing useEffect can mutate the original menu item
+  // objects, causing all cart items referencing the same object to share one price.
   const filteredItems = multiPricingEnabled && activePricingRuleId
     ? filteredItemsBase.map(item => {
         const displayPrice = getItemDisplayPrice(item);
-        return displayPrice !== item.price ? { ...item, price: displayPrice, _originalPrice: item.price } : item;
+        return { ...item, price: displayPrice, _originalPrice: item.price };
       })
     : filteredItemsBase;
 
