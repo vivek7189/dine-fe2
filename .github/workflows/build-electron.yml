@@ -67,13 +67,17 @@ jobs:
 
       - name: Create or update GitHub Release with exe
         if: github.ref_type == 'tag'
-        uses: softprops/action-gh-release@v2.3.2
-        with:
-          tag_name: v${{ steps.version.outputs.version }}
-          name: DineOpen POS v${{ steps.version.outputs.version }}
-          files: |
-            dist-electron/*Setup*.exe
-            dist-electron/*.exe.blockmap
-            dist-electron/latest.yml
-          draft: false
-          prerelease: false
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v${{ steps.version.outputs.version }}"
+          # Create the release if it doesn't exist yet
+          gh release view "$TAG" >/dev/null 2>&1 || \
+            gh release create "$TAG" --title "DineOpen POS $TAG" --notes "Release $TAG"
+          # Upload artifacts to the release
+          gh release upload "$TAG" \
+            dist-electron/*Setup*.exe \
+            dist-electron/*.exe.blockmap \
+            dist-electron/latest.yml \
+            --clobber
