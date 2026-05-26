@@ -547,6 +547,12 @@ const TableManagement = () => {
     const handleOrderEvent = (snapshot) => {
       const data = snapshot.val();
       if (!data) return;
+      // Skip stale events after Firebase reconnect (> 2 min old)
+      const eventAge = data.ts ? Date.now() - data.ts : 0;
+      if (eventAge > 2 * 60 * 1000) {
+        console.log(`📡 Tables: Skipping stale order event (${Math.round(eventAge / 1000)}s old)`);
+        return;
+      }
       const orderEvents = ['order-created', 'order-updated', 'order-status-updated', 'order-completed', 'order-deleted'];
       if (orderEvents.includes(data.type)) {
         console.log(`📡 Tables: Received '${data.type}'`, data);
@@ -558,6 +564,12 @@ const TableManagement = () => {
     const handleTableEvent = (snapshot) => {
       const data = snapshot.val();
       if (!data) return;
+      // Skip stale events after Firebase reconnect (> 2 min old)
+      const eventAge = data.ts ? Date.now() - data.ts : 0;
+      if (eventAge > 2 * 60 * 1000) {
+        console.log(`📡 Tables: Skipping stale table event (${Math.round(eventAge / 1000)}s old)`);
+        return;
+      }
       const tableEvents = ['table-status-updated', 'tables-reset'];
       if (tableEvents.includes(data.type)) {
         console.log(`📡 Tables: Received '${data.type}'`, data);
@@ -569,8 +581,14 @@ const TableManagement = () => {
     onChildAdded(ordersRef, handleOrderEvent);
     onChildAdded(tablesRef, handleTableEvent);
 
+    // Periodic refresh fallback: if Firebase silently disconnects, tables still refresh
+    const periodicRefreshInterval = setInterval(() => {
+      if (restaurantId) loadFloorsRef.current?.(restaurantId, true);
+    }, 10 * 60 * 1000); // every 10 minutes
+
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
+      clearInterval(periodicRefreshInterval);
       console.log(`📡 Tables: Unsubscribing from Firebase RTDB`);
       off(ordersRef, 'child_added', handleOrderEvent);
       off(tablesRef, 'child_added', handleTableEvent);
@@ -692,6 +710,43 @@ const TableManagement = () => {
       setCachedTablesData(restaurantId, { floors: floorsData, selectedRestaurant: currentRestaurant });
       // Persist to IndexedDB for offline
       setCachedData(`tables_${restaurantId}`, { floors: floorsData, selectedRestaurant: currentRestaurant }).catch(() => {});
+
+      // ── Stale table auto-release ──
+      // If posSettings.tableAutoReleaseHours is set (e.g., 12), auto-release tables
+      // that have been occupied longer than the threshold AND have no active (pending/confirmed) order.
+      // This avoids tables staying "occupied" for days when staff forgets to mark complete.
+      const autoReleaseHours = posSettings?.tableAutoReleaseHours;
+      if (autoReleaseHours && autoReleaseHours > 0) {
+        const allTables = floorsData.flatMap(f => f.tables || []);
+        const staleTables = allTables.filter(table => {
+          if (table.status !== 'occupied') return false;
+          if (!table.lastOrderTime) return false;
+          const d = table.lastOrderTime?.toDate ? table.lastOrderTime.toDate()
+            : table.lastOrderTime?._seconds ? new Date(table.lastOrderTime._seconds * 1000)
+            : new Date(table.lastOrderTime);
+          if (isNaN(d.getTime())) return false;
+          const hoursElapsed = (Date.now() - d.getTime()) / (1000 * 60 * 60);
+          return hoursElapsed > autoReleaseHours;
+        });
+        if (staleTables.length > 0) {
+          console.log(`🪑 Auto-releasing ${staleTables.length} stale tables (occupied > ${autoReleaseHours}h)`);
+          // Release each stale table in background (non-blocking)
+          staleTables.forEach(table => {
+            apiClient.updateTableStatus(table.id, 'available', null, restaurantId)
+              .then(() => console.log(`🪑 Auto-released table "${table.name}"`))
+              .catch(err => console.warn(`🪑 Failed to auto-release table "${table.name}":`, err.message));
+          });
+          // Optimistic local update — mark them available immediately
+          setFloors(prev => prev.map(floor => ({
+            ...floor,
+            tables: (floor.tables || []).map(t =>
+              staleTables.some(s => s.id === t.id)
+                ? { ...t, status: 'available', currentOrderId: null, customerName: null, startTime: null }
+                : t
+            ),
+          })));
+        }
+      }
     } catch (err) {
       console.warn('🔌 Floors API failed, trying IndexedDB:', err.message);
       try {
@@ -1182,7 +1237,18 @@ const TableManagement = () => {
     const mins = Math.floor((Date.now() - d.getTime()) / 60000);
     if (mins < 1) return t('tables.justNow');
     if (mins < 60) return `${mins}m`;
-    return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ${mins % 60}m`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ${hours % 24}h`;
+  };
+
+  // Get elapsed hours for a table (used for aging threshold checks)
+  const getElapsedHours = (table) => {
+    if (!table.lastOrderTime) return 0;
+    const d = table.lastOrderTime?.toDate ? table.lastOrderTime.toDate() : table.lastOrderTime?._seconds ? new Date(table.lastOrderTime._seconds * 1000) : new Date(table.lastOrderTime);
+    if (isNaN(d.getTime())) return 0;
+    return (Date.now() - d.getTime()) / (1000 * 60 * 60);
   };
 
   const formatCurrency = (amount) => {
@@ -1520,7 +1586,12 @@ const TableManagement = () => {
                     const isOccupied = isToday && (tableStatus === 'occupied' || tableStatus === 'serving');
                     const isAvailable = tableStatus === 'available';
                     const elapsed = isToday ? getElapsed(table) : null;
-                    const elapsedIsLong = elapsed && elapsed.includes('d');
+                    const elapsedHrs = isOccupied ? getElapsedHours(table) : 0;
+                    // Aging thresholds: configurable via posSettings, defaults 2h/6h
+                    const warnHours = posSettings?.tableWarnHours || 2;
+                    const dangerHours = posSettings?.tableDangerHours || 6;
+                    const elapsedIsLong = elapsedHrs >= dangerHours;
+                    const elapsedIsWarn = !elapsedIsLong && elapsedHrs >= warnHours;
 
                     return (
                       <div key={table.id} className="tbl-card table-dropdown" style={{
@@ -1553,7 +1624,12 @@ const TableManagement = () => {
                                   {table.name}
                                 </span>
                                 {isOccupied && elapsed && (
-                                  <span style={{ fontSize: '10px', fontWeight: 700, color: elapsedIsLong ? '#dc2626' : '#92400e', whiteSpace: 'nowrap' }}>
+                                  <span style={{
+                                    fontSize: '10px', fontWeight: 700, whiteSpace: 'nowrap',
+                                    color: elapsedIsLong ? '#fff' : elapsedIsWarn ? '#92400e' : '#6b7280',
+                                    ...(elapsedIsLong ? { background: '#dc2626', padding: '1px 5px', borderRadius: '4px' } : {}),
+                                    ...(elapsedIsWarn ? { background: '#fef3c7', padding: '1px 5px', borderRadius: '4px' } : {}),
+                                  }}>
                                     {elapsed}
                                   </span>
                                 )}

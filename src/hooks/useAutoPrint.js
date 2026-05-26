@@ -21,19 +21,24 @@ import { database } from '../../firebase';
 // const PUSHER_KEY = process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec';
 // const PUSHER_CLUSTER = process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2';
 
-// Track recently printed order IDs to prevent duplicates (max 50)
-const recentlyPrinted = new Set();
+// Track recently printed order IDs to prevent duplicates (max 50).
+// Uses a Map with timestamps instead of Set + individual setTimeouts,
+// so we avoid accumulating hundreds of timers over long sessions.
+const recentlyPrinted = new Map(); // key -> timestamp
 function markPrinted(orderId, type) {
   const key = `${type}:${orderId}`;
-  recentlyPrinted.add(key);
+  recentlyPrinted.set(key, Date.now());
+  // Evict oldest if over limit
   if (recentlyPrinted.size > 50) {
-    const first = recentlyPrinted.values().next().value;
-    recentlyPrinted.delete(first);
+    const firstKey = recentlyPrinted.keys().next().value;
+    recentlyPrinted.delete(firstKey);
   }
-  setTimeout(() => recentlyPrinted.delete(key), 60000);
 }
 function wasPrinted(orderId, type) {
-  if (recentlyPrinted.has(`${type}:${orderId}`)) return true;
+  const key = `${type}:${orderId}`;
+  const ts = recentlyPrinted.get(key);
+  if (ts && (Date.now() - ts) < 60000) return true;
+  if (ts) recentlyPrinted.delete(key); // expired, clean up
   if (type === 'kot' && typeof window !== 'undefined' && window.__lastLocalPrintedKOT === orderId) {
     return true;
   }
@@ -42,11 +47,20 @@ function wasPrinted(orderId, type) {
   }
   return false;
 }
-if (typeof window !== 'undefined') {
-  setInterval(() => {
+
+// Periodically clear the dedup window globals and prune expired entries.
+// Uses a single interval (started once) instead of per-item timeouts.
+let _autoPrintCleanupInterval = null;
+if (typeof window !== 'undefined' && !_autoPrintCleanupInterval) {
+  _autoPrintCleanupInterval = setInterval(() => {
     window.__lastLocalPrintedBill = null;
     window.__lastLocalPrintedKOT = null;
     window.__lastLocalPrintedTokens = null;
+    // Prune expired entries from recentlyPrinted
+    const now = Date.now();
+    for (const [key, ts] of recentlyPrinted) {
+      if (now - ts > 60000) recentlyPrinted.delete(key);
+    }
   }, 30000);
 }
 
@@ -195,6 +209,13 @@ export function useAutoPrint(restaurantId, printSettings) {
     const handleKotEvent = (snapshot) => {
       const data = snapshot.val();
       if (!data) return;
+      // Skip stale events after Firebase reconnect to prevent printing
+      // a backlog of old KOTs that were already handled or are irrelevant.
+      const eventAge = data.ts ? Date.now() - data.ts : 0;
+      if (eventAge > 2 * 60 * 1000) {
+        console.log(`🖨️ AutoPrint: Skipping stale KOT event (${Math.round(eventAge / 1000)}s old)`);
+        return;
+      }
       if (data.type === 'order-created') {
         handleKotCreated(data);
       } else if (data.type === 'kot-print-request') {
@@ -205,6 +226,12 @@ export function useAutoPrint(restaurantId, printSettings) {
     const handleBillingEvent = (snapshot) => {
       const data = snapshot.val();
       if (!data) return;
+      // Skip stale billing events after Firebase reconnect
+      const eventAge = data.ts ? Date.now() - data.ts : 0;
+      if (eventAge > 2 * 60 * 1000) {
+        console.log(`🖨️ AutoPrint: Skipping stale billing event (${Math.round(eventAge / 1000)}s old)`);
+        return;
+      }
       if (data.type === 'billing-print-request') {
         handleBillingPrint(data);
       }

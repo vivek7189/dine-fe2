@@ -320,8 +320,15 @@ async function handleApiRequest({ endpoint, method, body, headers }) {
       if (cloudResult.status_code < 400) {
         return cloudResult;
       }
-      // Cloud returned an error status — for writes, fall through to local
+      // Cloud returned an error status
       if (m !== 'GET') {
+        // 4xx = client/validation errors (bad input, permission denied, item unavailable)
+        // → return to frontend so it can show the error to the user.
+        // 5xx = server errors → fall through to local offline routing.
+        if (cloudResult.status_code >= 400 && cloudResult.status_code < 500) {
+          debugLog(`ONLINE WRITE rejected (${cloudResult.status_code}), returning error to frontend`);
+          return cloudResult;
+        }
         debugLog(`ONLINE WRITE failed (${cloudResult.status_code}), falling back to local`);
       } else {
         // For reads, try local fallback

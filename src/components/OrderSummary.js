@@ -1736,6 +1736,7 @@ const OrderSummary = ({
   };
 
   const handleProcessOrder = async () => {
+    if (orderBusy) return; // Prevent double-tap while order is processing
     // Full Due requires a customer
     if (fullDueMode && lookupStatus !== 'found') {
       alert('Customer phone number is required for due (udhar) orders. Please enter a valid customer phone first.');
@@ -5408,6 +5409,7 @@ const OrderSummary = ({
               {/* Place Order (KOT) / Update & KOT */}
               <button
                 onClick={() => {
+                  if (orderBusy) return; // Prevent double-tap while order is processing
                   if (paymentMethod === 'upi' && upiConfigured) {
                     setPendingUpiAction('place');
                     setShowUpiQr(true);
@@ -5496,7 +5498,7 @@ const OrderSummary = ({
           <div style={{ display: 'flex', gap: billingMode ? '10px' : '8px' }}>
             {/* Complete Billing Button */}
             <button
-              onClick={handleProcessOrder}
+              onClick={() => { if (orderBusy) return; handleProcessOrder(); }}
               disabled={orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
               style={{
                 width: printSettings?.enableSaveAndPrint ? '50%' : '100%',
@@ -5535,6 +5537,7 @@ const OrderSummary = ({
               {printSettings?.enableSaveAndPrint && (
                 <button
                   onClick={() => {
+                    if (orderBusy) return;
                     window.__autoPrintBill = true;
                     handleProcessOrder();
                   }}

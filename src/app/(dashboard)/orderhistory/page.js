@@ -1326,8 +1326,7 @@ const OrderHistory = () => {
     } catch (error) {
       console.error('Billing error:', error);
       alert('Billing failed: ' + (error.message || 'Unknown error'));
-    } finally {
-      setBillingModalProcessing(false);
+      setBillingModalProcessing(false); // Only reset on error so user can retry; on success keep disabled until modal closes
     }
   };
 

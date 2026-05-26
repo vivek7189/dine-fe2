@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { FaReceipt, FaTimes, FaSpinner } from 'react-icons/fa';
 import apiClient from '../lib/api';
@@ -40,9 +40,15 @@ export default function TableBillingModal({
   const [modalCustomerName, setModalCustomerName] = useState('');
   const [modalCustomerMobile, setModalCustomerMobile] = useState('');
   const [mounted, setMounted] = useState(false);
+  const closeTimerRef = useRef(null);
 
   // Ensure portal target is available (client-side only)
   useEffect(() => { setMounted(true); }, []);
+
+  // Cleanup pending close timer on unmount
+  useEffect(() => {
+    return () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current); };
+  }, []);
 
   // Fetch order when modal opens
   useEffect(() => {
@@ -262,7 +268,7 @@ export default function TableBillingModal({
       // Delay modal close so OrderSummary can generate invoice + auto-print fires
       // Auto-print useEffect needs invoice set + 800ms timer, so 3s is safe
       const wantsPrint = !!window.__autoPrintBill || !!printSettings?.autoPrintOnCompleteBilling;
-      setTimeout(() => handleClose(), wantsPrint ? 3000 : 500);
+      closeTimerRef.current = setTimeout(() => handleClose(), wantsPrint ? 3000 : 500);
 
       // Return orderId so OrderSummary's handleProcessOrder can call generateInvoice
       return { orderId: completedOrderId };
@@ -274,8 +280,7 @@ export default function TableBillingModal({
       }
       handleClose();
       alert('Billing failed: ' + (error.message || 'Unknown error'));
-    } finally {
-      setModalProcessing(false);
+      setModalProcessing(false); // Only reset on error so user can retry; on success keep disabled until modal closes
     }
   };
 

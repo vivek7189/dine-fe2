@@ -7,10 +7,13 @@ import {
   FaChevronRight, FaTruck, FaShoppingBag, FaConciergeBell,
   FaReceipt, FaCheckCircle
 } from 'react-icons/fa';
+import { MdDeliveryDining } from 'react-icons/md';
 import apiClient from '../lib/api';
 import { t } from '../lib/i18n';
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
 import { database } from '../../firebase';
+import DeliveryAssignModal from './delivery/DeliveryAssignModal';
+import ActiveDeliveriesPanel from './delivery/ActiveDeliveriesPanel';
 
 // Status config — colors match the tables page pattern
 const statusConfig = {
@@ -90,6 +93,21 @@ export default function DeliveryTakeawayPanel({ restaurantId, isMobile, refreshS
   const [, setTick] = useState(0);
   const refreshTimerRef = useRef(null);
   const fc = formatCurrency || (v => '₹' + (v || 0).toLocaleString('en-IN'));
+
+  // Delivery assignment state
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [assignOrderId, setAssignOrderId] = useState(null);
+  const [assignOrderNumber, setAssignOrderNumber] = useState('');
+  const [deliverySettings, setDeliverySettings] = useState(null);
+
+  // Fetch delivery settings
+  useEffect(() => {
+    if (restaurantId) {
+      apiClient.getDeliverySettings(restaurantId).then(res => {
+        if (res?.success) setDeliverySettings(res.data);
+      }).catch(() => {});
+    }
+  }, [restaurantId]);
 
   // Fetch active delivery/takeaway orders
   const fetchOrders = useCallback(async (showLoader) => {
@@ -408,7 +426,7 @@ export default function DeliveryTakeawayPanel({ restaurantId, isMobile, refreshS
                 </div>
 
                 {/* Row 5: Action Buttons */}
-                <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '2px', flexWrap: 'wrap' }}>
                   {/* View */}
                   <button
                     onClick={(e) => { e.stopPropagation(); handleViewOrder(order); }}
@@ -422,6 +440,39 @@ export default function DeliveryTakeawayPanel({ restaurantId, isMobile, refreshS
                   >
                     <FaEye size={10} /> View
                   </button>
+
+                  {/* Assign Rider - show on ready delivery orders without assigned staff */}
+                  {order.orderType === 'delivery' && order.status === 'ready' && !order.assignedStaff && deliverySettings?.deliveryTrackingEnabled && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAssignOrderId(order.id);
+                        setAssignOrderNumber(orderNum);
+                        setAssignModalOpen(true);
+                      }}
+                      className="tbl-action"
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '5px',
+                        padding: '7px 12px', borderRadius: '8px', border: '1px solid #d1fae5',
+                        backgroundColor: '#ecfdf5', color: '#059669', fontSize: '12px', fontWeight: '600',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <MdDeliveryDining size={13} /> Assign Rider
+                    </button>
+                  )}
+
+                  {/* Delivery status badge for assigned orders */}
+                  {order.orderType === 'delivery' && order.deliveryStatus && order.deliveryStatus !== 'delivered' && (
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '4px',
+                      padding: '5px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '600',
+                      backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe',
+                    }}>
+                      <MdDeliveryDining size={12} />
+                      {order.deliveryStatus.replace('_', ' ')}
+                    </span>
+                  )}
 
                   {/* Advance Status */}
                   {nextLabel && (
@@ -456,6 +507,28 @@ export default function DeliveryTakeawayPanel({ restaurantId, isMobile, refreshS
           })}
         </div>
       )}
+
+      {/* Active Deliveries Panel */}
+      {deliverySettings?.deliveryTrackingEnabled && (
+        <div style={{ marginTop: '24px', padding: '16px', background: '#fff', borderRadius: '14px', border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+          <ActiveDeliveriesPanel
+            restaurantId={restaurantId}
+            apiClient={apiClient}
+            realtimeEnabled={deliverySettings?.deliveryRealtimeTracking}
+          />
+        </div>
+      )}
+
+      {/* Assign Rider Modal */}
+      <DeliveryAssignModal
+        isOpen={assignModalOpen}
+        onClose={() => setAssignModalOpen(false)}
+        orderId={assignOrderId}
+        orderNumber={assignOrderNumber}
+        restaurantId={restaurantId}
+        apiClient={apiClient}
+        onAssigned={() => fetchOrders(false)}
+      />
     </div>
   );
 }

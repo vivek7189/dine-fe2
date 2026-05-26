@@ -13,6 +13,22 @@ class ApiClient {
     this._cache = new Map();
     // Track in-flight requests to prevent duplicate concurrent calls
     this._inflight = new Map();
+    // Max number of cached endpoints to prevent unbounded memory growth
+    this._cacheMaxSize = 150;
+
+    // Periodic cleanup: prune expired entries every 5 minutes
+    // Prevents memory growth in long-running POS sessions (12-16 hours)
+    if (typeof window !== 'undefined') {
+      this._cleanupInterval = setInterval(() => {
+        const now = Date.now();
+        const maxAge = 10 * 60 * 1000; // 10 min hard expiry for cleanup
+        for (const [key, entry] of this._cache) {
+          if (now - entry.timestamp > maxAge) {
+            this._cache.delete(key);
+          }
+        }
+      }, 5 * 60 * 1000);
+    }
   }
 
   /**
@@ -37,6 +53,11 @@ class ApiClient {
     // Make the request and cache it
     const promise = this.request(endpoint)
       .then(data => {
+        // Evict oldest entries if cache exceeds max size
+        if (this._cache.size >= this._cacheMaxSize) {
+          const firstKey = this._cache.keys().next().value;
+          this._cache.delete(firstKey);
+        }
         this._cache.set(endpoint, { data, timestamp: Date.now() });
         this._inflight.delete(endpoint);
         return data;
@@ -121,6 +142,13 @@ class ApiClient {
   }
 
   async request(endpoint, options = {}, isRetry = false) {
+    // Auto-inject client timezone offset into every API call so the backend
+    // can compute correct date boundaries regardless of server timezone.
+    // tz = minutes from UTC (e.g. -180 for UTC+3, -330 for IST UTC+5:30)
+    if (!endpoint.includes('tz=')) {
+      const sep = endpoint.includes('?') ? '&' : '?';
+      endpoint = `${endpoint}${sep}tz=${new Date().getTimezoneOffset()}`;
+    }
     const url = `${this.baseURL}${endpoint}`;
     const token = this.getToken();
     
@@ -3783,6 +3811,38 @@ class ApiClient {
   // Convert an image URL to base64 via backend proxy (avoids CORS on GCP Storage)
   async imageToBase64(url) {
     return this.request(`/api/utils/image-to-base64?url=${encodeURIComponent(url)}`);
+  }
+
+  // ── Delivery Management ──
+
+  async getDeliveryPartners(restaurantId) {
+    return this.request(`/api/delivery/${restaurantId}/partners`);
+  }
+
+  async assignDeliveryPartner(restaurantId, orderId, staffId, staffName) {
+    return this.request(`/api/delivery/${restaurantId}/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ orderId, staffId, staffName }),
+    });
+  }
+
+  async getActiveDeliveries(restaurantId) {
+    return this.request(`/api/delivery/${restaurantId}/active`);
+  }
+
+  async getDeliverySettings(restaurantId) {
+    return this.request(`/api/delivery/${restaurantId}/settings`);
+  }
+
+  async getDeliveryTracking(restaurantId, orderId) {
+    return this.request(`/api/delivery/${restaurantId}/tracking/${orderId}`);
+  }
+
+  async updateDeliverySettings(restaurantId, settings) {
+    return this.request(`/api/restaurants/${restaurantId}/settings`, {
+      method: 'PATCH',
+      body: JSON.stringify(settings),
+    });
   }
 }
 

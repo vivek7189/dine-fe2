@@ -2180,6 +2180,18 @@ function RestaurantPOSContent() {
     const handleOrderEvent = (snapshot) => {
       const data = snapshot.val();
       if (!data) return;
+
+      // Flood guard: after a Firebase reconnect, old events may fire in bulk.
+      // Skip notifications for events older than 2 minutes to avoid flooding
+      // the UI, but still trigger a debounced data refresh for staleness.
+      const eventAge = data.ts ? Date.now() - data.ts : 0;
+      const isStale = eventAge > 2 * 60 * 1000;
+      if (isStale) {
+        console.log(`📡 Dashboard: Skipping stale event '${data.type}' (${Math.round(eventAge / 1000)}s old)`);
+        debouncedOrderRefresh();
+        return;
+      }
+
       console.log(`📡 Dashboard: Received '${data.type}' event:`, data);
 
       if (data.type === 'order-completed' || data.type === 'order-deleted') {
@@ -2223,11 +2235,22 @@ function RestaurantPOSContent() {
     };
     onChildAdded(menuRef, handleMenuEvent);
 
+    // Periodic fallback: refresh menu and tables every 10 minutes.
+    // Firebase RTDB events are the primary mechanism, but if the connection
+    // drops silently (common in long-running Electron POS sessions), this
+    // ensures menu prices and table states don't become stale.
+    const periodicRefreshInterval = setInterval(() => {
+      console.log(`🔄 Dashboard: Periodic background refresh (menu + tables)`);
+      refreshMenuRef.current?.(restaurantId);
+      prefetchTablesRef.current?.(restaurantId);
+    }, 10 * 60 * 1000); // every 10 minutes
+
     // Cleanup on unmount
     return () => {
       if (tableDebounce) clearTimeout(tableDebounce);
       if (orderDebounce) clearTimeout(orderDebounce);
       if (menuDebounce) clearTimeout(menuDebounce);
+      clearInterval(periodicRefreshInterval);
       console.log(`📡 Dashboard: Unsubscribing from Firebase RTDB`);
       off(ordersRef, 'child_added', handleOrderEvent);
       off(tablesRef, 'child_added', handleTableEvent);
@@ -2235,7 +2258,8 @@ function RestaurantPOSContent() {
     };
   }, [selectedRestaurant?.id]); // Only re-subscribe when restaurant changes
 
-  // Reset UI state for fresh order
+  // Reset UI state for fresh order — must mirror the orderSuccess reset path
+  // to prevent stale state leaking between orders in long-running sessions.
   const handleFreshOrder = () => {
     setCart([]);
     setTableNumber('');
@@ -2246,12 +2270,15 @@ function RestaurantPOSContent() {
     setCurrentOrder(null);
     setSelectedTable(null);
     setManualTableNumber('');
+    setManualRoomNumber('');
+    setReturnToView(null);
     setError('');
     setNotification(null);
     setOrderSuccess(null);
     setOrderComplete(false);
     setPlacingOrder(false);
-    setActiveSavedOrderId(null); // Clear active saved order
+    setActiveSavedOrderId(null);
+    localStorage.removeItem('dine_cart');
     if (typeof window !== 'undefined') router.replace('/dashboard');
     // Show success notification
     setNotification({
@@ -3165,8 +3192,9 @@ function RestaurantPOSContent() {
         }
 
         const response = await apiClient.updateOrder(currentOrder.id, updateData);
-        
-        if (response.data) {
+
+        // Cloud returns { message, data: { orderId } }, Electron local fallback returns { order, success }
+        if (response?.data || response?.success) {
           // Process payment for the updated order
           // Backend only accepts 'cash', 'card', 'upi' — normalize split/other methods
           const _billingMethod = splitPay ? (splitPay[0]?.method || 'cash') : paymentMethod;
@@ -3253,6 +3281,12 @@ function RestaurantPOSContent() {
 
           // Return orderId so OrderSummary can generate the invoice
           return { orderId: completedOrderId };
+        } else {
+          console.error('Billing update: unexpected response format', response);
+          setNotification({ type: 'error', title: 'Update Failed', message: 'Order update returned an unexpected response. Please try again.', show: true });
+          setTimeout(() => setNotification(null), 5000);
+          setProcessing(false);
+          return;
         }
       } else {
         console.log('🆕 Creating new order for direct billing');
@@ -3658,9 +3692,8 @@ function RestaurantPOSContent() {
         setNotification(null);
       }, 5000);
 
+      setProcessing(false); // Only reset on error so user can retry
       return null;
-    } finally {
-      setProcessing(false);
     }
   };
 
@@ -4131,7 +4164,8 @@ function RestaurantPOSContent() {
 
       const response = await apiClient.updateOrder(currentOrder.id, updateData);
 
-      if (response.data) {
+      // Cloud returns { message, data: { orderId } }, Electron local fallback returns { order, success }
+      if (response?.data || response?.success) {
         setNotification({
           type: 'success',
           title: '✅ Order Updated',
@@ -4171,6 +4205,10 @@ function RestaurantPOSContent() {
             keepTable: true,
           });
         }
+      } else {
+        console.error('Update without KOT: unexpected response format', response);
+        setNotification({ type: 'error', title: 'Update Failed', message: 'Order update returned an unexpected response. Please try again.', show: true });
+        setTimeout(() => setNotification(null), 5000);
       }
     } catch (error) {
       console.error('Update order without KOT error:', error);
@@ -4321,7 +4359,8 @@ function RestaurantPOSContent() {
 
         const response = await apiClient.updateOrder(currentOrder.id, updateData);
 
-        if (response.data) {
+        // Cloud returns { message, data: { orderId } }, Electron local fallback returns { order, success }
+        if (response?.data || response?.success) {
           // Compute new/changed items for incremental KOT display
           const existingItemsArr = currentOrder.items || [];
           const existingItemMap = new Map(existingItemsArr.map(i => [i.menuItemId, i]));
@@ -4433,6 +4472,11 @@ function RestaurantPOSContent() {
               keepTable: true,
             });
           }
+        } else {
+          // Update API returned unexpected response — show error instead of silently doing nothing
+          console.error('Update & KOT: unexpected response format', response);
+          setNotification({ type: 'error', title: 'Update Failed', message: 'Order update returned an unexpected response. Please try again.', show: true });
+          setTimeout(() => setNotification(null), 5000);
         }
       } else {
         // Create new order
@@ -4913,6 +4957,8 @@ function RestaurantPOSContent() {
   const clearCart = (opts = {}) => {
     const { keepOrderSuccess = false, preserveUrl = false, keepTable = false } = opts;
     setCart([]);
+    setProcessing(false); // Reset billing processing state
+    setPlacingOrder(false); // Reset KOT processing state
     setTableNumber('');
     setCurrentOrder(null);
     setActiveSavedOrderId(null);

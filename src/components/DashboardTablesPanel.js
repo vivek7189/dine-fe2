@@ -101,10 +101,17 @@ export default function DashboardTablesPanel({
 
   // Ref for the recently updated table card
   const updatedTableRef = useRef(null);
+  // Track pending print feedback timers for cleanup on unmount
+  const printTimersRef = useRef([]);
 
   useEffect(() => {
     const interval = setInterval(() => setTick(t => t + 1), 60000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      // Clear any pending print feedback timers
+      printTimersRef.current.forEach(t => clearTimeout(t));
+      printTimersRef.current = [];
+    };
   }, []);
 
   // Close print dropdown on outside click
@@ -315,27 +322,27 @@ export default function DashboardTablesPanel({
         const billHtml = generateBillHTML(invoice, printSettings || {});
         openManualPrintWindow(billHtml);
         // Brief delay to show feedback
-        setTimeout(() => {
+        printTimersRef.current.push(setTimeout(() => {
           setPrintingTables(prev => ({ ...prev, [tableId]: false }));
-        }, 1000);
+        }, 1000));
       } else {
         // Auto print - send to dine-kot-printer via API
         try {
           await apiClient.requestManualPrint(order.id, 'bill');
           console.log('Print command sent to printer');
           // Keep printing state for a moment to show feedback
-          setTimeout(() => {
+          printTimersRef.current.push(setTimeout(() => {
             setPrintingTables(prev => ({ ...prev, [tableId]: false }));
-          }, 2000);
+          }, 2000));
         } catch (error) {
           console.error('Error sending print command:', error);
           // Fallback to manual print if auto fails
           const invoice = buildInvoiceFromOrder(order);
           const billHtml = generateBillHTML(invoice, printSettings || {});
           openManualPrintWindow(billHtml);
-          setTimeout(() => {
+          printTimersRef.current.push(setTimeout(() => {
             setPrintingTables(prev => ({ ...prev, [tableId]: false }));
-          }, 1000);
+          }, 1000));
         }
       }
     } catch (error) {
@@ -396,7 +403,7 @@ export default function DashboardTablesPanel({
     } catch (error) {
       console.error('Error printing bill:', error);
     } finally {
-      setTimeout(() => setPrintingTables(prev => ({ ...prev, [tableId]: false })), 1000);
+      printTimersRef.current.push(setTimeout(() => setPrintingTables(prev => ({ ...prev, [tableId]: false })), 1000));
     }
   };
 
@@ -435,7 +442,7 @@ export default function DashboardTablesPanel({
     } catch (error) {
       console.error('Error printing KOT:', error);
     } finally {
-      setTimeout(() => setPrintingTables(prev => ({ ...prev, [tableId]: false })), 1000);
+      printTimersRef.current.push(setTimeout(() => setPrintingTables(prev => ({ ...prev, [tableId]: false })), 1000));
     }
   };
 

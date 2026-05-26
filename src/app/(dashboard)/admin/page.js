@@ -89,7 +89,8 @@ import {
   FaCommentDots,
   FaWhatsapp,
   FaQrcode,
-  FaLink
+  FaLink,
+  FaTruck
 } from 'react-icons/fa';
 // ShiftScheduling moved to /shifts page df
 import dynamic from 'next/dynamic';
@@ -4878,6 +4879,8 @@ const Admin = () => {
     { id: 'google-reviews', name: 'Google Reviews', icon: FaGoogle, description: 'Manage, reply & collect Google Reviews', color: '#ea4335' },
     { id: 'parking', name: 'Parking Management', icon: FaParking, description: 'Vehicle parking lot management with tickets & QR scanning', color: '#0369a1' },
     { id: 'bookings', name: 'Bookings & Catering', icon: FaCalendarCheck, description: 'Advance orders, catering, and venue/hall booking management', color: '#ef4444' },
+    { id: 'deliveryTracking', name: 'Delivery Tracking', icon: FaTruck, description: 'Assign riders, track deliveries in real-time', color: '#10b981' },
+    { id: 'deliveryRealtimeTracking', name: 'Delivery Live Map', icon: FaMapMarkerAlt, description: 'Real-time GPS tracking on map (requires Delivery Tracking)', color: '#3b82f6' },
   ];
 
   useEffect(() => {
@@ -4912,9 +4915,11 @@ const Admin = () => {
         const user = JSON.parse(localStorage.getItem('user'));
         if (user?.restaurantId) {
           const parkingEnabled = !featureNotAllowed.includes('parking');
-          await apiClient.updateRestaurant(user.restaurantId, { parkingEnabled });
+          const deliveryTrackingEnabled = !featureNotAllowed.includes('deliveryTracking');
+          const deliveryRealtimeTracking = !featureNotAllowed.includes('deliveryRealtimeTracking');
+          await apiClient.updateRestaurant(user.restaurantId, { parkingEnabled, deliveryTrackingEnabled, deliveryRealtimeTracking });
         }
-      } catch (e) { /* ignore parking flag sync error */ }
+      } catch (e) { /* ignore flag sync error */ }
       setFeaturesMessage({ type: 'success', text: 'Features updated! Sidebar refreshed.' });
     } catch (err) {
       setFeaturesMessage({ type: 'error', text: err.message || 'Failed to save features' });
@@ -5639,6 +5644,7 @@ const Admin = () => {
       phone: selectedStaff.phone || '',
       email: selectedStaff.email || '',
       role: selectedStaff.role || 'employee',
+      isDeliveryPartner: selectedStaff.isDeliveryPartner || false,
       pageAccess: JSON.parse(JSON.stringify(selectedStaff.pageAccess || ROLE_DEFAULT_PAGE_ACCESS[selectedStaff.role] || ROLE_DEFAULT_PAGE_ACCESS.employee)),
     });
     setEditingStaff(true);
@@ -5669,6 +5675,7 @@ const Admin = () => {
 
       // Always send pageAccess (user may have customized it)
       updateData.pageAccess = editStaffForm.pageAccess;
+      updateData.isDeliveryPartner = !!editStaffForm.isDeliveryPartner;
 
       await apiClient.updateStaff(selectedStaff.id, updateData);
 
@@ -9182,6 +9189,22 @@ const Admin = () => {
                       <div style={{ marginTop: '8px', fontSize: '13px', color: '#6b7280' }}>
                         <strong>Status:</strong> {getStatusInfo(selectedStaff.status || 'active').label}
                       </div>
+                      {/* Delivery Partner Toggle */}
+                      <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setEditStaffForm(f => ({ ...f, isDeliveryPartner: !f.isDeliveryPartner }))}
+                          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', borderRadius: '8px', border: editStaffForm.isDeliveryPartner ? '2px solid #10b981' : '2px solid #e5e7eb', backgroundColor: editStaffForm.isDeliveryPartner ? '#ecfdf5' : '#fff', cursor: 'pointer', transition: 'all 0.15s' }}
+                        >
+                          <FaTruck size={13} color={editStaffForm.isDeliveryPartner ? '#10b981' : '#9ca3af'} />
+                          <span style={{ fontSize: '12px', fontWeight: '600', color: editStaffForm.isDeliveryPartner ? '#059669' : '#6b7280' }}>
+                            Delivery Partner
+                          </span>
+                        </button>
+                        <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                          {editStaffForm.isDeliveryPartner ? 'Can receive delivery assignments' : 'Not a delivery partner'}
+                        </span>
+                      </div>
                     </div>
                   ) : (
                     <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
@@ -9190,6 +9213,12 @@ const Admin = () => {
                       <div style={{ marginBottom: '8px' }}><strong>Email:</strong> {selectedStaff.email || 'N/A'}</div>
                       <div style={{ marginBottom: '8px' }}><strong>Role:</strong> {getRoleInfo(selectedStaff.role || 'employee').label}</div>
                       <div style={{ marginBottom: '8px' }}><strong>Status:</strong> {getStatusInfo(selectedStaff.status || 'active').label}</div>
+                      {selectedStaff.isDeliveryPartner && (
+                        <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <FaTruck size={12} color="#10b981" />
+                          <span style={{ color: '#059669', fontWeight: '600' }}>Delivery Partner</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

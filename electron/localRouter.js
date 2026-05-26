@@ -162,17 +162,20 @@ function routeLocally(endpoint, method, body) {
       if (body.status === 'completed' && order) {
         broadcastPrintEvent('billing-print-request', { orderId: p.orderId, id: p.orderId });
       }
-      return ok({ order, success: true });
+      return ok({ message: 'Order status updated', data: { orderId: p.orderId }, order, success: true });
     });
   }
   if (m === 'PATCH' && (p = match('/api/orders/:orderId/cancel', path))) {
-    return safe(() => ok({ order: entityStore.cancelOrder(p.orderId, body.restaurantId, body.reason), success: true }));
+    return safe(() => {
+      const order = entityStore.cancelOrder(p.orderId, body.restaurantId, body.reason);
+      return ok({ message: 'Order cancelled', data: { orderId: p.orderId }, order, success: true });
+    });
   }
   if (m === 'PATCH' && (p = match('/api/orders/:orderId', path))) {
     return safe(() => {
       const order = entityStore.updateOrder(p.orderId, body.restaurantId, body);
       broadcastIfHub('orders', 'UPDATE', body, p.orderId);
-      return ok({ order, success: true });
+      return ok({ message: 'Order updated successfully', data: { orderId: p.orderId }, order, success: true });
     });
   }
   if (m === 'DELETE' && (p = match('/api/orders/:orderId', path))) {
@@ -184,7 +187,7 @@ function routeLocally(endpoint, method, body) {
       broadcastIfHub('orders', 'CREATE', { orderId: order.id, tableNumber: body.tableNumber }, order.id);
       // Trigger kot-print-request for the new order
       broadcastPrintEvent('kot-print-request', { orderId: order.id, id: order.id, dailyOrderId: order.dailyOrderId, tableNumber: body.tableNumber });
-      return ok({ order, success: true });
+      return ok({ message: 'Order created successfully', data: { orderId: order.id }, order, success: true });
     });
   }
   if (m === 'GET' && (p = match('/api/orders/:restaurantId', path))) {

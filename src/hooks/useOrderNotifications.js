@@ -174,6 +174,13 @@ export function useOrderNotifications(restaurantId, notificationOrderTypes = nul
     const handleEvent = (snapshot) => {
       const data = snapshot.val();
       if (data && data.type === 'order-created') {
+        // Skip stale events (> 2 min old) to prevent notification floods
+        // after Firebase reconnects from a network drop.
+        const eventAge = data.ts ? Date.now() - data.ts : 0;
+        if (eventAge > 2 * 60 * 1000) {
+          console.log(`🔔 OrderNotifications: Skipping stale order event (${Math.round(eventAge / 1000)}s old)`);
+          return;
+        }
         console.log('🔔 OrderNotifications: New order received', data);
         addNotification(data);
       }
