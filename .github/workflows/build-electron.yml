@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -67,7 +67,7 @@ jobs:
 
       - name: Create or update GitHub Release with exe
         if: github.ref_type == 'tag'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v2.3.2
         with:
           tag_name: v${{ steps.version.outputs.version }}
           name: DineOpen POS v${{ steps.version.outputs.version }}
