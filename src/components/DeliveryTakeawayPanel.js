@@ -340,6 +340,13 @@ export default function DeliveryTakeawayPanel({ restaurantId, isMobile, refreshS
             const customerName = order.customerInfo?.name || order.customerName || '';
             const customerPhone = order.customerInfo?.phone || order.customerPhone || '';
             const orderNum = order.orderNumber || order.id?.slice(-6)?.toUpperCase() || '';
+            const deliveryAddress = typeof order.deliveryAddress === 'string'
+              ? order.deliveryAddress
+              : order.deliveryAddress?.street
+                ? [order.deliveryAddress.street, order.deliveryAddress.city].filter(Boolean).join(', ')
+                : '';
+            const deliveryPersonName = order.deliveryInfo?.personName || '';
+            const deliveryPersonPhone = order.deliveryInfo?.personPhone || '';
 
             return (
               <div key={order.id} className="tbl-card" style={{
@@ -382,16 +389,28 @@ export default function DeliveryTakeawayPanel({ restaurantId, isMobile, refreshS
                   )}
                 </div>
 
-                {/* Row 2: Customer info */}
+                {/* Row 2: Customer + Delivery info */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                  {customerName && (
+                  {(customerName || deliveryPersonName) && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
-                      <FaUser size={10} color="#9ca3af" /> {customerName}
+                      <FaUser size={10} color="#9ca3af" /> {deliveryPersonName || customerName}
                     </div>
                   )}
-                  {customerPhone && (
+                  {(customerPhone || deliveryPersonPhone) && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#6b7280' }}>
-                      <FaPhoneAlt size={9} color="#9ca3af" /> {customerPhone}
+                      <FaPhoneAlt size={9} color="#9ca3af" /> {deliveryPersonPhone || customerPhone}
+                    </div>
+                  )}
+                  {order.orderType === 'delivery' && deliveryAddress && (
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
+                      <FaTruck size={10} color="#ef4444" style={{ marginTop: '2px', flexShrink: 0 }} />
+                      <span style={{ lineHeight: '1.3' }}>{deliveryAddress}</span>
+                    </div>
+                  )}
+                  {order.orderType === 'delivery' && order.assignedStaff?.name && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#059669', marginTop: '2px' }}>
+                      <MdDeliveryDining size={13} color="#059669" />
+                      <span style={{ fontWeight: '600' }}>Rider: {order.assignedStaff.name}</span>
                     </div>
                   )}
                 </div>
@@ -441,8 +460,8 @@ export default function DeliveryTakeawayPanel({ restaurantId, isMobile, refreshS
                     <FaEye size={10} /> View
                   </button>
 
-                  {/* Assign Rider - show on ready delivery orders without assigned staff */}
-                  {order.orderType === 'delivery' && order.status === 'ready' && !order.assignedStaff && deliverySettings?.deliveryTrackingEnabled && (
+                  {/* Assign / Change Rider - show on all active delivery orders */}
+                  {order.orderType === 'delivery' && deliverySettings?.deliveryTrackingEnabled && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -453,12 +472,15 @@ export default function DeliveryTakeawayPanel({ restaurantId, isMobile, refreshS
                       className="tbl-action"
                       style={{
                         display: 'flex', alignItems: 'center', gap: '5px',
-                        padding: '7px 12px', borderRadius: '8px', border: '1px solid #d1fae5',
-                        backgroundColor: '#ecfdf5', color: '#059669', fontSize: '12px', fontWeight: '600',
+                        padding: '7px 12px', borderRadius: '8px',
+                        border: order.assignedStaff ? '1px solid #bfdbfe' : '1px solid #d1fae5',
+                        backgroundColor: order.assignedStaff ? '#eff6ff' : '#ecfdf5',
+                        color: order.assignedStaff ? '#1d4ed8' : '#059669',
+                        fontSize: '12px', fontWeight: '600',
                         cursor: 'pointer',
                       }}
                     >
-                      <MdDeliveryDining size={13} /> Assign Rider
+                      <MdDeliveryDining size={13} /> {order.assignedStaff ? 'Change Rider' : 'Assign Rider'}
                     </button>
                   )}
 
