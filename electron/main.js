@@ -296,9 +296,11 @@ ipcMain.handle('electron:print', async (event, { html, copies, type, printerWidt
       printBackground: true,
       // Thermal paper size in microns (58mm or 80mm width, long roll height)
       pageSize: { width: widthMicrons, height: 297000 },
-      // Use printable area so the printer driver reports its non-printable margins
-      // and Chromium offsets content accordingly (prevents left/right cutoff)
-      margins: { marginType: 'printableArea' },
+      // Use 'none' so the printer driver doesn't add its own margins — CSS padding
+      // (via printLeftMargin setting) has full control over content positioning.
+      // This is the industry standard for thermal receipt printers and fixes left-side
+      // cutoff issues on 58mm printers where 'printableArea' adds unpredictable offsets.
+      margins: { marginType: 'none' },
     },
     (success, failureReason) => {
       if (success) {

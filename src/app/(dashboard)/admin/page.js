@@ -3718,347 +3718,136 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                   )}
                 </div>
 
-                <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Paper Size
+                {/* ── Compact Print Settings ── */}
+                <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Print Settings
                 </p>
-                <p style={{ color: '#9ca3af', margin: '0 0 12px 0', fontSize: '12px' }}>
-                  Select the thermal paper width your printer uses.
-                </p>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
-                  {[
-                    { value: 80, label: '80mm', desc: 'Standard (most printers)' },
-                    { value: 58, label: '58mm', desc: 'Compact / mobile printers' },
-                  ].map(opt => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setPrintSettings(prev => ({ ...prev, printerWidth: opt.value }))}
-                      style={{
-                        flex: 1,
-                        padding: '12px 8px',
-                        borderRadius: '8px',
-                        border: (printSettings.printerWidth || 80) === opt.value ? '2px solid #ef4444' : '1px solid #d1d5db',
-                        background: (printSettings.printerWidth || 80) === opt.value ? '#fef2f2' : 'white',
-                        cursor: 'pointer',
-                        textAlign: 'center',
-                      }}
-                    >
-                      <div style={{ fontWeight: '700', fontSize: '15px', color: (printSettings.printerWidth || 80) === opt.value ? '#ef4444' : '#111827' }}>
-                        {opt.label}
-                      </div>
-                      <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>{opt.desc}</div>
-                    </button>
-                  ))}
-                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '20px' }}>
 
-                <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Bill Print Font Size
-                </p>
-                <p style={{ color: '#9ca3af', margin: '0 0 16px 0', fontSize: '12px' }}>
-                  Drag the slider to set font size for printed bills &amp; KOT receipts.
-                </p>
-
-                {/* Scale slider */}
-                <div style={{ marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '12px', color: '#6b7280' }}>Small</span>
-                    <span style={{
-                      fontSize: '15px', fontWeight: '700', color: '#111827',
-                      background: '#f3f4f6', borderRadius: '8px', padding: '4px 12px'
-                    }}>
-                      {printSettings.billFontScale || 100}%
-                    </span>
-                    <span style={{ fontSize: '12px', color: '#6b7280' }}>Large</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="50"
-                    max="150"
-                    step="5"
-                    value={printSettings.billFontScale || 100}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value);
-                      setPrintSettings(prev => ({ ...prev, billFontScale: val }));
-                    }}
-                    style={{
-                      width: '100%',
-                      height: '6px',
-                      borderRadius: '3px',
-                      appearance: 'none',
-                      WebkitAppearance: 'none',
-                      background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${((printSettings.billFontScale || 100) - 50) * 100 / 100}%, #e5e7eb ${((printSettings.billFontScale || 100) - 50) * 100 / 100}%, #e5e7eb 100%)`,
-                      outline: 'none',
-                      cursor: 'pointer'
-                    }}
-                  />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-                    <span style={{ fontSize: '10px', color: '#9ca3af' }}>50%</span>
-                    <button
-                      onClick={() => setPrintSettings(prev => ({ ...prev, billFontScale: 100 }))}
-                      style={{
-                        fontSize: '10px', color: '#ef4444', background: 'none', border: 'none',
-                        cursor: 'pointer', fontWeight: '600', padding: 0, textDecoration: 'underline'
-                      }}
-                    >
-                      Reset to default (100%)
-                    </button>
-                    <span style={{ fontSize: '10px', color: '#9ca3af' }}>150%</span>
-                  </div>
-                </div>
-
-                {/* Font Family Picker */}
-                <div style={{ marginBottom: '16px' }}>
-                  <p style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', margin: '0 0 8px 0' }}>
-                    Bill Font Family
-                  </p>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                    {PRINT_FONTS.map((font) => {
-                      const isSelected = (printSettings.billFontFamily || 'default') === font.id;
-                      return (
+                  {/* Paper Size — pill selector */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>Paper Size</span>
+                    <div style={{ display: 'flex', gap: '4px', background: '#f3f4f6', borderRadius: '8px', padding: '3px' }}>
+                      {[80, 58].map(w => (
                         <button
-                          key={font.id}
-                          onClick={() => setPrintSettings(prev => ({ ...prev, billFontFamily: font.id }))}
+                          key={w}
+                          onClick={() => setPrintSettings(prev => ({ ...prev, printerWidth: w }))}
                           style={{
-                            padding: '8px 10px',
-                            border: isSelected ? '2px solid #111827' : '1px solid #e5e7eb',
-                            borderRadius: '8px',
-                            background: isSelected ? '#f9fafb' : 'white',
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                            transition: 'all 0.15s',
-                            position: 'relative'
+                            padding: '5px 14px', fontSize: '12px', fontWeight: '600', borderRadius: '6px', border: 'none', cursor: 'pointer',
+                            background: (printSettings.printerWidth || 80) === w ? 'white' : 'transparent',
+                            color: (printSettings.printerWidth || 80) === w ? '#ef4444' : '#6b7280',
+                            boxShadow: (printSettings.printerWidth || 80) === w ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                           }}
                         >
-                          <span style={{
-                            fontFamily: font.family,
-                            fontSize: '13px',
-                            fontWeight: isSelected ? '700' : '500',
-                            color: isSelected ? '#111827' : '#374151',
-                            display: 'block',
-                            lineHeight: '1.3'
-                          }}>
-                            {font.label}
-                          </span>
-                          <span style={{
-                            fontFamily: font.family,
-                            fontSize: '10px',
-                            color: '#9ca3af',
-                            display: 'block',
-                            marginTop: '2px'
-                          }}>
-                            ₹530.00 — Butter Chicken
-                          </span>
+                          {w}mm
                         </button>
-                      );
-                    })}
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                {/* Print Width Slider */}
-                {(() => {
-                  const range = getContentWidthRange(printSettings.printerWidth || 80);
-                  const val = printSettings.printContentWidth || range.default;
-                  return (
-                    <div style={{ marginBottom: '16px' }}>
-                      <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 4px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        Print Width
-                      </p>
-                      <p style={{ color: '#9ca3af', margin: '0 0 12px 0', fontSize: '12px' }}>
-                        Reduce if prints are clipped on the edges. Makes the printed content narrower.
-                      </p>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '12px', color: '#6b7280' }}>{range.min}mm</span>
-                        <span style={{
-                          fontSize: '15px', fontWeight: '700', color: '#111827',
-                          background: '#f3f4f6', borderRadius: '8px', padding: '4px 12px'
-                        }}>
-                          {val}mm
+                  {/* Font Size — compact slider */}
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>Font Size</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '700', color: '#111827', background: '#f3f4f6', borderRadius: '6px', padding: '2px 8px' }}>
+                          {printSettings.billFontScale || 100}%
                         </span>
-                        <span style={{ fontSize: '12px', color: '#6b7280' }}>{range.max}mm</span>
-                      </div>
-                      <input
-                        type="range"
-                        min={range.min}
-                        max={range.max}
-                        step="1"
-                        value={val}
-                        onChange={(e) => {
-                          const v = parseInt(e.target.value);
-                          setPrintSettings(prev => ({ ...prev, printContentWidth: v }));
-                        }}
-                        style={{
-                          width: '100%',
-                          height: '6px',
-                          borderRadius: '3px',
-                          appearance: 'none',
-                          WebkitAppearance: 'none',
-                          background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${((val - range.min) * 100) / (range.max - range.min)}%, #e5e7eb ${((val - range.min) * 100) / (range.max - range.min)}%, #e5e7eb 100%)`,
-                          outline: 'none',
-                          cursor: 'pointer'
-                        }}
-                      />
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-                        <span style={{ fontSize: '10px', color: '#9ca3af' }}>Narrower</span>
-                        <button
-                          onClick={() => setPrintSettings(prev => ({ ...prev, printContentWidth: range.default }))}
-                          style={{
-                            fontSize: '10px', color: '#ef4444', background: 'none', border: 'none',
-                            cursor: 'pointer', fontWeight: '600', padding: 0, textDecoration: 'underline'
-                          }}
-                        >
-                          Reset to default ({range.default}mm)
-                        </button>
-                        <span style={{ fontSize: '10px', color: '#9ca3af' }}>Wider</span>
+                        {(printSettings.billFontScale || 100) !== 100 && (
+                          <button onClick={() => setPrintSettings(prev => ({ ...prev, billFontScale: 100 }))} style={{ fontSize: '10px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600', textDecoration: 'underline', padding: 0 }}>Reset</button>
+                        )}
                       </div>
                     </div>
-                  );
-                })()}
-
-                {/* Left Margin Slider */}
-                <div style={{ marginBottom: '16px' }}>
-                  <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 4px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Left Margin
-                  </p>
-                  <p style={{ color: '#9ca3af', margin: '0 0 12px 0', fontSize: '12px' }}>
-                    Shift content to the right if prints are cut off on the left side.
-                  </p>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '12px', color: '#6b7280' }}>0mm</span>
-                    <span style={{
-                      fontSize: '15px', fontWeight: '700', color: '#111827',
-                      background: '#f3f4f6', borderRadius: '8px', padding: '4px 12px'
-                    }}>
-                      {printSettings.printLeftMargin ?? 2}mm
-                    </span>
-                    <span style={{ fontSize: '12px', color: '#6b7280' }}>10mm</span>
+                    <input type="range" min="50" max="150" step="5" value={printSettings.billFontScale || 100}
+                      onChange={(e) => setPrintSettings(prev => ({ ...prev, billFontScale: parseInt(e.target.value) }))}
+                      style={{ width: '100%', height: '4px', borderRadius: '2px', appearance: 'none', WebkitAppearance: 'none', background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${((printSettings.billFontScale || 100) - 50)}%, #e5e7eb ${((printSettings.billFontScale || 100) - 50)}%, #e5e7eb 100%)`, outline: 'none', cursor: 'pointer' }}
+                    />
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="10"
-                    step="1"
-                    value={printSettings.printLeftMargin ?? 2}
-                    onChange={(e) => {
-                      const v = parseInt(e.target.value);
-                      setPrintSettings(prev => ({ ...prev, printLeftMargin: v }));
-                    }}
-                    style={{
-                      width: '100%',
-                      height: '6px',
-                      borderRadius: '3px',
-                      appearance: 'none',
-                      WebkitAppearance: 'none',
-                      background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${((printSettings.printLeftMargin ?? 2) * 100) / 10}%, #e5e7eb ${((printSettings.printLeftMargin ?? 2) * 100) / 10}%, #e5e7eb 100%)`,
-                      outline: 'none',
-                      cursor: 'pointer'
-                    }}
-                  />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-                    <span style={{ fontSize: '10px', color: '#9ca3af' }}>No margin</span>
-                    <button
-                      onClick={() => setPrintSettings(prev => ({ ...prev, printLeftMargin: 2 }))}
-                      style={{
-                        fontSize: '10px', color: '#ef4444', background: 'none', border: 'none',
-                        cursor: 'pointer', fontWeight: '600', padding: 0, textDecoration: 'underline'
-                      }}
+
+                  {/* Font Family — dropdown */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>Font Family</span>
+                    <select
+                      value={printSettings.billFontFamily || 'default'}
+                      onChange={(e) => setPrintSettings(prev => ({ ...prev, billFontFamily: e.target.value }))}
+                      style={{ fontSize: '12px', padding: '5px 28px 5px 10px', borderRadius: '6px', border: '1px solid #d1d5db', background: 'white', color: '#111827', fontWeight: '600', cursor: 'pointer', appearance: 'auto' }}
                     >
-                      Reset to default (2mm)
-                    </button>
-                    <span style={{ fontSize: '10px', color: '#9ca3af' }}>More margin</span>
+                      {PRINT_FONTS.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+                    </select>
                   </div>
+
+                  {/* Print Width — compact slider */}
+                  {(() => {
+                    const range = getContentWidthRange(printSettings.printerWidth || 80);
+                    const val = printSettings.printContentWidth || range.default;
+                    return (
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>Print Width</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '13px', fontWeight: '700', color: '#111827', background: '#f3f4f6', borderRadius: '6px', padding: '2px 8px' }}>
+                              {val}mm
+                            </span>
+                            {val !== range.default && (
+                              <button onClick={() => setPrintSettings(prev => ({ ...prev, printContentWidth: range.default }))} style={{ fontSize: '10px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600', textDecoration: 'underline', padding: 0 }}>Reset</button>
+                            )}
+                          </div>
+                        </div>
+                        <input type="range" min={range.min} max={range.max} step="1" value={val}
+                          onChange={(e) => setPrintSettings(prev => ({ ...prev, printContentWidth: parseInt(e.target.value) }))}
+                          style={{ width: '100%', height: '4px', borderRadius: '2px', appearance: 'none', WebkitAppearance: 'none', background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${((val - range.min) * 100) / (range.max - range.min)}%, #e5e7eb ${((val - range.min) * 100) / (range.max - range.min)}%, #e5e7eb 100%)`, outline: 'none', cursor: 'pointer' }}
+                        />
+                      </div>
+                    );
+                  })()}
+
+                  {/* Left Margin — compact slider */}
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>Left Margin</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '700', color: '#111827', background: '#f3f4f6', borderRadius: '6px', padding: '2px 8px' }}>
+                          {printSettings.printLeftMargin ?? 2}mm
+                        </span>
+                        {(printSettings.printLeftMargin ?? 2) !== 2 && (
+                          <button onClick={() => setPrintSettings(prev => ({ ...prev, printLeftMargin: 2 }))} style={{ fontSize: '10px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600', textDecoration: 'underline', padding: 0 }}>Reset</button>
+                        )}
+                      </div>
+                    </div>
+                    <input type="range" min="0" max="10" step="1" value={printSettings.printLeftMargin ?? 2}
+                      onChange={(e) => setPrintSettings(prev => ({ ...prev, printLeftMargin: parseInt(e.target.value) }))}
+                      style={{ width: '100%', height: '4px', borderRadius: '2px', appearance: 'none', WebkitAppearance: 'none', background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${((printSettings.printLeftMargin ?? 2) * 100) / 10}%, #e5e7eb ${((printSettings.printLeftMargin ?? 2) * 100) / 10}%, #e5e7eb 100%)`, outline: 'none', cursor: 'pointer' }}
+                    />
+                  </div>
+
+                  {/* KOT Template — dropdown */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>KOT Template</span>
+                    <select
+                      value={printSettings.kotTemplate || 'classic'}
+                      onChange={(e) => setPrintSettings(prev => ({ ...prev, kotTemplate: e.target.value }))}
+                      style={{ fontSize: '12px', padding: '5px 28px 5px 10px', borderRadius: '6px', border: '1px solid #d1d5db', background: 'white', color: '#111827', fontWeight: '600', cursor: 'pointer', appearance: 'auto' }}
+                    >
+                      {KOT_TEMPLATE_LIST.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Bill Template — dropdown */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>Bill Template</span>
+                    <select
+                      value={printSettings.billTemplate || 'classic'}
+                      onChange={(e) => setPrintSettings(prev => ({ ...prev, billTemplate: e.target.value }))}
+                      style={{ fontSize: '12px', padding: '5px 28px 5px 10px', borderRadius: '6px', border: '1px solid #d1d5db', background: 'white', color: '#111827', fontWeight: '600', cursor: 'pointer', appearance: 'auto' }}
+                    >
+                      {BILL_TEMPLATE_LIST.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+                  </div>
+
                 </div>
 
-                {/* Print Template Selection */}
-                <div style={{ marginBottom: '16px' }}>
-                  <p style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', margin: '0 0 8px 0' }}>
-                    KOT Print Template
-                  </p>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                    {KOT_TEMPLATE_LIST.map((tpl) => {
-                      const isSelected = (printSettings.kotTemplate || 'classic') === tpl.id;
-                      return (
-                        <button
-                          key={tpl.id}
-                          onClick={() => setPrintSettings(prev => ({ ...prev, kotTemplate: tpl.id }))}
-                          style={{
-                            padding: '8px 10px',
-                            border: isSelected ? '2px solid #111827' : '1px solid #e5e7eb',
-                            borderRadius: '8px',
-                            background: isSelected ? '#f9fafb' : 'white',
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                            transition: 'all 0.15s'
-                          }}
-                        >
-                          <span style={{
-                            fontSize: '13px',
-                            fontWeight: isSelected ? '700' : '500',
-                            color: isSelected ? '#111827' : '#374151',
-                            display: 'block',
-                            lineHeight: '1.3'
-                          }}>
-                            {tpl.name}
-                          </span>
-                          <span style={{
-                            fontSize: '10px',
-                            color: '#9ca3af',
-                            display: 'block',
-                            marginTop: '2px'
-                          }}>
-                            {tpl.description}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div style={{ marginBottom: '16px' }}>
-                  <p style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', margin: '0 0 8px 0' }}>
-                    Bill Print Template
-                  </p>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                    {BILL_TEMPLATE_LIST.map((tpl) => {
-                      const isSelected = (printSettings.billTemplate || 'classic') === tpl.id;
-                      return (
-                        <button
-                          key={tpl.id}
-                          onClick={() => setPrintSettings(prev => ({ ...prev, billTemplate: tpl.id }))}
-                          style={{
-                            padding: '8px 10px',
-                            border: isSelected ? '2px solid #111827' : '1px solid #e5e7eb',
-                            borderRadius: '8px',
-                            background: isSelected ? '#f9fafb' : 'white',
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                            transition: 'all 0.15s'
-                          }}
-                        >
-                          <span style={{
-                            fontSize: '13px',
-                            fontWeight: isSelected ? '700' : '500',
-                            color: isSelected ? '#111827' : '#374151',
-                            display: 'block',
-                            lineHeight: '1.3'
-                          }}>
-                            {tpl.name}
-                          </span>
-                          <span style={{
-                            fontSize: '10px',
-                            color: '#9ca3af',
-                            display: 'block',
-                            marginTop: '2px'
-                          }}>
-                            {tpl.description}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Live preview — KOT and Bill tabs */}
+                {/* Live preview — KOT and Bill side by side */}
                 {(() => {
-                  const previewTab = printSettings._previewTab || 'bill';
                   const rName = selectedRestaurant?.name || 'My Restaurant';
 
                   // Sample KOT data
@@ -4114,59 +3903,85 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                     changeReturned: 43.50,
                   };
 
-                  const previewHtml = previewTab === 'kot'
-                    ? renderKOT(sampleKotData, printSettings, {})
-                    : renderBill(sampleBillData, printSettings, {});
+                  const kotHtml = renderKOT(sampleKotData, printSettings, {});
+                  const billHtml = renderBill(sampleBillData, printSettings, {});
+
+                  // Visual representation of paper vs content area
+                  const paperW = printSettings.printerWidth || 80;
+                  const contentRange = getContentWidthRange(paperW);
+                  const contentW = printSettings.printContentWidth || contentRange.default;
+                  const leftMargin = printSettings.printLeftMargin ?? 2;
+                  // Convert mm to percentage of paper width for visual indicator
+                  const leftMarginPct = (leftMargin / paperW) * 100;
+                  const contentPct = (contentW / paperW) * 100;
+                  const rightGapPct = 100 - leftMarginPct - contentPct;
 
                   return (
-                    <div style={{ borderRadius: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                        <p style={{ fontSize: '11px', fontWeight: '600', color: '#9ca3af', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          Live Preview ({printSettings.printerWidth || 80}mm)
-                        </p>
-                        <div style={{ display: 'flex', gap: '4px', background: '#f3f4f6', borderRadius: '6px', padding: '2px' }}>
-                          {['kot', 'bill'].map(tab => (
-                            <button
-                              key={tab}
-                              onClick={() => setPrintSettings(prev => ({ ...prev, _previewTab: tab }))}
-                              style={{
-                                padding: '4px 12px',
-                                fontSize: '11px',
-                                fontWeight: previewTab === tab ? '700' : '500',
-                                color: previewTab === tab ? '#111827' : '#6b7280',
-                                background: previewTab === tab ? 'white' : 'transparent',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                boxShadow: previewTab === tab ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.03em',
-                              }}
-                            >
-                              {tab}
-                            </button>
-                          ))}
+                    <div>
+                      <p style={{ fontSize: '11px', fontWeight: '600', color: '#9ca3af', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Live Preview ({paperW}mm)
+                      </p>
+
+                      {/* Paper layout visualizer */}
+                      <div style={{ marginBottom: '12px', padding: '8px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '10px', color: '#9ca3af' }}>Paper: {paperW}mm</span>
+                          <span style={{ fontSize: '10px', color: '#9ca3af' }}>Content: {contentW}mm | Margin: {leftMargin}mm</span>
+                        </div>
+                        <div style={{ display: 'flex', height: '14px', borderRadius: '4px', overflow: 'hidden', border: '1px solid #d1d5db', background: '#e5e7eb' }}>
+                          {leftMargin > 0 && (
+                            <div style={{ width: `${leftMarginPct}%`, background: '#fecaca', borderRight: '1px dashed #ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: '8px', color: '#dc2626', fontWeight: '700' }}>{leftMargin}</span>
+                            </div>
+                          )}
+                          <div style={{ width: `${contentPct}%`, background: '#bbf7d0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ fontSize: '8px', color: '#16a34a', fontWeight: '700' }}>{contentW}mm</span>
+                          </div>
+                          {rightGapPct > 1 && (
+                            <div style={{ flex: 1, background: '#e5e7eb' }} />
+                          )}
                         </div>
                       </div>
-                      <div style={{
-                        maxHeight: '520px',
-                        overflowY: 'auto',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                        background: 'white',
-                      }}>
-                        <iframe
-                          srcDoc={previewHtml}
-                          title={`${previewTab} preview`}
-                          style={{
-                            width: '100%',
-                            minHeight: '420px',
-                            border: 'none',
-                            display: 'block',
-                          }}
-                          sandbox="allow-same-origin"
-                        />
+
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        {[
+                          { label: 'KOT', html: kotHtml },
+                          { label: 'Bill', html: billHtml },
+                        ].map(preview => (
+                          <div key={preview.label} style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontSize: '10px', fontWeight: '700', color: '#6b7280', margin: '0 0 4px 0', textTransform: 'uppercase', textAlign: 'center', letterSpacing: '0.05em' }}>{preview.label}</p>
+                            {/* Outer = paper edge (gray bg). Inner left gap = left margin visual. */}
+                            <div style={{
+                              maxHeight: '600px',
+                              overflowY: 'auto',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '6px',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                              background: '#f3f4f6',
+                              display: 'flex',
+                            }}>
+                              {/* Left margin indicator */}
+                              {leftMargin > 0 && (
+                                <div style={{
+                                  width: `${leftMarginPct}%`,
+                                  minWidth: `${Math.max(leftMargin * 2, 4)}px`,
+                                  flexShrink: 0,
+                                  background: 'repeating-linear-gradient(45deg, transparent, transparent 3px, #fecaca 3px, #fecaca 4px)',
+                                  borderRight: '1px dashed #ef4444',
+                                }} />
+                              )}
+                              {/* Content area */}
+                              <div style={{ flex: 1, background: 'white', minWidth: 0 }}>
+                                <iframe
+                                  srcDoc={preview.html}
+                                  title={`${preview.label} preview`}
+                                  style={{ width: '100%', minHeight: '500px', border: 'none', display: 'block' }}
+                                  sandbox="allow-same-origin"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   );

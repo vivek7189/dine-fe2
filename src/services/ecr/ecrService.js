@@ -1,6 +1,7 @@
 /**
- * NAPS Qatar ECR Payment Terminal Service
+ * ECR Payment Terminal Service
  * Platform-adaptive: Electron (direct IPC), Capacitor (Intent/network), Web (backend proxy)
+ * Provider-aware: NAPS Direct (local terminal) or Sadad Cloud (cloud-routed via backend)
  */
 
 import { getPlatform, isElectron, isCapacitor } from '../../utils/platform';
@@ -11,23 +12,33 @@ import {
   ECR_CURRENCY_QAR,
   ECR_TIMEOUT_MS,
   ECR_INTEGRATION_METHODS,
+  ECR_PROVIDERS,
 } from './ecrConstants';
 
 let _config = null;
 
 /**
  * Initialize ECR with terminal settings
- * @param {{ terminalIp: string, port?: number, terminalId: string, merchantId: string, restaurantId: string, integrationMethod?: string }} settings
+ * @param {Object} settings
  */
 export function initEcr(settings) {
   _config = {
+    provider: settings.provider || ECR_PROVIDERS.NAPS_DIRECT,
+    restaurantId: settings.restaurantId,
+    // NAPS fields
     terminalIp: settings.terminalIp,
     port: settings.port || ECR_PORT_DEFAULT,
     terminalId: settings.terminalId,
     merchantId: settings.merchantId,
-    restaurantId: settings.restaurantId,
     integrationMethod: settings.integrationMethod || ECR_INTEGRATION_METHODS.AUTO,
   };
+
+  // Initialize Sadad Cloud service if needed
+  if (_config.provider === ECR_PROVIDERS.SADAD_CLOUD) {
+    import('./sadadCloudService').then(({ initSadad }) => {
+      initSadad({ restaurantId: settings.restaurantId });
+    });
+  }
 }
 
 export function getEcrConfig() {
@@ -42,10 +53,18 @@ export function isEcrInitialized() {
  * Send a purchase request to the payment terminal
  * @param {number} amount - Amount in major currency units (e.g. 150.00)
  * @param {string} transactionId - Unique transaction reference
+ * @param {function} [onStatusChange] - Optional callback for Sadad Cloud polling status
  * @returns {Promise<Object>} ECR response
  */
-export async function purchase(amount, transactionId) {
+export async function purchase(amount, transactionId, onStatusChange) {
   _assertInitialized();
+
+  // Sadad Cloud: route through backend
+  if (_config.provider === ECR_PROVIDERS.SADAD_CLOUD) {
+    return _callViaSadadCloud('purchase', { amount, transactionId, onStatusChange });
+  }
+
+  // NAPS Direct: local terminal
   const payload = {
     Amount: amount.toFixed(2),
     CurrencyCode: ECR_CURRENCY_QAR,
@@ -64,6 +83,11 @@ export async function purchase(amount, transactionId) {
  */
 export async function refund(amount, originalRRN, transactionId) {
   _assertInitialized();
+
+  if (_config.provider === ECR_PROVIDERS.SADAD_CLOUD) {
+    return _callViaSadadCloud('refund', { amount, originalRRN, transactionId });
+  }
+
   const payload = {
     Amount: amount.toFixed(2),
     CurrencyCode: ECR_CURRENCY_QAR,
@@ -81,6 +105,12 @@ export async function refund(amount, originalRRN, transactionId) {
  */
 export async function voidTransaction(originalRRN) {
   _assertInitialized();
+
+  if (_config.provider === ECR_PROVIDERS.SADAD_CLOUD) {
+    // Sadad Cloud doesn't have void — use close order for pending, refund for completed
+    throw new Error('Void is not supported with Sadad Cloud. Use refund instead.');
+  }
+
   const payload = {
     OriginalRRN: originalRRN,
     MerchantId: _config.merchantId,
@@ -94,6 +124,11 @@ export async function voidTransaction(originalRRN) {
  */
 export async function settlement() {
   _assertInitialized();
+
+  if (_config.provider === ECR_PROVIDERS.SADAD_CLOUD) {
+    throw new Error('Settlement is not supported with Sadad Cloud.');
+  }
+
   const payload = {
     MerchantId: _config.merchantId,
     TerminalId: _config.terminalId,
@@ -106,6 +141,11 @@ export async function settlement() {
  */
 export async function getLastTransaction() {
   _assertInitialized();
+
+  if (_config.provider === ECR_PROVIDERS.SADAD_CLOUD) {
+    throw new Error('getLastTransaction is not supported with Sadad Cloud.');
+  }
+
   const payload = {
     MerchantId: _config.merchantId,
     TerminalId: _config.terminalId,
@@ -119,6 +159,12 @@ export async function getLastTransaction() {
  */
 export async function testConnection() {
   _assertInitialized();
+
+  if (_config.provider === ECR_PROVIDERS.SADAD_CLOUD) {
+    const { testConnection: sadadTest } = await import('./sadadCloudService');
+    return sadadTest();
+  }
+
   try {
     const result = await getLastTransaction();
     return { success: true, message: 'Terminal is reachable', result };
@@ -140,7 +186,19 @@ export async function testConnectionWithSettings(settings) {
   }
 }
 
-// ── Internal dispatch ──
+/**
+ * Cancel a Sadad Cloud order (used when user presses Cancel during polling)
+ * @param {string} merchantOrderNo
+ */
+export async function cancelSadadOrder(merchantOrderNo) {
+  const { cancelSadad, closeOrder } = await import('./sadadCloudService');
+  cancelSadad(); // abort polling
+  if (merchantOrderNo) {
+    try { await closeOrder(merchantOrderNo); } catch (e) { /* best effort */ }
+  }
+}
+
+// ── Internal dispatch (NAPS Direct only) ──
 
 function _assertInitialized() {
   if (!_config) {
@@ -156,7 +214,6 @@ async function _dispatch(endpoint, payload) {
   }
 
   if (platform === 'capacitor') {
-    // On Capacitor, try App-to-App intent first if configured, else network
     if (_config.integrationMethod === ECR_INTEGRATION_METHODS.APP_TO_APP) {
       return _callViaCapacitorIntent(endpoint, payload);
     }
@@ -176,6 +233,22 @@ async function _dispatch(endpoint, payload) {
 
   // Web — always proxy through backend
   return _callViaBackendProxy(endpoint, payload);
+}
+
+async function _callViaSadadCloud(operation, params) {
+  const sadadService = await import('./sadadCloudService');
+
+  if (!sadadService.isSadadInitialized()) {
+    sadadService.initSadad({ restaurantId: _config.restaurantId });
+  }
+
+  if (operation === 'purchase') {
+    return sadadService.purchase(params.amount, params.transactionId, params.onStatusChange);
+  }
+  if (operation === 'refund') {
+    return sadadService.refund(params.amount, params.originalRRN, params.transactionId);
+  }
+  throw new Error(`Unsupported Sadad operation: ${operation}`);
 }
 
 async function _callViaElectron(endpoint, payload) {

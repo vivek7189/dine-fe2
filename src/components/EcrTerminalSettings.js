@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import apiClient from '../lib/api';
 import { testConnectionWithSettings } from '../services/ecr/ecrService';
-import { ECR_PORT_DEFAULT, ECR_INTEGRATION_METHODS } from '../services/ecr/ecrConstants';
+import { ECR_PORT_DEFAULT, ECR_INTEGRATION_METHODS, ECR_PROVIDERS } from '../services/ecr/ecrConstants';
 import { isCapacitor, isElectron, isWeb, getPlatform } from '../utils/platform';
 import {
   FaCreditCard,
@@ -15,6 +15,8 @@ import {
   FaTimesCircle,
   FaNetworkWired,
   FaPlug,
+  FaCloud,
+  FaKey,
 } from 'react-icons/fa';
 
 const inputStyle = {
@@ -26,6 +28,14 @@ const inputStyle = {
   color: '#111827',
   outline: 'none',
   transition: 'border-color 0.2s',
+};
+
+const textareaStyle = {
+  ...inputStyle,
+  minHeight: '80px',
+  fontFamily: 'monospace',
+  fontSize: '12px',
+  resize: 'vertical',
 };
 
 const labelStyle = {
@@ -40,24 +50,37 @@ const fieldGroupStyle = {
   marginBottom: '16px',
 };
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://dine-be2-phi.vercel.app';
+
 /**
- * Admin settings tab for ECR (Electronic Cash Register) payment terminal configuration.
- * Allows merchants to configure NAPS Qatar terminal IP, port, TID, MID and test connectivity.
+ * Admin settings tab for ECR payment terminal configuration.
+ * Supports NAPS Qatar (direct terminal) and Sadad Cloud (WiseCashier cloud mode).
  */
 export default function EcrTerminalSettings({ restaurantId, selectedRestaurant }) {
   const [settings, setSettings] = useState({
     enabled: false,
+    provider: ECR_PROVIDERS.NAPS_DIRECT,
+    // NAPS fields
     terminalIp: '',
     port: ECR_PORT_DEFAULT,
     terminalId: '',
     merchantId: '',
     integrationMethod: ECR_INTEGRATION_METHODS.AUTO,
+    // Sadad fields
+    sadadApiUrl: 'https://open.sadadpos.com',
+    sadadAppId: '',
+    sadadAccessToken: '',
+    sadadMerchantNo: '',
+    sadadStoreNo: '',
+    sadadTerminalSn: '',
+    sadadPrivateKey: '',
+    sadadPublicKey: '',
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState(null); // { success, message }
-  const [saveMessage, setSaveMessage] = useState(null); // { type: 'success'|'error', text }
+  const [testResult, setTestResult] = useState(null);
+  const [saveMessage, setSaveMessage] = useState(null);
 
   // Load ECR settings from restaurant document
   useEffect(() => {
@@ -71,11 +94,22 @@ export default function EcrTerminalSettings({ restaurantId, selectedRestaurant }
         const ecr = data?.ecrSettings || {};
         setSettings({
           enabled: !!ecr.enabled,
+          provider: ecr.provider || ECR_PROVIDERS.NAPS_DIRECT,
+          // NAPS
           terminalIp: ecr.terminalIp || '',
           port: ecr.port || ECR_PORT_DEFAULT,
           terminalId: ecr.terminalId || '',
           merchantId: ecr.merchantId || '',
           integrationMethod: ecr.integrationMethod || ECR_INTEGRATION_METHODS.AUTO,
+          // Sadad
+          sadadApiUrl: ecr.sadadApiUrl || 'https://open.sadadpos.com',
+          sadadAppId: ecr.sadadAppId || '',
+          sadadAccessToken: ecr.sadadAccessToken || '',
+          sadadMerchantNo: ecr.sadadMerchantNo || '',
+          sadadStoreNo: ecr.sadadStoreNo || '',
+          sadadTerminalSn: ecr.sadadTerminalSn || '',
+          sadadPrivateKey: ecr.sadadPrivateKey || '',
+          sadadPublicKey: ecr.sadadPublicKey || '',
         });
       } catch (err) {
         console.error('Failed to load ECR settings:', err);
@@ -93,7 +127,7 @@ export default function EcrTerminalSettings({ restaurantId, selectedRestaurant }
       await apiClient.put(`/api/restaurants/${restaurantId}`, {
         ecrSettings: { ...settings, restaurantId },
       });
-      setSaveMessage({ type: 'success', text: 'ECR terminal settings saved' });
+      setSaveMessage({ type: 'success', text: 'ECR settings saved' });
     } catch (err) {
       console.error('Failed to save ECR settings:', err);
       setSaveMessage({ type: 'error', text: err.message || 'Failed to save settings' });
@@ -103,26 +137,33 @@ export default function EcrTerminalSettings({ restaurantId, selectedRestaurant }
   };
 
   const handleTest = async () => {
-    if (!settings.terminalIp) {
-      setTestResult({ success: false, message: 'Enter a terminal IP address first' });
-      return;
-    }
     setTesting(true);
     setTestResult(null);
     try {
-      // For web platform, test via backend proxy. For Electron/Capacitor, test directly.
-      if (isWeb()) {
-        const result = await apiClient.post('/api/ecr/test', {
-          terminalIp: settings.terminalIp,
-          port: settings.port || ECR_PORT_DEFAULT,
+      if (settings.provider === ECR_PROVIDERS.SADAD_CLOUD) {
+        // Sadad Cloud: test via backend (verify keys/config)
+        // Must save first so backend can load the config
+        await apiClient.put(`/api/restaurants/${restaurantId}`, {
+          ecrSettings: { ...settings, restaurantId },
         });
+        const result = await apiClient.post('/api/sadad/test', { restaurantId });
         setTestResult(result);
       } else {
-        const result = await testConnectionWithSettings({
-          ...settings,
-          restaurantId,
-        });
-        setTestResult(result);
+        // NAPS Direct
+        if (!settings.terminalIp) {
+          setTestResult({ success: false, message: 'Enter a terminal IP address first' });
+          return;
+        }
+        if (isWeb()) {
+          const result = await apiClient.post('/api/ecr/test', {
+            terminalIp: settings.terminalIp,
+            port: settings.port || ECR_PORT_DEFAULT,
+          });
+          setTestResult(result);
+        } else {
+          const result = await testConnectionWithSettings({ ...settings, restaurantId });
+          setTestResult(result);
+        }
       }
     } catch (err) {
       setTestResult({ success: false, message: err.message || 'Connection test failed' });
@@ -147,6 +188,9 @@ export default function EcrTerminalSettings({ restaurantId, selectedRestaurant }
   }
 
   const platform = typeof window !== 'undefined' ? getPlatform() : 'web';
+  const isSadad = settings.provider === ECR_PROVIDERS.SADAD_CLOUD;
+  const isNaps = settings.provider === ECR_PROVIDERS.NAPS_DIRECT;
+  const testDisabled = testing || (isNaps && !settings.terminalIp) || (isSadad && !settings.sadadMerchantNo);
 
   return (
     <div>
@@ -157,7 +201,7 @@ export default function EcrTerminalSettings({ restaurantId, selectedRestaurant }
             <FaCreditCard color="#6366f1" /> ECR Payment Terminal
           </h2>
           <p style={{ fontSize: '13px', color: '#6b7280', margin: '4px 0 0' }}>
-            Configure NAPS Qatar payment terminal for card payments. The terminal must be on the same local network.
+            Configure card payment terminal integration for your POS.
           </p>
         </div>
       </div>
@@ -178,9 +222,10 @@ export default function EcrTerminalSettings({ restaurantId, selectedRestaurant }
         <FaNetworkWired size={14} />
         <span>
           Platform: <strong style={{ color: '#334155' }}>{platform}</strong>
-          {platform === 'electron' && ' — Direct terminal connection (best performance)'}
-          {platform === 'capacitor' && ' — App-to-App or network connection'}
-          {platform === 'web' && ' — Connection via backend proxy'}
+          {isSadad && ' — Sadad Cloud works on all platforms via backend'}
+          {isNaps && platform === 'electron' && ' — Direct terminal connection (best performance)'}
+          {isNaps && platform === 'capacitor' && ' — App-to-App or network connection'}
+          {isNaps && platform === 'web' && ' — Connection via backend proxy'}
         </span>
       </div>
 
@@ -221,72 +266,135 @@ export default function EcrTerminalSettings({ restaurantId, selectedRestaurant }
           padding: '20px',
           marginBottom: '20px',
         }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            {/* Terminal IP */}
-            <div style={fieldGroupStyle}>
-              <label style={labelStyle}>Terminal IP Address</label>
-              <input
-                type="text"
-                value={settings.terminalIp}
-                onChange={(e) => update('terminalIp', e.target.value)}
-                placeholder="e.g. 192.168.1.100"
-                style={inputStyle}
-              />
-            </div>
-
-            {/* Port */}
-            <div style={fieldGroupStyle}>
-              <label style={labelStyle}>Port</label>
-              <input
-                type="number"
-                value={settings.port}
-                onChange={(e) => update('port', parseInt(e.target.value) || ECR_PORT_DEFAULT)}
-                placeholder="8443"
-                style={inputStyle}
-              />
-            </div>
-
-            {/* Terminal ID (TID) */}
-            <div style={fieldGroupStyle}>
-              <label style={labelStyle}>Terminal ID (TID)</label>
-              <input
-                type="text"
-                value={settings.terminalId}
-                onChange={(e) => update('terminalId', e.target.value)}
-                placeholder="From terminal setup"
-                style={inputStyle}
-              />
-            </div>
-
-            {/* Merchant ID (MID) */}
-            <div style={fieldGroupStyle}>
-              <label style={labelStyle}>Merchant ID (MID)</label>
-              <input
-                type="text"
-                value={settings.merchantId}
-                onChange={(e) => update('merchantId', e.target.value)}
-                placeholder="From acquiring bank"
-                style={inputStyle}
-              />
-            </div>
-          </div>
-
-          {/* Integration Method */}
+          {/* Provider Selector */}
           <div style={fieldGroupStyle}>
-            <label style={labelStyle}>Integration Method</label>
+            <label style={labelStyle}>Payment Provider</label>
             <select
-              value={settings.integrationMethod}
-              onChange={(e) => update('integrationMethod', e.target.value)}
+              value={settings.provider}
+              onChange={(e) => update('provider', e.target.value)}
               style={{ ...inputStyle, cursor: 'pointer' }}
             >
-              <option value={ECR_INTEGRATION_METHODS.AUTO}>Auto (recommended)</option>
-              <option value={ECR_INTEGRATION_METHODS.NETWORK}>Network Only</option>
-              <option value={ECR_INTEGRATION_METHODS.APP_TO_APP}>App-to-App (Android only)</option>
+              <option value={ECR_PROVIDERS.NAPS_DIRECT}>NAPS Qatar (Direct Terminal)</option>
+              <option value={ECR_PROVIDERS.SADAD_CLOUD}>Sadad Cloud (WiseCashier)</option>
             </select>
             <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0' }}>
-              Auto: Uses App-to-App on Android if available, network otherwise. Network Only: Always uses HTTP API. App-to-App: Android Intent to NAPS app.
+              {isNaps && 'Direct connection to NAPS terminal on local network.'}
+              {isSadad && 'Cloud-routed via Sadad system to WiseCashier terminal.'}
             </p>
           </div>
+
+          {/* ── NAPS Direct Fields ── */}
+          {isNaps && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={fieldGroupStyle}>
+                  <label style={labelStyle}>Terminal IP Address</label>
+                  <input type="text" value={settings.terminalIp} onChange={(e) => update('terminalIp', e.target.value)} placeholder="e.g. 192.168.1.100" style={inputStyle} />
+                </div>
+                <div style={fieldGroupStyle}>
+                  <label style={labelStyle}>Port</label>
+                  <input type="number" value={settings.port} onChange={(e) => update('port', parseInt(e.target.value) || ECR_PORT_DEFAULT)} placeholder="8443" style={inputStyle} />
+                </div>
+                <div style={fieldGroupStyle}>
+                  <label style={labelStyle}>Terminal ID (TID)</label>
+                  <input type="text" value={settings.terminalId} onChange={(e) => update('terminalId', e.target.value)} placeholder="From terminal setup" style={inputStyle} />
+                </div>
+                <div style={fieldGroupStyle}>
+                  <label style={labelStyle}>Merchant ID (MID)</label>
+                  <input type="text" value={settings.merchantId} onChange={(e) => update('merchantId', e.target.value)} placeholder="From acquiring bank" style={inputStyle} />
+                </div>
+              </div>
+              <div style={fieldGroupStyle}>
+                <label style={labelStyle}>Integration Method</label>
+                <select value={settings.integrationMethod} onChange={(e) => update('integrationMethod', e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+                  <option value={ECR_INTEGRATION_METHODS.AUTO}>Auto (recommended)</option>
+                  <option value={ECR_INTEGRATION_METHODS.NETWORK}>Network Only</option>
+                  <option value={ECR_INTEGRATION_METHODS.APP_TO_APP}>App-to-App (Android only)</option>
+                </select>
+              </div>
+            </>
+          )}
+
+          {/* ── Sadad Cloud Fields ── */}
+          {isSadad && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={fieldGroupStyle}>
+                  <label style={labelStyle}>Sadad API URL</label>
+                  <input type="text" value={settings.sadadApiUrl} onChange={(e) => update('sadadApiUrl', e.target.value)} placeholder="https://open.sadadpos.com" style={inputStyle} />
+                  <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0' }}>Use sandbox URL for testing</p>
+                </div>
+                <div style={fieldGroupStyle}>
+                  <label style={labelStyle}>App ID</label>
+                  <input type="text" value={settings.sadadAppId} onChange={(e) => update('sadadAppId', e.target.value)} placeholder="From Sadad" style={inputStyle} />
+                </div>
+                <div style={fieldGroupStyle}>
+                  <label style={labelStyle}>Merchant No</label>
+                  <input type="text" value={settings.sadadMerchantNo} onChange={(e) => update('sadadMerchantNo', e.target.value)} placeholder="From Sadad" style={inputStyle} />
+                </div>
+                <div style={fieldGroupStyle}>
+                  <label style={labelStyle}>Store No</label>
+                  <input type="text" value={settings.sadadStoreNo} onChange={(e) => update('sadadStoreNo', e.target.value)} placeholder="From Sadad" style={inputStyle} />
+                </div>
+                <div style={fieldGroupStyle}>
+                  <label style={labelStyle}>Terminal SN</label>
+                  <input type="text" value={settings.sadadTerminalSn} onChange={(e) => update('sadadTerminalSn', e.target.value)} placeholder="Serial number from WiseCashier device" style={inputStyle} />
+                  <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0' }}>Shown at bottom of WiseCashier screen</p>
+                </div>
+                <div style={fieldGroupStyle}>
+                  <label style={labelStyle}>Access Token</label>
+                  <input type="password" value={settings.sadadAccessToken} onChange={(e) => update('sadadAccessToken', e.target.value)} placeholder="From Sadad" style={inputStyle} />
+                </div>
+              </div>
+
+              <div style={fieldGroupStyle}>
+                <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <FaKey size={11} /> RSA Private Key (for signing requests)
+                </label>
+                <textarea
+                  value={settings.sadadPrivateKey}
+                  onChange={(e) => update('sadadPrivateKey', e.target.value)}
+                  placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                  style={textareaStyle}
+                />
+                <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0' }}>
+                  Your private key for signing API requests. Never share this key.
+                </p>
+              </div>
+
+              <div style={fieldGroupStyle}>
+                <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <FaKey size={11} /> Sadad Public Key (for verifying callbacks)
+                </label>
+                <textarea
+                  value={settings.sadadPublicKey}
+                  onChange={(e) => update('sadadPublicKey', e.target.value)}
+                  placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                  style={textareaStyle}
+                />
+                <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0' }}>
+                  Sadad&apos;s public key for verifying webhook signatures.
+                </p>
+              </div>
+
+              {/* Webhook URL (read-only) */}
+              <div style={fieldGroupStyle}>
+                <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <FaCloud size={11} /> Webhook URL (provide this to Sadad)
+                </label>
+                <input
+                  type="text"
+                  value={`${BACKEND_URL}/api/sadad/webhook`}
+                  readOnly
+                  style={{ ...inputStyle, background: '#f9fafb', color: '#6b7280', cursor: 'text' }}
+                  onClick={(e) => { e.target.select(); navigator.clipboard?.writeText(e.target.value); }}
+                />
+                <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0' }}>
+                  Click to copy. Sadad sends payment results to this URL.
+                </p>
+              </div>
+            </>
+          )}
 
           {/* Test Connection */}
           <div style={{
@@ -299,7 +407,7 @@ export default function EcrTerminalSettings({ restaurantId, selectedRestaurant }
           }}>
             <button
               onClick={handleTest}
-              disabled={testing || !settings.terminalIp}
+              disabled={testDisabled}
               style={{
                 padding: '10px 20px',
                 background: testing ? '#e5e7eb' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
@@ -308,7 +416,7 @@ export default function EcrTerminalSettings({ restaurantId, selectedRestaurant }
                 borderRadius: '8px',
                 fontSize: '13px',
                 fontWeight: 600,
-                cursor: testing || !settings.terminalIp ? 'not-allowed' : 'pointer',
+                cursor: testDisabled ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
@@ -316,7 +424,7 @@ export default function EcrTerminalSettings({ restaurantId, selectedRestaurant }
             >
               {testing
                 ? <><FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} /> Testing...</>
-                : <><FaPlug size={12} /> Test Connection</>
+                : <><FaPlug size={12} /> Test {isSadad ? 'Configuration' : 'Connection'}</>
               }
             </button>
 

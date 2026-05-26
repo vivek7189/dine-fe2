@@ -24,11 +24,17 @@ export default function useEcr(ecrSettings) {
 
   // Initialize ECR when settings change
   useEffect(() => {
-    if (ecrSettings?.enabled && ecrSettings?.terminalIp) {
+    if (!ecrSettings?.enabled) return;
+    // NAPS Direct requires terminalIp; Sadad Cloud requires restaurantId
+    const canInit = ecrSettings.provider === 'sadad-cloud'
+      ? !!ecrSettings.restaurantId
+      : !!ecrSettings.terminalIp;
+    if (canInit) {
       initEcr(ecrSettings);
     }
   }, [
     ecrSettings?.enabled,
+    ecrSettings?.provider,
     ecrSettings?.terminalIp,
     ecrSettings?.port,
     ecrSettings?.terminalId,
@@ -67,7 +73,10 @@ export default function useEcr(ecrSettings) {
     setError(null);
     setLastResponse(null);
     try {
-      const resp = await purchase(amount, transactionId);
+      const resp = await purchase(amount, transactionId, (s) => {
+        // Sadad Cloud sends 'polling' status during wait
+        if (s === 'polling' && !abortRef.current) setStatus(ECR_STATUS.POLLING);
+      });
       return _handleResponse(resp);
     } catch (err) {
       _handleError(err);

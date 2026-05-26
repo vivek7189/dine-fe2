@@ -1,6 +1,6 @@
 /**
- * NAPS Qatar ECR (Electronic Cash Register) Payment Terminal Constants
- * Used for POS-to-terminal communication over local network
+ * ECR (Electronic Cash Register) Payment Terminal Constants
+ * Supports NAPS Qatar (direct terminal) and Sadad Cloud (WiseCashier cloud mode)
  */
 
 export const ECR_PORT_DEFAULT = 8443;
@@ -35,6 +35,7 @@ export const ECR_STATUS = {
   CONNECTING: 'connecting',
   WAITING_FOR_CARD: 'waiting_for_card',
   PROCESSING: 'processing',
+  POLLING: 'polling',
   APPROVED: 'approved',
   DECLINED: 'declined',
   ERROR: 'error',
@@ -45,4 +46,20 @@ export const ECR_INTEGRATION_METHODS = {
   AUTO: 'auto',
   NETWORK: 'network',
   APP_TO_APP: 'app-to-app',
+};
+
+// ECR provider types (config-driven)
+export const ECR_PROVIDERS = {
+  NAPS_DIRECT: 'naps-direct',
+  SADAD_CLOUD: 'sadad-cloud',
+};
+
+// Sadad Cloud transaction status codes
+export const SADAD_TRANS_STATUS = {
+  SUCCESS: 2,
+  PENDING: 9,
+  FAILED: 11,
+  CANCELLED: 13,
+  PARTIAL_REFUND: 14,
+  FULL_REFUND: 17,
 };

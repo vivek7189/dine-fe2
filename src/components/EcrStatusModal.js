@@ -30,6 +30,14 @@ const STATUS_CONFIG = {
     subtitle: 'Please wait while the transaction is being processed...',
     bgGradient: 'linear-gradient(135deg, #fffbeb, #fef3c7)',
   },
+  [ECR_STATUS.POLLING]: {
+    icon: FaSpinner,
+    iconColor: '#8b5cf6',
+    spin: true,
+    title: 'Waiting for Terminal',
+    subtitle: 'Payment sent to terminal. Waiting for confirmation...',
+    bgGradient: 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
+  },
   [ECR_STATUS.APPROVED]: {
     icon: FaCheckCircle,
     iconColor: '#10b981',
@@ -81,7 +89,7 @@ export default function EcrStatusModal({ status, error, lastResponse, onCancel, 
   const Icon = config.icon;
 
   const isTerminal = status === ECR_STATUS.APPROVED || status === ECR_STATUS.DECLINED || status === ECR_STATUS.ERROR || status === ECR_STATUS.TIMEOUT;
-  const showCancel = status === ECR_STATUS.WAITING_FOR_CARD || status === ECR_STATUS.CONNECTING || status === ECR_STATUS.PROCESSING;
+  const showCancel = status === ECR_STATUS.WAITING_FOR_CARD || status === ECR_STATUS.CONNECTING || status === ECR_STATUS.PROCESSING || status === ECR_STATUS.POLLING;
   const showRetry = (status === ECR_STATUS.DECLINED || status === ECR_STATUS.ERROR || status === ECR_STATUS.TIMEOUT) && onRetry;
 
   const modal = (

@@ -3093,6 +3093,28 @@ class ApiClient {
     return this.request('/api/ecr/test', { method: 'POST', body: { terminalIp, port } });
   }
 
+  // ==================== SADAD CLOUD PAYMENT ====================
+
+  async sadadCreateOrder(data) {
+    return this.request('/api/sadad/create-order', { method: 'POST', body: data });
+  }
+
+  async sadadPoll(merchantOrderNo, restaurantId) {
+    return this.request(`/api/sadad/poll/${encodeURIComponent(merchantOrderNo)}?restaurantId=${encodeURIComponent(restaurantId)}`);
+  }
+
+  async sadadCloseOrder(data) {
+    return this.request('/api/sadad/close-order', { method: 'POST', body: data });
+  }
+
+  async sadadRefund(data) {
+    return this.request('/api/sadad/refund', { method: 'POST', body: data });
+  }
+
+  async sadadTest(restaurantId) {
+    return this.request('/api/sadad/test', { method: 'POST', body: { restaurantId } });
+  }
+
   // ==================== PRICING SETTINGS ====================
 
   // Get pricing settings
