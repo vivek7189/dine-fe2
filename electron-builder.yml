@@ -6,6 +6,8 @@ files:
   - out/**/*
   - electron/**/*
   - package.json
+asarUnpack:
+  - "node_modules/better-sqlite3/**/*"
 extraMetadata:
   main: electron/main.js
 

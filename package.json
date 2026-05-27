@@ -1,6 +1,6 @@
 {
   "name": "dine-frontend",
-  "version": "1.8.3",
+  "version": "1.8.6",
   "author": "",
   "private": true,
   "scripts": {
@@ -22,6 +22,7 @@
     "electron:export": "node scripts/build-electron.js",
     "electron:rebuild": "npx electron-rebuild -f -w better-sqlite3",
     "electron:build": "node scripts/build-electron.js && npx electron-builder --config electron-builder.yml",
+    "electron:build:win": "node scripts/build-electron.js && npx electron-builder --config electron-builder.yml --win --x64",
     "electron:build:publish": "node scripts/build-electron.js && npx electron-builder --config electron-builder.yml --publish always",
     "release:gcs": "node scripts/release-gcs.js",
     "release:gcs:upload": "node scripts/release-gcs.js --upload-only"
