@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { isWeb, isCapacitor, isTauri, isElectron } from '../utils/platform';
 import { printDocument } from '../utils/printBridge';
+import apiClient from '../lib/api';
 import { FaBluetooth, FaPrint, FaSync, FaCheckCircle, FaTimesCircle, FaUsb, FaWifi, FaStethoscope, FaMicrochip } from 'react-icons/fa';
 
 // Icon for printer type
@@ -31,6 +32,9 @@ export default function NativePrinterSettings({ restaurantId }) {
   const [diagReport, setDiagReport] = useState(null);
   const [isDiagnosing, setIsDiagnosing] = useState(false);
   const [appVersion, setAppVersion] = useState(null);
+  const [printStations, setPrintStations] = useState([]);
+  const [stationPrinters, setStationPrinters] = useState({});
+  const [stationTestStatus, setStationTestStatus] = useState({});
   const isElectronPlatform = !isWeb() && isElectron();
   const isCapacitorPlatform = !isWeb() && isCapacitor();
   // Show printer routing for both Electron and Capacitor
@@ -233,6 +237,60 @@ export default function NativePrinterSettings({ restaurantId }) {
       }
     };
     checkConnection();
+  }, []);
+
+  // Load print stations from API + station printer config from device
+  useEffect(() => {
+    if (isWeb() || !restaurantId) return;
+    // Fetch print stations
+    apiClient.getPrintStations(restaurantId).then(res => {
+      if (res?.success) {
+        setPrintStations((res.printStations || []).filter(s => s.enabled));
+      }
+    }).catch(() => {});
+    // Fetch station printer assignments from local device config
+    const loadStationPrinters = async () => {
+      try {
+        if (isElectron() && window.electronAPI?.getPrinterConfig) {
+          const config = await window.electronAPI.getPrinterConfig();
+          if (config?.stationPrinters) setStationPrinters(config.stationPrinters);
+        }
+      } catch (e) { /* ignore */ }
+    };
+    loadStationPrinters();
+  }, [restaurantId]);
+
+  const assignStationPrinter = useCallback(async (stationId, printerName) => {
+    const updated = { ...stationPrinters, [stationId]: printerName || null };
+    setStationPrinters(updated);
+    try {
+      if (isElectronPlatform && window.electronAPI?.setPrinterConfig) {
+        await window.electronAPI.setPrinterConfig({ stationPrinters: { [stationId]: printerName || null } });
+      }
+    } catch (err) {
+      console.error('Failed to save station printer:', err);
+    }
+  }, [stationPrinters, isElectronPlatform]);
+
+  const testStationPrint = useCallback(async (stationId, stationName) => {
+    setStationTestStatus(prev => ({ ...prev, [stationId]: 'printing' }));
+    try {
+      const testHtml = `<!DOCTYPE html><html><head>
+        <style>@page{size:80mm auto;margin:0;}body{font-family:'Courier New',monospace;padding:16px;text-align:center;}</style>
+        </head><body>
+          <h2>DineOpen POS</h2>
+          <p>--- STATION TEST ---</p>
+          <p><b>${stationName}</b></p>
+          <p>Printer is working correctly!</p>
+          <p>${new Date().toLocaleString()}</p>
+          <p>================================</p>
+        </body></html>`;
+      await printDocument({ html: testHtml, type: 'kot', stationId });
+      setStationTestStatus(prev => ({ ...prev, [stationId]: 'success' }));
+    } catch (err) {
+      setStationTestStatus(prev => ({ ...prev, [stationId]: 'error' }));
+    }
+    setTimeout(() => setStationTestStatus(prev => ({ ...prev, [stationId]: null })), 3000);
   }, []);
 
   // Don't render on web (after all hooks)
@@ -448,6 +506,67 @@ export default function NativePrinterSettings({ restaurantId }) {
           <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '8px' }}>
             If not assigned, both KOT and bill jobs go to the default printer above.
           </div>
+        </div>
+      )}
+
+      {/* Per-Station Printer Assignment (Electron only, when stations exist) */}
+      {supportsRouting && printers.length > 0 && printStations.length > 1 && (
+        <div style={{
+          marginTop: '12px', padding: '12px', backgroundColor: '#fef3c7',
+          borderRadius: '8px', border: '1px solid #fcd34d',
+        }}>
+          <div style={{ fontSize: '13px', fontWeight: 600, color: '#92400e', marginBottom: '4px' }}>
+            Station Printers — Route KOTs by kitchen zone
+          </div>
+          <div style={{ fontSize: '11px', color: '#78716c', marginBottom: '10px' }}>
+            Assign a different printer to each station. Unassigned stations use the KOT printer above.
+          </div>
+
+          {printStations.map(station => {
+            const st = stationTestStatus[station.id];
+            return (
+              <div key={station.id} style={{ marginBottom: '8px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 500, color: '#374151', marginBottom: '4px' }}>
+                  {station.name}
+                  <span style={{ fontSize: '10px', color: '#9ca3af', marginLeft: '6px', textTransform: 'uppercase' }}>
+                    {station.type}
+                  </span>
+                  {station.isDefault && (
+                    <span style={{ fontSize: '10px', color: '#16a34a', marginLeft: '6px', fontWeight: 600 }}>DEFAULT</span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <select
+                    value={stationPrinters[station.id] || ''}
+                    onChange={(e) => assignStationPrinter(station.id, e.target.value || null)}
+                    style={{
+                      flex: 1, padding: '6px 10px', fontSize: '13px', borderRadius: '6px',
+                      border: '1px solid #d1d5db', backgroundColor: 'white',
+                    }}
+                  >
+                    <option value="">Use KOT printer</option>
+                    {printers.map((p, i) => (
+                      <option key={p.address || i} value={isElectronPlatform ? p.name : p.address}>
+                        {p.name}{p.type === 'serial' ? ' (Built-in)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => testStationPrint(station.id, station.name)}
+                    disabled={!stationPrinters[station.id] || st === 'printing'}
+                    style={{
+                      padding: '6px 12px', fontSize: '12px', fontWeight: 500,
+                      backgroundColor: stationPrinters[station.id] ? '#d97706' : '#e5e7eb', color: 'white',
+                      border: 'none', borderRadius: '6px',
+                      cursor: stationPrinters[station.id] ? 'pointer' : 'not-allowed',
+                    }}
+                  >
+                    {st === 'printing' ? '...' : st === 'success' ? 'OK' : st === 'error' ? 'Fail' : 'Test'}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 

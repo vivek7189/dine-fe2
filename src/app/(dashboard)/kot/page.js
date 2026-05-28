@@ -4,8 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 // import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
-import { signInWithCustomToken } from 'firebase/auth';
-import { database, auth } from '../../../../firebase';
+import { database } from '../../../../firebase';
 import {
   FaPrint,
   FaClock,
@@ -316,28 +315,8 @@ const KitchenOrderTicket = () => {
     loadKotData(true, true);
   }, [loadKotData]);
 
-  // ─── Firebase Auth Bootstrap (for staff users who logged in via JWT) ───
-  const [firebaseAuthReady, setFirebaseAuthReady] = useState(false);
-  useEffect(() => {
-    if (!auth) { setFirebaseAuthReady(true); return; }
-    // If already signed in (owner/admin via phone/Google), we're good
-    if (auth.currentUser) { setFirebaseAuthReady(true); return; }
-    // Staff users need a Firebase custom token for RTDB access
-    const bootstrapFirebaseAuth = async () => {
-      try {
-        const res = await apiClient.get('/api/auth/firebase-token');
-        if (res?.firebaseCustomToken) {
-          await signInWithCustomToken(auth, res.firebaseCustomToken);
-          console.log('🔑 KOT: Staff signed into Firebase Auth for RTDB');
-        }
-      } catch (err) {
-        console.warn('🔑 KOT: Firebase Auth bootstrap failed (will retry on refresh):', err.message);
-      } finally {
-        setFirebaseAuthReady(true);
-      }
-    };
-    bootstrapFirebaseAuth();
-  }, []);
+  // RTDB events path has public read access — no Firebase Auth needed for staff
+  const firebaseAuthReady = true;
 
   // ─── Firebase RTDB Subscription (replaces Pusher) ───
   const [rtdbRestaurantId, setRtdbRestaurantId] = useState(() => {
@@ -358,7 +337,7 @@ const KitchenOrderTicket = () => {
     const now = Date.now();
     setIsPollingActive(true);
 
-    console.log(`📡 KOT RTDB: Subscribed to events/${rtdbRestaurantId}/orders (auth: ${auth?.currentUser ? 'yes' : 'no'})`);
+    console.log(`📡 KOT RTDB: Subscribed to events/${rtdbRestaurantId}/orders`);
 
     // Debounce — if multiple events arrive within 1s, only fetch once
     let debounceTimer = null;

@@ -22,7 +22,7 @@ import { isCapacitor, isTauri, isElectron, isWeb } from './platform';
  * @param {string} [options.restaurantId] - Restaurant ID (used with orderId)
  * @param {object} [options.printSettings] - Print settings from /admin
  */
-export async function printDocument({ html, domSelector, type = 'bill', orderId, restaurantId, printSettings = {} } = {}) {
+export async function printDocument({ html, domSelector, type = 'bill', orderId, restaurantId, stationId, printSettings = {} } = {}) {
   // Debug: log platform detection
   console.log('[PrintBridge] printDocument called:', { type, hasHtml: !!html, isTauri: isTauri(), isCapacitor: isCapacitor(), isWeb: isWeb(), hasTauriInternals: typeof window !== 'undefined' && !!window.__TAURI_INTERNALS__ });
 
@@ -61,7 +61,7 @@ export async function printDocument({ html, domSelector, type = 'bill', orderId,
     return printViaTauri({ html: printHtml, type, printSettings });
   }
   if (isElectron()) {
-    return printViaElectron({ html: printHtml, type, printSettings });
+    return printViaElectron({ html: printHtml, type, stationId, printSettings });
   }
 }
 
@@ -186,10 +186,11 @@ async function printViaTauri({ html, type, printSettings }) {
 }
 
 /** Electron: send to system printer via IPC — routes to KOT/bill printer based on type */
-async function printViaElectron({ html, type, printSettings }) {
+async function printViaElectron({ html, type, stationId, printSettings }) {
   try {
     await window.electronAPI.print(html, {
       type,
+      stationId,
       copies: type === 'kot' ? (printSettings.kotCopies || 1) : 1,
       printerWidth: printSettings.printerWidth || 80,
     });

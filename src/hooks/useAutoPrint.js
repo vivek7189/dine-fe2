@@ -105,6 +105,7 @@ export function useAutoPrint(restaurantId, printSettings) {
         await printDocument({
           html: job.html,
           type: job.type,
+          stationId: job.stationId,
           printSettings: printSettings || {},
         });
         markPrinted(job.orderId, job.type);
@@ -162,14 +163,14 @@ export function useAutoPrint(restaurantId, printSettings) {
 
     const { stations, mode } = printStationsRef.current;
 
-    // If stations configured and single-printer mode: print per-station KOTs
-    if (stations.length > 1 && mode === 'single') {
+    // If stations configured: print per-station KOTs (single or multi-printer mode)
+    if (stations.length > 1) {
       try {
         for (const station of stations) {
           const renderData = await apiClient.getKOTRender(restaurantId, orderId, { stationId: station.id });
           const html = kotRenderToHtml(renderData);
           if (html) {
-            printQueueRef.current.push({ html, type: 'kot', orderId: `${orderId}-${station.id}` });
+            printQueueRef.current.push({ html, type: 'kot', orderId: `${orderId}-${station.id}`, stationId: station.id });
           }
         }
         if (printQueueRef.current.length > 0) {
@@ -200,13 +201,14 @@ export function useAutoPrint(restaurantId, printSettings) {
     const orderId = data.orderId || data.id;
     if (!orderId || wasPrinted(orderId, 'kot')) return;
     try {
+      const stationId = data.printStationId || null;
       const renderData = await apiClient.getKOTRender(
         restaurantId, orderId,
-        { newOnly: data.isIncremental || false, stationId: data.printStationId || null }
+        { newOnly: data.isIncremental || false, stationId }
       );
       const html = kotRenderToHtml(renderData);
       if (html) {
-        printQueueRef.current.push({ html, type: 'kot', orderId });
+        printQueueRef.current.push({ html, type: 'kot', orderId, stationId });
         processQueue();
       }
     } catch (err) {

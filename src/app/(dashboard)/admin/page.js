@@ -3424,6 +3424,8 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
   const [kotExclusionCategories, setKotExclusionCategories] = useState([]);
   const [kotExclusionMenuItems, setKotExclusionMenuItems] = useState([]);
   const [kotExclusionItemSearch, setKotExclusionItemSearch] = useState('');
+  const [kotExclusionDropdownOpen, setKotExclusionDropdownOpen] = useState(false);
+  const kotExclusionDropdownRef = useRef(null);
 
   const loadPrintSettings = async (restaurantId) => {
     if (!restaurantId) return;
@@ -3447,7 +3449,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
     setSaving(true);
     setSaveNotification(null);
     try {
-      const { _previewTab, ...settingsToSave } = printSettings;
+      const { _previewTab, _uiBillExpanded, _uiKotExpanded, ...settingsToSave } = printSettings;
       const response = await apiClient.updatePrintSettings(selectedRestaurant.id, settingsToSave);
       if (response.success) {
         setSaveNotification({ type: 'success', message: 'Print settings saved successfully!' });
@@ -3475,7 +3477,8 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
       loadPrintSettings(selectedRestaurant.id);
       // Load categories and menu items for KOT exclusion UI
       apiClient.getCategories(selectedRestaurant.id).then(res => {
-        if (res.success && res.categories) setKotExclusionCategories(res.categories);
+        const cats = res?.categories || [];
+        setKotExclusionCategories(cats);
       }).catch(() => {});
       apiClient.getMenu(selectedRestaurant.id).then(res => {
         const items = res.menuItems || res.items || [];
@@ -3483,6 +3486,17 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
       }).catch(() => {});
     }
   }, [selectedRestaurant?.id]);
+
+  // Close KOT exclusion dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (kotExclusionDropdownRef.current && !kotExclusionDropdownRef.current.contains(e.target)) {
+        setKotExclusionDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Load KOT Printer installer URLs and detect platform / owner
   useEffect(() => {
@@ -3902,60 +3916,89 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
 
                       {/* Item Exclusion */}
                       <p style={{ fontSize: '12px', fontWeight: 600, color: '#92400e', margin: '0 0 8px 0' }}>Exclude Specific Items</p>
-                      <input
-                        type="text"
-                        placeholder="Search menu items..."
-                        value={kotExclusionItemSearch}
-                        onChange={(e) => setKotExclusionItemSearch(e.target.value)}
-                        style={{
-                          width: '100%', padding: '8px 12px', fontSize: '12px', borderRadius: '6px',
-                          border: '1px solid #d1d5db', marginBottom: '8px', boxSizing: 'border-box',
-                        }}
-                      />
-                      <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        {kotExclusionMenuItems
-                          .filter(item => {
-                            if (!kotExclusionItemSearch) {
-                              return (printSettings.kotExcludedItemIds || []).includes(item.id);
-                            }
-                            return item.name.toLowerCase().includes(kotExclusionItemSearch.toLowerCase());
-                          })
-                          .slice(0, 50)
-                          .map(item => {
-                            const isExcluded = (printSettings.kotExcludedItemIds || []).includes(item.id);
-                            const isCatExcluded = (printSettings.kotExcludedCategories || []).includes(item.categoryId);
-                            return (
-                              <div
-                                key={item.id}
-                                onClick={() => {
-                                  if (isCatExcluded) return;
-                                  setPrintSettings(prev => {
-                                    const current = prev.kotExcludedItemIds || [];
-                                    const next = current.includes(item.id) ? current.filter(id => id !== item.id) : [...current, item.id];
-                                    return { ...prev, kotExcludedItemIds: next };
-                                  });
-                                }}
-                                style={{
-                                  display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px',
-                                  borderRadius: '6px', cursor: isCatExcluded ? 'default' : 'pointer',
-                                  background: isExcluded || isCatExcluded ? '#fef2f2' : 'white',
-                                  border: '1px solid', borderColor: isExcluded || isCatExcluded ? '#fca5a5' : '#e5e7eb',
-                                  opacity: isCatExcluded ? 0.6 : 1,
-                                }}
-                              >
-                                <input type="checkbox" checked={isExcluded || isCatExcluded} readOnly
-                                  style={{ accentColor: '#dc2626', cursor: isCatExcluded ? 'default' : 'pointer' }}
-                                />
-                                <span style={{ fontSize: '12px', fontWeight: 500, color: '#374151', flex: 1 }}>{item.name}</span>
-                                <span style={{ fontSize: '10px', color: '#9ca3af' }}>{item.category || ''}</span>
-                                {isCatExcluded && <span style={{ fontSize: '9px', color: '#ef4444', fontWeight: 600 }}>via category</span>}
-                              </div>
-                            );
-                          })}
-                        {!kotExclusionItemSearch && (printSettings.kotExcludedItemIds || []).length === 0 && (
-                          <p style={{ fontSize: '11px', color: '#9ca3af', margin: 0, padding: '4px' }}>Search to find and exclude specific items</p>
+                      <div ref={kotExclusionDropdownRef} style={{ position: 'relative' }}>
+                        <input
+                          type="text"
+                          placeholder="Search menu items..."
+                          value={kotExclusionItemSearch}
+                          onChange={(e) => { setKotExclusionItemSearch(e.target.value); setKotExclusionDropdownOpen(true); }}
+                          onFocus={() => setKotExclusionDropdownOpen(true)}
+                          style={{
+                            width: '100%', padding: '8px 12px', fontSize: '12px', borderRadius: '6px',
+                            border: '1px solid #d1d5db', boxSizing: 'border-box',
+                          }}
+                        />
+                        {kotExclusionDropdownOpen && kotExclusionItemSearch && (
+                          <div style={{
+                            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
+                            maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px',
+                            background: 'white', border: '1px solid #d1d5db', borderRadius: '6px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)', marginTop: '4px', padding: '4px',
+                          }}>
+                            {kotExclusionMenuItems
+                              .filter(item => item.name.toLowerCase().includes(kotExclusionItemSearch.toLowerCase()))
+                              .slice(0, 30)
+                              .map(item => {
+                                const isExcluded = (printSettings.kotExcludedItemIds || []).includes(item.id);
+                                const isCatExcluded = (printSettings.kotExcludedCategories || []).includes(item.categoryId);
+                                return (
+                                  <div
+                                    key={item.id}
+                                    onClick={() => {
+                                      if (isCatExcluded) return;
+                                      setPrintSettings(prev => {
+                                        const current = prev.kotExcludedItemIds || [];
+                                        const next = current.includes(item.id) ? current.filter(id => id !== item.id) : [...current, item.id];
+                                        return { ...prev, kotExcludedItemIds: next };
+                                      });
+                                    }}
+                                    style={{
+                                      display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px',
+                                      borderRadius: '6px', cursor: isCatExcluded ? 'default' : 'pointer',
+                                      background: isExcluded || isCatExcluded ? '#fef2f2' : 'white',
+                                      border: '1px solid', borderColor: isExcluded || isCatExcluded ? '#fca5a5' : '#e5e7eb',
+                                      opacity: isCatExcluded ? 0.6 : 1,
+                                    }}
+                                  >
+                                    <input type="checkbox" checked={isExcluded || isCatExcluded} readOnly
+                                      style={{ accentColor: '#dc2626', cursor: isCatExcluded ? 'default' : 'pointer' }}
+                                    />
+                                    <span style={{ fontSize: '12px', fontWeight: 500, color: '#374151', flex: 1 }}>{item.name}</span>
+                                    <span style={{ fontSize: '10px', color: '#9ca3af' }}>{item.category || ''}</span>
+                                    {isCatExcluded && <span style={{ fontSize: '9px', color: '#ef4444', fontWeight: 600 }}>via category</span>}
+                                  </div>
+                                );
+                              })}
+                            {kotExclusionMenuItems.filter(item => item.name.toLowerCase().includes(kotExclusionItemSearch.toLowerCase())).length === 0 && (
+                              <p style={{ fontSize: '11px', color: '#9ca3af', margin: 0, padding: '8px', textAlign: 'center' }}>No items found</p>
+                            )}
+                          </div>
                         )}
                       </div>
+                      {/* Currently excluded items (always visible) */}
+                      {(printSettings.kotExcludedItemIds || []).length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                          {kotExclusionMenuItems
+                            .filter(item => (printSettings.kotExcludedItemIds || []).includes(item.id))
+                            .map(item => (
+                              <button
+                                key={item.id}
+                                onClick={() => {
+                                  setPrintSettings(prev => ({
+                                    ...prev,
+                                    kotExcludedItemIds: (prev.kotExcludedItemIds || []).filter(id => id !== item.id)
+                                  }));
+                                }}
+                                style={{
+                                  padding: '4px 10px', fontSize: '11px', fontWeight: 600, borderRadius: '14px', cursor: 'pointer',
+                                  border: '2px solid #dc2626', background: '#fef2f2', color: '#dc2626',
+                                }}
+                              >
+                                ✕ {item.name}
+                              </button>
+                            ))}
+                        </div>
+                      )}
 
                       {/* Summary */}
                       {((printSettings.kotExcludedCategories || []).length > 0 || (printSettings.kotExcludedItemIds || []).length > 0) && (
@@ -3970,103 +4013,126 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                 </div>
 
                 {/* ── Bill & KOT Layout Visibility ── */}
-                <div style={{ marginBottom: '20px' }}>
-                  <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Bill & KOT Layout
-                  </p>
-                  <p style={{ fontSize: '11px', color: '#9ca3af', margin: '-8px 0 12px 0' }}>
-                    Control which sections appear on printed bills and KOTs. All enabled by default.
-                  </p>
+                {(() => {
+                  const billFields = [
+                    { key: 'showAddress', label: 'Address' },
+                    { key: 'showPhone', label: 'Phone' },
+                    { key: 'showTable', label: 'Table' },
+                    { key: 'showWaiter', label: 'Waiter' },
+                    { key: 'showCustomer', label: 'Customer' },
+                    { key: 'showPayment', label: 'Payment' },
+                    { key: 'showOrderType', label: 'Order Type' },
+                    { key: 'showSubtotal', label: 'Subtotal' },
+                    { key: 'showTaxBreakdown', label: 'Tax Lines' },
+                    { key: 'showFooter', label: 'Footer' },
+                    { key: 'showPoweredBy', label: 'Powered By' },
+                  ];
+                  const kotFields = [
+                    { key: 'showKotTitle', label: 'KOT Title' },
+                    { key: 'showRestaurantName', label: 'Restaurant' },
+                    { key: 'showOrderNumber', label: 'Order #' },
+                    { key: 'showTable', label: 'Table' },
+                    { key: 'showCustomer', label: 'Customer' },
+                    { key: 'showWaiter', label: 'Waiter' },
+                    { key: 'showDate', label: 'Date' },
+                    { key: 'showOrderType', label: 'Order Type' },
+                  ];
+                  const billHidden = billFields.filter(f => printSettings.billLayout?.[f.key] === false);
+                  const kotHidden = kotFields.filter(f => printSettings.kotLayout?.[f.key] === false);
+                  const totalHidden = billHidden.length + kotHidden.length;
 
-                  {/* Bill Layout */}
-                  <div style={{ marginBottom: '14px', padding: '14px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                    <p style={{ fontSize: '12px', fontWeight: 600, color: '#374151', margin: '0 0 10px 0' }}>Bill Sections</p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {[
-                        { key: 'showAddress', label: 'Restaurant Address', desc: 'Address line below restaurant name' },
-                        { key: 'showPhone', label: 'Restaurant Phone', desc: 'Phone number on bill' },
-                        { key: 'showTable', label: 'Table Number', desc: 'Table/room number on bill' },
-                        { key: 'showWaiter', label: 'Waiter / Staff Name', desc: 'Staff who took the order' },
-                        { key: 'showCustomer', label: 'Customer Name', desc: 'Customer name on bill' },
-                        { key: 'showPayment', label: 'Payment Method', desc: 'Cash / Card / UPI line' },
-                        { key: 'showOrderType', label: 'Order Type', desc: 'Dine-in / Takeaway / Delivery' },
-                        { key: 'showSubtotal', label: 'Subtotal', desc: 'Subtotal before tax' },
-                        { key: 'showTaxBreakdown', label: 'Tax Breakdown', desc: 'Individual tax lines (CGST, SGST, etc.)' },
-                        { key: 'showFooter', label: 'Thank You Message', desc: 'Footer message at bottom' },
-                        { key: 'showPoweredBy', label: 'Powered by DineOpen', desc: 'Branding line at bottom' },
-                      ].map(({ key, label, desc }) => {
-                        const isOn = printSettings.billLayout?.[key] ?? true;
-                        return (
-                          <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' }}>
-                            <div>
-                              <span style={{ fontSize: '13px', fontWeight: 500, color: '#374151' }}>{label}</span>
-                              <span style={{ fontSize: '11px', color: '#9ca3af', marginLeft: '8px' }}>{desc}</span>
-                            </div>
-                            <button
-                              onClick={() => setPrintSettings(prev => ({
+                  const billExpanded = printSettings._uiBillExpanded;
+                  const kotExpanded = printSettings._uiKotExpanded;
+
+                  const toggleChip = (label, isOn, onClick) => (
+                    <button key={label} onClick={onClick} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px',
+                      borderRadius: '14px', border: '1px solid ' + (isOn ? '#bbf7d0' : '#fecaca'),
+                      background: isOn ? '#f0fdf4' : '#fef2f2', cursor: 'pointer', fontSize: '12px',
+                      color: isOn ? '#166534' : '#991b1b', fontWeight: 500, transition: 'all 0.15s',
+                    }}>
+                      <span style={{ fontSize: '10px' }}>{isOn ? '●' : '○'}</span>
+                      {label}
+                    </button>
+                  );
+
+                  return (
+                    <div style={{ marginBottom: '20px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Receipt Layout
+                        </p>
+                        {totalHidden > 0 && (
+                          <span style={{ fontSize: '11px', color: '#ef4444', background: '#fef2f2', padding: '2px 8px', borderRadius: '10px', fontWeight: 500 }}>
+                            {totalHidden} hidden
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Bill Sections */}
+                      <div style={{ marginBottom: '10px', padding: '12px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                        <div
+                          onClick={() => setPrintSettings(prev => ({ ...prev, _uiBillExpanded: !prev._uiBillExpanded }))}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '12px', fontWeight: 600, color: '#374151' }}>Bill Sections</span>
+                            {billHidden.length > 0 ? (
+                              <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: 500 }}>
+                                {billHidden.length} off: {billHidden.map(f => f.label).join(', ')}
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '11px', color: '#22c55e', fontWeight: 500 }}>All shown</span>
+                            )}
+                          </div>
+                          <span style={{ fontSize: '14px', color: '#9ca3af', transform: billExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
+                        </div>
+                        {billExpanded && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e5e7eb' }}>
+                            {billFields.map(({ key, label }) => {
+                              const isOn = printSettings.billLayout?.[key] ?? true;
+                              return toggleChip(label, isOn, () => setPrintSettings(prev => ({
                                 ...prev,
                                 billLayout: { ...prev.billLayout, [key]: !(prev.billLayout?.[key] ?? true) }
-                              }))}
-                              style={{
-                                width: '36px', height: '20px', borderRadius: '10px', border: 'none', cursor: 'pointer',
-                                background: isOn ? '#22c55e' : '#d1d5db', position: 'relative', transition: 'background 0.2s', flexShrink: 0,
-                              }}
-                            >
-                              <span style={{
-                                position: 'absolute', top: '2px', left: isOn ? '18px' : '2px',
-                                width: '16px', height: '16px', borderRadius: '50%', background: 'white',
-                                transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
-                              }} />
-                            </button>
+                              })));
+                            })}
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+                        )}
+                      </div>
 
-                  {/* KOT Layout */}
-                  <div style={{ padding: '14px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                    <p style={{ fontSize: '12px', fontWeight: 600, color: '#374151', margin: '0 0 10px 0' }}>KOT Sections</p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {[
-                        { key: 'showKotTitle', label: 'KOT Title', desc: '"KITCHEN ORDER" header text' },
-                        { key: 'showRestaurantName', label: 'Restaurant Name', desc: 'Name at top of KOT' },
-                        { key: 'showOrderNumber', label: 'Order Number', desc: 'Order # on KOT' },
-                        { key: 'showTable', label: 'Table / Room', desc: 'Table or room number on KOT' },
-                        { key: 'showCustomer', label: 'Customer Name', desc: 'Customer name on KOT' },
-                        { key: 'showWaiter', label: 'Waiter / Staff Name', desc: 'Staff name on KOT' },
-                        { key: 'showDate', label: 'Date', desc: 'Date on KOT (time always shown)' },
-                        { key: 'showOrderType', label: 'Order Type', desc: 'Dine-in / Takeaway / Delivery on KOT' },
-                      ].map(({ key, label, desc }) => {
-                        const isOn = printSettings.kotLayout?.[key] ?? true;
-                        return (
-                          <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' }}>
-                            <div>
-                              <span style={{ fontSize: '13px', fontWeight: 500, color: '#374151' }}>{label}</span>
-                              <span style={{ fontSize: '11px', color: '#9ca3af', marginLeft: '8px' }}>{desc}</span>
-                            </div>
-                            <button
-                              onClick={() => setPrintSettings(prev => ({
+                      {/* KOT Sections */}
+                      <div style={{ padding: '12px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                        <div
+                          onClick={() => setPrintSettings(prev => ({ ...prev, _uiKotExpanded: !prev._uiKotExpanded }))}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '12px', fontWeight: 600, color: '#374151' }}>KOT Sections</span>
+                            {kotHidden.length > 0 ? (
+                              <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: 500 }}>
+                                {kotHidden.length} off: {kotHidden.map(f => f.label).join(', ')}
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '11px', color: '#22c55e', fontWeight: 500 }}>All shown</span>
+                            )}
+                          </div>
+                          <span style={{ fontSize: '14px', color: '#9ca3af', transform: kotExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
+                        </div>
+                        {kotExpanded && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e5e7eb' }}>
+                            {kotFields.map(({ key, label }) => {
+                              const isOn = printSettings.kotLayout?.[key] ?? true;
+                              return toggleChip(label, isOn, () => setPrintSettings(prev => ({
                                 ...prev,
                                 kotLayout: { ...prev.kotLayout, [key]: !(prev.kotLayout?.[key] ?? true) }
-                              }))}
-                              style={{
-                                width: '36px', height: '20px', borderRadius: '10px', border: 'none', cursor: 'pointer',
-                                background: isOn ? '#22c55e' : '#d1d5db', position: 'relative', transition: 'background 0.2s', flexShrink: 0,
-                              }}
-                            >
-                              <span style={{
-                                position: 'absolute', top: '2px', left: isOn ? '18px' : '2px',
-                                width: '16px', height: '16px', borderRadius: '50%', background: 'white',
-                                transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
-                              }} />
-                            </button>
+                              })));
+                            })}
                           </div>
-                        );
-                      })}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  );
+                })()}
 
             </div>
             {/* /LEFT COLUMN end */}

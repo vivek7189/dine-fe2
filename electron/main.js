@@ -244,11 +244,14 @@ app.on('will-quit', () => {
 
 // ──── IPC: Printing ────
 
-ipcMain.handle('electron:print', async (event, { html, copies, type, printerWidth }) => {
+ipcMain.handle('electron:print', async (event, { html, copies, type, printerWidth, stationId }) => {
   const settings = loadSettings();
-  // Route to the correct printer based on job type
+  // Route to the correct printer based on job type and optional station
   let deviceName;
-  if (type === 'kot' && settings.kotPrinter) {
+  if (type === 'kot' && stationId && settings.stationPrinters?.[stationId]) {
+    // Multi-printer mode: per-station printer assignment
+    deviceName = settings.stationPrinters[stationId];
+  } else if (type === 'kot' && settings.kotPrinter) {
     deviceName = settings.kotPrinter;
   } else if (type === 'bill' && settings.billPrinter) {
     deviceName = settings.billPrinter;
@@ -340,6 +343,9 @@ ipcMain.handle('electron:setPrinterConfig', async (event, config) => {
   if (config.defaultPrinter !== undefined) settings.defaultPrinter = config.defaultPrinter;
   if (config.kotPrinter !== undefined) settings.kotPrinter = config.kotPrinter;
   if (config.billPrinter !== undefined) settings.billPrinter = config.billPrinter;
+  if (config.stationPrinters !== undefined) {
+    settings.stationPrinters = { ...(settings.stationPrinters || {}), ...config.stationPrinters };
+  }
   saveSettings(settings);
   return { success: true };
 });
@@ -350,6 +356,7 @@ ipcMain.handle('electron:getPrinterConfig', async () => {
     defaultPrinter: settings.defaultPrinter || null,
     kotPrinter: settings.kotPrinter || null,
     billPrinter: settings.billPrinter || null,
+    stationPrinters: settings.stationPrinters || {},
   };
 });
 
