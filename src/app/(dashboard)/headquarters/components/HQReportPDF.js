@@ -1247,6 +1247,7 @@ const REPORT_TITLES = {
   'order-analytics': 'Order Analytics Report',
   'revenue-trends': 'Revenue Trends Report',
   'wallet-loyalty': 'Wallet & Loyalty Report',
+  'item-sales': 'Item-wise Sales Report',
 };
 
 export function HQReportPDFDocument({ reportType, data, orgName, logoUrl, dateRange }) {
@@ -1274,6 +1275,7 @@ export function HQReportPDFDocument({ reportType, data, orgName, logoUrl, dateRa
         {reportType === 'order-analytics' && <OrderAnalyticsPDF data={data} />}
         {reportType === 'revenue-trends' && <RevenueTrendsPDF data={data} />}
         {reportType === 'wallet-loyalty' && <WalletLoyaltyPDF data={data} />}
+        {reportType === 'item-sales' && <MenuPerformancePDF data={data} />}
 
         <ReportFooter />
       </Page>

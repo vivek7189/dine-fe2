@@ -3477,8 +3477,9 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
       apiClient.getCategories(selectedRestaurant.id).then(res => {
         if (res.success && res.categories) setKotExclusionCategories(res.categories);
       }).catch(() => {});
-      apiClient.getMenuItems(selectedRestaurant.id).then(res => {
-        if (res.success && res.items) setKotExclusionMenuItems(res.items);
+      apiClient.getMenu(selectedRestaurant.id).then(res => {
+        const items = res.menuItems || res.items || [];
+        setKotExclusionMenuItems(items);
       }).catch(() => {});
     }
   }, [selectedRestaurant?.id]);
@@ -4028,7 +4029,10 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                     <p style={{ fontSize: '12px', fontWeight: 600, color: '#374151', margin: '0 0 10px 0' }}>KOT Sections</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {[
+                        { key: 'showKotTitle', label: 'KOT Title', desc: '"KITCHEN ORDER" header text' },
                         { key: 'showRestaurantName', label: 'Restaurant Name', desc: 'Name at top of KOT' },
+                        { key: 'showOrderNumber', label: 'Order Number', desc: 'Order # on KOT' },
+                        { key: 'showTable', label: 'Table / Room', desc: 'Table or room number on KOT' },
                         { key: 'showCustomer', label: 'Customer Name', desc: 'Customer name on KOT' },
                         { key: 'showWaiter', label: 'Waiter / Staff Name', desc: 'Staff name on KOT' },
                         { key: 'showDate', label: 'Date', desc: 'Date on KOT (time always shown)' },

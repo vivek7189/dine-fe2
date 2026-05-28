@@ -92,8 +92,8 @@ export function render(kotData, printSettings = {}, labels = {}) {
     `</div>` +
     `<div class="divider">................................</div>` +
     `<div class="info">` +
-      `<div>Table/Ref.No: ${k.tableNumber || k.roomNumber || k.dailyOrderId || k.orderId}</div>` +
-      `<div style="display:flex;justify-content:space-between;"><span>KOT No: <strong>${k.dailyOrderId || k.orderId}</strong></span><span>${L.totalItems}: ${totalItems}</span></div>` +
+      (kl.showTable !== false ? `<div>Table/Ref.No: ${k.tableNumber || k.roomNumber || k.dailyOrderId || k.orderId}</div>` : '') +
+      `<div style="display:flex;justify-content:space-between;">${kl.showOrderNumber !== false ? `<span>KOT No: <strong>${k.dailyOrderId || k.orderId}</strong></span>` : '<span></span>'}<span>${L.totalItems}: ${totalItems}</span></div>` +
     `</div>` +
     `<div class="divider">................................</div>` +
     `<div class="info">` +
@@ -106,7 +106,7 @@ export function render(kotData, printSettings = {}, labels = {}) {
     `<div class="divider">................................</div>` +
     itemsHtml +
     `<div class="divider">................................</div>` +
-    `<div class="footer">** ${hasChanges ? 'KOT Update' : 'New Order'} **</div>` +
+    (kl.showKotTitle !== false ? `<div class="footer">** ${hasChanges ? 'KOT Update' : 'New Order'} **</div>` : '') +
     (k.specialInstructions ? `<div class="divider">................................</div><div style="text-align:center;font-size:12px;padding:4px;border:1px dashed #000;"><strong>*** ${L.specialInstructions} ***</strong><div style="text-align:left;">${esc(k.specialInstructions)}</div></div>` : '') +
     `<div class="divider">================================</div>`;
 

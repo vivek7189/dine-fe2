@@ -2214,6 +2214,24 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
     if (!orgId || !activeReport) return;
     setExporting(true);
     try {
+      // For item-sales, generate CSV client-side from loaded reportData
+      if (activeReport === REPORT_TYPES.ITEM_SALES && reportData) {
+        const sheetData = getExcelSheetData(activeReport, reportData, formatCurrency);
+        if (sheetData.length > 0) {
+          const csv = sheetData[0].data.map(r => r.map(c => { const s = String(c ?? ''); return s.includes(',') || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s; }).join(',')).join('\n');
+          const blob = new Blob([csv], { type: 'text/csv' });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `item-wise-sales-${startDate}-to-${endDate}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(url);
+        }
+        setExporting(false);
+        return;
+      }
       const response = await apiClient.exportHQReport(orgId, getExportType(activeReport), { startDate, endDate, restaurantIds: selectedRestaurants?.length > 0 ? selectedRestaurants : undefined });
       if (response && response.blob) {
         const blob = await response.blob();
