@@ -12,6 +12,7 @@ import { generateBillHTML, generateKOTHTML } from '../utils/printHtmlGenerator';
 import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '../utils/printBridge';
 
 const CustomerDetailModal = dynamic(() => import('./CustomerDetailModal'), { ssr: false });
+const DiscountApprovalModal = dynamic(() => import('./DiscountApprovalModal'), { ssr: false });
 import UpiPaymentModal from './UpiPaymentModal';
 import EcrStatusModal from './EcrStatusModal';
 import useEcr from '../services/ecr/useEcr';
@@ -309,6 +310,30 @@ const OrderSummary = ({
   // Manual Discount State (kept local — not part of offer engine)
   const [manualDiscountValue, setManualDiscountValue] = useState('');
   const [manualDiscountTypeState, setManualDiscountTypeState] = useState('flat'); // 'flat' or 'percentage'
+
+  // Discount Approval State
+  const [showDiscountApproval, setShowDiscountApproval] = useState(false);
+  const [pendingDiscountAction, setPendingDiscountAction] = useState(null); // 'place' | 'complete' | 'placeAndPrint'
+  const [discountApproved, setDiscountApproved] = useState(false);
+  const [discountApprovalSettings, setDiscountApprovalSettings] = useState(null);
+
+  // Load discount approval settings
+  useEffect(() => {
+    if (!restaurantId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiClient.getRestaurant(restaurantId);
+        if (!cancelled && res?.restaurant?.discountApprovalSettings?.enabled) {
+          setDiscountApprovalSettings(res.restaurant.discountApprovalSettings);
+        }
+      } catch (_) {}
+    })();
+    return () => { cancelled = true; };
+  }, [restaurantId]);
+
+  // Reset approval when discount changes
+  useEffect(() => { setDiscountApproved(false); }, [manualDiscountValue, manualDiscountTypeState]);
 
   // Coupon State
   const [couponCode, setCouponCode] = useState('');
@@ -1733,6 +1758,34 @@ const OrderSummary = ({
       }
     }
     setPendingUpiAction(null);
+  };
+
+  // Discount approval gating
+  const needsDiscountApproval = useCallback(() => {
+    if (!discountApprovalSettings?.enabled) return false;
+    if (getManualDiscountAmount() <= 0) return false;
+    if (discountApproved) return false;
+    const roleKey = userRole?.toLowerCase();
+    if (roleKey === 'owner') return false;
+    const config = discountApprovalSettings.roleConfig?.[roleKey];
+    if (!config?.requireApproval) return false;
+    if (config.maxDiscountWithoutApproval > 0 && getManualDiscountAmount() <= config.maxDiscountWithoutApproval) return false;
+    return true;
+  }, [discountApprovalSettings, discountApproved, userRole]);
+
+  const handleDiscountApproved = () => {
+    setShowDiscountApproval(false);
+    setDiscountApproved(true);
+    if (pendingDiscountAction === 'place') {
+      if (typeof onPlaceOrder === 'function') onPlaceOrder(buildTaxData());
+      if (isMobile && onClose) setTimeout(() => onClose(), 500);
+    } else if (pendingDiscountAction === 'complete') {
+      handleProcessOrder();
+    } else if (pendingDiscountAction === 'placeAndPrint') {
+      window.__autoPrintKOT = true;
+      if (typeof onPlaceOrderAndPrint === 'function') onPlaceOrderAndPrint(buildTaxData());
+    }
+    setPendingDiscountAction(null);
   };
 
   const handleProcessOrder = async () => {
@@ -5409,7 +5462,12 @@ const OrderSummary = ({
               {/* Place Order (KOT) / Update & KOT */}
               <button
                 onClick={() => {
-                  if (orderBusy) return; // Prevent double-tap while order is processing
+                  if (orderBusy) return;
+                  if (needsDiscountApproval()) {
+                    setPendingDiscountAction('place');
+                    setShowDiscountApproval(true);
+                    return;
+                  }
                   if (paymentMethod === 'upi' && upiConfigured) {
                     setPendingUpiAction('place');
                     setShowUpiQr(true);
@@ -5498,7 +5556,15 @@ const OrderSummary = ({
           <div style={{ display: 'flex', gap: billingMode ? '10px' : '8px' }}>
             {/* Complete Billing Button */}
             <button
-              onClick={() => { if (orderBusy) return; handleProcessOrder(); }}
+              onClick={() => {
+                if (orderBusy) return;
+                if (needsDiscountApproval()) {
+                  setPendingDiscountAction('complete');
+                  setShowDiscountApproval(true);
+                  return;
+                }
+                handleProcessOrder();
+              }}
               disabled={orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
               style={{
                 width: printSettings?.enableSaveAndPrint ? '50%' : '100%',
@@ -6599,6 +6665,23 @@ const OrderSummary = ({
         }}
         onDismiss={ecrReset}
       />
+      {/* Discount Approval Modal */}
+      {showDiscountApproval && (
+        <DiscountApprovalModal
+          isOpen={showDiscountApproval}
+          onClose={() => { setShowDiscountApproval(false); setPendingDiscountAction(null); }}
+          onApproved={handleDiscountApproved}
+          restaurantId={restaurantId}
+          discountData={{
+            discountType: manualDiscountTypeState,
+            discountValue: parseFloat(manualDiscountValue) || 0,
+            discountAmount: getManualDiscountAmount(),
+            subtotal: getTotalAmount(),
+          }}
+          userRole={userRole}
+          userName=""
+        />
+      )}
     </div>
   );
 };

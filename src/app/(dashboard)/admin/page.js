@@ -2753,6 +2753,276 @@ const CurrencyManagement = ({ restaurants, selectedRestaurant, setSelectedRestau
   );
 };
 
+// Bar Inventory Settings Component
+const BarInventorySettings = ({ restaurantId }) => {
+  const [settings, setSettings] = useState({
+    enabled: false,
+    trackedCategoryIds: [],
+    defaultPegSize: 60,
+    pourTolerancePercent: 10,
+    requireDailyReconciliation: false
+  });
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null);
+
+  useEffect(() => {
+    if (!restaurantId) return;
+    (async () => {
+      try {
+        const [settingsRes, stationsRes] = await Promise.all([
+          apiClient.getAdminSettings(restaurantId),
+          apiClient.getPrintStations(restaurantId)
+        ]);
+        const s = settingsRes?.settings?.barInventorySettings;
+        if (s) setSettings(prev => ({ ...prev, ...s }));
+        setCategories(stationsRes?.categories || []);
+      } catch (err) {
+        console.error('Error loading bar settings:', err);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [restaurantId]);
+
+  const save = async (updated) => {
+    setSaving(true);
+    try {
+      await apiClient.updateAdminSettings(restaurantId, { barInventorySettings: updated });
+      setSettings(updated);
+      setMessage({ type: 'success', text: 'Bar inventory settings saved!' });
+      setTimeout(() => setMessage(null), 2500);
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to save' });
+      setTimeout(() => setMessage(null), 3000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleCategory = (catId) => {
+    const updated = {
+      ...settings,
+      trackedCategoryIds: settings.trackedCategoryIds.includes(catId)
+        ? settings.trackedCategoryIds.filter(id => id !== catId)
+        : [...settings.trackedCategoryIds, catId]
+    };
+    setSettings(updated);
+  };
+
+  if (loading) return <p style={{ fontSize: '12px', color: '#9ca3af' }}>Loading...</p>;
+
+  return (
+    <div style={{ marginBottom: '20px', maxWidth: '640px' }}>
+      <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 6px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        Bar Inventory Tracking
+      </p>
+      <p style={{ fontSize: '12px', color: '#9ca3af', margin: '0 0 12px 0' }}>
+        Track individual bottles with weight-based pour accuracy and daily reconciliation.
+      </p>
+
+      {message && (
+        <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '10px', fontSize: '12px', background: message.type === 'success' ? '#ecfdf5' : '#fef2f2', color: message.type === 'success' ? '#065f46' : '#991b1b' }}>
+          {message.text}
+        </div>
+      )}
+
+      {/* Enable toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: '#111827', borderRadius: '10px', marginBottom: '10px' }}>
+        <span style={{ fontSize: '13px', fontWeight: '600', color: '#f9fafb' }}>Enable Bar Bottle Tracking</span>
+        <button onClick={() => { const u = { ...settings, enabled: !settings.enabled }; setSettings(u); save(u); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: settings.enabled ? '#10b981' : '#6b7280' }}>
+          {settings.enabled ? <FaToggleOn size={22} /> : <FaToggleOff size={22} />}
+        </button>
+      </div>
+
+      {settings.enabled && (
+        <>
+          {/* Tracked Categories */}
+          <p style={{ fontSize: '11px', fontWeight: '600', color: '#9ca3af', margin: '12px 0 6px 0', textTransform: 'uppercase' }}>Categories to Track</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
+            {categories.map(cat => {
+              const isSelected = settings.trackedCategoryIds.includes(cat.id);
+              return (
+                <button key={cat.id} onClick={() => toggleCategory(cat.id)} style={{
+                  padding: '4px 10px', borderRadius: '14px', fontSize: '12px', border: 'none', cursor: 'pointer',
+                  background: isSelected ? '#ef4444' : '#374151', color: isSelected ? '#fff' : '#d1d5db'
+                }}>
+                  {cat.name}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Peg Size & Tolerance */}
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '12px' }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: '11px', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>Default Peg Size (ml)</label>
+              <input type="number" value={settings.defaultPegSize} onChange={e => setSettings(prev => ({ ...prev, defaultPegSize: Number(e.target.value) }))}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #374151', background: '#111827', color: '#f9fafb', fontSize: '13px' }} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: '11px', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>Pour Tolerance (%)</label>
+              <input type="number" value={settings.pourTolerancePercent} onChange={e => setSettings(prev => ({ ...prev, pourTolerancePercent: Number(e.target.value) }))}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #374151', background: '#111827', color: '#f9fafb', fontSize: '13px' }} />
+            </div>
+          </div>
+
+          {/* Require Daily Reconciliation */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#1f2937', borderRadius: '8px', marginBottom: '10px' }}>
+            <span style={{ fontSize: '12px', color: '#d1d5db' }}>Require Daily Reconciliation</span>
+            <button onClick={() => setSettings(prev => ({ ...prev, requireDailyReconciliation: !prev.requireDailyReconciliation }))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: settings.requireDailyReconciliation ? '#10b981' : '#6b7280' }}>
+              {settings.requireDailyReconciliation ? <FaToggleOn size={18} /> : <FaToggleOff size={18} />}
+            </button>
+          </div>
+
+          <button onClick={() => save(settings)} disabled={saving} style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: '#ef4444', color: '#fff', fontSize: '12px', fontWeight: '600', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}>
+            {saving ? 'Saving...' : 'Save Settings'}
+          </button>
+        </>
+      )}
+    </div>
+  );
+};
+
+// Discount Approval Settings Component
+const ROLE_OPTIONS = ['waiter', 'cashier', 'staff'];
+const DiscountApprovalSettings = ({ restaurantId }) => {
+  const [settings, setSettings] = useState({
+    enabled: false,
+    roleConfig: {
+      waiter: { requireApproval: false, approvalMethod: 'pin', otpChannel: 'whatsapp', approverRole: 'manager', maxDiscountWithoutApproval: 0 },
+      cashier: { requireApproval: false, approvalMethod: 'pin', otpChannel: 'whatsapp', approverRole: 'manager', maxDiscountWithoutApproval: 0 },
+      staff: { requireApproval: false, approvalMethod: 'pin', otpChannel: 'whatsapp', approverRole: 'manager', maxDiscountWithoutApproval: 0 }
+    }
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null);
+
+  useEffect(() => {
+    if (!restaurantId) return;
+    (async () => {
+      try {
+        const res = await apiClient.getAdminSettings(restaurantId);
+        const s = res?.settings?.discountApprovalSettings;
+        if (s) setSettings(prev => ({ ...prev, ...s, roleConfig: { ...prev.roleConfig, ...(s.roleConfig || {}) } }));
+      } catch (err) {
+        console.error('Error loading discount approval settings:', err);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [restaurantId]);
+
+  const save = async (updated) => {
+    setSaving(true);
+    try {
+      await apiClient.updateAdminSettings(restaurantId, { discountApprovalSettings: updated });
+      setSettings(updated);
+      setMessage({ type: 'success', text: 'Discount approval settings saved!' });
+      setTimeout(() => setMessage(null), 2500);
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to save' });
+      setTimeout(() => setMessage(null), 3000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateRole = (role, field, value) => {
+    setSettings(prev => ({
+      ...prev,
+      roleConfig: { ...prev.roleConfig, [role]: { ...prev.roleConfig[role], [field]: value } }
+    }));
+  };
+
+  if (loading) return <p style={{ fontSize: '12px', color: '#9ca3af' }}>Loading...</p>;
+
+  return (
+    <div style={{ marginBottom: '20px', maxWidth: '640px' }}>
+      <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 6px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        Discount Approval
+      </p>
+      <p style={{ fontSize: '12px', color: '#9ca3af', margin: '0 0 12px 0' }}>
+        Require PIN or OTP verification before staff can apply discounts.
+      </p>
+
+      {message && (
+        <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '10px', fontSize: '12px', background: message.type === 'success' ? '#ecfdf5' : '#fef2f2', color: message.type === 'success' ? '#065f46' : '#991b1b' }}>
+          {message.text}
+        </div>
+      )}
+
+      {/* Enable toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: '#111827', borderRadius: '10px', marginBottom: '10px' }}>
+        <span style={{ fontSize: '13px', fontWeight: '600', color: '#f9fafb' }}>Enable Discount Approval</span>
+        <button onClick={() => { const u = { ...settings, enabled: !settings.enabled }; setSettings(u); save(u); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: settings.enabled ? '#10b981' : '#6b7280' }}>
+          {settings.enabled ? <FaToggleOn size={22} /> : <FaToggleOff size={22} />}
+        </button>
+      </div>
+
+      {settings.enabled && (
+        <>
+          {ROLE_OPTIONS.map(role => {
+            const config = settings.roleConfig[role] || {};
+            return (
+              <div key={role} style={{ background: '#1f2937', borderRadius: '10px', padding: '12px 14px', marginBottom: '8px', border: '1px solid #374151' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#f9fafb', textTransform: 'capitalize' }}>{role}</span>
+                  <button onClick={() => updateRole(role, 'requireApproval', !config.requireApproval)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: config.requireApproval ? '#10b981' : '#6b7280' }}>
+                    {config.requireApproval ? <FaToggleOn size={18} /> : <FaToggleOff size={18} />}
+                  </button>
+                </div>
+                {config.requireApproval && (
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <div>
+                      <label style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginBottom: '3px' }}>Method</label>
+                      <select value={config.approvalMethod || 'pin'} onChange={e => updateRole(role, 'approvalMethod', e.target.value)}
+                        style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #374151', background: '#111827', color: '#f9fafb', fontSize: '12px' }}>
+                        <option value="pin">Manager PIN</option>
+                        <option value="otp">OTP (WhatsApp/Email)</option>
+                      </select>
+                    </div>
+                    {config.approvalMethod === 'otp' && (
+                      <div>
+                        <label style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginBottom: '3px' }}>OTP Channel</label>
+                        <select value={config.otpChannel || 'whatsapp'} onChange={e => updateRole(role, 'otpChannel', e.target.value)}
+                          style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #374151', background: '#111827', color: '#f9fafb', fontSize: '12px' }}>
+                          <option value="whatsapp">WhatsApp</option>
+                          <option value="email">Email</option>
+                          <option value="both">Both</option>
+                        </select>
+                      </div>
+                    )}
+                    <div>
+                      <label style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginBottom: '3px' }}>Approver</label>
+                      <select value={config.approverRole || 'manager'} onChange={e => updateRole(role, 'approverRole', e.target.value)}
+                        style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #374151', background: '#111827', color: '#f9fafb', fontSize: '12px' }}>
+                        <option value="manager">Manager</option>
+                        <option value="owner">Owner</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginBottom: '3px' }}>Auto-approve below</label>
+                      <input type="number" value={config.maxDiscountWithoutApproval || 0} onChange={e => updateRole(role, 'maxDiscountWithoutApproval', Number(e.target.value))}
+                        placeholder="0 = always" style={{ width: '80px', padding: '6px 8px', borderRadius: '6px', border: '1px solid #374151', background: '#111827', color: '#f9fafb', fontSize: '12px' }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          <button onClick={() => save(settings)} disabled={saving} style={{ marginTop: '8px', padding: '8px 16px', borderRadius: '6px', border: 'none', background: '#ef4444', color: '#fff', fontSize: '12px', fontWeight: '600', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}>
+            {saving ? 'Saving...' : 'Save Settings'}
+          </button>
+        </>
+      )}
+    </div>
+  );
+};
+
 // Print Station Manager Component — Kitchen Routing
 const STATION_TYPES = [
   { id: 'kitchen', label: 'Kitchen' },
@@ -2770,6 +3040,7 @@ const PrintStationManager = ({ restaurantId }) => {
   const [editingStation, setEditingStation] = useState(null); // null | 'new' | station object
   const [formData, setFormData] = useState({ name: '', type: 'kitchen', categoryIds: [], isDefault: false, enabled: true });
   const [notification, setNotification] = useState(null);
+  const [kotPrintingMode, setKotPrintingMode] = useState('single');
 
   const loadStations = async () => {
     if (!restaurantId) return;
@@ -2779,6 +3050,7 @@ const PrintStationManager = ({ restaurantId }) => {
       if (res.success) {
         setStations(res.printStations || []);
         setCategories(res.categories || []);
+        setKotPrintingMode(res.kotPrintingMode || 'single');
       }
     } catch (err) {
       console.error('Error loading print stations:', err);
@@ -2789,12 +3061,13 @@ const PrintStationManager = ({ restaurantId }) => {
 
   useEffect(() => { loadStations(); }, [restaurantId]);
 
-  const saveStations = async (updatedStations) => {
+  const saveStations = async (updatedStations, mode) => {
     setSaving(true);
     try {
-      const res = await apiClient.updatePrintStations(restaurantId, updatedStations);
+      const res = await apiClient.updatePrintStations(restaurantId, updatedStations, mode || kotPrintingMode);
       if (res.success) {
         setStations(res.printStations || updatedStations);
+        if (res.kotPrintingMode) setKotPrintingMode(res.kotPrintingMode);
         setNotification({ type: 'success', message: 'Print stations saved!' });
         setTimeout(() => setNotification(null), 2500);
       }
@@ -2805,6 +3078,11 @@ const PrintStationManager = ({ restaurantId }) => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleModeChange = (mode) => {
+    setKotPrintingMode(mode);
+    saveStations(stations, mode);
   };
 
   const startAdd = () => {
@@ -2875,6 +3153,26 @@ const PrintStationManager = ({ restaurantId }) => {
       <p style={{ fontSize: '12px', color: '#9ca3af', margin: '-8px 0 12px 0' }}>
         Route KOT items to different printers by category. Each station can be assigned to a KOT printer app instance.
       </p>
+
+      {/* KOT Printing Mode Toggle */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+        {[
+          { id: 'single', label: 'Single Printer', desc: 'Split KOTs per station on same printer' },
+          { id: 'multi', label: 'Multi-Printer', desc: 'Each station routes to its own printer' }
+        ].map(mode => (
+          <button
+            key={mode.id}
+            onClick={() => handleModeChange(mode.id)}
+            style={{
+              flex: 1, padding: '10px 12px', borderRadius: '8px', border: `1px solid ${kotPrintingMode === mode.id ? '#ef4444' : '#374151'}`,
+              background: kotPrintingMode === mode.id ? '#1c1917' : 'transparent', cursor: 'pointer', textAlign: 'left'
+            }}
+          >
+            <span style={{ fontSize: '12px', fontWeight: '600', color: kotPrintingMode === mode.id ? '#ef4444' : '#d1d5db', display: 'block' }}>{mode.label}</span>
+            <span style={{ fontSize: '10px', color: '#6b7280' }}>{mode.desc}</span>
+          </button>
+        ))}
+      </div>
 
       {notification && (
         <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '10px', fontSize: '12px', background: notification.type === 'success' ? '#ecfdf5' : '#fef2f2', color: notification.type === 'success' ? '#065f46' : '#991b1b' }}>
@@ -11400,6 +11698,13 @@ const Admin = () => {
           }}>
             Disabled features will be hidden from the sidebar navigation. Home, Admin, and Profile are always visible.
           </p>
+
+          {/* Bar Inventory & Discount Approval Settings */}
+          <div style={{ marginTop: '32px', borderTop: '1px solid #e5e7eb', paddingTop: '24px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', marginBottom: '16px' }}>Advanced Feature Settings</h3>
+            <BarInventorySettings restaurantId={selectedRestaurant?.id} />
+            <DiscountApprovalSettings restaurantId={selectedRestaurant?.id} />
+          </div>
         </div>
       )}
 

@@ -860,6 +860,10 @@ class ApiClient {
     });
   }
 
+  async getRestaurant(restaurantId) {
+    return this.cachedGet(`/api/restaurants/${restaurantId}`, 10 * 60 * 1000);
+  }
+
   async updateRestaurant(restaurantId, updateData) {
     const result = await this.request(`/api/restaurants/${restaurantId}`, {
       method: 'PATCH',
@@ -2345,10 +2349,10 @@ class ApiClient {
     return this.cachedGet(`/api/admin/print-stations/${restaurantId}`, 10 * 60 * 1000);
   }
 
-  async updatePrintStations(restaurantId, printStations) {
+  async updatePrintStations(restaurantId, printStations, kotPrintingMode) {
     const result = await this.request(`/api/admin/print-stations/${restaurantId}`, {
       method: 'PUT',
-      body: { printStations },
+      body: { printStations, kotPrintingMode },
     });
     this.invalidateCache(`/api/admin/print-stations/${restaurantId}`);
     return result;

@@ -703,7 +703,19 @@ function RestaurantPOSContent() {
       console.log('🔄 Skipping localStorage cart load - order loading in progress');
       return;
     }
-    
+
+    // Skip loading stale cart when URL has an orderId — triggerOrderLookup
+    // will set the cart after fetching the order.  Without this guard the
+    // 300 ms setTimeout in the URL-handler effect lets the stale localStorage
+    // cart flash on screen before the order loads.
+    try {
+      const urlOrderId = new URLSearchParams(window.location.search).get('orderId');
+      if (urlOrderId) {
+        console.log('🔄 Skipping localStorage cart load - orderId in URL, will load from order');
+        return;
+      }
+    } catch (_) { /* ignore */ }
+
     const savedCart = localStorage.getItem('dine_cart');
     if (savedCart) {
       try {
@@ -1879,18 +1891,21 @@ function RestaurantPOSContent() {
 
     setCart(prevCart => {
       // Build a signature for matching same-config items
+      // Treat empty arrays the same as undefined/null so that items loaded
+      // from an order (selectedCustomizations: []) match menu-grid items
+      // (selectedCustomizations: undefined) correctly.
       const variantKey = item?.selectedVariant?.name || null;
-      const toppingsIds = Array.isArray(item?.selectedCustomizations)
+      const toppingsRaw = Array.isArray(item?.selectedCustomizations) && item.selectedCustomizations.length > 0
         ? [...item.selectedCustomizations].map(c => c.id || c.name).sort().join('|')
         : null;
 
       // Try to find an existing cart line with same menu item and same configuration
       const existingIndex = prevCart.findIndex(ci => {
         const ciVariant = ci?.selectedVariant?.name || null;
-        const ciToppings = Array.isArray(ci?.selectedCustomizations)
+        const ciToppings = Array.isArray(ci?.selectedCustomizations) && ci.selectedCustomizations.length > 0
           ? [...ci.selectedCustomizations].map(c => c.id || c.name).sort().join('|')
           : null;
-        return ci.id === item.id && ciVariant === variantKey && ciToppings === toppingsIds;
+        return ci.id === item.id && ciVariant === variantKey && ciToppings === toppingsRaw;
       });
 
       if (existingIndex !== -1) {
@@ -4378,6 +4393,8 @@ function RestaurantPOSContent() {
             .filter(existing => !cartItemIds.has(existing.menuItemId))
             .map(item => ({
               name: item.name, quantity: item.quantity, notes: item.notes || '',
+              selectedVariant: item.selectedVariant || null,
+              selectedCustomizations: item.selectedCustomizations || [],
               isRemoved: true,
             }));
 
@@ -4417,6 +4434,8 @@ function RestaurantPOSContent() {
                   name: item.name,
                   quantity: isUpdated && quantityDelta > 0 ? quantityDelta : (item.quantity || 1),
                   notes: item.notes || '',
+                  selectedVariant: item.selectedVariant || null,
+                  selectedCustomizations: item.selectedCustomizations || [],
                   isNew,
                   isUpdated,
                   quantityDelta: isUpdated ? quantityDelta : 0,
@@ -4597,7 +4616,7 @@ function RestaurantPOSContent() {
             return;
           }
           try {
-            const cartKotItemsOffline = cart.map(item => ({ name: item.name, quantity: item.quantity || 1, notes: item.notes || '' }));
+            const cartKotItemsOffline = cart.map(item => ({ name: item.name, quantity: item.quantity || 1, notes: item.notes || '', selectedVariant: item.selectedVariant || null, selectedCustomizations: item.selectedCustomizations || [] }));
             await queueOfflineOrder(orderData);
             setNotification({
               type: 'success',
@@ -4646,7 +4665,7 @@ function RestaurantPOSContent() {
 
         // ONLINE PATH: Wait for API, then show success + auto-print, then return to tables
         const cartBackup = [...cart];
-        const cartKotItems = cart.map(item => ({ name: item.name, quantity: item.quantity || 1, notes: item.notes || '' }));
+        const cartKotItems = cart.map(item => ({ name: item.name, quantity: item.quantity || 1, notes: item.notes || '', selectedVariant: item.selectedVariant || null, selectedCustomizations: item.selectedCustomizations || [] }));
         const savedTableNumber = roomNumber ? null : (finalTableNumber || null);
         const savedRoomNumber = roomNumber || null;
         const savedCustomerName = customerName || null;

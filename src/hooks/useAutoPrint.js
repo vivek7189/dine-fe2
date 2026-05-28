@@ -139,11 +139,50 @@ export function useAutoPrint(restaurantId, printSettings) {
     }
   }, [restaurantId, processQueue]);
 
+  // Cache print stations config (refreshed on mount)
+  const printStationsRef = useRef({ stations: [], mode: 'single', loaded: false });
+  useEffect(() => {
+    if (!restaurantId) return;
+    apiClient.getPrintStations(restaurantId).then(res => {
+      if (res?.success) {
+        printStationsRef.current = {
+          stations: (res.printStations || []).filter(s => s.enabled),
+          mode: res.kotPrintingMode || 'single',
+          loaded: true
+        };
+      }
+    }).catch(() => {});
+  }, [restaurantId]);
+
   // ── Shared handlers used by both Pusher and LAN hub ──
   const handleKotCreated = useCallback(async (data) => {
     if (!printSettings?.autoPrintOnKOT) return;
     const orderId = data.orderId || data.id;
     if (!orderId || wasPrinted(orderId, 'kot')) return;
+
+    const { stations, mode } = printStationsRef.current;
+
+    // If stations configured and single-printer mode: print per-station KOTs
+    if (stations.length > 1 && mode === 'single') {
+      try {
+        for (const station of stations) {
+          const renderData = await apiClient.getKOTRender(restaurantId, orderId, { stationId: station.id });
+          const html = kotRenderToHtml(renderData);
+          if (html) {
+            printQueueRef.current.push({ html, type: 'kot', orderId: `${orderId}-${station.id}` });
+          }
+        }
+        if (printQueueRef.current.length > 0) {
+          markPrinted(orderId, 'kot');
+          processQueue();
+        }
+      } catch (err) {
+        console.warn('Auto-print station KOTs skipped:', err.message);
+      }
+      return;
+    }
+
+    // Default: single KOT with all items
     try {
       const renderData = await apiClient.getKOTRender(restaurantId, orderId);
       const html = kotRenderToHtml(renderData);
