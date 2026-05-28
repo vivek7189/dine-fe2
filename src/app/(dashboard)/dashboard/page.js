@@ -5,7 +5,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 // import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
-import { database } from '../../../../firebase';
+import { signInWithCustomToken } from 'firebase/auth';
+import { database, auth } from '../../../../firebase';
 import Onboarding from '../../../components/Onboarding';
 import EmptyMenuPrompt from '../../../components/EmptyMenuPrompt';
 import MenuItemCard from '../../../components/MenuItemCard';
@@ -55,6 +56,8 @@ import {
   FaStop,
   FaBed,
   FaThList,
+  FaTh,
+  FaThLarge,
   FaTools,
   FaCalendarAlt,
   FaBell,
@@ -72,6 +75,22 @@ import { setCachedData, getCachedData, saveEssentialData, getEssentialData } fro
 import { canPerform } from '../../../lib/permissions';
 import { useHubEvents } from '../../../hooks/useHubEvents';
 import { useDineBot } from '../../../components/DineBotProvider';
+
+/**
+ * Filter out items excluded from KOT printing by category or item ID.
+ * Returns items unchanged when the feature is disabled.
+ */
+function filterKotExcludedItems(items, printSettings) {
+  if (!printSettings?.kotExclusionEnabled) return items;
+  const excludedCats = new Set(printSettings.kotExcludedCategories || []);
+  const excludedIds = new Set(printSettings.kotExcludedItemIds || []);
+  if (excludedCats.size === 0 && excludedIds.size === 0) return items;
+  return items.filter(item => {
+    if (excludedIds.has(item.id || item.menuItemId)) return false;
+    if (excludedCats.has(item.categoryId)) return false;
+    return true;
+  });
+}
 
 function RestaurantPOSContent() {
   const searchParams = useSearchParams();
@@ -256,25 +275,45 @@ function RestaurantPOSContent() {
   }, []);
 
   // Card design toggle state - Initialize from localStorage based on user ID
-  const [useModernCards, setUseModernCards] = useState(() => {
+  // Card size: 'compact' | 'standard' | 'large' — replaces old boolean useModernCards
+  const [cardSize, setCardSize] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
+        // First check posSettings on restaurant (DB-persisted)
+        const restData = localStorage.getItem('selectedRestaurant');
+        if (restData) {
+          const rest = JSON.parse(restData);
+          if (rest?.posSettings?.cardSize) return rest.posSettings.cardSize;
+        }
+        // Fallback to user-level localStorage
         const userData = localStorage.getItem('user');
         const userId = userData ? JSON.parse(userData)?.id : 'guest';
         const saved = localStorage.getItem(`viewSettings_${userId}`);
         if (saved) {
           const settings = JSON.parse(saved);
-          return settings.useModernCards !== undefined ? settings.useModernCards : true;
+          if (settings.cardSize) return settings.cardSize;
+          // Migrate old boolean: useModernCards=true → 'standard', false → 'compact'
+          if (settings.useModernCards !== undefined) return settings.useModernCards ? 'standard' : 'compact';
         }
       } catch (e) {
-        console.error('Error loading useModernCards from localStorage:', e);
+        console.error('Error loading cardSize from localStorage:', e);
       }
     }
-    return true;
+    return 'standard';
   });
+  const [cardSizeDropdownOpen, setCardSizeDropdownOpen] = useState(false);
+  // Derived: backward compat for MenuItemCard (modern = standard or large)
+  const useModernCards = cardSize !== 'compact';
   const [categoryViewMode, setCategoryViewMode] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
+        // First check posSettings on restaurant (DB-persisted)
+        const restData = localStorage.getItem('selectedRestaurant');
+        if (restData) {
+          const rest = JSON.parse(restData);
+          if (rest?.posSettings?.categoryViewMode) return rest.posSettings.categoryViewMode;
+        }
+        // Fallback to user-level localStorage
         const userData = localStorage.getItem('user');
         const userId = userData ? JSON.parse(userData)?.id : 'guest';
         const saved = localStorage.getItem(`viewSettings_${userId}`);
@@ -317,22 +356,37 @@ function RestaurantPOSContent() {
   // Floating Command Bar ref
   const commandBarInputRef = useRef(null);
 
-  // Save view settings to localStorage when they change (tied to user ID)
+  // Save view settings to localStorage + DB when they change
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
         const userData = localStorage.getItem('user');
         const userId = userData ? JSON.parse(userData)?.id : 'guest';
         const settings = {
-          useModernCards,
+          useModernCards: cardSize !== 'compact',
+          cardSize,
           categoryViewMode
         };
         localStorage.setItem(`viewSettings_${userId}`, JSON.stringify(settings));
+
+        // Also persist cardSize + categoryViewMode to DB via posSettings
+        const restData = localStorage.getItem('selectedRestaurant');
+        if (restData) {
+          const rest = JSON.parse(restData);
+          if (rest?.id) {
+            const newPosSettings = { ...(rest.posSettings || {}), cardSize, categoryViewMode };
+            // Update localStorage immediately for instant reload
+            const updated = { ...rest, posSettings: newPosSettings };
+            localStorage.setItem('selectedRestaurant', JSON.stringify(updated));
+            // Save to DB (fire-and-forget)
+            apiClient.updateRestaurant(rest.id, { posSettings: newPosSettings }).catch(() => {});
+          }
+        }
       } catch (e) {
-        console.error('Error saving view settings to localStorage:', e);
+        console.error('Error saving view settings:', e);
       }
     }
-  }, [useModernCards, categoryViewMode]);
+  }, [cardSize, categoryViewMode]);
 
   // Keyboard shortcut for voice ordering (F2 or Ctrl+Space)
   useEffect(() => {
@@ -2159,6 +2213,24 @@ function RestaurantPOSContent() {
     },
   });
 
+  // Firebase Auth bootstrap for staff users (needed for RTDB security rules)
+  useEffect(() => {
+    if (!auth || auth.currentUser) return;
+    const userData = localStorage.getItem('user');
+    if (!userData) return;
+    const user = JSON.parse(userData);
+    if (!['waiter', 'manager', 'employee', 'cashier'].includes(user.role)) return;
+    // Staff user without Firebase Auth — get a custom token
+    apiClient.get('/api/auth/firebase-token')
+      .then(res => {
+        if (res?.firebaseCustomToken) {
+          return signInWithCustomToken(auth, res.firebaseCustomToken);
+        }
+      })
+      .then(() => console.log('🔑 Dashboard: Staff signed into Firebase Auth for RTDB'))
+      .catch(err => console.warn('🔑 Dashboard: Firebase Auth bootstrap failed:', err.message));
+  }, []);
+
   // Firebase RTDB subscription for real-time updates (replaces Pusher)
   useEffect(() => {
     if (!selectedRestaurant?.id || !database) return;
@@ -2228,7 +2300,10 @@ function RestaurantPOSContent() {
         debouncedOrderRefresh();
       }
     };
-    onChildAdded(ordersRef, handleOrderEvent);
+    const handleRtdbError = (error) => {
+      console.error(`📡 Dashboard RTDB: Subscription error for restaurant '${restaurantId}':`, error.message);
+    };
+    onChildAdded(ordersRef, handleOrderEvent, handleRtdbError);
 
     // Subscribe to tables/ path
     const tablesRef = query(ref(database, `events/${restaurantId}/tables`), orderByChild('ts'), startAt(now));
@@ -2238,7 +2313,7 @@ function RestaurantPOSContent() {
       console.log(`📡 Dashboard: Received '${data.type}' event:`, data);
       debouncedTableRefresh();
     };
-    onChildAdded(tablesRef, handleTableEvent);
+    onChildAdded(tablesRef, handleTableEvent, handleRtdbError);
 
     // Subscribe to menu/ path
     const menuRef = query(ref(database, `events/${restaurantId}/menu`), orderByChild('ts'), startAt(now));
@@ -2248,7 +2323,7 @@ function RestaurantPOSContent() {
       console.log(`📡 Dashboard: Received '${data.type}' event:`, data);
       debouncedMenuRefresh();
     };
-    onChildAdded(menuRef, handleMenuEvent);
+    onChildAdded(menuRef, handleMenuEvent, handleRtdbError);
 
     // Periodic fallback: refresh menu and tables every 10 minutes.
     // Firebase RTDB events are the primary mechanism, but if the connection
@@ -4425,7 +4500,7 @@ function RestaurantPOSContent() {
             kotData: {
               orderId: currentOrder.id,
               dailyOrderId: currentOrder.dailyOrderId,
-              items: (incrementalItems.length > 0 ? incrementalItems : cart).map(item => {
+              items: filterKotExcludedItems(incrementalItems.length > 0 ? incrementalItems : cart, printSettings).map(item => {
                 const isNew = newItems.includes(item);
                 const isUpdated = updatedItems.includes(item);
                 const existing = isUpdated ? existingItemMap.get(item.id) : null;
@@ -4616,7 +4691,7 @@ function RestaurantPOSContent() {
             return;
           }
           try {
-            const cartKotItemsOffline = cart.map(item => ({ name: item.name, quantity: item.quantity || 1, notes: item.notes || '', selectedVariant: item.selectedVariant || null, selectedCustomizations: item.selectedCustomizations || [] }));
+            const cartKotItemsOffline = filterKotExcludedItems(cart, printSettings).map(item => ({ name: item.name, quantity: item.quantity || 1, notes: item.notes || '', selectedVariant: item.selectedVariant || null, selectedCustomizations: item.selectedCustomizations || [] }));
             await queueOfflineOrder(orderData);
             setNotification({
               type: 'success',
@@ -4665,7 +4740,7 @@ function RestaurantPOSContent() {
 
         // ONLINE PATH: Wait for API, then show success + auto-print, then return to tables
         const cartBackup = [...cart];
-        const cartKotItems = cart.map(item => ({ name: item.name, quantity: item.quantity || 1, notes: item.notes || '', selectedVariant: item.selectedVariant || null, selectedCustomizations: item.selectedCustomizations || [] }));
+        const cartKotItems = filterKotExcludedItems(cart, printSettings).map(item => ({ name: item.name, quantity: item.quantity || 1, notes: item.notes || '', selectedVariant: item.selectedVariant || null, selectedCustomizations: item.selectedCustomizations || [] }));
         const savedTableNumber = roomNumber ? null : (finalTableNumber || null);
         const savedRoomNumber = roomNumber || null;
         const savedCustomerName = customerName || null;
@@ -7113,24 +7188,24 @@ function RestaurantPOSContent() {
                 </button>
                 </div>
 
-                {/* Compact Toggle - Only show on desktop */}
+                {/* Card Size Toggle - Only show on desktop */}
                 {!isMobile && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                   <span style={{ fontSize: '9px', color: '#6b7280', fontWeight: '500' }}>
-                    {useModernCards ? 'M' : 'C'}
+                    {cardSize === 'compact' ? 'C' : cardSize === 'large' ? 'L' : 'S'}
                   </span>
                 <button
-                    onClick={() => setUseModernCards(!useModernCards)}
+                    onClick={() => setCardSize(cardSize === 'compact' ? 'standard' : cardSize === 'standard' ? 'large' : 'compact')}
                   style={{
                       width: '20px',
                       height: '12px',
                       borderRadius: '6px',
                     border: 'none',
-                      backgroundColor: useModernCards ? '#ef4444' : '#d1d5db',
+                      backgroundColor: cardSize === 'compact' ? '#d1d5db' : '#ef4444',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                      justifyContent: useModernCards ? 'flex-end' : 'flex-start',
+                      justifyContent: cardSize === 'large' ? 'flex-end' : cardSize === 'standard' ? 'center' : 'flex-start',
                       padding: '1px',
                       transition: 'all 0.3s ease',
                       boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
@@ -7405,48 +7480,67 @@ function RestaurantPOSContent() {
                               </div>
                             </div>
 
-                            {/* Modern Cards Toggle */}
-                            <div
-                              onClick={() => setUseModernCards(!useModernCards)}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                padding: '5px 10px',
-                                borderRadius: '6px',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease',
-                                backgroundColor: useModernCards ? '#fef2f2' : '#f9fafb',
-                                border: useModernCards ? '1px solid #fecaca' : '1px solid #e5e7eb'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.borderColor = '#ef4444';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.borderColor = useModernCards ? '#fecaca' : '#e5e7eb';
-                              }}
-                            >
-                              <FaExpand size={11} color={useModernCards ? '#ef4444' : '#6b7280'} />
-                              <span style={{ fontSize: '11px', fontWeight: '600', color: useModernCards ? '#ef4444' : '#4b5563' }}>{t('dashboard.modern')}</span>
-                              <div style={{
-                                width: '26px',
-                                height: '14px',
-                                borderRadius: '7px',
-                                backgroundColor: useModernCards ? '#ef4444' : '#d1d5db',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: useModernCards ? 'flex-end' : 'flex-start',
-                                padding: '2px',
-                                transition: 'all 0.2s ease'
-                              }}>
-                                <div style={{
-                                  width: '10px',
-                                  height: '10px',
-                                  borderRadius: '50%',
-                                  backgroundColor: 'white',
-                                  boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
-                                }} />
+                            {/* Card Size Selector */}
+                            <div style={{ position: 'relative' }}>
+                              <div
+                                onClick={() => setCardSizeDropdownOpen(!cardSizeDropdownOpen)}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  padding: '5px 10px',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease',
+                                  backgroundColor: '#f9fafb',
+                                  border: '1px solid #e5e7eb',
+                                  userSelect: 'none'
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#ef4444'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e5e7eb'; }}
+                              >
+                                {cardSize === 'compact' ? <FaThList size={11} color="#6b7280" /> : cardSize === 'large' ? <FaThLarge size={11} color="#ef4444" /> : <FaTh size={11} color="#ef4444" />}
+                                <span style={{ fontSize: '11px', fontWeight: '600', color: cardSize === 'compact' ? '#4b5563' : '#ef4444' }}>
+                                  {cardSize === 'compact' ? 'Compact' : cardSize === 'large' ? 'Large' : 'Standard'}
+                                </span>
+                                <FaChevronDown size={8} color="#9ca3af" style={{ transition: 'transform 0.15s', transform: cardSizeDropdownOpen ? 'rotate(180deg)' : 'rotate(0)' }} />
                               </div>
+                              {cardSizeDropdownOpen && (
+                                <>
+                                  <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setCardSizeDropdownOpen(false)} />
+                                  <div style={{
+                                    position: 'absolute', top: '100%', right: 0, marginTop: '4px', zIndex: 100,
+                                    backgroundColor: 'white', borderRadius: '10px', border: '1px solid #e5e7eb',
+                                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '160px', overflow: 'hidden'
+                                  }}>
+                                    {[
+                                      { value: 'compact', label: 'Compact', desc: 'Small, dense cards', icon: FaThList },
+                                      { value: 'standard', label: 'Standard', desc: 'Default card size', icon: FaTh },
+                                      { value: 'large', label: 'Large', desc: 'Bigger, spacious cards', icon: FaThLarge },
+                                    ].map(({ value, label, desc, icon: Icon }) => (
+                                      <div
+                                        key={value}
+                                        onClick={() => { setCardSize(value); setCardSizeDropdownOpen(false); }}
+                                        style={{
+                                          display: 'flex', alignItems: 'center', gap: '10px',
+                                          padding: '10px 14px', cursor: 'pointer',
+                                          backgroundColor: cardSize === value ? '#fef2f2' : 'transparent',
+                                          transition: 'background-color 0.1s'
+                                        }}
+                                        onMouseEnter={(e) => { if (cardSize !== value) e.currentTarget.style.backgroundColor = '#f9fafb'; }}
+                                        onMouseLeave={(e) => { if (cardSize !== value) e.currentTarget.style.backgroundColor = 'transparent'; else e.currentTarget.style.backgroundColor = '#fef2f2'; }}
+                                      >
+                                        <Icon size={14} color={cardSize === value ? '#ef4444' : '#9ca3af'} />
+                                        <div>
+                                          <div style={{ fontSize: '12px', fontWeight: '600', color: cardSize === value ? '#ef4444' : '#374151' }}>{label}</div>
+                                          <div style={{ fontSize: '10px', color: '#9ca3af' }}>{desc}</div>
+                                        </div>
+                                        {cardSize === value && <FaCheckCircle size={12} color="#ef4444" style={{ marginLeft: 'auto' }} />}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </>
+                              )}
                             </div>
 
                           </div>
@@ -7455,12 +7549,16 @@ function RestaurantPOSContent() {
                       {/* Category Items Grid */}
                       <div style={{
                         display: 'grid',
-                        gridTemplateColumns: useModernCards
-                          ? (isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))')
-                          : (isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))'),
-                        gap: useModernCards
-                          ? (isMobile ? '14px' : '20px')
-                          : (isMobile ? '12px' : '18px'),
+                        gridTemplateColumns: cardSize === 'large'
+                          ? (isMobile ? 'repeat(auto-fill, minmax(160px, 1fr))' : 'repeat(auto-fill, minmax(200px, 1fr))')
+                          : cardSize === 'compact'
+                            ? (isMobile ? 'repeat(auto-fill, minmax(130px, 1fr))' : 'repeat(auto-fill, minmax(150px, 1fr))')
+                            : (isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))'),
+                        gap: cardSize === 'large'
+                          ? (isMobile ? '16px' : '22px')
+                          : cardSize === 'compact'
+                            ? (isMobile ? '10px' : '14px')
+                            : (isMobile ? '12px' : '18px'),
                         justifyContent: 'start'
                       }}>
                         {items.map((item) => {
@@ -7476,6 +7574,7 @@ function RestaurantPOSContent() {
                               onItemClick={handleItemCustomization}
                               isMobile={isMobile}
                               useModernDesign={useModernCards}
+                              cardSize={cardSize}
                             />
                           );
                         })}
@@ -7563,9 +7662,13 @@ function RestaurantPOSContent() {
                           </div>
                         </div>
 
-                        {/* Modern Cards Toggle */}
+                        {/* Card Size Cycle Button */}
                         <div
-                          onClick={() => setUseModernCards(!useModernCards)}
+                          onClick={() => {
+                            const sizes = ['compact', 'standard', 'large'];
+                            const next = sizes[(sizes.indexOf(cardSize) + 1) % sizes.length];
+                            setCardSize(next);
+                          }}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -7574,37 +7677,20 @@ function RestaurantPOSContent() {
                             borderRadius: '6px',
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
-                            backgroundColor: useModernCards ? '#fef2f2' : '#f9fafb',
-                            border: useModernCards ? '1px solid #fecaca' : '1px solid #e5e7eb'
+                            backgroundColor: cardSize !== 'compact' ? '#fef2f2' : '#f9fafb',
+                            border: cardSize !== 'compact' ? '1px solid #fecaca' : '1px solid #e5e7eb'
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.borderColor = '#ef4444';
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = useModernCards ? '#fecaca' : '#e5e7eb';
+                            e.currentTarget.style.borderColor = cardSize !== 'compact' ? '#fecaca' : '#e5e7eb';
                           }}
                         >
-                          <FaExpand size={11} color={useModernCards ? '#ef4444' : '#6b7280'} />
-                          <span style={{ fontSize: '11px', fontWeight: '600', color: useModernCards ? '#ef4444' : '#4b5563' }}>{t('dashboard.modern')}</span>
-                          <div style={{
-                            width: '26px',
-                            height: '14px',
-                            borderRadius: '7px',
-                            backgroundColor: useModernCards ? '#ef4444' : '#d1d5db',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: useModernCards ? 'flex-end' : 'flex-start',
-                            padding: '2px',
-                            transition: 'all 0.2s ease'
-                          }}>
-                            <div style={{
-                              width: '10px',
-                              height: '10px',
-                              borderRadius: '50%',
-                              backgroundColor: 'white',
-                              boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
-                            }} />
-                          </div>
+                          {cardSize === 'compact' ? <FaThList size={11} color="#6b7280" /> : cardSize === 'large' ? <FaThLarge size={11} color="#ef4444" /> : <FaTh size={11} color="#ef4444" />}
+                          <span style={{ fontSize: '11px', fontWeight: '600', color: cardSize !== 'compact' ? '#ef4444' : '#4b5563' }}>
+                            {cardSize === 'compact' ? 'Compact' : cardSize === 'large' ? 'Large' : 'Standard'}
+                          </span>
                         </div>
 
                       </div>
@@ -7614,12 +7700,16 @@ function RestaurantPOSContent() {
                   {/* Items Grid */}
                   <div style={{
                     display: 'grid',
-                    gridTemplateColumns: useModernCards
-                      ? (isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))')
-                      : (isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))'),
-                    gap: useModernCards
-                      ? (isMobile ? '14px' : '20px')
-                      : (isMobile ? '12px' : '18px'),
+                    gridTemplateColumns: cardSize === 'large'
+                      ? (isMobile ? 'repeat(auto-fill, minmax(160px, 1fr))' : 'repeat(auto-fill, minmax(200px, 1fr))')
+                      : cardSize === 'standard'
+                        ? (isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))')
+                        : (isMobile ? 'repeat(auto-fill, minmax(130px, 1fr))' : 'repeat(auto-fill, minmax(150px, 1fr))'),
+                    gap: cardSize === 'large'
+                      ? (isMobile ? '16px' : '22px')
+                      : cardSize === 'standard'
+                        ? (isMobile ? '14px' : '20px')
+                        : (isMobile ? '12px' : '18px'),
                     justifyContent: 'start'
                   }}>
                     {filteredItems.map((item) => {
@@ -7636,6 +7726,7 @@ function RestaurantPOSContent() {
                         onItemClick={handleItemCustomization}
                         isMobile={isMobile}
                         useModernDesign={useModernCards}
+                        cardSize={cardSize}
                       />
                     );
                   })}

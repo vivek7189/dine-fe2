@@ -7,12 +7,13 @@ export { getBillPrintCSS, getKOTPrintCSS, getBillHeaderHTML, getPrintFontSizes, 
 export const esc = (str) => String(str ?? '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 // Build identity lines (GSTIN, FSSAI, VAT, address, phone) for bill header.
-export function buildIdentityHtml(info) {
+export function buildIdentityHtml(info, printSettings) {
+  const bl = printSettings?.billLayout || {};
   const lines = [];
   if (info.restaurantLegalName && info.restaurantLegalName !== info.restaurantName)
     lines.push(esc(info.restaurantLegalName));
-  if (info.restaurantAddress) lines.push(esc(info.restaurantAddress));
-  if (info.restaurantPhone) lines.push('Tel: ' + info.restaurantPhone);
+  if (bl.showAddress !== false && info.restaurantAddress) lines.push(esc(info.restaurantAddress));
+  if (bl.showPhone !== false && info.restaurantPhone) lines.push('Tel: ' + info.restaurantPhone);
   if (info.showGstOnInvoice && info.gstin) lines.push('GSTIN: ' + info.gstin);
   if (info.showFssaiOnInvoice && info.fssai) lines.push('FSSAI: ' + info.fssai);
   if (info.showTaxIdOnInvoice && info.vatNumber) {
@@ -120,7 +121,9 @@ export function buildBillItemRows(items, cs) {
 
 // Build tax breakdown rows HTML
 // options.showInclusiveTax: when false, hides inclusive tax lines from the bill
-export function buildTaxHtml(taxBreakdown, cs, options) {
+export function buildTaxHtml(taxBreakdown, cs, options, printSettings) {
+  const bl = printSettings?.billLayout || {};
+  if (bl.showTaxBreakdown === false) return '';
   const showIncl = !options || options.showInclusiveTax !== false;
   return (taxBreakdown || [])
     .filter(tax => !tax.inclusive || showIncl)

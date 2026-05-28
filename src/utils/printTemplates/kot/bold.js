@@ -27,6 +27,7 @@ function getBoldKOTCSS(scaleOrPreset, fontId, printerWidth) {
 
 export function render(kotData, printSettings = {}, labels = {}) {
   const L = getKOTLabels(labels);
+  const kl = printSettings?.kotLayout || {};
   const k = kotData;
   const { dateStr, timeStr } = formatDateTime();
   const removedItems = k.removedItems || [];
@@ -85,9 +86,9 @@ export function render(kotData, printSettings = {}, labels = {}) {
 
   const bodyHtml =
     `<div class="header">` +
-      `<div class="restaurant-name">${esc(k.restaurantName || 'Restaurant')}</div>` +
+      (kl.showRestaurantName !== false ? `<div class="restaurant-name">${esc(k.restaurantName || 'Restaurant')}</div>` : '') +
       (k.restaurantPhone ? `<div class="phone">Tel: ${k.restaurantPhone}</div>` : '') +
-      (k.orderType ? `<div class="order-type">${esc(k.orderType)}</div>` : '') +
+      (kl.showOrderType !== false && k.orderType ? `<div class="order-type">${esc(k.orderType)}</div>` : '') +
     `</div>` +
     `<div class="divider">................................</div>` +
     `<div class="info">` +
@@ -97,9 +98,10 @@ export function render(kotData, printSettings = {}, labels = {}) {
     `<div class="divider">................................</div>` +
     `<div class="info">` +
       (k.billNo ? `<div>Bill No: ${k.billNo}</div>` : '') +
-      (k.waiterName ? `<div>Order by: ${esc(k.waiterName)}</div>` : '') +
-      `<div>Date: ${dateStr}</div>` +
+      (kl.showWaiter !== false && k.waiterName ? `<div>Order by: ${esc(k.waiterName)}</div>` : '') +
+      (kl.showDate !== false ? `<div>Date: ${dateStr}</div>` : '') +
       `<div>Time: ${timeStr}</div>` +
+      (kl.showCustomer !== false && k.customerName ? `<div>${L.customer}: ${esc(k.customerName)}</div>` : '') +
     `</div>` +
     `<div class="divider">................................</div>` +
     itemsHtml +

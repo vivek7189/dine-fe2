@@ -29,6 +29,7 @@ function getCompactBillCSS(scaleOrPreset, fontId, printerWidth) {
 
 export function render(invoice, printSettings = {}, labels = {}) {
   const L = getBillLabels(labels);
+  const bl = printSettings?.billLayout || {};
   const cs = invoice.currencySymbol || '₹';
   const items = invoice.items || [];
 
@@ -38,13 +39,17 @@ export function render(invoice, printSettings = {}, labels = {}) {
   const inclusiveNote = buildInclusiveTaxNote(invoice);
   // Compact: single-line tax summary if only one tax type
   let taxHtml;
-  const visibleTaxes = taxBreakdown.filter(t => !t.inclusive || showIncl);
-  if (visibleTaxes.length === 1) {
-    const tax = visibleTaxes[0];
-    const inclLabel = tax.inclusive ? ' (incl.)' : '';
-    taxHtml = `<div style="display:flex;justify-content:space-between;margin:1px 0;"><span>${tax.name} (${tax.rate}%)${inclLabel}:</span><span>${cs}${(tax.amount || 0).toFixed(2)}</span></div>`;
+  if (bl.showTaxBreakdown === false) {
+    taxHtml = '';
   } else {
-    taxHtml = visibleTaxes.length > 0 ? `<table style="margin:2px 0;"><tbody>${buildTaxHtml(taxBreakdown, cs, { showInclusiveTax: showIncl })}</tbody></table>` : '';
+    const visibleTaxes = taxBreakdown.filter(t => !t.inclusive || showIncl);
+    if (visibleTaxes.length === 1) {
+      const tax = visibleTaxes[0];
+      const inclLabel = tax.inclusive ? ' (incl.)' : '';
+      taxHtml = `<div style="display:flex;justify-content:space-between;margin:1px 0;"><span>${tax.name} (${tax.rate}%)${inclLabel}:</span><span>${cs}${(tax.amount || 0).toFixed(2)}</span></div>`;
+    } else {
+      taxHtml = visibleTaxes.length > 0 ? `<table style="margin:2px 0;"><tbody>${buildTaxHtml(taxBreakdown, cs, { showInclusiveTax: showIncl }, printSettings)}</tbody></table>` : '';
+    }
   }
   const discountHtml = buildDiscountHtml(invoice, L, cs);
   const chargesHtml = buildChargesHtml(invoice, L, cs);
@@ -62,14 +67,16 @@ export function render(invoice, printSettings = {}, labels = {}) {
     `<div class="divider">- - - - - - - - - - - - - - - -</div>` +
     `<div class="bill-info">` +
       `<div><span>#${invoice.dailyOrderId || invoice.id || 'N/A'}</span><span>${dateStr}</span></div>` +
-      (invoice.tableNumber ? `<div><span>${L.table}: ${invoice.tableNumber}</span><span>${(invoice.paymentMethod || 'CASH').toUpperCase()}</span></div>` : `<div><span>${L.payment}:</span><span>${(invoice.paymentMethod || 'CASH').toUpperCase()}</span></div>`) +
-      (invoice.customerName ? `<div><span>${L.customer}:</span><span>${esc(invoice.customerName)}</span></div>` : '') +
+      (bl.showTable !== false && invoice.tableNumber ? `<div><span>${L.table}: ${invoice.tableNumber}</span>${bl.showPayment !== false ? `<span>${(invoice.paymentMethod || 'CASH').toUpperCase()}</span>` : ''}</div>` : (bl.showPayment !== false ? `<div><span>${L.payment}:</span><span>${(invoice.paymentMethod || 'CASH').toUpperCase()}</span></div>` : '')) +
+      (bl.showWaiter !== false && (invoice.waiterName || invoice.cashierName) ? `<div><span>Staff:</span><span>${esc(invoice.waiterName || invoice.cashierName)}</span></div>` : '') +
+      (bl.showCustomer !== false && invoice.customerName ? `<div><span>${L.customer}:</span><span>${esc(invoice.customerName)}</span></div>` : '') +
+      (bl.showOrderType !== false && invoice.orderType ? `<div><span>Type:</span><span>${invoice.orderType}</span></div>` : '') +
     `</div>` +
     deliveryHtml +
     `<div class="divider">- - - - - - - - - - - - - - - -</div>` +
     `<table><thead><tr><th style="text-align:left;width:52%;">${L.itemCol}</th><th style="text-align:center;width:10%;">${L.qtyCol}</th><th style="text-align:right;width:38%;">${L.amt}</th></tr></thead><tbody>${itemsHtml}</tbody></table>` +
     `<div class="total-section">` +
-      `<div class="bill-info"><div><span>${L.subtotal}:</span><span>${cs}${(invoice.subtotal || 0).toFixed(2)}</span></div>${discountHtml}</div>` +
+      `<div class="bill-info">${bl.showSubtotal !== false ? `<div><span>${L.subtotal}:</span><span>${cs}${(invoice.subtotal || 0).toFixed(2)}</span></div>` : ''}${discountHtml}</div>` +
       (typeof taxHtml === 'string' && taxHtml.startsWith('<div') ? taxHtml : (taxHtml || '')) +
       chargesHtml +
       `<div class="total-row"><span>${L.total}:</span><span>${cs}${grandTotal.toFixed(2)}</span></div>` +
@@ -79,7 +86,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
     `</div>` +
     `<div class="divider">================================</div>` +
     buildFeedbackSection(printSettings) +
-    `<div class="bill-footer"><p>${L.footer}</p></div>`;
+    `<div class="bill-footer">${bl.showFooter !== false ? `<p>${L.footer}</p>` : ''}${bl.showPoweredBy !== false ? `<p style="font-size:10px;margin-top:4px;">${L.poweredBy}</p>` : ''}</div>`;
 
   return wrapInDocument(`${L.billLabel} #${invoice.dailyOrderId || invoice.id || 'N/A'}`, css, bodyHtml);
 }

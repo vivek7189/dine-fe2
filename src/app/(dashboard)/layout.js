@@ -16,39 +16,9 @@ import { useOrderNotifications } from '../../hooks/useOrderNotifications';
 import { isWeb, isTauri, isElectron } from '../../utils/platform';
 import { isAutoUpdateEnabled, checkForUpdates, restartApp } from '../../utils/autoUpdater';
 import apiClient from '../../lib/api';
+import { ROUTE_TO_ACCESS_KEY, ALWAYS_ACCESSIBLE } from '../../lib/pageAccessConfig';
 import { FaCloudUploadAlt, FaArrowRight, FaUtensils } from 'react-icons/fa';
 import { DineBotProvider } from '../../components/DineBotProvider';
-
-// Maps route segments to pageAccess keys — mirrors Sidebar accessMap
-const ROUTE_ACCESS_MAP = {
-  '/dashboard': 'dashboard',
-  '/orders': 'history',
-  '/orderhistory': 'history',
-  '/tables': 'tables',
-  '/customers': 'customers',
-  '/menu': 'menu',
-  '/inventory': 'inventory',
-  '/kot': 'kot',
-  '/admin': 'admin',
-  '/hotel': 'hotel',
-  '/invoice': 'invoice',
-  '/billing': 'completeBill',
-  '/books': 'admin',
-  '/dineai': 'analytics',
-  '/analytics': 'analytics',
-  '/shifts': 'admin',
-  '/attendance': 'admin',
-  '/offers': 'offers',
-  '/automation': 'admin',
-  '/spaces': 'admin',
-  '/parking': 'parking',
-  '/whatsapp-ordering': 'analytics',
-  '/social-media': 'analytics',
-  '/feedback': 'admin',
-};
-
-// Pages accessible to everyone (no permission check needed)
-const ALWAYS_ACCESSIBLE = ['/profile', '/dashboard'];
 
 function checkRouteAccess(pathname, user, pageAccess) {
   if (!user || !user.role) return false;
@@ -61,7 +31,7 @@ function checkRouteAccess(pathname, user, pageAccess) {
 
   // Find the matching route access key
   const routeSegment = '/' + pathname.split('/').filter(Boolean)[0];
-  const accessKey = ROUTE_ACCESS_MAP[routeSegment];
+  const accessKey = ROUTE_TO_ACCESS_KEY[routeSegment];
   if (!accessKey) return true; // Unknown routes default to accessible (profile, etc.)
 
   if (!pageAccess) return false;
@@ -172,9 +142,21 @@ function DashboardLayoutContent({ children }) {
         const cached = localStorage.getItem('navPageAccess');
         const pageAccess = cached ? JSON.parse(cached) : null;
         if (pageAccess && !checkRouteAccess(pathname, user, pageAccess)) {
-          router.replace('/dashboard');
+          router.replace('/home');
           return;
         }
+
+        // Async: re-check with fresh data from API (covers cache staleness)
+        apiClient.getUserPageAccess?.()
+          .then(res => {
+            if (res?.pageAccess) {
+              localStorage.setItem('navPageAccess', JSON.stringify(res.pageAccess));
+              if (!checkRouteAccess(pathname, user, res.pageAccess)) {
+                router.replace('/home');
+              }
+            }
+          })
+          .catch(() => {}); // Don't block on API failure
       }
     } catch {
       // On error, allow access (don't lock users out due to parsing errors)

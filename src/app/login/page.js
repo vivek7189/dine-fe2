@@ -22,6 +22,7 @@ import {
   RecaptchaVerifier,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithCustomToken,
   onAuthStateChanged
 } from 'firebase/auth';
 import apiClient from '../../lib/api';
@@ -1496,6 +1497,16 @@ const Login = () => {
         // Store auth token in both cookie (for cross-subdomain) and localStorage
         apiClient.setToken(data.token);
 
+        // Sign into Firebase Auth with custom token (for RTDB real-time subscriptions)
+        if (data.firebaseCustomToken && auth) {
+          try {
+            await signInWithCustomToken(auth, data.firebaseCustomToken);
+            console.log('🔑 Staff signed into Firebase Auth for real-time updates');
+          } catch (fbErr) {
+            console.warn('Firebase Auth sign-in failed (non-blocking):', fbErr.message);
+          }
+        }
+
         // Store user data with restaurant and owner info
         const userData = {
           ...data.user,
@@ -1533,6 +1544,16 @@ const Login = () => {
     try {
       // First set the token from the initial login
       apiClient.setToken(pendingLoginData.token);
+
+      // Sign into Firebase Auth with custom token (for RTDB real-time subscriptions)
+      if (pendingLoginData.firebaseCustomToken && auth) {
+        try {
+          await signInWithCustomToken(auth, pendingLoginData.firebaseCustomToken);
+          console.log('🔑 Staff signed into Firebase Auth for real-time updates');
+        } catch (fbErr) {
+          console.warn('Firebase Auth sign-in failed (non-blocking):', fbErr.message);
+        }
+      }
 
       // If selected restaurant is different from primary, switch to get new JWT
       if (restaurant.id !== pendingLoginData.user.restaurantId) {

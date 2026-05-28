@@ -28,6 +28,7 @@ function getCompactCSS(scaleOrPreset, fontId, printerWidth) {
 
 export function render(kotData, printSettings = {}, labels = {}) {
   const L = getKOTLabels(labels);
+  const kl = printSettings?.kotLayout || {};
   const k = kotData;
   const tableOrRoom = buildTableOrRoomHtml(k, L);
   const specialInstructionsHtml = buildSpecialInstructionsHtml(k, L);
@@ -51,15 +52,16 @@ export function render(kotData, printSettings = {}, labels = {}) {
 
   // Compact: skip restaurant name, minimal header
   const bodyHtml =
-    `<div class="kot-header"><div class="kot-title">--- ${title} ---</div></div>` +
+    `<div class="kot-header">${kl.showRestaurantName !== false ? `<div class="restaurant-name">${esc(k.restaurantName || 'Restaurant')}</div>` : ''}<div class="kot-title">--- ${title} ---</div></div>` +
     `<div class="divider">- - - - - - - - - - - - - - - -</div>` +
     `<div class="kot-info">` +
       `<div><strong>#${k.dailyOrderId || k.orderId}</strong>` +
       (k.tableNumber ? ` | ${L.table}: ${k.tableNumber}` : '') +
       (k.roomNumber ? ` | ${L.room}: ${k.roomNumber}` : '') +
-      ` | ${timeStr}</div>` +
-      (k.waiterName ? `<div>${L.waiter}: ${esc(k.waiterName)}</div>` : '') +
-      (k.orderType ? `<div>${L.type}: ${k.orderType}</div>` : '') +
+      ` | ${timeStr}${kl.showDate !== false ? ` | ${dateStr}` : ''}</div>` +
+      (kl.showWaiter !== false && k.waiterName ? `<div>${L.waiter}: ${esc(k.waiterName)}</div>` : '') +
+      (kl.showOrderType !== false && k.orderType ? `<div>${L.type}: ${k.orderType}</div>` : '') +
+      (kl.showCustomer !== false && k.customerName ? `<div>${L.customer}: ${esc(k.customerName)}</div>` : '') +
     `</div>` +
     `<div class="divider">- - - - - - - - - - - - - - - -</div>` +
     itemsHtml +

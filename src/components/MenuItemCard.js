@@ -13,7 +13,8 @@ const MenuItemCard = ({
   onItemClick, // New prop for opening customization modal
   onToggleFavorite, // New prop for toggling favorite
   isMobile = false,
-  useModernDesign = true
+  useModernDesign = true,
+  cardSize = 'standard' // 'compact' | 'standard' | 'large'
 }) => {
   const { formatCurrency, getCurrencySymbol } = useCurrency();
   const isVeg = item.isVeg === true || item.category === 'veg';
@@ -89,7 +90,7 @@ const MenuItemCard = ({
         borderTop: `4px solid ${isVeg ? '#22c55e' : '#ef4444'}`,
         borderRadius: '4px',
         cursor: 'pointer',
-        height: isMobile ? '90px' : '100px',
+        height: isMobile ? '85px' : '95px',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -389,14 +390,16 @@ const MenuItemCard = ({
       <div
         className="menu-item-card"
         style={{
-          borderRadius: '8px',
+          borderRadius: cardSize === 'large' ? '12px' : '8px',
           cursor: 'pointer',
-          height: isMobile ? '140px' : '150px',
+          height: cardSize === 'large'
+            ? (isMobile ? '180px' : '200px')
+            : (isMobile ? '140px' : '150px'),
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'flex-end',
           padding: '0',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          boxShadow: cardSize === 'large' ? '0 6px 16px rgba(0, 0, 0, 0.18)' : '0 4px 12px rgba(0, 0, 0, 0.15)',
           position: 'relative',
           overflow: 'hidden',
           border: 'none',
@@ -768,14 +771,16 @@ const MenuItemCard = ({
       style={{
         backgroundColor: '#ffffff',
         border: '1px solid #e5e7eb',
-        borderRadius: '4px',
+        borderRadius: cardSize === 'large' ? '10px' : '4px',
         cursor: 'pointer',
-        height: isMobile ? '120px' : '130px',
+        height: cardSize === 'large'
+          ? (isMobile ? '160px' : '170px')
+          : (isMobile ? '120px' : '130px'),
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        padding: '12px',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+        padding: cardSize === 'large' ? '16px' : '12px',
+        boxShadow: cardSize === 'large' ? '0 4px 12px rgba(0, 0, 0, 0.1)' : '0 2px 8px rgba(0, 0, 0, 0.06)',
         position: 'relative',
         overflow: 'hidden',
         background: '#ffffff',
@@ -1182,7 +1187,8 @@ const MemoizedMenuItemCard = memo(MenuItemCard, (prevProps, nextProps) => {
     prevProps.item.isFavorite === nextProps.item.isFavorite &&
     prevProps.quantityInCart === nextProps.quantityInCart &&
     prevProps.isMobile === nextProps.isMobile &&
-    prevProps.useModernDesign === nextProps.useModernDesign
+    prevProps.useModernDesign === nextProps.useModernDesign &&
+    prevProps.cardSize === nextProps.cardSize
   );
 });
 

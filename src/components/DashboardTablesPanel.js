@@ -420,8 +420,27 @@ export default function DashboardTablesPanel({
         return;
       }
       const order = response.orders[0];
+      // KOT Exclusion: filter out excluded items before printing
+      const ps = printSettings || {};
+      let kotItems = order.items || [];
+      if (ps.kotExclusionEnabled) {
+        const excludedCats = new Set(ps.kotExcludedCategories || []);
+        const excludedIds = new Set(ps.kotExcludedItemIds || []);
+        if (excludedCats.size > 0 || excludedIds.size > 0) {
+          kotItems = kotItems.filter(item => {
+            if (excludedIds.has(item.id || item.menuItemId)) return false;
+            if (excludedCats.has(item.categoryId)) return false;
+            return true;
+          });
+        }
+      }
+      if (kotItems.length === 0) {
+        setPrintingTables(prev => ({ ...prev, [tableId]: false }));
+        return; // all items excluded, skip KOT
+      }
       const kotData = {
         ...order,
+        items: kotItems,
         restaurantName: restaurantName || 'Restaurant',
         orderId: order.id,
         customerName: order.customerDisplay?.name || order.customerInfo?.name || order.customerName,

@@ -126,6 +126,7 @@ const OffersManagement = dynamic(() => import('../offers/page'), { ssr: false })
 const CustomerAppSettings = dynamic(() => import('../customer-app/page'), { ssr: false });
 import { getAllCountriesWithCurrency, getCurrencyByCountryCode } from '../../../lib/currencyData';
 import { FEATURE_OPS, OP_LABELS, ADMIN_TAB_LABELS, ADMIN_TAB_ID_TO_KEY, resolveFeaturePermissions } from '@/lib/permissions';
+import { PAGE_ACCESS_CONFIG } from '@/lib/pageAccessConfig';
 import { getPrintFontSizes, getPrintFontFamily, PRINT_FONTS, getContentWidthRange } from '../../../utils/printFontSizes';
 import { KOT_TEMPLATE_LIST, BILL_TEMPLATE_LIST, renderKOT, renderBill } from '../../../utils/printTemplates/index';
 
@@ -3419,6 +3420,10 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
   const [installerUrlsLoading, setInstallerUrlsLoading] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [platform, setPlatform] = useState({ isWindows: false, isMac: false });
+  // KOT Exclusion: categories and menu items for selection UI
+  const [kotExclusionCategories, setKotExclusionCategories] = useState([]);
+  const [kotExclusionMenuItems, setKotExclusionMenuItems] = useState([]);
+  const [kotExclusionItemSearch, setKotExclusionItemSearch] = useState('');
 
   const loadPrintSettings = async (restaurantId) => {
     if (!restaurantId) return;
@@ -3468,6 +3473,13 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
   useEffect(() => {
     if (selectedRestaurant?.id) {
       loadPrintSettings(selectedRestaurant.id);
+      // Load categories and menu items for KOT exclusion UI
+      apiClient.getCategories(selectedRestaurant.id).then(res => {
+        if (res.success && res.categories) setKotExclusionCategories(res.categories);
+      }).catch(() => {});
+      apiClient.getMenuItems(selectedRestaurant.id).then(res => {
+        if (res.success && res.items) setKotExclusionMenuItems(res.items);
+      }).catch(() => {});
     }
   }, [selectedRestaurant?.id]);
 
@@ -4144,6 +4156,231 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
 
                 </div>
 
+                {/* ── KOT Exclusion Settings ── */}
+                <div style={{ marginBottom: '20px' }}>
+                  <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    KOT Item Exclusion
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: printSettings.kotExclusionEnabled ? '#fef3c7' : '#f9fafb', borderRadius: '8px', border: '1px solid', borderColor: printSettings.kotExclusionEnabled ? '#fbbf24' : '#e5e7eb', marginBottom: '12px' }}>
+                    <div>
+                      <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#374151' }}>Exclude items from KOT</p>
+                      <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#6b7280' }}>Skip selected categories/items from KOT printing (still shown on bills & orders)</p>
+                    </div>
+                    <button
+                      onClick={() => toggleSetting('kotExclusionEnabled')}
+                      style={{
+                        width: '44px', height: '24px', borderRadius: '12px', border: 'none', cursor: 'pointer',
+                        background: printSettings.kotExclusionEnabled ? '#f59e0b' : '#d1d5db',
+                        position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute', top: '2px', left: printSettings.kotExclusionEnabled ? '22px' : '2px',
+                        width: '20px', height: '20px', borderRadius: '50%', background: 'white',
+                        transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                      }} />
+                    </button>
+                  </div>
+
+                  {printSettings.kotExclusionEnabled && (
+                    <div style={{ padding: '14px', background: '#fffbeb', borderRadius: '8px', border: '1px solid #fde68a' }}>
+                      {/* Category Exclusion */}
+                      <p style={{ fontSize: '12px', fontWeight: 600, color: '#92400e', margin: '0 0 8px 0' }}>Exclude Entire Categories</p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
+                        {kotExclusionCategories.map(cat => {
+                          const isExcluded = (printSettings.kotExcludedCategories || []).includes(cat.id);
+                          return (
+                            <button
+                              key={cat.id}
+                              onClick={() => {
+                                setPrintSettings(prev => {
+                                  const current = prev.kotExcludedCategories || [];
+                                  const next = current.includes(cat.id) ? current.filter(id => id !== cat.id) : [...current, cat.id];
+                                  return { ...prev, kotExcludedCategories: next };
+                                });
+                              }}
+                              style={{
+                                padding: '5px 12px', fontSize: '12px', fontWeight: 600, borderRadius: '16px', cursor: 'pointer',
+                                border: isExcluded ? '2px solid #dc2626' : '1px solid #d1d5db',
+                                background: isExcluded ? '#fef2f2' : 'white',
+                                color: isExcluded ? '#dc2626' : '#374151',
+                              }}
+                            >
+                              {isExcluded ? '✕ ' : ''}{cat.name}
+                            </button>
+                          );
+                        })}
+                        {kotExclusionCategories.length === 0 && (
+                          <p style={{ fontSize: '11px', color: '#9ca3af', margin: 0 }}>No categories found</p>
+                        )}
+                      </div>
+
+                      {/* Item Exclusion */}
+                      <p style={{ fontSize: '12px', fontWeight: 600, color: '#92400e', margin: '0 0 8px 0' }}>Exclude Specific Items</p>
+                      <input
+                        type="text"
+                        placeholder="Search menu items..."
+                        value={kotExclusionItemSearch}
+                        onChange={(e) => setKotExclusionItemSearch(e.target.value)}
+                        style={{
+                          width: '100%', padding: '8px 12px', fontSize: '12px', borderRadius: '6px',
+                          border: '1px solid #d1d5db', marginBottom: '8px', boxSizing: 'border-box',
+                        }}
+                      />
+                      <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {kotExclusionMenuItems
+                          .filter(item => {
+                            if (!kotExclusionItemSearch) {
+                              // Show only excluded items when no search
+                              return (printSettings.kotExcludedItemIds || []).includes(item.id);
+                            }
+                            return item.name.toLowerCase().includes(kotExclusionItemSearch.toLowerCase());
+                          })
+                          .slice(0, 50)
+                          .map(item => {
+                            const isExcluded = (printSettings.kotExcludedItemIds || []).includes(item.id);
+                            const isCatExcluded = (printSettings.kotExcludedCategories || []).includes(item.categoryId);
+                            return (
+                              <div
+                                key={item.id}
+                                onClick={() => {
+                                  if (isCatExcluded) return; // category already excludes it
+                                  setPrintSettings(prev => {
+                                    const current = prev.kotExcludedItemIds || [];
+                                    const next = current.includes(item.id) ? current.filter(id => id !== item.id) : [...current, item.id];
+                                    return { ...prev, kotExcludedItemIds: next };
+                                  });
+                                }}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px',
+                                  borderRadius: '6px', cursor: isCatExcluded ? 'default' : 'pointer',
+                                  background: isExcluded || isCatExcluded ? '#fef2f2' : 'white',
+                                  border: '1px solid', borderColor: isExcluded || isCatExcluded ? '#fca5a5' : '#e5e7eb',
+                                  opacity: isCatExcluded ? 0.6 : 1,
+                                }}
+                              >
+                                <input type="checkbox" checked={isExcluded || isCatExcluded} readOnly
+                                  style={{ accentColor: '#dc2626', cursor: isCatExcluded ? 'default' : 'pointer' }}
+                                />
+                                <span style={{ fontSize: '12px', fontWeight: 500, color: '#374151', flex: 1 }}>{item.name}</span>
+                                <span style={{ fontSize: '10px', color: '#9ca3af' }}>{item.category || ''}</span>
+                                {isCatExcluded && <span style={{ fontSize: '9px', color: '#ef4444', fontWeight: 600 }}>via category</span>}
+                              </div>
+                            );
+                          })}
+                        {!kotExclusionItemSearch && (printSettings.kotExcludedItemIds || []).length === 0 && (
+                          <p style={{ fontSize: '11px', color: '#9ca3af', margin: 0, padding: '4px' }}>Search to find and exclude specific items</p>
+                        )}
+                      </div>
+
+                      {/* Summary */}
+                      {((printSettings.kotExcludedCategories || []).length > 0 || (printSettings.kotExcludedItemIds || []).length > 0) && (
+                        <div style={{ marginTop: '12px', padding: '8px 10px', background: '#fef2f2', borderRadius: '6px', border: '1px solid #fca5a5' }}>
+                          <p style={{ margin: 0, fontSize: '11px', color: '#991b1b', fontWeight: 600 }}>
+                            {(printSettings.kotExcludedCategories || []).length} categories and {(printSettings.kotExcludedItemIds || []).length} items excluded from KOT
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Bill & KOT Layout Visibility ── */}
+                <div style={{ marginBottom: '20px' }}>
+                  <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Bill & KOT Layout
+                  </p>
+                  <p style={{ fontSize: '11px', color: '#9ca3af', margin: '-8px 0 12px 0' }}>
+                    Control which sections appear on printed bills and KOTs. All enabled by default.
+                  </p>
+
+                  {/* Bill Layout */}
+                  <div style={{ marginBottom: '14px', padding: '14px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                    <p style={{ fontSize: '12px', fontWeight: 600, color: '#374151', margin: '0 0 10px 0' }}>Bill Sections</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {[
+                        { key: 'showAddress', label: 'Restaurant Address', desc: 'Address line below restaurant name' },
+                        { key: 'showPhone', label: 'Restaurant Phone', desc: 'Phone number on bill' },
+                        { key: 'showTable', label: 'Table Number', desc: 'Table/room number on bill' },
+                        { key: 'showWaiter', label: 'Waiter / Staff Name', desc: 'Staff who took the order' },
+                        { key: 'showCustomer', label: 'Customer Name', desc: 'Customer name on bill' },
+                        { key: 'showPayment', label: 'Payment Method', desc: 'Cash / Card / UPI line' },
+                        { key: 'showOrderType', label: 'Order Type', desc: 'Dine-in / Takeaway / Delivery' },
+                        { key: 'showSubtotal', label: 'Subtotal', desc: 'Subtotal before tax' },
+                        { key: 'showTaxBreakdown', label: 'Tax Breakdown', desc: 'Individual tax lines (CGST, SGST, etc.)' },
+                        { key: 'showFooter', label: 'Thank You Message', desc: 'Footer message at bottom' },
+                        { key: 'showPoweredBy', label: 'Powered by DineOpen', desc: 'Branding line at bottom' },
+                      ].map(({ key, label, desc }) => {
+                        const isOn = printSettings.billLayout?.[key] ?? true;
+                        return (
+                          <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' }}>
+                            <div>
+                              <span style={{ fontSize: '13px', fontWeight: 500, color: '#374151' }}>{label}</span>
+                              <span style={{ fontSize: '11px', color: '#9ca3af', marginLeft: '8px' }}>{desc}</span>
+                            </div>
+                            <button
+                              onClick={() => setPrintSettings(prev => ({
+                                ...prev,
+                                billLayout: { ...prev.billLayout, [key]: !(prev.billLayout?.[key] ?? true) }
+                              }))}
+                              style={{
+                                width: '36px', height: '20px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+                                background: isOn ? '#22c55e' : '#d1d5db', position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+                              }}
+                            >
+                              <span style={{
+                                position: 'absolute', top: '2px', left: isOn ? '18px' : '2px',
+                                width: '16px', height: '16px', borderRadius: '50%', background: 'white',
+                                transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                              }} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* KOT Layout */}
+                  <div style={{ padding: '14px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                    <p style={{ fontSize: '12px', fontWeight: 600, color: '#374151', margin: '0 0 10px 0' }}>KOT Sections</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {[
+                        { key: 'showRestaurantName', label: 'Restaurant Name', desc: 'Name at top of KOT' },
+                        { key: 'showCustomer', label: 'Customer Name', desc: 'Customer name on KOT' },
+                        { key: 'showWaiter', label: 'Waiter / Staff Name', desc: 'Staff name on KOT' },
+                        { key: 'showDate', label: 'Date', desc: 'Date on KOT (time always shown)' },
+                        { key: 'showOrderType', label: 'Order Type', desc: 'Dine-in / Takeaway / Delivery on KOT' },
+                      ].map(({ key, label, desc }) => {
+                        const isOn = printSettings.kotLayout?.[key] ?? true;
+                        return (
+                          <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' }}>
+                            <div>
+                              <span style={{ fontSize: '13px', fontWeight: 500, color: '#374151' }}>{label}</span>
+                              <span style={{ fontSize: '11px', color: '#9ca3af', marginLeft: '8px' }}>{desc}</span>
+                            </div>
+                            <button
+                              onClick={() => setPrintSettings(prev => ({
+                                ...prev,
+                                kotLayout: { ...prev.kotLayout, [key]: !(prev.kotLayout?.[key] ?? true) }
+                              }))}
+                              style={{
+                                width: '36px', height: '20px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+                                background: isOn ? '#22c55e' : '#d1d5db', position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+                              }}
+                            >
+                              <span style={{
+                                position: 'absolute', top: '2px', left: isOn ? '18px' : '2px',
+                                width: '16px', height: '16px', borderRadius: '50%', background: 'white',
+                                transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                              }} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
                 {/* Live preview — KOT and Bill side by side */}
                 {(() => {
                   const rName = selectedRestaurant?.name || 'My Restaurant';
@@ -4790,6 +5027,24 @@ const Admin = () => {
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [editingStaff, setEditingStaff] = useState(false);
   const [editStaffForm, setEditStaffForm] = useState({ name: '', phone: '', email: '', role: '', pageAccess: {} });
+  const [newPermSearch, setNewPermSearch] = useState('');
+  const [newPermDropdownOpen, setNewPermDropdownOpen] = useState(false);
+  const [editPermSearch, setEditPermSearch] = useState('');
+  const [editPermDropdownOpen, setEditPermDropdownOpen] = useState(false);
+  const newPermDropdownRef = useRef(null);
+  const editPermDropdownRef = useRef(null);
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (newPermDropdownRef.current && !newPermDropdownRef.current.contains(e.target)) {
+        setNewPermDropdownOpen(false);
+      }
+      if (editPermDropdownRef.current && !editPermDropdownRef.current.contains(e.target)) {
+        setEditPermDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   const [editStaffSaving, setEditStaffSaving] = useState(false);
   const [staffRestaurants, setStaffRestaurants] = useState([]);
   const [loadingStaffRestaurants, setLoadingStaffRestaurants] = useState(false);
@@ -7186,105 +7441,72 @@ const Admin = () => {
                     </div>
 
                     {/* Page Access Display */}
-                    {member.pageAccess && (
-                      <div style={{ 
-                        backgroundColor: '#f8fafc', 
-                        padding: '14px', 
-                        borderRadius: '10px',
-                        marginBottom: '14px',
-                        border: '1px solid #e5e7eb'
-                      }}>
-                        <h4 style={{ 
-                          fontSize: '14px', 
-                          fontWeight: '600', 
-                          color: '#166534', 
-                          marginBottom: '12px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px'
+                    {member.pageAccess && (() => {
+                      const enabledPages = PAGE_ACCESS_CONFIG.filter(({ key }) => {
+                        const hasGranular = !!FEATURE_OPS[key];
+                        return hasGranular
+                          ? (typeof member.pageAccess?.[key] === 'object'
+                            ? Object.values(member.pageAccess[key]).some(Boolean)
+                            : !!member.pageAccess?.[key])
+                          : !!member.pageAccess?.[key];
+                      });
+                      const totalPages = PAGE_ACCESS_CONFIG.length;
+                      return (
+                        <div style={{
+                          backgroundColor: '#f8fafc',
+                          padding: '14px',
+                          borderRadius: '10px',
+                          marginBottom: '14px',
+                          border: '1px solid #e5e7eb'
                         }}>
-                          <FaShieldAlt size={12} />
-                          Page Access Permissions
-                        </h4>
-                        <div style={{ 
-                          display: 'grid', 
-                          gridTemplateColumns: 'repeat(2, 1fr)', 
-                          gap: '8px'
-                        }}>
-                          {[
-                            { key: 'dashboard', label: 'Dashboard', icon: '🏠' },
-                            { key: 'history', label: 'History', icon: '📋' },
-                            { key: 'tables', label: 'Tables', icon: '🪑' },
-                            { key: 'menu', label: 'Menu', icon: '🍽️' },
-                            { key: 'analytics', label: 'Analytics', icon: '📊' },
-                            { key: 'inventory', label: 'Inventory', icon: '📦' },
-                            { key: 'kot', label: 'KOT', icon: '👨‍🍳' },
-                            { key: 'admin', label: 'Admin', icon: '⚙️' },
-                            { key: 'invoice', label: 'Invoice', icon: '🧾' },
-                            { key: 'customers', label: 'Customers', icon: '👥' },
-                            { key: 'offers', label: 'Offers', icon: '🏷️' },
-                            { key: 'orders', label: 'Orders', icon: '🧾' }
-                          ].map(({ key, label, icon }) => {
-                            const hasGranular = !!FEATURE_OPS[key];
-                            const hasAccess = hasGranular
-                              ? (typeof member.pageAccess?.[key] === 'object'
-                                ? Object.values(member.pageAccess[key]).some(Boolean)
-                                : !!member.pageAccess?.[key])
-                              : !!member.pageAccess?.[key];
-                            return (
-                              <div key={key} style={{ gridColumn: hasGranular && typeof member.pageAccess?.[key] === 'object' ? '1 / -1' : undefined }}>
-                                <div style={{
-                                  display: 'flex',
+                          <h4 style={{
+                            fontSize: '13px',
+                            fontWeight: '600',
+                            color: '#166534',
+                            marginBottom: '10px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                          }}>
+                            <FaShieldAlt size={11} />
+                            Page Access Permissions
+                            <span style={{ fontSize: '11px', fontWeight: '500', color: '#6b7280' }}>
+                              ({enabledPages.length} of {totalPages})
+                            </span>
+                          </h4>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {enabledPages.map(({ key, label }) => {
+                              const hasGranular = !!FEATURE_OPS[key];
+                              const granularCount = hasGranular && typeof member.pageAccess?.[key] === 'object'
+                                ? Object.values(member.pageAccess[key]).filter(Boolean).length
+                                : null;
+                              const granularTotal = hasGranular ? FEATURE_OPS[key].length : null;
+                              return (
+                                <span key={key} style={{
+                                  display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: '6px',
-                                  padding: '6px 8px',
-                                  borderRadius: '6px',
-                                  backgroundColor: hasAccess ? '#dcfce7' : '#fef2f2',
-                                  border: `1px solid ${hasAccess ? '#22c55e' : '#fca5a5'}`
+                                  gap: '4px',
+                                  padding: '4px 10px',
+                                  borderRadius: '20px',
+                                  backgroundColor: '#dcfce7',
+                                  border: '1px solid #bbf7d0',
+                                  fontSize: '11px',
+                                  fontWeight: '500',
+                                  color: '#166534',
+                                  lineHeight: '1.3'
                                 }}>
-                                  <span style={{ fontSize: '12px' }}>{icon}</span>
-                                  <span style={{
-                                    fontSize: '11px',
-                                    fontWeight: '500',
-                                    color: hasAccess ? '#166534' : '#dc2626'
-                                  }}>
-                                    {label}
-                                  </span>
-                                  {hasAccess ? (
-                                    <FaCheck size={8} style={{ color: '#22c55e' }} />
-                                  ) : (
-                                    <FaTimes size={8} style={{ color: '#dc2626' }} />
-                                  )}
-                                </div>
-                                {hasGranular && typeof member.pageAccess?.[key] === 'object' && (
-                                  <div style={{
-                                    display: 'flex',
-                                    flexWrap: 'wrap',
-                                    gap: '4px',
-                                    marginTop: '6px',
-                                    marginLeft: '8px'
-                                  }}>
-                                    {FEATURE_OPS[key].map(op => (
-                                      <span key={op} style={{
-                                        fontSize: '10px',
-                                        fontWeight: '500',
-                                        padding: '2px 6px',
-                                        borderRadius: '4px',
-                                        backgroundColor: member.pageAccess[key][op] ? '#dcfce7' : '#fef2f2',
-                                        color: member.pageAccess[key][op] ? '#166534' : '#dc2626',
-                                        border: `1px solid ${member.pageAccess[key][op] ? '#bbf7d0' : '#fca5a5'}`
-                                      }}>
-                                        {key === 'admin' ? (ADMIN_TAB_LABELS[op] || op) : (OP_LABELS[op] || op)}: {member.pageAccess[key][op] ? 'Yes' : 'No'}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
+                                  <FaCheck size={8} style={{ color: '#22c55e', flexShrink: 0 }} />
+                                  {label}{granularCount !== null ? ` (${granularCount}/${granularTotal})` : ''}
+                                </span>
+                              );
+                            })}
+                            {enabledPages.length === 0 && (
+                              <span style={{ fontSize: '12px', color: '#9ca3af', fontStyle: 'italic' }}>No page access granted</span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     <div style={{ display: 'grid', gridTemplateColumns: isClient && isMobile ? '1fr' : '1fr 1fr', gap: isClient && isMobile ? '12px' : '16px', marginBottom: isClient && isMobile ? '12px' : '16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -8426,159 +8648,185 @@ const Admin = () => {
                   fontSize: '11px', fontWeight: '700', color: '#9ca3af',
                   textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '12px'
                 }}>Page Access Permissions</div>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
-                  gap: '8px'
-                }}>
-                  {[
-                    { key: 'dashboard', label: t('nav.dashboard'), icon: '🏠' },
-                    { key: 'history', label: t('nav.history'), icon: '📋' },
-                    { key: 'tables', label: t('nav.tables'), icon: '🪑' },
-                    { key: 'menu', label: t('nav.menu'), icon: '🍽' },
-                    { key: 'analytics', label: t('nav.analytics'), icon: '📊' },
-                    { key: 'inventory', label: t('nav.inventory'), icon: '📦' },
-                    { key: 'kot', label: t('nav.kot'), icon: '👨‍🍳' },
-                    { key: 'admin', label: t('nav.admin'), icon: '⚙️' },
-                    { key: 'invoice', label: 'Invoice', icon: '🧾' },
-                    { key: 'customers', label: 'Customers', icon: '👥' },
-                    { key: 'offers', label: 'Offers', icon: '🏷' },
-                    { key: 'orders', label: 'Orders', icon: '📝' }
-                  ].map(({ key, label, icon }) => {
+
+                {/* Search dropdown */}
+                <div ref={newPermDropdownRef} style={{ position: 'relative', marginBottom: '12px' }}>
+                  <div style={{ position: 'relative' }}>
+                    <FaSearch size={12} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+                    <input
+                      type="text"
+                      placeholder="Search permissions..."
+                      value={newPermSearch}
+                      onChange={(e) => { setNewPermSearch(e.target.value); setNewPermDropdownOpen(true); }}
+                      onFocus={() => setNewPermDropdownOpen(true)}
+                      style={{
+                        width: '100%', padding: '10px 12px 10px 34px', fontSize: '13px',
+                        border: '1.5px solid #e5e7eb', borderRadius: '10px', outline: 'none',
+                        backgroundColor: 'white', boxSizing: 'border-box',
+                        transition: 'border-color 0.15s'
+                      }}
+                      onKeyDown={(e) => { if (e.key === 'Escape') setNewPermDropdownOpen(false); }}
+                    />
+                  </div>
+                  {newPermDropdownOpen && (
+                    <div style={{
+                      position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+                      backgroundColor: 'white', border: '1.5px solid #e5e7eb', borderRadius: '10px',
+                      marginTop: '4px', maxHeight: '260px', overflowY: 'auto',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
+                    }}>
+                      {['main', 'more'].map(category => {
+                        const items = PAGE_ACCESS_CONFIG.filter(p =>
+                          p.category === category &&
+                          p.label.toLowerCase().includes(newPermSearch.toLowerCase())
+                        );
+                        if (items.length === 0) return null;
+                        return (
+                          <div key={category}>
+                            <div style={{
+                              fontSize: '10px', fontWeight: '700', color: '#9ca3af',
+                              textTransform: 'uppercase', letterSpacing: '0.06em',
+                              padding: '8px 14px 4px', userSelect: 'none'
+                            }}>
+                              {category === 'main' ? 'Main Pages' : 'More Pages'}
+                            </div>
+                            {items.map(({ key, label }) => {
+                              const hasGranular = !!FEATURE_OPS[key];
+                              const isEnabled = hasGranular
+                                ? (typeof newStaff.pageAccess[key] === 'object'
+                                  ? Object.values(newStaff.pageAccess[key]).some(Boolean)
+                                  : !!newStaff.pageAccess[key])
+                                : !!newStaff.pageAccess[key];
+                              return (
+                                <div
+                                  key={key}
+                                  onClick={() => {
+                                    if (hasGranular) {
+                                      const ops = FEATURE_OPS[key];
+                                      const allEnabled = {};
+                                      ops.forEach(op => allEnabled[op] = true);
+                                      setNewStaff(prev => ({
+                                        ...prev,
+                                        pageAccess: { ...prev.pageAccess, [key]: isEnabled ? false : allEnabled }
+                                      }));
+                                    } else {
+                                      setNewStaff(prev => ({
+                                        ...prev,
+                                        pageAccess: { ...prev.pageAccess, [key]: !isEnabled }
+                                      }));
+                                    }
+                                  }}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    padding: '9px 14px', cursor: 'pointer',
+                                    backgroundColor: isEnabled ? '#f0fdf4' : 'transparent',
+                                    transition: 'background-color 0.1s'
+                                  }}
+                                  onMouseEnter={(e) => { if (!isEnabled) e.currentTarget.style.backgroundColor = '#f9fafb'; }}
+                                  onMouseLeave={(e) => { if (!isEnabled) e.currentTarget.style.backgroundColor = 'transparent'; else e.currentTarget.style.backgroundColor = '#f0fdf4'; }}
+                                >
+                                  <span style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>{label}</span>
+                                  {isEnabled && <FaCheck size={12} style={{ color: '#22c55e' }} />}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                      {PAGE_ACCESS_CONFIG.filter(p => p.label.toLowerCase().includes(newPermSearch.toLowerCase())).length === 0 && (
+                        <div style={{ padding: '16px', textAlign: 'center', fontSize: '13px', color: '#9ca3af' }}>No matching permissions</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Enabled permission chips */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                  {PAGE_ACCESS_CONFIG.filter(({ key }) => {
                     const hasGranular = !!FEATURE_OPS[key];
-                    const isChecked = hasGranular
+                    return hasGranular
                       ? (typeof newStaff.pageAccess[key] === 'object'
                         ? Object.values(newStaff.pageAccess[key]).some(Boolean)
                         : !!newStaff.pageAccess[key])
                       : !!newStaff.pageAccess[key];
-                    return (
-                      <div key={key} style={{ gridColumn: hasGranular && isChecked ? '1 / -1' : undefined }}>
-                        <label style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          cursor: 'pointer',
-                          padding: '8px 10px',
-                          borderRadius: '10px',
-                          backgroundColor: isChecked ? '#f0fdf4' : '#fafafa',
-                          border: `1.5px solid ${isChecked ? '#86efac' : '#f1f5f9'}`,
-                          transition: 'all 0.15s',
-                          userSelect: 'none'
-                        }}>
-                          <div style={{
-                            width: '18px', height: '18px', borderRadius: '5px', flexShrink: 0,
-                            border: `2px solid ${isChecked ? '#22c55e' : '#d1d5db'}`,
-                            backgroundColor: isChecked ? '#22c55e' : 'white',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            transition: 'all 0.15s'
-                          }}>
-                            {isChecked && <span style={{ color: 'white', fontSize: '11px', fontWeight: 700, lineHeight: 1 }}>&#10003;</span>}
-                          </div>
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={(e) => {
-                              if (hasGranular) {
-                                const ops = FEATURE_OPS[key];
-                                const allEnabled = {};
-                                ops.forEach(op => allEnabled[op] = true);
-                                setNewStaff({
-                                  ...newStaff,
-                                  pageAccess: {
-                                    ...newStaff.pageAccess,
-                                    [key]: e.target.checked ? allEnabled : false
-                                  }
-                                });
-                              } else {
-                                setNewStaff({
-                                  ...newStaff,
-                                  pageAccess: {
-                                    ...newStaff.pageAccess,
-                                    [key]: e.target.checked
-                                  }
-                                });
-                              }
-                            }}
-                            style={{ display: 'none' }}
-                          />
-                          <span style={{ fontSize: '14px', lineHeight: 1 }}>{icon}</span>
-                          <span style={{
-                            fontSize: '13px',
-                            fontWeight: isChecked ? '600' : '500',
-                            color: isChecked ? '#15803d' : '#4b5563'
-                          }}>
-                            {label}
-                          </span>
-                        </label>
-                        {hasGranular && typeof newStaff.pageAccess[key] === 'object' && (
-                          <div style={{
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            gap: '6px',
-                            marginTop: '6px',
-                            marginLeft: '8px',
-                            padding: '8px 10px',
-                            backgroundColor: '#f0fdf4',
-                            borderRadius: '8px',
-                            border: '1px solid #dcfce7'
-                          }}>
-                            {FEATURE_OPS[key].map(op => (
-                              <label key={op} style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                                cursor: 'pointer',
-                                padding: '4px 8px',
-                                borderRadius: '6px',
-                                backgroundColor: newStaff.pageAccess[key][op] ? '#dcfce7' : 'white',
-                                border: `1px solid ${newStaff.pageAccess[key][op] ? '#86efac' : '#e5e7eb'}`,
-                                transition: 'all 0.15s',
-                                userSelect: 'none'
-                              }}>
-                                <input
-                                  type="checkbox"
-                                  checked={!!newStaff.pageAccess[key][op]}
-                                  onChange={(e) => {
-                                    const updated = {
-                                      ...newStaff.pageAccess[key],
-                                      [op]: e.target.checked
-                                    };
-                                    const anyChecked = Object.values(updated).some(Boolean);
-                                    setNewStaff({
-                                      ...newStaff,
-                                      pageAccess: {
-                                        ...newStaff.pageAccess,
-                                        [key]: anyChecked ? updated : false
-                                      }
-                                    });
-                                  }}
-                                  style={{ display: 'none' }}
-                                />
-                                <div style={{
-                                  width: '14px', height: '14px', borderRadius: '4px', flexShrink: 0,
-                                  border: `1.5px solid ${newStaff.pageAccess[key][op] ? '#22c55e' : '#d1d5db'}`,
-                                  backgroundColor: newStaff.pageAccess[key][op] ? '#22c55e' : 'white',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  transition: 'all 0.15s'
-                                }}>
-                                  {newStaff.pageAccess[key][op] && <span style={{ color: 'white', fontSize: '9px', fontWeight: 700, lineHeight: 1 }}>&#10003;</span>}
-                                </div>
-                                <span style={{
-                                  fontSize: '11px',
-                                  fontWeight: '500',
-                                  color: newStaff.pageAccess[key][op] ? '#15803d' : '#4b5563'
-                                }}>
-                                  {key === 'admin' ? (ADMIN_TAB_LABELS[op] || op) : (OP_LABELS[op] || op)}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                  }).map(({ key, label }) => (
+                    <span key={key} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '6px',
+                      padding: '5px 12px', borderRadius: '20px',
+                      backgroundColor: '#dcfce7', border: '1px solid #bbf7d0',
+                      fontSize: '12px', fontWeight: '500', color: '#166534'
+                    }}>
+                      {label}
+                      <FaTimes
+                        size={10}
+                        style={{ cursor: 'pointer', color: '#16a34a' }}
+                        onClick={() => {
+                          setNewStaff(prev => ({
+                            ...prev,
+                            pageAccess: { ...prev.pageAccess, [key]: false }
+                          }));
+                        }}
+                      />
+                    </span>
+                  ))}
+                  {PAGE_ACCESS_CONFIG.filter(({ key }) => {
+                    const hasGranular = !!FEATURE_OPS[key];
+                    return hasGranular
+                      ? (typeof newStaff.pageAccess[key] === 'object'
+                        ? Object.values(newStaff.pageAccess[key]).some(Boolean)
+                        : !!newStaff.pageAccess[key])
+                      : !!newStaff.pageAccess[key];
+                  }).length === 0 && (
+                    <span style={{ fontSize: '12px', color: '#9ca3af', fontStyle: 'italic' }}>No permissions selected. Use the search above to add.</span>
+                  )}
                 </div>
-                <p style={{ fontSize: '11px', color: '#9ca3af', margin: '8px 0 0 0' }}>
+
+                {/* Granular sub-operations for features with FEATURE_OPS */}
+                {PAGE_ACCESS_CONFIG.filter(({ key }) => {
+                  return !!FEATURE_OPS[key] && typeof newStaff.pageAccess[key] === 'object' && Object.values(newStaff.pageAccess[key]).some(Boolean);
+                }).map(({ key, label }) => (
+                  <div key={key} style={{
+                    marginBottom: '10px', padding: '10px 12px',
+                    backgroundColor: '#f0fdf4', borderRadius: '10px',
+                    border: '1px solid #dcfce7'
+                  }}>
+                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#166534', marginBottom: '8px' }}>
+                      {label} operations
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {FEATURE_OPS[key].map(op => {
+                        const isOn = !!newStaff.pageAccess[key]?.[op];
+                        return (
+                          <span
+                            key={op}
+                            onClick={() => {
+                              const updated = { ...newStaff.pageAccess[key], [op]: !isOn };
+                              const anyChecked = Object.values(updated).some(Boolean);
+                              setNewStaff(prev => ({
+                                ...prev,
+                                pageAccess: { ...prev.pageAccess, [key]: anyChecked ? updated : false }
+                              }));
+                            }}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '4px',
+                              padding: '4px 10px', borderRadius: '20px', cursor: 'pointer',
+                              fontSize: '11px', fontWeight: '500', userSelect: 'none',
+                              backgroundColor: isOn ? '#dcfce7' : '#f3f4f6',
+                              color: isOn ? '#166534' : '#6b7280',
+                              border: `1px solid ${isOn ? '#86efac' : '#e5e7eb'}`,
+                              transition: 'all 0.15s'
+                            }}
+                          >
+                            {isOn && <FaCheck size={8} />}
+                            {key === 'admin' ? (ADMIN_TAB_LABELS[op] || op) : (OP_LABELS[op] || op)}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+
+                <p style={{ fontSize: '11px', color: '#9ca3af', margin: '0' }}>
                   {t('admin.selectPageAccess')}
                 </p>
               </div>
@@ -9461,143 +9709,185 @@ const Admin = () => {
                       <FaShieldAlt size={14} style={{ color: '#166534' }} />
                       <h3 style={{ fontWeight: '600', color: '#1f2937', fontSize: isClient && isMobile ? '14px' : '16px', margin: 0 }}>Page Access Permissions</h3>
                     </div>
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: isClient && isMobile ? '1fr' : 'repeat(2, 1fr)',
-                      gap: isClient && isMobile ? '8px' : '10px',
-                      padding: isClient && isMobile ? '12px' : '16px',
-                      backgroundColor: '#f9fafb',
-                      borderRadius: '12px',
-                      border: '1px solid #e5e7eb'
-                    }}>
-                      {[
-                        { key: 'dashboard', label: t('nav.dashboard'), icon: '🏠' },
-                        { key: 'history', label: t('nav.history'), icon: '📋' },
-                        { key: 'tables', label: t('nav.tables'), icon: '🪑' },
-                        { key: 'menu', label: t('nav.menu'), icon: '🍽️' },
-                        { key: 'analytics', label: t('nav.analytics'), icon: '📊' },
-                        { key: 'inventory', label: t('nav.inventory'), icon: '📦' },
-                        { key: 'kot', label: t('nav.kot'), icon: '👨‍🍳' },
-                        { key: 'admin', label: t('nav.admin'), icon: '⚙️' },
-                        { key: 'invoice', label: 'Invoice', icon: '🧾' },
-                        { key: 'customers', label: 'Customers', icon: '👥' },
-                        { key: 'offers', label: 'Offers', icon: '🏷️' },
-                        { key: 'orders', label: 'Orders', icon: '🧾' }
-                      ].map(({ key, label, icon }) => {
+
+                    {/* Search dropdown */}
+                    <div ref={editPermDropdownRef} style={{ position: 'relative', marginBottom: '12px' }}>
+                      <div style={{ position: 'relative' }}>
+                        <FaSearch size={12} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+                        <input
+                          type="text"
+                          placeholder="Search permissions..."
+                          value={editPermSearch}
+                          onChange={(e) => { setEditPermSearch(e.target.value); setEditPermDropdownOpen(true); }}
+                          onFocus={() => setEditPermDropdownOpen(true)}
+                          style={{
+                            width: '100%', padding: '10px 12px 10px 34px', fontSize: '13px',
+                            border: '1.5px solid #e5e7eb', borderRadius: '10px', outline: 'none',
+                            backgroundColor: 'white', boxSizing: 'border-box',
+                            transition: 'border-color 0.15s'
+                          }}
+                          onKeyDown={(e) => { if (e.key === 'Escape') setEditPermDropdownOpen(false); }}
+                        />
+                      </div>
+                      {editPermDropdownOpen && (
+                        <div style={{
+                          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+                          backgroundColor: 'white', border: '1.5px solid #e5e7eb', borderRadius: '10px',
+                          marginTop: '4px', maxHeight: '260px', overflowY: 'auto',
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
+                        }}>
+                          {['main', 'more'].map(category => {
+                            const items = PAGE_ACCESS_CONFIG.filter(p =>
+                              p.category === category &&
+                              p.label.toLowerCase().includes(editPermSearch.toLowerCase())
+                            );
+                            if (items.length === 0) return null;
+                            return (
+                              <div key={category}>
+                                <div style={{
+                                  fontSize: '10px', fontWeight: '700', color: '#9ca3af',
+                                  textTransform: 'uppercase', letterSpacing: '0.06em',
+                                  padding: '8px 14px 4px', userSelect: 'none'
+                                }}>
+                                  {category === 'main' ? 'Main Pages' : 'More Pages'}
+                                </div>
+                                {items.map(({ key, label }) => {
+                                  const hasGranular = !!FEATURE_OPS[key];
+                                  const isEnabled = hasGranular
+                                    ? (typeof editStaffForm.pageAccess[key] === 'object'
+                                      ? Object.values(editStaffForm.pageAccess[key]).some(Boolean)
+                                      : !!editStaffForm.pageAccess[key])
+                                    : !!editStaffForm.pageAccess[key];
+                                  return (
+                                    <div
+                                      key={key}
+                                      onClick={() => {
+                                        if (hasGranular) {
+                                          const ops = FEATURE_OPS[key];
+                                          const allEnabled = {};
+                                          ops.forEach(op => allEnabled[op] = true);
+                                          setEditStaffForm(f => ({
+                                            ...f,
+                                            pageAccess: { ...f.pageAccess, [key]: isEnabled ? false : allEnabled }
+                                          }));
+                                        } else {
+                                          setEditStaffForm(f => ({
+                                            ...f,
+                                            pageAccess: { ...f.pageAccess, [key]: !isEnabled }
+                                          }));
+                                        }
+                                      }}
+                                      style={{
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                        padding: '9px 14px', cursor: 'pointer',
+                                        backgroundColor: isEnabled ? '#f0fdf4' : 'transparent',
+                                        transition: 'background-color 0.1s'
+                                      }}
+                                      onMouseEnter={(e) => { if (!isEnabled) e.currentTarget.style.backgroundColor = '#f9fafb'; }}
+                                      onMouseLeave={(e) => { if (!isEnabled) e.currentTarget.style.backgroundColor = 'transparent'; else e.currentTarget.style.backgroundColor = '#f0fdf4'; }}
+                                    >
+                                      <span style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>{label}</span>
+                                      {isEnabled && <FaCheck size={12} style={{ color: '#22c55e' }} />}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })}
+                          {PAGE_ACCESS_CONFIG.filter(p => p.label.toLowerCase().includes(editPermSearch.toLowerCase())).length === 0 && (
+                            <div style={{ padding: '16px', textAlign: 'center', fontSize: '13px', color: '#9ca3af' }}>No matching permissions</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Enabled permission chips */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                      {PAGE_ACCESS_CONFIG.filter(({ key }) => {
                         const hasGranular = !!FEATURE_OPS[key];
-                        const isChecked = hasGranular
+                        return hasGranular
                           ? (typeof editStaffForm.pageAccess[key] === 'object'
                             ? Object.values(editStaffForm.pageAccess[key]).some(Boolean)
                             : !!editStaffForm.pageAccess[key])
                           : !!editStaffForm.pageAccess[key];
-                        return (
-                          <div key={key} style={{ gridColumn: hasGranular && isChecked ? '1 / -1' : undefined }}>
-                            <label style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                              cursor: 'pointer',
-                              padding: '8px',
-                              borderRadius: '8px',
-                              backgroundColor: isChecked ? '#dcfce7' : 'white',
-                              border: `1px solid ${isChecked ? '#10b981' : '#e5e7eb'}`,
-                              transition: 'all 0.2s'
-                            }}>
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={(e) => {
-                                  if (hasGranular) {
-                                    const ops = FEATURE_OPS[key];
-                                    const allEnabled = {};
-                                    ops.forEach(op => allEnabled[op] = true);
-                                    setEditStaffForm(f => ({
-                                      ...f,
-                                      pageAccess: {
-                                        ...f.pageAccess,
-                                        [key]: e.target.checked ? allEnabled : false
-                                      }
-                                    }));
-                                  } else {
-                                    setEditStaffForm(f => ({
-                                      ...f,
-                                      pageAccess: {
-                                        ...f.pageAccess,
-                                        [key]: e.target.checked
-                                      }
-                                    }));
-                                  }
-                                }}
-                                style={{ margin: 0 }}
-                              />
-                              <span style={{ fontSize: '16px' }}>{icon}</span>
-                              <span style={{
-                                fontSize: '13px',
-                                fontWeight: '500',
-                                color: isChecked ? '#059669' : '#374151'
-                              }}>
-                                {label}
-                              </span>
-                            </label>
-                            {hasGranular && typeof editStaffForm.pageAccess[key] === 'object' && (
-                              <div style={{
-                                display: 'flex',
-                                flexWrap: 'wrap',
-                                gap: '8px',
-                                marginTop: '8px',
-                                marginLeft: '16px',
-                                padding: '10px',
-                                backgroundColor: '#f0fdf4',
-                                borderRadius: '8px',
-                                border: '1px solid #bbf7d0'
-                              }}>
-                                {FEATURE_OPS[key].map(op => (
-                                  <label key={op} style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    cursor: 'pointer',
-                                    padding: '6px 8px',
-                                    borderRadius: '6px',
-                                    backgroundColor: editStaffForm.pageAccess[key][op] ? '#dcfce7' : 'white',
-                                    border: `1px solid ${editStaffForm.pageAccess[key][op] ? '#10b981' : '#e5e7eb'}`,
-                                    transition: 'all 0.2s'
-                                  }}>
-                                    <input
-                                      type="checkbox"
-                                      checked={!!editStaffForm.pageAccess[key][op]}
-                                      onChange={(e) => {
-                                        const updated = {
-                                          ...editStaffForm.pageAccess[key],
-                                          [op]: e.target.checked
-                                        };
-                                        const anyChecked = Object.values(updated).some(Boolean);
-                                        setEditStaffForm(f => ({
-                                          ...f,
-                                          pageAccess: {
-                                            ...f.pageAccess,
-                                            [key]: anyChecked ? updated : false
-                                          }
-                                        }));
-                                      }}
-                                      style={{ margin: 0 }}
-                                    />
-                                    <span style={{
-                                      fontSize: '12px',
-                                      fontWeight: '500',
-                                      color: editStaffForm.pageAccess[key][op] ? '#059669' : '#374151'
-                                    }}>
-                                      {key === 'admin' ? (ADMIN_TAB_LABELS[op] || op) : (OP_LABELS[op] || op)}
-                                    </span>
-                                  </label>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                      }).map(({ key, label }) => (
+                        <span key={key} style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '6px',
+                          padding: '5px 12px', borderRadius: '20px',
+                          backgroundColor: '#dcfce7', border: '1px solid #bbf7d0',
+                          fontSize: '12px', fontWeight: '500', color: '#166534'
+                        }}>
+                          {label}
+                          <FaTimes
+                            size={10}
+                            style={{ cursor: 'pointer', color: '#16a34a' }}
+                            onClick={() => {
+                              setEditStaffForm(f => ({
+                                ...f,
+                                pageAccess: { ...f.pageAccess, [key]: false }
+                              }));
+                            }}
+                          />
+                        </span>
+                      ))}
+                      {PAGE_ACCESS_CONFIG.filter(({ key }) => {
+                        const hasGranular = !!FEATURE_OPS[key];
+                        return hasGranular
+                          ? (typeof editStaffForm.pageAccess[key] === 'object'
+                            ? Object.values(editStaffForm.pageAccess[key]).some(Boolean)
+                            : !!editStaffForm.pageAccess[key])
+                          : !!editStaffForm.pageAccess[key];
+                      }).length === 0 && (
+                        <span style={{ fontSize: '12px', color: '#9ca3af', fontStyle: 'italic' }}>No permissions selected. Use the search above to add.</span>
+                      )}
                     </div>
-                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '8px 0 0 0' }}>
+
+                    {/* Granular sub-operations for features with FEATURE_OPS */}
+                    {PAGE_ACCESS_CONFIG.filter(({ key }) => {
+                      return !!FEATURE_OPS[key] && typeof editStaffForm.pageAccess[key] === 'object' && Object.values(editStaffForm.pageAccess[key]).some(Boolean);
+                    }).map(({ key, label }) => (
+                      <div key={key} style={{
+                        marginBottom: '10px', padding: '10px 12px',
+                        backgroundColor: '#f0fdf4', borderRadius: '10px',
+                        border: '1px solid #dcfce7'
+                      }}>
+                        <div style={{ fontSize: '12px', fontWeight: '600', color: '#166534', marginBottom: '8px' }}>
+                          {label} operations
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          {FEATURE_OPS[key].map(op => {
+                            const isOn = !!editStaffForm.pageAccess[key]?.[op];
+                            return (
+                              <span
+                                key={op}
+                                onClick={() => {
+                                  const updated = { ...editStaffForm.pageAccess[key], [op]: !isOn };
+                                  const anyChecked = Object.values(updated).some(Boolean);
+                                  setEditStaffForm(f => ({
+                                    ...f,
+                                    pageAccess: { ...f.pageAccess, [key]: anyChecked ? updated : false }
+                                  }));
+                                }}
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                  padding: '4px 10px', borderRadius: '20px', cursor: 'pointer',
+                                  fontSize: '11px', fontWeight: '500', userSelect: 'none',
+                                  backgroundColor: isOn ? '#dcfce7' : '#f3f4f6',
+                                  color: isOn ? '#166534' : '#6b7280',
+                                  border: `1px solid ${isOn ? '#86efac' : '#e5e7eb'}`,
+                                  transition: 'all 0.15s'
+                                }}
+                              >
+                                {isOn && <FaCheck size={8} />}
+                                {key === 'admin' ? (ADMIN_TAB_LABELS[op] || op) : (OP_LABELS[op] || op)}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+
+                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '0' }}>
                       Toggle features and granular operations this staff member can access.
                     </p>
                   </div>

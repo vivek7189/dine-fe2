@@ -29,6 +29,7 @@ function getDetailedBillCSS(scaleOrPreset, fontId, printerWidth) {
 
 export function render(invoice, printSettings = {}, labels = {}) {
   const L = getBillLabels(labels);
+  const bl = printSettings?.billLayout || {};
   const cs = invoice.currencySymbol || '₹';
   const items = invoice.items || [];
   const { combined: dateStr, timeStr, dateStr: justDate } = formatDateTime();
@@ -82,7 +83,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
 
   // Tax
   const showIncl = invoice.showInclusiveTaxOnBill !== false;
-  const taxRows = (invoice.taxBreakdown || []).filter(tax => !tax.inclusive || showIncl).map(tax =>
+  const taxRows = bl.showTaxBreakdown === false ? '' : (invoice.taxBreakdown || []).filter(tax => !tax.inclusive || showIncl).map(tax =>
     `<div class="row"><span>${tax.name} (${tax.rate}%)${tax.inclusive ? ' (incl.)' : ''}:</span><span>${cs}${(tax.amount || 0).toFixed(2)}</span></div>`
   ).join('');
   const inclusiveNote = buildInclusiveTaxNote(invoice);
@@ -93,7 +94,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
   const deliveryHtml = buildDeliveryAddressHtml(invoice);
   const grandTotal = calcGrandTotal(invoice);
 
-  const identityHtml = buildIdentityHtml(invoice);
+  const identityHtml = buildIdentityHtml(invoice, printSettings);
   const receiptLogo = printSettings.receiptLogo || null;
   const css = getDetailedBillCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily, printSettings.printerWidth);
 
@@ -107,12 +108,13 @@ export function render(invoice, printSettings = {}, labels = {}) {
     `<div class="receipt-title">*** ${L.billTitle} ***</div>` +
     // Cashier + date on one line
     `<div class="info-line">` +
-      (waiterInfo ? `<span>${esc(waiterInfo)}</span>` : `<span>#${invoice.dailyOrderId || invoice.id || 'N/A'}</span>`) +
+      (bl.showWaiter !== false && waiterInfo ? `<span>${esc(waiterInfo)}</span>` : `<span>#${invoice.dailyOrderId || invoice.id || 'N/A'}</span>`) +
       `<span>${justDate} - ${timeStr}</span>` +
     `</div>` +
-    (invoice.tableNumber ? `<div class="info-line"><span>${L.table}: ${invoice.tableNumber}${invoice.floorName ? ` · ${invoice.floorName}` : ''}</span><span>${(invoice.paymentMethod || 'CASH').toUpperCase()}</span></div>` : '') +
-    (invoice.customerName ? `<div class="info-line"><span>${L.customer}: ${esc(invoice.customerName)}</span></div>` : '') +
-    (waiterInfo ? `<div class="info-line"><span>#${invoice.dailyOrderId || invoice.id || 'N/A'}</span></div>` : '') +
+    (bl.showTable !== false && invoice.tableNumber ? `<div class="info-line"><span>${L.table}: ${invoice.tableNumber}${invoice.floorName ? ` · ${invoice.floorName}` : ''}</span>${bl.showPayment !== false ? `<span>${(invoice.paymentMethod || 'CASH').toUpperCase()}</span>` : ''}</div>` : '') +
+    (bl.showCustomer !== false && invoice.customerName ? `<div class="info-line"><span>${L.customer}: ${esc(invoice.customerName)}</span></div>` : '') +
+    (bl.showOrderType !== false && invoice.orderType ? `<div class="info-line"><span>Type: ${invoice.orderType}</span></div>` : '') +
+    (bl.showWaiter !== false && waiterInfo ? `<div class="info-line"><span>#${invoice.dailyOrderId || invoice.id || 'N/A'}</span></div>` : '') +
     deliveryHtml +
     `<div class="divider">- - - - - - - - - - - - - - - - -</div>` +
     // Items
@@ -120,7 +122,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
     `<div class="divider">- - - - - - - - - - - - - - - - -</div>` +
     // Totals section
     `<div class="total-section">` +
-      `<div class="row" style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.subtotal}:</span><span>${cs}${(invoice.subtotal || 0).toFixed(2)}</span></div>` +
+      (bl.showSubtotal !== false ? `<div class="row" style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.subtotal}:</span><span>${cs}${(invoice.subtotal || 0).toFixed(2)}</span></div>` : '') +
       discountRows +
       taxRows +
       chargesHtml +
@@ -135,7 +137,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
     `<div class="divider">- - - - - - - - - - - - - - - - -</div>` +
     buildFeedbackSection(printSettings) +
     // Footer
-    `<div class="bill-footer"><p style="font-weight:bold;text-transform:uppercase;">${L.footer}</p><p style="font-size:10px;margin-top:4px;">${L.poweredBy}</p></div>` +
+    `<div class="bill-footer">${bl.showFooter !== false ? `<p style="font-weight:bold;text-transform:uppercase;">${L.footer}</p>` : ''}${bl.showPoweredBy !== false ? `<p style="font-size:10px;margin-top:4px;">${L.poweredBy}</p>` : ''}</div>` +
     `<div class="divider">- - - - - - - - - - - - - - - - -</div>`;
 
   return wrapInDocument(`${L.billLabel} #${invoice.dailyOrderId || invoice.id || 'N/A'}`, css, bodyHtml);

@@ -28,6 +28,7 @@ function getMinimalBillCSS(scaleOrPreset, printerWidth) {
 
 export function render(invoice, printSettings = {}, labels = {}) {
   const L = getBillLabels(labels);
+  const bl = printSettings?.billLayout || {};
   const cs = invoice.currencySymbol || '₹';
   const items = invoice.items || [];
   const { combined: dateStr } = formatDateTime();
@@ -59,7 +60,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
 
   // Tax
   const showIncl = invoice.showInclusiveTaxOnBill !== false;
-  const taxRows = (invoice.taxBreakdown || []).filter(tax => !tax.inclusive || showIncl).map(tax =>
+  const taxRows = bl.showTaxBreakdown === false ? '' : (invoice.taxBreakdown || []).filter(tax => !tax.inclusive || showIncl).map(tax =>
     `<div class="row" style="display:flex;justify-content:space-between;margin:3px 0;"><span>${tax.name} (${tax.rate}%)${tax.inclusive ? ' (incl.)' : ''}:</span><span>${cs}${(tax.amount || 0).toFixed(2)}</span></div>`
   ).join('');
   const inclusiveNote = buildInclusiveTaxNote(invoice);
@@ -69,7 +70,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
   const ecrHtml = buildEcrPaymentHtml(invoice);
   const deliveryHtml = buildDeliveryAddressHtml(invoice);
   const grandTotal = calcGrandTotal(invoice);
-  const identityHtml = buildIdentityHtml(invoice);
+  const identityHtml = buildIdentityHtml(invoice, printSettings);
 
   const css = getMinimalBillCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.printerWidth);
 
@@ -84,8 +85,10 @@ export function render(invoice, printSettings = {}, labels = {}) {
     // Meta info
     `<div class="meta">` +
       `<div class="meta-row"><span>${L.billLabel}# ${invoice.dailyOrderId || invoice.id || 'N/A'}</span><span>${dateStr}</span></div>` +
-      (invoice.tableNumber ? `<div class="meta-row"><span>${L.table} ${invoice.tableNumber}${invoice.floorName ? ` · ${invoice.floorName}` : ''}</span><span>${(invoice.paymentMethod || 'CASH').toUpperCase()}</span></div>` : `<div class="meta-row"><span>${L.payment}: ${(invoice.paymentMethod || 'CASH').toUpperCase()}</span></div>`) +
-      (invoice.customerName ? `<div class="meta-row"><span>${esc(invoice.customerName)}</span></div>` : '') +
+      (bl.showTable !== false && invoice.tableNumber ? `<div class="meta-row"><span>${L.table} ${invoice.tableNumber}${invoice.floorName ? ` · ${invoice.floorName}` : ''}</span>${bl.showPayment !== false ? `<span>${(invoice.paymentMethod || 'CASH').toUpperCase()}</span>` : ''}</div>` : (bl.showPayment !== false ? `<div class="meta-row"><span>${L.payment}: ${(invoice.paymentMethod || 'CASH').toUpperCase()}</span></div>` : '')) +
+      (bl.showWaiter !== false && (invoice.waiterName || invoice.cashierName) ? `<div class="meta-row"><span>Staff: ${esc(invoice.waiterName || invoice.cashierName)}</span></div>` : '') +
+      (bl.showCustomer !== false && invoice.customerName ? `<div class="meta-row"><span>${esc(invoice.customerName)}</span></div>` : '') +
+      (bl.showOrderType !== false && invoice.orderType ? `<div class="meta-row"><span>Type: ${invoice.orderType}</span></div>` : '') +
     `</div>` +
     deliveryHtml +
     `<div class="spacer"></div>` +
@@ -94,7 +97,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
     `<div class="spacer"></div>` +
     // Totals
     `<div class="total-section">` +
-      `<div class="row" style="display:flex;justify-content:space-between;margin:3px 0;"><span>${L.subtotal}:</span><span>${cs}${(invoice.subtotal || 0).toFixed(2)}</span></div>` +
+      (bl.showSubtotal !== false ? `<div class="row" style="display:flex;justify-content:space-between;margin:3px 0;"><span>${L.subtotal}:</span><span>${cs}${(invoice.subtotal || 0).toFixed(2)}</span></div>` : '') +
       discountRows +
       taxRows +
       chargesHtml +
@@ -105,7 +108,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
     `</div>` +
     buildFeedbackSection(printSettings) +
     // Footer
-    `<div class="footer"><p>${L.footer}</p><p style="margin-top:4px;">${L.poweredBy}</p></div>`;
+    `<div class="footer">${bl.showFooter !== false ? `<p>${L.footer}</p>` : ''}${bl.showPoweredBy !== false ? `<p style="margin-top:4px;">${L.poweredBy}</p>` : ''}</div>`;
 
   return wrapInDocument(`${L.billLabel} #${invoice.dailyOrderId || invoice.id || 'N/A'}`, css, bodyHtml);
 }

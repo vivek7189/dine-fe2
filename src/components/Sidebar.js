@@ -43,6 +43,7 @@ import { t } from '../lib/i18n';
 import { performLogout } from '../lib/logout';
 import { useLoading } from '../contexts/LoadingContext';
 import { isElectron } from '../utils/platform';
+import { NAV_ID_TO_ACCESS_KEY } from '../lib/pageAccessConfig';
 
 export default function Sidebar({ isDashboardPage = false }) {
   const pathname = usePathname();
@@ -306,32 +307,7 @@ export default function Sidebar({ isDashboardPage = false }) {
 
     // All other roles (manager, employee, cashier, sales, custom) — pageAccess is the authority
     if (pageAccess) {
-      const accessMap = {
-        'pos': 'dashboard',
-        'orders': 'history',
-        'tables': 'tables',
-        'customers': 'customers',
-        'menu': 'menu',
-        'inventory': 'inventory',
-        'kot': 'kot',
-        'admin': 'admin',
-        'hotel': 'hotel',
-        'invoice': 'invoice',
-        'billing': 'completeBill',
-        'books': 'admin',
-        'dineai': 'analytics',
-        'phone-agent': 'analytics',
-        'whatsapp-ordering': 'analytics',
-        'social-media': 'analytics',
-        'shifts': 'admin',
-        'register': 'completeBill',
-        'attendance': 'admin',
-        'google-reviews': 'admin',
-        'spaces': 'admin',
-        'parking': 'parking',
-        'bookings': 'bookings',
-      };
-      const accessKey = accessMap[item.id];
+      const accessKey = NAV_ID_TO_ACCESS_KEY[item.id];
       if (!accessKey) return true; // no access mapping = always visible (e.g. home, profile)
       const accessValue = pageAccess[accessKey];
       if (typeof accessValue === 'object' && accessValue !== null) {

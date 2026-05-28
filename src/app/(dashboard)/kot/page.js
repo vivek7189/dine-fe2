@@ -4,7 +4,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 // import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
-import { database } from '../../../../firebase';
+import { signInWithCustomToken } from 'firebase/auth';
+import { database, auth } from '../../../../firebase';
 import {
   FaPrint,
   FaClock,
@@ -314,6 +315,29 @@ const KitchenOrderTicket = () => {
     loadKotData(true, true);
   }, [loadKotData]);
 
+  // ─── Firebase Auth Bootstrap (for staff users who logged in via JWT) ───
+  const [firebaseAuthReady, setFirebaseAuthReady] = useState(false);
+  useEffect(() => {
+    if (!auth) { setFirebaseAuthReady(true); return; }
+    // If already signed in (owner/admin via phone/Google), we're good
+    if (auth.currentUser) { setFirebaseAuthReady(true); return; }
+    // Staff users need a Firebase custom token for RTDB access
+    const bootstrapFirebaseAuth = async () => {
+      try {
+        const res = await apiClient.get('/api/auth/firebase-token');
+        if (res?.firebaseCustomToken) {
+          await signInWithCustomToken(auth, res.firebaseCustomToken);
+          console.log('🔑 KOT: Staff signed into Firebase Auth for RTDB');
+        }
+      } catch (err) {
+        console.warn('🔑 KOT: Firebase Auth bootstrap failed (will retry on refresh):', err.message);
+      } finally {
+        setFirebaseAuthReady(true);
+      }
+    };
+    bootstrapFirebaseAuth();
+  }, []);
+
   // ─── Firebase RTDB Subscription (replaces Pusher) ───
   const [rtdbRestaurantId, setRtdbRestaurantId] = useState(() => {
     if (typeof window === 'undefined') return null;
@@ -327,12 +351,12 @@ const KitchenOrderTicket = () => {
   });
 
   useEffect(() => {
-    if (!rtdbRestaurantId || !database) return;
+    if (!rtdbRestaurantId || !database || !firebaseAuthReady) return;
 
     const now = Date.now();
     setIsPollingActive(true);
 
-    console.log(`📡 KOT RTDB: Subscribed to events/${rtdbRestaurantId}/orders`);
+    console.log(`📡 KOT RTDB: Subscribed to events/${rtdbRestaurantId}/orders (auth: ${auth?.currentUser ? 'yes' : 'no'})`);
 
     // Debounce — if multiple events arrive within 1s, only fetch once
     let debounceTimer = null;
@@ -367,7 +391,10 @@ const KitchenOrderTicket = () => {
         handleOrderEvent(data.type, data);
       }
     };
-    onChildAdded(ordersRef, handleSnapshot);
+    onChildAdded(ordersRef, handleSnapshot, (error) => {
+      console.error(`📡 KOT RTDB: Subscription error on events/${rtdbRestaurantId}/orders:`, error.message);
+      setIsPollingActive(false);
+    });
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
@@ -375,7 +402,7 @@ const KitchenOrderTicket = () => {
       off(ordersRef, 'child_added', handleSnapshot);
       setIsPollingActive(false);
     };
-  }, [rtdbRestaurantId]);
+  }, [rtdbRestaurantId, firebaseAuthReady]);
 
   // ─── Restaurant Change ───
   useEffect(() => {

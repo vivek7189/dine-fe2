@@ -90,6 +90,7 @@ export default function Footer() {
     { name: 'Security', href: '/security' },
     { name: 'Contact Us', href: '/contact' },
     { name: 'India', href: '/india' },
+    { name: 'Qatar', href: '/qatar' },
     { name: 'POS Locations', href: '/pos' },
     { name: 'Restaurant POS India', href: '/restaurant-pos-software-india' },
     { name: 'Razorpay Integration', href: '/integrations/razorpay' },

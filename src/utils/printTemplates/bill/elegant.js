@@ -29,11 +29,12 @@ function getElegantBillCSS(scaleOrPreset, printerWidth) {
 
 export function render(invoice, printSettings = {}, labels = {}) {
   const L = getBillLabels(labels);
+  const bl = printSettings?.billLayout || {};
   const cs = invoice.currencySymbol || '₹';
   const items = invoice.items || [];
 
   const itemsHtml = buildBillItemRows(items, cs);
-  const taxHtml = buildTaxHtml(invoice.taxBreakdown, cs, { showInclusiveTax: invoice.showInclusiveTaxOnBill !== false });
+  const taxHtml = buildTaxHtml(invoice.taxBreakdown, cs, { showInclusiveTax: invoice.showInclusiveTaxOnBill !== false }, printSettings);
   const inclusiveNote = buildInclusiveTaxNote(invoice);
   const discountHtml = buildDiscountHtml(invoice, L, cs);
   const chargesHtml = buildChargesHtml(invoice, L, cs);
@@ -42,7 +43,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
   const deliveryHtml = buildDeliveryAddressHtml(invoice);
   const grandTotal = calcGrandTotal(invoice);
 
-  const identityHtml = buildIdentityHtml(invoice);
+  const identityHtml = buildIdentityHtml(invoice, printSettings);
   const receiptLogo = printSettings.receiptLogo || null;
   const headerHtml = getBillHeaderHTML(esc(invoice.restaurantName || 'Restaurant'), identityHtml, receiptLogo, `~ ${L.billTitle} ~`);
   const { combined: dateStr } = formatDateTime();
@@ -55,15 +56,17 @@ export function render(invoice, printSettings = {}, labels = {}) {
     `<div class="bill-info">` +
       `<div><span>${L.billLabel}#:</span><span><strong>${invoice.dailyOrderId || invoice.id || 'N/A'}</strong></span></div>` +
       `<div><span>${L.date}:</span><span>${dateStr}</span></div>` +
-      (invoice.tableNumber ? `<div><span>${L.table}:</span><span>${invoice.tableNumber}${invoice.floorName ? ` · ${invoice.floorName}` : ''}</span></div>` : '') +
-      (invoice.customerName ? `<div><span>${L.customer}:</span><span>${esc(invoice.customerName)}</span></div>` : '') +
-      `<div><span>${L.payment}:</span><span>${(invoice.paymentMethod || 'CASH').toUpperCase()}</span></div>` +
+      (bl.showTable !== false && invoice.tableNumber ? `<div><span>${L.table}:</span><span>${invoice.tableNumber}${invoice.floorName ? ` · ${invoice.floorName}` : ''}</span></div>` : '') +
+      (bl.showWaiter !== false && (invoice.waiterName || invoice.cashierName) ? `<div><span>Staff:</span><span>${esc(invoice.waiterName || invoice.cashierName)}</span></div>` : '') +
+      (bl.showCustomer !== false && invoice.customerName ? `<div><span>${L.customer}:</span><span>${esc(invoice.customerName)}</span></div>` : '') +
+      (bl.showOrderType !== false && invoice.orderType ? `<div><span>Type:</span><span>${invoice.orderType}</span></div>` : '') +
+      (bl.showPayment !== false ? `<div><span>${L.payment}:</span><span>${(invoice.paymentMethod || 'CASH').toUpperCase()}</span></div>` : '') +
     `</div>` +
     deliveryHtml +
     `<div class="divider">════════════════════════════</div>` +
     `<table><thead><tr><th style="text-align:left;width:52%;">${L.itemCol}</th><th style="text-align:center;width:10%;">${L.qtyCol}</th><th style="text-align:right;width:38%;">${L.amt}</th></tr></thead><tbody>${itemsHtml}</tbody></table>` +
     `<div class="total-section">` +
-      `<div class="bill-info"><div><span>${L.subtotal}:</span><span>${cs}${(invoice.subtotal || 0).toFixed(2)}</span></div>${discountHtml}</div>` +
+      `<div class="bill-info">${bl.showSubtotal !== false ? `<div><span>${L.subtotal}:</span><span>${cs}${(invoice.subtotal || 0).toFixed(2)}</span></div>` : ''}${discountHtml}</div>` +
       (taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : '') +
       chargesHtml +
       `<div class="total-row"><span>${L.total}:</span><span>${cs}${grandTotal.toFixed(2)}</span></div>` +
@@ -73,7 +76,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
     `</div>` +
     `<div class="divider">════════════════════════════</div>` +
     buildFeedbackSection(printSettings) +
-    `<div class="bill-footer"><p>${L.footer}</p><p style="font-size:10px;margin-top:6px;">${L.poweredBy}</p></div>`;
+    `<div class="bill-footer">${bl.showFooter !== false ? `<p>${L.footer}</p>` : ''}${bl.showPoweredBy !== false ? `<p style="font-size:10px;margin-top:6px;">${L.poweredBy}</p>` : ''}</div>`;
 
   return wrapInDocument(`${L.billLabel} #${invoice.dailyOrderId || invoice.id || 'N/A'}`, css, bodyHtml);
 }
