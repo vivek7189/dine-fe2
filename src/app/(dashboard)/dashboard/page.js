@@ -2214,26 +2214,39 @@ function RestaurantPOSContent() {
   });
 
   // Firebase Auth bootstrap for staff users (needed for RTDB security rules)
+  const [firebaseAuthReady, setFirebaseAuthReady] = useState(false);
   useEffect(() => {
-    if (!auth || auth.currentUser) return;
+    if (!auth) { setFirebaseAuthReady(true); return; }
+    // Owner/admin already signed in via phone OTP / Google
+    if (auth.currentUser) { setFirebaseAuthReady(true); return; }
     const userData = localStorage.getItem('user');
-    if (!userData) return;
+    if (!userData) { setFirebaseAuthReady(true); return; }
     const user = JSON.parse(userData);
-    if (!['waiter', 'manager', 'employee', 'cashier'].includes(user.role)) return;
+    const role = (user.role || '').toLowerCase();
+    if (!['waiter', 'manager', 'employee', 'cashier', 'kitchen'].includes(role)) {
+      setFirebaseAuthReady(true);
+      return;
+    }
     // Staff user without Firebase Auth — get a custom token
-    apiClient.get('/api/auth/firebase-token')
-      .then(res => {
+    const bootstrapFirebaseAuth = async () => {
+      try {
+        const res = await apiClient.get('/api/auth/firebase-token');
         if (res?.firebaseCustomToken) {
-          return signInWithCustomToken(auth, res.firebaseCustomToken);
+          await signInWithCustomToken(auth, res.firebaseCustomToken);
+          console.log('🔑 Dashboard: Staff signed into Firebase Auth for RTDB');
         }
-      })
-      .then(() => console.log('🔑 Dashboard: Staff signed into Firebase Auth for RTDB'))
-      .catch(err => console.warn('🔑 Dashboard: Firebase Auth bootstrap failed:', err.message));
+      } catch (err) {
+        console.warn('🔑 Dashboard: Firebase Auth bootstrap failed:', err.message);
+      } finally {
+        setFirebaseAuthReady(true);
+      }
+    };
+    bootstrapFirebaseAuth();
   }, []);
 
   // Firebase RTDB subscription for real-time updates (replaces Pusher)
   useEffect(() => {
-    if (!selectedRestaurant?.id || !database) return;
+    if (!selectedRestaurant?.id || !database || !firebaseAuthReady) return;
 
     const restaurantId = selectedRestaurant.id;
     const now = Date.now();
@@ -2346,7 +2359,7 @@ function RestaurantPOSContent() {
       off(tablesRef, 'child_added', handleTableEvent);
       off(menuRef, 'child_added', handleMenuEvent);
     };
-  }, [selectedRestaurant?.id]); // Only re-subscribe when restaurant changes
+  }, [selectedRestaurant?.id, firebaseAuthReady]); // Re-subscribe when restaurant changes or auth becomes ready
 
   // Reset UI state for fresh order — must mirror the orderSuccess reset path
   // to prevent stale state leaking between orders in long-running sessions.

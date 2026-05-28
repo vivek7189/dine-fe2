@@ -183,9 +183,10 @@ const KitchenOrderTicket = () => {
       const user = JSON.parse(userData);
       let restaurantId = null;
 
-      if (user.restaurantId && ['waiter', 'manager', 'employee', 'cashier'].includes(user.role)) {
+      const userRole = (user.role || '').toLowerCase();
+      if (user.restaurantId && ['waiter', 'manager', 'employee', 'cashier', 'kitchen'].includes(userRole)) {
         restaurantId = user.restaurantId;
-      } else if (user.role === 'owner' || user.role === 'admin') {
+      } else if (userRole === 'owner' || userRole === 'admin') {
         try {
           const restaurants = await apiClient.getRestaurants();
           if (!restaurants.restaurants || restaurants.restaurants.length === 0) {
@@ -344,7 +345,8 @@ const KitchenOrderTicket = () => {
     const userData = localStorage.getItem('user');
     if (!userData) return null;
     const user = JSON.parse(userData);
-    if (user.restaurantId && ['waiter', 'manager', 'employee', 'cashier'].includes(user.role)) {
+    const role = (user.role || '').toLowerCase();
+    if (user.restaurantId && ['waiter', 'manager', 'employee', 'cashier', 'kitchen'].includes(role)) {
       return user.restaurantId;
     }
     return localStorage.getItem('selectedRestaurantId') || null;

@@ -30,6 +30,10 @@ import {
   FaStore,
   FaCheck,
   FaTimes,
+  FaListOl,
+  FaSortAmountDown,
+  FaSortAmountUp,
+  FaSearch,
 } from 'react-icons/fa';
 import apiClient from '../../../../lib/api';
 
@@ -56,6 +60,7 @@ const REPORT_TYPES = {
   ORDER_ANALYTICS: 'order-analytics',
   REVENUE_TRENDS: 'revenue-trends',
   WALLET_LOYALTY: 'wallet-loyalty',
+  ITEM_SALES: 'item-sales',
 };
 
 const getDefaultStartDate = () => {
@@ -794,6 +799,153 @@ const MenuPerformanceView = ({ data, outlets, formatCurrency }) => {
               );
             })}
           </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+// ---- Item-wise Sales View ----
+const ItemSalesView = ({ data, formatCurrency }) => {
+  const [sortBy, setSortBy] = useState('quantity');
+  const [sortDir, setSortDir] = useState('desc');
+  const [search, setSearch] = useState('');
+
+  const rawItems = data?.items || data?.breakdown || [];
+  if (!rawItems.length) return <EmptyState message="No item sales data available." />;
+
+  // Filter + sort
+  let items = [...rawItems];
+  if (search) {
+    const term = search.toLowerCase();
+    items = items.filter(i => (i.itemName || i.name || '').toLowerCase().includes(term));
+  }
+  items.sort((a, b) => {
+    let cmp = 0;
+    const aQty = a.totalSalesCount || a.totalSales || a.quantity || 0;
+    const bQty = b.totalSalesCount || b.totalSales || b.quantity || 0;
+    const aRev = a.totalRevenue || a.revenue || 0;
+    const bRev = b.totalRevenue || b.revenue || 0;
+    if (sortBy === 'quantity') cmp = aQty - bQty;
+    else if (sortBy === 'revenue') cmp = aRev - bRev;
+    else cmp = (a.itemName || a.name || '').localeCompare(b.itemName || b.name || '');
+    return sortDir === 'desc' ? -cmp : cmp;
+  });
+
+  const totalQty = items.reduce((s, i) => s + (i.totalSalesCount || i.totalSales || i.quantity || 0), 0);
+  const totalRev = items.reduce((s, i) => s + (i.totalRevenue || i.revenue || 0), 0);
+
+  const toggleSort = (field) => {
+    if (sortBy === field) setSortDir(d => d === 'desc' ? 'asc' : 'desc');
+    else { setSortBy(field); setSortDir('desc'); }
+  };
+
+  const SortIcon = ({ field }) => {
+    if (sortBy !== field) return null;
+    return sortDir === 'desc' ? <FaSortAmountDown style={{ fontSize: '10px' }} /> : <FaSortAmountUp style={{ fontSize: '10px' }} />;
+  };
+
+  return (
+    <div>
+      <div style={styles.summaryGrid}>
+        <SummaryCard label="Total Items" value={rawItems.length} color="#3b82f6" />
+        <SummaryCard label="Total Qty Sold" value={totalQty.toLocaleString()} color="#8b5cf6" />
+        <SummaryCard label="Total Revenue" value={formatCurrency(totalRev)} color="#16a34a" />
+        <SummaryCard label="Avg per Item" value={formatCurrency(items.length > 0 ? totalRev / items.length : 0)} color="#d97706" />
+      </div>
+
+      {/* Search */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+        <div style={{ position: 'relative' }}>
+          <FaSearch style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: '12px' }} />
+          <input
+            type="text"
+            placeholder="Search items..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ paddingLeft: '32px', paddingRight: '12px', paddingTop: '7px', paddingBottom: '7px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', width: '200px', outline: 'none' }}
+          />
+        </div>
+      </div>
+
+      <div style={styles.tableWrap}>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={{ ...styles.th, width: '50px' }}>#</th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => toggleSort('name')}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Item <SortIcon field="name" /></span>
+              </th>
+              <th style={{ ...styles.th, textAlign: 'center', cursor: 'pointer' }} onClick={() => toggleSort('quantity')}>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>Qty <SortIcon field="quantity" /></span>
+              </th>
+              <th style={{ ...styles.th, textAlign: 'right', cursor: 'pointer' }} onClick={() => toggleSort('revenue')}>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>Revenue <SortIcon field="revenue" /></span>
+              </th>
+              <th style={{ ...styles.th, textAlign: 'right' }}>% of Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item, idx) => {
+              const name = item.itemName || item.name || '-';
+              const qty = item.totalSalesCount || item.totalSales || item.quantity || 0;
+              const rev = item.totalRevenue || item.revenue || 0;
+              const revPct = totalRev > 0 ? ((rev / totalRev) * 100) : 0;
+              const isTop3 = idx < 3 && sortBy === 'quantity' && sortDir === 'desc';
+              return (
+                <tr key={idx}>
+                  <td style={styles.td(idx % 2 === 0)}>
+                    <span style={{ fontWeight: '600', color: '#9ca3af' }}>{idx + 1}</span>
+                  </td>
+                  <td style={styles.td(idx % 2 === 0)}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {isTop3 && (
+                        <span style={{
+                          fontSize: '10px', fontWeight: '700', padding: '1px 6px', borderRadius: '4px',
+                          background: idx === 0 ? '#fef9c3' : idx === 1 ? '#f1f5f9' : '#fff7ed',
+                          color: idx === 0 ? '#a16207' : idx === 1 ? '#64748b' : '#c2410c'
+                        }}>
+                          {idx === 0 ? '1st' : idx === 1 ? '2nd' : '3rd'}
+                        </span>
+                      )}
+                      <span style={{ fontWeight: '600' }}>{name}</span>
+                    </div>
+                  </td>
+                  <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'center' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#eff6ff', color: '#1d4ed8', fontWeight: '700', fontSize: '13px', padding: '2px 10px', borderRadius: '12px', minWidth: '36px' }}>
+                      {qty}
+                    </span>
+                  </td>
+                  <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right', fontWeight: '600', color: '#16a34a' }}>
+                    {formatCurrency(rev)}
+                  </td>
+                  <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+                      <div style={{ width: '50px', height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.min(revPct, 100)}%`, height: '100%', background: '#f43f5e', borderRadius: '3px' }} />
+                      </div>
+                      <span style={{ fontSize: '12px', color: '#6b7280' }}>{revPct.toFixed(1)}%</span>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr style={{ background: '#f8fafc', borderTop: '2px solid #e2e8f0' }}>
+              <td style={{ ...styles.td(false), background: 'transparent' }}></td>
+              <td style={{ ...styles.td(false), background: 'transparent', fontWeight: '700' }}>Total</td>
+              <td style={{ ...styles.td(false), background: 'transparent', textAlign: 'center' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#dbeafe', color: '#1e40af', fontWeight: '700', fontSize: '13px', padding: '2px 10px', borderRadius: '12px' }}>
+                  {totalQty}
+                </span>
+              </td>
+              <td style={{ ...styles.td(false), background: 'transparent', textAlign: 'right', fontWeight: '700', color: '#059669' }}>
+                {formatCurrency(totalRev)}
+              </td>
+              <td style={{ ...styles.td(false), background: 'transparent', textAlign: 'right', fontSize: '12px', color: '#6b7280' }}>100%</td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>
@@ -1793,6 +1945,20 @@ function getExcelSheetData(reportType, data, formatCurrency) {
       if (trend.length) sheets.push({ name: 'Daily Trend', data: [['Date', 'Points Issued', 'Points Redeemed', 'Redemption Value'], ...trend.map(t => [t.date, t.pointsIssued, t.pointsRedeemed, t.redemptionValue || 0])] });
       break;
     }
+    case REPORT_TYPES.ITEM_SALES: {
+      const items = data?.items || data?.breakdown || [];
+      const totalRev = items.reduce((s, i) => s + (i.totalRevenue || i.revenue || 0), 0);
+      sheets.push({ name: 'Item-wise Sales', data: [
+        ['#', 'Item', 'Qty Sold', 'Revenue', '% of Total'],
+        ...items.map((item, i) => {
+          const qty = item.totalSalesCount || item.totalSales || item.quantity || 0;
+          const rev = item.totalRevenue || item.revenue || 0;
+          const pct = totalRev > 0 ? ((rev / totalRev) * 100).toFixed(1) : '0.0';
+          return [i + 1, item.itemName || item.name, qty, rev, `${pct}%`];
+        })
+      ]});
+      break;
+    }
     default:
       sheets.push({ name: 'Data', data: [['Report data available. Use CSV export for detailed data.']] });
   }
@@ -1883,6 +2049,7 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
     { key: REPORT_TYPES.ORDER_ANALYTICS, label: 'Order Analytics', icon: FaShoppingBag, show: true },
     { key: REPORT_TYPES.REVENUE_TRENDS, label: 'Revenue Trends', icon: FaChartArea, show: true },
     { key: REPORT_TYPES.WALLET_LOYALTY, label: 'Wallet & Loyalty', icon: FaWallet, show: true },
+    { key: REPORT_TYPES.ITEM_SALES, label: 'Item-wise Sales', icon: FaListOl, show: true },
   ].filter((c) => c.show);
 
   const getExportType = (reportKey) => {
@@ -1904,6 +2071,7 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
       [REPORT_TYPES.ORDER_ANALYTICS]: 'order-analytics',
       [REPORT_TYPES.REVENUE_TRENDS]: 'revenue-trends',
       [REPORT_TYPES.WALLET_LOYALTY]: 'wallet-loyalty',
+      [REPORT_TYPES.ITEM_SALES]: 'menu-performance',
     };
     return map[reportKey] || reportKey;
   };
@@ -1974,6 +2142,9 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
         case REPORT_TYPES.WALLET_LOYALTY:
           result = await apiClient.getWalletLoyaltyReport(orgId, dateParams);
           break;
+        case REPORT_TYPES.ITEM_SALES:
+          result = await apiClient.getMenuPerformance(orgId, dateParams);
+          break;
         default:
           break;
       }
@@ -2017,6 +2188,7 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
       case 'payment': return s.topMethod ? `Top: ${s.topMethod.toUpperCase()}` : null;
       case 'order-analytics': return `${s.orders} orders`;
       case 'revenue-trends': return fmt(s.revenue);
+      case 'item-sales': return s.topItem ? `Top: ${s.topItem}` : (s.items ? `${s.items} items` : null);
       default: return null;
     }
   };
@@ -2209,6 +2381,8 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
         return <RevenueTrendsView data={reportData} formatCurrency={formatCurrency} />;
       case REPORT_TYPES.WALLET_LOYALTY:
         return <WalletLoyaltyView data={reportData} formatCurrency={formatCurrency} />;
+      case REPORT_TYPES.ITEM_SALES:
+        return <ItemSalesView data={reportData} formatCurrency={formatCurrency} />;
       default:
         return <EmptyState message="Select a report to view." />;
     }

@@ -70,6 +70,8 @@ import {
   FaUndoAlt,
   FaStore,
   FaTruck,
+  FaFileCsv,
+  FaFileExcel,
 } from 'react-icons/fa';
 import dynamic from 'next/dynamic';
 const BookingList = dynamic(() => import('../../../components/bookings/BookingList'), { ssr: false });
@@ -4708,10 +4710,58 @@ const OrderHistory = () => {
                     {t('orderHistory.itemWiseSales')}
                     <span className="text-xs text-gray-400 font-normal ml-2">({summaryData.items?.length || 0} {t('orderHistory.items')})</span>
                   </h3>
-                  <div className="relative">
-                    <FaSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
-                    <input type="text" placeholder={t('orderHistory.searchItems')} value={summarySearch} onChange={e => setSummarySearch(e.target.value)}
-                      className="pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-sm w-44 focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none" />
+                  <div className="flex items-center gap-2">
+                    {/* Download buttons */}
+                    <button
+                      onClick={() => {
+                        const items = getFilteredSummaryItems();
+                        const totalRev = items.reduce((s, i) => s + i.revenue, 0);
+                        const rows = [['#', 'Item', 'Qty', 'Revenue', '% of Total']];
+                        items.forEach((item, idx) => {
+                          const pct = totalRev > 0 ? ((item.revenue / totalRev) * 100).toFixed(1) : '0.0';
+                          rows.push([idx + 1, item.name, item.quantity, item.revenue, `${pct}%`]);
+                        });
+                        rows.push(['', 'Total', items.reduce((s, i) => s + i.quantity, 0), totalRev, '100%']);
+                        const csv = rows.map(r => r.map(c => typeof c === 'string' && c.includes(',') ? `"${c}"` : c).join(',')).join('\n');
+                        const blob = new Blob([csv], { type: 'text/csv' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a'); a.href = url; a.download = `item-wise-sales-${summaryPeriod}.csv`;
+                        document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+                      }}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-green-50 hover:text-green-700 hover:border-green-300 transition-all"
+                      title="Download CSV"
+                    >
+                      <FaFileCsv className="text-green-600" /> CSV
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const XLSX = await import('xlsx');
+                          const items = getFilteredSummaryItems();
+                          const totalRev = items.reduce((s, i) => s + i.revenue, 0);
+                          const rows = [['#', 'Item', 'Qty', 'Revenue', '% of Total']];
+                          items.forEach((item, idx) => {
+                            const pct = totalRev > 0 ? ((item.revenue / totalRev) * 100).toFixed(1) : '0.0';
+                            rows.push([idx + 1, item.name, item.quantity, item.revenue, `${pct}%`]);
+                          });
+                          rows.push(['', 'Total', items.reduce((s, i) => s + i.quantity, 0), totalRev, '100%']);
+                          const wb = XLSX.utils.book_new();
+                          const ws = XLSX.utils.aoa_to_sheet(rows);
+                          XLSX.utils.book_append_sheet(wb, ws, 'Item-wise Sales');
+                          XLSX.writeFile(wb, `item-wise-sales-${summaryPeriod}.xlsx`);
+                        } catch (err) { console.error('Excel export failed:', err); }
+                      }}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-green-50 hover:text-green-700 hover:border-green-300 transition-all"
+                      title="Download Excel"
+                    >
+                      <FaFileExcel className="text-green-600" /> Excel
+                    </button>
+                    {/* Search */}
+                    <div className="relative">
+                      <FaSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
+                      <input type="text" placeholder={t('orderHistory.searchItems')} value={summarySearch} onChange={e => setSummarySearch(e.target.value)}
+                        className="pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-sm w-44 focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none" />
+                    </div>
                   </div>
                 </div>
                 {(() => {
