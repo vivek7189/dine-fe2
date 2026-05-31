@@ -872,6 +872,13 @@ const OrderSummary = ({
     discountSettings.allowManualDiscount !== false &&
     (discountSettings.manualDiscountRoles || ['owner']).includes(userRole?.toLowerCase());
 
+  // Check if current user role is allowed for a billing feature
+  // Empty/missing roles array = all roles allowed (backward compatible)
+  const isRoleAllowed = useCallback((rolesArray) => {
+    if (!rolesArray || rolesArray.length === 0) return true;
+    return rolesArray.includes(userRole?.toLowerCase());
+  }, [userRole]);
+
   // Coupon helpers
   const couponsEnabled = offerSettings?.couponsEnabled === true;
 
@@ -4046,7 +4053,7 @@ const OrderSummary = ({
                 const hasAnything = hasOffers || hasLoyalty || totalDiscountAmount > 0 || specialInstructions;
                 const showOffers = hasAnything && cart.length > 0;
                 const showDiscount = canEditManualDiscount && cart.length > 0;
-                const showSC = billingSettings.serviceChargeEnabled && billingSettings.serviceChargeShowOnDashboard && cart.length > 0;
+                const showSC = billingSettings.serviceChargeEnabled && billingSettings.serviceChargeShowOnDashboard && isRoleAllowed(billingSettings.serviceChargeRoles) && cart.length > 0;
                 const showStaffAssign = posSettings.showAssignStaff && onAssignedStaffChange && cart.length > 0;
                 if (!showOffers && !showDiscount && !showSC && !showStaffAssign) return null;
 
@@ -4704,8 +4711,8 @@ const OrderSummary = ({
           {/* Billing Features Toolbar */}
           {(() => {
             const billingTools = [
-              billingSettings.cashTenderingEnabled && paymentMethod === 'cash' && { id: 'cash', icon: FaMoneyBillWave, label: 'Cash', color: '#10b981' },
-              billingSettings.splitPaymentEnabled && (() => {
+              billingSettings.cashTenderingEnabled && isRoleAllowed(billingSettings.cashTenderingRoles) && paymentMethod === 'cash' && { id: 'cash', icon: FaMoneyBillWave, label: 'Cash', color: '#10b981' },
+              billingSettings.splitPaymentEnabled && isRoleAllowed(billingSettings.splitPaymentRoles) && (() => {
                 // Placement gating:
                 // - billingMode=true  → orderhistory Complete flow → show only if settlementShowOnOrderHistory
                 // - billingMode=false → dashboard summary → show if settlementShowOnDashboard
@@ -4716,10 +4723,10 @@ const OrderSummary = ({
                 const visible = billingMode ? showHist : (showDash || bothOff);
                 return visible;
               })() && { id: 'split', icon: FaCreditCard, label: 'Settlement', color: '#3b82f6' },
-              billingSettings.tipsEnabled && { id: 'tip', icon: FaHandHoldingUsd, label: 'Tip', color: '#f59e0b' },
-              billingSettings.partialPaymentEnabled && { id: 'partial', icon: FaWallet, label: 'Credit', color: '#8b5cf6' },
-              billingSettings.compVoidEnabled && { id: 'comp', icon: FaGift, label: 'Comp', color: '#ec4899' },
-              billingSettings.compVoidEnabled && { id: 'void', icon: FaBan, label: 'Void', color: '#6b7280' },
+              billingSettings.tipsEnabled && isRoleAllowed(billingSettings.tipsRoles) && { id: 'tip', icon: FaHandHoldingUsd, label: 'Tip', color: '#f59e0b' },
+              billingSettings.partialPaymentEnabled && isRoleAllowed(billingSettings.partialPaymentRoles) && { id: 'partial', icon: FaWallet, label: 'Credit', color: '#8b5cf6' },
+              billingSettings.compVoidEnabled && isRoleAllowed(billingSettings.compVoidRoles) && { id: 'comp', icon: FaGift, label: 'Comp', color: '#ec4899' },
+              billingSettings.compVoidEnabled && isRoleAllowed(billingSettings.compVoidRoles) && { id: 'void', icon: FaBan, label: 'Void', color: '#6b7280' },
             ].filter(Boolean);
 
             if (billingTools.length === 0) return null;

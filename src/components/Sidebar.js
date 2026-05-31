@@ -60,6 +60,14 @@ export default function Sidebar({ isDashboardPage = false }) {
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [allRestaurants, setAllRestaurants] = useState([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDesktopWidth, setIsDesktopWidth] = useState(typeof window !== 'undefined' ? window.innerWidth >= 768 : true);
+
+  // Track window width for sidebar visibility (replaces Tailwind md: breakpoint)
+  useEffect(() => {
+    const handleResize = () => setIsDesktopWidth(window.innerWidth >= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Initialize state from localStorage immediately (synchronous) to prevent loading flicker
   const [user, setUser] = useState(() => {
@@ -350,6 +358,13 @@ export default function Sidebar({ isDashboardPage = false }) {
     }
   }, []);
 
+  // Close mobile menu when entering dashboard page to prevent sidebar flash
+  useEffect(() => {
+    if (isDashboardPage && isMobileMenuOpen) {
+      setIsMobileMenuOpen(false);
+    }
+  }, [isDashboardPage]);
+
   // Listen for openNavSidebar event from dashboard
   useEffect(() => {
     const handleOpenNavSidebar = () => {
@@ -393,12 +408,17 @@ export default function Sidebar({ isDashboardPage = false }) {
 
       {/* Sidebar - Hidden on dashboard (has its own category sidebar), visible on other pages */}
       <aside
-        className={`fixed left-0 top-0 h-screen bg-white transition-all duration-300 z-[10000] ${
-          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        } ${isDashboardPage ? '' : 'md:translate-x-0'}`}
+        className="fixed left-0 top-0 h-screen bg-white transition-all duration-300 z-[10000]"
         style={{
           width: isDashboardPage ? '240px' : (isCollapsed ? '70px' : '240px'),
-          borderRight: '1px solid #f1f5f9'
+          borderRight: '1px solid #f1f5f9',
+          transform: isMobileMenuOpen
+            ? 'translateX(0)'
+            : isDashboardPage
+              ? 'translateX(-100%)'
+              : isDesktopWidth
+                ? 'translateX(0)'
+                : 'translateX(-100%)',
         }}
         data-sidebar-collapsed={isCollapsed}
       >

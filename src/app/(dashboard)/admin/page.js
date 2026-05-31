@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -797,7 +797,7 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
                         <div>
                           <p style={{ fontSize: '12px', fontWeight: 600, color: '#374151', margin: '0 0 6px 0' }}>Who can apply manual discounts?</p>
                           <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-                            {['owner', 'manager', 'admin', 'cashier', 'waiter'].map(role => {
+                            {allRoles.map(role => {
                               const roles = taxSettings.discountSettings?.manualDiscountRoles || ['owner'];
                               const isSelected = roles.includes(role);
                               return (
@@ -5087,6 +5087,12 @@ const Admin = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [restaurants, setRestaurants] = useState([]);
   const [staff, setStaff] = useState([]);
+  // Derive unique roles from staff + predefined roles (supports dynamically added roles)
+  const allRoles = useMemo(() => {
+    const base = ['owner', 'manager', 'admin', 'waiter', 'cashier', 'employee'];
+    const fromStaff = staff.map(s => (s.role || '').toLowerCase()).filter(Boolean);
+    return [...new Set([...base, ...fromStaff])];
+  }, [staff]);
   const [menuItems, setMenuItems] = useState([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [offersSelectedRestaurant, setOffersSelectedRestaurant] = useState(null); // null = use selectedRestaurant
@@ -11569,6 +11575,40 @@ const Admin = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: '#e5e7eb', borderRadius: '10px', overflow: 'hidden', maxWidth: '720px', margin: '0 auto' }}>
 
               {(() => {
+                const renderRoleChips = (settingKey, label = 'Who can use this?') => (
+                  <div style={{ marginTop: '8px' }}>
+                    <label style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '5px' }}>{label}</label>
+                    <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                      {allRoles.map(role => {
+                        const roles = billingSettings[settingKey] || [];
+                        const isAll = roles.length === 0;
+                        const isSelected = isAll || roles.includes(role);
+                        return (
+                          <button key={role} onClick={(e) => {
+                            e.stopPropagation();
+                            if (isAll) {
+                              updateBillingSetting(settingKey, allRoles.filter(r => r !== role));
+                            } else {
+                              const current = billingSettings[settingKey] || [];
+                              const updated = isSelected ? current.filter(r => r !== role) : [...current, role];
+                              updateBillingSetting(settingKey, updated.length === allRoles.length ? [] : (updated.length > 0 ? updated : []));
+                            }
+                          }}
+                          style={{
+                            padding: '4px 10px', borderRadius: '14px', fontSize: '11px', fontWeight: 600,
+                            border: isSelected ? '1px solid #111827' : '1px solid #d1d5db',
+                            backgroundColor: isSelected ? '#111827' : 'white',
+                            color: isSelected ? 'white' : '#6b7280',
+                            cursor: 'pointer', textTransform: 'capitalize', transition: 'all 0.15s'
+                          }}>{role}</button>
+                        );
+                      })}
+                    </div>
+                    {(!billingSettings[settingKey] || billingSettings[settingKey].length === 0) && (
+                      <p style={{ fontSize: '9px', color: '#94a3b8', margin: '4px 0 0 0' }}>All roles — click a role to restrict</p>
+                    )}
+                  </div>
+                );
                 const billingFeatures = [
                   {
                     key: 'serviceChargeEnabled',
@@ -11632,6 +11672,7 @@ const Admin = () => {
                             </div>
                           )}
                         </div>
+                        {renderRoleChips('serviceChargeRoles', 'Who can toggle service charge?')}
                       </div>
                     )
                   },
@@ -11641,6 +11682,7 @@ const Admin = () => {
                     desc: 'Round final amount',
                     icon: FaDivide,
                     expandedContent: (
+                      <>
                       <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
                         {[1, 5, 10].map(val => (
                           <button key={val}
@@ -11654,6 +11696,8 @@ const Admin = () => {
                           >{formatCurrency(val)}</button>
                         ))}
                       </div>
+                      {renderRoleChips('roundOffRoles')}
+                      </>
                     )
                   },
                   {
@@ -11686,6 +11730,7 @@ const Admin = () => {
                             );
                           })}
                         </div>
+                        {renderRoleChips('cashTenderingRoles')}
                       </div>
                     )
                   },
@@ -11719,6 +11764,7 @@ const Admin = () => {
                             Select at least one placement, otherwise Dashboard will be used by default.
                           </p>
                         )}
+                        {renderRoleChips('splitPaymentRoles')}
                       </div>
                     )
                   },
@@ -11746,6 +11792,7 @@ const Admin = () => {
                             </div>
                           ))}
                         </div>
+                        {renderRoleChips('tipsRoles')}
                       </div>
                     )
                   },
@@ -11754,7 +11801,7 @@ const Admin = () => {
                     name: 'Credit Book / Khatabook',
                     desc: 'Khata / credit tracking',
                     icon: FaReceipt,
-                    expandedContent: null
+                    expandedContent: renderRoleChips('partialPaymentRoles')
                   },
                   {
                     key: 'compVoidEnabled',
@@ -11783,6 +11830,7 @@ const Admin = () => {
                             />
                           </div>
                         )}
+                        {renderRoleChips('compVoidRoles')}
                       </div>
                     )
                   },
@@ -11814,6 +11862,7 @@ const Admin = () => {
                           />
                           Require manager approval
                         </label>
+                        {renderRoleChips('refundsRoles')}
                       </div>
                     )
                   },
