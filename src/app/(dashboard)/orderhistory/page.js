@@ -1539,8 +1539,10 @@ const OrderHistory = () => {
       // Build identity lines for print header
       const _idLines = [];
       if (restaurant?.legalBusinessName && restaurant.legalBusinessName !== restaurantName) _idLines.push(restaurant.legalBusinessName.replace(/</g,'&lt;'));
-      if (restaurant?.address) _idLines.push(restaurant.address.replace(/</g,'&lt;'));
-      if (restaurant?.phone) _idLines.push('Tel: ' + restaurant.phone);
+      const _receiptAddr = printSettings?.receiptAddress || restaurant?.address;
+      const _receiptPhone = printSettings?.receiptPhone || restaurant?.phone;
+      if (_receiptAddr) _idLines.push(_receiptAddr.replace(/</g,'&lt;'));
+      if (_receiptPhone) _idLines.push('Tel: ' + _receiptPhone);
       if (restaurant?.showGstOnInvoice && restaurant?.gstin) _idLines.push('GSTIN: ' + restaurant.gstin);
       if (restaurant?.showFssaiOnInvoice && restaurant?.fssai) _idLines.push('FSSAI: ' + restaurant.fssai);
       if (restaurant?.showTaxIdOnInvoice && restaurant?.vatNumber) _idLines.push('Tax ID: ' + restaurant.vatNumber);

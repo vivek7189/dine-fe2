@@ -4098,6 +4098,48 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                             })}
                           </div>
                         )}
+                        {/* Receipt Address & Phone Overrides */}
+                        {billExpanded && (
+                          <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <p style={{ fontSize: '11px', color: '#6b7280', margin: 0, fontWeight: 600 }}>Receipt Overrides</p>
+                            {(printSettings.billLayout?.showAddress ?? true) && (
+                              <div>
+                                <label style={{ fontSize: '11px', color: '#374151', fontWeight: 500, display: 'block', marginBottom: '4px' }}>Receipt Address</label>
+                                <textarea
+                                  value={printSettings.receiptAddress || ''}
+                                  onChange={(e) => setPrintSettings(prev => ({ ...prev, receiptAddress: e.target.value }))}
+                                  placeholder="Leave empty to use restaurant address"
+                                  rows={2}
+                                  style={{
+                                    width: '100%', padding: '6px 8px', fontSize: '12px', border: '1px solid #d1d5db',
+                                    borderRadius: '6px', resize: 'vertical', fontFamily: 'inherit', outline: 'none',
+                                    boxSizing: 'border-box',
+                                  }}
+                                  onFocus={(e) => e.target.style.borderColor = '#6366f1'}
+                                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                                />
+                              </div>
+                            )}
+                            {(printSettings.billLayout?.showPhone ?? true) && (
+                              <div>
+                                <label style={{ fontSize: '11px', color: '#374151', fontWeight: 500, display: 'block', marginBottom: '4px' }}>Receipt Phone</label>
+                                <input
+                                  type="text"
+                                  value={printSettings.receiptPhone || ''}
+                                  onChange={(e) => setPrintSettings(prev => ({ ...prev, receiptPhone: e.target.value }))}
+                                  placeholder="Leave empty to use restaurant phone"
+                                  style={{
+                                    width: '100%', padding: '6px 8px', fontSize: '12px', border: '1px solid #d1d5db',
+                                    borderRadius: '6px', fontFamily: 'inherit', outline: 'none',
+                                    boxSizing: 'border-box',
+                                  }}
+                                  onFocus={(e) => e.target.style.borderColor = '#6366f1'}
+                                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {/* KOT Sections */}
