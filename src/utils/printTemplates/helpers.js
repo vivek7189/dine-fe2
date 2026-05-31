@@ -202,7 +202,9 @@ export function buildEcrPaymentHtml(invoice) {
 }
 
 // Build delivery address + driver info HTML for receipt (flag-based: only shows for delivery orders)
-export function buildDeliveryAddressHtml(invoice) {
+export function buildDeliveryAddressHtml(invoice, printSettings) {
+  const bl = printSettings?.billLayout || {};
+  if (bl.showDelivery === false) return '';
   if (invoice.orderType !== 'delivery') return '';
   const parts = [];
   if (invoice.deliveryAddress) parts.push(esc(invoice.deliveryAddress));

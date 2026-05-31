@@ -4022,6 +4022,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                     { key: 'showCustomer', label: 'Customer' },
                     { key: 'showPayment', label: 'Payment' },
                     { key: 'showOrderType', label: 'Order Type' },
+                    { key: 'showDelivery', label: 'Delivery' },
                     { key: 'showSubtotal', label: 'Subtotal' },
                     { key: 'showTaxBreakdown', label: 'Tax Lines' },
                     { key: 'showFooter', label: 'Footer' },

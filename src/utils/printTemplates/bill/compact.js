@@ -55,7 +55,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
   const chargesHtml = buildChargesHtml(invoice, L, cs);
   const paymentHtml = buildPaymentHtml(invoice, L, cs);
   const ecrHtml = buildEcrPaymentHtml(invoice);
-  const deliveryHtml = buildDeliveryAddressHtml(invoice);
+  const deliveryHtml = buildDeliveryAddressHtml(invoice, printSettings);
   const grandTotal = calcGrandTotal(invoice);
   const { combined: dateStr } = formatDateTime();
 
