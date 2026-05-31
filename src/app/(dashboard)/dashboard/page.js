@@ -2458,10 +2458,11 @@ function RestaurantPOSContent() {
             : (matchedMenu?.price ?? (typeof item.basePrice === 'number' ? item.basePrice : (price || 0)));
 
           // Build the cart item first with base menu price
+          // If price was edited, preserve the edited price instead of refreshing from menu
           const cartItem = {
             id: id,
             name: matchedMenu?.name || name,
-            price: refreshedPrice,
+            price: item.priceEdited === true ? price : refreshedPrice,
             quantity: parseInt(item.quantity) || 1,
             category: item.category || item.menuItem?.category || matchedMenu?.category || '',
             taxGroupId: matchedMenu?.taxGroupId || item.taxGroupId || null,
@@ -2470,13 +2471,15 @@ function RestaurantPOSContent() {
             basePrice: effectiveBasePrice,
             isCustomItem: item.isCustomItem || false,
             pricingRules: matchedMenu?.pricingRules || item.pricingRules || {},
+            priceEdited: item.priceEdited === true,
+            menuPrice: typeof item.menuPrice === 'number' ? item.menuPrice : null,
             // Store original data for reference
             originalData: item
           };
 
           // Apply active pricing rule to loaded items (non-variant only)
           // so that saved orders reflect the current pricing context
-          if (multiPricingEnabled && activePricingRuleId && !item.selectedVariant) {
+          if (multiPricingEnabled && activePricingRuleId && !item.selectedVariant && !item.priceEdited) {
             const rulePrice = getItemDisplayPrice(cartItem);
             cartItem.price = rulePrice;
             cartItem.basePrice = effectiveBasePrice;
@@ -2494,7 +2497,7 @@ function RestaurantPOSContent() {
             const menuResponse = await apiClient.getMenuItems(selectedRestaurant.id);
             if (menuResponse.success && menuResponse.items) {
               const updatedItems = orderItems.map(cartItem => {
-                if (cartItem.name === 'Unknown Item') {
+                if (cartItem.name === 'Unknown Item' && !cartItem.isCustomItem) {
                   // Try to match by ID first
                   let menuItem = menuResponse.items.find(menuItem => 
                     menuItem.id === cartItem.id || 
