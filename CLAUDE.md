@@ -141,3 +141,8 @@ plugins/
 
 ### 2026-05-28: Initial CLAUDE.md created
 - Documented full architecture, platform support, component structure
+
+### 2026-06-01: Print settings & delivery toggle
+- Added receipt address/phone overrides in print settings
+- Added showDelivery flag to bill layout toggles
+- Fixed allRoles undefined error on admin tax tab
