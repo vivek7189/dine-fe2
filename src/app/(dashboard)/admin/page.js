@@ -176,6 +176,7 @@ const AdminTabSkeleton = ({ variant = 'single' }) => (
 // Tax & Business Identity Combined Component
 const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRestaurant, initialLoading }) => {
   const { showSuccess, showError, NotificationContainer: TaxNotifications } = useNotification();
+  const allRoles = ['owner', 'manager', 'admin', 'waiter', 'cashier', 'employee'];
   // --- Tax state ---
   const [taxSettings, setTaxSettings] = useState({
     enabled: false,
