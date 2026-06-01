@@ -3185,6 +3185,13 @@ class ApiClient {
     });
   }
 
+  async editCompletedOrderItems(orderId, data) {
+    return this.request(`/api/orders/${orderId}/edit-completed-items`, {
+      method: 'PATCH',
+      body: data,
+    });
+  }
+
   async getOrderEditHistory(orderId) {
     return this.request(`/api/orders/${orderId}/edit-history`);
   }

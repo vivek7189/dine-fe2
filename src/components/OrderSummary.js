@@ -4892,9 +4892,13 @@ const OrderSummary = ({
                             width: '80px'
                           }}
                         >
-                          <option value="cash">Cash</option>
-                          <option value="upi">UPI</option>
-                          <option value="card">Card</option>
+                          {(billingSettings?.settlementMethods || [
+                            { id: 'cash', label: 'Cash', enabled: true },
+                            { id: 'card', label: 'Card', enabled: true },
+                            { id: 'upi', label: 'UPI', enabled: true },
+                          ]).filter(m => m.enabled).map(m => (
+                            <option key={m.id} value={m.id}>{m.label}</option>
+                          ))}
                         </select>
                         <input
                           type="number"
@@ -4928,7 +4932,11 @@ const OrderSummary = ({
                     ))}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
                       <button
-                        onClick={() => setSplitPayments([...splitPayments, { method: 'cash', amount: '' }])}
+                        onClick={() => {
+                          const methods = (billingSettings?.settlementMethods || []).filter(m => m.enabled);
+                          const defaultMethod = methods.length > 0 ? methods[0].id : 'cash';
+                          setSplitPayments([...splitPayments, { method: defaultMethod, amount: '' }]);
+                        }}
                         style={{
                           fontSize: '10px',
                           color: '#2563eb',

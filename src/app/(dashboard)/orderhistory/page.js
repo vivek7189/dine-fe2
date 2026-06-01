@@ -19,6 +19,7 @@ import { useCurrency } from '../../../contexts/CurrencyContext';
 import { getBillPrintCSS, getKOTPrintCSS, getBillHeaderHTML, buildTokenSlipsDocumentHTML } from '../../../utils/printFontSizes';
 import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '../../../utils/printBridge';
 import OrderSummary from '../../../components/OrderSummary';
+import OrderEditModal from '../../../components/OrderEditModal';
 import {
   FaSearch,
   FaChevronLeft,
@@ -207,6 +208,14 @@ const OrderHistory = () => {
   const [editCompletedSaving, setEditCompletedSaving] = useState(false);
   const [editCompletedHistory, setEditCompletedHistory] = useState([]);
   const [canEditCompletedOrders, setCanEditCompletedOrders] = useState(false);
+  // Edit Completed Order Items state (full item editing)
+  const [editItemsOrder, setEditItemsOrder] = useState(null);
+  const [editReasonModal, setEditReasonModal] = useState(null); // order object when showing reason prompt
+  const [editReason, setEditReason] = useState('');
+  const [pinModal, setPinModal] = useState(null); // order object when showing PIN prompt
+  const [pinCode, setPinCode] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [requirePin, setRequirePin] = useState(false);
   const [printSettings, setPrintSettings] = useState(null);
   const [upiSettings, setUpiSettings] = useState({});
   const [whatsappConnected, setWhatsappConnected] = useState(false);
@@ -366,7 +375,10 @@ const OrderHistory = () => {
     }
     if (orderFlow?.isDirectBilling) return { bg: '#dcfce7', text: '#166534', border: '#86efac', label: t('orderHistory.billingCompleted') };
     if (orderFlow?.isKitchenOrder) return { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', label: t('orderHistory.kitchen') };
-    if (status === 'completed') return { bg: '#dcfce7', text: '#166534', border: '#86efac', label: t('orderHistory.status.completed') };
+    if (status === 'completed') {
+      const label = order?.editCount > 0 ? `${t('orderHistory.status.completed')} (Revised #${order.editCount})` : t('orderHistory.status.completed');
+      return { bg: '#dcfce7', text: '#166534', border: '#86efac', label };
+    }
     if (status === 'confirmed') return { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', label: t('orderHistory.status.confirmed') };
     if (status === 'pending') return { bg: '#fef3c7', text: '#92400e', border: '#fde68a', label: t('orderHistory.status.pending') };
     if (status === 'cancelled') return { bg: '#fee2e2', text: '#991b1b', border: '#fecaca', label: t('orderHistory.status.cancelled') };
@@ -705,7 +717,7 @@ const OrderHistory = () => {
     fetchPrintSettings();
   }, [restaurantId]);
 
-  // Check if user has edit-completed-orders permission
+  // Check if user has edit-completed-orders permission + PIN requirement
   useEffect(() => {
     try {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -721,6 +733,13 @@ const OrderHistory = () => {
             setCanEditCompletedOrders(true);
           }
         }).catch(() => {});
+      }
+    } catch {}
+    // Check PIN requirement from restaurant posSettings
+    try {
+      const savedRestaurant = JSON.parse(localStorage.getItem('selectedRestaurant') || '{}');
+      if (savedRestaurant?.posSettings?.requirePinForCompletedOrderEdit) {
+        setRequirePin(true);
       }
     } catch {}
   }, []);
@@ -1417,6 +1436,45 @@ const OrderHistory = () => {
     } finally {
       setEditCompletedSaving(false);
     }
+  };
+
+  // --- Edit Completed Order Items handlers ---
+  const handleEditItemsClick = (order) => {
+    setEditReason('');
+    setEditReasonModal(order);
+  };
+
+  const handleEditReasonSubmit = () => {
+    if (!editReason.trim() || editReason.trim().length < 3) return;
+    const order = editReasonModal;
+    setEditReasonModal(null);
+    if (requirePin) {
+      setPinCode('');
+      setPinError('');
+      setPinModal(order);
+    } else {
+      setEditItemsOrder(order);
+    }
+  };
+
+  const handlePinSubmit = () => {
+    if (!pinCode || pinCode.length < 4) {
+      setPinError('PIN must be at least 4 digits');
+      return;
+    }
+    const order = pinModal;
+    setPinModal(null);
+    setEditItemsOrder(order);
+  };
+
+  const handleEditItemsComplete = (updatedOrder, response) => {
+    // Update order in local state
+    if (updatedOrder?.id) {
+      setOrders(prev => prev.map(o => o.id === updatedOrder.id ? { ...o, ...updatedOrder } : o));
+    }
+    setEditItemsOrder(null);
+    setEditReason('');
+    setPinCode('');
   };
 
   const [syncingOrderKey, setSyncingOrderKey] = useState(null);
@@ -3208,13 +3266,22 @@ const OrderHistory = () => {
                                   </button>
                                 )}
                                 {canEditCompletedOrders && order.status === 'completed' && (
-                                  <button
-                                    onClick={() => handleOpenEditCompleted(order)}
-                                    className="w-7 h-7 rounded-lg flex items-center justify-center text-white bg-red-600 hover:bg-red-700 border border-red-600 transition-colors"
-                                    title="Edit Order"
-                                  >
-                                    <FaEdit size={10} />
-                                  </button>
+                                  <>
+                                    <button
+                                      onClick={() => handleOpenEditCompleted(order)}
+                                      className="w-7 h-7 rounded-lg flex items-center justify-center text-white bg-gray-500 hover:bg-gray-600 border border-gray-500 transition-colors"
+                                      title="Edit Details"
+                                    >
+                                      <FaEdit size={10} />
+                                    </button>
+                                    <button
+                                      onClick={() => handleEditItemsClick(order)}
+                                      className="w-7 h-7 rounded-lg flex items-center justify-center text-white bg-red-600 hover:bg-red-700 border border-red-600 transition-colors"
+                                      title="Edit Items"
+                                    >
+                                      <FaUtensils size={10} />
+                                    </button>
+                                  </>
                                 )}
                                 {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && (
                                   <button
@@ -3688,12 +3755,20 @@ const OrderHistory = () => {
                               </button>
                             )}
                             {canEditCompletedOrders && order.status === 'completed' && (
-                              <button
-                                onClick={() => handleOpenEditCompleted(order)}
-                                className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-all flex items-center gap-1.5"
-                              >
-                                <FaEdit /> Edit Order
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => handleOpenEditCompleted(order)}
+                                  className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-all flex items-center gap-1.5"
+                                >
+                                  <FaEdit /> Edit Details
+                                </button>
+                                <button
+                                  onClick={() => handleEditItemsClick(order)}
+                                  className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-all flex items-center gap-1.5"
+                                >
+                                  <FaUtensils /> Edit Items
+                                </button>
+                              </>
                             )}
                             {allowOrderDelete && order.status !== 'deleted' && (
                               <button
@@ -4534,11 +4609,29 @@ const OrderHistory = () => {
                             </span>
                           </div>
                           <div className="space-y-0.5">
-                            {(entry.changes || []).map((c, j) => (
-                              <div key={j} className="text-xs text-gray-700">
-                                <span className="font-medium">{c.field}</span>: <span className="text-red-600 line-through">{c.from || '(empty)'}</span> → <span className="text-green-700 font-medium">{c.to || '(empty)'}</span>
-                              </div>
-                            ))}
+                            {entry.type === 'items' ? (
+                              <>
+                                {entry.editReason && <div className="text-xs text-gray-600 italic mb-1">Reason: {entry.editReason}</div>}
+                                {(entry.changes?.itemsAdded || []).map((item, j) => (
+                                  <div key={`a${j}`} className="text-xs text-green-700">+ Added: {item.name} x{item.quantity}</div>
+                                ))}
+                                {(entry.changes?.itemsRemoved || []).map((item, j) => (
+                                  <div key={`r${j}`} className="text-xs text-red-600">- Removed: {item.name} x{item.quantity}</div>
+                                ))}
+                                {(entry.changes?.itemsModified || []).map((item, j) => (
+                                  <div key={`m${j}`} className="text-xs text-blue-600">~ {item.name}: qty {item.from} → {item.to}</div>
+                                ))}
+                                {entry.changes?.oldTotal != null && entry.changes?.newTotal != null && (
+                                  <div className="text-xs font-medium mt-1">Total: {formatCurrency(entry.changes.oldTotal)} → {formatCurrency(entry.changes.newTotal)}</div>
+                                )}
+                              </>
+                            ) : (
+                              (entry.changes || []).map((c, j) => (
+                                <div key={j} className="text-xs text-gray-700">
+                                  <span className="font-medium">{c.field}</span>: <span className="text-red-600 line-through">{c.from || '(empty)'}</span> → <span className="text-green-700 font-medium">{c.to || '(empty)'}</span>
+                                </div>
+                              ))
+                            )}
                           </div>
                         </div>
                       ))}
@@ -4571,6 +4664,103 @@ const OrderHistory = () => {
             </div>
           </div>
         </>
+      )}
+
+      {/* ========== EDIT REASON MODAL ========== */}
+      {editReasonModal && (
+        <>
+          <style dangerouslySetInnerHTML={{ __html: `
+            @keyframes editReasonIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+          ` }} />
+          <div className="fixed inset-0 z-[10500] flex items-center justify-center p-4" onClick={() => setEditReasonModal(null)}>
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+            <div
+              className="relative w-full max-w-md rounded-2xl shadow-2xl border border-gray-200 bg-white overflow-hidden"
+              style={{ animation: 'editReasonIn 0.2s ease-out' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="px-5 py-4 border-b border-gray-100">
+                <h3 className="text-lg font-bold text-gray-900">Edit Reason Required</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Why are you editing this completed order?</p>
+              </div>
+              <div className="px-5 py-4">
+                <textarea
+                  value={editReason}
+                  onChange={e => setEditReason(e.target.value)}
+                  placeholder="e.g., Customer requested item change, wrong item billed..."
+                  rows={3}
+                  autoFocus
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none resize-none"
+                />
+                {editReason.trim().length > 0 && editReason.trim().length < 3 && (
+                  <p className="text-xs text-red-500 mt-1">Minimum 3 characters required</p>
+                )}
+              </div>
+              <div className="px-5 py-4 border-t border-gray-100 flex gap-3">
+                <button onClick={() => setEditReasonModal(null)} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-xl hover:bg-gray-200">Cancel</button>
+                <button
+                  onClick={handleEditReasonSubmit}
+                  disabled={!editReason.trim() || editReason.trim().length < 3}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ========== PIN VERIFICATION MODAL ========== */}
+      {pinModal && (
+        <>
+          <div className="fixed inset-0 z-[10500] flex items-center justify-center p-4" onClick={() => setPinModal(null)}>
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+            <div className="relative w-full max-w-sm rounded-2xl shadow-2xl border border-gray-200 bg-white overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="px-5 py-4 border-b border-gray-100">
+                <h3 className="text-lg font-bold text-gray-900">Enter PIN</h3>
+                <p className="text-xs text-gray-500 mt-0.5">PIN required to edit completed orders</p>
+              </div>
+              <div className="px-5 py-4">
+                <input
+                  type="password"
+                  value={pinCode}
+                  onChange={e => { setPinCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setPinError(''); }}
+                  placeholder="Enter 4-6 digit PIN"
+                  maxLength={6}
+                  autoFocus
+                  className="w-full px-3 py-3 rounded-xl border border-gray-200 text-center text-2xl tracking-widest font-mono focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none"
+                  onKeyDown={e => e.key === 'Enter' && handlePinSubmit()}
+                />
+                {pinError && <p className="text-xs text-red-500 mt-2 text-center">{pinError}</p>}
+              </div>
+              <div className="px-5 py-4 border-t border-gray-100 flex gap-3">
+                <button onClick={() => setPinModal(null)} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-xl hover:bg-gray-200">Cancel</button>
+                <button
+                  onClick={handlePinSubmit}
+                  disabled={!pinCode || pinCode.length < 4}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Verify
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ========== ORDER EDIT MODAL (COMPLETED ORDER ITEMS) ========== */}
+      {editItemsOrder && (
+        <OrderEditModal
+          isOpen={true}
+          onClose={() => { setEditItemsOrder(null); setEditReason(''); setPinCode(''); }}
+          orderId={editItemsOrder.id}
+          selectedRestaurant={restaurant}
+          onOrderUpdated={handleEditItemsComplete}
+          mode="completed"
+          editReason={editReason}
+          pinCode={pinCode}
+        />
       )}
 
       {/* ========== SUMMARY VIEW CONTENT ========== */}

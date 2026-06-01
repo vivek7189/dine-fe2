@@ -146,3 +146,13 @@ plugins/
 - Added receipt address/phone overrides in print settings
 - Added showDelivery flag to bill layout toggles
 - Fixed allRoles undefined error on admin tax tab
+
+### 2026-06-01: Completed order item editing
+- New backend endpoint `PATCH /api/orders/:orderId/edit-completed-items` with server-side pricing, inventory adjustment, auto-refund, edit history, and editCount
+- OrderEditModal.js: added `mode` prop (`active`/`completed`) — hides Complete Billing, uses dedicated API
+- Order history page: "Edit Details" (metadata) + "Edit Items" (full item editor) buttons for completed orders
+- Edit reason required before editing, optional PIN verification via posSettings
+- Bill templates: all 5 show "REVISED BILL (Edit #N)" banner when editCount > 0
+- Auto-refund note created when edited total < original total
+- Revenue stats automatically adjusted via updateDailyStatsRevenueDiff
+- Admin page: PIN requirement toggle + PIN input in POS Settings > Advanced Features

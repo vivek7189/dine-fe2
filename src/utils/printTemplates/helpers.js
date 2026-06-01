@@ -232,6 +232,7 @@ export function wrapInDocument(title, cssString, bodyHtml) {
 export function getBillLabels(labels = {}) {
   return {
     billTitle: labels.billTitle || 'BILL',
+    revisedBill: labels.revisedBill || 'REVISED BILL',
     billLabel: labels.billLabel || 'Bill',
     itemCol: labels.itemCol || 'Item',
     qtyCol: labels.qtyCol || 'Qty',

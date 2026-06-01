@@ -5431,6 +5431,11 @@ const Admin = () => {
     splitPaymentEnabled: false,
     settlementShowOnDashboard: true,
     settlementShowOnOrderHistory: false,
+    settlementMethods: [
+      { id: 'cash', label: 'Cash', enabled: true },
+      { id: 'card', label: 'Card', enabled: true },
+      { id: 'upi', label: 'UPI', enabled: true },
+    ],
     partialPaymentEnabled: false,
     compVoidEnabled: false,
     compVoidRequiresPin: true,
@@ -10857,6 +10862,50 @@ const Admin = () => {
                   <div style={{ fontSize: '11px', color: '#9ca3af' }}>{t('admin.allowPriceEditDesc')}</div>
                 </div>
               </div>
+
+              {/* Require PIN for Completed Order Edits */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPosSettings(prev => ({ ...prev, requirePinForCompletedOrderEdit: !prev.requirePinForCompletedOrderEdit }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {posSettings.requirePinForCompletedOrderEdit
+                    ? <FaToggleOn size={28} color="#ef4444" />
+                    : <FaToggleOff size={28} color="#d1d5db" />}
+                </button>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>Require PIN for Completed Order Edits</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>Staff must enter a PIN to edit items on completed orders</div>
+                </div>
+              </div>
+
+              {/* PIN Input (shown when PIN requirement is enabled) */}
+              {posSettings.requirePinForCompletedOrderEdit && (
+                <div style={{ marginLeft: '38px', marginBottom: '12px' }}>
+                  <input
+                    type="text"
+                    placeholder="Enter 4-6 digit PIN"
+                    value={posSettings.completedOrderEditPin || ''}
+                    onChange={(e) => setPosSettings(prev => ({ ...prev, completedOrderEditPin: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+                    maxLength={6}
+                    style={{
+                      width: '180px',
+                      padding: '8px 12px',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '16px',
+                      fontFamily: 'monospace',
+                      letterSpacing: '4px',
+                      textAlign: 'center',
+                      backgroundColor: '#fafafa'
+                    }}
+                  />
+                  {posSettings.completedOrderEditPin && posSettings.completedOrderEditPin.length < 4 && (
+                    <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px' }}>PIN must be at least 4 digits</div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Divider */}
@@ -11809,6 +11858,70 @@ const Admin = () => {
                           </p>
                         )}
                         {renderRoleChips('splitPaymentRoles')}
+
+                        {/* Settlement Methods Manager */}
+                        <div onClick={(e) => e.stopPropagation()} style={{ borderTop: '1px solid #e5e7eb', paddingTop: '8px', marginTop: '4px' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', marginBottom: '6px' }}>Payment Methods</div>
+                          {(billingSettings.settlementMethods || []).map((method, idx) => (
+                            <div key={method.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                              <input
+                                type="checkbox"
+                                checked={method.enabled !== false}
+                                onChange={(e) => {
+                                  const updated = [...billingSettings.settlementMethods];
+                                  updated[idx] = { ...updated[idx], enabled: e.target.checked };
+                                  updateBillingSetting('settlementMethods', updated);
+                                }}
+                                style={{ width: '14px', height: '14px', accentColor: '#dc2626' }}
+                              />
+                              <span style={{ fontSize: '12px', color: '#374151', flex: 1 }}>{method.label}</span>
+                              {!['cash', 'card', 'upi'].includes(method.id) && (
+                                <button
+                                  onClick={() => {
+                                    const updated = billingSettings.settlementMethods.filter((_, i) => i !== idx);
+                                    updateBillingSetting('settlementMethods', updated);
+                                  }}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', padding: '2px', fontSize: '11px', lineHeight: 1 }}
+                                >
+                                  ✕
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                          <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
+                            <input
+                              type="text"
+                              placeholder="e.g. Check, Bank Transfer"
+                              id="newSettlementMethod"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  const input = e.target;
+                                  const label = input.value.trim();
+                                  if (!label) return;
+                                  const id = label.toLowerCase().replace(/\s+/g, '_');
+                                  if ((billingSettings.settlementMethods || []).some(m => m.id === id)) return;
+                                  updateBillingSetting('settlementMethods', [...(billingSettings.settlementMethods || []), { id, label, enabled: true }]);
+                                  input.value = '';
+                                }
+                              }}
+                              style={{ flex: 1, padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '11px', outline: 'none' }}
+                            />
+                            <button
+                              onClick={() => {
+                                const input = document.getElementById('newSettlementMethod');
+                                const label = input.value.trim();
+                                if (!label) return;
+                                const id = label.toLowerCase().replace(/\s+/g, '_');
+                                if ((billingSettings.settlementMethods || []).some(m => m.id === id)) return;
+                                updateBillingSetting('settlementMethods', [...(billingSettings.settlementMethods || []), { id, label, enabled: true }]);
+                                input.value = '';
+                              }}
+                              style={{ padding: '4px 10px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '5px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                            >
+                              Add
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     )
                   },

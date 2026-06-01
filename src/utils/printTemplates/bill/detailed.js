@@ -106,6 +106,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
     getBillHeaderHTML(esc(invoice.restaurantName || 'Restaurant'), identityHtml, receiptLogo, '') +
     `<div class="divider">- - - - - - - - - - - - - - - - -</div>` +
     `<div class="receipt-title">*** ${L.billTitle} ***</div>` +
+    (invoice.editCount > 0 ? `<div style="text-align:center;font-weight:bold;font-size:14px;padding:4px 0;border:2px solid #333;margin:4px 0;">${L.revisedBill} (Edit #${invoice.editCount})</div>` : '') +
     // Cashier + date on one line
     `<div class="info-line">` +
       (bl.showWaiter !== false && waiterInfo ? `<span>${esc(waiterInfo)}</span>` : `<span>#${invoice.dailyOrderId || invoice.id || 'N/A'}</span>`) +

@@ -13,7 +13,10 @@ const OrderEditModal = ({
   orderNumber,
   selectedRestaurant,
   onOrderUpdated,
-  onOrderCompleted
+  onOrderCompleted,
+  mode = 'active',
+  editReason = '',
+  pinCode = '',
 }) => {
   const { startLoading, stopLoading } = useLoading();
   const { formatCurrency } = useCurrency();
@@ -187,40 +190,73 @@ const OrderEditModal = ({
   // Update order
   const handleUpdateOrder = async () => {
     if (!order) return;
-    
-    try {
-      startLoading('Updating order...');
-      setError(null);
-      
-      const updateData = {
-        items: order.items.map(item => ({
-          menuItemId: item.menuItemId,
-          quantity: item.quantity,
-          notes: item.notes || ''
-        })),
-        orderType,
-        paymentMethod,
-        customerInfo,
-        notes,
-        updatedAt: new Date().toISOString(),
-        lastUpdatedBy: (() => {
-          try {
-            const u = JSON.parse(localStorage.getItem('user') || '{}');
-            return { name: u.name || u.username || 'Staff Member', id: u.id || u._id || 'unknown' };
-          } catch { return { name: 'Staff Member', id: 'unknown' }; }
-        })()
-      };
 
-      const response = await apiClient.updateOrder(order.id, updateData);
-      
-      if (response.data) {
-        setSuccess('Order updated successfully!');
-        setTimeout(() => setSuccess(null), 3000);
-        onOrderUpdated?.(order);
+    try {
+      startLoading(mode === 'completed' ? 'Saving changes...' : 'Updating order...');
+      setError(null);
+
+      if (mode === 'completed') {
+        // Completed order edit — use dedicated endpoint
+        const itemsPayload = order.items.map(item => ({
+          menuItemId: item.menuItemId,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          notes: item.notes || '',
+          selectedVariant: item.selectedVariant || null,
+          selectedCustomizations: item.selectedCustomizations || [],
+          category: item.category || '',
+        }));
+
+        const response = await apiClient.editCompletedOrderItems(order.id, {
+          items: itemsPayload,
+          editReason: editReason || 'Order edited',
+          pinCode: pinCode || undefined,
+        });
+
+        if (response.success) {
+          const diff = response.amountDiff || 0;
+          let msg = 'Order updated successfully!';
+          if (diff < 0) msg += ` Refund note of ${formatCurrency(Math.abs(diff))} auto-created.`;
+          else if (diff > 0) msg += ` Total increased by ${formatCurrency(diff)}.`;
+          setSuccess(msg);
+          setTimeout(() => {
+            setSuccess(null);
+            onOrderUpdated?.(response.order || order, response);
+          }, 2500);
+        }
+      } else {
+        // Active order edit — use regular PATCH
+        const updateData = {
+          items: order.items.map(item => ({
+            menuItemId: item.menuItemId,
+            quantity: item.quantity,
+            notes: item.notes || ''
+          })),
+          orderType,
+          paymentMethod,
+          customerInfo,
+          notes,
+          updatedAt: new Date().toISOString(),
+          lastUpdatedBy: (() => {
+            try {
+              const u = JSON.parse(localStorage.getItem('user') || '{}');
+              return { name: u.name || u.username || 'Staff Member', id: u.id || u._id || 'unknown' };
+            } catch { return { name: 'Staff Member', id: 'unknown' }; }
+          })()
+        };
+
+        const response = await apiClient.updateOrder(order.id, updateData);
+
+        if (response.data) {
+          setSuccess('Order updated successfully!');
+          setTimeout(() => setSuccess(null), 3000);
+          onOrderUpdated?.(order);
+        }
       }
     } catch (error) {
       console.error('Error updating order:', error);
-      setError('Failed to update order');
+      setError(error.message || 'Failed to update order');
     } finally {
       stopLoading();
     }
@@ -560,19 +596,21 @@ const OrderEditModal = ({
                       <button
                         onClick={handleUpdateOrder}
                         disabled={!order?.items?.length}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
+                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium ${mode === 'completed' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-500 hover:bg-blue-600'}`}
                       >
                         <FaEdit size={16} />
-                        Update Order
+                        {mode === 'completed' ? 'Save Changes' : 'Update Order'}
                       </button>
-                      <button
-                        onClick={handleCompleteBilling}
-                        disabled={!order?.items?.length}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
-                      >
-                        <FaCheck size={16} />
-                        Complete Billing
-                      </button>
+                      {mode !== 'completed' && (
+                        <button
+                          onClick={handleCompleteBilling}
+                          disabled={!order?.items?.length}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
+                        >
+                          <FaCheck size={16} />
+                          Complete Billing
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

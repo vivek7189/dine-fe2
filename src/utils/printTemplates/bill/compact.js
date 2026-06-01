@@ -61,9 +61,12 @@ export function render(invoice, printSettings = {}, labels = {}) {
 
   const css = getCompactBillCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily, printSettings.printerWidth);
 
+  const revisedBanner = invoice.editCount > 0 ? `<div style="text-align:center;font-weight:bold;font-size:14px;padding:4px 0;border:2px solid #333;margin:4px 0;">${L.revisedBill} (Edit #${invoice.editCount})</div>` : '';
+
   // Compact: skip logo, minimal header
   const bodyHtml =
     `<div class="bill-header"><div class="restaurant-name">${esc(invoice.restaurantName || 'Restaurant')}</div><div class="bill-title">--- ${L.billTitle} ---</div></div>` +
+    revisedBanner +
     `<div class="divider">- - - - - - - - - - - - - - - -</div>` +
     `<div class="bill-info">` +
       `<div><span>#${invoice.dailyOrderId || invoice.id || 'N/A'}</span><span>${dateStr}</span></div>` +
