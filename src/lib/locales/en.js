@@ -1586,6 +1586,7 @@ const en = {
     pint: 'Pint',
     bottleSize180: '180ml',
     bottleSize375: '375ml',
+    bottleSize500: '500ml',
     bottleSize750: '750ml',
     bottleSize1L: '1L',
     piece: 'Piece',

@@ -4329,7 +4329,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                         <input
                           type="range"
                           min="30"
-                          max="200"
+                          max="400"
                           step="5"
                           value={printSettings.receiptLogo?.size || 80}
                           onChange={(e) => setPrintSettings(prev => ({ ...prev, receiptLogo: { ...prev.receiptLogo, size: parseInt(e.target.value) } }))}
@@ -4337,7 +4337,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                         />
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
                           <span style={{ fontSize: '9px', color: '#9ca3af' }}>30px</span>
-                          <span style={{ fontSize: '9px', color: '#9ca3af' }}>200px</span>
+                          <span style={{ fontSize: '9px', color: '#9ca3af' }}>400px</span>
                         </div>
                       </div>
 

@@ -4937,6 +4937,7 @@ const MenuManagement = () => {
                           <option value="">{t('menu.selectOption')}</option>
                           <option value="180ml">{t('menu.bottleSize180')}</option>
                           <option value="375ml">{t('menu.bottleSize375')}</option>
+                          <option value="500ml">{t('menu.bottleSize500')}</option>
                           <option value="750ml">{t('menu.bottleSize750')}</option>
                           <option value="1L">{t('menu.bottleSize1L')}</option>
                         </select>

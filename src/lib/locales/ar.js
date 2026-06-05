@@ -1549,6 +1549,7 @@ const ar = {
     pint: 'باينت',
     bottleSize180: '180 مل',
     bottleSize375: '375 مل',
+    bottleSize500: '500 مل',
     bottleSize750: '750 مل',
     bottleSize1L: '1 لتر',
     piece: 'قطعة',

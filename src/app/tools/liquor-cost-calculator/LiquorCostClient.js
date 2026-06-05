@@ -16,6 +16,7 @@ export default function LiquorCostClient() {
   const bottleSizes = {
     '180': '180ml (Nip)',
     '375': '375ml (Half)',
+    '500': '500ml',
     '750': '750ml (Full)',
     '1000': '1L (Litre)',
   };
