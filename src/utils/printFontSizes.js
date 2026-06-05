@@ -118,7 +118,7 @@ export const getBillPrintCSS = (scaleOrPreset, fontId, printerWidth, printSettin
 export const getBillHeaderHTML = (restaurantName, identityHtml, receiptLogo, billTitle = '--- BILL ---') => {
   const logo = receiptLogo?.enabled ? receiptLogo : null;
   const nameAlign = logo?.nameAlignment || receiptLogo?.nameAlignment || 'center';
-  const logoSize = logo?.size || 60;
+  const logoSize = logo?.size || 80;
   const logoPos = logo?.position || 'center';
 
   const logoImg = logo?.url

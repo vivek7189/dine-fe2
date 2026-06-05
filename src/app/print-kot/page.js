@@ -411,7 +411,10 @@ const PrintKOTContent = () => {
       setIsPolling(false);
     } else {
       fetchPendingOrders(); // Fetch immediately
-      pollingIntervalRef.current = setInterval(fetchPendingOrders, 60000); // 60s fallback
+      pollingIntervalRef.current = setInterval(() => {
+        if (typeof document !== 'undefined' && document.hidden) return;
+        fetchPendingOrders();
+      }, 300_000); // 5-min fallback (Firebase RTDB is primary)
       setIsPolling(true);
     }
   }, [isPolling, fetchPendingOrders]);
@@ -423,8 +426,11 @@ const PrintKOTContent = () => {
     // Initial fetch
     fetchPendingOrders();
 
-    // Start 60-second fallback poll (safety net in case Firebase misses events)
-    pollingIntervalRef.current = setInterval(fetchPendingOrders, 60000);
+    // Start 5-min fallback poll (safety net — Firebase RTDB is primary)
+    pollingIntervalRef.current = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      fetchPendingOrders();
+    }, 300_000);
     setIsPolling(true);
 
     // Subscribe to Firebase RTDB for real-time order notifications

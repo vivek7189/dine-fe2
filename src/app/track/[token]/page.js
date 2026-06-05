@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { FiPackage, FiCheck, FiTruck, FiMapPin, FiPhone } from 'react-icons/fi';
 import { MdDeliveryDining } from 'react-icons/md';
@@ -22,6 +22,7 @@ export default function DeliveryTrackingPage() {
       const json = await res.json();
       if (json.success) {
         setData(json.data);
+        if (json.data?.deliveryStatus === 'delivered') deliveredRef.current = true;
       } else {
         setError(json.error || 'Tracking link not found');
       }
@@ -32,13 +33,29 @@ export default function DeliveryTrackingPage() {
     }
   };
 
+  const deliveredRef = useRef(false);
+
   useEffect(() => {
-    if (token) {
+    if (!token) return;
+    fetchTracking();
+
+    const interval = setInterval(() => {
+      // Stop polling once delivered or when tab is hidden
+      if (deliveredRef.current) return;
+      if (typeof document !== 'undefined' && document.hidden) return;
       fetchTracking();
-      // Poll for updates every 15 seconds
-      const interval = setInterval(fetchTracking, 15000);
-      return () => clearInterval(interval);
-    }
+    }, 60_000);
+
+    // Pause/resume on tab visibility
+    const onVisibility = () => {
+      if (!document.hidden && !deliveredRef.current) fetchTracking();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [token]);
 
   if (loading) {

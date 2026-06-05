@@ -4268,7 +4268,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                         if (res.imageUrl) {
                           setPrintSettings(prev => ({
                             ...prev,
-                            receiptLogo: { ...(prev.receiptLogo || {}), url: res.imageUrl, enabled: true, position: prev.receiptLogo?.position || 'center', size: prev.receiptLogo?.size || 60, nameAlignment: prev.receiptLogo?.nameAlignment || 'center' }
+                            receiptLogo: { ...(prev.receiptLogo || {}), url: res.imageUrl, enabled: true, position: prev.receiptLogo?.position || 'center', size: prev.receiptLogo?.size || 80, nameAlignment: prev.receiptLogo?.nameAlignment || 'center' }
                           }));
                         }
                       } catch (err) {
@@ -4324,20 +4324,20 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                       <div style={{ marginBottom: '12px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                           <p style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', margin: 0 }}>Logo Size</p>
-                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#111827' }}>{printSettings.receiptLogo?.size || 60}px</span>
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#111827' }}>{printSettings.receiptLogo?.size || 80}px</span>
                         </div>
                         <input
                           type="range"
                           min="30"
-                          max="120"
+                          max="200"
                           step="5"
-                          value={printSettings.receiptLogo?.size || 60}
+                          value={printSettings.receiptLogo?.size || 80}
                           onChange={(e) => setPrintSettings(prev => ({ ...prev, receiptLogo: { ...prev.receiptLogo, size: parseInt(e.target.value) } }))}
                           style={{ width: '100%', height: '4px', borderRadius: '2px', appearance: 'none', WebkitAppearance: 'none', background: '#e5e7eb', outline: 'none', cursor: 'pointer' }}
                         />
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
                           <span style={{ fontSize: '9px', color: '#9ca3af' }}>30px</span>
-                          <span style={{ fontSize: '9px', color: '#9ca3af' }}>120px</span>
+                          <span style={{ fontSize: '9px', color: '#9ca3af' }}>200px</span>
                         </div>
                       </div>
 
@@ -4478,6 +4478,31 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                     >
                       {KOT_TEMPLATE_LIST.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                     </select>
+                  </div>
+
+                  {/* Print Language — English / Arabic / Dual */}
+                  <div>
+                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '6px' }}>Print Language</span>
+                    <div style={{ display: 'flex', borderRadius: 10, overflow: 'hidden', border: '1.5px solid #e2e8f0' }}>
+                      {[
+                        { value: 'en', label: 'English' },
+                        { value: 'ar', label: 'Arabic' },
+                        { value: 'dual', label: 'Dual (EN + AR)' },
+                      ].map(opt => (
+                        <button
+                          key={opt.value}
+                          onClick={() => setPrintSettings(prev => ({ ...prev, printLanguage: opt.value }))}
+                          style={{
+                            flex: 1, padding: '7px 4px', fontSize: '11px', fontWeight: 600, border: 'none', cursor: 'pointer',
+                            background: (printSettings.printLanguage || 'en') === opt.value ? '#2563eb' : '#fff',
+                            color: (printSettings.printLanguage || 'en') === opt.value ? '#fff' : '#64748b',
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Bill Template — dropdown */}

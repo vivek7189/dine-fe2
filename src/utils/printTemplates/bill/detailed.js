@@ -7,6 +7,7 @@ import {
   buildChargesHtml, buildPaymentHtml, buildEcrPaymentHtml, buildDeliveryAddressHtml, calcGrandTotal, formatDateTime,
   getPrintFontSizes, getPrintFontFamily, getContentWidth, getBillHeaderHTML, wrapInDocument, buildInclusiveTaxNote,
   buildFeedbackSection,
+  BILL_LABELS_AR, getBillDualCSS, dualLabel, dualTitle, dualItemName,
 } from '../helpers';
 
 export const id = 'detailed';
@@ -29,6 +30,9 @@ function getDetailedBillCSS(scaleOrPreset, fontId, printerWidth) {
 
 export function render(invoice, printSettings = {}, labels = {}) {
   const L = getBillLabels(labels);
+  const AR = BILL_LABELS_AR;
+  const lang = printSettings.printLanguage || 'en';
+  const showAr = lang === 'dual' || lang === 'ar';
   const bl = printSettings?.billLayout || {};
   const cs = invoice.currencySymbol || '₹';
   const items = invoice.items || [];
@@ -42,7 +46,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
     const variant = item.selectedVariant?.name || item.variant || '';
     const custs = item.selectedCustomizations || item.customizations || [];
 
-    let html = `<div class="item-row"><span>${esc(item.name)}</span><span>${cs}${lineTotal.toFixed(2)}</span></div>`;
+    let html = `<div class="item-row"><span>${showAr ? dualItemName(item, showAr) : esc(item.name)}</span><span>${cs}${lineTotal.toFixed(2)}</span></div>`;
     // Show quantity breakdown if qty > 1
     if (qty > 1) {
       html += `<div class="item-sub">x${qty} @ ${cs}${unitPrice.toFixed(2)}</div>`;
@@ -97,6 +101,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
   const identityHtml = buildIdentityHtml(invoice, printSettings);
   const receiptLogo = printSettings.receiptLogo || null;
   const css = getDetailedBillCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily, printSettings.printerWidth);
+  const finalCss = showAr ? css + getBillDualCSS() : css;
 
   // Waiter/cashier info
   const waiterInfo = invoice.waiterName || invoice.cashierName || '';
@@ -105,15 +110,15 @@ export function render(invoice, printSettings = {}, labels = {}) {
     // Header with logo
     getBillHeaderHTML(esc(invoice.restaurantName || 'Restaurant'), identityHtml, receiptLogo, '') +
     `<div class="divider">- - - - - - - - - - - - - - - - -</div>` +
-    `<div class="receipt-title">*** ${L.billTitle} ***</div>` +
-    (invoice.editCount > 0 ? `<div style="text-align:center;font-weight:bold;font-size:14px;padding:4px 0;border:2px solid #333;margin:4px 0;">${L.revisedBill} (Edit #${invoice.editCount})</div>` : '') +
+    `<div class="receipt-title">${showAr ? dualTitle('*** ' + L.billTitle + ' ***', '*** ' + AR.billTitle + ' ***', showAr) : '*** ' + L.billTitle + ' ***'}</div>` +
+    (invoice.editCount > 0 ? `<div style="text-align:center;font-weight:bold;font-size:14px;padding:4px 0;border:2px solid #333;margin:4px 0;">${showAr ? dualLabel(L.revisedBill, AR.revisedBill, showAr) : L.revisedBill} (Edit #${invoice.editCount})</div>` : '') +
     // Cashier + date on one line
     `<div class="info-line">` +
       (bl.showWaiter !== false && waiterInfo ? `<span>${esc(waiterInfo)}</span>` : `<span>#${invoice.dailyOrderId || invoice.id || 'N/A'}</span>`) +
       `<span>${justDate} - ${timeStr}</span>` +
     `</div>` +
-    (bl.showTable !== false && invoice.tableNumber ? `<div class="info-line"><span>${L.table}: ${invoice.tableNumber}${invoice.floorName ? ` · ${invoice.floorName}` : ''}</span>${bl.showPayment !== false ? `<span>${(invoice.paymentMethod || 'CASH').toUpperCase()}</span>` : ''}</div>` : '') +
-    (bl.showCustomer !== false && invoice.customerName ? `<div class="info-line"><span>${L.customer}: ${esc(invoice.customerName)}</span></div>` : '') +
+    (bl.showTable !== false && invoice.tableNumber ? `<div class="info-line"><span>${dualLabel(L.table, AR.table, showAr)}: ${invoice.tableNumber}${invoice.floorName ? ` · ${invoice.floorName}` : ''}</span>${bl.showPayment !== false ? `<span>${(invoice.paymentMethod || 'CASH').toUpperCase()}</span>` : ''}</div>` : '') +
+    (bl.showCustomer !== false && invoice.customerName ? `<div class="info-line"><span>${dualLabel(L.customer, AR.customer, showAr)}: ${esc(invoice.customerName)}</span></div>` : '') +
     (bl.showOrderType !== false && invoice.orderType ? `<div class="info-line"><span>Type: ${invoice.orderType}</span></div>` : '') +
     (bl.showWaiter !== false && waiterInfo ? `<div class="info-line"><span>#${invoice.dailyOrderId || invoice.id || 'N/A'}</span></div>` : '') +
     deliveryHtml +
@@ -123,14 +128,14 @@ export function render(invoice, printSettings = {}, labels = {}) {
     `<div class="divider">- - - - - - - - - - - - - - - - -</div>` +
     // Totals section
     `<div class="total-section">` +
-      (bl.showSubtotal !== false ? `<div class="row" style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.subtotal}:</span><span>${cs}${(invoice.subtotal || 0).toFixed(2)}</span></div>` : '') +
+      (bl.showSubtotal !== false ? `<div class="row" style="display:flex;justify-content:space-between;margin:2px 0;"><span>${dualLabel(L.subtotal, AR.subtotal, showAr)}:</span><span>${cs}${(invoice.subtotal || 0).toFixed(2)}</span></div>` : '') +
       discountRows +
       taxRows +
       chargesHtml +
     `</div>` +
     `<div class="divider">- - - - - - - - - - - - - - - - -</div>` +
     // Grand total
-    `<div class="grand-total"><span>${L.total}:</span><span>${cs}${grandTotal.toFixed(2)}</span></div>` +
+    `<div class="grand-total"><span>${dualLabel(L.total, AR.total, showAr)}:</span><span>${cs}${grandTotal.toFixed(2)}</span></div>` +
     // Payment details
     paymentHtml +
     ecrHtml +
@@ -138,8 +143,8 @@ export function render(invoice, printSettings = {}, labels = {}) {
     `<div class="divider">- - - - - - - - - - - - - - - - -</div>` +
     buildFeedbackSection(printSettings) +
     // Footer
-    `<div class="bill-footer">${bl.showFooter !== false ? `<p style="font-weight:bold;text-transform:uppercase;">${L.footer}</p>` : ''}${bl.showPoweredBy !== false ? `<p style="font-size:10px;margin-top:4px;">${L.poweredBy}</p>` : ''}</div>` +
+    `<div class="bill-footer">${bl.showFooter !== false ? `<p style="font-weight:bold;text-transform:uppercase;">${showAr ? dualLabel(L.footer, AR.footer, showAr) : L.footer}</p>` : ''}${bl.showPoweredBy !== false ? `<p style="font-size:10px;margin-top:4px;">${showAr ? dualLabel(L.poweredBy, AR.poweredBy, showAr) : L.poweredBy}</p>` : ''}</div>` +
     `<div class="divider">- - - - - - - - - - - - - - - - -</div>`;
 
-  return wrapInDocument(`${L.billLabel} #${invoice.dailyOrderId || invoice.id || 'N/A'}`, css, bodyHtml);
+  return wrapInDocument(`${L.billLabel} #${invoice.dailyOrderId || invoice.id || 'N/A'}`, finalCss, bodyHtml);
 }

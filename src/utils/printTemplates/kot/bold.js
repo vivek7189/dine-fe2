@@ -5,6 +5,7 @@
 import {
   esc, getKOTLabels, formatDateTime,
   getPrintFontSizes, getPrintFontFamily, getContentWidth, wrapInDocument,
+  KOT_LABELS_AR, getBillDualCSS, dualLabel, dualItemName,
 } from '../helpers';
 
 export const id = 'bold';
@@ -27,6 +28,9 @@ function getBoldKOTCSS(scaleOrPreset, fontId, printerWidth) {
 
 export function render(kotData, printSettings = {}, labels = {}) {
   const L = getKOTLabels(labels);
+  const AR = KOT_LABELS_AR;
+  const lang = printSettings.printLanguage || 'en';
+  const showAr = lang === 'dual' || lang === 'ar';
   const kl = printSettings?.kotLayout || {};
   const k = kotData;
   const { dateStr, timeStr } = formatDateTime();
@@ -46,7 +50,7 @@ export function render(kotData, printSettings = {}, labels = {}) {
 
     return `<div class="item" style="${strikeStyle}">` +
       `<div style="display:flex;justify-content:space-between;align-items:flex-start;">` +
-        `<div><span class="item-qty">${qty} x</span> <span class="item-name">${esc(item.name)}${cancelLabel}${newLabel}</span></div>` +
+        `<div><span class="item-qty">${qty} x</span> <span class="item-name">${showAr ? dualItemName(item, showAr) : esc(item.name)}${cancelLabel}${newLabel}</span></div>` +
         (itemTotal > 0 && cs ? `<div class="item-price">${cs}${itemTotal.toFixed(2)}</div>` : '') +
       `</div>` +
       (variant ? `<div class="item-variant">${esc(variant)}</div>` : '') +
@@ -83,6 +87,7 @@ export function render(kotData, printSettings = {}, labels = {}) {
   }
 
   const css = getBoldKOTCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily, printSettings.printerWidth);
+  const finalCss = showAr ? css + getBillDualCSS() : css;
 
   const bodyHtml =
     `<div class="header">` +
@@ -93,7 +98,7 @@ export function render(kotData, printSettings = {}, labels = {}) {
     `<div class="divider">................................</div>` +
     `<div class="info">` +
       (kl.showTable !== false ? `<div>Table/Ref.No: ${k.tableNumber || k.roomNumber || k.dailyOrderId || k.orderId}</div>` : '') +
-      `<div style="display:flex;justify-content:space-between;">${kl.showOrderNumber !== false ? `<span>KOT No: <strong>${k.dailyOrderId || k.orderId}</strong></span>` : '<span></span>'}<span>${L.totalItems}: ${totalItems}</span></div>` +
+      `<div style="display:flex;justify-content:space-between;">${kl.showOrderNumber !== false ? `<span>KOT No: <strong>${k.dailyOrderId || k.orderId}</strong></span>` : '<span></span>'}<span>${dualLabel(L.totalItems, AR.totalItems, showAr)}: ${totalItems}</span></div>` +
     `</div>` +
     `<div class="divider">................................</div>` +
     `<div class="info">` +
@@ -101,14 +106,14 @@ export function render(kotData, printSettings = {}, labels = {}) {
       (kl.showWaiter !== false && k.waiterName ? `<div>Order by: ${esc(k.waiterName)}</div>` : '') +
       (kl.showDate !== false ? `<div>Date: ${dateStr}</div>` : '') +
       `<div>Time: ${timeStr}</div>` +
-      (kl.showCustomer !== false && k.customerName ? `<div>${L.customer}: ${esc(k.customerName)}</div>` : '') +
+      (kl.showCustomer !== false && k.customerName ? `<div>${dualLabel(L.customer, AR.customer, showAr)}: ${esc(k.customerName)}</div>` : '') +
     `</div>` +
     `<div class="divider">................................</div>` +
     itemsHtml +
     `<div class="divider">................................</div>` +
     (kl.showKotTitle !== false ? `<div class="footer">** ${hasChanges ? 'KOT Update' : 'New Order'} **</div>` : '') +
-    (k.specialInstructions ? `<div class="divider">................................</div><div style="text-align:center;font-size:12px;padding:4px;border:1px dashed #000;"><strong>*** ${L.specialInstructions} ***</strong><div style="text-align:left;">${esc(k.specialInstructions)}</div></div>` : '') +
+    (k.specialInstructions ? `<div class="divider">................................</div><div style="text-align:center;font-size:12px;padding:4px;border:1px dashed #000;"><strong>*** ${showAr ? dualLabel(L.specialInstructions, AR.specialInstructions, showAr) : L.specialInstructions} ***</strong><div style="text-align:left;">${esc(k.specialInstructions)}</div></div>` : '') +
     `<div class="divider">================================</div>`;
 
-  return wrapInDocument(`KOT - ${k.dailyOrderId || k.orderId}`, css, bodyHtml);
+  return wrapInDocument(`KOT - ${k.dailyOrderId || k.orderId}`, finalCss, bodyHtml);
 }
