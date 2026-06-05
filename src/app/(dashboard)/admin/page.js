@@ -3381,6 +3381,8 @@ const getDownloadPlatform = () => {
 
 // Print Settings Component
 const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
+  const [generatingArabicNames, setGeneratingArabicNames] = useState(false);
+  const [arabicNamesStatus, setArabicNamesStatus] = useState(null);
   const [printSettings, setPrintSettings] = useState({
     // Dashboard UI settings
     kotPrinterEnabled: true,
@@ -4491,7 +4493,18 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                       ].map(opt => (
                         <button
                           key={opt.value}
-                          onClick={() => setPrintSettings(prev => ({ ...prev, printLanguage: opt.value }))}
+                          onClick={() => {
+                            setPrintSettings(prev => ({ ...prev, printLanguage: opt.value }));
+                            if ((opt.value === 'ar' || opt.value === 'dual') && !generatingArabicNames) {
+                              setGeneratingArabicNames(true);
+                              setArabicNamesStatus(null);
+                              apiClient.generateArabicNames(restaurantId).then(resp => {
+                                setArabicNamesStatus(resp.success ? (resp.updatedCount > 0 ? `✓ Generated Arabic names for ${resp.updatedCount} menu items` : '✓ All menu items already have Arabic names') : 'Failed to generate Arabic names');
+                              }).catch(() => {
+                                setArabicNamesStatus('Failed to generate Arabic names');
+                              }).finally(() => setGeneratingArabicNames(false));
+                            }
+                          }}
                           style={{
                             flex: 1, padding: '7px 4px', fontSize: '11px', fontWeight: 600, border: 'none', cursor: 'pointer',
                             background: (printSettings.printLanguage || 'en') === opt.value ? '#2563eb' : '#fff',
@@ -4503,6 +4516,18 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                         </button>
                       ))}
                     </div>
+                    {generatingArabicNames && (
+                      <div style={{ marginTop: '8px', padding: '8px 12px', background: '#eff6ff', borderRadius: '8px', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#1e40af', fontWeight: '500' }}>
+                        <span style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid #3b82f6', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                        Generating Arabic names for menu items...
+                        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                      </div>
+                    )}
+                    {!generatingArabicNames && arabicNamesStatus && (
+                      <div style={{ marginTop: '8px', padding: '8px 12px', background: arabicNamesStatus.startsWith('✓') ? '#f0fdf4' : '#fef2f2', borderRadius: '8px', border: `1px solid ${arabicNamesStatus.startsWith('✓') ? '#bbf7d0' : '#fecaca'}`, fontSize: '11px', color: arabicNamesStatus.startsWith('✓') ? '#166534' : '#991b1b', fontWeight: '500' }}>
+                        {arabicNamesStatus}
+                      </div>
+                    )}
                   </div>
 
                   {/* Bill Template — dropdown */}

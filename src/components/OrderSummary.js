@@ -7,7 +7,7 @@ import { t } from '../lib/i18n';
 import { useCurrency } from '../contexts/CurrencyContext';
 import useCustomerLookup, { getPhoneMinLength } from '../hooks/useCustomerLookup';
 import useOfferEngine, { calculateDiscountForOffer } from '../hooks/useOfferEngine';
-import { getBillPrintCSS, getKOTPrintCSS, getBillHeaderHTML, buildTokenSlipHTML, buildTokenSlipsDocumentHTML } from '../utils/printFontSizes';
+import { getKOTPrintCSS, buildTokenSlipHTML, buildTokenSlipsDocumentHTML } from '../utils/printFontSizes';
 import { generateBillHTML, generateKOTHTML } from '../utils/printHtmlGenerator';
 import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '../utils/printBridge';
 
@@ -3164,51 +3164,29 @@ const OrderSummary = ({
                       const win = window.open('', '_blank', 'width=800,height=600');
                       if (!win) return;
                       invoicePrintWindowRef.current = win;
-                      const billItems = invoice?.items || orderSuccess?.kotData?.items || [];
                       const currencySymbol = getCurrencySymbol();
-                      const getSublineHtml = (item) => {
-                        const parts = [];
-                        if (item.spiritCategory) parts.push(item.spiritCategory);
-                        if (item.abv) parts.push(`${item.abv}% ABV`);
-                        if (item.bottleSize) parts.push(item.bottleSize);
-                        if (item.servingUnit && item.servingUnit !== item.bottleSize) parts.push(item.servingUnit);
-                        if (item.weight) parts.push(item.weight);
-                        if (item.unit) parts.push(`/${item.unit}`);
-                        if (item.servingSize) parts.push(item.servingSize);
-                        return parts.length > 0 ? `<div style="font-size:9px;color:#6b7280;">${parts.join(' · ')}</div>` : '';
+                      const manualBillLabels = {
+                        billTitle: bLabels.billTitle, billLabel: bLabels.billLabel,
+                        itemCol: bLabels.itemCol, qtyCol: bLabels.qtyCol, amt: t('invoice.amt'),
+                        date: t('invoice.date'), table: t('invoice.table'), room: t('invoice.room'),
+                        customer: bLabels.customerLabel, payment: t('invoice.payment'),
+                        subtotal: t('invoice.subtotal'), offer: t('invoice.offer'),
+                        manualDiscount: t('invoice.manualDiscount'), loyaltyRedeem: t('invoice.loyaltyRedeem'),
+                        serviceCharge: t('invoice.serviceCharge'), tip: t('invoice.tip'),
+                        roundOff: t('invoice.roundOff'), total: t('invoice.total'),
+                        splitPayment: t('invoice.splitPayment'), cashReceived: t('invoice.cashReceived'),
+                        change: t('invoice.change'), partialPayment: t('invoice.partialPayment'),
+                        paid: t('invoice.paid'), outstanding: t('invoice.outstanding'),
+                        walletApplied: t('dashboard.walletApplied'), amountToPay: t('dashboard.amountToPay'),
+                        footer: bLabels.footer, poweredBy: t('invoice.poweredBy'),
+                        tel: t('invoice.tel'),
                       };
-                      const itemsHtml = billItems.map(item => `<tr><td style="text-align:left;">${(item.name || '').replace(/</g,'&lt;')}${getSublineHtml(item)}</td><td style="text-align:center;">${item.quantity || 1}</td><td style="text-align:right;">${currencySymbol}${((item.price || (item.total / (item.quantity || 1)) || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`).join('');
-                      const taxHtml = (invoice?.taxBreakdown || []).map(tax => `<tr><td colspan="2" style="text-align:left;">${tax.name} (${tax.rate}%)${tax.inclusive ? ' (incl.)' : ''}</td><td style="text-align:right;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td></tr>`).join('');
-                      const printTotalDiscount = (invoice?.discountAmount || 0) + (invoice?.manualDiscount || 0) + (invoice?.loyaltyDiscount || 0) + (invoice?.couponDiscount || 0);
-                      const offerName = typeof invoice?.appliedOffer === 'string' ? invoice.appliedOffer : (invoice?.appliedOffer?.name || invoice?.selectedOfferName || '');
-                      const offerDiscHtml = (invoice?.discountAmount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>${t('invoice.offer')}${offerName ? ` (${offerName})` : ''}:</span><span>-${currencySymbol}${(invoice.discountAmount).toFixed(2)}</span></div>` : '';
-                      const manualDiscHtml = (invoice?.manualDiscount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>${t('invoice.manualDiscount')}:</span><span>-${currencySymbol}${(invoice.manualDiscount).toFixed(2)}</span></div>` : '';
-                      const loyaltyDiscHtml = (invoice?.loyaltyDiscount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#b45309;"><span>${t('invoice.loyaltyRedeem')}:</span><span>-${currencySymbol}${(invoice.loyaltyDiscount).toFixed(2)}</span></div>` : '';
-                      const couponDiscHtml = (invoice?.couponDiscount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#e11d48;"><span>Coupon (${invoice.couponCode || ''}):</span><span>-${currencySymbol}${(invoice.couponDiscount).toFixed(2)}</span></div>` : '';
-                      const discountHtml = offerDiscHtml + manualDiscHtml + loyaltyDiscHtml + couponDiscHtml;
-                      const serviceChargeHtml = (invoice?.serviceChargeAmount > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.serviceCharge')}${invoice?.serviceChargeRate ? ` (${invoice.serviceChargeRate}%)` : ''}:</span><span>${currencySymbol}${invoice.serviceChargeAmount.toFixed(2)}</span></div>` : '';
-                      const tipHtml = (invoice?.tipAmount > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.tip')}${invoice?.tipPercentage ? ` (${invoice.tipPercentage}%)` : ''}:</span><span>${currencySymbol}${invoice.tipAmount.toFixed(2)}</span></div>` : '';
-                      const roundOffHtml = (invoice?.roundOffAmount != null && invoice?.roundOffAmount !== 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.roundOff')}:</span><span>${invoice.roundOffAmount > 0 ? '+' : ''}${currencySymbol}${invoice.roundOffAmount.toFixed(2)}</span></div>` : '';
-                      const splitPaymentHtml = (invoice?.splitPayments?.length >= 2) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">${t('invoice.splitPayment')}:</div>${invoice.splitPayments.map(sp => `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${(sp.method || 'Cash').toUpperCase()}:</span><span>${currencySymbol}${(sp.amount || 0).toFixed(2)}</span></div>`).join('')}</div>` : '';
-                      const cashReceivedHtml = (invoice?.cashReceived > 0) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.cashReceived')}:</span><span>${currencySymbol}${invoice.cashReceived.toFixed(2)}</span></div>${(invoice?.changeReturned > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.change')}:</span><span>${currencySymbol}${invoice.changeReturned.toFixed(2)}</span></div>` : ''}</div>` : '';
-                      const partialPayHtml = (invoice?.outstandingAmount > 0) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">${invoice?.paidAmount === 0 ? 'Due (Udhar)' : t('invoice.partialPayment')}:</div>${invoice?.paidAmount > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.paid')}:</span><span>${currencySymbol}${invoice.paidAmount.toFixed(2)}</span></div>` : ''}<div style="display:flex;justify-content:space-between;margin:2px 0;color:#dc2626;font-weight:bold;"><span>${t('invoice.outstanding')}:</span><span>${currencySymbol}${invoice.outstandingAmount.toFixed(2)}</span></div></div>` : '';
-                      const walletPayHtml = (invoice?.walletRedeemAmount || 0) > 0 ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('dashboard.walletApplied')}:</span><span>-${currencySymbol}${invoice.walletRedeemAmount.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;margin:2px 0;font-weight:bold;"><span>${t('dashboard.amountToPay')}:</span><span>${currencySymbol}${Math.max(0, (invoice?.grandTotal || 0) - invoice.walletRedeemAmount).toFixed(2)}</span></div></div>` : '';
-                      const printGrandTotal = invoice?.grandTotal || ((invoice?.subtotal || 0) - printTotalDiscount + (invoice?.taxBreakdown?.reduce((sum, tax) => sum + (tax.amount || 0), 0) || 0) + (invoice?.serviceChargeAmount || 0) + (invoice?.tipAmount || 0) + (invoice?.roundOffAmount || 0));
-                      // Build identity lines for print header
-                      const identityLines = [];
-                      if (invoice?.restaurantLegalName && invoice.restaurantLegalName !== invoice.restaurantName) identityLines.push(invoice.restaurantLegalName.replace(/</g,'&lt;'));
-                      if (invoice?.restaurantAddress) identityLines.push(invoice.restaurantAddress.replace(/</g,'&lt;'));
-                      if (invoice?.restaurantPhone) identityLines.push(t('invoice.tel') + ': ' + invoice.restaurantPhone);
-                      if (invoice?.showGstOnInvoice && invoice?.gstin) identityLines.push('GSTIN: ' + invoice.gstin);
-                      if (invoice?.showFssaiOnInvoice && invoice?.fssai) identityLines.push('FSSAI: ' + invoice.fssai);
-                      if (invoice?.showTaxIdOnInvoice && invoice?.vatNumber) identityLines.push((invoice?.countryCode === 'GB' ? 'VAT: ' : invoice?.countryCode === 'CA' ? 'GST/HST: ' : invoice?.countryCode === 'AE' ? 'TRN: ' : 'Tax ID: ') + invoice.vatNumber);
-                      if (invoice?.showTaxIdOnInvoice && invoice?.taxId) identityLines.push((invoice?.countryCode === 'AU' ? 'ABN: ' : 'Tax ID: ') + invoice.taxId);
-                      if (invoice?.showTaxIdOnInvoice && invoice?.businessRegistrationNumber) identityLines.push('Reg#: ' + invoice.businessRegistrationNumber);
-                      const identityHtml = identityLines.map(l => `<div style="font-size:11px;">${l}</div>`).join('');
-                      const receiptLogo = printSettings?.receiptLogo || null;
-                      const billHeaderHtml = getBillHeaderHTML((invoice?.restaurantName || 'Restaurant').replace(/</g,'&lt;'), identityHtml, receiptLogo, `--- ${bLabels.billTitle} ---`);
-
-                      const invoiceContent = `<!DOCTYPE html><html><head><title>${bLabels.billLabel} #${invoice?.dailyOrderId || invoice?.id || 'N/A'}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily, printSettings?.printerWidth, printSettings)}</style></head><body>${billHeaderHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div><span>${bLabels.billLabel}#:</span><span><strong>${invoice?.dailyOrderId || invoice?.id || 'N/A'}</strong></span></div><div><span>${t('invoice.date')}:</span><span>${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})} ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</span></div>${invoice?.tableNumber ? `<div><span>${t('invoice.table')}:</span><span>${invoice.tableNumber}${invoice?.floorName ? ` · ${invoice.floorName}` : ''}</span></div>` : ''}${invoice?.customerName ? `<div><span>${bLabels.customerLabel}:</span><span>${(invoice.customerName || '').replace(/</g,'&lt;')}</span></div>` : ''}<div><span>${t('invoice.payment')}:</span><span>${(invoice?.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;width:55%;">${bLabels.itemCol}</th><th style="text-align:center;width:15%;">${bLabels.qtyCol}</th><th style="text-align:right;width:30%;">${t('invoice.amt')}</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>${t('invoice.subtotal')}:</span><span>${currencySymbol}${(invoice?.subtotal || 0).toFixed(2)}</span></div>${discountHtml}</div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}${serviceChargeHtml}${tipHtml}${roundOffHtml}<div class="total-row"><span>${t('invoice.total')}:</span><span>${currencySymbol}${printGrandTotal.toFixed(2)}</span></div>${splitPaymentHtml}${cashReceivedHtml}${partialPayHtml}${walletPayHtml}</div><div class="divider">================================</div><div class="bill-footer"><p>${bLabels.footer}</p><p style="font-size:10px;margin-top:4px;">${t('invoice.poweredBy')}</p></div></body></html>`;
+                      const invoiceData = {
+                        ...invoice,
+                        items: invoice?.items || orderSuccess?.kotData?.items || [],
+                        currencySymbol,
+                      };
+                      const invoiceContent = generateBillHTML(invoiceData, printSettings || {}, manualBillLabels);
                       win.document.write(invoiceContent);
                       win.document.close();
                       win.focus();

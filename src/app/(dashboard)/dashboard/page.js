@@ -2128,6 +2128,7 @@ function RestaurantPOSContent() {
     return {
       menuItemId: item.id,
       name: item.name,
+      nameAr: item.nameAr || null,
       price: effectivePrice,
       quantity: item.quantity,
       total: effectivePrice * (item.quantity || 1),

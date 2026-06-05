@@ -2409,6 +2409,10 @@ class ApiClient {
     return this.request(`/api/bill/render/${restaurantId}/${orderId}`);
   }
 
+  async generateArabicNames(restaurantId) {
+    return this.request(`/api/menus/${restaurantId}/generate-arabic-names`, { method: 'POST' });
+  }
+
   async getKOTRender(restaurantId, orderId, { newOnly = false, stationId = null } = {}) {
     const params = new URLSearchParams();
     if (newOnly) params.set('newOnly', 'true');
