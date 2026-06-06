@@ -104,13 +104,39 @@ const Profile = () => {
   }, [linkingPhone, isClient, setupRecaptcha]);
 
   useEffect(() => {
-    const loadUserData = () => {
+    const loadUserData = async () => {
       try {
         const userData = localStorage.getItem('user');
         if (userData) {
           const parsedUser = JSON.parse(userData);
           setUser(parsedUser);
           setEditedName(parsedUser.name || '');
+
+          // Fetch fresh user data from backend to pick up admin-side changes
+          try {
+            const token = apiClient.getToken();
+            if (token) {
+              const res = await fetch(`${apiClient.baseURL}/api/auth/me`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              if (res.ok) {
+                const freshData = await res.json();
+                const merged = { ...parsedUser };
+                if (freshData.email) merged.email = freshData.email;
+                if (freshData.phone) merged.phone = freshData.phone;
+                if (freshData.name) merged.name = freshData.name;
+                // Update localStorage and state if anything changed
+                if (merged.email !== parsedUser.email || merged.phone !== parsedUser.phone || merged.name !== parsedUser.name) {
+                  localStorage.setItem('user', JSON.stringify(merged));
+                  setUser(merged);
+                  setEditedName(merged.name || '');
+                }
+              }
+            }
+          } catch (e) {
+            // Non-critical — profile still works from localStorage
+            console.log('Could not refresh user data:', e);
+          }
         } else {
           router.push('/login');
         }

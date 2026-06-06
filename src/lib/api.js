@@ -989,9 +989,10 @@ class ApiClient {
     return result;
   }
 
-  async bulkDeleteMenuItems(restaurantId) {
+  async bulkDeleteMenuItems(restaurantId, reason) {
     const result = await this.request(`/api/menus/${restaurantId}/bulk-delete`, {
       method: 'DELETE',
+      body: JSON.stringify({ reason: reason || '' }),
     });
     this.invalidateCache(`/api/menus/${restaurantId}`);
     this.invalidateCache(`/api/categories/${restaurantId}`);

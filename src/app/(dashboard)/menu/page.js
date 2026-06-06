@@ -1998,6 +1998,7 @@ const MenuManagement = () => {
   const [isClient, setIsClient] = useState(false);
   const [collapsedCategories, setCollapsedCategories] = useState({});
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [bulkDeleteReason, setBulkDeleteReason] = useState('');
   const [uploadingImages, setUploadingImages] = useState(false);
   const [showPhotoCapture, setShowPhotoCapture] = useState(false);
   const hasLoadedData = useRef(false);
@@ -2769,11 +2770,13 @@ const MenuManagement = () => {
   };
 
   const confirmBulkDelete = async () => {
+    if (!bulkDeleteReason.trim()) return;
     try {
       setOperationLoading(true);
       setShowBulkDeleteConfirm(false);
 
-      const response = await apiClient.bulkDeleteMenuItems(currentRestaurant.id);
+      const response = await apiClient.bulkDeleteMenuItems(currentRestaurant.id, bulkDeleteReason.trim());
+      setBulkDeleteReason('');
 
       // Clear all menu items from state
       setMenuItems([]);
@@ -5715,6 +5718,31 @@ const MenuManagement = () => {
               </p>
             </div>
 
+            {/* Reason */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '6px', textAlign: 'left' }}>
+                Reason for deletion *
+              </label>
+              <textarea
+                value={bulkDeleteReason}
+                onChange={(e) => setBulkDeleteReason(e.target.value)}
+                placeholder="Enter reason for deleting all menu items..."
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  resize: 'vertical',
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#6b7280'}
+                onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+              />
+            </div>
+
             {/* Buttons */}
             <div style={{
               display: 'flex',
@@ -5722,7 +5750,7 @@ const MenuManagement = () => {
               justifyContent: 'center'
             }}>
               <button
-                onClick={() => setShowBulkDeleteConfirm(false)}
+                onClick={() => { setShowBulkDeleteConfirm(false); setBulkDeleteReason(''); }}
                 disabled={operationLoading}
                 style={{
                   padding: '12px 24px',
@@ -5747,10 +5775,10 @@ const MenuManagement = () => {
               </button>
               <button
                 onClick={confirmBulkDelete}
-                disabled={operationLoading}
+                disabled={operationLoading || !bulkDeleteReason.trim()}
                 style={{
                   padding: '12px 24px',
-                  background: operationLoading ? '#9ca3af' : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                  background: (operationLoading || !bulkDeleteReason.trim()) ? '#9ca3af' : 'linear-gradient(135deg, #ef4444, #dc2626)',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
@@ -5763,10 +5791,10 @@ const MenuManagement = () => {
                   gap: '8px'
                 }}
                 onMouseEnter={(e) => {
-                  if (!operationLoading) e.target.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
+                  if (!operationLoading && bulkDeleteReason.trim()) e.target.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
                 }}
                 onMouseLeave={(e) => {
-                  if (!operationLoading) e.target.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                  if (!operationLoading && bulkDeleteReason.trim()) e.target.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
                 }}
               >
                 {operationLoading ? (
