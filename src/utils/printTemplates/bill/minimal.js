@@ -33,7 +33,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
   const lang = printSettings.printLanguage || 'en';
   const showAr = lang === 'dual' || lang === 'ar';
   const bl = printSettings?.billLayout || {};
-  const cs = invoice.currencySymbol || '₹';
+  const cs = invoice.currencySymbol || '';
   const items = invoice.items || [];
   const { combined: dateStr } = formatDateTime();
 

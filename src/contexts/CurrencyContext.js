@@ -9,11 +9,36 @@ import {
   getCurrencySymbol as getCurrencySymbolUtil,
   formatCurrencyHtml as formatCurrencyHtmlUtil
 } from '../utils/currency';
-// jjh d
+
 const CurrencyContext = createContext(null);
 
+// Read cached currency settings from localStorage (instant, no async)
+function getCachedCurrencySettings() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const cached = localStorage.getItem('currencySettings');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      // Sanity check: must have currencySymbol
+      if (parsed && parsed.currencySymbol) return parsed;
+    }
+  } catch {}
+  return null;
+}
+
+// Persist currency settings to localStorage for instant load on next visit
+function cacheCurrencySettings(settings) {
+  if (typeof window === 'undefined' || !settings) return;
+  try {
+    localStorage.setItem('currencySettings', JSON.stringify(settings));
+  } catch {}
+}
+
 export function CurrencyProvider({ children }) {
-  const [currencySettings, setCurrencySettings] = useState(defaultCurrencySettings);
+  // Initialize from localStorage cache first, then fall back to defaults
+  const [currencySettings, setCurrencySettings] = useState(
+    () => getCachedCurrencySettings() || defaultCurrencySettings
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -31,6 +56,7 @@ export function CurrencyProvider({ children }) {
       const response = await apiClient.getCurrencySettings(restaurantId);
       if (response.success && response.currencySettings) {
         setCurrencySettings(response.currencySettings);
+        cacheCurrencySettings(response.currencySettings);
       } else {
         // Use default if no settings found
         setCurrencySettings(defaultCurrencySettings);
@@ -38,8 +64,7 @@ export function CurrencyProvider({ children }) {
     } catch (err) {
       console.error('Error loading currency settings:', err);
       setError(err.message);
-      // Fall back to default settings on error
-      setCurrencySettings(defaultCurrencySettings);
+      // Keep current settings (from localStorage cache) instead of resetting to defaults
     } finally {
       setLoading(false);
     }
@@ -71,6 +96,7 @@ export function CurrencyProvider({ children }) {
       const newSettings = event.detail?.settings;
       if (newSettings) {
         setCurrencySettings(newSettings);
+        cacheCurrencySettings(newSettings);
       }
     };
 
@@ -107,6 +133,7 @@ export function CurrencyProvider({ children }) {
       const response = await apiClient.updateCurrencySettings(restaurantId, newSettings);
       if (response.success) {
         setCurrencySettings(newSettings);
+        cacheCurrencySettings(newSettings);
       }
       return response;
     } catch (err) {
@@ -143,14 +170,15 @@ export function useCurrency() {
   const context = useContext(CurrencyContext);
   if (!context) {
     // Return default utilities if used outside provider
+    const cached = getCachedCurrencySettings() || defaultCurrencySettings;
     return {
-      currencySettings: defaultCurrencySettings,
+      currencySettings: cached,
       loading: false,
       error: null,
-      formatCurrency: (amount) => formatCurrencyUtil(amount, defaultCurrencySettings),
-      formatCurrencyParts: (amount) => formatCurrencyPartsUtil(amount, defaultCurrencySettings),
-      getCurrencySymbol: () => getCurrencySymbolUtil(defaultCurrencySettings),
-      formatCurrencyHtml: (amount) => formatCurrencyHtmlUtil(amount, defaultCurrencySettings),
+      formatCurrency: (amount) => formatCurrencyUtil(amount, cached),
+      formatCurrencyParts: (amount) => formatCurrencyPartsUtil(amount, cached),
+      getCurrencySymbol: () => getCurrencySymbolUtil(cached),
+      formatCurrencyHtml: (amount) => formatCurrencyHtmlUtil(amount, cached),
       updateCurrencySettings: async () => { throw new Error('CurrencyProvider not found'); },
       reloadSettings: () => {}
     };

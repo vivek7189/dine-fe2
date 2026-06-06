@@ -19,7 +19,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
   const L = getBillLabels(labels);
   const AR = BILL_LABELS_AR;
   const bl = printSettings?.billLayout || {};
-  const cs = invoice.currencySymbol || '₹';
+  const cs = invoice.currencySymbol || '';
   const items = invoice.items || [];
   const lang = printSettings.printLanguage || 'en';
   const showAr = lang === 'dual' || lang === 'ar';

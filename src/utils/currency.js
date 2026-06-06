@@ -39,7 +39,7 @@ export function formatCurrency(amount, settings = null) {
     : formattedInt;
 
   // Add symbol in correct position
-  const symbol = config.currencySymbol || '₹';
+  const symbol = config.currencySymbol || '';
   if (config.symbolPosition === 'after') {
     return `${formattedNumber}${symbol}`;
   }
@@ -58,7 +58,7 @@ export function formatCurrencyParts(amount, settings = null) {
   // Handle invalid amounts
   if (amount === null || amount === undefined || isNaN(amount)) {
     return {
-      symbol: config.currencySymbol || '₹',
+      symbol: config.currencySymbol || '',
       amount: '0',
       position: config.symbolPosition || 'before'
     };
@@ -83,7 +83,7 @@ export function formatCurrencyParts(amount, settings = null) {
     : formattedInt;
 
   return {
-    symbol: config.currencySymbol || '₹',
+    symbol: config.currencySymbol || '',
     amount: formattedNumber,
     position: config.symbolPosition || 'before'
   };
@@ -96,7 +96,7 @@ export function formatCurrencyParts(amount, settings = null) {
  */
 export function getCurrencySymbol(settings = null) {
   const config = settings || defaultCurrencySettings;
-  return config.currencySymbol || '₹';
+  return config.currencySymbol || '';
 }
 
 /**
@@ -140,7 +140,7 @@ export function parseCurrencyString(formattedValue, settings = null) {
   }
 
   // Remove currency symbol
-  let cleaned = formattedValue.replace(config.currencySymbol || '₹', '');
+  let cleaned = formattedValue.replace(config.currencySymbol || '', '');
 
   // Remove thousand separators
   const thousandSep = config.thousandSeparator || ',';

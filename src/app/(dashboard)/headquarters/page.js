@@ -236,7 +236,7 @@ export function HeadquartersContent({ embedded = false }) {
   const [emailPreferences, setEmailPreferences] = useState({
     emailEnabled: false,
     reportEmails: [],
-    timezone: 'Asia/Kolkata',
+    timezone: typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'Asia/Kolkata',
     reportTime: '08:00'
   });
   const [newEmailInput, setNewEmailInput] = useState('');
@@ -403,6 +403,8 @@ export function HeadquartersContent({ embedded = false }) {
           prefs.reportEmails = [prefs.reportEmail];
         }
         if (!prefs.reportEmails) prefs.reportEmails = [];
+        // Always use browser's current timezone
+        prefs.timezone = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : (prefs.timezone || 'Asia/Kolkata');
         setEmailPreferences(prefs);
       }
     } catch (error) {
@@ -425,7 +427,15 @@ export function HeadquartersContent({ embedded = false }) {
   // Save email preferences
   const saveEmailPreferences = async () => {
     try {
-      await apiClient.updateEmailPreferences(emailPreferences);
+      // Flush any un-added email from input before saving
+      let prefsToSave = { ...emailPreferences };
+      const pendingEmail = newEmailInput.trim().replace(/,$/, '');
+      if (pendingEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pendingEmail) && !(prefsToSave.reportEmails || []).includes(pendingEmail) && (prefsToSave.reportEmails?.length || 0) < 5) {
+        prefsToSave = { ...prefsToSave, reportEmails: [...(prefsToSave.reportEmails || []), pendingEmail] };
+        setEmailPreferences(prefsToSave);
+        setNewEmailInput('');
+      }
+      await apiClient.updateEmailPreferences(prefsToSave);
       setShowEmailModal(false);
     } catch (error) {
       console.error('Error saving email preferences:', error);
@@ -1121,11 +1131,21 @@ export function HeadquartersContent({ embedded = false }) {
 
   // Send test email handler
   const sendTestEmail = async () => {
-    const emails = emailPreferences.reportEmails || [];
+    // Flush any un-added email from input
+    let prefs = { ...emailPreferences };
+    const pendingEmail = newEmailInput.trim().replace(/,$/, '');
+    if (pendingEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pendingEmail) && !(prefs.reportEmails || []).includes(pendingEmail) && (prefs.reportEmails?.length || 0) < 5) {
+      prefs = { ...prefs, reportEmails: [...(prefs.reportEmails || []), pendingEmail] };
+      setEmailPreferences(prefs);
+      setNewEmailInput('');
+    }
+    const emails = prefs.reportEmails || [];
     if (emails.length === 0) return;
     try {
       setSendingTestEmail(true);
       setTestEmailSent(false);
+      // Auto-save preferences when sending test email
+      await apiClient.updateEmailPreferences(prefs);
       await apiClient.sendTestReport(emails);
       setTestEmailSent(true);
       setTimeout(() => setTestEmailSent(false), 5000);
@@ -1357,48 +1377,26 @@ export function HeadquartersContent({ embedded = false }) {
             )}
           </div>
 
-          {/* Time and Timezone row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
-            <div>
-              <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '8px' }}>
-                {t('hq.deliveryTime')}
-              </label>
-              <input
-                type="time"
-                value={emailPreferences.reportTime}
-                onChange={(e) => setEmailPreferences(prev => ({ ...prev, reportTime: e.target.value }))}
-                style={{
-                  width: '100%',
-                  padding: '14px 16px',
-                  borderRadius: '12px',
-                  border: '2px solid #e5e7eb',
-                  fontSize: '14px'
-                }}
-              />
-            </div>
-            <div>
-              <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '8px' }}>
-                {t('hq.timezone')}
-              </label>
-              <select
-                value={emailPreferences.timezone}
-                onChange={(e) => setEmailPreferences(prev => ({ ...prev, timezone: e.target.value }))}
-                style={{
-                  width: '100%',
-                  padding: '14px 16px',
-                  borderRadius: '12px',
-                  border: '2px solid #e5e7eb',
-                  fontSize: '14px',
-                  backgroundColor: 'white'
-                }}
-              >
-                <option value="Asia/Kolkata">IST</option>
-                <option value="America/New_York">EST</option>
-                <option value="America/Los_Angeles">PST</option>
-                <option value="Europe/London">GMT</option>
-                <option value="Asia/Dubai">GST</option>
-              </select>
-            </div>
+          {/* Delivery Time */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '8px' }}>
+              {t('hq.deliveryTime')}
+            </label>
+            <input
+              type="time"
+              value={emailPreferences.reportTime}
+              onChange={(e) => setEmailPreferences(prev => ({ ...prev, reportTime: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '14px 16px',
+                borderRadius: '12px',
+                border: '2px solid #e5e7eb',
+                fontSize: '14px'
+              }}
+            />
+            <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '6px' }}>
+              Your timezone: {emailPreferences.timezone?.replace(/_/g, ' ')}
+            </p>
           </div>
 
           {/* Buttons */}

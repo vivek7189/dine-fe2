@@ -2402,6 +2402,14 @@ const CurrencyManagement = ({ restaurants, selectedRestaurant, setSelectedRestau
         window.dispatchEvent(new CustomEvent('currencyChanged', {
           detail: { settings: currencySettings }
         }));
+        // Sync localStorage so selectedRestaurant stays up to date
+        try {
+          const stored = JSON.parse(localStorage.getItem('selectedRestaurant') || 'null');
+          if (stored) {
+            stored.currencySettings = currencySettings;
+            localStorage.setItem('selectedRestaurant', JSON.stringify(stored));
+          }
+        } catch {}
         const msg = response.taxSettingsUpdated
           ? 'Currency settings saved! Tax labels were automatically updated.'
           : 'Currency settings saved successfully!';
