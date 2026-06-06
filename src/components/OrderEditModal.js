@@ -227,6 +227,7 @@ const OrderEditModal = ({
         }
       } else {
         // Active order edit — use regular PATCH
+        const isSplitOrder = order?.splitPayments?.length >= 2;
         const updateData = {
           items: order.items.map(item => ({
             menuItemId: item.menuItemId,
@@ -234,7 +235,8 @@ const OrderEditModal = ({
             notes: item.notes || ''
           })),
           orderType,
-          paymentMethod,
+          paymentMethod: isSplitOrder ? 'split' : paymentMethod,
+          ...(isSplitOrder && { splitPayments: order.splitPayments }),
           customerInfo,
           notes,
           updatedAt: new Date().toISOString(),
@@ -270,6 +272,7 @@ const OrderEditModal = ({
       startLoading('Completing billing...');
       setError(null);
       
+      const isSplitOrder = order?.splitPayments?.length >= 2;
       const billingData = {
         items: order.items.map(item => ({
           menuItemId: item.menuItemId,
@@ -277,7 +280,8 @@ const OrderEditModal = ({
           notes: item.notes || ''
         })),
         orderType,
-        paymentMethod,
+        paymentMethod: isSplitOrder ? 'split' : paymentMethod,
+        ...(isSplitOrder && { splitPayments: order.splitPayments }),
         customerInfo,
         notes,
         status: 'completed',

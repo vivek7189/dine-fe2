@@ -1683,8 +1683,11 @@ const OrderSummary = ({
   const buildTaxData = () => {
     const cashReceivedNum = parseFloat(cashReceived) || 0;
     const changeReturned = cashReceivedNum > 0 ? Math.max(0, cashReceivedNum - (grandTotal ?? 0)) : 0;
-    const validSplitPayments = billingSettings.splitPaymentEnabled && splitPayments.length >= 2 && splitPayments.every(sp => sp.amount > 0)
-      ? splitPayments.map(sp => ({ method: sp.method, amount: Number(sp.amount) }))
+    const splitAmounts = splitPayments.map(sp => ({ method: sp.method, amount: Number(sp.amount) }));
+    const splitSum = splitAmounts.reduce((s, sp) => s + sp.amount, 0);
+    const splitBalanced = Math.abs(splitSum - (grandTotal ?? 0)) < 0.01;
+    const validSplitPayments = billingSettings.splitPaymentEnabled && splitPayments.length >= 2 && splitPayments.every(sp => sp.amount > 0) && splitBalanced
+      ? splitAmounts
       : null;
     const allOfferIds = offerSettings?.allowMultipleOffers && selectedOfferIds.length > 0
       ? selectedOfferIds
@@ -4850,8 +4853,15 @@ const OrderSummary = ({
                     <div style={{ fontSize: '11px', fontWeight: 700, color: '#1e40af', marginBottom: '8px' }}>
                       Settlement Options — Total: {formatCurrency(grandTotal)}
                     </div>
-                    {splitPayments.map((sp, idx) => (
-                      <div key={idx} style={{ display: 'flex', gap: '6px', marginBottom: '6px', alignItems: 'center' }}>
+                    {splitPayments.map((sp, idx) => {
+                      const usedMethods = splitPayments.filter((_, i) => i !== idx).map(s => s.method);
+                      const otherTotal = splitPayments.filter((_, i) => i !== idx).reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+                      const maxForThis = Math.max(0, Math.round((grandTotal - otherTotal) * 100) / 100);
+                      const currentAmt = parseFloat(sp.amount) || 0;
+                      const isOverMax = currentAmt > maxForThis + 0.01;
+                      return (
+                      <div key={idx} style={{ marginBottom: '6px' }}>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                         <select
                           value={sp.method}
                           onChange={(e) => {
@@ -4875,27 +4885,29 @@ const OrderSummary = ({
                             { id: 'card', label: 'Card', enabled: true },
                             { id: 'upi', label: 'UPI', enabled: true },
                           ]).filter(m => m.enabled).map(m => (
-                            <option key={m.id} value={m.id}>{m.label}</option>
+                            <option key={m.id} value={m.id} disabled={usedMethods.includes(m.id)}>{m.label}{usedMethods.includes(m.id) ? ' (used)' : ''}</option>
                           ))}
                         </select>
                         <input
                           type="number"
                           placeholder="Amount"
                           value={sp.amount}
+                          max={maxForThis}
                           onChange={(e) => {
                             const updated = [...splitPayments];
-                            updated[idx].amount = e.target.value;
+                            const val = e.target.value;
+                            updated[idx].amount = val;
                             setSplitPayments(updated);
                           }}
                           style={{
                             flex: 1,
                             padding: '6px 10px',
-                            border: '1px solid #93c5fd',
+                            border: isOverMax ? '1.5px solid #dc2626' : '1px solid #93c5fd',
                             borderRadius: '6px',
                             fontSize: '12px',
                             fontWeight: 600,
                             outline: 'none',
-                            background: 'white'
+                            background: isOverMax ? '#fef2f2' : 'white'
                           }}
                         />
                         {splitPayments.length > 2 && (
@@ -4906,21 +4918,37 @@ const OrderSummary = ({
                             <FaTimes size={10} />
                           </button>
                         )}
+                        </div>
+                        {isOverMax && (
+                          <div style={{ fontSize: '9px', color: '#dc2626', fontWeight: 600, marginTop: '2px', paddingLeft: '86px' }}>
+                            Amount exceeded (max {formatCurrency(maxForThis)})
+                          </div>
+                        )}
                       </div>
-                    ))}
+                    );})}
+                    {(() => {
+                      const enabledMethods = (billingSettings?.settlementMethods || [
+                        { id: 'cash', label: 'Cash', enabled: true },
+                        { id: 'card', label: 'Card', enabled: true },
+                        { id: 'upi', label: 'UPI', enabled: true },
+                      ]).filter(m => m.enabled);
+                      const allMethodsUsed = splitPayments.length >= enabledMethods.length;
+                      return (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
                       <button
+                        disabled={allMethodsUsed}
                         onClick={() => {
-                          const methods = (billingSettings?.settlementMethods || []).filter(m => m.enabled);
-                          const defaultMethod = methods.length > 0 ? methods[0].id : 'cash';
+                          const usedIds = splitPayments.map(sp => sp.method);
+                          const firstUnused = enabledMethods.find(m => !usedIds.includes(m.id));
+                          const defaultMethod = firstUnused ? firstUnused.id : enabledMethods[0]?.id || 'cash';
                           setSplitPayments([...splitPayments, { method: defaultMethod, amount: '' }]);
                         }}
                         style={{
                           fontSize: '10px',
-                          color: '#2563eb',
+                          color: allMethodsUsed ? '#9ca3af' : '#2563eb',
                           background: 'none',
                           border: 'none',
-                          cursor: 'pointer',
+                          cursor: allMethodsUsed ? 'not-allowed' : 'pointer',
                           fontWeight: 600
                         }}
                       >
@@ -4929,17 +4957,21 @@ const OrderSummary = ({
                       {(() => {
                         const splitTotal = splitPayments.reduce((sum, sp) => sum + (parseFloat(sp.amount) || 0), 0);
                         const remaining = Math.round((grandTotal - splitTotal) * 100) / 100;
+                        const isBalanced = Math.abs(remaining) < 0.01;
+                        const isExceeded = remaining < -0.01;
                         return (
                           <span style={{
                             fontSize: '11px',
                             fontWeight: 700,
-                            color: Math.abs(remaining) < 0.01 ? '#16a34a' : '#dc2626'
+                            color: isBalanced ? '#16a34a' : '#dc2626'
                           }}>
-                            {Math.abs(remaining) < 0.01 ? 'Balanced' : `Remaining: ${formatCurrency(remaining)}`}
+                            {isBalanced ? 'Balanced' : isExceeded ? `Exceeded: ${formatCurrency(Math.abs(remaining))}` : `Remaining: ${formatCurrency(remaining)}`}
                           </span>
                         );
                       })()}
                     </div>
+                      );
+                    })()}
                   </div>
                 )}
 

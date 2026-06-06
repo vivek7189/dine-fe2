@@ -1017,6 +1017,9 @@ const SalesSummaryView = ({ data, formatCurrency }) => {
         <div style={styles.statCard('#3b82f6')}><div style={styles.statValue('#3b82f6')}>{(summary.totalOrders || 0).toLocaleString()}</div><div style={styles.statLabel}>Total Orders</div></div>
         <div style={styles.statCard('#8b5cf6')}><div style={styles.statValue('#8b5cf6')}>{formatCurrency(summary.avgTicketSize || 0)}</div><div style={styles.statLabel}>Avg Ticket Size</div></div>
         <div style={styles.statCard('#d97706')}><div style={styles.statValue('#d97706')}>{formatCurrency((summary.totalTips || 0) + (summary.totalServiceCharge || 0))}</div><div style={styles.statLabel}>Tips + Service Charge</div></div>
+        {(summary.totalDueAmount || 0) > 0 && (
+          <div style={styles.statCard('#dc2626')}><div style={styles.statValue('#dc2626')}>{formatCurrency(summary.totalDueAmount)}</div><div style={styles.statLabel}>Due Payments ({summary.dueOrderCount || 0})</div></div>
+        )}
       </div>
 
       {paymentBreakdown.length > 0 && (

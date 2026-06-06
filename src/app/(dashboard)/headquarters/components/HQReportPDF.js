@@ -165,6 +165,9 @@ function SalesSummaryPDF({ data }) {
         <StatBox label="Total Orders" value={fmtNum(sm.totalOrders)} color={C.blue} />
         <StatBox label="Avg Ticket Size" value={fmtCurrency(sm.avgTicketSize)} color={C.purple} />
         <StatBox label="Tips + Service" value={fmtCurrency((sm.totalTips || 0) + (sm.totalServiceCharge || 0))} color={C.amber} />
+        {(sm.totalDueAmount || 0) > 0 && (
+          <StatBox label={`Due Payments (${sm.dueOrderCount || 0})`} value={fmtCurrency(sm.totalDueAmount)} color="#dc2626" />
+        )}
       </View>
 
       {payments.length > 0 && (

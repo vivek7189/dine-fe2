@@ -128,7 +128,7 @@ export default function QatarClient() {
               DineOpen partners with Booster Trading Services to bring world-class restaurant technology to Doha and across Qatar — Cloud POS, Sadad terminal integration, AI voice ordering, and everything your restaurant needs.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <a href="https://wa.me/97470529114?text=Hi%2C%20I%27m%20interested%20in%20DineOpen%20POS%20for%20my%20restaurant%20in%20Qatar" target="_blank" rel="noopener noreferrer" style={{
+              <a href="https://wa.me/97430538441?text=Hi%2C%20I%27m%20interested%20in%20DineOpen%20POS%20for%20my%20restaurant%20in%20Qatar" target="_blank" rel="noopener noreferrer" style={{
                 display: 'inline-flex', alignItems: 'center', gap: '8px',
                 padding: '14px 32px', backgroundColor: '#25d366', color: '#ffffff',
                 borderRadius: '12px', fontSize: '16px', fontWeight: '700',
@@ -203,9 +203,9 @@ export default function QatarClient() {
                     <FaMapMarkerAlt size={16} color="#ef4444" />
                     <span style={{ fontSize: '14px', color: '#374151' }}>Ain Khaled, Souq Al Nayef, Doha, Qatar</span>
                   </div>
-                  <a href="tel:+97470529114" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
+                  <a href="tel:+97470239555" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
                     <FaPhone size={14} color="#ef4444" />
-                    <span style={{ fontSize: '14px', color: '#374151' }}>+974 7052 9114 (Hotline)</span>
+                    <span style={{ fontSize: '14px', color: '#374151' }}>+974 7023 9555 (Hotline)</span>
                   </a>
                   <a href="tel:+97470239555" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
                     <FaPhone size={14} color="#ef4444" />
@@ -400,7 +400,7 @@ export default function QatarClient() {
               Get a free demo at your restaurant. Our Qatar team will set up everything — POS, payment terminal, kitchen display — and train your staff.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '40px' }}>
-              <a href="https://wa.me/97470529114?text=Hi%2C%20I%27m%20interested%20in%20DineOpen%20POS%20for%20my%20restaurant%20in%20Qatar" target="_blank" rel="noopener noreferrer" style={{
+              <a href="https://wa.me/97470239555?text=Hi%2C%20I%27m%20interested%20in%20DineOpen%20POS%20for%20my%20restaurant%20in%20Qatar" target="_blank" rel="noopener noreferrer" style={{
                 display: 'inline-flex', alignItems: 'center', gap: '8px',
                 padding: '14px 32px', backgroundColor: '#25d366', color: '#ffffff',
                 borderRadius: '12px', fontSize: '16px', fontWeight: '700',
@@ -409,13 +409,13 @@ export default function QatarClient() {
               }}>
                 <FaWhatsapp size={20} /> WhatsApp Us
               </a>
-              <a href="tel:+97470529114" style={{
+              <a href="tel:+97470239555" style={{
                 display: 'inline-flex', alignItems: 'center', gap: '8px',
                 padding: '14px 32px', backgroundColor: 'rgba(255,255,255,0.15)', color: '#ffffff',
                 borderRadius: '12px', fontSize: '16px', fontWeight: '700',
                 textDecoration: 'none', border: '2px solid rgba(255,255,255,0.3)',
               }}>
-                <FaPhone size={16} /> +974 7052 9114
+                <FaPhone size={16} /> +974 7023 9555
               </a>
             </div>
             <div style={{

@@ -1873,6 +1873,14 @@ export function HeadquartersContent({ embedded = false }) {
             color="#f59e0b"
             delta={analyticsData?.avgOrderValueChange}
           />
+          {(analyticsData?.totalDueAmount || dashboardData?.totals?.totalDueAmount || 0) > 0 && (
+            <MetricCard
+              icon={FaExclamationTriangle}
+              label="Due Payments"
+              value={formatCurrency ? formatCurrency(analyticsData?.totalDueAmount || dashboardData?.totals?.totalDueAmount || 0) : `₹${(analyticsData?.totalDueAmount || dashboardData?.totals?.totalDueAmount || 0).toLocaleString()}`}
+              color="#dc2626"
+            />
+          )}
         </div>
 
         {/* Revenue & Orders Charts */}

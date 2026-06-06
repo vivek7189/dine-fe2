@@ -9,7 +9,8 @@ import {
   FaCalendarAlt,
   FaUtensils,
   FaClock,
-  FaSpinner
+  FaSpinner,
+  FaExclamationCircle
 } from "react-icons/fa";
 
 import { FiTrendingUp } from "react-icons/fi";
@@ -402,6 +403,15 @@ const Analytics = () => {
             icon={FaUsers}
             color="#d97706"
           />
+          {(analytics.totalDueAmount || 0) > 0 && (
+            <StatCard
+              title="Due Payments"
+              value={formatCurrency(analytics.totalDueAmount)}
+              subtitle={`${analytics.dueOrders || 0} orders`}
+              icon={FaExclamationCircle}
+              color="#dc2626"
+            />
+          )}
         </div>
 
         {/* Charts Grid - 1x2 on mobile, 2x1 on desktop */}

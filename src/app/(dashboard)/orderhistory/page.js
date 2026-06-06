@@ -1360,19 +1360,20 @@ const OrderHistory = () => {
     try {
       const outstanding = order.outstandingAmount || 0;
       const finalAmt = order.finalAmount || order.totalAmount || 0;
-      await apiClient.updateOrder(order.id, {
-        paidAmount: Math.round(finalAmt * 100) / 100,
-        outstandingAmount: 0,
-        paymentStatus: 'paid',
-      });
-      if (order.customerId) {
-        try {
-          await apiClient.settleCustomerCredit(order.customerId, {
-            amount: outstanding,
-            paymentMethod: 'cash',
-            orderId: order.id
-          });
-        } catch (e) { console.error('Customer credit settle error:', e); }
+      if (order.customerId && outstanding > 0) {
+        // Use settle-credit API which updates order, customer totalSpent, and daily stats
+        await apiClient.settleCustomerCredit(order.customerId, {
+          amount: outstanding,
+          paymentMethod: order.paymentMethod || 'cash',
+          orderId: order.id
+        });
+      } else {
+        // No customer linked — just update order directly
+        await apiClient.updateOrder(order.id, {
+          paidAmount: Math.round(finalAmt * 100) / 100,
+          outstandingAmount: 0,
+          paymentStatus: 'paid',
+        });
       }
       setOrders(prev => prev.map(o =>
         o.id === order.id ? { ...o, paidAmount: finalAmt, outstandingAmount: 0, paymentStatus: 'paid' } : o
@@ -1413,9 +1414,10 @@ const OrderHistory = () => {
     if (!editCompletedOrder) return;
     setEditCompletedSaving(true);
     try {
+      const isSplitOrder = editCompletedOrder?.splitPayments?.length >= 2;
       const payload = {
         orderType: editCompletedForm.orderType,
-        paymentMethod: editCompletedForm.paymentMethod,
+        paymentMethod: isSplitOrder ? 'split' : editCompletedForm.paymentMethod,
         deliveryType: editCompletedForm.deliveryType,
         tableNumber: editCompletedForm.tableNumber,
         notes: editCompletedForm.notes,
@@ -1423,6 +1425,7 @@ const OrderHistory = () => {
           name: editCompletedForm.customerName,
           phone: editCompletedForm.customerPhone,
         },
+        ...(isSplitOrder && { splitPayments: editCompletedOrder.splitPayments }),
       };
       const res = await apiClient.editCompletedOrder(editCompletedOrder.id, payload);
       if (res.success) {
@@ -4520,6 +4523,17 @@ const OrderHistory = () => {
                 {/* Payment Method */}
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Payment Method</label>
+                  {editCompletedOrder?.splitPayments?.length >= 2 ? (
+                    <div className="w-full px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50 text-sm">
+                      <div className="font-semibold text-blue-700 mb-1">Split Payment</div>
+                      {editCompletedOrder.splitPayments.map((sp, i) => (
+                        <div key={i} className="flex justify-between text-xs text-blue-600">
+                          <span className="capitalize">{sp.method}</span>
+                          <span>{formatCurrency(sp.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
                   <select
                     value={editCompletedForm.paymentMethod}
                     onChange={(e) => setEditCompletedForm(f => ({ ...f, paymentMethod: e.target.value }))}
@@ -4531,6 +4545,7 @@ const OrderHistory = () => {
                     <option value="online">Online</option>
                     <option value="other">Other</option>
                   </select>
+                  )}
                 </div>
 
                 {/* Delivery Type */}

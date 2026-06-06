@@ -297,7 +297,7 @@ var CustomerDetail = function() {
   var totalPointsRedeemed = orderHistory.reduce(function(sum, o) { return sum + (o.loyaltyPointsRedeemed || 0); }, 0);
   var currentPoints = customer.loyaltyPoints || 0;
   var totalOrders = Math.max(customer.totalOrders || 0, orderHistory.length || 0);
-  var computedTotalSpent = orderHistory.reduce(function(sum, o) { return sum + (o.finalAmount || o.totalAmount || 0); }, 0);
+  var computedTotalSpent = orderHistory.reduce(function(sum, o) { return sum + (o.paidAmount != null ? o.paidAmount : (o.finalAmount || o.totalAmount || 0)); }, 0);
   var totalSpent = Math.max(Number(customer.totalSpent || 0), computedTotalSpent);
   var avgOrderValue = totalOrders > 0 ? totalSpent / totalOrders : 0;
   var redemptionHistory = orderHistory.filter(function(o) { return o.loyaltyPointsRedeemed > 0; });
