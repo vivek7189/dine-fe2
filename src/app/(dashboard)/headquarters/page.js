@@ -405,6 +405,7 @@ export function HeadquartersContent({ embedded = false }) {
         if (!prefs.reportEmails) prefs.reportEmails = [];
         // Always use browser's current timezone
         prefs.timezone = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : (prefs.timezone || 'Asia/Kolkata');
+        if (prefs.reportTime && !prefs.reportTime.endsWith(':00')) prefs.reportTime = prefs.reportTime.split(':')[0] + ':00';
         setEmailPreferences(prefs);
       }
     } catch (error) {
@@ -1382,8 +1383,7 @@ export function HeadquartersContent({ embedded = false }) {
             <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '8px' }}>
               {t('hq.deliveryTime')}
             </label>
-            <input
-              type="time"
+            <select
               value={emailPreferences.reportTime}
               onChange={(e) => setEmailPreferences(prev => ({ ...prev, reportTime: e.target.value }))}
               style={{
@@ -1391,9 +1391,16 @@ export function HeadquartersContent({ embedded = false }) {
                 padding: '14px 16px',
                 borderRadius: '12px',
                 border: '2px solid #e5e7eb',
-                fontSize: '14px'
+                fontSize: '14px',
+                backgroundColor: '#fff'
               }}
-            />
+            >
+              {Array.from({ length: 24 }, (_, i) => {
+                const val = `${String(i).padStart(2, '0')}:00`;
+                const label = i === 0 ? '12:00 AM' : i < 12 ? `${i}:00 AM` : i === 12 ? '12:00 PM' : `${i - 12}:00 PM`;
+                return <option key={val} value={val}>{label}</option>;
+              })}
+            </select>
             <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '6px' }}>
               Your timezone: {emailPreferences.timezone?.replace(/_/g, ' ')}
             </p>
