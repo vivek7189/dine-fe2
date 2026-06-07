@@ -257,24 +257,31 @@ export default function ParkingDashboardPage() {
   }, [tab, loadTickets]);
 
   // ─── Auto-refresh: visibility change ──────────────────
+  const lastParkingFetchRef = useRef(0);
+
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible' && restaurantId) {
-        loadData(false);
-        if (tab === 'tickets' || tab === 'history') loadTickets();
+        // Debounce: only fetch if last fetch was >30s ago
+        if (Date.now() - lastParkingFetchRef.current > 30000) {
+          lastParkingFetchRef.current = Date.now();
+          loadData(false);
+          if (tab === 'tickets' || tab === 'history') loadTickets();
+        }
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [restaurantId, tab, loadData, loadTickets]);
 
-  // ─── Auto-refresh: 30s polling ────────────────────────
+  // ─── Auto-refresh: 2-minute polling ────────────────────────
   useEffect(() => {
     if (!restaurantId) return;
     const interval = setInterval(() => {
+      lastParkingFetchRef.current = Date.now();
       loadData(false);
       if (tab === 'tickets') loadTickets();
-    }, 30000);
+    }, 120000);
     return () => clearInterval(interval);
   }, [restaurantId, tab, loadData, loadTickets]);
 

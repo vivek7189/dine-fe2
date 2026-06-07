@@ -175,9 +175,9 @@ export default function DeliveryTakeawayPanel({ restaurantId, isMobile, refreshS
     return () => { if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current); };
   }, [refreshSignal, fetchOrders]);
 
-  // Auto-refresh every 30s as fallback
+  // Auto-refresh every 5 minutes as fallback (RTDB provides real-time updates)
   useEffect(() => {
-    const iv = setInterval(() => fetchOrders(false), 30000);
+    const iv = setInterval(() => fetchOrders(false), 300000);
     return () => clearInterval(iv);
   }, [fetchOrders]);
 

@@ -881,7 +881,7 @@ class ApiClient {
 
   // Sub-restaurant endpoints
   async getSubRestaurants(restaurantId) {
-    return this.request(`/api/restaurants/${restaurantId}/sub-restaurants`);
+    return this.cachedGet(`/api/restaurants/${restaurantId}/sub-restaurants`, 5 * 60 * 1000);
   }
 
   async createSubRestaurant(restaurantId, data) {
@@ -2817,7 +2817,7 @@ class ApiClient {
 
   // WhatsApp Settings
   async getWhatsAppSettings(restaurantId) {
-    return this.request(`/api/automation/${restaurantId}/whatsapp`);
+    return this.cachedGet(`/api/automation/${restaurantId}/whatsapp`, 10 * 60 * 1000);
   }
 
   async connectWhatsApp(restaurantId, settings) {
@@ -3079,7 +3079,7 @@ class ApiClient {
 
   // Get customer app settings
   async getCustomerAppSettings(restaurantId) {
-    return this.request(`/api/restaurants/${restaurantId}/customer-app-settings`);
+    return this.cachedGet(`/api/restaurants/${restaurantId}/customer-app-settings`, 10 * 60 * 1000);
   }
 
   // Update customer app settings

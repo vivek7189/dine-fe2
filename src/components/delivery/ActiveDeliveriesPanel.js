@@ -30,7 +30,7 @@ export default function ActiveDeliveriesPanel({ restaurantId, apiClient, realtim
   useEffect(() => {
     if (restaurantId) {
       fetchDeliveries();
-      const interval = setInterval(fetchDeliveries, 20000); // Refresh every 20s
+      const interval = setInterval(fetchDeliveries, 300000); // 5-minute fallback (delivery status updates come via RTDB events)
       return () => clearInterval(interval);
     }
   }, [restaurantId]);

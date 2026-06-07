@@ -89,12 +89,12 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
     }
   }, [restaurantId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ─── Auto-refresh reviews every 5 minutes ───
+  // ─── Auto-refresh reviews every 15 minutes ───
   useEffect(() => {
     if (restaurantId) {
       refreshIntervalRef.current = setInterval(() => {
         fetchReviews(true);
-      }, 5 * 60 * 1000);
+      }, 15 * 60 * 1000);
       return () => clearInterval(refreshIntervalRef.current);
     }
   }, [restaurantId]); // eslint-disable-line react-hooks/exhaustive-deps

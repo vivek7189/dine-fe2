@@ -51,9 +51,9 @@ jobs:
       - name: Build Next.js static export for Electron
         run: node scripts/build-electron.js
 
-      - name: Build Windows Electron app
+      - name: Build Windows Electron app (x64 + ia32)
         shell: bash
-        run: npx electron-builder --config electron-builder.yml --win
+        run: npx electron-builder --config electron-builder.yml --win --x64 --ia32
 
       - name: Upload Windows release artifacts
         uses: actions/upload-artifact@v4

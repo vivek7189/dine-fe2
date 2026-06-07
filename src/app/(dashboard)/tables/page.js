@@ -295,6 +295,7 @@ const TableManagement = () => {
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
   const [actionLoading, setActionLoading] = useState(false); // loading for add/edit table, floor, reset, status change
   const actionLockRef = useRef(false); // prevent double-click on add/bulk actions
+  const lastFloorFetchRef = useRef(0);
   const [hoveredTableId, setHoveredTableId] = useState(null);
   const [floorModalTab, setFloorModalTab] = useState('details'); // 'details' | 'order'
   const [floorOrderList, setFloorOrderList] = useState([]); // for reordering
@@ -505,10 +506,20 @@ const TableManagement = () => {
 
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (!document.hidden && selectedRestaurant?.id) loadFloorsAndTables(selectedRestaurant.id, true);
+      if (!document.hidden && selectedRestaurant?.id) {
+        if (Date.now() - lastFloorFetchRef.current > 30000) {
+          lastFloorFetchRef.current = Date.now();
+          loadFloorsAndTables(selectedRestaurant.id, true);
+        }
+      }
     };
     const handleFocus = () => {
-      if (selectedRestaurant?.id) loadFloorsAndTables(selectedRestaurant.id, true);
+      if (selectedRestaurant?.id) {
+        if (Date.now() - lastFloorFetchRef.current > 30000) {
+          lastFloorFetchRef.current = Date.now();
+          loadFloorsAndTables(selectedRestaurant.id, true);
+        }
+      }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);

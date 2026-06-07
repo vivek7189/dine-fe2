@@ -462,7 +462,7 @@ export default function AttendancePage() {
         attendanceApi.getLiveLocations(restaurantId).then(res => {
           setLiveLocations(res?.locations || []);
         }).catch(() => {});
-      }, 30000);
+      }, 300000); // 5-minute fallback (real-time updates come via Firebase RTDB)
       return () => clearInterval(liveRefreshRef.current);
     }
     return () => clearInterval(liveRefreshRef.current);
