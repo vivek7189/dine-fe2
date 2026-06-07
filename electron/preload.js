@@ -88,6 +88,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveOrderDirect: (orderData) =>
     ipcRenderer.invoke('electron:saveOrderDirect', orderData),
 
+  // Window refocus (fixes Windows keyboard focus after alert/confirm dialogs)
+  _refocusWindow: () => ipcRenderer.invoke('electron:refocusWindow'),
+
   // Build version marker for debugging
   buildVersion: 'v1.5.0',
 });

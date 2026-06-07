@@ -79,6 +79,57 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+
+  // ──── Fix: Windows keyboard focus lost after alert()/confirm() dialogs ────
+  // Known Electron bug on Windows: after a native JS dialog (alert, confirm, prompt)
+  // closes, the BrowserWindow loses keyboard focus and inputs stop accepting keystrokes.
+  // Workaround: blur+focus the window whenever the renderer's dialog module fires.
+  // See: https://github.com/electron/electron/issues/22923
+  //      https://github.com/electron/electron/issues/31917
+  if (process.platform === 'win32') {
+    const { dialog } = require('electron');
+    mainWindow.webContents.on('will-prevent-unload', () => {
+      mainWindow.blur();
+      setTimeout(() => mainWindow?.focus(), 50);
+    });
+    // Override renderer-initiated dialogs (alert, confirm, prompt) to refocus after
+    mainWindow.webContents.on('did-finish-load', () => {
+      mainWindow.webContents.executeJavaScript(`
+        (function() {
+          const _alert = window.alert;
+          const _confirm = window.confirm;
+          const _prompt = window.prompt;
+          window.alert = function() {
+            const result = _alert.apply(this, arguments);
+            // Trigger focus recovery via a minimal blur+focus on the active element
+            setTimeout(function() {
+              window.dispatchEvent(new Event('__electron_refocus'));
+            }, 50);
+            return result;
+          };
+          window.confirm = function() {
+            const result = _confirm.apply(this, arguments);
+            setTimeout(function() {
+              window.dispatchEvent(new Event('__electron_refocus'));
+            }, 50);
+            return result;
+          };
+          window.prompt = function() {
+            const result = _prompt.apply(this, arguments);
+            setTimeout(function() {
+              window.dispatchEvent(new Event('__electron_refocus'));
+            }, 50);
+            return result;
+          };
+          window.addEventListener('__electron_refocus', function() {
+            if (window.electronAPI && window.electronAPI._refocusWindow) {
+              window.electronAPI._refocusWindow();
+            }
+          });
+        })();
+      `).catch(() => {});
+    });
+  }
 }
 
 // ──── Persistent hidden print window (reused across all print jobs) ────
@@ -482,6 +533,19 @@ ipcMain.handle('electron:restartApp', async () => {
 
 ipcMain.handle('electron:getVersion', async () => {
   return app.getVersion();
+});
+
+// ──── IPC: Refocus window (Windows alert/confirm focus fix) ────
+ipcMain.handle('electron:refocusWindow', async () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.blur();
+    setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.focus();
+      }
+    }, 50);
+  }
+  return { success: true };
 });
 
 // ──── IPC: ECR Payment Terminal (NAPS Qatar) ────
