@@ -17,7 +17,7 @@ import { isWeb, isTauri, isElectron } from '../../utils/platform';
 import { isAutoUpdateEnabled, checkForUpdates, restartApp } from '../../utils/autoUpdater';
 import apiClient from '../../lib/api';
 import { ROUTE_TO_ACCESS_KEY, ALWAYS_ACCESSIBLE } from '../../lib/pageAccessConfig';
-import { FaCloudUploadAlt, FaArrowRight, FaUtensils } from 'react-icons/fa';
+import { FaCloudUploadAlt, FaArrowRight, FaUtensils, FaSyncAlt } from 'react-icons/fa';
 import { DineBotProvider } from '../../components/DineBotProvider';
 
 function checkRouteAccess(pathname, user, pageAccess) {
@@ -429,6 +429,37 @@ function DashboardLayoutContent({ children }) {
               toasts={orderToasts}
               onDismiss={dismissOrderToast}
             />
+
+            {/* Refresh button — Electron only (no browser refresh bar) */}
+            {isClient && isElectron() && (
+              <button
+                onClick={() => window.location.reload()}
+                title="Refresh page"
+                style={{
+                  position: 'fixed',
+                  bottom: '16px',
+                  left: '16px',
+                  zIndex: 9997,
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  border: '1px solid #e5e7eb',
+                  backgroundColor: 'rgba(255,255,255,0.9)',
+                  backdropFilter: 'blur(8px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
+                  color: '#6b7280',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f3f4f6'; e.currentTarget.style.color = '#374151'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.9)'; e.currentTarget.style.color = '#6b7280'; }}
+              >
+                <FaSyncAlt size={13} />
+              </button>
+            )}
 
             {/* DineAI Floating Button */}
             <DineAIButton />
