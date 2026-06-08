@@ -944,6 +944,12 @@ const Login = () => {
           if (selectedCountry?.code) localStorage.setItem('selectedCountryCode', selectedCountry.code);
           triggerDashboardPrefetch();
 
+          // Pre-fetch currency settings before redirect
+          const fbRestaurantId = firebaseData.user?.restaurantId || localStorage.getItem('selectedRestaurantId');
+          if (fbRestaurantId && firebaseData.token) {
+            await prefetchCurrencySettings(fbRestaurantId, firebaseData.token);
+          }
+
           // Handle first-time user experience
           if (firebaseData.firstTimeUser) {
             console.log('🎉 First-time user detected!');
@@ -996,6 +1002,12 @@ const Login = () => {
           apiClient.setUser(data.user); // Stores in both cookie and localStorage
           if (selectedCountry?.code) localStorage.setItem('selectedCountryCode', selectedCountry.code);
           triggerDashboardPrefetch();
+
+          // Pre-fetch currency settings before redirect
+          const otpRestaurantId = data.user?.restaurantId || localStorage.getItem('selectedRestaurantId');
+          if (otpRestaurantId && data.token) {
+            await prefetchCurrencySettings(otpRestaurantId, data.token);
+          }
 
           // Handle first-time user experience
           if (data.firstTimeUser) {
@@ -1164,6 +1176,12 @@ const Login = () => {
         if (selectedCountry?.code) localStorage.setItem('selectedCountryCode', selectedCountry.code);
         triggerDashboardPrefetch();
 
+        // Pre-fetch currency settings before redirect
+        const regRestaurantId = registerData.user?.restaurantId || localStorage.getItem('selectedRestaurantId');
+        if (regRestaurantId && registerData.token) {
+          await prefetchCurrencySettings(regRestaurantId, registerData.token);
+        }
+
         if (registerData.firstTimeUser) {
           router.replace('/onboarding');
         } else {
@@ -1246,6 +1264,12 @@ const Login = () => {
         if (selectedCountry?.code) localStorage.setItem('selectedCountryCode', selectedCountry.code);
         triggerDashboardPrefetch();
 
+        // Pre-fetch currency settings before redirect
+        const emailRestaurantId = loginData.user?.restaurantId || localStorage.getItem('selectedRestaurantId');
+        if (emailRestaurantId && loginData.token) {
+          await prefetchCurrencySettings(emailRestaurantId, loginData.token);
+        }
+
         if (loginData.firstTimeUser) {
           router.replace('/onboarding');
         } else if (loginData.subdomainUrl) {
@@ -1278,6 +1302,13 @@ const Login = () => {
       if (data.success) {
         apiClient.setUser(data.user);
         triggerDashboardPrefetch();
+
+        // Pre-fetch currency settings before redirect
+        const pinRestaurantId = data.user?.restaurantId || localStorage.getItem('selectedRestaurantId');
+        if (pinRestaurantId && data.token) {
+          await prefetchCurrencySettings(pinRestaurantId, data.token);
+        }
+
         if (data.firstTimeUser) {
           router.replace('/onboarding');
         } else if (data.subdomainUrl) {
