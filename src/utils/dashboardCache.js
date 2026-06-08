@@ -623,6 +623,14 @@ export async function prefetchDashboardInBackground(apiClient) {
       }
     } catch { /* pricing not critical */ }
 
+    // Step 7: Prefetch currency settings (safety net — login page also pre-fetches this)
+    try {
+      const currencyResponse = await apiClient.getCurrencySettings(restaurant.id);
+      if (currencyResponse?.success && currencyResponse?.currencySettings) {
+        localStorage.setItem('currencySettings', JSON.stringify(currencyResponse.currencySettings));
+      }
+    } catch { /* currency not critical */ }
+
     console.log('✅ Background prefetch: complete for', restaurant.name);
   } catch (error) {
     console.warn('⚠️ Background prefetch failed (non-critical):', error.message);

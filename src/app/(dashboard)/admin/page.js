@@ -2402,6 +2402,8 @@ const CurrencyManagement = ({ restaurants, selectedRestaurant, setSelectedRestau
         window.dispatchEvent(new CustomEvent('currencyChanged', {
           detail: { settings: currencySettings }
         }));
+        // Update localStorage cache so next page load / CurrencyContext init uses correct currency
+        localStorage.setItem('currencySettings', JSON.stringify(currencySettings));
         // Sync localStorage so selectedRestaurant stays up to date
         try {
           const stored = JSON.parse(localStorage.getItem('selectedRestaurant') || 'null');

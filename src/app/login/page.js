@@ -68,6 +68,23 @@ function triggerDashboardPrefetch() {
   }, 100);
 }
 
+// Pre-fetch and cache currency settings so CurrencyContext loads correct currency instantly
+// Called BEFORE redirect so localStorage has the value when dashboard mounts
+async function prefetchCurrencySettings(restaurantId, token) {
+  try {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+    const res = await fetch(`${backendUrl}/api/admin/currency/${restaurantId}`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.currencySettings) {
+        localStorage.setItem('currencySettings', JSON.stringify(data.currencySettings));
+      }
+    }
+  } catch {} // Non-blocking — CurrencyContext will fetch as fallback
+}
+
 // Country data with flags and codes
 const countries = [
   { code: 'IN', name: 'India', flag: '🇮🇳', dialCode: '+91' },
@@ -427,6 +444,8 @@ const Login = () => {
                     : restaurantsData.restaurants[0];
                   localStorage.setItem('selectedRestaurant', JSON.stringify(defaultRestaurant));
                   localStorage.setItem('selectedRestaurantId', defaultRestaurant.id);
+                  // Pre-fetch currency so dashboard shows correct symbol immediately
+                  await prefetchCurrencySettings(defaultRestaurant.id, data.token);
                 }
               }
             } catch (e) {
@@ -1379,13 +1398,15 @@ const Login = () => {
                     : restaurantsData.restaurants[0];
                   localStorage.setItem('selectedRestaurant', JSON.stringify(defaultRestaurant));
                   localStorage.setItem('selectedRestaurantId', defaultRestaurant.id);
+                  // Pre-fetch currency so dashboard shows correct symbol immediately
+                  await prefetchCurrencySettings(defaultRestaurant.id, googleData.token);
                 }
               }
             } catch (restaurantError) {
               console.error('Error fetching restaurants:', restaurantError);
             }
           }
-          
+
           // Redirect existing users
           if (googleData.subdomainUrl) {
             // Redirect to subdomain with token
@@ -1514,6 +1535,14 @@ const Login = () => {
           owner: data.owner
         };
         apiClient.setUser(userData); // Stores in both cookie and localStorage
+        // Set selectedRestaurantId for staff (needed by CurrencyContext and other dashboard components)
+        const staffRestaurantId = data.user?.restaurantId || data.restaurant?.id;
+        if (staffRestaurantId) {
+          localStorage.setItem('selectedRestaurantId', staffRestaurantId);
+          if (data.restaurant) localStorage.setItem('selectedRestaurant', JSON.stringify(data.restaurant));
+          // Pre-fetch currency so dashboard shows correct symbol immediately
+          await prefetchCurrencySettings(staffRestaurantId, data.token);
+        }
         // Store staff restaurants for nav switcher
         if (data.multiRestaurant && data.restaurants) {
           localStorage.setItem('staffRestaurants', JSON.stringify(data.restaurants));
@@ -1583,6 +1612,11 @@ const Login = () => {
 
       // Store staff restaurants for nav switcher
       localStorage.setItem('staffRestaurants', JSON.stringify(pendingLoginData.restaurants));
+      // Set selectedRestaurantId for the picked restaurant
+      localStorage.setItem('selectedRestaurantId', restaurant.id);
+      localStorage.setItem('selectedRestaurant', JSON.stringify(restaurant));
+      // Pre-fetch currency so dashboard shows correct symbol immediately
+      await prefetchCurrencySettings(restaurant.id, pendingLoginData.token);
 
       if (!localStorage.getItem('selectedCountryCode')) {
         const { countryCode } = detectCountry();
