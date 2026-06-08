@@ -75,7 +75,7 @@ export default function QatarClient() {
     },
     {
       q: 'Can I get a free demo in Qatar?',
-      a: 'Yes. Contact Booster Trading Services at +974-7052-9114 or sales@boostertradingservicesqa.com to schedule a free demo at your restaurant in Doha or anywhere in Qatar.',
+      a: 'Yes. Contact Booster Trading Services at +974-7023-9555 or sales@boostertradingservicesqa.com to schedule a free demo at your restaurant in Doha or anywhere in Qatar.',
     },
     {
       q: 'Does DineOpen work offline?',
@@ -128,7 +128,7 @@ export default function QatarClient() {
               DineOpen partners with Booster Trading Services to bring world-class restaurant technology to Doha and across Qatar — Cloud POS, Sadad terminal integration, AI voice ordering, and everything your restaurant needs.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <a href="https://wa.me/97430538441?text=Hi%2C%20I%27m%20interested%20in%20DineOpen%20POS%20for%20my%20restaurant%20in%20Qatar" target="_blank" rel="noopener noreferrer" style={{
+              <a href="https://wa.me/97470239555?text=Hi%2C%20I%27m%20interested%20in%20DineOpen%20POS%20for%20my%20restaurant%20in%20Qatar" target="_blank" rel="noopener noreferrer" style={{
                 display: 'inline-flex', alignItems: 'center', gap: '8px',
                 padding: '14px 32px', backgroundColor: '#25d366', color: '#ffffff',
                 borderRadius: '12px', fontSize: '16px', fontWeight: '700',
