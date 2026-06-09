@@ -75,6 +75,14 @@ import { canPerform } from '../../../lib/permissions';
 import { useHubEvents } from '../../../hooks/useHubEvents';
 import { useDineBot } from '../../../components/DineBotProvider';
 
+// Safe wrappers for contexts that may not be available in mobile embed mode
+function useSafeLoading() {
+  try { return useLoading(); } catch { return { isLoading: false, startLoading: () => {}, stopLoading: () => {} }; }
+}
+function useSafeDineBot() {
+  try { return useDineBot(); } catch { return { openDineBot: () => {} }; }
+}
+
 /**
  * Filter out items excluded from KOT printing by category or item ID.
  * Returns items unchanged when the feature is disabled.
@@ -94,8 +102,8 @@ function filterKotExcludedItems(items, printSettings) {
 function RestaurantPOSContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { isLoading } = useLoading();
-  const { openDineBot } = useDineBot();
+  const { isLoading } = useSafeLoading();
+  const { openDineBot } = useSafeDineBot();
 
   // Offline sync engine
   const { pendingCount, isOnline, isSyncing, lastSyncEvent, networkTransition, clearTransition, manualSync, queueOfflineOrder, generateIdempotencyKey, offlineEnabled } = useSyncEngine(apiClient);
@@ -547,13 +555,15 @@ function RestaurantPOSContent() {
       } else {
         // Normal authentication check
       if (!apiClient.isAuthenticated()) {
+        if (window.__DINEOPEN_MOBILE_EMBED__) return; // skip redirect in mobile embed
         console.log('🚫 User not authenticated, redirecting to login');
         router.replace('/login');
         return;
       }
-      
+
       const user = apiClient.getUser();
       if (!user) {
+        if (window.__DINEOPEN_MOBILE_EMBED__) return; // skip redirect in mobile embed
         console.log('🚫 No user data found, redirecting to login');
         router.replace('/login');
         return;
@@ -731,6 +741,7 @@ function RestaurantPOSContent() {
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     if (!token) {
+      if (window.__DINEOPEN_MOBILE_EMBED__) return; // skip redirect in mobile embed
       router.push('/login');
       return;
     }

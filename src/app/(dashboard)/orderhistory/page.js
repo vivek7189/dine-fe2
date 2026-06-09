@@ -3603,7 +3603,7 @@ const OrderHistory = () => {
 
               return (
                 <div key={order.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:border-red-300 hover:shadow-md transition-all duration-200 group overflow-hidden">
-                  <div className={isMobile ? 'p-2.5' : 'p-4'}>
+                  <div className={isMobile ? 'p-2' : 'p-4'}>
                     <div className={`flex items-start ${isMobile ? 'gap-2' : 'gap-3'}`}>
                       {!isMobile && (
                       <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center flex-shrink-0">
@@ -3611,91 +3611,122 @@ const OrderHistory = () => {
                       </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-1.5 sm:mb-2">
-                          <div>
-                            <div className={`flex flex-wrap items-center ${isMobile ? 'gap-1.5 mb-0.5' : 'gap-2 mb-1'}`}>
-                              <h3 className={`${isMobile ? 'text-sm' : 'text-base'} font-bold text-gray-900 flex items-center gap-1.5`}>
-                                #{order.dailyOrderId || order.orderNumber || order.id.slice(-4).toUpperCase()}
-                                {order.syncSource === 'offline' && <FaCloudUploadAlt className="text-blue-400 text-xs" title={t('orderHistory.syncedFromOffline')} />}
-                              </h3>
-                              <span
-                                className={`inline-flex ${isMobile ? 'px-2 py-0.5 text-[10px] border' : 'px-3 py-1 text-xs border-2'} rounded-full font-semibold uppercase tracking-wide shadow-sm`}
-                                style={{ backgroundColor: statusStyle.bg, color: statusStyle.text, borderColor: statusStyle.border }}
-                              >
-                                {statusStyle.label}
+                        {/* Header: Order number + status + amount — single row on mobile */}
+                        <div className={`flex items-center justify-between ${isMobile ? 'mb-1' : 'mb-1.5 sm:mb-2'}`}>
+                          <div className={`flex items-center ${isMobile ? 'gap-1.5' : 'gap-2'} min-w-0 flex-wrap`}>
+                            <h3 className={`${isMobile ? 'text-[13px]' : 'text-base'} font-bold text-gray-900 flex items-center gap-1`}>
+                              #{order.dailyOrderId || order.orderNumber || order.id.slice(-4).toUpperCase()}
+                              {order.syncSource === 'offline' && <FaCloudUploadAlt className="text-blue-400 text-xs" title={t('orderHistory.syncedFromOffline')} />}
+                            </h3>
+                            <span
+                              className={`inline-flex ${isMobile ? 'px-1.5 py-px text-[9px] border' : 'px-3 py-1 text-xs border-2'} rounded-full font-semibold uppercase tracking-wide`}
+                              style={{ backgroundColor: statusStyle.bg, color: statusStyle.text, borderColor: statusStyle.border }}
+                            >
+                              {statusStyle.label}
+                            </span>
+                            {isMobile && (
+                              <span className={`text-[10px] text-gray-400 flex items-center gap-0.5`}>
+                                <FaClock className="text-[8px]" />
+                                {formatDate(order.createdAt, true)}
                               </span>
-                              {sourceChip && (
-                                <span className={`inline-flex px-1.5 py-0.5 rounded-md text-[10px] font-medium border ${sourceChip.className}`}>
-                                  {sourceChip.label}
-                                </span>
-                              )}
-                              {order.assignedStaff?.name && (
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 6px', backgroundColor: '#f0fdf4', color: '#166534', borderRadius: '6px', fontSize: '10px', fontWeight: '600', border: '1px solid #bbf7d0' }}>
-                                  Staff: {order.assignedStaff.name}
-                                </span>
-                              )}
-                              {order.subRestaurantName && (
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 6px', backgroundColor: '#fff7ed', color: '#9a3412', borderRadius: '6px', fontSize: '10px', fontWeight: '600', border: '1px solid #fed7aa' }}>
-                                  <FaStore size={8} /> {order.subRestaurantName}
-                                </span>
-                              )}
-                              {order.isScheduled && order.scheduledFor && (
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', backgroundColor: '#eff6ff', color: '#2563eb', borderRadius: '6px', fontSize: '11px', fontWeight: '600' }}>
-                                  <FaCalendarAlt size={9} /> Scheduled: {new Date(order.scheduledFor).toLocaleDateString()} {new Date(order.scheduledFor).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                              )}
-                              {order.syncSource === 'offline' && (
-                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-200">
-                                  <FaCloudUploadAlt className="text-[8px]" /> {t('orderHistory.offline')}
-                                </span>
-                              )}
-                              {order._isOffline && (order.syncStatus === 'failed' || order.syncStatus === 'pending') && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleRetrySync(order); }}
-                                  disabled={syncingOrderKey === order.idempotencyKey}
-                                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium border transition-colors ${order.syncStatus === 'failed' ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'}`}
-                                  title={order.syncStatus === 'failed' ? t('orderHistory.retrySync') : 'Sync now'}
-                                >
-                                  <FaSync className={`text-[8px] ${syncingOrderKey === order.idempotencyKey ? 'animate-spin' : ''}`} />
-                                  {syncingOrderKey === order.idempotencyKey ? t('orderHistory.syncing') : (order.syncStatus === 'failed' ? t('orderHistory.retry') : 'Sync')}
-                                </button>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1 text-xs text-gray-500">
-                              <FaClock className="text-[10px]" />
-                              {formatDate(order.createdAt, true)}
-                            </div>
+                            )}
                           </div>
                           <div className="text-right flex-shrink-0">
-                            <div className={`flex items-baseline justify-end ${isMobile ? 'gap-1' : 'gap-2'}`}>
-                              <span className={`${isMobile ? 'text-base' : 'text-xl'} font-bold text-gray-900`}>{formatCurrency(breakdown.total)}</span>
-                              <span className="text-[10px] sm:text-[11px] text-gray-400">{order.paymentMethod || t('orderHistory.cash')}</span>
-                            </div>
-                            {(breakdown.taxLines?.length > 0 || breakdown.discountAmount > 0 || breakdown.serviceCharge > 0 || breakdown.tip > 0 || breakdown.roundOff !== 0) && (
-                              <div className="text-xs text-gray-500 mt-0.5">
-                                {formatCurrency(breakdown.subtotal)}
-                                {breakdown.discountAmount > 0 && <span className="text-green-600">{` - ${t('orderHistory.disc')} ${formatCurrency(breakdown.discountAmount)}`}</span>}
-                                {breakdown.serviceCharge > 0 && ` + ${t('orderHistory.sc')} ${formatCurrency(breakdown.serviceCharge)}`}
-                                {breakdown.taxLines?.length > 0 && ` + ${breakdown.taxLines.map((line) => `${line.name}${line.rate != null ? ` ${line.rate}%` : ''}`).join(', ')}`}
-                                {breakdown.tip > 0 && ` + ${t('orderHistory.tip')} ${formatCurrency(breakdown.tip)}`}
-                                {breakdown.roundOff !== 0 && ` ${breakdown.roundOff > 0 ? '+' : '-'} ${t('orderHistory.round')} ${formatCurrency(Math.abs(breakdown.roundOff))}`}
-                              </div>
-                            )}
-                            {order.outstandingAmount > 0 && (
-                              <div className="flex items-center justify-end gap-1 mt-1">
-                                <span className="text-xs font-semibold text-white bg-red-500 px-2 py-0.5 rounded-full">{t('orderHistory.partial')}</span>
-                                <span className="text-xs text-red-600 font-semibold">{t('orderHistory.due')} {formatCurrency(order.outstandingAmount)}</span>
-                              </div>
-                            )}
-                            {order.paymentStatus === 'partial' && !order.outstandingAmount && order.paidAmount > 0 && (
-                              <div className="flex items-center justify-end gap-1 mt-1">
-                                <span className="text-xs font-semibold text-white bg-amber-500 px-2 py-0.5 rounded-full">{t('orderHistory.partial')}</span>
-                                <span className="text-xs text-amber-600 font-semibold">{t('orderHistory.paid')} {formatCurrency(order.paidAmount)}</span>
-                              </div>
-                            )}
+                            <span className={`${isMobile ? 'text-[15px]' : 'text-xl'} font-bold text-gray-900`}>{formatCurrency(breakdown.total)}</span>
+                            <span className={`${isMobile ? 'text-[9px]' : 'text-[11px]'} text-gray-400 ml-1`}>{order.paymentMethod || t('orderHistory.cash')}</span>
                           </div>
                         </div>
-                        <div className={`grid grid-cols-3 ${isMobile ? 'gap-1.5 mb-2 p-2 text-[11px]' : 'gap-2.5 mb-3 p-2.5'} bg-gray-50 rounded-lg border border-gray-100`}>
+
+                        {/* Time — desktop only (mobile shows inline above) */}
+                        {!isMobile && (
+                          <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+                            <FaClock className="text-[10px]" />
+                            {formatDate(order.createdAt, true)}
+                          </div>
+                        )}
+
+                        {/* Tags row — source, staff, sub-restaurant, scheduled (compact on mobile) */}
+                        {(sourceChip || order.assignedStaff?.name || order.subRestaurantName || (order.isScheduled && order.scheduledFor) || order.syncSource === 'offline' || (order._isOffline && (order.syncStatus === 'failed' || order.syncStatus === 'pending'))) && (
+                          <div className={`flex flex-wrap items-center ${isMobile ? 'gap-1 mb-1' : 'gap-1.5 mb-1.5'}`}>
+                            {sourceChip && (
+                              <span className={`inline-flex px-1.5 py-0.5 rounded-md text-[10px] font-medium border ${sourceChip.className}`}>
+                                {sourceChip.label}
+                              </span>
+                            )}
+                            {order.assignedStaff?.name && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '1px 5px', backgroundColor: '#f0fdf4', color: '#166534', borderRadius: '5px', fontSize: '10px', fontWeight: '600', border: '1px solid #bbf7d0' }}>
+                                Staff: {order.assignedStaff.name}
+                              </span>
+                            )}
+                            {order.subRestaurantName && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '1px 5px', backgroundColor: '#fff7ed', color: '#9a3412', borderRadius: '5px', fontSize: '10px', fontWeight: '600', border: '1px solid #fed7aa' }}>
+                                <FaStore size={8} /> {order.subRestaurantName}
+                              </span>
+                            )}
+                            {order.isScheduled && order.scheduledFor && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '1px 5px', backgroundColor: '#eff6ff', color: '#2563eb', borderRadius: '5px', fontSize: '10px', fontWeight: '600' }}>
+                                <FaCalendarAlt size={8} /> {new Date(order.scheduledFor).toLocaleDateString()} {new Date(order.scheduledFor).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            )}
+                            {order.syncSource === 'offline' && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-200">
+                                <FaCloudUploadAlt className="text-[8px]" /> {t('orderHistory.offline')}
+                              </span>
+                            )}
+                            {order._isOffline && (order.syncStatus === 'failed' || order.syncStatus === 'pending') && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleRetrySync(order); }}
+                                disabled={syncingOrderKey === order.idempotencyKey}
+                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium border transition-colors ${order.syncStatus === 'failed' ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'}`}
+                                title={order.syncStatus === 'failed' ? t('orderHistory.retrySync') : 'Sync now'}
+                              >
+                                <FaSync className={`text-[8px] ${syncingOrderKey === order.idempotencyKey ? 'animate-spin' : ''}`} />
+                                {syncingOrderKey === order.idempotencyKey ? t('orderHistory.syncing') : (order.syncStatus === 'failed' ? t('orderHistory.retry') : 'Sync')}
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Price breakdown — hidden on mobile (too cluttered), shown on desktop */}
+                        {!isMobile && (breakdown.taxLines?.length > 0 || breakdown.discountAmount > 0 || breakdown.serviceCharge > 0 || breakdown.tip > 0 || breakdown.roundOff !== 0) && (
+                          <div className="text-xs text-gray-500 mb-1.5">
+                            {formatCurrency(breakdown.subtotal)}
+                            {breakdown.discountAmount > 0 && <span className="text-green-600">{` - ${t('orderHistory.disc')} ${formatCurrency(breakdown.discountAmount)}`}</span>}
+                            {breakdown.serviceCharge > 0 && ` + ${t('orderHistory.sc')} ${formatCurrency(breakdown.serviceCharge)}`}
+                            {breakdown.taxLines?.length > 0 && ` + ${breakdown.taxLines.map((line) => `${line.name}${line.rate != null ? ` ${line.rate}%` : ''}`).join(', ')}`}
+                            {breakdown.tip > 0 && ` + ${t('orderHistory.tip')} ${formatCurrency(breakdown.tip)}`}
+                            {breakdown.roundOff !== 0 && ` ${breakdown.roundOff > 0 ? '+' : '-'} ${t('orderHistory.round')} ${formatCurrency(Math.abs(breakdown.roundOff))}`}
+                          </div>
+                        )}
+
+                        {/* Outstanding / partial badges */}
+                        {order.outstandingAmount > 0 && (
+                          <div className={`flex items-center gap-1 ${isMobile ? 'mb-1' : 'mb-1.5'}`}>
+                            <span className={`${isMobile ? 'text-[10px] px-1.5' : 'text-xs px-2'} font-semibold text-white bg-red-500 py-0.5 rounded-full`}>{t('orderHistory.partial')}</span>
+                            <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-red-600 font-semibold`}>{t('orderHistory.due')} {formatCurrency(order.outstandingAmount)}</span>
+                          </div>
+                        )}
+                        {order.paymentStatus === 'partial' && !order.outstandingAmount && order.paidAmount > 0 && (
+                          <div className={`flex items-center gap-1 ${isMobile ? 'mb-1' : 'mb-1.5'}`}>
+                            <span className={`${isMobile ? 'text-[10px] px-1.5' : 'text-xs px-2'} font-semibold text-white bg-amber-500 py-0.5 rounded-full`}>{t('orderHistory.partial')}</span>
+                            <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-amber-600 font-semibold`}>{t('orderHistory.paid')} {formatCurrency(order.paidAmount)}</span>
+                          </div>
+                        )}
+
+                        {/* Customer / Table / Type — compact inline on mobile, grid on desktop */}
+                        {isMobile ? (
+                          <div className="flex items-center gap-2 text-[11px] text-gray-600 mb-1.5 py-1 px-1.5 bg-gray-50 rounded-md">
+                            <span className="flex items-center gap-1 truncate"><FaUser className="text-gray-400 text-[9px] flex-shrink-0" /> {order.customerDisplay?.name || t('orderHistory.walkIn')}</span>
+                            <span className="text-gray-300">|</span>
+                            <span className="flex items-center gap-1 flex-shrink-0">
+                              {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? <FaBed className="text-gray-400 text-[9px]" /> : <FaTable className="text-gray-400 text-[9px]" />}
+                              {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || 'N/A'}
+                            </span>
+                            <span className="text-gray-300">|</span>
+                            <span className="flex items-center gap-1 capitalize flex-shrink-0"><FaUtensils className="text-gray-400 text-[9px]" /> {order.orderType?.replace('-', ' ') || t('orderHistory.type.dineIn')}</span>
+                          </div>
+                        ) : (
+                        <div className="grid grid-cols-3 gap-2.5 mb-3 p-2.5 bg-gray-50 rounded-lg border border-gray-100">
                           <div className="flex items-center gap-2">
                             <FaUser className="text-gray-400 text-sm flex-shrink-0" />
                             <div className="min-w-0">
@@ -3728,40 +3759,46 @@ const OrderHistory = () => {
                             </div>
                           </div>
                         </div>
-                        <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-2.5 border border-gray-200 mb-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-semibold text-gray-700">{itemCount} {t('orderHistory.items')}</span>
-                            <button 
-                              onClick={() => toggleOrderExpansion(order.id)} 
-                              className="text-red-600 hover:text-red-700 flex items-center gap-1.5 text-sm font-medium transition-colors"
+                        )}
+
+                        {/* Items section — collapsed by default, compact on mobile */}
+                        <div className={`${isMobile ? 'rounded-md p-1.5 mb-1.5 border border-gray-100 bg-gray-50' : 'bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-2.5 border border-gray-200 mb-3'}`}>
+                          <div className={`flex items-center justify-between ${isMobile ? 'mb-0.5' : 'mb-2'}`}>
+                            <span className={`${isMobile ? 'text-[11px]' : 'text-sm'} font-semibold text-gray-700`}>{itemCount} {t('orderHistory.items')}</span>
+                            <button
+                              onClick={() => toggleOrderExpansion(order.id)}
+                              className={`text-red-600 hover:text-red-700 flex items-center gap-1 ${isMobile ? 'text-[11px]' : 'text-sm'} font-medium transition-colors`}
                               title={expandedOrders.has(order.id) ? t('common.close') : t('common.view')}
                             >
-                              {expandedOrders.has(order.id) ? <FaChevronUp size={12} className="flex-shrink-0" /> : <FaChevronDown size={12} className="flex-shrink-0" />}
+                              {expandedOrders.has(order.id) ? <FaChevronUp size={isMobile ? 9 : 12} className="flex-shrink-0" /> : <FaChevronDown size={isMobile ? 9 : 12} className="flex-shrink-0" />}
                               {expandedOrders.has(order.id) ? t('common.close') : t('common.view')}
                             </button>
                           </div>
-                          <div className="space-y-1.5">
+                          <div className={isMobile ? 'space-y-0.5' : 'space-y-1.5'}>
                             {(expandedOrders.has(order.id) ? (order.items || []) : (order.items || []).slice(0, 2)).map((item, idx) => (
-                              <div key={idx} className="flex justify-between text-sm py-1">
-                                <span className="text-gray-700">{item.quantity}x {item.name}</span>
-                                <span className="font-medium text-gray-900">{formatCurrency(item.total || (item.price * item.quantity))}</span>
+                              <div key={idx} className={`flex justify-between ${isMobile ? 'text-[11px] py-0.5' : 'text-sm py-1'}`}>
+                                <span className="text-gray-700 truncate mr-2">{item.quantity}x {item.name}</span>
+                                <span className="font-medium text-gray-900 flex-shrink-0">{formatCurrency(item.total || (item.price * item.quantity))}</span>
                               </div>
                             ))}
                             {!expandedOrders.has(order.id) && itemCount > 2 && (
-                              <div className="text-xs text-gray-500 pt-1">+{itemCount - 2} {t('common.more')}...</div>
+                              <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-gray-500 pt-0.5`}>+{itemCount - 2} {t('common.more')}...</div>
                             )}
                           </div>
                           {order.specialInstructions && (
-                            <div className="mt-3 pt-2 border-t border-gray-200">
-                              <div className="flex items-start gap-2 text-sm">
+                            <div className={`${isMobile ? 'mt-1 pt-1' : 'mt-3 pt-2'} border-t border-gray-200`}>
+                              <div className={`flex items-start gap-1.5 ${isMobile ? 'text-[11px]' : 'text-sm'}`}>
                                 <span className="text-amber-600 font-semibold flex-shrink-0">{t('orderHistory.instructions')}</span>
                                 <span className="text-gray-700">{order.specialInstructions}</span>
                               </div>
                             </div>
                           )}
                         </div>
-                        <div className={`flex items-center justify-between ${isMobile ? 'gap-1.5 mt-0.5 pt-2' : 'gap-3 mt-1 pt-3'} border-t border-gray-100`}>
-                          <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-3'} min-w-0`}>
+
+                        {/* Action buttons — icon-only on mobile, full labels on desktop */}
+                        <div className={`flex items-center ${isMobile ? 'gap-1 pt-1 justify-end' : 'gap-3 mt-1 pt-3 justify-between'} border-t border-gray-100`}>
+                          {!isMobile && (
+                          <div className="flex items-center gap-3 min-w-0">
                             <div
                               onClick={() => copyToClipboard(String(order.dailyOrderId ?? order.orderNumber ?? order.id))}
                               className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 transition-colors"
@@ -3771,7 +3808,6 @@ const OrderHistory = () => {
                               <span className="text-xs font-mono font-semibold text-gray-600">#{order.dailyOrderId ?? order.orderNumber ?? order.id?.slice(-4)?.toUpperCase() ?? '—'}</span>
                               <FaCopy className="text-gray-300 text-[10px]" />
                             </div>
-                            {!isMobile && (
                             <div
                               onClick={() => copyToClipboard(order.id)}
                               className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 transition-colors min-w-0"
@@ -3781,30 +3817,33 @@ const OrderHistory = () => {
                               <span className="text-xs font-mono font-semibold text-gray-600 truncate max-w-[140px]" title={order.id}>{order.id}</span>
                               <FaCopy className="text-gray-300 text-[10px] flex-shrink-0" />
                             </div>
-                            )}
                           </div>
-                          <div className={`flex items-center gap-1.5 ${isMobile ? 'overflow-x-auto flex-nowrap pb-1' : 'flex-shrink-0'}`}>
+                          )}
+                          <div className={`flex items-center ${isMobile ? 'gap-1 flex-wrap' : 'gap-1.5 flex-shrink-0'}`}>
                             {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && (
                               <button
                                 onClick={() => handleMarkCompleted(order.id)}
-                                className={`${isMobile ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'} font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-all flex items-center gap-1 sm:gap-1.5 whitespace-nowrap flex-shrink-0`}
+                                className={`${isMobile ? 'p-1.5 text-[10px]' : 'px-3 py-1.5 text-xs'} font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-all flex items-center gap-1 whitespace-nowrap flex-shrink-0`}
+                                title={t('orderHistory.complete')}
                               >
-                                <FaCheckCircle /> {t('orderHistory.complete')}
+                                <FaCheckCircle size={isMobile ? 11 : 12} /> {!isMobile && t('orderHistory.complete')}
                               </button>
                             )}
                             {(order.paymentStatus === 'partial' || order.outstandingAmount > 0) && order.status === 'completed' && (
                               <button
                                 onClick={() => handleMarkPaid(order.id)}
-                                className={`${isMobile ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'} font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100 transition-all flex items-center gap-1 sm:gap-1.5 whitespace-nowrap flex-shrink-0`}
+                                className={`${isMobile ? 'p-1.5 text-[10px]' : 'px-3 py-1.5 text-xs'} font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100 transition-all flex items-center gap-1 whitespace-nowrap flex-shrink-0`}
+                                title={t('orderHistory.markPaid')}
                               >
-                                <FaWallet /> {t('orderHistory.markPaid')}
+                                <FaWallet size={isMobile ? 11 : 12} /> {!isMobile && t('orderHistory.markPaid')}
                               </button>
                             )}
                             <button
                               onClick={() => handleViewOrder(order)}
-                              className={`${isMobile ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'} font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-all flex items-center gap-1 sm:gap-1.5 whitespace-nowrap flex-shrink-0`}
+                              className={`${isMobile ? 'p-1.5 text-[10px]' : 'px-3 py-1.5 text-xs'} font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-all flex items-center gap-1 whitespace-nowrap flex-shrink-0`}
+                              title={t('orderHistory.view')}
                             >
-                              <FaEye /> {t('orderHistory.view')}
+                              <FaEye size={isMobile ? 11 : 12} /> {!isMobile && t('orderHistory.view')}
                             </button>
                             <div style={{ position: 'relative', display: 'inline-block' }} className="flex-shrink-0">
                               <button
@@ -3812,12 +3851,12 @@ const OrderHistory = () => {
                                   e.stopPropagation();
                                   setPrintDropdownOrderId(prev => prev === order.id ? null : order.id);
                                 }}
-                                className={`${isMobile ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'} font-medium rounded-md transition-all flex items-center gap-1 sm:gap-1.5 whitespace-nowrap flex-shrink-0 ${printingOrderId === order.id ? 'bg-orange-200 border border-orange-300 cursor-wait' : 'text-orange-700 bg-orange-50 border border-orange-200 hover:bg-orange-100'}`}
+                                className={`${isMobile ? 'p-1.5 text-[10px]' : 'px-3 py-1.5 text-xs'} font-medium rounded-md transition-all flex items-center gap-1 whitespace-nowrap flex-shrink-0 ${printingOrderId === order.id ? 'bg-orange-200 border border-orange-300 cursor-wait' : 'text-orange-700 bg-orange-50 border border-orange-200 hover:bg-orange-100'}`}
                                 title="Print"
                                 disabled={printingOrderId === order.id}
                               >
-                                {printingOrderId === order.id ? <FaSpinner className="animate-spin" /> : <FaPrint />}
-                                {printingOrderId === order.id ? t('orderHistory.sending') : 'Print'}
+                                {printingOrderId === order.id ? <FaSpinner className="animate-spin" size={isMobile ? 11 : 12} /> : <FaPrint size={isMobile ? 11 : 12} />}
+                                {!isMobile && (printingOrderId === order.id ? t('orderHistory.sending') : 'Print')}
                               </button>
                               {printDropdownOrderId === order.id && (
                                 <div
@@ -3883,49 +3922,55 @@ const OrderHistory = () => {
                             {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && (
                               <button
                                 onClick={() => handleCancelOrder(order.id)}
-                                className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-all flex items-center gap-1.5"
+                                className={`${isMobile ? 'p-1.5 text-[10px]' : 'px-3 py-1.5 text-xs'} font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-all flex items-center gap-1 whitespace-nowrap flex-shrink-0`}
+                                title={t('orderHistory.cancel')}
                               >
-                                <FaTimesCircle /> {t('orderHistory.cancel')}
+                                <FaTimesCircle size={isMobile ? 11 : 12} /> {!isMobile && t('orderHistory.cancel')}
                               </button>
                             )}
                             {order.status === 'completed' && !order.refundedAt && canRefund && (
                               <button
                                 onClick={() => handleOpenRefund(order)}
-                                className="px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded-md hover:bg-orange-100 transition-all flex items-center gap-1.5"
+                                className={`${isMobile ? 'p-1.5 text-[10px]' : 'px-3 py-1.5 text-xs'} font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded-md hover:bg-orange-100 transition-all flex items-center gap-1 whitespace-nowrap flex-shrink-0`}
+                                title="Refund"
                               >
-                                <FaUndoAlt /> Refund
+                                <FaUndoAlt size={isMobile ? 11 : 12} /> {!isMobile && 'Refund'}
                               </button>
                             )}
                             {order.status !== 'deleted' && order.status !== 'completed' && !order.orderFlow?.isDirectBilling && (
                               <button
                                 onClick={() => handleEditOrder(order.id)}
-                                className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-all flex items-center gap-1.5"
+                                className={`${isMobile ? 'p-1.5 text-[10px]' : 'px-3 py-1.5 text-xs'} font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-all flex items-center gap-1 whitespace-nowrap flex-shrink-0`}
+                                title="Update Order"
                               >
-                                <FaEdit /> Update Order
+                                <FaEdit size={isMobile ? 11 : 12} /> {!isMobile && 'Update Order'}
                               </button>
                             )}
                             {canEditCompletedOrders && order.status === 'completed' && (
                               <>
                                 <button
                                   onClick={() => handleOpenEditCompleted(order)}
-                                  className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-all flex items-center gap-1.5"
+                                  className={`${isMobile ? 'p-1.5 text-[10px]' : 'px-3 py-1.5 text-xs'} font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-all flex items-center gap-1 whitespace-nowrap flex-shrink-0`}
+                                  title="Edit Details"
                                 >
-                                  <FaEdit /> Edit Details
+                                  <FaEdit size={isMobile ? 11 : 12} /> {!isMobile && 'Edit Details'}
                                 </button>
                                 <button
                                   onClick={() => handleEditItemsClick(order)}
-                                  className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-all flex items-center gap-1.5"
+                                  className={`${isMobile ? 'p-1.5 text-[10px]' : 'px-3 py-1.5 text-xs'} font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-all flex items-center gap-1 whitespace-nowrap flex-shrink-0`}
+                                  title="Edit Items"
                                 >
-                                  <FaUtensils /> Edit Items
+                                  <FaUtensils size={isMobile ? 11 : 12} /> {!isMobile && 'Edit Items'}
                                 </button>
                               </>
                             )}
                             {allowOrderDelete && order.status !== 'deleted' && (
                               <button
                                 onClick={() => handleDeleteOrder(order.id)}
-                                className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-all flex items-center gap-1.5"
+                                className={`${isMobile ? 'p-1.5 text-[10px]' : 'px-3 py-1.5 text-xs'} font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-all flex items-center gap-1 whitespace-nowrap flex-shrink-0`}
+                                title="Delete"
                               >
-                                <FaTrash /> Delete
+                                <FaTrash size={isMobile ? 11 : 12} /> {!isMobile && 'Delete'}
                               </button>
                             )}
                           </div>
