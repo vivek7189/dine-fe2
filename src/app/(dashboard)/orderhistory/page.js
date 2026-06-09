@@ -2565,6 +2565,17 @@ const OrderHistory = () => {
 
   const partialPaymentEnabled = restaurant?.billingSettings?.partialPaymentEnabled;
 
+  // Refund access: check refundsEnabled + role restriction
+  const canRefund = (() => {
+    if (restaurant?.billingSettings?.refundsEnabled === false) return false;
+    const refundsRoles = restaurant?.billingSettings?.refundsRoles;
+    if (!refundsRoles || refundsRoles.length === 0) return true;
+    try {
+      const userRole = (JSON.parse(localStorage.getItem('user') || '{}').role || 'waiter').toLowerCase();
+      return refundsRoles.includes(userRole);
+    } catch { return true; }
+  })();
+
   const subRestaurantOptions = [
     { value: 'all', label: 'All Outlets' },
     ...subRestaurants.map(sr => ({ value: sr.id, label: sr.name }))
@@ -3295,7 +3306,7 @@ const OrderHistory = () => {
                                     <FaTimesCircle size={11} />
                                   </button>
                                 )}
-                                {order.status === 'completed' && !order.refundedAt && (
+                                {order.status === 'completed' && !order.refundedAt && canRefund && (
                                   <button
                                     onClick={() => handleOpenRefund(order)}
                                     className="w-7 h-7 rounded-lg flex items-center justify-center text-orange-600 bg-orange-50 hover:bg-orange-100 border border-orange-200 transition-colors"
@@ -3741,7 +3752,7 @@ const OrderHistory = () => {
                                 <FaTimesCircle /> {t('orderHistory.cancel')}
                               </button>
                             )}
-                            {order.status === 'completed' && !order.refundedAt && (
+                            {order.status === 'completed' && !order.refundedAt && canRefund && (
                               <button
                                 onClick={() => handleOpenRefund(order)}
                                 className="px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded-md hover:bg-orange-100 transition-all flex items-center gap-1.5"

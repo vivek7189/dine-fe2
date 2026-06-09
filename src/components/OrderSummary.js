@@ -3626,7 +3626,7 @@ const OrderSummary = ({
                         }}>
                           Subtotal: {formatCurrency(getItemUnitPrice(item) * item.quantity)}
                         </span>
-                        {posSettings.allowPriceEdit && editingPriceId === (item.cartId || item.id) ? (
+                        {posSettings.allowPriceEdit && isRoleAllowed(billingSettings?.priceEditRoles) && editingPriceId === (item.cartId || item.id) ? (
                           <input
                             type="text"
                             inputMode="decimal"
@@ -3666,15 +3666,15 @@ const OrderSummary = ({
                           <span
                             style={{
                               fontSize: '12px', fontWeight: 'bold', color: '#ef4444',
-                              cursor: posSettings.allowPriceEdit ? 'pointer' : 'default',
+                              cursor: posSettings.allowPriceEdit && isRoleAllowed(billingSettings?.priceEditRoles) ? 'pointer' : 'default',
                               display: 'inline-flex', alignItems: 'center', gap: '3px',
                             }}
                             onClick={() => {
-                              if (posSettings.allowPriceEdit) setEditingPriceId(item.cartId || item.id);
+                              if (posSettings.allowPriceEdit && isRoleAllowed(billingSettings?.priceEditRoles)) setEditingPriceId(item.cartId || item.id);
                             }}
                           >
                             {formatCurrency(getItemUnitPrice(item))}
-                            {posSettings.allowPriceEdit && (
+                            {posSettings.allowPriceEdit && isRoleAllowed(billingSettings?.priceEditRoles) && (
                               <FaPencilAlt size={7} style={{ color: '#94a3b8', flexShrink: 0 }} />
                             )}
                           </span>
@@ -3849,7 +3849,7 @@ const OrderSummary = ({
               </div>
             ))}
             {/* Custom Item Entry */}
-            {posSettings.allowCustomItems && (
+            {posSettings.allowCustomItems && isRoleAllowed(billingSettings?.customItemRoles) && (
               showCustomItemForm ? (
                 <div style={{
                   backgroundColor: '#f0fdf4', borderRadius: '8px', padding: '8px',
@@ -3998,7 +3998,7 @@ const OrderSummary = ({
                     {tipAmount > 0 && (
                       <span style={{ color: '#fef08a' }}>Tip: {formatCurrency(tipAmount)}</span>
                     )}
-                    {roundOffAmount !== 0 && (
+                    {roundOffAmount !== 0 && isRoleAllowed(billingSettings?.roundOffRoles) && (
                       <span>Round-off: {roundOffAmount > 0 ? '+' : ''}{formatCurrency(roundOffAmount)}</span>
                     )}
                   </div>

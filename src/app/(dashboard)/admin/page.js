@@ -10905,6 +10905,41 @@ const Admin = () => {
                   <div style={{ fontSize: '11px', color: '#9ca3af' }}>{t('admin.allowCustomItemsDesc')}</div>
                 </div>
               </div>
+              {posSettings.allowCustomItems && (() => {
+                const settingKey = 'customItemRoles';
+                const roles = billingSettings[settingKey] || [];
+                const isAll = roles.length === 0;
+                return (
+                  <div style={{ marginTop: '8px', marginBottom: '12px' }}>
+                    <label style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '5px' }}>Who can add custom items?</label>
+                    <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                      {allRoles.map(role => {
+                        const isSelected = isAll || roles.includes(role);
+                        return (
+                          <button key={role} onClick={(e) => {
+                            e.stopPropagation();
+                            if (isAll) {
+                              updateBillingSetting(settingKey, allRoles.filter(r => r !== role));
+                            } else {
+                              const current = billingSettings[settingKey] || [];
+                              const updated = isSelected ? current.filter(r => r !== role) : [...current, role];
+                              updateBillingSetting(settingKey, updated.length === allRoles.length ? [] : (updated.length > 0 ? updated : []));
+                            }
+                          }}
+                          style={{
+                            padding: '4px 10px', borderRadius: '14px', fontSize: '11px', fontWeight: 600,
+                            border: isSelected ? '1px solid #111827' : '1px solid #d1d5db',
+                            backgroundColor: isSelected ? '#111827' : 'white',
+                            color: isSelected ? 'white' : '#6b7280',
+                            cursor: 'pointer', textTransform: 'capitalize', transition: 'all 0.15s'
+                          }}>{role}</button>
+                        );
+                      })}
+                    </div>
+                    {isAll && <p style={{ fontSize: '9px', color: '#94a3b8', margin: '4px 0 0 0' }}>All roles — click a role to restrict</p>}
+                  </div>
+                );
+              })()}
 
               {/* Allow Price Edit */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
@@ -10922,6 +10957,41 @@ const Admin = () => {
                   <div style={{ fontSize: '11px', color: '#9ca3af' }}>{t('admin.allowPriceEditDesc')}</div>
                 </div>
               </div>
+              {posSettings.allowPriceEdit && (() => {
+                const settingKey = 'priceEditRoles';
+                const roles = billingSettings[settingKey] || [];
+                const isAll = roles.length === 0;
+                return (
+                  <div style={{ marginTop: '8px', marginBottom: '12px' }}>
+                    <label style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '5px' }}>Who can edit prices?</label>
+                    <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                      {allRoles.map(role => {
+                        const isSelected = isAll || roles.includes(role);
+                        return (
+                          <button key={role} onClick={(e) => {
+                            e.stopPropagation();
+                            if (isAll) {
+                              updateBillingSetting(settingKey, allRoles.filter(r => r !== role));
+                            } else {
+                              const current = billingSettings[settingKey] || [];
+                              const updated = isSelected ? current.filter(r => r !== role) : [...current, role];
+                              updateBillingSetting(settingKey, updated.length === allRoles.length ? [] : (updated.length > 0 ? updated : []));
+                            }
+                          }}
+                          style={{
+                            padding: '4px 10px', borderRadius: '14px', fontSize: '11px', fontWeight: 600,
+                            border: isSelected ? '1px solid #111827' : '1px solid #d1d5db',
+                            backgroundColor: isSelected ? '#111827' : 'white',
+                            color: isSelected ? 'white' : '#6b7280',
+                            cursor: 'pointer', textTransform: 'capitalize', transition: 'all 0.15s'
+                          }}>{role}</button>
+                        );
+                      })}
+                    </div>
+                    {isAll && <p style={{ fontSize: '9px', color: '#94a3b8', margin: '4px 0 0 0' }}>All roles — click a role to restrict</p>}
+                  </div>
+                );
+              })()}
 
               {/* Require PIN for Completed Order Edits */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
