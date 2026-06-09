@@ -149,6 +149,7 @@ const OrderHistory = () => {
   const [allowOrderDelete, setAllowOrderDelete] = useState(false);
   const [user, setUser] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [isMobileEmbed] = useState(() => typeof window !== 'undefined' && !!window.__DINEOPEN_MOBILE_EMBED__);
   const [isCompactView, setIsCompactView] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState('en');
 
@@ -2593,7 +2594,8 @@ const OrderHistory = () => {
       <OfflineBanner />
       {/* Header Section — collapses on scroll for more content space */}
       <div className={`bg-white shadow-sm border-b sticky top-0 z-20 transition-shadow duration-300 ${isScrolled ? 'shadow-md' : ''}`}>
-        <div className="w-full pl-14 pr-3 sm:px-6 lg:px-8">
+        <div className={`w-full ${isMobileEmbed ? 'px-3' : 'pl-14 pr-3 sm:px-6 lg:px-8'}`}>
+          {!isMobileEmbed && (
           <div className={`flex flex-row items-center justify-between gap-3 sm:gap-4 transition-all duration-300 ${isScrolled ? 'py-1.5 sm:py-2' : 'py-3 sm:py-4'}`}>
             <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
               <div className={`bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg flex-shrink-0 flex items-center justify-center transition-all duration-300 ${isScrolled ? 'w-7 h-7 sm:w-8 sm:h-8' : 'p-2 sm:p-3 sm:rounded-xl'}`}>
@@ -2627,9 +2629,10 @@ const OrderHistory = () => {
               </div>
             </div>
           </div>
+          )}
 
           {/* View Tabs: Orders | Summary — compact on scroll */}
-          <div className={`flex items-center gap-1 border-b border-gray-100 transition-all duration-300 ${isScrolled ? 'pb-1.5 sm:pb-1.5' : 'pb-2 sm:pb-3'}`}>
+          <div className={`flex items-center gap-1 border-b border-gray-100 transition-all duration-300 ${isMobileEmbed ? 'pt-2 pb-1.5' : ''} ${isScrolled ? 'pb-1.5 sm:pb-1.5' : 'pb-2 sm:pb-3'}`}>
             <button
               onClick={() => switchView('orders')}
               className={`flex items-center gap-1.5 rounded-lg font-medium transition-all duration-300 ${
@@ -2682,12 +2685,27 @@ const OrderHistory = () => {
               <FaCalendarCheck className="text-xs" />
               Bookings
             </button>
+            {/* Mobile embed: filter button + order count on the right */}
+            {isMobileEmbed && activeView === 'orders' && (
+              <div className="flex items-center gap-2 ml-auto">
+                <span className="text-xs text-gray-500 font-medium">{totalOrders} orders</span>
+                <button
+                  onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
+                  className={`relative p-1.5 rounded-lg border transition-all ${mobileFiltersOpen || hasActiveFilters ? 'bg-red-50 border-red-300 text-red-600' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                >
+                  <FaFilter className="text-sm" />
+                  {activeFilterCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{activeFilterCount}</span>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Summary Stats — only in orders view; full cards or compact inline strip based on scroll */}
           {activeView === 'orders' && (<>
-          {/* Expanded stat cards — hidden when scrolled */}
-          <div style={{ willChange: 'max-height, opacity' }} className={`overflow-hidden transition-[max-height,opacity,padding] duration-300 ease-in-out ${isScrolled ? 'max-h-0 opacity-0 pb-0' : 'max-h-40 opacity-100 pb-2 sm:pb-3'}`}>
+          {/* Expanded stat cards — hidden when scrolled or on mobile embed */}
+          <div style={{ willChange: 'max-height, opacity' }} className={`overflow-hidden transition-[max-height,opacity,padding] duration-300 ease-in-out ${isScrolled || isMobileEmbed ? 'max-h-0 opacity-0 pb-0' : 'max-h-40 opacity-100 pb-2 sm:pb-3'}`}>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-3">
               {/* Revenue */}
               <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
@@ -2752,8 +2770,8 @@ const OrderHistory = () => {
             </div>
           </div>
 
-          {/* Compact inline stat strip — visible only when scrolled */}
-          <div style={{ willChange: 'max-height, opacity' }} className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${isScrolled ? 'max-h-10 opacity-100' : 'max-h-0 opacity-0'}`}>
+          {/* Compact inline stat strip — visible when scrolled or on mobile embed */}
+          <div style={{ willChange: 'max-height, opacity' }} className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${isScrolled || isMobileEmbed ? 'max-h-10 opacity-100' : 'max-h-0 opacity-0'}`}>
             <div className="flex items-center gap-3 sm:gap-5 py-1.5 text-xs">
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-green-500" />
@@ -2911,8 +2929,103 @@ const OrderHistory = () => {
             </div>
           )}
 
-          {/* Filters — All in one line (orders view only) */}
-          {activeView === 'orders' && (
+          {/* Mobile embed: slide-down filter panel */}
+          {isMobileEmbed && activeView === 'orders' && mobileFiltersOpen && (
+          <div className="py-2 border-t border-gray-200 bg-gray-50 animate-in slide-in-from-top duration-200">
+            <div className="flex flex-wrap gap-1.5 items-center px-1">
+              <div className="relative min-w-0 w-full shrink-0 mb-1">
+                <FaSearch className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
+                <input
+                  type="text"
+                  placeholder={t('orderHistory.search')}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
+                  className="w-full pl-8 pr-2 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-400 focus:border-red-400 transition-all placeholder:text-gray-400"
+                />
+              </div>
+              <FilterDropdown
+                isOpen={statusDropdownOpen}
+                onToggle={() => { setStatusDropdownOpen(!statusDropdownOpen); setTypeDropdownOpen(false); setPaymentStatusDropdownOpen(false); setSubRestaurantDropdownOpen(false); }}
+                selectedValue={selectedStatus}
+                options={statusOptions}
+                onSelect={setSelectedStatus}
+                placeholder={t('orderHistory.status.all')}
+                icon={FaFilter}
+              />
+              <FilterDropdown
+                isOpen={typeDropdownOpen}
+                onToggle={() => { setTypeDropdownOpen(!typeDropdownOpen); setStatusDropdownOpen(false); setPaymentStatusDropdownOpen(false); setSubRestaurantDropdownOpen(false); }}
+                selectedValue={selectedOrderType}
+                options={typeOptions}
+                onSelect={setSelectedOrderType}
+                placeholder={t('orderHistory.type.all')}
+                icon={FaUtensils}
+              />
+              {subRestaurants.length > 0 && (
+                <FilterDropdown
+                  isOpen={subRestaurantDropdownOpen}
+                  onToggle={() => { setSubRestaurantDropdownOpen(!subRestaurantDropdownOpen); setStatusDropdownOpen(false); setTypeDropdownOpen(false); setPaymentStatusDropdownOpen(false); }}
+                  selectedValue={filterSubRestaurant}
+                  options={subRestaurantOptions}
+                  onSelect={setFilterSubRestaurant}
+                  placeholder="All Outlets"
+                  icon={FaStore}
+                />
+              )}
+              {partialPaymentEnabled && (
+                <button
+                  onClick={() => setSelectedPaymentStatus(selectedPaymentStatus === 'partial' ? 'all' : 'partial')}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                    selectedPaymentStatus === 'partial'
+                      ? 'bg-amber-50 text-amber-700 border-amber-300 ring-1 ring-amber-100'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <FaWallet className="text-[10px]" />
+                  {t('orderHistory.partialPayment')}
+                </button>
+              )}
+              {/* Date quick-filter chips */}
+              <div className="flex flex-wrap gap-1 w-full mt-1">
+                {[
+                  { value: 'today', label: t('orderHistory.today') },
+                  { value: 'yesterday', label: t('orderHistory.yesterday') },
+                  { value: 'last7days', label: t('orderHistory.sevenDays') },
+                  { value: 'last30days', label: t('orderHistory.thirtyDays') },
+                ].map(option => (
+                  <button
+                    key={option.value}
+                    onClick={() => setDateFilterMode(option.value)}
+                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap ${
+                      dateFilterMode === option.value
+                        ? 'bg-red-500 text-white border-red-500 shadow-sm'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFilterModalOpen(true); }}
+                  className={`p-1.5 rounded-lg border transition-all cursor-pointer ${dateFilterMode === 'custom' ? 'bg-red-50 border-red-300 text-red-600' : 'bg-white border-gray-200 text-gray-500 hover:border-red-300 hover:bg-red-50 hover:text-red-500'}`}
+                  title={t('orderHistory.customDateRange')}
+                >
+                  <FaCalendarAlt className="text-sm" />
+                </button>
+              </div>
+              {hasActiveFilters && (
+                <button type="button" onClick={() => { resetAllFilters(); setMobileFiltersOpen(false); }} className="flex items-center gap-1 px-2 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-lg border border-red-200 shrink-0 transition-all mt-1">
+                  <FaTimes className="text-[10px]" /> {t('orderHistory.clear')}
+                </button>
+              )}
+            </div>
+          </div>
+          )}
+
+          {/* Filters — All in one line (orders view only, hidden on mobile embed) */}
+          {activeView === 'orders' && !isMobileEmbed && (
           <div className="py-2 sm:py-2.5 border-t border-gray-200">
             <div className="flex flex-wrap gap-1.5 items-center">
               <div className="relative min-w-0 w-36 sm:w-44 shrink-0">
@@ -3031,9 +3144,9 @@ const OrderHistory = () => {
       )}
 
       {/* Orders List */}
-      <div className="flex-1 p-3 sm:px-6 sm:py-4 overflow-y-auto relative">
+      <div className={`flex-1 ${isMobileEmbed ? 'p-2' : 'p-3 sm:px-6 sm:py-4'} overflow-y-auto relative`}>
         {/* Overlay removed — thin loading bar at top is sufficient */}
-        <div className="w-full px-3 sm:px-6 lg:px-8">
+        <div className={`w-full ${isMobileEmbed ? 'px-1' : 'px-3 sm:px-6 lg:px-8'}`}>
           {!loading && orders.length === 0 ? (
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-16 text-center">
               <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
