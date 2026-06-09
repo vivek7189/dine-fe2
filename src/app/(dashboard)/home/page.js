@@ -112,7 +112,7 @@ function OnboardingChecklist({ onDismiss }) {
         {items.map((item) => (
           <div
             key={item.key}
-            onClick={() => { if (!item.done && item.href) router.push(item.href); }}
+            onClick={() => { if (!item.done && item.href) { const h = (window.__DINEOPEN_MOBILE_EMBED__ && !item.href.startsWith('/mobile')) ? '/mobile' + item.href : item.href; router.push(h); } }}
             style={{
               display: 'flex', alignItems: 'center', gap: '10px',
               padding: '8px 10px', borderRadius: '8px',
@@ -311,6 +311,11 @@ export default function HomePage() {
   };
 
   const navigateTo = (href) => {
+    // In mobile embed, prefix with /mobile to stay within the mobile layout
+    if (typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__ && href && !href.startsWith('/mobile')) {
+      router.push('/mobile' + href);
+      return;
+    }
     router.push(href);
   };
 

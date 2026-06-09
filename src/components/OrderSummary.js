@@ -262,6 +262,7 @@ const OrderSummary = ({
   const [voiceError, setVoiceError] = useState('');
   const [useFullChatGPT, setUseFullChatGPT] = useState(true); // Feature flag - Set to true for full ChatGPT processing
   const [isMobile, setIsMobile] = useState(false);
+  const isMobileEmbed = typeof window !== 'undefined' && !!window.__DINEOPEN_MOBILE_EMBED__;
 
   // Customer Lookup Hook
   const { customerData, lookupStatus, triggerLookup, clearCustomer } = useCustomerLookup({ restaurantId, countryCode });
@@ -5302,7 +5303,9 @@ const OrderSummary = ({
 
           {/* Action Buttons — sits at bottom of scroll in billing mode */}
           <div style={{
-            padding: billingMode ? '12px 16px 16px 16px' : (isMobile ? '6px 8px calc(6px + env(safe-area-inset-bottom, 0px)) 8px' : '6px 12px 12px 12px'),
+            padding: billingMode
+              ? (isMobileEmbed ? '12px 16px 100px 16px' : '12px 16px 16px 16px')
+              : (isMobile ? `6px 8px calc(6px + ${isMobileEmbed ? '90px' : 'env(safe-area-inset-bottom, 0px)'}) 8px` : '6px 12px 12px 12px'),
             ...(isMobile ? {
               position: 'sticky',
               bottom: 0,

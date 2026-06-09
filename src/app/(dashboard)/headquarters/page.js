@@ -2483,7 +2483,7 @@ export function HeadquartersContent({ embedded = false }) {
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', padding: isMobile ? '16px' : '24px' }}>
       {/* Header */}
       <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', marginBottom: isMobile ? '12px' : '20px', gap: isMobile ? '12px' : '16px' }}>
-        <div style={{ paddingLeft: isMobile ? '48px' : undefined }}>
+        <div style={{ paddingLeft: isMobile && !window.__DINEOPEN_MOBILE_EMBED__ ? '48px' : undefined }}>
           <h1 style={{ fontSize: isMobile ? '22px' : '32px', fontWeight: '800', color: '#1f2937', margin: 0 }}>
             {getDynamicHeadline().title}
           </h1>
@@ -2497,7 +2497,10 @@ export function HeadquartersContent({ embedded = false }) {
           {/* Start Taking Orders CTA - Desktop */}
           {!isMobile && (
             <button
-              onClick={() => router.push(businessType === 'bar' ? '/dashboard/bar' : '/dashboard')}
+              onClick={() => {
+                const base = businessType === 'bar' ? '/dashboard/bar' : '/dashboard';
+                router.push(window.__DINEOPEN_MOBILE_EMBED__ ? `/mobile${base}` : base);
+              }}
               style={{
                 display: 'flex', alignItems: 'center', gap: '8px',
                 padding: '12px 24px', borderRadius: '12px', border: 'none',
@@ -2567,7 +2570,10 @@ export function HeadquartersContent({ embedded = false }) {
       {/* Mobile CTA - Start Taking Orders */}
       {isMobile && (
         <button
-          onClick={() => router.push(businessType === 'bar' ? '/dashboard/bar' : '/dashboard')}
+          onClick={() => {
+            const base = businessType === 'bar' ? '/dashboard/bar' : '/dashboard';
+            router.push(window.__DINEOPEN_MOBILE_EMBED__ ? `/mobile${base}` : base);
+          }}
           style={{
             width: '100%', padding: '13px', borderRadius: '14px',
             background: 'linear-gradient(135deg, #ef4444, #dc2626)',

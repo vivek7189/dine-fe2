@@ -1370,7 +1370,7 @@ function RestaurantPOSContent() {
   // Redirect bar-type restaurants to /dashboard/bar
   useEffect(() => {
     if (selectedRestaurant && selectedRestaurant.businessType === 'bar') {
-      router.replace('/dashboard/bar');
+      router.replace(window.__DINEOPEN_MOBILE_EMBED__ ? '/mobile/dashboard/bar' : '/dashboard/bar');
     }
   }, [selectedRestaurant, router]);
 
@@ -2365,7 +2365,7 @@ function RestaurantPOSContent() {
     setPlacingOrder(false);
     setActiveSavedOrderId(null);
     localStorage.removeItem('dine_cart');
-    if (typeof window !== 'undefined') router.replace('/dashboard');
+    if (typeof window !== 'undefined') router.replace(window.__DINEOPEN_MOBILE_EMBED__ ? '/mobile/dashboard' : '/dashboard');
     // Show success notification
     setNotification({
       type: 'success',
@@ -5068,7 +5068,7 @@ function RestaurantPOSContent() {
     if (!keepOrderSuccess) {
       setOrderSuccess(null);
       // Only redirect if not preserving URL (avoids losing view state)
-      if (!preserveUrl && typeof window !== 'undefined') router.replace('/dashboard');
+      if (!preserveUrl && typeof window !== 'undefined') router.replace(window.__DINEOPEN_MOBILE_EMBED__ ? '/mobile/dashboard' : '/dashboard');
     }
     if (selectedTable && selectedTable.id && !keepTable) {
       // Release table — skip when order was just placed (table stays occupied)
@@ -5348,8 +5348,8 @@ function RestaurantPOSContent() {
     clearTransition();
   }, [networkTransition, clearTransition]);
 
-  // Show onboarding if needed — redirect to dedicated onboarding page
-  if (showOnboarding) {
+  // Show onboarding if needed — redirect to dedicated onboarding page (skip in mobile embed)
+  if (showOnboarding && !window.__DINEOPEN_MOBILE_EMBED__) {
     if (typeof window !== 'undefined') {
       router.replace('/onboarding');
     }
@@ -5555,8 +5555,8 @@ function RestaurantPOSContent() {
     );
   }
 
-  // No restaurant selected — redirect to onboarding
-  if (!selectedRestaurant && !showOnboarding) {
+  // No restaurant selected — redirect to onboarding (skip in mobile embed)
+  if (!selectedRestaurant && !showOnboarding && !window.__DINEOPEN_MOBILE_EMBED__) {
     if (typeof window !== 'undefined') {
       router.replace('/onboarding');
     }

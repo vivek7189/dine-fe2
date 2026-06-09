@@ -110,12 +110,17 @@ export default function MobileLayout({ children }) {
           body::-webkit-scrollbar { display: none; }
           /* Override any sidebar margin that pages might assume */
           .dashboard-page-content { animation: none !important; }
+          /* Hide sidebar hamburger menu in mobile WebView */
+          #sidebar-hamburger { display: none !important; }
           /* Fix modals in mobile WebView — ensure they sit above everything and inputs are full-width */
           input, select, textarea { font-size: 16px !important; max-width: 100%; box-sizing: border-box; }
-          /* Prevent iOS zoom on input focus */
+          /* Prevent iOS zoom on input focus — 16px is the minimum to prevent auto-zoom */
           @media screen and (max-width: 768px) {
             input, select, textarea { font-size: 16px !important; }
           }
+          /* Prevent iOS pinch-to-zoom and double-tap zoom */
+          html { touch-action: manipulation; }
+          * { -webkit-text-size-adjust: 100%; }
         `}</style>
         {children}
       </div>
