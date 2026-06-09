@@ -257,11 +257,12 @@ function DashboardLayoutContent({ children }) {
       if (savedRestaurantId) {
         setSelectedRestaurantId(savedRestaurantId);
       }
-      // Load notification order types from restaurant settings
+      // Load notification order types and business day start from restaurant settings
       try {
         const restaurant = JSON.parse(localStorage.getItem('selectedRestaurant') || 'null');
         const types = restaurant?.orderSettings?.notificationOrderTypes;
         setNotificationOrderTypes(types && types.length > 0 ? types : ['online']);
+        apiClient.setBusinessDayStartHour(restaurant?.posSettings?.businessDayStartHour || 0);
       } catch { setNotificationOrderTypes(['online']); }
     };
 
@@ -272,11 +273,12 @@ function DashboardLayoutContent({ children }) {
       console.log('Restaurant changed in layout:', event.detail);
       setHasDefaultMenu(false); // Reset on switch; checkDefaultMenu or demoModeActivated will set true if needed
       setSelectedRestaurantId(event.detail.restaurantId);
-      // Update notification order types from new restaurant
+      // Update notification order types and business day start from new restaurant
       try {
         const restaurant = event.detail?.restaurant || JSON.parse(localStorage.getItem('selectedRestaurant') || 'null');
         const types = restaurant?.orderSettings?.notificationOrderTypes;
         setNotificationOrderTypes(types && types.length > 0 ? types : ['online']);
+        apiClient.setBusinessDayStartHour(restaurant?.posSettings?.businessDayStartHour || 0);
       } catch { setNotificationOrderTypes(['online']); }
     };
 

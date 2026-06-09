@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import apiClient from '../lib/api';
-import { FaPhone, FaCheckCircle, FaTimesCircle, FaSpinner, FaPaperPlane, FaWhatsapp, FaArrowLeft, FaSearch, FaPlug, FaToggleOn, FaToggleOff, FaCopy, FaCheck } from 'react-icons/fa';
+import { FaPhone, FaCheckCircle, FaTimesCircle, FaSpinner, FaPaperPlane, FaWhatsapp, FaArrowLeft, FaSearch, FaPlug, FaToggleOn, FaToggleOff, FaCopy, FaCheck, FaFacebook } from 'react-icons/fa';
 
 export default function WhatsAppTab({ selectedRestaurant }) {
   const [subTab, setSubTab] = useState('settings'); // 'settings' | 'messages'
@@ -20,12 +20,68 @@ export default function WhatsAppTab({ selectedRestaurant }) {
   const [testAsTemplate, setTestAsTemplate] = useState(true);
   const [testSending, setTestSending] = useState(false);
   const [connectMode, setConnectMode] = useState('dineopen');
-  const [ownCredentials, setOwnCredentials] = useState({ accessToken: '', phoneNumberId: '', businessAccountId: '' });
   const [statusMsg, setStatusMsg] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [embeddedSignupLoading, setEmbeddedSignupLoading] = useState(false);
+  const [fbSdkReady, setFbSdkReady] = useState(false);
+  const wabaDataRef = useRef(null);
   const messagesEndRef = useRef(null);
 
+  const FACEBOOK_APP_ID = '1591044548986175';
+  // Config ID from Meta App → Facebook Login for Business → Configurations
+  // Created using "WhatsApp Embedded Signup" template
+  const EMBEDDED_SIGNUP_CONFIG_ID = process.env.NEXT_PUBLIC_WA_EMBEDDED_SIGNUP_CONFIG_ID || '1503970314508774';
+
   const restaurantId = selectedRestaurant?.id;
+
+  // Load Facebook SDK for Embedded Signup
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.FB) { setFbSdkReady(true); return; }
+
+    window.fbAsyncInit = function () {
+      window.FB.init({
+        appId: FACEBOOK_APP_ID,
+        cookie: true,
+        xfbml: true,
+        version: 'v22.0',
+      });
+      setFbSdkReady(true);
+    };
+
+    if (!document.getElementById('facebook-jssdk')) {
+      const js = document.createElement('script');
+      js.id = 'facebook-jssdk';
+      js.src = 'https://connect.facebook.net/en_US/sdk.js';
+      js.defer = true;
+      document.head.appendChild(js);
+    }
+
+    // Listen for Embedded Signup session info messages
+    const handleMessage = (event) => {
+      if (!event.origin?.endsWith('facebook.com')) return;
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'WA_EMBEDDED_SIGNUP') {
+          if (data.event === 'FINISH') {
+            wabaDataRef.current = {
+              phone_number_id: data.data.phone_number_id,
+              waba_id: data.data.waba_id,
+            };
+          } else if (data.event === 'CANCEL') {
+            console.log('Embedded Signup cancelled at step:', data.data?.current_step);
+          } else if (data.event === 'ERROR') {
+            console.error('Embedded Signup error:', data.data?.error_message);
+          }
+        }
+      } catch {
+        // Non-JSON messages from Facebook — ignore
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   // Load WhatsApp settings
   useEffect(() => {
@@ -38,6 +94,10 @@ export default function WhatsAppTab({ selectedRestaurant }) {
     try {
       const res = await apiClient.getWhatsAppSettings(restaurantId);
       setWaSettings(res);
+      // Pre-fill mode from saved settings
+      if (res?.settings?.mode) {
+        setConnectMode(res.settings.mode === 'restaurant' ? 'restaurant' : 'dineopen');
+      }
     } catch (err) {
       console.error('Load WA settings error:', err);
     } finally {
@@ -98,18 +158,12 @@ export default function WhatsAppTab({ selectedRestaurant }) {
     }
   };
 
-  // Connect WhatsApp
-  const handleConnect = async () => {
+  // Connect WhatsApp — DineOpen mode (simple)
+  const handleConnectDineopen = async () => {
     setSaving(true);
     setStatusMsg(null);
     try {
-      const payload = { mode: connectMode };
-      if (connectMode === 'restaurant') {
-        payload.accessToken = ownCredentials.accessToken;
-        payload.phoneNumberId = ownCredentials.phoneNumberId;
-        payload.businessAccountId = ownCredentials.businessAccountId;
-      }
-      const res = await apiClient.connectWhatsApp(restaurantId, payload);
+      const res = await apiClient.connectWhatsApp(restaurantId, { mode: 'dineopen' });
       setStatusMsg({ type: 'success', text: res.message || 'WhatsApp connected!' });
       await loadSettings();
     } catch (err) {
@@ -117,6 +171,63 @@ export default function WhatsAppTab({ selectedRestaurant }) {
     } finally {
       setSaving(false);
     }
+  };
+
+  // Connect WhatsApp — Restaurant mode via Embedded Signup
+  const handleEmbeddedSignup = () => {
+    if (!window.FB) {
+      setStatusMsg({ type: 'error', text: 'Facebook SDK not loaded. Please refresh the page.' });
+      return;
+    }
+    if (!EMBEDDED_SIGNUP_CONFIG_ID) {
+      setStatusMsg({ type: 'error', text: 'Embedded Signup not configured. Please set config ID.' });
+      return;
+    }
+
+    setStatusMsg(null);
+    wabaDataRef.current = null;
+
+    window.FB.login(
+      async function (response) {
+        if (response.status === 'connected' && response.authResponse?.code) {
+          setEmbeddedSignupLoading(true);
+          setStatusMsg(null);
+          try {
+            const wabaData = wabaDataRef.current;
+            if (!wabaData?.phone_number_id || !wabaData?.waba_id) {
+              setStatusMsg({ type: 'error', text: 'Signup was not completed fully. Please try again and complete all steps including phone verification.' });
+              setEmbeddedSignupLoading(false);
+              return;
+            }
+
+            const res = await apiClient.connectWhatsAppEmbeddedSignup(restaurantId, {
+              code: response.authResponse.code,
+              phone_number_id: wabaData.phone_number_id,
+              waba_id: wabaData.waba_id,
+            });
+            setStatusMsg({ type: 'success', text: res.message || 'WhatsApp connected!' });
+            await loadSettings();
+          } catch (err) {
+            setStatusMsg({ type: 'error', text: err.error || err.message || 'Failed to complete setup' });
+          } finally {
+            setEmbeddedSignupLoading(false);
+          }
+        } else {
+          // User cancelled or didn't authorize
+          if (response.status !== 'unknown') {
+            setStatusMsg({ type: 'error', text: 'Facebook login was cancelled or not authorized.' });
+          }
+        }
+      },
+      {
+        config_id: EMBEDDED_SIGNUP_CONFIG_ID,
+        response_type: 'code',
+        override_default_response_type: true,
+        extras: {
+          sessionInfoVersion: 3,
+        },
+      }
+    );
   };
 
   // Disconnect
@@ -303,52 +414,23 @@ export default function WhatsAppTab({ selectedRestaurant }) {
                     ))}
                   </div>
 
-                  {/* Restaurant's own number — Setup Guide + Credentials */}
+                  {/* Restaurant's own number — Embedded Signup */}
                   {connectMode === 'restaurant' && (
                     <div style={{ marginBottom: '16px' }}>
-                      {/* Setup Guide */}
+                      {/* How it works */}
                       <div style={{
                         backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px',
                         padding: '20px', marginBottom: '20px'
                       }}>
-                        <h4 style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          How to Set Up Your Own WhatsApp Business Number
+                        <h4 style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b', marginBottom: '16px' }}>
+                          Connect Your WhatsApp Business Number
                         </h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                           {[
-                            {
-                              step: 1,
-                              title: 'Create a Meta Business Account',
-                              desc: 'Go to business.facebook.com and create a free business account using your Facebook login.',
-                              link: 'https://business.facebook.com'
-                            },
-                            {
-                              step: 2,
-                              title: 'Create a Meta Developer App',
-                              desc: 'Go to developers.facebook.com → My Apps → Create App → Select "Other" → Choose "Business" type → Add the "WhatsApp" product.',
-                              link: 'https://developers.facebook.com/apps'
-                            },
-                            {
-                              step: 3,
-                              title: 'Complete Business Verification',
-                              desc: 'In Meta Business Settings → Security Center → Start Verification. Upload your GST Certificate or business registration. Approval takes ~1 business day.',
-                              link: 'https://business.facebook.com/settings/security'
-                            },
-                            {
-                              step: 4,
-                              title: 'Add & Verify Your Phone Number',
-                              desc: 'In your Meta App → WhatsApp → API Setup → Add a phone number. Verify it via SMS or voice call. This number will appear as the sender for your customers.',
-                            },
-                            {
-                              step: 5,
-                              title: 'Generate a Permanent Access Token',
-                              desc: 'In Meta App → WhatsApp → API Setup → Create a System User with "admin" role → Generate a permanent token with whatsapp_business_messaging permission.',
-                            },
-                            {
-                              step: 6,
-                              title: 'Copy Your IDs & Connect',
-                              desc: 'From the API Setup page, copy your Phone Number ID and WhatsApp Business Account ID. Paste them in the fields below along with the access token.',
-                            },
+                            { step: 1, title: 'Click "Login with Facebook" below', desc: 'A Facebook popup will open for you to authorize DineOpen.' },
+                            { step: 2, title: 'Log in with Facebook', desc: 'Use the Facebook account linked to your business. If you don\'t have a Meta Business Account, one will be created for you.' },
+                            { step: 3, title: 'Create or select a WhatsApp Business Account', desc: 'Choose an existing WhatsApp Business Account or create a new one in the popup.' },
+                            { step: 4, title: 'Add & verify your phone number', desc: 'Enter the phone number you want to use for WhatsApp messaging. Verify it with an OTP sent via SMS or voice call.' },
                           ].map(item => (
                             <div key={item.step} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                               <div style={{
@@ -359,57 +441,11 @@ export default function WhatsAppTab({ selectedRestaurant }) {
                                 {item.step}
                               </div>
                               <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
-                                  {item.title}
-                                </div>
-                                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', lineHeight: '1.5' }}>
-                                  {item.desc}
-                                  {item.link && (
-                                    <>
-                                      {' '}
-                                      <a href={item.link} target="_blank" rel="noopener noreferrer" style={{ color: '#25D366', textDecoration: 'underline' }}>
-                                        Open &rarr;
-                                      </a>
-                                    </>
-                                  )}
-                                </div>
+                                <div style={{ fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>{item.title}</div>
+                                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', lineHeight: '1.5' }}>{item.desc}</div>
                               </div>
                             </div>
                           ))}
-                        </div>
-                      </div>
-
-                      {/* Credential Inputs */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
-                        <div>
-                          <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '4px' }}>Access Token</label>
-                          <input
-                            type="password"
-                            value={ownCredentials.accessToken}
-                            onChange={e => setOwnCredentials(c => ({ ...c, accessToken: e.target.value }))}
-                            placeholder="Permanent System User Token from Meta"
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px' }}
-                          />
-                        </div>
-                        <div style={{ display: 'flex', gap: '12px' }}>
-                          <div style={{ flex: 1 }}>
-                            <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '4px' }}>Phone Number ID</label>
-                            <input
-                              value={ownCredentials.phoneNumberId}
-                              onChange={e => setOwnCredentials(c => ({ ...c, phoneNumberId: e.target.value }))}
-                              placeholder="From Meta App → WhatsApp → API Setup"
-                              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px' }}
-                            />
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '4px' }}>Business Account ID</label>
-                            <input
-                              value={ownCredentials.businessAccountId}
-                              onChange={e => setOwnCredentials(c => ({ ...c, businessAccountId: e.target.value }))}
-                              placeholder="WhatsApp Business Account ID (WABA)"
-                              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px' }}
-                            />
-                          </div>
                         </div>
                       </div>
 
@@ -418,24 +454,61 @@ export default function WhatsAppTab({ selectedRestaurant }) {
                         backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px',
                         padding: '12px 14px', marginBottom: '16px', fontSize: '12px', color: '#1e40af', lineHeight: '1.6'
                       }}>
-                        <strong>Once connected:</strong> Bills will be sent from your restaurant&apos;s WhatsApp number. Customers will see your restaurant name as the sender. The same billing settings and per-customer WhatsApp preferences apply.
+                        <strong>Once connected:</strong> Bills will be sent from your restaurant&apos;s WhatsApp number. Customers will see your restaurant name as the sender.
+                        The phone number you connect here should not be actively used on WhatsApp or WhatsApp Business app — it will be migrated to the Cloud API.
                       </div>
+
+                      {/* Embedded Signup button */}
+                      <button
+                        onClick={handleEmbeddedSignup}
+                        disabled={embeddedSignupLoading || !fbSdkReady}
+                        style={{
+                          padding: '12px 24px', borderRadius: '10px', border: 'none',
+                          backgroundColor: '#1877f2', color: 'white', fontSize: '14px',
+                          fontWeight: '600', cursor: (embeddedSignupLoading || !fbSdkReady) ? 'not-allowed' : 'pointer',
+                          display: 'flex', alignItems: 'center', gap: '8px',
+                          opacity: (embeddedSignupLoading || !fbSdkReady) ? 0.7 : 1
+                        }}
+                      >
+                        {embeddedSignupLoading ? (
+                          <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                        ) : (
+                          <FaFacebook size={16} />
+                        )}
+                        {embeddedSignupLoading ? 'Connecting...' : !fbSdkReady ? 'Loading...' : 'Login with Facebook'}
+                      </button>
                     </div>
                   )}
 
-                  <button
-                    onClick={handleConnect}
-                    disabled={saving}
-                    style={{
-                      padding: '12px 24px', borderRadius: '10px', border: 'none',
-                      backgroundColor: '#25D366', color: 'white', fontSize: '14px',
-                      fontWeight: '600', cursor: saving ? 'not-allowed' : 'pointer',
-                      display: 'flex', alignItems: 'center', gap: '8px', opacity: saving ? 0.7 : 1
-                    }}
-                  >
-                    {saving ? <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <FaWhatsapp size={16} />}
-                    {saving ? 'Connecting...' : 'Connect WhatsApp'}
-                  </button>
+                  {/* DineOpen mode — simple connect */}
+                  {connectMode === 'dineopen' && (
+                    <button
+                      onClick={handleConnectDineopen}
+                      disabled={saving}
+                      style={{
+                        padding: '12px 24px', borderRadius: '10px', border: 'none',
+                        backgroundColor: '#25D366', color: 'white', fontSize: '14px',
+                        fontWeight: '600', cursor: saving ? 'not-allowed' : 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '8px', opacity: saving ? 0.7 : 1
+                      }}
+                    >
+                      {saving ? <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <FaWhatsapp size={16} />}
+                      {saving ? 'Connecting...' : 'Connect WhatsApp'}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Restaurant mode info note */}
+              {waSettings?.connected && waSettings?.settings?.mode === 'restaurant' && (
+                <div style={{
+                  padding: '12px 16px', borderRadius: '8px', marginBottom: '16px',
+                  backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', fontSize: '13px', color: '#1e40af'
+                }}>
+                  <strong>Bills from your number:</strong> After billing, customers will receive the invoice from your WhatsApp number.
+                  The system uses the <code style={{ backgroundColor: '#dbeafe', padding: '1px 4px', borderRadius: '4px' }}>bill_notification</code> template if available on your WABA.
+                  If not found, a plain text message is sent instead (only works within 24h of customer messaging you).
+                  To send bills anytime, create and get a message template approved in your Meta Business account.
                 </div>
               )}
 

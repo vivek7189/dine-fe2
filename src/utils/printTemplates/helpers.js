@@ -416,8 +416,9 @@ export function buildSplitBillHtml(invoice, L, cs) {
   if (!invoice.splitInfo) return '';
   const si = invoice.splitInfo;
   const methodLabel = si.method === 'equal' ? 'Equal Split' : si.method === 'by-item' ? 'Split by Item' : 'Split by Amount';
+  const nameDisplay = si.guestName ? `${esc(si.guestName)} (${esc(si.guestLabel)})` : esc(si.guestLabel);
   return `<div style="border:2px solid #0ea5e9;border-radius:6px;padding:6px 8px;margin:6px 0;text-align:center;background:#f0f9ff;">
-    <div style="font-weight:bold;font-size:13px;color:#0369a1;">SPLIT BILL &mdash; ${esc(si.guestLabel)} of ${si.guestCount}</div>
+    <div style="font-weight:bold;font-size:13px;color:#0369a1;">SPLIT BILL &mdash; ${nameDisplay} of ${si.guestCount}</div>
     <div style="font-size:10px;color:#64748b;">(${methodLabel})</div>
   </div>`;
 }
@@ -453,6 +454,7 @@ export function buildSplitInvoice(fullInvoice, splitIndex) {
   guestInvoice.splitInfo = {
     index: splitIndex,
     guestLabel: split.guestLabel || `Guest ${splitIndex + 1}`,
+    guestName: split.guestName || null,
     guestCount: sb.guestCount || sb.splits.length,
     method: sb.method,
     total: split.totalAmount,

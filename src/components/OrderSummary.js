@@ -62,7 +62,8 @@ import {
   FaEdit,
   FaMapMarkerAlt,
   FaExclamationTriangle,
-  FaUsers
+  FaUsers,
+  FaExpand
 } from 'react-icons/fa';
 
 const OrderSummary = ({
@@ -402,6 +403,9 @@ const OrderSummary = ({
   const [splitBillItemAssignments, setSplitBillItemAssignments] = useState({}); // { cartItemIndex: guestIndex }
   const [splitBillAmounts, setSplitBillAmounts] = useState({}); // { guestIndex: amount string }
   const [splitBillPaymentMethods, setSplitBillPaymentMethods] = useState({}); // { guestIndex: method }
+  const [splitBillGuestNames, setSplitBillGuestNames] = useState({}); // { 0: "Alice", 1: "Bob" }
+  const [showSplitBillPopup, setShowSplitBillPopup] = useState(false);
+  const [activeAssignGuest, setActiveAssignGuest] = useState(0); // By Item: which guest is selected
 
   // Calculate service charge
   const calcServiceCharge = useCallback((discountedAmount) => {
@@ -580,6 +584,16 @@ const OrderSummary = ({
       setManagerPin('');
       setPartialPayAmount('');
       setFullDueMode(false);
+      // Reset split bill state
+      setSplitBillMode(null);
+      setSplitBillGuests(2);
+      setSplitBillSplits([]);
+      setSplitBillItemAssignments({});
+      setSplitBillAmounts({});
+      setSplitBillPaymentMethods({});
+      setSplitBillGuestNames({});
+      setShowSplitBillPopup(false);
+      setActiveAssignGuest(0);
     }
   }, [cart?.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1791,7 +1805,8 @@ const OrderSummary = ({
       const pm = splitBillPaymentMethods[i] || 'cash';
       return {
         guestIndex: i,
-        guestLabel: `Guest ${i + 1}`,
+        guestLabel: splitBillGuestNames[i]?.trim() || `Guest ${i + 1}`,
+        guestName: splitBillGuestNames[i]?.trim() || null,
         items: method === 'by-item' ? (cart || []).filter((_, idx) => splitBillItemAssignments[idx] === i).map(item => ({
           name: item.name,
           quantity: item.quantity || 1,
@@ -1823,7 +1838,7 @@ const OrderSummary = ({
     }
 
     return { method, guestCount, splits };
-  }, [splitBillMode, splitBillGuests, splitBillItemAssignments, splitBillAmounts, splitBillPaymentMethods, grandTotal, cart, totalTax, taxBreakdown, serviceChargeAmount, tipAmount, effectiveOfferDiscount]);
+  }, [splitBillMode, splitBillGuests, splitBillItemAssignments, splitBillAmounts, splitBillPaymentMethods, splitBillGuestNames, grandTotal, cart, totalTax, taxBreakdown, serviceChargeAmount, tipAmount, effectiveOfferDiscount]);
 
   // Build tax data helper (shared by Place Order, Complete Billing, and UPI confirm)
   const buildTaxData = () => {
@@ -5034,8 +5049,16 @@ const OrderSummary = ({
                     padding: '12px',
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#0369a1' }}>
-                        Split Bill — Total: {formatCurrency(grandTotal)}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 700, color: '#0369a1' }}>
+                          Split Bill — Total: {formatCurrency(grandTotal)}
+                        </div>
+                        <button onClick={() => setShowSplitBillPopup(true)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0369a1', padding: '2px', lineHeight: 1 }}
+                          title="Open in popup"
+                        >
+                          <FaExpand size={10} />
+                        </button>
                       </div>
                       {splitBillMode && (
                         <button onClick={() => {
@@ -5044,6 +5067,9 @@ const OrderSummary = ({
                           setSplitBillItemAssignments({});
                           setSplitBillAmounts({});
                           setSplitBillPaymentMethods({});
+                          setSplitBillGuestNames({});
+                          setSplitBillGuests(2);
+                          setActiveAssignGuest(0);
                         }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '10px', fontWeight: 600 }}>
                           Clear
                         </button>
@@ -5101,7 +5127,11 @@ const OrderSummary = ({
                             const amt = i === splitBillGuests - 1 ? lastGuest : perGuest;
                             return (
                               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px', background: 'white', borderRadius: '6px', border: '1px solid #e0f2fe' }}>
-                                <span style={{ fontSize: '11px', fontWeight: 600, color: '#0369a1', minWidth: '54px' }}>Guest {i + 1}</span>
+                                <input type="text" placeholder={`Guest ${i + 1}`}
+                                  value={splitBillGuestNames[i] || ''}
+                                  onChange={(e) => setSplitBillGuestNames(prev => ({ ...prev, [i]: e.target.value }))}
+                                  style={{ border: 'none', borderBottom: '1px dashed #bae6fd', background: 'transparent', fontSize: '11px', fontWeight: 600, color: '#0369a1', width: '80px', outline: 'none', padding: '2px 4px' }}
+                                />
                                 <span style={{ flex: 1, fontSize: '12px', fontWeight: 700, color: '#0c4a6e' }}>{formatCurrency(amt)}</span>
                                 <select value={splitBillPaymentMethods[i] || 'cash'}
                                   onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
@@ -5117,10 +5147,10 @@ const OrderSummary = ({
                       );
                     })()}
 
-                    {/* BY ITEM SPLIT */}
+                    {/* BY ITEM SPLIT — Select guest, then tap items to assign */}
                     {splitBillMode === 'by-item' && (() => {
                       const maxGuests = billingSettings.splitBillMaxGuests || 10;
-                      const guestCount = Math.max(2, ...Object.values(splitBillItemAssignments).map(g => g + 1), 2);
+                      const guestCount = Math.max(2, ...Object.values(splitBillItemAssignments).map(g => g + 1), splitBillGuests);
                       const cartItems = cart || [];
                       const guestColors = ['#0ea5e9', '#8b5cf6', '#f59e0b', '#10b981', '#ec4899', '#6366f1', '#f97316', '#14b8a6', '#e11d68', '#84cc16'];
                       const guestTotals = {};
@@ -5131,76 +5161,113 @@ const OrderSummary = ({
                         }
                       });
                       const allAssigned = cartItems.length > 0 && cartItems.every((_, idx) => splitBillItemAssignments[idx] !== undefined);
+                      const unassignedCount = cartItems.filter((_, idx) => splitBillItemAssignments[idx] === undefined).length;
+                      const safeActive = Math.min(activeAssignGuest, guestCount - 1);
                       return (
                         <div>
-                          {/* Guest tabs */}
+                          {/* Guest selector — tap to select active guest */}
                           <div style={{ display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                            {Array.from({ length: guestCount }).map((_, i) => (
-                              <div key={i} style={{
-                                padding: '3px 8px', borderRadius: '12px', fontSize: '9px', fontWeight: 700,
-                                background: `${guestColors[i % guestColors.length]}18`,
-                                color: guestColors[i % guestColors.length],
-                                border: `1px solid ${guestColors[i % guestColors.length]}40`,
-                              }}>
-                                G{i + 1}: {formatCurrency(guestTotals[i] || 0)}
-                              </div>
-                            ))}
+                            {Array.from({ length: guestCount }).map((_, i) => {
+                              const isActive = safeActive === i;
+                              const gc = guestColors[i % guestColors.length];
+                              return (
+                                <button key={i}
+                                  onClick={() => setActiveAssignGuest(i)}
+                                  style={{
+                                    padding: '4px 8px', borderRadius: '12px', fontSize: '9px', fontWeight: 700,
+                                    background: isActive ? gc : `${gc}15`,
+                                    color: isActive ? '#fff' : gc,
+                                    border: `2px solid ${isActive ? gc : `${gc}40`}`,
+                                    cursor: 'pointer', transition: 'all 0.15s',
+                                    transform: isActive ? 'scale(1.05)' : 'scale(1)',
+                                  }}>
+                                  {splitBillGuestNames[i]?.trim() || `G${i + 1}`}: {formatCurrency(guestTotals[i] || 0)}
+                                </button>
+                              );
+                            })}
                             {guestCount < maxGuests && (
                               <button onClick={() => {
-                                // Assign next unassigned item to new guest to create it
-                                const nextIdx = cartItems.findIndex((_, idx) => splitBillItemAssignments[idx] === undefined);
-                                if (nextIdx >= 0) setSplitBillItemAssignments(prev => ({ ...prev, [nextIdx]: guestCount }));
-                                else setSplitBillItemAssignments(prev => ({ ...prev }));
-                                setSplitBillGuests(guestCount + 1);
+                                const newIdx = guestCount;
+                                setSplitBillGuests(newIdx + 1);
+                                setActiveAssignGuest(newIdx);
                               }}
-                                style={{ padding: '3px 8px', borderRadius: '12px', fontSize: '9px', fontWeight: 600, background: '#f1f5f9', color: '#64748b', border: '1px dashed #cbd5e1', cursor: 'pointer' }}>
+                                style={{ padding: '4px 8px', borderRadius: '12px', fontSize: '9px', fontWeight: 600, background: '#f1f5f9', color: '#64748b', border: '1px dashed #cbd5e1', cursor: 'pointer' }}>
                                 + Guest
                               </button>
                             )}
                           </div>
-                          {/* Item list with assignment */}
+                          {/* Active guest name input */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', padding: '4px 8px', background: `${guestColors[safeActive % guestColors.length]}10`, borderRadius: '6px', border: `1px solid ${guestColors[safeActive % guestColors.length]}30` }}>
+                            <div style={{ width: '18px', height: '18px', borderRadius: '9px', background: guestColors[safeActive % guestColors.length], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, color: '#fff' }}>
+                              G{safeActive + 1}
+                            </div>
+                            <input type="text" placeholder={`Guest ${safeActive + 1} name`}
+                              value={splitBillGuestNames[safeActive] || ''}
+                              onChange={(e) => setSplitBillGuestNames(prev => ({ ...prev, [safeActive]: e.target.value }))}
+                              style={{ flex: 1, border: 'none', background: 'transparent', fontSize: '11px', fontWeight: 600, color: '#374151', outline: 'none', padding: '2px 4px' }}
+                            />
+                            <span style={{ fontSize: '10px', color: '#6b7280' }}>Tap items below to assign</span>
+                          </div>
+                          {/* Item list — tap to assign to active guest */}
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '200px', overflowY: 'auto' }}>
                             {cartItems.map((item, idx) => {
                               const assignedGuest = splitBillItemAssignments[idx];
-                              const gColor = assignedGuest !== undefined ? guestColors[assignedGuest % guestColors.length] : '#94a3b8';
+                              const isAssigned = assignedGuest !== undefined;
+                              const gColor = isAssigned ? guestColors[assignedGuest % guestColors.length] : '#94a3b8';
                               return (
                                 <div key={idx}
                                   onClick={() => {
-                                    // Cycle through guests on tap
-                                    const next = assignedGuest === undefined ? 0 : (assignedGuest + 1) % Math.max(guestCount, 2);
-                                    setSplitBillItemAssignments(prev => ({ ...prev, [idx]: next }));
+                                    setSplitBillItemAssignments(prev => ({ ...prev, [idx]: safeActive }));
                                   }}
                                   style={{
                                     display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 8px', background: 'white',
-                                    borderRadius: '6px', border: `1px solid ${gColor}40`, cursor: 'pointer', transition: 'all 0.15s',
+                                    borderRadius: '6px', borderLeft: `3px solid ${gColor}`, border: `1px solid ${gColor}30`,
+                                    borderLeftWidth: '3px', cursor: 'pointer', transition: 'all 0.15s',
+                                    opacity: isAssigned ? 1 : 0.75,
                                   }}>
                                   <div style={{
                                     width: '20px', height: '20px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: '9px', fontWeight: 700, color: 'white', background: gColor,
+                                    fontSize: '9px', fontWeight: 700, color: 'white', background: gColor, flexShrink: 0,
                                   }}>
-                                    {assignedGuest !== undefined ? `G${assignedGuest + 1}` : '?'}
+                                    {isAssigned ? `G${assignedGuest + 1}` : '?'}
                                   </div>
-                                  <span style={{ flex: 1, fontSize: '11px', fontWeight: 500, color: '#374151' }}>
+                                  <span style={{ flex: 1, fontSize: '11px', fontWeight: 500, color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                     {item.name} {item.quantity > 1 ? `x${item.quantity}` : ''}
                                   </span>
-                                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#0c4a6e' }}>
+                                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#0c4a6e', flexShrink: 0 }}>
                                     {formatCurrency((item.price || 0) * (item.quantity || 1))}
                                   </span>
+                                  {isAssigned && (
+                                    <button onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSplitBillItemAssignments(prev => { const n = { ...prev }; delete n[idx]; return n; });
+                                    }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '10px', padding: '2px', lineHeight: 1 }}>
+                                      x
+                                    </button>
+                                  )}
                                 </div>
                               );
                             })}
                           </div>
-                          {!allAssigned && cartItems.length > 0 && (
-                            <div style={{ fontSize: '9px', color: '#dc2626', fontWeight: 600, marginTop: '6px' }}>
-                              Tap each item to assign to a guest
-                            </div>
+                          {/* Assign all remaining shortcut */}
+                          {unassignedCount > 0 && (
+                            <button onClick={() => {
+                              const updates = {};
+                              cartItems.forEach((_, idx) => { if (splitBillItemAssignments[idx] === undefined) updates[idx] = safeActive; });
+                              setSplitBillItemAssignments(prev => ({ ...prev, ...updates }));
+                            }}
+                              style={{ marginTop: '6px', width: '100%', padding: '5px', borderRadius: '6px', border: '1px dashed #0ea5e9', background: '#f0f9ff', color: '#0369a1', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}>
+                              Assign all {unassignedCount} remaining to {splitBillGuestNames[safeActive]?.trim() || `Guest ${safeActive + 1}`}
+                            </button>
                           )}
                           {/* Payment methods per guest */}
                           {allAssigned && (
                             <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                               {Array.from({ length: guestCount }).map((_, i) => (
                                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <span style={{ fontSize: '10px', fontWeight: 600, color: guestColors[i % guestColors.length], minWidth: '50px' }}>Guest {i + 1}</span>
+                                  <span style={{ fontSize: '10px', fontWeight: 600, color: guestColors[i % guestColors.length], minWidth: '50px' }}>
+                                    {splitBillGuestNames[i]?.trim() || `Guest ${i + 1}`}
+                                  </span>
                                   <select value={splitBillPaymentMethods[i] || 'cash'}
                                     onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
                                     style={{ flex: 1, padding: '3px 6px', border: '1px solid #bae6fd', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: 'white', outline: 'none' }}
@@ -5226,7 +5293,11 @@ const OrderSummary = ({
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           {Array.from({ length: splitBillGuests }).map((_, i) => (
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px', background: 'white', borderRadius: '6px', border: '1px solid #e0f2fe' }}>
-                              <span style={{ fontSize: '11px', fontWeight: 600, color: '#0369a1', minWidth: '54px' }}>Guest {i + 1}</span>
+                              <input type="text" placeholder={`Guest ${i + 1}`}
+                                value={splitBillGuestNames[i] || ''}
+                                onChange={(e) => setSplitBillGuestNames(prev => ({ ...prev, [i]: e.target.value }))}
+                                style={{ border: 'none', borderBottom: '1px dashed #bae6fd', background: 'transparent', fontSize: '11px', fontWeight: 600, color: '#0369a1', width: '80px', outline: 'none', padding: '2px 4px' }}
+                              />
                               <input type="number" placeholder="Amount"
                                 value={splitBillAmounts[i] || ''}
                                 onChange={(e) => setSplitBillAmounts(prev => ({ ...prev, [i]: e.target.value }))}
@@ -7128,6 +7199,307 @@ const OrderSummary = ({
           userRole={userRole}
           userName=""
         />
+      )}
+      {/* Split Bill Popup Modal */}
+      {showSplitBillPopup && splitBillMode && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setShowSplitBillPopup(false); }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
+            padding: isMobile ? '0' : '16px',
+          }}
+        >
+          <div style={{
+            background: '#f8fafc', borderRadius: isMobile ? '20px 20px 0 0' : '16px',
+            width: '100%', maxWidth: isMobile ? '100%' : '560px',
+            maxHeight: isMobile ? '92vh' : '80vh', display: 'flex', flexDirection: 'column',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.3)', overflow: 'hidden',
+          }}>
+            {/* Header */}
+            <div style={{
+              padding: '14px 18px', borderBottom: '1px solid #e2e8f0',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff',
+            }}>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#0369a1' }}>
+                Split Bill — {formatCurrency(grandTotal)}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button onClick={() => {
+                  setSplitBillMode(null); setSplitBillSplits([]); setSplitBillItemAssignments({});
+                  setSplitBillAmounts({}); setSplitBillPaymentMethods({}); setSplitBillGuestNames({});
+                  setSplitBillGuests(2); setActiveAssignGuest(0); setShowSplitBillPopup(false);
+                }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '12px', fontWeight: 600 }}>
+                  Clear All
+                </button>
+                <button onClick={() => setShowSplitBillPopup(false)}
+                  style={{ width: '28px', height: '28px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '14px', color: '#6b7280' }}>
+                  x
+                </button>
+              </div>
+            </div>
+            {/* Body */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px' }}>
+              {/* Mode tabs */}
+              <div style={{ display: 'flex', gap: '6px', marginBottom: '14px' }}>
+                {[{ id: 'equal', label: 'Equal' }, { id: 'by-item', label: 'By Item' }, { id: 'by-amount', label: 'By Amount' }].map(m => (
+                  <button key={m.id}
+                    onClick={() => {
+                      setSplitBillMode(m.id);
+                      if (!splitBillPaymentMethods[0]) {
+                        const defaults = {};
+                        for (let gi = 0; gi < splitBillGuests; gi++) defaults[gi] = 'cash';
+                        setSplitBillPaymentMethods(defaults);
+                      }
+                    }}
+                    style={{
+                      flex: 1, padding: '8px 10px', fontSize: '12px', fontWeight: 600, borderRadius: '8px',
+                      cursor: 'pointer', border: 'none', transition: 'all 0.15s',
+                      background: splitBillMode === m.id ? '#0ea5e9' : '#e0f2fe',
+                      color: splitBillMode === m.id ? '#fff' : '#0369a1',
+                    }}>
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Guest count stepper (equal & by-amount) */}
+              {splitBillMode !== 'by-item' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#0369a1' }}>Guests:</span>
+                  <button onClick={() => setSplitBillGuests(Math.max(2, splitBillGuests - 1))}
+                    style={{ width: '30px', height: '30px', borderRadius: '8px', border: '1px solid #bae6fd', background: '#e0f2fe', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 700, color: '#0369a1' }}>
+                    -
+                  </button>
+                  <span style={{ fontSize: '16px', fontWeight: 700, color: '#0c4a6e', minWidth: '24px', textAlign: 'center' }}>{splitBillGuests}</span>
+                  <button onClick={() => setSplitBillGuests(Math.min(billingSettings.splitBillMaxGuests || 10, splitBillGuests + 1))}
+                    style={{ width: '30px', height: '30px', borderRadius: '8px', border: '1px solid #bae6fd', background: '#e0f2fe', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 700, color: '#0369a1' }}>
+                    +
+                  </button>
+                </div>
+              )}
+
+              {/* EQUAL mode in popup */}
+              {splitBillMode === 'equal' && (() => {
+                const total = grandTotal ?? 0;
+                const perGuest = Math.floor((total / splitBillGuests) * 100) / 100;
+                const lastGuest = Math.round((total - perGuest * (splitBillGuests - 1)) * 100) / 100;
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {Array.from({ length: splitBillGuests }).map((_, i) => {
+                      const amt = i === splitBillGuests - 1 ? lastGuest : perGuest;
+                      return (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'white', borderRadius: '10px', border: '1px solid #e0f2fe' }}>
+                          <input type="text" placeholder={`Guest ${i + 1}`}
+                            value={splitBillGuestNames[i] || ''}
+                            onChange={(e) => setSplitBillGuestNames(prev => ({ ...prev, [i]: e.target.value }))}
+                            style={{ border: 'none', borderBottom: '1px dashed #bae6fd', background: 'transparent', fontSize: '13px', fontWeight: 600, color: '#0369a1', width: '120px', outline: 'none', padding: '2px 4px' }}
+                          />
+                          <span style={{ flex: 1, fontSize: '14px', fontWeight: 700, color: '#0c4a6e' }}>{formatCurrency(amt)}</span>
+                          <select value={splitBillPaymentMethods[i] || 'cash'}
+                            onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
+                            style={{ padding: '5px 8px', border: '1px solid #bae6fd', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: 'white', outline: 'none' }}>
+                            {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
+                              .filter(sm => sm.enabled).map(sm => <option key={sm.id} value={sm.id}>{sm.label}</option>)}
+                          </select>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+
+              {/* BY ITEM mode in popup */}
+              {splitBillMode === 'by-item' && (() => {
+                const maxGuests = billingSettings.splitBillMaxGuests || 10;
+                const guestCount = Math.max(2, ...Object.values(splitBillItemAssignments).map(g => g + 1), splitBillGuests);
+                const cartItems = cart || [];
+                const guestColors = ['#0ea5e9', '#8b5cf6', '#f59e0b', '#10b981', '#ec4899', '#6366f1', '#f97316', '#14b8a6', '#e11d68', '#84cc16'];
+                const guestTotals = {};
+                cartItems.forEach((item, idx) => {
+                  const g = splitBillItemAssignments[idx];
+                  if (g !== undefined) {
+                    guestTotals[g] = (guestTotals[g] || 0) + (item.price || 0) * (item.quantity || 1);
+                  }
+                });
+                const allAssigned = cartItems.length > 0 && cartItems.every((_, idx) => splitBillItemAssignments[idx] !== undefined);
+                const unassignedCount = cartItems.filter((_, idx) => splitBillItemAssignments[idx] === undefined).length;
+                const safeActive = Math.min(activeAssignGuest, guestCount - 1);
+                return (
+                  <div>
+                    {/* Guest selector tabs */}
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                      {Array.from({ length: guestCount }).map((_, i) => {
+                        const isActive = safeActive === i;
+                        const gc = guestColors[i % guestColors.length];
+                        return (
+                          <button key={i} onClick={() => setActiveAssignGuest(i)}
+                            style={{
+                              padding: '6px 12px', borderRadius: '14px', fontSize: '11px', fontWeight: 700,
+                              background: isActive ? gc : `${gc}15`, color: isActive ? '#fff' : gc,
+                              border: `2px solid ${isActive ? gc : `${gc}40`}`,
+                              cursor: 'pointer', transition: 'all 0.15s',
+                              transform: isActive ? 'scale(1.05)' : 'scale(1)',
+                            }}>
+                            {splitBillGuestNames[i]?.trim() || `Guest ${i + 1}`}: {formatCurrency(guestTotals[i] || 0)}
+                          </button>
+                        );
+                      })}
+                      {guestCount < maxGuests && (
+                        <button onClick={() => { setSplitBillGuests(guestCount + 1); setActiveAssignGuest(guestCount); }}
+                          style={{ padding: '6px 12px', borderRadius: '14px', fontSize: '11px', fontWeight: 600, background: '#f1f5f9', color: '#64748b', border: '1px dashed #cbd5e1', cursor: 'pointer' }}>
+                          + Guest
+                        </button>
+                      )}
+                    </div>
+                    {/* Active guest name input */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', padding: '8px 12px', background: `${guestColors[safeActive % guestColors.length]}10`, borderRadius: '8px', border: `1px solid ${guestColors[safeActive % guestColors.length]}30` }}>
+                      <div style={{ width: '24px', height: '24px', borderRadius: '12px', background: guestColors[safeActive % guestColors.length], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                        G{safeActive + 1}
+                      </div>
+                      <input type="text" placeholder={`Enter name for Guest ${safeActive + 1}`}
+                        value={splitBillGuestNames[safeActive] || ''}
+                        onChange={(e) => setSplitBillGuestNames(prev => ({ ...prev, [safeActive]: e.target.value }))}
+                        style={{ flex: 1, border: 'none', background: 'transparent', fontSize: '13px', fontWeight: 600, color: '#374151', outline: 'none', padding: '2px 4px' }}
+                      />
+                      <span style={{ fontSize: '11px', color: '#6b7280', flexShrink: 0 }}>Tap items to assign</span>
+                    </div>
+                    {/* Item list */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '40vh', overflowY: 'auto', marginBottom: '12px' }}>
+                      {cartItems.map((item, idx) => {
+                        const assignedGuest = splitBillItemAssignments[idx];
+                        const isAssigned = assignedGuest !== undefined;
+                        const gColor = isAssigned ? guestColors[assignedGuest % guestColors.length] : '#94a3b8';
+                        return (
+                          <div key={idx}
+                            onClick={() => setSplitBillItemAssignments(prev => ({ ...prev, [idx]: safeActive }))}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: 'white',
+                              borderRadius: '8px', borderLeft: `4px solid ${gColor}`, border: `1px solid ${gColor}30`,
+                              borderLeftWidth: '4px', cursor: 'pointer', transition: 'all 0.15s',
+                              opacity: isAssigned ? 1 : 0.7,
+                            }}>
+                            <div style={{
+                              width: '24px', height: '24px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: '10px', fontWeight: 700, color: 'white', background: gColor, flexShrink: 0,
+                            }}>
+                              {isAssigned ? `G${assignedGuest + 1}` : '?'}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: '13px', fontWeight: 500, color: '#374151' }}>
+                                {item.name} {item.quantity > 1 ? `x${item.quantity}` : ''}
+                              </div>
+                              {isAssigned && (
+                                <div style={{ fontSize: '10px', color: gColor, fontWeight: 600 }}>
+                                  {splitBillGuestNames[assignedGuest]?.trim() || `Guest ${assignedGuest + 1}`}
+                                </div>
+                              )}
+                            </div>
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: '#0c4a6e', flexShrink: 0 }}>
+                              {formatCurrency((item.price || 0) * (item.quantity || 1))}
+                            </span>
+                            {isAssigned && (
+                              <button onClick={(e) => {
+                                e.stopPropagation();
+                                setSplitBillItemAssignments(prev => { const n = { ...prev }; delete n[idx]; return n; });
+                              }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '12px', padding: '4px', lineHeight: 1 }}>
+                                x
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {/* Assign all remaining */}
+                    {unassignedCount > 0 && (
+                      <button onClick={() => {
+                        const updates = {};
+                        cartItems.forEach((_, idx) => { if (splitBillItemAssignments[idx] === undefined) updates[idx] = safeActive; });
+                        setSplitBillItemAssignments(prev => ({ ...prev, ...updates }));
+                      }}
+                        style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px dashed #0ea5e9', background: '#f0f9ff', color: '#0369a1', fontSize: '12px', fontWeight: 600, cursor: 'pointer', marginBottom: '12px' }}>
+                        Assign all {unassignedCount} remaining to {splitBillGuestNames[safeActive]?.trim() || `Guest ${safeActive + 1}`}
+                      </button>
+                    )}
+                    {/* Payment per guest */}
+                    {allAssigned && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {Array.from({ length: guestCount }).map((_, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', background: 'white', borderRadius: '8px', border: '1px solid #e0f2fe' }}>
+                            <span style={{ fontSize: '12px', fontWeight: 600, color: guestColors[i % guestColors.length], minWidth: '80px' }}>
+                              {splitBillGuestNames[i]?.trim() || `Guest ${i + 1}`}
+                            </span>
+                            <span style={{ flex: 1, fontSize: '13px', fontWeight: 700, color: '#0c4a6e' }}>{formatCurrency(guestTotals[i] || 0)}</span>
+                            <select value={splitBillPaymentMethods[i] || 'cash'}
+                              onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
+                              style={{ padding: '5px 8px', border: '1px solid #bae6fd', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: 'white', outline: 'none' }}>
+                              {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
+                                .filter(sm => sm.enabled).map(sm => <option key={sm.id} value={sm.id}>{sm.label}</option>)}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* BY AMOUNT mode in popup */}
+              {splitBillMode === 'by-amount' && (() => {
+                const total = grandTotal ?? 0;
+                const amountSum = Object.values(splitBillAmounts).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+                const remaining = Math.round((total - amountSum) * 100) / 100;
+                const isBalanced = Math.abs(remaining) < 0.01;
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {Array.from({ length: splitBillGuests }).map((_, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'white', borderRadius: '10px', border: '1px solid #e0f2fe' }}>
+                        <input type="text" placeholder={`Guest ${i + 1}`}
+                          value={splitBillGuestNames[i] || ''}
+                          onChange={(e) => setSplitBillGuestNames(prev => ({ ...prev, [i]: e.target.value }))}
+                          style={{ border: 'none', borderBottom: '1px dashed #bae6fd', background: 'transparent', fontSize: '13px', fontWeight: 600, color: '#0369a1', width: '120px', outline: 'none', padding: '2px 4px' }}
+                        />
+                        <input type="number" placeholder="Amount"
+                          value={splitBillAmounts[i] || ''}
+                          onChange={(e) => setSplitBillAmounts(prev => ({ ...prev, [i]: e.target.value }))}
+                          style={{ flex: 1, padding: '8px 10px', border: '1px solid #bae6fd', borderRadius: '8px', fontSize: '14px', fontWeight: 600, outline: 'none', background: 'white' }}
+                        />
+                        <select value={splitBillPaymentMethods[i] || 'cash'}
+                          onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
+                          style={{ padding: '5px 8px', border: '1px solid #bae6fd', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: 'white', outline: 'none' }}>
+                          {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
+                            .filter(sm => sm.enabled).map(sm => <option key={sm.id} value={sm.id}>{sm.label}</option>)}
+                        </select>
+                      </div>
+                    ))}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                      <button onClick={() => {
+                        const lastIdx = splitBillGuests - 1;
+                        const othersSum = Object.entries(splitBillAmounts).filter(([k]) => Number(k) !== lastIdx).reduce((s, [, v]) => s + (parseFloat(v) || 0), 0);
+                        const lastAmt = Math.max(0, Math.round((total - othersSum) * 100) / 100);
+                        setSplitBillAmounts(prev => ({ ...prev, [lastIdx]: String(lastAmt) }));
+                      }}
+                        style={{ fontSize: '12px', color: '#0369a1', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+                        Auto-fill last guest
+                      </button>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: isBalanced ? '#16a34a' : '#dc2626' }}>
+                        {isBalanced ? 'Balanced' : remaining > 0 ? `Remaining: ${formatCurrency(remaining)}` : `Exceeded: ${formatCurrency(Math.abs(remaining))}`}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+            {/* Footer */}
+            <div style={{ padding: '12px 18px', borderTop: '1px solid #e2e8f0', background: '#fff', display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowSplitBillPopup(false)}
+                style={{ padding: '10px 24px', borderRadius: '10px', border: 'none', background: '#0ea5e9', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+                Apply Split
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

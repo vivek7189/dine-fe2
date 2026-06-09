@@ -15,6 +15,8 @@ class ApiClient {
     this._inflight = new Map();
     // Max number of cached endpoints to prevent unbounded memory growth
     this._cacheMaxSize = 150;
+    // Business day start hour (0 = midnight/default, 1-23 = custom)
+    this._businessDayStartHour = 0;
 
     // Periodic cleanup: prune expired entries every 5 minutes
     // Prevents memory growth in long-running POS sessions (12-16 hours)
@@ -148,6 +150,11 @@ class ApiClient {
     if (!endpoint.includes('tz=')) {
       const sep = endpoint.includes('?') ? '&' : '?';
       endpoint = `${endpoint}${sep}tz=${new Date().getTimezoneOffset()}`;
+    }
+    // Auto-inject business day start hour if configured (custom day boundary)
+    if (this._businessDayStartHour > 0 && !endpoint.includes('dayStart=')) {
+      const sep = endpoint.includes('?') ? '&' : '?';
+      endpoint = `${endpoint}${sep}dayStart=${this._businessDayStartHour}`;
     }
     const url = `${this.baseURL}${endpoint}`;
     const token = this.getToken();
@@ -576,6 +583,11 @@ class ApiClient {
     if (typeof window !== 'undefined') {
       localStorage.setItem('authToken', token);
     }
+  }
+
+  setBusinessDayStartHour(hour) {
+    const n = Number(hour);
+    this._businessDayStartHour = (isNaN(n) || n < 0 || n > 23) ? 0 : Math.floor(n);
   }
 
   // Cookie helper methods for cross-subdomain SSO
@@ -2851,6 +2863,13 @@ class ApiClient {
     return this.request(`/api/automation/${restaurantId}/whatsapp/connect`, {
       method: 'POST',
       body: settings, // Should include: { mode: 'restaurant' | 'dineopen', accessToken, phoneNumberId, businessAccountId, webhookVerifyToken }
+    });
+  }
+
+  async connectWhatsAppEmbeddedSignup(restaurantId, { code, phone_number_id, waba_id }) {
+    return this.request(`/api/automation/${restaurantId}/whatsapp/embedded-signup`, {
+      method: 'POST',
+      body: { code, phone_number_id, waba_id },
     });
   }
 

@@ -10947,6 +10947,48 @@ const Admin = () => {
               </div>
             )}
 
+            {/* Business Day Timing */}
+            <div style={{ marginBottom: '16px', padding: '14px', backgroundColor: '#f0f9ff', borderRadius: '10px', border: '1px solid #bae6fd' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: posSettings.businessDayStartHour > 0 ? '12px' : '0' }}>
+                <button
+                  type="button"
+                  onClick={() => setPosSettings(prev => ({
+                    ...prev,
+                    businessDayStartHour: prev.businessDayStartHour > 0 ? 0 : 3
+                  }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {posSettings.businessDayStartHour > 0
+                    ? <FaToggleOn size={28} color="#0284c7" />
+                    : <FaToggleOff size={28} color="#d1d5db" />}
+                </button>
+                <div>
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#0c4a6e' }}>Custom Business Day Start</span>
+                  <div style={{ fontSize: '11px', color: '#0369a1' }}>For restaurants operating past midnight — orders after 12 AM count as previous day</div>
+                </div>
+              </div>
+              {posSettings.businessDayStartHour > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '12px', color: '#374151' }}>Day starts at:</span>
+                  <select
+                    value={posSettings.businessDayStartHour || 3}
+                    onChange={(e) => setPosSettings(prev => ({ ...prev, businessDayStartHour: Number(e.target.value) }))}
+                    style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #bae6fd', fontSize: '12px', backgroundColor: 'white' }}
+                  >
+                    <option value={1}>1:00 AM</option>
+                    <option value={2}>2:00 AM</option>
+                    <option value={3}>3:00 AM</option>
+                    <option value={4}>4:00 AM</option>
+                    <option value={5}>5:00 AM</option>
+                    <option value={6}>6:00 AM</option>
+                  </select>
+                  <span style={{ fontSize: '11px', color: '#6b7280' }}>
+                    Orders before {posSettings.businessDayStartHour || 3}:00 AM count as previous day
+                  </span>
+                </div>
+              )}
+            </div>
+
             {/* Button Visibility & Labels */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px', display: 'block' }}>
