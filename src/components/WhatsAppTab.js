@@ -192,32 +192,32 @@ export default function WhatsAppTab({ selectedRestaurant }) {
     wabaDataRef.current = null;
 
     window.FB.login(
-      async function (response) {
+      function (response) {
         if (response.status === 'connected' && response.authResponse?.code) {
           setEmbeddedSignupLoading(true);
           setStatusMsg(null);
-          try {
-            const wabaData = wabaDataRef.current;
-            if (!wabaData?.phone_number_id || !wabaData?.waba_id) {
-              setStatusMsg({ type: 'error', text: 'Signup was not completed fully. Please try again and complete all steps including phone verification.' });
-              setEmbeddedSignupLoading(false);
-              return;
-            }
 
-            const res = await apiClient.connectWhatsAppEmbeddedSignup(restaurantId, {
-              code: response.authResponse.code,
-              phone_number_id: wabaData.phone_number_id,
-              waba_id: wabaData.waba_id,
-            });
-            setStatusMsg({ type: 'success', text: res.message || 'WhatsApp connected!' });
-            await loadSettings();
-          } catch (err) {
-            setStatusMsg({ type: 'error', text: err.error || err.message || 'Failed to complete setup' });
-          } finally {
+          // Use .then() instead of async/await since FB.login doesn't accept async callbacks
+          const wabaData = wabaDataRef.current;
+          if (!wabaData?.phone_number_id || !wabaData?.waba_id) {
+            setStatusMsg({ type: 'error', text: 'Signup was not completed fully. Please try again and complete all steps including phone verification.' });
             setEmbeddedSignupLoading(false);
+            return;
           }
+
+          apiClient.connectWhatsAppEmbeddedSignup(restaurantId, {
+            code: response.authResponse.code,
+            phone_number_id: wabaData.phone_number_id,
+            waba_id: wabaData.waba_id,
+          }).then(res => {
+            setStatusMsg({ type: 'success', text: res.message || 'WhatsApp connected!' });
+            return loadSettings();
+          }).catch(err => {
+            setStatusMsg({ type: 'error', text: err.error || err.message || 'Failed to complete setup' });
+          }).finally(() => {
+            setEmbeddedSignupLoading(false);
+          });
         } else {
-          // User cancelled or didn't authorize
           if (response.status !== 'unknown') {
             setStatusMsg({ type: 'error', text: 'Facebook login was cancelled or not authorized.' });
           }
