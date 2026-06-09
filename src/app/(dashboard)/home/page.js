@@ -19,6 +19,14 @@ import { setCachedData, getCachedData } from '../../../lib/offlineDb';
 import OfflineBanner from '../../../components/OfflineBanner';
 import { useDineBot } from '../../../components/DineBotProvider';
 
+// Safe hooks that return no-ops when providers are missing (e.g. mobile embed)
+function useSafeLoading() {
+  try { return useLoading(); } catch { return { startLoading: () => {} }; }
+}
+function useSafeDineBot() {
+  try { return useDineBot(); } catch { return { openDineBot: () => {} }; }
+}
+
 // ─── Onboarding Checklist Widget ─────────────────────────────
 function OnboardingChecklist({ onDismiss }) {
   const router = useRouter();
@@ -203,9 +211,9 @@ function formatTime(dateStr) {
 
 export default function HomePage() {
   const router = useRouter();
-  const { startLoading } = useLoading();
+  const { startLoading } = useSafeLoading();
   const { getCurrencySymbol } = useCurrency();
-  const { openDineBot } = useDineBot();
+  const { openDineBot } = useSafeDineBot();
   const [user, setUser] = useState(null);
   const [pageAccess, setPageAccess] = useState(null);
   const [notAllowedPages, setNotAllowedPages] = useState([]);
@@ -224,7 +232,8 @@ export default function HomePage() {
 
   useEffect(() => {
     // Use apiClient to check auth (checks cookies + localStorage for cross-tab support)
-    if (!apiClient.isAuthenticated()) { router.push('/login'); return; }
+    // Skip login redirect in mobile embed — auth is injected via WebView
+    if (!apiClient.isAuthenticated() && !window.__DINEOPEN_MOBILE_EMBED__) { router.push('/login'); return; }
     const parsed = apiClient.getUser();
     setUser(parsed);
     const cachedAccess = localStorage.getItem('navPageAccess');

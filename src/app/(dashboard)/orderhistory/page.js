@@ -621,6 +621,8 @@ const OrderHistory = () => {
         const userData = JSON.parse(localStorage.getItem('user') || '{}');
 
         if (!token || !userData.id) {
+          // Skip login redirect in mobile embed — auth is injected via WebView
+          if (window.__DINEOPEN_MOBILE_EMBED__) return;
           console.log('❌ OrderHistory: No auth token or user, redirecting to login');
           router.push('/login');
           return;
@@ -1875,7 +1877,9 @@ const OrderHistory = () => {
       params.delete('view');
     }
     const qs = params.toString();
-    router.replace(`/orderhistory${qs ? '?' + qs : ''}`, { scroll: false });
+    // Preserve current path (important: /mobile/orderhistory vs /orderhistory)
+    const basePath = window.location.pathname || '/orderhistory';
+    router.replace(`${basePath}${qs ? '?' + qs : ''}`, { scroll: false });
 
     // Fetch summary data when switching to summary view
     if (view === 'summary' && !summaryData && restaurantId) {
@@ -2596,17 +2600,32 @@ const OrderHistory = () => {
       <div className={`bg-white shadow-sm border-b sticky top-0 z-20 transition-shadow duration-300 ${isScrolled ? 'shadow-md' : ''}`}>
         <div className={`w-full ${isMobileEmbed ? 'px-3' : 'pl-14 pr-3 sm:px-6 lg:px-8'}`}>
           {!isMobileEmbed && (
-          <div className={`flex flex-row items-center justify-between gap-3 sm:gap-4 transition-all duration-300 ${isScrolled ? 'py-1.5 sm:py-2' : 'py-3 sm:py-4'}`}>
+          <div className={`flex flex-row items-center justify-between gap-2 sm:gap-4 transition-all duration-300 ${isScrolled ? 'py-1.5 sm:py-2' : 'py-2 sm:py-4'}`}>
             <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-              <div className={`bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg flex-shrink-0 flex items-center justify-center transition-all duration-300 ${isScrolled ? 'w-7 h-7 sm:w-8 sm:h-8' : 'p-2 sm:p-3 sm:rounded-xl'}`}>
-                <FaReceipt className={`text-white transition-all duration-300 ${isScrolled ? 'text-xs sm:text-sm' : 'text-base sm:text-xl'}`} />
+              <div className={`bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg flex-shrink-0 flex items-center justify-center transition-all duration-300 ${isScrolled || isMobile ? 'w-7 h-7' : 'p-2 sm:p-3 sm:rounded-xl'}`}>
+                <FaReceipt className={`text-white transition-all duration-300 ${isScrolled || isMobile ? 'text-xs' : 'text-base sm:text-xl'}`} />
               </div>
               <div className="min-w-0">
-                <h1 className={`font-bold text-gray-900 truncate transition-all duration-300 ${isScrolled ? 'text-sm sm:text-base' : 'text-lg sm:text-2xl'}`}>{t('orderHistory.title')}</h1>
+                <h1 className={`font-bold text-gray-900 truncate transition-all duration-300 ${isScrolled || isMobile ? 'text-sm sm:text-base' : 'text-lg sm:text-2xl'}`}>{t('orderHistory.title')}</h1>
                 <p className={`text-xs sm:text-sm text-gray-500 mt-0.5 hidden sm:block transition-all duration-300 overflow-hidden ${isScrolled ? 'max-h-0 opacity-0 mt-0' : 'max-h-6 opacity-100'}`}>{restaurant?.name}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+              {/* Mobile: filter toggle + order count */}
+              {isMobile && activeView === 'orders' && (
+                <>
+                  <span className="text-[10px] text-gray-500 font-medium">{totalOrders}</span>
+                  <button
+                    onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
+                    className={`relative p-1.5 rounded-lg border transition-all ${mobileFiltersOpen || hasActiveFilters ? 'bg-red-50 border-red-300 text-red-600' : 'bg-white border-gray-200 text-gray-500'}`}
+                  >
+                    <FaFilter className="text-xs" />
+                    {activeFilterCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">{activeFilterCount}</span>
+                    )}
+                  </button>
+                </>
+              )}
               <div className={`hidden sm:flex items-center gap-2 text-sm text-gray-600 bg-gray-50 rounded-lg transition-all duration-300 ${isScrolled ? 'px-2 py-1 text-xs' : 'px-3 py-1.5'}`}>
                 <span className="font-medium">{totalOrders}</span>
                 <span className="text-gray-400">{t('orderHistory.orders')}</span>
@@ -2617,14 +2636,14 @@ const OrderHistory = () => {
                   className={`p-1.5 sm:p-2 rounded-md transition-all ${isCompactView ? 'bg-red-50 text-red-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
                   title={t('orderHistory.compactView')}
                 >
-                  <FaList size={14} className="sm:w-4 sm:h-4" />
+                  <FaList size={isMobile ? 12 : 14} className="sm:w-4 sm:h-4" />
                 </button>
                 <button
                   onClick={() => setIsCompactView(false)}
                   className={`p-1.5 sm:p-2 rounded-md transition-all ${!isCompactView ? 'bg-red-50 text-red-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
                   title={t('orderHistory.detailedView')}
                 >
-                  <FaTh size={14} className="sm:w-4 sm:h-4" />
+                  <FaTh size={isMobile ? 12 : 14} className="sm:w-4 sm:h-4" />
                 </button>
               </div>
             </div>
@@ -2632,11 +2651,11 @@ const OrderHistory = () => {
           )}
 
           {/* View Tabs: Orders | Summary — compact on scroll */}
-          <div className={`flex items-center gap-1 border-b border-gray-100 transition-all duration-300 ${isMobileEmbed ? 'pt-2 pb-1.5' : ''} ${isScrolled ? 'pb-1.5 sm:pb-1.5' : 'pb-2 sm:pb-3'}`}>
+          <div className={`flex items-center gap-1 border-b border-gray-100 transition-all duration-300 ${isMobileEmbed ? 'pt-2 pb-1.5' : ''} ${isScrolled || isMobile ? 'pb-1.5' : 'pb-2 sm:pb-3'}`}>
             <button
               onClick={() => switchView('orders')}
-              className={`flex items-center gap-1.5 rounded-lg font-medium transition-all duration-300 ${
-                isScrolled ? 'px-2.5 sm:px-3 py-1 sm:py-1 text-xs' : 'px-3 sm:px-4 py-1.5 sm:py-2 text-sm'
+              className={`flex items-center gap-1 sm:gap-1.5 rounded-lg font-medium transition-all duration-300 ${
+                isScrolled || isMobile ? 'px-2 sm:px-3 py-1 text-[11px] sm:text-xs' : 'px-3 sm:px-4 py-1.5 sm:py-2 text-sm'
               } ${
                 activeView === 'orders'
                   ? 'bg-red-600 text-white shadow-md shadow-red-200'
@@ -2648,8 +2667,8 @@ const OrderHistory = () => {
             </button>
             <button
               onClick={() => switchView('scheduled')}
-              className={`flex items-center gap-1.5 rounded-lg font-medium transition-all duration-300 ${
-                isScrolled ? 'px-2.5 sm:px-3 py-1 sm:py-1 text-xs' : 'px-3 sm:px-4 py-1.5 sm:py-2 text-sm'
+              className={`flex items-center gap-1 sm:gap-1.5 rounded-lg font-medium transition-all duration-300 ${
+                isScrolled || isMobile ? 'px-2 sm:px-3 py-1 text-[11px] sm:text-xs' : 'px-3 sm:px-4 py-1.5 sm:py-2 text-sm'
               } ${
                 activeView === 'scheduled'
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
@@ -2661,8 +2680,8 @@ const OrderHistory = () => {
             </button>
             <button
               onClick={() => switchView('summary')}
-              className={`flex items-center gap-1.5 rounded-lg font-medium transition-all duration-300 ${
-                isScrolled ? 'px-2.5 sm:px-3 py-1 sm:py-1 text-xs' : 'px-3 sm:px-4 py-1.5 sm:py-2 text-sm'
+              className={`flex items-center gap-1 sm:gap-1.5 rounded-lg font-medium transition-all duration-300 ${
+                isScrolled || isMobile ? 'px-2 sm:px-3 py-1 text-[11px] sm:text-xs' : 'px-3 sm:px-4 py-1.5 sm:py-2 text-sm'
               } ${
                 activeView === 'summary'
                   ? 'bg-rose-600 text-white shadow-md shadow-rose-200'
@@ -2670,12 +2689,12 @@ const OrderHistory = () => {
               }`}
             >
               <FaChartPie className="text-xs" />
-              {t('orderHistory.salesSummary')}
+              {isMobile || isMobileEmbed ? 'Summary' : t('orderHistory.salesSummary')}
             </button>
             <button
               onClick={() => switchView('bookings')}
-              className={`flex items-center gap-1.5 rounded-lg font-medium transition-all duration-300 ${
-                isScrolled ? 'px-2.5 sm:px-3 py-1 sm:py-1 text-xs' : 'px-3 sm:px-4 py-1.5 sm:py-2 text-sm'
+              className={`flex items-center gap-1 sm:gap-1.5 rounded-lg font-medium transition-all duration-300 ${
+                isScrolled || isMobile ? 'px-2 sm:px-3 py-1 text-[11px] sm:text-xs' : 'px-3 sm:px-4 py-1.5 sm:py-2 text-sm'
               } ${
                 activeView === 'bookings'
                   ? 'bg-amber-500 text-white shadow-md shadow-amber-200'
@@ -2704,8 +2723,8 @@ const OrderHistory = () => {
 
           {/* Summary Stats — only in orders view; full cards or compact inline strip based on scroll */}
           {activeView === 'orders' && (<>
-          {/* Expanded stat cards — hidden when scrolled or on mobile embed */}
-          <div style={{ willChange: 'max-height, opacity' }} className={`overflow-hidden transition-[max-height,opacity,padding] duration-300 ease-in-out ${isScrolled || isMobileEmbed ? 'max-h-0 opacity-0 pb-0' : 'max-h-40 opacity-100 pb-2 sm:pb-3'}`}>
+          {/* Expanded stat cards — hidden when scrolled, on mobile embed, or on mobile screens */}
+          <div style={{ willChange: 'max-height, opacity' }} className={`overflow-hidden transition-[max-height,opacity,padding] duration-300 ease-in-out ${isScrolled || isMobileEmbed || isMobile ? 'max-h-0 opacity-0 pb-0' : 'max-h-40 opacity-100 pb-2 sm:pb-3'}`}>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-3">
               {/* Revenue */}
               <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
@@ -2770,8 +2789,8 @@ const OrderHistory = () => {
             </div>
           </div>
 
-          {/* Compact inline stat strip — visible when scrolled or on mobile embed */}
-          <div style={{ willChange: 'max-height, opacity' }} className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${isScrolled || isMobileEmbed ? 'max-h-10 opacity-100' : 'max-h-0 opacity-0'}`}>
+          {/* Compact inline stat strip — visible when scrolled, on mobile embed, or mobile screens */}
+          <div style={{ willChange: 'max-height, opacity' }} className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${isScrolled || isMobileEmbed || isMobile ? 'max-h-10 opacity-100' : 'max-h-0 opacity-0'}`}>
             <div className="flex items-center gap-3 sm:gap-5 py-1.5 text-xs">
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-green-500" />
@@ -2929,8 +2948,8 @@ const OrderHistory = () => {
             </div>
           )}
 
-          {/* Mobile embed: slide-down filter panel */}
-          {isMobileEmbed && activeView === 'orders' && mobileFiltersOpen && (
+          {/* Mobile: slide-down filter panel (for mobile embed and mobile screens) */}
+          {(isMobileEmbed || isMobile) && activeView === 'orders' && mobileFiltersOpen && (
           <div className="py-2 border-t border-gray-200 bg-gray-50 animate-in slide-in-from-top duration-200">
             <div className="flex flex-wrap gap-1.5 items-center px-1">
               <div className="relative min-w-0 w-full shrink-0 mb-1">
@@ -3024,8 +3043,8 @@ const OrderHistory = () => {
           </div>
           )}
 
-          {/* Filters — All in one line (orders view only, hidden on mobile embed) */}
-          {activeView === 'orders' && !isMobileEmbed && (
+          {/* Filters — All in one line (orders view only, hidden on mobile embed and mobile screens) */}
+          {activeView === 'orders' && !isMobileEmbed && !isMobile && (
           <div className="py-2 sm:py-2.5 border-t border-gray-200">
             <div className="flex flex-wrap gap-1.5 items-center">
               <div className="relative min-w-0 w-36 sm:w-44 shrink-0">
@@ -3584,21 +3603,23 @@ const OrderHistory = () => {
 
               return (
                 <div key={order.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:border-red-300 hover:shadow-md transition-all duration-200 group overflow-hidden">
-                  <div className="p-4">
-                    <div className="flex items-start gap-3">
+                  <div className={isMobile ? 'p-2.5' : 'p-4'}>
+                    <div className={`flex items-start ${isMobile ? 'gap-2' : 'gap-3'}`}>
+                      {!isMobile && (
                       <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center flex-shrink-0">
                         <FaReceipt className="text-red-600 text-sm" />
                       </div>
+                      )}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-start justify-between mb-1.5 sm:mb-2">
                           <div>
-                            <div className="flex flex-wrap items-center gap-2 mb-1">
-                              <h3 className="text-base font-bold text-gray-900 flex items-center gap-1.5">
+                            <div className={`flex flex-wrap items-center ${isMobile ? 'gap-1.5 mb-0.5' : 'gap-2 mb-1'}`}>
+                              <h3 className={`${isMobile ? 'text-sm' : 'text-base'} font-bold text-gray-900 flex items-center gap-1.5`}>
                                 #{order.dailyOrderId || order.orderNumber || order.id.slice(-4).toUpperCase()}
                                 {order.syncSource === 'offline' && <FaCloudUploadAlt className="text-blue-400 text-xs" title={t('orderHistory.syncedFromOffline')} />}
                               </h3>
                               <span
-                                className="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border-2 shadow-sm"
+                                className={`inline-flex ${isMobile ? 'px-2 py-0.5 text-[10px] border' : 'px-3 py-1 text-xs border-2'} rounded-full font-semibold uppercase tracking-wide shadow-sm`}
                                 style={{ backgroundColor: statusStyle.bg, color: statusStyle.text, borderColor: statusStyle.border }}
                               >
                                 {statusStyle.label}
@@ -3645,10 +3666,10 @@ const OrderHistory = () => {
                               {formatDate(order.createdAt, true)}
                             </div>
                           </div>
-                          <div className="text-right">
-                            <div className="flex items-baseline justify-end gap-2">
-                              <span className="text-xl font-bold text-gray-900">{formatCurrency(breakdown.total)}</span>
-                              <span className="text-[11px] text-gray-400">{order.paymentMethod || t('orderHistory.cash')}</span>
+                          <div className="text-right flex-shrink-0">
+                            <div className={`flex items-baseline justify-end ${isMobile ? 'gap-1' : 'gap-2'}`}>
+                              <span className={`${isMobile ? 'text-base' : 'text-xl'} font-bold text-gray-900`}>{formatCurrency(breakdown.total)}</span>
+                              <span className="text-[10px] sm:text-[11px] text-gray-400">{order.paymentMethod || t('orderHistory.cash')}</span>
                             </div>
                             {(breakdown.taxLines?.length > 0 || breakdown.discountAmount > 0 || breakdown.serviceCharge > 0 || breakdown.tip > 0 || breakdown.roundOff !== 0) && (
                               <div className="text-xs text-gray-500 mt-0.5">
@@ -3674,7 +3695,7 @@ const OrderHistory = () => {
                             )}
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-3 p-2.5 bg-gray-50 rounded-lg border border-gray-100">
+                        <div className={`grid grid-cols-3 ${isMobile ? 'gap-1.5 mb-2 p-2 text-[11px]' : 'gap-2.5 mb-3 p-2.5'} bg-gray-50 rounded-lg border border-gray-100`}>
                           <div className="flex items-center gap-2">
                             <FaUser className="text-gray-400 text-sm flex-shrink-0" />
                             <div className="min-w-0">
@@ -3739,8 +3760,8 @@ const OrderHistory = () => {
                             </div>
                           )}
                         </div>
-                        <div className="flex items-center justify-between gap-3 mt-1 pt-3 border-t border-gray-100">
-                          <div className="flex items-center gap-3 min-w-0">
+                        <div className={`flex items-center justify-between ${isMobile ? 'gap-1.5 mt-0.5 pt-2' : 'gap-3 mt-1 pt-3'} border-t border-gray-100`}>
+                          <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-3'} min-w-0`}>
                             <div
                               onClick={() => copyToClipboard(String(order.dailyOrderId ?? order.orderNumber ?? order.id))}
                               className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 transition-colors"
@@ -3750,6 +3771,7 @@ const OrderHistory = () => {
                               <span className="text-xs font-mono font-semibold text-gray-600">#{order.dailyOrderId ?? order.orderNumber ?? order.id?.slice(-4)?.toUpperCase() ?? '—'}</span>
                               <FaCopy className="text-gray-300 text-[10px]" />
                             </div>
+                            {!isMobile && (
                             <div
                               onClick={() => copyToClipboard(order.id)}
                               className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 transition-colors min-w-0"
@@ -3759,12 +3781,13 @@ const OrderHistory = () => {
                               <span className="text-xs font-mono font-semibold text-gray-600 truncate max-w-[140px]" title={order.id}>{order.id}</span>
                               <FaCopy className="text-gray-300 text-[10px] flex-shrink-0" />
                             </div>
+                            )}
                           </div>
-                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <div className={`flex items-center gap-1.5 ${isMobile ? 'overflow-x-auto flex-nowrap pb-1' : 'flex-shrink-0'}`}>
                             {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && (
                               <button
                                 onClick={() => handleMarkCompleted(order.id)}
-                                className="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-all flex items-center gap-1.5"
+                                className={`${isMobile ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'} font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-all flex items-center gap-1 sm:gap-1.5 whitespace-nowrap flex-shrink-0`}
                               >
                                 <FaCheckCircle /> {t('orderHistory.complete')}
                               </button>
@@ -3772,24 +3795,24 @@ const OrderHistory = () => {
                             {(order.paymentStatus === 'partial' || order.outstandingAmount > 0) && order.status === 'completed' && (
                               <button
                                 onClick={() => handleMarkPaid(order.id)}
-                                className="px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100 transition-all flex items-center gap-1.5"
+                                className={`${isMobile ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'} font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100 transition-all flex items-center gap-1 sm:gap-1.5 whitespace-nowrap flex-shrink-0`}
                               >
                                 <FaWallet /> {t('orderHistory.markPaid')}
                               </button>
                             )}
                             <button
                               onClick={() => handleViewOrder(order)}
-                              className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-all flex items-center gap-1.5"
+                              className={`${isMobile ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'} font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-all flex items-center gap-1 sm:gap-1.5 whitespace-nowrap flex-shrink-0`}
                             >
                               <FaEye /> {t('orderHistory.view')}
                             </button>
-                            <div style={{ position: 'relative', display: 'inline-block' }}>
+                            <div style={{ position: 'relative', display: 'inline-block' }} className="flex-shrink-0">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setPrintDropdownOrderId(prev => prev === order.id ? null : order.id);
                                 }}
-                                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 ${printingOrderId === order.id ? 'bg-orange-200 border border-orange-300 cursor-wait' : 'text-orange-700 bg-orange-50 border border-orange-200 hover:bg-orange-100'}`}
+                                className={`${isMobile ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'} font-medium rounded-md transition-all flex items-center gap-1 sm:gap-1.5 whitespace-nowrap flex-shrink-0 ${printingOrderId === order.id ? 'bg-orange-200 border border-orange-300 cursor-wait' : 'text-orange-700 bg-orange-50 border border-orange-200 hover:bg-orange-100'}`}
                                 title="Print"
                                 disabled={printingOrderId === order.id}
                               >
