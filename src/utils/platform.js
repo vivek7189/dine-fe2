@@ -20,15 +20,23 @@ export function isElectron() {
     window.electronAPI !== undefined;
 }
 
-/** Standard web browser (not wrapped in native shell) */
-export function isWeb() {
-  return !isCapacitor() && !isTauri() && !isElectron();
+/** React Native WebView (dine-app mobile app embedding dine-frontend) */
+export function isReactNativeWebView() {
+  return typeof window !== 'undefined' &&
+    !!window.ReactNativeWebView &&
+    typeof window.ReactNativeWebView.postMessage === 'function';
 }
 
-/** Returns 'capacitor' | 'tauri' | 'electron' | 'web' */
+/** Standard web browser (not wrapped in native shell) */
+export function isWeb() {
+  return !isCapacitor() && !isTauri() && !isElectron() && !isReactNativeWebView();
+}
+
+/** Returns 'capacitor' | 'tauri' | 'electron' | 'react-native-webview' | 'web' */
 export function getPlatform() {
   if (isCapacitor()) return 'capacitor';
   if (isTauri()) return 'tauri';
   if (isElectron()) return 'electron';
+  if (isReactNativeWebView()) return 'react-native-webview';
   return 'web';
 }

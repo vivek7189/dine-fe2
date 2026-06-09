@@ -9,7 +9,7 @@
 //   3. Fetched from API via `orderId` + `restaurantId` (auto-print, or when bill not on screen)
 // Falls back to window.print() if nothing else works.
 
-import { isCapacitor, isTauri, isElectron, isWeb } from './platform';
+import { isCapacitor, isTauri, isElectron, isWeb, isReactNativeWebView } from './platform';
 
 /**
  * Print a document across all platforms.
@@ -24,7 +24,14 @@ import { isCapacitor, isTauri, isElectron, isWeb } from './platform';
  */
 export async function printDocument({ html, domSelector, type = 'bill', orderId, restaurantId, stationId, printSettings = {} } = {}) {
   // Debug: log platform detection
-  console.log('[PrintBridge] printDocument called:', { type, hasHtml: !!html, isTauri: isTauri(), isCapacitor: isCapacitor(), isWeb: isWeb(), hasTauriInternals: typeof window !== 'undefined' && !!window.__TAURI_INTERNALS__ });
+  console.log('[PrintBridge] printDocument called:', { type, hasHtml: !!html, isTauri: isTauri(), isCapacitor: isCapacitor(), isRNWebView: isReactNativeWebView(), isWeb: isWeb(), hasTauriInternals: typeof window !== 'undefined' && !!window.__TAURI_INTERNALS__ });
+
+  // React Native WebView: send print data to native app via postMessage
+  // The native app (dine-app) handles printing via its printerService (BLE/WiFi/USB/AirPrint)
+  if (isReactNativeWebView()) {
+    console.log('[PrintBridge] Detected React Native WebView, sending print to native via postMessage');
+    return printViaReactNativeWebView({ html, type, orderId, restaurantId, printSettings });
+  }
 
   // Web: always use window.print() — prints current page as-is
   if (isWeb()) {
@@ -200,7 +207,25 @@ async function printViaElectron({ html, type, stationId, printSettings }) {
   }
 }
 
+/** React Native WebView: delegate printing to the native dine-app via postMessage */
+async function printViaReactNativeWebView({ html, type, orderId, restaurantId, printSettings }) {
+  try {
+    const message = {
+      type: type === 'kot' ? 'PRINT_KOT' : 'PRINT_BILL',
+      orderId: orderId || null,
+      restaurantId: restaurantId || null,
+      html: html || null,
+      printSettings: printSettings || {},
+    };
+    window.ReactNativeWebView.postMessage(JSON.stringify(message));
+    console.log(`[PrintBridge] Sent ${message.type} to native app`);
+  } catch (err) {
+    console.error('React Native WebView print failed:', err);
+    // Don't fall back to window.print() — it opens a useless system dialog in WebView
+  }
+}
+
 /** Check if the current platform supports native auto-print (not web) */
 export function supportsNativeAutoPrint() {
-  return isCapacitor() || isTauri() || isElectron();
+  return isCapacitor() || isTauri() || isElectron() || isReactNativeWebView();
 }
