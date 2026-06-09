@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import apiClient from '../lib/api';
-import { FaPhone, FaCheckCircle, FaTimesCircle, FaSpinner, FaPaperPlane, FaWhatsapp, FaArrowLeft, FaSearch, FaPlug, FaToggleOn, FaToggleOff, FaCopy, FaCheck, FaFacebook } from 'react-icons/fa';
+import { FaPhone, FaCheckCircle, FaTimesCircle, FaSpinner, FaPaperPlane, FaWhatsapp, FaArrowLeft, FaSearch, FaPlug, FaToggleOn, FaToggleOff, FaCopy, FaCheck, FaFacebook, FaImage, FaFileAlt, FaMapMarkerAlt, FaVolumeUp, FaVideo, FaChevronDown } from 'react-icons/fa';
 
 export default function WhatsAppTab({ selectedRestaurant }) {
   const [subTab, setSubTab] = useState('settings'); // 'settings' | 'messages'
@@ -24,8 +24,12 @@ export default function WhatsAppTab({ selectedRestaurant }) {
   const [copied, setCopied] = useState(false);
   const [embeddedSignupLoading, setEmbeddedSignupLoading] = useState(false);
   const [fbSdkReady, setFbSdkReady] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
   const wabaDataRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const pollRef = useRef(null);
 
   const FACEBOOK_APP_ID = '1591044548986175';
   // Config ID from Meta App → Facebook Login for Business → Configurations
@@ -270,16 +274,77 @@ export default function WhatsAppTab({ selectedRestaurant }) {
     }
   };
 
-  const formatTime = (ts) => {
+  // Relative time: "Just now", "5m", "2h", "Yesterday", or date
+  const relativeTime = (ts) => {
     if (!ts) return '';
     const d = new Date(ts);
-    return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
+    const now = new Date();
+    const diffMs = now - d;
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHr = Math.floor(diffMs / 3600000);
+    if (diffMin < 1) return 'Just now';
+    if (diffMin < 60) return `${diffMin}m`;
+    if (diffHr < 24) return `${diffHr}h`;
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+  };
+
+  const formatTimeFull = (ts) => {
+    if (!ts) return '';
+    const d = new Date(ts);
+    return d.toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
   };
 
   const formatPhone = (phone) => {
     if (!phone) return '';
     if (phone.startsWith('91') && phone.length === 12) return '+91 ' + phone.slice(2);
     return phone;
+  };
+
+  const QUICK_REPLIES = [
+    'Thank you for your message!',
+    'Your order is being prepared.',
+    'We\'ll be right with you!',
+    'Please visit us again!',
+    'Our menu is available on our website.',
+  ];
+
+  // Auto-poll conversations every 15s when on messages tab
+  useEffect(() => {
+    if (subTab === 'messages' && restaurantId) {
+      pollRef.current = setInterval(() => {
+        apiClient.getWhatsAppMessages(restaurantId, { limit: 200 }).then(res => {
+          if (res?.conversations) setConversations(res.conversations);
+        }).catch(() => {});
+      }, 15000);
+    }
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [subTab, restaurantId]);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [convoMessages]);
+
+  // Filtered conversations based on search
+  const filteredConversations = searchQuery.trim()
+    ? conversations.filter(c =>
+        (c.customerName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (c.phone || '').includes(searchQuery)
+      )
+    : conversations;
+
+  // Total unread count for badge
+  const totalUnread = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+
+  // Get media URL for proxy (includes auth token as query param for img src usage)
+  const getMediaUrl = (mediaId) => {
+    if (!mediaId || !restaurantId) return '';
+    const base = apiClient.baseURL || '';
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+    return `${base}/api/automation/${restaurantId}/whatsapp/media/${mediaId}?token=${encodeURIComponent(token || '')}`;
   };
 
   if (!selectedRestaurant) {
@@ -300,7 +365,7 @@ export default function WhatsAppTab({ selectedRestaurant }) {
       <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', padding: '0 16px' }}>
         {[
           { id: 'settings', label: 'Settings', icon: <FaPlug size={14} /> },
-          { id: 'messages', label: 'Messages', icon: <FaWhatsapp size={14} /> }
+          { id: 'messages', label: 'Messages', icon: <FaWhatsapp size={14} />, badge: totalUnread }
         ].map(tab => (
           <button
             key={tab.id}
@@ -321,6 +386,12 @@ export default function WhatsAppTab({ selectedRestaurant }) {
             }}
           >
             {tab.icon} {tab.label}
+            {tab.badge > 0 && (
+              <span style={{
+                backgroundColor: '#25D366', color: 'white', borderRadius: '10px',
+                padding: '1px 6px', fontSize: '10px', fontWeight: '700', minWidth: '18px', textAlign: 'center'
+              }}>{tab.badge}</span>
+            )}
           </button>
         ))}
       </div>
@@ -449,13 +520,31 @@ export default function WhatsAppTab({ selectedRestaurant }) {
                         </div>
                       </div>
 
+                      {/* Warning note */}
+                      <div style={{
+                        backgroundColor: '#fefce8', border: '1px solid #fde68a', borderRadius: '8px',
+                        padding: '12px 14px', marginBottom: '12px', fontSize: '12px', color: '#92400e', lineHeight: '1.7'
+                      }}>
+                        <strong>Important — Please read before connecting:</strong>
+                        <ul style={{ margin: '6px 0 0 0', paddingLeft: '16px' }}>
+                          <li>The phone number you connect will be <strong>migrated to the Cloud API</strong>. It will <strong>stop working</strong> on the WhatsApp or WhatsApp Business app on your phone.</li>
+                          <li>Use a <strong>dedicated business number</strong> — do not use your personal WhatsApp number.</li>
+                          <li>A separate SIM or landline number works best. You&apos;ll verify it via SMS or voice call during setup.</li>
+                          <li>Old chat history from the WhatsApp app will <strong>not</strong> carry over.</li>
+                        </ul>
+                      </div>
+
                       {/* Info note */}
                       <div style={{
                         backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px',
-                        padding: '12px 14px', marginBottom: '16px', fontSize: '12px', color: '#1e40af', lineHeight: '1.6'
+                        padding: '12px 14px', marginBottom: '16px', fontSize: '12px', color: '#1e40af', lineHeight: '1.7'
                       }}>
-                        <strong>Once connected:</strong> Bills will be sent from your restaurant&apos;s WhatsApp number. Customers will see your restaurant name as the sender.
-                        The phone number you connect here should not be actively used on WhatsApp or WhatsApp Business app — it will be migrated to the Cloud API.
+                        <strong>Once connected:</strong>
+                        <ul style={{ margin: '6px 0 0 0', paddingLeft: '16px' }}>
+                          <li>Bills and notifications will be sent from your restaurant&apos;s number. Customers will see your restaurant name as the sender.</li>
+                          <li>When customers message this number, you&apos;ll see their messages in the <strong>Messages</strong> tab and can reply from here.</li>
+                          <li>You can also send test messages and manage conversations directly from this dashboard.</li>
+                        </ul>
                       </div>
 
                       {/* Embedded Signup button */}
@@ -563,122 +652,274 @@ export default function WhatsAppTab({ selectedRestaurant }) {
 
       {/* Messages Tab */}
       {subTab === 'messages' && (
-        <div style={{ display: 'flex', height: '500px' }}>
+        <div style={{ display: 'flex', height: '560px' }}>
           {/* Conversations list */}
           <div style={{
-            width: selectedConvo ? '300px' : '100%',
+            width: selectedConvo ? '320px' : '100%',
             borderRight: selectedConvo ? '1px solid #e5e7eb' : 'none',
             overflowY: 'auto',
-            display: selectedConvo && window.innerWidth < 768 ? 'none' : 'block'
+            display: selectedConvo && typeof window !== 'undefined' && window.innerWidth < 768 ? 'none' : 'flex',
+            flexDirection: 'column'
           }}>
             {/* Header */}
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>Conversations</span>
-              <button onClick={loadMessages} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#25D366', fontSize: '13px', fontWeight: '500' }}>
-                Refresh
-              </button>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <span style={{ fontWeight: '600', fontSize: '15px', color: '#111827' }}>
+                  Conversations
+                  {conversations.length > 0 && (
+                    <span style={{ fontSize: '12px', color: '#9ca3af', fontWeight: '400', marginLeft: '6px' }}>({conversations.length})</span>
+                  )}
+                </span>
+                <button onClick={loadMessages} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#25D366', fontSize: '12px', fontWeight: '600', padding: '4px 8px', borderRadius: '6px' }}
+                  onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f0fdf4'}
+                  onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                  Refresh
+                </button>
+              </div>
+              {/* Search */}
+              <div style={{ position: 'relative' }}>
+                <FaSearch size={12} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+                <input
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Search by name or phone..."
+                  style={{
+                    width: '100%', padding: '8px 12px 8px 30px', borderRadius: '8px',
+                    border: '1px solid #e5e7eb', fontSize: '12px', outline: 'none',
+                    backgroundColor: '#f9fafb'
+                  }}
+                />
+              </div>
             </div>
 
-            {messagesLoading ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
-                <FaSpinner size={20} style={{ animation: 'spin 1s linear infinite' }} />
-                <p style={{ marginTop: '8px', fontSize: '13px' }}>Loading...</p>
-              </div>
-            ) : conversations.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
-                <FaWhatsapp size={32} style={{ marginBottom: '8px', color: '#d1d5db' }} />
-                <p style={{ fontSize: '13px' }}>No messages yet</p>
-                <p style={{ fontSize: '12px', marginTop: '4px' }}>Messages from customers will appear here</p>
-              </div>
-            ) : (
-              conversations.map((convo, idx) => (
-                <div
-                  key={convo.phone || idx}
-                  onClick={() => openConversation(convo)}
-                  style={{
-                    padding: '12px 16px',
-                    borderBottom: '1px solid #f3f4f6',
-                    cursor: 'pointer',
-                    backgroundColor: selectedConvo?.phone === convo.phone ? '#f0fdf4' : '#fff',
-                    transition: 'background 0.15s'
-                  }}
-                  onMouseEnter={e => { if (selectedConvo?.phone !== convo.phone) e.currentTarget.style.backgroundColor = '#f9fafb'; }}
-                  onMouseLeave={e => { if (selectedConvo?.phone !== convo.phone) e.currentTarget.style.backgroundColor = '#fff'; }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>
-                      {convo.customerName || formatPhone(convo.phone)}
-                    </div>
-                    {convo.unreadCount > 0 && (
-                      <span style={{
-                        backgroundColor: '#25D366', color: 'white', borderRadius: '10px',
-                        padding: '2px 8px', fontSize: '11px', fontWeight: '600'
-                      }}>
-                        {convo.unreadCount}
-                      </span>
-                    )}
-                  </div>
-                  {convo.customerName && (
-                    <div style={{ fontSize: '12px', color: '#6b7280' }}>{formatPhone(convo.phone)}</div>
-                  )}
-                  <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '250px' }}>
-                    {convo.lastMessage}
-                  </div>
-                  <div style={{ fontSize: '11px', color: '#d1d5db', marginTop: '2px' }}>{formatTime(convo.lastTimestamp)}</div>
+            {/* Conversation list */}
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              {messagesLoading ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                  <FaSpinner size={20} style={{ animation: 'spin 1s linear infinite' }} />
+                  <p style={{ marginTop: '8px', fontSize: '13px' }}>Loading...</p>
                 </div>
-              ))
-            )}
+              ) : filteredConversations.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '48px 20px', color: '#6b7280' }}>
+                  <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                    <FaWhatsapp size={24} style={{ color: '#d1d5db' }} />
+                  </div>
+                  <p style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                    {searchQuery ? 'No matching conversations' : 'No messages yet'}
+                  </p>
+                  <p style={{ fontSize: '12px', marginTop: '4px' }}>
+                    {searchQuery ? 'Try a different search' : 'Customer messages will appear here'}
+                  </p>
+                </div>
+              ) : (
+                filteredConversations.map((convo, idx) => (
+                  <div
+                    key={convo.phone || idx}
+                    onClick={() => openConversation(convo)}
+                    style={{
+                      padding: '12px 16px',
+                      borderBottom: '1px solid #f3f4f6',
+                      cursor: 'pointer',
+                      backgroundColor: selectedConvo?.phone === convo.phone ? '#f0fdf4' : '#fff',
+                      transition: 'background 0.15s'
+                    }}
+                    onMouseEnter={e => { if (selectedConvo?.phone !== convo.phone) e.currentTarget.style.backgroundColor = '#f9fafb'; }}
+                    onMouseLeave={e => { if (selectedConvo?.phone !== convo.phone) e.currentTarget.style.backgroundColor = '#fff'; }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {/* Avatar */}
+                          <div style={{
+                            width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0,
+                            backgroundColor: '#25D366', color: 'white', fontSize: '14px', fontWeight: '600',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                          }}>
+                            {(convo.customerName || convo.phone || '?').charAt(0).toUpperCase()}
+                          </div>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontWeight: convo.unreadCount > 0 ? '700' : '500', fontSize: '13px', color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {convo.customerName || formatPhone(convo.phone)}
+                              </span>
+                              <span style={{ fontSize: '11px', color: convo.unreadCount > 0 ? '#25D366' : '#9ca3af', flexShrink: 0, marginLeft: '8px', fontWeight: convo.unreadCount > 0 ? '600' : '400' }}>
+                                {relativeTime(convo.lastTimestamp)}
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
+                              <span style={{
+                                fontSize: '12px', color: convo.unreadCount > 0 ? '#374151' : '#9ca3af',
+                                fontWeight: convo.unreadCount > 0 ? '500' : '400',
+                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px'
+                              }}>
+                                {convo.lastMessage}
+                              </span>
+                              {convo.unreadCount > 0 && (
+                                <span style={{
+                                  backgroundColor: '#25D366', color: 'white', borderRadius: '50%',
+                                  width: '20px', height: '20px', fontSize: '10px', fontWeight: '700',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                                }}>
+                                  {convo.unreadCount}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
 
           {/* Chat view */}
           {selectedConvo && (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#f0f2f5' }}>
               {/* Chat header */}
-              <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ padding: '10px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: '#fff' }}>
                 <button
                   onClick={() => setSelectedConvo(null)}
                   style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#6b7280', padding: '4px' }}
                 >
                   <FaArrowLeft size={14} />
                 </button>
-                <div>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0,
+                  backgroundColor: '#25D366', color: 'white', fontSize: '14px', fontWeight: '600',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  {(selectedConvo.customerName || selectedConvo.phone || '?').charAt(0).toUpperCase()}
+                </div>
+                <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>
                     {selectedConvo.customerName || formatPhone(selectedConvo.phone)}
                   </div>
                   <div style={{ fontSize: '12px', color: '#6b7280' }}>{formatPhone(selectedConvo.phone)}</div>
                 </div>
+                {/* Session status indicator */}
+                <div style={{
+                  padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '600',
+                  backgroundColor: selectedConvo.sessionActive ? '#dcfce7' : '#fef3c7',
+                  color: selectedConvo.sessionActive ? '#166534' : '#92400e'
+                }}>
+                  {selectedConvo.sessionActive ? 'Active' : '24h expired'}
+                </div>
               </div>
 
-              {/* Messages */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '16px', backgroundColor: '#f0f2f5' }}>
+              {/* Messages area */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
                 {convoMessages.map((msg, idx) => {
                   const isOutgoing = msg.direction === 'outgoing' || msg.type === 'test_message' || msg.type === 'bill_sent' || msg.type === 'reply';
+                  const isMedia = ['image', 'video', 'audio', 'document', 'sticker', 'location'].includes(msg.messageType);
+
                   return (
                     <div key={msg.id || idx} style={{
                       display: 'flex',
                       justifyContent: isOutgoing ? 'flex-end' : 'flex-start',
-                      marginBottom: '8px'
+                      marginBottom: '6px'
                     }}>
                       <div style={{
-                        maxWidth: '70%',
-                        padding: '8px 12px',
-                        borderRadius: isOutgoing ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
+                        maxWidth: '70%', minWidth: isMedia ? '200px' : 'auto',
+                        padding: msg.messageType === 'image' && msg.mediaId ? '4px 4px 4px 4px' : '6px 10px',
+                        borderRadius: isOutgoing ? '10px 10px 2px 10px' : '10px 10px 10px 2px',
                         backgroundColor: isOutgoing ? '#dcf8c6' : '#fff',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
-                        fontSize: '13px',
-                        color: '#111827',
-                        whiteSpace: 'pre-wrap',
-                        wordBreak: 'break-word'
+                        boxShadow: '0 1px 1px rgba(0,0,0,0.06)',
+                        fontSize: '13px', color: '#111827'
                       }}>
+                        {/* Bill badge */}
                         {msg.type === 'bill_sent' && (
-                          <div style={{ fontSize: '11px', color: '#25D366', fontWeight: '600', marginBottom: '4px' }}>Bill Sent</div>
+                          <div style={{
+                            fontSize: '10px', color: '#fff', fontWeight: '600', marginBottom: '4px',
+                            backgroundColor: '#25D366', padding: '2px 8px', borderRadius: '4px', display: 'inline-block'
+                          }}>
+                            BILL {msg.amount ? `- ${msg.amount}` : ''}
+                          </div>
                         )}
-                        {msg.message}
-                        <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '4px', textAlign: 'right' }}>
-                          {formatTime(msg.timestamp)}
+
+                        {/* Image message */}
+                        {msg.messageType === 'image' && msg.mediaId && (
+                          <div
+                            onClick={() => setImagePreview(getMediaUrl(msg.mediaId))}
+                            style={{ cursor: 'pointer', marginBottom: msg.caption ? '4px' : '0' }}
+                          >
+                            <img
+                              src={getMediaUrl(msg.mediaId)}
+                              alt="Shared image"
+                              style={{ maxWidth: '100%', maxHeight: '240px', borderRadius: '8px', display: 'block', objectFit: 'cover' }}
+                              onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                            />
+                            <div style={{ display: 'none', alignItems: 'center', gap: '6px', padding: '12px', color: '#6b7280', fontSize: '12px' }}>
+                              <FaImage size={16} /> Image (tap to retry)
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Video message */}
+                        {msg.messageType === 'video' && msg.mediaId && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px', backgroundColor: isOutgoing ? '#c8f0b4' : '#f3f4f6', borderRadius: '8px', marginBottom: '4px' }}>
+                            <FaVideo size={16} color="#6b7280" />
+                            <span style={{ fontSize: '12px', color: '#374151' }}>Video message</span>
+                          </div>
+                        )}
+
+                        {/* Audio message */}
+                        {msg.messageType === 'audio' && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px', backgroundColor: isOutgoing ? '#c8f0b4' : '#f3f4f6', borderRadius: '8px', marginBottom: '4px' }}>
+                            <FaVolumeUp size={16} color="#25D366" />
+                            <div style={{ flex: 1, height: '4px', backgroundColor: '#d1d5db', borderRadius: '2px' }}>
+                              <div style={{ width: '30%', height: '100%', backgroundColor: '#25D366', borderRadius: '2px' }} />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Document message */}
+                        {msg.messageType === 'document' && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px', backgroundColor: isOutgoing ? '#c8f0b4' : '#f3f4f6', borderRadius: '8px', marginBottom: '4px' }}>
+                            <FaFileAlt size={16} color="#6b7280" />
+                            <span style={{ fontSize: '12px', color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {msg.filename || 'Document'}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Location message */}
+                        {msg.messageType === 'location' && (
+                          <a
+                            href={`https://maps.google.com/?q=${msg.latitude},${msg.longitude}`}
+                            target="_blank" rel="noopener noreferrer"
+                            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px', backgroundColor: isOutgoing ? '#c8f0b4' : '#f3f4f6', borderRadius: '8px', marginBottom: '4px', textDecoration: 'none', color: '#1e40af' }}
+                          >
+                            <FaMapMarkerAlt size={16} color="#dc2626" />
+                            <span style={{ fontSize: '12px' }}>{msg.locationName || 'View on map'}</span>
+                          </a>
+                        )}
+
+                        {/* Text content (skip for image-only messages) */}
+                        {!(msg.messageType === 'image' && msg.mediaId && !msg.caption) && (
+                          <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                            {msg.messageType === 'image' ? msg.caption : msg.message}
+                          </div>
+                        )}
+
+                        {/* Footer: time + status + sender */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', marginTop: '3px' }}>
+                          {isOutgoing && msg.sentByName && msg.sentByName !== 'Staff' && (
+                            <span style={{ fontSize: '10px', color: '#6b7280', marginRight: 'auto' }}>{msg.sentByName}</span>
+                          )}
+                          <span style={{ fontSize: '10px', color: '#9ca3af' }}>{formatTimeFull(msg.timestamp)}</span>
                           {isOutgoing && msg.status && (
-                            <span style={{ marginLeft: '4px' }}>
-                              {msg.status === 'read' ? '✓✓' : msg.status === 'delivered' ? '✓✓' : msg.status === 'sent' ? '✓' : msg.status === 'failed' ? '✗' : ''}
+                            <span style={{ fontSize: '12px' }}>
+                              {msg.status === 'read' ? (
+                                <span style={{ color: '#3b82f6' }}>✓✓</span>
+                              ) : msg.status === 'delivered' ? (
+                                <span style={{ color: '#9ca3af' }}>✓✓</span>
+                              ) : msg.status === 'sent' ? (
+                                <span style={{ color: '#9ca3af' }}>✓</span>
+                              ) : msg.status === 'failed' ? (
+                                <span style={{ color: '#ef4444' }}>✗</span>
+                              ) : null}
                             </span>
                           )}
                         </div>
@@ -689,30 +930,110 @@ export default function WhatsAppTab({ selectedRestaurant }) {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Reply input */}
-              <div style={{ padding: '12px 16px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '8px', backgroundColor: '#fff' }}>
-                <input
-                  value={replyText}
-                  onChange={e => setReplyText(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReply(); } }}
-                  placeholder="Type a reply... (within 24h of last customer message)"
-                  style={{ flex: 1, padding: '10px 14px', borderRadius: '20px', border: '1px solid #d1d5db', fontSize: '13px', outline: 'none' }}
-                />
-                <button
-                  onClick={handleReply}
-                  disabled={sendingReply || !replyText.trim()}
-                  style={{
-                    width: '40px', height: '40px', borderRadius: '50%', border: 'none',
-                    backgroundColor: '#25D366', color: 'white', cursor: sendingReply || !replyText.trim() ? 'not-allowed' : 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    opacity: sendingReply || !replyText.trim() ? 0.5 : 1
-                  }}
-                >
-                  {sendingReply ? <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <FaPaperPlane size={14} />}
-                </button>
+              {/* 24h session warning */}
+              {selectedConvo && !selectedConvo.sessionActive && (
+                <div style={{
+                  padding: '8px 16px', backgroundColor: '#fefce8', borderTop: '1px solid #fde68a',
+                  fontSize: '12px', color: '#92400e', display: 'flex', alignItems: 'center', gap: '6px'
+                }}>
+                  <span>Customer&apos;s last message was over 24h ago. Only template messages can be sent outside the session window.</span>
+                </div>
+              )}
+
+              {/* Reply input area */}
+              <div style={{ borderTop: '1px solid #e5e7eb', backgroundColor: '#fff' }}>
+                {/* Quick replies dropdown */}
+                {showQuickReplies && (
+                  <div style={{ padding: '8px 16px', borderBottom: '1px solid #f3f4f6', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {QUICK_REPLIES.map((qr, i) => (
+                      <button key={i} onClick={() => { setReplyText(qr); setShowQuickReplies(false); }}
+                        style={{
+                          padding: '4px 10px', borderRadius: '14px', border: '1px solid #d1d5db',
+                          backgroundColor: '#fff', fontSize: '11px', cursor: 'pointer', color: '#374151',
+                          transition: 'all 0.15s'
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f0fdf4'; e.currentTarget.style.borderColor = '#25D366'; }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#fff'; e.currentTarget.style.borderColor = '#d1d5db'; }}
+                      >
+                        {qr}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ padding: '10px 16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {/* Quick reply toggle */}
+                  <button
+                    onClick={() => setShowQuickReplies(!showQuickReplies)}
+                    title="Quick replies"
+                    style={{
+                      width: '36px', height: '36px', borderRadius: '50%', border: 'none',
+                      backgroundColor: showQuickReplies ? '#dcfce7' : '#f3f4f6', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: showQuickReplies ? '#25D366' : '#6b7280', transition: 'all 0.15s'
+                    }}
+                  >
+                    <FaChevronDown size={12} style={{ transform: showQuickReplies ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                  </button>
+
+                  <input
+                    value={replyText}
+                    onChange={e => setReplyText(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReply(); } }}
+                    placeholder={selectedConvo.sessionActive ? 'Type a reply...' : 'Session expired — use templates'}
+                    disabled={!selectedConvo.sessionActive}
+                    style={{
+                      flex: 1, padding: '9px 14px', borderRadius: '20px',
+                      border: '1px solid #d1d5db', fontSize: '13px', outline: 'none',
+                      backgroundColor: selectedConvo.sessionActive ? '#fff' : '#f9fafb',
+                      opacity: selectedConvo.sessionActive ? 1 : 0.6
+                    }}
+                  />
+                  <button
+                    onClick={handleReply}
+                    disabled={sendingReply || !replyText.trim() || !selectedConvo.sessionActive}
+                    style={{
+                      width: '36px', height: '36px', borderRadius: '50%', border: 'none',
+                      backgroundColor: '#25D366', color: 'white',
+                      cursor: (sendingReply || !replyText.trim() || !selectedConvo.sessionActive) ? 'not-allowed' : 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      opacity: (sendingReply || !replyText.trim() || !selectedConvo.sessionActive) ? 0.4 : 1,
+                      transition: 'opacity 0.15s'
+                    }}
+                  >
+                    {sendingReply ? <FaSpinner size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <FaPaperPlane size={13} />}
+                  </button>
+                </div>
               </div>
             </div>
           )}
+
+          {/* No conversation selected — show empty state */}
+          {!selectedConvo && conversations.length > 0 && (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f9fafb' }}>
+              <div style={{ textAlign: 'center', color: '#9ca3af' }}>
+                <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <FaWhatsapp size={28} style={{ color: '#d1d5db' }} />
+                </div>
+                <p style={{ fontSize: '15px', fontWeight: '500', color: '#6b7280' }}>Select a conversation</p>
+                <p style={{ fontSize: '13px', marginTop: '4px' }}>Choose a chat from the left to view messages</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Image preview modal */}
+      {imagePreview && (
+        <div
+          onClick={() => setImagePreview(null)}
+          style={{
+            position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 9999, cursor: 'pointer'
+          }}
+        >
+          <img src={imagePreview} alt="Preview" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: '8px', objectFit: 'contain' }} />
         </div>
       )}
 
