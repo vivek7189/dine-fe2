@@ -980,12 +980,12 @@ function RestaurantPOSContent() {
       
       // For staff members (not owners), use their assigned restaurant
       if (user?.restaurantId && ['waiter', 'manager', 'employee', 'cashier'].includes(user.role)) {
-        // First try to use restaurant data from login response
-        if (user.restaurant) {
+        // Prefer API response (has full data including billingSettings), fallback to login response
+        const apiRestaurant = restaurantsResponse.restaurants.find(r => r.id === user.restaurantId);
+        if (apiRestaurant) {
+          restaurant = apiRestaurant;
+        } else if (user.restaurant) {
           restaurant = user.restaurant;
-        } else {
-          // Fallback to finding restaurant in the list
-        restaurant = restaurantsResponse.restaurants.find(r => r.id === user.restaurantId);
         }
         console.log('👨‍💼 Dashboard: Using staff assigned restaurant:', restaurant?.id);
       }

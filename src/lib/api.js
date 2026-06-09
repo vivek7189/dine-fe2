@@ -2645,18 +2645,28 @@ class ApiClient {
     });
     const query = restaurantId ? `?restaurantId=${restaurantId}` : '';
 
-    return this.request(`/api/menu-items/${itemId}/images${query}`, {
+    const result = await this.request(`/api/menu-items/${itemId}/images${query}`, {
       method: 'POST',
       body: formData
       // Don't set headers - let request method handle auth and Content-Type
     });
+    if (restaurantId) {
+      this.invalidateCache(`/api/menus/${restaurantId}`);
+      this.invalidateCache(`/api/categories/${restaurantId}`);
+    }
+    return result;
   }
 
   async deleteMenuItemImage(itemId, imageIndex, restaurantId) {
     const query = restaurantId ? `?restaurantId=${restaurantId}` : '';
-    return this.request(`/api/menu-items/${itemId}/images/${imageIndex}${query}`, {
+    const result = await this.request(`/api/menu-items/${itemId}/images/${imageIndex}${query}`, {
       method: 'DELETE'
     });
+    if (restaurantId) {
+      this.invalidateCache(`/api/menus/${restaurantId}`);
+      this.invalidateCache(`/api/categories/${restaurantId}`);
+    }
+    return result;
   }
 
   // Voice Assistant endpoint

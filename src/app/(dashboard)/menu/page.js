@@ -3259,13 +3259,15 @@ const MenuManagement = () => {
         }));
         
         // Update menu items list
-        setMenuItems(items => items.map(item => 
-          item.id === editingItem.id 
-            ? { ...item, images: [...(item.images || []), ...response.images] }
+        const newImages = [...(editingItem.images || []), ...response.images];
+        setMenuItems(items => items.map(item =>
+          item.id === editingItem.id
+            ? { ...item, images: newImages }
             : item
         ));
-        
-        // Don't show alert, just update the UI silently
+
+        // Update dashboard cache so images persist on refresh
+        updateMenuItemInAllCaches(currentRestaurant?.id, editingItem.id, { images: newImages }).catch(() => {});
       }
     } catch (error) {
       console.error('❌ Error uploading images:', error);
@@ -3310,16 +3312,15 @@ const MenuManagement = () => {
         }));
         
         // Update menu items list
-        setMenuItems(items => items.map(item => 
-          item.id === editingItem.id 
-            ? { 
-                ...item, 
-                images: (item.images || []).filter((_, index) => index !== imageIndex)
-              }
+        const remainingImages = (editingItem.images || []).filter((_, index) => index !== imageIndex);
+        setMenuItems(items => items.map(item =>
+          item.id === editingItem.id
+            ? { ...item, images: remainingImages }
             : item
         ));
-        
-        // Don't show alert, just update the UI silently
+
+        // Update dashboard cache so deletion persists on refresh
+        updateMenuItemInAllCaches(currentRestaurant?.id, editingItem.id, { images: remainingImages }).catch(() => {});
       }
     } catch (error) {
       console.error('Error deleting image:', error);
