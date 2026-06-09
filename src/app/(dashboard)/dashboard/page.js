@@ -69,6 +69,7 @@ import { useLoading } from '../../../contexts/LoadingContext';
 import IntelligentChatbot from '../../../components/IntelligentChatbot';
 import RAGInitializer from '../../../components/RAGInitializer';
 import { getCachedDashboardData, setCachedDashboardData, getCachedTablesData, setCachedTablesData } from '../../../utils/dashboardCache';
+import { getOrderItemKey } from '../../../utils/orderItemKey';
 import { useSyncEngine } from '../../../hooks/useSyncEngine';
 import { setCachedData, getCachedData, saveEssentialData, getEssentialData } from '../../../lib/offlineDb';
 import { canPerform } from '../../../lib/permissions';
@@ -216,6 +217,7 @@ function RestaurantPOSContent() {
   
   // Mobile responsive state
   const [isMobile, setIsMobile] = useState(false);
+  const isMobileEmbed = isMobile && typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   
   // Category sidebar width constant (compact, part of menu section)
@@ -279,6 +281,24 @@ function RestaurantPOSContent() {
     };
     window.addEventListener('storage', handler);
     return () => window.removeEventListener('storage', handler);
+  }, []);
+
+  // Weighing scale: connect + subscribe to weight events (Electron only)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.electronAPI?.scale) return;
+    let unsubWeight;
+    window.electronAPI.scale.getStatus().then(status => {
+      setScaleStatus(status);
+    }).catch(() => {});
+    unsubWeight = window.electronAPI.onScaleWeight((data) => {
+      if (data.error) {
+        setScaleStatus(prev => ({ ...prev, connected: false, error: data.error }));
+      } else {
+        setScaleWeight(data);
+        setScaleStatus(prev => ({ ...prev, connected: true, error: null }));
+      }
+    });
+    return () => { if (unsubWeight) unsubWeight(); };
   }, []);
 
   // Card design toggle state - Initialize from localStorage based on user ID
@@ -359,6 +379,11 @@ function RestaurantPOSContent() {
   // Fullscreen mode states
   const [isNavigationHidden, setIsNavigationHidden] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Weighing scale state (Electron only)
+  const [scaleStatus, setScaleStatus] = useState({ connected: false });
+  const [scaleWeight, setScaleWeight] = useState(null); // { weight, unit, stable }
+  const [showWeightPopup, setShowWeightPopup] = useState(null); // item being weighed
 
   // Floating Command Bar ref
   const commandBarInputRef = useRef(null);
@@ -1607,6 +1632,12 @@ function RestaurantPOSContent() {
       setTableNumber(tableParam); // Auto-fill the table number input field
       setOrderType('dine-in'); // Force dine-in when table is selected
 
+      // Track return navigation (from=tables means return to tables after order)
+      const fromParam = searchParams.get('from');
+      if (fromParam === 'tables') {
+        setReturnToView('tables');
+      }
+
       // Clean table params from URL to prevent stale data on subsequent actions
       if (typeof window !== 'undefined') {
         const url = new URL(window.location.href);
@@ -1617,6 +1648,7 @@ function RestaurantPOSContent() {
         url.searchParams.delete('floorName');
         url.searchParams.delete('floor');
         url.searchParams.delete('capacity');
+        url.searchParams.delete('from');
         window.history.replaceState({}, '', url.toString());
       }
     }
@@ -1908,6 +1940,12 @@ function RestaurantPOSContent() {
     : filteredItemsBase;
 
   const addToCart = (itemRaw) => {
+    // Weight-based items: open weight popup instead of adding directly
+    if (itemRaw?.soldByWeight && !itemRaw._weightConfirmed) {
+      setShowWeightPopup(itemRaw);
+      return;
+    }
+
     // Block out-of-stock items
     if (itemRaw?.isAvailable === false) {
       setNotification({ type: 'error', title: t('dashboard.outOfStock'), message: `"${itemRaw.name}" is currently out of stock`, show: true });
@@ -1962,6 +2000,12 @@ function RestaurantPOSContent() {
       const toppingsRaw = Array.isArray(item?.selectedCustomizations) && item.selectedCustomizations.length > 0
         ? [...item.selectedCustomizations].map(c => c.id || c.name).sort().join('|')
         : null;
+
+      // Weight-based items never merge — each weighing is a separate line
+      if (item.soldByWeight && item._weightConfirmed) {
+        const cartId = `${item.id}-wt-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+        return [{ ...item, cartId, quantity: 1, _weightConfirmed: undefined }, ...prevCart];
+      }
 
       // Try to find an existing cart line with same menu item and same configuration
       const existingIndex = prevCart.findIndex(ci => {
@@ -2136,13 +2180,26 @@ function RestaurantPOSContent() {
   // Builds a standardized item payload for all API calls (POST/PATCH)
   const buildItemPayload = (item) => {
     const effectivePrice = getEffectiveItemPrice(item);
+    // Weight-based total: price × weight (adjusted for unit)
+    let total;
+    if (item.soldByWeight && item.itemWeight) {
+      const weightMultiplier = item.priceUnit === 'per_100g' ? item.itemWeight / 100 : 1;
+      total = effectivePrice * item.itemWeight * (item.priceUnit === 'per_100g' ? 0.01 : 1);
+      // Simpler: for per_kg and per_lb, total = price * weight
+      // for per_100g, price is per 100g, so total = price * (weight_in_grams / 100)
+      total = item.priceUnit === 'per_100g'
+        ? effectivePrice * (item.itemWeight / 100)
+        : effectivePrice * item.itemWeight;
+    } else {
+      total = effectivePrice * (item.quantity || 1);
+    }
     return {
       menuItemId: item.id,
       name: item.name,
       nameAr: item.nameAr || null,
       price: effectivePrice,
       quantity: item.quantity,
-      total: effectivePrice * (item.quantity || 1),
+      total,
       notes: item.notes || '',
       category: item.category || '',
       categoryId: item.categoryId || null,
@@ -2154,11 +2211,25 @@ function RestaurantPOSContent() {
       priceEdited: item.priceEdited === true,
       ...(item.appliedPricingRuleId ? { appliedPricingRuleId: item.appliedPricingRuleId } : {}),
       ...(item.isCustomItem ? { isCustomItem: true } : {}),
+      // Weight-based item fields
+      ...(item.soldByWeight ? {
+        soldByWeight: true,
+        itemWeight: item.itemWeight || 0,
+        priceUnit: item.priceUnit || 'per_kg',
+        weightUnit: item.weightUnit || 'kg',
+      } : {}),
     };
   };
 
   const getTotalAmount = () => {
-    const total = cart.reduce((sum, item) => sum + getEffectiveItemPrice(item) * (item.quantity || 1), 0);
+    const total = cart.reduce((sum, item) => {
+      const price = getEffectiveItemPrice(item);
+      if (item.soldByWeight && item.itemWeight) {
+        const wt = item.priceUnit === 'per_100g' ? item.itemWeight / 100 : item.itemWeight;
+        return sum + price * wt;
+      }
+      return sum + price * (item.quantity || 1);
+    }, 0);
     console.log(`💰 Cart total: ${total}`);
     return total;
   };
@@ -2796,12 +2867,8 @@ function RestaurantPOSContent() {
         let addedCount = 0;
         for (const item of response.items) {
           if (item.action === 'add') {
-            const existingItem = cart.find(c => c.id === item.id);
-            if (existingItem) {
-              updateCartItemQuantity(item.id, existingItem.quantity + (item.quantity || 1));
-            } else {
-              addToCart({ ...item, quantity: item.quantity || 1 });
-            }
+            // Use addToCart which has proper variant+customization-aware merging
+            addToCart({ ...item, quantity: item.quantity || 1 });
             setProcessedVoiceItems(prev => [...prev, item]);
             addedCount++;
           } else if (item.action === 'remove') {
@@ -2976,20 +3043,16 @@ function RestaurantPOSContent() {
       console.log('✅ Voice API response:', response);
       
       if (response.items && response.items.length > 0) {
-        // Add items to cart
+        // Add items to cart — use addToCart which has proper variant+customization-aware merging
         response.items.forEach(item => {
-          const existingItem = cart.find(cartItem => cartItem.id === item.id);
-          
-          if (existingItem) {
-            updateCartItemQuantity(existingItem.id, existingItem.quantity + item.quantity);
-          } else {
-            addToCart({
-              id: item.id,
-              name: item.name,
-              price: item.price,
-              quantity: item.quantity || 1
-            });
-          }
+          addToCart({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity || 1,
+            selectedVariant: item.selectedVariant || null,
+            selectedCustomizations: item.selectedCustomizations || [],
+          });
         });
         
         // Show success notification
@@ -3047,7 +3110,7 @@ function RestaurantPOSContent() {
       redeemLoyaltyPoints = 0, loyaltyDiscount: loyaltyDiscAmt = 0,
       couponDiscount: couponDiscAmt = null, couponCode = null, couponId = null,
       serviceChargeRate = null, serviceChargeAmount: scAmount = null, tipAmount: tipAmt = null, tipPercentage: tipPct = null,
-      cashReceived = null, changeReturned = null, splitPayments: splitPay = null, roundOffAmount: roundOff = null,
+      cashReceived = null, changeReturned = null, splitPayments: splitPay = null, splitBill: splitBillData = null, roundOffAmount: roundOff = null,
       partialPayAmount: partialPay = null, compItems: compData = null, voidItems: voidData = null, managerPin: mgrPin = null,
       deliveryInfo: deliveryInfoData = null, deliveryAddress: deliveryAddr1 = null,
       walletRedeemAmount: walletRedeem = null, walletCustomerId: walletCustId = null,
@@ -3144,6 +3207,7 @@ function RestaurantPOSContent() {
           cashReceived: cashReceived || null,
           changeReturned: changeReturned || null,
           splitPayments: splitPay || null,
+          splitBill: splitBillData || null,
           roundOffAmount: roundOff || null,
           partialPayAmount: partialPay != null ? partialPay : null,
           paidAmount: partialPay != null ? Math.round(Number(partialPay) * 100) / 100 : null,
@@ -4185,7 +4249,7 @@ function RestaurantPOSContent() {
         redeemLoyaltyPoints = 0, loyaltyDiscount: loyaltyDiscAmt = 0,
         couponDiscount: couponDiscAmt = null, couponCode = null, couponId = null,
         serviceChargeRate = null, serviceChargeAmount: scAmount = null, tipAmount: tipAmt = null, tipPercentage: tipPct = null,
-        cashReceived = null, changeReturned = null, splitPayments: splitPay = null, roundOffAmount: roundOff = null,
+        cashReceived = null, changeReturned = null, splitPayments: splitPay = null, splitBill: splitBillData = null, roundOffAmount: roundOff = null,
         partialPayAmount: partialPay = null, compItems: compData = null, voidItems: voidData = null, managerPin: mgrPin = null,
         deliveryInfo: deliveryInfoData, deliveryAddress: deliveryAddr, walletRedeemAmount: walletRedeem } = taxData;
       const tableToUse = tableNumber || selectedTable?.number || currentOrder.tableNumber;
@@ -4197,7 +4261,7 @@ function RestaurantPOSContent() {
         floorName: selectedTable?.floor || null,
         tableId: selectedTable?.id || null,
         orderType,
-        paymentMethod,
+        paymentMethod: splitBillData ? 'split-bill' : paymentMethod,
         totalAmount: subtotal || getTotalAmount(),
         taxBreakdown: taxBreakdown,
         taxAmount: totalTax,
@@ -4224,6 +4288,7 @@ function RestaurantPOSContent() {
         cashReceived: cashReceived || null,
         changeReturned: changeReturned || null,
         splitPayments: splitPay || null,
+        splitBill: splitBillData || null,
         roundOffAmount: roundOff || null,
         partialPayAmount: partialPay != null ? partialPay : null,
         compItems: compData || null,
@@ -4349,7 +4414,7 @@ function RestaurantPOSContent() {
       redeemLoyaltyPoints = 0, loyaltyDiscount: loyaltyDiscAmt = 0,
       couponDiscount: couponDiscAmt = null, couponCode = null, couponId = null,
       serviceChargeRate = null, serviceChargeAmount: scAmount = null, tipAmount: tipAmt = null, tipPercentage: tipPct = null,
-      cashReceived = null, changeReturned = null, splitPayments: splitPay = null, roundOffAmount: roundOff = null,
+      cashReceived = null, changeReturned = null, splitPayments: splitPay = null, splitBill: splitBillData = null, roundOffAmount: roundOff = null,
       fullDue: isFullDue = false,
       partialPayAmount: partialPay = null, compItems: compData = null, voidItems: voidData = null, managerPin: mgrPin = null,
       deliveryInfo: deliveryInfoData = null, deliveryAddress: deliveryAddr2 = null,
@@ -4387,7 +4452,7 @@ function RestaurantPOSContent() {
           floorName: selectedTable?.floor || null,
           tableId: selectedTable?.id || null,
           orderType,
-          paymentMethod,
+          paymentMethod: splitBillData ? 'split-bill' : paymentMethod,
           // Tax information from OrderSummary
           totalAmount: subtotal || getTotalAmount(),
           taxBreakdown: taxBreakdown,
@@ -4417,6 +4482,7 @@ function RestaurantPOSContent() {
           cashReceived: cashReceived || null,
           changeReturned: changeReturned || null,
           splitPayments: splitPay || null,
+          splitBill: splitBillData || null,
           roundOffAmount: roundOff || null,
           partialPayAmount: partialPay != null ? partialPay : null,
           compItems: compData || null,
@@ -4452,19 +4518,21 @@ function RestaurantPOSContent() {
         if (response?.data || response?.success) {
           // Compute new/changed items for incremental KOT display
           const existingItemsArr = currentOrder.items || [];
-          const existingItemMap = new Map(existingItemsArr.map(i => [i.menuItemId, i]));
-          const cartItemIds = new Set(cart.map(i => i.id));
+          // Use composite key (menuItemId + variant + customizations) so Half/Full
+          // of the same item are tracked as separate line items for KOT
+          const existingItemMap = new Map(existingItemsArr.map(i => [getOrderItemKey(i), i]));
+          const cartItemKeys = new Set(cart.map(i => getOrderItemKey(i)));
 
-          const newItems = cart.filter(item => !existingItemMap.has(item.id));
+          const newItems = cart.filter(item => !existingItemMap.has(getOrderItemKey(item)));
           const updatedItems = cart.filter(item => {
-            const existing = existingItemMap.get(item.id);
+            const existing = existingItemMap.get(getOrderItemKey(item));
             return existing && existing.quantity !== item.quantity;
           });
           const incrementalItems = [...newItems, ...updatedItems];
 
           // Detect removed items for KOT
           const removedKotItems = existingItemsArr
-            .filter(existing => !cartItemIds.has(existing.menuItemId))
+            .filter(existing => !cartItemKeys.has(getOrderItemKey(existing)))
             .map(item => ({
               name: item.name, quantity: item.quantity, notes: item.notes || '',
               selectedVariant: item.selectedVariant || null,
@@ -4602,7 +4670,7 @@ function RestaurantPOSContent() {
           customerId: customerData?.id || null,
           assignedStaff: assignedStaff || null,
           orderType,
-          paymentMethod,
+          paymentMethod: splitBillData ? 'split-bill' : paymentMethod,
           staffInfo: (() => {
             const u = JSON.parse(localStorage.getItem('user') || '{}');
             return {
@@ -4653,6 +4721,7 @@ function RestaurantPOSContent() {
           cashReceived: cashReceived || null,
           changeReturned: changeReturned || null,
           splitPayments: splitPay || null,
+          splitBill: splitBillData || null,
           roundOffAmount: roundOff || null,
           fullDue: isFullDue || false,
           partialPayAmount: partialPay != null ? partialPay : null,
@@ -5135,6 +5204,13 @@ function RestaurantPOSContent() {
     // Only switch to tables if explicitly set as returnToView
     // When returnToView is null (edit mode), stay on orders view
     if (returnToView === 'tables') {
+      // In mobile embed mode, navigate back to the tables page within the WebView
+      if (isMobileEmbed) {
+        clearCart({ keepOrderSuccess: false, preserveUrl: true, keepTable: false });
+        setReturnToView(null);
+        router.replace('/mobile/tables');
+        return;
+      }
       // User explicitly came from tables view - return to tables
       // Highlight the table that just had an order action
       if (selectedTable?.id) {
@@ -5578,6 +5654,10 @@ function RestaurantPOSContent() {
       flexDirection: 'column',
       overflow: 'hidden'
     }}>
+      {/* Hide sidebar hamburger + nav sidebar in mobile embed mode */}
+      {isMobileEmbed && (
+        <style>{`#sidebar-hamburger { display: none !important; } .nav-sidebar, [class*="sidebar-hamburger"] { display: none !important; }`}</style>
+      )}
       {/* Restaurant Change Loading Overlay */}
       {restaurantChangeLoading && (
         <div style={{
@@ -5646,7 +5726,7 @@ function RestaurantPOSContent() {
           zIndex: 1001,
           width: '24px',
           height: '24px',
-          display: 'flex',
+          display: isMobileEmbed ? 'none' : 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: pendingCount > 0 && isOnline ? 'pointer' : 'default',
@@ -5993,58 +6073,89 @@ function RestaurantPOSContent() {
         <div style={{
           backgroundColor: 'white',
           borderBottom: '1px solid #e5e7eb',
-          padding: '12px 16px',
+          padding: isMobileEmbed ? '8px 12px' : '12px 16px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '12px',
+          gap: isMobileEmbed ? '8px' : '12px',
           position: 'sticky',
           top: 0,
           zIndex: 100,
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
         }}>
-          {/* Restaurant Name */}
+          {/* Left info: table info in embed mode, restaurant name otherwise */}
           <div style={{
             flex: 1,
             minWidth: 0
           }}>
-            <h2 style={{
-              fontSize: '16px',
-              fontWeight: '700',
-              color: '#1f2937',
-              margin: 0,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}>
-              {selectedRestaurant?.name || t('dashboard.myRestaurant')}
-            </h2>
-            <p style={{
-              fontSize: '12px',
-              color: '#6b7280',
-              margin: '2px 0 0 0',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}>
-              {filteredItems.length} {t('dashboard.items')} • {selectedCategory === 'all-items' ? t('dashboard.allCategories') : categories.find(c => c.id === selectedCategory)?.name}
-            </p>
+            {isMobileEmbed ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {selectedTable?.name && (
+                    <span style={{
+                      fontSize: '13px', fontWeight: '700', color: '#1f2937',
+                      display: 'flex', alignItems: 'center', gap: '4px',
+                    }}>
+                      <FaChair size={10} color="#ef4444" />
+                      {selectedTable.name}
+                    </span>
+                  )}
+                  {selectedTable?.floor && (
+                    <span style={{ fontSize: '10px', color: '#9ca3af', fontWeight: '500' }}>
+                      {selectedTable.floor}
+                    </span>
+                  )}
+                  {!selectedTable?.name && (
+                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#1f2937' }}>
+                      {t('dashboard.newOrder') || 'New Order'}
+                    </span>
+                  )}
+                </div>
+                <p style={{ fontSize: '10px', color: '#6b7280', margin: '1px 0 0 0' }}>
+                  {filteredItems.length} {t('dashboard.items')} • {selectedCategory === 'all-items' ? t('dashboard.allCategories') : categories.find(c => c.id === selectedCategory)?.name}
+                </p>
+              </>
+            ) : (
+              <>
+                <h2 style={{
+                  fontSize: '16px',
+                  fontWeight: '700',
+                  color: '#1f2937',
+                  margin: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {selectedRestaurant?.name || t('dashboard.myRestaurant')}
+                </h2>
+                <p style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  margin: '2px 0 0 0',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {filteredItems.length} {t('dashboard.items')} • {selectedCategory === 'all-items' ? t('dashboard.allCategories') : categories.find(c => c.id === selectedCategory)?.name}
+                </p>
+              </>
+            )}
           </div>
-          
+
           {/* Action Buttons */}
           <div style={{
             display: 'flex',
-            gap: '8px'
+            gap: isMobileEmbed ? '6px' : '8px'
           }}>
             {/* Categories Button */}
           <button
             onClick={() => setShowMobileSidebar(true)}
             style={{
-                padding: '10px',
+                padding: isMobileEmbed ? '8px' : '10px',
               backgroundColor: '#ef4444',
               color: 'white',
               border: 'none',
-                borderRadius: '10px',
+                borderRadius: isMobileEmbed ? '8px' : '10px',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -6052,23 +6163,23 @@ function RestaurantPOSContent() {
               fontWeight: '600',
                 fontSize: '12px',
                 boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)',
-                minWidth: '80px',
+                minWidth: isMobileEmbed ? undefined : '80px',
                 justifyContent: 'center'
               }}
             >
-              <FaBars size={14} />
-              {t('dashboard.menu')}
+              <FaBars size={isMobileEmbed ? 12 : 14} />
+              {!isMobileEmbed && t('dashboard.menu')}
           </button>
-          
+
           {/* Cart Button */}
           <button
             onClick={() => setShowMobileCart(true)}
             style={{
-                padding: '10px',
+                padding: isMobileEmbed ? '8px' : '10px',
               backgroundColor: cart.length > 0 ? '#10b981' : '#6b7280',
               color: 'white',
               border: 'none',
-                borderRadius: '10px',
+                borderRadius: isMobileEmbed ? '8px' : '10px',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -6077,12 +6188,12 @@ function RestaurantPOSContent() {
                 fontSize: '12px',
               position: 'relative',
                 boxShadow: cart.length > 0 ? '0 2px 8px rgba(16, 185, 129, 0.3)' : '0 2px 8px rgba(107, 114, 128, 0.3)',
-                minWidth: '80px',
+                minWidth: isMobileEmbed ? undefined : '80px',
                 justifyContent: 'center'
             }}
           >
-              <FaShoppingCart size={14} />
-              {t('dashboard.cart')}
+              <FaShoppingCart size={isMobileEmbed ? 12 : 14} />
+              {!isMobileEmbed && t('dashboard.cart')}
             {cart.length > 0 && (
               <span style={{
                 position: 'absolute',
@@ -7152,7 +7263,8 @@ function RestaurantPOSContent() {
                     )}
                   </div>
 
-                  {/* Tables Toggle Button - Fixed width and position */}
+                  {/* Tables Toggle Button - Fixed width and position (hidden in mobile embed — native app has own tables tab) */}
+                  {!isMobileEmbed && (
                   <button
                     onClick={() => switchView(viewMode === 'orders' ? 'tables' : 'orders')}
                     style={{
@@ -7176,7 +7288,7 @@ function RestaurantPOSContent() {
                     }}
                     title={viewMode === 'orders' ? t('dashboard.switchToTables') : t('dashboard.backToOrders')}
                   >
-                    <span style={{ 
+                    <span style={{
                       display: 'inline-block',
                       width: '100%',
                       textAlign: 'center'
@@ -7185,6 +7297,7 @@ function RestaurantPOSContent() {
                     </span>
                     {/* Refreshing spinner removed — optimistic updates handle instant UI changes */}
                 </button>
+                  )}
                 </div>
 
                 {/* Card Size Toggle - Only show on desktop */}
@@ -8933,9 +9046,151 @@ function RestaurantPOSContent() {
         initialQuantity={customizationInitial.quantity}
       />
 
+      {/* Scale Status Badge — floating indicator for Electron scale connection */}
+      {typeof window !== 'undefined' && window.electronAPI?.scale && scaleStatus?.enabled && (
+        <div
+          onClick={async () => {
+            if (!scaleStatus.connected && scaleStatus.port) {
+              const result = await window.electronAPI.scale.connect(scaleStatus.port, scaleStatus.baudRate || 9600);
+              if (result.success) {
+                setScaleStatus(prev => ({ ...prev, connected: true, error: null }));
+                setNotification({ type: 'success', title: 'Scale Connected', message: `Connected to ${scaleStatus.port}`, show: true });
+              } else {
+                setNotification({ type: 'error', title: 'Scale Error', message: result.error, show: true });
+              }
+            }
+          }}
+          style={{
+            position: 'fixed', bottom: '20px', left: '20px', zIndex: 1000,
+            padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
+            display: 'flex', alignItems: 'center', gap: '6px', cursor: scaleStatus.connected ? 'default' : 'pointer',
+            backgroundColor: scaleStatus.connected ? '#f0fdf4' : '#fef2f2',
+            color: scaleStatus.connected ? '#166534' : '#991b1b',
+            border: `1px solid ${scaleStatus.connected ? '#bbf7d0' : '#fecaca'}`,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          }}
+          title={scaleStatus.connected ? 'Weighing scale connected' : scaleStatus.error || 'Click to reconnect scale'}
+        >
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: scaleStatus.connected ? '#22c55e' : '#ef4444' }} />
+          ⚖️ {scaleStatus.connected ? 'Scale Connected' : 'Scale Disconnected'}
+        </div>
+      )}
+
+      {/* Weight Popup — shown when adding a sold-by-weight item */}
+      {showWeightPopup && (() => {
+        const wpItem = showWeightPopup;
+        const wpConnected = scaleStatus?.connected;
+        const wpReading = scaleWeight;
+        const unitLabel = wpItem.priceUnit === 'per_100g' ? 'g' : wpItem.priceUnit === 'per_lb' ? 'lb' : 'kg';
+        return (
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+            <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '28px', width: '420px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#0f172a' }}>Weigh Item</h3>
+                  <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>{wpItem.name}</p>
+                </div>
+                <button onClick={() => setShowWeightPopup(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8', padding: '4px' }}>✕</button>
+              </div>
+
+              {/* Scale status */}
+              <div style={{ padding: '8px 12px', borderRadius: '8px', marginBottom: '16px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px',
+                backgroundColor: wpConnected ? '#f0fdf4' : '#fef2f2',
+                color: wpConnected ? '#166534' : '#991b1b',
+                border: `1px solid ${wpConnected ? '#bbf7d0' : '#fecaca'}`,
+              }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: wpConnected ? '#22c55e' : '#ef4444', display: 'inline-block',
+                  animation: wpConnected && wpReading && !wpReading.stable ? 'pulse 1s infinite' : 'none' }} />
+                {wpConnected
+                  ? (wpReading?.stable ? '⚖️ Scale Connected — Stable' : '⚖️ Scale Connected — Stabilizing...')
+                  : '⚖️ Scale Not Connected — Enter weight manually'}
+              </div>
+
+              {/* Live weight display */}
+              <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f8fafc', borderRadius: '12px', marginBottom: '16px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '48px', fontWeight: '700', color: wpConnected && wpReading?.stable ? '#16a34a' : '#0f172a', fontFamily: 'monospace', letterSpacing: '2px' }}>
+                  {wpConnected && wpReading ? wpReading.weight.toFixed(3) : '0.000'}
+                </div>
+                <div style={{ fontSize: '16px', color: '#64748b', fontWeight: '500' }}>{unitLabel}</div>
+              </div>
+
+              {/* Manual weight input */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                  {wpConnected ? 'Override weight manually:' : 'Enter weight:'}
+                </label>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input
+                    id="weight-manual-input"
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    defaultValue={wpConnected && wpReading ? wpReading.weight : ''}
+                    placeholder="0.000"
+                    style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '16px', fontFamily: 'monospace' }}
+                  />
+                  <span style={{ fontSize: '14px', fontWeight: '600', color: '#64748b' }}>{unitLabel}</span>
+                </div>
+              </div>
+
+              {/* Price calculation */}
+              <div style={{ padding: '12px', backgroundColor: '#eff6ff', borderRadius: '8px', marginBottom: '20px', border: '1px solid #bfdbfe' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#1e40af' }}>
+                  <span>Price: {selectedRestaurant?.currencySettings?.symbol || '₹'}{getEffectiveItemPrice(wpItem)}/{unitLabel}</span>
+                  <span style={{ fontWeight: '700' }}>
+                    Total: {(() => {
+                      const w = wpConnected && wpReading ? wpReading.weight : 0;
+                      const p = getEffectiveItemPrice(wpItem);
+                      const tot = wpItem.priceUnit === 'per_100g' ? p * (w / 100) : p * w;
+                      return `${selectedRestaurant?.currencySettings?.symbol || '₹'}${tot.toFixed(2)}`;
+                    })()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => setShowWeightPopup(null)}
+                  style={{ flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', backgroundColor: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#374151' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    const inputEl = document.getElementById('weight-manual-input');
+                    const manualWeight = parseFloat(inputEl?.value);
+                    const finalWeight = (!isNaN(manualWeight) && manualWeight > 0)
+                      ? manualWeight
+                      : (wpConnected && wpReading ? wpReading.weight : 0);
+                    if (!finalWeight || finalWeight <= 0) {
+                      setNotification({ type: 'error', title: 'No Weight', message: 'Please place the item on the scale or enter weight manually', show: true });
+                      return;
+                    }
+                    // Add to cart with weight data
+                    addToCart({
+                      ...wpItem,
+                      _weightConfirmed: true,
+                      itemWeight: finalWeight,
+                      weightUnit: unitLabel,
+                      quantity: 1,
+                    });
+                    setShowWeightPopup(null);
+                  }}
+                  style={{ flex: 1, padding: '12px', borderRadius: '10px', border: 'none', backgroundColor: '#16a34a', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
+                >
+                  ⚖️ Add to Cart
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* RAG Initializer */}
       {selectedRestaurant?.id && (
-        <RAGInitializer 
+        <RAGInitializer
           restaurantId={selectedRestaurant.id}
           onInitialized={() => {
             console.log('RAG knowledge initialized successfully');

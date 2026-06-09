@@ -6,7 +6,7 @@ import {
   buildBillItemRows, buildTaxHtml, buildDiscountHtml, buildChargesHtml,
   buildPaymentHtml, buildEcrPaymentHtml, buildDeliveryAddressHtml, calcGrandTotal, formatDateTime,
   getPrintFontSizes, getContentWidth, getBillHeaderHTML, wrapInDocument, buildInclusiveTaxNote,
-  buildFeedbackSection,
+  buildFeedbackSection, buildSplitBillHtml,
   BILL_LABELS_AR, getBillDualCSS, dualLabel, dualTitle,
 } from '../helpers';
 
@@ -56,11 +56,13 @@ export function render(invoice, printSettings = {}, labels = {}) {
   const css = getElegantBillCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.printerWidth);
   const finalCss = showAr ? css + getBillDualCSS() : css;
 
-  const revisedBanner = invoice.editCount > 0 ? `<div style="text-align:center;font-weight:bold;font-size:14px;padding:4px 0;border:2px solid #333;margin:4px 0;">${showAr ? dualLabel(L.revisedBill, AR.revisedBill, showAr) : L.revisedBill} (Edit #${invoice.editCount})</div>` : '';
+  const totalModifications = (invoice.editCount || 0) + (invoice.updateCount || 0);
+  const revisedBanner = totalModifications > 0 ? `<div style="text-align:center;font-weight:bold;font-size:14px;padding:4px 0;border:2px solid #333;margin:4px 0;">${showAr ? dualLabel(L.revisedBill, AR.revisedBill, showAr) : L.revisedBill}${invoice.editCount > 0 ? ` (Edit #${invoice.editCount})` : ''}${invoice.updateCount > 0 ? ` (Modified ${invoice.updateCount}x)` : ''}</div>` : '';
 
   const bodyHtml =
     headerHtml +
     revisedBanner +
+    buildSplitBillHtml(invoice, L, cs) +
     `<div class="divider">════════════════════════════</div>` +
     `<div class="bill-info">` +
       `<div><span>${dualLabel(L.billLabel, AR.billLabel, showAr)}#:</span><span><strong>${invoice.dailyOrderId || invoice.id || 'N/A'}</strong></span></div>` +

@@ -112,11 +112,20 @@ export function buildKOTItemsSections(kotData, renderRowFn, labels = {}) {
 
 // Build bill items table rows HTML
 export function buildBillItemRows(items, cs, showAr) {
-  return items.map(item =>
-    `<tr><td style="text-align:left;">${showAr ? dualItemName(item, showAr) : esc(item.name)}${getSublineHtml(item)}</td>` +
-    `<td style="text-align:center;">${item.quantity || 1}</td>` +
-    `<td style="text-align:right;">${cs}${(Math.round(((item.price || Math.round((item.total || 0) / (item.quantity || 1) * 100) / 100 || 0) * (item.quantity || 1)) * 100) / 100).toFixed(2)}</td></tr>`
-  ).join('');
+  return items.map(item => {
+    // Weight-based items: show weight instead of quantity
+    const qtyDisplay = item.soldByWeight && item.itemWeight
+      ? `${item.itemWeight} ${item.weightUnit || 'kg'}`
+      : (item.quantity || 1);
+    const lineTotal = item.soldByWeight && item.itemWeight
+      ? (item.priceUnit === 'per_100g'
+        ? (item.price || 0) * (item.itemWeight / 100)
+        : (item.price || 0) * item.itemWeight)
+      : (Math.round(((item.price || Math.round((item.total || 0) / (item.quantity || 1) * 100) / 100 || 0) * (item.quantity || 1)) * 100) / 100);
+    return `<tr><td style="text-align:left;">${showAr ? dualItemName(item, showAr) : esc(item.name)}${getSublineHtml(item)}</td>` +
+      `<td style="text-align:center;">${qtyDisplay}</td>` +
+      `<td style="text-align:right;">${cs}${lineTotal.toFixed(2)}</td></tr>`;
+  }).join('');
 }
 
 // Build tax breakdown rows HTML
@@ -400,4 +409,53 @@ export function formatDateTime() {
     timeStr: now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
     combined: now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
   };
+}
+
+// Build split bill banner HTML for per-guest receipts
+export function buildSplitBillHtml(invoice, L, cs) {
+  if (!invoice.splitInfo) return '';
+  const si = invoice.splitInfo;
+  const methodLabel = si.method === 'equal' ? 'Equal Split' : si.method === 'by-item' ? 'Split by Item' : 'Split by Amount';
+  return `<div style="border:2px solid #0ea5e9;border-radius:6px;padding:6px 8px;margin:6px 0;text-align:center;background:#f0f9ff;">
+    <div style="font-weight:bold;font-size:13px;color:#0369a1;">SPLIT BILL &mdash; ${esc(si.guestLabel)} of ${si.guestCount}</div>
+    <div style="font-size:10px;color:#64748b;">(${methodLabel})</div>
+  </div>`;
+}
+
+// Build per-guest invoice object from full order invoice + split data
+export function buildSplitInvoice(fullInvoice, splitIndex) {
+  const sb = fullInvoice.splitBill;
+  if (!sb || !sb.splits || !sb.splits[splitIndex]) return null;
+  const split = sb.splits[splitIndex];
+  const guestInvoice = { ...fullInvoice };
+  // Replace financial values with guest's portion
+  guestInvoice.subtotal = split.subtotal;
+  guestInvoice.taxAmount = split.taxAmount;
+  guestInvoice.totalTax = split.taxAmount;
+  guestInvoice.taxBreakdown = split.taxBreakdown || [];
+  guestInvoice.serviceChargeAmount = split.serviceChargeAmount || 0;
+  guestInvoice.tipAmount = split.tipAmount || 0;
+  guestInvoice.grandTotal = split.totalAmount;
+  guestInvoice.finalAmount = split.totalAmount;
+  guestInvoice.paymentMethod = split.paymentMethod || 'cash';
+  guestInvoice.cashReceived = split.cashReceived || null;
+  guestInvoice.changeReturned = split.changeReturned || null;
+  guestInvoice.discountAmount = split.discountAmount || 0;
+  guestInvoice.totalDiscountAmount = split.discountAmount || 0;
+  // For by-item, replace items with guest's items
+  if (sb.method === 'by-item' && split.items) {
+    guestInvoice.items = split.items;
+  }
+  // Clear split payments — each guest split is a single payment
+  guestInvoice.splitPayments = null;
+  guestInvoice.splitBill = null;
+  // Inject split info for banner rendering
+  guestInvoice.splitInfo = {
+    index: splitIndex,
+    guestLabel: split.guestLabel || `Guest ${splitIndex + 1}`,
+    guestCount: sb.guestCount || sb.splits.length,
+    method: sb.method,
+    total: split.totalAmount,
+  };
+  return guestInvoice;
 }

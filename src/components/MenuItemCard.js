@@ -33,7 +33,12 @@ const MenuItemCard = ({
       const minPrice = Math.min(...item.variants.map(v => v.price || item.price || 0));
       return `From ${formatCurrency(minPrice)}`;
     }
-    return formatCurrency(item.price || 0);
+    const priceStr = formatCurrency(item.price || 0);
+    if (item.soldByWeight) {
+      const unitLabel = item.priceUnit === 'per_100g' ? '/100g' : item.priceUnit === 'per_lb' ? '/lb' : '/kg';
+      return priceStr + unitLabel;
+    }
+    return priceStr;
   };
   
   // Handle card click - if needs customization, open modal; otherwise add directly
@@ -246,9 +251,19 @@ const MenuItemCard = ({
             }}>
               {getDisplayPrice()}
             </span>
-            {/* Stock/Expiry badges */}
-            {(isStockManaged || expiryStatus) && (
+            {/* Stock/Expiry/Weight badges */}
+            {(isStockManaged || expiryStatus || item.soldByWeight) && (
               <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', marginTop: '2px' }}>
+                {item.soldByWeight && (
+                  <span style={{
+                    fontSize: '8px', fontWeight: '700',
+                    padding: '1px 4px', borderRadius: '3px',
+                    backgroundColor: '#fefce8', color: '#854d0e',
+                    border: '1px solid #fde047'
+                  }}>
+                    ⚖️ By Weight
+                  </span>
+                )}
                 {isStockManaged && !isLowStock && !isOutOfStock && (
                   <span style={{
                     fontSize: '8px', fontWeight: '700',

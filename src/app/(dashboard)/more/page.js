@@ -36,6 +36,14 @@ const features = [
     href: '/register',
   },
   {
+    id: 'shifts-cash',
+    name: 'Shifts & Cash',
+    description: 'Per-staff shift tracking, cash drawer management, and reports',
+    icon: FaCashRegister,
+    gradient: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+    href: '/shifts-cash',
+  },
+  {
     id: 'dineai',
     name: 'DineAI Studio',
     description: 'AI-powered restaurant insights, menu suggestions, and smart analytics',

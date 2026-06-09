@@ -88,6 +88,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveOrderDirect: (orderData) =>
     ipcRenderer.invoke('electron:saveOrderDirect', orderData),
 
+  // Weighing Scale (serial port)
+  scale: {
+    connect: (port, baudRate) => ipcRenderer.invoke('electron:scaleConnect', { port, baudRate }),
+    disconnect: () => ipcRenderer.invoke('electron:scaleDisconnect'),
+    getWeight: () => ipcRenderer.invoke('electron:scaleGetWeight'),
+    getStatus: () => ipcRenderer.invoke('electron:scaleGetStatus'),
+    listPorts: () => ipcRenderer.invoke('electron:scaleListPorts'),
+  },
+  onScaleWeight: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on('scale-weight', handler);
+    return () => ipcRenderer.removeListener('scale-weight', handler);
+  },
+
   // Window refocus (fixes Windows keyboard focus after alert/confirm dialogs)
   _refocusWindow: () => ipcRenderer.invoke('electron:refocusWindow'),
 

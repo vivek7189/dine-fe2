@@ -5489,6 +5489,9 @@ const Admin = () => {
     cashTenderingEnabled: false,
     denominations: [10, 20, 50, 100, 200, 500, 2000],
     splitPaymentEnabled: false,
+    splitBillEnabled: false,
+    splitBillDefaultMethod: 'equal',
+    splitBillMaxGuests: 10,
     settlementShowOnDashboard: true,
     settlementShowOnOrderHistory: false,
     settlementMethods: [
@@ -10798,7 +10801,151 @@ const Admin = () => {
                   <div style={{ fontSize: '11px', color: '#9ca3af' }}>Force cash counting by denomination on close</div>
                 </div>
               </div>
+
+              {/* Enable Shifts & Cash */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPosSettings(prev => ({ ...prev, enableShiftsCash: !prev.enableShiftsCash }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {posSettings.enableShiftsCash
+                    ? <FaToggleOn size={28} color="#ef4444" />
+                    : <FaToggleOff size={28} color="#d1d5db" />}
+                </button>
+                <div>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>Enable Shifts & Cash</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>Per-staff shift tracking with cash drawer management</div>
+                </div>
+              </div>
             </div>
+
+            {/* Weighing Scale (Electron desktop only) */}
+            {typeof window !== 'undefined' && window.electronAPI?.scale && (
+              <div style={{ marginBottom: '16px', padding: '14px', backgroundColor: '#fefce8', borderRadius: '10px', border: '1px solid #fde047' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setPosSettings(prev => ({ ...prev, enableWeighingScale: !prev.enableWeighingScale }))}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                  >
+                    {posSettings.enableWeighingScale
+                      ? <FaToggleOn size={28} color="#ca8a04" />
+                      : <FaToggleOff size={28} color="#d1d5db" />}
+                  </button>
+                  <div>
+                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#854d0e' }}>⚖️ Weighing Scale</span>
+                    <div style={{ fontSize: '11px', color: '#a16207' }}>USB/Serial scale for weight-based billing</div>
+                  </div>
+                </div>
+                {posSettings.enableWeighingScale && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {/* Port selection */}
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <select
+                        id="scale-port-select"
+                        style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '12px' }}
+                        defaultValue=""
+                      >
+                        <option value="" disabled>Select serial port...</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const result = await window.electronAPI.scale.listPorts();
+                          const select = document.getElementById('scale-port-select');
+                          if (select && result.ports) {
+                            select.innerHTML = '<option value="" disabled>Select serial port...</option>';
+                            result.ports.forEach(p => {
+                              const opt = document.createElement('option');
+                              opt.value = p.path;
+                              opt.textContent = `${p.path} ${p.manufacturer ? `(${p.manufacturer})` : ''}`;
+                              select.appendChild(opt);
+                            });
+                            if (result.ports.length === 0) {
+                              const opt = document.createElement('option');
+                              opt.value = '';
+                              opt.textContent = 'No ports found — check USB connection';
+                              opt.disabled = true;
+                              select.appendChild(opt);
+                            }
+                          }
+                        }}
+                        style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      >
+                        Refresh Ports
+                      </button>
+                    </div>
+                    {/* Baud rate */}
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '500', color: '#374151', minWidth: '70px' }}>Baud Rate:</label>
+                      <select
+                        id="scale-baud-select"
+                        defaultValue="9600"
+                        style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '12px' }}
+                      >
+                        <option value="4800">4800</option>
+                        <option value="9600">9600</option>
+                        <option value="19200">19200</option>
+                        <option value="38400">38400</option>
+                      </select>
+                    </div>
+                    {/* Test connection button */}
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const portSelect = document.getElementById('scale-port-select');
+                          const baudSelect = document.getElementById('scale-baud-select');
+                          const statusEl = document.getElementById('scale-test-status');
+                          const port = portSelect?.value;
+                          const baud = parseInt(baudSelect?.value) || 9600;
+                          if (!port) {
+                            if (statusEl) statusEl.textContent = '❌ Select a port first';
+                            return;
+                          }
+                          if (statusEl) statusEl.textContent = '⏳ Connecting...';
+                          try {
+                            const result = await window.electronAPI.scale.connect(port, baud);
+                            if (result.success) {
+                              if (statusEl) statusEl.textContent = '✅ Connected! Waiting for weight reading...';
+                              // Wait 3s for a reading
+                              setTimeout(async () => {
+                                const weight = await window.electronAPI.scale.getWeight();
+                                if (weight.reading) {
+                                  if (statusEl) statusEl.textContent = `✅ Connected — Reading: ${weight.reading.weight} ${weight.reading.unit} (${weight.reading.stable ? 'stable' : 'unstable'})`;
+                                } else {
+                                  if (statusEl) statusEl.textContent = '✅ Connected — No weight reading yet (place item on scale)';
+                                }
+                              }, 3000);
+                            } else {
+                              if (statusEl) statusEl.textContent = `❌ Failed: ${result.error}`;
+                            }
+                          } catch (err) {
+                            if (statusEl) statusEl.textContent = `❌ Error: ${err.message}`;
+                          }
+                        }}
+                        style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', backgroundColor: '#ca8a04', color: 'white', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
+                      >
+                        Test Connection
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await window.electronAPI.scale.disconnect();
+                          const statusEl = document.getElementById('scale-test-status');
+                          if (statusEl) statusEl.textContent = '⚪ Disconnected';
+                        }}
+                        style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', fontSize: '12px', cursor: 'pointer' }}
+                      >
+                        Disconnect
+                      </button>
+                    </div>
+                    <div id="scale-test-status" style={{ fontSize: '12px', color: '#6b7280', padding: '4px 0' }}></div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Button Visibility & Labels */}
             <div style={{ marginBottom: '20px' }}>
@@ -12052,6 +12199,42 @@ const Admin = () => {
                             </button>
                           </div>
                         </div>
+                      </div>
+                    )
+                  },
+                  {
+                    key: 'splitBillEnabled',
+                    name: 'Split Bill',
+                    desc: 'Divide order among guests',
+                    icon: FaUsers,
+                    expandedContent: (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <div style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', marginBottom: '6px' }}>Default Split Method</div>
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            {[{ id: 'equal', label: 'Equal' }, { id: 'by-item', label: 'By Item' }, { id: 'by-amount', label: 'By Amount' }].map(m => (
+                              <button key={m.id}
+                                onClick={() => updateBillingSetting('splitBillDefaultMethod', m.id)}
+                                style={{
+                                  flex: 1, padding: '5px 8px', fontSize: '11px', fontWeight: 600, borderRadius: '6px', cursor: 'pointer', border: 'none',
+                                  background: billingSettings.splitBillDefaultMethod === m.id ? '#0ea5e9' : '#f1f5f9',
+                                  color: billingSettings.splitBillDefaultMethod === m.id ? '#fff' : '#64748b',
+                                }}
+                              >
+                                {m.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280' }}>Max Guests</span>
+                          <input type="number" min={2} max={20}
+                            value={billingSettings.splitBillMaxGuests || 10}
+                            onChange={(e) => updateBillingSetting('splitBillMaxGuests', Math.max(2, Math.min(20, Number(e.target.value) || 10)))}
+                            style={{ width: '56px', padding: '4px 6px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '12px', textAlign: 'center', outline: 'none' }}
+                          />
+                        </div>
+                        {renderRoleChips('splitBillRoles')}
                       </div>
                     )
                   },

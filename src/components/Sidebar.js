@@ -280,6 +280,7 @@ export default function Sidebar({ isDashboardPage = false }) {
     { id: 'inventory', name: t('nav.inventory'), icon: FaBoxes, href: '/inventory', color: '#059669', roles: ['owner', 'admin', 'manager'] },
     { id: 'customers', name: t('nav.customers'), icon: FaUsers, href: '/customers', color: '#8b5cf6', roles: ['owner', 'admin', 'manager'] },
     { id: 'attendance', name: t('nav.attendance'), icon: FaUserClock, href: '/attendance', color: '#ef4444', roles: ['owner', 'admin', 'manager'] },
+    ...(selectedRestaurant?.posSettings?.enableShiftsCash ? [{ id: 'shifts-cash', name: 'Shifts & Cash', icon: FaCashRegister, href: '/shifts-cash', color: '#3b82f6', roles: ['owner', 'admin', 'manager', 'cashier'] }] : []),
     { id: 'billing', name: t('nav.billing'), icon: FaCreditCard, href: '/billing', color: '#06b6d4', roles: ['owner', 'admin'] },
     // --- Tools & Extras ---
     { id: 'invoice', name: t('nav.invoice'), icon: FaFileInvoice, href: '/invoice', color: '#0ea5e9', roles: ['owner', 'admin', 'manager'] },

@@ -114,13 +114,19 @@ const OrderEditModal = ({
   // Add item to order
   const addItemToOrder = (menuItem) => {
     if (!order) return;
-    
-    const existingItem = order.items.find(item => item.menuItemId === menuItem.id);
-    
+
+    // Match by menuItemId + variant name so different variants (e.g., Half/Full)
+    // of the same item are treated as separate line items
+    const existingItem = order.items.find(item => {
+      if (item.menuItemId !== menuItem.id) return false;
+      // Only merge if both have no variant (base item match)
+      return !item.selectedVariant?.name && !menuItem.selectedVariant?.name;
+    });
+
     if (existingItem) {
       // Update existing item quantity
       const updatedItems = order.items.map(item =>
-        item.menuItemId === menuItem.id
+        item.menuItemId === menuItem.id && !item.selectedVariant?.name
           ? { ...item, quantity: item.quantity + 1, total: item.price * (item.quantity + 1) }
           : item
       );
@@ -136,24 +142,30 @@ const OrderEditModal = ({
         shortCode: menuItem.shortCode || null,
         notes: '',
         category: menuItem.category || null,
-        isVeg: menuItem.isVeg || false
+        isVeg: menuItem.isVeg || false,
+        selectedVariant: menuItem.selectedVariant || null,
+        selectedCustomizations: menuItem.selectedCustomizations || [],
+        basePrice: parseFloat(menuItem.price),
       };
       setOrder({ ...order, items: [...order.items, newItem] });
     }
   };
 
-  // Update item quantity
-  const updateItemQuantity = (menuItemId, newQuantity) => {
+  // Update item quantity — uses variant name to distinguish same item with different variants
+  const updateItemQuantity = (menuItemId, newQuantity, variantName = null) => {
     if (!order || newQuantity < 0) return;
-    
+
+    const matchItem = (item) =>
+      item.menuItemId === menuItemId && (item.selectedVariant?.name || null) === variantName;
+
     if (newQuantity === 0) {
       // Remove item
-      const updatedItems = order.items.filter(item => item.menuItemId !== menuItemId);
+      const updatedItems = order.items.filter(item => !matchItem(item));
       setOrder({ ...order, items: updatedItems });
     } else {
       // Update quantity
       const updatedItems = order.items.map(item =>
-        item.menuItemId === menuItemId
+        matchItem(item)
           ? { ...item, quantity: newQuantity, total: item.price * newQuantity }
           : item
       );
@@ -231,8 +243,16 @@ const OrderEditModal = ({
         const updateData = {
           items: order.items.map(item => ({
             menuItemId: item.menuItemId,
+            name: item.name,
             quantity: item.quantity,
-            notes: item.notes || ''
+            price: item.price,
+            basePrice: item.basePrice || item.price,
+            notes: item.notes || '',
+            selectedVariant: item.selectedVariant || null,
+            selectedCustomizations: item.selectedCustomizations || [],
+            category: item.category || '',
+            priceEdited: item.priceEdited || false,
+            isCustomItem: item.isCustomItem || false,
           })),
           orderType,
           paymentMethod: isSplitOrder ? 'split' : paymentMethod,
@@ -447,7 +467,7 @@ const OrderEditModal = ({
                             </div>
                             <div className="flex items-center gap-2">
                               <button
-                                onClick={() => updateItemQuantity(item.menuItemId, item.quantity - 1)}
+                                onClick={() => updateItemQuantity(item.menuItemId, item.quantity - 1, item.selectedVariant?.name || null)}
                                 className="p-1 text-gray-400 hover:text-gray-600"
                               >
                                 <FaMinus size={12} />
@@ -456,13 +476,13 @@ const OrderEditModal = ({
                                 {item.quantity}
                               </span>
                               <button
-                                onClick={() => updateItemQuantity(item.menuItemId, item.quantity + 1)}
+                                onClick={() => updateItemQuantity(item.menuItemId, item.quantity + 1, item.selectedVariant?.name || null)}
                                 className="p-1 text-gray-400 hover:text-gray-600"
                               >
                                 <FaPlus size={12} />
                               </button>
                               <button
-                                onClick={() => updateItemQuantity(item.menuItemId, 0)}
+                                onClick={() => updateItemQuantity(item.menuItemId, 0, item.selectedVariant?.name || null)}
                                 className="p-1 text-red-400 hover:text-red-600 ml-2"
                               >
                                 <FaTrash size={12} />

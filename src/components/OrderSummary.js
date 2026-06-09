@@ -9,6 +9,7 @@ import useCustomerLookup, { getPhoneMinLength } from '../hooks/useCustomerLookup
 import useOfferEngine, { calculateDiscountForOffer } from '../hooks/useOfferEngine';
 import { getKOTPrintCSS, buildTokenSlipHTML, buildTokenSlipsDocumentHTML } from '../utils/printFontSizes';
 import { generateBillHTML, generateKOTHTML } from '../utils/printHtmlGenerator';
+import { buildSplitInvoice } from '../utils/printTemplates/helpers';
 import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '../utils/printBridge';
 
 const CustomerDetailModal = dynamic(() => import('./CustomerDetailModal'), { ssr: false });
@@ -60,7 +61,8 @@ import {
   FaPencilAlt,
   FaEdit,
   FaMapMarkerAlt,
-  FaExclamationTriangle
+  FaExclamationTriangle,
+  FaUsers
 } from 'react-icons/fa';
 
 const OrderSummary = ({
@@ -392,6 +394,14 @@ const OrderSummary = ({
   const [managerPin, setManagerPin] = useState('');
   const [partialPayAmount, setPartialPayAmount] = useState('');
   const [fullDueMode, setFullDueMode] = useState(false);
+
+  // Split Bill state (divide order among guests)
+  const [splitBillMode, setSplitBillMode] = useState(null); // 'equal' | 'by-item' | 'by-amount' | null
+  const [splitBillGuests, setSplitBillGuests] = useState(2);
+  const [splitBillSplits, setSplitBillSplits] = useState([]);
+  const [splitBillItemAssignments, setSplitBillItemAssignments] = useState({}); // { cartItemIndex: guestIndex }
+  const [splitBillAmounts, setSplitBillAmounts] = useState({}); // { guestIndex: amount string }
+  const [splitBillPaymentMethods, setSplitBillPaymentMethods] = useState({}); // { guestIndex: method }
 
   // Calculate service charge
   const calcServiceCharge = useCallback((discountedAmount) => {
@@ -727,31 +737,70 @@ const OrderSummary = ({
           items: invoice?.items || orderSuccess?.kotData?.items || [],
           currencySymbol,
         };
-        const invoiceContent = generateBillHTML(invoiceData, printSettings || {}, billLabels);
 
-        // Native (Tauri/Capacitor): use native print bridge — works offline
-        if (supportsNativeAutoPrint()) {
-          // Track printed order BEFORE printing to prevent duplicate from Pusher auto-print
-          const localOrderId = invoice?.id || invoice?.orderId;
-          if (localOrderId) {
-            window.__lastLocalPrintedBill = localOrderId;
-            window.__lastLocalPrintedTokens = localOrderId;
+        // Split Bill: print one receipt per guest
+        if (invoiceData.splitBill && invoiceData.splitBill.splits && invoiceData.splitBill.splits.length >= 2) {
+          const splitCount = invoiceData.splitBill.splits.length;
+          const allHtmlParts = [];
+          for (let si = 0; si < splitCount; si++) {
+            const guestInvoice = buildSplitInvoice(invoiceData, si);
+            if (guestInvoice) {
+              allHtmlParts.push(generateBillHTML(guestInvoice, printSettings || {}, billLabels));
+            }
           }
-          printDocument({ html: invoiceContent, type: 'bill', printSettings: printSettings || {} });
-          // Print food court tokens after bill on native (each token = separate print job with auto-cut)
-          printFoodCourtTokens(invoice?.restaurantId, invoice?.orderId || invoice?.id, { delay: 900 });
+          if (supportsNativeAutoPrint()) {
+            const localOrderId = invoice?.id || invoice?.orderId;
+            if (localOrderId) {
+              window.__lastLocalPrintedBill = localOrderId;
+              window.__lastLocalPrintedTokens = localOrderId;
+            }
+            allHtmlParts.forEach((html, i) => {
+              setTimeout(() => printDocument({ html, type: 'bill', printSettings: printSettings || {} }), i * 600);
+            });
+            printFoodCourtTokens(invoice?.restaurantId, invoice?.orderId || invoice?.id, { delay: splitCount * 600 + 900 });
+          } else {
+            // Web: combine all guest bills into one window with page breaks
+            const combined = allHtmlParts.join('<div style="page-break-before:always;"></div>');
+            const win = window.open('', '_blank', 'width=800,height=600');
+            if (win) {
+              invoicePrintWindowRef.current = win;
+              win.document.write(combined);
+              win.document.close();
+              win.focus();
+              setTimeout(() => {
+                win.print();
+                printFoodCourtTokens(invoice?.restaurantId, invoice?.orderId || invoice?.id, { delay: 900 });
+              }, 500);
+            }
+          }
         } else {
-          // Web: window.open + print dialog
-          const win = window.open('', '_blank', 'width=800,height=600');
-          if (win) {
-            invoicePrintWindowRef.current = win;
-            win.document.write(invoiceContent);
-            win.document.close();
-            win.focus();
-            setTimeout(() => {
-              win.print();
-              printFoodCourtTokens(invoice?.restaurantId, invoice?.orderId || invoice?.id, { delay: 900 });
-            }, 500);
+          // Normal single bill print
+          const invoiceContent = generateBillHTML(invoiceData, printSettings || {}, billLabels);
+
+          // Native (Tauri/Capacitor): use native print bridge — works offline
+          if (supportsNativeAutoPrint()) {
+            // Track printed order BEFORE printing to prevent duplicate from Pusher auto-print
+            const localOrderId = invoice?.id || invoice?.orderId;
+            if (localOrderId) {
+              window.__lastLocalPrintedBill = localOrderId;
+              window.__lastLocalPrintedTokens = localOrderId;
+            }
+            printDocument({ html: invoiceContent, type: 'bill', printSettings: printSettings || {} });
+            // Print food court tokens after bill on native (each token = separate print job with auto-cut)
+            printFoodCourtTokens(invoice?.restaurantId, invoice?.orderId || invoice?.id, { delay: 900 });
+          } else {
+            // Web: window.open + print dialog
+            const win = window.open('', '_blank', 'width=800,height=600');
+            if (win) {
+              invoicePrintWindowRef.current = win;
+              win.document.write(invoiceContent);
+              win.document.close();
+              win.focus();
+              setTimeout(() => {
+                win.print();
+                printFoodCourtTokens(invoice?.restaurantId, invoice?.orderId || invoice?.id, { delay: 900 });
+              }, 500);
+            }
           }
         }
       }, 800);
@@ -1591,6 +1640,7 @@ const OrderSummary = ({
     if (localTaxData.tipPercentage != null) invoiceData.tipPercentage = localTaxData.tipPercentage;
     if (localTaxData.roundOffAmount != null) invoiceData.roundOffAmount = localTaxData.roundOffAmount;
     if (localTaxData.splitPayments) invoiceData.splitPayments = localTaxData.splitPayments;
+    if (localTaxData.splitBill) invoiceData.splitBill = localTaxData.splitBill;
     if (localTaxData.cashReceived != null) invoiceData.cashReceived = localTaxData.cashReceived;
     if (localTaxData.changeReturned != null) invoiceData.changeReturned = localTaxData.changeReturned;
     if (localTaxData.partialPayAmount != null) {
@@ -1680,6 +1730,101 @@ const OrderSummary = ({
   } = useEcr(ecrSettings);
   const ecrEnabled = !!ecrSettings?.enabled;
 
+  // Calculate split bill splits with proportional tax/charges distribution
+  const calculateSplitBillData = useCallback(() => {
+    if (!splitBillMode) return null;
+    const total = grandTotal ?? getTotalAmount();
+    if (!total || total <= 0) return null;
+    const method = splitBillMode;
+    // For by-item, guest count is derived from max assignment index
+    const guestCount = method === 'by-item'
+      ? Math.max(2, ...Object.values(splitBillItemAssignments).map(g => g + 1), splitBillGuests)
+      : splitBillGuests;
+
+    // Build per-guest subtotals based on method
+    const guestSubtotals = [];
+    if (method === 'equal') {
+      const perGuest = Math.floor((total / guestCount) * 100) / 100;
+      for (let i = 0; i < guestCount; i++) {
+        guestSubtotals.push(i === guestCount - 1 ? Math.round((total - perGuest * (guestCount - 1)) * 100) / 100 : perGuest);
+      }
+    } else if (method === 'by-item') {
+      // Group cart items by guest assignment
+      for (let i = 0; i < guestCount; i++) guestSubtotals.push(0);
+      const cartItems = cart || [];
+      cartItems.forEach((item, idx) => {
+        const guest = splitBillItemAssignments[idx];
+        if (guest !== undefined && guest >= 0 && guest < guestCount) {
+          guestSubtotals[guest] += (item.price || 0) * (item.quantity || 1);
+        }
+      });
+      // Round
+      for (let i = 0; i < guestCount; i++) guestSubtotals[i] = Math.round(guestSubtotals[i] * 100) / 100;
+    } else if (method === 'by-amount') {
+      for (let i = 0; i < guestCount; i++) {
+        guestSubtotals.push(parseFloat(splitBillAmounts[i]) || 0);
+      }
+    }
+
+    const subtotalSum = guestSubtotals.reduce((a, b) => a + b, 0);
+    if (subtotalSum <= 0) return null;
+
+    // Proportionally distribute tax, service charge, tip, discount
+    const orderSubtotal = getTotalAmount();
+    const splits = guestSubtotals.map((gSub, i) => {
+      const proportion = orderSubtotal > 0 ? gSub / orderSubtotal : 1 / guestCount;
+      const gTax = Math.round((totalTax || 0) * proportion * 100) / 100;
+      const gSc = Math.round((serviceChargeAmount || 0) * proportion * 100) / 100;
+      const gTip = Math.round((tipAmount || 0) * proportion * 100) / 100;
+      const gDiscount = Math.round(((effectiveOfferDiscount || 0) + getManualDiscountAmount() + getLoyaltyDiscountAmount() + getCouponDiscountAmount()) * proportion * 100) / 100;
+      const gTaxBreakdown = (taxBreakdown || []).map(t => ({
+        name: t.name,
+        rate: t.rate,
+        amount: Math.round((t.amount || 0) * proportion * 100) / 100,
+        inclusive: t.inclusive,
+      }));
+      let gTotal = Math.round((gSub + gTax + gSc + gTip - gDiscount) * 100) / 100;
+      // For by-amount, use the custom amount directly as totalAmount
+      if (method === 'by-amount') {
+        gTotal = parseFloat(splitBillAmounts[i]) || 0;
+      }
+      const pm = splitBillPaymentMethods[i] || 'cash';
+      return {
+        guestIndex: i,
+        guestLabel: `Guest ${i + 1}`,
+        items: method === 'by-item' ? (cart || []).filter((_, idx) => splitBillItemAssignments[idx] === i).map(item => ({
+          name: item.name,
+          quantity: item.quantity || 1,
+          price: item.price || 0,
+          total: (item.price || 0) * (item.quantity || 1),
+          selectedVariant: item.selectedVariant || null,
+          selectedCustomizations: item.selectedCustomizations || [],
+        })) : null,
+        subtotal: gSub,
+        proportion: Math.round(proportion * 10000) / 10000,
+        taxAmount: gTax,
+        taxBreakdown: gTaxBreakdown,
+        serviceChargeAmount: gSc,
+        tipAmount: gTip,
+        discountAmount: gDiscount,
+        totalAmount: gTotal,
+        paymentMethod: pm,
+        paid: false,
+      };
+    });
+
+    // Absorb rounding remainder in last guest for equal/by-item
+    if (method !== 'by-amount') {
+      const splitsTotal = splits.reduce((s, sp) => s + sp.totalAmount, 0);
+      const diff = Math.round((total - splitsTotal) * 100) / 100;
+      if (Math.abs(diff) > 0 && splits.length > 0) {
+        splits[splits.length - 1].totalAmount = Math.round((splits[splits.length - 1].totalAmount + diff) * 100) / 100;
+      }
+    }
+
+    return { method, guestCount, splits };
+  }, [splitBillMode, splitBillGuests, splitBillItemAssignments, splitBillAmounts, splitBillPaymentMethods, grandTotal, cart, totalTax, taxBreakdown, serviceChargeAmount, tipAmount, effectiveOfferDiscount]);
+
   // Build tax data helper (shared by Place Order, Complete Billing, and UPI confirm)
   const buildTaxData = () => {
     const cashReceivedNum = parseFloat(cashReceived) || 0;
@@ -1739,6 +1884,7 @@ const OrderSummary = ({
       deliveryAddress: orderType === 'delivery' ? (deliveryAddress || null) : null,
       walletRedeemAmount: useWallet && parseFloat(walletRedeemAmount) > 0 ? Math.min(parseFloat(walletRedeemAmount), grandTotal ?? getTotalAmount()) : null,
       walletCustomerId: useWallet && parseFloat(walletRedeemAmount) > 0 ? customerData?.id : null,
+      splitBill: splitBillMode ? calculateSplitBillData() : null,
     };
   };
 
@@ -3190,7 +3336,18 @@ const OrderSummary = ({
                         items: invoice?.items || orderSuccess?.kotData?.items || [],
                         currencySymbol,
                       };
-                      const invoiceContent = generateBillHTML(invoiceData, printSettings || {}, manualBillLabels);
+                      // Split Bill: combine per-guest receipts with page breaks
+                      let invoiceContent;
+                      if (invoiceData.splitBill?.splits?.length >= 2) {
+                        const parts = [];
+                        for (let si = 0; si < invoiceData.splitBill.splits.length; si++) {
+                          const gi = buildSplitInvoice(invoiceData, si);
+                          if (gi) parts.push(generateBillHTML(gi, printSettings || {}, manualBillLabels));
+                        }
+                        invoiceContent = parts.join('<div style="page-break-before:always;"></div>');
+                      } else {
+                        invoiceContent = generateBillHTML(invoiceData, printSettings || {}, manualBillLabels);
+                      }
                       win.document.write(invoiceContent);
                       win.document.close();
                       win.focus();
@@ -3754,12 +3911,21 @@ const OrderSummary = ({
                       <FaTimes size={8} />
                     </button>
                     
-                    {/* Quantity Controls */}
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      backgroundColor: 'white', 
-                      borderRadius: '6px', 
+                    {/* Quantity Controls (or weight display for sold-by-weight items) */}
+                    {item.soldByWeight ? (
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '4px',
+                        backgroundColor: '#fefce8', borderRadius: '6px', border: '1px solid #fde047',
+                        padding: '2px 8px', fontSize: '11px', fontWeight: '600', color: '#854d0e',
+                      }}>
+                        ⚖️ {item.itemWeight || 0} {item.weightUnit || 'kg'}
+                      </div>
+                    ) : (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      backgroundColor: 'white',
+                      borderRadius: '6px',
                       border: '1px solid #e5e7eb',
                       boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                       gap: '2px'
@@ -3845,6 +4011,7 @@ const OrderSummary = ({
                         <FaPlus size={8} />
                       </button>
                     </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -4694,6 +4861,7 @@ const OrderSummary = ({
           {(() => {
             const billingTools = [
               billingSettings.cashTenderingEnabled && isRoleAllowed(billingSettings.cashTenderingRoles) && paymentMethod === 'cash' && { id: 'cash', icon: FaMoneyBillWave, label: 'Cash', color: '#10b981' },
+              billingSettings.splitBillEnabled && isRoleAllowed(billingSettings.splitBillRoles) && { id: 'splitBill', icon: FaUsers, label: 'Split Bill', color: '#0ea5e9' },
               billingSettings.splitPaymentEnabled && isRoleAllowed(billingSettings.splitPaymentRoles) && (() => {
                 // Placement gating:
                 // - billingMode=true  → orderhistory Complete flow → show only if settlementShowOnOrderHistory
@@ -4723,12 +4891,26 @@ const OrderSummary = ({
                     const hasValue = (tool.id === 'cash' && cashReceived) ||
                       (tool.id === 'tip' && tipAmount > 0) ||
                       (tool.id === 'split' && splitPayments.some(sp => sp.amount > 0)) ||
+                      (tool.id === 'splitBill' && splitBillMode) ||
                       (tool.id === 'partial' && (parseFloat(partialPayAmount) > 0 || fullDueMode)) ||
                       ((tool.id === 'comp' || tool.id === 'void') && compVoidItems.length > 0);
                     return (
                       <button
                         key={tool.id}
-                        onClick={() => setActiveBillingPanel(isActive ? null : tool.id)}
+                        onClick={() => {
+                          if (isActive) {
+                            setActiveBillingPanel(null);
+                          } else {
+                            // Initialize splitBill default method when opening the panel
+                            if (tool.id === 'splitBill' && !splitBillMode) {
+                              setSplitBillMode(billingSettings.splitBillDefaultMethod || 'equal');
+                              const defaults = {};
+                              for (let i = 0; i < splitBillGuests; i++) defaults[i] = 'cash';
+                              setSplitBillPaymentMethods(defaults);
+                            }
+                            setActiveBillingPanel(tool.id);
+                          }
+                        }}
                         style={{
                           flex: 1,
                           padding: '6px 4px',
@@ -4840,6 +5022,243 @@ const OrderSummary = ({
                         </span>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Split Bill Panel */}
+                {activeBillingPanel === 'splitBill' && (
+                  <div style={{
+                    background: '#f0f9ff',
+                    border: '1px solid #bae6fd',
+                    borderRadius: '10px',
+                    padding: '12px',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#0369a1' }}>
+                        Split Bill — Total: {formatCurrency(grandTotal)}
+                      </div>
+                      {splitBillMode && (
+                        <button onClick={() => {
+                          setSplitBillMode(null);
+                          setSplitBillSplits([]);
+                          setSplitBillItemAssignments({});
+                          setSplitBillAmounts({});
+                          setSplitBillPaymentMethods({});
+                        }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '10px', fontWeight: 600 }}>
+                          Clear
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Method selector tabs */}
+                    <div style={{ display: 'flex', gap: '4px', marginBottom: '10px' }}>
+                      {[{ id: 'equal', label: 'Equal' }, { id: 'by-item', label: 'By Item' }, { id: 'by-amount', label: 'By Amount' }].map(m => (
+                        <button key={m.id}
+                          onClick={() => {
+                            setSplitBillMode(m.id);
+                            if (!splitBillPaymentMethods[0]) {
+                              const defaults = {};
+                              for (let i = 0; i < splitBillGuests; i++) defaults[i] = 'cash';
+                              setSplitBillPaymentMethods(defaults);
+                            }
+                          }}
+                          style={{
+                            flex: 1, padding: '5px 6px', fontSize: '10px', fontWeight: 600, borderRadius: '6px',
+                            cursor: 'pointer', border: 'none', transition: 'all 0.15s',
+                            background: splitBillMode === m.id ? '#0ea5e9' : '#e0f2fe',
+                            color: splitBillMode === m.id ? '#fff' : '#0369a1',
+                          }}
+                        >
+                          {m.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Guest count stepper (for equal & by-amount) */}
+                    {splitBillMode && splitBillMode !== 'by-item' && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: '#0369a1' }}>Guests:</span>
+                        <button onClick={() => setSplitBillGuests(Math.max(2, splitBillGuests - 1))}
+                          style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid #bae6fd', background: '#e0f2fe', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, color: '#0369a1' }}>
+                          −
+                        </button>
+                        <span style={{ fontSize: '14px', fontWeight: 700, color: '#0c4a6e', minWidth: '20px', textAlign: 'center' }}>{splitBillGuests}</span>
+                        <button onClick={() => setSplitBillGuests(Math.min(billingSettings.splitBillMaxGuests || 10, splitBillGuests + 1))}
+                          style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid #bae6fd', background: '#e0f2fe', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, color: '#0369a1' }}>
+                          +
+                        </button>
+                      </div>
+                    )}
+
+                    {/* EQUAL SPLIT */}
+                    {splitBillMode === 'equal' && (() => {
+                      const total = grandTotal ?? 0;
+                      const perGuest = Math.floor((total / splitBillGuests) * 100) / 100;
+                      const lastGuest = Math.round((total - perGuest * (splitBillGuests - 1)) * 100) / 100;
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {Array.from({ length: splitBillGuests }).map((_, i) => {
+                            const amt = i === splitBillGuests - 1 ? lastGuest : perGuest;
+                            return (
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px', background: 'white', borderRadius: '6px', border: '1px solid #e0f2fe' }}>
+                                <span style={{ fontSize: '11px', fontWeight: 600, color: '#0369a1', minWidth: '54px' }}>Guest {i + 1}</span>
+                                <span style={{ flex: 1, fontSize: '12px', fontWeight: 700, color: '#0c4a6e' }}>{formatCurrency(amt)}</span>
+                                <select value={splitBillPaymentMethods[i] || 'cash'}
+                                  onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
+                                  style={{ padding: '3px 6px', border: '1px solid #bae6fd', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: 'white', outline: 'none' }}
+                                >
+                                  {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
+                                    .filter(m => m.enabled).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+                                </select>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+
+                    {/* BY ITEM SPLIT */}
+                    {splitBillMode === 'by-item' && (() => {
+                      const maxGuests = billingSettings.splitBillMaxGuests || 10;
+                      const guestCount = Math.max(2, ...Object.values(splitBillItemAssignments).map(g => g + 1), 2);
+                      const cartItems = cart || [];
+                      const guestColors = ['#0ea5e9', '#8b5cf6', '#f59e0b', '#10b981', '#ec4899', '#6366f1', '#f97316', '#14b8a6', '#e11d68', '#84cc16'];
+                      const guestTotals = {};
+                      cartItems.forEach((item, idx) => {
+                        const g = splitBillItemAssignments[idx];
+                        if (g !== undefined) {
+                          guestTotals[g] = (guestTotals[g] || 0) + (item.price || 0) * (item.quantity || 1);
+                        }
+                      });
+                      const allAssigned = cartItems.length > 0 && cartItems.every((_, idx) => splitBillItemAssignments[idx] !== undefined);
+                      return (
+                        <div>
+                          {/* Guest tabs */}
+                          <div style={{ display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                            {Array.from({ length: guestCount }).map((_, i) => (
+                              <div key={i} style={{
+                                padding: '3px 8px', borderRadius: '12px', fontSize: '9px', fontWeight: 700,
+                                background: `${guestColors[i % guestColors.length]}18`,
+                                color: guestColors[i % guestColors.length],
+                                border: `1px solid ${guestColors[i % guestColors.length]}40`,
+                              }}>
+                                G{i + 1}: {formatCurrency(guestTotals[i] || 0)}
+                              </div>
+                            ))}
+                            {guestCount < maxGuests && (
+                              <button onClick={() => {
+                                // Assign next unassigned item to new guest to create it
+                                const nextIdx = cartItems.findIndex((_, idx) => splitBillItemAssignments[idx] === undefined);
+                                if (nextIdx >= 0) setSplitBillItemAssignments(prev => ({ ...prev, [nextIdx]: guestCount }));
+                                else setSplitBillItemAssignments(prev => ({ ...prev }));
+                                setSplitBillGuests(guestCount + 1);
+                              }}
+                                style={{ padding: '3px 8px', borderRadius: '12px', fontSize: '9px', fontWeight: 600, background: '#f1f5f9', color: '#64748b', border: '1px dashed #cbd5e1', cursor: 'pointer' }}>
+                                + Guest
+                              </button>
+                            )}
+                          </div>
+                          {/* Item list with assignment */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '200px', overflowY: 'auto' }}>
+                            {cartItems.map((item, idx) => {
+                              const assignedGuest = splitBillItemAssignments[idx];
+                              const gColor = assignedGuest !== undefined ? guestColors[assignedGuest % guestColors.length] : '#94a3b8';
+                              return (
+                                <div key={idx}
+                                  onClick={() => {
+                                    // Cycle through guests on tap
+                                    const next = assignedGuest === undefined ? 0 : (assignedGuest + 1) % Math.max(guestCount, 2);
+                                    setSplitBillItemAssignments(prev => ({ ...prev, [idx]: next }));
+                                  }}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 8px', background: 'white',
+                                    borderRadius: '6px', border: `1px solid ${gColor}40`, cursor: 'pointer', transition: 'all 0.15s',
+                                  }}>
+                                  <div style={{
+                                    width: '20px', height: '20px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: '9px', fontWeight: 700, color: 'white', background: gColor,
+                                  }}>
+                                    {assignedGuest !== undefined ? `G${assignedGuest + 1}` : '?'}
+                                  </div>
+                                  <span style={{ flex: 1, fontSize: '11px', fontWeight: 500, color: '#374151' }}>
+                                    {item.name} {item.quantity > 1 ? `x${item.quantity}` : ''}
+                                  </span>
+                                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#0c4a6e' }}>
+                                    {formatCurrency((item.price || 0) * (item.quantity || 1))}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {!allAssigned && cartItems.length > 0 && (
+                            <div style={{ fontSize: '9px', color: '#dc2626', fontWeight: 600, marginTop: '6px' }}>
+                              Tap each item to assign to a guest
+                            </div>
+                          )}
+                          {/* Payment methods per guest */}
+                          {allAssigned && (
+                            <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {Array.from({ length: guestCount }).map((_, i) => (
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <span style={{ fontSize: '10px', fontWeight: 600, color: guestColors[i % guestColors.length], minWidth: '50px' }}>Guest {i + 1}</span>
+                                  <select value={splitBillPaymentMethods[i] || 'cash'}
+                                    onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
+                                    style={{ flex: 1, padding: '3px 6px', border: '1px solid #bae6fd', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: 'white', outline: 'none' }}
+                                  >
+                                    {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
+                                      .filter(m => m.enabled).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+                                  </select>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {/* BY AMOUNT SPLIT */}
+                    {splitBillMode === 'by-amount' && (() => {
+                      const total = grandTotal ?? 0;
+                      const amountSum = Object.values(splitBillAmounts).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+                      const remaining = Math.round((total - amountSum) * 100) / 100;
+                      const isBalanced = Math.abs(remaining) < 0.01;
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {Array.from({ length: splitBillGuests }).map((_, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px', background: 'white', borderRadius: '6px', border: '1px solid #e0f2fe' }}>
+                              <span style={{ fontSize: '11px', fontWeight: 600, color: '#0369a1', minWidth: '54px' }}>Guest {i + 1}</span>
+                              <input type="number" placeholder="Amount"
+                                value={splitBillAmounts[i] || ''}
+                                onChange={(e) => setSplitBillAmounts(prev => ({ ...prev, [i]: e.target.value }))}
+                                style={{ flex: 1, padding: '5px 8px', border: '1px solid #bae6fd', borderRadius: '6px', fontSize: '12px', fontWeight: 600, outline: 'none', background: 'white' }}
+                              />
+                              <select value={splitBillPaymentMethods[i] || 'cash'}
+                                onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
+                                style={{ padding: '3px 6px', border: '1px solid #bae6fd', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: 'white', outline: 'none' }}
+                              >
+                                {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
+                                  .filter(m => m.enabled).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+                              </select>
+                            </div>
+                          ))}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
+                            <button onClick={() => {
+                              // Auto-fill last guest with remaining
+                              const lastIdx = splitBillGuests - 1;
+                              const othersSum = Object.entries(splitBillAmounts).filter(([k]) => Number(k) !== lastIdx).reduce((s, [, v]) => s + (parseFloat(v) || 0), 0);
+                              const lastAmt = Math.max(0, Math.round((total - othersSum) * 100) / 100);
+                              setSplitBillAmounts(prev => ({ ...prev, [lastIdx]: String(lastAmt) }));
+                            }}
+                              style={{ fontSize: '10px', color: '#0369a1', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+                              Auto-fill last guest
+                            </button>
+                            <span style={{ fontSize: '11px', fontWeight: 700, color: isBalanced ? '#16a34a' : '#dc2626' }}>
+                              {isBalanced ? 'Balanced' : remaining > 0 ? `Remaining: ${formatCurrency(remaining)}` : `Exceeded: ${formatCurrency(Math.abs(remaining))}`}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 

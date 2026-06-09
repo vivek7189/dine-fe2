@@ -498,7 +498,7 @@ const CustomDropdown = ({ value, onChange, options, placeholder, style = {} }) =
 };
 
 // Ultra Compact Menu Item Card Component
-const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onGenerateRecipe, generatingRecipeFor, hasRecipe, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, taxInclusiveGlobal }) => {
+const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onGenerateRecipe, generatingRecipeFor, hasRecipe, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, taxInclusiveGlobal, compact }) => {
   const { formatCurrency: formatCurrencyHook } = useCurrency();
   const formatCurrency = formatCurrencyProp || formatCurrencyHook;
 
@@ -517,8 +517,120 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
   };
   const expiryStatus = getExpiryStatus(item.expiryDate);
 
+  // ── Compact mobile card ──
+  if (compact) {
+    const placeholderUrl = getDisplayImage(item);
+    return (
+      <div
+        onClick={() => onItemClick(item)}
+        style={{
+          backgroundColor: '#fff',
+          borderRadius: '12px',
+          border: '1px solid #e5e7eb',
+          overflow: 'hidden',
+          opacity: isOutOfStock ? 0.55 : 1,
+          cursor: 'pointer',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {/* Image */}
+        <div style={{ height: '90px', position: 'relative', overflow: 'hidden', background: '#f3f4f6' }}>
+          {(item.images && item.images.length > 0) ? (
+            <ImageCarousel images={item.images} itemName={item.name} maxHeight="90px" showControls={false} showDots={false} autoPlay={false} className="w-full h-full" />
+          ) : placeholderUrl ? (
+            <img src={placeholderUrl} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; }} />
+          ) : (
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: '28px' }}>{getCategoryEmoji(item.category)}</span>
+            </div>
+          )}
+          {/* Veg/Non-Veg */}
+          <div style={{
+            position: 'absolute', top: '6px', left: '6px',
+            width: '20px', height: '20px', borderRadius: '50%',
+            border: `2px solid ${item.isVeg ? '#22c55e' : '#ef4444'}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backgroundColor: '#fff', zIndex: 2
+          }}>
+            <div style={{ width: '7px', height: '7px', backgroundColor: item.isVeg ? '#22c55e' : '#ef4444', borderRadius: item.isVeg ? '1px' : '50%' }} />
+          </div>
+          {/* Out of stock */}
+          {!item.isAvailable && (
+            <div style={{
+              position: 'absolute', top: '6px', right: '6px',
+              background: 'rgba(220,38,38,0.9)', color: '#fff',
+              padding: '2px 6px', borderRadius: '8px', fontSize: '9px', fontWeight: '700', zIndex: 2
+            }}>
+              {t('menu.outOfStock')}
+            </div>
+          )}
+          {/* Favorite star */}
+          {item.isFavorite && (
+            <div style={{
+              position: 'absolute', bottom: '6px', right: '6px',
+              width: '20px', height: '20px', borderRadius: '50%',
+              background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2
+            }}>
+              <FaStar size={9} color="#fff" />
+            </div>
+          )}
+        </div>
+        {/* Content */}
+        <div style={{ padding: '8px 10px 10px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div>
+            <h3 style={{
+              fontSize: '13px', fontWeight: '600', color: '#1f2937', margin: 0,
+              lineHeight: '1.3', display: '-webkit-box', WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical', overflow: 'hidden'
+            }}>
+              {item.name}
+            </h3>
+            <span style={{
+              display: 'inline-block', marginTop: '4px',
+              fontSize: '10px', fontWeight: '500', color: '#9ca3af',
+              maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+            }}>
+              {categories.find(c => c.id === item.category)?.name || ''}
+            </span>
+          </div>
+          {/* Price + actions */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #f3f4f6' }}>
+            <span style={{ fontSize: '14px', fontWeight: '700', color: '#111' }}>
+              {formatCurrency(item.price)}
+            </span>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              {onToggleAvailability && (
+                <button type="button" onClick={(e) => { e.stopPropagation(); onToggleAvailability(item.id, item.isAvailable); }}
+                  style={{
+                    padding: '5px', border: 'none', borderRadius: '6px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: item.isAvailable ? 'linear-gradient(135deg, #f97316, #ea580c)' : 'linear-gradient(135deg, #22c55e, #16a34a)',
+                    color: '#fff',
+                  }}>
+                  {item.isAvailable ? <FaMinus size={10} /> : <FaCheck size={10} />}
+                </button>
+              )}
+              {onEdit && (
+                <button type="button" onClick={(e) => { e.stopPropagation(); onEdit(item); }}
+                  style={{
+                    padding: '5px', border: 'none', borderRadius: '6px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: '#fff',
+                  }}>
+                  <FaEdit size={10} />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div 
+    <div
       style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
@@ -2033,6 +2145,8 @@ const MenuManagement = () => {
     isStockManaged: false,
     lowStockThreshold: 5,
     stockUnit: 'pcs',
+    soldByWeight: false,
+    priceUnit: 'per_kg',
     variants: [],
     customizations: [],
     generateRecipe: true,
@@ -2249,6 +2363,7 @@ const MenuManagement = () => {
         const userData = localStorage.getItem('user');
         if (!userData) {
           console.log('❌ Menu: No user data found, redirecting to login');
+          if (typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__) return;
           router.push('/login');
           return;
         }
@@ -2694,6 +2809,8 @@ const MenuManagement = () => {
       lowStockThreshold: item.lowStockThreshold ?? 5,
       stockUnit: item.stockUnit || 'pcs',
       deductionQuantity: item.deductionQuantity ?? 1,
+      soldByWeight: item.soldByWeight || false,
+      priceUnit: item.priceUnit || 'per_kg',
       variants: item.variants || [],
       customizations: item.customizations || [],
       spiritCategory: item.spiritCategory || '',
@@ -3149,6 +3266,8 @@ const MenuManagement = () => {
       isStockManaged: false,
       lowStockThreshold: 5,
       stockUnit: 'pcs',
+      soldByWeight: false,
+      priceUnit: 'per_kg',
       variants: [],
       customizations: [],
       generateRecipe: true,
@@ -3606,7 +3725,7 @@ const MenuManagement = () => {
           marginBottom: '14px'
         }}>
           {/* Title row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', paddingLeft: isMobile ? '48px' : '0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', paddingLeft: isMobile && !(typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__) ? '48px' : '0' }}>
             <div>
               <h1 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
                 {t('menu.title')}
@@ -3651,7 +3770,7 @@ const MenuManagement = () => {
               { icon: <FaCloudUploadAlt size={16} />, label: t('menu.upload'), onClick: () => setShowBulkUpload(true), bg: '#fef2f2', color: '#dc2626', hoverBg: '#fee2e2', border: '#fecaca' },
               { icon: <FaCamera size={16} />, label: t('menu.photo'), onClick: handleCameraCapture, bg: '#fffbeb', color: '#d97706', hoverBg: '#fef3c7', border: '#fde68a' },
               { icon: <FaQrcode size={16} />, label: t('menu.qrCode'), onClick: () => setShowQRCodeModal(true), bg: '#ecfdf5', color: '#059669', hoverBg: '#d1fae5', border: '#a7f3d0' },
-              { icon: <FaEye size={16} />, label: t('menu.customize'), onClick: () => { const rid = currentRestaurant?.id || localStorage.getItem('restaurantId'); router.push(`/menu/customize${rid ? `?restaurant=${rid}` : ''}`); }, bg: '#eff6ff', color: '#2563eb', hoverBg: '#dbeafe', border: '#bfdbfe' },
+              { icon: <FaEye size={16} />, label: t('menu.customize'), onClick: () => { const rid = currentRestaurant?.id || localStorage.getItem('restaurantId'); const p = `/menu/customize${rid ? `?restaurant=${rid}` : ''}`; router.push(typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__ ? `/mobile${p}` : p); }, bg: '#eff6ff', color: '#2563eb', hoverBg: '#dbeafe', border: '#bfdbfe' },
             ].map((action, i) => (
               <button
                 key={i}
@@ -3992,8 +4111,8 @@ const MenuManagement = () => {
             {viewMode === 'grid' ? (
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-              gap: '24px',
+              gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(320px, 1fr))',
+              gap: isMobile ? '10px' : '24px',
               padding: '0'
             }}>
               {filteredItems.map((item, index) => (
@@ -4019,6 +4138,7 @@ const MenuManagement = () => {
                   activePricingRules={activePricingRules}
                   formatCurrency={formatCurrency}
                   taxInclusiveGlobal={currentRestaurant?.taxSettings?.taxInclusivePricing}
+                  compact={isMobile}
                 />
                 </div>
               ))}
@@ -4865,7 +4985,7 @@ const MenuManagement = () => {
 
                   <p style={{ fontSize: '11px', color: '#94a3b8', margin: '8px 0 0' }}>
                     {t('menu.emptyZonesInfo')}{' '}
-                    <span onClick={() => router.push('/admin')} style={{ color: '#ef4444', cursor: 'pointer', fontWeight: '600' }}>{t('menu.adminPricingRules')}</span>
+                    <span onClick={() => router.push(typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__ ? '/mobile/admin' : '/admin')} style={{ color: '#ef4444', cursor: 'pointer', fontWeight: '600' }}>{t('menu.adminPricingRules')}</span>
                   </p>
                 </div>
 
@@ -5171,6 +5291,47 @@ const MenuManagement = () => {
                       </div>
                       <p style={{ fontSize: '10px', color: '#6b7280', margin: '8px 0 0 0' }}>
                         Each sale of this item will deduct {formData.deductionQuantity || 1} {formData.stockUnit || 'pcs'} from inventory. No recipe needed for direct items.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+              {/* Sold by Weight */}
+                <div style={{ marginBottom: '16px', padding: '12px 14px', backgroundColor: formData.soldByWeight ? '#fefce8' : '#f0f9ff', borderRadius: '10px', border: `1px solid ${formData.soldByWeight ? '#fde047' : '#bae6fd'}`, transition: 'all 0.2s ease' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: formData.soldByWeight ? '12px' : '0' }}>
+                    <input
+                      type="checkbox"
+                      id="soldByWeight"
+                      checked={formData.soldByWeight || false}
+                      onChange={(e) => setFormData(prev => ({...prev, soldByWeight: e.target.checked}))}
+                      style={{ width: '16px', height: '16px', accentColor: formData.soldByWeight ? '#ca8a04' : '#0284c7', cursor: 'pointer', flexShrink: 0 }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <label htmlFor="soldByWeight" style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: formData.soldByWeight ? '#854d0e' : '#0c4a6e', cursor: 'pointer' }}>
+                        Sold by Weight
+                      </label>
+                      <p style={{ fontSize: '11px', color: formData.soldByWeight ? '#a16207' : '#0369a1', margin: '2px 0 0 0' }}>
+                        {formData.soldByWeight ? 'Price is calculated based on weight from the scale' : 'Enable for items priced per kg/lb (requires weighing scale)'}
+                      </p>
+                    </div>
+                    {formData.soldByWeight && (
+                      <span style={{ fontSize: '11px', fontWeight: '600', color: '#ca8a04', backgroundColor: '#fef9c3', padding: '2px 8px', borderRadius: '4px' }}>⚖️ Active</span>
+                    )}
+                  </div>
+                  {formData.soldByWeight && (
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <label style={{ fontSize: '11px', fontWeight: '500', color: '#374151' }}>Price Unit:</label>
+                      <select
+                        value={formData.priceUnit || 'per_kg'}
+                        onChange={(e) => setFormData(prev => ({...prev, priceUnit: e.target.value}))}
+                        style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '12px', backgroundColor: 'white' }}
+                      >
+                        <option value="per_kg">per kg</option>
+                        <option value="per_100g">per 100g</option>
+                        <option value="per_lb">per lb</option>
+                      </select>
+                      <p style={{ fontSize: '10px', color: '#6b7280', margin: 0 }}>
+                        Price entered above = {formData.priceUnit === 'per_100g' ? '₹/100g' : formData.priceUnit === 'per_lb' ? '₹/lb' : '₹/kg'}
                       </p>
                     </div>
                   )}

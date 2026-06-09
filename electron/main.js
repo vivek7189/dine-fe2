@@ -592,6 +592,199 @@ ipcMain.handle('electron:ecrRequest', async (_event, { url, method, body, timeou
   });
 });
 
+// ──── IPC: Weighing Scale (Serial Port) ────
+// Communicates with USB/RS-232 weighing scales via serial port.
+// Scales typically send continuous ASCII weight data like: "ST,GS,+  0.450 kg\r\n"
+
+let scalePort = null;        // SerialPort instance
+let scaleBuffer = '';         // Incoming data buffer
+let lastScaleReading = null;  // { weight, unit, stable, timestamp }
+let scaleError = null;        // Last error message
+
+function parseScaleData(raw) {
+  // Common scale data formats:
+  // "ST,GS,+  0.450 kg\r\n"  (stable, gross, positive)
+  // "US,GS,+  0.450 kg\r\n"  (unstable)
+  // "S S     0.450 kg\r\n"   (stable, simple format)
+  // "  0.450 kg\r\n"         (minimal format)
+  // "OL"                     (overload)
+  const lines = raw.split(/[\r\n]+/).filter(Boolean);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed === 'OL') continue;
+
+    // Detect stability: ST or first field "S" = stable
+    const stable = /^(ST|S\s)/.test(trimmed) || !/^(US|U\s)/.test(trimmed);
+
+    // Extract numeric weight and unit
+    const match = trimmed.match(/([-+]?\s*[\d]+\.?\d*)\s*(kg|g|lb|oz)?/i);
+    if (match) {
+      const weight = parseFloat(match[1].replace(/\s/g, ''));
+      const unit = (match[2] || 'kg').toLowerCase();
+      if (!isNaN(weight)) {
+        return { weight, unit, stable, timestamp: Date.now() };
+      }
+    }
+  }
+  return null;
+}
+
+ipcMain.handle('electron:scaleListPorts', async () => {
+  try {
+    const { SerialPort } = require('serialport');
+    const ports = await SerialPort.list();
+    return { success: true, ports };
+  } catch (err) {
+    return { success: false, error: err.message, ports: [] };
+  }
+});
+
+ipcMain.handle('electron:scaleConnect', async (_event, { port: portPath, baudRate }) => {
+  try {
+    // Close existing connection if any
+    if (scalePort && scalePort.isOpen) {
+      scalePort.close();
+    }
+    scalePort = null;
+    scaleBuffer = '';
+    lastScaleReading = null;
+    scaleError = null;
+
+    const { SerialPort } = require('serialport');
+    scalePort = new SerialPort({
+      path: portPath,
+      baudRate: baudRate || 9600,
+      dataBits: 8,
+      parity: 'none',
+      stopBits: 1,
+      autoOpen: false,
+    });
+
+    return new Promise((resolve) => {
+      scalePort.open((err) => {
+        if (err) {
+          scaleError = err.message;
+          scalePort = null;
+          resolve({ success: false, error: err.message });
+          return;
+        }
+
+        console.log('[Scale] Connected to', portPath, 'at', baudRate || 9600, 'baud');
+
+        // Save settings
+        const settings = loadSettings();
+        settings.scalePort = portPath;
+        settings.scaleBaudRate = baudRate || 9600;
+        settings.scaleEnabled = true;
+        saveSettings(settings);
+
+        attachScaleListeners(scalePort);
+        resolve({ success: true, port: portPath, baudRate: baudRate || 9600 });
+      });
+    });
+  } catch (err) {
+    scaleError = err.message;
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('electron:scaleDisconnect', async () => {
+  try {
+    if (scalePort && scalePort.isOpen) {
+      scalePort.close();
+    }
+    scalePort = null;
+    scaleBuffer = '';
+    lastScaleReading = null;
+    scaleError = null;
+    console.log('[Scale] Disconnected');
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('electron:scaleGetWeight', async () => {
+  if (!scalePort || !scalePort.isOpen) {
+    return { success: false, error: 'Scale not connected', reading: null };
+  }
+  return { success: true, reading: lastScaleReading };
+});
+
+ipcMain.handle('electron:scaleGetStatus', async () => {
+  const settings = loadSettings();
+  return {
+    connected: !!(scalePort && scalePort.isOpen),
+    port: settings.scalePort || null,
+    baudRate: settings.scaleBaudRate || 9600,
+    enabled: settings.scaleEnabled || false,
+    error: scaleError,
+    lastReading: lastScaleReading,
+  };
+});
+
+// Auto-connect to scale on startup if previously configured
+function autoConnectScale() {
+  setTimeout(async () => {
+    const settings = loadSettings();
+    if (!settings.scaleEnabled || !settings.scalePort) return;
+    console.log('[Scale] Auto-connecting to', settings.scalePort);
+    try {
+      const { SerialPort } = require('serialport');
+      const ports = await SerialPort.list();
+      if (!ports.some(p => p.path === settings.scalePort)) {
+        console.log('[Scale] Port', settings.scalePort, 'not found — skipping auto-connect');
+        return;
+      }
+      scalePort = new SerialPort({
+        path: settings.scalePort,
+        baudRate: settings.scaleBaudRate || 9600,
+        dataBits: 8, parity: 'none', stopBits: 1,
+      });
+      attachScaleListeners(scalePort);
+      console.log('[Scale] Auto-connected to', settings.scalePort);
+    } catch (err) {
+      console.error('[Scale] Auto-connect failed:', err.message);
+      scaleError = err.message;
+    }
+  }, 3000);
+}
+
+function attachScaleListeners(port) {
+  port.on('data', (data) => {
+    scaleBuffer += data.toString('ascii');
+    while (scaleBuffer.includes('\n') || scaleBuffer.includes('\r')) {
+      const lineEnd = Math.max(scaleBuffer.indexOf('\n'), scaleBuffer.indexOf('\r'));
+      const chunk = scaleBuffer.substring(0, lineEnd + 1);
+      scaleBuffer = scaleBuffer.substring(lineEnd + 1);
+      const reading = parseScaleData(chunk);
+      if (reading) {
+        lastScaleReading = reading;
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('scale-weight', reading);
+        }
+      }
+    }
+    if (scaleBuffer.length > 1024) scaleBuffer = scaleBuffer.slice(-256);
+  });
+  port.on('error', (err) => {
+    console.error('[Scale] Port error:', err.message);
+    scaleError = err.message;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('scale-weight', { error: err.message, connected: false });
+    }
+  });
+  port.on('close', () => {
+    console.log('[Scale] Port closed');
+    scalePort = null;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('scale-weight', { error: 'Port closed', connected: false });
+    }
+  });
+}
+
+app.whenReady().then(() => autoConnectScale());
+
 // ──── IPC: Open external URL in system browser (for desktop auth flow) ────
 
 ipcMain.handle('electron:openExternal', async (_event, url) => {

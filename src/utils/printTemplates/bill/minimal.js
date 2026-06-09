@@ -5,7 +5,7 @@ import {
   esc, getBillLabels, buildIdentityHtml,
   buildChargesHtml, buildPaymentHtml, buildEcrPaymentHtml, buildDeliveryAddressHtml, calcGrandTotal, formatDateTime,
   getPrintFontSizes, getContentWidth, wrapInDocument, buildInclusiveTaxNote,
-  buildFeedbackSection,
+  buildFeedbackSection, buildSplitBillHtml,
   BILL_LABELS_AR, getBillDualCSS, dualLabel, dualTitle, dualItemName,
 } from '../helpers';
 
@@ -86,7 +86,8 @@ export function render(invoice, printSettings = {}, labels = {}) {
       (identityHtml ? `<div style="margin-top:4px;">${identityHtml}</div>` : '') +
       `<div class="bill-title">${showAr ? dualTitle(L.billTitle, AR.billTitle, showAr) : L.billTitle}</div>` +
     `</div>` +
-    (invoice.editCount > 0 ? `<div style="text-align:center;font-weight:bold;font-size:14px;padding:4px 0;border:2px solid #333;margin:4px 0;">${showAr ? dualLabel(L.revisedBill, AR.revisedBill, showAr) : L.revisedBill} (Edit #${invoice.editCount})</div>` : '') +
+    (((invoice.editCount || 0) + (invoice.updateCount || 0)) > 0 ? `<div style="text-align:center;font-weight:bold;font-size:14px;padding:4px 0;border:2px solid #333;margin:4px 0;">${showAr ? dualLabel(L.revisedBill, AR.revisedBill, showAr) : L.revisedBill}${invoice.editCount > 0 ? ` (Edit #${invoice.editCount})` : ''}${invoice.updateCount > 0 ? ` (Modified ${invoice.updateCount}x)` : ''}</div>` : '') +
+    buildSplitBillHtml(invoice, L, cs) +
     `<div class="spacer"></div>` +
     // Meta info
     `<div class="meta">` +

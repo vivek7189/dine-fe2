@@ -2413,6 +2413,9 @@ const OrderHistory = () => {
               {order.splitPayments && order.splitPayments.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-gray-200">
                   <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">{t('orderHistory.splitPayment')}</div>
+                  {order.splitPaymentsStale && (
+                    <div className="text-[10px] text-amber-600 bg-amber-50 rounded px-2 py-1 mb-1.5">Split amounts don&apos;t match updated total. Please re-split.</div>
+                  )}
                   {order.splitPayments.map((sp, i) => (
                     <div key={i} className="flex justify-between text-xs text-gray-500">
                       <span className="capitalize">{sp.method}</span>

@@ -1703,6 +1703,23 @@ class ApiClient {
   getRegisterHistory(restaurantId, params) { const qs = params ? '?' + new URLSearchParams(params).toString() : ''; return this.request(`/api/register/${restaurantId}/history${qs}`); }
   getXReport(registerId) { return this.request(`/api/register/${registerId}/x-report`); }
 
+  // Shifts & Cash (Per-Staff)
+  openShift(restaurantId, data) { return this.request(`/api/shifts-cash/${restaurantId}/open`, { method: 'POST', body: data }); }
+  getCurrentShift(restaurantId) { return this.request(`/api/shifts-cash/${restaurantId}/current`); }
+  closeShift(shiftId, data) { return this.request(`/api/shifts-cash/${shiftId}/close`, { method: 'POST', body: data }); }
+  shiftCashInOut(shiftId, data) { return this.request(`/api/shifts-cash/${shiftId}/cash-in-out`, { method: 'POST', body: data }); }
+  getAllActiveShifts(restaurantId) { return this.request(`/api/shifts-cash/${restaurantId}/active-all`); }
+  getShiftHistory(restaurantId, params) { const qs = params ? '?' + new URLSearchParams(params).toString() : ''; return this.request(`/api/shifts-cash/${restaurantId}/history${qs}`); }
+  async downloadShiftReport(restaurantId, opts = {}) {
+    const params = new URLSearchParams();
+    if (opts.format) params.set('format', opts.format);
+    if (opts.startDate) params.set('startDate', opts.startDate);
+    if (opts.endDate) params.set('endDate', opts.endDate);
+    if (opts.staffId) params.set('staffId', opts.staffId);
+    const qs = params.toString() ? '?' + params.toString() : '';
+    return this.request(`/api/shifts-cash/${restaurantId}/report${qs}`, { responseType: 'blob' });
+  }
+
   // Google Reviews APIs
   async getGoogleReviewSettings(restaurantId) {
     return this.request(`/api/google-reviews/settings/${restaurantId}`);

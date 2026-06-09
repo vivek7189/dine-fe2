@@ -264,6 +264,7 @@ const TableManagement = () => {
   const [backgroundLoading, setBackgroundLoading] = useState(false);
   const [error, setError] = useState('');
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
+  const isMobileEmbed = isMobile && typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
   const [userRole, setUserRole] = useState(null);
   const [activeMainTab, setActiveMainTab] = useState('tables');
   const [pusherRefreshSignal, setPusherRefreshSignal] = useState(0);
@@ -1137,7 +1138,8 @@ const TableManagement = () => {
     switch (action) {
       case 'take-order': {
         const floor = floors.find(f => (f.tables || []).some(t => t.id === table.id));
-        router.push(`/dashboard?tableId=${table.id}&tableNo=${encodeURIComponent(table.name)}&floorId=${floor?.id}&floorName=${encodeURIComponent(floor?.name || '')}`);
+        const dashPath = `/dashboard?tableId=${table.id}&tableNo=${encodeURIComponent(table.name)}&floorId=${floor?.id}&floorName=${encodeURIComponent(floor?.name || '')}&from=tables`;
+        router.push(typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__ ? `/mobile${dashPath}` : dashPath);
         break;
       }
       case 'book-table': {
@@ -1149,7 +1151,10 @@ const TableManagement = () => {
       case 'cleaning': updateTableStatus(table.id, 'cleaning'); break;
       case 'make-available': updateTableStatus(table.id, 'available'); break;
       case 'view-order':
-        if (table.currentOrderId) router.push(`/dashboard?orderId=${table.currentOrderId}&mode=edit`);
+        if (table.currentOrderId) {
+          const p = `/dashboard?orderId=${table.currentOrderId}&mode=edit&from=tables`;
+          router.push(typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__ ? `/mobile${p}` : p);
+        }
         else showWarning(t('tables.noActiveOrder'));
         break;
       case 'move-order': {
@@ -1292,9 +1297,9 @@ const TableManagement = () => {
           </div>
         </div>
         {/* Grid skeleton */}
-        <div style={{ flex: 1, padding: '24px', display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(160px, 1fr))', gap: '20px', alignContent: 'start' }}>
-          {[...Array(12)].map((_, i) => (
-            <div key={i} style={{ borderRadius: '12px', border: '1px solid #e5e7eb', padding: '12px', minHeight: '120px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ flex: 1, padding: isMobileEmbed ? '8px' : '24px', display: 'grid', gridTemplateColumns: isMobileEmbed ? 'repeat(3, 1fr)' : isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(160px, 1fr))', gap: isMobileEmbed ? '6px' : '20px', alignContent: 'start' }}>
+          {[...Array(isMobileEmbed ? 15 : 12)].map((_, i) => (
+            <div key={i} style={{ borderRadius: isMobileEmbed ? '8px' : '12px', border: '1px solid #e5e7eb', padding: isMobileEmbed ? '6px 8px' : '12px', minHeight: isMobileEmbed ? '80px' : '120px', display: 'flex', flexDirection: 'column', gap: isMobileEmbed ? '4px' : '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <div style={{ width: '40px', height: '16px', borderRadius: '4px', ...shimmer, animationDelay: `${i * 0.05}s` }} />
                 <div style={{ width: '8px', height: '8px', borderRadius: '50%', ...shimmer, animationDelay: `${i * 0.05}s` }} />
@@ -1320,7 +1325,7 @@ const TableManagement = () => {
           </div>
           <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1f2937', margin: '0 0 8px' }}>{t('tables.noTablesYet')}</h2>
           <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 24px', lineHeight: 1.5 }}>{t('tables.setUpRestaurant')}</p>
-          <button onClick={() => router.push('/dashboard')} style={{
+          <button onClick={() => router.push(typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__ ? '/mobile/dashboard' : '/dashboard')} style={{
             padding: '12px 28px', background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white',
             border: 'none', borderRadius: '12px', fontWeight: '600', fontSize: '14px', cursor: 'pointer',
             boxShadow: '0 4px 12px rgba(239,68,68,0.3)',
@@ -1348,101 +1353,111 @@ const TableManagement = () => {
       `}</style>
 
       {/* ─── HEADER ─── */}
-      <div style={{ backgroundColor: 'white', borderBottom: '1px solid #f1f5f9', padding: isMobile ? '12px 16px' : '16px 24px' }}>
+      <div style={{ backgroundColor: 'white', borderBottom: '1px solid #f1f5f9', padding: isMobileEmbed ? '8px 12px' : isMobile ? '12px 16px' : '16px 24px' }}>
         {/* Row 1: Title + Date + Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingLeft: isMobile ? '48px' : '0' }}>
-            <div style={{ width: '42px', height: '42px', background: 'linear-gradient(135deg, #ef4444, #dc2626)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(239,68,68,0.3)' }}>
-              <FaChair color="white" size={18} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobileEmbed ? '6px' : '12px', flexWrap: 'wrap', gap: isMobileEmbed ? '6px' : '12px' }}>
+          {!isMobileEmbed && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingLeft: isMobile && !(typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__) ? '48px' : '0' }}>
+              <div style={{ width: '42px', height: '42px', background: 'linear-gradient(135deg, #ef4444, #dc2626)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(239,68,68,0.3)' }}>
+                <FaChair color="white" size={18} />
+              </div>
+              <div>
+                <h1 style={{ fontSize: isMobile ? '18px' : '22px', fontWeight: '700', color: '#1f2937', margin: 0 }}>{t('tables.tableManagement')}</h1>
+                <p style={{ fontSize: '13px', color: '#6b7280', margin: '2px 0 0', fontWeight: '500' }}>{selectedRestaurant?.name || ''}</p>
+              </div>
             </div>
-            <div>
-              <h1 style={{ fontSize: isMobile ? '18px' : '22px', fontWeight: '700', color: '#1f2937', margin: 0 }}>{t('tables.tableManagement')}</h1>
-              <p style={{ fontSize: '13px', color: '#6b7280', margin: '2px 0 0', fontWeight: '500' }}>{selectedRestaurant?.name || ''}</p>
-            </div>
-          </div>
+          )}
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobileEmbed ? '6px' : '10px', flexWrap: 'wrap', flex: isMobileEmbed ? 1 : undefined }}>
             {/* Date navigation */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-              <button onClick={() => changeDate(-1)} style={{ width: '36px', height: '36px', borderRadius: '12px 0 0 12px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#374151', borderRight: '1px solid #f1f5f9' }}>
-                <FaChevronLeft size={11} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0', backgroundColor: 'white', borderRadius: isMobileEmbed ? '8px' : '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+              <button onClick={() => changeDate(-1)} style={{ width: isMobileEmbed ? '30px' : '36px', height: isMobileEmbed ? '30px' : '36px', borderRadius: isMobileEmbed ? '8px 0 0 8px' : '12px 0 0 12px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#374151', borderRight: '1px solid #f1f5f9' }}>
+                <FaChevronLeft size={isMobileEmbed ? 9 : 11} />
               </button>
-              <div style={{ position: 'relative', padding: '0 6px' }}>
+              <div style={{ position: 'relative', padding: '0 4px' }}>
                 <button onClick={() => document.getElementById('tbl-date-input')?.showPicker?.()} style={{
-                  border: 'none', backgroundColor: 'transparent', cursor: 'pointer', padding: '6px 8px',
-                  fontSize: '13px', fontWeight: '700', color: isToday ? '#ef4444' : '#1f2937',
-                  display: 'flex', alignItems: 'center', gap: '6px',
+                  border: 'none', backgroundColor: 'transparent', cursor: 'pointer', padding: isMobileEmbed ? '4px 6px' : '6px 8px',
+                  fontSize: isMobileEmbed ? '11px' : '13px', fontWeight: '700', color: isToday ? '#ef4444' : '#1f2937',
+                  display: 'flex', alignItems: 'center', gap: '4px',
                 }}>
-                  <FaCalendarAlt size={11} color={isToday ? '#ef4444' : '#9ca3af'} />
+                  <FaCalendarAlt size={isMobileEmbed ? 9 : 11} color={isToday ? '#ef4444' : '#9ca3af'} />
                   {isToday ? t('tables.today') : formatDate(selectedDate)}
                 </button>
                 <input id="tbl-date-input" type="date" value={selectedDate} onChange={e => { if (e.target.value) setSelectedDate(e.target.value); }} style={{ position: 'absolute', opacity: 0, width: 0, height: 0, top: 0, left: 0 }} />
               </div>
-              <button onClick={() => changeDate(1)} style={{ width: '36px', height: '36px', borderRadius: '0 12px 12px 0', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#374151', borderLeft: '1px solid #f1f5f9' }}>
-                <FaChevronRight size={11} />
+              <button onClick={() => changeDate(1)} style={{ width: isMobileEmbed ? '30px' : '36px', height: isMobileEmbed ? '30px' : '36px', borderRadius: isMobileEmbed ? '0 8px 8px 0' : '0 12px 12px 0', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#374151', borderLeft: '1px solid #f1f5f9' }}>
+                <FaChevronRight size={isMobileEmbed ? 9 : 11} />
               </button>
               {!isToday && (
-                <button onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])} style={{ padding: '5px 12px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #ef4444, #dc2626)', fontSize: '11px', fontWeight: '700', color: 'white', cursor: 'pointer', marginLeft: '6px', marginRight: '4px' }}>{t('tables.today')}</button>
+                <button onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])} style={{ padding: isMobileEmbed ? '3px 8px' : '5px 12px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #ef4444, #dc2626)', fontSize: isMobileEmbed ? '10px' : '11px', fontWeight: '700', color: 'white', cursor: 'pointer', marginLeft: '4px', marginRight: '4px' }}>{t('tables.today')}</button>
               )}
             </div>
 
-            {/* Action buttons — only show for tables tab */}
+            {/* Action buttons — icon-only on mobile embed */}
             {activeMainTab === 'tables' && (
-              <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: isMobileEmbed ? '4px' : '10px', marginLeft: isMobileEmbed ? 'auto' : undefined }}>
                 <button onClick={() => { setBookingFromHeader(true); setSelectedTable(null); setBookingData(prev => ({ ...prev, bookingDate: selectedDate })); setShowBookingForm(true); }} style={{
-                  display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? 0 : '6px',
+                  padding: isMobileEmbed ? '6px' : '8px 16px', borderRadius: isMobileEmbed ? '8px' : '10px',
                   background: 'linear-gradient(135deg, #22c55e, #16a34a)', border: 'none', color: 'white',
                   fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(34,197,94,0.3)',
-                }}>
-                  <FaCalendarAlt size={12} /> {t('tables.book')}
+                  width: isMobileEmbed ? '30px' : undefined, height: isMobileEmbed ? '30px' : undefined,
+                }} title={t('tables.book')}>
+                  <FaCalendarAlt size={isMobileEmbed ? 11 : 12} /> {!isMobileEmbed && t('tables.book')}
                 </button>
                 {canResetTables && (
                   <button onClick={handleResetAllTables} style={{
-                    display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? 0 : '6px',
+                    padding: isMobileEmbed ? '6px' : '8px 16px', borderRadius: isMobileEmbed ? '8px' : '10px',
                     background: 'linear-gradient(135deg, #ef4444, #dc2626)', border: 'none', color: 'white',
                     fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(239,68,68,0.3)',
-                  }}>
-                    <FaTools size={11} /> {t('tables.resetAll')}
+                    width: isMobileEmbed ? '30px' : undefined, height: isMobileEmbed ? '30px' : undefined,
+                  }} title={t('tables.resetAll')}>
+                    <FaTools size={11} /> {!isMobileEmbed && t('tables.resetAll')}
                   </button>
                 )}
                 {canAddTable && (
                   <button onClick={() => setShowAddModal(true)} style={{
-                    display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? 0 : '6px',
+                    padding: isMobileEmbed ? '6px' : '8px 16px', borderRadius: isMobileEmbed ? '8px' : '10px',
                     background: 'linear-gradient(135deg, #3b82f6, #2563eb)', border: 'none', color: 'white',
                     fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(59,130,246,0.3)',
-                  }}>
-                    <FaPlus size={11} /> {t('tables.add')}
+                    width: isMobileEmbed ? '30px' : undefined, height: isMobileEmbed ? '30px' : undefined,
+                  }} title={t('tables.add')}>
+                    <FaPlus size={11} /> {!isMobileEmbed && t('tables.add')}
                   </button>
                 )}
                 <button onClick={() => setShowQRModal(true)} style={{
-                  display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? 0 : '6px',
+                  padding: isMobileEmbed ? '6px' : '8px 16px', borderRadius: isMobileEmbed ? '8px' : '10px',
                   background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', border: 'none', color: 'white',
                   fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(139,92,246,0.3)',
-                }}>
-                  <FaQrcode size={12} /> QR Codes
+                  width: isMobileEmbed ? '30px' : undefined, height: isMobileEmbed ? '30px' : undefined,
+                }} title="QR Codes">
+                  <FaQrcode size={isMobileEmbed ? 11 : 12} /> {!isMobileEmbed && 'QR Codes'}
                 </button>
-              </>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Tab Toggle + Stats + Floor Pills — compact single bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+        {/* Tab Toggle + Floor Pills + Stats */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobileEmbed ? '6px' : '8px', marginBottom: isMobileEmbed ? '4px' : '10px', flexWrap: isMobileEmbed ? 'nowrap' : 'wrap', overflowX: isMobileEmbed ? 'auto' : undefined, WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
           {/* Tab toggle — compact pill */}
-          <div style={{ display: 'flex', gap: '2px', backgroundColor: '#f1f5f9', borderRadius: '10px', padding: '3px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: '2px', backgroundColor: '#f1f5f9', borderRadius: isMobileEmbed ? '8px' : '10px', padding: '3px', flexShrink: 0 }}>
             {[
-              { key: 'tables', label: t('tables.tableManagement') || 'Tables', icon: FaChair },
-              { key: 'delivery-takeaway', label: 'Delivery / Takeaway', icon: FaTruck },
+              { key: 'tables', label: isMobileEmbed ? (t('tables.tableManagement') || 'Tables') : (t('tables.tableManagement') || 'Tables'), icon: FaChair },
+              { key: 'delivery-takeaway', label: isMobileEmbed ? 'D/T' : 'Delivery / Takeaway', icon: FaTruck },
             ].map(tab => (
               <button key={tab.key} onClick={() => setActiveMainTab(tab.key)} style={{
-                padding: '6px 14px', borderRadius: '8px', border: 'none',
-                fontSize: '12px', fontWeight: '600', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.2s', whiteSpace: 'nowrap',
+                padding: isMobileEmbed ? '4px 8px' : '6px 14px', borderRadius: isMobileEmbed ? '6px' : '8px', border: 'none',
+                fontSize: isMobileEmbed ? '10px' : '12px', fontWeight: '600', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: isMobileEmbed ? '3px' : '5px', transition: 'all 0.2s', whiteSpace: 'nowrap',
                 backgroundColor: activeMainTab === tab.key ? 'white' : 'transparent',
                 color: activeMainTab === tab.key ? '#1f2937' : '#9ca3af',
                 boxShadow: activeMainTab === tab.key ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
               }}>
-                <tab.icon size={11} /> {tab.label}
+                <tab.icon size={isMobileEmbed ? 9 : 11} /> {isMobileEmbed && tab.key === 'tables' ? '' : ''}{tab.label}
               </button>
             ))}
           </div>
@@ -1450,35 +1465,35 @@ const TableManagement = () => {
           {/* Divider */}
           {activeMainTab === 'tables' && <div style={{ width: '1px', height: '20px', backgroundColor: '#e2e8f0', flexShrink: 0 }} />}
 
-          {/* Floor pills — inline */}
+          {/* Floor pills — inline, scrollable on mobile */}
           {activeMainTab === 'tables' && <>
             <button onClick={() => setSelectedFloorId('all')} style={{
-              padding: '5px 12px', borderRadius: '20px', border: 'none', fontSize: '12px', fontWeight: '600',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', transition: 'all 0.2s', flexShrink: 0,
+              padding: isMobileEmbed ? '3px 8px' : '5px 12px', borderRadius: '20px', border: 'none', fontSize: isMobileEmbed ? '10px' : '12px', fontWeight: '600',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: isMobileEmbed ? '3px' : '5px', whiteSpace: 'nowrap', transition: 'all 0.2s', flexShrink: 0,
               ...(selectedFloorId === 'all'
                 ? { backgroundColor: '#ef4444', color: 'white', boxShadow: '0 2px 6px rgba(239,68,68,0.25)' }
                 : { backgroundColor: 'white', color: '#475569', border: '1px solid #e2e8f0' }),
             }}>
-              {t('tables.allFloors')}
-              <span style={{ padding: '0 6px', borderRadius: '8px', fontSize: '10px', fontWeight: '700', backgroundColor: selectedFloorId === 'all' ? 'rgba(255,255,255,0.25)' : '#f1f5f9' }}>{totalTables}</span>
+              {isMobileEmbed ? t('tables.allFloors')?.replace(/\s+/g, '') || 'All' : t('tables.allFloors')}
+              <span style={{ padding: '0 4px', borderRadius: '8px', fontSize: isMobileEmbed ? '9px' : '10px', fontWeight: '700', backgroundColor: selectedFloorId === 'all' ? 'rgba(255,255,255,0.25)' : '#f1f5f9' }}>{totalTables}</span>
             </button>
             {floors.map(floor => {
               const floorTableCount = (floor.tables || []).length;
               const active = selectedFloorId === floor.id;
               return (
                 <button key={floor.id} onClick={() => setSelectedFloorId(floor.id)} style={{
-                  padding: '5px 12px', borderRadius: '20px', border: active ? 'none' : '1px solid #e2e8f0',
-                  fontSize: '12px', fontWeight: active ? '600' : '500', cursor: 'pointer', flexShrink: 0,
-                  display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', transition: 'all 0.2s',
+                  padding: isMobileEmbed ? '3px 8px' : '5px 12px', borderRadius: '20px', border: active ? 'none' : '1px solid #e2e8f0',
+                  fontSize: isMobileEmbed ? '10px' : '12px', fontWeight: active ? '600' : '500', cursor: 'pointer', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', gap: isMobileEmbed ? '3px' : '5px', whiteSpace: 'nowrap', transition: 'all 0.2s',
                   backgroundColor: active ? '#ef4444' : 'white', color: active ? 'white' : '#475569',
                   boxShadow: active ? '0 2px 6px rgba(239,68,68,0.25)' : 'none',
                 }}>
                   {floor.name}
-                  <span style={{ padding: '0 6px', borderRadius: '8px', fontSize: '10px', fontWeight: '700', backgroundColor: active ? 'rgba(255,255,255,0.25)' : '#f1f5f9' }}>{floorTableCount}</span>
+                  <span style={{ padding: '0 4px', borderRadius: '8px', fontSize: isMobileEmbed ? '9px' : '10px', fontWeight: '700', backgroundColor: active ? 'rgba(255,255,255,0.25)' : '#f1f5f9' }}>{floorTableCount}</span>
                 </button>
               );
             })}
-            {canAddTable && (
+            {canAddTable && !isMobileEmbed && (
               <button onClick={() => setShowAddFloor(true)} style={{
                 padding: '5px 12px', borderRadius: '20px', border: '1px dashed #d1d5db', backgroundColor: 'transparent',
                 color: '#9ca3af', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', flexShrink: 0,
@@ -1488,9 +1503,9 @@ const TableManagement = () => {
             )}
           </>}
 
-          {/* Stats — pushed to right */}
+          {/* Stats — compact dots on mobile embed, pushed right */}
           {activeMainTab === 'tables' && (
-            <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto', alignItems: 'center', flexShrink: 0 }}>
+            <div style={{ display: 'flex', gap: isMobileEmbed ? '4px' : '6px', marginLeft: 'auto', alignItems: 'center', flexShrink: 0 }}>
               {[
                 { label: t('tables.total'), count: totalTables, dot: '#64748b' },
                 { label: isToday ? t('tables.available') : t('tables.free'), count: stats.available, dot: '#22c55e' },
@@ -1498,10 +1513,10 @@ const TableManagement = () => {
                 ...(stats.reserved > 0 ? [{ label: isToday ? t('tables.reserved') : t('tables.booked'), count: stats.reserved, dot: '#3b82f6' }] : []),
                 ...(isToday && stats.other > 0 ? [{ label: t('tables.other'), count: stats.other, dot: '#ef4444' }] : []),
               ].map(s => (
-                <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', whiteSpace: 'nowrap' }}>
+                <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: isMobileEmbed ? '2px' : '4px', fontSize: isMobileEmbed ? '10px' : '12px', whiteSpace: 'nowrap' }} title={s.label}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: s.dot }} />
                   <span style={{ fontWeight: '700', color: '#1f2937' }}>{s.count}</span>
-                  <span style={{ fontWeight: '500', color: '#9ca3af' }}>{s.label}</span>
+                  {!isMobileEmbed && <span style={{ fontWeight: '500', color: '#9ca3af' }}>{s.label}</span>}
                 </div>
               ))}
               {loadingTableStatuses && <div style={{ width: '14px', height: '14px', border: '2px solid #f3f4f6', borderTop: '2px solid #ef4444', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />}
@@ -1523,7 +1538,7 @@ const TableManagement = () => {
       {/* ─── SCROLLABLE CONTENT (Tables view) ─── */}
       {activeMainTab === 'tables' && (
       <>
-      <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '16px' : '24px', position: 'relative' }}>
+      <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto', padding: isMobileEmbed ? '8px' : isMobile ? '16px' : '24px', position: 'relative' }}>
 
         {/* Loading overlay when changing dates */}
         {loadingTableStatuses && (
@@ -1543,12 +1558,12 @@ const TableManagement = () => {
         {filteredFloors.map((floor) => {
           const tables = floor.tables || [];
           return (
-            <div key={floor.id} style={{ marginBottom: '32px' }}>
+            <div key={floor.id} style={{ marginBottom: isMobileEmbed ? '12px' : '32px' }}>
               {/* Floor header (only when showing all floors) */}
               {selectedFloorId === 'all' && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #f1f5f9' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937' }}>{floor.name}</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobileEmbed ? '6px' : '16px', paddingBottom: isMobileEmbed ? '4px' : '12px', borderBottom: '1px solid #f1f5f9' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: isMobileEmbed ? '6px' : '10px' }}>
+                    <span style={{ fontSize: isMobileEmbed ? '13px' : '16px', fontWeight: '600', color: '#1f2937' }}>{floor.name}</span>
                     {floor.areaChargeType && floor.areaChargeType !== 'none' && (
                       <span style={{ fontSize: '11px', fontWeight: '600', backgroundColor: '#fff7ed', color: '#ea580c', padding: '2px 8px', borderRadius: '6px' }}>
                         {floor.areaChargeType === 'percentage' ? `+${floor.areaChargeValue}%` : `+${getCurrencySymbol()}${floor.areaChargeValue}`}
@@ -1583,8 +1598,8 @@ const TableManagement = () => {
               ) : (
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(160px, 1fr))',
-                  gap: isMobile ? '12px' : '20px',
+                  gridTemplateColumns: isMobileEmbed ? 'repeat(3, 1fr)' : isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(160px, 1fr))',
+                  gap: isMobileEmbed ? '6px' : isMobile ? '12px' : '20px',
                 }}>
                   {tables.map((table, idx) => {
                     // For non-today: determine status from bookings, not live data
@@ -1607,11 +1622,11 @@ const TableManagement = () => {
                     return (
                       <div key={table.id} className="tbl-card table-dropdown" style={{
                         background: sInfo.bg,
-                        borderRadius: '12px',
+                        borderRadius: isMobileEmbed ? '8px' : '12px',
                         border: isOccupied ? 'none' : `1px solid ${sInfo.border}`,
                         boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
                         padding: '0', position: 'relative', overflow: 'visible',
-                        minHeight: '120px', display: 'flex', flexDirection: 'column',
+                        minHeight: isMobileEmbed ? '80px' : '120px', display: 'flex', flexDirection: 'column',
                         opacity: 0, animation: `tblFadeIn 0.3s ease-out ${idx * 0.03}s forwards`,
                       }} onClick={() => setActiveDropdown(isDropdownOpen ? null : table.id)}
                          onMouseEnter={() => setHoveredTableId(table.id)}
@@ -1620,53 +1635,64 @@ const TableManagement = () => {
                         {/* Animated dotted border for occupied tables (today only) */}
                         {isOccupied && (
                           <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }}>
-                            <rect x="1.5" y="1.5" width="calc(100% - 3px)" height="calc(100% - 3px)" rx="10.5" ry="10.5" fill="none" stroke={sInfo.color} strokeWidth="2" strokeDasharray="6,6" strokeDashoffset="100">
+                            <rect x="1.5" y="1.5" width="calc(100% - 3px)" height="calc(100% - 3px)" rx={isMobileEmbed ? "6.5" : "10.5"} ry={isMobileEmbed ? "6.5" : "10.5"} fill="none" stroke={sInfo.color} strokeWidth={isMobileEmbed ? "1.5" : "2"} strokeDasharray={isMobileEmbed ? "4,4" : "6,6"} strokeDashoffset="100">
                               <animate attributeName="stroke-dashoffset" from="100" to="0" dur="3s" repeatCount="indefinite" />
                             </rect>
                           </svg>
                         )}
 
-                        <div style={{ padding: '12px', flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 2 }}>
+                        <div style={{ padding: isMobileEmbed ? '6px 8px' : '12px', flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 2 }}>
                           {/* Header: name + status */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: isMobileEmbed ? '2px' : '8px' }}>
                             <div style={{ minWidth: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                                <span style={{ fontSize: '16px', fontWeight: 800, color: '#111827', lineHeight: 1.1 }}>
+                              <div style={{ display: 'flex', alignItems: 'baseline', gap: isMobileEmbed ? '3px' : '6px' }}>
+                                <span style={{ fontSize: isMobileEmbed ? '12px' : '16px', fontWeight: 800, color: '#111827', lineHeight: 1.1 }}>
                                   {table.name}
                                 </span>
                                 {isOccupied && elapsed && (
                                   <span style={{
-                                    fontSize: '10px', fontWeight: 700, whiteSpace: 'nowrap',
+                                    fontSize: isMobileEmbed ? '8px' : '10px', fontWeight: 700, whiteSpace: 'nowrap',
                                     color: elapsedIsLong ? '#fff' : elapsedIsWarn ? '#92400e' : '#6b7280',
-                                    ...(elapsedIsLong ? { background: '#dc2626', padding: '1px 5px', borderRadius: '4px' } : {}),
-                                    ...(elapsedIsWarn ? { background: '#fef3c7', padding: '1px 5px', borderRadius: '4px' } : {}),
+                                    ...(elapsedIsLong ? { background: '#dc2626', padding: '1px 3px', borderRadius: '3px' } : {}),
+                                    ...(elapsedIsWarn ? { background: '#fef3c7', padding: '1px 3px', borderRadius: '3px' } : {}),
                                   }}>
                                     {elapsed}
                                   </span>
                                 )}
                               </div>
-                              <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <FaChair size={9} /> {table.capacity || '-'} {t('tables.seats')}
-                                {isOccupied && table.currentOrderId && (
-                                  <button onClick={(e) => handleQuickView(e, table)} title="Quick view order" style={{
-                                    background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
-                                    color: '#6b7280', display: 'flex', alignItems: 'center', marginLeft: '2px',
-                                  }}>
-                                    {quickViewLoading === table.id ? <FaSpinner size={10} className="animate-spin" /> : <FaEye size={10} />}
-                                  </button>
-                                )}
-                              </div>
+                              {!isMobileEmbed && (
+                                <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <FaChair size={9} /> {table.capacity || '-'} {t('tables.seats')}
+                                  {isOccupied && table.currentOrderId && (
+                                    <button onClick={(e) => handleQuickView(e, table)} title="Quick view order" style={{
+                                      background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
+                                      color: '#6b7280', display: 'flex', alignItems: 'center', marginLeft: '2px',
+                                    }}>
+                                      {quickViewLoading === table.id ? <FaSpinner size={10} className="animate-spin" /> : <FaEye size={10} />}
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                              {isMobileEmbed && (
+                                <div style={{ fontSize: '8px', color: '#9ca3af', marginTop: '1px' }}>
+                                  {table.capacity || '-'} seats
+                                </div>
+                              )}
                             </div>
                             {isAvailable ? (
-                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 0 2px #d1fae5' }} />
+                              <div style={{ width: isMobileEmbed ? '6px' : '8px', height: isMobileEmbed ? '6px' : '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 0 2px #d1fae5' }} />
                             ) : (
-                              <div style={{
-                                background: sInfo.bg, color: sInfo.color, padding: '3px 8px', borderRadius: '12px',
-                                fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', border: `1px solid ${sInfo.border}`,
-                                display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', flexShrink: 0,
-                              }}>
-                                {sInfo.label}
-                              </div>
+                              isMobileEmbed ? (
+                                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: sInfo.color, flexShrink: 0 }} />
+                              ) : (
+                                <div style={{
+                                  background: sInfo.bg, color: sInfo.color, padding: '3px 8px', borderRadius: '12px',
+                                  fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', border: `1px solid ${sInfo.border}`,
+                                  display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', flexShrink: 0,
+                                }}>
+                                  {sInfo.label}
+                                </div>
+                              )
                             )}
                           </div>
 
@@ -1677,31 +1703,31 @@ const TableManagement = () => {
                               <>
                                 {isOccupied && (table.currentOrderFinalAmount || table.currentOrderTotal) ? (
                                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                                    <div style={{ fontSize: '9px', color: '#92400e', fontWeight: 500, marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    {!isMobileEmbed && <div style={{ fontSize: '9px', color: '#92400e', fontWeight: 500, marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                                       {t('tables.totalInclTax')} {table.currentOrderTax ? t('tables.inclTax') : ''}
-                                    </div>
+                                    </div>}
                                     <div style={{
-                                      fontSize: '18px', fontWeight: 800, color: '#b45309',
-                                      background: 'linear-gradient(135deg, #fef3c7, #fde68a)', padding: '4px 12px',
-                                      borderRadius: '8px', border: '1px solid #fcd34d',
+                                      fontSize: isMobileEmbed ? '13px' : '18px', fontWeight: 800, color: '#b45309',
+                                      background: 'linear-gradient(135deg, #fef3c7, #fde68a)', padding: isMobileEmbed ? '2px 6px' : '4px 12px',
+                                      borderRadius: isMobileEmbed ? '5px' : '8px', border: '1px solid #fcd34d',
                                     }}>
                                       {formatCurrency(table.currentOrderFinalAmount || table.currentOrderTotal)}
                                     </div>
                                   </div>
                                 ) : isOccupied && table.customerName ? (
-                                  <div style={{ textAlign: 'center', fontSize: '12px', fontWeight: 600, color: '#92400e' }}>{table.customerName}</div>
+                                  <div style={{ textAlign: 'center', fontSize: isMobileEmbed ? '10px' : '12px', fontWeight: 600, color: '#92400e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{table.customerName}</div>
                                 ) : tableStatus === 'reserved' ? (
                                   <div style={{ textAlign: 'center' }}>
-                                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#1e40af' }}>{table.customerName || t('tables.statusReserved')}</div>
-                                    {table.reservationTime && <div style={{ fontSize: '10px', color: '#3b82f6', marginTop: '2px' }}>{table.reservationTime}</div>}
+                                    <div style={{ fontSize: isMobileEmbed ? '10px' : '12px', fontWeight: 600, color: '#1e40af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{table.customerName || t('tables.statusReserved')}</div>
+                                    {!isMobileEmbed && table.reservationTime && <div style={{ fontSize: '10px', color: '#3b82f6', marginTop: '2px' }}>{table.reservationTime}</div>}
                                   </div>
                                 ) : tableStatus === 'cleaning' ? (
-                                  <div style={{ textAlign: 'center', fontSize: '11px', color: '#64748b', fontStyle: 'italic' }}>{t('tables.beingCleaned')}</div>
+                                  <div style={{ textAlign: 'center', fontSize: isMobileEmbed ? '9px' : '11px', color: '#64748b', fontStyle: 'italic' }}>{t('tables.beingCleaned')}</div>
                                 ) : tableStatus === 'out-of-service' ? (
-                                  <div style={{ textAlign: 'center', fontSize: '11px', color: '#ef4444' }}>{t('tables.unavailable')}</div>
+                                  <div style={{ textAlign: 'center', fontSize: isMobileEmbed ? '9px' : '11px', color: '#ef4444' }}>{t('tables.unavailable')}</div>
                                 ) : (
                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.1 }}>
-                                    <StatusIcon size={32} color={sInfo.color} />
+                                    <StatusIcon size={isMobileEmbed ? 20 : 32} color={sInfo.color} />
                                   </div>
                                 )}
                               </>
@@ -1711,20 +1737,20 @@ const TableManagement = () => {
                                 {hasBookings ? (
                                   <div style={{ textAlign: 'center' }}>
                                     <div style={{
-                                      fontSize: '20px', fontWeight: 800, color: '#1e40af', marginBottom: '2px',
+                                      fontSize: isMobileEmbed ? '14px' : '20px', fontWeight: 800, color: '#1e40af', marginBottom: '2px',
                                     }}>
                                       {tblBookings.length}
                                     </div>
-                                    <div style={{ fontSize: '10px', color: '#3b82f6', fontWeight: 600 }}>
+                                    <div style={{ fontSize: isMobileEmbed ? '8px' : '10px', color: '#3b82f6', fontWeight: 600 }}>
                                       {tblBookings.length === 1 ? t('tables.booking') : t('tables.bookings')}
                                     </div>
-                                    {tblBookings[0]?.customerName && (
+                                    {!isMobileEmbed && tblBookings[0]?.customerName && (
                                       <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                         {tblBookings[0].customerName}
                                         {tblBookings.length > 1 && ` +${tblBookings.length - 1}`}
                                       </div>
                                     )}
-                                    {tblBookings[0]?.bookingTime && (
+                                    {!isMobileEmbed && tblBookings[0]?.bookingTime && (
                                       <div style={{ fontSize: '10px', color: '#3b82f6', marginTop: '2px' }}>
                                         {tblBookings[0].bookingTime}
                                         {tblBookings.length > 1 && ` ...`}
@@ -1734,9 +1760,9 @@ const TableManagement = () => {
                                 ) : (
                                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.1 }}>
-                                      <FaChair size={32} color="#10b981" />
+                                      <FaChair size={isMobileEmbed ? 18 : 32} color="#10b981" />
                                     </div>
-                                    <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '4px' }}>{t('tables.noBookings')}</div>
+                                    {!isMobileEmbed && <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '4px' }}>{t('tables.noBookings')}</div>}
                                   </div>
                                 )}
                               </>
@@ -2779,7 +2805,8 @@ const TableManagement = () => {
             <div style={{ padding: '12px 20px 16px', display: 'flex', gap: '8px' }}>
               <button onClick={() => {
                 setQuickViewOrder(null);
-                router.push(`/dashboard?orderId=${quickViewOrder.id}&mode=edit`);
+                const qp = `/dashboard?orderId=${quickViewOrder.id}&mode=edit&from=tables`;
+                router.push(typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__ ? `/mobile${qp}` : qp);
               }} style={{
                 flex: 1, padding: '10px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: '600',
                 background: '#059669', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
