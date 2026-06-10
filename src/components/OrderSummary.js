@@ -2025,7 +2025,7 @@ const OrderSummary = ({
   return (
     <div style={{
       width: isMobile ? '100vw' : '100%',
-      height: billingMode ? 'auto' : (isMobile ? '100vh' : '100vh'),
+      height: billingMode ? 'auto' : (isMobileEmbed ? 'calc(100vh - 70px)' : (isMobile ? '100vh' : '100vh')),
       ...(billingMode ? { flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' } : {}),
       position: isMobile && !billingMode ? 'fixed' : 'relative',
       top: isMobile && !billingMode ? 0 : 'auto',
@@ -2037,7 +2037,7 @@ const OrderSummary = ({
       flexDirection: 'column',
       boxShadow: isMobile || billingMode ? 'none' : '-2px 0 8px rgba(0, 0, 0, 0.04)',
       ...(isMobile && !billingMode ? { paddingTop: isMobileEmbed ? '0px' : 'env(safe-area-inset-top, 0px)' } : {}),
-      ...(billingMode ? {} : { overflow: 'hidden' })
+      ...(billingMode ? {} : (isMobileEmbed ? { overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' } : { overflow: 'hidden' }))
     }}>
       {/* Header - More Compact, even smaller in billing mode */}
       <div style={{
@@ -2699,18 +2699,18 @@ const OrderSummary = ({
         </div>
       )}
 
-      {/* Scrollable Content - Cart Items Only (in billing mode, parent scrolls so this is static) */}
+      {/* Scrollable Content - Cart Items Only (in billing mode or embed, parent scrolls so this is static) */}
       <div style={{
-        flex: billingMode ? 'none' : 1,
-        overflowY: billingMode ? 'visible' : 'auto',
+        flex: (billingMode || isMobileEmbed) ? 'none' : 1,
+        overflowY: (billingMode || isMobileEmbed) ? 'visible' : 'auto',
         overflowX: 'hidden',
-        padding: '12px',
+        padding: isMobileEmbed ? '8px' : '12px',
         paddingBottom: '8px',
         scrollbarWidth: 'thin',
         scrollbarColor: '#cbd5e1 transparent',
-        minHeight: billingMode ? 'auto' : 0
+        minHeight: (billingMode || isMobileEmbed) ? 'auto' : 0
       }}
-      className={billingMode ? undefined : 'hide-scrollbar'}
+      className={(billingMode || isMobileEmbed) ? undefined : 'hide-scrollbar'}
       >
         {/* Saved Orders Chips - Always visible at top */}
         {savedOrders && savedOrders.length > 0 && (
@@ -4145,10 +4145,10 @@ const OrderSummary = ({
       {/* In billing mode: no flex/overflow — parent div scrolls everything as one column */}
       {cart.length > 0 && !shouldShowOrderSummary() && (
         <div style={{
-          borderTop: '1px solid #e5e7eb',
+          borderTop: isMobileEmbed ? 'none' : '1px solid #e5e7eb',
           backgroundColor: 'white',
-          flexShrink: billingMode ? 0 : 0,
-          boxShadow: billingMode ? 'none' : '0 -4px 12px rgba(0,0,0,0.08)'
+          flexShrink: 0,
+          boxShadow: (billingMode || isMobileEmbed) ? 'none' : '0 -4px 12px rgba(0,0,0,0.08)',
         }}>
           {/* (Discount controls moved inline with special instructions below) */}
 
