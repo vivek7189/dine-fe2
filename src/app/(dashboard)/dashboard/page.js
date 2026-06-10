@@ -6797,7 +6797,7 @@ function RestaurantPOSContent() {
           overflow: 'hidden',
           height: '100%',
           minHeight: 0, // Important for flex children to shrink
-          paddingBottom: isMobile ? '90px' : '0', // Add bottom padding for mobile command bar
+          paddingBottom: isMobileEmbed ? '0' : (isMobile ? '90px' : '0'), // Skip outer padding for embed (inner scroll handles it)
           paddingTop: !isMobile ? '66px' : '0', // Header (56px) + gap (10px)
           // Expand to full width when in tables view
           width: viewMode === 'tables' ? '100%' : undefined
@@ -7458,7 +7458,7 @@ function RestaurantPOSContent() {
             flex: 1,
             padding: isMobile ? '16px' : '16px 20px',
             paddingRight: !isMobile && viewMode === 'orders' ? '460px' : '20px',
-            paddingBottom: isMobile ? '90px' : '16px',
+            paddingBottom: isMobileEmbed ? '140px' : (isMobile ? '90px' : '16px'),
             overflowY: 'auto',
             minHeight: 0, // Important for flex scroll
             scrollbarWidth: 'none',
@@ -9226,7 +9226,7 @@ function RestaurantPOSContent() {
       {isMobile && viewMode === 'orders' && !showMobileCart && posSettings.hideSearchBar && (
         <div style={{
           position: 'fixed',
-          bottom: isMobileEmbed ? 'calc(env(safe-area-inset-bottom, 34px) + 16px)' : '16px',
+          bottom: isMobileEmbed ? 'calc(env(safe-area-inset-bottom, 34px) + 50px)' : '16px',
           left: '16px',
           right: '16px',
           zIndex: 900
@@ -9272,7 +9272,7 @@ function RestaurantPOSContent() {
       {isMobile && viewMode === 'orders' && !showMobileCart && !posSettings.hideSearchBar && (
         <div style={{
           position: 'fixed',
-          bottom: isMobileEmbed ? 'calc(env(safe-area-inset-bottom, 34px) + 16px)' : '16px',
+          bottom: isMobileEmbed ? 'calc(env(safe-area-inset-bottom, 34px) + 50px)' : '16px',
           left: '16px',
           right: '16px',
           zIndex: 900
