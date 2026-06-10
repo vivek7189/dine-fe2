@@ -150,7 +150,7 @@ const QRCodeModal = ({ isOpen, onClose, restaurantId, restaurantName, restaurant
       zIndex: 10002, // Higher than sidebar (10000)
       padding: '16px 16px 48px 16px',
       overflowY: 'auto',
-      minHeight: '100vh',
+      minHeight: typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__ ? 'var(--app-height, 100vh)' : '100vh',
       minWidth: '100vw'
     }}>
       <div style={{
@@ -159,7 +159,7 @@ const QRCodeModal = ({ isOpen, onClose, restaurantId, restaurantName, restaurant
         padding: '16px',
         maxWidth: '400px',
         width: '100%',
-        maxHeight: '90vh',
+        maxHeight: typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__ ? 'calc(var(--app-height, 90vh) - 8px)' : '90vh',
         boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
         position: 'relative',
         marginTop: 'auto',

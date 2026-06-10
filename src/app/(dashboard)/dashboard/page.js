@@ -6132,11 +6132,12 @@ function RestaurantPOSContent() {
                     <button
                       onClick={() => setSearchTerm('')}
                       style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        padding: '2px', display: 'flex', alignItems: 'center',
+                        background: '#e5e7eb', border: 'none', cursor: 'pointer',
+                        padding: '4px', display: 'flex', alignItems: 'center',
+                        borderRadius: '50%', flexShrink: 0,
                       }}
                     >
-                      <FaTimes size={10} color="#9ca3af" />
+                      <FaTimes size={10} color="#374151" />
                     </button>
                   )}
                 </div>
@@ -6145,20 +6146,24 @@ function RestaurantPOSContent() {
                 <button
                   onClick={() => setShowMobileSidebar(true)}
                   style={{
-                    padding: '8px',
-                    backgroundColor: '#f3f4f6',
-                    color: '#374151',
-                    border: '1px solid #e5e7eb',
+                    padding: '7px 10px',
+                    backgroundColor: '#ef4444',
+                    color: 'white',
+                    border: 'none',
                     borderRadius: '10px',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    gap: '4px',
                     flexShrink: 0,
+                    fontSize: '11px',
+                    fontWeight: '600',
                   }}
                   title="Categories"
                 >
-                  <FaBars size={14} />
+                  <FaBars size={12} />
+                  Menu
                 </button>
 
                 {/* Table view toggle */}
@@ -6171,20 +6176,24 @@ function RestaurantPOSContent() {
                     }
                   }}
                   style={{
-                    padding: '8px',
-                    backgroundColor: '#f3f4f6',
-                    color: '#374151',
-                    border: '1px solid #e5e7eb',
+                    padding: '7px 10px',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
                     borderRadius: '10px',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    gap: '4px',
                     flexShrink: 0,
+                    fontSize: '11px',
+                    fontWeight: '600',
                   }}
                   title="Tables"
                 >
-                  <FaTable size={14} />
+                  <FaTable size={12} />
+                  Tables
                 </button>
               </div>
 
@@ -6947,7 +6956,7 @@ function RestaurantPOSContent() {
             top: 0,
             zIndex: 100,
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-            display: isMobile ? 'block' : 'none', // Hide on desktop
+            display: (isMobile && !isMobileEmbed) ? 'block' : 'none', // Hide on desktop and mobile embed (embed has its own search in header)
             boxSizing: 'border-box',
             overflow: 'hidden'
           }}>
@@ -8288,7 +8297,7 @@ function RestaurantPOSContent() {
             position: 'fixed',
             top: 0,
             left: 0,
-            height: '100vh',
+            height: isMobileEmbed ? 'var(--app-height, 100vh)' : '100vh',
             width: '280px',
             backgroundColor: 'white',
             zIndex: 999,
@@ -8616,7 +8625,7 @@ function RestaurantPOSContent() {
             boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
             width: '100%',
             maxWidth: selectorTables.length > 0 ? '600px' : '400px',
-            maxHeight: '80vh',
+            maxHeight: isMobileEmbed ? 'calc(var(--app-height, 80vh) - 16px)' : '80vh',
             display: 'flex',
             flexDirection: 'column'
           }}>
@@ -9527,16 +9536,18 @@ function RestaurantPOSContent() {
       {isMobileEmbed && viewMode === 'orders' && !showMobileCart && cart.length > 0 && (
         <div style={{
           position: 'fixed',
-          bottom: '78px',
-          left: '12px',
-          right: '12px',
+          bottom: '0px',
+          left: '0px',
+          right: '0px',
           zIndex: 900,
+          padding: '8px 12px 16px 12px',
+          background: 'linear-gradient(to top, rgba(255,255,255,1) 80%, rgba(255,255,255,0))',
         }}>
           <button
             onClick={() => setShowMobileCart(true)}
             style={{
               width: '100%',
-              padding: '12px 20px',
+              padding: '14px 20px',
               background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
               color: 'white',
               border: 'none',
@@ -9547,11 +9558,11 @@ function RestaurantPOSContent() {
               justifyContent: 'center',
               gap: '10px',
               fontWeight: '700',
-              fontSize: '14px',
+              fontSize: '15px',
               boxShadow: '0 8px 24px rgba(16, 185, 129, 0.35), 0 2px 8px rgba(0, 0, 0, 0.1)',
             }}
           >
-            <FaShoppingCart size={14} />
+            <FaShoppingCart size={15} />
             <span>{cart.reduce((sum, item) => sum + item.quantity, 0)} {cart.reduce((sum, item) => sum + item.quantity, 0) === 1 ? 'Item' : 'Items'}</span>
             <span style={{ margin: '0 4px', opacity: 0.5 }}>|</span>
             <span>Rs.{getTotalAmount()}</span>

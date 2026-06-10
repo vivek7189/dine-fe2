@@ -2086,7 +2086,7 @@ const OrderHistory = () => {
         style={{ zIndex: 10100, backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       >
-        <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
+        <div className={`bg-white w-full max-w-2xl rounded-xl shadow-2xl flex flex-col overflow-hidden ${isMobileEmbed ? '' : 'max-h-[92vh]'}`} style={isMobileEmbed ? { maxHeight: 'calc(var(--app-height, 92vh) - 8px)' } : {}}>
           {/* Header */}
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -4093,7 +4093,7 @@ const OrderHistory = () => {
               className="relative w-full rounded-2xl shadow-2xl bg-white overflow-hidden flex flex-col"
               style={{
                 maxWidth: '720px',
-                maxHeight: '94vh',
+                maxHeight: isMobileEmbed ? 'calc(var(--app-height, 94vh) - 8px)' : '94vh',
                 animation: 'billingSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
                 border: '1px solid rgba(0,0,0,0.06)',
                 boxShadow: '0 25px 60px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06)'
@@ -4659,8 +4659,8 @@ const OrderHistory = () => {
               onClick={() => !editCompletedSaving && setEditCompletedOrder(null)}
             />
             <div
-              className="relative w-full max-w-[min(95vw,560px)] max-h-[90vh] rounded-2xl shadow-2xl border border-gray-200 bg-white overflow-hidden flex flex-col"
-              style={{ animation: 'editCompDialogIn 0.35s cubic-bezier(0.34,1.56,0.64,1)' }}
+              className={`relative w-full max-w-[min(95vw,560px)] rounded-2xl shadow-2xl border border-gray-200 bg-white overflow-hidden flex flex-col ${isMobileEmbed ? '' : 'max-h-[90vh]'}`}
+              style={{ animation: 'editCompDialogIn 0.35s cubic-bezier(0.34,1.56,0.64,1)', ...(isMobileEmbed ? { maxHeight: 'calc(var(--app-height, 90vh) - 8px)' } : {}) }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
@@ -5956,7 +5956,7 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
 
       {/* Modal Overlay */}
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10200] flex items-center justify-center p-4 no-print">
-        <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border-2 border-gray-200">
+        <div className={`bg-white w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col overflow-hidden border-2 border-gray-200 ${typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__ ? '' : 'max-h-[90vh]'}`} style={typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__ ? { maxHeight: 'calc(var(--app-height, 90vh) - 8px)' } : {}}>
           <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white no-print">
             <h2 className="text-2xl font-bold text-gray-900">{t('orderHistory.invoiceHash')}{invoiceNumber}</h2>
             <div className="flex items-center gap-2">

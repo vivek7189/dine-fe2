@@ -40,6 +40,7 @@ export default function TableBillingModal({
   const [modalCustomerName, setModalCustomerName] = useState('');
   const [modalCustomerMobile, setModalCustomerMobile] = useState('');
   const [mounted, setMounted] = useState(false);
+  const isMobileEmbed = typeof window !== 'undefined' && !!window.__DINEOPEN_MOBILE_EMBED__;
   const closeTimerRef = useRef(null);
 
   // Ensure portal target is available (client-side only)
@@ -314,8 +315,8 @@ export default function TableBillingModal({
           .billing-modal-panel {
             max-width: 100% !important;
             width: 100% !important;
-            height: 100dvh !important;
-            max-height: 100dvh !important;
+            height: var(--app-height, 100dvh) !important;
+            max-height: var(--app-height, 100dvh) !important;
             border-radius: 0 !important;
           }
           .billing-modal-header {
@@ -330,8 +331,8 @@ export default function TableBillingModal({
           borderRadius: '14px',
           width: '100%',
           maxWidth: '640px',
-          height: '96vh',
-          maxHeight: '96vh',
+          height: isMobileEmbed ? 'var(--app-height, 96vh)' : '96vh',
+          maxHeight: isMobileEmbed ? 'var(--app-height, 96vh)' : '96vh',
           overflow: 'hidden',
           boxShadow: '0 24px 80px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.05)',
           display: 'flex',

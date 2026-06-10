@@ -4607,7 +4607,7 @@ const MenuManagement = () => {
             boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
             width: '100%',
             maxWidth: window.innerWidth <= 768 ? '100%' : '820px',
-            minHeight: window.innerWidth <= 768 ? '100vh' : 'auto',
+            minHeight: window.innerWidth <= 768 ? (typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__ ? 'var(--app-height, 100vh)' : '100vh') : 'auto',
             marginTop: window.innerWidth <= 768 ? '0' : '20px',
             marginBottom: window.innerWidth <= 768 ? '0' : '20px'
           }}>
@@ -6003,7 +6003,7 @@ const MenuManagement = () => {
             boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
             width: '100%', maxWidth: '820px',
             marginTop: 20, marginBottom: 20,
-            display: 'flex', flexDirection: 'column', maxHeight: '90vh',
+            display: 'flex', flexDirection: 'column', maxHeight: typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__ ? 'calc(var(--app-height, 90vh) - 8px)' : '90vh',
             overflow: 'hidden',
           }}>
             <div style={{

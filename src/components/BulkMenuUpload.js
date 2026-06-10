@@ -467,7 +467,7 @@ const BulkMenuUpload = ({
         boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
         width: '100%',
         maxWidth: previewMode ? '1200px' : '580px',
-        maxHeight: '90vh',
+        maxHeight: typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__ ? 'calc(var(--app-height, 90vh) - 8px)' : '90vh',
         overflowY: 'auto',
         overflow: 'hidden'
       }}>
