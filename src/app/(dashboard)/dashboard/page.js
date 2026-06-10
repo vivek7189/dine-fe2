@@ -8301,8 +8301,8 @@ function RestaurantPOSContent() {
         </>
       )}
 
-      {/* Mobile Cart Modal */}
-      {isMobile && showMobileCart && (
+      {/* Mobile Cart Modal — slide-in panel for regular mobile web (not shown in embed, uses full OrderSummary instead) */}
+      {isMobile && showMobileCart && !isMobileEmbed && (
         <>
           <div 
             style={{

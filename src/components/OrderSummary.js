@@ -2025,19 +2025,19 @@ const OrderSummary = ({
   return (
     <div style={{
       width: isMobile ? '100vw' : '100%',
-      height: billingMode ? 'auto' : (isMobileEmbed ? '100%' : (isMobile ? '100vh' : '100vh')),
+      height: billingMode ? 'auto' : (isMobile ? '100vh' : '100vh'),
       ...(billingMode ? { flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' } : {}),
-      position: isMobile && !billingMode && !isMobileEmbed ? 'fixed' : 'relative',
-      top: isMobile && !billingMode && !isMobileEmbed ? 0 : 'auto',
-      left: isMobile && !billingMode && !isMobileEmbed ? 0 : 'auto',
-      zIndex: isMobile && !billingMode && !isMobileEmbed ? 1000 : 'auto',
+      position: isMobile && !billingMode ? 'fixed' : 'relative',
+      top: isMobile && !billingMode ? 0 : 'auto',
+      left: isMobile && !billingMode ? 0 : 'auto',
+      zIndex: isMobile && !billingMode ? 1000 : 'auto',
       backgroundColor: 'white',
       borderLeft: isMobile || billingMode ? 'none' : '1px solid #e5e7eb',
       display: 'flex',
       flexDirection: 'column',
       boxShadow: isMobile || billingMode ? 'none' : '-2px 0 8px rgba(0, 0, 0, 0.04)',
-      ...(isMobile && !billingMode && !isMobileEmbed ? { paddingTop: 'env(safe-area-inset-top, 0px)' } : {}),
-      ...(billingMode ? {} : (isMobileEmbed ? { overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' } : { overflow: 'hidden' }))
+      ...(isMobile && !billingMode ? { paddingTop: isMobileEmbed ? '0px' : 'env(safe-area-inset-top, 0px)' } : {}),
+      ...(billingMode ? {} : { overflow: 'hidden' })
     }}>
       {/* Header - More Compact, even smaller in billing mode */}
       <div style={{
@@ -5798,8 +5798,8 @@ const OrderSummary = ({
           {/* Action Buttons — sits at bottom of scroll in billing mode */}
           <div style={{
             padding: billingMode
-              ? '12px 16px 16px 16px'
-              : (isMobile ? `6px 8px calc(6px + env(safe-area-inset-bottom, 0px)) 8px` : '6px 12px 12px 12px'),
+              ? (isMobileEmbed ? '12px 16px 16px 16px' : '12px 16px 16px 16px')
+              : (isMobile ? `6px 8px calc(6px + ${isMobileEmbed ? '0px' : 'env(safe-area-inset-bottom, 0px)'}) 8px` : '6px 12px 12px 12px'),
             ...(isMobile ? {
               position: 'sticky',
               bottom: 0,
