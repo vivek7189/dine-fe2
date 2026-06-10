@@ -397,6 +397,9 @@ ipcMain.handle('electron:setPrinterConfig', async (event, config) => {
   if (config.stationPrinters !== undefined) {
     settings.stationPrinters = { ...(settings.stationPrinters || {}), ...config.stationPrinters };
   }
+  // Cash drawer settings
+  if (config.cashDrawerMode !== undefined) settings.cashDrawerMode = config.cashDrawerMode;
+  if (config.cashDrawerPort !== undefined) settings.cashDrawerPort = config.cashDrawerPort;
   saveSettings(settings);
   return { success: true };
 });
@@ -408,6 +411,8 @@ ipcMain.handle('electron:getPrinterConfig', async () => {
     kotPrinter: settings.kotPrinter || null,
     billPrinter: settings.billPrinter || null,
     stationPrinters: settings.stationPrinters || {},
+    cashDrawerMode: settings.cashDrawerMode || 'printer',
+    cashDrawerPort: settings.cashDrawerPort || null,
   };
 });
 
@@ -784,6 +789,94 @@ function attachScaleListeners(port) {
 }
 
 app.whenReady().then(() => autoConnectScale());
+
+// ──── IPC: Cash Drawer Kick ────
+// Opens a cash drawer connected via:
+//   1. Printer's DK port (RJ11) — sends ESC/POS command to bill printer
+//   2. USB trigger — sends ESC/POS command via serial port
+
+const DRAWER_KICK_CMD = Buffer.from([0x1B, 0x70, 0x00, 0x19, 0x19]); // ESC p 0 25 25
+
+ipcMain.handle('electron:openCashDrawer', async () => {
+  const settings = loadSettings();
+  const mode = settings.cashDrawerMode || 'printer'; // 'printer' | 'usb'
+
+  if (mode === 'usb') {
+    // USB trigger mode: send kick command via serial port
+    const portPath = settings.cashDrawerPort;
+    if (!portPath) return { success: false, error: 'No USB drawer port configured' };
+    try {
+      const { SerialPort } = require('serialport');
+      return new Promise((resolve) => {
+        const port = new SerialPort({ path: portPath, baudRate: 9600, autoOpen: false });
+        port.open((err) => {
+          if (err) {
+            resolve({ success: false, error: err.message });
+            return;
+          }
+          port.write(DRAWER_KICK_CMD, (writeErr) => {
+            if (writeErr) {
+              port.close(() => {});
+              resolve({ success: false, error: writeErr.message });
+              return;
+            }
+            // Close port after a brief delay to ensure command is sent
+            setTimeout(() => {
+              port.close(() => {});
+              resolve({ success: true, mode: 'usb', port: portPath });
+            }, 200);
+          });
+        });
+      });
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  // Printer mode (default): send ESC/POS kick command to the bill printer
+  const printerName = settings.billPrinter || settings.defaultPrinter;
+  if (!printerName) return { success: false, error: 'No bill printer configured' };
+
+  try {
+    const os = require('os');
+    const fs = require('fs');
+    const { execSync } = require('child_process');
+
+    if (os.platform() === 'win32') {
+      // Windows: write raw bytes to printer via copy /b
+      const tmpFile = path.join(app.getPath('temp'), `drawer_kick_${Date.now()}.bin`);
+      fs.writeFileSync(tmpFile, DRAWER_KICK_CMD);
+      try {
+        // Use print command with raw option — try direct printer share first
+        execSync(`copy /b "${tmpFile}" "\\\\%COMPUTERNAME%\\${printerName}"`, {
+          windowsHide: true, timeout: 5000, shell: true
+        });
+      } catch {
+        // Fallback: try via Windows print spooler
+        try {
+          execSync(`print /D:"${printerName}" "${tmpFile}"`, {
+            windowsHide: true, timeout: 5000, shell: true
+          });
+        } catch (printErr) {
+          console.warn('[CashDrawer] Print command fallback also failed:', printErr.message);
+        }
+      }
+      try { fs.unlinkSync(tmpFile); } catch {}
+      console.log('[CashDrawer] Kick sent to printer:', printerName, '(Windows)');
+      return { success: true, mode: 'printer', printer: printerName };
+    } else {
+      // macOS/Linux: use lpr with raw filter
+      execSync(`printf '\\x1b\\x70\\x00\\x19\\x19' | lpr -P "${printerName}" -o raw`, {
+        timeout: 5000, shell: true
+      });
+      console.log('[CashDrawer] Kick sent to printer:', printerName, '(macOS/Linux)');
+      return { success: true, mode: 'printer', printer: printerName };
+    }
+  } catch (err) {
+    console.error('[CashDrawer] Failed:', err.message);
+    return { success: false, error: err.message };
+  }
+});
 
 // ──── IPC: Open external URL in system browser (for desktop auth flow) ────
 

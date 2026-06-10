@@ -102,6 +102,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('scale-weight', handler);
   },
 
+  // Cash Drawer
+  cashDrawer: {
+    open: () => ipcRenderer.invoke('electron:openCashDrawer'),
+  },
+
   // Window refocus (fixes Windows keyboard focus after alert/confirm dialogs)
   _refocusWindow: () => ipcRenderer.invoke('electron:refocusWindow'),
 

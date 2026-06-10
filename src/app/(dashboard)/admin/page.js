@@ -5556,10 +5556,19 @@ const Admin = () => {
     setPosSettingsSaving(true);
     try {
       await apiClient.updateRestaurant(selectedRestaurant.id, { posSettings, businessType });
+      // Sync cash drawer settings to Electron local settings
+      if (window.electronAPI?.setPrinterConfig) {
+        window.electronAPI.setPrinterConfig({
+          cashDrawerMode: posSettings.cashDrawerMode || 'printer',
+          cashDrawerPort: posSettings.cashDrawerPort || null,
+        }).catch(() => {});
+      }
       const updated = { ...selectedRestaurant, posSettings, businessType };
       localStorage.setItem('selectedRestaurant', JSON.stringify(updated));
       setSelectedRestaurant(updated);
-      window.location.reload();
+      // Notify other pages (dashboard, layout) about the settings change
+      window.dispatchEvent(new CustomEvent('restaurantChanged', { detail: { restaurantId: updated.id, restaurant: updated } }));
+      setPosSettingsSaving(false);
     } catch (err) {
       console.error('Failed to save posSettings:', err);
       setPosSettingsSaving(false);
@@ -10826,6 +10835,105 @@ const Admin = () => {
             </div>
 
             {/* Weighing Scale (Electron desktop only) */}
+            {/* Cash Drawer */}
+            {typeof window !== 'undefined' && window.electronAPI?.cashDrawer && (
+              <div style={{ marginBottom: '16px', padding: '14px', backgroundColor: '#ecfdf5', borderRadius: '10px', border: '1px solid #6ee7b7' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: posSettings.enableCashDrawer ? '12px' : '0' }}>
+                  <button
+                    type="button"
+                    onClick={() => setPosSettings(prev => ({ ...prev, enableCashDrawer: !prev.enableCashDrawer }))}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                  >
+                    {posSettings.enableCashDrawer
+                      ? <FaToggleOn size={28} color="#059669" />
+                      : <FaToggleOff size={28} color="#d1d5db" />}
+                  </button>
+                  <div>
+                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#065f46' }}>Cash Drawer</span>
+                    <div style={{ fontSize: '11px', color: '#047857' }}>Auto-open cash drawer when Cash payment is completed</div>
+                  </div>
+                </div>
+                {posSettings.enableCashDrawer && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {/* Connection mode */}
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '500', color: '#374151', minWidth: '90px' }}>Connection:</label>
+                      <select
+                        value={posSettings.cashDrawerMode || 'printer'}
+                        onChange={(e) => setPosSettings(prev => ({ ...prev, cashDrawerMode: e.target.value }))}
+                        style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '12px' }}
+                      >
+                        <option value="printer">Via Printer (RJ11 to DK port)</option>
+                        <option value="usb">Via USB Trigger (serial port)</option>
+                      </select>
+                    </div>
+                    {posSettings.cashDrawerMode === 'printer' || !posSettings.cashDrawerMode ? (
+                      <p style={{ fontSize: '10px', color: '#6b7280', margin: 0, padding: '0 0 0 98px' }}>
+                        Sends kick command to your bill printer. Connect drawer to printer's DK port via RJ11 cable.
+                      </p>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <label style={{ fontSize: '12px', fontWeight: '500', color: '#374151', minWidth: '90px' }}>USB Port:</label>
+                        <select
+                          id="drawer-port-select"
+                          defaultValue={posSettings.cashDrawerPort || ''}
+                          onChange={(e) => setPosSettings(prev => ({ ...prev, cashDrawerPort: e.target.value }))}
+                          style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '12px' }}
+                        >
+                          <option value="" disabled>Select serial port...</option>
+                        </select>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!window.electronAPI?.scale?.listPorts) return;
+                            const result = await window.electronAPI.scale.listPorts();
+                            const select = document.getElementById('drawer-port-select');
+                            if (select && result.ports) {
+                              select.innerHTML = '<option value="" disabled>Select serial port...</option>';
+                              result.ports.forEach(p => {
+                                const opt = document.createElement('option');
+                                opt.value = p.path;
+                                opt.textContent = `${p.path} ${p.manufacturer ? `(${p.manufacturer})` : ''}`;
+                                if (p.path === posSettings.cashDrawerPort) opt.selected = true;
+                                select.appendChild(opt);
+                              });
+                            }
+                          }}
+                          style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                        >
+                          Refresh
+                        </button>
+                      </div>
+                    )}
+                    {/* Test button */}
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const statusEl = document.getElementById('drawer-test-status');
+                          if (statusEl) statusEl.textContent = 'Opening...';
+                          try {
+                            const result = await window.electronAPI.cashDrawer.open();
+                            if (result.success) {
+                              if (statusEl) statusEl.textContent = `Drawer opened (${result.mode === 'usb' ? 'USB: ' + result.port : 'Printer: ' + result.printer})`;
+                            } else {
+                              if (statusEl) statusEl.textContent = `Failed: ${result.error}`;
+                            }
+                          } catch (err) {
+                            if (statusEl) statusEl.textContent = `Error: ${err.message}`;
+                          }
+                        }}
+                        style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', backgroundColor: '#059669', color: 'white', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
+                      >
+                        Test Drawer
+                      </button>
+                      <div id="drawer-test-status" style={{ fontSize: '12px', color: '#6b7280' }}></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {typeof window !== 'undefined' && window.electronAPI?.scale && (
               <div style={{ marginBottom: '16px', padding: '14px', backgroundColor: '#fefce8', borderRadius: '10px', border: '1px solid #fde047' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>

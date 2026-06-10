@@ -1323,6 +1323,13 @@ function RestaurantPOSContent() {
   useEffect(() => {
     const handleRestaurantChange = async (event) => {
       console.log('🏪 Dashboard page: Restaurant changed, reloading data', event.detail);
+      // If event carries the updated restaurant object (e.g. settings change from admin),
+      // update in-memory state + restaurants array so posSettings are fresh immediately
+      if (event.detail?.restaurant) {
+        const updatedRest = event.detail.restaurant;
+        setSelectedRestaurant(updatedRest);
+        setRestaurants(prev => prev.map(r => r.id === updatedRest.id ? updatedRest : r));
+      }
       setSelectedSubRestaurant(null);
       localStorage.removeItem('selectedSubRestaurantId');
       setRestaurantChangeLoading(true); // Show loading overlay
@@ -3690,6 +3697,12 @@ function RestaurantPOSContent() {
             paymentStatus: partialPay != null ? (partialPay === 0 ? 'due' : 'partial') : 'completed'
           });
           console.log('✅ Cash payment verified:', paymentResult);
+          // Auto-open cash drawer on cash payment
+          if (posSettings.enableCashDrawer && window.electronAPI?.cashDrawer) {
+            window.electronAPI.cashDrawer.open().catch(err =>
+              console.warn('[CashDrawer] kick failed:', err.message)
+            );
+          }
       } else if (paymentMethod === 'upi') {
           const paymentResult = await apiClient.verifyPayment({
           orderId,
