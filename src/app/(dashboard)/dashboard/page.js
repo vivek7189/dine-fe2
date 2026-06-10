@@ -6086,11 +6086,11 @@ function RestaurantPOSContent() {
         <div style={{
           backgroundColor: 'white',
           borderBottom: '1px solid #e5e7eb',
-          padding: isMobileEmbed ? '8px 12px' : '12px 16px',
+          padding: '12px 16px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: isMobileEmbed ? '8px' : '12px',
+          gap: '12px',
           position: 'sticky',
           top: 0,
           zIndex: 100,
@@ -6101,63 +6101,6 @@ function RestaurantPOSContent() {
             flex: 1,
             minWidth: 0
           }}>
-            {isMobileEmbed ? (
-              showMobileEmbedSearch ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
-                  <input
-                    type="text"
-                    placeholder="Search items..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    autoFocus
-                    style={{
-                      flex: 1,
-                      padding: '6px 10px',
-                      border: '1.5px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      outline: 'none',
-                      backgroundColor: '#f9fafb',
-                    }}
-                    onFocus={(e) => { e.target.style.borderColor = '#6366f1'; }}
-                    onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; if (!searchTerm) setShowMobileEmbedSearch(false); }}
-                  />
-                  <button
-                    onClick={() => { setSearchTerm(''); setShowMobileEmbedSearch(false); }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#9ca3af' }}
-                  >
-                    <FaTimes size={12} />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {selectedTable?.name && (
-                      <span style={{
-                        fontSize: '13px', fontWeight: '700', color: '#1f2937',
-                        display: 'flex', alignItems: 'center', gap: '4px',
-                      }}>
-                        <FaChair size={10} color="#ef4444" />
-                        {selectedTable.name}
-                      </span>
-                    )}
-                    {selectedTable?.floor && (
-                      <span style={{ fontSize: '10px', color: '#9ca3af', fontWeight: '500' }}>
-                        {selectedTable.floor}
-                      </span>
-                    )}
-                    {!selectedTable?.name && (
-                      <span style={{ fontSize: '13px', fontWeight: '700', color: '#1f2937' }}>
-                        {t('dashboard.newOrder') || 'New Order'}
-                      </span>
-                    )}
-                  </div>
-                  <p style={{ fontSize: '10px', color: '#6b7280', margin: '1px 0 0 0' }}>
-                    {filteredItems.length} {t('dashboard.items')} • {selectedCategory === 'all-items' ? t('dashboard.allCategories') : categories.find(c => c.id === selectedCategory)?.name}
-                  </p>
-                </>
-              )
-            ) : (
               <>
                 <h2 style={{
                   fontSize: '16px',
@@ -6181,82 +6124,14 @@ function RestaurantPOSContent() {
                   {filteredItems.length} {t('dashboard.items')} • {selectedCategory === 'all-items' ? t('dashboard.allCategories') : categories.find(c => c.id === selectedCategory)?.name}
                 </p>
               </>
-            )}
           </div>
 
           {/* Action Buttons */}
           <div style={{
             display: 'flex',
-            gap: isMobileEmbed ? '6px' : '8px'
+            gap: '8px'
           }}>
-            {/* Search Button — mobile embed only */}
-            {isMobileEmbed && !showMobileEmbedSearch && (
-              <button
-                onClick={() => setShowMobileEmbedSearch(true)}
-                style={{
-                  padding: '8px',
-                  backgroundColor: '#f3f4f6',
-                  color: '#374151',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-                title="Search items"
-              >
-                <FaSearch size={12} />
-              </button>
-            )}
-
-            {/* Table View Toggle — mobile embed only */}
-            {isMobileEmbed && (
-              <button
-                onClick={() => {
-                  if (typeof window !== 'undefined' && window.ReactNativeWebView) {
-                    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'navigate', target: 'tables' }));
-                  } else {
-                    setViewMode('tables');
-                  }
-                }}
-                style={{
-                  padding: '8px',
-                  backgroundColor: '#f3f4f6',
-                  color: '#374151',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-                title="View Tables"
-              >
-                <FaTable size={12} />
-              </button>
-            )}
-
-            {/* Categories Button — full button on regular mobile, compact search-style on embed */}
-            {isMobileEmbed ? (
-              <button
-                onClick={() => setShowMobileSidebar(true)}
-                style={{
-                  padding: '8px',
-                  backgroundColor: '#f3f4f6',
-                  color: '#374151',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-                title="Categories"
-              >
-                <FaBars size={12} />
-              </button>
-            ) : (
+            {/* Menu / Categories Button */}
               <button
                 onClick={() => setShowMobileSidebar(true)}
                 style={{
@@ -6279,17 +6154,16 @@ function RestaurantPOSContent() {
                 <FaBars size={14} />
                 {t('dashboard.menu')}
               </button>
-            )}
 
           {/* Cart Button */}
           <button
             onClick={() => setShowMobileCart(true)}
             style={{
-                padding: isMobileEmbed ? '8px' : '10px',
+                padding: '10px',
               backgroundColor: cart.length > 0 ? '#10b981' : '#6b7280',
               color: 'white',
               border: 'none',
-                borderRadius: isMobileEmbed ? '8px' : '10px',
+                borderRadius: '10px',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -6298,12 +6172,12 @@ function RestaurantPOSContent() {
                 fontSize: '12px',
               position: 'relative',
                 boxShadow: cart.length > 0 ? '0 2px 8px rgba(16, 185, 129, 0.3)' : '0 2px 8px rgba(107, 114, 128, 0.3)',
-                minWidth: isMobileEmbed ? undefined : '80px',
+                minWidth: '80px',
                 justifyContent: 'center'
             }}
           >
-              <FaShoppingCart size={isMobileEmbed ? 12 : 14} />
-              {!isMobileEmbed && t('dashboard.cart')}
+              <FaShoppingCart size={14} />
+              {t('dashboard.cart')}
             {cart.length > 0 && (
               <span style={{
                 position: 'absolute',

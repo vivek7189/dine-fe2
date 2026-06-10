@@ -513,14 +513,7 @@ export default function MobileBillingPage() {
   const restaurantId = order?.restaurantId || localStorage.getItem('selectedRestaurantId');
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {/* Make phone/name inputs more compact in mobile WebView */}
-      <style>{`
-        input[type="tel"], input[type="text"] {
-          padding: 7px 10px !important;
-          font-size: 13px !important;
-        }
-      `}</style>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <OrderSummary
         cart={cart}
         setCart={setCart}

@@ -100,7 +100,7 @@ export default function MobileLayout({ children }) {
         minHeight: '100vh',
         backgroundColor: '#f9fafb',
         overflow: 'auto',
-        paddingBottom: '90px',
+        paddingBottom: '0',
         // Hide scrollbar for cleaner WebView look
         WebkitOverflowScrolling: 'touch',
       }}>
@@ -112,11 +112,11 @@ export default function MobileLayout({ children }) {
           .dashboard-page-content { animation: none !important; }
           /* Hide sidebar hamburger menu in mobile WebView */
           #sidebar-hamburger { display: none !important; }
-          /* Fix modals in mobile WebView — ensure they sit above everything and inputs are full-width */
-          input, select, textarea { font-size: 16px !important; max-width: 100%; box-sizing: border-box; }
-          /* Prevent iOS zoom on input focus — 16px is the minimum to prevent auto-zoom */
-          @media screen and (max-width: 768px) {
-            input, select, textarea { font-size: 16px !important; }
+          /* Inputs: base 16px (no !important) so inline styles can override for compact sizing */
+          input, select, textarea { font-size: 16px; max-width: 100%; box-sizing: border-box; }
+          /* Prevent iOS auto-zoom on focus — 16px !important only when focused */
+          @supports (-webkit-touch-callout: none) {
+            input:focus, select:focus, textarea:focus { font-size: 16px !important; }
           }
           /* Prevent iOS pinch-to-zoom and double-tap zoom */
           html { touch-action: manipulation; }
