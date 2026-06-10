@@ -60,7 +60,9 @@ import {
   FaTools,
   FaCalendarAlt,
   FaBell,
-  FaRobot
+  FaRobot,
+  FaEye,
+  FaEyeSlash
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 import { performLogout } from '../../../lib/logout';
@@ -220,6 +222,12 @@ function RestaurantPOSContent() {
   const isMobileEmbed = isMobile && typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showMobileEmbedSearch, setShowMobileEmbedSearch] = useState(false);
+  const [hideMenuImages, setHideMenuImages] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('dine_hide_menu_images') === 'true';
+    }
+    return false;
+  });
 
   // Category sidebar width constant (compact, part of menu section)
   const categorySidebarWidth = 150;
@@ -6146,28 +6154,28 @@ function RestaurantPOSContent() {
                   )}
                 </div>
 
-                {/* Categories button */}
+                {/* Image toggle button */}
                 <button
-                  onClick={() => setShowMobileSidebar(true)}
+                  onClick={() => {
+                    const newVal = !hideMenuImages;
+                    setHideMenuImages(newVal);
+                    localStorage.setItem('dine_hide_menu_images', String(newVal));
+                  }}
                   style={{
-                    padding: '7px 10px',
-                    backgroundColor: '#ef4444',
-                    color: 'white',
-                    border: 'none',
+                    padding: '7px',
+                    backgroundColor: hideMenuImages ? '#6b7280' : '#f3f4f6',
+                    color: hideMenuImages ? 'white' : '#6b7280',
+                    border: hideMenuImages ? 'none' : '1px solid #e5e7eb',
                     borderRadius: '10px',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '4px',
                     flexShrink: 0,
-                    fontSize: '11px',
-                    fontWeight: '600',
                   }}
-                  title="Categories"
+                  title={hideMenuImages ? 'Show images' : 'Hide images'}
                 >
-                  <FaBars size={12} />
-                  Menu
+                  {hideMenuImages ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
                 </button>
 
                 {/* Table view toggle */}
@@ -7742,6 +7750,7 @@ function RestaurantPOSContent() {
                               isMobile={isMobile}
                               useModernDesign={useModernCards}
                               cardSize={cardSize}
+                              hideImages={hideMenuImages}
                             />
                           );
                         })}
@@ -7894,6 +7903,7 @@ function RestaurantPOSContent() {
                         isMobile={isMobile}
                         useModernDesign={useModernCards}
                         cardSize={cardSize}
+                        hideImages={hideMenuImages}
                       />
                     );
                   })}
@@ -9536,6 +9546,33 @@ function RestaurantPOSContent() {
         </div>
       )}
 
+      {/* Mobile Embed — Floating Menu (Categories) FAB */}
+      {isMobileEmbed && viewMode === 'orders' && !showMobileCart && !showMobileSidebar && (
+        <button
+          onClick={() => setShowMobileSidebar(true)}
+          style={{
+            position: 'fixed',
+            bottom: cart.length > 0 ? '80px' : '16px',
+            right: '14px',
+            zIndex: 899,
+            width: '44px',
+            height: '44px',
+            borderRadius: '50%',
+            backgroundColor: '#ef4444',
+            color: 'white',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(239, 68, 68, 0.4), 0 2px 6px rgba(0, 0, 0, 0.15)',
+          }}
+          title="Menu Categories"
+        >
+          <FaBars size={16} />
+        </button>
+      )}
+
       {/* Mobile Embed — Floating Checkout Button (above tab bar) */}
       {isMobileEmbed && viewMode === 'orders' && !showMobileCart && cart.length > 0 && (
         <div style={{
@@ -9544,7 +9581,7 @@ function RestaurantPOSContent() {
           left: '0px',
           right: '0px',
           zIndex: 900,
-          padding: '8px 12px 16px 12px',
+          padding: '8px 12px 14px 12px',
           background: 'linear-gradient(to top, rgba(255,255,255,1) 80%, rgba(255,255,255,0))',
         }}>
           <button

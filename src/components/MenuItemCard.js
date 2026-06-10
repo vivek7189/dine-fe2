@@ -14,7 +14,8 @@ const MenuItemCard = ({
   onToggleFavorite, // New prop for toggling favorite
   isMobile = false,
   useModernDesign = true,
-  cardSize = 'standard' // 'compact' | 'standard' | 'large'
+  cardSize = 'standard', // 'compact' | 'standard' | 'large'
+  hideImages = false
 }) => {
   const { formatCurrency, getCurrencySymbol } = useCurrency();
   const isVeg = item.isVeg === true || item.category === 'veg';
@@ -73,7 +74,7 @@ const MenuItemCard = ({
 
   // Image URL - memoized to prevent unnecessary recalculations
   const imageUrl = useMemo(() => getDisplayImage(item), [item.image, item.id]);
-  const hasImage = imageUrl !== null;
+  const hasImage = hideImages ? false : (imageUrl !== null);
 
   // Simple ref for image element
   const imageRef = useRef(null);
@@ -1203,7 +1204,8 @@ const MemoizedMenuItemCard = memo(MenuItemCard, (prevProps, nextProps) => {
     prevProps.quantityInCart === nextProps.quantityInCart &&
     prevProps.isMobile === nextProps.isMobile &&
     prevProps.useModernDesign === nextProps.useModernDesign &&
-    prevProps.cardSize === nextProps.cardSize
+    prevProps.cardSize === nextProps.cardSize &&
+    prevProps.hideImages === nextProps.hideImages
   );
 });
 
