@@ -2025,21 +2025,20 @@ const OrderSummary = ({
   return (
     <div style={{
       width: isMobile ? '100vw' : '100%',
-      ...(isMobileEmbed && !billingMode ? {} : { height: billingMode ? 'auto' : (isMobile ? '100vh' : '100vh') }),
+      height: billingMode ? 'auto' : (isMobile ? (isMobileEmbed ? 'var(--app-height, 100vh)' : '100vh') : '100vh'),
       ...(billingMode ? { flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' } : {}),
       position: isMobile && !billingMode ? 'fixed' : 'relative',
       top: isMobile && !billingMode ? 0 : 'auto',
       left: isMobile && !billingMode ? 0 : 'auto',
-      right: isMobileEmbed && !billingMode ? 0 : 'auto',
-      bottom: isMobileEmbed && !billingMode ? 0 : 'auto',
+      right: isMobile && !billingMode ? 0 : 'auto',
       zIndex: isMobile && !billingMode ? 1000 : 'auto',
       backgroundColor: 'white',
       borderLeft: isMobile || billingMode ? 'none' : '1px solid #e5e7eb',
       display: 'flex',
       flexDirection: 'column',
       boxShadow: isMobile || billingMode ? 'none' : '-2px 0 8px rgba(0, 0, 0, 0.04)',
-      ...(isMobile && !billingMode ? { paddingTop: isMobileEmbed ? '0px' : 'env(safe-area-inset-top, 0px)' } : {}),
-      ...(billingMode ? {} : (isMobileEmbed ? { overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' } : { overflow: 'hidden' }))
+      ...(isMobile && !billingMode ? { paddingTop: 'env(safe-area-inset-top, 0px)' } : {}),
+      ...(billingMode ? {} : { overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' })
     }}>
       {/* Header - More Compact, even smaller in billing mode */}
       <div style={{
@@ -2703,16 +2702,16 @@ const OrderSummary = ({
 
       {/* Scrollable Content - Cart Items Only (in billing mode or embed, parent scrolls so this is static) */}
       <div style={{
-        flex: (billingMode || isMobileEmbed) ? 'none' : 1,
-        overflowY: (billingMode || isMobileEmbed) ? 'visible' : 'auto',
+        flex: billingMode ? 'none' : 1,
+        overflowY: billingMode ? 'visible' : 'auto',
         overflowX: 'hidden',
-        padding: isMobileEmbed ? '8px' : '12px',
+        padding: '12px',
         paddingBottom: '8px',
         scrollbarWidth: 'thin',
         scrollbarColor: '#cbd5e1 transparent',
-        minHeight: (billingMode || isMobileEmbed) ? 'auto' : 0
+        minHeight: billingMode ? 'auto' : 0
       }}
-      className={(billingMode || isMobileEmbed) ? undefined : 'hide-scrollbar'}
+      className={billingMode ? undefined : 'hide-scrollbar'}
       >
         {/* Saved Orders Chips - Always visible at top */}
         {savedOrders && savedOrders.length > 0 && (
@@ -4147,10 +4146,10 @@ const OrderSummary = ({
       {/* In billing mode: no flex/overflow — parent div scrolls everything as one column */}
       {cart.length > 0 && !shouldShowOrderSummary() && (
         <div style={{
-          borderTop: isMobileEmbed ? 'none' : '1px solid #e5e7eb',
+          borderTop: '1px solid #e5e7eb',
           backgroundColor: 'white',
           flexShrink: 0,
-          boxShadow: (billingMode || isMobileEmbed) ? 'none' : '0 -4px 12px rgba(0,0,0,0.08)',
+          boxShadow: billingMode ? 'none' : '0 -4px 12px rgba(0,0,0,0.08)',
         }}>
           {/* (Discount controls moved inline with special instructions below) */}
 
@@ -5800,8 +5799,8 @@ const OrderSummary = ({
           {/* Action Buttons — sits at bottom of scroll in billing mode */}
           <div style={{
             padding: billingMode
-              ? (isMobileEmbed ? '12px 16px 24px 16px' : '12px 16px 16px 16px')
-              : (isMobile ? `6px 8px calc(6px + ${isMobileEmbed ? '12px' : 'env(safe-area-inset-bottom, 0px)'}) 8px` : '6px 12px 12px 12px'),
+              ? (isMobile ? '12px 16px 16px 16px' : '12px 16px 16px 16px')
+              : (isMobile ? `6px 8px calc(6px + env(safe-area-inset-bottom, 0px)) 8px` : '6px 12px 12px 12px'),
             ...(isMobile ? {
               position: 'sticky',
               bottom: 0,

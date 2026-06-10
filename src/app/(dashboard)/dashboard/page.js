@@ -5679,9 +5679,13 @@ function RestaurantPOSContent() {
       flexDirection: 'column',
       overflow: 'hidden'
     }}>
-      {/* Hide sidebar hamburger + nav sidebar in mobile embed mode */}
+      {/* Hide sidebar hamburger + nav sidebar in mobile embed mode + fix viewport height */}
       {isMobileEmbed && (
-        <style>{`#sidebar-hamburger { display: none !important; } .nav-sidebar, [class*="sidebar-hamburger"] { display: none !important; }`}</style>
+        <style>{`
+          #sidebar-hamburger { display: none !important; }
+          .nav-sidebar, [class*="sidebar-hamburger"] { display: none !important; }
+          .dashboard-full-height { height: var(--app-height, 100dvh) !important; max-height: var(--app-height, 100dvh) !important; }
+        `}</style>
       )}
       {/* Restaurant Change Loading Overlay */}
       {restaurantChangeLoading && (
@@ -7446,6 +7450,7 @@ function RestaurantPOSContent() {
             flex: 1,
             padding: isMobile ? '16px' : '16px 20px',
             paddingRight: !isMobile && viewMode === 'orders' ? '460px' : '20px',
+            paddingBottom: isMobile ? '90px' : '16px',
             overflowY: 'auto',
             minHeight: 0, // Important for flex scroll
             scrollbarWidth: 'none',
@@ -8317,7 +8322,7 @@ function RestaurantPOSContent() {
             position: 'fixed',
             top: 0,
             right: 0,
-            height: '100vh',
+            height: isMobileEmbed ? 'var(--app-height, 100vh)' : '100vh',
             width: '90%',
             maxWidth: '400px',
             backgroundColor: 'white',
@@ -9213,7 +9218,7 @@ function RestaurantPOSContent() {
       {isMobile && viewMode === 'orders' && !showMobileCart && posSettings.hideSearchBar && (
         <div style={{
           position: 'fixed',
-          bottom: '16px',
+          bottom: isMobileEmbed ? 'calc(100vh - var(--app-height, 100vh) + 16px)' : '16px',
           left: '16px',
           right: '16px',
           zIndex: 900
@@ -9259,7 +9264,7 @@ function RestaurantPOSContent() {
       {isMobile && viewMode === 'orders' && !showMobileCart && !posSettings.hideSearchBar && (
         <div style={{
           position: 'fixed',
-          bottom: '16px',
+          bottom: isMobileEmbed ? 'calc(100vh - var(--app-height, 100vh) + 16px)' : '16px',
           left: '16px',
           right: '16px',
           zIndex: 900
