@@ -5684,7 +5684,7 @@ function RestaurantPOSContent() {
         <style>{`
           #sidebar-hamburger { display: none !important; }
           .nav-sidebar, [class*="sidebar-hamburger"] { display: none !important; }
-          .dashboard-full-height { height: var(--app-height, 100dvh) !important; max-height: var(--app-height, 100dvh) !important; }
+          .dashboard-full-height { height: calc(var(--app-height, 100dvh) - env(safe-area-inset-bottom, 34px) - 50px) !important; max-height: calc(var(--app-height, 100dvh) - env(safe-area-inset-bottom, 34px) - 50px) !important; }
         `}</style>
       )}
       {/* Restaurant Change Loading Overlay */}
@@ -8232,7 +8232,7 @@ function RestaurantPOSContent() {
             position: 'fixed',
             top: 0,
             left: 0,
-            height: isMobileEmbed ? 'var(--app-height, 100vh)' : '100vh',
+            height: isMobileEmbed ? 'calc(var(--app-height, 100vh) - env(safe-area-inset-bottom, 34px) - 50px)' : '100vh',
             width: '280px',
             backgroundColor: 'white',
             zIndex: 999,
@@ -8322,7 +8322,7 @@ function RestaurantPOSContent() {
             position: 'fixed',
             top: 0,
             right: 0,
-            height: isMobileEmbed ? 'var(--app-height, 100vh)' : '100vh',
+            height: isMobileEmbed ? 'calc(var(--app-height, 100vh) - env(safe-area-inset-bottom, 34px) - 50px)' : '100vh',
             width: '90%',
             maxWidth: '400px',
             backgroundColor: 'white',
@@ -8478,11 +8478,11 @@ function RestaurantPOSContent() {
             </div>
 
             {cart.length > 0 && (
-              <div style={{ borderTop: '1px solid #e5e7eb', backgroundColor: '#f9fafb', padding: '20px' }}>
-                <div style={{ 
-                  background: 'linear-gradient(135deg, #1f2937, #111827)', 
-                  color: 'white', 
-                  padding: '16px', 
+              <div style={{ borderTop: '1px solid #e5e7eb', backgroundColor: '#f9fafb', padding: isMobileEmbed ? '20px 20px calc(20px + env(safe-area-inset-bottom, 34px) + 50px) 20px' : '20px' }}>
+                <div style={{
+                  background: 'linear-gradient(135deg, #1f2937, #111827)',
+                  color: 'white',
+                  padding: '16px',
                   borderRadius: '12px',
                   marginBottom: '16px'
                 }}>
@@ -9218,7 +9218,7 @@ function RestaurantPOSContent() {
       {isMobile && viewMode === 'orders' && !showMobileCart && posSettings.hideSearchBar && (
         <div style={{
           position: 'fixed',
-          bottom: isMobileEmbed ? 'calc(100vh - var(--app-height, 100vh) + 16px)' : '16px',
+          bottom: isMobileEmbed ? 'calc(env(safe-area-inset-bottom, 34px) + 66px)' : '16px',
           left: '16px',
           right: '16px',
           zIndex: 900
@@ -9264,7 +9264,7 @@ function RestaurantPOSContent() {
       {isMobile && viewMode === 'orders' && !showMobileCart && !posSettings.hideSearchBar && (
         <div style={{
           position: 'fixed',
-          bottom: isMobileEmbed ? 'calc(100vh - var(--app-height, 100vh) + 16px)' : '16px',
+          bottom: isMobileEmbed ? 'calc(env(safe-area-inset-bottom, 34px) + 66px)' : '16px',
           left: '16px',
           right: '16px',
           zIndex: 900

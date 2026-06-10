@@ -2025,7 +2025,7 @@ const OrderSummary = ({
   return (
     <div style={{
       width: isMobile ? '100vw' : '100%',
-      height: billingMode ? 'auto' : (isMobile ? (isMobileEmbed ? 'var(--app-height, 100vh)' : '100vh') : '100vh'),
+      height: billingMode ? 'auto' : (isMobile ? (isMobileEmbed ? 'calc(var(--app-height, 100vh) - env(safe-area-inset-bottom, 34px) - 50px)' : '100vh') : '100vh'),
       ...(billingMode ? { flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' } : {}),
       position: isMobile && !billingMode ? 'fixed' : 'relative',
       top: isMobile && !billingMode ? 0 : 'auto',
@@ -5799,8 +5799,8 @@ const OrderSummary = ({
           {/* Action Buttons — sits at bottom of scroll in billing mode */}
           <div style={{
             padding: billingMode
-              ? (isMobile ? '12px 16px 16px 16px' : '12px 16px 16px 16px')
-              : (isMobile ? `6px 8px calc(6px + env(safe-area-inset-bottom, 0px)) 8px` : '6px 12px 12px 12px'),
+              ? (isMobile ? (isMobileEmbed ? '12px 16px calc(16px + env(safe-area-inset-bottom, 34px) + 50px) 16px' : '12px 16px 16px 16px') : '12px 16px 16px 16px')
+              : (isMobile ? `6px 8px calc(6px + ${isMobileEmbed ? 'env(safe-area-inset-bottom, 34px) + 50px' : 'env(safe-area-inset-bottom, 0px)'}) 8px` : '6px 12px 12px 12px'),
             ...(isMobile ? {
               position: 'sticky',
               bottom: 0,
