@@ -7,8 +7,12 @@
 //   disable: process.env.NODE_ENV === "development",
 // });
 
+// Build version for WebView cache invalidation (dine-app checks this)
+const BUILD_VERSION = Date.now().toString(36);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  generateBuildId: () => BUILD_VERSION,
   // 'standalone' for Docker/GCP builds, default for Vercel
   ...(process.env.BUILD_STANDALONE === 'true' && { output: 'standalone' }),
   reactStrictMode: true,
@@ -19,6 +23,7 @@ const nextConfig = {
   },
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003',
+    NEXT_PUBLIC_BUILD_VERSION: BUILD_VERSION,
   },
   // Optimize package imports for better bundle size
   experimental: {

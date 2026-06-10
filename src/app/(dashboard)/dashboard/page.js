@@ -1287,6 +1287,18 @@ function RestaurantPOSContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array - only run on mount
 
+  // Refresh menu when inventory/stock changes on other pages
+  // Inventory mutations dispatch 'inventoryChanged' event + invalidate menu cache
+  useEffect(() => {
+    const handleInventoryChanged = () => {
+      if (selectedRestaurant?.id) {
+        loadMenu(selectedRestaurant.id);
+      }
+    };
+    window.addEventListener('inventoryChanged', handleInventoryChanged);
+    return () => window.removeEventListener('inventoryChanged', handleInventoryChanged);
+  }, [selectedRestaurant?.id]);
+
   // Listen for restaurant changes from navigation
   useEffect(() => {
     const handleRestaurantChange = async (event) => {

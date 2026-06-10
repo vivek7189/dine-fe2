@@ -2494,6 +2494,17 @@ const MenuManagement = () => {
     };
   }, []); // Removed loadMenuData dependency
 
+  // Refresh menu when inventory/stock changes on other pages
+  useEffect(() => {
+    const handleInventoryChanged = () => {
+      if (currentRestaurant?.id) {
+        loadMenuData(currentRestaurant.id, false); // Force fresh fetch
+      }
+    };
+    window.addEventListener('inventoryChanged', handleInventoryChanged);
+    return () => window.removeEventListener('inventoryChanged', handleInventoryChanged);
+  }, [currentRestaurant?.id]);
+
   // Load multi-pricing rules when restaurant is set
   useEffect(() => {
     if (!currentRestaurant?.id) return;

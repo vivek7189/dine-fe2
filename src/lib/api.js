@@ -1821,24 +1821,38 @@ class ApiClient {
     return this.request(`/api/inventory/${restaurantId}/${itemId}`);
   }
 
+  _notifyInventoryChanged(restaurantId) {
+    this.invalidateCache(`/api/inventory/${restaurantId}`);
+    this.invalidateCache(`/api/menus/${restaurantId}`);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('inventoryChanged', { detail: { restaurantId } }));
+    }
+  }
+
   async createInventoryItem(restaurantId, itemData) {
-    return this.request(`/api/inventory/${restaurantId}`, {
+    const result = await this.request(`/api/inventory/${restaurantId}`, {
       method: 'POST',
       body: JSON.stringify(itemData),
     });
+    this._notifyInventoryChanged(restaurantId);
+    return result;
   }
 
   async updateInventoryItem(restaurantId, itemId, updateData) {
-    return this.request(`/api/inventory/${restaurantId}/${itemId}`, {
+    const result = await this.request(`/api/inventory/${restaurantId}/${itemId}`, {
       method: 'PATCH',
       body: JSON.stringify(updateData),
     });
+    this._notifyInventoryChanged(restaurantId);
+    return result;
   }
 
   async deleteInventoryItem(restaurantId, itemId) {
-    return this.request(`/api/inventory/${restaurantId}/${itemId}`, {
+    const result = await this.request(`/api/inventory/${restaurantId}/${itemId}`, {
       method: 'DELETE',
     });
+    this._notifyInventoryChanged(restaurantId);
+    return result;
   }
 
   async getItemStockBatches(restaurantId, itemId) {
