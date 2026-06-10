@@ -4427,7 +4427,7 @@ const OrderSummary = ({
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(120px, 1fr))',
-                  gap: '6px',
+                  gap: isMobileEmbed ? '4px' : '6px',
                   alignItems: 'start',
                   }}>
                     {/* Customer Mobile + Lookup (Phone First) */}
@@ -4440,7 +4440,7 @@ const OrderSummary = ({
                         maxLength={getPhoneMinLength(countryCode) + 3}
                       style={{
                           width: '100%',
-                        padding: isMobile ? '8px 10px' : '8px 10px',
+                        padding: isMobileEmbed ? '6px 8px' : '8px 10px',
                         paddingRight: '36px',
                           border: `1.5px solid ${
                             lookupStatus === 'error' ? '#ef4444' :
@@ -4449,7 +4449,7 @@ const OrderSummary = ({
                             isValidMobile ? '#22c55e' : '#e5e7eb'
                           }`,
                         borderRadius: '8px',
-                        fontSize: isMobile ? '12px' : '12px',
+                        fontSize: isMobileEmbed ? '11px' : '12px',
                         outline: 'none',
                         backgroundColor: lookupStatus === 'found' ? '#f0fdf4' : lookupStatus === 'error' ? '#fef2f2' : '#ffffff',
                         transition: 'border-color 0.2s, box-shadow 0.2s, background-color 0.2s',
@@ -4563,11 +4563,11 @@ const OrderSummary = ({
                       value={customerName || ''}
                       style={{
                           width: '100%',
-                        padding: isMobile ? '8px 10px' : '8px 10px',
-                        paddingRight: (lookupStatus === 'found' && customerData) ? '36px' : '10px',
+                        padding: isMobileEmbed ? '6px 8px' : '8px 10px',
+                        paddingRight: (lookupStatus === 'found' && customerData) ? '36px' : (isMobileEmbed ? '8px' : '10px'),
                           border: `1.5px solid ${(lookupStatus === 'found' && customerData) ? '#0891b2' : isValidName ? '#22c55e' : '#e5e7eb'}`,
                         borderRadius: '8px',
-                        fontSize: '12px',
+                        fontSize: isMobileEmbed ? '11px' : '12px',
                         outline: 'none',
                         backgroundColor: (lookupStatus === 'found' && customerData) ? '#ecfeff' : '#ffffff',
                         transition: 'border-color 0.2s, box-shadow 0.2s',
@@ -4675,10 +4675,10 @@ const OrderSummary = ({
                           value={tableNumber || ''}
                           style={{
                             width: '100%',
-                            padding: isMobile ? '8px 10px' : '8px 10px',
+                            padding: isMobileEmbed ? '6px 8px' : '8px 10px',
                             border: `2px solid ${isValidTable ? '#22c55e' : '#d1d5db'}`,
                             borderRadius: '6px',
-                            fontSize: '12px',
+                            fontSize: isMobileEmbed ? '11px' : '12px',
                             outline: 'none',
                             backgroundColor: '#f9fafb',
                             transition: 'border-color 0.2s'
@@ -4950,6 +4950,9 @@ const OrderSummary = ({
                     );
                   })}
                 </div>
+
+                {/* Billing panels wrapper — scrollable on mobile embed to prevent overflow */}
+                <div style={isMobileEmbed && activeBillingPanel ? { maxHeight: '35vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' } : {}}>
 
                 {/* Cash Tendering Panel */}
                 {activeBillingPanel === 'cash' && (
@@ -5785,6 +5788,7 @@ const OrderSummary = ({
                     )}
                   </div>
                 )}
+                </div>{/* end billing panels scrollable wrapper */}
               </div>
             );
           })()}
@@ -5794,8 +5798,8 @@ const OrderSummary = ({
           {/* Action Buttons — sits at bottom of scroll in billing mode */}
           <div style={{
             padding: billingMode
-              ? (isMobileEmbed ? '12px 16px 100px 16px' : '12px 16px 16px 16px')
-              : (isMobile ? `6px 8px calc(6px + ${isMobileEmbed ? '90px' : 'env(safe-area-inset-bottom, 0px)'}) 8px` : '6px 12px 12px 12px'),
+              ? (isMobileEmbed ? '12px 16px 16px 16px' : '12px 16px 16px 16px')
+              : (isMobile ? `6px 8px calc(6px + ${isMobileEmbed ? '16px' : 'env(safe-area-inset-bottom, 0px)'}) 8px` : '6px 12px 12px 12px'),
             ...(isMobile ? {
               position: 'sticky',
               bottom: 0,
@@ -6090,7 +6094,7 @@ const OrderSummary = ({
                   ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
                   : 'linear-gradient(135deg, #10b981, #059669)',
                 color: 'white',
-                padding: billingMode ? '16px 16px' : '12px 14px',
+                padding: billingMode ? (isMobileEmbed ? '12px 12px' : '16px 16px') : '12px 14px',
                 borderRadius: billingMode ? '10px' : '8px',
                 fontWeight: '700',
                 border: 'none',
@@ -6099,7 +6103,7 @@ const OrderSummary = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                fontSize: billingMode ? '15px' : '12px',
+                fontSize: billingMode ? (isMobileEmbed ? '13px' : '15px') : '12px',
                 transition: 'all 0.2s',
                 boxShadow: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 4px 12px rgba(34, 197, 94, 0.35)'
               }}
@@ -6298,7 +6302,7 @@ const OrderSummary = ({
           <div style={{
             background: '#f8fafc', borderRadius: isMobile ? '20px 20px 0 0' : '20px',
             width: '100%', maxWidth: isMobile ? '100%' : '480px',
-            maxHeight: isMobile ? '92vh' : '82vh', display: 'flex', flexDirection: 'column',
+            maxHeight: isMobileEmbed ? '82vh' : (isMobile ? '92vh' : '82vh'), display: 'flex', flexDirection: 'column',
             boxShadow: '0 25px 60px rgba(0,0,0,0.3)', overflow: 'hidden',
           }}>
             {/* Modal Header */}
@@ -7214,7 +7218,7 @@ const OrderSummary = ({
           <div style={{
             background: '#f8fafc', borderRadius: isMobile ? '20px 20px 0 0' : '16px',
             width: '100%', maxWidth: isMobile ? '100%' : '560px',
-            maxHeight: isMobile ? '92vh' : '80vh', display: 'flex', flexDirection: 'column',
+            maxHeight: isMobileEmbed ? '82vh' : (isMobile ? '92vh' : '80vh'), display: 'flex', flexDirection: 'column',
             boxShadow: '0 25px 60px rgba(0,0,0,0.3)', overflow: 'hidden',
           }}>
             {/* Header */}

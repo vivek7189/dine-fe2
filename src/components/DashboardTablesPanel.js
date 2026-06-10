@@ -75,6 +75,7 @@ export default function DashboardTablesPanel({
 }) {
   const router = useRouter();
   const { formatCurrency, getCurrencySymbol } = useCurrency();
+  const isMobileEmbed = typeof window !== 'undefined' && !!window.__DINEOPEN_MOBILE_EMBED__;
   const [sliderOpen, setSliderOpen] = useState(false);
   const [sliderMinimized, setSliderMinimized] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -610,7 +611,7 @@ export default function DashboardTablesPanel({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '0 24px 40px', maxWidth: '100%', boxSizing: 'border-box' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: isMobileEmbed ? '12px' : '24px', padding: isMobileEmbed ? '0 10px 20px' : '0 24px 40px', maxWidth: '100%', boxSizing: 'border-box' }}>
       <style jsx>{`
         @keyframes slideInRight {
           from { transform: translateX(100%); }
@@ -673,13 +674,13 @@ export default function DashboardTablesPanel({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginBottom: '16px',
+            marginBottom: isMobileEmbed ? '8px' : '16px',
             borderBottom: '1px solid #e5e7eb',
-            paddingBottom: '8px'
+            paddingBottom: isMobileEmbed ? '4px' : '8px'
           }}>
             <div style={{
-              fontSize: '16px', 
-              fontWeight: 700, 
+              fontSize: isMobileEmbed ? '13px' : '16px',
+              fontWeight: 700,
               color: '#1f2937',
               display: 'flex',
               alignItems: 'center',
@@ -711,8 +712,8 @@ export default function DashboardTablesPanel({
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-            gap: '20px',
+            gridTemplateColumns: isMobileEmbed ? 'repeat(auto-fill, minmax(105px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))',
+            gap: isMobileEmbed ? '8px' : '20px',
           }}>
             {(group.tables || []).map((t, tIdx) => {
               const status = t.status || 'available';
@@ -739,7 +740,7 @@ export default function DashboardTablesPanel({
                     padding: '0',
                     display: 'flex',
                     flexDirection: 'column',
-                    minHeight: '120px',
+                    minHeight: isMobileEmbed ? 'auto' : '120px',
                     position: 'relative',
                     overflow: 'visible',
                     boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
@@ -776,12 +777,12 @@ export default function DashboardTablesPanel({
                     </svg>
                   )}
 
-                  <div style={{ padding: '12px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ padding: isMobileEmbed ? '8px' : '12px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                     {/* Header */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: isMobileEmbed ? '4px' : '8px' }}>
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontSize: '16px', fontWeight: 800, color: '#111827', lineHeight: 1.1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: isMobileEmbed ? '4px' : '6px' }}>
+                          <span style={{ fontSize: isMobileEmbed ? '13px' : '16px', fontWeight: 800, color: '#111827', lineHeight: 1.1 }}>
                             {t.name || t.number}
                           </span>
                           {/* Status: dot for available, small dot+elapsed for occupied, tiny badge for others */}
@@ -807,8 +808,8 @@ export default function DashboardTablesPanel({
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <FaChair size={9} />
+                        <div style={{ fontSize: isMobileEmbed ? '9px' : '10px', color: '#6b7280', marginTop: isMobileEmbed ? '1px' : '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <FaChair size={isMobileEmbed ? 7 : 9} />
                           {t.capacity || '-'} Seats
                         </div>
                       </div>
@@ -945,11 +946,11 @@ export default function DashboardTablesPanel({
                             Total {t.currentOrderTax ? '(incl. tax)' : ''}
                           </div>
                           <div style={{
-                            fontSize: '18px',
+                            fontSize: isMobileEmbed ? '14px' : '18px',
                             fontWeight: 800,
                             color: '#b45309',
                             background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
-                            padding: '4px 12px',
+                            padding: isMobileEmbed ? '2px 8px' : '4px 12px',
                             borderRadius: '8px',
                             border: '1px solid #fcd34d'
                           }}>
@@ -970,7 +971,7 @@ export default function DashboardTablesPanel({
                         </div>
                       ) : (
                         <div style={{
-                          display: 'flex',
+                          display: isMobileEmbed ? 'none' : 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           height: '100%',
@@ -982,7 +983,7 @@ export default function DashboardTablesPanel({
                     </div>
 
                     {/* Actions */}
-                    <div style={{ marginTop: '8px' }}>
+                    <div style={{ marginTop: isMobileEmbed ? '4px' : '8px' }}>
                       {isAvailable ? (
                         <div style={{ display: 'flex', gap: '6px' }}>
                           <button
@@ -990,7 +991,7 @@ export default function DashboardTablesPanel({
                             onClick={() => handleTakeOrderGuarded(t, group.info?.name, group.info?.id)}
                             style={{
                               flex: 1,
-                              padding: '8px 12px',
+                              padding: isMobileEmbed ? '6px 8px' : '8px 12px',
                               background: '#059669',
                               color: 'white',
                               border: 'none',
