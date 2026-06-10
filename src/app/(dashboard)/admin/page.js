@@ -10947,8 +10947,62 @@ const Admin = () => {
                       </button>
                     </div>
                     <div id="scale-test-status" style={{ fontSize: '12px', color: '#6b7280', padding: '4px 0' }}></div>
+
+                    {/* Scale Barcode Settings */}
+                    <div style={{ marginTop: '10px', padding: '10px 12px', backgroundColor: '#fffbeb', borderRadius: '8px', border: '1px solid #fde68a' }}>
+                      <div style={{ fontSize: '12px', fontWeight: '600', color: '#92400e', marginBottom: '8px' }}>Label Printing Scale Barcode</div>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <label style={{ fontSize: '11px', fontWeight: '500', color: '#374151', minWidth: '80px' }}>Flag Prefix:</label>
+                        <input
+                          type="text"
+                          value={posSettings.scaleBarcodeFlag || '20'}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 2);
+                            setPosSettings(prev => ({ ...prev, scaleBarcodeFlag: val }));
+                          }}
+                          maxLength={2}
+                          placeholder="20"
+                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '12px', width: '50px', fontFamily: 'monospace', letterSpacing: '2px', textAlign: 'center' }}
+                        />
+                        <p style={{ fontSize: '10px', color: '#92400e', margin: 0 }}>
+                          EAN-13 prefix (usually 20 or 21) — must match your scale setting
+                        </p>
+                      </div>
+                      <p style={{ fontSize: '10px', color: '#78716c', margin: '6px 0 0', lineHeight: '1.4' }}>
+                        When a barcode starting with this prefix is scanned, the system will extract the PLU code and weight, then auto-add the item to the cart.
+                      </p>
+                    </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Scale Barcode (Label Printing Scale) — visible on all platforms */}
+            {!(typeof window !== 'undefined' && window.electronAPI?.scale && posSettings.enableWeighingScale) && (
+              <div style={{ marginBottom: '16px', padding: '14px', backgroundColor: '#fffbeb', borderRadius: '10px', border: '1px solid #fde68a' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#92400e' }}>⚖️ Scale Barcode (Label Printing Scale)</span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <label style={{ fontSize: '11px', fontWeight: '500', color: '#374151', minWidth: '80px' }}>Flag Prefix:</label>
+                  <input
+                    type="text"
+                    value={posSettings.scaleBarcodeFlag || '20'}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 2);
+                      setPosSettings(prev => ({ ...prev, scaleBarcodeFlag: val }));
+                    }}
+                    maxLength={2}
+                    placeholder="20"
+                    style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '12px', width: '50px', fontFamily: 'monospace', letterSpacing: '2px', textAlign: 'center' }}
+                  />
+                  <p style={{ fontSize: '10px', color: '#92400e', margin: 0 }}>
+                    EAN-13 prefix (usually 20 or 21) — must match your scale setting
+                  </p>
+                </div>
+                <p style={{ fontSize: '10px', color: '#78716c', margin: '6px 0 0', lineHeight: '1.4' }}>
+                  When a barcode starting with this prefix is scanned, the system extracts the PLU code and weight, then auto-adds the item to the cart. Assign PLU codes in Menu → Edit Item → Sold by Weight.
+                </p>
               </div>
             )}
 

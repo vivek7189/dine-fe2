@@ -77,6 +77,7 @@ import { setCachedData, getCachedData, saveEssentialData, getEssentialData } fro
 import { canPerform } from '../../../lib/permissions';
 import { useHubEvents } from '../../../hooks/useHubEvents';
 import { useDineBot } from '../../../components/DineBotProvider';
+import { parseScaleBarcode, isScaleBarcode } from '../../../utils/scaleBarcode';
 
 // Safe wrappers for contexts that may not be available in mobile embed mode
 function useSafeLoading() {
@@ -1872,7 +1873,10 @@ function RestaurantPOSContent() {
       const outOfStock = item.isAvailable === false || (stockManaged && item.stockQuantity === 0);
       if (outOfStock) return false;
     }
-    const matchesSearch = item.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+    const lowerSearch = debouncedSearchTerm.toLowerCase();
+    const matchesSearch = item.name.toLowerCase().includes(lowerSearch) ||
+      (item.pluCode && item.pluCode.includes(debouncedSearchTerm.trim())) ||
+      (item.shortCode && item.shortCode.toLowerCase().includes(lowerSearch));
     // When searching, always search all items regardless of category
     if (debouncedSearchTerm.trim()) return matchesSearch;
     const matchesCategory = selectedCategory === 'all-items'
@@ -5969,6 +5973,35 @@ function RestaurantPOSContent() {
                   if (e.key === 'Escape') {
                     setSearchTerm('');
                     commandBarInputRef.current?.blur();
+                  }
+                  // Scale barcode detection: on Enter, check if input is a scale barcode
+                  if (e.key === 'Enter' && searchTerm.trim()) {
+                    const flagPrefix = posSettings.scaleBarcodeFlag || '20';
+                    const parsed = parseScaleBarcode(searchTerm.trim(), { flagPrefix, format: 'weight' });
+                    if (parsed) {
+                      e.preventDefault();
+                      const foundItem = (menuItems || []).find(item =>
+                        item.pluCode === parsed.itemCode && item.soldByWeight
+                      );
+                      if (foundItem) {
+                        const unitLabel = foundItem.priceUnit === 'per_100g' ? 'g' : foundItem.priceUnit === 'per_lb' ? 'lb' : 'kg';
+                        addToCart({
+                          ...foundItem,
+                          _weightConfirmed: true,
+                          itemWeight: parsed.weight,
+                          weightUnit: unitLabel,
+                          quantity: 1,
+                        });
+                        setSearchTerm('');
+                        setNotification({ type: 'success', title: 'Scale Barcode', message: `Added ${foundItem.name} — ${parsed.weight} ${unitLabel}`, show: true });
+                        setTimeout(() => setNotification(null), 3000);
+                      } else {
+                        setNotification({ type: 'error', title: 'PLU Not Found', message: `No menu item with PLU code "${parsed.itemCode}". Assign this PLU code in Menu → Edit Item → Sold by Weight.`, show: true });
+                        setTimeout(() => setNotification(null), 5000);
+                      }
+                      setSearchTerm('');
+                      return;
+                    }
                   }
                 }}
                 placeholder={t('dashboard.searchMenuItems')}

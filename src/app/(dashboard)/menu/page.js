@@ -2147,6 +2147,7 @@ const MenuManagement = () => {
     stockUnit: 'pcs',
     soldByWeight: false,
     priceUnit: 'per_kg',
+    pluCode: '',
     variants: [],
     customizations: [],
     generateRecipe: true,
@@ -2827,6 +2828,7 @@ const MenuManagement = () => {
       deductionQuantity: item.deductionQuantity ?? 1,
       soldByWeight: item.soldByWeight || false,
       priceUnit: item.priceUnit || 'per_kg',
+      pluCode: item.pluCode || '',
       variants: item.variants || [],
       customizations: item.customizations || [],
       spiritCategory: item.spiritCategory || '',
@@ -3284,6 +3286,7 @@ const MenuManagement = () => {
       stockUnit: 'pcs',
       soldByWeight: false,
       priceUnit: 'per_kg',
+      pluCode: '',
       variants: [],
       customizations: [],
       generateRecipe: true,
@@ -5335,20 +5338,39 @@ const MenuManagement = () => {
                     )}
                   </div>
                   {formData.soldByWeight && (
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                      <label style={{ fontSize: '11px', fontWeight: '500', color: '#374151' }}>Price Unit:</label>
-                      <select
-                        value={formData.priceUnit || 'per_kg'}
-                        onChange={(e) => setFormData(prev => ({...prev, priceUnit: e.target.value}))}
-                        style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '12px', backgroundColor: 'white' }}
-                      >
-                        <option value="per_kg">per kg</option>
-                        <option value="per_100g">per 100g</option>
-                        <option value="per_lb">per lb</option>
-                      </select>
-                      <p style={{ fontSize: '10px', color: '#6b7280', margin: 0 }}>
-                        Price entered above = {formData.priceUnit === 'per_100g' ? '₹/100g' : formData.priceUnit === 'per_lb' ? '₹/lb' : '₹/kg'}
-                      </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <label style={{ fontSize: '11px', fontWeight: '500', color: '#374151' }}>Price Unit:</label>
+                        <select
+                          value={formData.priceUnit || 'per_kg'}
+                          onChange={(e) => setFormData(prev => ({...prev, priceUnit: e.target.value}))}
+                          style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '12px', backgroundColor: 'white' }}
+                        >
+                          <option value="per_kg">per kg</option>
+                          <option value="per_100g">per 100g</option>
+                          <option value="per_lb">per lb</option>
+                        </select>
+                        <p style={{ fontSize: '10px', color: '#6b7280', margin: 0 }}>
+                          Price entered above = {formData.priceUnit === 'per_100g' ? '₹/100g' : formData.priceUnit === 'per_lb' ? '₹/lb' : '₹/kg'}
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <label style={{ fontSize: '11px', fontWeight: '500', color: '#374151', whiteSpace: 'nowrap' }}>PLU Code:</label>
+                        <input
+                          type="text"
+                          value={formData.pluCode || ''}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                            setFormData(prev => ({...prev, pluCode: val}));
+                          }}
+                          placeholder="0001"
+                          maxLength={4}
+                          style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '12px', backgroundColor: 'white', width: '80px', fontFamily: 'monospace', letterSpacing: '2px' }}
+                        />
+                        <p style={{ fontSize: '10px', color: '#6b7280', margin: 0 }}>
+                          4-digit code programmed in your weighing scale for this item
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
