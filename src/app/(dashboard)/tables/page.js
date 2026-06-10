@@ -497,6 +497,11 @@ const TableManagement = () => {
   }, [selectedDate, selectedRestaurant?.id]);
 
   useEffect(() => {
+    // Electron is always a desktop POS terminal — never use mobile layout
+    if (typeof window !== 'undefined' && window.electronAPI) {
+      setIsMobile(false);
+      return;
+    }
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
     checkMobile();
     window.addEventListener('resize', checkMobile);

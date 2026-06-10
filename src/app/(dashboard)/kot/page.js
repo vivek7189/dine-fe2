@@ -294,6 +294,11 @@ const KitchenOrderTicket = () => {
   // ─── Mobile Detection ───
   useEffect(() => {
     setIsClient(true);
+    // Electron is always a desktop POS terminal — never use mobile layout
+    if (typeof window !== 'undefined' && window.electronAPI) {
+      setIsMobile(false);
+      return;
+    }
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
     checkMobile();
     window.addEventListener('resize', checkMobile);

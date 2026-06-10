@@ -1067,6 +1067,11 @@ const Customers = () => {
 
   // Mobile detection
   useEffect(() => {
+    // Electron is always a desktop POS terminal — never use mobile layout
+    if (typeof window !== 'undefined' && window.electronAPI) {
+      setIsMobile(false);
+      return;
+    }
     const checkMobile = () => {
       setIsMobile(window.innerWidth <= 768);
     };

@@ -181,6 +181,11 @@ const CreateOrganizationForm = ({ onRefresh }) => {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
+    // Electron is always a desktop POS terminal — never use mobile layout
+    if (typeof window !== 'undefined' && window.electronAPI) {
+      setIsMobile(false);
+      return;
+    }
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener('resize', checkMobile);
@@ -733,6 +738,11 @@ const OrganizationManagement = ({ orgData, outlets, onRefresh }) => {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
+    // Electron is always a desktop POS terminal — never use mobile layout
+    if (typeof window !== 'undefined' && window.electronAPI) {
+      setIsMobile(false);
+      return;
+    }
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener('resize', checkMobile);

@@ -97,6 +97,11 @@ const CentralMenuTab = ({ orgData, outlets, formatCurrency }) => {
 
   // Responsive detection
   useEffect(() => {
+    // Electron is always a desktop POS terminal — never use mobile layout
+    if (typeof window !== 'undefined' && window.electronAPI) {
+      setIsMobile(false);
+      return;
+    }
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
     window.addEventListener('resize', check);

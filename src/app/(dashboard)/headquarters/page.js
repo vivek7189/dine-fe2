@@ -284,6 +284,11 @@ export function HeadquartersContent({ embedded = false }) {
 
   // Resize handler
   useEffect(() => {
+    // Electron is always a desktop POS terminal — never use mobile layout
+    if (typeof window !== 'undefined' && window.electronAPI) {
+      setIsMobile(false);
+      return;
+    }
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
     window.addEventListener('resize', handleResize);
