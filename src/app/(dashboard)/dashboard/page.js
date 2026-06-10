@@ -120,6 +120,7 @@ function RestaurantPOSContent() {
   const [selectedCategory, setSelectedCategory] = useState('all-items');
   const [cart, setCart] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('orders'); // 'orders' | 'tables'
   const [returnToView, setReturnToView] = useState(null); // Track where to return after order action (null | 'tables' | 'orderhistory')
   const [orderLoadingPartial, setOrderLoadingPartial] = useState(false); // Partial loading for order details (no full page reload)
@@ -764,6 +765,12 @@ function RestaurantPOSContent() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Debounce search term for performance (avoids re-rendering 300+ cards on every keystroke)
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearchTerm(searchTerm), 200);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // Cleanup audio visualizer on unmount
   useEffect(() => {
@@ -1865,9 +1872,9 @@ function RestaurantPOSContent() {
       const outOfStock = item.isAvailable === false || (stockManaged && item.stockQuantity === 0);
       if (outOfStock) return false;
     }
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = item.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
     // When searching, always search all items regardless of category
-    if (searchTerm.trim()) return matchesSearch;
+    if (debouncedSearchTerm.trim()) return matchesSearch;
     const matchesCategory = selectedCategory === 'all-items'
       ? true
       : selectedCategory === 'favorites'
@@ -5685,6 +5692,7 @@ function RestaurantPOSContent() {
           #sidebar-hamburger { display: none !important; }
           .nav-sidebar, [class*="sidebar-hamburger"] { display: none !important; }
           .dashboard-full-height { height: calc(var(--app-height, 100dvh) - env(safe-area-inset-bottom, 34px) - 50px) !important; max-height: calc(var(--app-height, 100dvh) - env(safe-area-inset-bottom, 34px) - 50px) !important; }
+          input, select, textarea { font-size: 16px !important; }
         `}</style>
       )}
       {/* Restaurant Change Loading Overlay */}
@@ -5970,7 +5978,7 @@ function RestaurantPOSContent() {
                   outline: 'none',
                   boxShadow: 'none',
                   backgroundColor: 'transparent',
-                  fontSize: '15px',
+                  fontSize: '16px',
                   fontWeight: '500',
                   color: '#1f2937',
                   padding: 0,
@@ -6942,7 +6950,7 @@ function RestaurantPOSContent() {
                       borderBottom: '2px solid #e5e7eb',
                       borderRadius: '0px',
                       backgroundColor: '#f8fafc',
-                      fontSize: isMobile ? '15px' : '14px',
+                      fontSize: isMobile ? '16px' : '14px',
                     fontWeight: '500',
                     outline: 'none',
                     transition: 'all 0.2s ease',
@@ -7320,8 +7328,8 @@ function RestaurantPOSContent() {
                     </div>
             </div>
 
-            {/* Category Chips - Below Search (Mobile Only - Desktop uses left sidebar) */}
-            {viewMode === 'orders' && isMobile && (
+            {/* Category Chips - Below Search (Mobile Only - Desktop uses left sidebar, hidden in embed to save space) */}
+            {viewMode === 'orders' && isMobile && !isMobileEmbed && (
               <div
                 className="hide-scrollbar"
                 style={{
@@ -9218,7 +9226,7 @@ function RestaurantPOSContent() {
       {isMobile && viewMode === 'orders' && !showMobileCart && posSettings.hideSearchBar && (
         <div style={{
           position: 'fixed',
-          bottom: isMobileEmbed ? 'calc(env(safe-area-inset-bottom, 34px) + 66px)' : '16px',
+          bottom: isMobileEmbed ? 'calc(env(safe-area-inset-bottom, 34px) + 16px)' : '16px',
           left: '16px',
           right: '16px',
           zIndex: 900
@@ -9264,7 +9272,7 @@ function RestaurantPOSContent() {
       {isMobile && viewMode === 'orders' && !showMobileCart && !posSettings.hideSearchBar && (
         <div style={{
           position: 'fixed',
-          bottom: isMobileEmbed ? 'calc(env(safe-area-inset-bottom, 34px) + 66px)' : '16px',
+          bottom: isMobileEmbed ? 'calc(env(safe-area-inset-bottom, 34px) + 16px)' : '16px',
           left: '16px',
           right: '16px',
           zIndex: 900
@@ -9345,7 +9353,7 @@ function RestaurantPOSContent() {
                   outline: 'none',
                   boxShadow: 'none',
                   backgroundColor: 'transparent',
-                  fontSize: '14px',
+                  fontSize: '16px',
                   fontWeight: '500',
                   color: '#1f2937',
                   padding: 0,
