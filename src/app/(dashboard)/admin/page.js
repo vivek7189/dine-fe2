@@ -10869,7 +10869,7 @@ const Admin = () => {
                     </div>
                     {posSettings.cashDrawerMode === 'printer' || !posSettings.cashDrawerMode ? (
                       <p style={{ fontSize: '10px', color: '#6b7280', margin: 0, padding: '0 0 0 98px' }}>
-                        Sends kick command to your bill printer. Connect drawer to printer's DK port via RJ11 cable.
+                        Sends kick command to your bill printer. Connect drawer to printer&apos;s DK port via RJ11 cable.
                       </p>
                     ) : (
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
