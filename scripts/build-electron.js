@@ -121,7 +121,8 @@ function run() {
 
     // 7. Build
     log('Running next build (static export)...');
-    execSync('npx next build', {
+    const nextBin = path.join(ROOT, 'node_modules', '.bin', 'next');
+    execSync(`"${nextBin}" build`, {
       cwd: ROOT,
       stdio: 'inherit',
       env: {
