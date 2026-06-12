@@ -1303,9 +1303,11 @@ const OrderHistory = () => {
           setBillingModalProcessing(false);
           return;
         }
+        const _offBillingMethod = splitPayments ? (splitPayments[0]?.method || 'cash') : billingModalPaymentMethod;
+        const _offSafeMethod = ['cash', 'card', 'upi'].includes(_offBillingMethod) ? _offBillingMethod : 'cash';
         const paymentData = {
           orderId: order.id,
-          paymentMethod: splitPayments ? 'split' : billingModalPaymentMethod,
+          paymentMethod: _offSafeMethod,
           amount: isFullDue ? 0 : (isPartialPayment ? partialPayAmount : paymentAmount),
           userId: currentUser.id,
           restaurantId,
@@ -1336,9 +1338,12 @@ const OrderHistory = () => {
 
       await apiClient.updateOrder(order.id, updateData);
 
+      // Backend only accepts 'cash', 'card', 'upi' — normalize split/other methods
+      const _billingMethod = splitPayments ? (splitPayments[0]?.method || 'cash') : billingModalPaymentMethod;
+      const _safeMethod = ['cash', 'card', 'upi'].includes(_billingMethod) ? _billingMethod : 'cash';
       await apiClient.verifyPayment({
         orderId: order.id,
-        paymentMethod: splitPayments ? 'split' : billingModalPaymentMethod,
+        paymentMethod: _safeMethod,
         amount: isFullDue ? 0 : (isPartialPayment ? partialPayAmount : paymentAmount),
         userId: currentUser.id,
         restaurantId,

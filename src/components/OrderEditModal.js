@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { FaTimes, FaSearch, FaEdit, FaCheck, FaPlus, FaMinus, FaTrash, FaUtensils, FaHome, FaShoppingBag, FaTruck } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import { useLoading } from '../contexts/LoadingContext';
@@ -346,8 +347,8 @@ const OrderEditModal = ({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] overflow-hidden">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black bg-opacity-50 transition-opacity"
@@ -643,7 +644,8 @@ const OrderEditModal = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
