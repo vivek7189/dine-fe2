@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLoading } from '../../../contexts/LoadingContext';
 import { useCurrency } from '../../../contexts/CurrencyContext';
@@ -24,8 +24,9 @@ import { createPortal } from 'react-dom';
 import QRCode from 'qrcode';
 import { getBillPrintCSS, getBillHeaderHTML } from '../../../utils/printFontSizes';
 import { printDocument, supportsNativeAutoPrint } from '../../../utils/printBridge';
-import TableBillingModal from '../../../components/TableBillingModal';
-import MoveOrderModal from '../../../components/MoveOrderModal';
+// Dynamic imports — loaded on first use
+const TableBillingModal = dynamic(() => import('../../../components/TableBillingModal'), { ssr: false });
+const MoveOrderModal = dynamic(() => import('../../../components/MoveOrderModal'), { ssr: false });
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
 import { database } from '../../../../firebase';
 
@@ -424,7 +425,7 @@ const TableManagement = () => {
     };
   };
 
-  const allTables = floors.flatMap(f => f.tables || []);
+  const allTables = useMemo(() => floors.flatMap(f => f.tables || []), [floors]);
 
   // ── API: Fetch table statuses for date ─────────────────
   const fetchTableStatusesForDate = async (date) => {
@@ -1201,16 +1202,19 @@ const TableManagement = () => {
   const isTodayDate = selectedDate === new Date().toISOString().split('T')[0];
 
   // Build per-table booking map for non-today dates
-  const tableBookingsMap = {};
-  bookingsForDate.forEach(b => {
-    if (b.tableId) {
-      if (!tableBookingsMap[b.tableId]) tableBookingsMap[b.tableId] = [];
-      tableBookingsMap[b.tableId].push(b);
-    }
-  });
+  const tableBookingsMap = useMemo(() => {
+    const map = {};
+    bookingsForDate.forEach(b => {
+      if (b.tableId) {
+        if (!map[b.tableId]) map[b.tableId] = [];
+        map[b.tableId].push(b);
+      }
+    });
+    return map;
+  }, [bookingsForDate]);
 
   // For non-today: count tables with bookings as "reserved", rest as "available"
-  const stats = isTodayDate ? {
+  const stats = useMemo(() => isTodayDate ? {
     available: allTables.filter(t => (tableStatusesForDate[t.id] || t.status) === 'available').length,
     occupied: allTables.filter(t => ['occupied', 'serving'].includes(tableStatusesForDate[t.id] || t.status)).length,
     reserved: allTables.filter(t => (tableStatusesForDate[t.id] || t.status) === 'reserved').length,
@@ -1220,7 +1224,7 @@ const TableManagement = () => {
     occupied: 0,
     reserved: allTables.filter(t => tableBookingsMap[t.id]?.length > 0).length,
     other: 0,
-  };
+  }, [isTodayDate, allTables, tableStatusesForDate, tableBookingsMap]);
 
   // Sort tables: alphabetic names first (sorted A-Z), then numeric names (sorted 1,2,3...)
   const sortTables = (tablesArr) => {
@@ -1238,8 +1242,8 @@ const TableManagement = () => {
     });
   };
 
-  const filteredFloors = (selectedFloorId === 'all' ? floors : floors.filter(f => f.id === selectedFloorId))
-    .map(f => ({ ...f, tables: sortTables(f.tables || []) }));
+  const filteredFloors = useMemo(() => (selectedFloorId === 'all' ? floors : floors.filter(f => f.id === selectedFloorId))
+    .map(f => ({ ...f, tables: sortTables(f.tables || []) })), [selectedFloorId, floors]);
 
   const formatDate = (dateStr) => {
     const d = new Date(dateStr + 'T00:00:00');
@@ -1651,7 +1655,6 @@ const TableManagement = () => {
                         boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
                         padding: '0', position: 'relative', overflow: isMobileEmbed ? 'hidden' : 'visible',
                         minHeight: isMobileEmbed ? 'auto' : '120px', display: 'flex', flexDirection: 'column',
-                        opacity: 0, animation: `tblFadeIn 0.3s ease-out ${idx * 0.03}s forwards`,
                       }} onClick={() => setActiveDropdown(isDropdownOpen ? null : table.id)}
                          onMouseEnter={() => setHoveredTableId(table.id)}
                          onMouseLeave={() => setHoveredTableId(null)}>
@@ -2722,35 +2725,37 @@ const TableManagement = () => {
         />
       )}
 
-      {/* Shared Billing Modal */}
-      <TableBillingModal
-        open={billingModalOpen}
-        table={billingModalTable}
-        onClose={() => { setBillingModalOpen(false); setBillingModalTable(null); }}
-        selectedRestaurant={selectedRestaurant}
-        restaurantName={selectedRestaurant?.name || ''}
-        taxSettings={taxSettings}
-        menuItems={menuItems}
-        printSettings={printSettings}
-        billingSettings={selectedRestaurant?.billingSettings || {}}
-        countryCode={selectedRestaurant?.countryCode || 'IN'}
-        businessType={selectedRestaurant?.businessType || 'restaurant'}
-        onRefreshTables={() => loadFloorsAndTables(selectedRestaurant?.id, true)}
-        onOptimisticTableUpdate={(tableId, newStatus) => {
-          setFloors(prev => prev.map(floor => ({
-            ...floor,
-            tables: (floor.tables || []).map(t => {
-              if (t.id === tableId) {
-                const updated = { ...t, status: newStatus, currentOrderId: null, currentOrderTotal: null };
-                if (newStatus === 'available') { updated.customerName = null; updated.startTime = null; }
-                return updated;
-              }
-              return t;
-            })
-          })));
-          setTableStatusesForDate(prev => ({ ...prev, [tableId]: newStatus }));
-        }}
-      />
+      {/* Shared Billing Modal — only mount when opened */}
+      {billingModalOpen && (
+        <TableBillingModal
+          open={billingModalOpen}
+          table={billingModalTable}
+          onClose={() => { setBillingModalOpen(false); setBillingModalTable(null); }}
+          selectedRestaurant={selectedRestaurant}
+          restaurantName={selectedRestaurant?.name || ''}
+          taxSettings={taxSettings}
+          menuItems={menuItems}
+          printSettings={printSettings}
+          billingSettings={selectedRestaurant?.billingSettings || {}}
+          countryCode={selectedRestaurant?.countryCode || 'IN'}
+          businessType={selectedRestaurant?.businessType || 'restaurant'}
+          onRefreshTables={() => loadFloorsAndTables(selectedRestaurant?.id, true)}
+          onOptimisticTableUpdate={(tableId, newStatus) => {
+            setFloors(prev => prev.map(floor => ({
+              ...floor,
+              tables: (floor.tables || []).map(t => {
+                if (t.id === tableId) {
+                  const updated = { ...t, status: newStatus, currentOrderId: null, currentOrderTotal: null };
+                  if (newStatus === 'available') { updated.customerName = null; updated.startTime = null; }
+                  return updated;
+                }
+                return t;
+              })
+            })));
+            setTableStatusesForDate(prev => ({ ...prev, [tableId]: newStatus }));
+          }}
+        />
+      )}
 
       {/* Move Order Modal */}
       {moveModalTable && (
