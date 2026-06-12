@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { useLoading } from '../../../contexts/LoadingContext';
-import BulkMenuUpload from '../../../components/BulkMenuUpload';
 import ImageCarousel from '../../../components/ImageCarousel';
 import ImageUpload from '../../../components/ImageUpload';
-import QRCodeModal from '../../../components/QRCodeModal';
+const BulkMenuUpload = dynamic(() => import('../../../components/BulkMenuUpload'), { ssr: false });
+const QRCodeModal = dynamic(() => import('../../../components/QRCodeModal'), { ssr: false });
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t } from '../../../lib/i18n';
@@ -53,7 +54,7 @@ import {
   FaCheckCircle,
   FaFlask
 } from 'react-icons/fa';
-import { RecipeFormBody } from '../inventory/components/InventoryModals';
+const RecipeFormBody = dynamic(() => import('../inventory/components/InventoryModals').then(m => ({ default: m.RecipeFormBody })), { ssr: false });
 
 // Enhanced Category Dropdown Component with Management
 const CategoryDropdown = ({ 
@@ -498,7 +499,7 @@ const CustomDropdown = ({ value, onChange, options, placeholder, style = {} }) =
 };
 
 // Ultra Compact Menu Item Card Component
-const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onGenerateRecipe, generatingRecipeFor, hasRecipe, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, taxInclusiveGlobal, compact }) => {
+const MenuItemCard = React.memo(({ item, categoryMap, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onGenerateRecipe, generatingRecipeFor, hasRecipe, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, taxInclusiveGlobal, compact }) => {
   const { formatCurrency: formatCurrencyHook } = useCurrency();
   const formatCurrency = formatCurrencyProp || formatCurrencyHook;
 
@@ -592,7 +593,7 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
               fontSize: '10px', fontWeight: '500', color: '#9ca3af',
               maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
             }}>
-              {categories.find(c => c.id === item.category)?.name || ''}
+              {categoryMap.get(item.category)?.name || ''}
             </span>
           </div>
           {/* Price + actions */}
@@ -826,7 +827,7 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
               fontSize: '11px',
               fontWeight: '600'
             }}>
-              {categories.find(c => c.id === item.category)?.name || t('menu.mainCourse')}
+              {categoryMap.get(item.category)?.name || t('menu.mainCourse')}
             </span>
             {(item.taxInclusive === true || (taxInclusiveGlobal && item.taxInclusive !== false)) && (
               <span style={{
@@ -1199,7 +1200,7 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
       </div>
     </div>
   );
-};
+});
 
 // Helper function to get category-specific colors
 const getCategoryColor = (category, opacity = 1) => {
@@ -1482,12 +1483,12 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
 };
 
 // Item Detail Modal Component
-const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, onToggleAvailability, getCategoryEmoji, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, recipe }) => {
+const ItemDetailModal = ({ item, categoryMap, isOpen, onClose, onEdit, onDelete, onToggleAvailability, getCategoryEmoji, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, recipe }) => {
   const { formatCurrency: formatCurrencyHook } = useCurrency();
   const formatCurrency = formatCurrencyProp || formatCurrencyHook;
   if (!isOpen || !item) return null;
   if (typeof document === 'undefined') return null;
-  const category = categories.find(c => c.id === item.category);
+  const category = categoryMap.get(item.category);
 
   return createPortal(
       <div
@@ -2076,6 +2077,8 @@ const MenuManagement = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedVegFilter, setSelectedVegFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [displaySearch, setDisplaySearch] = useState('');
+  const searchDebounceRef = useRef(null);
   const [viewMode, setViewMode] = useState('grid');
   const [showAddForm, setShowAddForm] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
@@ -2531,16 +2534,27 @@ const MenuManagement = () => {
     })();
   }, [currentRestaurant?.id]);
 
-  const filteredItems = menuItems.filter(item => {
-    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-    const matchesVegFilter = selectedVegFilter === 'all' || 
-      (selectedVegFilter === 'veg' && item.isVeg) ||
-      (selectedVegFilter === 'non-veg' && !item.isVeg);
-    const matchesSearch = item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.shortCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesVegFilter && matchesSearch;
-  });
+  // O(1) category lookup map
+  const categoryMap = useMemo(() => {
+    const map = new Map();
+    categories.forEach(c => map.set(c.id, c));
+    return map;
+  }, [categories]);
+
+  const filteredItems = useMemo(() => {
+    const lowerSearch = searchTerm.toLowerCase();
+    return menuItems.filter(item => {
+      const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+      const matchesVegFilter = selectedVegFilter === 'all' ||
+        (selectedVegFilter === 'veg' && item.isVeg) ||
+        (selectedVegFilter === 'non-veg' && !item.isVeg);
+      const matchesSearch = !lowerSearch ||
+                           item.name?.toLowerCase().includes(lowerSearch) ||
+                           item.shortCode?.toLowerCase().includes(lowerSearch) ||
+                           item.description?.toLowerCase().includes(lowerSearch);
+      return matchesCategory && matchesVegFilter && matchesSearch;
+    });
+  }, [menuItems, selectedCategory, selectedVegFilter, searchTerm]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -2811,7 +2825,7 @@ const MenuManagement = () => {
     setFormData({ ...formData, customizations: updatedCustomizations });
   };
 
-  const handleEdit = (item) => {
+  const handleEdit = useCallback((item) => {
     console.log('Editing item:', item);
     setFormData({
       name: item.name || '',
@@ -2865,9 +2879,9 @@ const MenuManagement = () => {
     setShowAddForm(true);
     setShowAdvancedOptions(false); // Collapse advanced options when editing
     // Don't trigger any loading states - just open the form
-  };
+  }, [activePricingRules]);
 
-  const handleDelete = async (itemId) => {
+  const handleDelete = useCallback(async (itemId) => {
     if (!isOnline) { alert('You are offline. Go online to make changes.'); return; }
     if (!confirm(t('menu.deleteItemConfirm'))) return;
 
@@ -2881,7 +2895,7 @@ const MenuManagement = () => {
     } finally {
       setOperationLoading(false);
     }
-  };
+  }, [isOnline, currentRestaurant?.id]);
 
 
   const handleBulkDeleteClick = () => {
@@ -2939,7 +2953,7 @@ const MenuManagement = () => {
     }
   };
 
-  const handleToggleFavorite = async (item) => {
+  const handleToggleFavorite = useCallback(async (item) => {
     if (!currentRestaurant?.id) {
       setError(t('menu.noRestaurantSelected'));
       return;
@@ -2978,9 +2992,9 @@ const MenuManagement = () => {
       console.error('Error toggling favorite:', error);
       setError(t('menu.failedUpdateFavorite'));
     }
-  };
+  }, [currentRestaurant?.id, isOnline, loadMenuData]);
 
-  const handleToggleAvailability = async (itemId, currentStatus) => {
+  const handleToggleAvailability = useCallback(async (itemId, currentStatus) => {
     try {
       setOperationLoading(true);
       const updatedData = { isAvailable: !currentStatus };
@@ -3014,7 +3028,7 @@ const MenuManagement = () => {
     } finally {
       setOperationLoading(false);
     }
-  };
+  }, [isOnline, currentRestaurant?.id]);
 
   // ─── Recipe Modal State & Handlers (reuses RecipeFormBody from Inventory) ───
   const [showMenuRecipeModal, setShowMenuRecipeModal] = useState(false);
@@ -3208,7 +3222,7 @@ const MenuManagement = () => {
     } finally { setMenuRecipeSaving(false); }
   };
 
-  const handleGenerateRecipe = async (item) => {
+  const handleGenerateRecipe = useCallback(async (item) => {
     if (!currentRestaurant?.id) {
       setError(t('menu.noRestaurantSelected'));
       return;
@@ -3256,19 +3270,19 @@ const MenuManagement = () => {
 
     setMenuRecipeError(null);
     setShowMenuRecipeModal(true);
-  };
+  }, [currentRestaurant?.id, menuItemRecipes]);
 
-  const handleItemClick = (item) => {
+  const handleItemClick = useCallback((item) => {
     setSelectedItem(item);
     setShowItemModal(true);
-  };
+  }, []);
 
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     console.log('Closing modal');
     setShowItemModal(false);
     setSelectedItem(null);
     // Don't trigger any loading states - just close the modal
-  };
+  }, []);
 
   const resetForm = () => {
     setFormData({
@@ -3323,10 +3337,9 @@ const MenuManagement = () => {
     }
   };
 
-  const getCategoryEmoji = (category) => {
-    const categoryObj = categories.find(c => c.id === category);
-    return categoryObj?.emoji || '🍽️';
-  };
+  const getCategoryEmoji = useCallback((category) => {
+    return categoryMap.get(category)?.emoji || '🍽️';
+  }, [categoryMap]);
 
   const handleAddNewCategory = (category) => {
     setCategories(prev => [...prev, category]);
@@ -3871,8 +3884,13 @@ const MenuManagement = () => {
             <input
               type="text"
               placeholder={t('menu.searchPlaceholder')}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={displaySearch}
+              onChange={(e) => {
+                const val = e.target.value;
+                setDisplaySearch(val);
+                clearTimeout(searchDebounceRef.current);
+                searchDebounceRef.current = setTimeout(() => setSearchTerm(val), 300);
+              }}
               style={{
                 width: '100%',
                 padding: isMobileEmbed ? '7px 10px 7px 28px' : '9px 14px 9px 36px',
@@ -4136,16 +4154,11 @@ const MenuManagement = () => {
               gap: isMobile ? '10px' : '24px',
               padding: '0'
             }}>
-              {filteredItems.map((item, index) => (
-                <div
-                  key={item.id}
-                  style={{
-                    animation: `fadeInUp 0.3s ease-out ${index * 0.03}s both`
-                  }}
-                >
+              {filteredItems.map((item) => (
                   <MenuItemCard
+                  key={item.id}
                   item={item}
-                  categories={categories}
+                  categoryMap={categoryMap}
                   onEdit={canEditMenuItem ? handleEdit : undefined}
                   onDelete={canDeleteMenuItem ? handleDelete : undefined}
                   onToggleAvailability={canMarkOutOfStock ? handleToggleAvailability : undefined}
@@ -4161,7 +4174,6 @@ const MenuManagement = () => {
                   taxInclusiveGlobal={currentRestaurant?.taxSettings?.taxInclusivePricing}
                   compact={isMobile}
                 />
-                </div>
               ))}
             </div>
           ) : (
@@ -4190,7 +4202,7 @@ const MenuManagement = () => {
               </div>
               {/* Table Rows */}
               {filteredItems.map((item, index) => {
-                const category = categories.find(c => c.id === item.category);
+                const category = categoryMap.get(item.category);
                 return (
                   <div
                     key={item.id}
@@ -4433,7 +4445,7 @@ const MenuManagement = () => {
                     {t('menu.trySearchingElse')}
                   </p>
                   <button
-                    onClick={() => { setSearchTerm(''); setSelectedCategory('all'); }}
+                    onClick={() => { setSearchTerm(''); setDisplaySearch(''); setSelectedCategory('all'); }}
                     style={{
                       padding: '12px 28px',
                       background: 'linear-gradient(135deg, #ef4444, #dc2626)',
@@ -5832,8 +5844,8 @@ const MenuManagement = () => {
         document.body
       )}
 
-      {/* Bulk Upload Modal — portal to render above sidebar */}
-      {typeof document !== 'undefined' && createPortal(
+      {/* Bulk Upload Modal — lazy-loaded, portal to render above sidebar */}
+      {showBulkUpload && typeof document !== 'undefined' && createPortal(
         <BulkMenuUpload
           isOpen={showBulkUpload}
           onClose={() => setShowBulkUpload(false)}
@@ -5845,8 +5857,8 @@ const MenuManagement = () => {
         document.body
       )}
 
-      {/* QR Code Modal — portal to render above sidebar */}
-      {typeof document !== 'undefined' && createPortal(
+      {/* QR Code Modal — lazy-loaded, portal to render above sidebar */}
+      {showQRCodeModal && typeof document !== 'undefined' && createPortal(
         <QRCodeModal
           isOpen={showQRCodeModal}
           onClose={() => setShowQRCodeModal(false)}
@@ -6363,7 +6375,7 @@ const MenuManagement = () => {
       {/* Item Detail Modal */}
       <ItemDetailModal
         item={selectedItem}
-        categories={categories}
+        categoryMap={categoryMap}
         isOpen={showItemModal}
         onClose={handleCloseModal}
         onEdit={canEditMenuItem ? handleEdit : undefined}
