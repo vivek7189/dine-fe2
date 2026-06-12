@@ -233,6 +233,7 @@ export function HeadquartersContent({ embedded = false }) {
   const [showInsightsPanel, setShowInsightsPanel] = useState(false);
   const [restaurantSearch, setRestaurantSearch] = useState('');
   const [isMobile, setIsMobile] = useState(false);
+  const isMobileEmbed = isMobile && typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
   const [emailPreferences, setEmailPreferences] = useState({
     emailEnabled: false,
     reportEmails: [],
@@ -1486,22 +1487,22 @@ export function HeadquartersContent({ embedded = false }) {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
-          padding: '10px 16px',
-          borderRadius: '12px',
+          gap: isMobileEmbed ? '5px' : '8px',
+          padding: isMobileEmbed ? '7px 10px' : '10px 16px',
+          borderRadius: isMobileEmbed ? '10px' : '12px',
           border: isFiltering ? '2px solid #22c55e' : '1px solid #e5e7eb',
           backgroundColor: isFiltering ? '#f0fdf4' : 'white',
           color: isFiltering ? '#16a34a' : '#374151',
-          fontSize: '14px',
+          fontSize: isMobileEmbed ? '12px' : '14px',
           fontWeight: '600',
           cursor: 'pointer',
-          minWidth: '140px',
+          minWidth: isMobileEmbed ? undefined : '140px',
           transition: 'all 0.2s'
         }}
       >
-        <FaStore size={14} style={{ color: isFiltering ? '#22c55e' : '#6b7280' }} />
-        <span style={{ flex: 1, textAlign: 'left' }}>{getSelectedRestaurantLabel()}</span>
-        <FaChevronDown size={12} style={{ color: isFiltering ? '#22c55e' : '#6b7280', transform: showRestaurantDropdown ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />
+        <FaStore size={isMobileEmbed ? 11 : 14} style={{ color: isFiltering ? '#22c55e' : '#6b7280' }} />
+        <span style={{ flex: 1, textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: isMobileEmbed ? '80px' : undefined }}>{getSelectedRestaurantLabel()}</span>
+        <FaChevronDown size={isMobileEmbed ? 9 : 12} style={{ color: isFiltering ? '#22c55e' : '#6b7280', transform: showRestaurantDropdown ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />
       </button>
 
       {showRestaurantDropdown && (
@@ -1599,20 +1600,20 @@ export function HeadquartersContent({ embedded = false }) {
       <button onClick={() => setShowDatePicker(!showDatePicker)} style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '10px',
-        padding: '10px 16px',
-        borderRadius: '12px',
+        gap: isMobileEmbed ? '5px' : '10px',
+        padding: isMobileEmbed ? '7px 10px' : '10px 16px',
+        borderRadius: isMobileEmbed ? '10px' : '12px',
         border: '2px solid #ef4444',
         backgroundColor: '#fef2f2',
         color: '#dc2626',
-        fontSize: '14px',
+        fontSize: isMobileEmbed ? '12px' : '14px',
         fontWeight: '600',
         cursor: 'pointer',
         transition: 'all 0.2s'
       }}>
-        <FaCalendarAlt size={14} style={{ color: '#ef4444' }} />
+        <FaCalendarAlt size={isMobileEmbed ? 11 : 14} style={{ color: '#ef4444' }} />
         <span>{getDateRangeLabel()}</span>
-        <FaChevronDown size={12} style={{ color: '#ef4444', transform: showDatePicker ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />
+        <FaChevronDown size={isMobileEmbed ? 9 : 12} style={{ color: '#ef4444', transform: showDatePicker ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />
       </button>
 
       {showDatePicker && (
@@ -1699,20 +1700,20 @@ export function HeadquartersContent({ embedded = false }) {
     <button onClick={() => setActiveTab(id)} style={{
       display: 'flex',
       alignItems: 'center',
-      gap: isMobile ? '5px' : '8px',
-      padding: isMobile ? '8px 14px' : '12px 20px',
-      borderRadius: isMobile ? '10px' : '12px',
+      gap: isMobileEmbed ? '4px' : isMobile ? '5px' : '8px',
+      padding: isMobileEmbed ? '6px 10px' : isMobile ? '8px 14px' : '12px 20px',
+      borderRadius: isMobileEmbed ? '8px' : isMobile ? '10px' : '12px',
       border: 'none',
       backgroundColor: active ? '#ef4444' : 'white',
       color: active ? 'white' : '#6b7280',
-      fontSize: isMobile ? '12px' : '14px',
+      fontSize: isMobileEmbed ? '11px' : isMobile ? '12px' : '14px',
       fontWeight: '600',
       cursor: 'pointer',
       boxShadow: active ? '0 4px 12px rgba(239, 68, 68, 0.3)' : '0 1px 3px rgba(0,0,0,0.1)',
       whiteSpace: 'nowrap',
       transition: 'all 0.2s'
     }}>
-      <Icon size={isMobile ? 13 : 16} />
+      <Icon size={isMobileEmbed ? 11 : isMobile ? 13 : 16} />
       {label}
     </button>
   );
@@ -2485,17 +2486,17 @@ export function HeadquartersContent({ embedded = false }) {
   // ============================================
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', padding: isMobile ? '16px' : '24px' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', padding: isMobileEmbed ? '10px' : isMobile ? '16px' : '24px', paddingBottom: isMobileEmbed ? '80px' : undefined }}>
       {/* Header */}
-      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', marginBottom: isMobile ? '12px' : '20px', gap: isMobile ? '12px' : '16px' }}>
-        <div style={{ paddingLeft: isMobile && !window.__DINEOPEN_MOBILE_EMBED__ ? '48px' : undefined }}>
-          <h1 style={{ fontSize: isMobile ? '22px' : '32px', fontWeight: '800', color: '#1f2937', margin: 0 }}>
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', marginBottom: isMobileEmbed ? '8px' : isMobile ? '12px' : '20px', gap: isMobileEmbed ? '8px' : isMobile ? '12px' : '16px' }}>
+        <div style={{ paddingLeft: isMobile && !isMobileEmbed ? '48px' : undefined }}>
+          <h1 style={{ fontSize: isMobileEmbed ? '16px' : isMobile ? '22px' : '32px', fontWeight: '800', color: '#1f2937', margin: 0 }}>
             {getDynamicHeadline().title}
           </h1>
-          <p style={{ color: '#6b7280', margin: '4px 0 0', fontSize: isMobile ? '12px' : '14px' }}>{getDynamicHeadline().subtitle}</p>
+          <p style={{ color: '#6b7280', margin: '2px 0 0', fontSize: isMobileEmbed ? '10px' : isMobile ? '12px' : '14px' }}>{getDynamicHeadline().subtitle}</p>
         </div>
 
-        <div style={{ display: 'flex', gap: isMobile ? '8px' : '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: isMobileEmbed ? '6px' : isMobile ? '8px' : '12px', flexWrap: isMobileEmbed ? 'nowrap' : 'wrap', alignItems: 'center' }}>
           {(dashboardData?.restaurants?.length || 0) > 1 && <RestaurantSelector />}
           <DatePicker />
 
@@ -2529,9 +2530,9 @@ export function HeadquartersContent({ embedded = false }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: isMobile ? '36px' : '40px',
-              height: isMobile ? '36px' : '40px',
-              borderRadius: '10px',
+              width: isMobileEmbed ? '32px' : isMobile ? '36px' : '40px',
+              height: isMobileEmbed ? '32px' : isMobile ? '36px' : '40px',
+              borderRadius: isMobileEmbed ? '8px' : '10px',
               border: 'none',
               background: aiInsightsRemaining <= 0 ? '#9ca3af' : 'linear-gradient(135deg, #ef4444, #dc2626)',
               color: 'white',
@@ -2554,9 +2555,9 @@ export function HeadquartersContent({ embedded = false }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            width: isMobile ? '36px' : '40px',
-            height: isMobile ? '36px' : '40px',
-            borderRadius: '10px',
+            width: isMobileEmbed ? '32px' : isMobile ? '36px' : '40px',
+            height: isMobileEmbed ? '32px' : isMobile ? '36px' : '40px',
+            borderRadius: isMobileEmbed ? '8px' : '10px',
             border: '1px solid #e5e7eb',
             background: 'white',
             color: '#6b7280',
@@ -2580,15 +2581,15 @@ export function HeadquartersContent({ embedded = false }) {
             router.push(window.__DINEOPEN_MOBILE_EMBED__ ? `/mobile${base}` : base);
           }}
           style={{
-            width: '100%', padding: '13px', borderRadius: '14px',
+            width: '100%', padding: isMobileEmbed ? '10px' : '13px', borderRadius: isMobileEmbed ? '10px' : '14px',
             background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-            border: 'none', color: 'white', fontSize: '15px', fontWeight: '700',
-            cursor: 'pointer', marginBottom: '14px',
+            border: 'none', color: 'white', fontSize: isMobileEmbed ? '13px' : '15px', fontWeight: '700',
+            cursor: 'pointer', marginBottom: isMobileEmbed ? '8px' : '14px',
             boxShadow: '0 4px 14px rgba(239,68,68,0.3)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
           }}
         >
-          <FaShoppingCart size={15} />
+          <FaShoppingCart size={isMobileEmbed ? 12 : 15} />
           {businessType === 'bar' ? t('home.barPOS') : t('home.startTakingOrders')}
         </button>
       )}
@@ -2598,12 +2599,12 @@ export function HeadquartersContent({ embedded = false }) {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: isMobile ? '16px' : '24px',
-        gap: isMobile ? '8px' : '16px',
+        marginBottom: isMobileEmbed ? '10px' : isMobile ? '16px' : '24px',
+        gap: isMobileEmbed ? '6px' : isMobile ? '8px' : '16px',
         flexWrap: 'wrap'
       }}>
         {/* Left: Tabs */}
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+        <div style={{ display: 'flex', gap: isMobileEmbed ? '5px' : '8px', overflowX: 'auto', paddingBottom: '4px' }}>
           <TabButton id="overview" icon={FaChartBar} label={t('hq.overview')} active={activeTab === 'overview'} />
           <TabButton id="staff" icon={FaUsers} label={t('hq.staff')} active={activeTab === 'staff'} />
           <TabButton id="menu" icon={FaUtensils} label={t('hq.menu')} active={activeTab === 'menu'} />
