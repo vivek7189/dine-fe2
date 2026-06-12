@@ -499,7 +499,7 @@ const CustomDropdown = ({ value, onChange, options, placeholder, style = {} }) =
 };
 
 // Ultra Compact Menu Item Card Component
-const MenuItemCard = React.memo(({ item, categoryMap, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onGenerateRecipe, generatingRecipeFor, hasRecipe, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, taxInclusiveGlobal, compact }) => {
+const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onGenerateRecipe, generatingRecipeFor, hasRecipe, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, taxInclusiveGlobal, compact }) => {
   const { formatCurrency: formatCurrencyHook } = useCurrency();
   const formatCurrency = formatCurrencyProp || formatCurrencyHook;
 
@@ -1200,7 +1200,8 @@ const MenuItemCard = React.memo(({ item, categoryMap, onEdit, onDelete, onToggle
       </div>
     </div>
   );
-});
+};
+const MenuItemCard = React.memo(MenuItemCardBase);
 
 // Helper function to get category-specific colors
 const getCategoryColor = (category, opacity = 1) => {
