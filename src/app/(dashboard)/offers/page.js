@@ -1016,12 +1016,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
   return (
     <div style={{ width: '100%', minHeight: '100vh', backgroundColor: '#fef7f0', padding: isMobile ? '8px' : '24px', boxSizing: 'border-box', overflowX: 'hidden' }}>
       <NotificationContainer />
-      {/* Prevent iOS auto-zoom on input focus (requires font-size >= 16px) */}
-      {isMobile && (
-        <style dangerouslySetInnerHTML={{ __html: `
-          input, textarea, select { font-size: 16px !important; }
-        ` }} />
-      )}
+
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes offerSpin { to { transform: rotate(360deg); } }
         @keyframes offerModalIn { from { opacity:0; transform:scale(0.92); } to { opacity:1; transform:scale(1); } }

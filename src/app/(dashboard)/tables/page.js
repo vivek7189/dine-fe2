@@ -17,7 +17,7 @@ import {
   FaHome, FaEdit, FaEllipsisV, FaCalendarAlt, FaTools, FaTimes, FaPhoneAlt,
   FaUser, FaChevronDown, FaEye, FaChevronLeft, FaChevronRight, FaSearch,
   FaLayerGroup, FaConciergeBell, FaArrowRight, FaSpinner, FaArrowUp, FaArrowDown, FaSortAmountDown, FaQrcode,
-  FaPrint, FaReceipt, FaExchangeAlt, FaTruck
+  FaPrint, FaReceipt, FaExchangeAlt, FaTruck, FaTh, FaThLarge
 } from 'react-icons/fa';
 import dynamic from 'next/dynamic';
 import { createPortal } from 'react-dom';
@@ -265,6 +265,10 @@ const TableManagement = () => {
   const [error, setError] = useState('');
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
   const isMobileEmbed = isMobile && typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
+  const [mobileGridCols, setMobileGridCols] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('tableGridCols') || '3';
+    return '3';
+  });
   const [userRole, setUserRole] = useState(null);
   const [activeMainTab, setActiveMainTab] = useState('tables');
   const [pusherRefreshSignal, setPusherRefreshSignal] = useState(0);
@@ -1302,7 +1306,7 @@ const TableManagement = () => {
           </div>
         </div>
         {/* Grid skeleton */}
-        <div style={{ flex: 1, padding: isMobileEmbed ? '8px' : '24px', display: 'grid', gridTemplateColumns: isMobileEmbed ? 'repeat(3, 1fr)' : isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(160px, 1fr))', gap: isMobileEmbed ? '6px' : '20px', alignContent: 'start' }}>
+        <div style={{ flex: 1, padding: isMobileEmbed ? '8px' : '24px', display: 'grid', gridTemplateColumns: isMobileEmbed ? `repeat(${mobileGridCols}, 1fr)` : isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(160px, 1fr))', gap: isMobileEmbed ? '6px' : '20px', alignContent: 'start' }}>
           {[...Array(isMobileEmbed ? 15 : 12)].map((_, i) => (
             <div key={i} style={{ borderRadius: isMobileEmbed ? '8px' : '12px', border: '1px solid #e5e7eb', padding: isMobileEmbed ? '6px 8px' : '12px', minHeight: isMobileEmbed ? '80px' : '120px', display: 'flex', flexDirection: 'column', gap: isMobileEmbed ? '4px' : '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -1576,12 +1580,27 @@ const TableManagement = () => {
                     )}
                     <span style={{ fontSize: '12px', color: '#9ca3af' }}>{tables.length} {t('tables.tables')}</span>
                   </div>
-                  {(canEditTable || canDeleteTable) && (
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      {canEditTable && <button onClick={() => startEditFloor(floor)} style={{ width: '28px', height: '28px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}><FaEdit size={12} /></button>}
-                      {canDeleteTable && <button onClick={() => setDeleteFloorConfirm(floor)} style={{ width: '28px', height: '28px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}><FaTrash size={12} /></button>}
-                    </div>
-                  )}
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                    {/* Grid column toggle — mobile embed only */}
+                    {isMobileEmbed && (
+                      <>
+                        <button
+                          onClick={() => { setMobileGridCols('2'); localStorage.setItem('tableGridCols', '2'); }}
+                          style={{ padding: '3px 6px', border: 'none', borderRadius: '4px', cursor: 'pointer', background: mobileGridCols === '2' ? '#3b82f6' : '#f3f4f6', color: mobileGridCols === '2' ? '#fff' : '#6b7280' }}
+                        ><FaThLarge size={11} /></button>
+                        <button
+                          onClick={() => { setMobileGridCols('3'); localStorage.setItem('tableGridCols', '3'); }}
+                          style={{ padding: '3px 6px', border: 'none', borderRadius: '4px', cursor: 'pointer', background: mobileGridCols === '3' ? '#3b82f6' : '#f3f4f6', color: mobileGridCols === '3' ? '#fff' : '#6b7280' }}
+                        ><FaTh size={11} /></button>
+                      </>
+                    )}
+                    {(canEditTable || canDeleteTable) && (
+                      <>
+                        {canEditTable && <button onClick={() => startEditFloor(floor)} style={{ width: '28px', height: '28px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}><FaEdit size={12} /></button>}
+                        {canDeleteTable && <button onClick={() => setDeleteFloorConfirm(floor)} style={{ width: '28px', height: '28px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}><FaTrash size={12} /></button>}
+                      </>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -1603,8 +1622,8 @@ const TableManagement = () => {
               ) : (
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: isMobileEmbed ? 'repeat(3, 1fr)' : isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(160px, 1fr))',
-                  gap: isMobileEmbed ? '6px' : isMobile ? '12px' : '20px',
+                  gridTemplateColumns: isMobileEmbed ? `repeat(${mobileGridCols}, 1fr)` : isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(160px, 1fr))',
+                  gap: isMobileEmbed ? '8px' : isMobile ? '12px' : '20px',
                 }}>
                   {tables.map((table, idx) => {
                     // For non-today: determine status from bookings, not live data
@@ -1630,8 +1649,8 @@ const TableManagement = () => {
                         borderRadius: isMobileEmbed ? '8px' : '12px',
                         border: isOccupied ? 'none' : `1px solid ${sInfo.border}`,
                         boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                        padding: '0', position: 'relative', overflow: 'visible',
-                        minHeight: isMobileEmbed ? '80px' : '120px', display: 'flex', flexDirection: 'column',
+                        padding: '0', position: 'relative', overflow: isMobileEmbed ? 'hidden' : 'visible',
+                        minHeight: isMobileEmbed ? 'auto' : '120px', display: 'flex', flexDirection: 'column',
                         opacity: 0, animation: `tblFadeIn 0.3s ease-out ${idx * 0.03}s forwards`,
                       }} onClick={() => setActiveDropdown(isDropdownOpen ? null : table.id)}
                          onMouseEnter={() => setHoveredTableId(table.id)}
@@ -1806,28 +1825,29 @@ const TableManagement = () => {
                         )}
 
                         {/* Action buttons at bottom */}
-                        <div style={{ padding: '0 8px 8px', position: 'relative', zIndex: 2 }}>
+                        <div style={{ padding: isMobileEmbed ? '0 6px 6px' : '0 8px 8px', position: 'relative', zIndex: 2 }}>
                           {isToday ? (
                             /* ── TODAY: live action buttons ── */
                             <>
                               {isAvailable && (
                                 <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('take-order', table); }} style={{
-                                  width: '100%', padding: '8px 12px', background: '#059669', color: 'white', border: 'none',
-                                  borderRadius: '6px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                  width: '100%', padding: isMobileEmbed ? '6px 4px' : '8px 12px', background: '#059669', color: 'white', border: 'none',
+                                  borderRadius: '6px', fontSize: isMobileEmbed ? '10px' : '11px', fontWeight: 600, cursor: 'pointer',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? '3px' : '6px',
+                                  whiteSpace: 'nowrap',
                                 }}>
-                                  <FaUtensils size={10} /> {t('tables.takeOrder')}
+                                  <FaUtensils size={isMobileEmbed ? 8 : 10} /> {isMobileEmbed ? 'Order' : t('tables.takeOrder')}
                                 </button>
                               )}
                               {isOccupied && (
-                                <div style={{ display: 'flex', gap: '5px', position: 'relative' }}>
+                                <div style={{ display: 'flex', gap: isMobileEmbed ? '4px' : '5px', position: 'relative' }}>
                                   {/* Add items — primary action */}
                                   <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('view-order', table); }} style={{
-                                    flex: 1, padding: '7px 8px', background: 'white', border: '1px solid #e5e7eb', color: '#374151',
-                                    borderRadius: '8px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                                    flex: 1, padding: isMobileEmbed ? '4px 4px' : '7px 8px', background: 'white', border: '1px solid #e5e7eb', color: '#374151',
+                                    borderRadius: isMobileEmbed ? '6px' : '8px', fontSize: isMobileEmbed ? '9px' : '11px', fontWeight: 600, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', whiteSpace: 'nowrap',
                                   }}>
-                                    <FaPlus size={9} style={{ color: '#059669' }} /> Add
+                                    <FaPlus size={isMobileEmbed ? 7 : 9} style={{ color: '#059669' }} /> Add
                                   </button>
                                   {/* Complete Bill — primary action */}
                                   <button className="tbl-action" onClick={(e) => {
@@ -1839,16 +1859,16 @@ const TableManagement = () => {
                                       handleTableAction('make-available', table);
                                     }
                                   }} style={{
-                                    flex: 1, padding: '7px 8px', background: '#dc2626', border: 'none', color: 'white',
-                                    borderRadius: '8px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                                    flex: 1, padding: isMobileEmbed ? '4px 4px' : '7px 8px', background: '#dc2626', border: 'none', color: 'white',
+                                    borderRadius: isMobileEmbed ? '6px' : '8px', fontSize: isMobileEmbed ? '9px' : '11px', fontWeight: 600, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', whiteSpace: 'nowrap',
                                   }}>
-                                    <FaReceipt size={9} /> Bill
+                                    <FaReceipt size={isMobileEmbed ? 7 : 9} /> Bill
                                   </button>
                                   {/* Print + Move — combined in one icon menu */}
                                   <div style={{ position: 'relative' }}>
                                     <button className="tbl-action" onClick={(e) => { e.stopPropagation(); setPrintDropdownTable(printDropdownTable === table.id ? null : table.id); }} style={{
-                                      width: '32px', height: '32px', padding: 0,
+                                      width: isMobileEmbed ? '26px' : '32px', height: isMobileEmbed ? '26px' : '32px', padding: 0,
                                       background: printingTables[table.id]
                                         ? 'linear-gradient(135deg, #dbeafe, #bfdbfe)'
                                         : printDropdownTable === table.id ? 'linear-gradient(135deg, #fef3c7, #fde68a)' : 'rgba(0,0,0,0.03)',
@@ -1901,18 +1921,19 @@ const TableManagement = () => {
                               )}
                               {tableStatus === 'reserved' && (
                                 <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('take-order', table); }} style={{
-                                  width: '100%', padding: '8px 12px', background: '#059669', color: 'white', border: 'none',
-                                  borderRadius: '6px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                  width: '100%', padding: isMobileEmbed ? '6px 4px' : '8px 12px', background: '#059669', color: 'white', border: 'none',
+                                  borderRadius: '6px', fontSize: isMobileEmbed ? '10px' : '11px', fontWeight: 600, cursor: 'pointer',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? '3px' : '6px',
+                                  whiteSpace: 'nowrap',
                                 }}>
-                                  <FaUtensils size={10} /> {t('tables.seatGuest')}
+                                  <FaUtensils size={isMobileEmbed ? 8 : 10} /> {isMobileEmbed ? 'Seat' : t('tables.seatGuest')}
                                 </button>
                               )}
                               {(tableStatus === 'cleaning' || tableStatus === 'out-of-service') && (
                                 <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{
-                                  width: '100%', padding: '8px 12px', background: 'white', color: '#059669', border: '1px solid #d1fae5',
-                                  borderRadius: '6px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                  width: '100%', padding: isMobileEmbed ? '6px 4px' : '8px 12px', background: 'white', color: '#059669', border: '1px solid #d1fae5',
+                                  borderRadius: '6px', fontSize: isMobileEmbed ? '10px' : '11px', fontWeight: 600, cursor: 'pointer',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? '3px' : '6px',
                                 }}>
                                   <FaCheck size={10} /> {t('tables.makeAvailable')}
                                 </button>
@@ -1927,12 +1948,12 @@ const TableManagement = () => {
                               setBookingFromHeader(false);
                               setShowBookingForm(true);
                             }} style={{
-                              width: '100%', padding: '8px 12px',
+                              width: '100%', padding: isMobileEmbed ? '6px 4px' : '8px 12px',
                               background: hasBookings ? 'white' : 'linear-gradient(135deg, #22c55e, #16a34a)',
                               color: hasBookings ? '#059669' : 'white',
                               border: hasBookings ? '1px solid #bbf7d0' : 'none',
-                              borderRadius: '6px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                              borderRadius: '6px', fontSize: isMobileEmbed ? '10px' : '11px', fontWeight: 600, cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? '3px' : '6px',
                             }}>
                               <FaCalendarAlt size={10} /> {hasBookings ? t('tables.addBooking') : t('tables.bookTable')}
                             </button>

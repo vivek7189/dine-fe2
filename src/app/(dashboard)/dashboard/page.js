@@ -366,7 +366,12 @@ function RestaurantPOSContent() {
     return 'sidebar';
   }); // 'sidebar' or 'chips'
   const [showMobileCart, setShowMobileCart] = useState(false);
-  
+
+  // Auto-close mobile cart slider when switching away from orders view (e.g. returning to tables after placing order)
+  useEffect(() => {
+    if (viewMode !== 'orders' && showMobileCart) setShowMobileCart(false);
+  }, [viewMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Voice Assistant State
   const [isListeningVoice, setIsListeningVoice] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState(''); // Display transcript (includes interim)
@@ -5709,7 +5714,6 @@ function RestaurantPOSContent() {
           #sidebar-hamburger { display: none !important; }
           .nav-sidebar, [class*="sidebar-hamburger"] { display: none !important; }
           .dashboard-full-height { height: calc(var(--app-height, 100dvh) - env(safe-area-inset-bottom, 34px) - 50px) !important; max-height: calc(var(--app-height, 100dvh) - env(safe-area-inset-bottom, 34px) - 50px) !important; }
-          input, select, textarea { font-size: 16px !important; }
         `}</style>
       )}
       {/* Restaurant Change Loading Overlay */}

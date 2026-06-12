@@ -2246,6 +2246,8 @@ const MenuManagement = () => {
     return () => window.removeEventListener('resize', check);
   }, []);
 
+  const isMobileEmbed = isMobile && typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
+
   // Close "More" dropdown on outside click
   useEffect(() => {
     if (!showMoreActions) return;
@@ -2369,7 +2371,7 @@ const MenuManagement = () => {
         const userData = localStorage.getItem('user');
         if (!userData) {
           console.log('❌ Menu: No user data found, redirecting to login');
-          if (typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__) return;
+          if (isMobileEmbed) return;
           router.push('/login');
           return;
         }
@@ -3728,7 +3730,7 @@ const MenuManagement = () => {
       `}</style>
       <div style={{
         width: '100%',
-        padding: '14px',
+        padding: isMobileEmbed ? '8px' : '14px',
         position: 'relative',
         paddingBottom: '40px'
       }}>
@@ -3738,18 +3740,18 @@ const MenuManagement = () => {
           top: 0,
           zIndex: 100,
           backgroundColor: '#ffffff',
-          marginLeft: '-14px',
-          marginRight: '-14px',
-          padding: '12px 14px 0 14px',
-          marginBottom: '14px'
+          marginLeft: isMobileEmbed ? '-8px' : '-14px',
+          marginRight: isMobileEmbed ? '-8px' : '-14px',
+          padding: isMobileEmbed ? '8px 8px 0 8px' : '12px 14px 0 14px',
+          marginBottom: isMobileEmbed ? '8px' : '14px'
         }}>
           {/* Title row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', paddingLeft: isMobile && !(typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__) ? '48px' : '0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isMobileEmbed ? '6px' : '10px', paddingLeft: isMobile && !isMobileEmbed ? '48px' : '0' }}>
             <div>
-              <h1 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+              <h1 style={{ fontSize: isMobileEmbed ? '15px' : '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
                 {t('menu.title')}
               </h1>
-              <p style={{ fontSize: '11px', color: '#9ca3af', margin: '2px 0 0 0' }}>
+              <p style={{ fontSize: isMobileEmbed ? '10px' : '11px', color: '#9ca3af', margin: '2px 0 0 0' }}>
                 {filteredItems.length} {t('common.items')}
                 {currentRestaurant?.name ? ` · ${currentRestaurant.name}` : ''}
               </p>
@@ -3759,17 +3761,17 @@ const MenuManagement = () => {
             <button
               onClick={() => setShowAddForm(true)}
               style={{
-                padding: '8px 14px',
+                padding: isMobileEmbed ? '6px 10px' : '8px 14px',
                 background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                 color: 'white',
                 border: 'none',
-                borderRadius: '10px',
+                borderRadius: isMobileEmbed ? '8px' : '10px',
                 fontWeight: '600',
-                fontSize: '13px',
+                fontSize: isMobileEmbed ? '11px' : '13px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: isMobileEmbed ? '4px' : '6px',
                 boxShadow: '0 4px 14px rgba(239,68,68,0.3)',
                 transition: 'all 0.2s',
                 whiteSpace: 'nowrap',
@@ -3778,34 +3780,34 @@ const MenuManagement = () => {
               onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(239,68,68,0.4)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(239,68,68,0.3)'; }}
             >
-              <FaPlus size={11} /> {btype.add}
+              <FaPlus size={isMobileEmbed ? 9 : 11} /> {btype.add}
             </button>
             )}
           </div>
 
           {/* Action pills row */}
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', gap: isMobileEmbed ? '6px' : '10px', flexWrap: 'wrap', marginBottom: isMobileEmbed ? '8px' : '16px' }}>
             {[
-              { icon: <FaCloudUploadAlt size={16} />, label: t('menu.upload'), onClick: () => setShowBulkUpload(true), bg: '#fef2f2', color: '#dc2626', hoverBg: '#fee2e2', border: '#fecaca' },
-              { icon: <FaCamera size={16} />, label: t('menu.photo'), onClick: handleCameraCapture, bg: '#fffbeb', color: '#d97706', hoverBg: '#fef3c7', border: '#fde68a' },
-              { icon: <FaQrcode size={16} />, label: t('menu.qrCode'), onClick: () => setShowQRCodeModal(true), bg: '#ecfdf5', color: '#059669', hoverBg: '#d1fae5', border: '#a7f3d0' },
-              { icon: <FaEye size={16} />, label: t('menu.customize'), onClick: () => { const rid = currentRestaurant?.id || localStorage.getItem('restaurantId'); const p = `/menu/customize${rid ? `?restaurant=${rid}` : ''}`; router.push(typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__ ? `/mobile${p}` : p); }, bg: '#eff6ff', color: '#2563eb', hoverBg: '#dbeafe', border: '#bfdbfe' },
+              { icon: <FaCloudUploadAlt size={isMobileEmbed ? 11 : 16} />, label: t('menu.upload'), onClick: () => setShowBulkUpload(true), bg: '#fef2f2', color: '#dc2626', hoverBg: '#fee2e2', border: '#fecaca' },
+              { icon: <FaCamera size={isMobileEmbed ? 11 : 16} />, label: t('menu.photo'), onClick: handleCameraCapture, bg: '#fffbeb', color: '#d97706', hoverBg: '#fef3c7', border: '#fde68a' },
+              { icon: <FaQrcode size={isMobileEmbed ? 11 : 16} />, label: t('menu.qrCode'), onClick: () => setShowQRCodeModal(true), bg: '#ecfdf5', color: '#059669', hoverBg: '#d1fae5', border: '#a7f3d0' },
+              { icon: <FaEye size={isMobileEmbed ? 11 : 16} />, label: t('menu.customize'), onClick: () => { const rid = currentRestaurant?.id || localStorage.getItem('restaurantId'); const p = `/menu/customize${rid ? `?restaurant=${rid}` : ''}`; router.push(isMobileEmbed ? `/mobile${p}` : p); }, bg: '#eff6ff', color: '#2563eb', hoverBg: '#dbeafe', border: '#bfdbfe' },
             ].map((action, i) => (
               <button
                 key={i}
                 onClick={action.onClick}
                 style={{
-                  padding: '10px 18px',
+                  padding: isMobileEmbed ? '5px 10px' : '10px 18px',
                   backgroundColor: action.bg,
                   color: action.color,
                   border: `1px solid ${action.border}`,
-                  borderRadius: '10px',
-                  fontWeight: '700',
-                  fontSize: '14px',
+                  borderRadius: isMobileEmbed ? '8px' : '10px',
+                  fontWeight: isMobileEmbed ? '600' : '700',
+                  fontSize: isMobileEmbed ? '11px' : '14px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '7px',
+                  gap: isMobileEmbed ? '4px' : '7px',
                   transition: 'all 0.2s',
                   whiteSpace: 'nowrap'
                 }}
@@ -3820,17 +3822,17 @@ const MenuManagement = () => {
                 onClick={handleBulkDeleteClick}
                 disabled={operationLoading}
                 style={{
-                  padding: '6px 12px',
+                  padding: isMobileEmbed ? '4px 8px' : '6px 12px',
                   backgroundColor: '#fef2f2',
                   color: '#ef4444',
                   border: 'none',
-                  borderRadius: '8px',
+                  borderRadius: isMobileEmbed ? '6px' : '8px',
                   fontWeight: '600',
-                  fontSize: '12px',
+                  fontSize: isMobileEmbed ? '10px' : '12px',
                   cursor: operationLoading ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '5px',
+                  gap: isMobileEmbed ? '3px' : '5px',
                   transition: 'all 0.2s',
                   opacity: operationLoading ? 0.5 : 1,
                   whiteSpace: 'nowrap'
@@ -3838,7 +3840,7 @@ const MenuManagement = () => {
                 onMouseEnter={(e) => { if (!operationLoading) { e.currentTarget.style.backgroundColor = '#fee2e2'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#fef2f2'; e.currentTarget.style.transform = 'translateY(0)'; }}
               >
-                <FaTrash size={11} /> {t('menu.deleteAll')}
+                <FaTrash size={isMobileEmbed ? 9 : 11} /> {t('menu.deleteAll')}
               </button>
             )}
           </div>
@@ -3846,25 +3848,25 @@ const MenuManagement = () => {
         {/* Search + Filters */}
         <div style={{
           display: 'flex',
-          gap: '10px',
+          gap: isMobileEmbed ? '6px' : '10px',
           alignItems: 'center',
-          paddingBottom: '16px',
+          paddingBottom: isMobileEmbed ? '8px' : '16px',
           borderBottom: '1px solid #f3f4f6',
           flexWrap: 'wrap'
         }}>
           {/* Search */}
           <div style={{
             position: 'relative',
-            width: '260px',
+            width: isMobileEmbed ? '100%' : '260px',
             flexShrink: 0
           }}>
             <FaSearch style={{
               position: 'absolute',
-              left: '14px',
+              left: isMobileEmbed ? '10px' : '14px',
               top: '50%',
               transform: 'translateY(-50%)',
               color: '#ef4444',
-              fontSize: '13px'
+              fontSize: isMobileEmbed ? '11px' : '13px'
             }} />
             <input
               type="text"
@@ -3873,10 +3875,10 @@ const MenuManagement = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{
                 width: '100%',
-                padding: '9px 14px 9px 36px',
+                padding: isMobileEmbed ? '7px 10px 7px 28px' : '9px 14px 9px 36px',
                 border: '1.5px solid #e5e7eb',
-                borderRadius: '10px',
-                fontSize: '13px',
+                borderRadius: isMobileEmbed ? '8px' : '10px',
+                fontSize: isMobileEmbed ? '11px' : '13px',
                 backgroundColor: '#fff',
                 transition: 'all 0.2s ease',
                 outline: 'none',
@@ -4607,6 +4609,7 @@ const MenuManagement = () => {
           justifyContent: 'center',
           zIndex: 10002,
           padding: window.innerWidth <= 768 ? '0' : '20px',
+          paddingBottom: isMobileEmbed ? '60px' : undefined,
           overflowY: 'auto'
         }}>
           <div style={{
@@ -4615,7 +4618,7 @@ const MenuManagement = () => {
             boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
             width: '100%',
             maxWidth: window.innerWidth <= 768 ? '100%' : '820px',
-            minHeight: window.innerWidth <= 768 ? (typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__ ? 'var(--app-height, 100vh)' : '100vh') : 'auto',
+            minHeight: window.innerWidth <= 768 ? (isMobileEmbed ? 'auto' : '100vh') : 'auto',
             marginTop: window.innerWidth <= 768 ? '0' : '20px',
             marginBottom: window.innerWidth <= 768 ? '0' : '20px'
           }}>
@@ -5004,7 +5007,7 @@ const MenuManagement = () => {
 
                   <p style={{ fontSize: '11px', color: '#94a3b8', margin: '8px 0 0' }}>
                     {t('menu.emptyZonesInfo')}{' '}
-                    <span onClick={() => router.push(typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__ ? '/mobile/admin' : '/admin')} style={{ color: '#ef4444', cursor: 'pointer', fontWeight: '600' }}>{t('menu.adminPricingRules')}</span>
+                    <span onClick={() => router.push(isMobileEmbed ? '/mobile/admin' : '/admin')} style={{ color: '#ef4444', cursor: 'pointer', fontWeight: '600' }}>{t('menu.adminPricingRules')}</span>
                   </p>
                 </div>
 
@@ -5770,10 +5773,10 @@ const MenuManagement = () => {
                 position: 'sticky',
                 bottom: 0,
                 display: 'flex',
-                gap: '10px',
+                gap: isMobileEmbed ? '8px' : '10px',
                 justifyContent: 'flex-end',
                 margin: window.innerWidth <= 768 ? '16px -16px 0 -16px' : '16px -24px 0 -24px',
-                padding: window.innerWidth <= 768 ? '12px 16px' : '14px 24px',
+                padding: window.innerWidth <= 768 ? (isMobileEmbed ? '10px 12px 70px 12px' : '12px 16px') : '14px 24px',
                 borderTop: '1px solid #e5e7eb',
                 backgroundColor: '#f9fafb',
                 borderRadius: window.innerWidth <= 768 ? '0' : '0 0 12px 12px',
@@ -5783,10 +5786,10 @@ const MenuManagement = () => {
                   type="button"
                   onClick={resetForm}
                   style={{
-                    padding: '10px 24px',
+                    padding: isMobileEmbed ? '8px 16px' : '10px 24px',
                     backgroundColor: 'white',
                     color: '#374151',
-                    fontSize: '13px',
+                    fontSize: isMobileEmbed ? '12px' : '13px',
                     fontWeight: '500',
                     border: '1px solid #d1d5db',
                     borderRadius: '8px',
@@ -5801,10 +5804,10 @@ const MenuManagement = () => {
                   type="submit"
                   disabled={processing}
                   style={{
-                    padding: '10px 28px',
+                    padding: isMobileEmbed ? '8px 20px' : '10px 28px',
                     background: processing ? 'linear-gradient(135deg, #f87171, #ef4444)' : 'linear-gradient(135deg, #ef4444, #dc2626)',
                     color: 'white',
-                    fontSize: '13px',
+                    fontSize: isMobileEmbed ? '12px' : '13px',
                     fontWeight: '600',
                     border: 'none',
                     borderRadius: '8px',
@@ -6030,7 +6033,7 @@ const MenuManagement = () => {
             boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
             width: '100%', maxWidth: '820px',
             marginTop: 20, marginBottom: 20,
-            display: 'flex', flexDirection: 'column', maxHeight: typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__ ? 'calc(var(--app-height, 90vh) - 8px)' : '90vh',
+            display: 'flex', flexDirection: 'column', maxHeight: isMobileEmbed ? 'calc(var(--app-height, 90vh) - 8px)' : '90vh',
             overflow: 'hidden',
           }}>
             <div style={{

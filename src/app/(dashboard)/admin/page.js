@@ -6738,12 +6738,7 @@ const Admin = () => {
         @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
       `}</style>
 
-      {/* Prevent iOS auto-zoom on input focus */}
-      {isClient && isMobile && (
-        <style dangerouslySetInnerHTML={{ __html: `
-          input, textarea, select { font-size: 16px !important; }
-        ` }} />
-      )}
+
       <div style={{ padding: isClient && isMobile ? '8px' : '24px', boxSizing: 'border-box', overflowX: 'hidden' }}>
 
         {/* Mobile Header + Dropdown (hidden in mobile embed — each tab opened separately from app) */}

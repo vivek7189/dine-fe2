@@ -126,9 +126,7 @@ export default function MobileGoogleReviewsPage() {
       boxSizing: 'border-box',
       overflowX: 'hidden',
     }}>
-      <style>{`
-        input, textarea, select { font-size: 16px !important; }
-      `}</style>
+
       <GoogleReviews
         restaurantId={restaurant.id}
         restaurant={restaurant}

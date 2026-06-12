@@ -2261,12 +2261,7 @@ const Customers = () => {
         overflowX: 'hidden',
         boxSizing: 'border-box'
       }}>
-        {/* Prevent iOS auto-zoom on input focus */}
-        {isMobile && (
-          <style dangerouslySetInnerHTML={{ __html: `
-            input, textarea, select { font-size: 16px !important; }
-          ` }} />
-        )}
+
         <div style={{
           width: '100%',
           padding: isMobileEmbed ? '0' : (isMobile ? '8px' : '24px'),

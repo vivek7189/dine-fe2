@@ -71,9 +71,7 @@ export default function MobileAdminPage() {
       boxSizing: 'border-box',
       overflowX: 'hidden',
     }}>
-      <style>{`
-        input, textarea, select { font-size: 16px !important; }
-      `}</style>
+
       <AdminPage />
     </div>
   );

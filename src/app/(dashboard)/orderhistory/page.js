@@ -2087,11 +2087,11 @@ const OrderHistory = () => {
 
     return (
       <div
-        className="fixed inset-0 flex items-center justify-center"
-        style={{ zIndex: 10100, backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+        className={`fixed inset-0 flex items-center justify-center ${isMobileEmbed ? 'pb-16' : ''}`}
+        style={{ zIndex: 10100, backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', padding: isMobileEmbed ? '8px' : undefined }}
         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       >
-        <div className={`bg-white w-full max-w-2xl rounded-xl shadow-2xl flex flex-col overflow-hidden ${isMobileEmbed ? '' : 'max-h-[92vh]'}`} style={isMobileEmbed ? { maxHeight: 'calc(var(--app-height, 92vh) - 8px)' } : {}}>
+        <div className={`bg-white w-full max-w-2xl rounded-xl shadow-2xl flex flex-col overflow-hidden ${isMobileEmbed ? '' : 'max-h-[92vh]'}`} style={isMobileEmbed ? { maxHeight: 'calc(var(--app-height, 85vh) - 60px)' } : {}}>
           {/* Header */}
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -2607,7 +2607,35 @@ const OrderHistory = () => {
       {/* Header Section — collapses on scroll for more content space */}
       <div className={`bg-white shadow-sm border-b sticky top-0 z-20 transition-shadow duration-300 ${isScrolled ? 'shadow-md' : ''}`}>
         <div className={`w-full ${isMobileEmbed ? 'px-3' : 'pl-14 pr-3 sm:px-6 lg:px-8'}`}>
-          {!isMobileEmbed && (
+          {isMobileEmbed ? (
+          <div className="flex items-center justify-between pt-2 pb-1">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                <FaReceipt className="text-white text-[10px]" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-sm font-bold text-gray-900 truncate">{t('orderHistory.title')}</h1>
+                {restaurant?.name && <p className="text-[9px] text-gray-400 truncate">{restaurant.name}</p>}
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <div className="flex bg-white border border-gray-200 p-0.5 rounded-md shadow-sm">
+                <button
+                  onClick={() => setIsCompactView(true)}
+                  className={`p-1 rounded transition-all ${isCompactView ? 'bg-red-50 text-red-600' : 'text-gray-400'}`}
+                >
+                  <FaList size={10} />
+                </button>
+                <button
+                  onClick={() => setIsCompactView(false)}
+                  className={`p-1 rounded transition-all ${!isCompactView ? 'bg-red-50 text-red-600' : 'text-gray-400'}`}
+                >
+                  <FaTh size={10} />
+                </button>
+              </div>
+            </div>
+          </div>
+          ) : (
           <div className={`flex flex-row items-center justify-between gap-2 sm:gap-4 transition-all duration-300 ${isScrolled ? 'py-1.5 sm:py-2' : 'py-2 sm:py-4'}`}>
             <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
               <div className={`bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg flex-shrink-0 flex items-center justify-center transition-all duration-300 ${isScrolled || isMobile ? 'w-7 h-7' : 'p-2 sm:p-3 sm:rounded-xl'}`}>
@@ -2798,35 +2826,35 @@ const OrderHistory = () => {
           </div>
 
           {/* Compact inline stat strip — visible when scrolled, on mobile embed, or mobile screens */}
-          <div style={{ willChange: 'max-height, opacity' }} className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${isScrolled || isMobileEmbed || isMobile ? 'max-h-10 opacity-100' : 'max-h-0 opacity-0'}`}>
-            <div className="flex items-center gap-3 sm:gap-5 py-1.5 text-xs">
-              <div className="flex items-center gap-1.5">
+          <div style={{ willChange: 'max-height, opacity' }} className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${isScrolled || isMobileEmbed || isMobile ? 'max-h-12 opacity-100' : 'max-h-0 opacity-0'}`}>
+            <div className={`flex items-center gap-3 sm:gap-5 text-xs overflow-x-auto scrollbar-hide ${isMobileEmbed ? 'py-1.5 gap-2' : 'py-1.5'}`} style={isMobileEmbed ? { scrollbarWidth: 'none', msOverflowStyle: 'none' } : {}}>
+              <div className={`flex items-center gap-1.5 ${isMobileEmbed ? 'bg-green-50 rounded-full px-2 py-0.5 flex-shrink-0' : ''}`}>
                 <div className="w-2 h-2 rounded-full bg-green-500" />
                 <span className="text-gray-500">{t('orderHistory.revenue')}</span>
                 <span className="font-bold text-gray-900">{formatCurrency(stats.totalRevenueWithTax || stats.totalRevenue)}</span>
               </div>
-              <div className="w-px h-3.5 bg-gray-200" />
-              <div className="flex items-center gap-1.5">
+              {!isMobileEmbed && <div className="w-px h-3.5 bg-gray-200" />}
+              <div className={`flex items-center gap-1.5 ${isMobileEmbed ? 'bg-blue-50 rounded-full px-2 py-0.5 flex-shrink-0' : ''}`}>
                 <div className="w-2 h-2 rounded-full bg-blue-500" />
                 <span className="font-bold text-gray-900">{stats.orderCount}</span>
                 <span className="text-gray-500">{t('orderHistory.orders')}</span>
               </div>
-              <div className="w-px h-3.5 bg-gray-200" />
+              {!isMobileEmbed && <div className="w-px h-3.5 bg-gray-200" />}
               {stats.paymentBreakdown && Object.keys(stats.paymentBreakdown).length > 0 && (
                 <>
                   {Object.entries(stats.paymentBreakdown)
                     .sort((a, b) => b[1].total - a[1].total)
-                    .slice(0, 2)
+                    .slice(0, isMobileEmbed ? 3 : 2)
                     .map(([method, data]) => (
-                      <div key={method} className="flex items-center gap-1.5">
+                      <div key={method} className={`flex items-center gap-1.5 ${isMobileEmbed ? 'bg-gray-50 rounded-full px-2 py-0.5 flex-shrink-0' : ''}`}>
                         <span className="text-gray-500 capitalize">{method}</span>
                         <span className="font-bold text-gray-900">{formatCurrency(data.total)}</span>
                       </div>
                     ))}
-                  <div className="w-px h-3.5 bg-gray-200" />
+                  {!isMobileEmbed && <div className="w-px h-3.5 bg-gray-200" />}
                 </>
               )}
-              <div className="flex items-center gap-1.5">
+              <div className={`flex items-center gap-1.5 ${isMobileEmbed ? 'bg-amber-50 rounded-full px-2 py-0.5 flex-shrink-0' : ''}`}>
                 <div className="w-2 h-2 rounded-full bg-amber-500" />
                 <span className="font-bold text-gray-900">{stats.completedCount}</span>
                 <span className="text-gray-500">{t('orderHistory.completed')}</span>
@@ -4089,7 +4117,7 @@ const OrderHistory = () => {
             @keyframes billingSlideIn { from { opacity: 0; transform: translateY(24px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
           ` }} />
           <div
-            className="fixed inset-0 z-[10200] flex items-center justify-center p-3"
+            className={`fixed inset-0 z-[10200] flex items-center justify-center ${isMobileEmbed ? 'p-2 pb-16' : 'p-3'}`}
             style={{ animation: 'billingBackdropIn 0.2s ease-out' }}
             onClick={() => !billingModalProcessing && closeBillingModal()}
           >
@@ -4098,7 +4126,7 @@ const OrderHistory = () => {
               className="relative w-full rounded-2xl shadow-2xl bg-white overflow-hidden flex flex-col"
               style={{
                 maxWidth: '720px',
-                maxHeight: isMobileEmbed ? 'calc(var(--app-height, 94vh) - 8px)' : '94vh',
+                maxHeight: isMobileEmbed ? 'calc(var(--app-height, 85vh) - 60px)' : '94vh',
                 animation: 'billingSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
                 border: '1px solid rgba(0,0,0,0.06)',
                 boxShadow: '0 25px 60px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06)'
@@ -4654,7 +4682,7 @@ const OrderHistory = () => {
             @keyframes editCompDialogIn { from { opacity: 0; transform: scale(0.92) translateY(16px); } to { opacity: 1; transform: scale(1) translateY(0); } }
           ` }} />
           <div
-            className="fixed inset-0 z-[10400] flex items-center justify-center p-4 sm:p-6"
+            className={`fixed inset-0 z-[10400] flex items-center justify-center ${isMobileEmbed ? 'p-3 pb-16' : 'p-4 sm:p-6'}`}
             style={{ animation: 'editCompBackdropIn 0.2s ease-out' }}
             aria-modal="true"
             role="dialog"
@@ -4665,7 +4693,7 @@ const OrderHistory = () => {
             />
             <div
               className={`relative w-full max-w-[min(95vw,560px)] rounded-2xl shadow-2xl border border-gray-200 bg-white overflow-hidden flex flex-col ${isMobileEmbed ? '' : 'max-h-[90vh]'}`}
-              style={{ animation: 'editCompDialogIn 0.35s cubic-bezier(0.34,1.56,0.64,1)', ...(isMobileEmbed ? { maxHeight: 'calc(var(--app-height, 90vh) - 8px)' } : {}) }}
+              style={{ animation: 'editCompDialogIn 0.35s cubic-bezier(0.34,1.56,0.64,1)', ...(isMobileEmbed ? { maxHeight: 'calc(var(--app-height, 85vh) - 60px)' } : {}) }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
@@ -4856,7 +4884,7 @@ const OrderHistory = () => {
               </div>
 
               {/* Footer */}
-              <div className="px-5 py-4 border-t border-gray-100 flex gap-3 flex-shrink-0">
+              <div className={`px-5 border-t border-gray-100 flex gap-3 flex-shrink-0 ${isMobileEmbed ? 'py-3 pb-16' : 'py-4'}`}>
                 <button
                   onClick={() => setEditCompletedOrder(null)}
                   disabled={editCompletedSaving}

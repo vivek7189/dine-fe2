@@ -71,9 +71,7 @@ export default function MobileInventoryPage() {
       boxSizing: 'border-box',
       overflowX: 'hidden',
     }}>
-      <style>{`
-        input, textarea, select { font-size: 16px !important; }
-      `}</style>
+
       <InventoryPage />
     </div>
   );

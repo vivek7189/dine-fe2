@@ -689,12 +689,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
 
   return (
     <div style={{ width: '100%', minHeight: '100vh', backgroundColor: '#f9fafb', padding: isMobile ? '8px' : '24px', boxSizing: 'border-box', overflowX: 'hidden' }}>
-      {/* Prevent iOS auto-zoom on input focus */}
-      {isMobile && (
-        <style dangerouslySetInnerHTML={{ __html: `
-          input, textarea, select { font-size: 16px !important; }
-        ` }} />
-      )}
+
       {/* Toast Notification */}
       {showToast && (
         <div style={{
