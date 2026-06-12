@@ -376,10 +376,10 @@ class ApiClient {
         throw new Error(errorData.message || errorData.error || 'Session expired. Please login again.');
       }
 
-      // 403 with expired token — attempt refresh
+      // 403 with expired token — attempt refresh (only once, !isRetry prevents infinite loop)
       if (result.status_code === 403) {
         const errorMsg = errorData.error || errorData.message || '';
-        if (errorMsg.toLowerCase().includes('invalid or expired token')) {
+        if (errorMsg.toLowerCase().includes('invalid or expired token') && !isRetry) {
           try {
             await this.refreshToken();
             return this.request(endpoint, { ...config, method }, true);
@@ -390,6 +390,14 @@ class ApiClient {
             }
             throw new Error('Session expired. Please login again.');
           }
+        }
+        // If isRetry and still 403, token refresh didn't help — force logout
+        if (errorMsg.toLowerCase().includes('invalid or expired token') && isRetry) {
+          this.forceLogout();
+          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+            window.location.href = '/login';
+          }
+          throw new Error('Session expired. Please login again.');
         }
         throw new Error(errorData.message || errorData.error || 'Access denied.');
       }
@@ -456,7 +464,7 @@ class ApiClient {
 
       if (result.status_code === 403) {
         const errorMsg = errorData.error || errorData.message || '';
-        if (errorMsg.toLowerCase().includes('invalid or expired token')) {
+        if (errorMsg.toLowerCase().includes('invalid or expired token') && !isRetry) {
           try {
             await this.refreshToken();
             return this.request(endpoint, { ...config, method }, true);
@@ -467,6 +475,14 @@ class ApiClient {
             }
             throw new Error('Session expired. Please login again.');
           }
+        }
+        // If isRetry and still 403, token refresh didn't help — force logout
+        if (errorMsg.toLowerCase().includes('invalid or expired token') && isRetry) {
+          this.forceLogout();
+          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+            window.location.href = '/login';
+          }
+          throw new Error('Session expired. Please login again.');
         }
         throw new Error(errorData.message || errorData.error || 'Access denied.');
       }
