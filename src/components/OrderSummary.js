@@ -4855,6 +4855,7 @@ const OrderSummary = ({
                     ...(ecrEnabled ? [{ id: 'card-terminal', label: 'Card (Terminal)' }] : []),
                   ].map((method) => {
                     const isSelected = paymentMethod === method.id;
+                    const showDrawerDot = method.id === 'cash' && posSettings.enableCashDrawer && typeof window !== 'undefined' && window.electronAPI?.cashDrawer;
                     return (
                       <button
                         key={method.id}
@@ -4873,10 +4874,20 @@ const OrderSummary = ({
                           alignItems: 'center',
                           justifyContent: 'center',
                           transition: 'all 0.2s',
-                          boxShadow: isSelected ? '0 2px 6px rgba(239, 68, 68, 0.3)' : '0 1px 2px rgba(0, 0, 0, 0.05)'
+                          boxShadow: isSelected ? '0 2px 6px rgba(239, 68, 68, 0.3)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
+                          position: 'relative',
                         }}
+                        title={showDrawerDot ? 'Cash drawer will auto-open' : undefined}
                       >
                         {method.label}
+                        {showDrawerDot && (
+                          <span style={{
+                            position: 'absolute', top: '-2px', right: '-2px',
+                            width: '6px', height: '6px', borderRadius: '50%',
+                            backgroundColor: isSelected ? '#4ade80' : '#10b981',
+                            border: '1px solid white',
+                          }} />
+                        )}
                       </button>
                     );
                   })}
