@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 // import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
@@ -18,8 +18,9 @@ import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { getBillPrintCSS, getKOTPrintCSS, getBillHeaderHTML, buildTokenSlipsDocumentHTML } from '../../../utils/printFontSizes';
 import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '../../../utils/printBridge';
-import OrderSummary from '../../../components/OrderSummary';
-import OrderEditModal from '../../../components/OrderEditModal';
+import dynamic from 'next/dynamic';
+const OrderSummary = dynamic(() => import('../../../components/OrderSummary'), { ssr: false });
+const OrderEditModal = dynamic(() => import('../../../components/OrderEditModal'), { ssr: false });
 import {
   FaSearch,
   FaChevronLeft,
@@ -74,7 +75,6 @@ import {
   FaFileCsv,
   FaFileExcel,
 } from 'react-icons/fa';
-import dynamic from 'next/dynamic';
 const BookingList = dynamic(() => import('../../../components/bookings/BookingList'), { ssr: false });
 const BookingDetail = dynamic(() => import('../../../components/bookings/BookingDetail'), { ssr: false });
 const BookingForm = dynamic(() => import('../../../components/bookings/BookingForm'), { ssr: false });
@@ -131,11 +131,15 @@ const OrderHistory = () => {
   const [summarySortBy, setSummarySortBy] = useState('quantity');
   const [summarySortDir, setSummarySortDir] = useState('desc');
   const [summarySearch, setSummarySearch] = useState('');
+  const [displaySummarySearch, setDisplaySummarySearch] = useState('');
+  const summarySearchDebounceRef = useRef(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [backgroundLoading, setBackgroundLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [displaySearchTerm, setDisplaySearchTerm] = useState('');
+  const searchDebounceRef = useRef(null);
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedOrderType, setSelectedOrderType] = useState('all');
   const [myOrdersOnly, setMyOrdersOnly] = useState(false);
@@ -240,6 +244,8 @@ const OrderHistory = () => {
   // Staff reassignment state
   const [historyStaffList, setHistoryStaffList] = useState([]);
   const [historyStaffQuery, setHistoryStaffQuery] = useState('');
+  const [displayStaffQuery, setDisplayStaffQuery] = useState('');
+  const staffQueryDebounceRef = useRef(null);
   const [historyStaffDropdownOpen, setHistoryStaffDropdownOpen] = useState(false);
   const [historyStaffFetched, setHistoryStaffFetched] = useState(false);
   const [editingStaffOrderId, setEditingStaffOrderId] = useState(null);
@@ -254,9 +260,9 @@ const OrderHistory = () => {
     } catch { setHistoryStaffFetched(false); }
   };
 
-  const filteredHistoryStaff = historyStaffList.filter(s =>
+  const filteredHistoryStaff = useMemo(() => historyStaffList.filter(s =>
     !historyStaffQuery || s.name?.toLowerCase().includes(historyStaffQuery.toLowerCase())
-  );
+  ), [historyStaffList, historyStaffQuery]);
 
   const handleReassignStaff = async (order, staffData) => {
     setReassigningStaff(true);
@@ -272,6 +278,7 @@ const OrderHistory = () => {
       setReassigningStaff(false);
       setEditingStaffOrderId(null);
       setHistoryStaffQuery('');
+      setDisplayStaffQuery('');
       setHistoryStaffDropdownOpen(false);
     }
   };
@@ -504,6 +511,7 @@ const OrderHistory = () => {
     setDateFilterMode('today');
     setMyOrdersOnly(false);
     setSearchTerm('');
+    setDisplaySearchTerm('');
     setCustomStartDate('');
     setCustomEndDate('');
   }, []);
@@ -1804,8 +1812,8 @@ const OrderHistory = () => {
     return parseFloat(subtotal.toFixed(2));
   };
 
-  // Calculate summary statistics — use server-side analytics for consistency with HQ page
-  const calculateStats = () => {
+  // Calculate summary statistics — memoized; use server-side analytics for consistency with HQ page
+  const stats = useMemo(() => {
     if (analyticsStats) {
       // Use server-side analytics (same source as HQ and Analytics pages)
       return {
@@ -1840,7 +1848,12 @@ const OrderHistory = () => {
     });
 
     return { totalRevenue, orderCount, completedCount, paymentBreakdown };
-  };
+  }, [orders, analyticsStats]);
+
+  // Client-side sub-restaurant filtering (memoized)
+  const displayedOrders = useMemo(() => filterSubRestaurant !== 'all'
+    ? orders.filter(order => order.subRestaurantId === filterSubRestaurant)
+    : orders, [orders, filterSubRestaurant]);
 
   // Fetch scheduled orders
   const fetchScheduledOrders = useCallback(async () => {
@@ -2051,7 +2064,7 @@ const OrderHistory = () => {
     }
   };
 
-  const getFilteredSummaryItems = () => {
+  const filteredSummaryItems = useMemo(() => {
     if (!summaryData?.items) return [];
     let items = [...summaryData.items];
     if (summarySearch) {
@@ -2066,7 +2079,7 @@ const OrderHistory = () => {
       return summarySortDir === 'desc' ? -cmp : cmp;
     });
     return items;
-  };
+  }, [summaryData?.items, summarySearch, summarySortBy, summarySortDir]);
 
   const summaryPeriods = [
     { key: 'today', label: t('orderHistory.summaryToday') },
@@ -2160,22 +2173,30 @@ const OrderHistory = () => {
                       autoFocus
                       type="text"
                       placeholder="Search or type name..."
-                      value={historyStaffQuery}
+                      value={displayStaffQuery}
                       onFocus={() => { fetchHistoryStaffList(); setHistoryStaffDropdownOpen(true); }}
                       onBlur={() => setTimeout(() => {
                         setHistoryStaffDropdownOpen(false);
-                        if (historyStaffQuery.trim()) {
-                          handleReassignStaff(order, { name: historyStaffQuery.trim(), id: null });
-                        } else if (!historyStaffQuery && !reassigningStaff) {
+                        if (displayStaffQuery.trim()) {
+                          handleReassignStaff(order, { name: displayStaffQuery.trim(), id: null });
+                        } else if (!displayStaffQuery && !reassigningStaff) {
                           setEditingStaffOrderId(null);
                         }
                       }, 200)}
-                      onChange={(e) => setHistoryStaffQuery(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setDisplayStaffQuery(val);
+                        clearTimeout(staffQueryDebounceRef.current);
+                        staffQueryDebounceRef.current = setTimeout(() => setHistoryStaffQuery(val), 300);
+                      }}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' && historyStaffQuery.trim()) {
+                        if (e.key === 'Enter' && displayStaffQuery.trim()) {
+                          clearTimeout(staffQueryDebounceRef.current);
+                          setHistoryStaffQuery(displayStaffQuery);
                           e.target.blur();
                         } else if (e.key === 'Escape') {
                           setHistoryStaffQuery('');
+                          setDisplayStaffQuery('');
                           setEditingStaffOrderId(null);
                           setHistoryStaffDropdownOpen(false);
                         }
@@ -2221,6 +2242,7 @@ const OrderHistory = () => {
                     onClick={() => {
                       setEditingStaffOrderId(order.id);
                       setHistoryStaffQuery('');
+                      setDisplayStaffQuery('');
                       setHistoryStaffFetched(false);
                     }}
                     style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
@@ -2593,13 +2615,6 @@ const OrderHistory = () => {
     { value: 'all', label: 'All Outlets' },
     ...subRestaurants.map(sr => ({ value: sr.id, label: sr.name }))
   ];
-
-  // Client-side sub-restaurant filtering
-  const displayedOrders = filterSubRestaurant !== 'all'
-    ? orders.filter(order => order.subRestaurantId === filterSubRestaurant)
-    : orders;
-
-  const stats = calculateStats();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
@@ -2993,9 +3008,20 @@ const OrderHistory = () => {
                 <input
                   type="text"
                   placeholder={t('orderHistory.search')}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
+                  value={displaySearchTerm}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setDisplaySearchTerm(val);
+                    clearTimeout(searchDebounceRef.current);
+                    searchDebounceRef.current = setTimeout(() => setSearchTerm(val), 300);
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      clearTimeout(searchDebounceRef.current);
+                      setSearchTerm(displaySearchTerm);
+                      handleSearch(e);
+                    }
+                  }}
                   className="w-full pl-8 pr-2 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-400 focus:border-red-400 transition-all placeholder:text-gray-400"
                 />
               </div>
@@ -3088,9 +3114,20 @@ const OrderHistory = () => {
                 <input
                   type="text"
                   placeholder={t('orderHistory.search')}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
+                  value={displaySearchTerm}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setDisplaySearchTerm(val);
+                    clearTimeout(searchDebounceRef.current);
+                    searchDebounceRef.current = setTimeout(() => setSearchTerm(val), 300);
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      clearTimeout(searchDebounceRef.current);
+                      setSearchTerm(displaySearchTerm);
+                      handleSearch(e);
+                    }
+                  }}
                   className="w-full pl-8 pr-2 py-1.5 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-400 focus:border-red-400 transition-all placeholder:text-gray-400"
                 />
               </div>
@@ -5149,7 +5186,7 @@ const OrderHistory = () => {
                     {/* Download buttons */}
                     <button
                       onClick={() => {
-                        const items = getFilteredSummaryItems();
+                        const items = filteredSummaryItems;
                         const totalRev = items.reduce((s, i) => s + i.revenue, 0);
                         const rows = [['#', 'Item', 'Qty', 'Revenue', '% of Total']];
                         items.forEach((item, idx) => {
@@ -5172,7 +5209,7 @@ const OrderHistory = () => {
                       onClick={async () => {
                         try {
                           const XLSX = await import('xlsx');
-                          const items = getFilteredSummaryItems();
+                          const items = filteredSummaryItems;
                           const totalRev = items.reduce((s, i) => s + i.revenue, 0);
                           const rows = [['#', 'Item', 'Qty', 'Revenue', '% of Total']];
                           items.forEach((item, idx) => {
@@ -5194,13 +5231,18 @@ const OrderHistory = () => {
                     {/* Search */}
                     <div className="relative">
                       <FaSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
-                      <input type="text" placeholder={t('orderHistory.searchItems')} value={summarySearch} onChange={e => setSummarySearch(e.target.value)}
+                      <input type="text" placeholder={t('orderHistory.searchItems')} value={displaySummarySearch} onChange={e => {
+                        const val = e.target.value;
+                        setDisplaySummarySearch(val);
+                        clearTimeout(summarySearchDebounceRef.current);
+                        summarySearchDebounceRef.current = setTimeout(() => setSummarySearch(val), 300);
+                      }}
                         className="pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-sm w-44 focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none" />
                     </div>
                   </div>
                 </div>
                 {(() => {
-                  const items = getFilteredSummaryItems();
+                  const items = filteredSummaryItems;
                   const totalQty = items.reduce((s, i) => s + i.quantity, 0);
                   const totalRev = items.reduce((s, i) => s + i.revenue, 0);
                   return items.length > 0 ? (

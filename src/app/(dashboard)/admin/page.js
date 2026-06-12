@@ -5652,7 +5652,7 @@ const Admin = () => {
         const saved = localStorage.getItem('selectedRestaurant');
         if (saved) {
           const r = JSON.parse(saved);
-          setPosSettings(r.posSettings || {});
+          setPosSettings({ hideSearchBar: true, ...(r.posSettings || {}) });
           setBusinessType(r.businessType || 'restaurant');
         }
       } catch {}
@@ -5769,7 +5769,7 @@ const Admin = () => {
                           (defaultId ? response.restaurants.find(function(r) { return r.id === defaultId; }) : null) ||
                           response.restaurants[0];
           setSelectedRestaurant(restaurant);
-          setPosSettings(restaurant.posSettings || {});
+          setPosSettings({ hideSearchBar: true, ...(restaurant.posSettings || {}) });
           setBusinessType(restaurant.businessType || 'restaurant');
           setBookingSettings(restaurant.bookingSettings || { enableCatering: true, enableAdvanceOrder: true, enableVenueBooking: true });
           // Always sync localStorage with resolved restaurant
@@ -5796,7 +5796,7 @@ const Admin = () => {
       const { restaurant } = event.detail || {};
       if (restaurant) {
         setSelectedRestaurant(restaurant);
-        setPosSettings(restaurant.posSettings || {});
+        setPosSettings({ hideSearchBar: true, ...(restaurant.posSettings || {}) });
         setBusinessType(restaurant.businessType || 'restaurant');
         setBookingSettings(restaurant.bookingSettings || { enableCatering: true, enableAdvanceOrder: true, enableVenueBooking: true });
       }
@@ -10291,7 +10291,7 @@ const Admin = () => {
                         key={restaurant.id}
                         onClick={function() {
                           setSelectedRestaurant(restaurant);
-                          setPosSettings(restaurant.posSettings || {});
+                          setPosSettings({ hideSearchBar: true, ...(restaurant.posSettings || {}) });
                           setBusinessType(restaurant.businessType || 'restaurant');
                         }}
                         style={{

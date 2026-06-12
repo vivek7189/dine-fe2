@@ -235,7 +235,10 @@ function RestaurantPOSContent() {
   const categorySidebarWidth = 150;
 
   // POS settings from restaurant config (dashboard customization)
-  const posSettings = useMemo(() => selectedRestaurant?.posSettings || {}, [selectedRestaurant]);
+  const posSettings = useMemo(() => {
+    const ps = selectedRestaurant?.posSettings || {};
+    return { hideSearchBar: true, ...ps };
+  }, [selectedRestaurant]);
 
   // Listen for order notification unread count from layout
   useEffect(() => {
