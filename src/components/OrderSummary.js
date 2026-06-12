@@ -1310,10 +1310,43 @@ const OrderSummary = ({
       }
     }
 
-    // Tip - restore for billing mode (completing an order that already had a tip)
-    if (billingMode && currentOrder.tipAmount > 0) {
+    // Tip - restore for both edit mode and billing mode
+    if (currentOrder.tipAmount > 0) {
       setTipAmount(currentOrder.tipAmount);
       if (currentOrder.tipPercentage) setTipPercentage(currentOrder.tipPercentage);
+    }
+
+    // Split payments — restore if order was completed with split settlement
+    if (currentOrder.splitPayments && Array.isArray(currentOrder.splitPayments) && currentOrder.splitPayments.length >= 2) {
+      setSplitPayments(currentOrder.splitPayments.map(sp => ({
+        method: sp.method || 'cash',
+        amount: sp.amount != null ? String(sp.amount) : ''
+      })));
+      setActiveBillingPanel('split');
+    }
+
+    // Cash received — restore tendered amount
+    if (currentOrder.cashReceived > 0) {
+      setCashReceived(String(currentOrder.cashReceived));
+    }
+
+    // Partial payment / full due (credit/khata) — restore
+    if (currentOrder.fullDue) {
+      setFullDueMode(true);
+    } else if (currentOrder.partialPayAmount > 0) {
+      setPartialPayAmount(String(currentOrder.partialPayAmount));
+    }
+
+    // Comp/void items — restore from saved compItems + voidItems arrays
+    const restoredCompVoid = [];
+    if (Array.isArray(currentOrder.compItems)) {
+      currentOrder.compItems.forEach(ci => restoredCompVoid.push({ ...ci, type: 'comp' }));
+    }
+    if (Array.isArray(currentOrder.voidItems)) {
+      currentOrder.voidItems.forEach(vi => restoredCompVoid.push({ ...vi, type: 'void' }));
+    }
+    if (restoredCompVoid.length > 0) {
+      setCompVoidItems(restoredCompVoid);
     }
 
     // Delivery info - restore person name, phone, cash handed over, and address
@@ -4908,7 +4941,7 @@ const OrderSummary = ({
                 // - billingMode=false → dashboard summary → show if settlementShowOnDashboard
                 // - If both flags are off (legacy / misconfigured) → fall back to dashboard so the toggle still works.
                 const showDash = billingSettings.settlementShowOnDashboard !== false;
-                const showHist = billingSettings.settlementShowOnOrderHistory === true;
+                const showHist = billingSettings.settlementShowOnOrderHistory !== false;
                 const bothOff = !showDash && !showHist;
                 const visible = billingMode ? showHist : (showDash || bothOff);
                 return visible;
