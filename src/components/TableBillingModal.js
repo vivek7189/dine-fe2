@@ -300,6 +300,7 @@ export default function TableBillingModal({
         justifyContent: 'center',
         zIndex: 99999,
         padding: 0,
+        paddingBottom: isMobileEmbed ? '60px' : 0,
       }}
       onClick={handleClose}
     >
@@ -331,8 +332,8 @@ export default function TableBillingModal({
           borderRadius: '14px',
           width: '100%',
           maxWidth: '640px',
-          height: isMobileEmbed ? 'var(--app-height, 96vh)' : '96vh',
-          maxHeight: isMobileEmbed ? 'var(--app-height, 96vh)' : '96vh',
+          height: isMobileEmbed ? 'calc(var(--app-height, 96vh) - 60px)' : '96vh',
+          maxHeight: isMobileEmbed ? 'calc(var(--app-height, 96vh) - 60px)' : '96vh',
           overflow: 'hidden',
           boxShadow: '0 24px 80px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.05)',
           display: 'flex',

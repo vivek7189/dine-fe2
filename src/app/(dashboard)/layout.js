@@ -45,6 +45,7 @@ function checkRouteAccess(pathname, user, pageAccess) {
 
 function DashboardLayoutContent({ children }) {
   const [isMobile, setIsMobile] = useState(false);
+  const isMobileEmbed = isMobile && typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
   const [selectedRestaurantId, setSelectedRestaurantId] = useState(null);
   const [notificationOrderTypes, setNotificationOrderTypes] = useState(null);
   const [isClient, setIsClient] = useState(false);
@@ -308,6 +309,16 @@ function DashboardLayoutContent({ children }) {
             animation: pageFadeIn 0.25s ease-out forwards;
           }
         `}</style>
+        {/* Global mobile embed fix: prevent content from hiding behind dine-app bottom nav (~60px) */}
+        {isMobileEmbed && (
+          <style>{`
+            :root { --dine-bottom-nav: 60px; }
+            /* All Tailwind fixed inset-0 modal overlays: add bottom padding */
+            .fixed.inset-0 { padding-bottom: var(--dine-bottom-nav) !important; }
+            /* Scrollable page content containers */
+            .dashboard-page-content { padding-bottom: var(--dine-bottom-nav) !important; }
+          `}</style>
+        )}
         <div style={{
             display: 'flex',
             height: '100vh',

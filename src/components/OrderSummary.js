@@ -5809,8 +5809,8 @@ const OrderSummary = ({
           {/* Action Buttons — sits at bottom of scroll in billing mode */}
           <div style={{
             padding: billingMode
-              ? (isMobile ? (isMobileEmbed ? '6px 10px 10px 10px' : '12px 16px 16px 16px') : '12px 16px 16px 16px')
-              : (isMobile ? `4px 8px ${isMobileEmbed ? '8px' : 'env(safe-area-inset-bottom, 0px)'} 8px` : '6px 12px 12px 12px'),
+              ? (isMobile ? (isMobileEmbed ? '6px 10px 66px 10px' : '12px 16px 16px 16px') : '12px 16px 16px 16px')
+              : (isMobile ? `4px 8px ${isMobileEmbed ? '66px' : 'env(safe-area-inset-bottom, 0px)'} 8px` : '6px 12px 12px 12px'),
             ...(isMobile ? {
               position: 'sticky',
               bottom: 0,
