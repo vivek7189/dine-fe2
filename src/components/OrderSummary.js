@@ -2272,9 +2272,9 @@ const OrderSummary = ({
                 onFocus={() => setShowDeliveryStaffDropdown(true)}
                 onBlur={() => setTimeout(() => setShowDeliveryStaffDropdown(false), 200)}
                 style={{
-                  width: '100%', padding: '7px 10px',
+                  width: '100%', padding: isMobile ? '5px 8px' : '7px 10px',
                   border: '1.5px solid #fdba74',
-                  borderRadius: '8px', fontSize: '12px',
+                  borderRadius: isMobile ? '6px' : '8px', fontSize: isMobile ? '11px' : '12px',
                   backgroundColor: 'white',
                   color: '#1f2937', outline: 'none',
                   boxSizing: 'border-box',
@@ -2321,9 +2321,9 @@ const OrderSummary = ({
               value={deliveryInfo.personPhone}
               onChange={(e) => setDeliveryInfo(prev => ({ ...prev, personPhone: e.target.value.replace(/\D/g, '') }))}
               style={{
-                width: '90px', padding: '7px 10px',
+                width: isMobile ? '80px' : '90px', padding: isMobile ? '5px 8px' : '7px 10px',
                 border: '1.5px solid #fdba74',
-                borderRadius: '8px', fontSize: '12px',
+                borderRadius: isMobile ? '6px' : '8px', fontSize: isMobile ? '11px' : '12px',
                 backgroundColor: 'white',
                 color: '#1f2937', outline: 'none',
                 boxSizing: 'border-box',
@@ -3637,15 +3637,16 @@ const OrderSummary = ({
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                   <div style={{ flex: 1 }}>
-                    <h4 style={{ 
-                      fontWeight: 'bold', 
-                      color: '#1f2937', 
-                      margin: '0 0 2px 0', 
-                      fontSize: '12px', 
+                    <h4 style={{
+                      fontWeight: 'bold',
+                      color: '#1f2937',
+                      margin: '0 0 2px 0',
+                      fontSize: isMobile ? '11px' : '12px',
                       lineHeight: '1.3',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '6px'
+                      gap: isMobile ? '3px' : '6px',
+                      flexWrap: 'wrap',
                     }}>
                       {item.name}
                       {/* Show indicator for items from original order */}
@@ -3656,38 +3657,44 @@ const OrderSummary = ({
                         return (
                           <>
                             <span style={{
-                              fontSize: '8px',
+                              fontSize: isMobile ? '7px' : '8px',
                               fontWeight: 'bold',
                               color: '#f59e0b',
                               backgroundColor: '#fef3c7',
-                              padding: '1px 4px',
+                              padding: '1px 3px',
                               borderRadius: '3px',
-                              border: '1px solid #f59e0b'
+                              border: isMobile ? 'none' : '1px solid #f59e0b',
+                              lineHeight: 1,
+                              whiteSpace: 'nowrap',
                             }}>
                               ORIGINAL
                             </span>
                             {qtyDelta > 0 && (
                               <span style={{
-                                fontSize: '8px',
+                                fontSize: isMobile ? '7px' : '8px',
                                 fontWeight: 'bold',
                                 color: '#10b981',
                                 backgroundColor: '#d1fae5',
-                                padding: '1px 4px',
+                                padding: '1px 3px',
                                 borderRadius: '3px',
-                                border: '1px solid #10b981'
+                                border: isMobile ? 'none' : '1px solid #10b981',
+                                lineHeight: 1,
+                                whiteSpace: 'nowrap',
                               }}>
                                 +{qtyDelta} NEW
                               </span>
                             )}
                             {qtyDelta < 0 && (
                               <span style={{
-                                fontSize: '8px',
+                                fontSize: isMobile ? '7px' : '8px',
                                 fontWeight: 'bold',
                                 color: '#ef4444',
                                 backgroundColor: '#fee2e2',
-                                padding: '1px 4px',
+                                padding: '1px 3px',
                                 borderRadius: '3px',
-                                border: '1px solid #ef4444'
+                                border: isMobile ? 'none' : '1px solid #ef4444',
+                                lineHeight: 1,
+                                whiteSpace: 'nowrap',
                               }}>
                                 {qtyDelta}
                               </span>
@@ -3698,13 +3705,15 @@ const OrderSummary = ({
                       {/* Show indicator for newly added items */}
                       {currentOrder && (!currentOrder.items || !currentOrder.items.some(origItem => origItem.menuItemId === item.id)) && (
                         <span style={{
-                          fontSize: '8px',
+                          fontSize: isMobile ? '7px' : '8px',
                           fontWeight: 'bold',
                           color: '#10b981',
                           backgroundColor: '#d1fae5',
-                          padding: '1px 4px',
+                          padding: '1px 3px',
                           borderRadius: '3px',
-                          border: '1px solid #10b981'
+                          border: isMobile ? 'none' : '1px solid #10b981',
+                          lineHeight: 1,
+                          whiteSpace: 'nowrap',
                         }}>
                           NEW
                         </span>
@@ -4149,6 +4158,7 @@ const OrderSummary = ({
           borderTop: '1px solid #e5e7eb',
           backgroundColor: 'white',
           flexShrink: 0,
+          ...(isMobileEmbed ? { display: 'flex', flexDirection: 'column', flex: 1 } : {}),
           boxShadow: billingMode ? 'none' : '0 -4px 12px rgba(0,0,0,0.08)',
         }}>
           {/* (Discount controls moved inline with special instructions below) */}
@@ -4428,7 +4438,7 @@ const OrderSummary = ({
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(120px, 1fr))',
-                  gap: '6px',
+                  gap: isMobile ? '4px' : '6px',
                   alignItems: 'start',
                   }}>
                     {/* Customer Mobile + Lookup (Phone First) */}
@@ -4441,7 +4451,7 @@ const OrderSummary = ({
                         maxLength={getPhoneMinLength(countryCode) + 3}
                       style={{
                           width: '100%',
-                        padding: '8px 10px',
+                        padding: isMobile ? '6px 8px' : '8px 10px',
                         paddingRight: '36px',
                           border: `1.5px solid ${
                             lookupStatus === 'error' ? '#ef4444' :
@@ -4449,8 +4459,8 @@ const OrderSummary = ({
                             lookupStatus === 'not_found' && isValidMobile ? '#f59e0b' :
                             isValidMobile ? '#22c55e' : '#e5e7eb'
                           }`,
-                        borderRadius: '8px',
-                        fontSize: '12px',
+                        borderRadius: isMobile ? '6px' : '8px',
+                        fontSize: isMobile ? '11px' : '12px',
                         outline: 'none',
                         backgroundColor: lookupStatus === 'found' ? '#f0fdf4' : lookupStatus === 'error' ? '#fef2f2' : '#ffffff',
                         transition: 'border-color 0.2s, box-shadow 0.2s, background-color 0.2s',
@@ -4564,11 +4574,11 @@ const OrderSummary = ({
                       value={customerName || ''}
                       style={{
                           width: '100%',
-                        padding: '8px 10px',
-                        paddingRight: (lookupStatus === 'found' && customerData) ? '36px' : '10px',
+                        padding: isMobile ? '6px 8px' : '8px 10px',
+                        paddingRight: (lookupStatus === 'found' && customerData) ? '36px' : (isMobile ? '8px' : '10px'),
                           border: `1.5px solid ${(lookupStatus === 'found' && customerData) ? '#0891b2' : isValidName ? '#22c55e' : '#e5e7eb'}`,
-                        borderRadius: '8px',
-                        fontSize: '12px',
+                        borderRadius: isMobile ? '6px' : '8px',
+                        fontSize: isMobile ? '11px' : '12px',
                         outline: 'none',
                         backgroundColor: (lookupStatus === 'found' && customerData) ? '#ecfeff' : '#ffffff',
                         transition: 'border-color 0.2s, box-shadow 0.2s',
@@ -4676,10 +4686,10 @@ const OrderSummary = ({
                           value={tableNumber || ''}
                           style={{
                             width: '100%',
-                            padding: '8px 10px',
+                            padding: isMobile ? '6px 8px' : '8px 10px',
                             border: `2px solid ${isValidTable ? '#22c55e' : '#d1d5db'}`,
                             borderRadius: '6px',
-                            fontSize: '12px',
+                            fontSize: isMobile ? '11px' : '12px',
                             outline: 'none',
                             backgroundColor: '#f9fafb',
                             transition: 'border-color 0.2s'
@@ -5799,8 +5809,8 @@ const OrderSummary = ({
           {/* Action Buttons — sits at bottom of scroll in billing mode */}
           <div style={{
             padding: billingMode
-              ? (isMobile ? (isMobileEmbed ? '12px 16px calc(16px + env(safe-area-inset-bottom, 34px) + 50px) 16px' : '12px 16px 16px 16px') : '12px 16px 16px 16px')
-              : (isMobile ? `6px 8px calc(6px + ${isMobileEmbed ? 'env(safe-area-inset-bottom, 34px) + 50px' : 'env(safe-area-inset-bottom, 0px)'}) 8px` : '6px 12px 12px 12px'),
+              ? (isMobile ? (isMobileEmbed ? '6px 10px 10px 10px' : '12px 16px 16px 16px') : '12px 16px 16px 16px')
+              : (isMobile ? `4px 8px ${isMobileEmbed ? '8px' : 'env(safe-area-inset-bottom, 0px)'} 8px` : '6px 12px 12px 12px'),
             ...(isMobile ? {
               position: 'sticky',
               bottom: 0,
@@ -5808,11 +5818,12 @@ const OrderSummary = ({
               borderTop: '1px solid #e5e7eb',
               boxShadow: '0 -4px 12px rgba(0,0,0,0.08)',
               zIndex: 10,
+              ...(isMobileEmbed ? { marginTop: 'auto' } : {}),
             } : {}),
             ...(billingMode ? {
               backgroundColor: '#f8fafc',
               borderTop: '2px solid #e2e8f0',
-              marginTop: '4px',
+              marginTop: billingMode && isMobileEmbed ? 'auto' : '4px',
             } : {})
           }}>
           {/* Error Message */}
@@ -6076,7 +6087,7 @@ const OrderSummary = ({
           )}
 
           {/* Billing Row */}
-          <div style={{ display: 'flex', gap: billingMode ? '10px' : '8px' }}>
+          <div style={{ display: 'flex', gap: billingMode ? (isMobile ? '6px' : '10px') : (isMobile ? '4px' : '8px') }}>
             {/* Complete Billing Button */}
             <button
               onClick={() => {
@@ -6095,28 +6106,28 @@ const OrderSummary = ({
                   ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
                   : 'linear-gradient(135deg, #10b981, #059669)',
                 color: 'white',
-                padding: billingMode ? '16px 16px' : '12px 14px',
-                borderRadius: billingMode ? '10px' : '8px',
+                padding: billingMode ? (isMobile ? '10px 12px' : '16px 16px') : (isMobile ? '8px 10px' : '12px 14px'),
+                borderRadius: billingMode ? (isMobile ? '8px' : '10px') : '8px',
                 fontWeight: '700',
                 border: 'none',
                 cursor: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px',
-                fontSize: billingMode ? '15px' : '12px',
+                gap: isMobile ? '6px' : '8px',
+                fontSize: billingMode ? (isMobile ? '13px' : '15px') : (isMobile ? '11px' : '12px'),
                 transition: 'all 0.2s',
                 boxShadow: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 4px 12px rgba(34, 197, 94, 0.35)'
               }}
             >
               {processing ? (
                 <>
-                  <FaSpinner size={billingMode ? 16 : 12} style={{ animation: 'spin 1s linear infinite' }} />
+                  <FaSpinner size={billingMode ? (isMobile ? 13 : 16) : 12} style={{ animation: 'spin 1s linear infinite' }} />
                   {t('dashboard.paymentProcessing')}
                 </>
               ) : (
                 <>
-                  <FaCheckCircle size={billingMode ? 16 : 12} />
+                  <FaCheckCircle size={billingMode ? (isMobile ? 13 : 16) : 12} />
                   {posSettings.completeBillingLabel || t('dashboard.completeBilling')}
                 </>
               )}
@@ -6137,24 +6148,24 @@ const OrderSummary = ({
                       ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
                       : 'linear-gradient(135deg, #065f46, #064e3b)',
                     color: 'white',
-                    padding: billingMode ? '16px 16px' : '12px 14px',
-                    borderRadius: billingMode ? '10px' : '8px',
+                    padding: billingMode ? (isMobile ? '10px 12px' : '16px 16px') : (isMobile ? '8px 10px' : '12px 14px'),
+                    borderRadius: billingMode ? (isMobile ? '8px' : '10px') : '8px',
                     fontWeight: '700',
                     border: 'none',
                     cursor: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '8px',
-                    fontSize: billingMode ? '15px' : '12px',
+                    gap: isMobile ? '6px' : '8px',
+                    fontSize: billingMode ? (isMobile ? '13px' : '15px') : (isMobile ? '11px' : '12px'),
                     transition: 'all 0.2s',
                     boxShadow: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 4px 12px rgba(6, 95, 70, 0.35)'
                   }}
                 >
                   {processing ? (
-                    <><FaSpinner size={billingMode ? 14 : 12} style={{ animation: 'spin 1s linear infinite' }} /> Processing...</>
+                    <><FaSpinner size={billingMode ? (isMobile ? 12 : 14) : 12} style={{ animation: 'spin 1s linear infinite' }} /> Processing...</>
                   ) : (
-                    <><FaPrint size={billingMode ? 14 : 12} /> Bill & Print</>
+                    <><FaPrint size={billingMode ? (isMobile ? 12 : 14) : 12} /> Bill & Print</>
                   )}
                 </button>
               )}

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { FaEye, FaReceipt, FaTimes, FaMinus, FaChevronUp, FaWindowMaximize, FaChair, FaClock, FaUserFriends, FaUtensils, FaTools, FaBan, FaPrint, FaPlus, FaEllipsisH, FaCreditCard, FaExchangeAlt, FaTrash, FaSpinner } from 'react-icons/fa';
+import { FaEye, FaReceipt, FaTimes, FaMinus, FaChevronUp, FaWindowMaximize, FaChair, FaClock, FaUserFriends, FaUtensils, FaTools, FaBan, FaPrint, FaPlus, FaEllipsisH, FaCreditCard, FaExchangeAlt, FaTrash, FaSpinner, FaTh, FaThLarge } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
 import TableBillingModal from './TableBillingModal';
@@ -99,6 +99,12 @@ export default function DashboardTablesPanel({
   // Quick view modal
   const [quickViewOrder, setQuickViewOrder] = useState(null);
   const [quickViewLoading, setQuickViewLoading] = useState(null); // holds tableId while loading
+
+  // Mobile grid columns: '2' or '3' (only used on isMobileEmbed)
+  const [mobileGridCols, setMobileGridCols] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('tableGridCols') || '3';
+    return '3';
+  });
 
   // Ref for the recently updated table card
   const updatedTableRef = useRef(null);
@@ -707,12 +713,40 @@ export default function DashboardTablesPanel({
                 {group.tables?.length || 0} Tables
               </span>
             </div>
-            {/* Refreshing indicator removed — optimistic updates handle instant UI changes */}
+            {/* Grid column toggle — mobile only */}
+            {isMobileEmbed && (
+              <div style={{ display: 'flex', gap: '2px', marginLeft: 'auto' }}>
+                <button
+                  onClick={() => { setMobileGridCols('2'); localStorage.setItem('tableGridCols', '2'); }}
+                  style={{
+                    padding: '3px 6px', border: 'none', borderRadius: '4px', cursor: 'pointer',
+                    background: mobileGridCols === '2' ? '#3b82f6' : '#f3f4f6',
+                    color: mobileGridCols === '2' ? '#fff' : '#6b7280',
+                  }}
+                  title="2 columns"
+                >
+                  <FaThLarge size={12} />
+                </button>
+                <button
+                  onClick={() => { setMobileGridCols('3'); localStorage.setItem('tableGridCols', '3'); }}
+                  style={{
+                    padding: '3px 6px', border: 'none', borderRadius: '4px', cursor: 'pointer',
+                    background: mobileGridCols === '3' ? '#3b82f6' : '#f3f4f6',
+                    color: mobileGridCols === '3' ? '#fff' : '#6b7280',
+                  }}
+                  title="3 columns"
+                >
+                  <FaTh size={12} />
+                </button>
+              </div>
+            )}
           </div>
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isMobileEmbed ? 'repeat(auto-fill, minmax(105px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))',
+            gridTemplateColumns: isMobileEmbed
+              ? `repeat(${mobileGridCols}, 1fr)`
+              : 'repeat(auto-fill, minmax(160px, 1fr))',
             gap: isMobileEmbed ? '8px' : '20px',
           }}>
             {(group.tables || []).map((t, tIdx) => {
@@ -742,7 +776,7 @@ export default function DashboardTablesPanel({
                     flexDirection: 'column',
                     minHeight: isMobileEmbed ? 'auto' : '120px',
                     position: 'relative',
-                    overflow: 'visible',
+                    overflow: isMobileEmbed ? 'hidden' : 'visible',
                     boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
                   }}
                 >
@@ -926,16 +960,15 @@ export default function DashboardTablesPanel({
                     </div>
 
                     {/* Content - Show order total (with tax) for occupied tables, icon for others */}
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 0 }}>
                       {isOccupied && (t.currentOrderFinalAmount || t.currentOrderTotal) ? (
                         <div style={{
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          height: '100%'
                         }}>
-                          <div style={{
+                          {!isMobileEmbed && <div style={{
                             fontSize: '9px',
                             color: '#92400e',
                             fontWeight: 500,
@@ -944,14 +977,14 @@ export default function DashboardTablesPanel({
                             letterSpacing: '0.5px'
                           }}>
                             Total {t.currentOrderTax ? '(incl. tax)' : ''}
-                          </div>
+                          </div>}
                           <div style={{
-                            fontSize: isMobileEmbed ? '14px' : '18px',
+                            fontSize: isMobileEmbed ? '12px' : '18px',
                             fontWeight: 800,
                             color: '#b45309',
                             background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
-                            padding: isMobileEmbed ? '2px 8px' : '4px 12px',
-                            borderRadius: '8px',
+                            padding: isMobileEmbed ? '1px 6px' : '4px 12px',
+                            borderRadius: isMobileEmbed ? '6px' : '8px',
                             border: '1px solid #fcd34d'
                           }}>
                             {formatCurrency((() => {
@@ -959,7 +992,7 @@ export default function DashboardTablesPanel({
                               return typeof total === 'number' ? total : 0;
                             })())}
                           </div>
-                          {t.currentOrderTax > 0 && (
+                          {!isMobileEmbed && t.currentOrderTax > 0 && (
                             <div style={{
                               fontSize: '9px',
                               color: '#6b7280',
@@ -991,18 +1024,19 @@ export default function DashboardTablesPanel({
                             onClick={() => handleTakeOrderGuarded(t, group.info?.name, group.info?.id)}
                             style={{
                               flex: 1,
-                              padding: isMobileEmbed ? '6px 8px' : '8px 12px',
+                              padding: isMobileEmbed ? '6px 4px' : '8px 12px',
                               background: '#059669',
                               color: 'white',
                               border: 'none',
                               borderRadius: '6px',
-                              fontSize: '11px',
+                              fontSize: isMobileEmbed ? '10px' : '11px',
                               fontWeight: 600,
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '6px',
+                              gap: isMobileEmbed ? '3px' : '6px',
+                              whiteSpace: 'nowrap',
                               boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
                             }}
                             onMouseEnter={(e) => {
@@ -1012,8 +1046,8 @@ export default function DashboardTablesPanel({
                               e.target.style.background = '#059669';
                             }}
                           >
-                            <FaReceipt size={10} />
-                            Take Order
+                            <FaReceipt size={isMobileEmbed ? 8 : 10} />
+                            {isMobileEmbed ? 'Order' : 'Take Order'}
                           </button>
                           {canDeleteTable && onDeleteTable && (
                             <button
@@ -1092,7 +1126,7 @@ export default function DashboardTablesPanel({
                         </div>
                       ) : (
                         /* Occupied/Reserved/Cleaning tables - Show Add + Bill buttons; Move/Print are in top-right */
-                        <div style={{ display: 'flex', gap: '6px' }}>
+                        <div style={{ display: 'flex', gap: isMobileEmbed ? '4px' : '6px' }}>
                           {/* Add Items Button */}
                           <button
                             className="btn-action"
@@ -1107,23 +1141,24 @@ export default function DashboardTablesPanel({
                             }}
                             style={{
                               flex: 1,
-                              padding: '6px 10px',
+                              padding: isMobileEmbed ? '4px 4px' : '6px 10px',
                               background: '#ffffff',
                               color: '#4b5563',
                               border: '1px solid #d1d5db',
                               borderRadius: '6px',
-                              fontSize: '10px',
+                              fontSize: isMobileEmbed ? '9px' : '10px',
                               fontWeight: 600,
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '4px'
+                              gap: '3px',
+                              whiteSpace: 'nowrap',
                             }}
                             onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; }}
                             onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; }}
                           >
-                            <FaPlus size={9} />
+                            <FaPlus size={isMobileEmbed ? 7 : 9} />
                             Add
                           </button>
                           {/* Complete Bill Button */}
@@ -1135,24 +1170,25 @@ export default function DashboardTablesPanel({
                             }}
                             style={{
                               flex: 1,
-                              padding: '6px 10px',
+                              padding: isMobileEmbed ? '4px 4px' : '6px 10px',
                               background: '#dc2626',
                               color: '#ffffff',
                               border: 'none',
                               borderRadius: '6px',
-                              fontSize: '10px',
+                              fontSize: isMobileEmbed ? '9px' : '10px',
                               fontWeight: 600,
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '4px',
+                              gap: '3px',
+                              whiteSpace: 'nowrap',
                             }}
                             onMouseEnter={(e) => { e.currentTarget.style.background = '#b91c1c'; }}
                             onMouseLeave={(e) => { e.currentTarget.style.background = '#dc2626'; }}
                             title="Complete Bill"
                           >
-                            <FaReceipt size={9} /> Bill
+                            <FaReceipt size={isMobileEmbed ? 7 : 9} /> Bill
                           </button>
                         </div>
                       )}

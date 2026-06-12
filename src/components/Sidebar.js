@@ -389,7 +389,8 @@ export default function Sidebar({ isDashboardPage = false }) {
 
   return (
     <>
-      {/* Mobile Menu Button - Only show on mobile (dashboard has its own hamburger) */}
+      {/* Mobile Menu Button - Only show on mobile (dashboard has its own hamburger), hidden in mobile embed (dine-app WebView) */}
+      {!(typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__) && (
       <button
         id="sidebar-hamburger"
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -398,6 +399,7 @@ export default function Sidebar({ isDashboardPage = false }) {
       >
         <FaBars size={20} color="#374151" />
       </button>
+      )}
 
       {/* Overlay - Shows on mobile always, and on desktop only for dashboard */}
       {isMobileMenuOpen && (
