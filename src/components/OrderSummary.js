@@ -265,6 +265,7 @@ const OrderSummary = ({
   const [voiceError, setVoiceError] = useState('');
   const [useFullChatGPT, setUseFullChatGPT] = useState(true); // Feature flag - Set to true for full ChatGPT processing
   const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
   const isMobileEmbed = typeof window !== 'undefined' && !!window.__DINEOPEN_MOBILE_EMBED__;
 
   // Customer Lookup Hook
@@ -873,7 +874,9 @@ const OrderSummary = ({
   // Check if mobile
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
+      const w = window.innerWidth;
+      setIsMobile(w <= 768);
+      setIsTablet(w > 768 && w <= 1180);
     };
     
     checkMobile();
@@ -4229,7 +4232,7 @@ const OrderSummary = ({
                 const showOffers = hasAnything && cart.length > 0;
                 const showDiscount = canEditManualDiscount && cart.length > 0;
                 const showSC = billingSettings.serviceChargeEnabled && billingSettings.serviceChargeShowOnDashboard && isRoleAllowed(billingSettings.serviceChargeRoles) && cart.length > 0;
-                const showStaffAssign = posSettings.showAssignStaff && onAssignedStaffChange && cart.length > 0;
+                const showStaffAssign = posSettings.showAssignStaff && onAssignedStaffChange && cart.length > 0 && !isTablet;
                 if (!showOffers && !showDiscount && !showSC && !showStaffAssign) return null;
 
                 const activeOfferCount = (offerSettings?.allowMultipleOffers ? selectedOfferIds : (selectedOfferId ? [selectedOfferId] : [])).length;

@@ -221,6 +221,7 @@ function RestaurantPOSContent() {
   
   // Mobile responsive state
   const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
   const isMobileEmbed = isMobile && typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showMobileEmbedSearch, setShowMobileEmbedSearch] = useState(false);
@@ -239,6 +240,9 @@ function RestaurantPOSContent() {
     const ps = selectedRestaurant?.posSettings || {};
     return { hideSearchBar: true, ...ps };
   }, [selectedRestaurant]);
+
+  // Responsive panel width for order summary (tablet = narrower)
+  const orderPanelWidth = isTablet ? 340 : 450;
 
   // Listen for order notification unread count from layout
   useEffect(() => {
@@ -767,7 +771,9 @@ function RestaurantPOSContent() {
       return;
     }
     const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
+      const w = window.innerWidth;
+      setIsMobile(w <= 768);
+      setIsTablet(w > 768 && w <= 1180);
     };
 
     checkMobile();
@@ -5901,9 +5907,9 @@ function RestaurantPOSContent() {
           style={{
             position: 'fixed',
             bottom: '24px',
-            left: '50%',
+            left: `calc((100% - ${orderPanelWidth}px) / 2)`,
             transform: 'translateX(-50%)',
-            width: isListeningVoice ? '540px' : '480px',
+            width: isTablet ? (isListeningVoice ? '380px' : '340px') : (isListeningVoice ? '540px' : '480px'),
             zIndex: 1000,
             transition: 'width 0.3s ease'
           }}
@@ -6882,7 +6888,7 @@ function RestaurantPOSContent() {
               alignItems: 'center',
               gap: '6px',
               padding: '10px 16px',
-              paddingRight: '460px',
+              paddingRight: `${orderPanelWidth + 10}px`,
               backgroundColor: 'white',
               borderBottom: '1px solid #f1f5f9'
             }}>
@@ -7510,7 +7516,7 @@ function RestaurantPOSContent() {
           <div style={{
             flex: 1,
             padding: isMobile ? '16px' : '16px 20px',
-            paddingRight: !isMobile && viewMode === 'orders' ? '460px' : '20px',
+            paddingRight: !isMobile && viewMode === 'orders' ? `${orderPanelWidth + 10}px` : '20px',
             paddingBottom: isMobileEmbed ? '140px' : (isMobile ? '90px' : '16px'),
             overflowY: 'auto',
             minHeight: 0, // Important for flex scroll
@@ -8086,7 +8092,7 @@ function RestaurantPOSContent() {
             position: 'fixed',
             right: 0,
             top: '56px', // Below the header
-            width: '450px',
+            width: `${orderPanelWidth}px`,
             height: 'calc(100vh - 56px)', // Full height minus header
             display: 'flex',
             flexDirection: 'column',

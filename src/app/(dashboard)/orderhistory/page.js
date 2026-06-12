@@ -1412,6 +1412,13 @@ const OrderHistory = () => {
     setEditCompletedForm({
       orderType: order.orderType || 'dine-in',
       paymentMethod: order.paymentMethod || 'cash',
+      paymentStatus: order.paymentStatus || 'paid',
+      splitPayments: order.splitPayments?.length >= 2 ? JSON.parse(JSON.stringify(order.splitPayments))
+        : (order.paymentMethod === 'split' ? [{ method: 'cash', amount: 0 }, { method: 'upi', amount: 0 }] : []),
+      cashReceived: order.cashReceived || 0,
+      changeReturned: order.changeReturned || 0,
+      paidAmount: order.paidAmount || 0,
+      outstandingAmount: order.outstandingAmount || 0,
       deliveryType: order.deliveryType || '',
       tableNumber: order.tableNumber || '',
       notes: order.notes || order.specialInstructions || '',
@@ -1430,10 +1437,16 @@ const OrderHistory = () => {
     if (!editCompletedOrder) return;
     setEditCompletedSaving(true);
     try {
-      const isSplitOrder = editCompletedOrder?.splitPayments?.length >= 2;
+      const isSplit = editCompletedForm.paymentMethod === 'split';
+      const orderTotal = editCompletedOrder.finalAmount || editCompletedOrder.totalAmount || 0;
+      const origMethod = editCompletedOrder.paymentMethod || 'cash';
+      const origStatus = editCompletedOrder.paymentStatus || 'paid';
+      const statusChanged = editCompletedForm.paymentStatus !== origStatus;
+
       const payload = {
         orderType: editCompletedForm.orderType,
-        paymentMethod: isSplitOrder ? 'split' : editCompletedForm.paymentMethod,
+        paymentMethod: editCompletedForm.paymentMethod,
+        paymentStatus: editCompletedForm.paymentStatus,
         deliveryType: editCompletedForm.deliveryType,
         tableNumber: editCompletedForm.tableNumber,
         notes: editCompletedForm.notes,
@@ -1441,8 +1454,22 @@ const OrderHistory = () => {
           name: editCompletedForm.customerName,
           phone: editCompletedForm.customerPhone,
         },
-        ...(isSplitOrder && { splitPayments: editCompletedOrder.splitPayments }),
       };
+
+      // Only send split payments if method is/was split
+      if (isSplit || origMethod === 'split') {
+        payload.splitPayments = isSplit && editCompletedForm.splitPayments?.length >= 2 ? editCompletedForm.splitPayments : null;
+      }
+      // Only send cash tendering if method is/was cash
+      if (editCompletedForm.paymentMethod === 'cash' || origMethod === 'cash') {
+        payload.cashReceived = editCompletedForm.paymentMethod === 'cash' ? (editCompletedForm.cashReceived || 0) : 0;
+        payload.changeReturned = editCompletedForm.paymentMethod === 'cash' ? (editCompletedForm.changeReturned || 0) : 0;
+      }
+      // Only send paid/outstanding amounts if status changed or is partial
+      if (statusChanged || editCompletedForm.paymentStatus === 'partial') {
+        payload.paidAmount = editCompletedForm.paymentStatus === 'partial' ? editCompletedForm.paidAmount : (editCompletedForm.paymentStatus === 'due' ? 0 : orderTotal);
+        payload.outstandingAmount = editCompletedForm.paymentStatus === 'partial' ? Math.max(0, orderTotal - (editCompletedForm.paidAmount || 0)) : (editCompletedForm.paymentStatus === 'due' ? orderTotal : 0);
+      }
       const res = await apiClient.editCompletedOrder(editCompletedOrder.id, payload);
       if (res.success) {
         // Update order in local state
@@ -4785,31 +4812,195 @@ const OrderHistory = () => {
                   </select>
                 </div>
 
-                {/* Payment Method */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Payment Method</label>
-                  {editCompletedOrder?.splitPayments?.length >= 2 ? (
-                    <div className="w-full px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50 text-sm">
-                      <div className="font-semibold text-blue-700 mb-1">Split Payment</div>
-                      {editCompletedOrder.splitPayments.map((sp, i) => (
-                        <div key={i} className="flex justify-between text-xs text-blue-600">
-                          <span className="capitalize">{sp.method}</span>
-                          <span>{formatCurrency(sp.amount)}</span>
+                {/* Payment Details */}
+                <div className="space-y-3">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block">Payment Method</label>
+                  <div className="flex flex-wrap gap-2">
+                    {['cash', 'upi', 'card', 'online', 'other', 'split'].map(m => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => {
+                          const updates = { paymentMethod: m };
+                          if (m === 'split' && editCompletedForm.splitPayments.length < 2) {
+                            updates.splitPayments = [{ method: 'cash', amount: 0 }, { method: 'upi', amount: 0 }];
+                          }
+                          if (m !== 'cash') { updates.cashReceived = 0; updates.changeReturned = 0; }
+                          setEditCompletedForm(f => ({ ...f, ...updates }));
+                        }}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all capitalize ${
+                          editCompletedForm.paymentMethod === m
+                            ? 'bg-red-50 border-red-300 text-red-700 ring-1 ring-red-200'
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        {m === 'split' ? 'Settlement' : m}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Split Payment Editor */}
+                  {editCompletedForm.paymentMethod === 'split' && (
+                    <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-3 space-y-2">
+                      <div className="text-xs font-semibold text-blue-700">Settlement Breakdown</div>
+                      {(editCompletedForm.splitPayments || []).map((sp, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <select
+                            value={sp.method}
+                            onChange={(e) => {
+                              const updated = [...editCompletedForm.splitPayments];
+                              updated[i] = { ...updated[i], method: e.target.value };
+                              setEditCompletedForm(f => ({ ...f, splitPayments: updated }));
+                            }}
+                            className="px-2 py-1.5 text-xs rounded-lg border border-blue-200 bg-white focus:ring-1 focus:ring-blue-300 outline-none"
+                          >
+                            {['cash', 'upi', 'card', 'online', 'other'].map(m => (
+                              <option key={m} value={m} className="capitalize">{m.charAt(0).toUpperCase() + m.slice(1)}</option>
+                            ))}
+                          </select>
+                          <input
+                            type="number"
+                            min="0"
+                            value={sp.amount || ''}
+                            onChange={(e) => {
+                              const updated = [...editCompletedForm.splitPayments];
+                              updated[i] = { ...updated[i], amount: Number(e.target.value) || 0 };
+                              setEditCompletedForm(f => ({ ...f, splitPayments: updated }));
+                            }}
+                            placeholder="Amount"
+                            className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-blue-200 bg-white focus:ring-1 focus:ring-blue-300 outline-none"
+                          />
+                          {editCompletedForm.splitPayments.length > 2 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = editCompletedForm.splitPayments.filter((_, j) => j !== i);
+                                setEditCompletedForm(f => ({ ...f, splitPayments: updated }));
+                              }}
+                              className="w-6 h-6 flex items-center justify-center rounded-full text-red-400 hover:text-red-600 hover:bg-red-50 text-xs"
+                            >✕</button>
+                          )}
                         </div>
                       ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditCompletedForm(f => ({
+                            ...f,
+                            splitPayments: [...(f.splitPayments || []), { method: 'cash', amount: 0 }]
+                          }));
+                        }}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        + Add Payment Method
+                      </button>
+                      {(() => {
+                        const splitTotal = (editCompletedForm.splitPayments || []).reduce((s, sp) => s + (sp.amount || 0), 0);
+                        const orderTotal = editCompletedOrder?.finalAmount || editCompletedOrder?.totalAmount || 0;
+                        const balanced = Math.abs(splitTotal - orderTotal) < 0.01;
+                        return (
+                          <div className={`flex justify-between items-center text-xs pt-2 border-t border-blue-200 font-semibold ${balanced ? 'text-green-600' : 'text-amber-600'}`}>
+                            <span>Total: {formatCurrency(splitTotal)} / {formatCurrency(orderTotal)}</span>
+                            <span>{balanced ? '✓ Balanced' : `₹${Math.abs(orderTotal - splitTotal).toFixed(2)} ${splitTotal < orderTotal ? 'remaining' : 'over'}`}</span>
+                          </div>
+                        );
+                      })()}
                     </div>
-                  ) : (
-                  <select
-                    value={editCompletedForm.paymentMethod}
-                    onChange={(e) => setEditCompletedForm(f => ({ ...f, paymentMethod: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none"
-                  >
-                    <option value="cash">Cash</option>
-                    <option value="upi">UPI</option>
-                    <option value="card">Card</option>
-                    <option value="online">Online</option>
-                    <option value="other">Other</option>
-                  </select>
+                  )}
+
+                  {/* Cash Tendering */}
+                  {editCompletedForm.paymentMethod === 'cash' && (
+                    <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-3 space-y-2">
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <label className="text-[10px] font-semibold text-gray-400 uppercase">Cash Received</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={editCompletedForm.cashReceived || ''}
+                            onChange={(e) => {
+                              const cr = Number(e.target.value) || 0;
+                              const orderTotal = editCompletedOrder?.finalAmount || editCompletedOrder?.totalAmount || 0;
+                              setEditCompletedForm(f => ({ ...f, cashReceived: cr, changeReturned: Math.max(0, cr - orderTotal) }));
+                            }}
+                            className="w-full px-2 py-1.5 text-sm rounded-lg border border-gray-200 focus:ring-1 focus:ring-red-200 outline-none"
+                          />
+                        </div>
+                        {editCompletedForm.changeReturned > 0 && (
+                          <div className="flex-1">
+                            <label className="text-[10px] font-semibold text-gray-400 uppercase">Change Returned</label>
+                            <div className="px-2 py-1.5 text-sm text-green-600 font-medium">{formatCurrency(editCompletedForm.changeReturned)}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Payment Status */}
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Payment Status</label>
+                    <div className="flex gap-2">
+                      {[
+                        { id: 'paid', label: 'Paid', active: 'bg-green-50 border-green-300 text-green-700 ring-1 ring-green-200' },
+                        { id: 'partial', label: 'Partial', active: 'bg-amber-50 border-amber-300 text-amber-700 ring-1 ring-amber-200' },
+                        { id: 'due', label: 'Due (Udhar)', active: 'bg-red-50 border-red-300 text-red-700 ring-1 ring-red-200' },
+                      ].map(s => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => {
+                            const orderTotal = editCompletedOrder?.finalAmount || editCompletedOrder?.totalAmount || 0;
+                            const updates = { paymentStatus: s.id };
+                            if (s.id === 'paid') { updates.paidAmount = orderTotal; updates.outstandingAmount = 0; }
+                            else if (s.id === 'due') { updates.paidAmount = 0; updates.outstandingAmount = orderTotal; }
+                            else if (s.id === 'partial') { updates.paidAmount = editCompletedForm.paidAmount || 0; updates.outstandingAmount = Math.max(0, orderTotal - (editCompletedForm.paidAmount || 0)); }
+                            setEditCompletedForm(f => ({ ...f, ...updates }));
+                          }}
+                          className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+                            editCompletedForm.paymentStatus === s.id
+                              ? s.active
+                              : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
+                          }`}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Partial / Due Amount Details */}
+                  {(editCompletedForm.paymentStatus === 'partial' || editCompletedForm.paymentStatus === 'due') && (
+                    <div className={`rounded-xl border p-3 space-y-2 ${editCompletedForm.paymentStatus === 'due' ? 'border-red-200 bg-red-50/50' : 'border-amber-200 bg-amber-50/50'}`}>
+                      {editCompletedForm.paymentStatus === 'partial' && (
+                        <div>
+                          <label className="text-[10px] font-semibold text-gray-400 uppercase">Paid Amount</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max={editCompletedOrder?.finalAmount || editCompletedOrder?.totalAmount || 0}
+                            value={editCompletedForm.paidAmount || ''}
+                            onChange={(e) => {
+                              const pa = Number(e.target.value) || 0;
+                              const orderTotal = editCompletedOrder?.finalAmount || editCompletedOrder?.totalAmount || 0;
+                              setEditCompletedForm(f => ({ ...f, paidAmount: pa, outstandingAmount: Math.max(0, orderTotal - pa) }));
+                            }}
+                            className="w-full px-2 py-1.5 text-sm rounded-lg border border-gray-200 focus:ring-1 focus:ring-amber-200 outline-none"
+                          />
+                        </div>
+                      )}
+                      <div className="flex justify-between text-xs">
+                        <span className={`font-semibold ${editCompletedForm.paymentStatus === 'due' ? 'text-red-600' : 'text-amber-600'}`}>Outstanding</span>
+                        <span className={`font-bold ${editCompletedForm.paymentStatus === 'due' ? 'text-red-700' : 'text-amber-700'}`}>
+                          {formatCurrency(editCompletedForm.outstandingAmount || (editCompletedOrder?.finalAmount || editCompletedOrder?.totalAmount || 0))}
+                        </span>
+                      </div>
+                      {editCompletedForm.paymentStatus === 'partial' && editCompletedForm.paidAmount > 0 && (
+                        <div className="flex justify-between text-xs">
+                          <span className="font-semibold text-green-600">Paid</span>
+                          <span className="font-bold text-green-700">{formatCurrency(editCompletedForm.paidAmount)}</span>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
 
