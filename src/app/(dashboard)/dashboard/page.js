@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 // import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
 import { database } from '../../../../firebase';
@@ -11,11 +12,15 @@ import EmptyMenuPrompt from '../../../components/EmptyMenuPrompt';
 import MenuItemCard from '../../../components/MenuItemCard';
 import CategoryButton from '../../../components/CategoryButton';
 import OrderSummary from '../../../components/OrderSummary';
-import DashboardTablesPanel from '../../../components/DashboardTablesPanel';
 import Notification from '../../../components/Notification';
-import QRCodeModal from '../../../components/QRCodeModal';
-import BulkMenuUpload from '../../../components/BulkMenuUpload';
-import ItemCustomizationModal from '../../../components/ItemCustomizationModal';
+
+// Dynamic imports — loaded on first use, not on initial page load
+const DashboardTablesPanel = dynamic(() => import('../../../components/DashboardTablesPanel'), { ssr: false, loading: () => <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#9ca3af' }}>Loading tables...</div> });
+const QRCodeModal = dynamic(() => import('../../../components/QRCodeModal'), { ssr: false });
+const BulkMenuUpload = dynamic(() => import('../../../components/BulkMenuUpload'), { ssr: false });
+const ItemCustomizationModal = dynamic(() => import('../../../components/ItemCustomizationModal'), { ssr: false });
+const IntelligentChatbot = dynamic(() => import('../../../components/IntelligentChatbot'), { ssr: false });
+const RAGInitializer = dynamic(() => import('../../../components/RAGInitializer'), { ssr: false });
 import { 
   FaSearch, 
   FaShoppingCart, 
@@ -68,8 +73,7 @@ import apiClient from '../../../lib/api';
 import { performLogout } from '../../../lib/logout';
 import { t } from '../../../lib/i18n';
 import { useLoading } from '../../../contexts/LoadingContext';
-import IntelligentChatbot from '../../../components/IntelligentChatbot';
-import RAGInitializer from '../../../components/RAGInitializer';
+// IntelligentChatbot and RAGInitializer are dynamically imported above
 import { getCachedDashboardData, setCachedDashboardData, getCachedTablesData, setCachedTablesData } from '../../../utils/dashboardCache';
 import { getOrderItemKey } from '../../../utils/orderItemKey';
 import { useSyncEngine } from '../../../hooks/useSyncEngine';
@@ -689,54 +693,8 @@ function RestaurantPOSContent() {
     return (menuItems || []).map(item => ({ ...item }));
   }, [selectedSubRestaurant, menuItems]);
 
-  // Generate dynamic categories based on actual menu items
-  const getDynamicCategories = () => {
-    if (!effectiveMenuItems || effectiveMenuItems.length === 0) {
-      return [
-        { id: 'all-items', name: t('dashboard.allItems'), emoji: '🍽️', count: 0 },
-        { id: 'favorites', name: t('dashboard.favorites'), emoji: '❤️', count: 0 }
-      ];
-    }
-
-    // Get unique categories from menu items
-    const categoryMap = new Map();
-    categoryMap.set('all-items', { id: 'all-items', name: t('dashboard.allItems'), emoji: '🍽️', count: effectiveMenuItems.length });
-
-    // Count favorites
-    const favoritesCount = effectiveMenuItems.filter(item => item.isFavorite === true).length;
-    categoryMap.set('favorites', { id: 'favorites', name: t('dashboard.favorites'), emoji: '❤️', count: favoritesCount });
-
-    effectiveMenuItems.forEach(item => {
-      if (item.category) {
-        const categoryId = item.category.toLowerCase();
-        if (categoryMap.has(categoryId)) {
-          categoryMap.get(categoryId).count++;
-        } else {
-          // Create dynamic category with appropriate emoji
-          const emoji = getCategoryEmoji(item.category);
-          categoryMap.set(categoryId, {
-            id: categoryId,
-            name: item.category.charAt(0).toUpperCase() + item.category.slice(1),
-            emoji: emoji,
-            count: 1
-          });
-        }
-      }
-    });
-    
-    // Return favorites first, then all-items, then other categories
-    const categories = Array.from(categoryMap.values());
-    const favorites = categories.find(c => c.id === 'favorites');
-    const allItems = categories.find(c => c.id === 'all-items');
-    const otherCategories = categories.filter(c => c.id !== 'favorites' && c.id !== 'all-items');
-    
-    return favorites && favorites.count > 0 
-      ? [favorites, allItems, ...otherCategories]
-      : [allItems, ...otherCategories];
-  };
-  
   // Get appropriate emoji for category
-  const getCategoryEmoji = (category) => {
+  const getCategoryEmoji = useCallback((category) => {
     const categoryLower = category.toLowerCase();
     const emojiMap = {
       'appetizer': '🥗', 'appetizers': '🥗', 'starter': '🥗', 'starters': '🥗',
@@ -756,11 +714,65 @@ function RestaurantPOSContent() {
       'chinese': '🥢', 'asian': '🥢',
       'tandoor': '🔥', 'grilled': '🔥', 'bbq': '🔥'
     };
-    
+
     return emojiMap[categoryLower] || '🍽️';
-  };
-  
-  const categories = getDynamicCategories();
+  }, []);
+
+  // Pre-compute category item counts — avoids O(n²) filtering in render
+  const categoryItemCountMap = useMemo(() => {
+    const countMap = new Map();
+    countMap.set('all-items', effectiveMenuItems.length);
+    let favCount = 0;
+    effectiveMenuItems.forEach(item => {
+      if (item.isFavorite === true) favCount++;
+      if (item.category) {
+        const catId = item.category.toLowerCase();
+        countMap.set(catId, (countMap.get(catId) || 0) + 1);
+      }
+    });
+    countMap.set('favorites', favCount);
+    return countMap;
+  }, [effectiveMenuItems]);
+
+  // Generate dynamic categories based on actual menu items
+  const categories = useMemo(() => {
+    if (!effectiveMenuItems || effectiveMenuItems.length === 0) {
+      return [
+        { id: 'all-items', name: t('dashboard.allItems'), emoji: '🍽️', count: 0 },
+        { id: 'favorites', name: t('dashboard.favorites'), emoji: '❤️', count: 0 }
+      ];
+    }
+
+    const catMap = new Map();
+    catMap.set('all-items', { id: 'all-items', name: t('dashboard.allItems'), emoji: '🍽️', count: categoryItemCountMap.get('all-items') || 0 });
+
+    const favoritesCount = categoryItemCountMap.get('favorites') || 0;
+    catMap.set('favorites', { id: 'favorites', name: t('dashboard.favorites'), emoji: '❤️', count: favoritesCount });
+
+    effectiveMenuItems.forEach(item => {
+      if (item.category) {
+        const categoryId = item.category.toLowerCase();
+        if (!catMap.has(categoryId)) {
+          const emoji = getCategoryEmoji(item.category);
+          catMap.set(categoryId, {
+            id: categoryId,
+            name: item.category.charAt(0).toUpperCase() + item.category.slice(1),
+            emoji: emoji,
+            count: categoryItemCountMap.get(categoryId) || 0
+          });
+        }
+      }
+    });
+
+    const allCats = Array.from(catMap.values());
+    const favorites = allCats.find(c => c.id === 'favorites');
+    const allItems = allCats.find(c => c.id === 'all-items');
+    const otherCategories = allCats.filter(c => c.id !== 'favorites' && c.id !== 'all-items');
+
+    return favorites && favorites.count > 0
+      ? [favorites, allItems, ...otherCategories]
+      : [allItems, ...otherCategories];
+  }, [effectiveMenuItems, categoryItemCountMap, getCategoryEmoji]);
 
   // Mobile detection hook — Electron (desktop POS) always uses desktop layout
   useEffect(() => {
@@ -1887,26 +1899,29 @@ function RestaurantPOSContent() {
     return { ...tablesData, floors: filteredFloors };
   }, [selectedSubRestaurant, tablesData]);
 
-  const filteredItemsBase = (effectiveMenuItems).filter(item => {
-    // Hide out-of-stock items if setting enabled
-    if (posSettings.hideOutOfStock) {
-      const stockManaged = item.isStockManaged && typeof item.stockQuantity === 'number';
-      const outOfStock = item.isAvailable === false || (stockManaged && item.stockQuantity === 0);
-      if (outOfStock) return false;
-    }
+  const filteredItemsBase = useMemo(() => {
     const lowerSearch = debouncedSearchTerm.toLowerCase();
-    const matchesSearch = item.name.toLowerCase().includes(lowerSearch) ||
-      (item.pluCode && item.pluCode.includes(debouncedSearchTerm.trim())) ||
-      (item.shortCode && item.shortCode.toLowerCase().includes(lowerSearch));
-    // When searching, always search all items regardless of category
-    if (debouncedSearchTerm.trim()) return matchesSearch;
-    const matchesCategory = selectedCategory === 'all-items'
-      ? true
-      : selectedCategory === 'favorites'
-      ? item.isFavorite === true
-      : item.category?.toLowerCase() === selectedCategory;
-    return matchesCategory;
-  });
+    const trimmedSearch = debouncedSearchTerm.trim();
+    return effectiveMenuItems.filter(item => {
+      // Hide out-of-stock items if setting enabled
+      if (posSettings.hideOutOfStock) {
+        const stockManaged = item.isStockManaged && typeof item.stockQuantity === 'number';
+        const outOfStock = item.isAvailable === false || (stockManaged && item.stockQuantity === 0);
+        if (outOfStock) return false;
+      }
+      const matchesSearch = item.name.toLowerCase().includes(lowerSearch) ||
+        (item.pluCode && item.pluCode.includes(trimmedSearch)) ||
+        (item.shortCode && item.shortCode.toLowerCase().includes(lowerSearch));
+      // When searching, always search all items regardless of category
+      if (trimmedSearch) return matchesSearch;
+      const matchesCategory = selectedCategory === 'all-items'
+        ? true
+        : selectedCategory === 'favorites'
+        ? item.isFavorite === true
+        : item.category?.toLowerCase() === selectedCategory;
+      return matchesCategory;
+    });
+  }, [effectiveMenuItems, debouncedSearchTerm, selectedCategory, posSettings.hideOutOfStock]);
 
   // Multi-tier pricing: resolve display price for an item
   const getItemDisplayPrice = useCallback((item) => {
@@ -1989,12 +2004,14 @@ function RestaurantPOSContent() {
   // IMPORTANT: Always spread-copy each item to avoid shared object references.
   // Without copying, the re-pricing useEffect can mutate the original menu item
   // objects, causing all cart items referencing the same object to share one price.
-  const filteredItems = multiPricingEnabled && activePricingRuleId
-    ? filteredItemsBase.map(item => {
-        const displayPrice = getItemDisplayPrice(item);
-        return { ...item, price: displayPrice, _originalPrice: item.price };
-      })
-    : filteredItemsBase;
+  const filteredItems = useMemo(() => {
+    return multiPricingEnabled && activePricingRuleId
+      ? filteredItemsBase.map(item => {
+          const displayPrice = getItemDisplayPrice(item);
+          return { ...item, price: displayPrice, _originalPrice: item.price };
+        })
+      : filteredItemsBase;
+  }, [filteredItemsBase, multiPricingEnabled, activePricingRuleId, getItemDisplayPrice]);
 
   const addToCart = (itemRaw) => {
     // Weight-based items: open weight popup instead of adding directly
@@ -5311,10 +5328,18 @@ function RestaurantPOSContent() {
     router.push(page);
   };
 
-  const getItemQuantityInCart = (itemId) => {
-    const cartItem = cart.find(item => item.id === itemId);
-    return cartItem ? cartItem.quantity : 0;
-  };
+  // Pre-computed cart quantity map — O(1) lookups instead of O(n) per item
+  const cartQuantityMap = useMemo(() => {
+    const map = new Map();
+    cart.forEach(item => {
+      map.set(item.id, (map.get(item.id) || 0) + (item.quantity || 0));
+    });
+    return map;
+  }, [cart]);
+
+  const getItemQuantityInCart = useCallback((itemId) => {
+    return cartQuantityMap.get(itemId) || 0;
+  }, [cartQuantityMap]);
 
   const handleManualTableSelection = () => {
     if (manualTableNumber.trim()) {
@@ -6792,11 +6817,6 @@ function RestaurantPOSContent() {
               minHeight: 0
             }} className="hide-scrollbar">
               {categories.map((category, index) => {
-                const categoryItems = category.id === 'all-items'
-                  ? effectiveMenuItems
-                  : category.id === 'favorites'
-                  ? effectiveMenuItems.filter(item => item.isFavorite === true)
-                  : effectiveMenuItems.filter(item => item.category?.toLowerCase() === category.id);
                 const isSelected = selectedCategory === category.id;
 
                 return (
@@ -6895,11 +6915,6 @@ function RestaurantPOSContent() {
               {/* Category Chips */}
               <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', flex: 1 }}>
                 {categories.map((category) => {
-                  const categoryItems = category.id === 'all-items'
-                    ? effectiveMenuItems
-                    : category.id === 'favorites'
-                    ? effectiveMenuItems.filter(item => item.isFavorite === true)
-                    : effectiveMenuItems.filter(item => item.category?.toLowerCase() === category.id);
                   const isSelected = selectedCategory === category.id;
 
                   return (
@@ -7406,11 +7421,7 @@ function RestaurantPOSContent() {
                 }}>
                 {categories.map((category, index) => {
                   const isSelected = selectedCategory === category.id;
-                  const categoryItems = category.id === 'all-items'
-                    ? effectiveMenuItems
-                    : category.id === 'favorites'
-                    ? effectiveMenuItems.filter(item => item.isFavorite === true)
-                    : effectiveMenuItems.filter(item => item.category?.toLowerCase() === category.id);
+                  const categoryCount = categoryItemCountMap.get(category.id) || 0;
 
                   return (
                     <button
@@ -7488,7 +7499,7 @@ function RestaurantPOSContent() {
                       }}>
                         {category.name}
                       </span>
-                      {categoryItems.length > 0 && (
+                      {categoryCount > 0 && (
                         <span style={{
                           fontSize: '10px',
                           backgroundColor: isSelected ? 'rgba(255,255,255,0.25)' : '#f3f4f6',
@@ -7502,7 +7513,7 @@ function RestaurantPOSContent() {
                           zIndex: 1,
                           border: isSelected ? '1px solid rgba(255,255,255,0.2)' : 'none'
                         }}>
-                          {categoryItems.length}
+                          {categoryCount}
                         </span>
                       )}
                     </button>
@@ -8343,11 +8354,8 @@ function RestaurantPOSContent() {
               msOverflowStyle: 'none'
             }} className="hide-scrollbar">
               {categories.map((category) => {
-                const categoryItems = category.id === 'all-items'
-                  ? effectiveMenuItems
-                  : effectiveMenuItems.filter(item => item.category?.toLowerCase() === category.id);
                 const isSelected = selectedCategory === category.id;
-                
+
                 return (
                   <div key={category.id} onClick={() => {
                     setSelectedCategory(isSelected && category.id !== 'all-items' ? 'all-items' : category.id);
@@ -8360,7 +8368,7 @@ function RestaurantPOSContent() {
                       setSelectedCategory(isSelected && category.id !== 'all-items' ? 'all-items' : category.id);
                       setShowMobileSidebar(false);
                     }}
-                      itemCount={categoryItems.length}
+                      itemCount={categoryItemCountMap.get(category.id) || 0}
                     />
                     </div>
                 );
@@ -9070,34 +9078,40 @@ function RestaurantPOSContent() {
         </div>
       )}
       
-      {/* QR Code Modal */}
-      <QRCodeModal
-        isOpen={showQRCodeModal}
-        onClose={() => setShowQRCodeModal(false)}
-        restaurantId={selectedRestaurant?.id}
-        restaurantName={selectedRestaurant?.name}
-        restaurant={selectedRestaurant}
-      />
+      {/* QR Code Modal — only mount when opened */}
+      {showQRCodeModal && (
+        <QRCodeModal
+          isOpen={showQRCodeModal}
+          onClose={() => setShowQRCodeModal(false)}
+          restaurantId={selectedRestaurant?.id}
+          restaurantName={selectedRestaurant?.name}
+          restaurant={selectedRestaurant}
+        />
+      )}
 
-      {/* Bulk Upload Modal */}
-      <BulkMenuUpload
-        isOpen={showBulkUpload}
-        onClose={() => setShowBulkUpload(false)}
-        restaurantId={selectedRestaurant?.id}
-        onMenuItemsAdded={handleMenuItemsAdded}
-        currentMenuItems={menuItems}
-      />
+      {/* Bulk Upload Modal — only mount when opened */}
+      {showBulkUpload && (
+        <BulkMenuUpload
+          isOpen={showBulkUpload}
+          onClose={() => setShowBulkUpload(false)}
+          restaurantId={selectedRestaurant?.id}
+          onMenuItemsAdded={handleMenuItemsAdded}
+          currentMenuItems={menuItems}
+        />
+      )}
 
-      {/* Item Customization Modal */}
-      <ItemCustomizationModal
-        isOpen={customizationModalOpen}
-        item={selectedItemForCustomization}
-        onClose={handleCloseCustomizationModal}
-        onAddToCart={addToCart}
-        initialVariant={customizationInitial.variant}
-        initialCustomizations={customizationInitial.customizations}
-        initialQuantity={customizationInitial.quantity}
-      />
+      {/* Item Customization Modal — only mount when opened */}
+      {customizationModalOpen && (
+        <ItemCustomizationModal
+          isOpen={customizationModalOpen}
+          item={selectedItemForCustomization}
+          onClose={handleCloseCustomizationModal}
+          onAddToCart={addToCart}
+          initialVariant={customizationInitial.variant}
+          initialCustomizations={customizationInitial.customizations}
+          initialQuantity={customizationInitial.quantity}
+        />
+      )}
 
       {/* Scale Status Badge — floating indicator for Electron scale connection */}
       {typeof window !== 'undefined' && window.electronAPI?.scale && scaleStatus?.enabled && (
