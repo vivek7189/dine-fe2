@@ -99,6 +99,7 @@ import OfflineDataTab from '../../../components/OfflineDataTab';
 import TerminalsTab from '../../../components/lan/TerminalsTab';
 import WhatsAppTab from '../../../components/WhatsAppTab';
 import EcrTerminalSettings from '../../../components/EcrTerminalSettings';
+import BulkStaffUpload from '../../../components/BulkStaffUpload';
 import { useNotification } from '../../../components/Notification';
 
 // Reusable confirmation modal to replace native confirm() ff
@@ -5203,6 +5204,7 @@ const Admin = () => {
   const [loading, setLoading] = useState(false);
   const [showAddRestaurantModal, setShowAddRestaurantModal] = useState(false);
   const [showAddStaffModal, setShowAddStaffModal] = useState(false);
+  const [showBulkStaffUpload, setShowBulkStaffUpload] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [editingStaff, setEditingStaff] = useState(false);
   const [editStaffForm, setEditStaffForm] = useState({ name: '', phone: '', email: '', role: '', pageAccess: {} });
@@ -6857,18 +6859,32 @@ const Admin = () => {
                 </button>
               )}
               {activeTab === 'staff' && (
-                <button onClick={function() { setShowAddStaffModal(true); }}
-                  style={{
-                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                    color: 'white', padding: '10px 20px', borderRadius: '10px',
-                    fontWeight: 600, fontSize: '13px', border: 'none', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: '8px',
-                    boxShadow: '0 2px 8px rgba(239,68,68,0.25)'
-                  }}
-                >
-                  <FaPlus size={12} />
-                  Add Staff
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={function() { setShowBulkStaffUpload(true); }}
+                    style={{
+                      background: 'linear-gradient(135deg, #f97316, #ea580c)',
+                      color: 'white', padding: '10px 20px', borderRadius: '10px',
+                      fontWeight: 600, fontSize: '13px', border: 'none', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      boxShadow: '0 2px 8px rgba(249,115,22,0.25)'
+                    }}
+                  >
+                    <FaCloudUploadAlt size={13} />
+                    Bulk Upload
+                  </button>
+                  <button onClick={function() { setShowAddStaffModal(true); }}
+                    style={{
+                      background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                      color: 'white', padding: '10px 20px', borderRadius: '10px',
+                      fontWeight: 600, fontSize: '13px', border: 'none', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      boxShadow: '0 2px 8px rgba(239,68,68,0.25)'
+                    }}
+                  >
+                    <FaPlus size={12} />
+                    Add Staff
+                  </button>
+                </div>
               )}
             </div>
 
@@ -8555,6 +8571,19 @@ const Admin = () => {
         </div>,
         document.body
       )}
+
+      {/* Bulk Staff Upload Modal */}
+      <BulkStaffUpload
+        isOpen={showBulkStaffUpload}
+        onClose={() => setShowBulkStaffUpload(false)}
+        restaurantId={selectedRestaurant?.id}
+        onStaffAdded={() => {
+          // Refresh staff list
+          if (selectedRestaurant) {
+            apiClient.getStaff(selectedRestaurant.id).then(r => setStaff(r.staff || [])).catch(() => {});
+          }
+        }}
+      />
 
       {/* Add Staff Modal */}
       {showAddStaffModal && typeof document !== 'undefined' && createPortal(

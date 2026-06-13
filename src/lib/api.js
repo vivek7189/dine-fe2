@@ -1500,6 +1500,34 @@ class ApiClient {
     });
   }
 
+  // Bulk staff upload
+  async bulkUploadStaff(restaurantId, formData) {
+    const url = `${this.baseURL}/api/bulk-staff/${restaurantId}/extract`;
+    const token = this.getToken();
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+      headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to extract staff data');
+    return data;
+  }
+
+  async bulkExtractStaffFromText(restaurantId, text) {
+    return this.request(`/api/bulk-staff/${restaurantId}/extract`, {
+      method: 'POST',
+      body: { text },
+    });
+  }
+
+  async bulkSaveStaff(restaurantId, staff) {
+    return this.request(`/api/bulk-staff/${restaurantId}/save`, {
+      method: 'POST',
+      body: { staff },
+    });
+  }
+
   async switchRestaurant(restaurantId) {
     return this.request('/api/auth/staff/switch-restaurant', {
       method: 'POST',
