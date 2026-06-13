@@ -3730,7 +3730,13 @@ function RestaurantPOSContent() {
           console.log('✅ Cash payment verified:', paymentResult);
           // Auto-open cash drawer on cash payment
           if (posSettings.enableCashDrawer && window.electronAPI?.cashDrawer) {
-            window.electronAPI.cashDrawer.open().catch(err =>
+            window.electronAPI.cashDrawer.open().then(result => {
+              if (result.success) {
+                console.log('[CashDrawer] Auto-opened:', result.diagnostics?.method || result.mode);
+              } else {
+                console.warn('[CashDrawer] Auto-open failed:', result.error, result.diagnostics);
+              }
+            }).catch(err =>
               console.warn('[CashDrawer] kick failed:', err.message)
             );
           }

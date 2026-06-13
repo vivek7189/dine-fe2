@@ -10900,22 +10900,31 @@ const Admin = () => {
                         </button>
                       </div>
                     )}
-                    {/* Test button */}
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {/* Test button + diagnostics */}
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                       <button
                         type="button"
                         onClick={async () => {
                           const statusEl = document.getElementById('drawer-test-status');
-                          if (statusEl) statusEl.textContent = 'Opening...';
+                          const diagEl = document.getElementById('drawer-diagnostics');
+                          if (statusEl) { statusEl.textContent = 'Opening...'; statusEl.style.color = '#6b7280'; }
+                          if (diagEl) { diagEl.textContent = ''; diagEl.style.display = 'none'; }
                           try {
                             const result = await window.electronAPI.cashDrawer.open();
                             if (result.success) {
-                              if (statusEl) statusEl.textContent = `Drawer opened (${result.mode === 'usb' ? 'USB: ' + result.port : 'Printer: ' + result.printer})`;
+                              const detail = result.mode === 'usb'
+                                ? `USB: ${result.port}`
+                                : `Printer: ${result.printer}${result.diagnostics?.method ? ' (via ' + result.diagnostics.method + ')' : ''}`;
+                              if (statusEl) { statusEl.textContent = `Drawer opened — ${detail}`; statusEl.style.color = '#059669'; }
                             } else {
-                              if (statusEl) statusEl.textContent = `Failed: ${result.error}`;
+                              if (statusEl) { statusEl.textContent = `Failed: ${result.error}`; statusEl.style.color = '#dc2626'; }
+                            }
+                            if (diagEl && result.diagnostics) {
+                              diagEl.textContent = JSON.stringify(result.diagnostics, null, 2);
+                              diagEl.style.display = 'block';
                             }
                           } catch (err) {
-                            if (statusEl) statusEl.textContent = `Error: ${err.message}`;
+                            if (statusEl) { statusEl.textContent = `Error: ${err.message}`; statusEl.style.color = '#dc2626'; }
                           }
                         }}
                         style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', backgroundColor: '#059669', color: 'white', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
@@ -10924,6 +10933,7 @@ const Admin = () => {
                       </button>
                       <div id="drawer-test-status" style={{ fontSize: '12px', color: '#6b7280' }}></div>
                     </div>
+                    <pre id="drawer-diagnostics" style={{ fontSize: '10px', color: '#6b7280', backgroundColor: '#f3f4f6', padding: '6px 8px', borderRadius: '6px', margin: '6px 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-all', display: 'none' }}></pre>
                   </div>
                 )}
               </div>

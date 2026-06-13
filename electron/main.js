@@ -795,86 +795,190 @@ app.whenReady().then(() => autoConnectScale());
 //   1. Printer's DK port (RJ11) — sends ESC/POS command to bill printer
 //   2. USB trigger — sends ESC/POS command via serial port
 
+// Standard ESC/POS drawer kick: ESC p <pin> <on-time> <off-time>
+// Pin 0 = pin 2 connector (most common), Pin 1 = pin 5 connector
 const DRAWER_KICK_CMD = Buffer.from([0x1B, 0x70, 0x00, 0x19, 0x19]); // ESC p 0 25 25
+// Some drawers need pin 1 instead — try both if pin 0 doesn't work
+const DRAWER_KICK_CMD_PIN1 = Buffer.from([0x1B, 0x70, 0x01, 0x19, 0x19]); // ESC p 1 25 25
 
 ipcMain.handle('electron:openCashDrawer', async () => {
   const settings = loadSettings();
   const mode = settings.cashDrawerMode || 'printer'; // 'printer' | 'usb'
+  const platform = require('os').platform();
+  const diagnostics = { mode, platform, timestamp: new Date().toISOString() };
+
+  console.log('[CashDrawer] Opening — mode:', mode, 'platform:', platform);
 
   if (mode === 'usb') {
     // USB trigger mode: send kick command via serial port
     const portPath = settings.cashDrawerPort;
-    if (!portPath) return { success: false, error: 'No USB drawer port configured' };
+    diagnostics.port = portPath;
+    if (!portPath) {
+      console.error('[CashDrawer] USB mode but no port configured');
+      return { success: false, error: 'No USB drawer port configured', diagnostics };
+    }
     try {
       const { SerialPort } = require('serialport');
       return new Promise((resolve) => {
         const port = new SerialPort({ path: portPath, baudRate: 9600, autoOpen: false });
         port.open((err) => {
           if (err) {
-            resolve({ success: false, error: err.message });
+            console.error('[CashDrawer] USB port open failed:', err.message);
+            resolve({ success: false, error: `USB port open failed: ${err.message}`, diagnostics });
             return;
           }
-          port.write(DRAWER_KICK_CMD, (writeErr) => {
+          // Send both pin 0 and pin 1 commands to cover all drawer wiring
+          const combined = Buffer.concat([DRAWER_KICK_CMD, DRAWER_KICK_CMD_PIN1]);
+          port.write(combined, (writeErr) => {
             if (writeErr) {
+              console.error('[CashDrawer] USB write failed:', writeErr.message);
               port.close(() => {});
-              resolve({ success: false, error: writeErr.message });
+              resolve({ success: false, error: `USB write failed: ${writeErr.message}`, diagnostics });
               return;
             }
-            // Close port after a brief delay to ensure command is sent
-            setTimeout(() => {
-              port.close(() => {});
-              resolve({ success: true, mode: 'usb', port: portPath });
-            }, 200);
+            port.drain(() => {
+              setTimeout(() => {
+                port.close(() => {});
+                console.log('[CashDrawer] USB kick sent to', portPath);
+                resolve({ success: true, mode: 'usb', port: portPath, diagnostics });
+              }, 200);
+            });
           });
         });
       });
     } catch (err) {
-      return { success: false, error: err.message };
+      console.error('[CashDrawer] USB error:', err.message);
+      return { success: false, error: err.message, diagnostics };
     }
   }
 
-  // Printer mode (default): send ESC/POS kick command to the bill printer
+  // Printer mode (default): send ESC/POS kick command via the bill printer
   const printerName = settings.billPrinter || settings.defaultPrinter;
-  if (!printerName) return { success: false, error: 'No bill printer configured' };
+  diagnostics.printerName = printerName || '(none)';
+  diagnostics.billPrinter = settings.billPrinter || '(not set)';
+  diagnostics.defaultPrinter = settings.defaultPrinter || '(not set)';
+
+  if (!printerName) {
+    console.error('[CashDrawer] No bill printer configured in settings');
+    return { success: false, error: 'No bill printer configured. Assign a bill printer in Native Printer Settings first.', diagnostics };
+  }
+
+  // Send both pin commands to cover all drawer wiring configurations
+  const bothPins = Buffer.concat([DRAWER_KICK_CMD, DRAWER_KICK_CMD_PIN1]);
 
   try {
-    const os = require('os');
     const fs = require('fs');
     const { execSync } = require('child_process');
 
-    if (os.platform() === 'win32') {
-      // Windows: write raw bytes to printer via copy /b
+    if (platform === 'win32') {
+      // Windows: send raw bytes directly to the printer device.
+      // Method 1: Use the printer's Windows port name (e.g., USB001, COM3) via copy /b
+      // Method 2: Use printer share name via copy /b to \\COMPUTERNAME\printer
+      // Method 3: Fallback to print /D: via spooler
       const tmpFile = path.join(app.getPath('temp'), `drawer_kick_${Date.now()}.bin`);
-      fs.writeFileSync(tmpFile, DRAWER_KICK_CMD);
+      fs.writeFileSync(tmpFile, bothPins);
+      diagnostics.tmpFile = tmpFile;
+
+      let sent = false;
+      const errors = [];
+
+      // Try 1: Get the printer port from Windows and write directly to it
+      // This is the most reliable method — bypasses the spooler entirely
       try {
-        // Use print command with raw option — try direct printer share first
-        execSync(`copy /b "${tmpFile}" "\\\\%COMPUTERNAME%\\${printerName}"`, {
-          windowsHide: true, timeout: 5000, shell: true
-        });
-      } catch {
-        // Fallback: try via Windows print spooler
+        const portInfo = execSync(
+          `wmic printer where "Name='${printerName.replace(/'/g, "\\'")}"' get PortName /value`,
+          { windowsHide: true, timeout: 5000, shell: true, encoding: 'utf8' }
+        ).trim();
+        const portMatch = portInfo.match(/PortName=(.+)/i);
+        if (portMatch) {
+          const portName = portMatch[1].trim(); // e.g., USB001, COM3, LPT1
+          diagnostics.printerPort = portName;
+          console.log('[CashDrawer] Found printer port:', portName);
+          execSync(`copy /b "${tmpFile}" "${portName}"`, {
+            windowsHide: true, timeout: 5000, shell: true
+          });
+          sent = true;
+          diagnostics.method = 'direct-port';
+          console.log('[CashDrawer] Sent via direct port:', portName);
+        }
+      } catch (portErr) {
+        errors.push(`direct-port: ${portErr.message}`);
+      }
+
+      // Try 2: Network share path
+      if (!sent) {
+        try {
+          execSync(`copy /b "${tmpFile}" "\\\\%COMPUTERNAME%\\${printerName}"`, {
+            windowsHide: true, timeout: 5000, shell: true
+          });
+          sent = true;
+          diagnostics.method = 'network-share';
+          console.log('[CashDrawer] Sent via network share');
+        } catch (shareErr) {
+          errors.push(`network-share: ${shareErr.message}`);
+        }
+      }
+
+      // Try 3: Print spooler (least reliable for raw bytes)
+      if (!sent) {
         try {
           execSync(`print /D:"${printerName}" "${tmpFile}"`, {
             windowsHide: true, timeout: 5000, shell: true
           });
-        } catch (printErr) {
-          console.warn('[CashDrawer] Print command fallback also failed:', printErr.message);
+          sent = true;
+          diagnostics.method = 'print-spooler';
+          console.log('[CashDrawer] Sent via print spooler');
+        } catch (spoolErr) {
+          errors.push(`print-spooler: ${spoolErr.message}`);
+        }
+      }
+
+      try { fs.unlinkSync(tmpFile); } catch {}
+
+      if (sent) {
+        console.log('[CashDrawer] Kick sent to printer:', printerName, '(Windows, method:', diagnostics.method + ')');
+        return { success: true, mode: 'printer', printer: printerName, diagnostics };
+      } else {
+        diagnostics.errors = errors;
+        console.error('[CashDrawer] All Windows methods failed:', errors.join(' | '));
+        return {
+          success: false,
+          error: `Could not send to printer "${printerName}". Tried ${errors.length} methods. Check that the printer is on and connected.`,
+          diagnostics
+        };
+      }
+    } else {
+      // macOS/Linux: use lpr with raw filter to bypass driver processing
+      const tmpFile = path.join(app.getPath('temp'), `drawer_kick_${Date.now()}.bin`);
+      fs.writeFileSync(tmpFile, bothPins);
+      diagnostics.tmpFile = tmpFile;
+      try {
+        execSync(`lpr -P "${printerName}" -o raw "${tmpFile}"`, {
+          timeout: 5000, shell: true
+        });
+        diagnostics.method = 'lpr-raw';
+      } catch (lprErr) {
+        // Fallback: try printf pipe
+        try {
+          execSync(`printf '\\x1b\\x70\\x00\\x19\\x19\\x1b\\x70\\x01\\x19\\x19' | lpr -P "${printerName}" -o raw`, {
+            timeout: 5000, shell: true
+          });
+          diagnostics.method = 'lpr-pipe';
+        } catch (pipeErr) {
+          try { fs.unlinkSync(tmpFile); } catch {}
+          diagnostics.errors = [lprErr.message, pipeErr.message];
+          console.error('[CashDrawer] macOS/Linux all methods failed');
+          return { success: false, error: `lpr failed: ${lprErr.message}`, diagnostics };
         }
       }
       try { fs.unlinkSync(tmpFile); } catch {}
-      console.log('[CashDrawer] Kick sent to printer:', printerName, '(Windows)');
-      return { success: true, mode: 'printer', printer: printerName };
-    } else {
-      // macOS/Linux: use lpr with raw filter
-      execSync(`printf '\\x1b\\x70\\x00\\x19\\x19' | lpr -P "${printerName}" -o raw`, {
-        timeout: 5000, shell: true
-      });
-      console.log('[CashDrawer] Kick sent to printer:', printerName, '(macOS/Linux)');
-      return { success: true, mode: 'printer', printer: printerName };
+      console.log('[CashDrawer] Kick sent to printer:', printerName, '(macOS/Linux, method:', diagnostics.method + ')');
+      return { success: true, mode: 'printer', printer: printerName, diagnostics };
     }
   } catch (err) {
-    console.error('[CashDrawer] Failed:', err.message);
-    return { success: false, error: err.message };
+    console.error('[CashDrawer] Unexpected error:', err.message);
+    diagnostics.fatalError = err.message;
+    return { success: false, error: err.message, diagnostics };
   }
 });
 
