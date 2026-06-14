@@ -661,9 +661,9 @@ const OrderSummary = ({
     const autoPrintEnabled = !!printSettings?.autoPrintOnPlaceOrder
       || (isRNWebView && !!printSettings?.autoPrintOnKOT);
 
-    // On native (Tauri): KOT & Print button respects its own flag
-    // On web: KOT & Print always prints (no flag control)
-    const kotAndPrintAllowed = isNative ? (printSettings?.autoPrintOnKOTAndPrint !== false) : true;
+    // On Electron/Tauri: KOT & Print button respects its own setting flag
+    // On web + React Native WebView: KOT & Print always prints (user explicitly tapped the button)
+    const kotAndPrintAllowed = (isNative && !isRNWebView) ? (printSettings?.autoPrintOnKOTAndPrint !== false) : true;
     const shouldPrint = (buttonPrintRequested && kotAndPrintAllowed) || autoPrintEnabled;
 
     console.log('[OrderSummary] KOT print effect fired:', { isNative, buttonPrintRequested, autoPrintEnabled, kotAndPrintAllowed, orderId: orderSuccess?.kotData?.orderId });

@@ -82,6 +82,7 @@ import { canPerform } from '../../../lib/permissions';
 import { useHubEvents } from '../../../hooks/useHubEvents';
 import { useDineBot } from '../../../components/DineBotProvider';
 import { parseScaleBarcode, isScaleBarcode } from '../../../utils/scaleBarcode';
+import { printDocument } from '../../../utils/printBridge';
 
 // Safe wrappers for contexts that may not be available in mobile embed mode
 function useSafeLoading() {
@@ -4681,6 +4682,34 @@ function RestaurantPOSContent() {
               specialInstructions: specialInstructions || null
             }
           });
+
+          // Direct KOT print for React Native WebView — fire immediately before view switches
+          if (window.__autoPrintKOT && window.ReactNativeWebView) {
+            const kotItems = filterKotExcludedItems(incrementalItems.length > 0 ? incrementalItems : cart, printSettings).map(item => ({
+              name: item.name, quantity: item.quantity || 1, notes: item.notes || '',
+              selectedVariant: item.selectedVariant || null, selectedCustomizations: item.selectedCustomizations || [],
+            }));
+            window.__autoPrintKOT = false;
+            window.__lastKOTPrintedByEffect = currentOrder.id;
+            printDocument({
+              type: 'kot',
+              orderId: currentOrder.id,
+              restaurantId: selectedRestaurant?.id,
+              printSettings: printSettings || {},
+              orderData: {
+                restaurantName: selectedRestaurant?.name || 'Restaurant',
+                tableNumber: (roomForKot ? null : tableToUseForKot) || '',
+                orderNumber: currentOrder.dailyOrderId || currentOrder.id?.slice?.(-6) || '',
+                orderId: currentOrder.id,
+                orderType,
+                waiterName: '',
+                customerName: customerName || '',
+                timestamp: new Date().toISOString(),
+                items: kotItems,
+              },
+            });
+          }
+
           // Handle navigation after order update
           setCurrentOrder(null);
           setActiveSavedOrderId(null); // Clear active saved order since it was placed
@@ -4992,6 +5021,31 @@ function RestaurantPOSContent() {
                 specialInstructions: savedSpecialInstructions
               }
             });
+
+            // Direct KOT print for React Native WebView — fire immediately before view switches.
+            // The OrderSummary useEffect with 800ms delay gets cancelled when the component unmounts
+            // during view transition, so we must print directly here for WebView.
+            if (window.__autoPrintKOT && window.ReactNativeWebView) {
+              window.__autoPrintKOT = false;
+              window.__lastKOTPrintedByEffect = _orderId; // prevent OrderSummary duplicate
+              printDocument({
+                type: 'kot',
+                orderId: _orderId,
+                restaurantId: selectedRestaurant?.id,
+                printSettings: printSettings || {},
+                orderData: {
+                  restaurantName: savedRestaurantName,
+                  tableNumber: savedTableNumber || '',
+                  orderNumber: _dailyOrderId || _orderId?.slice?.(-6) || '',
+                  orderId: _orderId,
+                  orderType,
+                  waiterName: '',
+                  customerName: savedCustomerName || '',
+                  timestamp: new Date().toISOString(),
+                  items: cartKotItems,
+                },
+              });
+            }
 
             // Delete the parked cart if this order was loaded from one
             if (savedActiveSavedOrderId) {
