@@ -653,7 +653,11 @@ const OrderSummary = ({
 
     const isNative = supportsNativeAutoPrint();
     const buttonPrintRequested = window.__autoPrintKOT;
-    const autoPrintEnabled = !!printSettings?.autoPrintOnPlaceOrder || !!printSettings?.autoPrintOnKOT;
+    // autoPrintOnPlaceOrder = web admin flag; autoPrintOnKOT = native dine-app flag
+    // Only check the native flag when running inside React Native WebView (dine-app),
+    // to avoid triggering print-dialog popups on the web browser dashboard.
+    const autoPrintEnabled = !!printSettings?.autoPrintOnPlaceOrder
+      || (isNative && !!printSettings?.autoPrintOnKOT);
 
     // On native (Tauri): KOT & Print button respects its own flag
     // On web: KOT & Print always prints (no flag control)
@@ -710,7 +714,10 @@ const OrderSummary = ({
 
     const isNative = supportsNativeAutoPrint();
     const buttonPrintRequested = window.__autoPrintBill;
-    const autoPrintEnabled = !!printSettings?.autoPrintOnCompleteBilling || !!printSettings?.autoPrintOnBilling;
+    // autoPrintOnCompleteBilling = web admin flag; autoPrintOnBilling = native dine-app flag
+    // Only check the native flag when running inside React Native WebView (dine-app).
+    const autoPrintEnabled = !!printSettings?.autoPrintOnCompleteBilling
+      || (isNative && !!printSettings?.autoPrintOnBilling);
 
     // On native (Tauri): Bill & Print button respects its own flag
     // On web: Bill & Print always prints (no flag control)

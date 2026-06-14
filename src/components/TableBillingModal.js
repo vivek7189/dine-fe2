@@ -268,7 +268,8 @@ export default function TableBillingModal({
 
       // Delay modal close so OrderSummary can generate invoice + auto-print fires
       // Auto-print useEffect needs invoice set + 800ms timer, so 3s is safe
-      const wantsPrint = !!window.__autoPrintBill || !!printSettings?.autoPrintOnCompleteBilling || !!printSettings?.autoPrintOnBilling;
+      const isRNWebView = typeof window !== 'undefined' && !!window.ReactNativeWebView;
+      const wantsPrint = !!window.__autoPrintBill || !!printSettings?.autoPrintOnCompleteBilling || (isRNWebView && !!printSettings?.autoPrintOnBilling);
       closeTimerRef.current = setTimeout(() => handleClose(), wantsPrint ? 3000 : 500);
 
       // Return orderId so OrderSummary's handleProcessOrder can call generateInvoice
