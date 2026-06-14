@@ -169,8 +169,8 @@ function DashboardLayoutContent({ children }) {
   useEffect(() => {
     setIsClient(true);
 
-    // Electron is always a desktop POS terminal — never use mobile layout
-    if (typeof window !== 'undefined' && window.electronAPI) {
+    // Electron / tablet POS terminal — never use mobile layout
+    if (typeof window !== 'undefined' && (window.electronAPI || window.__DINEOPEN_FORCE_DESKTOP__)) {
       setIsMobile(false);
       return;
     }

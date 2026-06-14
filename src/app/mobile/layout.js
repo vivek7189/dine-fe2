@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { CurrencyProvider } from '../../contexts/CurrencyContext';
+import { useAutoPrint } from '../../hooks/useAutoPrint';
+import { isReactNativeWebView } from '../../utils/platform';
+import apiClient from '../../lib/api';
 
 // Set mobile embed flag IMMEDIATELY at module level (before any useEffect/render)
 // This ensures pages that check this flag during their initial render won't redirect to /login
@@ -20,6 +23,8 @@ if (typeof window !== 'undefined') {
  */
 export default function MobileLayout({ children }) {
   const [ready, setReady] = useState(false);
+  const [restaurantId, setRestaurantId] = useState(null);
+  const [printSettings, setPrintSettings] = useState(null);
 
   useEffect(() => {
     // Reinforce the flag (in case module-level didn't run)
@@ -30,6 +35,11 @@ export default function MobileLayout({ children }) {
     const rid = params.get('restaurantId');
     if (rid) {
       localStorage.setItem('selectedRestaurantId', rid);
+      setRestaurantId(rid);
+    } else {
+      // Fallback: read from localStorage (set by injectedJS)
+      const storedRid = localStorage.getItem('selectedRestaurantId');
+      if (storedRid) setRestaurantId(storedRid);
     }
 
     // Also extract token/user directly here as a safety net
@@ -55,6 +65,14 @@ export default function MobileLayout({ children }) {
       const hasUser = localStorage.getItem('user');
       if (hasToken && hasUser) {
         setReady(true);
+        // Set restaurantId from user data if not already set
+        if (!rid) {
+          try {
+            const userData = JSON.parse(hasUser);
+            const userRid = userData.restaurantId || userData.restaurant?.id;
+            if (userRid) setRestaurantId(userRid);
+          } catch (_) {}
+        }
         return;
       }
       attempts++;
@@ -71,6 +89,18 @@ export default function MobileLayout({ children }) {
       window.__DINEOPEN_MOBILE_EMBED__ = false;
     };
   }, []);
+
+  // Fetch print settings for auto-print (only in React Native WebView)
+  useEffect(() => {
+    if (!isReactNativeWebView() || !restaurantId) return;
+    apiClient.getPrintSettings(restaurantId)
+      .then(res => setPrintSettings(res?.printSettings || res))
+      .catch(() => {});
+  }, [restaurantId]);
+
+  // Auto-print: listen for Firebase RTDB events and print via postMessage bridge
+  // This enables background auto-printing for orders from other devices
+  useAutoPrint(restaurantId, printSettings);
 
   if (!ready) {
     return (

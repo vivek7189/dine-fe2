@@ -3,10 +3,11 @@
 
 /**
  * Returns true if the current environment should never use mobile layout.
- * Currently: Electron desktop apps (POS terminals with small screens).
+ * Currently: Electron desktop apps and tablet POS terminals (e.g. Foodics).
  */
 export function isForceDesktop() {
-  return typeof window !== 'undefined' && !!window.electronAPI;
+  if (typeof window === 'undefined') return false;
+  return !!window.electronAPI || !!window.__DINEOPEN_FORCE_DESKTOP__;
 }
 
 /**

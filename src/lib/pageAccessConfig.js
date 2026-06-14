@@ -22,6 +22,9 @@ export const PAGE_ACCESS_CONFIG = [
   { key: 'offers', label: 'Offers', icon: 'FaTag', category: 'main' },
   { key: 'admin', label: 'Admin Settings', icon: 'FaCog', category: 'main' },
 
+  // App-level features (default enabled, owner can disable per staff)
+  { key: 'printer', label: 'Printer Settings', icon: 'FaPrint', category: 'main' },
+
   // "More" sub-pages
   { key: 'hotel', label: 'Hotel PMS', icon: 'FaHotel', category: 'more' },
   { key: 'bookings', label: 'Bookings & Catering', icon: 'FaCalendarAlt', category: 'more' },

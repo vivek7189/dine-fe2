@@ -776,9 +776,9 @@ function RestaurantPOSContent() {
 
   // Mobile detection hook — Electron (desktop POS) always uses desktop layout
   useEffect(() => {
-    const isElectron = !!(window.electronAPI);
-    // Electron is always a desktop POS terminal — never use mobile layout
-    if (isElectron) {
+    const isForceDesktop = !!(window.electronAPI || window.__DINEOPEN_FORCE_DESKTOP__);
+    // Electron / tablet POS terminal — never use mobile layout
+    if (isForceDesktop) {
       setIsMobile(false);
       return;
     }
