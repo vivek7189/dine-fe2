@@ -218,6 +218,7 @@ function RestaurantPOSContent() {
   const [savingOrder, setSavingOrder] = useState(false); // Separate loading state for save order button
   const [deletingSavedOrderId, setDeletingSavedOrderId] = useState(null); // Currently deleting order ID
   const [printSettings, setPrintSettings] = useState(null); // Print settings for the restaurant
+  const [printStationCount, setPrintStationCount] = useState(0); // Enabled print station count for multi-station skip logic
   const [upiSettings, setUpiSettings] = useState({}); // UPI payment settings from customer app settings
   const [whatsappConnected, setWhatsappConnected] = useState(false); // WhatsApp Business connection status
   const [isLoadingOrder, setIsLoadingOrder] = useState(false); // Flag to prevent localStorage override during order loading
@@ -1009,6 +1010,18 @@ function RestaurantPOSContent() {
       } else {
         setPrintSettings(null);
       }
+    }
+
+    // Fetch print station count for multi-station skip logic
+    try {
+      const stationRes = await apiClient.getPrintStations(restaurantId);
+      if (stationRes?.success) {
+        const enabledCount = (stationRes.printStations || []).filter(s => s.enabled).length;
+        setPrintStationCount(enabledCount);
+        console.log('🖨️ Print stations enabled:', enabledCount);
+      }
+    } catch (e) {
+      // Non-critical — default to 0 (allow local print)
     }
   }, []);
 
@@ -4684,7 +4697,8 @@ function RestaurantPOSContent() {
           });
 
           // Direct KOT print for React Native WebView — fire immediately before view switches
-          if (window.__autoPrintKOT && window.ReactNativeWebView) {
+          // Skip when multi-station is configured (2+ stations) — Electron handles station routing
+          if (window.__autoPrintKOT && window.ReactNativeWebView && printStationCount < 2) {
             const kotItems = filterKotExcludedItems(incrementalItems.length > 0 ? incrementalItems : cart, printSettings).map(item => ({
               name: item.name, quantity: item.quantity || 1, notes: item.notes || '',
               selectedVariant: item.selectedVariant || null, selectedCustomizations: item.selectedCustomizations || [],
@@ -5025,7 +5039,8 @@ function RestaurantPOSContent() {
             // Direct KOT print for React Native WebView — fire immediately before view switches.
             // The OrderSummary useEffect with 800ms delay gets cancelled when the component unmounts
             // during view transition, so we must print directly here for WebView.
-            if (window.__autoPrintKOT && window.ReactNativeWebView) {
+            // Skip when multi-station is configured (2+ stations) — Electron handles station routing
+            if (window.__autoPrintKOT && window.ReactNativeWebView && printStationCount < 2) {
               window.__autoPrintKOT = false;
               window.__lastKOTPrintedByEffect = _orderId; // prevent OrderSummary duplicate
               printDocument({
@@ -8018,7 +8033,7 @@ function RestaurantPOSContent() {
                 restaurantName={selectedRestaurant?.name}
                 taxSettings={taxSettings}
                 menuItems={menuItems}
-                printSettings={printSettings}
+                printSettings={{ ...printSettings, __stationCount: printStationCount }}
                 upiSettings={upiSettings}
                 ecrSettings={selectedRestaurant?.ecrSettings ? { ...selectedRestaurant.ecrSettings, restaurantId: selectedRestaurant.id } : null}
                 whatsappConnected={whatsappConnected}
@@ -8218,7 +8233,7 @@ function RestaurantPOSContent() {
             restaurantId={selectedRestaurant?.id}
             restaurantName={selectedRestaurant?.name}
             taxSettings={taxSettings}
-            printSettings={printSettings}
+            printSettings={{ ...printSettings, __stationCount: printStationCount }}
             menuItems={menuItems}
             onStartVoiceOrder={startVoiceListening}
             savedOrders={savedOrders}
@@ -8314,7 +8329,7 @@ function RestaurantPOSContent() {
                     restaurantId={selectedRestaurant?.id}
                     restaurantName={selectedRestaurant?.name}
                     taxSettings={taxSettings}
-                    printSettings={printSettings}
+                    printSettings={{ ...printSettings, __stationCount: printStationCount }}
                     menuItems={menuItems}
                     onClose={() => setShowMobileCart(false)}
                     onStartVoiceOrder={startVoiceListening}

@@ -653,6 +653,14 @@ const OrderSummary = ({
 
     const isNative = supportsNativeAutoPrint();
     const isRNWebView = typeof window !== 'undefined' && !!window.ReactNativeWebView;
+
+    // Skip local KOT print in WebView when multi-station routing is active (2+ stations)
+    // Electron app handles station-specific KOT routing via Firebase RTDB events
+    if (isRNWebView && printSettings?.__stationCount >= 2) {
+      window.__autoPrintKOT = false;
+      return;
+    }
+
     const buttonPrintRequested = window.__autoPrintKOT;
     // autoPrintOnPlaceOrder = web/Electron/Tauri flag (from admin settings)
     // autoPrintOnKOT = dine-app native flag (from native PrintSettings)
