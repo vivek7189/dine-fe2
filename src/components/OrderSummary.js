@@ -673,6 +673,13 @@ const OrderSummary = ({
       return;
     }
 
+    // Dedup: skip if this exact orderId was already printed by this effect
+    const thisOrderId = orderSuccess.kotData.orderId;
+    if (thisOrderId && window.__lastKOTPrintedByEffect === thisOrderId) {
+      window.__autoPrintKOT = false;
+      return;
+    }
+
     window.__autoPrintKOT = false;
     const timer = setTimeout(() => {
       const k = orderSuccess.kotData;
@@ -704,8 +711,11 @@ const OrderSummary = ({
             items: k.items || [],
           },
         });
-        // Track printed order to prevent duplicate from Pusher auto-print
-        if (k.orderId) window.__lastLocalPrintedKOT = k.orderId;
+        // Track printed order to prevent duplicate from Pusher auto-print / effect re-fire
+        if (k.orderId) {
+          window.__lastLocalPrintedKOT = k.orderId;
+          window.__lastKOTPrintedByEffect = k.orderId;
+        }
       } else {
         // Web: window.open + print dialog
         const newPw = window.open('', '_blank', 'width=400,height=600');

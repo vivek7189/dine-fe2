@@ -13,7 +13,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { supportsNativeAutoPrint, printDocument } from '../utils/printBridge';
 import { generateKOTHTML, generateBillHTML } from '../utils/printHtmlGenerator';
 import { buildTokenSlipHTML } from '../utils/printFontSizes';
-import { isElectron } from '../utils/platform';
+import { isElectron, isReactNativeWebView } from '../utils/platform';
 import apiClient from '../lib/api';
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
 import { database } from '../../firebase';
@@ -105,6 +105,8 @@ export function useAutoPrint(restaurantId, printSettings) {
         await printDocument({
           html: job.html,
           type: job.type,
+          orderId: job.orderId,
+          restaurantId,
           stationId: job.stationId,
           printSettings: printSettings || {},
         });
@@ -236,8 +238,11 @@ export function useAutoPrint(restaurantId, printSettings) {
   }, [restaurantId, printSettings, processQueue, printTokensForOrder]);
 
   // ──── Firebase RTDB events (online) — replaces Pusher ────
+  // Skip in React Native WebView — OrderSummary handles print with embedded data directly.
+  // This hook generates HTML which can't be used by thermal printers in WebView mode.
   useEffect(() => {
     if (!supportsNativeAutoPrint() || !restaurantId || !database) return;
+    if (isReactNativeWebView()) return; // OrderSummary handles WebView printing
     if (!printSettings?.autoPrintOnKOT && !printSettings?.autoPrintOnBilling) return;
     if (!printSettings?.usePusherForKOT) return;
 

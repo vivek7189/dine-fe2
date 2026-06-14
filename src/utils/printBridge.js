@@ -214,7 +214,8 @@ async function printViaReactNativeWebView({ html, type, orderId, restaurantId, p
       type: type === 'kot' ? 'PRINT_KOT' : 'PRINT_BILL',
       orderId: orderId || null,
       restaurantId: restaurantId || null,
-      html: html || null,
+      // Skip sending large HTML — native app uses ESC/POS text from orderData or API fetch
+      // Sending HTML bloats the postMessage and isn't used by thermal printers
       printSettings: printSettings || {},
     };
     // Include order data directly so native side can generate ESC/POS text
