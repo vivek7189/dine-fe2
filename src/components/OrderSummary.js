@@ -653,7 +653,7 @@ const OrderSummary = ({
 
     const isNative = supportsNativeAutoPrint();
     const buttonPrintRequested = window.__autoPrintKOT;
-    const autoPrintEnabled = !!printSettings?.autoPrintOnPlaceOrder;
+    const autoPrintEnabled = !!printSettings?.autoPrintOnPlaceOrder || !!printSettings?.autoPrintOnKOT;
 
     // On native (Tauri): KOT & Print button respects its own flag
     // On web: KOT & Print always prints (no flag control)
@@ -710,7 +710,7 @@ const OrderSummary = ({
 
     const isNative = supportsNativeAutoPrint();
     const buttonPrintRequested = window.__autoPrintBill;
-    const autoPrintEnabled = !!printSettings?.autoPrintOnCompleteBilling;
+    const autoPrintEnabled = !!printSettings?.autoPrintOnCompleteBilling || !!printSettings?.autoPrintOnBilling;
 
     // On native (Tauri): Bill & Print button respects its own flag
     // On web: Bill & Print always prints (no flag control)
