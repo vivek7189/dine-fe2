@@ -652,12 +652,14 @@ const OrderSummary = ({
     if (!orderSuccess.kotData.orderId) return;
 
     const isNative = supportsNativeAutoPrint();
+    const isRNWebView = typeof window !== 'undefined' && !!window.ReactNativeWebView;
     const buttonPrintRequested = window.__autoPrintKOT;
-    // autoPrintOnPlaceOrder = web admin flag; autoPrintOnKOT = native dine-app flag
-    // Only check the native flag when running inside React Native WebView (dine-app),
-    // to avoid triggering print-dialog popups on the web browser dashboard.
+    // autoPrintOnPlaceOrder = web/Electron/Tauri flag (from admin settings)
+    // autoPrintOnKOT = dine-app native flag (from native PrintSettings)
+    // Only check autoPrintOnKOT when inside React Native WebView (dine-app),
+    // NOT on Electron/Tauri/web — autoPrintOnKOT defaults true and would cause unwanted prints.
     const autoPrintEnabled = !!printSettings?.autoPrintOnPlaceOrder
-      || (isNative && !!printSettings?.autoPrintOnKOT);
+      || (isRNWebView && !!printSettings?.autoPrintOnKOT);
 
     // On native (Tauri): KOT & Print button respects its own flag
     // On web: KOT & Print always prints (no flag control)
@@ -713,11 +715,13 @@ const OrderSummary = ({
     if (!showInvoicePermanently || !invoice || typeof window === 'undefined') return;
 
     const isNative = supportsNativeAutoPrint();
+    const isRNWebView = typeof window !== 'undefined' && !!window.ReactNativeWebView;
     const buttonPrintRequested = window.__autoPrintBill;
-    // autoPrintOnCompleteBilling = web admin flag; autoPrintOnBilling = native dine-app flag
-    // Only check the native flag when running inside React Native WebView (dine-app).
+    // autoPrintOnCompleteBilling = web/Electron/Tauri flag (from admin settings)
+    // autoPrintOnBilling = dine-app native flag (from native PrintSettings)
+    // Only check autoPrintOnBilling when inside React Native WebView (dine-app).
     const autoPrintEnabled = !!printSettings?.autoPrintOnCompleteBilling
-      || (isNative && !!printSettings?.autoPrintOnBilling);
+      || (isRNWebView && !!printSettings?.autoPrintOnBilling);
 
     // On native (Tauri): Bill & Print button respects its own flag
     // On web: Bill & Print always prints (no flag control)
