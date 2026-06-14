@@ -690,7 +690,20 @@ const OrderSummary = ({
 
       if (isNative) {
         console.log('[OrderSummary] Sending KOT to native printer...');
-        printDocument({ html: kotContent, type: 'kot', orderId: k.orderId, restaurantId, printSettings: printSettings || {} });
+        printDocument({
+          html: kotContent, type: 'kot', orderId: k.orderId, restaurantId, printSettings: printSettings || {},
+          orderData: {
+            restaurantName: k.restaurantName || '',
+            tableNumber: k.tableNumber || k.tableName || '',
+            orderNumber: k.dailyOrderId || k.orderNumber || k.orderId?.slice?.(-6) || '',
+            orderId: k.orderId,
+            orderType: k.orderType || 'dine-in',
+            waiterName: k.waiterName || '',
+            customerName: k.customerName || '',
+            timestamp: k.timestamp || new Date().toISOString(),
+            items: k.items || [],
+          },
+        });
         // Track printed order to prevent duplicate from Pusher auto-print
         if (k.orderId) window.__lastLocalPrintedKOT = k.orderId;
       } else {
@@ -781,7 +794,7 @@ const OrderSummary = ({
               window.__lastLocalPrintedTokens = localOrderId;
             }
             allHtmlParts.forEach((html, i) => {
-              setTimeout(() => printDocument({ html, type: 'bill', orderId: invoice?.id || invoice?.orderId, restaurantId, printSettings: printSettings || {} }), i * 600);
+              setTimeout(() => printDocument({ html, type: 'bill', orderId: invoice?.id || invoice?.orderId, restaurantId, printSettings: printSettings || {}, orderData: invoiceData }), i * 600);
             });
             printFoodCourtTokens(invoice?.restaurantId, invoice?.orderId || invoice?.id, { delay: splitCount * 600 + 900 });
           } else {
@@ -811,7 +824,7 @@ const OrderSummary = ({
               window.__lastLocalPrintedBill = localOrderId;
               window.__lastLocalPrintedTokens = localOrderId;
             }
-            printDocument({ html: invoiceContent, type: 'bill', orderId: invoice?.id || invoice?.orderId, restaurantId, printSettings: printSettings || {} });
+            printDocument({ html: invoiceContent, type: 'bill', orderId: invoice?.id || invoice?.orderId, restaurantId, printSettings: printSettings || {}, orderData: invoiceData });
             // Print food court tokens after bill on native (each token = separate print job with auto-cut)
             printFoodCourtTokens(invoice?.restaurantId, invoice?.orderId || invoice?.id, { delay: 900 });
           } else {

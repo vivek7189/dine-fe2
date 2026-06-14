@@ -22,7 +22,7 @@ import { isCapacitor, isTauri, isElectron, isWeb, isReactNativeWebView } from '.
  * @param {string} [options.restaurantId] - Restaurant ID (used with orderId)
  * @param {object} [options.printSettings] - Print settings from /admin
  */
-export async function printDocument({ html, domSelector, type = 'bill', orderId, restaurantId, stationId, printSettings = {} } = {}) {
+export async function printDocument({ html, domSelector, type = 'bill', orderId, restaurantId, stationId, printSettings = {}, orderData } = {}) {
   // Debug: log platform detection
   console.log('[PrintBridge] printDocument called:', { type, hasHtml: !!html, isTauri: isTauri(), isCapacitor: isCapacitor(), isRNWebView: isReactNativeWebView(), isWeb: isWeb(), hasTauriInternals: typeof window !== 'undefined' && !!window.__TAURI_INTERNALS__ });
 
@@ -30,7 +30,7 @@ export async function printDocument({ html, domSelector, type = 'bill', orderId,
   // The native app (dine-app) handles printing via its printerService (BLE/WiFi/USB/AirPrint)
   if (isReactNativeWebView()) {
     console.log('[PrintBridge] Detected React Native WebView, sending print to native via postMessage');
-    return printViaReactNativeWebView({ html, type, orderId, restaurantId, printSettings });
+    return printViaReactNativeWebView({ html, type, orderId, restaurantId, printSettings, orderData });
   }
 
   // Web: always use window.print() — prints current page as-is
@@ -208,7 +208,7 @@ async function printViaElectron({ html, type, stationId, printSettings }) {
 }
 
 /** React Native WebView: delegate printing to the native dine-app via postMessage */
-async function printViaReactNativeWebView({ html, type, orderId, restaurantId, printSettings }) {
+async function printViaReactNativeWebView({ html, type, orderId, restaurantId, printSettings, orderData }) {
   try {
     const message = {
       type: type === 'kot' ? 'PRINT_KOT' : 'PRINT_BILL',
@@ -217,8 +217,11 @@ async function printViaReactNativeWebView({ html, type, orderId, restaurantId, p
       html: html || null,
       printSettings: printSettings || {},
     };
+    // Include order data directly so native side can generate ESC/POS text
+    // without needing an API fetch — makes printing as reliable as test print
+    if (orderData) message.orderData = orderData;
     window.ReactNativeWebView.postMessage(JSON.stringify(message));
-    console.log(`[PrintBridge] Sent ${message.type} to native app`);
+    console.log(`[PrintBridge] Sent ${message.type} to native app`, orderData ? '(with embedded data)' : '(orderId only)');
   } catch (err) {
     console.error('React Native WebView print failed:', err);
     // Don't fall back to window.print() — it opens a useless system dialog in WebView
