@@ -689,6 +689,9 @@ const OrderSummary = ({
     }
 
     window.__autoPrintKOT = false;
+    // Native (WebView/Electron/Capacitor): print almost immediately — postMessage is synchronous,
+    // no DOM rendering needed. Web: 800ms delay for window.open + print dialog setup.
+    const printDelay = isNative ? 50 : 800;
     const timer = setTimeout(() => {
       const k = orderSuccess.kotData;
       if (!k) return;
@@ -735,7 +738,7 @@ const OrderSummary = ({
           setTimeout(() => newPw.print(), 400);
         }
       }
-    }, 800);
+    }, printDelay);
     return () => clearTimeout(timer);
   }, [orderSuccess?.kotData]); // eslint-disable-line react-hooks/exhaustive-deps
 
