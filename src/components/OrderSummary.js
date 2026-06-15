@@ -1990,7 +1990,7 @@ const OrderSummary = ({
       if (typeof onPlaceOrder === 'function') {
         onPlaceOrder(buildTaxData());
       }
-      if (isMobile && onClose) {
+      if (isMobile && onClose && !(typeof window !== 'undefined' && window.ReactNativeWebView)) {
         setTimeout(() => onClose(), 500);
       }
     } else if (pendingUpiAction === 'complete') {
@@ -2031,7 +2031,7 @@ const OrderSummary = ({
     setDiscountApproved(true);
     if (pendingDiscountAction === 'place') {
       if (typeof onPlaceOrder === 'function') onPlaceOrder(buildTaxData());
-      if (isMobile && onClose) setTimeout(() => onClose(), 500);
+      if (isMobile && onClose && !(typeof window !== 'undefined' && window.ReactNativeWebView)) setTimeout(() => onClose(), 500);
     } else if (pendingDiscountAction === 'complete') {
       handleProcessOrder();
     } else if (pendingDiscountAction === 'placeAndPrint') {
@@ -6102,7 +6102,8 @@ const OrderSummary = ({
                   if (typeof onPlaceOrder === 'function') {
                     onPlaceOrder(buildTaxData());
                   }
-                  if (isMobile && onClose) {
+                  // Close cart modal on mobile — but NOT in WebView (dine-app) so KOT summary stays visible
+                  if (isMobile && onClose && !(typeof window !== 'undefined' && window.ReactNativeWebView)) {
                     setTimeout(() => onClose(), 500);
                   }
                 }}
@@ -6146,7 +6147,8 @@ const OrderSummary = ({
                       // Fallback: use regular place order if onPlaceOrderAndPrint not provided
                       onPlaceOrder(buildTaxData());
                     }
-                    if (isMobile && onClose) {
+                    // Close cart modal on mobile — but NOT in WebView (dine-app) so KOT summary stays visible
+                    if (isMobile && onClose && !(typeof window !== 'undefined' && window.ReactNativeWebView)) {
                       setTimeout(() => onClose(), 500);
                     }
                   }}
