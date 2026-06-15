@@ -4731,9 +4731,10 @@ function RestaurantPOSContent() {
           // If came from tables, delay switch so auto-print can fire first
           if (returnToView === 'tables') {
             if (selectedRestaurant?.id) prefetchTables(selectedRestaurant.id);
-            setTimeout(() => {
+            // React Native WebView (dine-app): stay on KOT summary instead of auto-switching to tables
+            // This matches the billing flow where the summary stays visible until user dismisses
+            if (typeof window !== 'undefined' && window.ReactNativeWebView) {
               if (selectedTable?.id) setRecentlyUpdatedTableId(selectedTable.id);
-              setViewMode('tables');
               setCart([]);
               setTableNumber('');
               setCustomerName(''); setAssignedStaff(null);
@@ -4745,16 +4746,32 @@ function RestaurantPOSContent() {
               setReturnToView(null);
               setSelectedTable(null);
               localStorage.removeItem('dine_cart');
-              if (typeof window !== 'undefined') {
-                const url = new URL(window.location.href);
-                url.searchParams.set('view', 'tables');
-                url.searchParams.delete('orderId');
-                url.searchParams.delete('mode');
-                url.searchParams.delete('from');
-                window.history.pushState({ view: 'tables' }, '', url.toString());
-              }
-              setTimeout(() => setOrderSuccess(null), 200);
-            }, 1500);
+            } else {
+              setTimeout(() => {
+                if (selectedTable?.id) setRecentlyUpdatedTableId(selectedTable.id);
+                setViewMode('tables');
+                setCart([]);
+                setTableNumber('');
+                setCustomerName(''); setAssignedStaff(null);
+                setCustomerMobile('');
+                setCustomerData(null);
+                setManualTableNumber('');
+                setManualRoomNumber('');
+                setOrderLookup('');
+                setReturnToView(null);
+                setSelectedTable(null);
+                localStorage.removeItem('dine_cart');
+                if (typeof window !== 'undefined') {
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('view', 'tables');
+                  url.searchParams.delete('orderId');
+                  url.searchParams.delete('mode');
+                  url.searchParams.delete('from');
+                  window.history.pushState({ view: 'tables' }, '', url.toString());
+                }
+                setTimeout(() => setOrderSuccess(null), 200);
+              }, 1500);
+            }
           } else {
             handleOrderActionComplete({
               keepOrderSuccess: true,
@@ -5090,12 +5107,12 @@ function RestaurantPOSContent() {
             // Return to tables view AFTER auto-print has had time to fire
             // Auto-print effect in OrderSummary triggers on orderSuccess.kotData change with ~800ms delay
             if (savedReturnToView === 'tables') {
-              setTimeout(() => {
+              // React Native WebView (dine-app): stay on KOT summary instead of auto-switching to tables
+              // This matches the billing flow where the summary stays visible until user dismisses
+              if (typeof window !== 'undefined' && window.ReactNativeWebView) {
                 if (selectedTable?.id) {
                   setRecentlyUpdatedTableId(selectedTable.id);
                 }
-                // Don't use switchView here — it clears orderSuccess which kills auto-print
-                setViewMode('tables');
                 setTableNumber('');
                 setCustomerName(''); setAssignedStaff(null);
                 setCustomerMobile('');
@@ -5105,17 +5122,34 @@ function RestaurantPOSContent() {
                 setOrderLookup('');
                 setReturnToView(null);
                 setSelectedTable(null);
-                if (typeof window !== 'undefined') {
-                  const url = new URL(window.location.href);
-                  url.searchParams.set('view', 'tables');
-                  url.searchParams.delete('orderId');
-                  url.searchParams.delete('mode');
-                  url.searchParams.delete('from');
-                  window.history.pushState({ view: 'tables' }, '', url.toString());
-                }
-                // Clear orderSuccess after switching (auto-print already fired)
-                setTimeout(() => setOrderSuccess(null), 200);
-              }, 1500);
+              } else {
+                setTimeout(() => {
+                  if (selectedTable?.id) {
+                    setRecentlyUpdatedTableId(selectedTable.id);
+                  }
+                  // Don't use switchView here — it clears orderSuccess which kills auto-print
+                  setViewMode('tables');
+                  setTableNumber('');
+                  setCustomerName(''); setAssignedStaff(null);
+                  setCustomerMobile('');
+                  setCustomerData(null);
+                  setManualTableNumber('');
+                  setManualRoomNumber('');
+                  setOrderLookup('');
+                  setReturnToView(null);
+                  setSelectedTable(null);
+                  if (typeof window !== 'undefined') {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('view', 'tables');
+                    url.searchParams.delete('orderId');
+                    url.searchParams.delete('mode');
+                    url.searchParams.delete('from');
+                    window.history.pushState({ view: 'tables' }, '', url.toString());
+                  }
+                  // Clear orderSuccess after switching (auto-print already fired)
+                  setTimeout(() => setOrderSuccess(null), 200);
+                }, 1500);
+              }
             } else {
               // Not from tables — just clear state normally
               handleOrderActionComplete({
