@@ -14,7 +14,7 @@ export const id = 'professional';
 export const name = 'Professional';
 export const description = 'Tax invoice style with serial numbers. Structured & formal.';
 
-function getProfessionalBillCSS(scaleOrPreset, printerWidth, printContentWidth) {
+function getProfessionalBillCSS(scaleOrPreset, printerWidth, printContentWidth, printLanguage) {
   let scale = 100;
   if (typeof scaleOrPreset === 'number' && scaleOrPreset >= 50 && scaleOrPreset <= 150) scale = scaleOrPreset;
   else if (typeof scaleOrPreset === 'string') {
@@ -22,7 +22,10 @@ function getProfessionalBillCSS(scaleOrPreset, printerWidth, printContentWidth) 
     scale = presetMap[scaleOrPreset] || 100;
   }
   const f = getPrintFontSizes(scale);
-  const ff = "'Courier New', Courier, monospace";
+  // Use Arabic-friendly font when language is Arabic/dual, otherwise monospace
+  const ff = (printLanguage === 'ar' || printLanguage === 'dual')
+    ? "Arial, 'Noto Sans Arabic', Tahoma, sans-serif"
+    : "'Courier New', Courier, monospace";
   const cw = getContentWidth(printerWidth, printContentWidth);
   return `@page{size:${cw} auto;margin:0;}` +
     `*{box-sizing:border-box;}` +
@@ -122,7 +125,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
     : L.billTitle;
   const headerHtml = getBillHeaderHTML(esc(invoice.restaurantName || 'Restaurant'), identityHtml, receiptLogo, titleText);
 
-  const css = getProfessionalBillCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.printerWidth, printSettings.printContentWidth);
+  const css = getProfessionalBillCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.printerWidth, printSettings.printContentWidth, lang);
   const finalCss = showAr ? css + getBillDualCSS() : css;
 
   const totalModifications = (invoice.editCount || 0) + (invoice.updateCount || 0);
