@@ -834,11 +834,11 @@ const SettingsTab = ({ whatsappConnected, whatsappSettings, restaurantId }) => {
                 type="tel"
                 value={testPhoneNumber}
                 onChange={(e) => setTestPhoneNumber(e.target.value)}
-                placeholder="917042330092 (without + or spaces)"
+                placeholder="919528632779 (without + or spaces)"
                 className="w-full px-3 py-2 border rounded-lg"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Enter phone number with country code (e.g., 917042330092 for India)
+                Enter phone number with country code (e.g., 919528632779 for India)
               </p>
             </div>
 

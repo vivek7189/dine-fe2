@@ -536,7 +536,7 @@ function OnboardingContent() {
   const handleWhatsAppSetup = () => {
     const name = restaurantName || 'my restaurant';
     const msg = encodeURIComponent(`Hi, I'd like help setting up my menu for ${name}. I just signed up on DineOpen!`);
-    window.open(`https://wa.me/917042330092?text=${msg}`, '_blank');
+    window.open(`https://wa.me/919528632779?text=${msg}`, '_blank');
     goNext();
   };
 
@@ -2265,7 +2265,7 @@ function OnboardingContent() {
 
             <p style={{ marginTop: '20px', fontSize: '14px', color: '#6b7280' }}>
               Need help?{' '}
-              <a href="https://wa.me/917042330092" target="_blank" rel="noopener noreferrer" style={{ color: '#25D366', fontWeight: '700', textDecoration: 'none' }}>
+              <a href="https://wa.me/919528632779" target="_blank" rel="noopener noreferrer" style={{ color: '#25D366', fontWeight: '700', textDecoration: 'none' }}>
                 <FaWhatsapp size={14} style={{ verticalAlign: 'middle' }} /> WhatsApp us
               </a>
             </p>
