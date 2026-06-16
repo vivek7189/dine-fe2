@@ -2591,7 +2591,7 @@ export default function LandingPage() {
         aria-label="Chat on WhatsApp"
         style={{
           position: 'fixed',
-          bottom: '28px',
+          bottom: '100px',
           right: '28px',
           zIndex: 9999,
           width: '60px',
