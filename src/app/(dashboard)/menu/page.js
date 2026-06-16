@@ -4659,7 +4659,7 @@ const MenuManagement = () => {
       {/* Add/Edit Form Modal */}
       {showAddForm && typeof document !== 'undefined' && createPortal(
         <div
-          ref={(el) => { if (el) el.scrollTop = 0; }}
+          ref={(el) => { if (el && !el._scrollInit) { el.scrollTop = 0; el._scrollInit = true; } }}
           style={{
           position: 'fixed',
           inset: 0,
