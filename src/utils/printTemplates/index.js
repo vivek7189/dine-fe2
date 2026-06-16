@@ -12,6 +12,7 @@ import * as billCompact from './bill/compact';
 import * as billDetailed from './bill/detailed';
 import * as billElegant from './bill/elegant';
 import * as billMinimal from './bill/minimal';
+import * as billProfessional from './bill/professional';
 
 const KOT_TEMPLATES = {
   classic: kotClassic,
@@ -27,6 +28,7 @@ const BILL_TEMPLATES = {
   detailed: billDetailed,
   elegant: billElegant,
   minimal: billMinimal,
+  professional: billProfessional,
 };
 
 // Lists for settings UI dropdowns
