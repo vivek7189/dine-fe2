@@ -500,7 +500,7 @@ const CustomDropdown = ({ value, onChange, options, placeholder, style = {} }) =
 };
 
 // Ultra Compact Menu Item Card Component
-const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onGenerateRecipe, generatingRecipeFor, hasRecipe, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, taxInclusiveGlobal, compact, scaleBarcodeFlag }) => {
+const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onGenerateRecipe, generatingRecipeFor, hasRecipe, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, taxInclusiveGlobal, compact, scaleBarcodeFlag, scalePluDigits }) => {
   const { formatCurrency: formatCurrencyHook } = useCurrency();
   const formatCurrency = formatCurrencyProp || formatCurrencyHook;
 
@@ -810,7 +810,7 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
             letterSpacing: '0.5px'
           }}>
             <FaBarcode size={10} />
-            {(scaleBarcodeFlag || '20') + item.pluCode.padStart(4, '0') + 'XXXXXX' + 'C'}
+            {(() => { const pd = parseInt(scalePluDigits) === 5 ? 5 : 4; const dd = 10 - pd; return (scaleBarcodeFlag || '20') + item.pluCode.padStart(pd, '0') + 'X'.repeat(dd) + 'C'; })()}
           </div>
         )}
       </div>
@@ -4220,6 +4220,7 @@ const MenuManagement = () => {
                   taxInclusiveGlobal={currentRestaurant?.taxSettings?.taxInclusivePricing}
                   compact={isMobile}
                   scaleBarcodeFlag={currentRestaurant?.posSettings?.scaleBarcodeFlag}
+                  scalePluDigits={currentRestaurant?.posSettings?.scalePluDigits}
                 />
               ))}
             </div>
@@ -5422,15 +5423,16 @@ const MenuManagement = () => {
                           type="text"
                           value={formData.pluCode || ''}
                           onChange={(e) => {
-                            const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                            const maxLen = parseInt(currentRestaurant?.posSettings?.scalePluDigits) || 4;
+                            const val = e.target.value.replace(/\D/g, '').slice(0, maxLen);
                             setFormData(prev => ({...prev, pluCode: val}));
                           }}
-                          placeholder="0001"
-                          maxLength={4}
-                          style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '12px', backgroundColor: 'white', width: '80px', fontFamily: 'monospace', letterSpacing: '2px' }}
+                          placeholder={parseInt(currentRestaurant?.posSettings?.scalePluDigits) === 5 ? '00001' : '0001'}
+                          maxLength={parseInt(currentRestaurant?.posSettings?.scalePluDigits) || 4}
+                          style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '12px', backgroundColor: 'white', width: parseInt(currentRestaurant?.posSettings?.scalePluDigits) === 5 ? '90px' : '80px', fontFamily: 'monospace', letterSpacing: '2px' }}
                         />
                         <p style={{ fontSize: '10px', color: '#6b7280', margin: 0 }}>
-                          4-digit code programmed in your weighing scale for this item
+                          {parseInt(currentRestaurant?.posSettings?.scalePluDigits) === 5 ? '5' : '4'}-digit code programmed in your weighing scale for this item
                         </p>
                       </div>
                     </div>

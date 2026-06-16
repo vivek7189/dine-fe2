@@ -2173,7 +2173,8 @@ function RestaurantPOSContent() {
     if (!barcode || typeof barcode !== 'string') return false;
     const cleaned = barcode.trim();
     const flagPrefix = posSettings.scaleBarcodeFlag || '20';
-    const parsed = parseScaleBarcode(cleaned, { flagPrefix, format: 'weight' });
+    const pluDigits = parseInt(posSettings.scalePluDigits) || 4;
+    const parsed = parseScaleBarcode(cleaned, { flagPrefix, format: 'weight', pluDigits });
     if (!parsed) {
       // If it's a 13-digit number but flag prefix doesn't match, warn the user
       // so they can update their scale barcode flag in POS settings
@@ -2194,7 +2195,7 @@ function RestaurantPOSContent() {
       return false;
     }
     const foundItem = (menuItems || []).find(item =>
-      item.pluCode === parsed.itemCode && item.soldByWeight
+      item.soldByWeight && item.pluCode && item.pluCode.padStart(pluDigits, '0') === parsed.itemCode
     );
     if (foundItem) {
       const unitLabel = foundItem.priceUnit === 'per_100g' ? 'g' : foundItem.priceUnit === 'per_lb' ? 'lb' : 'kg';

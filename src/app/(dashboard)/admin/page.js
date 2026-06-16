@@ -11117,6 +11117,20 @@ const Admin = () => {
                           EAN-13 prefix (usually 20 or 21) — must match your scale setting
                         </p>
                       </div>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '8px' }}>
+                        <label style={{ fontSize: '11px', fontWeight: '500', color: '#374151', minWidth: '80px' }}>PLU Digits:</label>
+                        <select
+                          value={posSettings.scalePluDigits || '4'}
+                          onChange={(e) => setPosSettings(prev => ({ ...prev, scalePluDigits: e.target.value }))}
+                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '12px', width: '60px', fontFamily: 'monospace', textAlign: 'center', backgroundColor: '#fff' }}
+                        >
+                          <option value="4">4</option>
+                          <option value="5">5</option>
+                        </select>
+                        <p style={{ fontSize: '10px', color: '#92400e', margin: 0 }}>
+                          Item code length — 4 digits (common) or 5 digits (some scales)
+                        </p>
+                      </div>
                       <p style={{ fontSize: '10px', color: '#78716c', margin: '6px 0 0', lineHeight: '1.4' }}>
                         When a barcode starting with this prefix is scanned, the system will extract the PLU code and weight, then auto-add the item to the cart.
                       </p>
@@ -11147,6 +11161,20 @@ const Admin = () => {
                   />
                   <p style={{ fontSize: '10px', color: '#92400e', margin: 0 }}>
                     EAN-13 prefix (usually 20 or 21) — must match your scale setting
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '8px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: '500', color: '#374151', minWidth: '80px' }}>PLU Digits:</label>
+                  <select
+                    value={posSettings.scalePluDigits || '4'}
+                    onChange={(e) => setPosSettings(prev => ({ ...prev, scalePluDigits: e.target.value }))}
+                    style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '12px', width: '60px', fontFamily: 'monospace', textAlign: 'center', backgroundColor: '#fff' }}
+                  >
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                  </select>
+                  <p style={{ fontSize: '10px', color: '#92400e', margin: 0 }}>
+                    Item code length in barcode — 4 digits (common) or 5 digits (some scales)
                   </p>
                 </div>
                 <p style={{ fontSize: '10px', color: '#78716c', margin: '6px 0 0', lineHeight: '1.4' }}>

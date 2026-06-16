@@ -1,15 +1,16 @@
 // Scale Barcode Parser — EAN-13 barcodes from label-printing weighing scales
 //
-// Supports two barcode formats:
-//   Option 2 (weight): FFIIIIXXXXXXC  — weight embedded (recommended)
-//   Option 1 (price):  FFIIIIPPPPPC   — price embedded
+// Supports two PLU length formats:
+//   4-digit PLU: FF IIII XXXXXX C  (4-digit item code + 6-digit weight/price)
+//   5-digit PLU: FF IIIII XXXXX C  (5-digit item code + 5-digit weight/price)
+//
+// And two data modes:
+//   Weight mode: data digits represent weight (last 3 are decimal → 001500 = 1.500 kg)
+//   Price mode:  data digits represent price (last 2 are decimal → 015000 = 150.00)
 //
 // Where:
-//   FF     = Flag prefix (2 digits, e.g. "20" or "21")
-//   IIII   = PLU / Item Code (4 digits)
-//   XXXXXX = Weight in grams (6 digits, last 3 are decimal → 001500 = 1.500 kg)
-//   PPPPPP = Price in minor units (6 digits, last 2 are decimal → 015000 = 150.00)
-//   C      = EAN-13 check digit (1 digit)
+//   FF = Flag prefix (2 digits, e.g. "20" or "21" or "22")
+//   C  = EAN-13 check digit (1 digit)
 
 /**
  * Validate EAN-13 check digit
@@ -43,17 +44,16 @@ export function isScaleBarcode(barcode, flagPrefix = '20') {
 
 /**
  * Parse a scale barcode into its components.
- * Detects format based on whether the matching menu item uses weight or price mode.
- * Default: weight mode (Option 2).
  *
  * @param {string} barcode - The 13-digit EAN-13 barcode
  * @param {object} [options]
  * @param {string} [options.flagPrefix='20'] - Comma-separated flag prefixes
  * @param {'weight'|'price'} [options.format='weight'] - Barcode format
+ * @param {number} [options.pluDigits=4] - Number of PLU digits (4 or 5)
  * @returns {{ flag: string, itemCode: string, weight?: number, price?: number, checkDigit: string, format: string } | null}
  */
 export function parseScaleBarcode(barcode, options = {}) {
-  const { flagPrefix = '20', format = 'weight' } = options;
+  const { flagPrefix = '20', format = 'weight', pluDigits = 4 } = options;
   if (!isScaleBarcode(barcode, flagPrefix)) return null;
 
   const cleaned = barcode.trim();
@@ -61,20 +61,22 @@ export function parseScaleBarcode(barcode, options = {}) {
   // Validate EAN-13 check digit
   if (!validEAN13CheckDigit(cleaned)) return null;
 
+  const pluLen = pluDigits === 5 ? 5 : 4; // Only 4 or 5 supported
+  const dataLen = 10 - pluLen; // 6 for 4-digit PLU, 5 for 5-digit PLU
+
   const flag = cleaned.substring(0, 2);
-  const itemCode = cleaned.substring(2, 6);
-  const dataDigits = cleaned.substring(6, 12);
+  const itemCode = cleaned.substring(2, 2 + pluLen);
+  const dataDigits = cleaned.substring(2 + pluLen, 12);
   const checkDigit = cleaned.substring(12, 13);
 
   if (format === 'price') {
-    // Option 1: PPPPPP — last 2 digits are decimal places
     const priceRaw = parseInt(dataDigits, 10);
-    const price = priceRaw / 100; // e.g. 015000 → 150.00
+    const price = priceRaw / 100;
     return { flag, itemCode, price, checkDigit, format: 'price' };
   }
 
-  // Option 2 (default): XXXXXX — last 3 digits are decimal places (weight in kg)
+  // Weight mode: last 3 digits are decimal places (weight in kg)
   const weightRaw = parseInt(dataDigits, 10);
-  const weight = weightRaw / 1000; // e.g. 001500 → 1.500 kg
+  const weight = weightRaw / 1000;
   return { flag, itemCode, weight, checkDigit, format: 'weight' };
 }

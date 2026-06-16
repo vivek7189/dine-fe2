@@ -156,6 +156,7 @@ const OrderSummary = ({
   onBarcodeScanned,
 }) => {
   const [barcodeInput, setBarcodeInput] = useState('');
+  const [barcodeResult, setBarcodeResult] = useState(null); // { type: 'success'|'error', text: string }
 
   // Persistent SC override — stored per restaurant in localStorage
   const scOverrideKey = restaurantId ? `dineopen_sc_override_${restaurantId}` : null;
@@ -2337,46 +2338,88 @@ const OrderSummary = ({
           background: '#f8fafc',
           borderBottom: '1px solid #e2e8f0',
           flexShrink: 0,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
         }}>
-          <FaQrcode size={12} style={{ color: '#94a3b8', flexShrink: 0 }} />
-          <input
-            type="text"
-            placeholder="Scan or paste barcode..."
-            value={barcodeInput}
-            onChange={(e) => setBarcodeInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && barcodeInput.trim()) {
-                e.preventDefault();
-                if (onBarcodeScanned(barcodeInput.trim())) {
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FaQrcode size={12} style={{ color: '#94a3b8', flexShrink: 0 }} />
+            <input
+              type="text"
+              placeholder="Scan or paste barcode..."
+              value={barcodeInput}
+              onChange={(e) => {
+                setBarcodeInput(e.target.value);
+                if (barcodeResult) setBarcodeResult(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && barcodeInput.trim()) {
+                  e.preventDefault();
+                  const code = barcodeInput.trim();
+                  const success = onBarcodeScanned(code);
+                  if (success) {
+                    // Parse for display
+                    const pluDigits = parseInt(posSettings.scalePluDigits) || 4;
+                    const pluLen = pluDigits === 5 ? 5 : 4;
+                    const plu = code.length === 13 ? code.substring(2, 2 + pluLen) : '?';
+                    const dataDigits = code.length === 13 ? code.substring(2 + pluLen, 12) : '0';
+                    const weight = (parseInt(dataDigits, 10) / 1000).toFixed(3);
+                    setBarcodeResult({ type: 'success', text: `PLU ${plu} | ${weight} kg` });
+                  } else {
+                    setBarcodeResult({ type: 'error', text: `Not a scale barcode` });
+                  }
                   setBarcodeInput('');
-                } else {
-                  setBarcodeInput('');
+                  setTimeout(() => setBarcodeResult(null), 4000);
                 }
-              }
-            }}
-            onPaste={(e) => {
-              const text = e.clipboardData?.getData('text')?.trim();
-              if (text && /^\d{13}$/.test(text)) {
-                e.preventDefault();
-                onBarcodeScanned(text);
-                setBarcodeInput('');
-              }
-            }}
-            style={{
-              flex: 1,
-              border: '1px solid #e2e8f0',
-              borderRadius: '6px',
-              padding: isMobile ? '5px 8px' : '6px 10px',
-              fontSize: isMobile ? '11px' : '12px',
-              color: '#374151',
-              backgroundColor: 'white',
-              outline: 'none',
-              minWidth: 0,
-            }}
-          />
+              }}
+              onPaste={(e) => {
+                const text = e.clipboardData?.getData('text')?.trim();
+                if (text && /^\d{13}$/.test(text)) {
+                  e.preventDefault();
+                  const success = onBarcodeScanned(text);
+                  const pluDigits = parseInt(posSettings.scalePluDigits) || 4;
+                  const pluLen = pluDigits === 5 ? 5 : 4;
+                  const plu = text.substring(2, 2 + pluLen);
+                  const dataDigits = text.substring(2 + pluLen, 12);
+                  const weight = (parseInt(dataDigits, 10) / 1000).toFixed(3);
+                  if (success) {
+                    setBarcodeResult({ type: 'success', text: `PLU ${plu} | ${weight} kg` });
+                  } else {
+                    setBarcodeResult({ type: 'error', text: `PLU ${plu} not found` });
+                  }
+                  setBarcodeInput('');
+                  setTimeout(() => setBarcodeResult(null), 4000);
+                }
+              }}
+              style={{
+                flex: 1,
+                border: '1px solid #e2e8f0',
+                borderRadius: '6px',
+                padding: isMobile ? '5px 8px' : '6px 10px',
+                fontSize: isMobile ? '11px' : '12px',
+                fontFamily: 'monospace',
+                color: '#374151',
+                backgroundColor: 'white',
+                outline: 'none',
+                minWidth: 0,
+              }}
+            />
+          </div>
+          {barcodeResult && (
+            <div style={{
+              marginTop: '4px',
+              padding: '3px 8px',
+              borderRadius: '4px',
+              fontSize: '10px',
+              fontWeight: '600',
+              fontFamily: 'monospace',
+              backgroundColor: barcodeResult.type === 'success' ? '#dcfce7' : '#fee2e2',
+              color: barcodeResult.type === 'success' ? '#166534' : '#991b1b',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}>
+              <span>{barcodeResult.type === 'success' ? '✓' : '✗'}</span>
+              {barcodeResult.text}
+            </div>
+          )}
         </div>
       )}
 
