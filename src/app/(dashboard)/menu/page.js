@@ -52,7 +52,8 @@ import {
   FaQrcode,
   FaCamera,
   FaCheckCircle,
-  FaFlask
+  FaFlask,
+  FaBarcode
 } from 'react-icons/fa';
 const RecipeFormBody = dynamic(() => import('../inventory/components/InventoryModals').then(m => ({ default: m.RecipeFormBody })), { ssr: false });
 
@@ -499,7 +500,7 @@ const CustomDropdown = ({ value, onChange, options, placeholder, style = {} }) =
 };
 
 // Ultra Compact Menu Item Card Component
-const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onGenerateRecipe, generatingRecipeFor, hasRecipe, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, taxInclusiveGlobal, compact }) => {
+const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onGenerateRecipe, generatingRecipeFor, hasRecipe, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, taxInclusiveGlobal, compact, scaleBarcodeFlag }) => {
   const { formatCurrency: formatCurrencyHook } = useCurrency();
   const formatCurrency = formatCurrencyProp || formatCurrencyHook;
 
@@ -772,7 +773,7 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
         {/* Short Code Badge */}
         <div style={{
           position: 'absolute',
-          bottom: '12px',
+          bottom: item.soldByWeight && item.pluCode ? '36px' : '12px',
           right: '12px',
           background: 'rgba(239, 68, 68, 0.95)',
           color: 'white',
@@ -786,6 +787,32 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
         }}>
           {item.shortCode}
         </div>
+
+        {/* Scale Barcode Badge (for sold-by-weight items) */}
+        {item.soldByWeight && item.pluCode && (
+          <div style={{
+            position: 'absolute',
+            bottom: '8px',
+            right: '12px',
+            background: 'rgba(30, 64, 175, 0.95)',
+            color: 'white',
+            padding: '4px 10px',
+            borderRadius: '12px',
+            fontSize: '10px',
+            fontWeight: '700',
+            fontFamily: 'monospace',
+            backdropFilter: 'blur(10px)',
+            boxShadow: '0 2px 8px rgba(30, 64, 175, 0.3)',
+            zIndex: 3,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            letterSpacing: '0.5px'
+          }}>
+            <FaBarcode size={10} />
+            {(scaleBarcodeFlag || '20') + item.pluCode.padStart(4, '0') + 'XXXXXX' + 'C'}
+          </div>
+        )}
       </div>
       
       {/* Content Section */}
@@ -2077,6 +2104,7 @@ const MenuManagement = () => {
   const [categories, setCategories] = useState([]); // Dynamic: from backend or from menu photo extraction
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedVegFilter, setSelectedVegFilter] = useState('all');
+  const [selectedWeightFilter, setSelectedWeightFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [displaySearch, setDisplaySearch] = useState('');
   const searchDebounceRef = useRef(null);
@@ -2542,6 +2570,9 @@ const MenuManagement = () => {
     return map;
   }, [categories]);
 
+  // Check if any item is sold by weight (to show/hide the weight filter)
+  const hasWeightItems = useMemo(() => menuItems.some(item => item.soldByWeight), [menuItems]);
+
   const filteredItems = useMemo(() => {
     const lowerSearch = searchTerm.toLowerCase();
     return menuItems.filter(item => {
@@ -2549,13 +2580,15 @@ const MenuManagement = () => {
       const matchesVegFilter = selectedVegFilter === 'all' ||
         (selectedVegFilter === 'veg' && item.isVeg) ||
         (selectedVegFilter === 'non-veg' && !item.isVeg);
+      const matchesWeightFilter = selectedWeightFilter === 'all' ||
+        (selectedWeightFilter === 'weight' && item.soldByWeight);
       const matchesSearch = !lowerSearch ||
                            item.name?.toLowerCase().includes(lowerSearch) ||
                            item.shortCode?.toLowerCase().includes(lowerSearch) ||
                            item.description?.toLowerCase().includes(lowerSearch);
-      return matchesCategory && matchesVegFilter && matchesSearch;
+      return matchesCategory && matchesVegFilter && matchesWeightFilter && matchesSearch;
     });
-  }, [menuItems, selectedCategory, selectedVegFilter, searchTerm]);
+  }, [menuItems, selectedCategory, selectedVegFilter, selectedWeightFilter, searchTerm]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -3940,6 +3973,18 @@ const MenuManagement = () => {
             placeholder={t('menu.allCategories')}
           />
 
+          {hasWeightItems && (
+            <CustomDropdown
+              value={selectedWeightFilter}
+              onChange={setSelectedWeightFilter}
+              options={[
+                { value: 'all', label: 'All Items' },
+                { value: 'weight', label: 'Sold by Weight' }
+              ]}
+              placeholder="All Items"
+            />
+          )}
+
           {/* Spacer */}
           <div style={{ flex: 1 }} />
 
@@ -4174,6 +4219,7 @@ const MenuManagement = () => {
                   formatCurrency={formatCurrency}
                   taxInclusiveGlobal={currentRestaurant?.taxSettings?.taxInclusivePricing}
                   compact={isMobile}
+                  scaleBarcodeFlag={currentRestaurant?.posSettings?.scaleBarcodeFlag}
                 />
               ))}
             </div>
