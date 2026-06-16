@@ -2174,7 +2174,25 @@ function RestaurantPOSContent() {
     const cleaned = barcode.trim();
     const flagPrefix = posSettings.scaleBarcodeFlag || '20';
     const parsed = parseScaleBarcode(cleaned, { flagPrefix, format: 'weight' });
-    if (!parsed) return false;
+    if (!parsed) {
+      // If it's a 13-digit number but flag prefix doesn't match, warn the user
+      // so they can update their scale barcode flag in POS settings
+      if (/^\d{13}$/.test(cleaned) && !isScaleBarcode(cleaned, flagPrefix)) {
+        const detectedPrefix = cleaned.substring(0, 2);
+        // Common scale prefixes: 20-29 range
+        if (parseInt(detectedPrefix, 10) >= 20 && parseInt(detectedPrefix, 10) <= 29) {
+          setNotification({
+            type: 'error',
+            title: 'Barcode Prefix Mismatch',
+            message: `Scanned barcode starts with "${detectedPrefix}" but scale is configured for "${flagPrefix}". Update in Settings → POS → Scale Barcode Flag.`,
+            show: true
+          });
+          setTimeout(() => setNotification(null), 5000);
+          return true; // consumed — don't fall through to short code search
+        }
+      }
+      return false;
+    }
     const foundItem = (menuItems || []).find(item =>
       item.pluCode === parsed.itemCode && item.soldByWeight
     );
@@ -2262,11 +2280,18 @@ function RestaurantPOSContent() {
   // Handle short code search
   const handleShortCodeSearch = (e) => {
     if (e.key === 'Enter' && shortCodeSearch.trim()) {
-      const searchValue = shortCodeSearch.trim().toUpperCase();
-      const foundItem = (menuItems || []).find(item => 
-        item.shortCode?.toUpperCase() === searchValue
+      const searchValue = shortCodeSearch.trim();
+
+      // Scale barcode detection — scanner may type into this input
+      if (handleBarcodeScanned(searchValue)) {
+        setShortCodeSearch('');
+        return;
+      }
+
+      const foundItem = (menuItems || []).find(item =>
+        item.shortCode?.toUpperCase() === searchValue.toUpperCase()
       );
-      
+
       if (foundItem) {
         addToCart(foundItem);
         setShortCodeSearch('');
@@ -2278,7 +2303,8 @@ function RestaurantPOSContent() {
           message: `No item found with short code "${searchValue}"`,
           show: true
         });
-        
+        setShortCodeSearch('');
+
         // Auto-hide notification after 3 seconds
         setTimeout(() => {
           setNotification(null);
@@ -3240,6 +3266,11 @@ function RestaurantPOSContent() {
 
   const handleOrderLookup = async (e) => {
     if (e.key === 'Enter' && orderLookup.trim()) {
+      // Scale barcode detection — scanner may type into this input
+      if (handleBarcodeScanned(orderLookup.trim())) {
+        setOrderLookup('');
+        return;
+      }
       // Clear edit-mode URL params when manually searching for a different order
       if (typeof window !== 'undefined') {
         const url = new URL(window.location.href);
