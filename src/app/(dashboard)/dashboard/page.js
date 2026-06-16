@@ -472,6 +472,42 @@ function RestaurantPOSContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isListeningVoice]);
 
+  // Global barcode scanner listener — captures rapid keystrokes from USB barcode scanners
+  // even when no input element is focused. Skips when an input/textarea is active.
+  useEffect(() => {
+    let buffer = '';
+    let lastKeystroke = 0;
+
+    const handleBarcodeScan = (e) => {
+      // Skip if an input element is focused — let the input's own handler deal with it
+      const tag = document.activeElement?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || document.activeElement?.isContentEditable) return;
+
+      const now = Date.now();
+      // If gap > 100ms since last keystroke, start fresh buffer (new scan sequence)
+      if (now - lastKeystroke > 100) buffer = '';
+      lastKeystroke = now;
+
+      if (e.key === 'Enter') {
+        if (/^\d{13}$/.test(buffer)) {
+          e.preventDefault();
+          handleBarcodeScanned(buffer);
+        }
+        buffer = '';
+        return;
+      }
+
+      // Only accumulate printable single characters (digits for EAN-13)
+      if (e.key.length === 1 && /\d/.test(e.key)) {
+        buffer += e.key;
+      }
+    };
+
+    document.addEventListener('keydown', handleBarcodeScan);
+    return () => document.removeEventListener('keydown', handleBarcodeScan);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menuItems, posSettings.scaleBarcodeFlag]);
+
   // Optimistic table overrides — survives prefetchTables overwrites for 10 seconds
   const optimisticTableOverridesRef = useRef({});
 
@@ -2130,6 +2166,34 @@ function RestaurantPOSContent() {
 
       return [{ ...withId, quantity: withId.quantity || 1 }, ...prevCart];
     });
+  };
+
+  // ==================== SCALE BARCODE HANDLER ====================
+  const handleBarcodeScanned = (barcode) => {
+    if (!barcode || typeof barcode !== 'string') return false;
+    const cleaned = barcode.trim();
+    const flagPrefix = posSettings.scaleBarcodeFlag || '20';
+    const parsed = parseScaleBarcode(cleaned, { flagPrefix, format: 'weight' });
+    if (!parsed) return false;
+    const foundItem = (menuItems || []).find(item =>
+      item.pluCode === parsed.itemCode && item.soldByWeight
+    );
+    if (foundItem) {
+      const unitLabel = foundItem.priceUnit === 'per_100g' ? 'g' : foundItem.priceUnit === 'per_lb' ? 'lb' : 'kg';
+      addToCart({
+        ...foundItem,
+        _weightConfirmed: true,
+        itemWeight: parsed.weight,
+        weightUnit: unitLabel,
+        quantity: 1,
+      });
+      setNotification({ type: 'success', title: 'Scale Barcode', message: `Added ${foundItem.name} — ${parsed.weight} ${unitLabel}`, show: true });
+      setTimeout(() => setNotification(null), 3000);
+    } else {
+      setNotification({ type: 'error', title: 'PLU Not Found', message: `No menu item with PLU code "${parsed.itemCode}". Assign this PLU code in Menu → Edit Item → Sold by Weight.`, show: true });
+      setTimeout(() => setNotification(null), 5000);
+    }
+    return true;
   };
 
   const removeFromCart = (itemId) => {
@@ -6136,29 +6200,8 @@ function RestaurantPOSContent() {
                   }
                   // Scale barcode detection: on Enter, check if input is a scale barcode
                   if (e.key === 'Enter' && searchTerm.trim()) {
-                    const flagPrefix = posSettings.scaleBarcodeFlag || '20';
-                    const parsed = parseScaleBarcode(searchTerm.trim(), { flagPrefix, format: 'weight' });
-                    if (parsed) {
+                    if (handleBarcodeScanned(searchTerm.trim())) {
                       e.preventDefault();
-                      const foundItem = (menuItems || []).find(item =>
-                        item.pluCode === parsed.itemCode && item.soldByWeight
-                      );
-                      if (foundItem) {
-                        const unitLabel = foundItem.priceUnit === 'per_100g' ? 'g' : foundItem.priceUnit === 'per_lb' ? 'lb' : 'kg';
-                        addToCart({
-                          ...foundItem,
-                          _weightConfirmed: true,
-                          itemWeight: parsed.weight,
-                          weightUnit: unitLabel,
-                          quantity: 1,
-                        });
-                        setSearchTerm('');
-                        setNotification({ type: 'success', title: 'Scale Barcode', message: `Added ${foundItem.name} — ${parsed.weight} ${unitLabel}`, show: true });
-                        setTimeout(() => setNotification(null), 3000);
-                      } else {
-                        setNotification({ type: 'error', title: 'PLU Not Found', message: `No menu item with PLU code "${parsed.itemCode}". Assign this PLU code in Menu → Edit Item → Sold by Weight.`, show: true });
-                        setTimeout(() => setNotification(null), 5000);
-                      }
                       setSearchTerm('');
                       return;
                     }
@@ -8300,6 +8343,7 @@ function RestaurantPOSContent() {
             setScheduledDate={setScheduledDate}
             scheduledTime={scheduledTime}
             setScheduledTime={setScheduledTime}
+            onBarcodeScanned={handleBarcodeScanned}
           />
         </div>
                 ) : (
@@ -8394,6 +8438,7 @@ function RestaurantPOSContent() {
                     setScheduledDate={setScheduledDate}
                     scheduledTime={scheduledTime}
                     setScheduledTime={setScheduledTime}
+                    onBarcodeScanned={handleBarcodeScanned}
                   />
             )}
           </>

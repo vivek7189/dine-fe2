@@ -153,7 +153,10 @@ const OrderSummary = ({
   onPlaceOrderAndPrint,
   assignedStaff = null,
   onAssignedStaffChange,
+  onBarcodeScanned,
 }) => {
+  const [barcodeInput, setBarcodeInput] = useState('');
+
   // Persistent SC override — stored per restaurant in localStorage
   const scOverrideKey = restaurantId ? `dineopen_sc_override_${restaurantId}` : null;
   const readScOverride = () => {
@@ -2326,6 +2329,56 @@ const OrderSummary = ({
           </div>
         </div>
       </div>
+
+      {/* Scale Barcode Input — shown when scale barcode feature is enabled */}
+      {onBarcodeScanned && posSettings.scaleBarcodeFlag && (
+        <div style={{
+          padding: isMobile ? '6px 10px' : '6px 16px',
+          background: '#f8fafc',
+          borderBottom: '1px solid #e2e8f0',
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}>
+          <FaQrcode size={12} style={{ color: '#94a3b8', flexShrink: 0 }} />
+          <input
+            type="text"
+            placeholder="Scan or paste barcode..."
+            value={barcodeInput}
+            onChange={(e) => setBarcodeInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && barcodeInput.trim()) {
+                e.preventDefault();
+                if (onBarcodeScanned(barcodeInput.trim())) {
+                  setBarcodeInput('');
+                } else {
+                  setBarcodeInput('');
+                }
+              }
+            }}
+            onPaste={(e) => {
+              const text = e.clipboardData?.getData('text')?.trim();
+              if (text && /^\d{13}$/.test(text)) {
+                e.preventDefault();
+                onBarcodeScanned(text);
+                setBarcodeInput('');
+              }
+            }}
+            style={{
+              flex: 1,
+              border: '1px solid #e2e8f0',
+              borderRadius: '6px',
+              padding: isMobile ? '5px 8px' : '6px 10px',
+              fontSize: isMobile ? '11px' : '12px',
+              color: '#374151',
+              backgroundColor: 'white',
+              outline: 'none',
+              minWidth: 0,
+            }}
+          />
+        </div>
+      )}
 
       {/* Delivery Person Info — shown when delivery order type is selected */}
       {orderType === 'delivery' && (
