@@ -229,7 +229,8 @@ class ApiClient {
         // Staff/employee deactivated: clear auth and redirect to login (web + app)
         if (response.status === 401 && data && data.inactive === true) {
           this.forceLogout();
-          if (typeof window !== 'undefined') {
+          // Don't redirect in mobile WebView embed — let the native app handle auth
+          if (typeof window !== 'undefined' && !window.__DINEOPEN_MOBILE_EMBED__) {
             window.location.href = '/login';
           }
           throw new Error(data.message || data.error || 'Your account has been deactivated.');
@@ -239,7 +240,8 @@ class ApiClient {
         if (response.status === 401) {
           console.log('🔒 401 Unauthorized - Token may be expired');
           this.forceLogout();
-          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+          // Don't redirect in mobile WebView embed — let the native app handle auth
+          if (typeof window !== 'undefined' && !window.__DINEOPEN_MOBILE_EMBED__ && !window.location.pathname.includes('/login')) {
             window.location.href = '/login';
           }
           throw new Error(data.message || data.error || 'Session expired. Please login again.');
@@ -262,7 +264,7 @@ class ApiClient {
               } catch (refreshError) {
                 this.forceLogout();
                 if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-                  window.location.href = '/login';
+                  if (!window.__DINEOPEN_MOBILE_EMBED__) window.location.href = '/login';
                 }
                 throw new Error('Session expired. Please login again.');
               }
@@ -286,7 +288,7 @@ class ApiClient {
               console.log('❌ Token refresh failed - logging out');
               this.forceLogout();
               if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-                window.location.href = '/login';
+                if (!window.__DINEOPEN_MOBILE_EMBED__) window.location.href = '/login';
               }
               throw new Error('Session expired. Please login again.');
             }
@@ -363,7 +365,7 @@ class ApiClient {
       // Staff deactivated
       if (result.status_code === 401 && errorData.inactive) {
         this.forceLogout();
-        if (typeof window !== 'undefined') window.location.href = '/login';
+        if (typeof window !== 'undefined') if (!window.__DINEOPEN_MOBILE_EMBED__) window.location.href = '/login';
         throw new Error(errorData.message || 'Your account has been deactivated.');
       }
 
@@ -371,7 +373,7 @@ class ApiClient {
       if (result.status_code === 401) {
         this.forceLogout();
         if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-          window.location.href = '/login';
+          if (!window.__DINEOPEN_MOBILE_EMBED__) window.location.href = '/login';
         }
         throw new Error(errorData.message || errorData.error || 'Session expired. Please login again.');
       }
@@ -386,7 +388,7 @@ class ApiClient {
           } catch {
             this.forceLogout();
             if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-              window.location.href = '/login';
+              if (!window.__DINEOPEN_MOBILE_EMBED__) window.location.href = '/login';
             }
             throw new Error('Session expired. Please login again.');
           }
@@ -395,7 +397,7 @@ class ApiClient {
         if (errorMsg.toLowerCase().includes('invalid or expired token') && isRetry) {
           this.forceLogout();
           if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-            window.location.href = '/login';
+            if (!window.__DINEOPEN_MOBILE_EMBED__) window.location.href = '/login';
           }
           throw new Error('Session expired. Please login again.');
         }
@@ -450,14 +452,14 @@ class ApiClient {
 
       if (result.status_code === 401 && errorData.inactive) {
         this.forceLogout();
-        if (typeof window !== 'undefined') window.location.href = '/login';
+        if (typeof window !== 'undefined') if (!window.__DINEOPEN_MOBILE_EMBED__) window.location.href = '/login';
         throw new Error(errorData.message || 'Your account has been deactivated.');
       }
 
       if (result.status_code === 401) {
         this.forceLogout();
         if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-          window.location.href = '/login';
+          if (!window.__DINEOPEN_MOBILE_EMBED__) window.location.href = '/login';
         }
         throw new Error(errorData.message || errorData.error || 'Session expired. Please login again.');
       }
@@ -471,7 +473,7 @@ class ApiClient {
           } catch {
             this.forceLogout();
             if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-              window.location.href = '/login';
+              if (!window.__DINEOPEN_MOBILE_EMBED__) window.location.href = '/login';
             }
             throw new Error('Session expired. Please login again.');
           }
@@ -480,7 +482,7 @@ class ApiClient {
         if (errorMsg.toLowerCase().includes('invalid or expired token') && isRetry) {
           this.forceLogout();
           if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-            window.location.href = '/login';
+            if (!window.__DINEOPEN_MOBILE_EMBED__) window.location.href = '/login';
           }
           throw new Error('Session expired. Please login again.');
         }
@@ -719,6 +721,14 @@ class ApiClient {
   // Force logout - clears all auth data completely
   forceLogout() {
     if (typeof window === 'undefined') return;
+
+    // In mobile WebView embed, don't clear auth — the native app manages auth.
+    // Clearing localStorage would destroy the injected token/user from dine-app.
+    if (window.__DINEOPEN_MOBILE_EMBED__) {
+      console.warn('forceLogout skipped in mobile embed — native app manages auth');
+      this.clearAllCache();
+      return;
+    }
 
     // Clear cookies
     this.deleteCookie('dine_auth_token');

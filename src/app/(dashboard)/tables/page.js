@@ -693,9 +693,31 @@ const TableManagement = () => {
       }
       if (user?.restaurantId && ['waiter', 'manager', 'employee', 'cashier'].includes(user.role)) {
         restaurant = restaurants.find(r => r.id === user.restaurantId);
+        // Fallback for mobile WebView: if getRestaurants() returned empty but user has restaurantId,
+        // fetch the single restaurant directly so the page doesn't show "No restaurant found"
+        if (!restaurant && user.restaurantId) {
+          try {
+            const singleRes = await apiClient.getRestaurant(user.restaurantId);
+            if (singleRes && (singleRes.id || singleRes.restaurant)) {
+              restaurant = singleRes.restaurant || singleRes;
+              if (!restaurant.id) restaurant.id = user.restaurantId;
+            }
+          } catch (fallbackErr) {
+            console.warn('🔌 Single restaurant fetch also failed:', fallbackErr.message);
+          }
+        }
       } else if (restaurants.length > 0) {
         const savedRestaurantId = localStorage.getItem('selectedRestaurantId');
         restaurant = restaurants.find(r => r.id === savedRestaurantId) || restaurants[0];
+      } else if (restaurantId) {
+        // No restaurants returned and not a staff user — try direct fetch with restaurantId
+        try {
+          const singleRes = await apiClient.getRestaurant(restaurantId);
+          if (singleRes && (singleRes.id || singleRes.restaurant)) {
+            restaurant = singleRes.restaurant || singleRes;
+            if (!restaurant.id) restaurant.id = restaurantId;
+          }
+        } catch (_) {}
       }
 
       if (restaurant) {
