@@ -7473,10 +7473,10 @@ const Admin = () => {
                       </h4>
                       
                       {/* Show credentials if available, otherwise show load button */}
-                      {(member.loginId || member.tempPassword) ? (
+                      {(member.loginId || member.tempPassword || member.credentialsLoaded) ? (
                         <>
                           {/* User ID Badge */}
-                          <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {member.loginId ? <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <FaIdBadge style={{ color: '#0ea5e9', fontSize: '14px' }} />
                             <div style={{ flex: 1 }}>
                               <span style={{ fontSize: '11px', color: '#6b7280', display: 'block' }}>User ID</span>
@@ -7515,7 +7515,7 @@ const Admin = () => {
                                 )}
                               </div>
                             </div>
-                          </div>
+                          </div> : null}
 
                           {/* Password: show when admin-set (temp or reset); hide when user changed from app */}
                           {(member.tempPassword || member.password || member.hasTemporaryPassword) && (
@@ -12615,6 +12615,51 @@ const Admin = () => {
                     )
                   },
                   {
+                    key: 'completeBillingEnabled',
+                    name: 'Complete Billing',
+                    desc: 'Control who can complete/settle bills',
+                    icon: FaCheckCircle,
+                    alwaysOn: true,
+                    expandedContent: (
+                      <div style={{ marginTop: '8px' }}>
+                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 6px 0' }}>
+                          Restrict which roles can use the Complete Billing button on the POS dashboard.
+                        </p>
+                        {renderRoleChips('completeBillingRoles')}
+                      </div>
+                    )
+                  },
+                  {
+                    key: 'billAndPrintEnabled',
+                    name: 'Bill & Print',
+                    desc: 'Control who can use Bill & Print',
+                    icon: FaPrint,
+                    alwaysOn: true,
+                    expandedContent: (
+                      <div style={{ marginTop: '8px' }}>
+                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 6px 0' }}>
+                          Restrict which roles can use the Bill & Print button. Requires Print Settings &gt; Save &amp; Print to be enabled.
+                        </p>
+                        {renderRoleChips('billAndPrintRoles')}
+                      </div>
+                    )
+                  },
+                  {
+                    key: 'paymentMethodEnabled',
+                    name: 'Payment Methods',
+                    desc: 'Control who can select payment method',
+                    icon: FaCreditCard,
+                    alwaysOn: true,
+                    expandedContent: (
+                      <div style={{ marginTop: '8px' }}>
+                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 6px 0' }}>
+                          Restrict which roles can see and change the payment method (Cash, Card, UPI, etc.) on the billing screen.
+                        </p>
+                        {renderRoleChips('paymentMethodRoles')}
+                      </div>
+                    )
+                  },
+                  {
                     key: 'useWebViewBilling',
                     name: 'WebView Billing',
                     desc: 'Web-based billing in mobile app',
@@ -12630,7 +12675,7 @@ const Admin = () => {
                 ];
 
                 return billingFeatures.map((feature) => {
-                  const isEnabled = billingSettings[feature.key];
+                  const isEnabled = feature.alwaysOn || billingSettings[feature.key];
                   const IconComp = feature.icon;
                   return (
                     <div
@@ -12638,10 +12683,10 @@ const Admin = () => {
                       style={{
                         backgroundColor: 'white',
                         padding: '12px 16px',
-                        cursor: 'pointer',
+                        cursor: feature.alwaysOn ? 'default' : 'pointer',
                         transition: 'background 0.15s',
                       }}
-                      onClick={() => updateBillingSetting(feature.key, !isEnabled)}
+                      onClick={() => !feature.alwaysOn && updateBillingSetting(feature.key, !isEnabled)}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{
@@ -12660,7 +12705,7 @@ const Admin = () => {
                           }}>{feature.name}</span>
                           <span style={{ fontSize: '11px', color: '#b0b8c4', marginLeft: '8px' }}>{feature.desc}</span>
                         </div>
-                        <div style={{
+                        {!feature.alwaysOn && <div style={{
                           width: '36px', height: '20px', borderRadius: '10px',
                           background: isEnabled ? '#dc2626' : '#e2e8f0',
                           position: 'relative', transition: 'background 0.2s', flexShrink: 0
@@ -12672,7 +12717,7 @@ const Admin = () => {
                             transition: 'left 0.2s',
                             boxShadow: '0 1px 3px rgba(0,0,0,0.15)'
                           }} />
-                        </div>
+                        </div>}
                       </div>
                       {isEnabled && feature.expandedContent && (
                         <div style={{ marginLeft: '44px', paddingTop: '4px' }}>

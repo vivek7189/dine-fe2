@@ -154,6 +154,7 @@ const OrderSummary = ({
   assignedStaff = null,
   onAssignedStaffChange,
   onBarcodeScanned,
+  canCompleteBill = true,
 }) => {
   const [barcodeInput, setBarcodeInput] = useState('');
   const [barcodeResult, setBarcodeResult] = useState(null); // { type: 'success'|'error', text: string }
@@ -5003,7 +5004,7 @@ const OrderSummary = ({
                 })()}
 
               {/* Payment Method Selection */}
-              <div style={{ marginBottom: isMobile ? '6px' : '16px' }}>
+              {isRoleAllowed(billingSettings.paymentMethodRoles) && <div style={{ marginBottom: isMobile ? '6px' : '16px' }}>
                 <div style={{
                   fontSize: isMobile ? '10px' : '12px',
                   fontWeight: '700',
@@ -5066,7 +5067,7 @@ const OrderSummary = ({
                     );
                   })}
                 </div>
-              </div>
+              </div>}
 
             </div>
           )}
@@ -6279,7 +6280,7 @@ const OrderSummary = ({
           {/* Billing Row */}
           <div style={{ display: 'flex', gap: billingMode ? (isMobile ? '6px' : '10px') : (isMobile ? '4px' : '8px') }}>
             {/* Complete Billing Button */}
-            <button
+            {canCompleteBill && isRoleAllowed(billingSettings.completeBillingRoles) && <button
               onClick={() => {
                 if (orderBusy) return;
                 if (needsDiscountApproval()) {
@@ -6321,10 +6322,10 @@ const OrderSummary = ({
                   {posSettings.completeBillingLabel || t('dashboard.completeBilling')}
                 </>
               )}
-            </button>
+            </button>}
 
               {/* Bill & Print - combined button */}
-              {printSettings?.enableSaveAndPrint && (
+              {canCompleteBill && isRoleAllowed(billingSettings.billAndPrintRoles) && printSettings?.enableSaveAndPrint && (
                 <button
                   onClick={() => {
                     if (orderBusy) return;

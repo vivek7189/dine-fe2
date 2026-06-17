@@ -8376,6 +8376,7 @@ function RestaurantPOSContent() {
             scheduledTime={scheduledTime}
             setScheduledTime={setScheduledTime}
             onBarcodeScanned={handleBarcodeScanned}
+            canCompleteBill={canCompleteBill}
           />
         </div>
                 ) : (
@@ -8471,6 +8472,7 @@ function RestaurantPOSContent() {
                     scheduledTime={scheduledTime}
                     setScheduledTime={setScheduledTime}
                     onBarcodeScanned={handleBarcodeScanned}
+                    canCompleteBill={canCompleteBill}
                   />
             )}
           </>
