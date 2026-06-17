@@ -781,17 +781,22 @@ const MenuItemCard = ({
   }
 
   // Fallback design for items without images
+  const vegGradient = isVeg
+    ? 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 60%)'
+    : 'linear-gradient(135deg, #fef2f2 0%, #ffffff 60%)';
+  const firstLetter = (item.name || '?')[0].toUpperCase();
+
   return (
     <div
       className="menu-item-card"
       style={{
         backgroundColor: '#ffffff',
         border: '1px solid #e5e7eb',
-        borderRadius: cardSize === 'large' ? '10px' : '4px',
+        borderRadius: cardSize === 'large' ? '10px' : '6px',
         cursor: 'pointer',
         height: cardSize === 'large'
           ? (isMobile ? '160px' : '170px')
-          : (isMobile ? '120px' : '130px'),
+          : (isMobile ? '125px' : '135px'),
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -799,7 +804,7 @@ const MenuItemCard = ({
         boxShadow: cardSize === 'large' ? '0 4px 12px rgba(0, 0, 0, 0.1)' : '0 2px 8px rgba(0, 0, 0, 0.06)',
         position: 'relative',
         overflow: 'hidden',
-        background: '#ffffff',
+        background: vegGradient,
         borderTop: `3px solid ${isVeg ? '#22c55e' : '#ef4444'}`,
         transition: 'all 0.2s ease',
         filter: isOutOfStock ? 'blur(1.1px)' : 'none',
@@ -815,6 +820,22 @@ const MenuItemCard = ({
         setShowOutOfStockLabel(false);
       }}
     >
+      {/* Watermark Letter */}
+      <div style={{
+        position: 'absolute',
+        bottom: '-8px',
+        right: '-4px',
+        fontSize: cardSize === 'large' ? '90px' : '70px',
+        fontWeight: '900',
+        color: isVeg ? 'rgba(34, 197, 94, 0.06)' : 'rgba(239, 68, 68, 0.06)',
+        lineHeight: 1,
+        pointerEvents: 'none',
+        userSelect: 'none',
+        zIndex: 0
+      }}>
+        {firstLetter}
+      </div>
+
       {/* Out of Stock Label - On Hover */}
       {isOutOfStock && showOutOfStockLabel && (
         <div style={{
@@ -987,49 +1008,68 @@ const MenuItemCard = ({
         </div>
       )}
 
-      {/* Main Content Area - Compact */}
-      <div style={{ 
-        flex: 1, 
-        display: 'flex', 
+      {/* Main Content Area - No Image */}
+      <div style={{
+        flex: 1,
+        display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
-        alignItems: 'center',
-        textAlign: 'center',
-        paddingTop: '8px',
-        paddingBottom: '8px',
+        alignItems: 'flex-start',
+        textAlign: 'left',
+        paddingTop: '6px',
+        paddingBottom: '4px',
         paddingLeft: '8px',
-        paddingRight: '8px'
+        paddingRight: '8px',
+        zIndex: 1
       }}>
-        {/* Dish Name - Compact Typography */}
+        {/* Dish Name */}
         <h3 style={{
-          fontSize: isMobile ? '14px' : '15px',
+          fontSize: cardSize === 'large' ? '15px' : (isMobile ? '12px' : '13px'),
           fontWeight: '600',
-          margin: '0 0 4px 0',
-          color: '#374151',
-          lineHeight: '1.2',
-          textAlign: 'center',
+          margin: '0 0 2px 0',
+          color: '#1f2937',
+          lineHeight: '1.25',
+          textAlign: 'left',
           overflow: 'hidden',
           display: '-webkit-box',
-          WebkitLineClamp: 2,
+          WebkitLineClamp: item.nameAr ? 2 : 3,
           WebkitBoxOrient: 'vertical',
           wordWrap: 'break-word',
-          maxHeight: '36px'
         }}>
           {item.name}
         </h3>
-        
-        {/* Description - Compact */}
-        {item.description && (
+
+        {/* Arabic Name */}
+        {item.nameAr && (
+          <p style={{
+            fontSize: cardSize === 'large' ? '12px' : '10px',
+            color: '#6b7280',
+            margin: '0',
+            lineHeight: '1.3',
+            overflow: 'hidden',
+            display: '-webkit-box',
+            WebkitLineClamp: 1,
+            WebkitBoxOrient: 'vertical',
+            fontWeight: '500',
+            direction: 'rtl',
+            textAlign: 'left',
+            width: '100%',
+          }}>
+            {item.nameAr}
+          </p>
+        )}
+
+        {/* Description */}
+        {!item.nameAr && item.description && (
           <p style={{
             fontSize: '10px',
-            color: '#6b7280',
+            color: '#9ca3af',
             margin: '0',
             lineHeight: '1.2',
             overflow: 'hidden',
             display: '-webkit-box',
             WebkitLineClamp: 1,
             WebkitBoxOrient: 'vertical',
-            maxHeight: '12px',
             fontWeight: '400'
           }}>
             {item.description}
@@ -1037,14 +1077,15 @@ const MenuItemCard = ({
         )}
       </div>
       
-      {/* Bottom Section - Compact */}
+      {/* Bottom Section - No Image */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingTop: '8px',
+        paddingTop: '6px',
         borderTop: '1px solid #f3f4f6',
-        marginTop: '8px'
+        marginTop: 'auto',
+        zIndex: 1
       }}>
         {/* Price - Compact */}
         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -1195,6 +1236,7 @@ const MemoizedMenuItemCard = memo(MenuItemCard, (prevProps, nextProps) => {
     prevProps.item.id === nextProps.item.id &&
     prevProps.item.image === nextProps.item.image &&
     prevProps.item.name === nextProps.item.name &&
+    prevProps.item.nameAr === nextProps.item.nameAr &&
     prevProps.item.price === nextProps.item.price &&
     prevProps.item.isAvailable === nextProps.item.isAvailable &&
     prevProps.item.stockQuantity === nextProps.item.stockQuantity &&
