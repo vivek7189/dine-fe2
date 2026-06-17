@@ -42,13 +42,21 @@ export function render(invoice, printSettings = {}, labels = {}) {
   const itemsHtml = items.map(item => {
     const qty = item.quantity || 1;
     const unitPrice = item.price || (item.total ? Math.round((item.total / qty) * 100) / 100 : 0);
-    const lineTotal = Math.round(unitPrice * qty * 100) / 100;
+    const isWeightItem = item.soldByWeight && item.itemWeight;
+    const lineTotal = isWeightItem
+      ? (item.priceUnit === 'per_100g'
+        ? (item.price || 0) * (item.itemWeight / 100)
+        : (item.price || 0) * item.itemWeight)
+      : Math.round(unitPrice * qty * 100) / 100;
     const variant = item.selectedVariant?.name || item.variant || '';
     const custs = item.selectedCustomizations || item.customizations || [];
 
     let html = `<div class="item-row"><span>${showAr ? dualItemName(item, showAr) : esc(item.name)}</span><span>${cs}${lineTotal.toFixed(2)}</span></div>`;
-    // Show quantity breakdown if qty > 1
-    if (qty > 1) {
+    // Show weight breakdown for weight items, or quantity breakdown if qty > 1
+    if (isWeightItem) {
+      const unitLabel = item.priceUnit === 'per_100g' ? '/100g' : '/kg';
+      html += `<div class="item-sub">${item.itemWeight}${item.weightUnit || 'kg'} @ ${cs}${unitPrice.toFixed(2)}${unitLabel}</div>`;
+    } else if (qty > 1) {
       html += `<div class="item-sub">x${qty} @ ${cs}${unitPrice.toFixed(2)}</div>`;
     }
     // Show variant

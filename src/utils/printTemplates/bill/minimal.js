@@ -41,11 +41,18 @@ export function render(invoice, printSettings = {}, labels = {}) {
   const itemsHtml = items.map(item => {
     const qty = item.quantity || 1;
     const unitPrice = item.price || (item.total ? Math.round((item.total / qty) * 100) / 100 : 0);
-    const lineTotal = Math.round(unitPrice * qty * 100) / 100;
+    const lineTotal = item.soldByWeight && item.itemWeight
+      ? (item.priceUnit === 'per_100g'
+        ? (item.price || 0) * (item.itemWeight / 100)
+        : (item.price || 0) * item.itemWeight)
+      : Math.round(unitPrice * qty * 100) / 100;
+    const qtyPrefix = item.soldByWeight && item.itemWeight
+      ? `${item.itemWeight}${item.weightUnit || 'kg'} `
+      : (qty > 1 ? qty + 'x ' : '');
     const variant = item.selectedVariant?.name || item.variant || '';
     const custs = item.selectedCustomizations || item.customizations || [];
 
-    let html = `<div class="item-row"><span class="item-name">${qty > 1 ? qty + 'x ' : ''}${showAr ? dualItemName(item, showAr) : esc(item.name)}</span><span class="item-amount">${cs}${lineTotal.toFixed(2)}</span></div>`;
+    let html = `<div class="item-row"><span class="item-name">${qtyPrefix}${showAr ? dualItemName(item, showAr) : esc(item.name)}</span><span class="item-amount">${cs}${lineTotal.toFixed(2)}</span></div>`;
     if (variant) html += `<div class="item-sub">${esc(variant)}</div>`;
     if (custs.length > 0) html += `<div class="item-sub">${custs.map(c => esc(c.name || c)).join(', ')}</div>`;
     if (item.notes) html += `<div class="item-sub" style="font-style:italic;">${esc(item.notes)}</div>`;
