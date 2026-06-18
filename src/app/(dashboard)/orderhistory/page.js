@@ -1822,12 +1822,13 @@ const OrderHistory = () => {
 
     // Billing feature amounts
     const serviceCharge = order.serviceChargeAmount ? parseFloat(order.serviceChargeAmount.toFixed(2)) : 0;
-    const tip = order.tipAmount ? parseFloat(order.tipAmount.toFixed(2)) : 0;
-    const roundOff = order.roundOffAmount ? parseFloat(order.roundOffAmount.toFixed(2)) : 0;
+    const tip = order.tipAmount ? parseFloat(Number(order.tipAmount).toFixed(2)) : 0;
+    const roundOff = order.roundOffAmount ? parseFloat(Number(order.roundOffAmount).toFixed(2)) : 0;
 
     // Use saved finalAmount if available, otherwise calculate
-    const total = order.finalAmount && order.finalAmount > 0
-      ? parseFloat(order.finalAmount.toFixed(2))
+    const fa = order.finalAmount ? Number(order.finalAmount) : 0;
+    const total = fa > 0
+      ? parseFloat(fa.toFixed(2))
       : parseFloat((subtotal - discountAmount + serviceCharge + taxAmount + tip + roundOff).toFixed(2));
 
     return { subtotal, taxAmount, taxLines, discountAmount, discountLines, serviceCharge, tip, roundOff, total };
@@ -1840,7 +1841,8 @@ const OrderHistory = () => {
     if (order.items && Array.isArray(order.items)) {
       subtotal = order.items.reduce((sum, item) => sum + (item.total || (item.price * item.quantity) || 0), 0);
     } else if (order.totalAmount && order.totalAmount > 0) subtotal = order.totalAmount;
-    if (order.finalAmount && order.finalAmount > 0) return parseFloat(order.finalAmount.toFixed(2));
+    const fa2 = order.finalAmount ? Number(order.finalAmount) : 0;
+    if (fa2 > 0) return parseFloat(fa2.toFixed(2));
     return parseFloat(subtotal.toFixed(2));
   };
 
