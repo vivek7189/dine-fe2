@@ -157,6 +157,8 @@ export const config = {
     '/hi/blog/:slug*',
     '/login',
     '/local-login',
+    '/partner-login',
+    '/master-login',
     '/onboarding',
     '/home',
     '/dashboard/:path*',
