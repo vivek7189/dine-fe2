@@ -247,6 +247,8 @@ export function useAutoPrint(restaurantId, printSettings) {
     }
     const orderId = data.orderId || data.id;
     if (!orderId) return;
+    const dedupKey = isPreBill ? `prebill-${orderId}` : orderId;
+    if (wasPrinted(dedupKey, 'bill')) return;
     try {
       console.log(`🖨️ AutoPrint: Fetching bill render for ${restaurantId}/${orderId}`);
       const renderData = await apiClient.getBillRender(restaurantId, orderId);
@@ -259,6 +261,7 @@ export function useAutoPrint(restaurantId, printSettings) {
       const html = billRenderToHtml(renderData);
       console.log(`🖨️ AutoPrint: Bill HTML generated:`, html ? `${html.length} chars` : 'null');
       if (html) {
+        markPrinted(dedupKey, 'bill');
         printQueueRef.current.push({ html, type: 'bill', orderId: dedupKey });
         processQueue();
       }

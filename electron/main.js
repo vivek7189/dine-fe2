@@ -343,11 +343,13 @@ ipcMain.handle('electron:print', async (event, { html, copies, type, printerWidt
 
   // Use cached printer list (avoids OS enumeration on every print)
   const printers = await getCachedPrinters(printWindow.webContents);
-  console.log('[Print] Printers:', printers.map(p => p.name).join(', ') || '(none)');
+  console.log('[Print] Printers:', printers.map(p => `${p.name}(status:${p.status})`).join(', ') || '(none)');
 
-  // If no working printers, save as PDF fallback
-  if (!printers.length || printers.every(p => p.status !== 0)) {
-    console.log('[Print] No active printer — saving PDF');
+  // If no printers at all, save as PDF fallback.
+  // Skip status check when a specific printer is configured — network/IP printers
+  // often report non-zero status even when online and ready.
+  if (!printers.length) {
+    console.log('[Print] No printers found — saving PDF');
     const pdfPath = path.join(app.getPath('desktop'), `DineOpen-print-${Date.now()}.pdf`);
     const pdfData = await printWindow.webContents.printToPDF({
       printBackground: true,
