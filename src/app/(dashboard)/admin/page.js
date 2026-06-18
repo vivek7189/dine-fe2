@@ -3627,6 +3627,13 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
       icon: <FaClock size={18} />,
       section: 'web'
     },
+    {
+      key: 'showPrintNotifications',
+      title: 'Show Print Notifications',
+      description: 'Show a small toast on desktop terminal when a remote print command arrives (useful for debugging)',
+      icon: <FaBell size={18} />,
+      section: 'web'
+    },
     // Display settings (shared)
     {
       key: 'showSuccessNotifications',

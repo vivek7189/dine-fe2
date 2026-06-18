@@ -13,6 +13,7 @@ import OrderNotificationToast from '../../components/OrderNotificationToast';
 import { useIdlePrefetch } from '../../hooks/useIdlePrefetch';
 import { useAutoPrint } from '../../hooks/useAutoPrint';
 import { useOrderNotifications } from '../../hooks/useOrderNotifications';
+import PrintEventToast from '../../components/PrintEventToast';
 import { isWeb, isTauri, isElectron } from '../../utils/platform';
 import { isAutoUpdateEnabled, checkForUpdates, restartApp } from '../../utils/autoUpdater';
 import apiClient from '../../lib/api';
@@ -448,6 +449,9 @@ function DashboardLayoutContent({ children }) {
               toasts={orderToasts}
               onDismiss={dismissOrderToast}
             />
+
+            {/* Print event debug toasts — shows when remote print commands arrive */}
+            <PrintEventToast printSettings={nativePrintSettings} />
 
             {/* Refresh button — Electron only (no browser refresh bar) */}
             {isClient && isElectron() && (

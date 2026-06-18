@@ -64,6 +64,15 @@ if (typeof window !== 'undefined' && !_autoPrintCleanupInterval) {
   }, 30000);
 }
 
+// ── Notify UI about print events (for debug toast) ──
+function emitPrintEvent(type, orderId, status) {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('dine-print-event', {
+      detail: { type, orderId, status, ts: Date.now() },
+    }));
+  }
+}
+
 // ── HTML generation from render data ──
 // The render API returns structured data (kot/bill objects), not pre-built HTML.
 // We generate HTML locally using the same generators as OrderSummary.
@@ -111,8 +120,10 @@ export function useAutoPrint(restaurantId, printSettings) {
           printSettings: printSettings || {},
         });
         markPrinted(job.orderId, job.type);
+        emitPrintEvent(job.type, job.orderId, 'printed');
       } catch (err) {
         console.error('Auto-print failed:', err);
+        emitPrintEvent(job.type, job.orderId, 'failed');
       }
       await new Promise(r => setTimeout(r, 500));
     }

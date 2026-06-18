@@ -14,7 +14,7 @@ import {
 import apiClient from '../../lib/api';
 import { redirectToSubdomain } from '../../utils/subdomain';
 
-const MasterLogin = () => {
+const OnboardLogin = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -55,7 +55,7 @@ const MasterLogin = () => {
           [loginType]: loginValue,
           password: password.trim(),
           platform: 'dine-frontend',
-          loginSource: 'master-login'
+          loginSource: 'onboard-login'
         })
       });
 
@@ -90,7 +90,7 @@ const MasterLogin = () => {
       }
 
     } catch (err) {
-      console.error('Master login error:', err);
+      console.error('Onboard login error:', err);
       setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
@@ -106,7 +106,7 @@ const MasterLogin = () => {
             <FaSignInAlt className="text-white text-2xl" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Master Login
+            Onboard Login
           </h1>
           <p className="text-gray-600">
             Login with phone or email
@@ -215,7 +215,7 @@ const MasterLogin = () => {
               />
             </div>
             <p className="mt-1 text-xs text-gray-500">
-              Use the master login password
+              Use the onboard login password
             </p>
           </div>
 
@@ -242,8 +242,8 @@ const MasterLogin = () => {
         {/* Info Box */}
         <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-xs text-blue-800">
-            <strong>Note:</strong> This is a master login.
-            Use phone number or email with the master password to access user accounts.
+            <strong>Note:</strong> This is an onboard login.
+            Use phone number or email with the onboard password to access your account.
           </p>
         </div>
 
@@ -262,4 +262,4 @@ const MasterLogin = () => {
   );
 };
 
-export default MasterLogin;
+export default OnboardLogin;
