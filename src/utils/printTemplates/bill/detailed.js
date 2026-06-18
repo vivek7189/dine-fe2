@@ -114,11 +114,14 @@ export function render(invoice, printSettings = {}, labels = {}) {
   // Waiter/cashier info
   const waiterInfo = invoice.waiterName || invoice.cashierName || '';
 
+  const preBillBanner = invoice.isPreBill ? '<div style="text-align:center;font-weight:bold;font-size:16px;padding:6px 0;border:2px dashed #333;margin:6px 0;letter-spacing:2px;">*** PRE-BILL ***</div>' : '';
+
   const bodyHtml =
     // Header with logo
     getBillHeaderHTML(esc(invoice.restaurantName || 'Restaurant'), identityHtml, receiptLogo, '') +
     `<div class="divider">- - - - - - - - - - - - - - - - -</div>` +
     `<div class="receipt-title">${showAr ? dualTitle('*** ' + L.billTitle + ' ***', '*** ' + AR.billTitle + ' ***', showAr) : '*** ' + L.billTitle + ' ***'}</div>` +
+    preBillBanner +
     (((invoice.editCount || 0) + (invoice.updateCount || 0)) > 0 ? `<div style="text-align:center;font-weight:bold;font-size:14px;padding:4px 0;border:2px solid #333;margin:4px 0;">${showAr ? dualLabel(L.revisedBill, AR.revisedBill, showAr) : L.revisedBill}${invoice.editCount > 0 ? ` (Edit #${invoice.editCount})` : ''}${invoice.updateCount > 0 ? ` (Modified ${invoice.updateCount}x)` : ''}</div>` : '') +
     buildSplitBillHtml(invoice, L, cs) +
     // Cashier + date on one line

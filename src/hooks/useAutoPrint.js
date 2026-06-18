@@ -198,6 +198,7 @@ export function useAutoPrint(restaurantId, printSettings) {
 
     // Default: single KOT with all items
     try {
+      markPrinted(orderId, 'kot'); // Mark early to prevent double-print from /kot path
       const renderData = await apiClient.getKOTRender(restaurantId, orderId);
       const html = kotRenderToHtml(renderData);
       if (html) {
@@ -212,7 +213,12 @@ export function useAutoPrint(restaurantId, printSettings) {
   const handleKotPrintRequest = useCallback(async (data) => {
     if (!printSettings?.autoPrintOnKOT) return;
     const orderId = data.orderId || data.id;
-    if (!orderId || wasPrinted(orderId, 'kot')) return;
+    if (!orderId) return;
+    // For incremental/reprint KOTs, use a unique dedup key (timestamp-based)
+    // so updates aren't blocked by the initial KOT's dedup entry.
+    const isUpdate = data.isIncremental || data.isReprint || data.forcePrint;
+    const dedupKey = isUpdate ? `${orderId}-upd-${data.ts || Date.now()}` : orderId;
+    if (wasPrinted(dedupKey, 'kot')) return;
     try {
       const stationId = data.printStationId || null;
       const renderData = await apiClient.getKOTRender(
@@ -221,7 +227,8 @@ export function useAutoPrint(restaurantId, printSettings) {
       );
       const html = kotRenderToHtml(renderData);
       if (html) {
-        printQueueRef.current.push({ html, type: 'kot', orderId, stationId });
+        markPrinted(dedupKey, 'kot');
+        printQueueRef.current.push({ html, type: 'kot', orderId: dedupKey, stationId });
         processQueue();
       }
     } catch (err) {
@@ -230,51 +237,85 @@ export function useAutoPrint(restaurantId, printSettings) {
   }, [restaurantId, printSettings, processQueue]);
 
   const handleBillingPrint = useCallback(async (data) => {
-    if (!printSettings?.autoPrintOnBilling) return;
+    const isPreBill = data.isPreBill === true;
+    console.log(`🖨️ AutoPrint: handleBillingPrint called, isPreBill=${isPreBill}, orderId=${data.orderId || data.id}`);
+    // Pre-bill requests always print (user explicitly tapped Pre-Bill on mobile).
+    // Regular bill print requires autoPrintOnBilling setting.
+    if (!isPreBill && !printSettings?.autoPrintOnBilling) {
+      console.log(`🖨️ AutoPrint: Billing print skipped — autoPrintOnBilling is off`);
+      return;
+    }
     const orderId = data.orderId || data.id;
-    if (!orderId || wasPrinted(orderId, 'bill')) return;
+    if (!orderId) return;
     try {
+      console.log(`🖨️ AutoPrint: Fetching bill render for ${restaurantId}/${orderId}`);
       const renderData = await apiClient.getBillRender(restaurantId, orderId);
+      console.log(`🖨️ AutoPrint: Bill render response:`, renderData ? 'OK' : 'null', renderData?.success);
+      if (renderData && isPreBill) {
+        // Mark as pre-bill so the HTML generator can add "PRE-BILL" header
+        if (renderData.invoice) renderData.invoice.isPreBill = true;
+        if (renderData.bill) renderData.bill.isPreBill = true;
+      }
       const html = billRenderToHtml(renderData);
+      console.log(`🖨️ AutoPrint: Bill HTML generated:`, html ? `${html.length} chars` : 'null');
       if (html) {
-        printQueueRef.current.push({ html, type: 'bill', orderId });
+        printQueueRef.current.push({ html, type: 'bill', orderId: dedupKey });
         processQueue();
       }
-      if (data.tokenBillingEnabled || printSettings?.tokenBillingEnabled) {
+      // Skip token printing for pre-bills
+      if (!isPreBill && (data.tokenBillingEnabled || printSettings?.tokenBillingEnabled)) {
         setTimeout(() => printTokensForOrder(orderId, printSettings), 900);
       }
     } catch (err) {
-      console.warn('Auto-print bill skipped:', err.message);
+      console.warn(`Auto-print ${isPreBill ? 'pre-bill' : 'bill'} skipped:`, err.message);
     }
   }, [restaurantId, printSettings, processQueue, printTokensForOrder]);
 
   // ──── Firebase RTDB events (online) — replaces Pusher ────
   // Skip in React Native WebView — OrderSummary handles print with embedded data directly.
   // This hook generates HTML which can't be used by thermal printers in WebView mode.
+  //
+  // Listens on 3 paths:
+  //   - /events/{restaurantId}/orders  — order-created events (always published by backend)
+  //   - /events/{restaurantId}/kot     — kot-print-request events (published when usePusherForKOT is on)
+  //   - /events/{restaurantId}/billing — billing-print-request events
   useEffect(() => {
     if (!supportsNativeAutoPrint() || !restaurantId || !database) return;
     if (isReactNativeWebView()) return; // OrderSummary handles WebView printing
     if (!printSettings?.autoPrintOnKOT && !printSettings?.autoPrintOnBilling) return;
-    if (!printSettings?.usePusherForKOT) return;
 
     const now = Date.now();
+    const ordersRef = query(ref(database, `events/${restaurantId}/orders`), orderByChild('ts'), startAt(now));
     const kotRef = query(ref(database, `events/${restaurantId}/kot`), orderByChild('ts'), startAt(now));
     const billingRef = query(ref(database, `events/${restaurantId}/billing`), orderByChild('ts'), startAt(now));
 
-    console.log(`🖨️ AutoPrint: Subscribed to Firebase RTDB events/${restaurantId}/kot & billing`);
+    console.log(`🖨️ AutoPrint: Subscribed to Firebase RTDB events/${restaurantId}/orders, kot & billing`);
 
+    // Handle order-created events from the /orders path — auto-print KOT
+    const handleOrderEvent = (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+      const eventAge = data.ts ? Date.now() - data.ts : 0;
+      if (eventAge > 2 * 60 * 1000) {
+        console.log(`🖨️ AutoPrint: Skipping stale order event (${Math.round(eventAge / 1000)}s old)`);
+        return;
+      }
+      if (data.type === 'order-created' && data.status === 'confirmed') {
+        handleKotCreated(data);
+      }
+    };
+
+    // Handle kot-print-request events from the /kot path (for reprints, updates, station prints)
     const handleKotEvent = (snapshot) => {
       const data = snapshot.val();
       if (!data) return;
-      // Skip stale events after Firebase reconnect to prevent printing
-      // a backlog of old KOTs that were already handled or are irrelevant.
       const eventAge = data.ts ? Date.now() - data.ts : 0;
       if (eventAge > 2 * 60 * 1000) {
         console.log(`🖨️ AutoPrint: Skipping stale KOT event (${Math.round(eventAge / 1000)}s old)`);
         return;
       }
       if (data.type === 'order-created') {
-        handleKotCreated(data);
+        // Skip — already handled by /orders listener to avoid double-print
       } else if (data.type === 'kot-print-request') {
         handleKotPrintRequest(data);
       }
@@ -282,8 +323,8 @@ export function useAutoPrint(restaurantId, printSettings) {
 
     const handleBillingEvent = (snapshot) => {
       const data = snapshot.val();
+      console.log(`🖨️ AutoPrint: Billing event received:`, JSON.stringify(data));
       if (!data) return;
-      // Skip stale billing events after Firebase reconnect
       const eventAge = data.ts ? Date.now() - data.ts : 0;
       if (eventAge > 2 * 60 * 1000) {
         console.log(`🖨️ AutoPrint: Skipping stale billing event (${Math.round(eventAge / 1000)}s old)`);
@@ -291,6 +332,8 @@ export function useAutoPrint(restaurantId, printSettings) {
       }
       if (data.type === 'billing-print-request') {
         handleBillingPrint(data);
+      } else {
+        console.log(`🖨️ AutoPrint: Ignoring billing event type: ${data.type}`);
       }
     };
 
@@ -298,11 +341,13 @@ export function useAutoPrint(restaurantId, printSettings) {
       console.error(`🖨️ AutoPrint: Firebase RTDB error (may be auth issue):`, err?.message || err);
     };
 
+    onChildAdded(ordersRef, handleOrderEvent, handleError);
     onChildAdded(kotRef, handleKotEvent, handleError);
     onChildAdded(billingRef, handleBillingEvent, handleError);
 
     return () => {
       console.log(`🖨️ AutoPrint: Unsubscribing from Firebase RTDB`);
+      off(ordersRef, 'child_added', handleOrderEvent);
       off(kotRef, 'child_added', handleKotEvent);
       off(billingRef, 'child_added', handleBillingEvent);
     };
