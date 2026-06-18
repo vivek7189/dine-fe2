@@ -1,6 +1,6 @@
 {
   "name": "dine-frontend",
-  "version": "1.10.4",
+  "version": "1.10.5",
   "author": "",
   "private": true,
   "scripts": {
@@ -74,7 +74,7 @@
     "@eslint/eslintrc": "^3",
     "@tauri-apps/cli": "^2.0.0",
     "autoprefixer": "^10.4.21",
-    "electron": "^33.4.11",
+    "electron": "33.4.11",
     "electron-builder": "^25.0.0",
     "eslint": "^9",
     "eslint-config-next": "15.5.7",

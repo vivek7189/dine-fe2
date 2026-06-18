@@ -294,8 +294,12 @@ export function useAutoPrint(restaurantId, printSettings) {
       }
     };
 
-    onChildAdded(kotRef, handleKotEvent);
-    onChildAdded(billingRef, handleBillingEvent);
+    const handleError = (err) => {
+      console.error(`🖨️ AutoPrint: Firebase RTDB error (may be auth issue):`, err?.message || err);
+    };
+
+    onChildAdded(kotRef, handleKotEvent, handleError);
+    onChildAdded(billingRef, handleBillingEvent, handleError);
 
     return () => {
       console.log(`🖨️ AutoPrint: Unsubscribing from Firebase RTDB`);

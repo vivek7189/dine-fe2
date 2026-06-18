@@ -1512,6 +1512,16 @@ const Login = () => {
               const rid = localResult.user?.restaurantId || localResult.restaurant?.id;
               localStorage.setItem('selectedRestaurantId', rid);
             }
+            // LAN login has no Firebase custom token — sign in anonymously for RTDB
+            if (auth) {
+              try {
+                const { signInAnonymously } = await import('firebase/auth');
+                await signInAnonymously(auth);
+                console.log('🔑 LAN staff signed in anonymously for RTDB');
+              } catch (anonErr) {
+                console.warn('Anonymous sign-in failed (LAN):', anonErr.message);
+              }
+            }
             triggerDashboardPrefetch();
             router.replace(getRefRedirectPath());
             return;
@@ -1555,7 +1565,24 @@ const Login = () => {
             await signInWithCustomToken(auth, data.firebaseCustomToken);
             console.log('🔑 Staff signed into Firebase Auth for real-time updates');
           } catch (fbErr) {
-            console.warn('Firebase Auth sign-in failed (non-blocking):', fbErr.message);
+            console.warn('Firebase Auth sign-in failed, trying anonymous:', fbErr.message);
+            // Fallback: anonymous sign-in so RTDB listeners work even without custom token
+            try {
+              const { signInAnonymously } = await import('firebase/auth');
+              await signInAnonymously(auth);
+              console.log('🔑 Staff signed in anonymously for RTDB access');
+            } catch (anonErr) {
+              console.warn('Anonymous sign-in also failed:', anonErr.message);
+            }
+          }
+        } else if (auth && !data.firebaseCustomToken) {
+          // No custom token returned — sign in anonymously for RTDB
+          try {
+            const { signInAnonymously } = await import('firebase/auth');
+            await signInAnonymously(auth);
+            console.log('🔑 Staff signed in anonymously for RTDB (no custom token)');
+          } catch (anonErr) {
+            console.warn('Anonymous sign-in failed:', anonErr.message);
           }
         }
 
@@ -1611,7 +1638,22 @@ const Login = () => {
           await signInWithCustomToken(auth, pendingLoginData.firebaseCustomToken);
           console.log('🔑 Staff signed into Firebase Auth for real-time updates');
         } catch (fbErr) {
-          console.warn('Firebase Auth sign-in failed (non-blocking):', fbErr.message);
+          console.warn('Firebase Auth sign-in failed, trying anonymous:', fbErr.message);
+          try {
+            const { signInAnonymously } = await import('firebase/auth');
+            await signInAnonymously(auth);
+            console.log('🔑 Staff signed in anonymously for RTDB access');
+          } catch (anonErr) {
+            console.warn('Anonymous sign-in also failed:', anonErr.message);
+          }
+        }
+      } else if (auth && !pendingLoginData.firebaseCustomToken) {
+        try {
+          const { signInAnonymously } = await import('firebase/auth');
+          await signInAnonymously(auth);
+          console.log('🔑 Staff signed in anonymously for RTDB (no custom token)');
+        } catch (anonErr) {
+          console.warn('Anonymous sign-in failed:', anonErr.message);
         }
       }
 

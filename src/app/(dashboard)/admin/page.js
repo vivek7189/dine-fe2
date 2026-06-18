@@ -3622,17 +3622,17 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
     },
     {
       key: 'usePusherForKOT',
-      title: 'Use Pusher for Real-time Print',
-      description: 'Use real-time Pusher events for instant print triggers',
+      title: 'Enable Real-time Print Events',
+      description: 'Send print events via Firebase so desktop terminal and KOT printer app can auto-print remotely',
       icon: <FaClock size={18} />,
-      section: 'web'
+      section: 'remote'
     },
     {
       key: 'showPrintNotifications',
       title: 'Show Print Notifications',
-      description: 'Show a small toast on desktop terminal when a remote print command arrives (useful for debugging)',
+      description: 'Show a small indicator on desktop terminal when a remote print command arrives (useful for debugging)',
       icon: <FaBell size={18} />,
-      section: 'web'
+      section: 'remote'
     },
     // Display settings (shared)
     {
@@ -3863,6 +3863,24 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                   </div>
                 </div>
               )}
+
+              {/* Remote Print — visible on both web and Electron */}
+              <div style={{ marginBottom: '20px', padding: '14px 16px', background: '#f0fdf4', borderRadius: '10px', border: '1px solid #bbf7d0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <FaClock size={14} style={{ color: '#16a34a' }} />
+                  <p style={{ fontSize: '13px', fontWeight: '600', color: '#15803d', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Remote Print
+                  </p>
+                </div>
+                <p style={{ fontSize: '11px', color: '#166534', margin: '0 0 10px 0' }}>
+                  Allow desktop terminal or KOT printer app to receive and print orders automatically.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {settingsConfig.filter(s => s.section === 'remote').map((setting) => (
+                    <SettingToggle key={setting.key} setting={setting} printSettings={printSettings} toggleSetting={toggleSetting} />
+                  ))}
+                </div>
+              </div>
 
               {/* Display Settings */}
               <div style={{ marginBottom: '20px' }}>
