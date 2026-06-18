@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, protocol } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { initOfflineEngine, shutdownOfflineEngine } = require('./offline');
@@ -78,6 +78,22 @@ function createWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+  });
+
+  // ──── Right-click context menu with Refresh Page ────
+  mainWindow.webContents.on('context-menu', (e, params) => {
+    const contextMenu = Menu.buildFromTemplate([
+      {
+        label: 'Refresh Page',
+        click: () => mainWindow.webContents.reload(),
+      },
+      { type: 'separator' },
+      { label: 'Copy', role: 'copy', enabled: params.editFlags.canCopy },
+      { label: 'Paste', role: 'paste', enabled: params.editFlags.canPaste },
+      { label: 'Cut', role: 'cut', enabled: params.editFlags.canCut },
+      { label: 'Select All', role: 'selectAll' },
+    ]);
+    contextMenu.popup();
   });
 
   // ──── Fix: Windows keyboard focus lost after alert()/confirm() dialogs ────
