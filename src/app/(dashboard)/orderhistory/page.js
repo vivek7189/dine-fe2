@@ -1625,25 +1625,25 @@ const OrderHistory = () => {
 
     if (order.status === 'completed') {
       // Bill/Invoice format - matches KOT Printer app's generateBillHtml
-      const subtotal = items.reduce((sum, item) => sum + (item.total || (item.price * item.quantity) || 0), 0);
+      const subtotal = items.reduce((sum, item) => sum + (Number(item.total) || (Number(item.price) * Number(item.quantity)) || 0), 0);
       let totalTax = 0;
       const taxBreakdownArr = [];
 
       if (order.taxBreakdown && Array.isArray(order.taxBreakdown) && order.taxBreakdown.length > 0) {
         order.taxBreakdown.forEach(t => {
-          const amt = t.amount || 0;
+          const amt = Number(t.amount) || 0;
           totalTax += amt;
           taxBreakdownArr.push({ name: t.name || 'Tax', rate: t.rate, amount: amt });
         });
-      } else if (order.taxAmount && order.taxAmount > 0) {
-        totalTax = order.taxAmount;
+      } else if (Number(order.taxAmount) > 0) {
+        totalTax = Number(order.taxAmount);
         taxBreakdownArr.push({ name: 'Tax', rate: null, amount: totalTax });
       }
 
-      const total = order.finalAmount && order.finalAmount > 0 ? order.finalAmount : (subtotal + totalTax);
+      const total = Number(order.finalAmount) > 0 ? Number(order.finalAmount) : (subtotal + totalTax);
       const symbol = getCurrencySymbol();
-      const itemsHtml = items.map(item => `<tr><td style="text-align:left;">${(item.name || '').replace(/</g,'&lt;')}</td><td style="text-align:center;">${item.quantity || 1}</td><td style="text-align:right;">${symbol}${((item.price || item.total/(item.quantity||1) || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`).join('');
-      const taxHtml = taxBreakdownArr.map(t => `<tr><td colspan="2" style="text-align:left;">${(t.name || 'Tax').replace(/</g,'&lt;')}${t.rate != null ? ` (${t.rate}%)` : ''}</td><td style="text-align:right;">${symbol}${(t.amount || 0).toFixed(2)}</td></tr>`).join('');
+      const itemsHtml = items.map(item => `<tr><td style="text-align:left;">${(item.name || '').replace(/</g,'&lt;')}</td><td style="text-align:center;">${item.quantity || 1}</td><td style="text-align:right;">${symbol}${((Number(item.price) || Number(item.total)/(Number(item.quantity)||1) || 0) * (Number(item.quantity) || 1)).toFixed(2)}</td></tr>`).join('');
+      const taxHtml = taxBreakdownArr.map(t => `<tr><td colspan="2" style="text-align:left;">${(t.name || 'Tax').replace(/</g,'&lt;')}${t.rate != null ? ` (${t.rate}%)` : ''}</td><td style="text-align:right;">${symbol}${(Number(t.amount) || 0).toFixed(2)}</td></tr>`).join('');
 
       // Build identity lines for print header
       const _idLines = [];
@@ -1765,13 +1765,16 @@ const OrderHistory = () => {
     }
   };
 
+  // Helper: safely convert any value to number (handles strings from Firestore)
+  const n = (v) => { const x = Number(v); return isNaN(x) ? 0 : x; };
+
   const getOrderBreakdown = (order) => {
     // Calculate subtotal from items (raw total before discounts)
     let subtotal = 0;
     if (order.items && Array.isArray(order.items)) {
-      subtotal = order.items.reduce((sum, item) => sum + (item.total || (item.price * item.quantity) || 0), 0);
-    } else if (order.subtotal && order.subtotal > 0) subtotal = order.subtotal;
-    else if (order.totalAmount && order.totalAmount > 0) subtotal = order.totalAmount;
+      subtotal = order.items.reduce((sum, item) => sum + (n(item.total) || (n(item.price) * n(item.quantity)) || 0), 0);
+    } else if (n(order.subtotal) > 0) subtotal = n(order.subtotal);
+    else if (n(order.totalAmount) > 0) subtotal = n(order.totalAmount);
     subtotal = parseFloat(subtotal.toFixed(2));
 
     let taxAmount = 0;
@@ -1782,13 +1785,13 @@ const OrderHistory = () => {
     if (order.taxBreakdown && Array.isArray(order.taxBreakdown) && order.taxBreakdown.length > 0) {
       // Use saved tax breakdown (individual tax lines)
       order.taxBreakdown.forEach(tax => {
-        const amt = parseFloat((tax.amount || 0).toFixed(2));
+        const amt = parseFloat(n(tax.amount).toFixed(2));
         taxAmount += amt;
         taxLines.push({ name: tax.name || 'Tax', rate: tax.rate, amount: amt });
       });
-    } else if (order.taxAmount && order.taxAmount > 0) {
+    } else if (n(order.taxAmount) > 0) {
       // Use saved total tax amount (for orders without detailed breakdown)
-      taxAmount = parseFloat(order.taxAmount.toFixed(2));
+      taxAmount = parseFloat(n(order.taxAmount).toFixed(2));
       taxLines.push({ name: 'Tax', rate: null, amount: taxAmount });
     }
     // Note: No fallback to current taxSettings - this prevents showing wrong tax on old orders
@@ -1798,35 +1801,35 @@ const OrderHistory = () => {
     let discountAmount = 0;
     const discountLines = [];
 
-    if (order.discountAmount && order.discountAmount > 0) {
-      const amt = parseFloat(order.discountAmount.toFixed(2));
+    if (n(order.discountAmount) > 0) {
+      const amt = parseFloat(n(order.discountAmount).toFixed(2));
       discountAmount += amt;
       const offerName = (typeof order.appliedOffer === 'string' ? order.appliedOffer : order.appliedOffer?.name) || order.selectedOfferName || (order.appliedOffers?.length > 0 ? (typeof order.appliedOffers[0] === 'string' ? order.appliedOffers[0] : order.appliedOffers[0]?.name) : null) || 'Offer Discount';
       discountLines.push({ name: offerName, amount: amt });
     }
-    if (order.manualDiscount && order.manualDiscount > 0) {
-      const amt = parseFloat(order.manualDiscount.toFixed(2));
+    if (n(order.manualDiscount) > 0) {
+      const amt = parseFloat(n(order.manualDiscount).toFixed(2));
       discountAmount += amt;
       discountLines.push({ name: 'Manual Discount', amount: amt });
     }
-    if (order.loyaltyDiscount && order.loyaltyDiscount > 0) {
-      const amt = parseFloat(order.loyaltyDiscount.toFixed(2));
+    if (n(order.loyaltyDiscount) > 0) {
+      const amt = parseFloat(n(order.loyaltyDiscount).toFixed(2));
       discountAmount += amt;
       discountLines.push({ name: 'Loyalty Points', amount: amt });
     }
-    if (order.couponDiscount && order.couponDiscount > 0) {
-      const amt = parseFloat(order.couponDiscount.toFixed(2));
+    if (n(order.couponDiscount) > 0) {
+      const amt = parseFloat(n(order.couponDiscount).toFixed(2));
       discountAmount += amt;
       discountLines.push({ name: order.couponCode ? `Coupon (${order.couponCode})` : 'Coupon Discount', amount: amt });
     }
 
     // Billing feature amounts
-    const serviceCharge = order.serviceChargeAmount ? parseFloat(order.serviceChargeAmount.toFixed(2)) : 0;
-    const tip = order.tipAmount ? parseFloat(Number(order.tipAmount).toFixed(2)) : 0;
-    const roundOff = order.roundOffAmount ? parseFloat(Number(order.roundOffAmount).toFixed(2)) : 0;
+    const serviceCharge = n(order.serviceChargeAmount) ? parseFloat(n(order.serviceChargeAmount).toFixed(2)) : 0;
+    const tip = n(order.tipAmount) ? parseFloat(n(order.tipAmount).toFixed(2)) : 0;
+    const roundOff = n(order.roundOffAmount) ? parseFloat(n(order.roundOffAmount).toFixed(2)) : 0;
 
     // Use saved finalAmount if available, otherwise calculate
-    const fa = order.finalAmount ? Number(order.finalAmount) : 0;
+    const fa = n(order.finalAmount);
     const total = fa > 0
       ? parseFloat(fa.toFixed(2))
       : parseFloat((subtotal - discountAmount + serviceCharge + taxAmount + tip + roundOff).toFixed(2));
@@ -1839,10 +1842,10 @@ const OrderHistory = () => {
     if (total > 0) return total;
     let subtotal = 0;
     if (order.items && Array.isArray(order.items)) {
-      subtotal = order.items.reduce((sum, item) => sum + (item.total || (item.price * item.quantity) || 0), 0);
-    } else if (order.totalAmount && order.totalAmount > 0) subtotal = order.totalAmount;
-    const fa2 = order.finalAmount ? Number(order.finalAmount) : 0;
-    if (fa2 > 0) return parseFloat(fa2.toFixed(2));
+      subtotal = order.items.reduce((sum, item) => sum + (n(item.total) || (n(item.price) * n(item.quantity)) || 0), 0);
+    } else if (n(order.totalAmount) > 0) subtotal = n(order.totalAmount);
+    const fa = n(order.finalAmount);
+    if (fa > 0) return parseFloat(fa.toFixed(2));
     return parseFloat(subtotal.toFixed(2));
   };
 
