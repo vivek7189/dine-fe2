@@ -148,7 +148,10 @@ const MenuCube = ({ categories, menu, onCategorySelect }) => {
   );
 };
 
-const CubeMenu = ({ categories, menu, onCategorySelect, currencySymbol = '₹' }) => {
+const CubeMenu = ({ categories, menu, onCategorySelect, currencySymbol = '₹', restaurant }) => {
+  // Hide image check: global setting or per-item flag (for future use when images are added)
+  const shouldHideImage = (item) => restaurant?.posSettings?.hideMenuImages === true || item?.hideImage;
+
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

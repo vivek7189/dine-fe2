@@ -27,6 +27,9 @@ const Carousel3DMenu = ({ menu, categories, restaurant, addToCart, cart, currenc
   const [activeCategory, setActiveCategory] = useState(categories[0] || 'All');
   const [activeIndex, setActiveIndex] = useState(0);
   const categoriesRef = useRef(null);
+
+  // Hide image check: global setting or per-item flag
+  const shouldHideImage = (item) => restaurant?.posSettings?.hideMenuImages === true || item.hideImage;
   
   // Touch state
   const touchStartX = useRef(0);
@@ -192,12 +195,12 @@ const Carousel3DMenu = ({ menu, categories, restaurant, addToCart, cart, currenc
       
       {/* Background Ambience */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-        {activeItem && (
-           <div 
+        {activeItem && !shouldHideImage(activeItem) && (
+           <div
              className="absolute inset-0 bg-cover bg-center transition-all duration-700 ease-in-out transform scale-110 opacity-14"
-             style={{ 
+             style={{
                backgroundImage: `url(${getDisplayImage(activeItem)})`,
-               filter: 'blur(24px)' 
+               filter: 'blur(24px)'
              }}
            />
         )}
@@ -287,9 +290,10 @@ const Carousel3DMenu = ({ menu, categories, restaurant, addToCart, cart, currenc
                 }}
               >
                 {/* Image */}
+                {!shouldHideImage(item) && (
                 <div className="h-[52%] w-full relative overflow-hidden group bg-gray-100">
-                  <img 
-                    src={getDisplayImage(item)} 
+                  <img
+                    src={getDisplayImage(item)}
                     alt={item.name}
                     className="w-full h-full object-cover"
                   />
@@ -312,9 +316,10 @@ const Carousel3DMenu = ({ menu, categories, restaurant, addToCart, cart, currenc
                   {/* Gradient Overlay */}
                   <div className="absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t from-black/20 to-transparent" />
                 </div>
+                )}
 
                 {/* Content */}
-                <div className="h-[48%] bg-white p-3 flex flex-col justify-between relative z-10">
+                <div className={`${shouldHideImage(item) ? 'h-full' : 'h-[48%]'} bg-white p-3 flex flex-col justify-between relative z-10`}>
                   <div className="transform -translate-y-6 mb-[-14px]">
                      <div className="bg-white rounded-xl p-3 shadow border border-gray-100 text-center">
                         <h3 className="text-base font-extrabold text-gray-900 mb-1 line-clamp-1">{item.name}</h3>

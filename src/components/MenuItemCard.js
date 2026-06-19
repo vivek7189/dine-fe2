@@ -74,7 +74,7 @@ const MenuItemCard = ({
 
   // Image URL - memoized to prevent unnecessary recalculations
   const imageUrl = useMemo(() => getDisplayImage(item), [item.image, item.id]);
-  const hasImage = hideImages ? false : (imageUrl !== null);
+  const hasImage = (hideImages || item.hideImage) ? false : (imageUrl !== null);
 
   // Simple ref for image element
   const imageRef = useRef(null);

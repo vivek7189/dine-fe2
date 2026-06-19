@@ -2099,6 +2099,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
                     cartQuantity={cart.find(cartItem => cartItem.id === item.id)?.quantity || 0}
                     getCategoryColor={getCategoryColor}
                     cs={cs}
+                    globalHideImages={restaurant?.posSettings?.hideMenuImages === true}
                   />
                 ))}
               </div>
@@ -2545,14 +2546,15 @@ const OffersBanner = ({ offers, gradientStart, gradientEnd, cs = '₹' }) => {
 };
 
 // Menu Item Card Component
-const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCategoryColor, cs = '₹' }) => {
+const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCategoryColor, cs = '₹', globalHideImages = false }) => {
   const isVeg = item.isVeg !== false;
   const [isHovered, setIsHovered] = useState(false);
   const indicatorColor = isVeg ? '#22c55e' : '#ef4444';
+  const shouldHideImage = globalHideImages || item.hideImage;
 
   // Use getDisplayImage to get proper image URL (user uploaded or placeholder)
-  const imageUrl = getDisplayImage(item);
-  const hasUserImages = item.images && item.images.length > 0;
+  const imageUrl = shouldHideImage ? null : getDisplayImage(item);
+  const hasUserImages = !shouldHideImage && item.images && item.images.length > 0;
 
   return (
     <div
@@ -2572,6 +2574,7 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Image */}
+      {!shouldHideImage && (
       <div style={{
         width: '110px',
         height: '110px',
@@ -2613,6 +2616,7 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
           </div>
         )}
       </div>
+      )}
 
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', height: '110px' }}>

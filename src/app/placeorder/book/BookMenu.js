@@ -228,7 +228,10 @@ const Sheet = ({ sheetIndex, currentSheet, pair, menu, onFlip }) => {
   );
 };
 
-const BookMenu = ({ categories = [], menu = [], currentPage = 0, onPageChange = () => {}, onCategorySelect }) => {
+const BookMenu = ({ categories = [], menu = [], currentPage = 0, onPageChange = () => {}, onCategorySelect, restaurant }) => {
+  // Hide image check: global setting or per-item flag (for future use when images are added)
+  const shouldHideImage = (item) => restaurant?.posSettings?.hideMenuImages === true || item?.hideImage;
+
   useEffect(() => {}, []);
 
   const sheets = useMemo(() => chunkCategories(categories), [categories]);

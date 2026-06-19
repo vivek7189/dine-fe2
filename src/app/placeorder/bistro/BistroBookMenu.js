@@ -493,7 +493,10 @@ const Sheet = ({ index, currentSheet, pair, menu, onFlip, isMobile, onAddToCart,
   );
 };
 
-const BistroBookMenu = ({ categories = [], menu = [], currentSheet = 0, onSheetChange = () => {}, onAddToCart = () => {}, cart = [], onRemoveFromCart = () => {} }) => {
+const BistroBookMenu = ({ categories = [], menu = [], currentSheet = 0, onSheetChange = () => {}, onAddToCart = () => {}, cart = [], onRemoveFromCart = () => {}, restaurant }) => {
+  // Hide image check: global setting or per-item flag (for future use when images are added)
+  const shouldHideImage = (item) => restaurant?.posSettings?.hideMenuImages === true || item?.hideImage;
+
   // Ensure all menu items are included - add "Other" category for items without a category
   const normalizedCategories = useMemo(() => {
     const catSet = new Set(categories.map(c => (c || '').toString().trim().toLowerCase()));

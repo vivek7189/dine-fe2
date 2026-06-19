@@ -144,11 +144,13 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
             <div className="space-y-4">
               {items.map(item => {
                 const qty = getCartQuantity(item.id);
-                const displayImage = getDisplayImage(item);
-                
+                const shouldHideImage = restaurant?.posSettings?.hideMenuImages === true || item.hideImage;
+                const displayImage = shouldHideImage ? null : getDisplayImage(item);
+
                 return (
                   <div key={item.id} className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex gap-4 transition-all hover:shadow-md">
                     {/* Item Image */}
+                    {!shouldHideImage && (
                     <div className="w-28 h-28 shrink-0 rounded-xl overflow-hidden bg-gray-100 relative group">
                       {displayImage ? (
                         <img src={displayImage} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
@@ -168,6 +170,7 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
                         )}
                       </div>
                     </div>
+                    )}
 
                     {/* Content */}
                     <div className="flex-1 flex flex-col justify-between min-w-0 py-1">

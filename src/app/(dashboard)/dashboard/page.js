@@ -231,12 +231,14 @@ function RestaurantPOSContent() {
   const isMobileEmbed = isMobile && typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showMobileEmbedSearch, setShowMobileEmbedSearch] = useState(false);
-  const [hideMenuImages, setHideMenuImages] = useState(() => {
+  const [hideMenuImagesLocal, setHideMenuImagesLocal] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('dine_hide_menu_images') === 'true';
     }
     return false;
   });
+  // Global restaurant setting overrides local preference
+  const hideMenuImages = selectedRestaurant?.posSettings?.hideMenuImages === true || hideMenuImagesLocal;
 
   // Category sidebar width constant (compact, part of menu section)
   const categorySidebarWidth = 150;
@@ -6410,8 +6412,8 @@ function RestaurantPOSContent() {
             {isMobileEmbed && (
               <button
                 onClick={() => {
-                  const newVal = !hideMenuImages;
-                  setHideMenuImages(newVal);
+                  const newVal = !hideMenuImagesLocal;
+                  setHideMenuImagesLocal(newVal);
                   localStorage.setItem('dine_hide_menu_images', String(newVal));
                 }}
                 style={{

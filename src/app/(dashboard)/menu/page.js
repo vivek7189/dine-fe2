@@ -537,6 +537,7 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
         }}
       >
         {/* Image */}
+        {!(globalHideImages || item.hideImage) && (
         <div style={{ height: '90px', position: 'relative', overflow: 'hidden', background: '#f3f4f6' }}>
           {(item.images && item.images.length > 0) ? (
             <ImageCarousel images={item.images} itemName={item.name} maxHeight="90px" showControls={false} showDots={false} autoPlay={false} className="w-full h-full" />
@@ -579,6 +580,7 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
             </div>
           )}
         </div>
+        )}
         {/* Content */}
         <div style={{ padding: '8px 10px 10px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
@@ -659,6 +661,7 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
       }}>
       
       {/* Image Section */}
+      {!(globalHideImages || item.hideImage) && (
       <div style={{
         height: '120px',
         position: 'relative',
@@ -714,7 +717,7 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
             </div>
           );
         })()}
-        
+
         {/* Overlay Gradient */}
         <div style={{
           position: 'absolute',
@@ -725,7 +728,7 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
           background: 'linear-gradient(transparent, rgba(0, 0, 0, 0.1))',
           pointerEvents: 'none'
         }} />
-        
+
         {/* Veg/Non-Veg Badge */}
         <div style={{
           position: 'absolute',
@@ -749,7 +752,7 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
             borderRadius: item.isVeg ? '2px' : '50%'
           }} />
         </div>
-        
+
         {/* Availability Badge */}
         {!item.isAvailable && (
           <div style={{
@@ -814,6 +817,7 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
           </div>
         )}
       </div>
+      )}
       
       {/* Content Section */}
       <div style={{
@@ -1654,7 +1658,7 @@ const ItemDetailModal = ({ item, categoryMap, isOpen, onClose, onEdit, onDelete,
             </div>
 
             {/* Images */}
-            {(item.images && item.images.length > 0) && (
+            {!(globalHideImages || item.hideImage) && (item.images && item.images.length > 0) && (
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{
                   fontSize: '16px',
@@ -2139,6 +2143,7 @@ const MenuManagement = () => {
     qsr: { item: t('menu.item'), add: t('menu.addItem'), empty: t('menu.startQsrMenu'), emptyDesc: t('menu.addQsrDesc'), icon: '🍔', label: t('menu.labelQuickService'), accent: '#ea580c', accentLight: '#fff7ed', gradient: 'linear-gradient(135deg, #f97316, #ea580c)' },
   };
   const btype = businessTypeConfig[currentRestaurant?.businessType] || businessTypeConfig.restaurant;
+  const globalHideImages = currentRestaurant?.posSettings?.hideMenuImages === true;
   const [isClient, setIsClient] = useState(false);
   const [collapsedCategories, setCollapsedCategories] = useState({});
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
@@ -2161,6 +2166,7 @@ const MenuManagement = () => {
   const canEditMenuItem = canPerform(menuUserData, menuPageAccess, 'menu', 'update');
   const canDeleteMenuItem = canPerform(menuUserData, menuPageAccess, 'menu', 'delete');
   const canMarkOutOfStock = canPerform(menuUserData, menuPageAccess, 'menu', 'markOutOfStock');
+  const isOwnerOrAdmin = ['owner', 'admin'].includes(menuUserData.role);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -2893,6 +2899,7 @@ const MenuManagement = () => {
       expiryDate: item.expiryDate || '',
       servingSize: item.servingSize || '',
       scoopOptions: item.scoopOptions?.toString() || '',
+      hideImage: item.hideImage || false,
       pricingRules: item.pricingRules || {},
       taxInclusive: item.taxInclusive != null ? item.taxInclusive : null,
       // Pre-populate channel prices from pricing rules
@@ -3839,6 +3846,7 @@ const MenuManagement = () => {
               { icon: <FaCamera size={isMobileEmbed ? 11 : 16} />, label: t('menu.photo'), onClick: handleCameraCapture, bg: '#fffbeb', color: '#d97706', hoverBg: '#fef3c7', border: '#fde68a' },
               { icon: <FaQrcode size={isMobileEmbed ? 11 : 16} />, label: t('menu.qrCode'), onClick: () => setShowQRCodeModal(true), bg: '#ecfdf5', color: '#059669', hoverBg: '#d1fae5', border: '#a7f3d0' },
               { icon: <FaEye size={isMobileEmbed ? 11 : 16} />, label: t('menu.customize'), onClick: () => { const rid = currentRestaurant?.id || localStorage.getItem('restaurantId'); const p = `/menu/customize${rid ? `?restaurant=${rid}` : ''}`; router.push(isMobileEmbed ? `/mobile${p}` : p); }, bg: '#eff6ff', color: '#2563eb', hoverBg: '#dbeafe', border: '#bfdbfe' },
+              ...(isOwnerOrAdmin ? [{ icon: <FaImage size={isMobileEmbed ? 11 : 16} />, label: globalHideImages ? 'Show Images' : 'Hide Images', onClick: async () => { const newVal = !globalHideImages; try { await apiClient.updateRestaurant(currentRestaurant.id, { posSettings: { hideMenuImages: newVal } }); setCurrentRestaurant(prev => ({ ...prev, posSettings: { ...prev?.posSettings, hideMenuImages: newVal } })); } catch (e) { console.error('Failed to toggle images:', e); } }, bg: globalHideImages ? '#fef2f2' : '#f0fdf4', color: globalHideImages ? '#dc2626' : '#059669', hoverBg: globalHideImages ? '#fee2e2' : '#dcfce7', border: globalHideImages ? '#fecaca' : '#a7f3d0' }] : []),
             ].map((action, i) => (
               <button
                 key={i}
@@ -5513,6 +5521,27 @@ const MenuManagement = () => {
                       uploading={uploadingImages}
                     />
               </div>
+
+              {/* Hide Image Toggle */}
+                {editingItem && isOwnerOrAdmin && (
+                  <div style={{ marginBottom: '16px', padding: '10px 12px', backgroundColor: formData.hideImage ? '#fef2f2' : '#f9fafb', borderRadius: '8px', border: `1px solid ${formData.hideImage ? '#fecaca' : '#e5e7eb'}`, display: 'flex', alignItems: 'center', gap: '10px', transition: 'all 0.2s ease' }}>
+                    <input
+                      type="checkbox"
+                      id="hideImage"
+                      checked={formData.hideImage || false}
+                      onChange={(e) => setFormData({...formData, hideImage: e.target.checked})}
+                      style={{ width: '16px', height: '16px', accentColor: '#ef4444', cursor: 'pointer', flexShrink: 0 }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <label htmlFor="hideImage" style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: formData.hideImage ? '#991b1b' : '#374151', cursor: 'pointer' }}>
+                        Hide image for this item
+                      </label>
+                      <p style={{ fontSize: '11px', color: formData.hideImage ? '#b91c1c' : '#6b7280', margin: '2px 0 0 0' }}>
+                        Image will not be shown on POS menu across all devices
+                      </p>
+                    </div>
+                  </div>
+                )}
 
               {/* AI Recipe Generation Toggle — hide for bar */}
               {!editingItem && !isBarMode && (
