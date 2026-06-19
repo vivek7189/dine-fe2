@@ -53,7 +53,8 @@ import {
   FaCamera,
   FaCheckCircle,
   FaFlask,
-  FaBarcode
+  FaBarcode,
+  FaEyeSlash
 } from 'react-icons/fa';
 const RecipeFormBody = dynamic(() => import('../inventory/components/InventoryModals').then(m => ({ default: m.RecipeFormBody })), { ssr: false });
 
@@ -500,7 +501,7 @@ const CustomDropdown = ({ value, onChange, options, placeholder, style = {} }) =
 };
 
 // Ultra Compact Menu Item Card Component
-const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onGenerateRecipe, generatingRecipeFor, hasRecipe, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, taxInclusiveGlobal, compact, scaleBarcodeFlag, scalePluDigits, globalHideImages = false }) => {
+const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onToggleHideImage, onGenerateRecipe, generatingRecipeFor, hasRecipe, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, taxInclusiveGlobal, compact, scaleBarcodeFlag, scalePluDigits, globalHideImages = false }) => {
   const { formatCurrency: formatCurrencyHook } = useCurrency();
   const formatCurrency = formatCurrencyProp || formatCurrencyHook;
 
@@ -624,6 +625,17 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
                     background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: '#fff',
                   }}>
                   <FaEdit size={10} />
+                </button>
+              )}
+              {onToggleHideImage && (
+                <button type="button" onClick={(e) => { e.stopPropagation(); onToggleHideImage(item); }}
+                  title={item.hideImage ? 'Show image' : 'Hide image'}
+                  style={{
+                    padding: '5px', border: 'none', borderRadius: '6px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: item.hideImage ? 'linear-gradient(135deg, #6b7280, #4b5563)' : 'linear-gradient(135deg, #8b5cf6, #7c3aed)', color: '#fff',
+                  }}>
+                  {item.hideImage ? <FaEyeSlash size={10} /> : <FaImage size={10} />}
                 </button>
               )}
             </div>
@@ -1195,6 +1207,33 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
               {item.isAvailable ? <FaMinus size={12} /> : <FaCheck size={12} />}
           </button>}
 
+          {onToggleHideImage && <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onToggleHideImage(item);
+              }}
+              style={{
+                padding: '8px',
+                background: item.hideImage
+                  ? 'linear-gradient(135deg, #6b7280, #4b5563)'
+                  : 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 4px rgba(139, 92, 246, 0.2)'
+              }}
+              title={item.hideImage ? 'Show image' : 'Hide image'}
+            >
+              {item.hideImage ? <FaEyeSlash size={12} /> : <FaImage size={12} />}
+          </button>}
+
           {onDelete && <button
               type="button"
               onClick={(e) => {
@@ -1252,7 +1291,7 @@ const getCategoryColor = (category, opacity = 1) => {
 };
 
 // List View Item Component
-const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability, onToggleFavorite, getCategoryEmoji }) => {
+const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onToggleHideImage, getCategoryEmoji }) => {
   const { formatCurrency } = useCurrency();
 
   // Stock & expiry computed values
@@ -1485,6 +1524,29 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
           title={item.isAvailable ? t('menu.markOutOfStock') : t('menu.markAvailable')}
         >
           {item.isAvailable ? <FaMinus size={10} /> : <FaCheck size={10} />}
+        </button>}
+        {onToggleHideImage && <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onToggleHideImage(item);
+          }}
+          style={{
+            padding: '6px',
+            backgroundColor: item.hideImage ? '#6b7280' : '#8b5cf6',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          title={item.hideImage ? 'Show image' : 'Hide image'}
+        >
+          {item.hideImage ? <FaEyeSlash size={10} /> : <FaImage size={10} />}
         </button>}
         {onDelete && <button
           type="button"
@@ -3035,6 +3097,21 @@ const MenuManagement = () => {
     }
   }, [currentRestaurant?.id, isOnline, loadMenuData]);
 
+  const handleToggleHideImage = useCallback(async (item) => {
+    if (!currentRestaurant?.id) return;
+    const newVal = !item.hideImage;
+    // Optimistic update
+    setMenuItems(prev => prev.map(m => m.id === item.id ? { ...m, hideImage: newVal } : m));
+    try {
+      await apiClient.updateMenuItem(item.id, { hideImage: newVal }, currentRestaurant.id);
+      updateMenuItemInAllCaches(currentRestaurant.id, item.id, { hideImage: newVal }).catch(() => {});
+    } catch (e) {
+      console.error('Failed to toggle hideImage:', e);
+      // Revert
+      setMenuItems(prev => prev.map(m => m.id === item.id ? { ...m, hideImage: !newVal } : m));
+    }
+  }, [currentRestaurant?.id]);
+
   const handleToggleAvailability = useCallback(async (itemId, currentStatus) => {
     try {
       setOperationLoading(true);
@@ -4230,6 +4307,7 @@ const MenuManagement = () => {
                   scaleBarcodeFlag={currentRestaurant?.posSettings?.scaleBarcodeFlag}
                   scalePluDigits={currentRestaurant?.posSettings?.scalePluDigits}
                   globalHideImages={globalHideImages}
+                  onToggleHideImage={isOwnerOrAdmin ? handleToggleHideImage : undefined}
                 />
               ))}
             </div>
