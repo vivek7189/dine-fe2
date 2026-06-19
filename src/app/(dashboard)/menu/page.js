@@ -500,7 +500,7 @@ const CustomDropdown = ({ value, onChange, options, placeholder, style = {} }) =
 };
 
 // Ultra Compact Menu Item Card Component
-const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onGenerateRecipe, generatingRecipeFor, hasRecipe, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, taxInclusiveGlobal, compact, scaleBarcodeFlag, scalePluDigits }) => {
+const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onGenerateRecipe, generatingRecipeFor, hasRecipe, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, taxInclusiveGlobal, compact, scaleBarcodeFlag, scalePluDigits, globalHideImages = false }) => {
   const { formatCurrency: formatCurrencyHook } = useCurrency();
   const formatCurrency = formatCurrencyProp || formatCurrencyHook;
 
@@ -1515,7 +1515,7 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
 };
 
 // Item Detail Modal Component
-const ItemDetailModal = ({ item, categoryMap, isOpen, onClose, onEdit, onDelete, onToggleAvailability, getCategoryEmoji, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, recipe }) => {
+const ItemDetailModal = ({ item, categoryMap, isOpen, onClose, onEdit, onDelete, onToggleAvailability, getCategoryEmoji, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, recipe, globalHideImages = false }) => {
   const { formatCurrency: formatCurrencyHook } = useCurrency();
   const formatCurrency = formatCurrencyProp || formatCurrencyHook;
   if (!isOpen || !item) return null;
@@ -4229,6 +4229,7 @@ const MenuManagement = () => {
                   compact={isMobile}
                   scaleBarcodeFlag={currentRestaurant?.posSettings?.scaleBarcodeFlag}
                   scalePluDigits={currentRestaurant?.posSettings?.scalePluDigits}
+                  globalHideImages={globalHideImages}
                 />
               ))}
             </div>
@@ -6464,6 +6465,7 @@ const MenuManagement = () => {
         activePricingRules={activePricingRules}
         formatCurrency={formatCurrency}
         recipe={selectedItem ? menuItemRecipes[selectedItem.id] : null}
+        globalHideImages={globalHideImages}
       />
     </div>
   );
