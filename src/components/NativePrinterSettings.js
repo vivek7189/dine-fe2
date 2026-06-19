@@ -39,6 +39,10 @@ export default function NativePrinterSettings({ restaurantId }) {
   const [isNetworkScanning, setIsNetworkScanning] = useState(false);
   const [networkPrinters, setNetworkPrinters] = useState([]); // manually added IP printers
   const [printerHealth, setPrinterHealth] = useState({}); // { [printerName]: 'online'|'offline'|'checking' }
+  const [categories, setCategories] = useState([]); // menu categories for station assignment
+  const [editingDestination, setEditingDestination] = useState(null); // stationId being edited
+  const [newStationForm, setNewStationForm] = useState(null); // { name, type, categoryIds }
+  const [expandedStation, setExpandedStation] = useState(null); // stationId with expanded categories
   const isElectronPlatform = !isWeb() && isElectron();
   const isCapacitorPlatform = !isWeb() && isCapacitor();
   // Show printer routing for both Electron and Capacitor
@@ -282,10 +286,11 @@ export default function NativePrinterSettings({ restaurantId }) {
   // Load print stations from API + station printer config from device
   useEffect(() => {
     if (isWeb() || !restaurantId) return;
-    // Fetch print stations
+    // Fetch print stations and categories
     apiClient.getPrintStations(restaurantId).then(res => {
       if (res?.success) {
         setPrintStations((res.printStations || []).filter(s => s.enabled));
+        if (res.categories) setCategories(res.categories);
       }
     }).catch(() => {});
     // Fetch station printer assignments from local device config
@@ -386,6 +391,100 @@ export default function NativePrinterSettings({ restaurantId }) {
     }
     setTimeout(() => setStationTestStatus(prev => ({ ...prev, [stationId]: null })), 3000);
   }, []);
+
+  // --- Multi-printer helpers ---
+  const printerMode = printStations.length > 0 ? 'multi' : 'simple';
+
+  const updateStationCategories = useCallback(async (stationId, categoryIds) => {
+    const updated = printStations.map(s =>
+      s.id === stationId ? { ...s, categoryIds, updatedAt: new Date().toISOString() } : s
+    );
+    try {
+      const res = await apiClient.updatePrintStations(restaurantId, updated, 'multi');
+      if (res?.success) setPrintStations((res.printStations || updated).filter(s => s.enabled));
+    } catch (err) { console.error('Failed to update station categories:', err); }
+  }, [printStations, restaurantId]);
+
+  const addStation = useCallback(async (form) => {
+    if (!form?.name?.trim()) return;
+    const newStation = {
+      id: `ps_${Date.now().toString(36)}`,
+      name: form.name.trim(),
+      type: form.type || 'kitchen',
+      categoryIds: form.categoryIds || [],
+      isDefault: printStations.length === 0,
+      enabled: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const updated = [...printStations, newStation];
+    try {
+      const res = await apiClient.updatePrintStations(restaurantId, updated, 'multi');
+      if (res?.success) {
+        setPrintStations((res.printStations || updated).filter(s => s.enabled));
+        if (res.categories) setCategories(res.categories);
+        setNewStationForm(null);
+      }
+    } catch (err) { console.error('Failed to add station:', err); }
+  }, [printStations, restaurantId]);
+
+  const deleteStation = useCallback(async (stationId) => {
+    if (!confirm('Delete this station? This cannot be undone.')) return;
+    const updated = printStations.filter(s => s.id !== stationId);
+    const mode = updated.length > 0 ? 'multi' : 'single';
+    try {
+      await apiClient.updatePrintStations(restaurantId, updated, mode);
+      setPrintStations(updated);
+      const updatedSP = { ...stationPrinters };
+      delete updatedSP[stationId];
+      setStationPrinters(updatedSP);
+      if (isElectronPlatform && window.electronAPI?.setPrinterConfig) {
+        await window.electronAPI.setPrinterConfig({ stationPrinters: { [stationId]: null } });
+      }
+    } catch (err) { console.error('Failed to delete station:', err); }
+  }, [printStations, stationPrinters, restaurantId, isElectronPlatform]);
+
+  const updateStation = useCallback(async (stationId, updates) => {
+    const updated = printStations.map(s =>
+      s.id === stationId ? { ...s, ...updates, updatedAt: new Date().toISOString() } : s
+    );
+    try {
+      const res = await apiClient.updatePrintStations(restaurantId, updated, 'multi');
+      if (res?.success) setPrintStations((res.printStations || updated).filter(s => s.enabled));
+      setEditingDestination(null);
+    } catch (err) { console.error('Failed to update station:', err); }
+  }, [printStations, restaurantId]);
+
+  const switchToSimple = useCallback(async () => {
+    if (!confirm('Switch to simple mode? This will clear printer routing on this device. Your stations will be preserved.')) return;
+    assignPrinter('kot', null);
+    assignPrinter('bill', null);
+    if (isElectronPlatform && window.electronAPI?.setPrinterConfig) {
+      const clearMap = {};
+      for (const s of printStations) clearMap[s.id] = null;
+      await window.electronAPI.setPrinterConfig({ stationPrinters: clearMap });
+    }
+    setStationPrinters({});
+    // Delete all stations from server to go back to simple mode
+    try {
+      await apiClient.updatePrintStations(restaurantId, [], 'single');
+      setPrintStations([]);
+    } catch (err) { console.error('Failed to clear stations:', err); }
+  }, [printStations, assignPrinter, isElectronPlatform, restaurantId]);
+
+  const switchToMulti = useCallback(() => {
+    setNewStationForm({ name: '', type: 'kitchen', categoryIds: [] });
+  }, []);
+
+  const STATION_TYPES = [
+    { id: 'kitchen', label: 'Kitchen' },
+    { id: 'bar', label: 'Bar' },
+    { id: 'expo', label: 'Expo' },
+    { id: 'pastry', label: 'Pastry' },
+    { id: 'other', label: 'Other' },
+  ];
+
+  const assignedCatIds = new Set(printStations.flatMap(s => s.categoryIds || []));
 
   // Don't render on web (after all hooks)
   if (webPlatform) return null;
@@ -603,148 +702,75 @@ export default function NativePrinterSettings({ restaurantId }) {
         </div>
       )}
 
-      {/* KOT / Bill Printer Assignment (Electron + Capacitor) */}
+      {/* ── Print Destinations — Unified Printer Routing ── */}
       {supportsRouting && printers.length > 0 && (
-        <div style={{
-          marginTop: '12px', padding: '12px', backgroundColor: '#eff6ff',
-          borderRadius: '8px', border: '1px solid #bfdbfe',
-        }}>
-          <div style={{ fontSize: '13px', fontWeight: 600, color: '#1d4ed8', marginBottom: '10px' }}>
-            Printer Routing — Assign printers by job type
-          </div>
+        <div style={{ marginTop: '12px' }}>
 
-          {/* KOT Printer */}
-          <div style={{ marginBottom: '10px' }}>
-            <div style={{ fontSize: '12px', fontWeight: 500, color: '#374151', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              KOT Printer (Kitchen Orders)
-              {isElectronPlatform && kotPrinter && printerHealth[kotPrinter.name] && (
-                <span style={{
-                  width: '7px', height: '7px', borderRadius: '50%',
-                  backgroundColor: printerHealth[kotPrinter.name] === 'online' ? '#22c55e' : '#ef4444',
-                }} title={printerHealth[kotPrinter.name] === 'online' ? 'Online' : 'Offline'} />
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-              <select
-                value={kotPrinter?.address || kotPrinter?.name || ''}
-                onChange={(e) => {
-                  const p = printers.find(pr => pr.address === e.target.value || pr.name === e.target.value);
-                  assignPrinter('kot', p || null);
-                }}
-                style={{
-                  flex: 1, padding: '6px 10px', fontSize: '13px', borderRadius: '6px',
-                  border: '1px solid #d1d5db', backgroundColor: 'white',
-                }}
-              >
-                <option value="">Use default printer</option>
-                {printers.map((p, i) => (
-                  <option key={p.address || i} value={isElectronPlatform ? p.name : p.address}>
-                    {p.name}{p.type === 'serial' ? ' (Built-in)' : ''}
-                  </option>
-                ))}
-              </select>
+          {/* Mode indicator */}
+          {printerMode === 'simple' ? (
+            <div style={{
+              padding: '12px', backgroundColor: '#f0fdf4', borderRadius: '8px',
+              border: '1px solid #bbf7d0',
+            }}>
+              <div style={{ fontSize: '13px', fontWeight: 500, color: '#15803d', marginBottom: '4px' }}>
+                All KOT and bill prints go to the selected printer above.
+              </div>
               <button
-                onClick={testKotPrint}
-                disabled={!kotPrinter || testKotStatus === 'printing'}
+                onClick={switchToMulti}
                 style={{
-                  padding: '6px 12px', fontSize: '12px', fontWeight: 500,
-                  backgroundColor: kotPrinter ? '#f97316' : '#e5e7eb', color: 'white',
-                  border: 'none', borderRadius: '6px',
-                  cursor: kotPrinter ? 'pointer' : 'not-allowed',
+                  fontSize: '12px', color: '#1d4ed8', background: 'none', border: 'none',
+                  cursor: 'pointer', padding: 0, textDecoration: 'underline',
                 }}
               >
-                {testKotStatus === 'printing' ? '...' : testKotStatus === 'success' ? 'OK' : testKotStatus === 'error' ? 'Fail' : 'Test'}
+                Need multiple printers? Set up multi-printer routing →
               </button>
             </div>
-          </div>
+          ) : (
+            <div style={{
+              padding: '12px', backgroundColor: '#eff6ff', borderRadius: '8px',
+              border: '1px solid #bfdbfe',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#1d4ed8' }}>
+                  Print Destinations
+                </div>
+                <span style={{ fontSize: '11px', color: '#6b7280' }}>
+                  {printStations.length} station{printStations.length !== 1 ? 's' : ''} + receipt
+                </span>
+              </div>
 
-          {/* Bill Printer */}
-          <div>
-            <div style={{ fontSize: '12px', fontWeight: 500, color: '#374151', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              Bill Printer (Invoices / Receipts)
-              {isElectronPlatform && billPrinter && printerHealth[billPrinter.name] && (
-                <span style={{
-                  width: '7px', height: '7px', borderRadius: '50%',
-                  backgroundColor: printerHealth[billPrinter.name] === 'online' ? '#22c55e' : '#ef4444',
-                }} title={printerHealth[billPrinter.name] === 'online' ? 'Online' : 'Offline'} />
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-              <select
-                value={billPrinter?.address || billPrinter?.name || ''}
-                onChange={(e) => {
-                  const p = printers.find(pr => pr.address === e.target.value || pr.name === e.target.value);
-                  assignPrinter('bill', p || null);
-                }}
-                style={{
-                  flex: 1, padding: '6px 10px', fontSize: '13px', borderRadius: '6px',
-                  border: '1px solid #d1d5db', backgroundColor: 'white',
-                }}
-              >
-                <option value="">Use default printer</option>
-                {printers.map((p, i) => (
-                  <option key={p.address || i} value={isElectronPlatform ? p.name : p.address}>
-                    {p.name}{p.type === 'serial' ? ' (Built-in)' : ''}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={testBillPrint}
-                disabled={!billPrinter || testBillStatus === 'printing'}
-                style={{
-                  padding: '6px 12px', fontSize: '12px', fontWeight: 500,
-                  backgroundColor: billPrinter ? '#2563eb' : '#e5e7eb', color: 'white',
-                  border: 'none', borderRadius: '6px',
-                  cursor: billPrinter ? 'pointer' : 'not-allowed',
-                }}
-              >
-                {testBillStatus === 'printing' ? '...' : testBillStatus === 'success' ? 'OK' : testBillStatus === 'error' ? 'Fail' : 'Test'}
-              </button>
-            </div>
-          </div>
-
-          <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '8px' }}>
-            If not assigned, both KOT and bill jobs go to the default printer above.
-          </div>
-        </div>
-      )}
-
-      {/* Per-Station Printer Assignment (Electron only, when stations exist) */}
-      {supportsRouting && printers.length > 0 && printStations.length > 1 && (
-        <div style={{
-          marginTop: '12px', padding: '12px', backgroundColor: '#fef3c7',
-          borderRadius: '8px', border: '1px solid #fcd34d',
-        }}>
-          <div style={{ fontSize: '13px', fontWeight: 600, color: '#92400e', marginBottom: '4px' }}>
-            Station Printers — Route KOTs by kitchen zone
-          </div>
-          <div style={{ fontSize: '11px', color: '#78716c', marginBottom: '10px' }}>
-            Assign a different printer to each station. Unassigned stations use the KOT printer above.
-          </div>
-
-          {printStations.map(station => {
-            const st = stationTestStatus[station.id];
-            return (
-              <div key={station.id} style={{ marginBottom: '8px' }}>
-                <div style={{ fontSize: '12px', fontWeight: 500, color: '#374151', marginBottom: '4px' }}>
-                  {station.name}
-                  <span style={{ fontSize: '10px', color: '#9ca3af', marginLeft: '6px', textTransform: 'uppercase' }}>
-                    {station.type}
-                  </span>
-                  {station.isDefault && (
-                    <span style={{ fontSize: '10px', color: '#16a34a', marginLeft: '6px', fontWeight: 600 }}>DEFAULT</span>
+              {/* Receipt Printer (always shown in multi mode) */}
+              <div style={{
+                padding: '10px 12px', backgroundColor: 'white', borderRadius: '8px',
+                border: '1px solid #e5e7eb', marginBottom: '8px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <FaPrint style={{ color: '#2563eb', flexShrink: 0 }} />
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: '#374151' }}>Receipt Printer</span>
+                  <span style={{
+                    fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '4px',
+                    backgroundColor: '#dbeafe', color: '#1d4ed8', textTransform: 'uppercase',
+                  }}>Receipt</span>
+                  {isElectronPlatform && billPrinter && printerHealth[billPrinter.name] && (
+                    <span style={{
+                      width: '7px', height: '7px', borderRadius: '50%', marginLeft: 'auto',
+                      backgroundColor: printerHealth[billPrinter.name] === 'online' ? '#22c55e' : '#ef4444',
+                    }} />
                   )}
                 </div>
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                   <select
-                    value={stationPrinters[station.id] || ''}
-                    onChange={(e) => assignStationPrinter(station.id, e.target.value || null)}
+                    value={billPrinter?.address || billPrinter?.name || ''}
+                    onChange={(e) => {
+                      const p = printers.find(pr => pr.address === e.target.value || pr.name === e.target.value);
+                      assignPrinter('bill', p || null);
+                    }}
                     style={{
-                      flex: 1, padding: '6px 10px', fontSize: '13px', borderRadius: '6px',
-                      border: '1px solid #d1d5db', backgroundColor: 'white',
+                      flex: 1, padding: '6px 10px', fontSize: '12px', borderRadius: '6px',
+                      border: '1px solid #d1d5db', backgroundColor: '#f9fafb',
                     }}
                   >
-                    <option value="">Use KOT printer</option>
+                    <option value="">Use default printer</option>
                     {printers.map((p, i) => (
                       <option key={p.address || i} value={isElectronPlatform ? p.name : p.address}>
                         {p.name}{p.type === 'serial' ? ' (Built-in)' : ''}
@@ -752,21 +778,271 @@ export default function NativePrinterSettings({ restaurantId }) {
                     ))}
                   </select>
                   <button
-                    onClick={() => testStationPrint(station.id, station.name)}
-                    disabled={!stationPrinters[station.id] || st === 'printing'}
+                    onClick={testBillPrint}
+                    disabled={testBillStatus === 'printing'}
                     style={{
-                      padding: '6px 12px', fontSize: '12px', fontWeight: 500,
-                      backgroundColor: stationPrinters[station.id] ? '#d97706' : '#e5e7eb', color: 'white',
-                      border: 'none', borderRadius: '6px',
-                      cursor: stationPrinters[station.id] ? 'pointer' : 'not-allowed',
+                      padding: '6px 12px', fontSize: '11px', fontWeight: 500,
+                      backgroundColor: '#2563eb', color: 'white',
+                      border: 'none', borderRadius: '6px', cursor: 'pointer',
                     }}
                   >
-                    {st === 'printing' ? '...' : st === 'success' ? 'OK' : st === 'error' ? 'Fail' : 'Test'}
+                    {testBillStatus === 'printing' ? '...' : testBillStatus === 'success' ? '✓' : testBillStatus === 'error' ? '✗' : 'Test'}
                   </button>
                 </div>
               </div>
-            );
-          })}
+
+              {/* KOT Station rows */}
+              {printStations.map(station => {
+                const st = stationTestStatus[station.id];
+                const isEditing = editingDestination === station.id;
+                const isExpanded = expandedStation === station.id;
+                const catCount = (station.categoryIds || []).length;
+                return (
+                  <div key={station.id} style={{
+                    padding: '10px 12px', backgroundColor: 'white', borderRadius: '8px',
+                    border: '1px solid #e5e7eb', marginBottom: '8px',
+                  }}>
+                    {/* Station header */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                      <FaPrint style={{ color: '#f97316', flexShrink: 0 }} />
+                      {isEditing ? (
+                        <div style={{ display: 'flex', gap: '4px', flex: 1 }}>
+                          <input
+                            type="text"
+                            defaultValue={station.name}
+                            autoFocus
+                            maxLength={50}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && e.target.value.trim()) updateStation(station.id, { name: e.target.value.trim() });
+                              if (e.key === 'Escape') setEditingDestination(null);
+                            }}
+                            style={{ flex: 1, padding: '3px 6px', fontSize: '12px', borderRadius: '4px', border: '1px solid #d1d5db' }}
+                          />
+                          <button onClick={() => setEditingDestination(null)} style={{ fontSize: '11px', color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }}>Cancel</button>
+                        </div>
+                      ) : (
+                        <>
+                          <span style={{ fontWeight: 600, fontSize: '13px', color: '#374151' }}>{station.name}</span>
+                          <span style={{
+                            fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '4px',
+                            backgroundColor: '#fff7ed', color: '#c2410c', textTransform: 'uppercase',
+                          }}>{station.type || 'kitchen'}</span>
+                          {station.isDefault && (
+                            <span style={{
+                              fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '4px',
+                              backgroundColor: '#dcfce7', color: '#15803d',
+                            }}>DEFAULT</span>
+                          )}
+                          {isElectronPlatform && stationPrinters[station.id] && printerHealth[stationPrinters[station.id]] && (
+                            <span style={{
+                              width: '7px', height: '7px', borderRadius: '50%',
+                              backgroundColor: printerHealth[stationPrinters[station.id]] === 'online' ? '#22c55e' : '#ef4444',
+                            }} />
+                          )}
+                          <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
+                            <button onClick={() => setEditingDestination(station.id)} style={{ fontSize: '11px', color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }} title="Edit name">✏️</button>
+                            <button onClick={() => deleteStation(station.id)} style={{ fontSize: '11px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }} title="Delete">🗑</button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Printer dropdown */}
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '6px' }}>
+                      <select
+                        value={stationPrinters[station.id] || ''}
+                        onChange={(e) => assignStationPrinter(station.id, e.target.value || null)}
+                        style={{
+                          flex: 1, padding: '6px 10px', fontSize: '12px', borderRadius: '6px',
+                          border: '1px solid #d1d5db', backgroundColor: '#f9fafb',
+                        }}
+                      >
+                        <option value="">Use default printer</option>
+                        {printers.map((p, i) => (
+                          <option key={p.address || i} value={isElectronPlatform ? p.name : p.address}>
+                            {p.name}{p.type === 'serial' ? ' (Built-in)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => testStationPrint(station.id, station.name)}
+                        disabled={st === 'printing'}
+                        style={{
+                          padding: '6px 12px', fontSize: '11px', fontWeight: 500,
+                          backgroundColor: '#f97316', color: 'white',
+                          border: 'none', borderRadius: '6px', cursor: 'pointer',
+                        }}
+                      >
+                        {st === 'printing' ? '...' : st === 'success' ? '✓' : st === 'error' ? '✗' : 'Test'}
+                      </button>
+                    </div>
+
+                    {/* Categories — expandable */}
+                    <button
+                      onClick={() => setExpandedStation(isExpanded ? null : station.id)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '4px', width: '100%',
+                        padding: '4px 0', fontSize: '11px', color: '#6b7280',
+                        background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+                      }}
+                    >
+                      <span style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}>▶</span>
+                      {catCount} categor{catCount === 1 ? 'y' : 'ies'} assigned
+                      {catCount === 0 && <span style={{ color: '#f59e0b', marginLeft: '4px' }}>(routes to default)</span>}
+                    </button>
+                    {isExpanded && categories.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px', maxHeight: '120px', overflowY: 'auto' }}>
+                        {categories.map(cat => {
+                          const isSelected = (station.categoryIds || []).includes(cat.id);
+                          const assignedElsewhere = !isSelected && printStations.some(s => s.id !== station.id && (s.categoryIds || []).includes(cat.id));
+                          return (
+                            <button
+                              key={cat.id}
+                              onClick={() => {
+                                const newIds = isSelected
+                                  ? (station.categoryIds || []).filter(id => id !== cat.id)
+                                  : [...(station.categoryIds || []), cat.id];
+                                updateStationCategories(station.id, newIds);
+                              }}
+                              disabled={assignedElsewhere}
+                              style={{
+                                padding: '3px 8px', borderRadius: '12px', fontSize: '11px', border: 'none', cursor: assignedElsewhere ? 'not-allowed' : 'pointer',
+                                backgroundColor: isSelected ? '#2563eb' : assignedElsewhere ? '#f3f4f6' : '#e5e7eb',
+                                color: isSelected ? '#fff' : assignedElsewhere ? '#9ca3af' : '#374151',
+                                opacity: assignedElsewhere ? 0.5 : 1,
+                              }}
+                            >
+                              {cat.name}{assignedElsewhere ? ' ✓' : ''}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Add new station form */}
+              {newStationForm ? (
+                <div style={{
+                  padding: '10px 12px', backgroundColor: 'white', borderRadius: '8px',
+                  border: '2px dashed #bfdbfe', marginBottom: '8px',
+                }}>
+                  <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                    <input
+                      type="text"
+                      placeholder="Station name (e.g. Main Kitchen)"
+                      value={newStationForm.name}
+                      onChange={(e) => setNewStationForm(prev => ({ ...prev, name: e.target.value }))}
+                      autoFocus
+                      maxLength={50}
+                      style={{
+                        flex: 1, padding: '6px 10px', fontSize: '12px', borderRadius: '6px',
+                        border: '1px solid #d1d5db', backgroundColor: 'white',
+                      }}
+                    />
+                    <select
+                      value={newStationForm.type}
+                      onChange={(e) => setNewStationForm(prev => ({ ...prev, type: e.target.value }))}
+                      style={{
+                        padding: '6px 8px', fontSize: '12px', borderRadius: '6px',
+                        border: '1px solid #d1d5db',
+                      }}
+                    >
+                      {STATION_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                    </select>
+                  </div>
+                  {/* Category selection for new station */}
+                  {categories.length > 0 && (
+                    <div style={{ marginBottom: '8px' }}>
+                      <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Assign categories:</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxHeight: '100px', overflowY: 'auto' }}>
+                        {categories.map(cat => {
+                          const isSelected = (newStationForm.categoryIds || []).includes(cat.id);
+                          const assignedElsewhere = printStations.some(s => (s.categoryIds || []).includes(cat.id));
+                          return (
+                            <button
+                              key={cat.id}
+                              onClick={() => {
+                                setNewStationForm(prev => ({
+                                  ...prev,
+                                  categoryIds: isSelected
+                                    ? prev.categoryIds.filter(id => id !== cat.id)
+                                    : [...prev.categoryIds, cat.id]
+                                }));
+                              }}
+                              disabled={assignedElsewhere}
+                              style={{
+                                padding: '3px 8px', borderRadius: '12px', fontSize: '11px', border: 'none',
+                                cursor: assignedElsewhere ? 'not-allowed' : 'pointer',
+                                backgroundColor: isSelected ? '#2563eb' : assignedElsewhere ? '#f3f4f6' : '#e5e7eb',
+                                color: isSelected ? '#fff' : assignedElsewhere ? '#9ca3af' : '#374151',
+                                opacity: assignedElsewhere ? 0.5 : 1,
+                              }}
+                            >
+                              {cat.name}{assignedElsewhere ? ' ✓' : ''}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={() => setNewStationForm(null)}
+                      style={{
+                        padding: '6px 12px', fontSize: '12px', color: '#6b7280',
+                        background: 'none', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer',
+                      }}
+                    >Cancel</button>
+                    <button
+                      onClick={() => addStation(newStationForm)}
+                      disabled={!newStationForm.name.trim()}
+                      style={{
+                        padding: '6px 12px', fontSize: '12px', fontWeight: 600, color: 'white',
+                        backgroundColor: newStationForm.name.trim() ? '#2563eb' : '#d1d5db',
+                        border: 'none', borderRadius: '6px',
+                        cursor: newStationForm.name.trim() ? 'pointer' : 'not-allowed',
+                      }}
+                    >Add Station</button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setNewStationForm({ name: '', type: 'kitchen', categoryIds: [] })}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                    width: '100%', padding: '8px', fontSize: '12px', color: '#1d4ed8',
+                    backgroundColor: 'white', border: '1px dashed #93c5fd', borderRadius: '8px',
+                    cursor: 'pointer', marginBottom: '8px',
+                  }}
+                >
+                  + Add KOT Station
+                </button>
+              )}
+
+              {/* Unassigned categories notice */}
+              {(() => {
+                const unassigned = categories.filter(c => !assignedCatIds.has(c.id));
+                return unassigned.length > 0 && printStations.length > 0 ? (
+                  <div style={{ fontSize: '11px', color: '#92400e', padding: '6px 8px', backgroundColor: '#fef3c7', borderRadius: '6px', marginBottom: '8px' }}>
+                    <strong>Unassigned:</strong> {unassigned.map(c => c.name).join(', ')} — these route to the default station.
+                  </div>
+                ) : null;
+              })()}
+
+              {/* Switch to simple */}
+              <button
+                onClick={switchToSimple}
+                style={{
+                  fontSize: '11px', color: '#6b7280', background: 'none', border: 'none',
+                  cursor: 'pointer', padding: 0, textDecoration: 'underline',
+                }}
+              >
+                Switch to simple mode (single printer)
+              </button>
+            </div>
+          )}
         </div>
       )}
 

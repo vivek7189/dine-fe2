@@ -3093,11 +3093,6 @@ const PrintStationManager = ({ restaurantId }) => {
     }
   };
 
-  const handleModeChange = (mode) => {
-    setKotPrintingMode(mode);
-    saveStations(stations, mode);
-  };
-
   const startAdd = () => {
     setFormData({ name: '', type: 'kitchen', categoryIds: [], isDefault: stations.length === 0, enabled: true });
     setEditingStation('new');
@@ -3167,24 +3162,9 @@ const PrintStationManager = ({ restaurantId }) => {
         Route KOT items to different printers by category. Each station can be assigned to a KOT printer app instance.
       </p>
 
-      {/* KOT Printing Mode Toggle */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-        {[
-          { id: 'single', label: 'Single Printer', desc: 'Split KOTs per station on same printer' },
-          { id: 'multi', label: 'Multi-Printer', desc: 'Each station routes to its own printer' }
-        ].map(mode => (
-          <button
-            key={mode.id}
-            onClick={() => handleModeChange(mode.id)}
-            style={{
-              flex: 1, padding: '10px 12px', borderRadius: '8px', border: `1px solid ${kotPrintingMode === mode.id ? '#ef4444' : '#374151'}`,
-              background: kotPrintingMode === mode.id ? '#1c1917' : 'transparent', cursor: 'pointer', textAlign: 'left'
-            }}
-          >
-            <span style={{ fontSize: '12px', fontWeight: '600', color: kotPrintingMode === mode.id ? '#ef4444' : '#d1d5db', display: 'block' }}>{mode.label}</span>
-            <span style={{ fontSize: '10px', color: '#6b7280' }}>{mode.desc}</span>
-          </button>
-        ))}
+      <div style={{ padding: '10px 12px', borderRadius: '8px', marginBottom: '12px',
+        background: '#111827', border: '1px solid #374151', fontSize: '12px', color: '#9ca3af' }}>
+        Define kitchen zones and assign menu categories below. Printer hardware is configured per-device in the Printer Setup panel above.
       </div>
 
       {notification && (
