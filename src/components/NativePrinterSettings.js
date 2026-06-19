@@ -35,6 +35,9 @@ export default function NativePrinterSettings({ restaurantId }) {
   const [printStations, setPrintStations] = useState([]);
   const [stationPrinters, setStationPrinters] = useState({});
   const [stationTestStatus, setStationTestStatus] = useState({});
+  const [networkIpInput, setNetworkIpInput] = useState('');
+  const [isNetworkScanning, setIsNetworkScanning] = useState(false);
+  const [networkPrinters, setNetworkPrinters] = useState([]); // manually added IP printers
   const isElectronPlatform = !isWeb() && isElectron();
   const isCapacitorPlatform = !isWeb() && isCapacitor();
   // Show printer routing for both Electron and Capacitor
@@ -222,14 +225,26 @@ export default function NativePrinterSettings({ restaurantId }) {
         } else if (isElectron()) {
           const config = await window.electronAPI.getPrinterConfig();
           if (config?.defaultPrinter) {
-            setSelectedPrinter({ name: config.defaultPrinter, address: config.defaultPrinter, type: 'usb' });
+            const isIp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(config.defaultPrinter);
+            setSelectedPrinter({ name: config.defaultPrinter, address: config.defaultPrinter, type: isIp ? 'network' : 'usb' });
             setIsConnected(true);
           }
           if (config?.kotPrinter) {
-            setKotPrinter({ name: config.kotPrinter, address: config.kotPrinter, type: 'usb' });
+            const isIp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(config.kotPrinter);
+            setKotPrinter({ name: config.kotPrinter, address: config.kotPrinter, type: isIp ? 'network' : 'usb' });
           }
           if (config?.billPrinter) {
-            setBillPrinter({ name: config.billPrinter, address: config.billPrinter, type: 'usb' });
+            const isIp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(config.billPrinter);
+            setBillPrinter({ name: config.billPrinter, address: config.billPrinter, type: isIp ? 'network' : 'usb' });
+          }
+          // Load saved network printers and merge into printer list
+          if (config?.networkPrinters?.length) {
+            setNetworkPrinters(config.networkPrinters);
+            setPrinters(prev => {
+              const existing = new Set(prev.map(p => p.address));
+              const newPrinters = config.networkPrinters.filter(p => !existing.has(p.address));
+              return [...prev, ...newPrinters];
+            });
           }
         }
       } catch (err) {
@@ -271,6 +286,60 @@ export default function NativePrinterSettings({ restaurantId }) {
       console.error('Failed to save station printer:', err);
     }
   }, [stationPrinters, isElectronPlatform]);
+
+  // Add a network printer by IP address
+  const addNetworkPrinter = useCallback(async (ipInput) => {
+    if (!ipInput?.trim()) return;
+    let address = ipInput.trim();
+    // Add default port if not specified
+    if (!address.includes(':')) address += ':9100';
+    // Check if already in list
+    if (networkPrinters.some(p => p.address === address)) return;
+    const printer = { name: `Network (${address})`, address, type: 'network' };
+    const updated = [...networkPrinters, printer];
+    setNetworkPrinters(updated);
+    // Also add to scanned printers list so it appears in dropdowns
+    setPrinters(prev => {
+      if (prev.some(p => p.address === address)) return prev;
+      return [...prev, printer];
+    });
+    // Persist to settings
+    if (isElectronPlatform && window.electronAPI?.setPrinterConfig) {
+      await window.electronAPI.setPrinterConfig({ networkPrinters: updated });
+    }
+    setNetworkIpInput('');
+  }, [networkPrinters, isElectronPlatform]);
+
+  // Remove a manually added network printer
+  const removeNetworkPrinter = useCallback(async (address) => {
+    const updated = networkPrinters.filter(p => p.address !== address);
+    setNetworkPrinters(updated);
+    setPrinters(prev => prev.filter(p => p.address !== address));
+    if (isElectronPlatform && window.electronAPI?.setPrinterConfig) {
+      await window.electronAPI.setPrinterConfig({ networkPrinters: updated });
+    }
+  }, [networkPrinters, isElectronPlatform]);
+
+  // Scan network for thermal printers (Electron only)
+  const scanNetworkPrinters = useCallback(async () => {
+    if (!isElectronPlatform || !window.electronAPI?.scanNetworkPrinters) return;
+    setIsNetworkScanning(true);
+    try {
+      const result = await window.electronAPI.scanNetworkPrinters();
+      if (result?.printers?.length) {
+        // Merge discovered printers into the list (avoid duplicates)
+        setPrinters(prev => {
+          const existing = new Set(prev.map(p => p.address));
+          const newPrinters = result.printers.filter(p => !existing.has(p.address));
+          return [...prev, ...newPrinters];
+        });
+      }
+    } catch (err) {
+      console.error('Network scan failed:', err);
+    } finally {
+      setIsNetworkScanning(false);
+    }
+  }, [isElectronPlatform]);
 
   const testStationPrint = useCallback(async (stationId, stationName) => {
     setStationTestStatus(prev => ({ ...prev, [stationId]: 'printing' }));
@@ -380,6 +449,84 @@ export default function NativePrinterSettings({ restaurantId }) {
            testPrintStatus === 'error' ? 'Failed' : 'Test Print'}
         </button>
       </div>
+
+      {/* Network Printer — Add by IP (Electron only) */}
+      {isElectronPlatform && (
+        <div style={{
+          marginBottom: '12px', padding: '10px', backgroundColor: '#faf5ff',
+          borderRadius: '8px', border: '1px solid #e9d5ff',
+        }}>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: '#7c3aed', marginBottom: '8px' }}>
+            Add Network Printer (IP Address)
+          </div>
+          <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
+            <input
+              type="text"
+              value={networkIpInput}
+              onChange={(e) => setNetworkIpInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') addNetworkPrinter(networkIpInput); }}
+              placeholder="e.g. 192.168.1.100 or 192.168.1.100:9100"
+              style={{
+                flex: 1, padding: '6px 10px', fontSize: '13px', borderRadius: '6px',
+                border: '1px solid #d1d5db', backgroundColor: 'white',
+              }}
+            />
+            <button
+              onClick={() => addNetworkPrinter(networkIpInput)}
+              disabled={!networkIpInput.trim()}
+              style={{
+                padding: '6px 14px', fontSize: '12px', fontWeight: 500,
+                backgroundColor: networkIpInput.trim() ? '#7c3aed' : '#e5e7eb', color: 'white',
+                border: 'none', borderRadius: '6px',
+                cursor: networkIpInput.trim() ? 'pointer' : 'not-allowed',
+              }}
+            >
+              Add
+            </button>
+            <button
+              onClick={scanNetworkPrinters}
+              disabled={isNetworkScanning}
+              style={{
+                padding: '6px 14px', fontSize: '12px', fontWeight: 500,
+                backgroundColor: '#8b5cf6', color: 'white',
+                border: 'none', borderRadius: '6px',
+                cursor: isNetworkScanning ? 'not-allowed' : 'pointer',
+                opacity: isNetworkScanning ? 0.7 : 1,
+              }}
+            >
+              <FaSync style={{ display: 'inline', marginRight: '4px', animation: isNetworkScanning ? 'spin 1s linear infinite' : 'none' }} />
+              {isNetworkScanning ? 'Scanning...' : 'Scan LAN'}
+            </button>
+          </div>
+          {networkPrinters.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {networkPrinters.map((p) => (
+                <div key={p.address} style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  padding: '4px 8px', backgroundColor: 'white', borderRadius: '6px',
+                  border: '1px solid #e5e7eb', fontSize: '12px',
+                }}>
+                  <FaWifi style={{ color: '#8b5cf6', flexShrink: 0 }} />
+                  <span style={{ flex: 1 }}>{p.address}</span>
+                  <button
+                    onClick={() => removeNetworkPrinter(p.address)}
+                    style={{
+                      padding: '2px 8px', fontSize: '11px', color: '#ef4444',
+                      backgroundColor: 'transparent', border: '1px solid #fca5a5', borderRadius: '4px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '6px' }}>
+            For thermal printers connected directly via IP (not installed as OS driver). Default port: 9100.
+          </div>
+        </div>
+      )}
 
       {printers.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>

@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('electron:setPrinterConfig', config),
   getPrinterConfig: () =>
     ipcRenderer.invoke('electron:getPrinterConfig'),
+  scanNetworkPrinters: () =>
+    ipcRenderer.invoke('electron:scanNetworkPrinters'),
 
   // Auto-update
   checkForUpdates: () =>

@@ -377,39 +377,28 @@ const BulkMenuUpload = ({
         maxHeight: isShortScreen ? '98vh' : '90vh',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
-        {/* Header - compact on short screens */}
+        {/* Header */}
         <div style={{
-          background: 'linear-gradient(135deg, #ef4444, #dc2626, #b91c1c)',
-          padding: isShortScreen ? '14px 20px' : '24px 28px',
-          position: 'relative', overflow: 'hidden', flexShrink: 0,
+          background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+          padding: '10px 18px',
+          flexShrink: 0,
         }}>
-          <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{
-                width: isShortScreen ? '28px' : '34px', height: isShortScreen ? '28px' : '34px',
-                background: 'rgba(255,255,255,0.2)', borderRadius: '8px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                <FaUpload size={isShortScreen ? 12 : 14} color="white" />
-              </div>
-              <div>
-                <h2 style={{ fontSize: isShortScreen ? '16px' : '20px', fontWeight: '700', color: 'white', margin: 0 }}>
-                  AI Menu Upload
-                </h2>
-                {!isShortScreen && (
-                  <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)', margin: '2px 0 0 0' }}>
-                    Upload photos or files — AI extracts your menu
-                  </p>
-                )}
-              </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FaUpload size={13} color="rgba(255,255,255,0.9)" />
+              <h2 style={{ fontSize: '15px', fontWeight: '700', color: 'white', margin: 0 }}>
+                AI Menu Upload
+              </h2>
+              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>
+                — photos, PDFs, Excel
+              </span>
             </div>
             <button onClick={handleClose} style={{
               backgroundColor: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', cursor: 'pointer',
-              padding: '6px', borderRadius: '8px', width: '30px', height: '30px',
+              padding: '5px', borderRadius: '6px', width: '26px', height: '26px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <FaTimes size={12} />
+              <FaTimes size={11} />
             </button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, protocol, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const net = require('net');
 const { initOfflineEngine, shutdownOfflineEngine } = require('./offline');
 
 let mainWindow;
@@ -309,6 +310,202 @@ app.on('will-quit', () => {
   shutdownOfflineEngine();
 });
 
+// ──── TCP Printer Support (raw ESC/POS over network) ────
+
+const TCP_CONNECT_TIMEOUT = 3000;  // 3 seconds (matches Capacitor plugin)
+const TCP_DEFAULT_PORT = 9100;     // Standard raw print port
+const TCP_MAX_RETRIES = 3;         // 1 original + 2 retries (matches dine-app)
+const TCP_RETRY_DELAYS = [800, 1500]; // ms before 2nd and 3rd attempts (matches dine-app)
+
+/**
+ * Check if a printer name is actually an IP address (optionally with :port).
+ * Examples: "192.168.1.100", "10.0.0.50:9100"
+ */
+function isIpAddress(name) {
+  return /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(name);
+}
+
+/**
+ * Parse IP address string into { host, port }.
+ * "192.168.1.100" → { host: "192.168.1.100", port: 9100 }
+ * "192.168.1.100:9200" → { host: "192.168.1.100", port: 9200 }
+ */
+function parseIpPrinter(address) {
+  const parts = address.split(':');
+  return {
+    host: parts[0],
+    port: parts.length > 1 ? parseInt(parts[1], 10) : TCP_DEFAULT_PORT,
+  };
+}
+
+/**
+ * Convert HTML receipt to ESC/POS byte commands for thermal printers.
+ * Ported from DinePrinterPlugin.java (Capacitor plugin) — same proven approach.
+ * Handles bold, center alignment, double-size text, tables, entities.
+ */
+function htmlToEscPos(html) {
+  const chunks = [];
+
+  // ESC @ — Initialize printer
+  chunks.push(Buffer.from([0x1B, 0x40]));
+
+  let h = html;
+
+  // Strip entire <head>, <style>, <script> blocks
+  h = h.replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '');
+  h = h.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+  h = h.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+
+  // Block elements → newlines
+  h = h.replace(/<br\s*\/?>/gi, '\n');
+  h = h.replace(/<hr\s*\/?>/gi, '\n--------------------------------\n');
+  h = h.replace(/<p[^>]*>/gi, '\n');
+  h = h.replace(/<\/p>/gi, '\n');
+  h = h.replace(/<div[^>]*>/gi, '\n');
+  h = h.replace(/<\/div>/gi, '\n');
+
+  // Tables → newlines and spacing
+  h = h.replace(/<tr[^>]*>/gi, '\n');
+  h = h.replace(/<\/tr>/gi, '');
+  h = h.replace(/<td[^>]*>/gi, '  ');
+  h = h.replace(/<\/td>/gi, '');
+  h = h.replace(/<th[^>]*>/gi, '  ');
+  h = h.replace(/<\/th>/gi, '');
+  h = h.replace(/<table[^>]*>/gi, '\n');
+  h = h.replace(/<\/table>/gi, '\n');
+
+  // Formatting markers (using \x01 delimiter, same as Java version)
+  h = h.replace(/<(b|strong)[^>]*>/gi, '\x01BOLD_ON\x01');
+  h = h.replace(/<\/(b|strong)>/gi, '\x01BOLD_OFF\x01');
+
+  h = h.replace(/<center[^>]*>/gi, '\x01CENTER_ON\x01');
+  h = h.replace(/<\/center>/gi, '\x01CENTER_OFF\x01');
+  h = h.replace(/<[^>]*text-align\s*:\s*center[^>]*>/gi, '\x01CENTER_ON\x01');
+
+  h = h.replace(/<h[1-2][^>]*>/gi, '\x01LARGE_ON\x01\x01BOLD_ON\x01\x01CENTER_ON\x01');
+  h = h.replace(/<\/h[1-2]>/gi, '\x01BOLD_OFF\x01\x01LARGE_OFF\x01\x01CENTER_OFF\x01\n');
+  h = h.replace(/<h[3-6][^>]*>/gi, '\x01BOLD_ON\x01');
+  h = h.replace(/<\/h[3-6]>/gi, '\x01BOLD_OFF\x01\n');
+
+  // Strip remaining HTML tags
+  h = h.replace(/<[^>]+>/g, '');
+
+  // Decode HTML entities
+  h = h.replace(/&nbsp;/g, ' ');
+  h = h.replace(/&amp;/g, '&');
+  h = h.replace(/&lt;/g, '<');
+  h = h.replace(/&gt;/g, '>');
+  h = h.replace(/&quot;/g, '"');
+  h = h.replace(/&#39;/g, "'");
+  h = h.replace(/&#8377;|&rupee;|₹/g, 'Rs.');
+  h = h.replace(/&#?\w+;/g, ''); // Remove remaining entities
+
+  // Collapse excessive blank lines
+  h = h.replace(/\n{3,}/g, '\n\n');
+  h = h.trim();
+
+  // Process text with formatting markers
+  let bold = false;
+  let center = false;
+  let large = false;
+
+  const parts = h.split('\x01');
+  for (const part of parts) {
+    switch (part) {
+      case 'BOLD_ON':
+        if (!bold) { chunks.push(Buffer.from([0x1B, 0x45, 0x01])); bold = true; }
+        break;
+      case 'BOLD_OFF':
+        if (bold) { chunks.push(Buffer.from([0x1B, 0x45, 0x00])); bold = false; }
+        break;
+      case 'CENTER_ON':
+        if (!center) { chunks.push(Buffer.from([0x1B, 0x61, 0x01])); center = true; }
+        break;
+      case 'CENTER_OFF':
+        if (center) { chunks.push(Buffer.from([0x1B, 0x61, 0x00])); center = false; }
+        break;
+      case 'LARGE_ON':
+        if (!large) { chunks.push(Buffer.from([0x1D, 0x21, 0x11])); large = true; }
+        break;
+      case 'LARGE_OFF':
+        if (large) { chunks.push(Buffer.from([0x1D, 0x21, 0x00])); large = false; }
+        break;
+      default:
+        if (part) chunks.push(Buffer.from(part, 'utf8'));
+        break;
+    }
+  }
+
+  // Reset formatting
+  if (bold) chunks.push(Buffer.from([0x1B, 0x45, 0x00]));
+  if (center) chunks.push(Buffer.from([0x1B, 0x61, 0x00]));
+  if (large) chunks.push(Buffer.from([0x1D, 0x21, 0x00]));
+
+  // Trailing newlines
+  chunks.push(Buffer.from('\n\n\n', 'utf8'));
+
+  return Buffer.concat(chunks);
+}
+
+/**
+ * Send ESC/POS data to a thermal printer via raw TCP socket.
+ * @param {string} host - Printer IP address
+ * @param {number} port - Printer port (usually 9100)
+ * @param {Buffer} data - ESC/POS data from htmlToEscPos()
+ */
+function printViaTcp(host, port, data) {
+  return new Promise((resolve, reject) => {
+    const socket = new net.Socket();
+    let settled = false;
+
+    const finish = (err) => {
+      if (settled) return;
+      settled = true;
+      socket.destroy();
+      if (err) reject(err);
+      else resolve();
+    };
+
+    socket.setTimeout(TCP_CONNECT_TIMEOUT);
+
+    socket.on('timeout', () => finish(new Error(`TCP printer timeout connecting to ${host}:${port}`)));
+    socket.on('error', (err) => finish(new Error(`TCP printer error (${host}:${port}): ${err.message}`)));
+
+    socket.connect(port, host, () => {
+      // Connected — send data
+      socket.write(data, () => {
+        // Send feed + cut
+        const feedCut = Buffer.from([0x1B, 0x64, 0x04, 0x1D, 0x56, 0x00]);
+        socket.write(feedCut, () => {
+          // Give the printer a moment to process before closing
+          setTimeout(() => finish(null), 200);
+        });
+      });
+    });
+  });
+}
+
+/**
+ * Probe a single IP:port to check if a TCP service (likely a printer) is listening.
+ * @returns {Promise<boolean>}
+ */
+function probeTcpPort(host, port, timeoutMs = 800) {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    let settled = false;
+    const done = (result) => {
+      if (settled) return;
+      settled = true;
+      socket.destroy();
+      resolve(result);
+    };
+    socket.setTimeout(timeoutMs);
+    socket.on('timeout', () => done(false));
+    socket.on('error', () => done(false));
+    socket.connect(port, host, () => done(true));
+  });
+}
+
 // ──── IPC: Printing ────
 
 ipcMain.handle('electron:print', async (event, { html, copies, type, printerWidth, stationId }) => {
@@ -332,6 +529,54 @@ ipcMain.handle('electron:print', async (event, { html, copies, type, printerWidt
   console.log('[Print] type:', type || 'unknown', 'copies:', copies || 1,
     'printer:', deviceName || '(system default)', 'paper:', (printerWidth || 80) + 'mm',
     'html:', html?.length || 0);
+
+  // ──── TCP path: if printer is configured by IP address, send raw ESC/POS ────
+  if (deviceName && isIpAddress(deviceName)) {
+    const { host, port } = parseIpPrinter(deviceName);
+    console.log('[Print] TCP mode → sending ESC/POS to', host + ':' + port);
+
+    // Quick reachability check (500ms) — catches offline printers faster than
+    // waiting for the full 3s connect timeout on every retry attempt.
+    const reachable = await probeTcpPort(host, port, 500);
+    if (!reachable) {
+      console.warn('[Print] TCP printer not reachable at', host + ':' + port, '— will still attempt print with retries');
+    }
+
+    const escPosData = htmlToEscPos(html);
+    const totalCopies = copies || 1;
+
+    // Retry loop (matches dine-app: 3 attempts with 800ms/1500ms backoff)
+    let lastErr = null;
+    for (let attempt = 0; attempt < TCP_MAX_RETRIES; attempt++) {
+      if (attempt > 0) {
+        const backoffMs = TCP_RETRY_DELAYS[attempt - 1] || 1500;
+        console.log(`[Print] TCP retry ${attempt}/${TCP_MAX_RETRIES - 1} in ${backoffMs}ms...`);
+        await new Promise(r => setTimeout(r, backoffMs));
+      }
+
+      try {
+        for (let i = 0; i < totalCopies; i++) {
+          await printViaTcp(host, port, escPosData);
+          if (i < totalCopies - 1) {
+            await new Promise(r => setTimeout(r, 300));
+          }
+        }
+        if (attempt > 0) {
+          console.log('[Print] TCP print recovered on attempt', attempt + 1);
+        }
+        console.log('[Print] TCP print successful (' + totalCopies + ' copies)');
+        return { success: true, method: 'tcp', printer: deviceName, attempts: attempt + 1 };
+      } catch (err) {
+        lastErr = err;
+        console.warn(`[Print] TCP attempt ${attempt + 1}/${TCP_MAX_RETRIES} failed:`, err.message);
+      }
+    }
+
+    console.error('[Print] TCP print failed after', TCP_MAX_RETRIES, 'attempts:', lastErr?.message);
+    return { success: false, error: lastErr?.message || 'TCP print failed', method: 'tcp', printer: deviceName, attempts: TCP_MAX_RETRIES };
+  }
+
+  // ──── OS driver path: use webContents.print() (existing behavior, unchanged) ────
 
   // Ensure persistent print window exists
   if (!printWindow || printWindow.isDestroyed()) {
@@ -418,6 +663,8 @@ ipcMain.handle('electron:setPrinterConfig', async (event, config) => {
   // Cash drawer settings
   if (config.cashDrawerMode !== undefined) settings.cashDrawerMode = config.cashDrawerMode;
   if (config.cashDrawerPort !== undefined) settings.cashDrawerPort = config.cashDrawerPort;
+  // Network printers (manually added IP addresses)
+  if (config.networkPrinters !== undefined) settings.networkPrinters = config.networkPrinters;
   saveSettings(settings);
   return { success: true };
 });
@@ -431,7 +678,63 @@ ipcMain.handle('electron:getPrinterConfig', async () => {
     stationPrinters: settings.stationPrinters || {},
     cashDrawerMode: settings.cashDrawerMode || 'printer',
     cashDrawerPort: settings.cashDrawerPort || null,
+    networkPrinters: settings.networkPrinters || [],
   };
+});
+
+// ──── IPC: Network Printer Discovery ────
+
+ipcMain.handle('electron:scanNetworkPrinters', async () => {
+  // Get local IP to determine subnet
+  const os = require('os');
+  const interfaces = os.networkInterfaces();
+  let localIp = null;
+
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        localIp = iface.address;
+        break;
+      }
+    }
+    if (localIp) break;
+  }
+
+  if (!localIp) {
+    return { success: false, error: 'No network interface found', printers: [] };
+  }
+
+  const subnet = localIp.split('.').slice(0, 3).join('.');
+  console.log('[PrintScan] Scanning subnet', subnet + '.x on port', TCP_DEFAULT_PORT);
+
+  const found = [];
+  // Scan common printer IP range first (.100-.254), then .1-.99
+  const priorities = [];
+  for (let i = 100; i <= 254; i++) priorities.push(i);
+  for (let i = 1; i < 100; i++) priorities.push(i);
+
+  // Scan in batches of 30 to avoid overwhelming the network
+  const BATCH = 30;
+  for (let b = 0; b < priorities.length; b += BATCH) {
+    const batch = priorities.slice(b, b + BATCH);
+    const results = await Promise.all(
+      batch.map(async (i) => {
+        const ip = `${subnet}.${i}`;
+        if (ip === localIp) return null;
+        const open = await probeTcpPort(ip, TCP_DEFAULT_PORT);
+        return open ? ip : null;
+      })
+    );
+    for (const ip of results) {
+      if (ip) {
+        found.push({ name: `Network Printer (${ip})`, address: `${ip}:${TCP_DEFAULT_PORT}`, type: 'network' });
+        console.log('[PrintScan] Found printer at', ip + ':' + TCP_DEFAULT_PORT);
+      }
+    }
+  }
+
+  console.log('[PrintScan] Scan complete. Found', found.length, 'network printers');
+  return { success: true, printers: found };
 });
 
 // ──── IPC: Auto-update ────

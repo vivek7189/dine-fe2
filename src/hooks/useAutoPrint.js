@@ -21,15 +21,18 @@ import { database } from '../../firebase';
 // const PUSHER_KEY = process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec';
 // const PUSHER_CLUSTER = process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2';
 
-// Track recently printed order IDs to prevent duplicates (max 50).
+// Track recently printed order IDs to prevent duplicates (max 200).
 // Uses a Map with timestamps instead of Set + individual setTimeouts,
 // so we avoid accumulating hundreds of timers over long sessions.
+// TTL is 5 minutes (300s) to prevent double-prints from delayed Firebase events.
+const DEDUP_TTL_MS = 300000; // 5 minutes — covers Firebase RTDB replay delays
+const DEDUP_MAX_SIZE = 200;
 const recentlyPrinted = new Map(); // key -> timestamp
 function markPrinted(orderId, type) {
   const key = `${type}:${orderId}`;
   recentlyPrinted.set(key, Date.now());
   // Evict oldest if over limit
-  if (recentlyPrinted.size > 50) {
+  if (recentlyPrinted.size > DEDUP_MAX_SIZE) {
     const firstKey = recentlyPrinted.keys().next().value;
     recentlyPrinted.delete(firstKey);
   }
@@ -37,7 +40,7 @@ function markPrinted(orderId, type) {
 function wasPrinted(orderId, type) {
   const key = `${type}:${orderId}`;
   const ts = recentlyPrinted.get(key);
-  if (ts && (Date.now() - ts) < 60000) return true;
+  if (ts && (Date.now() - ts) < DEDUP_TTL_MS) return true;
   if (ts) recentlyPrinted.delete(key); // expired, clean up
   if (type === 'kot' && typeof window !== 'undefined' && window.__lastLocalPrintedKOT === orderId) {
     return true;
@@ -50,6 +53,8 @@ function wasPrinted(orderId, type) {
 
 // Periodically clear the dedup window globals and prune expired entries.
 // Uses a single interval (started once) instead of per-item timeouts.
+// Runs every 60s — window globals are cleared so old prints don't block forever,
+// but the recentlyPrinted Map uses a 5-minute TTL for reliable dedup.
 let _autoPrintCleanupInterval = null;
 if (typeof window !== 'undefined' && !_autoPrintCleanupInterval) {
   _autoPrintCleanupInterval = setInterval(() => {
@@ -59,9 +64,9 @@ if (typeof window !== 'undefined' && !_autoPrintCleanupInterval) {
     // Prune expired entries from recentlyPrinted
     const now = Date.now();
     for (const [key, ts] of recentlyPrinted) {
-      if (now - ts > 60000) recentlyPrinted.delete(key);
+      if (now - ts > DEDUP_TTL_MS) recentlyPrinted.delete(key);
     }
-  }, 30000);
+  }, 60000);
 }
 
 // ── Notify UI about print events (for debug toast) ──
@@ -125,7 +130,10 @@ export function useAutoPrint(restaurantId, printSettings) {
         console.error('Auto-print failed:', err);
         emitPrintEvent(job.type, job.orderId, 'failed');
       }
-      await new Promise(r => setTimeout(r, 500));
+      // Brief pause between prints to avoid overwhelming the printer buffer.
+      // 300ms is sufficient for thermal printers while keeping multi-receipt
+      // scenarios (split bills) fast — 4 splits now take ~1.2s instead of ~2s.
+      await new Promise(r => setTimeout(r, 300));
     }
 
     isPrintingRef.current = false;

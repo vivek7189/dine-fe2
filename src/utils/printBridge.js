@@ -195,14 +195,32 @@ async function printViaTauri({ html, type, printSettings }) {
 /** Electron: send to system printer via IPC — routes to KOT/bill printer based on type */
 async function printViaElectron({ html, type, stationId, printSettings }) {
   try {
-    await window.electronAPI.print(html, {
+    const result = await window.electronAPI.print(html, {
       type,
       stationId,
       copies: type === 'kot' ? (printSettings.kotCopies || 1) : 1,
       printerWidth: printSettings.printerWidth || 80,
     });
+
+    // Check if the print actually succeeded (especially for TCP printers which
+    // return { success: false, error: '...' } on failure after retries).
+    if (result && result.success === false) {
+      const errMsg = result.error || 'Print failed';
+      console.error('[PrintBridge] Electron print failed:', errMsg, 'method:', result.method);
+      // Emit failure event so PrintEventToast shows the red indicator
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('dine-print-event', {
+          detail: { type, status: 'failed', error: errMsg, method: result.method },
+        }));
+      }
+      // For TCP failures, do NOT fall back to window.print() — it would open a
+      // useless system dialog that can't reach the network printer anyway.
+      // For OS driver failures, also skip — the spooler already tried.
+      return;
+    }
   } catch (err) {
-    console.error('Electron print failed, falling back to window.print:', err);
+    console.error('Electron print IPC error, falling back to window.print:', err);
+    // IPC-level failure (Electron crashed, preload bridge broken) — last resort fallback
     window.print();
   }
 }
