@@ -214,6 +214,9 @@ app.whenReady().then(() => {
     });
   }
 
+  // Start printer heartbeat monitoring
+  startPrinterHeartbeat();
+
   try {
     initOfflineEngine(app);
   } catch (err) {
@@ -308,6 +311,7 @@ app.on('activate', () => {
 app.on('will-quit', () => {
   // Clean up offline engine when the app is fully quitting (Cmd+Q on Mac, or close on Windows/Linux)
   shutdownOfflineEngine();
+  stopPrinterHeartbeat();
 });
 
 // ──── TCP Printer Support (raw ESC/POS over network) ────
@@ -644,6 +648,7 @@ ipcMain.handle('electron:setDefaultPrinter', async (event, { name }) => {
   const settings = loadSettings();
   settings.defaultPrinter = name;
   saveSettings(settings);
+  startPrinterHeartbeat(); // Restart heartbeat for new printer
   return { success: true };
 });
 
@@ -666,6 +671,8 @@ ipcMain.handle('electron:setPrinterConfig', async (event, config) => {
   // Network printers (manually added IP addresses)
   if (config.networkPrinters !== undefined) settings.networkPrinters = config.networkPrinters;
   saveSettings(settings);
+  // Restart heartbeat to pick up new printer config immediately
+  startPrinterHeartbeat();
   return { success: true };
 });
 
@@ -735,6 +742,115 @@ ipcMain.handle('electron:scanNetworkPrinters', async () => {
 
   console.log('[PrintScan] Scan complete. Found', found.length, 'network printers');
   return { success: true, printers: found };
+});
+
+// ──── Printer Heartbeat (connection health monitoring) ────
+// Periodically probes configured printers to detect offline/online status changes.
+// TCP/IP printers: TCP connect probe on port 9100.
+// OS driver printers: check OS printer list and status field.
+// Sends 'printer-status' IPC event to renderer on status change.
+
+const HEARTBEAT_INTERVAL_MS = 30000; // 30 seconds, matches dine-app
+const HEARTBEAT_PROBE_TIMEOUT = 2000; // 2s timeout for TCP probe
+
+let heartbeatTimer = null;
+const printerHealthState = {}; // { [printerName]: { status: 'online'|'offline', lastCheck: timestamp, role: string } }
+
+async function runHeartbeatCheck() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+
+  const settings = loadSettings();
+  const printersToCheck = [];
+
+  // Collect all configured printers with their roles
+  if (settings.defaultPrinter) printersToCheck.push({ name: settings.defaultPrinter, role: 'default' });
+  if (settings.kotPrinter && settings.kotPrinter !== settings.defaultPrinter) {
+    printersToCheck.push({ name: settings.kotPrinter, role: 'kot' });
+  }
+  if (settings.billPrinter && settings.billPrinter !== settings.defaultPrinter && settings.billPrinter !== settings.kotPrinter) {
+    printersToCheck.push({ name: settings.billPrinter, role: 'bill' });
+  }
+  // Station printers
+  if (settings.stationPrinters) {
+    for (const [stationId, printerName] of Object.entries(settings.stationPrinters)) {
+      if (printerName && !printersToCheck.some(p => p.name === printerName)) {
+        printersToCheck.push({ name: printerName, role: `station:${stationId}` });
+      }
+    }
+  }
+
+  if (printersToCheck.length === 0) return;
+
+  // Get OS printer list once for all OS-driver checks
+  let osPrinters = null;
+
+  for (const printer of printersToCheck) {
+    let newStatus = 'offline';
+
+    try {
+      if (isIpAddress(printer.name)) {
+        // TCP probe for IP-based printers
+        const { host, port } = parseIpPrinter(printer.name);
+        const reachable = await probeTcpPort(host, port, HEARTBEAT_PROBE_TIMEOUT);
+        newStatus = reachable ? 'online' : 'offline';
+      } else {
+        // OS driver printer — check if it exists in printer list
+        if (!osPrinters) {
+          try {
+            const wc = (printWindow && !printWindow.isDestroyed()) ? printWindow.webContents : mainWindow.webContents;
+            osPrinters = await wc.getPrintersAsync();
+          } catch {
+            osPrinters = [];
+          }
+        }
+        const found = osPrinters.find(p => p.name === printer.name || p.displayName === printer.name);
+        // OS printer status: 0 = idle (ready), other values = error/offline
+        // However, many drivers report non-zero even when online, so just check existence
+        newStatus = found ? 'online' : 'offline';
+      }
+    } catch {
+      newStatus = 'offline';
+    }
+
+    const prev = printerHealthState[printer.name];
+    const changed = !prev || prev.status !== newStatus;
+
+    printerHealthState[printer.name] = {
+      status: newStatus,
+      lastCheck: Date.now(),
+      role: printer.role,
+    };
+
+    // Notify renderer only on status change
+    if (changed && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('printer-status', {
+        printer: printer.name,
+        role: printer.role,
+        status: newStatus,
+        type: isIpAddress(printer.name) ? 'tcp' : 'os',
+      });
+    }
+  }
+}
+
+function startPrinterHeartbeat() {
+  stopPrinterHeartbeat();
+  // Run first check after 5s delay (let app settle)
+  setTimeout(() => {
+    runHeartbeatCheck();
+    heartbeatTimer = setInterval(runHeartbeatCheck, HEARTBEAT_INTERVAL_MS);
+  }, 5000);
+}
+
+function stopPrinterHeartbeat() {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+}
+
+ipcMain.handle('electron:getPrinterHealth', async () => {
+  return { ...printerHealthState };
 });
 
 // ──── IPC: Auto-update ────

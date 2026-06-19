@@ -38,6 +38,7 @@ export default function NativePrinterSettings({ restaurantId }) {
   const [networkIpInput, setNetworkIpInput] = useState('');
   const [isNetworkScanning, setIsNetworkScanning] = useState(false);
   const [networkPrinters, setNetworkPrinters] = useState([]); // manually added IP printers
+  const [printerHealth, setPrinterHealth] = useState({}); // { [printerName]: 'online'|'offline'|'checking' }
   const isElectronPlatform = !isWeb() && isElectron();
   const isCapacitorPlatform = !isWeb() && isCapacitor();
   // Show printer routing for both Electron and Capacitor
@@ -254,6 +255,30 @@ export default function NativePrinterSettings({ restaurantId }) {
     checkConnection();
   }, []);
 
+  // Subscribe to printer heartbeat status updates (Electron only)
+  useEffect(() => {
+    if (!isElectronPlatform || !window.electronAPI?.onPrinterStatus) return;
+    // Load initial health state
+    window.electronAPI.getPrinterHealth?.().then(health => {
+      if (health) {
+        const healthMap = {};
+        for (const [name, info] of Object.entries(health)) {
+          healthMap[name] = info.status || 'checking';
+        }
+        setPrinterHealth(healthMap);
+      }
+    }).catch(() => {});
+    // Subscribe to live status changes
+    const unsub = window.electronAPI.onPrinterStatus((data) => {
+      setPrinterHealth(prev => ({ ...prev, [data.printer]: data.status }));
+      // Also dispatch a window event for PrintEventToast
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('dine-printer-status', { detail: data }));
+      }
+    });
+    return unsub;
+  }, [isElectronPlatform]);
+
   // Load print stations from API + station printer config from device
   useEffect(() => {
     if (isWeb() || !restaurantId) return;
@@ -389,15 +414,24 @@ export default function NativePrinterSettings({ restaurantId }) {
             v{appVersion}
           </span>
         )}
-        {isConnected ? (
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#16a34a', marginLeft: 'auto' }}>
-            <FaCheckCircle /> Connected
-          </span>
-        ) : (
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#dc2626', marginLeft: 'auto' }}>
-            <FaTimesCircle /> Not connected
-          </span>
-        )}
+        {(() => {
+          // Use heartbeat status for Electron when available
+          const defaultHealth = selectedPrinter ? printerHealth[selectedPrinter.name] : null;
+          const effectiveConnected = isElectronPlatform && defaultHealth ? defaultHealth === 'online' : isConnected;
+          return effectiveConnected ? (
+            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#16a34a', marginLeft: 'auto' }}>
+              <FaCheckCircle /> Online
+            </span>
+          ) : selectedPrinter ? (
+            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#dc2626', marginLeft: 'auto' }}>
+              <FaTimesCircle /> {defaultHealth === 'offline' ? 'Offline' : 'Not connected'}
+            </span>
+          ) : (
+            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#9ca3af', marginLeft: 'auto' }}>
+              No printer set
+            </span>
+          );
+        })()}
       </div>
 
       {selectedPrinter && (
@@ -414,6 +448,13 @@ export default function NativePrinterSettings({ restaurantId }) {
           <PrinterIcon type={selectedPrinter.type} />
           <span style={{ fontWeight: 500 }}>{selectedPrinter.name}</span>
           <span style={{ color: '#9ca3af', fontSize: '11px' }}>{selectedPrinter.address}</span>
+          {isElectronPlatform && printerHealth[selectedPrinter.name] && (
+            <span style={{
+              width: '8px', height: '8px', borderRadius: '50%', marginLeft: 'auto',
+              backgroundColor: printerHealth[selectedPrinter.name] === 'online' ? '#22c55e' : '#ef4444',
+              boxShadow: printerHealth[selectedPrinter.name] === 'online' ? '0 0 4px #22c55e' : '0 0 4px #ef4444',
+            }} title={printerHealth[selectedPrinter.name] === 'online' ? 'Printer reachable' : 'Printer unreachable — check power & network'} />
+          )}
         </div>
       )}
 
@@ -574,8 +615,14 @@ export default function NativePrinterSettings({ restaurantId }) {
 
           {/* KOT Printer */}
           <div style={{ marginBottom: '10px' }}>
-            <div style={{ fontSize: '12px', fontWeight: 500, color: '#374151', marginBottom: '4px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 500, color: '#374151', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               KOT Printer (Kitchen Orders)
+              {isElectronPlatform && kotPrinter && printerHealth[kotPrinter.name] && (
+                <span style={{
+                  width: '7px', height: '7px', borderRadius: '50%',
+                  backgroundColor: printerHealth[kotPrinter.name] === 'online' ? '#22c55e' : '#ef4444',
+                }} title={printerHealth[kotPrinter.name] === 'online' ? 'Online' : 'Offline'} />
+              )}
             </div>
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               <select
@@ -613,8 +660,14 @@ export default function NativePrinterSettings({ restaurantId }) {
 
           {/* Bill Printer */}
           <div>
-            <div style={{ fontSize: '12px', fontWeight: 500, color: '#374151', marginBottom: '4px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 500, color: '#374151', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               Bill Printer (Invoices / Receipts)
+              {isElectronPlatform && billPrinter && printerHealth[billPrinter.name] && (
+                <span style={{
+                  width: '7px', height: '7px', borderRadius: '50%',
+                  backgroundColor: printerHealth[billPrinter.name] === 'online' ? '#22c55e' : '#ef4444',
+                }} title={printerHealth[billPrinter.name] === 'online' ? 'Online' : 'Offline'} />
+              )}
             </div>
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               <select
