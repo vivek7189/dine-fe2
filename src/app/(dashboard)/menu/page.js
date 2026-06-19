@@ -3097,18 +3097,23 @@ const MenuManagement = () => {
     }
   }, [currentRestaurant?.id, isOnline, loadMenuData]);
 
+  const [hideImageToast, setHideImageToast] = useState(null);
   const handleToggleHideImage = useCallback(async (item) => {
     if (!currentRestaurant?.id) return;
     const newVal = !item.hideImage;
     // Optimistic update
     setMenuItems(prev => prev.map(m => m.id === item.id ? { ...m, hideImage: newVal } : m));
+    setHideImageToast({ message: newVal ? `Image hidden for "${item.name}"` : `Image visible for "${item.name}"`, type: 'loading' });
     try {
       await apiClient.updateMenuItem(item.id, { hideImage: newVal }, currentRestaurant.id);
       updateMenuItemInAllCaches(currentRestaurant.id, item.id, { hideImage: newVal }).catch(() => {});
+      setHideImageToast({ message: newVal ? `Image hidden for "${item.name}"` : `Image shown for "${item.name}"`, type: 'success' });
+      setTimeout(() => setHideImageToast(null), 2000);
     } catch (e) {
       console.error('Failed to toggle hideImage:', e);
-      // Revert
       setMenuItems(prev => prev.map(m => m.id === item.id ? { ...m, hideImage: !newVal } : m));
+      setHideImageToast({ message: `Failed to update "${item.name}"`, type: 'error' });
+      setTimeout(() => setHideImageToast(null), 3000);
     }
   }, [currentRestaurant?.id]);
 
@@ -6530,6 +6535,24 @@ const MenuManagement = () => {
       `}</style>
       
       {/* Item Detail Modal */}
+      {/* Hide Image Toast */}
+      {hideImageToast && (
+        <div style={{
+          position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+          padding: '10px 20px', borderRadius: '10px', zIndex: 10010,
+          display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '600',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.15)', animation: 'fadeInUp 0.3s ease',
+          backgroundColor: hideImageToast.type === 'success' ? '#dcfce7' : hideImageToast.type === 'error' ? '#fee2e2' : '#f0f9ff',
+          color: hideImageToast.type === 'success' ? '#166534' : hideImageToast.type === 'error' ? '#991b1b' : '#0c4a6e',
+          border: `1px solid ${hideImageToast.type === 'success' ? '#86efac' : hideImageToast.type === 'error' ? '#fca5a5' : '#7dd3fc'}`,
+        }}>
+          {hideImageToast.type === 'loading' && <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} />}
+          {hideImageToast.type === 'success' && <FaCheckCircle size={12} />}
+          {hideImageToast.type === 'error' && <FaExclamationTriangle size={12} />}
+          {hideImageToast.message}
+        </div>
+      )}
+
       <ItemDetailModal
         item={selectedItem}
         categoryMap={categoryMap}
