@@ -21,9 +21,10 @@ import { canPerform } from '../../../lib/permissions';
 import OfflineBanner from '../../../components/OfflineBanner';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { 
-  FaPlus, 
+  FaPlus,
   FaEdit,
   FaTrash,
+  FaEllipsisH,
   FaHeart,
   FaSearch, 
   FaSave, 
@@ -504,6 +505,16 @@ const CustomDropdown = ({ value, onChange, options, placeholder, style = {} }) =
 const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onToggleHideImage, onGenerateRecipe, generatingRecipeFor, hasRecipe, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, taxInclusiveGlobal, compact, scaleBarcodeFlag, scalePluDigits, globalHideImages = false }) => {
   const { formatCurrency: formatCurrencyHook } = useCurrency();
   const formatCurrency = formatCurrencyProp || formatCurrencyHook;
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const moreMenuRef = useRef(null);
+
+  // Close overflow menu on outside click
+  useEffect(() => {
+    if (!showMoreMenu) return;
+    const handler = (e) => { if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) setShowMoreMenu(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showMoreMenu]);
 
   // Stock & expiry computed values
   const isStockManaged = item.isStockManaged && typeof item.stockQuantity === 'number';
@@ -1010,261 +1021,160 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
             {formatCurrency(item.price)}
           </div>
 
-          <div style={{
-            display: 'flex',
-            gap: '8px'
-          }}>
-          {/* Eye/View button */}
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onItemClick(item); }}
-            style={{
-              padding: '8px',
-              background: '#f3f4f6',
-              color: '#374151',
-              border: '1px solid #e5e7eb',
-              borderRadius: '10px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#dbeafe'; e.currentTarget.style.color = '#1d4ed8'; e.currentTarget.style.borderColor = '#93c5fd'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = '#f3f4f6'; e.currentTarget.style.color = '#374151'; e.currentTarget.style.borderColor = '#e5e7eb'; }}
-            title={t('menu.viewDetails')}
-          >
-            <FaEye size={12} />
-          </button>
-          {onToggleFavorite && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                onToggleFavorite(item);
-              }}
-              style={{
-                padding: '8px',
-                background: item.isFavorite
-                  ? 'linear-gradient(135deg, #ef4444, #dc2626)'
-                  : '#ffffff',
-                color: item.isFavorite ? 'white' : '#000000',
-                border: item.isFavorite ? 'none' : '2px dashed #000000',
-                borderRadius: '10px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: item.isFavorite
-                  ? '0 2px 4px rgba(239, 68, 68, 0.2)'
-                  : '0 1px 2px rgba(0, 0, 0, 0.1)'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-1px)';
-                e.target.style.boxShadow = '0 4px 8px rgba(239, 68, 68, 0.3)';
-                e.target.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
-                e.target.style.color = 'white';
-                e.target.style.border = 'none';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = item.isFavorite
-                  ? '0 2px 4px rgba(239, 68, 68, 0.2)'
-                  : '0 1px 2px rgba(0, 0, 0, 0.1)';
-                e.target.style.background = item.isFavorite
-                  ? 'linear-gradient(135deg, #ef4444, #dc2626)'
-                  : '#ffffff';
-                e.target.style.color = item.isFavorite ? 'white' : '#000000';
-                e.target.style.border = item.isFavorite ? 'none' : '2px dashed #000000';
-              }}
-              title={item.isFavorite ? t('menu.removeFromFavorites') : t('menu.addToFavorites')}
-            >
-              <FaStar size={12} />
-            </button>
-          )}
+          <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+          {/* Primary: Edit */}
           {onEdit && <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                onEdit(item);
-              }}
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); onEdit(item); }}
               style={{
-                padding: '6px',
-                background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)'
+                padding: '5px 8px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white',
+                border: 'none', borderRadius: '7px', cursor: 'pointer', transition: 'all 0.2s ease',
+                display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 500,
+                boxShadow: '0 1px 3px rgba(59, 130, 246, 0.2)'
               }}
-              onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-1px)';
-                e.target.style.boxShadow = '0 4px 8px rgba(59, 130, 246, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = '0 2px 4px rgba(59, 130, 246, 0.2)';
-              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 3px 8px rgba(59, 130, 246, 0.3)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(59, 130, 246, 0.2)'; }}
+              title={t('menu.edit')}
             >
-              <FaEdit size={12} />
+              <FaEdit size={10} /> Edit
           </button>}
 
-          {onGenerateRecipe && <button
-              type="button"
-              disabled={generatingRecipeFor === item.id}
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                onGenerateRecipe(item);
-              }}
-              style={{
-                padding: '6px',
-                background: generatingRecipeFor === item.id
-                  ? '#d1d5db'
-                  : hasRecipe
-                    ? '#f0fdf4'
-                    : 'linear-gradient(135deg, #059669, #10b981)',
-                color: hasRecipe ? '#059669' : 'white',
-                border: hasRecipe ? '1.5px solid #bbf7d0' : 'none',
-                borderRadius: '8px',
-                cursor: generatingRecipeFor === item.id ? 'wait' : 'pointer',
-                transition: 'all 0.2s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: hasRecipe ? 'none' : '0 2px 4px rgba(5, 150, 105, 0.2)',
-                opacity: generatingRecipeFor === item.id ? 0.7 : 1
-              }}
-              onMouseEnter={(e) => {
-                if (generatingRecipeFor !== item.id) {
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(5, 150, 105, 0.3)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = hasRecipe ? 'none' : '0 2px 4px rgba(5, 150, 105, 0.2)';
-              }}
-              title={generatingRecipeFor === item.id ? t('menu.generatingRecipe') : hasRecipe ? t('menu.viewRecipe') : t('menu.generateRecipeLink')}
-            >
-              {generatingRecipeFor === item.id
-                ? <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} />
-                : hasRecipe
-                  ? <FaCheckCircle size={12} />
-                  : <FaFlask size={12} />}
-          </button>}
-
+          {/* Primary: Availability */}
           {onToggleAvailability && <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                onToggleAvailability(item.id, item.isAvailable);
-              }}
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); onToggleAvailability(item.id, item.isAvailable); }}
               style={{
-                padding: '8px',
-                background: item.isAvailable
-                  ? 'linear-gradient(135deg, #f97316, #ea580c)'
-                  : 'linear-gradient(135deg, #22c55e, #16a34a)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '10px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: item.isAvailable
-                  ? '0 2px 4px rgba(249, 115, 22, 0.2)'
-                  : '0 2px 4px rgba(34, 197, 94, 0.2)'
+                padding: '5px 8px',
+                background: item.isAvailable ? 'linear-gradient(135deg, #f97316, #ea580c)' : 'linear-gradient(135deg, #22c55e, #16a34a)',
+                color: 'white', border: 'none', borderRadius: '7px', cursor: 'pointer', transition: 'all 0.2s ease',
+                display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 500,
+                boxShadow: item.isAvailable ? '0 1px 3px rgba(249, 115, 22, 0.2)' : '0 1px 3px rgba(34, 197, 94, 0.2)'
               }}
-              onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-1px)';
-                if (item.isAvailable) {
-                  e.target.style.boxShadow = '0 4px 8px rgba(249, 115, 22, 0.3)';
-                } else {
-                  e.target.style.boxShadow = '0 4px 8px rgba(34, 197, 94, 0.3)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = 'translateY(0)';
-                if (item.isAvailable) {
-                  e.target.style.boxShadow = '0 2px 4px rgba(249, 115, 22, 0.2)';
-                } else {
-                  e.target.style.boxShadow = '0 2px 4px rgba(34, 197, 94, 0.2)';
-                }
-              }}
-            title={item.isAvailable ? t('menu.markOutOfStock') : t('menu.markAvailable')}
-          >
-              {item.isAvailable ? <FaMinus size={12} /> : <FaCheck size={12} />}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+              title={item.isAvailable ? t('menu.markOutOfStock') : t('menu.markAvailable')}
+            >
+              {item.isAvailable ? <><FaMinus size={10} /> Hide</> : <><FaCheck size={10} /> Show</>}
           </button>}
 
+          {/* Primary: Hide/Show Image */}
           {onToggleHideImage && <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                onToggleHideImage(item);
-              }}
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); onToggleHideImage(item); }}
               style={{
-                padding: '8px',
-                background: item.hideImage
-                  ? 'linear-gradient(135deg, #6b7280, #4b5563)'
-                  : 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '10px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 2px 4px rgba(139, 92, 246, 0.2)'
+                padding: '5px 8px',
+                background: item.hideImage ? 'linear-gradient(135deg, #6b7280, #4b5563)' : 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                color: 'white', border: 'none', borderRadius: '7px', cursor: 'pointer', transition: 'all 0.2s ease',
+                display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 500,
+                boxShadow: '0 1px 3px rgba(139, 92, 246, 0.2)'
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
               title={item.hideImage ? 'Show image' : 'Hide image'}
             >
-              {item.hideImage ? <FaEyeSlash size={12} /> : <FaImage size={12} />}
+              {item.hideImage ? <><FaEyeSlash size={10} /> Show Img</> : <><FaImage size={10} /> Hide Img</>}
           </button>}
 
-          {onDelete && <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                onDelete(item.id);
-              }}
-              style={{
-                padding: '8px',
-                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '10px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 2px 4px rgba(239, 68, 68, 0.2)'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-1px)';
-                e.target.style.boxShadow = '0 4px 8px rgba(239, 68, 68, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = '0 2px 4px rgba(239, 68, 68, 0.2)';
-              }}
-            >
-              <FaTrash size={12} />
-          </button>}
+          {/* More menu */}
+          {(onToggleFavorite || onGenerateRecipe || onDelete) && (
+            <div ref={moreMenuRef} style={{ position: 'relative' }}>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); e.preventDefault(); setShowMoreMenu(!showMoreMenu); }}
+                style={{
+                  padding: '5px 6px', background: '#f3f4f6', color: '#6b7280',
+                  border: '1px solid #e5e7eb', borderRadius: '7px', cursor: 'pointer', transition: 'all 0.2s ease',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#e5e7eb'; e.currentTarget.style.color = '#374151'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#f3f4f6'; e.currentTarget.style.color = '#6b7280'; }}
+                title="More actions"
+              >
+                <FaEllipsisH size={12} />
+              </button>
+              {showMoreMenu && (
+                <div style={{
+                  position: 'absolute', bottom: '100%', right: 0, marginBottom: '4px',
+                  background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: '4px', minWidth: '170px',
+                  zIndex: 100, animation: 'fadeIn 0.1s ease-out',
+                }}>
+                  {/* View Details */}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setShowMoreMenu(false); onItemClick(item); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
+                      padding: '8px 10px', border: 'none', background: 'none', borderRadius: '6px',
+                      cursor: 'pointer', fontSize: '12px', color: '#374151', textAlign: 'left',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+                  >
+                    <FaEye size={11} style={{ color: '#6b7280', flexShrink: 0 }} /> {t('menu.viewDetails')}
+                  </button>
+                  {/* Favorite */}
+                  {onToggleFavorite && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setShowMoreMenu(false); onToggleFavorite(item); }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
+                        padding: '8px 10px', border: 'none', background: 'none', borderRadius: '6px',
+                        cursor: 'pointer', fontSize: '12px', color: '#374151', textAlign: 'left',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+                    >
+                      <FaStar size={11} style={{ color: item.isFavorite ? '#f59e0b' : '#6b7280', flexShrink: 0 }} />
+                      {item.isFavorite ? t('menu.removeFromFavorites') : t('menu.addToFavorites')}
+                    </button>
+                  )}
+                  {/* Recipe */}
+                  {onGenerateRecipe && (
+                    <button
+                      type="button"
+                      disabled={generatingRecipeFor === item.id}
+                      onClick={(e) => { e.stopPropagation(); setShowMoreMenu(false); if (!hasRecipe) onGenerateRecipe(item); }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
+                        padding: '8px 10px', border: 'none', background: 'none', borderRadius: '6px',
+                        cursor: generatingRecipeFor === item.id ? 'wait' : 'pointer', fontSize: '12px',
+                        color: hasRecipe ? '#059669' : '#374151', textAlign: 'left',
+                        opacity: generatingRecipeFor === item.id ? 0.6 : 1,
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+                    >
+                      {generatingRecipeFor === item.id
+                        ? <FaSpinner size={11} style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }} />
+                        : hasRecipe ? <FaCheckCircle size={11} style={{ flexShrink: 0 }} /> : <FaFlask size={11} style={{ color: '#6b7280', flexShrink: 0 }} />}
+                      {generatingRecipeFor === item.id ? t('menu.generating') : hasRecipe ? t('menu.recipeLinkedAction') : t('menu.generateRecipe')}
+                    </button>
+                  )}
+                  {/* Delete */}
+                  {onDelete && (
+                    <>
+                      <div style={{ height: '1px', background: '#f3f4f6', margin: '2px 0' }} />
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setShowMoreMenu(false); onDelete(item.id); }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
+                          padding: '8px 10px', border: 'none', background: 'none', borderRadius: '6px',
+                          cursor: 'pointer', fontSize: '12px', color: '#dc2626', textAlign: 'left',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = '#fef2f2'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+                      >
+                        <FaTrash size={11} style={{ flexShrink: 0 }} /> {t('menu.delete')}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           </div>
         </div>
       </div>
