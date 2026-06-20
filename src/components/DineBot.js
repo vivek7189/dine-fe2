@@ -71,6 +71,16 @@ function renderMarkdown(text) {
       continue;
     }
 
+    // Image: ![alt](src)
+    const imgMatch = line.match(/^!\[([^\]]*)\]\(([^)]+)\)/);
+    if (imgMatch) {
+      flushList();
+      elements.push(
+        <img key={key++} src={imgMatch[2]} alt={imgMatch[1]} style={{ maxWidth: '100%', borderRadius: '8px', margin: '8px 0', border: '1px solid #e5e7eb' }} />
+      );
+      continue;
+    }
+
     // Unordered list items (- or * or •)
     const ulMatch = line.match(/^\s*[-*•]\s+(.+)/);
     if (ulMatch) {
@@ -238,11 +248,11 @@ function MessageBubble({ message }) {
 }
 
 // ─── DineBot Component ──────────────────────────────────────────────
-const DineBot = ({ restaurantId, isOpen, onClose }) => {
+const DineBot = ({ restaurantId, isOpen, onClose, context = {}, suggestions = [] }) => {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: "Hi! I'm DineBot, your restaurant assistant. Ask me anything about orders, customers, revenue, tables, or any other data!",
+      text: "Hi! I'm DineBot, your restaurant assistant. Ask me anything about orders, customers, revenue, tables, or how to use any feature — I can guide you step by step!",
       sender: 'bot',
       timestamp: new Date(),
       isWelcome: true
@@ -316,7 +326,7 @@ const DineBot = ({ restaurantId, isOpen, onClose }) => {
     setIsLoading(true);
 
     try {
-      const response = await apiClient.queryDineBot(inputText, restaurantId);
+      const response = await apiClient.queryDineBot(inputText, restaurantId, context);
 
       if (response.success) {
         const botMessage = {
@@ -397,13 +407,14 @@ const DineBot = ({ restaurantId, isOpen, onClose }) => {
     }
   };
 
-  const quickQueries = [
-    "How many orders today?",
-    "What's our revenue today?",
-    "Show me popular items",
-    "How many customers today?",
-    "Table status",
-    "Restaurant hours"
+  // Use dynamic suggestions from backend, fall back to defaults
+  const activeSuggestions = suggestions.length > 0 ? suggestions : [
+    { text: "How many orders today?", icon: "📊" },
+    { text: "What's our revenue today?", icon: "💰" },
+    { text: "Show me popular items", icon: "🔥" },
+    { text: "How do I set up my menu?", icon: "🍽️" },
+    { text: "Help me connect a printer", icon: "🖨️" },
+    { text: "Table status", icon: "🪑" },
   ];
 
   const handleQuickQuery = (query) => {
@@ -477,22 +488,22 @@ const DineBot = ({ restaurantId, isOpen, onClose }) => {
         </button>
       </div>
 
-      {/* Quick Queries */}
-      {messages.length === 1 && (
+      {/* Suggestions — shown on first open AND persistently */}
+      {activeSuggestions.length > 0 && messages.length <= 3 && (
         <div style={{
-          padding: '12px 16px',
+          padding: '10px 16px',
           backgroundColor: '#f8fafc',
           borderBottom: '1px solid #e5e7eb',
           flexShrink: 0,
         }}>
           <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '6px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            Quick Queries
+            {messages.length === 1 ? 'Suggestions' : 'Try asking'}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-            {quickQueries.map((query, index) => (
+            {activeSuggestions.slice(0, 6).map((suggestion, index) => (
               <button
                 key={index}
-                onClick={() => handleQuickQuery(query)}
+                onClick={() => handleQuickQuery(suggestion.text || suggestion)}
                 style={{
                   padding: '5px 10px',
                   backgroundColor: 'white',
@@ -501,20 +512,24 @@ const DineBot = ({ restaurantId, isOpen, onClose }) => {
                   fontSize: '11px',
                   cursor: 'pointer',
                   transition: 'all 0.15s',
-                  color: '#374151'
+                  color: '#374151',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
                 }}
                 onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#fef2f2';
-                  e.target.style.borderColor = '#fca5a5';
-                  e.target.style.color = '#dc2626';
+                  e.currentTarget.style.backgroundColor = '#fef2f2';
+                  e.currentTarget.style.borderColor = '#fca5a5';
+                  e.currentTarget.style.color = '#dc2626';
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = 'white';
-                  e.target.style.color = '#374151';
-                  e.target.style.borderColor = '#e5e7eb';
+                  e.currentTarget.style.backgroundColor = 'white';
+                  e.currentTarget.style.color = '#374151';
+                  e.currentTarget.style.borderColor = '#e5e7eb';
                 }}
               >
-                {query}
+                {suggestion.icon && <span style={{ fontSize: '12px' }}>{suggestion.icon}</span>}
+                {suggestion.text || suggestion}
               </button>
             ))}
           </div>

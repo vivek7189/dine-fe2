@@ -15,7 +15,8 @@ const MenuItemCard = ({
   isMobile = false,
   useModernDesign = true,
   cardSize = 'standard', // 'compact' | 'standard' | 'large'
-  hideImages = false
+  hideImages = false,
+  darkMode = false
 }) => {
   const { formatCurrency, getCurrencySymbol } = useCurrency();
   const isVeg = item.isVeg === true || item.category === 'veg';
@@ -27,7 +28,14 @@ const MenuItemCard = ({
   const hasVariants = item.variants && Array.isArray(item.variants) && item.variants.length > 0;
   const hasCustomizations = item.customizations && Array.isArray(item.customizations) && item.customizations.length > 0;
   const needsCustomization = hasVariants || hasCustomizations;
-  
+
+  const dm = darkMode ? {
+    cardBg: '#1e293b', cardBorder: '#334155', cardHover: '#475569',
+    text: '#e2e8f0', textSec: '#94a3b8', textMuted: '#64748b',
+    inputBg: '#0f172a', shadow: '0 2px 8px rgba(0,0,0,0.3)',
+    lightBg: '#0f172a', badgeBg: 'rgba(30,41,59,0.9)',
+  } : null;
+
   // Get display price - show "From X" if variants exist, otherwise show regular price
   const getDisplayPrice = () => {
     if (hasVariants && item.variants.length > 0) {
@@ -91,8 +99,8 @@ const MenuItemCard = ({
       <div
         className="menu-item-card"
       style={{
-        backgroundColor: '#ffffff',
-        border: '1px solid #f3f4f6',
+        backgroundColor: dm ? dm.cardBg : '#ffffff',
+        border: dm ? '1px solid #334155' : '1px solid #f3f4f6',
         borderTop: `4px solid ${isVeg ? '#22c55e' : '#ef4444'}`,
         borderRadius: '4px',
         cursor: 'pointer',
@@ -101,7 +109,7 @@ const MenuItemCard = ({
         flexDirection: 'column',
         justifyContent: 'space-between',
         padding: '12px',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+        boxShadow: dm ? dm.shadow : '0 2px 8px rgba(0, 0, 0, 0.06)',
         position: 'relative',
         overflow: 'hidden',
         transition: 'none',
@@ -145,8 +153,8 @@ const MenuItemCard = ({
             position: 'absolute',
             top: '2px',
             left: '2px',
-            backgroundColor: '#f3f4f6',
-            color: '#6b7280',
+            backgroundColor: dm ? dm.cardBg : '#f3f4f6',
+            color: dm ? dm.textSec : '#6b7280',
             padding: '2px 6px',
             borderRadius: '4px',
             fontSize: '8px',
@@ -170,8 +178,8 @@ const MenuItemCard = ({
               position: 'absolute',
               top: '2px',
               right: '2px',
-              backgroundColor: item.isFavorite ? '#ef4444' : 'rgba(243, 244, 246, 0.9)',
-              color: item.isFavorite ? 'white' : '#6b7280',
+              backgroundColor: item.isFavorite ? '#ef4444' : (dm ? dm.badgeBg : 'rgba(243, 244, 246, 0.9)'),
+              color: item.isFavorite ? 'white' : (dm ? dm.textSec : '#6b7280'),
               border: 'none',
               padding: '4px',
               borderRadius: '50%',
@@ -179,7 +187,7 @@ const MenuItemCard = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: item.isFavorite ? '0 2px 6px rgba(239, 68, 68, 0.4)' : '0 1px 3px rgba(0, 0, 0, 0.1)',
+              boxShadow: item.isFavorite ? '0 2px 6px rgba(239, 68, 68, 0.4)' : (dm ? dm.shadow : '0 1px 3px rgba(0, 0, 0, 0.1)'),
               transition: 'all 0.2s ease',
               width: '20px',
               height: '20px',
@@ -192,8 +200,8 @@ const MenuItemCard = ({
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.backgroundColor = item.isFavorite ? '#ef4444' : 'rgba(243, 244, 246, 0.9)';
-              e.currentTarget.style.color = item.isFavorite ? 'white' : '#6b7280';
+              e.currentTarget.style.backgroundColor = item.isFavorite ? '#ef4444' : (dm ? dm.badgeBg : 'rgba(243, 244, 246, 0.9)');
+              e.currentTarget.style.color = item.isFavorite ? 'white' : (dm ? dm.textSec : '#6b7280');
             }}
           >
             <FaHeart size={8} fill={item.isFavorite ? 'white' : 'none'} />
@@ -215,7 +223,7 @@ const MenuItemCard = ({
             fontSize: isMobile ? '12px' : '14px',
             fontWeight: '600',
             margin: '0 0 4px 0',
-            color: '#1f2937',
+            color: dm ? dm.text : '#1f2937',
             lineHeight: '1.2',
             textAlign: 'center',
             overflow: 'hidden',
@@ -235,7 +243,7 @@ const MenuItemCard = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           paddingTop: '8px',
-          borderTop: '1px solid #f3f4f6',
+          borderTop: dm ? '1px solid #334155' : '1px solid #f3f4f6',
           marginTop: '6px'
         }}>
           {/* Price */}
@@ -304,10 +312,10 @@ const MenuItemCard = ({
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            backgroundColor: quantityInCart > 0 ? '#ef4444' : '#f8fafc',
+            backgroundColor: quantityInCart > 0 ? '#ef4444' : (dm ? dm.cardBg : '#f8fafc'),
             borderRadius: '8px',
             overflow: 'hidden',
-            border: quantityInCart > 0 ? 'none' : '1px solid #e5e7eb',
+            border: quantityInCart > 0 ? 'none' : (dm ? '1px solid #334155' : '1px solid #e5e7eb'),
             boxShadow: quantityInCart > 0 ? '0 2px 4px rgba(239, 68, 68, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)'
           }}>
             {quantityInCart > 0 ? (
@@ -383,7 +391,7 @@ const MenuItemCard = ({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '4px',
-                  color: '#6b7280',
+                  color: dm ? dm.textSec : '#6b7280',
                   fontWeight: '600',
                   fontSize: '10px',
                   transition: 'none'
@@ -682,7 +690,7 @@ const MenuItemCard = ({
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              backgroundColor: quantityInCart > 0 ? '#ef4444' : 'rgba(255, 255, 255, 0.95)',
+              backgroundColor: quantityInCart > 0 ? '#ef4444' : (dm ? dm.badgeBg : 'rgba(255, 255, 255, 0.95)'),
               borderRadius: '8px',
               overflow: 'hidden',
               border: quantityInCart > 0 ? 'none' : '2px solid rgba(255, 255, 255, 0.3)',
@@ -761,7 +769,7 @@ const MenuItemCard = ({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
-                    color: '#1f2937',
+                    color: dm ? dm.text : '#1f2937',
                     fontWeight: '700',
                     fontSize: '10px',
                     textTransform: 'uppercase',
@@ -790,8 +798,8 @@ const MenuItemCard = ({
     <div
       className="menu-item-card"
       style={{
-        backgroundColor: '#ffffff',
-        border: '1px solid #e5e7eb',
+        backgroundColor: dm ? dm.cardBg : '#ffffff',
+        border: dm ? '1px solid #334155' : '1px solid #e5e7eb',
         borderRadius: cardSize === 'large' ? '10px' : '6px',
         cursor: 'pointer',
         height: cardSize === 'large'
@@ -801,10 +809,10 @@ const MenuItemCard = ({
         flexDirection: 'column',
         justifyContent: 'space-between',
         padding: cardSize === 'large' ? '16px' : '12px',
-        boxShadow: cardSize === 'large' ? '0 4px 12px rgba(0, 0, 0, 0.1)' : '0 2px 8px rgba(0, 0, 0, 0.06)',
+        boxShadow: cardSize === 'large' ? (dm ? dm.shadow : '0 4px 12px rgba(0, 0, 0, 0.1)') : (dm ? dm.shadow : '0 2px 8px rgba(0, 0, 0, 0.06)'),
         position: 'relative',
         overflow: 'hidden',
-        background: vegGradient,
+        background: dm ? dm.cardBg : vegGradient,
         borderTop: `3px solid ${isVeg ? '#22c55e' : '#ef4444'}`,
         transition: 'all 0.2s ease',
         filter: isOutOfStock ? 'blur(1.1px)' : 'none',
@@ -1027,7 +1035,7 @@ const MenuItemCard = ({
           fontSize: cardSize === 'large' ? '15px' : (isMobile ? '12px' : '13px'),
           fontWeight: '600',
           margin: '0 0 2px 0',
-          color: '#1f2937',
+          color: dm ? dm.text : '#1f2937',
           lineHeight: '1.25',
           textAlign: 'left',
           overflow: 'hidden',
@@ -1043,7 +1051,7 @@ const MenuItemCard = ({
         {item.nameAr && (
           <p style={{
             fontSize: cardSize === 'large' ? '12px' : '10px',
-            color: '#6b7280',
+            color: dm ? dm.textSec : '#6b7280',
             margin: '0',
             lineHeight: '1.3',
             overflow: 'hidden',
@@ -1063,7 +1071,7 @@ const MenuItemCard = ({
         {!item.nameAr && item.description && (
           <p style={{
             fontSize: '10px',
-            color: '#9ca3af',
+            color: dm ? dm.textMuted : '#9ca3af',
             margin: '0',
             lineHeight: '1.2',
             overflow: 'hidden',
@@ -1083,7 +1091,7 @@ const MenuItemCard = ({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingTop: '6px',
-        borderTop: '1px solid #f3f4f6',
+        borderTop: dm ? '1px solid #334155' : '1px solid #f3f4f6',
         marginTop: 'auto',
         zIndex: 1
       }}>
@@ -1129,13 +1137,13 @@ const MenuItemCard = ({
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          backgroundColor: quantityInCart > 0 ? '#ef4444' : '#f8fafc',
+          backgroundColor: quantityInCart > 0 ? '#ef4444' : (dm ? dm.cardBg : '#f8fafc'),
           borderRadius: '8px',
           overflow: 'hidden',
-          border: quantityInCart > 0 ? 'none' : '1px solid #e5e7eb',
-          boxShadow: quantityInCart > 0 
-            ? '0 2px 6px rgba(239, 68, 68, 0.2)' 
-            : '0 1px 3px rgba(0, 0, 0, 0.05)'
+          border: quantityInCart > 0 ? 'none' : (dm ? '1px solid #334155' : '1px solid #e5e7eb'),
+          boxShadow: quantityInCart > 0
+            ? '0 2px 6px rgba(239, 68, 68, 0.2)'
+            : (dm ? dm.shadow : '0 1px 3px rgba(0, 0, 0, 0.05)')
         }}>
           {quantityInCart > 0 ? (
             <>
@@ -1208,7 +1216,7 @@ const MenuItemCard = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
-                color: '#6b7280',
+                color: dm ? dm.textSec : '#6b7280',
                 fontWeight: '600',
                 fontSize: '11px',
                 borderRadius: '6px',

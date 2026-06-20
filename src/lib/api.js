@@ -2541,12 +2541,13 @@ class ApiClient {
   // ==================== DINEBOT METHODS ====================
 
   // Send query to DineBot (Function Calling Agent with role-based access)
-  async queryDineBot(query, restaurantId) {
+  async queryDineBot(query, restaurantId, context = {}) {
     return this.request('/api/chatbot/intelligent-query', {
       method: 'POST',
       body: {
-        query: query,
-        restaurantId: restaurantId
+        query,
+        restaurantId,
+        context
       }
     });
   }
@@ -2554,6 +2555,20 @@ class ApiClient {
   // Get DineBot status and capabilities
   async getDineBotStatus(restaurantId) {
     return this.request(`/api/dinebot/status?restaurantId=${restaurantId}`);
+  }
+
+  // Get context-aware suggestions for DineBot
+  async getDineBotSuggestions(restaurantId, context = {}) {
+    return this.request('/api/chatbot/suggestions', {
+      method: 'POST',
+      body: {
+        restaurantId,
+        currentPage: context.currentPage,
+        platform: context.platform,
+        userRole: context.userRole,
+        setupStatus: context.setupStatus
+      }
+    });
   }
 
   // Customer Management API methods

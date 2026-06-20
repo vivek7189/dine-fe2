@@ -6,21 +6,21 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 // import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
-import { database } from '../../../../firebase';
-import Onboarding from '../../../components/Onboarding';
-import EmptyMenuPrompt from '../../../components/EmptyMenuPrompt';
-import MenuItemCard from '../../../components/MenuItemCard';
-import CategoryButton from '../../../components/CategoryButton';
-import OrderSummary from '../../../components/OrderSummary';
-import Notification from '../../../components/Notification';
+import { database } from '../../../../../firebase';
+import Onboarding from '../../../../components/Onboarding';
+import EmptyMenuPrompt from '../../../../components/EmptyMenuPrompt';
+import MenuItemCard from '../../../../components/MenuItemCard';
+import CategoryButton from '../../../../components/CategoryButton';
+import OrderSummary from '../../../../components/OrderSummary';
+import Notification from '../../../../components/Notification';
 
 // Dynamic imports — loaded on first use, not on initial page load
-const DashboardTablesPanel = dynamic(() => import('../../../components/DashboardTablesPanel'), { ssr: false, loading: () => <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#9ca3af' }}>Loading tables...</div> });
-const QRCodeModal = dynamic(() => import('../../../components/QRCodeModal'), { ssr: false });
-const BulkMenuUpload = dynamic(() => import('../../../components/BulkMenuUpload'), { ssr: false });
-const ItemCustomizationModal = dynamic(() => import('../../../components/ItemCustomizationModal'), { ssr: false });
-const IntelligentChatbot = dynamic(() => import('../../../components/IntelligentChatbot'), { ssr: false });
-const RAGInitializer = dynamic(() => import('../../../components/RAGInitializer'), { ssr: false });
+const DashboardTablesPanel = dynamic(() => import('../../../../components/DashboardTablesPanel'), { ssr: false, loading: () => <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>Loading tables...</div> });
+const QRCodeModal = dynamic(() => import('../../../../components/QRCodeModal'), { ssr: false });
+const BulkMenuUpload = dynamic(() => import('../../../../components/BulkMenuUpload'), { ssr: false });
+const ItemCustomizationModal = dynamic(() => import('../../../../components/ItemCustomizationModal'), { ssr: false });
+const IntelligentChatbot = dynamic(() => import('../../../../components/IntelligentChatbot'), { ssr: false });
+const RAGInitializer = dynamic(() => import('../../../../components/RAGInitializer'), { ssr: false });
 import { 
   FaSearch, 
   FaShoppingCart, 
@@ -69,20 +69,20 @@ import {
   FaEye,
   FaEyeSlash
 } from 'react-icons/fa';
-import apiClient from '../../../lib/api';
-import { performLogout } from '../../../lib/logout';
-import { t } from '../../../lib/i18n';
-import { useLoading } from '../../../contexts/LoadingContext';
+import apiClient from '../../../../lib/api';
+import { performLogout } from '../../../../lib/logout';
+import { t } from '../../../../lib/i18n';
+import { useLoading } from '../../../../contexts/LoadingContext';
 // IntelligentChatbot and RAGInitializer are dynamically imported above
-import { getCachedDashboardData, setCachedDashboardData, getCachedTablesData, setCachedTablesData } from '../../../utils/dashboardCache';
-import { getOrderItemKey } from '../../../utils/orderItemKey';
-import { useSyncEngine } from '../../../hooks/useSyncEngine';
-import { setCachedData, getCachedData, saveEssentialData, getEssentialData } from '../../../lib/offlineDb';
-import { canPerform } from '../../../lib/permissions';
-import { useHubEvents } from '../../../hooks/useHubEvents';
-import { useDineBot } from '../../../components/DineBotProvider';
-import { parseScaleBarcode, isScaleBarcode } from '../../../utils/scaleBarcode';
-import { printDocument } from '../../../utils/printBridge';
+import { getCachedDashboardData, setCachedDashboardData, getCachedTablesData, setCachedTablesData } from '../../../../utils/dashboardCache';
+import { getOrderItemKey } from '../../../../utils/orderItemKey';
+import { useSyncEngine } from '../../../../hooks/useSyncEngine';
+import { setCachedData, getCachedData, saveEssentialData, getEssentialData } from '../../../../lib/offlineDb';
+import { canPerform } from '../../../../lib/permissions';
+import { useHubEvents } from '../../../../hooks/useHubEvents';
+import { useDineBot } from '../../../../components/DineBotProvider';
+import { parseScaleBarcode, isScaleBarcode } from '../../../../utils/scaleBarcode';
+import { printDocument } from '../../../../utils/printBridge';
 
 // Safe wrappers for contexts that may not be available in mobile embed mode
 function useSafeLoading() {
@@ -252,12 +252,13 @@ function RestaurantPOSContent() {
   // Responsive panel width for order summary (tablet = narrower)
   const orderPanelWidth = isTablet ? 340 : 450;
 
-  // Dashboard version redirect — if V2 is selected, redirect to /dashboard/v2
+  // Dashboard version redirect — if V1 is selected (or no version set), redirect back to /dashboard
   useEffect(() => {
-    if (selectedRestaurant?.posSettings?.dashboardVersion === 'v2') {
-      router.replace('/dashboard/v2');
+    const version = selectedRestaurant?.posSettings?.dashboardVersion;
+    if (selectedRestaurant && version !== 'v2') {
+      router.replace('/dashboard');
     }
-  }, [selectedRestaurant?.posSettings?.dashboardVersion, router]);
+  }, [selectedRestaurant?.posSettings?.dashboardVersion, selectedRestaurant, router]);
 
   // Listen for order notification unread count from layout
   useEffect(() => {
@@ -379,7 +380,7 @@ function RestaurantPOSContent() {
         const saved = localStorage.getItem(`viewSettings_${userId}`);
         if (saved) {
           const settings = JSON.parse(saved);
-          return settings.categoryViewMode || 'sidebar';
+          return 'chips' // V2: always horizontal categories;
         }
       } catch (e) {
         console.error('Error loading categoryViewMode from localStorage:', e);
@@ -5732,8 +5733,8 @@ function RestaurantPOSContent() {
       router.replace('/onboarding');
     }
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: '#9ca3af', fontSize: '16px' }}>Redirecting to setup...</p>
+      <div style={{ minHeight: '100vh', backgroundColor: '#0b1120', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: '#64748b', fontSize: '16px' }}>Redirecting to setup...</p>
       </div>
     );
   }
@@ -5741,7 +5742,7 @@ function RestaurantPOSContent() {
   // Loading state
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
+      <div style={{ minHeight: '100vh', backgroundColor: '#0b1120' }}>
         <div style={{ 
           display: 'flex', 
           alignItems: 'center', 
@@ -5755,7 +5756,7 @@ function RestaurantPOSContent() {
               animation: 'spin 1s linear infinite',
               marginBottom: '16px'
             }} />
-            <p style={{ fontSize: '18px', color: '#6b7280' }}>{t('common.loading')}</p>
+            <p style={{ fontSize: '18px', color: '#94a3b8' }}>{t('common.loading')}</p>
           </div>
         </div>
       </div>
@@ -5767,9 +5768,9 @@ function RestaurantPOSContent() {
     return (
       <div style={{ 
         minHeight: '100vh', 
-        background: 'linear-gradient(135deg, rgb(255 246 241) 0%, rgb(254 245 242) 50%, rgb(255 244 243) 100%)',
-        display: 'flex', 
-        alignItems: 'center', 
+        background: 'linear-gradient(135deg, #0b1120 0%, #0f172a 50%, #0b1120 100%)',
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
         overflow: 'hidden'
@@ -5782,28 +5783,28 @@ function RestaurantPOSContent() {
           right: 0,
           bottom: 0,
           background: `
-            radial-gradient(circle at 20% 80%, rgba(239, 68, 68, 0.05) 0%, transparent 50%),
-            radial-gradient(circle at 80% 20%, rgba(239, 68, 68, 0.05) 0%, transparent 50%)
+            radial-gradient(circle at 20% 80%, rgba(239, 68, 68, 0.08) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, rgba(239, 68, 68, 0.08) 0%, transparent 50%)
           `,
           zIndex: 0
         }} />
-        
-        <div style={{ 
-          textAlign: 'center', 
-          maxWidth: '500px', 
+
+        <div style={{
+          textAlign: 'center',
+          maxWidth: '500px',
           padding: '40px 20px',
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          backgroundColor: 'rgba(15, 23, 42, 0.8)',
           borderRadius: '24px',
           backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)',
+          border: '1px solid #334155',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
           position: 'relative',
           zIndex: 1
         }}>
-          <div style={{ 
-            width: '100px', 
-            height: '100px', 
-            backgroundColor: '#fef2f2',
+          <div style={{
+            width: '100px',
+            height: '100px',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
             borderRadius: '50%',
             display: 'flex',
             alignItems: 'center',
@@ -5817,7 +5818,7 @@ function RestaurantPOSContent() {
           <h1 style={{ 
             fontSize: '32px', 
             fontWeight: 'bold', 
-            color: '#1f2937', 
+            color: '#f1f5f9', 
             marginBottom: '16px',
             background: 'linear-gradient(135deg, #ef4444, #dc2626, #b91c1c)',
             WebkitBackgroundClip: 'text',
@@ -5829,7 +5830,7 @@ function RestaurantPOSContent() {
           
           <p style={{ 
             fontSize: '18px', 
-            color: '#374151', 
+            color: '#cbd5e1', 
             marginBottom: '8px',
             fontWeight: '500'
           }}>
@@ -5838,7 +5839,7 @@ function RestaurantPOSContent() {
           
           <p style={{ 
             fontSize: '16px', 
-            color: '#6b7280', 
+            color: '#94a3b8', 
             marginBottom: '32px',
             lineHeight: '1.6'
           }}>
@@ -5939,8 +5940,8 @@ function RestaurantPOSContent() {
       router.replace('/onboarding');
     }
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: '#9ca3af', fontSize: '16px' }}>Redirecting to setup...</p>
+      <div style={{ minHeight: '100vh', backgroundColor: '#0b1120', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: '#64748b', fontSize: '16px' }}>Redirecting to setup...</p>
       </div>
     );
   }
@@ -5951,7 +5952,7 @@ function RestaurantPOSContent() {
     <div
       className={`page-transition dashboard-full-height ${isLoading ? 'loading' : ''}`}
       style={{
-      backgroundColor: '#f9fafb',
+      backgroundColor: '#0b1120',
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden'
@@ -5972,7 +5973,7 @@ function RestaurantPOSContent() {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          backgroundColor: 'rgba(11, 17, 32, 0.9)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -5986,15 +5987,57 @@ function RestaurantPOSContent() {
               animation: 'spin 1s linear infinite',
               marginBottom: '12px'
             }} />
-            <p style={{ fontSize: '16px', color: '#374151', fontWeight: '600', margin: 0 }}>
+            <p style={{ fontSize: '16px', color: '#cbd5e1', fontWeight: '600', margin: 0 }}>
               {t('dashboard.switchingRestaurant')}
             </p>
-            <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
+            <p style={{ fontSize: '14px', color: '#94a3b8', margin: '4px 0 0 0' }}>
               {t('dashboard.loadingMenuAndData')}
             </p>
           </div>
         </div>
       )}
+
+      {/* V2 Dark Theme Overrides */}
+      <style>{`
+        /* Menu Item Cards — hover polish (dark colors handled by darkMode prop) */
+        .menu-item-card {
+          border-radius: 12px !important;
+          transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease !important;
+        }
+        .menu-item-card:hover {
+          transform: scale(1.02);
+          border-color: #475569 !important;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* V2 Order Panel Dark Overrides */
+        .v2-order-panel {
+          background-color: #111827 !important;
+        }
+        .v2-order-panel > div {
+          background-color: #111827 !important;
+          color: #e2e8f0 !important;
+        }
+        .v2-order-panel div {
+          border-color: #334155 !important;
+        }
+        .v2-order-panel input,
+        .v2-order-panel textarea,
+        .v2-order-panel select {
+          background-color: #0f172a !important;
+          color: #e2e8f0 !important;
+          border-color: #475569 !important;
+        }
+        .v2-order-panel input::placeholder,
+        .v2-order-panel textarea::placeholder {
+          color: #64748b !important;
+        }
+        .v2-order-panel button {
+          border-color: #475569 !important;
+        }
+      `}</style>
 
       {/* Network Status Indicator — minimal dot with pulse wave + sync animation */}
       <style>{`
@@ -6167,10 +6210,10 @@ function RestaurantPOSContent() {
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
               `}</style>
-              <div style={{ fontSize: '11px', color: '#059669', fontWeight: '600', marginBottom: '4px' }}>
+              <div style={{ fontSize: '11px', color: '#34d399', fontWeight: '600', marginBottom: '4px' }}>
                 Recognized Items:
               </div>
-              <div style={{ fontSize: '14px', color: '#065f46', fontWeight: '600' }}>
+              <div style={{ fontSize: '14px', color: '#6ee7b7', fontWeight: '600' }}>
                 {voiceCompiledText}
               </div>
             </div>
@@ -6182,10 +6225,11 @@ function RestaurantPOSContent() {
             alignItems: 'center',
             gap: '14px',
             padding: '14px 20px',
-            backgroundColor: 'rgba(255, 255, 255, 0.98)',
+            backgroundColor: 'rgba(15, 23, 42, 0.85)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            borderRadius: '50px',
+            borderRadius: '24px',
+            border: '1px solid rgba(148, 163, 184, 0.2)',
             boxShadow: isListeningVoice
               ? '0 8px 32px rgba(239, 68, 68, 0.2), 0 0 0 2px #ef4444'
               : '0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04)',
@@ -6203,7 +6247,7 @@ function RestaurantPOSContent() {
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
-              boxShadow: '0 2px 8px rgba(239, 68, 68, 0.25)',
+              boxShadow: isListeningVoice ? '0 0 0 4px rgba(239, 68, 68, 0.3), 0 2px 8px rgba(239, 68, 68, 0.25)' : '0 2px 8px rgba(239, 68, 68, 0.25)',
               animation: isListeningVoice ? 'pulse 1.5s ease-in-out infinite' : 'none'
             }}>
               {isListeningVoice ? (
@@ -6219,13 +6263,13 @@ function RestaurantPOSContent() {
                 flex: 1,
                 fontSize: '15px',
                 fontWeight: '500',
-                color: '#374151',
+                color: '#cbd5e1',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap'
               }}>
                 {voiceTranscript || (
-                  <span style={{ color: '#9ca3af' }}>{t('dashboard.listeningSpeak')}</span>
+                  <span style={{ color: '#64748b' }}>{t('dashboard.listeningSpeak')}</span>
                 )}
               </div>
             ) : (
@@ -6257,7 +6301,7 @@ function RestaurantPOSContent() {
                   backgroundColor: 'transparent',
                   fontSize: '16px',
                   fontWeight: '500',
-                  color: '#1f2937',
+                  color: '#f1f5f9',
                   padding: 0,
                   width: '100%',
                   WebkitAppearance: 'none',
@@ -6289,11 +6333,11 @@ function RestaurantPOSContent() {
                 alignItems: 'center',
                 gap: '4px',
                 padding: '6px 10px',
-                backgroundColor: '#f3f4f6',
+                backgroundColor: '#1e293b',
                 borderRadius: '8px',
                 fontSize: '11px',
                 fontWeight: '600',
-                color: '#9ca3af',
+                color: '#64748b',
                 flexShrink: 0
               }}>
                 <span style={{ fontSize: '10px' }}>⌘</span> K
@@ -6308,7 +6352,7 @@ function RestaurantPOSContent() {
                   width: '28px',
                   height: '28px',
                   borderRadius: '50%',
-                  backgroundColor: '#f3f4f6',
+                  backgroundColor: '#1e293b',
                   border: 'none',
                   display: 'flex',
                   alignItems: 'center',
@@ -6325,7 +6369,7 @@ function RestaurantPOSContent() {
             <div style={{
               width: '1px',
               height: '28px',
-              backgroundColor: '#e5e7eb',
+              backgroundColor: '#1e293b',
               flexShrink: 0
             }} />
 
@@ -6372,7 +6416,7 @@ function RestaurantPOSContent() {
               marginTop: '8px',
               textAlign: 'center',
               fontSize: '11px',
-              color: '#6b7280'
+              color: '#94a3b8'
             }}>
               Say items like &quot;2 paneer tikka, 1 dosa&quot; • Say &quot;that&apos;s all&quot; to finish
             </div>
@@ -6385,8 +6429,8 @@ function RestaurantPOSContent() {
       {/* Mobile Top Bar */}
       {isMobile && (
         <div style={{
-          backgroundColor: 'white',
-          borderBottom: '1px solid #e5e7eb',
+          backgroundColor: '#111827',
+          borderBottom: '1px solid #1e293b',
           padding: '12px 16px',
           display: 'flex',
           alignItems: 'center',
@@ -6395,19 +6439,19 @@ function RestaurantPOSContent() {
           position: 'sticky',
           top: 0,
           zIndex: 100,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
           flexDirection: 'row',
         }}>
           {/* Restaurant name + item count */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <h2 style={{
-              fontSize: '16px', fontWeight: '700', color: '#1f2937', margin: 0,
+              fontSize: '16px', fontWeight: '700', color: '#f1f5f9', margin: 0,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
             }}>
               {selectedRestaurant?.name || t('dashboard.myRestaurant')}
             </h2>
             <p style={{
-              fontSize: '12px', color: '#6b7280', margin: '2px 0 0 0',
+              fontSize: '12px', color: '#94a3b8', margin: '2px 0 0 0',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
             }}>
               {filteredItems.length} {t('dashboard.items')} • {selectedCategory === 'all-items' ? t('dashboard.allCategories') : categories.find(c => c.id === selectedCategory)?.name}
@@ -6425,9 +6469,9 @@ function RestaurantPOSContent() {
                 }}
                 style={{
                   padding: '8px',
-                  backgroundColor: hideMenuImages ? '#6b7280' : '#f3f4f6',
-                  color: hideMenuImages ? 'white' : '#6b7280',
-                  border: hideMenuImages ? 'none' : '1px solid #e5e7eb',
+                  backgroundColor: hideMenuImages ? '#6b7280' : '#1e293b',
+                  color: hideMenuImages ? 'white' : '#94a3b8',
+                  border: hideMenuImages ? 'none' : '1px solid #334155',
                   borderRadius: '10px',
                   cursor: 'pointer',
                   display: 'flex',
@@ -6503,14 +6547,14 @@ function RestaurantPOSContent() {
             top: 0,
             left: 0,
             right: 0,
-            height: '56px',
-            backgroundColor: '#ffffff',
-            borderBottom: '1px solid #e5e7eb',
+            height: '52px',
+            backgroundColor: '#0f172a',
+            borderBottom: '1px solid #1e293b',
             display: 'flex',
             alignItems: 'center',
             padding: '0 16px',
             zIndex: 100,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+            boxShadow: 'none',
             gap: '12px'
           }}>
             {/* Hamburger Menu Button */}
@@ -6521,9 +6565,9 @@ function RestaurantPOSContent() {
               style={{
                 width: '36px',
                 height: '36px',
-                border: '1px solid #e5e7eb',
+                border: 'none',
                 borderRadius: '8px',
-                backgroundColor: '#ffffff',
+                backgroundColor: '#1e293b',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -6531,10 +6575,10 @@ function RestaurantPOSContent() {
                 flexShrink: 0,
                 transition: 'all 0.15s ease'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#334155'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1e293b'}
             >
-              <FaBars size={14} color="#374151" />
+              <FaBars size={14} color="#ffffff" />
             </button>
 
             {/* Logo - Links to dashboard */}
@@ -6552,7 +6596,7 @@ function RestaurantPOSContent() {
                 }}>
                   <FaUtensils color="white" size={14} />
                 </div>
-                <span style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937' }}>DineOpen</span>
+                <span style={{ fontSize: '16px', fontWeight: '700', color: '#ffffff' }}>DineOpen</span>
               </div>
             </Link>
 
@@ -6565,11 +6609,11 @@ function RestaurantPOSContent() {
                 display: 'flex',
                 alignItems: 'center',
                 height: '36px',
-                backgroundColor: '#f3f4f6',
-                borderRadius: '8px',
-                border: '1px solid #e5e7eb'
+                backgroundColor: '#1e293b',
+                borderRadius: '20px',
+                border: 'none'
               }}>
-                <FaSearch style={{ marginLeft: '12px', color: '#9ca3af', flexShrink: 0 }} size={14} />
+                <FaSearch style={{ marginLeft: '12px', color: '#94a3b8', flexShrink: 0 }} size={14} />
                 <input
                   type="text"
                   placeholder={t('dashboard.searchMenuShort')}
@@ -6585,7 +6629,7 @@ function RestaurantPOSContent() {
                     fontSize: '13px',
                     fontWeight: '500',
                     outline: 'none',
-                    color: '#374151'
+                    color: '#e2e8f0'
                   }}
                 />
                 {searchTerm && (
@@ -6595,7 +6639,7 @@ function RestaurantPOSContent() {
                       width: '24px',
                       height: '24px',
                       borderRadius: '50%',
-                      backgroundColor: '#e5e7eb',
+                      backgroundColor: '#334155',
                       border: 'none',
                       display: 'flex',
                       alignItems: 'center',
@@ -6605,7 +6649,7 @@ function RestaurantPOSContent() {
                       marginRight: '6px'
                     }}
                   >
-                    <FaTimes size={9} color="#6b7280" />
+                    <FaTimes size={9} color="#94a3b8" />
                   </button>
                 )}
               </div>
@@ -6634,7 +6678,7 @@ function RestaurantPOSContent() {
                 gap: '6px',
                 whiteSpace: 'nowrap',
                 flexShrink: 0,
-                boxShadow: '0 2px 4px rgba(239, 68, 68, 0.25)'
+                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.4), 0 0 20px rgba(239, 68, 68, 0.15)'
               }}
             >
               <FaPlus size={10} />
@@ -6654,13 +6698,14 @@ function RestaurantPOSContent() {
                 height: '36px',
                 padding: '0 12px',
                 border: 'none',
+                borderLeft: '3px solid #f59e0b',
                 borderRadius: '8px',
-                backgroundColor: 'rgb(254, 243, 199)',
+                backgroundColor: '#1e293b',
                 fontSize: '12px',
                 fontWeight: '500',
                 outline: 'none',
                 textAlign: 'center',
-                color: '#4b5563',
+                color: '#e2e8f0',
                 flexShrink: 0
               }}
             />
@@ -6678,20 +6723,21 @@ function RestaurantPOSContent() {
                 height: '36px',
                 padding: '0 12px',
                 border: 'none',
+                borderLeft: '3px solid #10b981',
                 borderRadius: '8px',
-                backgroundColor: 'rgb(209, 250, 229)',
+                backgroundColor: '#1e293b',
                 fontSize: '12px',
                 fontWeight: '500',
                 outline: 'none',
                 textAlign: 'center',
-                color: '#4b5563',
+                color: '#e2e8f0',
                 textTransform: 'uppercase',
                 flexShrink: 0
               }}
             />
             <style>{`
-              .header-order-id-input::placeholder { color: #92400e; font-weight: 600; }
-              .header-short-code-input::placeholder { color: #065f46; font-weight: 600; }
+              .header-order-id-input::placeholder { color: #f59e0b; font-weight: 600; }
+              .header-short-code-input::placeholder { color: #10b981; font-weight: 600; }
             `}</style>
 
             {/* Voice Button */}
@@ -6706,16 +6752,16 @@ function RestaurantPOSContent() {
                   ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
                   : isProcessingVoice
                   ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
-                  : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  : '#1e293b',
                 color: 'white',
-                border: 'none',
+                border: isListeningVoice || isProcessingVoice ? 'none' : '1px solid #334155',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: isProcessingVoice ? 'not-allowed' : 'pointer',
                 flexShrink: 0,
-                boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)'
+                boxShadow: isListeningVoice ? '0 0 12px rgba(239, 68, 68, 0.4)' : 'none'
               }}
             >
               {isProcessingVoice ? (
@@ -6733,9 +6779,9 @@ function RestaurantPOSContent() {
               style={{
                 height: '36px',
                 padding: '0 14px',
-                background: viewMode === 'tables' ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'transparent',
-                color: viewMode === 'tables' ? 'white' : '#ef4444',
-                border: viewMode === 'tables' ? 'none' : '2px solid #ef4444',
+                background: viewMode === 'tables' ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : '#1e293b',
+                color: viewMode === 'tables' ? 'white' : '#94a3b8',
+                border: viewMode === 'tables' ? 'none' : '1px solid #334155',
                 borderRadius: '8px',
                 fontSize: '12px',
                 fontWeight: '700',
@@ -6766,9 +6812,9 @@ function RestaurantPOSContent() {
                 style={{
                   height: '36px',
                   padding: '0 12px',
-                  background: 'transparent',
+                  background: '#1e293b',
                   color: '#ef4444',
-                  border: '1.5px solid #ef4444',
+                  border: '1px solid #334155',
                   borderRadius: '8px',
                   fontSize: '11px',
                   fontWeight: '700',
@@ -6805,25 +6851,22 @@ function RestaurantPOSContent() {
                 onClick={() => {
                   window.dispatchEvent(new CustomEvent('toggleOrderNotificationBell'));
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1e293b'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
-                <FaBell size={22} color={orderUnreadCount > 0 ? '#ef4444' : '#9ca3af'} />
+                <FaBell size={22} color={orderUnreadCount > 0 ? '#ef4444' : '#94a3b8'} />
                 {orderUnreadCount > 0 && (
                   <span style={{
                     position: 'absolute', top: '2px', right: '6px',
                     background: '#ef4444', color: 'white', fontSize: '9px', fontWeight: '700',
                     borderRadius: '10px', minWidth: '16px', height: '16px',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    padding: '0 3px', border: '2px solid white',
+                    padding: '0 3px', border: '2px solid #0f172a',
                     animation: 'bellPulse 2s infinite',
                   }}>
                     {orderUnreadCount > 99 ? '99+' : orderUnreadCount}
                   </span>
                 )}
-                <span style={{ fontSize: '10px', fontWeight: '600', color: orderUnreadCount > 0 ? '#ef4444' : '#6b7280', marginTop: '3px' }}>
-                  {orderUnreadCount > 0 ? `${orderUnreadCount} New` : 'Alerts'}
-                </span>
               </div>
               )}
 
@@ -6838,11 +6881,10 @@ function RestaurantPOSContent() {
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1e293b'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaClipboardList size={22} color="#f59e0b" />
-                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>{t('dashboard.orders')}</span>
+                  <FaClipboardList size={22} color="#94a3b8" />
                 </div>
               </Link>
 
@@ -6857,11 +6899,10 @@ function RestaurantPOSContent() {
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1e293b'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaChair size={22} color="#3b82f6" />
-                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>{t('dashboard.tables')}</span>
+                  <FaChair size={22} color="#94a3b8" />
                 </div>
               </Link>
 
@@ -6876,11 +6917,10 @@ function RestaurantPOSContent() {
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1e293b'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaUtensils size={22} color="#10b981" />
-                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>{t('dashboard.menu')}</span>
+                  <FaUtensils size={22} color="#94a3b8" />
                 </div>
               </Link>
 
@@ -6895,11 +6935,10 @@ function RestaurantPOSContent() {
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1e293b'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaFire size={22} color="#f97316" />
-                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>{t('dashboard.kitchen')}</span>
+                  <FaFire size={22} color="#94a3b8" />
                 </div>
               </Link>
 
@@ -6914,11 +6953,10 @@ function RestaurantPOSContent() {
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1e293b'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaUsers size={22} color="#3b82f6" />
-                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>{t('dashboard.customers')}</span>
+                  <FaUsers size={22} color="#94a3b8" />
                 </div>
               </Link>
 
@@ -6937,11 +6975,10 @@ function RestaurantPOSContent() {
                   const r = JSON.parse(localStorage.getItem('selectedRestaurant') || '{}');
                   if (r?.id) openDineBot(r.id);
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1e293b'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
-                <FaRobot size={22} color="#ef4444" />
-                <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>DineBot</span>
+                <FaRobot size={22} color="#94a3b8" />
               </div>
             </div>
           </div>
@@ -6951,7 +6988,7 @@ function RestaurantPOSContent() {
         {subRestaurants.length > 0 && (
           <div style={{
             position: 'absolute',
-            top: isMobile ? '60px' : '66px',
+            top: isMobile ? '60px' : '62px',
             left: isMobile ? '12px' : '160px',
             right: isMobile ? '12px' : 'auto',
             zIndex: 20,
@@ -6969,17 +7006,17 @@ function RestaurantPOSContent() {
               style={{
                 padding: '6px 28px 6px 10px',
                 borderRadius: '8px',
-                border: '1px solid #e5e7eb',
-                backgroundColor: selectedSubRestaurant ? '#fef7f0' : '#fff',
+                border: '1px solid #334155',
+                backgroundColor: selectedSubRestaurant ? '#1e293b' : '#1e293b',
                 fontSize: '12px',
                 fontWeight: 600,
-                color: '#374151',
+                color: '#e2e8f0',
                 cursor: 'pointer',
                 appearance: 'none',
-                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
                 backgroundRepeat: 'no-repeat',
                 backgroundPosition: 'right 8px center',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
+                boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
               }}
             >
               <option value="">All Sections</option>
@@ -6990,79 +7027,66 @@ function RestaurantPOSContent() {
           </div>
         )}
 
-        {/* Desktop Category Sidebar - Part of Menu Section */}
-        {!isMobile && viewMode === 'orders' && categoryViewMode === 'sidebar' && (
+        {/* Desktop Horizontal Category Tabs - Always shown in V2 */}
+        {!isMobile && viewMode === 'orders' && (
           <div style={{
-            width: '130px',
-            height: '100%',
-            paddingTop: '66px', // Header (56px) + gap (10px)
-            backgroundColor: 'transparent',
+            position: 'absolute',
+            top: '52px',
+            left: 0,
+            right: viewMode === 'orders' ? `${orderPanelWidth}px` : 0,
+            zIndex: 95,
+            height: '48px',
+            backgroundColor: '#0f172a',
             display: 'flex',
-            flexDirection: 'column',
-            flexShrink: 0,
-            overflow: 'hidden'
-          }}>
-            {/* Categories List - Modern Tab Style */}
-            <div style={{
-              flex: 1,
-              overflowY: 'auto',
-              padding: '8px 0 8px 8px',
-              minHeight: 0
-            }} className="hide-scrollbar">
-              {categories.map((category, index) => {
-                const isSelected = selectedCategory === category.id;
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            overflowX: 'auto',
+            boxSizing: 'border-box',
+            borderBottom: '1px solid #1e293b'
+          }} className="hide-scrollbar">
+            {categories.map((category) => {
+              const isSelected = selectedCategory === category.id;
 
-                return (
-                  <div
-                    key={category.id}
-                    onClick={() => setSelectedCategory(isSelected && category.id !== 'all-items' ? 'all-items' : category.id)}
-                    style={{
-                      padding: '10px 12px',
-                      marginBottom: '2px',
-                      backgroundColor: isSelected ? 'white' : 'transparent',
-                      borderRadius: isSelected ? '10px 0 0 10px' : '10px 0 0 10px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      position: 'relative',
-                      borderLeft: isSelected ? '3px solid #ef4444' : '3px solid transparent',
-                      boxShadow: isSelected ? '2px 0 8px rgba(0,0,0,0.04)' : 'none'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.6)';
-                        e.currentTarget.style.borderLeftColor = '#fca5a5';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                        e.currentTarget.style.borderLeftColor = 'transparent';
-                      }
-                    }}
-                  >
-                    <span style={{
-                      fontSize: '13px',
-                      fontWeight: isSelected ? '600' : '500',
-                      color: isSelected ? '#1f2937' : '#6b7280',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      transition: 'color 0.2s ease'
-                    }}>
-                      {category.name}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
+              return (
+                <button
+                  key={category.id}
+                  onClick={() => setSelectedCategory(isSelected && category.id !== 'all-items' ? 'all-items' : category.id)}
+                  style={{
+                    padding: '6px 16px',
+                    backgroundColor: isSelected ? '#ef4444' : '#1e293b',
+                    color: isSelected ? 'white' : '#94a3b8',
+                    border: isSelected ? '1px solid #ef4444' : '1px solid #334155',
+                    borderRadius: '20px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.2s ease',
+                    flexShrink: 0
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.backgroundColor = '#334155';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.backgroundColor = '#1e293b';
+                    }
+                  }}
+                >
+                  {category.name}
+                </button>
+              );
+            })}
           </div>
         )}
 
         {/* Menu Items */}
         <div style={{
           flex: 1,
-          backgroundColor: '#f8fafc',
+          backgroundColor: '#0f172a',
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
@@ -7070,7 +7094,7 @@ function RestaurantPOSContent() {
           height: '100%',
           minHeight: 0, // Important for flex children to shrink
           paddingBottom: isMobileEmbed ? '0' : (isMobile ? '90px' : '0'), // Skip outer padding for embed (inner scroll handles it)
-          paddingTop: !isMobile ? '66px' : '0', // Header (56px) + gap (10px)
+          paddingTop: !isMobile ? '108px' : '0', // Header (52px) + category bar (48px) + gap (8px)
           // Expand to full width when in tables view
           width: viewMode === 'tables' ? '100%' : undefined
         }}>
@@ -7078,76 +7102,23 @@ function RestaurantPOSContent() {
           {posSettings.requireRegisterOpen && registerOpen === false && (
             <div style={{
               padding: '10px 16px', margin: '8px 12px 0', borderRadius: '10px',
-              background: '#fef3c7', border: '1px solid #fde68a',
+              background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)',
               display: 'flex', alignItems: 'center', gap: '10px'
             }}>
               <span style={{ fontSize: '16px' }}>&#9888;</span>
               <div style={{ flex: 1 }}>
-                <strong style={{ fontSize: '13px', color: '#92400e' }}>Register Not Open</strong>
-                <p style={{ fontSize: '12px', color: '#92400e', margin: '2px 0 0' }}>Open the cash register before billing</p>
+                <strong style={{ fontSize: '13px', color: '#f59e0b' }}>Register Not Open</strong>
+                <p style={{ fontSize: '12px', color: '#94a3b8', margin: '2px 0 0' }}>Open the cash register before billing</p>
               </div>
               <Link href="/register" style={{
                 padding: '6px 14px', borderRadius: '8px', fontSize: '12px',
-                fontWeight: 600, background: '#f59e0b', color: 'white', textDecoration: 'none',
+                fontWeight: 600, background: '#f59e0b', color: '#0f172a', textDecoration: 'none',
                 whiteSpace: 'nowrap'
               }}>Open Register</Link>
             </div>
           )}
 
-          {/* Horizontal Category Chips - Desktop Only when chips mode */}
-          {!isMobile && viewMode === 'orders' && categoryViewMode === 'chips' && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '10px 16px',
-              paddingRight: `${orderPanelWidth + 10}px`,
-              backgroundColor: 'white',
-              borderBottom: '1px solid #f1f5f9'
-            }}>
-              {/* Category Chips */}
-              <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', flex: 1 }}>
-                {categories.map((category) => {
-                  const isSelected = selectedCategory === category.id;
-
-                  return (
-                    <button
-                      key={category.id}
-                      onClick={() => setSelectedCategory(isSelected ? 'all-items' : category.id)}
-                      style={{
-                        padding: '6px 14px',
-                        backgroundColor: isSelected ? '#ef4444' : 'white',
-                        color: isSelected ? 'white' : '#4b5563',
-                        border: isSelected ? 'none' : '1px solid #e5e7eb',
-                        borderRadius: '16px',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        fontWeight: '500',
-                        whiteSpace: 'nowrap',
-                        transition: 'all 0.15s ease',
-                        boxShadow: isSelected ? '0 2px 4px rgba(239, 68, 68, 0.2)' : 'none'
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isSelected) {
-                          e.currentTarget.style.borderColor = '#d1d5db';
-                          e.currentTarget.style.backgroundColor = '#f9fafb';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isSelected) {
-                          e.currentTarget.style.borderColor = '#e5e7eb';
-                          e.currentTarget.style.backgroundColor = 'white';
-                        }
-                      }}
-                    >
-                      {category.name}
-                    </button>
-                  );
-                })}
-              </div>
-
-            </div>
-          )}
+          {/* Old horizontal chips removed - V2 uses top category bar */}
 
           {/* Menu content — default menu auto-loads when real menu is empty */}
           {(menuItems || []).length > 0 || loading ? (
@@ -7157,8 +7128,8 @@ function RestaurantPOSContent() {
             {/* Compact Header - Mobile Only (Desktop uses top header bar) */}
           <div style={{
             padding: '8px',
-            backgroundColor: 'white',
-            borderBottom: '1px solid #f1f5f9',
+            backgroundColor: '#111827',
+            borderBottom: '1px solid #1e293b',
             position: 'sticky',
             top: 0,
             zIndex: 100,
@@ -7200,7 +7171,7 @@ function RestaurantPOSContent() {
                     left: '12px', 
                     top: '50%', 
                     transform: 'translateY(-50%)', 
-                    color: '#6b7280' 
+                    color: '#94a3b8' 
                   }} size={isMobile ? 14 : 12} />
                 <input
                   className="dashboard-search-input"
@@ -7214,22 +7185,22 @@ function RestaurantPOSContent() {
                       paddingLeft: isMobile ? '38px' : '36px',
                     paddingRight: searchTerm ? '36px' : '12px',
                       border: 'none',
-                      borderBottom: '2px solid #e5e7eb',
+                      borderBottom: '2px solid #1e293b',
                       borderRadius: '0px',
-                      backgroundColor: '#f8fafc',
+                      backgroundColor: '#0f172a',
                       fontSize: isMobile ? '16px' : '14px',
                     fontWeight: '500',
                     outline: 'none',
                     transition: 'all 0.2s ease',
-                    color: '#374151'
+                    color: '#cbd5e1'
                   }}
                   onFocus={(e) => {
-                      e.target.style.borderBottomColor = '#e5e7eb';
-                      e.target.style.backgroundColor = '#f8fafc';
+                      e.target.style.borderBottomColor = '#334155';
+                      e.target.style.backgroundColor = '#1e293b';
                   }}
                   onBlur={(e) => {
-                      e.target.style.borderBottomColor = '#e5e7eb';
-                      e.target.style.backgroundColor = '#f8fafc';
+                      e.target.style.borderBottomColor = '#1e293b';
+                      e.target.style.backgroundColor = '#0f172a';
                   }}
                 />
                 {searchTerm && (
@@ -7243,7 +7214,7 @@ function RestaurantPOSContent() {
                       width: '22px',
                       height: '22px',
                       borderRadius: '50%',
-                      backgroundColor: '#e5e7eb',
+                      backgroundColor: '#1e293b',
                       border: 'none',
                       display: 'flex',
                       alignItems: 'center',
@@ -7365,19 +7336,19 @@ function RestaurantPOSContent() {
                       paddingRight: isMobile ? '8px' : '8px',
                       border: 'none',
                       borderRadius: '8px',
-                      backgroundColor: '#fef3c7',
+                      backgroundColor: 'rgba(245, 158, 11, 0.15)',
                       fontSize: isMobile ? '13px' : '12px',
                       fontWeight: '600',
                       outline: 'none',
                       textAlign: 'center',
                       transition: 'all 0.2s ease',
-                      color: '#374151'
+                      color: '#f59e0b'
                     }}
                     onFocus={(e) => {
-                      e.target.style.backgroundColor = '#fef3c7';
+                      e.target.style.backgroundColor = 'rgba(245, 158, 11, 0.25)';
                     }}
                     onBlur={(e) => {
-                      e.target.style.backgroundColor = '#fef3c7';
+                      e.target.style.backgroundColor = 'rgba(245, 158, 11, 0.15)';
                     }}
                   />
                 </div>
@@ -7400,21 +7371,21 @@ function RestaurantPOSContent() {
                       paddingRight: isMobile ? '8px' : '8px',
                       border: 'none',
                       borderRadius: '8px',
-                      backgroundColor: '#d1fae5',
+                      backgroundColor: 'rgba(16, 185, 129, 0.15)',
                       fontSize: isMobile ? '13px' : '12px',
                       fontWeight: '600',
                       outline: 'none',
                       textAlign: 'center',
                       transition: 'all 0.2s ease',
-                      color: '#374151',
+                      color: '#10b981',
                       textTransform: 'uppercase',
                       letterSpacing: '0px'
                     }}
                     onFocus={(e) => {
-                      e.target.style.backgroundColor = '#d1fae5';
+                      e.target.style.backgroundColor = 'rgba(16, 185, 129, 0.25)';
                     }}
                     onBlur={(e) => {
-                      e.target.style.backgroundColor = '#d1fae5';
+                      e.target.style.backgroundColor = 'rgba(16, 185, 129, 0.15)';
                     }}
                   />
                 </div>
@@ -7561,7 +7532,7 @@ function RestaurantPOSContent() {
                 {/* Card Size Toggle - Only show on desktop */}
                 {!isMobile && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ fontSize: '9px', color: '#6b7280', fontWeight: '500' }}>
+                  <span style={{ fontSize: '9px', color: '#94a3b8', fontWeight: '500' }}>
                     {cardSize === 'compact' ? 'C' : cardSize === 'large' ? 'L' : 'S'}
                   </span>
                 <button
@@ -7571,22 +7542,22 @@ function RestaurantPOSContent() {
                       height: '12px',
                       borderRadius: '6px',
                     border: 'none',
-                      backgroundColor: cardSize === 'compact' ? '#d1d5db' : '#ef4444',
+                      backgroundColor: cardSize === 'compact' ? '#475569' : '#ef4444',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                       justifyContent: cardSize === 'large' ? 'flex-end' : cardSize === 'standard' ? 'center' : 'flex-start',
                       padding: '1px',
                       transition: 'all 0.3s ease',
-                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
                     }}
                   >
                     <div style={{
                       width: '10px',
                       height: '10px',
                       borderRadius: '50%',
-                      backgroundColor: 'white',
-                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.2)',
+                      backgroundColor: '#e2e8f0',
+                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
                       transition: 'all 0.3s ease'
                     }} />
                 </button>
@@ -7626,14 +7597,14 @@ function RestaurantPOSContent() {
                       style={{
                         padding: isMobile ? '6px 12px' : '6px 14px',
                         borderRadius: '20px',
-                        border: isSelected ? '2px solid #ef4444' : '1.5px solid #e5e7eb',
+                        border: isSelected ? '2px solid #ef4444' : '1.5px solid #334155',
                         backgroundColor: isSelected
                           ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-                          : '#ffffff',
+                          : '#1e293b',
                         background: isSelected
                           ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-                          : '#ffffff',
-                        color: isSelected ? 'white' : '#374151',
+                          : '#1e293b',
+                        color: isSelected ? 'white' : '#e2e8f0',
                         fontSize: isMobile ? '11px' : '12px',
                         fontWeight: isSelected ? '700' : '600',
                         cursor: 'pointer',
@@ -7653,10 +7624,10 @@ function RestaurantPOSContent() {
                       }}
                       onMouseEnter={(e) => {
                         if (!isSelected) {
-                          e.currentTarget.style.backgroundColor = '#f9fafb';
-                          e.currentTarget.style.borderColor = '#d1d5db';
+                          e.currentTarget.style.backgroundColor = '#334155';
+                          e.currentTarget.style.borderColor = '#475569';
                           e.currentTarget.style.transform = 'scale(1.03)';
-                          e.currentTarget.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.12)';
+                          e.currentTarget.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.3)';
                         } else {
                           e.currentTarget.style.transform = 'scale(1.08)';
                           e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.45)';
@@ -7664,10 +7635,10 @@ function RestaurantPOSContent() {
                       }}
                       onMouseLeave={(e) => {
                         if (!isSelected) {
-                          e.currentTarget.style.backgroundColor = '#ffffff';
-                          e.currentTarget.style.borderColor = '#e5e7eb';
+                          e.currentTarget.style.backgroundColor = '#1e293b';
+                          e.currentTarget.style.borderColor = '#334155';
                           e.currentTarget.style.transform = 'scale(1)';
-                          e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.08)';
+                          e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.2)';
                         } else {
                           e.currentTarget.style.transform = 'scale(1.05)';
                           e.currentTarget.style.boxShadow = '0 3px 10px rgba(239, 68, 68, 0.35)';
@@ -7695,8 +7666,8 @@ function RestaurantPOSContent() {
                       {categoryCount > 0 && (
                         <span style={{
                           fontSize: '10px',
-                          backgroundColor: isSelected ? 'rgba(255,255,255,0.25)' : '#f3f4f6',
-                          color: isSelected ? 'white' : '#6b7280',
+                          backgroundColor: isSelected ? 'rgba(255,255,255,0.25)' : '#0f172a',
+                          color: isSelected ? 'white' : '#94a3b8',
                           padding: '2px 7px',
                           borderRadius: '10px',
                           fontWeight: '700',
@@ -7738,7 +7709,7 @@ function RestaurantPOSContent() {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                backgroundColor: 'rgba(15, 23, 42, 0.9)',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -7746,8 +7717,8 @@ function RestaurantPOSContent() {
                 zIndex: 50,
                 borderRadius: '12px'
               }}>
-                <FaSpinner className="animate-spin text-orange-500" style={{ fontSize: '32px' }} />
-                <p style={{ marginTop: '12px', color: '#666', fontSize: '14px' }}>{t('dashboard.loadingOrderDetails')}</p>
+                <FaSpinner className="animate-spin text-orange-500" style={{ fontSize: '32px', color: '#f59e0b' }} />
+                <p style={{ marginTop: '12px', color: '#94a3b8', fontSize: '14px' }}>{t('dashboard.loadingOrderDetails')}</p>
               </div>
             )}
             {/* Multi-Tier Pricing Rule Selector — moved to OrderSummary header */}
@@ -7781,7 +7752,7 @@ function RestaurantPOSContent() {
                           <span style={{
                             fontSize: '15px',
                             fontWeight: '700',
-                            color: '#1f2937',
+                            color: '#f1f5f9',
                             textTransform: 'capitalize'
                           }}>
                             {categoryName}
@@ -7789,8 +7760,8 @@ function RestaurantPOSContent() {
                           <span style={{
                             fontSize: '12px',
                             fontWeight: '600',
-                            color: '#6b7280',
-                            backgroundColor: '#f3f4f6',
+                            color: '#94a3b8',
+                            backgroundColor: '#1e293b',
                             padding: '2px 8px',
                             borderRadius: '10px'
                           }}>
@@ -7812,25 +7783,25 @@ function RestaurantPOSContent() {
                                 borderRadius: '6px',
                                 cursor: 'pointer',
                                 transition: 'all 0.15s ease',
-                                backgroundColor: categoryViewMode === 'chips' ? '#fef2f2' : '#f9fafb',
-                                border: categoryViewMode === 'chips' ? '1px solid #fecaca' : '1px solid #e5e7eb'
+                                backgroundColor: categoryViewMode === 'chips' ? 'rgba(239, 68, 68, 0.1)' : '#1e293b',
+                                border: categoryViewMode === 'chips' ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid #334155'
                               }}
                               onMouseEnter={(e) => {
                                 e.currentTarget.style.borderColor = '#ef4444';
                               }}
                               onMouseLeave={(e) => {
-                                e.currentTarget.style.borderColor = categoryViewMode === 'chips' ? '#fecaca' : '#e5e7eb';
+                                e.currentTarget.style.borderColor = categoryViewMode === 'chips' ? 'rgba(239, 68, 68, 0.3)' : '#334155';
                               }}
                             >
-                              <FaThList size={11} color={categoryViewMode === 'chips' ? '#ef4444' : '#6b7280'} />
-                              <span style={{ fontSize: '11px', fontWeight: '600', color: categoryViewMode === 'chips' ? '#ef4444' : '#4b5563' }}>
+                              <FaThList size={11} color={categoryViewMode === 'chips' ? '#ef4444' : '#94a3b8'} />
+                              <span style={{ fontSize: '11px', fontWeight: '600', color: categoryViewMode === 'chips' ? '#ef4444' : '#94a3b8' }}>
                                 {categoryViewMode === 'sidebar' ? t('dashboard.topBar') : t('dashboard.sidebar')}
                               </span>
                               <div style={{
                                 width: '26px',
                                 height: '14px',
                                 borderRadius: '7px',
-                                backgroundColor: categoryViewMode === 'chips' ? '#ef4444' : '#d1d5db',
+                                backgroundColor: categoryViewMode === 'chips' ? '#ef4444' : '#475569',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: categoryViewMode === 'chips' ? 'flex-end' : 'flex-start',
@@ -7841,8 +7812,8 @@ function RestaurantPOSContent() {
                                   width: '10px',
                                   height: '10px',
                                   borderRadius: '50%',
-                                  backgroundColor: 'white',
-                                  boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                                  backgroundColor: '#e2e8f0',
+                                  boxShadow: '0 1px 2px rgba(0,0,0,0.3)'
                                 }} />
                               </div>
                             </div>
@@ -7859,15 +7830,15 @@ function RestaurantPOSContent() {
                                   borderRadius: '6px',
                                   cursor: 'pointer',
                                   transition: 'all 0.15s ease',
-                                  backgroundColor: '#f9fafb',
-                                  border: '1px solid #e5e7eb',
+                                  backgroundColor: '#0b1120',
+                                  border: '1px solid #1e293b',
                                   userSelect: 'none'
                                 }}
                                 onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#ef4444'; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e5e7eb'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#334155'; }}
                               >
-                                {cardSize === 'compact' ? <FaThList size={11} color="#6b7280" /> : cardSize === 'large' ? <FaThLarge size={11} color="#ef4444" /> : <FaTh size={11} color="#ef4444" />}
-                                <span style={{ fontSize: '11px', fontWeight: '600', color: cardSize === 'compact' ? '#4b5563' : '#ef4444' }}>
+                                {cardSize === 'compact' ? <FaThList size={11} color="#94a3b8" /> : cardSize === 'large' ? <FaThLarge size={11} color="#ef4444" /> : <FaTh size={11} color="#ef4444" />}
+                                <span style={{ fontSize: '11px', fontWeight: '600', color: cardSize === 'compact' ? '#94a3b8' : '#ef4444' }}>
                                   {cardSize === 'compact' ? 'Compact' : cardSize === 'large' ? 'Large' : 'Standard'}
                                 </span>
                                 <FaChevronDown size={8} color="#9ca3af" style={{ transition: 'transform 0.15s', transform: cardSizeDropdownOpen ? 'rotate(180deg)' : 'rotate(0)' }} />
@@ -7877,7 +7848,7 @@ function RestaurantPOSContent() {
                                   <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setCardSizeDropdownOpen(false)} />
                                   <div style={{
                                     position: 'absolute', top: '100%', right: 0, marginTop: '4px', zIndex: 100,
-                                    backgroundColor: 'white', borderRadius: '10px', border: '1px solid #e5e7eb',
+                                    backgroundColor: '#111827', borderRadius: '10px', border: '1px solid #1e293b',
                                     boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '160px', overflow: 'hidden'
                                   }}>
                                     {[
@@ -7891,16 +7862,16 @@ function RestaurantPOSContent() {
                                         style={{
                                           display: 'flex', alignItems: 'center', gap: '10px',
                                           padding: '10px 14px', cursor: 'pointer',
-                                          backgroundColor: cardSize === value ? '#fef2f2' : 'transparent',
+                                          backgroundColor: cardSize === value ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
                                           transition: 'background-color 0.1s'
                                         }}
-                                        onMouseEnter={(e) => { if (cardSize !== value) e.currentTarget.style.backgroundColor = '#f9fafb'; }}
-                                        onMouseLeave={(e) => { if (cardSize !== value) e.currentTarget.style.backgroundColor = 'transparent'; else e.currentTarget.style.backgroundColor = '#fef2f2'; }}
+                                        onMouseEnter={(e) => { if (cardSize !== value) e.currentTarget.style.backgroundColor = '#1e293b'; }}
+                                        onMouseLeave={(e) => { if (cardSize !== value) e.currentTarget.style.backgroundColor = 'transparent'; else e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'; }}
                                       >
                                         <Icon size={14} color={cardSize === value ? '#ef4444' : '#9ca3af'} />
                                         <div>
-                                          <div style={{ fontSize: '12px', fontWeight: '600', color: cardSize === value ? '#ef4444' : '#374151' }}>{label}</div>
-                                          <div style={{ fontSize: '10px', color: '#9ca3af' }}>{desc}</div>
+                                          <div style={{ fontSize: '12px', fontWeight: '600', color: cardSize === value ? '#ef4444' : '#e2e8f0' }}>{label}</div>
+                                          <div style={{ fontSize: '10px', color: '#64748b' }}>{desc}</div>
                                         </div>
                                         {cardSize === value && <FaCheckCircle size={12} color="#ef4444" style={{ marginLeft: 'auto' }} />}
                                       </div>
@@ -7943,6 +7914,7 @@ function RestaurantPOSContent() {
                               useModernDesign={useModernCards}
                               cardSize={cardSize}
                               hideImages={hideMenuImages}
+                              darkMode={true}
                             />
                           );
                         })}
@@ -7964,7 +7936,7 @@ function RestaurantPOSContent() {
                       <span style={{
                         fontSize: '15px',
                         fontWeight: '700',
-                        color: '#1f2937',
+                        color: '#f1f5f9',
                         textTransform: 'capitalize'
                       }}>
                         {categories.find(c => c.id === selectedCategory)?.name || selectedCategory}
@@ -7972,8 +7944,8 @@ function RestaurantPOSContent() {
                       <span style={{
                         fontSize: '12px',
                         fontWeight: '600',
-                        color: '#6b7280',
-                        backgroundColor: '#f3f4f6',
+                        color: '#94a3b8',
+                        backgroundColor: '#1e293b',
                         padding: '2px 8px',
                         borderRadius: '10px'
                       }}>
@@ -7995,25 +7967,25 @@ function RestaurantPOSContent() {
                             borderRadius: '6px',
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
-                            backgroundColor: categoryViewMode === 'chips' ? '#fef2f2' : '#f9fafb',
-                            border: categoryViewMode === 'chips' ? '1px solid #fecaca' : '1px solid #e5e7eb'
+                            backgroundColor: categoryViewMode === 'chips' ? 'rgba(239, 68, 68, 0.1)' : '#1e293b',
+                            border: categoryViewMode === 'chips' ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid #334155'
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.borderColor = '#ef4444';
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = categoryViewMode === 'chips' ? '#fecaca' : '#e5e7eb';
+                            e.currentTarget.style.borderColor = categoryViewMode === 'chips' ? 'rgba(239, 68, 68, 0.3)' : '#334155';
                           }}
                         >
-                          <FaThList size={11} color={categoryViewMode === 'chips' ? '#ef4444' : '#6b7280'} />
-                          <span style={{ fontSize: '11px', fontWeight: '600', color: categoryViewMode === 'chips' ? '#ef4444' : '#4b5563' }}>
+                          <FaThList size={11} color={categoryViewMode === 'chips' ? '#ef4444' : '#94a3b8'} />
+                          <span style={{ fontSize: '11px', fontWeight: '600', color: categoryViewMode === 'chips' ? '#ef4444' : '#94a3b8' }}>
                             {categoryViewMode === 'sidebar' ? t('dashboard.topBar') : t('dashboard.sidebar')}
                           </span>
                           <div style={{
                             width: '26px',
                             height: '14px',
                             borderRadius: '7px',
-                            backgroundColor: categoryViewMode === 'chips' ? '#ef4444' : '#d1d5db',
+                            backgroundColor: categoryViewMode === 'chips' ? '#ef4444' : '#475569',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: categoryViewMode === 'chips' ? 'flex-end' : 'flex-start',
@@ -8024,8 +7996,8 @@ function RestaurantPOSContent() {
                               width: '10px',
                               height: '10px',
                               borderRadius: '50%',
-                              backgroundColor: 'white',
-                              boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                              backgroundColor: '#e2e8f0',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.3)'
                             }} />
                           </div>
                         </div>
@@ -8045,18 +8017,18 @@ function RestaurantPOSContent() {
                             borderRadius: '6px',
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
-                            backgroundColor: cardSize !== 'compact' ? '#fef2f2' : '#f9fafb',
-                            border: cardSize !== 'compact' ? '1px solid #fecaca' : '1px solid #e5e7eb'
+                            backgroundColor: cardSize !== 'compact' ? 'rgba(239, 68, 68, 0.1)' : '#1e293b',
+                            border: cardSize !== 'compact' ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid #334155'
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.borderColor = '#ef4444';
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = cardSize !== 'compact' ? '#fecaca' : '#e5e7eb';
+                            e.currentTarget.style.borderColor = cardSize !== 'compact' ? 'rgba(239, 68, 68, 0.3)' : '#334155';
                           }}
                         >
-                          {cardSize === 'compact' ? <FaThList size={11} color="#6b7280" /> : cardSize === 'large' ? <FaThLarge size={11} color="#ef4444" /> : <FaTh size={11} color="#ef4444" />}
-                          <span style={{ fontSize: '11px', fontWeight: '600', color: cardSize !== 'compact' ? '#ef4444' : '#4b5563' }}>
+                          {cardSize === 'compact' ? <FaThList size={11} color="#94a3b8" /> : cardSize === 'large' ? <FaThLarge size={11} color="#ef4444" /> : <FaTh size={11} color="#ef4444" />}
+                          <span style={{ fontSize: '11px', fontWeight: '600', color: cardSize !== 'compact' ? '#ef4444' : '#94a3b8' }}>
                             {cardSize === 'compact' ? 'Compact' : cardSize === 'large' ? 'Large' : 'Standard'}
                           </span>
                         </div>
@@ -8096,6 +8068,7 @@ function RestaurantPOSContent() {
                         useModernDesign={useModernCards}
                         cardSize={cardSize}
                         hideImages={hideMenuImages}
+                        darkMode={true}
                       />
                     );
                   })}
@@ -8279,7 +8252,7 @@ function RestaurantPOSContent() {
           </>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%' }}>
-              <p style={{ color: '#9ca3af', fontSize: '14px' }}>{t('dashboard.loadingMenu')}</p>
+              <p style={{ color: '#64748b', fontSize: '14px' }}>{t('dashboard.loadingMenu')}</p>
             </div>
           )}
         </div>
@@ -8292,17 +8265,17 @@ function RestaurantPOSContent() {
             {!isMobile && (
               <>
                 {viewMode === 'orders' ? (
-          <div style={{
+          <div className="v2-order-panel" style={{
             position: 'fixed',
             right: 0,
-            top: '56px', // Below the header
+            top: '52px', // Below the header
             width: `${orderPanelWidth}px`,
-            height: 'calc(100vh - 56px)', // Full height minus header
+            height: 'calc(100vh - 52px)', // Full height minus header
             display: 'flex',
             flexDirection: 'column',
             zIndex: 90,
-            backgroundColor: '#ffffff',
-            borderLeft: '1px solid #e5e7eb'
+            backgroundColor: '#111827',
+            borderLeft: '2px solid #1e293b'
           }}>
           {console.log('🖥️ Dashboard: Rendering OrderSummary with cart:', cart)}
           <OrderSummary
@@ -8386,6 +8359,7 @@ function RestaurantPOSContent() {
             setScheduledTime={setScheduledTime}
             onBarcodeScanned={handleBarcodeScanned}
             canCompleteBill={canCompleteBill}
+            darkMode={true}
           />
         </div>
                 ) : (
@@ -8402,6 +8376,7 @@ function RestaurantPOSContent() {
 
             {/* Mobile Order Summary - Full Screen */}
             {isMobile && showMobileCart && viewMode === 'orders' && (
+              <div className="v2-order-panel">
                   <OrderSummary
                     cart={cart}
                 setCart={setCart}
@@ -8482,7 +8457,9 @@ function RestaurantPOSContent() {
                     setScheduledTime={setScheduledTime}
                     onBarcodeScanned={handleBarcodeScanned}
                     canCompleteBill={canCompleteBill}
+                    darkMode={true}
                   />
+              </div>
             )}
           </>
         )}
@@ -8509,7 +8486,7 @@ function RestaurantPOSContent() {
             left: 0,
             height: isMobileEmbed ? 'calc(var(--app-height, 100vh) - env(safe-area-inset-bottom, 34px) - 50px)' : '100vh',
             width: '280px',
-            backgroundColor: 'white',
+            backgroundColor: '#111827',
             zIndex: 999,
             boxShadow: '4px 0 20px rgba(0, 0, 0, 0.1)',
             transform: showMobileSidebar ? 'translateX(0)' : 'translateX(-100%)',
@@ -8520,12 +8497,12 @@ function RestaurantPOSContent() {
             {/* Mobile Sidebar Header */}
             <div style={{
               padding: '20px',
-              borderBottom: '1px solid #f1f5f9',
+              borderBottom: '1px solid #1e293b',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#f1f5f9', margin: 0 }}>
                 Menu Categories
               </h2>
               <button
@@ -8597,7 +8574,7 @@ function RestaurantPOSContent() {
             height: isMobileEmbed ? 'calc(var(--app-height, 100vh) - env(safe-area-inset-bottom, 34px) - 50px)' : '100vh',
             width: '90%',
             maxWidth: '400px',
-            backgroundColor: 'white',
+            backgroundColor: '#111827',
             zIndex: 999,
             boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.1)',
             transform: showMobileCart ? 'translateX(0)' : 'translateX(100%)',
@@ -8608,12 +8585,12 @@ function RestaurantPOSContent() {
             {/* Mobile Cart Header */}
             <div style={{
               padding: '20px',
-              borderBottom: '1px solid #f1f5f9',
+              borderBottom: '1px solid #1e293b',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#f1f5f9', margin: 0 }}>
                 Your Order ({cart.reduce((sum, item) => sum + item.quantity, 0)} items)
               </h2>
               <button
@@ -8642,9 +8619,9 @@ function RestaurantPOSContent() {
                 <div style={{
                   textAlign: 'center',
                   padding: '40px 20px',
-                  color: '#6b7280'
+                  color: '#94a3b8'
                 }}>
-                  <FaShoppingCart size={48} style={{ marginBottom: '16px', color: '#d1d5db' }} />
+                  <FaShoppingCart size={48} style={{ marginBottom: '16px', color: '#475569' }} />
                   <p style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px' }}>{t('dashboard.noItems')}</p>
                   <p style={{ fontSize: '14px' }}>{t('dashboard.addItemsFirst')}</p>
                 </div>
@@ -8652,17 +8629,17 @@ function RestaurantPOSContent() {
                 cart.map((item, index) => (
                   <div key={index} style={{
                     padding: '16px',
-                    backgroundColor: '#fef7f0',
+                    backgroundColor: '#1e293b',
                     borderRadius: '16px',
                     marginBottom: '12px',
-                    border: '1px solid #fed7aa'
+                    border: '1px solid #334155'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                       <div style={{ flex: 1 }}>
-                        <h4 style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937', margin: '0 0 4px 0' }}>
+                        <h4 style={{ fontSize: '16px', fontWeight: '700', color: '#f1f5f9', margin: '0 0 4px 0' }}>
                           {item.name}
                         </h4>
-                        <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 8px 0' }}>
+                        <p style={{ fontSize: '12px', color: '#94a3b8', margin: '0 0 8px 0' }}>
                           Rs.{item.price} each
                         </p>
                       </div>
@@ -8670,8 +8647,8 @@ function RestaurantPOSContent() {
                         onClick={() => removeFromCart(index)}
                         style={{
                           padding: '6px',
-                          backgroundColor: '#fee2e2',
-                          color: '#dc2626',
+                          backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                          color: '#ef4444',
                           border: 'none',
                           borderRadius: '8px',
                           cursor: 'pointer',
@@ -8686,9 +8663,9 @@ function RestaurantPOSContent() {
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
-                        backgroundColor: 'white',
+                        backgroundColor: '#111827',
                         borderRadius: '8px',
-                        border: '1px solid #e5e7eb'
+                        border: '1px solid #1e293b'
                       }}>
                         <button
                           onClick={() => updateCartQuantity(index, Math.max(0, item.quantity - 1))}
@@ -8714,9 +8691,9 @@ function RestaurantPOSContent() {
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontWeight: 'bold',
-                          color: '#1f2937',
-                          borderLeft: '1px solid #e5e7eb',
-                          borderRight: '1px solid #e5e7eb',
+                          color: '#f1f5f9',
+                          borderLeft: '2px solid #1e293b',
+                          borderRight: '1px solid #1e293b',
                           fontSize: '14px'
                         }}>
                           {item.quantity}
@@ -8740,7 +8717,7 @@ function RestaurantPOSContent() {
                         </button>
                       </div>
                       
-                      <div style={{ fontSize: '16px', fontWeight: '700', color: '#374151' }}>
+                      <div style={{ fontSize: '16px', fontWeight: '700', color: '#cbd5e1' }}>
                         Rs.{item.price * item.quantity}
                       </div>
                     </div>
@@ -8750,7 +8727,7 @@ function RestaurantPOSContent() {
             </div>
 
             {cart.length > 0 && (
-              <div style={{ borderTop: '1px solid #e5e7eb', backgroundColor: '#f9fafb', padding: isMobileEmbed ? '20px 20px calc(20px + env(safe-area-inset-bottom, 34px) + 50px) 20px' : '20px' }}>
+              <div style={{ borderTop: '1px solid #1e293b', backgroundColor: '#0b1120', padding: isMobileEmbed ? '20px 20px calc(20px + env(safe-area-inset-bottom, 34px) + 50px) 20px' : '20px' }}>
                 <div style={{
                   background: 'linear-gradient(135deg, #1f2937, #111827)',
                   color: 'white',
@@ -8827,7 +8804,7 @@ function RestaurantPOSContent() {
           padding: '16px'
         }}>
           <div style={{
-            backgroundColor: 'white',
+            backgroundColor: '#111827',
             borderRadius: '16px',
             boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
             width: '100%',
@@ -8836,20 +8813,20 @@ function RestaurantPOSContent() {
             display: 'flex',
             flexDirection: 'column'
           }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb', flexShrink: 0 }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #1e293b', flexShrink: 0 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+                  <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#f1f5f9', margin: 0 }}>
                     {inRoomDiningEnabled ? t('dashboard.selectLocation') : 'Select Table'}
                   </h2>
                   {tableNumber && (
-                    <p style={{ color: '#6b7280', margin: '4px 0 0 0', fontSize: '13px' }}>
+                    <p style={{ color: '#94a3b8', margin: '4px 0 0 0', fontSize: '13px' }}>
                       Currently: <strong>Table {tableNumber}</strong>
                     </p>
                   )}
                 </div>
                 <button onClick={() => { setShowTableSelector(false); setManualTableNumber(''); setManualRoomNumber(''); }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#6b7280' }}>
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#94a3b8' }}>
                   <FaTimes size={18} />
                 </button>
               </div>
@@ -8860,11 +8837,11 @@ function RestaurantPOSContent() {
               {inRoomDiningEnabled && (
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
                   <button type="button" onClick={() => { setLocationType('table'); setManualRoomNumber(''); }}
-                    style={{ flex: 1, padding: '8px 14px', borderRadius: '8px', border: '2px solid', backgroundColor: locationType === 'table' ? '#e53e3e' : 'white', color: locationType === 'table' ? 'white' : '#374151', borderColor: locationType === 'table' ? '#e53e3e' : '#e5e7eb', fontWeight: '600', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                    style={{ flex: 1, padding: '8px 14px', borderRadius: '8px', border: '2px solid', backgroundColor: locationType === 'table' ? '#e53e3e' : '#1e293b', color: locationType === 'table' ? 'white' : '#e2e8f0', borderColor: locationType === 'table' ? '#e53e3e' : '#334155', fontWeight: '600', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                     <FaTable size={12} /> {t('dashboard.table')}
                   </button>
                   <button type="button" onClick={() => { setLocationType('room'); setManualTableNumber(''); }}
-                    style={{ flex: 1, padding: '8px 14px', borderRadius: '8px', border: '2px solid', backgroundColor: locationType === 'room' ? '#e53e3e' : 'white', color: locationType === 'room' ? 'white' : '#374151', borderColor: locationType === 'room' ? '#e53e3e' : '#e5e7eb', fontWeight: '600', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                    style={{ flex: 1, padding: '8px 14px', borderRadius: '8px', border: '2px solid', backgroundColor: locationType === 'room' ? '#e53e3e' : '#1e293b', color: locationType === 'room' ? 'white' : '#e2e8f0', borderColor: locationType === 'room' ? '#e53e3e' : '#334155', fontWeight: '600', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                     <FaBed size={12} /> {t('dashboard.room')}
                   </button>
                 </div>
@@ -8873,14 +8850,14 @@ function RestaurantPOSContent() {
               {/* Room number input */}
               {inRoomDiningEnabled && locationType === 'room' && (
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>{t('dashboard.roomNumber')}</label>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#cbd5e1', marginBottom: '6px' }}>{t('dashboard.roomNumber')}</label>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <input type="text" value={manualRoomNumber} onChange={(e) => setManualRoomNumber(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleManualRoomSelection()}
                       placeholder={t('dashboard.roomPlaceholder')}
-                      style={{ flex: 1, padding: '10px 14px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: '#f9fafb' }} />
+                      style={{ flex: 1, padding: '10px 14px', border: '2px solid #334155', borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: '#0b1120', color: '#e2e8f0' }} />
                     <button onClick={handleManualRoomSelection} disabled={!manualRoomNumber.trim()}
-                      style={{ padding: '10px 16px', backgroundColor: manualRoomNumber.trim() ? '#e53e3e' : '#d1d5db', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '13px', cursor: manualRoomNumber.trim() ? 'pointer' : 'not-allowed' }}>
+                      style={{ padding: '10px 16px', backgroundColor: manualRoomNumber.trim() ? '#e53e3e' : '#334155', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '13px', cursor: manualRoomNumber.trim() ? 'pointer' : 'not-allowed' }}>
                       Select
                     </button>
                   </div>
@@ -8895,9 +8872,9 @@ function RestaurantPOSContent() {
                     <input type="text" value={manualTableNumber} onChange={(e) => setManualTableNumber(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleManualTableSelection()}
                       placeholder="Type table number..."
-                      style={{ flex: 1, padding: '10px 14px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: '#f9fafb' }} />
+                      style={{ flex: 1, padding: '10px 14px', border: '2px solid #334155', borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: '#0b1120', color: '#e2e8f0' }} />
                     <button onClick={handleManualTableSelection} disabled={!manualTableNumber.trim()}
-                      style={{ padding: '10px 16px', backgroundColor: manualTableNumber.trim() ? '#e53e3e' : '#d1d5db', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '13px', cursor: manualTableNumber.trim() ? 'pointer' : 'not-allowed' }}>
+                      style={{ padding: '10px 16px', backgroundColor: manualTableNumber.trim() ? '#e53e3e' : '#334155', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '13px', cursor: manualTableNumber.trim() ? 'pointer' : 'not-allowed' }}>
                       Select
                     </button>
                   </div>
@@ -8907,7 +8884,7 @@ function RestaurantPOSContent() {
                     const floorTables = floor ? selectorTables.filter(t => t.floorName === floor) : selectorTables;
                     return (
                       <div key={floor || 'all'} style={{ marginBottom: '16px' }}>
-                        {floor && <div style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>{floor}</div>}
+                        {floor && <div style={{ fontSize: '12px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>{floor}</div>}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px' }}>
                           {floorTables.map(tbl => {
                             const tblName = tbl.name || tbl.number || tbl.tableName || '';
@@ -8933,14 +8910,14 @@ function RestaurantPOSContent() {
                               style={{
                                 padding: '10px 6px',
                                 borderRadius: '10px',
-                                border: isCurrent ? '2px solid #ef4444' : '1px solid #e5e7eb',
-                                backgroundColor: isCurrent ? '#fef2f2' : isOccupied ? '#fff7ed' : '#f0fdf4',
+                                border: isCurrent ? '2px solid #ef4444' : '1px solid #334155',
+                                backgroundColor: isCurrent ? 'rgba(239,68,68,0.1)' : isOccupied ? 'rgba(249,115,22,0.1)' : 'rgba(22,163,106,0.1)',
                                 cursor: isCurrent ? 'default' : 'pointer',
                                 textAlign: 'center',
                                 transition: 'all 0.15s',
                               }}>
                                 <FaChair size={14} style={{ color: isCurrent ? '#ef4444' : isOccupied ? '#f97316' : '#16a34a', marginBottom: '4px' }} />
-                                <div style={{ fontSize: '13px', fontWeight: '700', color: isCurrent ? '#ef4444' : '#374151' }}>{tblName}</div>
+                                <div style={{ fontSize: '13px', fontWeight: '700', color: isCurrent ? '#ef4444' : '#e2e8f0' }}>{tblName}</div>
                                 <div style={{ fontSize: '9px', color: isCurrent ? '#ef4444' : isOccupied ? '#f97316' : '#16a34a', fontWeight: 500, marginTop: '2px' }}>
                                   {isCurrent ? 'Current' : isOccupied ? 'Occupied' : 'Available'}
                                 </div>
@@ -8957,14 +8934,14 @@ function RestaurantPOSContent() {
               {/* Fallback: manual input only when no tables data */}
               {(!inRoomDiningEnabled || locationType === 'table') && selectorTables.length === 0 && (
                 <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>{t('dashboard.tableNumber')}</label>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#cbd5e1', marginBottom: '6px' }}>{t('dashboard.tableNumber')}</label>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <input type="text" value={manualTableNumber} onChange={(e) => setManualTableNumber(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleManualTableSelection()}
                       placeholder={t('dashboard.tablePlaceholder')}
-                      style={{ flex: 1, padding: '10px 14px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: '#f9fafb' }} />
+                      style={{ flex: 1, padding: '10px 14px', border: '2px solid #334155', borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: '#0b1120', color: '#e2e8f0' }} />
                     <button onClick={handleManualTableSelection} disabled={!manualTableNumber.trim()}
-                      style={{ padding: '10px 16px', backgroundColor: manualTableNumber.trim() ? '#e53e3e' : '#d1d5db', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '13px', cursor: manualTableNumber.trim() ? 'pointer' : 'not-allowed' }}>
+                      style={{ padding: '10px 16px', backgroundColor: manualTableNumber.trim() ? '#e53e3e' : '#334155', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '13px', cursor: manualTableNumber.trim() ? 'pointer' : 'not-allowed' }}>
                       Select
                     </button>
                   </div>
@@ -8987,20 +8964,20 @@ function RestaurantPOSContent() {
             backdropFilter: 'blur(4px)', animation: 'fadeIn 0.2s ease'
           }} onClick={() => !resetLoading && setShowResetConfirm(false)}>
             <div onClick={e => e.stopPropagation()} style={{
-              background: 'white', borderRadius: '16px', padding: '28px', maxWidth: '400px', width: '90%',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.3)', animation: 'slideUp 0.3s ease'
+              background: '#1a2332', borderRadius: '16px', padding: '28px', maxWidth: '400px', width: '90%',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)', animation: 'slideUp 0.3s ease', border: '1px solid #334155'
             }}>
               <div style={{ textAlign: 'center', marginBottom: '20px' }}>
                 <div style={{
-                  width: '56px', height: '56px', borderRadius: '50%', background: '#fef2f2',
+                  width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.15)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px'
                 }}>
                   <FaTools size={24} color="#ef4444" />
                 </div>
-                <h3 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: '700', color: '#111827' }}>
+                <h3 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: '700', color: '#f1f5f9' }}>
                   {t('dashboard.resetAllTables')}
                 </h3>
-                <p style={{ margin: 0, fontSize: '14px', color: '#6b7280', lineHeight: '1.5' }}>
+                <p style={{ margin: 0, fontSize: '14px', color: '#94a3b8', lineHeight: '1.5' }}>
                   This will mark <strong style={{ color: '#ef4444' }}>{occupiedCount} occupied table{occupiedCount !== 1 ? 's' : ''}</strong> as available. Any active orders on these tables will be unlinked.
                 </p>
               </div>
@@ -9009,8 +8986,8 @@ function RestaurantPOSContent() {
                   onClick={() => setShowResetConfirm(false)}
                   disabled={resetLoading}
                   style={{
-                    flex: 1, padding: '12px', borderRadius: '10px', border: '1.5px solid #e5e7eb',
-                    background: 'white', color: '#374151', fontSize: '14px', fontWeight: '600',
+                    flex: 1, padding: '12px', borderRadius: '10px', border: '1.5px solid #334155',
+                    background: '#1e293b', color: '#e2e8f0', fontSize: '14px', fontWeight: '600',
                     cursor: resetLoading ? 'not-allowed' : 'pointer', opacity: resetLoading ? 0.5 : 1
                   }}
                 >
@@ -9152,8 +9129,8 @@ function RestaurantPOSContent() {
           <button
             onClick={() => setShowLogoutDropdown(!showLogoutDropdown)}
             style={{
-              backgroundColor: 'white',
-              border: '1px solid #e5e7eb',
+              backgroundColor: '#111827',
+              border: '1px solid #1e293b',
               borderRadius: '12px',
               padding: '8px 12px',
               cursor: 'pointer',
@@ -9186,7 +9163,7 @@ function RestaurantPOSContent() {
             }}>
               {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
             </div>
-            <span style={{ fontSize: '12px', fontWeight: '600', color: '#1f2937' }}>
+            <span style={{ fontSize: '12px', fontWeight: '600', color: '#f1f5f9' }}>
               {user.name || t('dashboard.user')}
             </span>
             <FaChevronDown size={10} color="#6b7280" />
@@ -9199,8 +9176,8 @@ function RestaurantPOSContent() {
               top: '100%',
               right: '0',
               marginTop: '8px',
-              backgroundColor: 'white',
-              border: '1px solid #e5e7eb',
+              backgroundColor: '#111827',
+              border: '1px solid #1e293b',
               borderRadius: '12px',
               boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
               overflow: 'hidden',
@@ -9208,7 +9185,7 @@ function RestaurantPOSContent() {
               zIndex: 1002
             }}>
               {/* User Info */}
-              <div style={{ padding: '12px', borderBottom: '1px solid #f3f4f6' }}>
+              <div style={{ padding: '12px', borderBottom: '1px solid #334155' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div style={{
                     width: '32px',
@@ -9225,10 +9202,10 @@ function RestaurantPOSContent() {
                     {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
                   </div>
                   <div>
-                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#f1f5f9' }}>
                       {user.name || t('dashboard.user')}
                     </div>
-                    <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>
                       {user.role || t('dashboard.staff')}
                     </div>
                   </div>
@@ -9328,10 +9305,10 @@ function RestaurantPOSContent() {
             position: 'fixed', bottom: '20px', left: '20px', zIndex: 1000,
             padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
             display: 'flex', alignItems: 'center', gap: '6px', cursor: scaleStatus.connected ? 'default' : 'pointer',
-            backgroundColor: scaleStatus.connected ? '#f0fdf4' : '#fef2f2',
-            color: scaleStatus.connected ? '#166534' : '#991b1b',
-            border: `1px solid ${scaleStatus.connected ? '#bbf7d0' : '#fecaca'}`,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            backgroundColor: scaleStatus.connected ? 'rgba(22,163,74,0.15)' : 'rgba(239,68,68,0.15)',
+            color: scaleStatus.connected ? '#4ade80' : '#f87171',
+            border: `1px solid ${scaleStatus.connected ? 'rgba(22,163,74,0.3)' : 'rgba(239,68,68,0.3)'}`,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
           }}
           title={scaleStatus.connected ? 'Weighing scale connected' : scaleStatus.error || 'Click to reconnect scale'}
         >
@@ -9348,11 +9325,11 @@ function RestaurantPOSContent() {
         const unitLabel = wpItem.priceUnit === 'per_100g' ? 'g' : wpItem.priceUnit === 'per_lb' ? 'lb' : 'kg';
         return (
           <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-            <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '28px', width: '420px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ backgroundColor: '#111827', borderRadius: '16px', padding: '28px', width: '420px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
               {/* Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#0f172a' }}>Weigh Item</h3>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#e2e8f0' }}>Weigh Item</h3>
                   <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>{wpItem.name}</p>
                 </div>
                 <button onClick={() => setShowWeightPopup(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8', padding: '4px' }}>✕</button>
@@ -9360,9 +9337,9 @@ function RestaurantPOSContent() {
 
               {/* Scale status */}
               <div style={{ padding: '8px 12px', borderRadius: '8px', marginBottom: '16px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px',
-                backgroundColor: wpConnected ? '#f0fdf4' : '#fef2f2',
-                color: wpConnected ? '#166534' : '#991b1b',
-                border: `1px solid ${wpConnected ? '#bbf7d0' : '#fecaca'}`,
+                backgroundColor: wpConnected ? 'rgba(22,163,74,0.15)' : 'rgba(239,68,68,0.15)',
+                color: wpConnected ? '#4ade80' : '#f87171',
+                border: `1px solid ${wpConnected ? 'rgba(22,163,74,0.3)' : 'rgba(239,68,68,0.3)'}`,
               }}>
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: wpConnected ? '#22c55e' : '#ef4444', display: 'inline-block',
                   animation: wpConnected && wpReading && !wpReading.stable ? 'pulse 1s infinite' : 'none' }} />
@@ -9372,8 +9349,8 @@ function RestaurantPOSContent() {
               </div>
 
               {/* Live weight display */}
-              <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f8fafc', borderRadius: '12px', marginBottom: '16px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '48px', fontWeight: '700', color: wpConnected && wpReading?.stable ? '#16a34a' : '#0f172a', fontFamily: 'monospace', letterSpacing: '2px' }}>
+              <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#0f172a', borderRadius: '12px', marginBottom: '16px', border: '1px solid #334155' }}>
+                <div style={{ fontSize: '48px', fontWeight: '700', color: wpConnected && wpReading?.stable ? '#4ade80' : '#475569', fontFamily: 'monospace', letterSpacing: '2px' }}>
                   {wpConnected && wpReading ? wpReading.weight.toFixed(3) : '0.000'}
                 </div>
                 <div style={{ fontSize: '16px', color: '#64748b', fontWeight: '500' }}>{unitLabel}</div>
@@ -9381,7 +9358,7 @@ function RestaurantPOSContent() {
 
               {/* Manual weight input */}
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#cbd5e1', marginBottom: '6px' }}>
                   {wpConnected ? 'Override weight manually:' : 'Enter weight:'}
                 </label>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -9392,15 +9369,15 @@ function RestaurantPOSContent() {
                     min="0"
                     defaultValue={wpConnected && wpReading ? wpReading.weight : ''}
                     placeholder="0.000"
-                    style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '16px', fontFamily: 'monospace' }}
+                    style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', border: '1px solid #334155', fontSize: '16px', fontFamily: 'monospace', backgroundColor: '#0f172a', color: '#e2e8f0' }}
                   />
                   <span style={{ fontSize: '14px', fontWeight: '600', color: '#64748b' }}>{unitLabel}</span>
                 </div>
               </div>
 
               {/* Price calculation */}
-              <div style={{ padding: '12px', backgroundColor: '#eff6ff', borderRadius: '8px', marginBottom: '20px', border: '1px solid #bfdbfe' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#1e40af' }}>
+              <div style={{ padding: '12px', backgroundColor: 'rgba(59,130,246,0.1)', borderRadius: '8px', marginBottom: '20px', border: '1px solid rgba(59,130,246,0.25)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#60a5fa' }}>
                   <span>Price: {selectedRestaurant?.currencySettings?.symbol || '₹'}{getEffectiveItemPrice(wpItem)}/{unitLabel}</span>
                   <span style={{ fontWeight: '700' }}>
                     Total: {(() => {
@@ -9417,7 +9394,7 @@ function RestaurantPOSContent() {
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button
                   onClick={() => setShowWeightPopup(null)}
-                  style={{ flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', backgroundColor: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#374151' }}
+                  style={{ flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #1e293b', backgroundColor: '#111827', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#cbd5e1' }}
                 >
                   Cancel
                 </button>
@@ -9506,8 +9483,8 @@ function RestaurantPOSContent() {
             style={{
               width: '100%',
               padding: cart.length > 0 ? '14px 20px' : '12px 20px',
-              backgroundColor: cart.length > 0 ? '#10b981' : '#f3f4f6',
-              color: cart.length > 0 ? 'white' : '#6b7280',
+              backgroundColor: cart.length > 0 ? '#10b981' : '#1e293b',
+              color: cart.length > 0 ? 'white' : '#94a3b8',
               border: 'none',
               borderRadius: '50px',
               cursor: 'pointer',
@@ -9556,10 +9533,10 @@ function RestaurantPOSContent() {
               borderRadius: '10px',
               border: '1px solid rgba(16, 185, 129, 0.2)'
             }}>
-              <div style={{ fontSize: '10px', color: '#059669', fontWeight: '600', marginBottom: '2px' }}>
+              <div style={{ fontSize: '10px', color: '#34d399', fontWeight: '600', marginBottom: '2px' }}>
                 {t('dashboard.recognized')}
               </div>
-              <div style={{ fontSize: '13px', color: '#065f46', fontWeight: '600' }}>
+              <div style={{ fontSize: '13px', color: '#6ee7b7', fontWeight: '600' }}>
                 {voiceCompiledText}
               </div>
             </div>
@@ -9571,10 +9548,11 @@ function RestaurantPOSContent() {
             alignItems: 'center',
             gap: '10px',
             padding: '12px 16px',
-            backgroundColor: 'rgba(255, 255, 255, 0.98)',
+            backgroundColor: 'rgba(15, 23, 42, 0.85)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            borderRadius: '50px',
+            borderRadius: '24px',
+            border: '1px solid rgba(148, 163, 184, 0.2)',
             boxShadow: isListeningVoice
               ? '0 8px 32px rgba(239, 68, 68, 0.2), 0 0 0 2px #ef4444'
               : '0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04)'
@@ -9589,7 +9567,8 @@ function RestaurantPOSContent() {
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
-              boxShadow: '0 2px 6px rgba(239, 68, 68, 0.25)'
+              boxShadow: isListeningVoice ? '0 0 0 4px rgba(239, 68, 68, 0.3), 0 2px 6px rgba(239, 68, 68, 0.25)' : '0 2px 6px rgba(239, 68, 68, 0.25)',
+              animation: isListeningVoice ? 'pulse 1.5s ease-in-out infinite' : 'none'
             }}>
               {isListeningVoice ? (
                 <FaMicrophone size={13} color="white" />
@@ -9604,12 +9583,12 @@ function RestaurantPOSContent() {
                 flex: 1,
                 fontSize: '13px',
                 fontWeight: '500',
-                color: '#374151',
+                color: '#cbd5e1',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap'
               }}>
-                {voiceTranscript || <span style={{ color: '#9ca3af' }}>{t('dashboard.listening')}</span>}
+                {voiceTranscript || <span style={{ color: '#64748b' }}>{t('dashboard.listening')}</span>}
               </div>
             ) : (
               <input
@@ -9625,7 +9604,7 @@ function RestaurantPOSContent() {
                   backgroundColor: 'transparent',
                   fontSize: '16px',
                   fontWeight: '500',
-                  color: '#1f2937',
+                  color: '#f1f5f9',
                   padding: 0,
                   WebkitAppearance: 'none',
                   MozAppearance: 'none'
@@ -9656,7 +9635,7 @@ function RestaurantPOSContent() {
                   width: '24px',
                   height: '24px',
                   borderRadius: '50%',
-                  backgroundColor: '#f3f4f6',
+                  backgroundColor: '#1e293b',
                   border: 'none',
                   display: 'flex',
                   alignItems: 'center',
@@ -9670,7 +9649,7 @@ function RestaurantPOSContent() {
             )}
 
             {/* Divider */}
-            <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb', flexShrink: 0 }} />
+            <div style={{ width: '1px', height: '24px', backgroundColor: '#1e293b', flexShrink: 0 }} />
 
             {/* Voice/Stop Button */}
             <button
@@ -9708,8 +9687,8 @@ function RestaurantPOSContent() {
                   borderRadius: '12px',
                   background: cart.length > 0
                     ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-                    : '#f3f4f6',
-                  border: 'none',
+                    : '#1e293b',
+                  border: cart.length > 0 ? 'none' : '1px solid #334155',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -9719,7 +9698,7 @@ function RestaurantPOSContent() {
                   boxShadow: cart.length > 0 ? '0 2px 8px rgba(239, 68, 68, 0.3)' : 'none'
                 }}
               >
-                <FaShoppingCart size={15} color={cart.length > 0 ? 'white' : '#6b7280'} />
+                <FaShoppingCart size={15} color={cart.length > 0 ? 'white' : '#94a3b8'} />
                 {cart.length > 0 && (
                   <span style={{
                     position: 'absolute',
@@ -9760,10 +9739,10 @@ function LoadingFallback() {
     }}>
       <div style={{
         textAlign: 'center',
-        backgroundColor: 'white',
+        backgroundColor: '#111827',
         padding: '40px',
         borderRadius: '20px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+        boxShadow: '0 4px 12px rgba(0,0,0,0.4)'
       }}>
         <div style={{
           width: '40px',
@@ -9774,7 +9753,7 @@ function LoadingFallback() {
           animation: 'spin 1s linear infinite',
           margin: '0 auto 16px'
         }} />
-        <p style={{ color: '#6b7280', margin: 0 }}>{t('common.loading')}</p>
+        <p style={{ color: '#94a3b8', margin: 0 }}>{t('common.loading')}</p>
       </div>
     </div>
   );

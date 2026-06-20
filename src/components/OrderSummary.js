@@ -155,7 +155,29 @@ const OrderSummary = ({
   onAssignedStaffChange,
   onBarcodeScanned,
   canCompleteBill = true,
+  darkMode = false,
 }) => {
+  // Dark-mode color mapping for V2
+  const dm = darkMode ? {
+    bg: '#0f172a',         // page background
+    card: '#1e293b',       // card/section background
+    cardHover: '#334155',  // elevated/hover background
+    border: '#334155',     // borders (replaces #e5e7eb, #e2e8f0, #d1d5db)
+    text: '#e2e8f0',       // primary text (replaces #1f2937, #111827)
+    textSec: '#94a3b8',    // secondary text (replaces #6b7280, #4b5563)
+    textMuted: '#64748b',  // muted text (replaces #9ca3af)
+    white: '#1e293b',      // where 'white'/#fff is used as bg
+    inputBg: '#0f172a',    // input backgrounds (replaces #f9fafb, white)
+    inputBorder: '#475569', // input borders
+    greenBg: 'rgba(22,163,74,0.15)',   // replaces #f0fdf4, #dcfce7
+    orangeBg: 'rgba(234,88,12,0.15)',  // replaces #fff7ed, #ffedd5
+    redBg: 'rgba(239,68,68,0.15)',     // replaces #fee2e2, #fef2f2
+    blueBg: 'rgba(59,130,246,0.15)',   // replaces #eff6ff, #dbeafe
+    greenText: '#4ade80',   // replaces #166534, #15803d, #065f46
+    orangeText: '#fb923c',  // replaces #9a3412, #c2410c
+    redText: '#f87171',     // replaces #991b1b, #dc2626 (text only)
+  } : null;
+
   const [barcodeInput, setBarcodeInput] = useState('');
   const [barcodeResult, setBarcodeResult] = useState(null); // { type: 'success'|'error', text: string }
 
@@ -2118,8 +2140,8 @@ const OrderSummary = ({
       left: isMobile && !billingMode ? 0 : 'auto',
       right: isMobile && !billingMode ? 0 : 'auto',
       zIndex: isMobile && !billingMode ? 1000 : 'auto',
-      backgroundColor: 'white',
-      borderLeft: isMobile || billingMode ? 'none' : '1px solid #e5e7eb',
+      backgroundColor: dm ? dm.white : 'white',
+      borderLeft: isMobile || billingMode ? 'none' : (dm ? '1px solid ' + dm.border : '1px solid #e5e7eb'),
       display: 'flex',
       flexDirection: 'column',
       boxShadow: isMobile || billingMode ? 'none' : '-2px 0 8px rgba(0, 0, 0, 0.04)',
@@ -2129,14 +2151,14 @@ const OrderSummary = ({
       {/* Header - More Compact, even smaller in billing mode */}
       <div style={{
         background: billingMode
-          ? 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'
+          ? (dm ? 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' : 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)')
           : 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)',
         padding: billingMode ? '10px 16px' : (isMobile ? '10px 12px' : '14px 16px'),
-        color: billingMode ? '#1e293b' : 'white',
+        color: billingMode ? (dm ? '#e2e8f0' : '#1e293b') : 'white',
         position: 'relative',
         overflow: 'hidden',
         flexShrink: 0,
-        ...(billingMode && { borderBottom: '1px solid #e2e8f0' })
+        ...(billingMode && { borderBottom: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0' })
       }}>
         {/* Background Pattern - hidden in billing mode */}
         {!billingMode && (
@@ -2336,8 +2358,8 @@ const OrderSummary = ({
       {onBarcodeScanned && posSettings.scaleBarcodeFlag && (
         <div style={{
           padding: isMobile ? '6px 10px' : '6px 16px',
-          background: '#f8fafc',
-          borderBottom: '1px solid #e2e8f0',
+          background: dm ? dm.card : '#f8fafc',
+          borderBottom: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0',
           flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -2391,13 +2413,13 @@ const OrderSummary = ({
               }}
               style={{
                 flex: 1,
-                border: '1px solid #e2e8f0',
+                border: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0',
                 borderRadius: '6px',
                 padding: isMobile ? '5px 8px' : '6px 10px',
                 fontSize: isMobile ? '11px' : '12px',
                 fontFamily: 'monospace',
-                color: '#374151',
-                backgroundColor: 'white',
+                color: dm ? dm.text : '#374151',
+                backgroundColor: dm ? dm.white : 'white',
                 outline: 'none',
                 minWidth: 0,
               }}
@@ -2428,13 +2450,13 @@ const OrderSummary = ({
       {orderType === 'delivery' && (
         <div style={{
           padding: isMobile ? '8px 10px' : '10px 16px',
-          background: '#fff7ed',
+          background: dm ? dm.orangeBg : '#fff7ed',
           borderBottom: '1px solid #fed7aa',
           flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
             <FaTruck size={11} style={{ color: '#ea580c' }} />
-            <span style={{ fontSize: '11px', fontWeight: '700', color: '#9a3412', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Delivery Details</span>
+            <span style={{ fontSize: '11px', fontWeight: '700', color: dm ? dm.orangeText : '#9a3412', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Delivery Details</span>
           </div>
           <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
             {/* Person name with staff search */}
@@ -2453,8 +2475,8 @@ const OrderSummary = ({
                   width: '100%', padding: isMobile ? '5px 8px' : '7px 10px',
                   border: '1.5px solid #fdba74',
                   borderRadius: isMobile ? '6px' : '8px', fontSize: isMobile ? '11px' : '12px',
-                  backgroundColor: 'white',
-                  color: '#1f2937', outline: 'none',
+                  backgroundColor: dm ? dm.white : 'white',
+                  color: dm ? dm.text : '#1f2937', outline: 'none',
                   boxSizing: 'border-box',
                 }}
               />
@@ -2467,7 +2489,7 @@ const OrderSummary = ({
                 return (
                   <div style={{
                     position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
-                    background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px',
+                    background: dm ? dm.white : 'white', border: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb', borderRadius: '8px',
                     maxHeight: '120px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                     marginTop: '2px',
                   }}>
@@ -2479,12 +2501,12 @@ const OrderSummary = ({
                         setShowDeliveryStaffDropdown(false);
                       }} style={{
                         padding: '7px 10px', fontSize: '12px', cursor: 'pointer',
-                        color: '#374151', borderBottom: '1px solid #f3f4f6',
+                        color: dm ? dm.text : '#374151', borderBottom: '1px solid #f3f4f6',
                       }}
                       onMouseEnter={(e) => { e.currentTarget.style.background = '#fff7ed'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = 'white'; }}
                       >
-                        {s.name} {s.phone ? <span style={{ color: '#9ca3af' }}>({s.phone})</span> : ''}
+                        {s.name} {s.phone ? <span style={{ color: dm ? dm.textMuted : '#9ca3af' }}>({s.phone})</span> : ''}
                       </div>
                     ))}
                   </div>
@@ -2502,8 +2524,8 @@ const OrderSummary = ({
                 width: isMobile ? '80px' : '90px', padding: isMobile ? '5px 8px' : '7px 10px',
                 border: '1.5px solid #fdba74',
                 borderRadius: isMobile ? '6px' : '8px', fontSize: isMobile ? '11px' : '12px',
-                backgroundColor: 'white',
-                color: '#1f2937', outline: 'none',
+                backgroundColor: dm ? dm.white : 'white',
+                color: dm ? dm.text : '#1f2937', outline: 'none',
                 boxSizing: 'border-box',
               }}
             />
@@ -2541,7 +2563,7 @@ const OrderSummary = ({
               <span
                 onClick={() => setShowAddressModal(true)}
                 style={{
-                  flex: 1, fontSize: '11px', color: '#374151', cursor: 'pointer',
+                  flex: 1, fontSize: '11px', color: dm ? dm.text : '#374151', cursor: 'pointer',
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   padding: '4px 0',
                 }}
@@ -2550,7 +2572,7 @@ const OrderSummary = ({
                 {deliveryAddress}
               </span>
             ) : (
-              <span style={{ flex: 1, fontSize: '11px', color: '#9ca3af', fontStyle: 'italic' }}>
+              <span style={{ flex: 1, fontSize: '11px', color: dm ? dm.textMuted : '#9ca3af', fontStyle: 'italic' }}>
                 No delivery address
               </span>
             )}
@@ -2566,7 +2588,7 @@ const OrderSummary = ({
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 width: '24px', height: '24px', borderRadius: '6px',
-                border: '1.5px solid #fdba74', background: 'white',
+                border: '1.5px solid #fdba74', background: dm ? dm.white : 'white',
                 cursor: 'pointer', flexShrink: 0, padding: 0,
               }}
               title={deliveryAddress ? 'Edit delivery address' : 'Add delivery address'}
@@ -2578,14 +2600,14 @@ const OrderSummary = ({
             {showAddressModal && (
               <div style={{
                 position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
-                background: 'white', border: '1.5px solid #fdba74', borderRadius: '10px',
+                background: dm ? dm.white : 'white', border: '1.5px solid #fdba74', borderRadius: '10px',
                 boxShadow: '0 8px 24px rgba(0,0,0,0.15)', padding: '10px',
                 marginTop: '4px',
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#9a3412', textTransform: 'uppercase' }}>Delivery Address</span>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: dm ? dm.orangeText : '#9a3412', textTransform: 'uppercase' }}>Delivery Address</span>
                   <button type="button" onClick={() => setShowAddressModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}>
-                    <FaTimes size={10} style={{ color: '#9ca3af' }} />
+                    <FaTimes size={10} style={{ color: dm ? dm.textMuted : '#9ca3af' }} />
                   </button>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
@@ -2593,26 +2615,26 @@ const OrderSummary = ({
                     type="text" placeholder="Building / Street"
                     value={addressForm.building}
                     onChange={(e) => setAddressForm(prev => ({ ...prev, building: e.target.value }))}
-                    style={{ width: '100%', padding: '6px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '11px', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '6px 8px', border: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb', borderRadius: '6px', fontSize: '11px', outline: 'none', boxSizing: 'border-box' }}
                   />
                   <input
                     type="text" placeholder="Landmark"
                     value={addressForm.landmark}
                     onChange={(e) => setAddressForm(prev => ({ ...prev, landmark: e.target.value }))}
-                    style={{ width: '100%', padding: '6px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '11px', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '6px 8px', border: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb', borderRadius: '6px', fontSize: '11px', outline: 'none', boxSizing: 'border-box' }}
                   />
                   <div style={{ display: 'flex', gap: '5px' }}>
                     <input
                       type="text" placeholder="City"
                       value={addressForm.city}
                       onChange={(e) => setAddressForm(prev => ({ ...prev, city: e.target.value }))}
-                      style={{ flex: 1, padding: '6px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '11px', outline: 'none', boxSizing: 'border-box' }}
+                      style={{ flex: 1, padding: '6px 8px', border: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb', borderRadius: '6px', fontSize: '11px', outline: 'none', boxSizing: 'border-box' }}
                     />
                     <input
                       type="text" placeholder="State"
                       value={addressForm.state}
                       onChange={(e) => setAddressForm(prev => ({ ...prev, state: e.target.value }))}
-                      style={{ flex: 1, padding: '6px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '11px', outline: 'none', boxSizing: 'border-box' }}
+                      style={{ flex: 1, padding: '6px 8px', border: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb', borderRadius: '6px', fontSize: '11px', outline: 'none', boxSizing: 'border-box' }}
                     />
                   </div>
                   <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
@@ -2620,7 +2642,7 @@ const OrderSummary = ({
                       type="text" placeholder="Pincode"
                       value={addressForm.pincode}
                       onChange={(e) => setAddressForm(prev => ({ ...prev, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
-                      style={{ width: '90px', padding: '6px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '11px', outline: 'none', boxSizing: 'border-box' }}
+                      style={{ width: '90px', padding: '6px 8px', border: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb', borderRadius: '6px', fontSize: '11px', outline: 'none', boxSizing: 'border-box' }}
                     />
                     <button
                       type="button"
@@ -2650,10 +2672,10 @@ const OrderSummary = ({
         if (pricingRulesLoading && pricingRules.length === 0) {
           return (
             <div style={{
-              background: '#f1f5f9',
+              background: dm ? dm.card : '#f1f5f9',
               padding: isMobile ? '8px 10px' : '8px 16px',
               display: 'flex', alignItems: 'center', gap: '8px',
-              borderBottom: '1px solid #e2e8f0',
+              borderBottom: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0',
               flexShrink: 0,
             }}>
               <span style={{
@@ -2778,8 +2800,8 @@ const OrderSummary = ({
                   }
                 }}
                 style={{
-                  backgroundColor: 'white',
-                  color: '#374151',
+                  backgroundColor: dm ? dm.white : 'white',
+                  color: dm ? dm.text : '#374151',
                   border: '1px solid #cbd5e1',
                   borderRadius: '20px', padding: '4px 8px',
                   fontSize: '11px', fontWeight: '600',
@@ -2803,7 +2825,7 @@ const OrderSummary = ({
         const activeRule = pricingRules.find(r => r.id === activePricingRuleId);
         return activeRule ? (
           <div style={{
-            padding: '6px 12px', backgroundColor: '#eff6ff', borderBottom: '1px solid #dbeafe',
+            padding: '6px 12px', backgroundColor: dm ? dm.blueBg : '#eff6ff', borderBottom: '1px solid #dbeafe',
             fontSize: '11px', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '4px'
           }}>
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 1a4 4 0 0 0-4 4v3H3a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1h-1V5a4 4 0 0 0-4-4zm2 7H6V5a2 2 0 1 1 4 0v3z" fill="currentColor"/></svg>
@@ -2816,7 +2838,7 @@ const OrderSummary = ({
       {tableNumber && (
         <div style={{
           padding: '8px 12px',
-          background: '#fef2f2',
+          background: dm ? dm.redBg : '#fef2f2',
           borderBottom: '1px solid #fecaca',
           display: 'flex',
           alignItems: 'center',
@@ -2853,7 +2875,7 @@ const OrderSummary = ({
             }}
             style={{
               padding: '4px 8px',
-              background: 'white',
+              background: dm ? dm.white : 'white',
               border: '1px solid #fecaca',
               borderRadius: '6px',
               fontSize: '10px',
@@ -2907,7 +2929,7 @@ const OrderSummary = ({
             <span style={{
               fontSize: '10px',
               fontWeight: '600',
-              color: '#6b7280',
+              color: dm ? dm.textSec : '#6b7280',
               whiteSpace: 'nowrap',
               flexShrink: 0
             }}>
@@ -3001,7 +3023,7 @@ const OrderSummary = ({
             <span style={{
               fontSize: '10px',
               fontWeight: '600',
-              color: '#6b7280',
+              color: dm ? dm.textSec : '#6b7280',
               whiteSpace: 'nowrap',
               flexShrink: 0
             }}>
@@ -3016,7 +3038,7 @@ const OrderSummary = ({
                   alignItems: 'center',
                   gap: '4px',
                   padding: '4px 8px',
-                  backgroundColor: '#f0fdf4',
+                  backgroundColor: dm ? dm.greenBg : '#f0fdf4',
                   border: '1px solid #86efac',
                   borderRadius: '12px',
                   cursor: 'pointer',
@@ -3031,7 +3053,7 @@ const OrderSummary = ({
                 <span style={{
                   fontSize: '10px',
                   fontWeight: '600',
-                  color: '#15803d'
+                  color: dm ? dm.greenText : '#15803d'
                 }}>
                   {tpl.name}
                 </span>
@@ -3045,7 +3067,7 @@ const OrderSummary = ({
                     height: '14px',
                     borderRadius: '50%',
                     border: 'none',
-                    backgroundColor: '#fee2e2',
+                    backgroundColor: dm ? dm.redBg : '#fee2e2',
                     color: '#dc2626',
                     cursor: 'pointer',
                     display: 'flex',
@@ -3066,7 +3088,7 @@ const OrderSummary = ({
           <div style={{ padding: '8px 0', paddingTop: '12px' }}>
             <div style={{
               padding: '16px',
-              backgroundColor: '#dcfce7',
+              backgroundColor: dm ? dm.greenBg : '#dcfce7',
               border: '2px solid #22c55e',
               borderRadius: '12px',
               textAlign: 'center',
@@ -3107,7 +3129,7 @@ const OrderSummary = ({
                   borderRadius: '6px',
                   border: 'none',
                   backgroundColor: 'rgba(22, 101, 52, 0.2)',
-                  color: '#166534',
+                  color: dm ? dm.greenText : '#166534',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -3122,7 +3144,7 @@ const OrderSummary = ({
                 <div style={{ width: '32px', height: '32px', backgroundColor: '#22c55e', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <FaCheckCircle size={16} style={{ color: 'white' }} />
                 </div>
-                <div style={{ fontWeight: '800', color: '#166534', fontSize: '16px' }}>
+                <div style={{ fontWeight: '800', color: dm ? dm.greenText : '#166534', fontSize: '16px' }}>
                   {orderSuccess.message || 'Order Complete! ✅'}
                 </div>
               </div>
@@ -3160,8 +3182,8 @@ const OrderSummary = ({
                 <div style={{
                   display: 'inline-flex', alignItems: 'center', gap: '6px',
                   padding: '5px 12px', marginBottom: '12px',
-                  backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0',
-                  borderRadius: '20px', fontSize: '12px', fontWeight: 600, color: '#166534',
+                  backgroundColor: dm ? dm.greenBg : '#f0fdf4', border: '1px solid #bbf7d0',
+                  borderRadius: '20px', fontSize: '12px', fontWeight: 600, color: dm ? dm.greenText : '#166534',
                 }}>
                   <FaCheckCircle size={10} />
                   {t('invoice.confirmed')}
@@ -3171,10 +3193,10 @@ const OrderSummary = ({
                 const isKitchenOrder = orderSuccess?.message?.includes('placed') || orderSuccess?.message?.includes('Updated') || orderSuccess?.message?.includes('Kitchen');
                 return (
                   <>
-                    <div style={{ fontSize: '14px', color: '#166534', marginBottom: '12px', fontWeight: '600' }}>
+                    <div style={{ fontSize: '14px', color: dm ? dm.greenText : '#166534', marginBottom: '12px', fontWeight: '600' }}>
                       {bLabels.billLabel} #{orderSuccess.dailyOrderId ?? orderSuccess.orderId ?? '—'} {isKitchenOrder ? t('invoice.sentToKitchen') : t('invoice.completed')}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#166534', marginBottom: '16px' }}>
+                    <div style={{ fontSize: '12px', color: dm ? dm.greenText : '#166534', marginBottom: '16px' }}>
                       {isKitchenOrder ? t('invoice.orderSentToKitchen') : t('invoice.paymentProcessed')}
                     </div>
                   </>
@@ -3182,7 +3204,7 @@ const OrderSummary = ({
               })()}
               {orderSuccess?.kotData && (orderSuccess?.message?.includes('placed') || orderSuccess?.message?.includes('Updated') || orderSuccess?.message?.includes('Kitchen')) && (
                 <>
-                  <div style={{ textAlign: 'center', marginBottom: '12px', padding: '12px', backgroundColor: '#fff', borderRadius: '8px', border: '2px dashed #22c55e', fontFamily: 'monospace', fontSize: '14px', color: '#14532d' }}>
+                  <div style={{ textAlign: 'center', marginBottom: '12px', padding: '12px', backgroundColor: dm ? dm.white : '#fff', borderRadius: '8px', border: '2px dashed #22c55e', fontFamily: 'monospace', fontSize: '14px', color: '#14532d' }}>
                     {(() => {
                       const kd = orderSuccess.kotData;
                       const kdRemoved = kd.removedItems || [];
@@ -3216,7 +3238,7 @@ const OrderSummary = ({
                             {opts.label && <span style={{ fontSize: '9px', fontWeight: 'bold', marginLeft: '4px', color: opts.labelColor || '#666' }}>{opts.label}</span>}
                           </td>
                           <td style={{ padding: '4px 6px', textAlign: 'center' }}>{opts.isRemoved && opts.showDelta ? Math.abs(item.quantityDelta) : (item.quantity || 1)}</td>
-                          <td style={{ padding: '4px 6px', color: '#6b7280' }}>{item.notes || '—'}</td>
+                          <td style={{ padding: '4px 6px', color: dm ? dm.textSec : '#6b7280' }}>{item.notes || '—'}</td>
                         </tr>
                       );
 
@@ -3224,9 +3246,9 @@ const OrderSummary = ({
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                           <thead>
                             <tr style={{ borderBottom: '1px solid #86efac' }}>
-                              <th style={{ textAlign: 'left', padding: '4px 6px', backgroundColor: '#f0fdf4' }}>{t('invoice.item')}</th>
-                              <th style={{ textAlign: 'center', padding: '4px 6px', backgroundColor: '#f0fdf4', width: '36px' }}>{t('invoice.qty')}</th>
-                              <th style={{ textAlign: 'left', padding: '4px 6px', backgroundColor: '#f0fdf4' }}>{t('invoice.note')}</th>
+                              <th style={{ textAlign: 'left', padding: '4px 6px', backgroundColor: dm ? dm.greenBg : '#f0fdf4' }}>{t('invoice.item')}</th>
+                              <th style={{ textAlign: 'center', padding: '4px 6px', backgroundColor: dm ? dm.greenBg : '#f0fdf4', width: '36px' }}>{t('invoice.qty')}</th>
+                              <th style={{ textAlign: 'left', padding: '4px 6px', backgroundColor: dm ? dm.greenBg : '#f0fdf4' }}>{t('invoice.note')}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -3234,7 +3256,7 @@ const OrderSummary = ({
                               <>
                                 {kdRemoved.length > 0 && (
                                   <>
-                                    <tr><td colSpan={3} style={{ textAlign: 'center', fontWeight: 'bold', padding: '4px', backgroundColor: '#fee2e2', color: '#dc2626', fontSize: '11px' }}>CANCELLED</td></tr>
+                                    <tr><td colSpan={3} style={{ textAlign: 'center', fontWeight: 'bold', padding: '4px', backgroundColor: dm ? dm.redBg : '#fee2e2', color: '#dc2626', fontSize: '11px' }}>CANCELLED</td></tr>
                                     {kdRemoved.map((i, idx) => renderRow(i, idx, { prefix: 'rem', isRemoved: true }))}
                                   </>
                                 )}
@@ -3246,7 +3268,7 @@ const OrderSummary = ({
                                 )}
                                 {kdNewAndInc.length > 0 && (
                                   <>
-                                    <tr><td colSpan={3} style={{ textAlign: 'center', fontWeight: 'bold', padding: '4px', backgroundColor: '#dcfce7', color: '#16a34a', fontSize: '11px' }}>NEW ITEMS</td></tr>
+                                    <tr><td colSpan={3} style={{ textAlign: 'center', fontWeight: 'bold', padding: '4px', backgroundColor: dm ? dm.greenBg : '#dcfce7', color: '#16a34a', fontSize: '11px' }}>NEW ITEMS</td></tr>
                                     {kdNewAndInc.map((i, idx) => renderRow(i, idx, { prefix: 'new', label: i.isUpdated ? `+${i.quantityDelta}` : 'NEW', labelColor: '#16a34a' }))}
                                   </>
                                 )}
@@ -3308,34 +3330,34 @@ const OrderSummary = ({
               {/* Billing complete: Invoice summary (same style as KOT) + Print Invoice */}
               {((orderSuccess?.message?.includes('Billing Complete') && invoice) || showInvoicePermanently) && invoice && (
                 <>
-                  <div style={{ textAlign: 'center', marginBottom: '12px', padding: '12px', backgroundColor: '#fff', borderRadius: '8px', border: '2px dashed #22c55e', fontFamily: 'monospace', fontSize: '14px', color: '#14532d' }}>
+                  <div style={{ textAlign: 'center', marginBottom: '12px', padding: '12px', backgroundColor: dm ? dm.white : '#fff', borderRadius: '8px', border: '2px dashed #22c55e', fontFamily: 'monospace', fontSize: '14px', color: '#14532d' }}>
                     <div style={{ fontWeight: 'bold', fontSize: '15px', borderBottom: '2px dashed #22c55e', paddingBottom: '6px', marginBottom: '8px' }}>--- {bLabels.billTitle} ---</div>
                     <div style={{ marginBottom: '2px', fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase' }}>{invoice?.restaurantName || 'Restaurant'}</div>
                     {invoice?.restaurantLegalName && invoice.restaurantLegalName !== invoice.restaurantName && (
-                      <div style={{ fontSize: '11px', color: '#166534', marginBottom: '2px' }}>{invoice.restaurantLegalName}</div>
+                      <div style={{ fontSize: '11px', color: dm ? dm.greenText : '#166534', marginBottom: '2px' }}>{invoice.restaurantLegalName}</div>
                     )}
                     {invoice?.restaurantAddress && (
-                      <div style={{ fontSize: '11px', color: '#166534', marginBottom: '2px' }}>{invoice.restaurantAddress}</div>
+                      <div style={{ fontSize: '11px', color: dm ? dm.greenText : '#166534', marginBottom: '2px' }}>{invoice.restaurantAddress}</div>
                     )}
                     {invoice?.restaurantPhone && (
-                      <div style={{ fontSize: '11px', color: '#166534', marginBottom: '2px' }}>{t('invoice.tel')}: {invoice.restaurantPhone}</div>
+                      <div style={{ fontSize: '11px', color: dm ? dm.greenText : '#166534', marginBottom: '2px' }}>{t('invoice.tel')}: {invoice.restaurantPhone}</div>
                     )}
                     {/* India: GSTIN & FSSAI */}
                     {invoice?.showGstOnInvoice && invoice?.gstin && (
-                      <div style={{ fontSize: '11px', color: '#166534', marginBottom: '1px' }}><strong>GSTIN:</strong> {invoice.gstin}</div>
+                      <div style={{ fontSize: '11px', color: dm ? dm.greenText : '#166534', marginBottom: '1px' }}><strong>GSTIN:</strong> {invoice.gstin}</div>
                     )}
                     {invoice?.showFssaiOnInvoice && invoice?.fssai && (
-                      <div style={{ fontSize: '11px', color: '#166534', marginBottom: '1px' }}><strong>FSSAI:</strong> {invoice.fssai}</div>
+                      <div style={{ fontSize: '11px', color: dm ? dm.greenText : '#166534', marginBottom: '1px' }}><strong>FSSAI:</strong> {invoice.fssai}</div>
                     )}
                     {/* International: VAT/Tax ID */}
                     {invoice?.showTaxIdOnInvoice && invoice?.vatNumber && (
-                      <div style={{ fontSize: '11px', color: '#166534', marginBottom: '1px' }}><strong>{invoice?.countryCode === 'GB' ? 'VAT' : invoice?.countryCode === 'CA' ? 'GST/HST' : invoice?.countryCode === 'AE' ? 'TRN' : invoice?.countryCode === 'DE' ? 'USt-IdNr' : invoice?.countryCode === 'FR' ? 'TVA' : 'Tax ID'}:</strong> {invoice.vatNumber}</div>
+                      <div style={{ fontSize: '11px', color: dm ? dm.greenText : '#166534', marginBottom: '1px' }}><strong>{invoice?.countryCode === 'GB' ? 'VAT' : invoice?.countryCode === 'CA' ? 'GST/HST' : invoice?.countryCode === 'AE' ? 'TRN' : invoice?.countryCode === 'DE' ? 'USt-IdNr' : invoice?.countryCode === 'FR' ? 'TVA' : 'Tax ID'}:</strong> {invoice.vatNumber}</div>
                     )}
                     {invoice?.showTaxIdOnInvoice && invoice?.taxId && (
-                      <div style={{ fontSize: '11px', color: '#166534', marginBottom: '1px' }}><strong>{invoice?.countryCode === 'AU' ? 'ABN' : 'Tax ID'}:</strong> {invoice.taxId}</div>
+                      <div style={{ fontSize: '11px', color: dm ? dm.greenText : '#166534', marginBottom: '1px' }}><strong>{invoice?.countryCode === 'AU' ? 'ABN' : 'Tax ID'}:</strong> {invoice.taxId}</div>
                     )}
                     {invoice?.showTaxIdOnInvoice && invoice?.businessRegistrationNumber && (
-                      <div style={{ fontSize: '11px', color: '#166534', marginBottom: '1px' }}><strong>Reg#:</strong> {invoice.businessRegistrationNumber}</div>
+                      <div style={{ fontSize: '11px', color: dm ? dm.greenText : '#166534', marginBottom: '1px' }}><strong>Reg#:</strong> {invoice.businessRegistrationNumber}</div>
                     )}
                     <div style={{ textAlign: 'left', marginBottom: '8px', fontSize: '13px', marginTop: '6px' }}>
                       {invoice?.dailyOrderId != null && <div><strong>{bLabels.billLabel} #:</strong> {invoice.dailyOrderId}</div>}
@@ -3356,9 +3378,9 @@ const OrderSummary = ({
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginBottom: '8px' }}>
                       <thead>
                         <tr style={{ borderBottom: '1px dashed #22c55e' }}>
-                          <th style={{ textAlign: 'left', padding: '4px 6px', backgroundColor: '#f0fdf4' }}>{bLabels.itemCol}</th>
-                          <th style={{ textAlign: 'center', padding: '4px 6px', backgroundColor: '#f0fdf4', width: '40px' }}>{bLabels.qtyCol}</th>
-                          <th style={{ textAlign: 'right', padding: '4px 6px', backgroundColor: '#f0fdf4', width: '70px' }}>{t('invoice.amt')}</th>
+                          <th style={{ textAlign: 'left', padding: '4px 6px', backgroundColor: dm ? dm.greenBg : '#f0fdf4' }}>{bLabels.itemCol}</th>
+                          <th style={{ textAlign: 'center', padding: '4px 6px', backgroundColor: dm ? dm.greenBg : '#f0fdf4', width: '40px' }}>{bLabels.qtyCol}</th>
+                          <th style={{ textAlign: 'right', padding: '4px 6px', backgroundColor: dm ? dm.greenBg : '#f0fdf4', width: '70px' }}>{t('invoice.amt')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -3369,7 +3391,7 @@ const OrderSummary = ({
                               {(() => {
                                 const subParts = getItemSubline(item);
                                 return subParts.length > 0 ? (
-                                  <div style={{ fontSize: '9px', color: '#6b7280' }}>{subParts.join(' · ')}</div>
+                                  <div style={{ fontSize: '9px', color: dm ? dm.textSec : '#6b7280' }}>{subParts.join(' · ')}</div>
                                 ) : null;
                               })()}
                             </td>
@@ -3682,7 +3704,7 @@ const OrderSummary = ({
                 width: '8px',
                 height: '8px',
                 borderRadius: '50%',
-                backgroundColor: '#fee2e2',
+                backgroundColor: dm ? dm.redBg : '#fee2e2',
                 animation: 'pulse 2s ease-in-out infinite 0.5s'
               }} />
             </div>
@@ -3691,7 +3713,7 @@ const OrderSummary = ({
             <h2 style={{
               fontSize: '18px',
               fontWeight: '600',
-              color: '#374151',
+              color: dm ? dm.text : '#374151',
               margin: '0 0 8px 0',
               letterSpacing: '-0.3px'
             }}>
@@ -3700,7 +3722,7 @@ const OrderSummary = ({
 
             {/* Description */}
             <p style={{
-              color: '#9ca3af',
+              color: dm ? dm.textMuted : '#9ca3af',
               fontSize: '13px',
               margin: '0 0 24px 0',
               fontWeight: '400',
@@ -3731,7 +3753,7 @@ const OrderSummary = ({
                     alignItems: 'center',
                     gap: '12px',
                     padding: '10px 14px',
-                    backgroundColor: '#f9fafb',
+                    backgroundColor: dm ? dm.inputBg : '#f9fafb',
                     borderRadius: '8px',
                     border: '1px solid #f3f4f6',
                     animation: `slideIn 0.4s ease-out ${index * 0.1}s both`
@@ -3754,7 +3776,7 @@ const OrderSummary = ({
                   </div>
                   <span style={{
                     fontSize: '12px',
-                    color: '#6b7280',
+                    color: dm ? dm.textSec : '#6b7280',
                     fontWeight: '500'
                   }}>
                     {step.text}
@@ -3809,7 +3831,7 @@ const OrderSummary = ({
                   backgroundColor: '#f8fafc', 
                   borderRadius: '8px', 
                   padding: '8px', 
-                  border: '1px solid #e2e8f0',
+                  border: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0',
                   boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
                 }}
               >
@@ -3817,7 +3839,7 @@ const OrderSummary = ({
                   <div style={{ flex: 1 }}>
                     <h4 style={{
                       fontWeight: 'bold',
-                      color: '#1f2937',
+                      color: dm ? dm.text : '#1f2937',
                       margin: '0 0 2px 0',
                       fontSize: isMobile ? '11px' : '12px',
                       lineHeight: '1.3',
@@ -3867,7 +3889,7 @@ const OrderSummary = ({
                                 fontSize: isMobile ? '7px' : '8px',
                                 fontWeight: 'bold',
                                 color: '#ef4444',
-                                backgroundColor: '#fee2e2',
+                                backgroundColor: dm ? dm.redBg : '#fee2e2',
                                 padding: '1px 3px',
                                 borderRadius: '3px',
                                 border: isMobile ? 'none' : '1px solid #ef4444',
@@ -3901,7 +3923,7 @@ const OrderSummary = ({
                     {(() => {
                       const subParts = getItemSubline(item);
                       return subParts.length > 0 ? (
-                        <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '1px' }}>
+                        <div style={{ fontSize: '10px', color: dm ? dm.textMuted : '#9ca3af', marginTop: '1px' }}>
                           {subParts.join(' · ')}
                         </div>
                       ) : null;
@@ -3913,10 +3935,10 @@ const OrderSummary = ({
                     )}
                     {/* Variant and toppings sub-content */}
                     {(item?.selectedVariant || (Array.isArray(item?.selectedCustomizations) && item.selectedCustomizations.length > 0)) && (
-                      <div style={{ margin: '2px 0 4px 0', color: '#6b7280' }}>
+                      <div style={{ margin: '2px 0 4px 0', color: dm ? dm.textSec : '#6b7280' }}>
                         {item?.selectedVariant && (
                           <div style={{ fontSize: '10px' }}>
-                            Variant: <span style={{ fontWeight: 600, color: '#374151' }}>{item.selectedVariant.name}</span>
+                            Variant: <span style={{ fontWeight: 600, color: dm ? dm.text : '#374151' }}>{item.selectedVariant.name}</span>
                             {typeof item.selectedVariant.price === 'number' && (
                               <span> ({formatCurrency(item.selectedVariant.price)})</span>
                             )}
@@ -3939,7 +3961,7 @@ const OrderSummary = ({
                     {item.notes && expandedNoteId !== (item.cartId || item.id) && (
                       <div
                         onClick={() => setExpandedNoteId(item.cartId || item.id)}
-                        style={{ fontSize: '10px', color: '#d97706', background: '#fffbeb', padding: '2px 6px', borderRadius: '4px', marginTop: '2px', cursor: 'pointer', border: '1px solid #fef3c7' }}
+                        style={{ fontSize: '10px', color: '#d97706', background: dm ? dm.orangeBg : '#fffbeb', padding: '2px 6px', borderRadius: '4px', marginTop: '2px', cursor: 'pointer', border: '1px solid #fef3c7' }}
                       >
                         <FaStickyNote size={8} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
                         {item.notes}
@@ -3970,7 +3992,7 @@ const OrderSummary = ({
                             fontSize: '11px',
                             border: '1px solid #fde68a',
                             borderRadius: '6px',
-                            background: '#fffbeb',
+                            background: dm ? dm.orangeBg : '#fffbeb',
                             outline: 'none',
                             color: '#92400e',
                           }}
@@ -3983,7 +4005,7 @@ const OrderSummary = ({
                         <span style={{
                           fontSize: '11px',
                           fontWeight: '600',
-                          color: '#6b7280'
+                          color: dm ? dm.textSec : '#6b7280'
                         }}>
                           Subtotal: {formatCurrency(getItemUnitPrice(item) * item.quantity)}
                         </span>
@@ -4127,9 +4149,9 @@ const OrderSummary = ({
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
-                      backgroundColor: 'white',
+                      backgroundColor: dm ? dm.white : 'white',
                       borderRadius: '6px',
-                      border: '1px solid #e5e7eb',
+                      border: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb',
                       boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                       gap: '2px'
                     }}>
@@ -4181,10 +4203,10 @@ const OrderSummary = ({
                           height: '22px',
                           textAlign: 'center',
                           fontWeight: 'bold',
-                          color: '#1f2937',
+                          color: dm ? dm.text : '#1f2937',
                           border: 'none',
                           fontSize: '11px',
-                          backgroundColor: '#f9fafb',
+                          backgroundColor: dm ? dm.inputBg : '#f9fafb',
                           outline: 'none',
                           borderRadius: '0'
                         }}
@@ -4223,14 +4245,14 @@ const OrderSummary = ({
             {posSettings.allowCustomItems && isRoleAllowed(billingSettings?.customItemRoles) && (
               showCustomItemForm ? (
                 <div style={{
-                  backgroundColor: '#f0fdf4', borderRadius: '8px', padding: '8px',
+                  backgroundColor: dm ? dm.greenBg : '#f0fdf4', borderRadius: '8px', padding: '8px',
                   border: '1.5px dashed #86efac',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
                     <span style={{ fontSize: '10px', fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('dashboard.customItem')}</span>
                     <button
                       onClick={() => { setShowCustomItemForm(false); setCustomItemName(''); setCustomItemPrice(''); setCustomItemQty('1'); }}
-                      style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '14px', lineHeight: 1, padding: '2px' }}
+                      style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: dm ? dm.textMuted : '#9ca3af', fontSize: '14px', lineHeight: 1, padding: '2px' }}
                     >&times;</button>
                   </div>
                   <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
@@ -4241,8 +4263,8 @@ const OrderSummary = ({
                       onChange={(e) => setCustomItemName(e.target.value)}
                       autoFocus
                       style={{
-                        flex: 2, padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px',
-                        fontSize: '11px', outline: 'none', background: '#fff', minWidth: 0,
+                        flex: 2, padding: '6px 8px', border: dm ? '1px solid ' + dm.border : '1px solid #d1d5db', borderRadius: '6px',
+                        fontSize: '11px', outline: 'none', background: dm ? dm.white : '#fff', minWidth: 0,
                       }}
                       onFocus={(e) => e.target.style.borderColor = '#22c55e'}
                       onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
@@ -4257,8 +4279,8 @@ const OrderSummary = ({
                         if (v === '' || /^\d*\.?\d{0,2}$/.test(v)) setCustomItemPrice(v);
                       }}
                       style={{
-                        width: '60px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px',
-                        fontSize: '11px', outline: 'none', background: '#fff', textAlign: 'right',
+                        width: '60px', padding: '6px 8px', border: dm ? '1px solid ' + dm.border : '1px solid #d1d5db', borderRadius: '6px',
+                        fontSize: '11px', outline: 'none', background: dm ? dm.white : '#fff', textAlign: 'right',
                       }}
                       onFocus={(e) => e.target.style.borderColor = '#22c55e'}
                       onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
@@ -4272,8 +4294,8 @@ const OrderSummary = ({
                         setCustomItemQty(v);
                       }}
                       style={{
-                        width: '32px', padding: '6px 4px', border: '1px solid #d1d5db', borderRadius: '6px',
-                        fontSize: '11px', outline: 'none', background: '#fff', textAlign: 'center',
+                        width: '32px', padding: '6px 4px', border: dm ? '1px solid ' + dm.border : '1px solid #d1d5db', borderRadius: '6px',
+                        fontSize: '11px', outline: 'none', background: dm ? dm.white : '#fff', textAlign: 'center',
                       }}
                     />
                     <button
@@ -4314,7 +4336,7 @@ const OrderSummary = ({
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
                     padding: '6px', borderRadius: '8px', border: '1.5px dashed #d1d5db',
-                    background: 'transparent', color: '#9ca3af', fontSize: '11px', fontWeight: 600,
+                    background: 'transparent', color: dm ? dm.textMuted : '#9ca3af', fontSize: '11px', fontWeight: 600,
                     cursor: 'pointer', transition: 'all 0.2s',
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#22c55e'; e.currentTarget.style.color = '#22c55e'; e.currentTarget.style.background = '#f0fdf4'; }}
@@ -4333,8 +4355,8 @@ const OrderSummary = ({
       {/* In billing mode: no flex/overflow — parent div scrolls everything as one column */}
       {cart.length > 0 && !shouldShowOrderSummary() && (
         <div style={{
-          borderTop: '1px solid #e5e7eb',
-          backgroundColor: 'white',
+          borderTop: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb',
+          backgroundColor: dm ? dm.white : 'white',
           flexShrink: 0,
           ...(isMobileEmbed ? { display: 'flex', flexDirection: 'column', flex: 1 } : {}),
           boxShadow: billingMode ? 'none' : '0 -4px 12px rgba(0,0,0,0.08)',
@@ -4439,12 +4461,12 @@ const OrderSummary = ({
                         <FaTag size={9} style={{ color: hasApplied ? '#16a34a' : '#9ca3af', flexShrink: 0 }} />
                         <div style={{ textAlign: 'left' }}>
                           {hasApplied ? (
-                            <span style={{ fontSize: '10px', fontWeight: 700, color: '#15803d', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: '10px', fontWeight: 700, color: dm ? dm.greenText : '#15803d', whiteSpace: 'nowrap' }}>
                               -{formatCurrency(totalDiscountAmount)}
                               {activeOfferCount > 0 && <span style={{ fontWeight: 500 }}> · {activeOfferCount} offer{activeOfferCount > 1 ? 's' : ''}</span>}
                             </span>
                           ) : (
-                            <span style={{ fontSize: '10px', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: '10px', fontWeight: 600, color: dm ? dm.text : '#374151', whiteSpace: 'nowrap' }}>
                               Offers{hasOffers ? ` (${applicableOffers.length})` : ''}
                             </span>
                           )}
@@ -4455,9 +4477,9 @@ const OrderSummary = ({
                     {showDiscount && (
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0,
-                        padding: '4px 8px', borderRadius: '10px', border: '1px solid #e5e7eb', background: '#fafafa',
+                        padding: '4px 8px', borderRadius: '10px', border: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb', background: dm ? dm.card : '#fafafa',
                       }}>
-                        <span style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', whiteSpace: 'nowrap' }}>Discount</span>
+                        <span style={{ fontSize: '10px', fontWeight: 600, color: dm ? dm.textSec : '#6b7280', whiteSpace: 'nowrap' }}>Discount</span>
                         <input
                           type="text"
                           inputMode="decimal"
@@ -4474,17 +4496,17 @@ const OrderSummary = ({
                           }}
                           style={{
                             width: '48px', padding: '4px 6px',
-                            border: '1px solid #e5e7eb', borderRadius: '6px',
+                            border: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb', borderRadius: '6px',
                             fontSize: '11px', textAlign: 'right', outline: 'none',
-                            backgroundColor: 'white',
+                            backgroundColor: dm ? dm.white : 'white',
                           }}
                         />
                         <select
                           value={manualDiscountTypeState}
                           onChange={(e) => { setManualDiscountTypeState(e.target.value); setManualDiscountValue(''); }}
                           style={{
-                            padding: '4px 4px', border: '1px solid #e5e7eb', borderRadius: '6px',
-                            fontSize: '11px', backgroundColor: 'white', cursor: 'pointer', outline: 'none',
+                            padding: '4px 4px', border: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb', borderRadius: '6px',
+                            fontSize: '11px', backgroundColor: dm ? dm.white : 'white', cursor: 'pointer', outline: 'none',
                           }}
                         >
                           <option value="flat">{getCurrencySymbol()}</option>
@@ -4500,8 +4522,8 @@ const OrderSummary = ({
                     {showSC && (
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: '0',
-                        borderRadius: '10px', border: '1px solid #e5e7eb', overflow: 'hidden',
-                        background: '#fafafa', flexShrink: 0,
+                        borderRadius: '10px', border: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb', overflow: 'hidden',
+                        background: dm ? dm.card : '#fafafa', flexShrink: 0,
                       }}>
                         <button
                           onClick={() => setServiceChargeOverridePersistent(serviceChargeOverride === false ? true : false)}
@@ -4526,16 +4548,16 @@ const OrderSummary = ({
                             onChange={(e) => setServiceChargeRateOverride(Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
                             style={{
                               width: '36px', padding: '4px 2px', border: 'none', borderLeft: '1px solid #e5e7eb',
-                              fontSize: '10px', fontWeight: 700, outline: 'none', background: 'white', textAlign: 'center',
+                              fontSize: '10px', fontWeight: 700, outline: 'none', background: dm ? dm.white : 'white', textAlign: 'center',
                             }}
                           />
                         ) : serviceChargeOverride !== false ? (
-                          <span style={{ padding: '4px 6px', fontSize: '10px', fontWeight: 700, color: '#374151', borderLeft: '1px solid #e5e7eb' }}>
+                          <span style={{ padding: '4px 6px', fontSize: '10px', fontWeight: 700, color: dm ? dm.text : '#374151', borderLeft: '1px solid #e5e7eb' }}>
                             {serviceChargeRateOverride !== null ? serviceChargeRateOverride : billingSettings.serviceChargeRate}
                           </span>
                         ) : null}
                         {serviceChargeOverride !== false && (
-                          <span style={{ fontSize: '9px', color: '#6b7280', paddingRight: '6px' }}>%</span>
+                          <span style={{ fontSize: '9px', color: dm ? dm.textSec : '#6b7280', paddingRight: '6px' }}>%</span>
                         )}
                         {serviceChargeOverride === false && (
                           <span style={{ padding: '4px 8px', fontSize: '9px', fontWeight: 700, color: '#dc2626', borderLeft: '1px solid #fecaca' }}>OFF</span>
@@ -4561,7 +4583,7 @@ const OrderSummary = ({
                             borderRadius: '10px',
                             fontSize: '10px',
                             fontWeight: 500,
-                            color: '#1f2937',
+                            color: dm ? dm.text : '#1f2937',
                             outline: 'none',
                             boxSizing: 'border-box',
                             background: assignedStaff?.name ? '#f0fdf4' : '#fafafa',
@@ -4573,7 +4595,7 @@ const OrderSummary = ({
                         {staffDropdownOpen && filteredStaff.length > 0 && (
                           <div style={{
                             position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
-                            background: 'white', borderRadius: '8px', border: '1px solid #e2e8f0',
+                            background: dm ? dm.white : 'white', borderRadius: '8px', border: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0',
                             boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: '150px', overflow: 'auto', marginTop: '4px',
                           }}>
                             {filteredStaff.map(s => (
@@ -4590,8 +4612,8 @@ const OrderSummary = ({
                                 onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
                                 onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
                               >
-                                <span style={{ fontWeight: 500, color: '#1f2937' }}>{s.name}</span>
-                                <span style={{ fontSize: '9px', color: '#9ca3af' }}>{s.role}</span>
+                                <span style={{ fontWeight: 500, color: dm ? dm.text : '#1f2937' }}>{s.name}</span>
+                                <span style={{ fontSize: '9px', color: dm ? dm.textMuted : '#9ca3af' }}>{s.role}</span>
                               </div>
                             ))}
                           </div>
@@ -4716,7 +4738,7 @@ const OrderSummary = ({
                             title="Fetch customer details"
                             style={{
                               background: 'none', border: 'none', cursor: 'pointer', padding: '2px',
-                              display: 'flex', alignItems: 'center', color: '#9ca3af',
+                              display: 'flex', alignItems: 'center', color: dm ? dm.textMuted : '#9ca3af',
                               transition: 'color 0.15s',
                             }}
                             onMouseEnter={(e) => e.currentTarget.style.color = '#6366f1'}
@@ -4734,7 +4756,7 @@ const OrderSummary = ({
                     {lookupStatus === 'found' && customerData?.outstandingBalance > 0 && (
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: '4px',
-                        padding: '3px 8px', background: '#fef2f2', border: '1px solid #fecaca',
+                        padding: '3px 8px', background: dm ? dm.redBg : '#fef2f2', border: '1px solid #fecaca',
                         borderRadius: '8px', fontSize: '10px', fontWeight: 700, color: '#dc2626',
                         flexShrink: 0, gridColumn: '1 / -1',
                       }}>
@@ -4842,7 +4864,7 @@ const OrderSummary = ({
                         padding: isMobile ? '5px 10px' : '5px 10px',
                         borderRadius: '8px',
                         border: '1px solid #bbf7d0',
-                        backgroundColor: '#f0fdf4',
+                        backgroundColor: dm ? dm.greenBg : '#f0fdf4',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
@@ -4869,7 +4891,7 @@ const OrderSummary = ({
                             borderRadius: '6px',
                             fontSize: isMobile ? '11px' : '12px',
                             outline: 'none',
-                            backgroundColor: '#f9fafb',
+                            backgroundColor: dm ? dm.inputBg : '#f9fafb',
                             transition: 'border-color 0.2s'
                           }}
                           onChange={(e) => {
@@ -4971,7 +4993,7 @@ const OrderSummary = ({
                               borderRadius: '6px',
                               fontSize: isMobile ? '14px' : '12px',
                               outline: 'none',
-                              backgroundColor: '#f9fafb',
+                              backgroundColor: dm ? dm.inputBg : '#f9fafb',
                               transition: 'border-color 0.2s'
                             }}
                             onChange={(e) => {
@@ -5008,7 +5030,7 @@ const OrderSummary = ({
                 <div style={{
                   fontSize: isMobile ? '10px' : '12px',
                   fontWeight: '700',
-                  color: '#1f2937',
+                  color: dm ? dm.text : '#1f2937',
                   marginBottom: isMobile ? '4px' : '8px',
                   display: 'flex',
                   alignItems: 'center',
@@ -5091,7 +5113,7 @@ const OrderSummary = ({
               billingSettings.tipsEnabled && isRoleAllowed(billingSettings.tipsRoles) && { id: 'tip', icon: FaHandHoldingUsd, label: 'Tip', color: '#f59e0b' },
               billingSettings.partialPaymentEnabled && isRoleAllowed(billingSettings.partialPaymentRoles) && { id: 'partial', icon: FaWallet, label: 'Credit', color: '#8b5cf6' },
               billingSettings.compVoidEnabled && isRoleAllowed(billingSettings.compVoidRoles) && { id: 'comp', icon: FaGift, label: 'Comp', color: '#ec4899' },
-              billingSettings.compVoidEnabled && isRoleAllowed(billingSettings.compVoidRoles) && { id: 'void', icon: FaBan, label: 'Void', color: '#6b7280' },
+              billingSettings.compVoidEnabled && isRoleAllowed(billingSettings.compVoidRoles) && { id: 'void', icon: FaBan, label: 'Void', color: dm ? dm.textSec : '#6b7280' },
             ].filter(Boolean);
 
             if (billingTools.length === 0) return null;
@@ -5157,12 +5179,12 @@ const OrderSummary = ({
                 {/* Cash Tendering Panel */}
                 {activeBillingPanel === 'cash' && (
                   <div style={{
-                    background: '#f0fdf4',
+                    background: dm ? dm.greenBg : '#f0fdf4',
                     border: '1px solid #bbf7d0',
                     borderRadius: '10px',
                     padding: '12px',
                   }}>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#166534', marginBottom: '8px' }}>Cash Tendering</div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: dm ? dm.greenText : '#166534', marginBottom: '8px' }}>Cash Tendering</div>
                     <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '8px' }}>
                       <input
                         type="number"
@@ -5177,7 +5199,7 @@ const OrderSummary = ({
                           fontSize: '14px',
                           fontWeight: 700,
                           outline: 'none',
-                          background: 'white'
+                          background: dm ? dm.white : 'white'
                         }}
                         autoFocus
                       />
@@ -5206,12 +5228,12 @@ const OrderSummary = ({
                           style={{
                             padding: '4px 10px',
                             borderRadius: '6px',
-                            border: '1px solid #d1d5db',
+                            border: dm ? '1px solid ' + dm.border : '1px solid #d1d5db',
                             background: cashReceived === String(d) ? '#dcfce7' : 'white',
                             fontSize: '10px',
                             fontWeight: 600,
                             cursor: 'pointer',
-                            color: '#374151'
+                            color: dm ? dm.text : '#374151'
                           }}
                         >
                           {formatCurrency(d)}
@@ -5229,7 +5251,7 @@ const OrderSummary = ({
                         borderRadius: '8px',
                         fontWeight: 700
                       }}>
-                        <span style={{ fontSize: '12px', color: '#374151' }}>
+                        <span style={{ fontSize: '12px', color: dm ? dm.text : '#374151' }}>
                           {parseFloat(cashReceived) >= grandTotal ? 'Return Change' : 'Insufficient'}
                         </span>
                         <span style={{
@@ -5246,7 +5268,7 @@ const OrderSummary = ({
                 {/* Split Bill Panel */}
                 {activeBillingPanel === 'splitBill' && (
                   <div style={{
-                    background: '#f0f9ff',
+                    background: dm ? dm.blueBg : '#f0f9ff',
                     border: '1px solid #bae6fd',
                     borderRadius: '10px',
                     padding: '12px',
@@ -5329,7 +5351,7 @@ const OrderSummary = ({
                           {Array.from({ length: splitBillGuests }).map((_, i) => {
                             const amt = i === splitBillGuests - 1 ? lastGuest : perGuest;
                             return (
-                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px', background: 'white', borderRadius: '6px', border: '1px solid #e0f2fe' }}>
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px', background: dm ? dm.white : 'white', borderRadius: '6px', border: '1px solid #e0f2fe' }}>
                                 <input type="text" placeholder={`Guest ${i + 1}`}
                                   value={splitBillGuestNames[i] || ''}
                                   onChange={(e) => setSplitBillGuestNames(prev => ({ ...prev, [i]: e.target.value }))}
@@ -5338,7 +5360,7 @@ const OrderSummary = ({
                                 <span style={{ flex: 1, fontSize: '12px', fontWeight: 700, color: '#0c4a6e' }}>{formatCurrency(amt)}</span>
                                 <select value={splitBillPaymentMethods[i] || 'cash'}
                                   onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
-                                  style={{ padding: '3px 6px', border: '1px solid #bae6fd', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: 'white', outline: 'none' }}
+                                  style={{ padding: '3px 6px', border: '1px solid #bae6fd', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}
                                 >
                                   {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
                                     .filter(m => m.enabled).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
@@ -5394,7 +5416,7 @@ const OrderSummary = ({
                                 setSplitBillGuests(newIdx + 1);
                                 setActiveAssignGuest(newIdx);
                               }}
-                                style={{ padding: '4px 8px', borderRadius: '12px', fontSize: '9px', fontWeight: 600, background: '#f1f5f9', color: '#64748b', border: '1px dashed #cbd5e1', cursor: 'pointer' }}>
+                                style={{ padding: '4px 8px', borderRadius: '12px', fontSize: '9px', fontWeight: 600, background: dm ? dm.card : '#f1f5f9', color: '#64748b', border: '1px dashed #cbd5e1', cursor: 'pointer' }}>
                                 + Guest
                               </button>
                             )}
@@ -5407,9 +5429,9 @@ const OrderSummary = ({
                             <input type="text" placeholder={`Guest ${safeActive + 1} name`}
                               value={splitBillGuestNames[safeActive] || ''}
                               onChange={(e) => setSplitBillGuestNames(prev => ({ ...prev, [safeActive]: e.target.value }))}
-                              style={{ flex: 1, border: 'none', background: 'transparent', fontSize: '11px', fontWeight: 600, color: '#374151', outline: 'none', padding: '2px 4px' }}
+                              style={{ flex: 1, border: 'none', background: 'transparent', fontSize: '11px', fontWeight: 600, color: dm ? dm.text : '#374151', outline: 'none', padding: '2px 4px' }}
                             />
-                            <span style={{ fontSize: '10px', color: '#6b7280' }}>Tap items below to assign</span>
+                            <span style={{ fontSize: '10px', color: dm ? dm.textSec : '#6b7280' }}>Tap items below to assign</span>
                           </div>
                           {/* Item list — tap to assign to active guest */}
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '200px', overflowY: 'auto' }}>
@@ -5423,7 +5445,7 @@ const OrderSummary = ({
                                     setSplitBillItemAssignments(prev => ({ ...prev, [idx]: safeActive }));
                                   }}
                                   style={{
-                                    display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 8px', background: 'white',
+                                    display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 8px', background: dm ? dm.white : 'white',
                                     borderRadius: '6px', borderLeft: `3px solid ${gColor}`, border: `1px solid ${gColor}30`,
                                     borderLeftWidth: '3px', cursor: 'pointer', transition: 'all 0.15s',
                                     opacity: isAssigned ? 1 : 0.75,
@@ -5434,7 +5456,7 @@ const OrderSummary = ({
                                   }}>
                                     {isAssigned ? `G${assignedGuest + 1}` : '?'}
                                   </div>
-                                  <span style={{ flex: 1, fontSize: '11px', fontWeight: 500, color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  <span style={{ flex: 1, fontSize: '11px', fontWeight: 500, color: dm ? dm.text : '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                     {item.name} {item.quantity > 1 ? `x${item.quantity}` : ''}
                                   </span>
                                   <span style={{ fontSize: '11px', fontWeight: 600, color: '#0c4a6e', flexShrink: 0 }}>
@@ -5459,7 +5481,7 @@ const OrderSummary = ({
                               cartItems.forEach((_, idx) => { if (splitBillItemAssignments[idx] === undefined) updates[idx] = safeActive; });
                               setSplitBillItemAssignments(prev => ({ ...prev, ...updates }));
                             }}
-                              style={{ marginTop: '6px', width: '100%', padding: '5px', borderRadius: '6px', border: '1px dashed #0ea5e9', background: '#f0f9ff', color: '#0369a1', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}>
+                              style={{ marginTop: '6px', width: '100%', padding: '5px', borderRadius: '6px', border: '1px dashed #0ea5e9', background: dm ? dm.blueBg : '#f0f9ff', color: '#0369a1', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}>
                               Assign all {unassignedCount} remaining to {splitBillGuestNames[safeActive]?.trim() || `Guest ${safeActive + 1}`}
                             </button>
                           )}
@@ -5473,7 +5495,7 @@ const OrderSummary = ({
                                   </span>
                                   <select value={splitBillPaymentMethods[i] || 'cash'}
                                     onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
-                                    style={{ flex: 1, padding: '3px 6px', border: '1px solid #bae6fd', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: 'white', outline: 'none' }}
+                                    style={{ flex: 1, padding: '3px 6px', border: '1px solid #bae6fd', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}
                                   >
                                     {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
                                       .filter(m => m.enabled).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
@@ -5495,7 +5517,7 @@ const OrderSummary = ({
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           {Array.from({ length: splitBillGuests }).map((_, i) => (
-                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px', background: 'white', borderRadius: '6px', border: '1px solid #e0f2fe' }}>
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px', background: dm ? dm.white : 'white', borderRadius: '6px', border: '1px solid #e0f2fe' }}>
                               <input type="text" placeholder={`Guest ${i + 1}`}
                                 value={splitBillGuestNames[i] || ''}
                                 onChange={(e) => setSplitBillGuestNames(prev => ({ ...prev, [i]: e.target.value }))}
@@ -5504,11 +5526,11 @@ const OrderSummary = ({
                               <input type="number" placeholder="Amount"
                                 value={splitBillAmounts[i] || ''}
                                 onChange={(e) => setSplitBillAmounts(prev => ({ ...prev, [i]: e.target.value }))}
-                                style={{ flex: 1, padding: '5px 8px', border: '1px solid #bae6fd', borderRadius: '6px', fontSize: '12px', fontWeight: 600, outline: 'none', background: 'white' }}
+                                style={{ flex: 1, padding: '5px 8px', border: '1px solid #bae6fd', borderRadius: '6px', fontSize: '12px', fontWeight: 600, outline: 'none', background: dm ? dm.white : 'white' }}
                               />
                               <select value={splitBillPaymentMethods[i] || 'cash'}
                                 onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
-                                style={{ padding: '3px 6px', border: '1px solid #bae6fd', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: 'white', outline: 'none' }}
+                                style={{ padding: '3px 6px', border: '1px solid #bae6fd', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}
                               >
                                 {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
                                   .filter(m => m.enabled).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
@@ -5570,7 +5592,7 @@ const OrderSummary = ({
                             fontSize: '11px',
                             fontWeight: 600,
                             outline: 'none',
-                            background: 'white',
+                            background: dm ? dm.white : 'white',
                             width: '80px'
                           }}
                         >
@@ -5672,7 +5694,7 @@ const OrderSummary = ({
                 {/* Tip Panel */}
                 {activeBillingPanel === 'tip' && (
                   <div style={{
-                    background: '#fffbeb',
+                    background: dm ? dm.orangeBg : '#fffbeb',
                     border: '1px solid #fde68a',
                     borderRadius: '10px',
                     padding: '12px',
@@ -5730,7 +5752,7 @@ const OrderSummary = ({
                           fontSize: '12px',
                           fontWeight: 600,
                           outline: 'none',
-                          background: 'white'
+                          background: dm ? dm.white : 'white'
                         }}
                       />
                       {tipAmount > 0 && (
@@ -5738,7 +5760,7 @@ const OrderSummary = ({
                           onClick={() => { setTipAmount(0); setTipPercentage(null); }}
                           style={{
                             padding: '4px 10px',
-                            background: '#fef2f2',
+                            background: dm ? dm.redBg : '#fef2f2',
                             border: '1px solid #fecaca',
                             borderRadius: '6px',
                             fontSize: '10px',
@@ -5804,7 +5826,7 @@ const OrderSummary = ({
                             onChange={(e) => setPartialPayAmount(e.target.value)}
                             style={{
                               flex: 1, padding: '8px 10px', border: '1.5px solid #c4b5fd', borderRadius: '8px',
-                              fontSize: '14px', fontWeight: 700, outline: 'none', background: 'white'
+                              fontSize: '14px', fontWeight: 700, outline: 'none', background: dm ? dm.white : 'white'
                             }}
                             autoFocus
                           />
@@ -5814,7 +5836,7 @@ const OrderSummary = ({
                             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                             padding: '8px 12px', background: '#ede9fe', borderRadius: '8px', fontWeight: 700
                           }}>
-                            <span style={{ fontSize: '12px', color: '#374151' }}>Outstanding (Khata)</span>
+                            <span style={{ fontSize: '12px', color: dm ? dm.text : '#374151' }}>Outstanding (Khata)</span>
                             <span style={{ fontSize: '16px', color: '#7c3aed' }}>
                               {formatCurrency(Math.max(0, grandTotal - parseFloat(partialPayAmount)))}
                             </span>
@@ -5825,10 +5847,10 @@ const OrderSummary = ({
                     {/* Full Due mode: show outstanding = total */}
                     {fullDueMode && (
                       <div style={{
-                        padding: '10px 12px', background: '#fee2e2', borderRadius: '8px',
+                        padding: '10px 12px', background: dm ? dm.redBg : '#fee2e2', borderRadius: '8px',
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 700 }}>
-                          <span style={{ fontSize: '12px', color: '#374151' }}>Outstanding (Udhar)</span>
+                          <span style={{ fontSize: '12px', color: dm ? dm.text : '#374151' }}>Outstanding (Udhar)</span>
                           <span style={{ fontSize: '18px', color: '#dc2626' }}>
                             {formatCurrency(grandTotal)}
                           </span>
@@ -5846,7 +5868,7 @@ const OrderSummary = ({
                 {/* Comp Panel */}
                 {activeBillingPanel === 'comp' && (
                   <div style={{
-                    background: '#fdf2f8',
+                    background: dm ? dm.redBg : '#fdf2f8',
                     border: '1px solid #fbcfe8',
                     borderRadius: '10px',
                     padding: '12px',
@@ -5858,7 +5880,7 @@ const OrderSummary = ({
                         return (
                           <label key={idx} style={{
                             display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0',
-                            fontSize: '12px', cursor: 'pointer', color: '#374151'
+                            fontSize: '12px', cursor: 'pointer', color: dm ? dm.text : '#374151'
                           }}>
                             <input
                               type="checkbox"
@@ -5890,7 +5912,7 @@ const OrderSummary = ({
                         borderRadius: '6px',
                         fontSize: '11px',
                         outline: 'none',
-                        background: 'white',
+                        background: dm ? dm.white : 'white',
                         marginBottom: billingSettings.compVoidRequiresPin ? '6px' : 0,
                         boxSizing: 'border-box'
                       }}
@@ -5908,7 +5930,7 @@ const OrderSummary = ({
                           borderRadius: '6px',
                           fontSize: '11px',
                           outline: 'none',
-                          background: 'white',
+                          background: dm ? dm.white : 'white',
                           boxSizing: 'border-box'
                         }}
                       />
@@ -5920,18 +5942,18 @@ const OrderSummary = ({
                 {activeBillingPanel === 'void' && (
                   <div style={{
                     background: '#f9fafb',
-                    border: '1px solid #e5e7eb',
+                    border: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb',
                     borderRadius: '10px',
                     padding: '12px',
                   }}>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#374151', marginBottom: '8px' }}>Void Items (Remove)</div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: dm ? dm.text : '#374151', marginBottom: '8px' }}>Void Items (Remove)</div>
                     <div style={{ maxHeight: '120px', overflowY: 'auto', marginBottom: '8px' }}>
                       {cart.map((item, idx) => {
                         const isSelected = compVoidItems.some(cv => cv.index === idx && cv.type === 'void');
                         return (
                           <label key={idx} style={{
                             display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0',
-                            fontSize: '12px', cursor: 'pointer', color: '#374151'
+                            fontSize: '12px', cursor: 'pointer', color: dm ? dm.text : '#374151'
                           }}>
                             <input
                               type="checkbox"
@@ -5959,11 +5981,11 @@ const OrderSummary = ({
                       style={{
                         width: '100%',
                         padding: '6px 10px',
-                        border: '1px solid #d1d5db',
+                        border: dm ? '1px solid ' + dm.border : '1px solid #d1d5db',
                         borderRadius: '6px',
                         fontSize: '11px',
                         outline: 'none',
-                        background: 'white',
+                        background: dm ? dm.white : 'white',
                         marginBottom: billingSettings.compVoidRequiresPin ? '6px' : 0,
                         boxSizing: 'border-box'
                       }}
@@ -5977,11 +5999,11 @@ const OrderSummary = ({
                         style={{
                           width: '100%',
                           padding: '6px 10px',
-                          border: '1px solid #d1d5db',
+                          border: dm ? '1px solid ' + dm.border : '1px solid #d1d5db',
                           borderRadius: '6px',
                           fontSize: '11px',
                           outline: 'none',
-                          background: 'white',
+                          background: dm ? dm.white : 'white',
                           boxSizing: 'border-box'
                         }}
                       />
@@ -6004,7 +6026,7 @@ const OrderSummary = ({
               position: 'sticky',
               bottom: 0,
               backgroundColor: '#ffffff',
-              borderTop: '1px solid #e5e7eb',
+              borderTop: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb',
               boxShadow: '0 -4px 12px rgba(0,0,0,0.08)',
               zIndex: 10,
               ...(isMobileEmbed ? { marginTop: 'auto' } : {}),
@@ -6018,7 +6040,7 @@ const OrderSummary = ({
           {/* Error Message */}
           {error && (
             <div style={{
-              backgroundColor: '#fee2e2',
+              backgroundColor: dm ? dm.redBg : '#fee2e2',
               border: '1px solid #fecaca',
               borderRadius: '8px',
               padding: '10px',
@@ -6041,8 +6063,8 @@ const OrderSummary = ({
               alignItems: 'center',
             }}>
               <FaCalendarAlt size={11} style={{ color: '#3b82f6', flexShrink: 0 }} />
-              <input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} min={new Date().toISOString().split('T')[0]} style={{ flex: 1, padding: '5px 8px', borderRadius: '6px', border: '1px solid #93c5fd', fontSize: '11px', outline: 'none', background: '#fff', minWidth: 0 }} />
-              <input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} style={{ flex: 1, padding: '5px 8px', borderRadius: '6px', border: '1px solid #93c5fd', fontSize: '11px', outline: 'none', background: '#fff', minWidth: 0 }} />
+              <input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} min={new Date().toISOString().split('T')[0]} style={{ flex: 1, padding: '5px 8px', borderRadius: '6px', border: '1px solid #93c5fd', fontSize: '11px', outline: 'none', background: dm ? dm.white : '#fff', minWidth: 0 }} />
+              <input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} style={{ flex: 1, padding: '5px 8px', borderRadius: '6px', border: '1px solid #93c5fd', fontSize: '11px', outline: 'none', background: dm ? dm.white : '#fff', minWidth: 0 }} />
               <button onClick={() => { setIsScheduledOrder(false); setScheduledDate(''); setScheduledTime(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '13px', fontWeight: 700, padding: '2px 4px', lineHeight: 1 }}>&times;</button>
             </div>
           )}
@@ -6380,7 +6402,7 @@ const OrderSummary = ({
           zIndex: 10000
         }}>
           <div style={{
-            backgroundColor: 'white',
+            backgroundColor: dm ? dm.white : 'white',
             borderRadius: '12px',
             padding: '24px',
             maxWidth: '400px',
@@ -6392,7 +6414,7 @@ const OrderSummary = ({
               margin: '0 0 16px 0',
               fontSize: '18px',
               fontWeight: '700',
-              color: '#1f2937'
+              color: dm ? dm.text : '#1f2937'
             }}>
               Confirm Voice Order
             </h3>
@@ -6401,7 +6423,7 @@ const OrderSummary = ({
               <p style={{
                 margin: '0 0 16px 0',
                 fontSize: '14px',
-                color: '#6b7280',
+                color: dm ? dm.textSec : '#6b7280',
                 fontStyle: 'italic'
               }}>
                 You said: &quot;{voiceTranscript}&quot;
@@ -6413,14 +6435,14 @@ const OrderSummary = ({
                 margin: '0 0 8px 0',
                 fontSize: '14px',
                 fontWeight: '600',
-                color: '#374151'
+                color: dm ? dm.text : '#374151'
               }}>
                 Adding to cart:
               </p>
               {recognizedItems.map((item, index) => (
                 <div key={index} style={{
                   padding: '8px',
-                  backgroundColor: '#f3f4f6',
+                  backgroundColor: dm ? dm.card : '#f3f4f6',
                   borderRadius: '6px',
                   marginBottom: '8px',
                   display: 'flex',
@@ -6428,7 +6450,7 @@ const OrderSummary = ({
                   alignItems: 'center'
                 }}>
                   <div>
-                    <div style={{ fontWeight: '600', fontSize: '14px', color: '#1f2937' }}>
+                    <div style={{ fontWeight: '600', fontSize: '14px', color: dm ? dm.text : '#1f2937' }}>
                       {item.quantity}x {item.name}
                     </div>
                   </div>
@@ -6442,7 +6464,7 @@ const OrderSummary = ({
             {voiceError && (
               <div style={{
                 padding: '8px',
-                backgroundColor: '#fee2e2',
+                backgroundColor: dm ? dm.redBg : '#fee2e2',
                 borderRadius: '6px',
                 marginBottom: '16px',
                 fontSize: '12px',
@@ -6462,10 +6484,10 @@ const OrderSummary = ({
                 style={{
                   flex: 1,
                   padding: '10px',
-                  border: '1px solid #d1d5db',
+                  border: dm ? '1px solid ' + dm.border : '1px solid #d1d5db',
                   borderRadius: '6px',
-                  backgroundColor: 'white',
-                  color: '#374151',
+                  backgroundColor: dm ? dm.white : 'white',
+                  color: dm ? dm.text : '#374151',
                   fontWeight: '600',
                   cursor: 'pointer'
                 }}
@@ -6503,16 +6525,16 @@ const OrderSummary = ({
           }}
         >
           <div style={{
-            background: '#f8fafc', borderRadius: isMobileEmbed ? '16px' : (isMobile ? '20px 20px 0 0' : '20px'),
+            background: dm ? dm.card : '#f8fafc', borderRadius: isMobileEmbed ? '16px' : (isMobile ? '20px 20px 0 0' : '20px'),
             width: '100%', maxWidth: isMobileEmbed ? '96%' : (isMobile ? '100%' : '480px'),
             maxHeight: isMobileEmbed ? 'calc(var(--app-height, 75vh) - 16px)' : (isMobile ? '92vh' : '82vh'), display: 'flex', flexDirection: 'column',
             boxShadow: '0 25px 60px rgba(0,0,0,0.3)', overflow: 'hidden',
           }}>
             {/* Modal Header */}
             <div style={{
-              padding: '16px 18px', borderBottom: '1px solid #e2e8f0',
+              padding: '16px 18px', borderBottom: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              background: '#fff',
+              background: dm ? dm.white : '#fff',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{
@@ -6531,7 +6553,7 @@ const OrderSummary = ({
                 onClick={() => setShowOffersModal(false)}
                 style={{
                   width: '30px', height: '30px', borderRadius: '50%',
-                  border: 'none', background: '#f1f5f9', cursor: 'pointer',
+                  border: 'none', background: dm ? dm.card : '#f1f5f9', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'background 0.15s',
                 }}
@@ -6684,7 +6706,7 @@ const OrderSummary = ({
                               }}
                               style={{
                                 flex: 1, padding: '5px 8px', borderRadius: '6px', border: '1.5px solid #60a5fa',
-                                fontSize: '12px', fontWeight: 700, outline: 'none', background: '#fff',
+                                fontSize: '12px', fontWeight: 700, outline: 'none', background: dm ? dm.white : '#fff',
                                 textAlign: 'right', color: '#1e40af',
                               }}
                               onFocus={(e) => e.target.style.borderColor = '#2563eb'}
@@ -6867,18 +6889,18 @@ const OrderSummary = ({
                   {appliedCoupon ? (
                     <div style={{
                       padding: '12px 14px', borderRadius: '12px',
-                      border: '1.5px solid #86efac', background: '#f0fdf4',
+                      border: '1.5px solid #86efac', background: dm ? dm.greenBg : '#f0fdf4',
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     }}>
                       <div>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#15803d', fontFamily: 'monospace' }}>{appliedCoupon.code}</div>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: dm ? dm.greenText : '#15803d', fontFamily: 'monospace' }}>{appliedCoupon.code}</div>
                         <div style={{ fontSize: '11px', color: '#16a34a', marginTop: '2px' }}>
                           Saving {formatCurrency(appliedCoupon.discountAmount)}
                         </div>
                       </div>
                       <button onClick={handleRemoveCoupon} style={{
                         padding: '4px 10px', borderRadius: '6px', border: '1px solid #fca5a5',
-                        background: '#fef2f2', color: '#dc2626', fontSize: '11px', fontWeight: 600, cursor: 'pointer'
+                        background: dm ? dm.redBg : '#fef2f2', color: '#dc2626', fontSize: '11px', fontWeight: 600, cursor: 'pointer'
                       }}>
                         Remove
                       </button>
@@ -6918,7 +6940,7 @@ const OrderSummary = ({
                       {/* Customer's available coupons */}
                       {customerCoupons.length > 0 && (
                         <div style={{ maxHeight: '120px', overflowY: 'auto' }}>
-                          <div style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>Available coupons:</div>
+                          <div style={{ fontSize: '10px', fontWeight: 600, color: dm ? dm.textSec : '#6b7280', marginBottom: '4px' }}>Available coupons:</div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                             {customerCoupons.map(c => (
                               <button
@@ -6926,14 +6948,14 @@ const OrderSummary = ({
                                 onClick={() => handleApplyCoupon(c.code)}
                                 style={{
                                   width: '100%', padding: '8px 12px', borderRadius: '10px',
-                                  border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer',
+                                  border: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0', background: dm ? dm.white : '#fff', cursor: 'pointer',
                                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                                   textAlign: 'left', transition: 'all 0.15s',
                                 }}
                               >
                                 <div>
-                                  <span style={{ fontSize: '12px', fontWeight: 700, fontFamily: 'monospace', color: '#1f2937' }}>{c.code}</span>
-                                  {c.type === 'private' && <span style={{ fontSize: '9px', marginLeft: '6px', padding: '1px 5px', borderRadius: '4px', background: '#fef2f2', color: '#e11d48', fontWeight: 600 }}>YOURS</span>}
+                                  <span style={{ fontSize: '12px', fontWeight: 700, fontFamily: 'monospace', color: dm ? dm.text : '#1f2937' }}>{c.code}</span>
+                                  {c.type === 'private' && <span style={{ fontSize: '9px', marginLeft: '6px', padding: '1px 5px', borderRadius: '4px', background: dm ? dm.redBg : '#fef2f2', color: '#e11d48', fontWeight: 600 }}>YOURS</span>}
                                 </div>
                                 <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a' }}>
                                   {c.discountType === 'percentage' ? `${c.value}% off` : formatCurrency(c.value)}
@@ -6956,8 +6978,8 @@ const OrderSummary = ({
                   </div>
                   <div style={{
                     padding: '14px', borderRadius: '14px',
-                    background: '#fff',
-                    border: '1px solid #e2e8f0',
+                    background: dm ? dm.white : '#fff',
+                    border: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -6967,7 +6989,7 @@ const OrderSummary = ({
                       {getLoyaltyPointsToEarn() > 0 && (
                         <span style={{
                           fontSize: '11px', fontWeight: 600, color: '#16a34a',
-                          background: '#f0fdf4', padding: '3px 8px', borderRadius: '8px',
+                          background: dm ? dm.greenBg : '#f0fdf4', padding: '3px 8px', borderRadius: '8px',
                           border: '1px solid #bbf7d0',
                         }}>
                           Will earn +{getLoyaltyPointsToEarn()} pts
@@ -7025,7 +7047,7 @@ const OrderSummary = ({
                               onClick={() => { setRedeemLoyaltyPoints(0); setSliderLocalValue(0); setSliderDragging(false); }}
                               style={{
                                 marginTop: '6px', fontSize: '10px', fontWeight: 600, color: '#dc2626',
-                                background: '#fee2e2', padding: '4px 10px', borderRadius: '6px',
+                                background: dm ? dm.redBg : '#fee2e2', padding: '4px 10px', borderRadius: '6px',
                                 border: '1px solid #fecaca', cursor: 'pointer',
                               }}
                             >
@@ -7053,7 +7075,7 @@ const OrderSummary = ({
                     width: '100%', padding: '10px 12px', borderRadius: '10px',
                     border: '1.5px solid #e2e8f0', fontSize: '12px', resize: 'none',
                     outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
-                    transition: 'border-color 0.15s', background: '#fff',
+                    transition: 'border-color 0.15s', background: dm ? dm.white : '#fff',
                   }}
                   onFocus={(e) => e.target.style.borderColor = '#0ea5e9'}
                   onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
@@ -7064,8 +7086,8 @@ const OrderSummary = ({
 
             {/* Modal Footer — sticky with full breakdown */}
             <div style={{
-              padding: '14px 18px', borderTop: '1px solid #e2e8f0',
-              background: '#fff',
+              padding: '14px 18px', borderTop: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0',
+              background: dm ? dm.white : '#fff',
             }}>
               {/* Full price breakdown */}
               <div style={{ marginBottom: '12px', fontSize: '12px', color: '#64748b' }}>
@@ -7097,7 +7119,7 @@ const OrderSummary = ({
                     <span style={{ fontWeight: 500 }}>{formatCurrency(tax.amount || 0)}</span>
                   </div>
                 ))}
-                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid #e2e8f0', marginTop: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0', marginTop: '6px' }}>
                   <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '15px' }}>Total</span>
                   <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '15px' }}>{formatCurrency(grandTotal !== null ? grandTotal : getTotalAmount())}</span>
                 </div>
@@ -7143,18 +7165,18 @@ const OrderSummary = ({
             style={{
               width: 'min(1120px, 100%)',
               maxHeight: '92vh',
-              background: '#fff',
+              background: dm ? dm.white : '#fff',
               borderRadius: '18px',
               overflow: 'hidden',
               boxShadow: '0 24px 80px rgba(15, 23, 42, 0.28)',
-              border: '1px solid #e2e8f0',
+              border: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0',
               display: 'grid',
               gridTemplateRows: 'auto 1fr auto'
             }}
           >
             <div style={{
               padding: '16px 20px',
-              borderBottom: '1px solid #e2e8f0',
+              borderBottom: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
@@ -7194,8 +7216,8 @@ const OrderSummary = ({
                     width: '40px',
                     height: '40px',
                     borderRadius: '10px',
-                    border: '1px solid #e2e8f0',
-                    background: '#fff',
+                    border: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0',
+                    background: dm ? dm.white : '#fff',
                     color: '#334155',
                     cursor: 'pointer',
                     display: 'flex',
@@ -7211,7 +7233,7 @@ const OrderSummary = ({
             <div style={{
               padding: '18px',
               overflow: 'auto',
-              background: '#f8fafc'
+              background: dm ? dm.card : '#f8fafc'
             }}>
               <div style={{
                 display: 'grid',
@@ -7226,7 +7248,7 @@ const OrderSummary = ({
                     <div
                       key={`${token.tokenLabel}-${index}`}
                       style={{
-                        background: '#fff',
+                        background: dm ? dm.white : '#fff',
                         borderRadius: '14px',
                         border: `1px solid ${theme.border}`,
                         boxShadow: '0 10px 24px rgba(15, 23, 42, 0.06)',
@@ -7247,7 +7269,7 @@ const OrderSummary = ({
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              background: '#fff',
+                              background: dm ? dm.white : '#fff',
                               border: `1px solid ${theme.border}`,
                               color: theme.fg
                             }}>
@@ -7266,7 +7288,7 @@ const OrderSummary = ({
                             fontSize: '11px',
                             fontWeight: 800,
                             color: theme.fg,
-                            background: '#fff',
+                            background: dm ? dm.white : '#fff',
                             border: `1px solid ${theme.border}`,
                             borderRadius: '999px',
                             padding: '5px 10px'
@@ -7287,8 +7309,8 @@ const OrderSummary = ({
                               style={{
                                 padding: '10px 12px',
                                 borderRadius: '10px',
-                                background: '#f8fafc',
-                                border: '1px solid #e2e8f0'
+                                background: dm ? dm.card : '#f8fafc',
+                                border: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0'
                               }}
                             >
                               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
@@ -7330,8 +7352,8 @@ const OrderSummary = ({
 
             <div style={{
               padding: '12px 20px',
-              borderTop: '1px solid #e2e8f0',
-              background: '#fff',
+              borderTop: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0',
+              background: dm ? dm.white : '#fff',
               display: 'flex',
               justifyContent: 'space-between',
               gap: '12px',
@@ -7343,8 +7365,8 @@ const OrderSummary = ({
               <button
                 onClick={() => setFoodCourtTokenPreview(null)}
                 style={{
-                  border: '1px solid #e2e8f0',
-                  background: '#fff',
+                  border: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0',
+                  background: dm ? dm.white : '#fff',
                   color: '#334155',
                   borderRadius: '10px',
                   padding: '9px 14px',
@@ -7419,15 +7441,15 @@ const OrderSummary = ({
           }}
         >
           <div style={{
-            background: '#f8fafc', borderRadius: isMobileEmbed ? '16px' : (isMobile ? '20px 20px 0 0' : '16px'),
+            background: dm ? dm.card : '#f8fafc', borderRadius: isMobileEmbed ? '16px' : (isMobile ? '20px 20px 0 0' : '16px'),
             width: '100%', maxWidth: isMobileEmbed ? '96%' : (isMobile ? '100%' : '560px'),
             maxHeight: isMobileEmbed ? 'calc(var(--app-height, 75vh) - 16px)' : (isMobile ? '92vh' : '80vh'), display: 'flex', flexDirection: 'column',
             boxShadow: '0 25px 60px rgba(0,0,0,0.3)', overflow: 'hidden',
           }}>
             {/* Header */}
             <div style={{
-              padding: '14px 18px', borderBottom: '1px solid #e2e8f0',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff',
+              padding: '14px 18px', borderBottom: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: dm ? dm.white : '#fff',
             }}>
               <div style={{ fontSize: '14px', fontWeight: 700, color: '#0369a1' }}>
                 Split Bill — {formatCurrency(grandTotal)}
@@ -7441,7 +7463,7 @@ const OrderSummary = ({
                   Clear All
                 </button>
                 <button onClick={() => setShowSplitBillPopup(false)}
-                  style={{ width: '28px', height: '28px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '14px', color: '#6b7280' }}>
+                  style={{ width: '28px', height: '28px', borderRadius: '8px', border: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '14px', color: dm ? dm.textSec : '#6b7280' }}>
                   x
                 </button>
               </div>
@@ -7497,7 +7519,7 @@ const OrderSummary = ({
                     {Array.from({ length: splitBillGuests }).map((_, i) => {
                       const amt = i === splitBillGuests - 1 ? lastGuest : perGuest;
                       return (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'white', borderRadius: '10px', border: '1px solid #e0f2fe' }}>
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: dm ? dm.white : 'white', borderRadius: '10px', border: '1px solid #e0f2fe' }}>
                           <input type="text" placeholder={`Guest ${i + 1}`}
                             value={splitBillGuestNames[i] || ''}
                             onChange={(e) => setSplitBillGuestNames(prev => ({ ...prev, [i]: e.target.value }))}
@@ -7506,7 +7528,7 @@ const OrderSummary = ({
                           <span style={{ flex: 1, fontSize: '14px', fontWeight: 700, color: '#0c4a6e' }}>{formatCurrency(amt)}</span>
                           <select value={splitBillPaymentMethods[i] || 'cash'}
                             onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
-                            style={{ padding: '5px 8px', border: '1px solid #bae6fd', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: 'white', outline: 'none' }}>
+                            style={{ padding: '5px 8px', border: '1px solid #bae6fd', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}>
                             {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
                               .filter(sm => sm.enabled).map(sm => <option key={sm.id} value={sm.id}>{sm.label}</option>)}
                           </select>
@@ -7555,7 +7577,7 @@ const OrderSummary = ({
                       })}
                       {guestCount < maxGuests && (
                         <button onClick={() => { setSplitBillGuests(guestCount + 1); setActiveAssignGuest(guestCount); }}
-                          style={{ padding: '6px 12px', borderRadius: '14px', fontSize: '11px', fontWeight: 600, background: '#f1f5f9', color: '#64748b', border: '1px dashed #cbd5e1', cursor: 'pointer' }}>
+                          style={{ padding: '6px 12px', borderRadius: '14px', fontSize: '11px', fontWeight: 600, background: dm ? dm.card : '#f1f5f9', color: '#64748b', border: '1px dashed #cbd5e1', cursor: 'pointer' }}>
                           + Guest
                         </button>
                       )}
@@ -7568,9 +7590,9 @@ const OrderSummary = ({
                       <input type="text" placeholder={`Enter name for Guest ${safeActive + 1}`}
                         value={splitBillGuestNames[safeActive] || ''}
                         onChange={(e) => setSplitBillGuestNames(prev => ({ ...prev, [safeActive]: e.target.value }))}
-                        style={{ flex: 1, border: 'none', background: 'transparent', fontSize: '13px', fontWeight: 600, color: '#374151', outline: 'none', padding: '2px 4px' }}
+                        style={{ flex: 1, border: 'none', background: 'transparent', fontSize: '13px', fontWeight: 600, color: dm ? dm.text : '#374151', outline: 'none', padding: '2px 4px' }}
                       />
-                      <span style={{ fontSize: '11px', color: '#6b7280', flexShrink: 0 }}>Tap items to assign</span>
+                      <span style={{ fontSize: '11px', color: dm ? dm.textSec : '#6b7280', flexShrink: 0 }}>Tap items to assign</span>
                     </div>
                     {/* Item list */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '40vh', overflowY: 'auto', marginBottom: '12px' }}>
@@ -7582,7 +7604,7 @@ const OrderSummary = ({
                           <div key={idx}
                             onClick={() => setSplitBillItemAssignments(prev => ({ ...prev, [idx]: safeActive }))}
                             style={{
-                              display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: 'white',
+                              display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: dm ? dm.white : 'white',
                               borderRadius: '8px', borderLeft: `4px solid ${gColor}`, border: `1px solid ${gColor}30`,
                               borderLeftWidth: '4px', cursor: 'pointer', transition: 'all 0.15s',
                               opacity: isAssigned ? 1 : 0.7,
@@ -7594,7 +7616,7 @@ const OrderSummary = ({
                               {isAssigned ? `G${assignedGuest + 1}` : '?'}
                             </div>
                             <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: '13px', fontWeight: 500, color: '#374151' }}>
+                              <div style={{ fontSize: '13px', fontWeight: 500, color: dm ? dm.text : '#374151' }}>
                                 {item.name} {item.quantity > 1 ? `x${item.quantity}` : ''}
                               </div>
                               {isAssigned && (
@@ -7625,7 +7647,7 @@ const OrderSummary = ({
                         cartItems.forEach((_, idx) => { if (splitBillItemAssignments[idx] === undefined) updates[idx] = safeActive; });
                         setSplitBillItemAssignments(prev => ({ ...prev, ...updates }));
                       }}
-                        style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px dashed #0ea5e9', background: '#f0f9ff', color: '#0369a1', fontSize: '12px', fontWeight: 600, cursor: 'pointer', marginBottom: '12px' }}>
+                        style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px dashed #0ea5e9', background: dm ? dm.blueBg : '#f0f9ff', color: '#0369a1', fontSize: '12px', fontWeight: 600, cursor: 'pointer', marginBottom: '12px' }}>
                         Assign all {unassignedCount} remaining to {splitBillGuestNames[safeActive]?.trim() || `Guest ${safeActive + 1}`}
                       </button>
                     )}
@@ -7633,14 +7655,14 @@ const OrderSummary = ({
                     {allAssigned && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         {Array.from({ length: guestCount }).map((_, i) => (
-                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', background: 'white', borderRadius: '8px', border: '1px solid #e0f2fe' }}>
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', background: dm ? dm.white : 'white', borderRadius: '8px', border: '1px solid #e0f2fe' }}>
                             <span style={{ fontSize: '12px', fontWeight: 600, color: guestColors[i % guestColors.length], minWidth: '80px' }}>
                               {splitBillGuestNames[i]?.trim() || `Guest ${i + 1}`}
                             </span>
                             <span style={{ flex: 1, fontSize: '13px', fontWeight: 700, color: '#0c4a6e' }}>{formatCurrency(guestTotals[i] || 0)}</span>
                             <select value={splitBillPaymentMethods[i] || 'cash'}
                               onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
-                              style={{ padding: '5px 8px', border: '1px solid #bae6fd', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: 'white', outline: 'none' }}>
+                              style={{ padding: '5px 8px', border: '1px solid #bae6fd', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}>
                               {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
                                 .filter(sm => sm.enabled).map(sm => <option key={sm.id} value={sm.id}>{sm.label}</option>)}
                             </select>
@@ -7661,7 +7683,7 @@ const OrderSummary = ({
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {Array.from({ length: splitBillGuests }).map((_, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'white', borderRadius: '10px', border: '1px solid #e0f2fe' }}>
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: dm ? dm.white : 'white', borderRadius: '10px', border: '1px solid #e0f2fe' }}>
                         <input type="text" placeholder={`Guest ${i + 1}`}
                           value={splitBillGuestNames[i] || ''}
                           onChange={(e) => setSplitBillGuestNames(prev => ({ ...prev, [i]: e.target.value }))}
@@ -7670,11 +7692,11 @@ const OrderSummary = ({
                         <input type="number" placeholder="Amount"
                           value={splitBillAmounts[i] || ''}
                           onChange={(e) => setSplitBillAmounts(prev => ({ ...prev, [i]: e.target.value }))}
-                          style={{ flex: 1, padding: '8px 10px', border: '1px solid #bae6fd', borderRadius: '8px', fontSize: '14px', fontWeight: 600, outline: 'none', background: 'white' }}
+                          style={{ flex: 1, padding: '8px 10px', border: '1px solid #bae6fd', borderRadius: '8px', fontSize: '14px', fontWeight: 600, outline: 'none', background: dm ? dm.white : 'white' }}
                         />
                         <select value={splitBillPaymentMethods[i] || 'cash'}
                           onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
-                          style={{ padding: '5px 8px', border: '1px solid #bae6fd', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: 'white', outline: 'none' }}>
+                          style={{ padding: '5px 8px', border: '1px solid #bae6fd', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}>
                           {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
                             .filter(sm => sm.enabled).map(sm => <option key={sm.id} value={sm.id}>{sm.label}</option>)}
                         </select>
@@ -7699,7 +7721,7 @@ const OrderSummary = ({
               })()}
             </div>
             {/* Footer */}
-            <div style={{ padding: '12px 18px', borderTop: '1px solid #e2e8f0', background: '#fff', display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ padding: '12px 18px', borderTop: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0', background: dm ? dm.white : '#fff', display: 'flex', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowSplitBillPopup(false)}
                 style={{ padding: '10px 24px', borderRadius: '10px', border: 'none', background: '#0ea5e9', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
                 Apply Split

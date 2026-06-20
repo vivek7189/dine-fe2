@@ -1,6 +1,6 @@
 {
   "name": "dine-frontend",
-  "version": "1.10.9",
+  "version": "1.11.0",
   "author": "",
   "private": true,
   "scripts": {
@@ -22,6 +22,7 @@
     "electron:export": "node scripts/build-electron.js",
     "electron:rebuild": "npx electron-rebuild -f -w better-sqlite3",
     "electron:build": "node scripts/build-electron.js && npx electron-builder --config electron-builder.yml",
+    "electron:build:mac": "APPLE_ID=send.vivekmalik@gmail.com APPLE_TEAM_ID=934QP9KSRD APPLE_APP_SPECIFIC_PASSWORD=kntf-ulzl-labs-qzcu node scripts/build-electron.js && APPLE_ID=send.vivekmalik@gmail.com APPLE_TEAM_ID=934QP9KSRD APPLE_APP_SPECIFIC_PASSWORD=kntf-ulzl-labs-qzcu npx electron-builder --config electron-builder.yml --mac",
     "electron:build:win": "node scripts/build-electron.js && npx electron-builder --config electron-builder.yml --win --x64",
     "electron:build:publish": "node scripts/build-electron.js && npx electron-builder --config electron-builder.yml --publish always",
     "release:gcs": "node scripts/release-gcs.js",

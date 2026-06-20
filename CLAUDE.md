@@ -156,3 +156,14 @@ plugins/
 - Auto-refund note created when edited total < original total
 - Revenue stats automatically adjusted via updateDailyStatsRevenueDiff
 - Admin page: PIN requirement toggle + PIN input in POS Settings > Advanced Features
+
+### 2026-06-20: Dashboard V2 (Modern Dark Theme)
+- Created `dashboard/v2/page.js` — full copy of V1 with dark polished theme
+- Dark navy/slate palette: backgrounds (#0b1120, #0f172a, #1e293b), borders (#334155), text (#f1f5f9, #e2e8f0, #94a3b8)
+- Horizontal category tabs (top bar instead of left sidebar)
+- Slimmer 52px header with pill-shaped search, dark nav icons
+- CSS overrides for shared components (MenuItemCard, OrderSummary) via `.menu-item-card` and `.v2-order-panel` classes
+- Glassmorphism floating command bar with animated mic glow
+- Admin page: Dashboard Version dropdown in POS Settings > General (Classic/Modern)
+- V1↔V2 redirect logic based on `posSettings.dashboardVersion`
+- Layout.js updated: `/dashboard/v2` added to `isDashboardPage` check

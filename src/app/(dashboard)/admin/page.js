@@ -4963,8 +4963,8 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
 
 /** App Download Tab — simple Google Drive download links for Windows + Mac */
 function AppDownloadTab() {
-  const WINDOWS_DOWNLOAD_URL = 'https://drive.google.com/file/d/1FRnzoqyoAul7ZcBRFIIrUr8ZsF-2UtZG/view?usp=sharing';
-  const MAC_DOWNLOAD_URL = 'https://drive.google.com/file/d/1q5D7zLYfn_XEBdB8AlZFOiZEkI7zeMHy/view?usp=sharing';
+  const WINDOWS_DOWNLOAD_URL = 'https://drive.google.com/file/d/1Vgu3gmYWQr0UJVdXPmU6sksf4da1fzej/view?usp=sharing';
+  const MAC_DOWNLOAD_URL = 'https://drive.google.com/file/d/11CEOnivkenTAU2Bdhkmtk5y7gWGiqnw1/view?usp=sharing';
 
   const btnStyle = (bg, shadow) => ({
     display: 'inline-flex', alignItems: 'center', gap: '8px',
@@ -4981,10 +4981,10 @@ function AppDownloadTab() {
           <FaDownload size={22} color="white" />
         </div>
         <div>
-          <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: '#111827' }}>Download Desktop App</h2>
+          <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: '#111827' }}>Download DineOpen POS</h2>
           <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
-            Install the DineOpen POS app on your desktop for billing, orders, and more
-            <span style={{ marginLeft: '8px', padding: '2px 8px', background: '#dbeafe', color: '#1d4ed8', borderRadius: '6px', fontSize: '12px', fontWeight: '600' }}>v1.5.4</span>
+            Install the DineOpen POS app on desktop or mobile for billing, orders, and more
+            <span style={{ marginLeft: '8px', padding: '2px 8px', background: '#dbeafe', color: '#1d4ed8', borderRadius: '6px', fontSize: '12px', fontWeight: '600' }}>v1.11.0</span>
           </p>
         </div>
       </div>
@@ -5035,6 +5035,36 @@ function AppDownloadTab() {
         </div>
       </div>
 
+      {/* Mobile Apps Section */}
+      <div style={{ marginTop: '28px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+          <FaMobileAlt size={16} style={{ color: '#6b7280' }} />
+          <div style={{ fontWeight: '600', fontSize: '15px', color: '#374151' }}>Mobile App</div>
+        </div>
+        <a
+          href="https://apps.apple.com/in/app/dineopen-restaurant-billing/id6761518444"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'flex', alignItems: 'center', gap: '16px',
+            padding: '20px 24px', borderRadius: '16px',
+            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+            textDecoration: 'none', cursor: 'pointer',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+            transition: 'transform 0.15s, box-shadow 0.15s',
+            maxWidth: '400px',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)'; }}
+        >
+          <FaApple size={36} style={{ color: 'white', flexShrink: 0 }} />
+          <div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', fontWeight: '500', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Download on the</div>
+            <div style={{ fontSize: '20px', color: 'white', fontWeight: '700', lineHeight: '1.2' }}>App Store</div>
+          </div>
+        </a>
+      </div>
+
       {/* Installation instructions */}
       <div style={{ marginTop: '28px', padding: '20px 24px', borderRadius: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
         <div style={{ fontWeight: '600', fontSize: '14px', color: '#15803d', marginBottom: '10px' }}>Installation Instructions</div>
@@ -5051,9 +5081,9 @@ function AppDownloadTab() {
           <div>
             <div style={{ fontWeight: '600', fontSize: '13px', color: '#374151', marginBottom: '6px' }}>Mac</div>
             <ol style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#374151', lineHeight: '1.8' }}>
-              <li>Download the .dmg file for your Mac type</li>
+              <li>Download the .dmg file from the link above</li>
               <li>Open the .dmg and drag DineOpen POS to Applications</li>
-              <li>If blocked, go to System Settings &gt; Privacy &gt; click <strong>&ldquo;Open Anyway&rdquo;</strong></li>
+              <li>Double-click the app to open &mdash; it&apos;s signed and notarized by Apple</li>
               <li>Log in with your DineOpen account and start billing</li>
             </ol>
           </div>
@@ -10788,6 +10818,34 @@ const Admin = () => {
                 <div>
                   <span style={{ fontSize: '13px', color: '#374151' }}>Hide Out-of-Stock Items</span>
                   <div style={{ fontSize: '11px', color: '#9ca3af' }}>Completely hide from billing instead of showing grayed out</div>
+                </div>
+              </div>
+
+              {/* Dashboard Version */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <div style={{ width: 28, display: 'flex', justifyContent: 'center' }}>
+                  <FaDesktop size={18} color="#6b7280" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>Dashboard Version</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '4px' }}>Switch between Classic and Modern billing UI</div>
+                  <select
+                    value={posSettings.dashboardVersion || 'v1'}
+                    onChange={(e) => setPosSettings(prev => ({ ...prev, dashboardVersion: e.target.value }))}
+                    style={{
+                      padding: '6px 10px',
+                      fontSize: '13px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      background: '#fff',
+                      color: '#374151',
+                      cursor: 'pointer',
+                      outline: 'none',
+                    }}
+                  >
+                    <option value="v1">Classic</option>
+                    <option value="v2">Modern (Dark)</option>
+                  </select>
                 </div>
               </div>
             </div>

@@ -34,7 +34,7 @@ mac:
   entitlements: electron/entitlements.mac.plist
   entitlementsInherit: electron/entitlements.mac.plist
   artifactName: "${productName}-${version}-${arch}.${ext}"
-  notarize: false
+afterSign: scripts/notarize.js
 dmg:
   contents:
     - x: 130
