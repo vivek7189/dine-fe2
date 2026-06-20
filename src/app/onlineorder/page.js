@@ -367,7 +367,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         const params = new URLSearchParams();
         if (phone) params.set('phone', phone);
         if (cid) params.set('customerId', cid);
-        const res = await apiClient.request(`/api/customer-groups/lookup/${restaurantId}?${params.toString()}`, { method: 'GET' });
+        const res = await apiClient.request(`/api/public/customer-groups/lookup/${restaurantId}?${params.toString()}`, { method: 'GET' });
         if (!cancelled) setCustomerGroupIds((res?.groups || []).map(g => g.id));
       } catch {
         if (!cancelled) setCustomerGroupIds([]);
