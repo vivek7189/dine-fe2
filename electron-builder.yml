@@ -1,4 +1,4 @@
-appId: com.dineopen.pos
+appId: com.dineopen.desktop
 productName: DineOpen POS
 directories:
   output: dist-electron
@@ -28,8 +28,13 @@ mac:
     - dmg
     - zip
   category: public.app-category.business
-  identity: null
+  identity: "Vivek Kumar (934QP9KSRD)"
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: electron/entitlements.mac.plist
+  entitlementsInherit: electron/entitlements.mac.plist
   artifactName: "${productName}-${version}-${arch}.${ext}"
+  notarize: false
 dmg:
   contents:
     - x: 130

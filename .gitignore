@@ -68,3 +68,6 @@ out.bak/
 
 # misc docs
 sales-docs/
+
+# notarization (contains credentials - NEVER commit)
+NOTARIZATION.md
