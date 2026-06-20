@@ -2210,6 +2210,8 @@ const MenuManagement = () => {
   const [collapsedCategories, setCollapsedCategories] = useState({});
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [bulkDeleteReason, setBulkDeleteReason] = useState('');
+  const [deleteConfirmItem, setDeleteConfirmItem] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [showPhotoCapture, setShowPhotoCapture] = useState(false);
   const hasLoadedData = useRef(false);
@@ -2984,21 +2986,26 @@ const MenuManagement = () => {
     // Don't trigger any loading states - just open the form
   }, [activePricingRules]);
 
-  const handleDelete = useCallback(async (itemId) => {
+  const handleDelete = useCallback((itemId) => {
     if (!isOnline) { alert('You are offline. Go online to make changes.'); return; }
-    if (!confirm(t('menu.deleteItemConfirm'))) return;
+    const item = menuItems.find(i => i.id === itemId);
+    setDeleteConfirmItem(item || { id: itemId, name: '' });
+  }, [isOnline, menuItems]);
 
+  const confirmDelete = useCallback(async () => {
+    if (!deleteConfirmItem) return;
     try {
-      setOperationLoading(true);
-      await apiClient.deleteMenuItem(itemId, currentRestaurant?.id);
-      setMenuItems(items => items.filter(item => item.id !== itemId));
+      setIsDeleting(true);
+      await apiClient.deleteMenuItem(deleteConfirmItem.id, currentRestaurant?.id);
+      setMenuItems(items => items.filter(item => item.id !== deleteConfirmItem.id));
+      setDeleteConfirmItem(null);
     } catch (error) {
       console.error('Error deleting menu item:', error);
       setError(t('menu.failedDeleteItem'));
     } finally {
-      setOperationLoading(false);
+      setIsDeleting(false);
     }
-  }, [isOnline, currentRestaurant?.id]);
+  }, [deleteConfirmItem, currentRestaurant?.id]);
 
 
   const handleBulkDeleteClick = () => {
@@ -6028,6 +6035,79 @@ const MenuManagement = () => {
           restaurantName={currentRestaurant?.name}
           restaurant={currentRestaurant}
         />,
+        document.body
+      )}
+
+      {/* Single Item Delete Confirmation Modal */}
+      {deleteConfirmItem && typeof document !== 'undefined' && createPortal(
+        <div
+          onClick={() => { if (!isDeleting) setDeleteConfirmItem(null); }}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 10002, padding: '16px',
+            animation: 'fadeIn 0.15s ease-out',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: 'white', borderRadius: '12px',
+              padding: '20px', maxWidth: '340px', width: '100%',
+              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.15)',
+              animation: 'slideInUp 0.15s ease-out',
+            }}
+          >
+            <div style={{
+              width: '40px', height: '40px', margin: '0 auto 12px',
+              backgroundColor: '#fee2e2', borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <FaTrash size={16} color="#dc2626" />
+            </div>
+            <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#1f2937', textAlign: 'center', margin: '0 0 6px 0' }}>
+              Delete Item
+            </h3>
+            <p style={{ fontSize: '13px', color: '#6b7280', textAlign: 'center', margin: '0 0 16px 0', lineHeight: 1.4 }}>
+              Are you sure you want to delete <strong style={{ color: '#374151' }}>{deleteConfirmItem.name}</strong>? This cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setDeleteConfirmItem(null)}
+                disabled={isDeleting}
+                style={{
+                  flex: 1, padding: '8px 12px', fontSize: '13px', fontWeight: 500,
+                  backgroundColor: '#f3f4f6', color: '#374151',
+                  border: 'none', borderRadius: '8px',
+                  cursor: isDeleting ? 'not-allowed' : 'pointer',
+                  opacity: isDeleting ? 0.5 : 1,
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                style={{
+                  flex: 1, padding: '8px 12px', fontSize: '13px', fontWeight: 600,
+                  backgroundColor: '#dc2626', color: 'white',
+                  border: 'none', borderRadius: '8px',
+                  cursor: isDeleting ? 'not-allowed' : 'pointer',
+                  opacity: isDeleting ? 0.9 : 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                }}
+              >
+                {isDeleting ? (
+                  <>
+                    <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                    Deleting...
+                  </>
+                ) : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>,
         document.body
       )}
 

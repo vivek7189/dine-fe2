@@ -4713,8 +4713,8 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
           </div>
           {/* /Two-column flex end — but we continue left column content below for small screens */}
 
-          {/* Print Stations — Kitchen Routing */}
-          <PrintStationManager restaurantId={selectedRestaurant?.id} />
+          {/* Print Stations — Kitchen Routing (hidden on Electron/Capacitor where NativePrinterSettings handles it) */}
+          {!isElectron() && <PrintStationManager restaurantId={selectedRestaurant?.id} />}
 
           {/* Future Settings */}
           <div style={{ marginBottom: '24px', maxWidth: '640px' }}>

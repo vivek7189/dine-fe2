@@ -476,14 +476,6 @@ export default function NativePrinterSettings({ restaurantId }) {
     setNewStationForm({ name: '', type: 'kitchen', categoryIds: [] });
   }, []);
 
-  const STATION_TYPES = [
-    { id: 'kitchen', label: 'Kitchen' },
-    { id: 'bar', label: 'Bar' },
-    { id: 'expo', label: 'Expo' },
-    { id: 'pastry', label: 'Pastry' },
-    { id: 'other', label: 'Other' },
-  ];
-
   const assignedCatIds = new Set(printStations.flatMap(s => s.categoryIds || []));
 
   // Don't render on web (after all hooks)
@@ -707,7 +699,7 @@ export default function NativePrinterSettings({ restaurantId }) {
         <div style={{ marginTop: '12px' }}>
 
           {/* Mode indicator */}
-          {printerMode === 'simple' ? (
+          {printerMode === 'simple' && !newStationForm ? (
             <div style={{
               padding: '12px', backgroundColor: '#f0fdf4', borderRadius: '8px',
               border: '1px solid #bbf7d0',
@@ -724,6 +716,108 @@ export default function NativePrinterSettings({ restaurantId }) {
               >
                 Need multiple printers? Set up multi-printer routing →
               </button>
+            </div>
+          ) : printerMode === 'simple' && newStationForm ? (
+            <div style={{
+              padding: '12px', backgroundColor: '#eff6ff', borderRadius: '8px',
+              border: '1px solid #bfdbfe',
+            }}>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#1d4ed8', marginBottom: '10px' }}>
+                Set up multi-printer routing
+              </div>
+              <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px' }}>
+                Create your first KOT station. Orders will be split by category and sent to different printers.
+              </div>
+              <div style={{
+                padding: '10px 12px', backgroundColor: 'white', borderRadius: '8px',
+                border: '2px dashed #bfdbfe', marginBottom: '8px',
+              }}>
+                <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="Station name (e.g. Main Kitchen)"
+                    value={newStationForm.name}
+                    onChange={(e) => setNewStationForm(prev => ({ ...prev, name: e.target.value }))}
+                    autoFocus
+                    maxLength={50}
+                    style={{
+                      flex: 1, padding: '6px 10px', fontSize: '12px', borderRadius: '6px',
+                      border: '1px solid #d1d5db', backgroundColor: 'white',
+                    }}
+                  />
+                  <input
+                    type="text"
+                    list="station-types-list"
+                    placeholder="Type (e.g. Kitchen)"
+                    value={newStationForm.type === 'kitchen' && !newStationForm._typeEdited ? '' : newStationForm.type}
+                    onChange={(e) => setNewStationForm(prev => ({ ...prev, type: e.target.value || 'kitchen', _typeEdited: true }))}
+                    maxLength={30}
+                    style={{
+                      width: '130px', padding: '6px 10px', fontSize: '12px', borderRadius: '6px',
+                      border: '1px solid #d1d5db', backgroundColor: 'white',
+                    }}
+                  />
+                  <datalist id="station-types-list">
+                    <option value="Kitchen" />
+                    <option value="Bar" />
+                    <option value="Expo" />
+                    <option value="Pastry" />
+                    <option value="Grill" />
+                    <option value="Drinks" />
+                    <option value="Packing" />
+                  </datalist>
+                </div>
+                {categories.length > 0 && (
+                  <div style={{ marginBottom: '8px' }}>
+                    <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Assign categories:</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxHeight: '100px', overflowY: 'auto' }}>
+                      {categories.map(cat => {
+                        const isSelected = (newStationForm.categoryIds || []).includes(cat.id);
+                        return (
+                          <button
+                            key={cat.id}
+                            onClick={() => {
+                              setNewStationForm(prev => ({
+                                ...prev,
+                                categoryIds: isSelected
+                                  ? prev.categoryIds.filter(id => id !== cat.id)
+                                  : [...prev.categoryIds, cat.id]
+                              }));
+                            }}
+                            style={{
+                              padding: '3px 8px', borderRadius: '12px', fontSize: '11px', border: 'none',
+                              cursor: 'pointer',
+                              backgroundColor: isSelected ? '#2563eb' : '#e5e7eb',
+                              color: isSelected ? '#fff' : '#374151',
+                            }}
+                          >
+                            {cat.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => setNewStationForm(null)}
+                    style={{
+                      padding: '6px 12px', fontSize: '12px', color: '#6b7280',
+                      background: 'none', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer',
+                    }}
+                  >Cancel</button>
+                  <button
+                    onClick={() => addStation(newStationForm)}
+                    disabled={!newStationForm.name.trim()}
+                    style={{
+                      padding: '6px 12px', fontSize: '12px', fontWeight: 600, color: 'white',
+                      backgroundColor: newStationForm.name.trim() ? '#2563eb' : '#d1d5db',
+                      border: 'none', borderRadius: '6px',
+                      cursor: newStationForm.name.trim() ? 'pointer' : 'not-allowed',
+                    }}
+                  >Add Station</button>
+                </div>
+              </div>
             </div>
           ) : (
             <div style={{
@@ -823,10 +917,12 @@ export default function NativePrinterSettings({ restaurantId }) {
                       ) : (
                         <>
                           <span style={{ fontWeight: 600, fontSize: '13px', color: '#374151' }}>{station.name}</span>
-                          <span style={{
-                            fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '4px',
-                            backgroundColor: '#fff7ed', color: '#c2410c', textTransform: 'uppercase',
-                          }}>{station.type || 'kitchen'}</span>
+                          {station.type && (
+                            <span style={{
+                              fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '4px',
+                              backgroundColor: '#fff7ed', color: '#c2410c', textTransform: 'uppercase',
+                            }}>{station.type}</span>
+                          )}
                           {station.isDefault && (
                             <span style={{
                               fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '4px',
@@ -941,16 +1037,27 @@ export default function NativePrinterSettings({ restaurantId }) {
                         border: '1px solid #d1d5db', backgroundColor: 'white',
                       }}
                     />
-                    <select
-                      value={newStationForm.type}
-                      onChange={(e) => setNewStationForm(prev => ({ ...prev, type: e.target.value }))}
+                    <input
+                      type="text"
+                      list="station-types-list-multi"
+                      placeholder="Type (e.g. Kitchen)"
+                      value={newStationForm.type === 'kitchen' && !newStationForm._typeEdited ? '' : newStationForm.type}
+                      onChange={(e) => setNewStationForm(prev => ({ ...prev, type: e.target.value || 'kitchen', _typeEdited: true }))}
+                      maxLength={30}
                       style={{
-                        padding: '6px 8px', fontSize: '12px', borderRadius: '6px',
-                        border: '1px solid #d1d5db',
+                        width: '130px', padding: '6px 10px', fontSize: '12px', borderRadius: '6px',
+                        border: '1px solid #d1d5db', backgroundColor: 'white',
                       }}
-                    >
-                      {STATION_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-                    </select>
+                    />
+                    <datalist id="station-types-list-multi">
+                      <option value="Kitchen" />
+                      <option value="Bar" />
+                      <option value="Expo" />
+                      <option value="Pastry" />
+                      <option value="Grill" />
+                      <option value="Drinks" />
+                      <option value="Packing" />
+                    </datalist>
                   </div>
                   {/* Category selection for new station */}
                   {categories.length > 0 && (
