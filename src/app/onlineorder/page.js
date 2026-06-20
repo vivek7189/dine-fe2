@@ -4078,6 +4078,12 @@ const CheckoutView = ({
                                   <span>{cs}{Number(order.taxAmount).toFixed(2)}</span>
                                 </div>
                               )}
+                              {order.serviceCharge > 0 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
+                                  <span>Service Charge{order.serviceChargeRate ? ` (${order.serviceChargeRate}%)` : ''}</span>
+                                  <span>{cs}{Number(order.serviceCharge).toFixed(2)}</span>
+                                </div>
+                              )}
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: '700', color: '#1f2937', marginTop: '6px' }}>
                                 <span>Total</span>
                                 <span>{cs}{Number(order.finalAmount || order.totalAmount || 0).toFixed(2)}</span>
