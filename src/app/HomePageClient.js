@@ -13,7 +13,7 @@ import {
   FaRobot, FaStore, FaBoxes, FaWarehouse, FaBuilding, FaWhatsapp, FaQrcode, FaReceipt,
   FaMicrophone, FaStar, FaCamera, FaMagic, FaBolt, FaFilePdf, FaImage, FaSpinner, FaPaperPlane,
   FaBook, FaShoppingCart, FaClipboardList, FaFileInvoice, FaCog,
-  FaPhone, FaEnvelope
+  FaPhone, FaEnvelope, FaApple, FaWindows, FaAndroid, FaDownload
 } from 'react-icons/fa';
 
 export default function LandingPage() {
@@ -537,14 +537,26 @@ export default function LandingPage() {
           )}
 
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <button 
-              onClick={handleLogin} 
-              style={{ 
-                padding: isMobile ? '8px 16px' : '10px 20px', 
-                borderRadius: '8px', 
-                border: '1px solid #e5e7eb', 
-                background: 'white', 
-                fontWeight: '600', 
+            {/* App download icons */}
+            {!isMobile && (
+              <div style={{ display: 'flex', gap: '4px', alignItems: 'center', marginRight: '4px' }}>
+                <a href="https://apps.apple.com/in/app/dineopen-restaurant-billing/id6761518444" target="_blank" rel="noopener noreferrer" title="Download on App Store" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '8px', color: '#6b7280', transition: 'all 0.2s', textDecoration: 'none' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f3f4f6'; e.currentTarget.style.color = '#111827'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#6b7280'; }}>
+                  <FaApple size={16} />
+                </a>
+                <a href="https://play.google.com/store/apps/details?id=com.dineopen.pos" target="_blank" rel="noopener noreferrer" title="Get it on Google Play" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '8px', color: '#6b7280', transition: 'all 0.2s', textDecoration: 'none' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f3f4f6'; e.currentTarget.style.color = '#111827'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#6b7280'; }}>
+                  <FaAndroid size={15} />
+                </a>
+                <div style={{ width: '1px', height: '20px', backgroundColor: '#e5e7eb', margin: '0 4px' }} />
+              </div>
+            )}
+            <button
+              onClick={handleLogin}
+              style={{
+                padding: isMobile ? '8px 16px' : '10px 20px',
+                borderRadius: '8px',
+                border: '1px solid #e5e7eb',
+                background: 'white',
+                fontWeight: '600',
                 cursor: 'pointer',
                 fontSize: '14px',
                 color: '#374151',
@@ -2445,7 +2457,138 @@ export default function LandingPage() {
         </div>
       </section>
 
-      
+      {/* Download Apps Section */}
+      <section style={{
+        padding: isMobile ? '60px 16px' : '80px 32px',
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Subtle background glow */}
+        <div style={{ position: 'absolute', top: '-50%', left: '20%', width: '400px', height: '400px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(239,68,68,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '-30%', right: '10%', width: '300px', height: '300px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+        <div style={{ maxWidth: '1100px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
+          {/* Section Header */}
+          <div style={{ textAlign: 'center', marginBottom: isMobile ? '40px' : '56px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', borderRadius: '20px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', marginBottom: '16px' }}>
+              <FaDownload size={12} style={{ color: '#ef4444' }} />
+              <span style={{ fontSize: '13px', fontWeight: '600', color: '#ef4444' }}>Available on all platforms</span>
+            </div>
+            <h2 style={{ fontSize: isMobile ? '28px' : '36px', fontWeight: '800', color: 'white', margin: '0 0 12px', letterSpacing: '-0.5px' }}>
+              Get DineOpen POS
+            </h2>
+            <p style={{ fontSize: isMobile ? '15px' : '17px', color: '#94a3b8', margin: 0, maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto', lineHeight: '1.6' }}>
+              Download the app on your desktop or mobile device and start billing in minutes
+            </p>
+          </div>
+
+          {/* Cards Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: '16px' }}>
+            {/* iOS App Store */}
+            <a
+              href="https://apps.apple.com/in/app/dineopen-restaurant-billing/id6761518444"
+              target="_blank" rel="noopener noreferrer"
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
+                padding: '28px 20px', borderRadius: '16px',
+                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+                textDecoration: 'none', transition: 'all 0.25s ease',
+                backdropFilter: 'blur(10px)'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.transform = 'translateY(-4px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'linear-gradient(135deg, #333, #111)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FaApple size={28} style={{ color: 'white' }} />
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Download on the</div>
+                <div style={{ fontSize: '17px', color: 'white', fontWeight: '700' }}>App Store</div>
+              </div>
+              <div style={{ fontSize: '11px', color: '#64748b' }}>iOS 15+</div>
+            </a>
+
+            {/* Android */}
+            <a
+              href="https://play.google.com/store/apps/details?id=com.dineopen.pos"
+              target="_blank" rel="noopener noreferrer"
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
+                padding: '28px 20px', borderRadius: '16px',
+                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+                textDecoration: 'none', transition: 'all 0.25s ease',
+                backdropFilter: 'blur(10px)'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.transform = 'translateY(-4px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'linear-gradient(135deg, #34a853, #1e8e3e)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FaAndroid size={26} style={{ color: 'white' }} />
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Get it on</div>
+                <div style={{ fontSize: '17px', color: 'white', fontWeight: '700' }}>Google Play</div>
+              </div>
+              <div style={{ fontSize: '11px', color: '#64748b' }}>Android 8+</div>
+            </a>
+
+            {/* Windows */}
+            <a
+              href="https://drive.google.com/file/d/1Vgu3gmYWQr0UJVdXPmU6sksf4da1fzej/view?usp=sharing"
+              target="_blank" rel="noopener noreferrer"
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
+                padding: '28px 20px', borderRadius: '16px',
+                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+                textDecoration: 'none', transition: 'all 0.25s ease',
+                backdropFilter: 'blur(10px)'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.transform = 'translateY(-4px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'linear-gradient(135deg, #0078d4, #005a9e)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FaWindows size={24} style={{ color: 'white' }} />
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Download for</div>
+                <div style={{ fontSize: '17px', color: 'white', fontWeight: '700' }}>Windows</div>
+              </div>
+              <div style={{ fontSize: '11px', color: '#64748b' }}>Windows 10+</div>
+            </a>
+
+            {/* Mac */}
+            <a
+              href="https://drive.google.com/file/d/11CEOnivkenTAU2Bdhkmtk5y7gWGiqnw1/view?usp=sharing"
+              target="_blank" rel="noopener noreferrer"
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
+                padding: '28px 20px', borderRadius: '16px',
+                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+                textDecoration: 'none', transition: 'all 0.25s ease',
+                backdropFilter: 'blur(10px)'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.transform = 'translateY(-4px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'linear-gradient(135deg, #555, #222)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FaApple size={28} style={{ color: 'white' }} />
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Download for</div>
+                <div style={{ fontSize: '17px', color: 'white', fontWeight: '700' }}>macOS</div>
+              </div>
+              <div style={{ fontSize: '11px', color: '#64748b' }}>macOS 11+</div>
+            </a>
+          </div>
+
+          {/* Bottom note */}
+          <p style={{ textAlign: 'center', fontSize: '13px', color: '#475569', marginTop: '24px' }}>
+            All apps connect to the same account. Set up once, use everywhere.
+          </p>
+        </div>
+      </section>
+
       <Footer />
 
       {/* Demo Modal */}
