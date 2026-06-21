@@ -90,7 +90,8 @@ import {
   FaWhatsapp,
   FaQrcode,
   FaLink,
-  FaTruck
+  FaTruck,
+  FaAndroid
 } from 'react-icons/fa';
 // ShiftScheduling moved to /shifts page df
 import dynamic from 'next/dynamic';
@@ -5035,34 +5036,58 @@ function AppDownloadTab() {
         </div>
       </div>
 
-      {/* Mobile Apps Section */}
+      {/* Mobile / Waiter App Section */}
       <div style={{ marginTop: '28px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
           <FaMobileAlt size={16} style={{ color: '#6b7280' }} />
-          <div style={{ fontWeight: '600', fontSize: '15px', color: '#374151' }}>Mobile App</div>
+          <div style={{ fontWeight: '600', fontSize: '15px', color: '#374151' }}>Waiter &amp; POS App</div>
         </div>
-        <a
-          href="https://apps.apple.com/in/app/dineopen-restaurant-billing/id6761518444"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: 'flex', alignItems: 'center', gap: '16px',
-            padding: '20px 24px', borderRadius: '16px',
-            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-            textDecoration: 'none', cursor: 'pointer',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-            transition: 'transform 0.15s, box-shadow 0.15s',
-            maxWidth: '400px',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)'; }}
-        >
-          <FaApple size={36} style={{ color: 'white', flexShrink: 0 }} />
-          <div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', fontWeight: '500', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Download on the</div>
-            <div style={{ fontSize: '20px', color: 'white', fontWeight: '700', lineHeight: '1.2' }}>App Store</div>
-          </div>
-        </a>
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          <a
+            href="https://apps.apple.com/in/app/dineopen-restaurant-billing/id6761518444"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '16px',
+              padding: '20px 24px', borderRadius: '16px',
+              background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+              textDecoration: 'none', cursor: 'pointer',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+              transition: 'transform 0.15s, box-shadow 0.15s',
+              maxWidth: '400px', flex: '1', minWidth: '260px',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)'; }}
+          >
+            <FaApple size={36} style={{ color: 'white', flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', fontWeight: '500', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Download on the</div>
+              <div style={{ fontSize: '20px', color: 'white', fontWeight: '700', lineHeight: '1.2' }}>App Store</div>
+            </div>
+          </a>
+          <a
+            href="https://drive.google.com/file/d/1HUNIooeVEQNephaGiQS5n-t7kym2Vo_i/view?usp=sharing"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '16px',
+              padding: '20px 24px', borderRadius: '16px',
+              background: 'linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #388e3c 100%)',
+              textDecoration: 'none', cursor: 'pointer',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+              transition: 'transform 0.15s, box-shadow 0.15s',
+              maxWidth: '400px', flex: '1', minWidth: '260px',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)'; }}
+          >
+            <FaAndroid size={36} style={{ color: 'white', flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', fontWeight: '500', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Download</div>
+              <div style={{ fontSize: '20px', color: 'white', fontWeight: '700', lineHeight: '1.2' }}>Android APK</div>
+            </div>
+          </a>
+        </div>
       </div>
 
       {/* Installation instructions */}
