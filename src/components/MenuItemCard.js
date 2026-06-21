@@ -800,16 +800,16 @@ const MenuItemCard = ({
       style={{
         backgroundColor: dm ? dm.cardBg : '#ffffff',
         border: dm ? '1px solid #334155' : '1px solid #e5e7eb',
-        borderRadius: cardSize === 'large' ? '10px' : '6px',
+        borderRadius: cardSize === 'large' ? '14px' : '12px',
         cursor: 'pointer',
-        height: cardSize === 'large'
+        minHeight: cardSize === 'large'
           ? (isMobile ? '160px' : '170px')
           : (isMobile ? '125px' : '135px'),
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        padding: cardSize === 'large' ? '16px' : '12px',
-        boxShadow: cardSize === 'large' ? (dm ? dm.shadow : '0 4px 12px rgba(0, 0, 0, 0.1)') : (dm ? dm.shadow : '0 2px 8px rgba(0, 0, 0, 0.06)'),
+        padding: cardSize === 'large' ? '16px' : '14px',
+        boxShadow: cardSize === 'large' ? (dm ? dm.shadow : '0 2px 8px rgba(0, 0, 0, 0.08)') : (dm ? dm.shadow : '0 1px 4px rgba(0, 0, 0, 0.06)'),
         position: 'relative',
         overflow: 'hidden',
         background: dm ? dm.cardBg : vegGradient,
@@ -1025,22 +1025,24 @@ const MenuItemCard = ({
         alignItems: 'flex-start',
         textAlign: 'left',
         paddingTop: '6px',
-        paddingBottom: '4px',
+        paddingBottom: '6px',
         paddingLeft: '8px',
         paddingRight: '8px',
-        zIndex: 1
+        zIndex: 1,
+        minHeight: 0,
+        overflow: 'hidden',
       }}>
         {/* Dish Name */}
         <h3 style={{
           fontSize: cardSize === 'large' ? '15px' : (isMobile ? '12px' : '13px'),
           fontWeight: '600',
-          margin: '0 0 2px 0',
+          margin: '0 0 4px 0',
           color: dm ? dm.text : '#1f2937',
-          lineHeight: '1.25',
+          lineHeight: '1.3',
           textAlign: 'left',
           overflow: 'hidden',
           display: '-webkit-box',
-          WebkitLineClamp: item.nameAr ? 2 : 3,
+          WebkitLineClamp: item.nameAr ? 2 : 2,
           WebkitBoxOrient: 'vertical',
           wordWrap: 'break-word',
         }}>
@@ -1090,13 +1092,15 @@ const MenuItemCard = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingTop: '6px',
-        borderTop: dm ? '1px solid #334155' : '1px solid #f3f4f6',
+        paddingTop: '8px',
+        borderTop: dm ? '1px solid #334155' : '1px solid #f0f0f0',
         marginTop: 'auto',
-        zIndex: 1
+        zIndex: 1,
+        flexShrink: 0,
+        gap: '8px',
       }}>
         {/* Price - Compact */}
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
           <span style={{
             fontSize: isMobile ? '14px' : '15px',
             color: '#ef4444',
@@ -1137,6 +1141,7 @@ const MenuItemCard = ({
         <div style={{
           display: 'flex',
           alignItems: 'center',
+          flexShrink: 0,
           backgroundColor: quantityInCart > 0 ? '#ef4444' : (dm ? dm.cardBg : '#f8fafc'),
           borderRadius: '8px',
           overflow: 'hidden',
