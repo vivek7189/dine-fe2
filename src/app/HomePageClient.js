@@ -13,7 +13,7 @@ import {
   FaRobot, FaStore, FaBoxes, FaWarehouse, FaBuilding, FaWhatsapp, FaQrcode, FaReceipt,
   FaMicrophone, FaStar, FaCamera, FaMagic, FaBolt, FaFilePdf, FaImage, FaSpinner, FaPaperPlane,
   FaBook, FaShoppingCart, FaClipboardList, FaFileInvoice, FaCog,
-  FaPhone, FaEnvelope, FaApple, FaWindows, FaAndroid, FaDownload
+  FaPhone, FaEnvelope, FaApple, FaWindows, FaAndroid, FaDownload, FaGooglePlay
 } from 'react-icons/fa';
 
 export default function LandingPage() {
@@ -544,7 +544,7 @@ export default function LandingPage() {
                   <FaApple size={16} />
                 </a>
                 <a href="https://play.google.com/store/apps/details?id=com.dineopen.pos" target="_blank" rel="noopener noreferrer" title="Get it on Google Play" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '8px', color: '#6b7280', transition: 'all 0.2s', textDecoration: 'none' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f3f4f6'; e.currentTarget.style.color = '#111827'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#6b7280'; }}>
-                  <FaAndroid size={15} />
+                  <FaGooglePlay size={14} />
                 </a>
                 <div style={{ width: '1px', height: '20px', backgroundColor: '#e5e7eb', margin: '0 4px' }} />
               </div>
@@ -2524,7 +2524,7 @@ export default function LandingPage() {
               onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
             >
               <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'linear-gradient(135deg, #34a853, #1e8e3e)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <FaAndroid size={26} style={{ color: 'white' }} />
+                <FaGooglePlay size={24} style={{ color: 'white' }} />
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Get it on</div>
