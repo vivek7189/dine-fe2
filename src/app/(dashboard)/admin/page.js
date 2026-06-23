@@ -4825,7 +4825,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                       </a>
                     ) : (
                       <a
-                        href="https://drive.google.com/file/d/1FRnzoqyoAul7ZcBRFIIrUr8ZsF-2UtZG/view?usp=sharing"
+                        href="https://drive.google.com/file/d/11nkyOrv6TbIUj19cF4h_yifHCrK02MWS/view?usp=sharing"
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
@@ -4890,7 +4890,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                       </a>
                     ) : (
                       <a
-                        href="https://drive.google.com/file/d/1FRnzoqyoAul7ZcBRFIIrUr8ZsF-2UtZG/view?usp=sharing"
+                        href="https://drive.google.com/file/d/11nkyOrv6TbIUj19cF4h_yifHCrK02MWS/view?usp=sharing"
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
@@ -4964,7 +4964,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
 
 /** App Download Tab — simple Google Drive download links for Windows + Mac */
 function AppDownloadTab() {
-  const WINDOWS_DOWNLOAD_URL = 'https://drive.google.com/file/d/1Vgu3gmYWQr0UJVdXPmU6sksf4da1fzej/view?usp=sharing';
+  const WINDOWS_DOWNLOAD_URL = 'https://drive.google.com/file/d/11nkyOrv6TbIUj19cF4h_yifHCrK02MWS/view?usp=sharing';
   const MAC_DOWNLOAD_URL = 'https://drive.google.com/file/d/11CEOnivkenTAU2Bdhkmtk5y7gWGiqnw1/view?usp=sharing';
 
   const btnStyle = (bg, shadow) => ({
