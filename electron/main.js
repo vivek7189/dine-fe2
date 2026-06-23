@@ -316,10 +316,10 @@ app.on('will-quit', () => {
 
 // ──── TCP Printer Support (raw ESC/POS over network) ────
 
-const TCP_CONNECT_TIMEOUT = 3000;  // 3 seconds (matches Capacitor plugin)
+const TCP_CONNECT_TIMEOUT = 5000;  // 5 seconds (WiFi printers can be slow to ACK)
 const TCP_DEFAULT_PORT = 9100;     // Standard raw print port
-const TCP_MAX_RETRIES = 3;         // 1 original + 2 retries (matches dine-app)
-const TCP_RETRY_DELAYS = [800, 1500]; // ms before 2nd and 3rd attempts (matches dine-app)
+const TCP_MAX_RETRIES = 1;         // Single attempt — retries cause duplicate prints
+const TCP_RETRY_DELAYS = [];       // No retries
 
 /**
  * Check if a printer name is actually an IP address (optionally with :port).

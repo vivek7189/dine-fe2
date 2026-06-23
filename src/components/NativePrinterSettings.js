@@ -83,7 +83,11 @@ export default function NativePrinterSettings({ restaurantId }) {
         const { invoke } = await import('@tauri-apps/api/core');
         await invoke('set_default_printer', { printerName: printer.name });
       } else if (isElectron()) {
-        await window.electronAPI.setDefaultPrinter(printer.name);
+        // For network/IP printers, store the raw IP address (e.g., "192.168.1.100:9100")
+        // so Electron main process can detect it via isIpAddress() and route to TCP path.
+        // For OS printers, store the OS printer name.
+        const printerIdentifier = printer.type === 'network' ? printer.address : printer.name;
+        await window.electronAPI.setDefaultPrinter(printerIdentifier);
       }
       setSelectedPrinter(printer);
       setIsConnected(true);
@@ -108,10 +112,12 @@ export default function NativePrinterSettings({ restaurantId }) {
         const { DinePrinter } = await import('capacitor-dine-printer');
         await DinePrinter.setPrinterConfig(config);
       } else if (isElectronPlatform) {
-        // Electron uses printer name, not address
+        // For network/IP printers, store the raw IP address so Electron routes to TCP path.
+        // For OS printers, store the OS printer name.
         const electronConfig = {};
-        if (role === 'kot') electronConfig.kotPrinter = printer ? printer.name : null;
-        if (role === 'bill') electronConfig.billPrinter = printer ? printer.name : null;
+        const id = printer ? (printer.type === 'network' ? printer.address : printer.name) : null;
+        if (role === 'kot') electronConfig.kotPrinter = id;
+        if (role === 'bill') electronConfig.billPrinter = id;
         await window.electronAPI.setPrinterConfig(electronConfig);
       }
     } catch (err) {
@@ -507,7 +513,8 @@ export default function NativePrinterSettings({ restaurantId }) {
         )}
         {(() => {
           // Use heartbeat status for Electron when available
-          const defaultHealth = selectedPrinter ? printerHealth[selectedPrinter.name] : null;
+          // Health is keyed by the stored identifier (raw IP for network printers, OS name for others)
+          const defaultHealth = selectedPrinter ? (printerHealth[selectedPrinter.address] || printerHealth[selectedPrinter.name]) : null;
           const effectiveConnected = isElectronPlatform && defaultHealth ? defaultHealth === 'online' : isConnected;
           return effectiveConnected ? (
             <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#16a34a', marginLeft: 'auto' }}>
@@ -539,13 +546,16 @@ export default function NativePrinterSettings({ restaurantId }) {
           <PrinterIcon type={selectedPrinter.type} />
           <span style={{ fontWeight: 500 }}>{selectedPrinter.name}</span>
           <span style={{ color: '#9ca3af', fontSize: '11px' }}>{selectedPrinter.address}</span>
-          {isElectronPlatform && printerHealth[selectedPrinter.name] && (
-            <span style={{
-              width: '8px', height: '8px', borderRadius: '50%', marginLeft: 'auto',
-              backgroundColor: printerHealth[selectedPrinter.name] === 'online' ? '#22c55e' : '#ef4444',
-              boxShadow: printerHealth[selectedPrinter.name] === 'online' ? '0 0 4px #22c55e' : '0 0 4px #ef4444',
-            }} title={printerHealth[selectedPrinter.name] === 'online' ? 'Printer reachable' : 'Printer unreachable — check power & network'} />
-          )}
+          {(() => {
+            const h = printerHealth[selectedPrinter.address] || printerHealth[selectedPrinter.name];
+            return isElectronPlatform && h ? (
+              <span style={{
+                width: '8px', height: '8px', borderRadius: '50%', marginLeft: 'auto',
+                backgroundColor: h === 'online' ? '#22c55e' : '#ef4444',
+                boxShadow: h === 'online' ? '0 0 4px #22c55e' : '0 0 4px #ef4444',
+              }} title={h === 'online' ? 'Printer reachable' : 'Printer unreachable — check power & network'} />
+            ) : null;
+          })()}
         </div>
       )}
 
@@ -845,12 +855,15 @@ export default function NativePrinterSettings({ restaurantId }) {
                     fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '4px',
                     backgroundColor: '#dbeafe', color: '#1d4ed8', textTransform: 'uppercase',
                   }}>Receipt</span>
-                  {isElectronPlatform && billPrinter && printerHealth[billPrinter.name] && (
-                    <span style={{
-                      width: '7px', height: '7px', borderRadius: '50%', marginLeft: 'auto',
-                      backgroundColor: printerHealth[billPrinter.name] === 'online' ? '#22c55e' : '#ef4444',
-                    }} />
-                  )}
+                  {(() => {
+                    const h = billPrinter && (printerHealth[billPrinter.address] || printerHealth[billPrinter.name]);
+                    return isElectronPlatform && h ? (
+                      <span style={{
+                        width: '7px', height: '7px', borderRadius: '50%', marginLeft: 'auto',
+                        backgroundColor: h === 'online' ? '#22c55e' : '#ef4444',
+                      }} />
+                    ) : null;
+                  })()}
                 </div>
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                   <select
@@ -866,7 +879,7 @@ export default function NativePrinterSettings({ restaurantId }) {
                   >
                     <option value="">Use default printer</option>
                     {printers.map((p, i) => (
-                      <option key={p.address || i} value={isElectronPlatform ? p.name : p.address}>
+                      <option key={p.address || i} value={isElectronPlatform ? (p.type === 'network' ? p.address : p.name) : p.address}>
                         {p.name}{p.type === 'serial' ? ' (Built-in)' : ''}
                       </option>
                     ))}
@@ -955,7 +968,7 @@ export default function NativePrinterSettings({ restaurantId }) {
                       >
                         <option value="">Use default printer</option>
                         {printers.map((p, i) => (
-                          <option key={p.address || i} value={isElectronPlatform ? p.name : p.address}>
+                          <option key={p.address || i} value={isElectronPlatform ? (p.type === 'network' ? p.address : p.name) : p.address}>
                             {p.name}{p.type === 'serial' ? ' (Built-in)' : ''}
                           </option>
                         ))}

@@ -182,6 +182,14 @@ export function useAutoPrint(restaurantId, printSettings) {
     const orderId = data.orderId || data.id;
     if (!orderId || wasPrinted(orderId, 'kot')) return;
 
+    // Mark IMMEDIATELY (before any async work) so that concurrent
+    // kot-print-request events from the /kot Firebase path are deduped.
+    // Without this, the /kot listener fires handleKotPrintRequest for the
+    // same order while we're still awaiting the render API, causing
+    // duplicate prints — especially for orders placed from the mobile app
+    // which don't set window.__lastLocalPrintedKOT.
+    markPrinted(orderId, 'kot');
+
     const { stations, mode } = printStationsRef.current;
 
     // If stations configured: print per-station KOTs (single or multi-printer mode)
@@ -195,7 +203,6 @@ export function useAutoPrint(restaurantId, printSettings) {
           }
         }
         if (printQueueRef.current.length > 0) {
-          markPrinted(orderId, 'kot');
           processQueue();
         }
       } catch (err) {
@@ -206,7 +213,6 @@ export function useAutoPrint(restaurantId, printSettings) {
 
     // Default: single KOT with all items
     try {
-      markPrinted(orderId, 'kot'); // Mark early to prevent double-print from /kot path
       const renderData = await apiClient.getKOTRender(restaurantId, orderId);
       const html = kotRenderToHtml(renderData);
       if (html) {
@@ -222,12 +228,25 @@ export function useAutoPrint(restaurantId, printSettings) {
     if (!printSettings?.autoPrintOnKOT) return;
     const orderId = data.orderId || data.id;
     if (!orderId) return;
+
+    // For the initial KOT (not incremental/reprint/force), check if the base
+    // orderId was already printed by handleKotCreated (via the /orders path).
+    // This prevents double-printing when both order-created and
+    // kot-print-request events fire for the same order (common for orders
+    // placed from the mobile app).
+    const isUpdate = data.isIncremental || data.isReprint || data.forcePrint;
+    if (!isUpdate && wasPrinted(orderId, 'kot')) {
+      console.log(`🖨️ AutoPrint: KOT print-request skipped (already printed by order-created): ${orderId}`);
+      return;
+    }
+
     // For incremental/reprint KOTs, use a unique dedup key (timestamp-based)
     // so updates aren't blocked by the initial KOT's dedup entry.
-    const isUpdate = data.isIncremental || data.isReprint || data.forcePrint;
     const dedupKey = isUpdate ? `${orderId}-upd-${data.ts || Date.now()}` : orderId;
-    if (wasPrinted(dedupKey, 'kot')) return;
+    if (isUpdate && wasPrinted(dedupKey, 'kot')) return;
+
     try {
+      markPrinted(dedupKey, 'kot');
       const stationId = data.printStationId || null;
       const renderData = await apiClient.getKOTRender(
         restaurantId, orderId,
@@ -235,7 +254,6 @@ export function useAutoPrint(restaurantId, printSettings) {
       );
       const html = kotRenderToHtml(renderData);
       if (html) {
-        markPrinted(dedupKey, 'kot');
         printQueueRef.current.push({ html, type: 'kot', orderId: dedupKey, stationId });
         processQueue();
       }

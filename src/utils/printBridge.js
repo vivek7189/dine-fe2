@@ -213,12 +213,18 @@ async function printViaElectron({ html, type, stationId, printSettings }) {
           detail: { type, status: 'failed', error: errMsg, method: result.method },
         }));
       }
-      // For TCP failures, do NOT fall back to window.print() — it would open a
-      // useless system dialog that can't reach the network printer anyway.
-      // For OS driver failures, also skip — the spooler already tried.
-      return;
+      // Throw so callers (testPrint, etc.) can catch and show error status
+      const printErr = new Error(errMsg);
+      printErr._printFailure = true;
+      throw printErr;
     }
   } catch (err) {
+    // If this is a known print failure (thrown from the success===false check above),
+    // propagate it to the caller so testPrint() etc. can show proper error status.
+    // Don't fall back to window.print() — it would open a useless system dialog.
+    if (err._printFailure) {
+      throw err;
+    }
     console.error('Electron print IPC error, falling back to window.print:', err);
     // IPC-level failure (Electron crashed, preload bridge broken) — last resort fallback
     window.print();
