@@ -12,7 +12,7 @@ export const id = 'compact';
 export const name = 'Compact';
 export const description = 'Minimal spacing, smaller fonts. Saves paper for high-volume kitchens.';
 
-function getCompactCSS(scaleOrPreset, fontId, printerWidth) {
+function getCompactCSS(scaleOrPreset, fontId, printerWidth, printSettings) {
   // Use 80% of the requested scale for compact
   let scale = 100;
   if (typeof scaleOrPreset === 'number' && scaleOrPreset >= 50 && scaleOrPreset <= 150) scale = scaleOrPreset;
@@ -23,8 +23,8 @@ function getCompactCSS(scaleOrPreset, fontId, printerWidth) {
   const compactScale = Math.round(scale * 0.8);
   const f = getPrintFontSizes(compactScale);
   const ff = getPrintFontFamily(fontId);
-  const cw = getContentWidth(printerWidth);
-  return `@page{size:${cw} auto;margin:0;}*{box-sizing:border-box;}body{font-family:${ff};margin:0;padding:1mm 2mm;font-size:${f.body};line-height:1.3;width:${cw};max-width:${cw};overflow:hidden;} .kot-header{text-align:center;margin-bottom:2px;} .kot-title{font-size:${f.billTitle};font-weight:bold;margin-top:2px;} .divider{text-align:center;margin:2px 0;overflow:hidden;font-size:10px;} .kot-info{margin:2px 0;font-size:${f.info};} .kot-info div{margin:1px 0;} .item{margin:2px 0;} .item-main{display:flex;font-size:${f.body};} .item-qty{width:24px;flex-shrink:0;font-weight:bold;} .item-name{font-weight:bold;word-wrap:break-word;overflow-wrap:break-word;} .item-detail{margin-left:24px;font-size:${f.itemDetail};} .item-note{margin-left:24px;font-size:${f.itemDetail};font-style:italic;} .kot-footer{text-align:center;margin-top:2px;font-weight:bold;font-size:${f.body};} .special-instructions{margin:2px 0;padding:3px;border:1px dashed #000;text-align:center;font-size:${f.info};} .special-instructions strong{display:block;margin-bottom:2px;} .special-instructions div{text-align:left;}`;
+  const cw = getContentWidth(printerWidth, printSettings?.printContentWidth);
+  return `@page{size:${cw} auto;margin:0;}*{box-sizing:border-box;}body{font-family:${ff};margin:0;padding:1mm 2mm;font-size:${f.body};line-height:1.3;width:${cw};max-width:${cw};overflow-wrap:break-word;word-wrap:break-word;} .kot-header{text-align:center;margin-bottom:2px;} .kot-title{font-size:${f.billTitle};font-weight:bold;margin-top:2px;} .divider{text-align:center;margin:2px 0;overflow:hidden;font-size:10px;} .kot-info{margin:2px 0;font-size:${f.info};} .kot-info div{margin:1px 0;} .item{margin:2px 0;} .item-main{display:flex;font-size:${f.body};} .item-qty{width:24px;flex-shrink:0;font-weight:bold;} .item-name{font-weight:bold;word-wrap:break-word;overflow-wrap:break-word;} .item-detail{margin-left:24px;font-size:${f.itemDetail};} .item-note{margin-left:24px;font-size:${f.itemDetail};font-style:italic;} .kot-footer{text-align:center;margin-top:2px;font-weight:bold;font-size:${f.body};} .special-instructions{margin:2px 0;padding:3px;border:1px dashed #000;text-align:center;font-size:${f.info};} .special-instructions strong{display:block;margin-bottom:2px;} .special-instructions div{text-align:left;}`;
 }
 
 export function render(kotData, printSettings = {}, labels = {}) {
@@ -53,7 +53,7 @@ export function render(kotData, printSettings = {}, labels = {}) {
   const { html: itemsHtml, footerText, hasChanges } = buildKOTItemsSections(k, renderRow, L);
   const titleEn = hasChanges ? L.kotUpdate : L.kitchenOrder;
   const title = showAr ? dualTitle(titleEn, hasChanges ? AR.kotUpdate : AR.kitchenOrder, showAr) : titleEn;
-  const css = getCompactCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily, printSettings.printerWidth);
+  const css = getCompactCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily, printSettings.printerWidth, printSettings);
   const finalCss = showAr ? css + getBillDualCSS() : css;
 
   // Compact: skip restaurant name, minimal header

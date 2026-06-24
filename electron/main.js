@@ -150,9 +150,13 @@ function createWindow() {
 }
 
 // ──── Persistent hidden print window (reused across all print jobs) ────
+// Width is set narrow (302px ≈ 80mm at 96dpi) so Chromium's print engine
+// doesn't scale down a large viewport to fit thermal paper.
 function createPrintWindow() {
   printWindow = new BrowserWindow({
     show: false,
+    width: 302,
+    height: 900,
     webPreferences: { contextIsolation: true, nodeIntegration: false },
   });
   printWindow.loadURL('data:text/html;charset=utf-8,<html><body></body></html>');
