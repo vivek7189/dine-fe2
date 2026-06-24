@@ -740,13 +740,19 @@ const OrderSummary = ({
           orderData: {
             restaurantName: k.restaurantName || '',
             tableNumber: k.tableNumber || k.tableName || '',
+            floorName: k.floorName || '',
+            roomNumber: k.roomNumber || '',
             orderNumber: k.dailyOrderId || k.orderNumber || k.orderId?.slice?.(-6) || '',
+            dailyOrderId: k.dailyOrderId || k.orderNumber || '',
             orderId: k.orderId,
             orderType: k.orderType || 'dine-in',
             waiterName: k.waiterName || '',
             customerName: k.customerName || '',
             timestamp: k.timestamp || new Date().toISOString(),
             items: k.items || [],
+            removedItems: k.removedItems || [],
+            isIncremental: k.isIncremental || false,
+            specialInstructions: k.specialInstructions || '',
           },
         });
         // Track printed order to prevent duplicate from Pusher auto-print / effect re-fire
