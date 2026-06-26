@@ -2419,7 +2419,6 @@ function RestaurantPOSContent() {
       }
       return sum + price * (item.quantity || 1);
     }, 0);
-    console.log(`💰 Cart total: ${total}`);
     return total;
   };
 

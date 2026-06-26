@@ -227,7 +227,7 @@ export function calcGrandTotal(invoice) {
   const totalDiscount = (invoice.discountAmount || 0) + (invoice.manualDiscount || 0) + (invoice.loyaltyDiscount || 0);
   return invoice.grandTotal || (
     (invoice.subtotal || 0) - totalDiscount +
-    (invoice.taxBreakdown?.reduce((sum, tax) => sum + (tax.amount || 0), 0) || 0) +
+    (invoice.taxBreakdown?.filter(tax => !tax.inclusive).reduce((sum, tax) => sum + (tax.amount || 0), 0) || 0) +
     (invoice.serviceChargeAmount || 0) + (invoice.tipAmount || 0) + (invoice.roundOffAmount || 0)
   );
 }

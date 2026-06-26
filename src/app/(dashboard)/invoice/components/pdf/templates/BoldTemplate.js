@@ -160,7 +160,7 @@ export default function BoldTemplate({ data, type = 'invoice', org = {}, colors 
               <Text style={[styles.cellText, { textAlign: 'right' }]}>{item.quantity || 0}</Text>
             </View>
             <View style={[styles.cell, { width: '18%', borderTopWidth: 0, borderLeftWidth: 0 }]}>
-              <Text style={[styles.cellText, { textAlign: 'right' }]}>{formatCurrency(item.rate)}</Text>
+              <Text style={[styles.cellText, { textAlign: 'right' }]}>{formatCurrency(item.rate, data.currencySymbol)}</Text>
             </View>
             {showTax && (
               <View style={[styles.cell, { width: '12%', borderTopWidth: 0, borderLeftWidth: 0 }]}>
@@ -169,7 +169,7 @@ export default function BoldTemplate({ data, type = 'invoice', org = {}, colors 
             )}
             <View style={[styles.cell, { width: showTax ? '20%' : '32%', borderTopWidth: 0, borderLeftWidth: 0 }]}>
               <Text style={[styles.cellText, { textAlign: 'right' }]}>
-                {formatCurrency(item.amount || (item.quantity || 0) * (item.rate || 0))}
+                {formatCurrency(item.amount || (item.quantity || 0) * (item.rate || 0), data.currencySymbol)}
               </Text>
             </View>
           </View>
@@ -181,36 +181,36 @@ export default function BoldTemplate({ data, type = 'invoice', org = {}, colors 
         <View style={styles.totalsBox}>
           <View style={styles.totalRowFirst}>
             <Text style={styles.totalLabel}>Sub Total</Text>
-            <Text style={styles.totalValue}>{formatCurrency(data.subtotal)}</Text>
+            <Text style={styles.totalValue}>{formatCurrency(data.subtotal, data.currencySymbol)}</Text>
           </View>
           {data.discountAmount > 0 && (
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>
                 Discount{data.discountType === 'percentage' && data.discountValue ? ` (${data.discountValue}%)` : ''}
               </Text>
-              <Text style={[styles.totalValue, { color: '#dc2626' }]}>-{formatCurrency(data.discountAmount)}</Text>
+              <Text style={[styles.totalValue, { color: '#dc2626' }]}>-{formatCurrency(data.discountAmount, data.currencySymbol)}</Text>
             </View>
           )}
           {data.taxAmount > 0 && type !== 'challan' && (
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Tax</Text>
-              <Text style={styles.totalValue}>{formatCurrency(data.taxAmount)}</Text>
+              <Text style={styles.totalValue}>{formatCurrency(data.taxAmount, data.currencySymbol)}</Text>
             </View>
           )}
           {data.adjustments !== 0 && data.adjustments !== undefined && data.adjustments !== null && (
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Adjustment</Text>
-              <Text style={styles.totalValue}>{formatCurrency(data.adjustments)}</Text>
+              <Text style={styles.totalValue}>{formatCurrency(data.adjustments, data.currencySymbol)}</Text>
             </View>
           )}
           <View style={styles.grandTotalRow}>
             <Text style={styles.grandTotalLabel}>TOTAL</Text>
-            <Text style={styles.grandTotalValue}>{formatCurrency(data.total)}</Text>
+            <Text style={styles.grandTotalValue}>{formatCurrency(data.total, data.currencySymbol)}</Text>
           </View>
           {type === 'invoice' && data.balanceDue !== undefined && data.balanceDue !== data.total && (
             <View style={[styles.totalRow, { borderTopWidth: 0 }]}>
               <Text style={[styles.totalLabel, { fontFamily: 'Courier-Bold' }]}>Balance Due</Text>
-              <Text style={[styles.totalValue, { color: '#2563eb' }]}>{formatCurrency(data.balanceDue)}</Text>
+              <Text style={[styles.totalValue, { color: '#2563eb' }]}>{formatCurrency(data.balanceDue, data.currencySymbol)}</Text>
             </View>
           )}
         </View>

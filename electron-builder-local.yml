@@ -1,0 +1,51 @@
+appId: com.dineopen.desktop
+productName: DineOpen POS
+directories:
+  output: dist-electron
+files:
+  - out/**/*
+  - electron/**/*
+  - package.json
+asarUnpack:
+  - "node_modules/better-sqlite3/**/*"
+extraMetadata:
+  main: electron/main.js
+
+publish:
+  provider: generic
+  url: https://storage.googleapis.com/dineopen-releases
+
+win:
+  icon: electron/icons/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+        - ia32
+mac:
+  icon: electron/icons/icon.icns
+  target:
+    - dmg
+    - zip
+  category: public.app-category.business
+  identity: "Vivek Kumar (934QP9KSRD)"
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: electron/entitlements.mac.plist
+  entitlementsInherit: electron/entitlements.mac.plist
+  artifactName: "${productName}-${version}-${arch}.${ext}"
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+linux:
+  target: AppImage
+  category: Office
+nsis:
+  oneClick: false
+  perMachine: true
+  allowToChangeInstallationDirectory: true

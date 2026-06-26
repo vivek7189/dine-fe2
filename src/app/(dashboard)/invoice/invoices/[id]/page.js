@@ -32,9 +32,10 @@ const paymentModeOptions = [
   { value: 'other', label: 'Other' },
 ];
 
-function formatCurrency(amount) {
-  if (amount === null || amount === undefined || isNaN(amount)) return 'Rs.0.00';
-  return `Rs.${Number(amount).toLocaleString('en-IN', {
+function formatCurrency(amount, currencySymbol) {
+  const cs = currencySymbol || 'Rs.';
+  if (amount === null || amount === undefined || isNaN(amount)) return `${cs}0.00`;
+  return `${cs}${Number(amount).toLocaleString('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
@@ -350,10 +351,10 @@ export default function InvoiceDetailPage() {
                   <td className="px-5 py-3 text-gray-500">{idx + 1}</td>
                   <td className="px-4 py-3 text-gray-900 font-medium">{item.name || '-'}</td>
                   <td className="px-4 py-3 text-right text-gray-700">{item.quantity || 0}</td>
-                  <td className="px-4 py-3 text-right text-gray-700">{formatCurrency(item.rate)}</td>
+                  <td className="px-4 py-3 text-right text-gray-700">{formatCurrency(item.rate, invoice?.currencySymbol)}</td>
                   <td className="px-4 py-3 text-right text-gray-700">{item.taxRate ? `${item.taxRate}%` : '-'}</td>
                   <td className="px-5 py-3 text-right font-medium text-gray-900">
-                    {formatCurrency(item.amount || (item.quantity || 0) * (item.rate || 0))}
+                    {formatCurrency(item.amount || (item.quantity || 0) * (item.rate || 0), invoice?.currencySymbol)}
                   </td>
                 </tr>
               ))}
@@ -367,7 +368,7 @@ export default function InvoiceDetailPage() {
         <div className="w-full md:w-80 bg-gray-50 rounded-lg p-4 space-y-2 border border-gray-200">
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">Sub Total</span>
-            <span className="font-medium">{formatCurrency(invoice.subtotal)}</span>
+            <span className="font-medium">{formatCurrency(invoice.subtotal, invoice?.currencySymbol)}</span>
           </div>
           {(invoice.discountAmount > 0) && (
             <div className="flex justify-between text-sm">
@@ -377,29 +378,29 @@ export default function InvoiceDetailPage() {
                   ? ` (${invoice.discountValue}%)`
                   : ''}
               </span>
-              <span className="font-medium text-red-600">-{formatCurrency(invoice.discountAmount)}</span>
+              <span className="font-medium text-red-600">-{formatCurrency(invoice.discountAmount, invoice?.currencySymbol)}</span>
             </div>
           )}
           {(invoice.taxAmount > 0) && (
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Tax</span>
-              <span className="font-medium">{formatCurrency(invoice.taxAmount)}</span>
+              <span className="font-medium">{formatCurrency(invoice.taxAmount, invoice?.currencySymbol)}</span>
             </div>
           )}
           {(invoice.adjustments !== 0 && invoice.adjustments !== undefined && invoice.adjustments !== null) && (
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Adjustment</span>
-              <span className="font-medium">{formatCurrency(invoice.adjustments)}</span>
+              <span className="font-medium">{formatCurrency(invoice.adjustments, invoice?.currencySymbol)}</span>
             </div>
           )}
           <div className="border-t border-gray-200 pt-2 flex justify-between">
             <span className="text-sm font-semibold text-gray-900">Total</span>
-            <span className="text-lg font-bold text-gray-900">{formatCurrency(invoice.total)}</span>
+            <span className="text-lg font-bold text-gray-900">{formatCurrency(invoice.total, invoice?.currencySymbol)}</span>
           </div>
           {invoice.balanceDue !== undefined && invoice.balanceDue !== invoice.total && (
             <div className="flex justify-between text-sm pt-1">
               <span className="text-gray-600">Balance Due</span>
-              <span className="text-lg font-bold text-blue-600">{formatCurrency(invoice.balanceDue)}</span>
+              <span className="text-lg font-bold text-blue-600">{formatCurrency(invoice.balanceDue, invoice?.currencySymbol)}</span>
             </div>
           )}
         </div>
@@ -442,7 +443,7 @@ export default function InvoiceDetailPage() {
                     <td className="px-5 py-3 text-gray-700">{formatDate(pmt.paymentDate || pmt.date)}</td>
                     <td className="px-4 py-3 text-gray-700 capitalize">{pmt.paymentMode?.replace(/_/g, ' ') || '-'}</td>
                     <td className="px-4 py-3 text-gray-500">{pmt.referenceNumber || pmt.reference || '-'}</td>
-                    <td className="px-5 py-3 text-right font-medium text-green-600">{formatCurrency(pmt.amount)}</td>
+                    <td className="px-5 py-3 text-right font-medium text-green-600">{formatCurrency(pmt.amount, invoice?.currencySymbol)}</td>
                   </tr>
                 ))}
               </tbody>

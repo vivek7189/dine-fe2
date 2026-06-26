@@ -516,11 +516,14 @@ function probeTcpPort(host, port, timeoutMs = 800) {
 
 // ──── IPC: Printing ────
 
-ipcMain.handle('electron:print', async (event, { html, copies, type, printerWidth, stationId }) => {
+ipcMain.handle('electron:print', async (event, { html, copies, type, printerWidth, stationId, printerOverride }) => {
   const settings = loadSettings();
   // Route to the correct printer based on job type and optional station
   let deviceName;
-  if (type === 'kot' && stationId && settings.stationPrinters?.[stationId]) {
+  if (printerOverride) {
+    // Direct printer override — used for test prints to a specific printer
+    deviceName = printerOverride;
+  } else if (type === 'kot' && stationId && settings.stationPrinters?.[stationId]) {
     // Multi-printer mode: per-station printer assignment
     deviceName = settings.stationPrinters[stationId];
   } else if (type === 'kot' && settings.kotPrinter) {
@@ -536,7 +539,34 @@ ipcMain.handle('electron:print', async (event, { html, copies, type, printerWidt
 
   console.log('[Print] type:', type || 'unknown', 'copies:', copies || 1,
     'printer:', deviceName || '(system default)', 'paper:', (printerWidth || 80) + 'mm',
-    'html:', html?.length || 0);
+    'stationId:', stationId || '(none)', 'html:', html?.length || 0);
+
+  // ──── Debug PDF: save a copy of every print as PDF for verification ────
+  // Enable by creating ~/Desktop/DineOpen-Prints/ folder, or set DINEOPEN_DEBUG_PRINT=1
+  const debugPrintDir = path.join(app.getPath('desktop'), 'DineOpen-Prints');
+  const debugPrint = process.env.DINEOPEN_DEBUG_PRINT === '1' || fs.existsSync(debugPrintDir);
+  if (debugPrint && html) {
+    try {
+      if (!fs.existsSync(debugPrintDir)) fs.mkdirSync(debugPrintDir, { recursive: true });
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const printerLabel = (deviceName || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const label = stationId
+        ? `${type}-station-${stationId}-${printerLabel}`
+        : `${type}-${printerLabel}`;
+      const pdfPath = path.join(debugPrintDir, `${label}-${timestamp}.pdf`);
+
+      if (!printWindow || printWindow.isDestroyed()) createPrintWindow();
+      await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+      const pdfData = await printWindow.webContents.printToPDF({
+        printBackground: true,
+        pageSize: { width: widthMicrons, height: 297000 },
+      });
+      fs.writeFileSync(pdfPath, pdfData);
+      console.log('[Print] Debug PDF saved:', pdfPath);
+    } catch (pdfErr) {
+      console.warn('[Print] Debug PDF save failed:', pdfErr.message);
+    }
+  }
 
   // ──── TCP path: if printer is configured by IP address, send raw ESC/POS ────
   if (deviceName && isIpAddress(deviceName)) {
@@ -645,7 +675,30 @@ ipcMain.handle('electron:listPrinters', async () => {
   // Populate print cache so next print job is faster
   cachedPrinters = printers;
   printerCacheTime = Date.now();
-  return printers;
+  // Enrich each printer with connection type heuristics so the UI can show proper icons.
+  // Chromium gives: name, displayName, description, status, isDefault, options (object).
+  const enriched = printers.map(p => {
+    const desc = (p.description || '').toLowerCase();
+    const name = (p.name || '').toLowerCase();
+    const displayName = (p.displayName || '').toLowerCase();
+    let connectionType = 'usb'; // default assumption
+    if (desc.includes('airprint') || desc.includes('bonjour') || desc.includes('ipp://') || desc.includes('ipps://')) {
+      connectionType = 'wifi';
+    } else if (name.includes('._tcp') || name.includes('airprint') || name.includes('bonjour')) {
+      connectionType = 'wifi';
+    } else if (desc.includes('bluetooth') || name.includes('bluetooth')) {
+      connectionType = 'bluetooth';
+    } else if (desc.includes('pdf') || desc.includes('fax') || name.includes('fax') || name.includes('onenote') || name.includes('xps')) {
+      connectionType = 'virtual';
+    } else if (desc.includes('wi-fi') || desc.includes('wifi') || desc.includes('wireless') || desc.includes('network')) {
+      connectionType = 'wifi';
+    } else if (desc.includes('usb') || desc.includes('direct')) {
+      connectionType = 'usb';
+    }
+    return { ...p, connectionType };
+  });
+
+  return enriched;
 });
 
 ipcMain.handle('electron:setDefaultPrinter', async (event, { name }) => {
@@ -696,55 +749,79 @@ ipcMain.handle('electron:getPrinterConfig', async () => {
 // ──── IPC: Network Printer Discovery ────
 
 ipcMain.handle('electron:scanNetworkPrinters', async () => {
-  // Get local IP to determine subnet
   const os = require('os');
   const interfaces = os.networkInterfaces();
-  let localIp = null;
 
+  // Collect all unique local subnets (handles multiple NICs — Ethernet + WiFi)
+  const localIps = new Set();
+  const subnets = new Set();
   for (const name of Object.keys(interfaces)) {
     for (const iface of interfaces[name]) {
-      if (iface.family === 'IPv4' && !iface.internal) {
-        localIp = iface.address;
-        break;
+      if (iface.family === 'IPv4' && !iface.internal && iface.address) {
+        localIps.add(iface.address);
+        subnets.add(iface.address.split('.').slice(0, 3).join('.'));
       }
     }
-    if (localIp) break;
   }
 
-  if (!localIp) {
+  if (subnets.size === 0) {
     return { success: false, error: 'No network interface found', printers: [] };
   }
 
-  const subnet = localIp.split('.').slice(0, 3).join('.');
-  console.log('[PrintScan] Scanning subnet', subnet + '.x on port', TCP_DEFAULT_PORT);
+  // Ports to scan:
+  //  9100 = RAW/JetDirect (thermal printers, most POS printers)
+  //  515  = LPD/LPR (older network printers)
+  //  631  = IPP/CUPS (AirPrint, modern WiFi printers)
+  const SCAN_PORTS = [9100, 515, 631];
+  const PORT_NAMES = { 9100: 'RAW', 515: 'LPD', 631: 'IPP' };
 
   const found = [];
-  // Scan common printer IP range first (.100-.254), then .1-.99
-  const priorities = [];
-  for (let i = 100; i <= 254; i++) priorities.push(i);
-  for (let i = 1; i < 100; i++) priorities.push(i);
+  const foundAddresses = new Set(); // dedup across subnets and ports
 
-  // Scan in batches of 30 to avoid overwhelming the network
-  const BATCH = 30;
-  for (let b = 0; b < priorities.length; b += BATCH) {
-    const batch = priorities.slice(b, b + BATCH);
-    const results = await Promise.all(
-      batch.map(async (i) => {
-        const ip = `${subnet}.${i}`;
-        if (ip === localIp) return null;
-        const open = await probeTcpPort(ip, TCP_DEFAULT_PORT);
-        return open ? ip : null;
-      })
-    );
-    for (const ip of results) {
-      if (ip) {
-        found.push({ name: `Network Printer (${ip})`, address: `${ip}:${TCP_DEFAULT_PORT}`, type: 'network' });
-        console.log('[PrintScan] Found printer at', ip + ':' + TCP_DEFAULT_PORT);
+  for (const subnet of subnets) {
+    console.log('[PrintScan] Scanning subnet', subnet + '.x on ports', SCAN_PORTS.join(', '));
+
+    // Scan common printer IP range first (.100-.254), then .1-.99
+    const priorities = [];
+    for (let i = 100; i <= 254; i++) priorities.push(i);
+    for (let i = 1; i < 100; i++) priorities.push(i);
+
+    // Scan in batches to avoid overwhelming the network
+    const BATCH = 30;
+    for (let b = 0; b < priorities.length; b += BATCH) {
+      const batch = priorities.slice(b, b + BATCH);
+      const results = await Promise.all(
+        batch.flatMap((i) => {
+          const ip = `${subnet}.${i}`;
+          if (localIps.has(ip)) return [];
+          // Probe all ports in parallel for this IP
+          return SCAN_PORTS.map(async (port) => {
+            const open = await probeTcpPort(ip, port);
+            return open ? { ip, port } : null;
+          });
+        })
+      );
+      for (const r of results) {
+        if (r && !foundAddresses.has(r.ip)) {
+          foundAddresses.add(r.ip);
+          // For RAW port 9100, use IP:port as address (direct TCP print path).
+          // For IPP/LPD, still use 9100 as primary print port — they often coexist.
+          const printPort = TCP_DEFAULT_PORT;
+          const protocol = PORT_NAMES[r.port] || 'TCP';
+          found.push({
+            name: `Network Printer (${r.ip}) [${protocol}]`,
+            address: `${r.ip}:${printPort}`,
+            type: 'network',
+            detectedPort: r.port,
+            protocol,
+          });
+          console.log('[PrintScan] Found printer at', r.ip, 'via port', r.port, `(${protocol})`);
+        }
       }
     }
   }
 
-  console.log('[PrintScan] Scan complete. Found', found.length, 'network printers');
+  console.log('[PrintScan] Scan complete. Found', found.length, 'network printers across', subnets.size, 'subnet(s)');
   return { success: true, printers: found };
 });
 

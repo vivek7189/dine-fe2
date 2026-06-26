@@ -1,6 +1,7 @@
-export function formatCurrency(amount) {
-  if (amount === null || amount === undefined || isNaN(amount)) return 'Rs.0.00';
-  return `Rs.${Number(amount).toLocaleString('en-IN', {
+export function formatCurrency(amount, currencySymbol) {
+  const cs = currencySymbol || 'Rs.';
+  if (amount === null || amount === undefined || isNaN(amount)) return `${cs}0.00`;
+  return `${cs}${Number(amount).toLocaleString('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;

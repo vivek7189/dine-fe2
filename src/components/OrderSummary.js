@@ -680,10 +680,17 @@ const OrderSummary = ({
 
     const isNative = supportsNativeAutoPrint();
     const isRNWebView = typeof window !== 'undefined' && !!window.ReactNativeWebView;
+    const isElectronApp = typeof window !== 'undefined' && !!window.electronAPI;
 
-    // Skip local KOT print in WebView when multi-station routing is active (2+ stations)
-    // Electron app handles station-specific KOT routing via Firebase RTDB events
-    if (isRNWebView && printSettings?.__stationCount >= 2) {
+    // Skip local combined KOT print when station routing is active.
+    // On Electron: skip when any station exists (1+) — useAutoPrint handles station-specific routing.
+    // On RN WebView: skip when 2+ stations (useAutoPrint is disabled in WebView, so only skip
+    //   when the dashboard direct-print handles it via printStationCount).
+    const shouldSkipForStations =
+      (isElectronApp && printSettings?.__stationCount >= 1) ||
+      (isRNWebView && printSettings?.__stationCount >= 2);
+
+    if (shouldSkipForStations) {
       window.__autoPrintKOT = false;
       return;
     }
@@ -708,14 +715,22 @@ const OrderSummary = ({
       return;
     }
 
-    // Dedup: skip if this exact orderId was already printed by this effect
+    // Dedup: skip if this exact orderId was already printed by this effect or by useAutoPrint
     const thisOrderId = orderSuccess.kotData.orderId;
     if (thisOrderId && window.__lastKOTPrintedByEffect === thisOrderId) {
+      console.log('[OrderSummary] KOT skipped — already printed by this effect:', thisOrderId);
+      window.__autoPrintKOT = false;
+      return;
+    }
+    if (thisOrderId && window.__lastLocalPrintedKOT === thisOrderId) {
+      console.log('[OrderSummary] KOT skipped — already printed by useAutoPrint:', thisOrderId);
       window.__autoPrintKOT = false;
       return;
     }
 
     window.__autoPrintKOT = false;
+    // Set dedup flag immediately (not inside setTimeout) to prevent race with effect re-fires
+    if (thisOrderId) window.__lastKOTPrintedByEffect = thisOrderId;
     // Native (WebView/Electron/Capacitor): print almost immediately — postMessage is synchronous,
     // no DOM rendering needed. Web: 800ms delay for window.open + print dialog setup.
     const printDelay = isNative ? 50 : 800;
@@ -1897,9 +1912,13 @@ const OrderSummary = ({
     const subtotalSum = guestSubtotals.reduce((a, b) => a + b, 0);
     if (subtotalSum <= 0) return null;
 
+    // Filter out guests with 0 or negative amounts (unassigned in by-item, blank in by-amount)
+    const validGuestIndices = guestSubtotals.map((v, i) => ({ v, i })).filter(g => g.v > 0);
+    if (validGuestIndices.length < 2) return null; // Need at least 2 valid splits
+
     // Proportionally distribute tax, service charge, tip, discount
     const orderSubtotal = getTotalAmount();
-    const splits = guestSubtotals.map((gSub, i) => {
+    const splits = validGuestIndices.map(({ v: gSub, i }) => {
       const proportion = orderSubtotal > 0 ? gSub / orderSubtotal : 1 / guestCount;
       const gTax = Math.round((totalTax || 0) * proportion * 100) / 100;
       const gSc = Math.round((serviceChargeAmount || 0) * proportion * 100) / 100;
@@ -1951,7 +1970,7 @@ const OrderSummary = ({
       }
     }
 
-    return { method, guestCount, splits };
+    return { method, guestCount: splits.length, splits };
   }, [splitBillMode, splitBillGuests, splitBillItemAssignments, splitBillAmounts, splitBillPaymentMethods, splitBillGuestNames, grandTotal, cart, totalTax, taxBreakdown, serviceChargeAmount, tipAmount, effectiveOfferDiscount]);
 
   // Build tax data helper (shared by Place Order, Complete Billing, and UPI confirm)
@@ -5529,7 +5548,7 @@ const OrderSummary = ({
                                 onChange={(e) => setSplitBillGuestNames(prev => ({ ...prev, [i]: e.target.value }))}
                                 style={{ border: 'none', borderBottom: '1px dashed #bae6fd', background: 'transparent', fontSize: '11px', fontWeight: 600, color: '#0369a1', width: '80px', outline: 'none', padding: '2px 4px' }}
                               />
-                              <input type="number" placeholder="Amount"
+                              <input type="number" placeholder="Amount" min="0.01" step="0.01"
                                 value={splitBillAmounts[i] || ''}
                                 onChange={(e) => setSplitBillAmounts(prev => ({ ...prev, [i]: e.target.value }))}
                                 style={{ flex: 1, padding: '5px 8px', border: '1px solid #bae6fd', borderRadius: '6px', fontSize: '12px', fontWeight: 600, outline: 'none', background: dm ? dm.white : 'white' }}
@@ -7695,7 +7714,7 @@ const OrderSummary = ({
                           onChange={(e) => setSplitBillGuestNames(prev => ({ ...prev, [i]: e.target.value }))}
                           style={{ border: 'none', borderBottom: '1px dashed #bae6fd', background: 'transparent', fontSize: '13px', fontWeight: 600, color: '#0369a1', width: '120px', outline: 'none', padding: '2px 4px' }}
                         />
-                        <input type="number" placeholder="Amount"
+                        <input type="number" placeholder="Amount" min="0.01" step="0.01"
                           value={splitBillAmounts[i] || ''}
                           onChange={(e) => setSplitBillAmounts(prev => ({ ...prev, [i]: e.target.value }))}
                           style={{ flex: 1, padding: '8px 10px', border: '1px solid #bae6fd', borderRadius: '8px', fontSize: '14px', fontWeight: 600, outline: 'none', background: dm ? dm.white : 'white' }}

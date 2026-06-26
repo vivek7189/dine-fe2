@@ -10,12 +10,14 @@ import { printDocument } from '../utils/printBridge';
 import apiClient from '../lib/api';
 import { FaBluetooth, FaPrint, FaSync, FaCheckCircle, FaTimesCircle, FaUsb, FaWifi, FaStethoscope, FaMicrochip } from 'react-icons/fa';
 
-// Icon for printer type
+// Icon for printer connection type
 function PrinterIcon({ type }) {
-  if (type === 'bluetooth') return <FaBluetooth style={{ color: '#3b82f6' }} />;
-  if (type === 'network') return <FaWifi style={{ color: '#8b5cf6' }} />;
-  if (type === 'serial') return <FaMicrochip style={{ color: '#ea580c' }} />;
-  return <FaUsb style={{ color: '#6b7280' }} />;
+  if (type === 'bluetooth') return <FaBluetooth style={{ color: '#3b82f6' }} title="Bluetooth" />;
+  if (type === 'network') return <FaWifi style={{ color: '#8b5cf6' }} title="Network (TCP)" />;
+  if (type === 'wifi') return <FaWifi style={{ color: '#3b82f6' }} title="WiFi / AirPrint" />;
+  if (type === 'serial') return <FaMicrochip style={{ color: '#ea580c' }} title="Serial" />;
+  if (type === 'default') return <FaPrint style={{ color: '#16a34a' }} title="System Default" />;
+  return <FaUsb style={{ color: '#6b7280' }} title="USB" />;
 }
 
 export default function NativePrinterSettings({ restaurantId }) {
@@ -24,10 +26,13 @@ export default function NativePrinterSettings({ restaurantId }) {
   const [kotPrinter, setKotPrinter] = useState(null);
   const [billPrinter, setBillPrinter] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [scanStatus, setScanStatus] = useState(null); // progress message during scan
+  const [scanError, setScanError] = useState(null); // error message from last scan
   const [isConnected, setIsConnected] = useState(false);
   const [testPrintStatus, setTestPrintStatus] = useState(null);
   const [testKotStatus, setTestKotStatus] = useState(null);
   const [testBillStatus, setTestBillStatus] = useState(null);
+  const [perPrinterTestStatus, setPerPrinterTestStatus] = useState({}); // { [printerAddress]: 'printing'|'success'|'error' }
   const [webPlatform, setWebPlatform] = useState(true);
   const [diagReport, setDiagReport] = useState(null);
   const [isDiagnosing, setIsDiagnosing] = useState(false);
@@ -36,13 +41,15 @@ export default function NativePrinterSettings({ restaurantId }) {
   const [stationPrinters, setStationPrinters] = useState({});
   const [stationTestStatus, setStationTestStatus] = useState({});
   const [networkIpInput, setNetworkIpInput] = useState('');
-  const [isNetworkScanning, setIsNetworkScanning] = useState(false);
   const [networkPrinters, setNetworkPrinters] = useState([]); // manually added IP printers
   const [printerHealth, setPrinterHealth] = useState({}); // { [printerName]: 'online'|'offline'|'checking' }
   const [categories, setCategories] = useState([]); // menu categories for station assignment
-  const [editingDestination, setEditingDestination] = useState(null); // stationId being edited
-  const [newStationForm, setNewStationForm] = useState(null); // { name, type, categoryIds }
-  const [expandedStation, setExpandedStation] = useState(null); // stationId with expanded categories
+  const [editingStationId, setEditingStationId] = useState(null); // stationId being renamed
+  const [addingStation, setAddingStation] = useState(false); // whether add-station form is open
+  const [newStationName, setNewStationName] = useState('');
+  const [newStationType, setNewStationType] = useState('kitchen');
+  const [newStationCatIds, setNewStationCatIds] = useState([]);
+  const [newStationPrinter, setNewStationPrinter] = useState(''); // printer to assign on creation
   const isElectronPlatform = !isWeb() && isElectron();
   const isCapacitorPlatform = !isWeb() && isCapacitor();
   // Show printer routing for both Electron and Capacitor
@@ -50,29 +57,103 @@ export default function NativePrinterSettings({ restaurantId }) {
 
   const scanPrinters = useCallback(async () => {
     setIsScanning(true);
+    setScanStatus('Scanning printers...');
+    setScanError(null);
+    let allPrinters = [];
+    let osScanFailed = false;
     try {
+      // Phase 1: OS-installed printers (USB, WiFi/AirPrint, Bluetooth, CUPS-configured)
       if (isCapacitor()) {
         const { DinePrinter } = await import('capacitor-dine-printer');
         const result = await DinePrinter.scanPrinters();
-        setPrinters(result.printers || []);
+        allPrinters = result.printers || [];
       } else if (isTauri()) {
         const { invoke } = await import('@tauri-apps/api/core');
         const result = await invoke('list_printers');
-        setPrinters(result || []);
+        allPrinters = result || [];
       } else if (isElectron()) {
         const printers = await window.electronAPI.getPrinters();
-        setPrinters((printers || []).map(p => ({
-          name: p.displayName || p.name,
-          address: p.name,
-          type: p.isDefault ? 'default' : 'usb',
-        })));
+        allPrinters = (printers || []).map(p => {
+          // Use enriched connectionType from Electron main process if available,
+          // otherwise fall back to heuristic classification.
+          let type = p.connectionType || 'usb';
+          if (type === 'virtual') type = 'virtual'; // PDF/Fax/XPS — keep but mark
+          if (p.isDefault && type === 'usb') type = 'default';
+          return {
+            name: p.displayName || p.name,
+            address: p.name,
+            type,
+            description: p.description || '',
+            status: p.status, // 0 = idle, 1 = printing, 2 = error
+          };
+        });
       }
     } catch (err) {
-      console.error('Failed to scan printers:', err);
-    } finally {
-      setIsScanning(false);
+      console.error('Failed to scan OS printers:', err);
+      setScanError('Printer scan failed: ' + (err.message || 'Unknown error'));
+      osScanFailed = true;
     }
-  }, []);
+
+    // Filter out system virtual printers (Fax, XPS, OneNote)
+    const virtualPrinters = allPrinters.filter(p => p.type === 'virtual');
+    allPrinters = allPrinters.filter(p => p.type !== 'virtual');
+
+    // Phase 2: LAN scan for network thermal printers (Electron only)
+    // Scans all subnets on ports 9100 (RAW), 515 (LPD), 631 (IPP)
+    if (isElectron() && window.electronAPI?.scanNetworkPrinters) {
+      const osCount = allPrinters.length;
+      setScanStatus(
+        osCount > 0
+          ? `Found ${osCount} printer${osCount !== 1 ? 's' : ''}. Scanning network...`
+          : 'Scanning network for printers...'
+      );
+      try {
+        const result = await window.electronAPI.scanNetworkPrinters();
+        if (result?.printers?.length) {
+          // Dedup: OS WiFi printers may appear in LAN scan too.
+          // Match by IP — OS printer descriptions/names sometimes contain the IP.
+          const osAddresses = new Set(allPrinters.map(p => p.address));
+          const osDescriptions = allPrinters.map(p => (p.description || '').toLowerCase()).join(' ');
+          const lanPrinters = result.printers.filter(p => {
+            if (osAddresses.has(p.address)) return false;
+            // Check if this IP is already known from OS printer description
+            const ip = p.address.split(':')[0];
+            if (osDescriptions.includes(ip)) return false;
+            return true;
+          });
+          allPrinters = [...allPrinters, ...lanPrinters];
+        }
+      } catch (err) {
+        console.warn('Network scan failed (non-critical):', err.message);
+        // Network scan failure is non-critical — OS printers still work
+      }
+    }
+
+    // Phase 3: Merge manually added network printers (saved in local settings)
+    if (networkPrinters.length > 0) {
+      const existing = new Set(allPrinters.map(p => p.address));
+      const manualPrinters = networkPrinters.filter(p => !existing.has(p.address));
+      allPrinters = [...allPrinters, ...manualPrinters];
+    }
+
+    setPrinters(allPrinters);
+    if (allPrinters.length === 0 && !osScanFailed) {
+      setScanStatus(null);
+      setScanError(
+        'No printers found. Make sure your printer is turned on and connected via USB, WiFi, or Ethernet, then try again. You can also add a network printer by IP address.'
+      );
+    } else if (allPrinters.length > 0) {
+      const summary = [];
+      const osDriverCount = allPrinters.filter(p => p.type !== 'network').length;
+      const networkCount = allPrinters.filter(p => p.type === 'network').length;
+      if (osDriverCount > 0) summary.push(`${osDriverCount} system`);
+      if (networkCount > 0) summary.push(`${networkCount} network`);
+      if (virtualPrinters.length > 0) summary.push(`${virtualPrinters.length} virtual hidden`);
+      setScanStatus(`Found ${allPrinters.length} printer${allPrinters.length !== 1 ? 's' : ''} (${summary.join(', ')})`);
+      setTimeout(() => setScanStatus(null), 4000);
+    }
+    setIsScanning(false);
+  }, [networkPrinters]);
 
   const selectPrinter = useCallback(async (printer) => {
     try {
@@ -171,6 +252,29 @@ export default function NativePrinterSettings({ restaurantId }) {
     setTimeout(() => setTestBillStatus(null), 3000);
   }, []);
 
+  // Test a specific printer by address/name (sends directly to that printer)
+  const testSpecificPrinter = useCallback(async (printer) => {
+    const key = printer.address || printer.name;
+    setPerPrinterTestStatus(prev => ({ ...prev, [key]: 'printing' }));
+    try {
+      const printerId = printer.type === 'network' ? printer.address : printer.name;
+      if (isElectron() && window.electronAPI?.print) {
+        const result = await window.electronAPI.print(makeTestHtml(`TEST: ${printer.name}`), {
+          type: 'bill',
+          printerOverride: printerId,
+        });
+        if (result?.success === false) throw new Error(result.error || 'Print failed');
+      } else {
+        await printDocument({ html: makeTestHtml(`TEST: ${printer.name}`), type: 'bill' });
+      }
+      setPerPrinterTestStatus(prev => ({ ...prev, [key]: 'success' }));
+    } catch (err) {
+      console.error('Test print failed for', printer.name, err);
+      setPerPrinterTestStatus(prev => ({ ...prev, [key]: 'error' }));
+    }
+    setTimeout(() => setPerPrinterTestStatus(prev => ({ ...prev, [key]: null })), 3000);
+  }, []);
+
   const runDiagnostics = useCallback(async () => {
     setIsDiagnosing(true);
     setDiagReport(null);
@@ -191,7 +295,7 @@ export default function NativePrinterSettings({ restaurantId }) {
     }
   }, []);
 
-  // Detect platform and app version on mount
+  // Detect platform, app version, and auto-scan printers on mount
   useEffect(() => {
     setWebPlatform(isWeb());
     if (isTauri()) {
@@ -201,7 +305,13 @@ export default function NativePrinterSettings({ restaurantId }) {
     } else if (isElectron()) {
       window.electronAPI.getVersion().then(v => setAppVersion(v)).catch(() => {});
     }
-  }, []);
+    // Auto-scan printers on mount so the list is ready immediately
+    if (!isWeb()) {
+      // Small delay to let the config load first (so networkPrinters are available for merge)
+      const timer = setTimeout(() => scanPrinters(), 500);
+      return () => clearTimeout(timer);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Check connection status and load printer config on mount
   useEffect(() => {
@@ -356,27 +466,6 @@ export default function NativePrinterSettings({ restaurantId }) {
     }
   }, [networkPrinters, isElectronPlatform]);
 
-  // Scan network for thermal printers (Electron only)
-  const scanNetworkPrinters = useCallback(async () => {
-    if (!isElectronPlatform || !window.electronAPI?.scanNetworkPrinters) return;
-    setIsNetworkScanning(true);
-    try {
-      const result = await window.electronAPI.scanNetworkPrinters();
-      if (result?.printers?.length) {
-        // Merge discovered printers into the list (avoid duplicates)
-        setPrinters(prev => {
-          const existing = new Set(prev.map(p => p.address));
-          const newPrinters = result.printers.filter(p => !existing.has(p.address));
-          return [...prev, ...newPrinters];
-        });
-      }
-    } catch (err) {
-      console.error('Network scan failed:', err);
-    } finally {
-      setIsNetworkScanning(false);
-    }
-  }, [isElectronPlatform]);
-
   const testStationPrint = useCallback(async (stationId, stationName) => {
     setStationTestStatus(prev => ({ ...prev, [stationId]: 'printing' }));
     try {
@@ -399,8 +488,6 @@ export default function NativePrinterSettings({ restaurantId }) {
   }, []);
 
   // --- Multi-printer helpers ---
-  const printerMode = printStations.length > 0 ? 'multi' : 'simple';
-
   const updateStationCategories = useCallback(async (stationId, categoryIds) => {
     const updated = printStations.map(s =>
       s.id === stationId ? { ...s, categoryIds, updatedAt: new Date().toISOString() } : s
@@ -412,9 +499,10 @@ export default function NativePrinterSettings({ restaurantId }) {
   }, [printStations, restaurantId]);
 
   const addStation = useCallback(async (form) => {
-    if (!form?.name?.trim()) return;
+    if (!form?.name?.trim()) return null;
+    const stationId = form.id || `ps_${Date.now().toString(36)}`;
     const newStation = {
-      id: `ps_${Date.now().toString(36)}`,
+      id: stationId,
       name: form.name.trim(),
       type: form.type || 'kitchen',
       categoryIds: form.categoryIds || [],
@@ -429,9 +517,9 @@ export default function NativePrinterSettings({ restaurantId }) {
       if (res?.success) {
         setPrintStations((res.printStations || updated).filter(s => s.enabled));
         if (res.categories) setCategories(res.categories);
-        setNewStationForm(null);
       }
-    } catch (err) { console.error('Failed to add station:', err); }
+      return stationId;
+    } catch (err) { console.error('Failed to add station:', err); return null; }
   }, [printStations, restaurantId]);
 
   const deleteStation = useCallback(async (stationId) => {
@@ -457,7 +545,7 @@ export default function NativePrinterSettings({ restaurantId }) {
     try {
       const res = await apiClient.updatePrintStations(restaurantId, updated, 'multi');
       if (res?.success) setPrintStations((res.printStations || updated).filter(s => s.enabled));
-      setEditingDestination(null);
+      setEditingStationId(null);
     } catch (err) { console.error('Failed to update station:', err); }
   }, [printStations, restaurantId]);
 
@@ -479,7 +567,11 @@ export default function NativePrinterSettings({ restaurantId }) {
   }, [printStations, assignPrinter, isElectronPlatform, restaurantId]);
 
   const switchToMulti = useCallback(() => {
-    setNewStationForm({ name: '', type: 'kitchen', categoryIds: [] });
+    setAddingStation(true);
+    setNewStationName('');
+    setNewStationType('kitchen');
+    setNewStationCatIds([]);
+    setNewStationPrinter('');
   }, []);
 
   const assignedCatIds = new Set(printStations.flatMap(s => s.categoryIds || []));
@@ -493,18 +585,68 @@ export default function NativePrinterSettings({ restaurantId }) {
     return printers.find(p => p.address === address) || { name: address, address, type: 'unknown' };
   };
 
+  // Helper: get printer identifier for Electron config
+  const getPrinterId = (printer) => {
+    if (!printer) return '';
+    return isElectronPlatform ? (printer.type === 'network' ? printer.address : printer.name) : printer.address;
+  };
+
+  // Helper: render health dot
+  const renderHealthDot = (printerKey, size = 7) => {
+    if (!isElectronPlatform || !printerKey) return null;
+    const h = printerHealth[printerKey];
+    if (!h) return null;
+    return (
+      <span style={{
+        width: `${size}px`, height: `${size}px`, borderRadius: '50%', flexShrink: 0,
+        backgroundColor: h === 'online' ? '#22c55e' : '#ef4444',
+        boxShadow: h === 'online' ? '0 0 4px #22c55e' : '0 0 4px #ef4444',
+      }} title={h === 'online' ? 'Printer reachable' : 'Printer unreachable'} />
+    );
+  };
+
+  // Helper: render printer dropdown options
+  const renderPrinterOptions = () => printers.map((p, i) => (
+    <option key={p.address || i} value={getPrinterId(p)}>
+      {p.name}{p.type === 'serial' ? ' (Built-in)' : ''}
+    </option>
+  ));
+
+  // Handle adding a new station with printer assignment in one step
+  const handleAddStation = async () => {
+    const type = newStationType || 'kitchen';
+    // Auto-generate name from type if not provided
+    let name = newStationName.trim();
+    if (!name) {
+      const typeLabel = type.charAt(0).toUpperCase() + type.slice(1);
+      const sameTypeCount = printStations.filter(s => (s.type || '').toLowerCase() === type.toLowerCase()).length;
+      name = sameTypeCount > 0 ? `${typeLabel} ${sameTypeCount + 1}` : typeLabel;
+    }
+    const stationId = await addStation({
+      name,
+      type,
+      categoryIds: newStationCatIds,
+    });
+    if (stationId && newStationPrinter) {
+      await assignStationPrinter(stationId, newStationPrinter);
+    }
+    setAddingStation(false);
+    setNewStationName('');
+    setNewStationType('kitchen');
+    setNewStationCatIds([]);
+    setNewStationPrinter('');
+  };
+
   return (
     <div style={{
-      marginTop: '16px',
-      padding: '16px',
-      backgroundColor: '#f0fdf4',
-      borderRadius: '12px',
-      border: '1px solid #bbf7d0',
+      marginTop: '16px', padding: '16px', backgroundColor: '#f0fdf4',
+      borderRadius: '12px', border: '1px solid #bbf7d0',
     }}>
+      {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
         <FaPrint style={{ color: '#16a34a' }} />
         <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#15803d' }}>
-          Native Printer Setup
+          Printer Setup
         </h4>
         {appVersion && (
           <span style={{ fontSize: '11px', color: '#6b7280', backgroundColor: '#e5e7eb', padding: '2px 8px', borderRadius: '10px' }}>
@@ -512,8 +654,6 @@ export default function NativePrinterSettings({ restaurantId }) {
           </span>
         )}
         {(() => {
-          // Use heartbeat status for Electron when available
-          // Health is keyed by the stored identifier (raw IP for network printers, OS name for others)
           const defaultHealth = selectedPrinter ? (printerHealth[selectedPrinter.address] || printerHealth[selectedPrinter.name]) : null;
           const effectiveConnected = isElectronPlatform && defaultHealth ? defaultHealth === 'online' : isConnected;
           return effectiveConnected ? (
@@ -532,388 +672,249 @@ export default function NativePrinterSettings({ restaurantId }) {
         })()}
       </div>
 
-      {selectedPrinter && (
-        <div style={{
-          padding: '8px 12px',
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          marginBottom: '12px',
-          fontSize: '13px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-        }}>
-          <PrinterIcon type={selectedPrinter.type} />
-          <span style={{ fontWeight: 500 }}>{selectedPrinter.name}</span>
-          <span style={{ color: '#9ca3af', fontSize: '11px' }}>{selectedPrinter.address}</span>
-          {(() => {
-            const h = printerHealth[selectedPrinter.address] || printerHealth[selectedPrinter.name];
-            return isElectronPlatform && h ? (
-              <span style={{
-                width: '8px', height: '8px', borderRadius: '50%', marginLeft: 'auto',
-                backgroundColor: h === 'online' ? '#22c55e' : '#ef4444',
-                boxShadow: h === 'online' ? '0 0 4px #22c55e' : '0 0 4px #ef4444',
-              }} title={h === 'online' ? 'Printer reachable' : 'Printer unreachable — check power & network'} />
-            ) : null;
-          })()}
-        </div>
-      )}
-
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+      {/* ── Discover Printers ── */}
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '4px', alignItems: 'center' }}>
         <button
           onClick={scanPrinters}
           disabled={isScanning}
           style={{
-            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-            padding: '8px 12px', fontSize: '13px', fontWeight: 500,
-            backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '8px',
+            display: 'flex', alignItems: 'center', gap: '6px',
+            padding: '7px 14px', fontSize: '12px', fontWeight: 500,
+            backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '6px',
             cursor: isScanning ? 'not-allowed' : 'pointer', opacity: isScanning ? 0.7 : 1,
           }}
         >
-          <FaSync style={{ animation: isScanning ? 'spin 1s linear infinite' : 'none' }} />
-          {isScanning ? 'Scanning...' : 'Scan Printers'}
+          <FaSync style={{ animation: isScanning ? 'spin 1s linear infinite' : 'none', fontSize: '11px' }} />
+          {isScanning ? 'Scanning...' : 'Find Printers'}
         </button>
-
-        <button
-          onClick={testPrint}
-          disabled={!selectedPrinter || testPrintStatus === 'printing'}
-          style={{
-            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-            padding: '8px 12px', fontSize: '13px', fontWeight: 500,
-            backgroundColor: selectedPrinter ? '#2563eb' : '#d1d5db', color: 'white',
-            border: 'none', borderRadius: '8px',
-            cursor: selectedPrinter ? 'pointer' : 'not-allowed',
-          }}
-        >
-          <FaPrint />
-          {testPrintStatus === 'printing' ? 'Printing...' :
-           testPrintStatus === 'success' ? 'Success!' :
-           testPrintStatus === 'error' ? 'Failed' : 'Test Print'}
-        </button>
+        {/* Test Print — next to Find Printers when a default printer is set */}
+        {selectedPrinter && printStations.length === 0 && (
+          <button
+            onClick={testPrint}
+            disabled={testPrintStatus === 'printing'}
+            style={{
+              padding: '7px 14px', fontSize: '12px', fontWeight: 500,
+              backgroundColor: testPrintStatus === 'success' ? '#16a34a' : testPrintStatus === 'error' ? '#dc2626' : '#2563eb',
+              color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer',
+            }}
+          >
+            {testPrintStatus === 'printing' ? 'Printing...' : testPrintStatus === 'success' ? 'Test OK' : testPrintStatus === 'error' ? 'Test Failed' : 'Test Print'}
+          </button>
+        )}
+        {scanStatus && (
+          <span style={{ fontSize: '11px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            {isScanning && <FaSync style={{ animation: 'spin 1s linear infinite', fontSize: '10px' }} />}
+            {scanStatus}
+          </span>
+        )}
       </div>
-
-      {/* Network Printer — Add by IP (Electron only) */}
+      {/* Add by IP — secondary action, smaller row */}
       {isElectronPlatform && (
-        <div style={{
-          marginBottom: '12px', padding: '10px', backgroundColor: '#faf5ff',
-          borderRadius: '8px', border: '1px solid #e9d5ff',
-        }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: '#7c3aed', marginBottom: '8px' }}>
-            Add Network Printer (IP Address)
-          </div>
-          <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
-            <input
-              type="text"
-              value={networkIpInput}
-              onChange={(e) => setNetworkIpInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') addNetworkPrinter(networkIpInput); }}
-              placeholder="e.g. 192.168.1.100 or 192.168.1.100:9100"
-              style={{
-                flex: 1, padding: '6px 10px', fontSize: '13px', borderRadius: '6px',
-                border: '1px solid #d1d5db', backgroundColor: 'white',
-              }}
-            />
-            <button
-              onClick={() => addNetworkPrinter(networkIpInput)}
-              disabled={!networkIpInput.trim()}
-              style={{
-                padding: '6px 14px', fontSize: '12px', fontWeight: 500,
-                backgroundColor: networkIpInput.trim() ? '#7c3aed' : '#e5e7eb', color: 'white',
-                border: 'none', borderRadius: '6px',
-                cursor: networkIpInput.trim() ? 'pointer' : 'not-allowed',
-              }}
-            >
-              Add
-            </button>
-            <button
-              onClick={scanNetworkPrinters}
-              disabled={isNetworkScanning}
-              style={{
-                padding: '6px 14px', fontSize: '12px', fontWeight: 500,
-                backgroundColor: '#8b5cf6', color: 'white',
-                border: 'none', borderRadius: '6px',
-                cursor: isNetworkScanning ? 'not-allowed' : 'pointer',
-                opacity: isNetworkScanning ? 0.7 : 1,
-              }}
-            >
-              <FaSync style={{ display: 'inline', marginRight: '4px', animation: isNetworkScanning ? 'spin 1s linear infinite' : 'none' }} />
-              {isNetworkScanning ? 'Scanning...' : 'Scan LAN'}
-            </button>
-          </div>
-          {networkPrinters.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {networkPrinters.map((p) => (
-                <div key={p.address} style={{
-                  display: 'flex', alignItems: 'center', gap: '8px',
-                  padding: '4px 8px', backgroundColor: 'white', borderRadius: '6px',
-                  border: '1px solid #e5e7eb', fontSize: '12px',
-                }}>
-                  <FaWifi style={{ color: '#8b5cf6', flexShrink: 0 }} />
-                  <span style={{ flex: 1 }}>{p.address}</span>
-                  <button
-                    onClick={() => removeNetworkPrinter(p.address)}
-                    style={{
-                      padding: '2px 8px', fontSize: '11px', color: '#ef4444',
-                      backgroundColor: 'transparent', border: '1px solid #fca5a5', borderRadius: '4px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '6px' }}>
-            For thermal printers connected directly via IP (not installed as OS driver). Default port: 9100.
-          </div>
+        <div style={{ display: 'flex', gap: '4px', alignItems: 'center', marginBottom: '10px' }}>
+          <span style={{ fontSize: '10px', color: '#9ca3af' }}>or add by IP:</span>
+          <input
+            type="text"
+            value={networkIpInput}
+            onChange={(e) => setNetworkIpInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') addNetworkPrinter(networkIpInput); }}
+            placeholder="192.168.1.100"
+            style={{
+              padding: '4px 8px', fontSize: '11px', borderRadius: '4px',
+              border: '1px solid #d1d5db', width: '140px',
+            }}
+          />
+          <button
+            onClick={() => addNetworkPrinter(networkIpInput)}
+            disabled={!networkIpInput.trim()}
+            style={{
+              padding: '4px 8px', fontSize: '11px', fontWeight: 500,
+              backgroundColor: networkIpInput.trim() ? '#7c3aed' : '#e5e7eb', color: 'white',
+              border: 'none', borderRadius: '4px',
+              cursor: networkIpInput.trim() ? 'pointer' : 'not-allowed',
+            }}
+          >
+            Add
+          </button>
+        </div>
+      )}
+      {!isElectronPlatform && <div style={{ marginBottom: '10px' }} />}
+      {scanError && (
+        <div style={{ fontSize: '11px', color: '#dc2626', backgroundColor: '#fef2f2', padding: '6px 10px', borderRadius: '6px', marginBottom: '10px' }}>
+          {scanError}
         </div>
       )}
 
+      {/* Discovered printers list */}
       {printers.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
-            Found {printers.length} printer{printers.length !== 1 ? 's' : ''}:
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginBottom: '12px' }}>
+          <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '2px' }}>
+            Select your printer:
           </div>
-          {printers.map((printer, idx) => (
-            <button
-              key={printer.address || idx}
-              onClick={() => selectPrinter(printer)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                padding: '8px 12px', backgroundColor: 'white', border: '1px solid #e5e7eb',
-                borderRadius: '8px', cursor: 'pointer', fontSize: '13px', textAlign: 'left',
-                ...(selectedPrinter?.address === printer.address && {
-                  borderColor: '#16a34a', backgroundColor: '#f0fdf4',
-                }),
-              }}
-            >
-              <PrinterIcon type={printer.type} />
-              <div>
-                <div style={{ fontWeight: 500 }}>{printer.name}</div>
-                <div style={{ fontSize: '11px', color: '#9ca3af' }}>
-                  {printer.address}
-                  {printer.type === 'serial' && <span style={{ marginLeft: '6px', color: '#ea580c', fontWeight: 500 }}>(Built-in)</span>}
-                </div>
-              </div>
-              {selectedPrinter?.address === printer.address && (
-                <FaCheckCircle style={{ color: '#16a34a', marginLeft: 'auto' }} />
-              )}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* ── Print Destinations — Unified Printer Routing ── */}
-      {supportsRouting && printers.length > 0 && (
-        <div style={{ marginTop: '12px' }}>
-
-          {/* Mode indicator */}
-          {printerMode === 'simple' && !newStationForm ? (
-            <div style={{
-              padding: '12px', backgroundColor: '#f0fdf4', borderRadius: '8px',
-              border: '1px solid #bbf7d0',
-            }}>
-              <div style={{ fontSize: '13px', fontWeight: 500, color: '#15803d', marginBottom: '4px' }}>
-                All KOT and bill prints go to the selected printer above.
-              </div>
-              <button
-                onClick={switchToMulti}
+          {printers.map((printer, idx) => {
+            const isSelected = selectedPrinter?.address === printer.address;
+            const printerKey = getPrinterId(printer);
+            const health = printerHealth[printerKey] || printerHealth[printer.address] || printerHealth[printer.name];
+            const testStatus = perPrinterTestStatus[printer.address || printer.name];
+            return (
+              <div
+                key={printer.address || idx}
+                onClick={() => selectPrinter(printer)}
                 style={{
-                  fontSize: '12px', color: '#1d4ed8', background: 'none', border: 'none',
-                  cursor: 'pointer', padding: 0, textDecoration: 'underline',
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  padding: '8px 10px', backgroundColor: 'white', border: `1px solid ${isSelected ? '#16a34a' : '#e5e7eb'}`,
+                  borderRadius: '6px', cursor: 'pointer', fontSize: '12px',
+                  ...(isSelected && { backgroundColor: '#f0fdf4' }),
                 }}
               >
-                Need multiple printers? Set up multi-printer routing →
-              </button>
-            </div>
-          ) : printerMode === 'simple' && newStationForm ? (
-            <div style={{
-              padding: '12px', backgroundColor: '#eff6ff', borderRadius: '8px',
-              border: '1px solid #bfdbfe',
-            }}>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: '#1d4ed8', marginBottom: '10px' }}>
-                Set up multi-printer routing
-              </div>
-              <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px' }}>
-                Create your first KOT station. Orders will be split by category and sent to different printers.
-              </div>
-              <div style={{
-                padding: '10px 12px', backgroundColor: 'white', borderRadius: '8px',
-                border: '2px dashed #bfdbfe', marginBottom: '8px',
-              }}>
-                <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
-                  <input
-                    type="text"
-                    placeholder="Station name (e.g. Main Kitchen)"
-                    value={newStationForm.name}
-                    onChange={(e) => setNewStationForm(prev => ({ ...prev, name: e.target.value }))}
-                    autoFocus
-                    maxLength={50}
-                    style={{
-                      flex: 1, padding: '6px 10px', fontSize: '12px', borderRadius: '6px',
-                      border: '1px solid #d1d5db', backgroundColor: 'white',
-                    }}
-                  />
-                  <input
-                    type="text"
-                    list="station-types-list"
-                    placeholder="Type (e.g. Kitchen)"
-                    value={newStationForm.type === 'kitchen' && !newStationForm._typeEdited ? '' : newStationForm.type}
-                    onChange={(e) => setNewStationForm(prev => ({ ...prev, type: e.target.value || 'kitchen', _typeEdited: true }))}
-                    maxLength={30}
-                    style={{
-                      width: '130px', padding: '6px 10px', fontSize: '12px', borderRadius: '6px',
-                      border: '1px solid #d1d5db', backgroundColor: 'white',
-                    }}
-                  />
-                  <datalist id="station-types-list">
-                    <option value="Kitchen" />
-                    <option value="Bar" />
-                    <option value="Expo" />
-                    <option value="Pastry" />
-                    <option value="Grill" />
-                    <option value="Drinks" />
-                    <option value="Packing" />
-                  </datalist>
-                </div>
-                {categories.length > 0 && (
-                  <div style={{ marginBottom: '8px' }}>
-                    <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Assign categories:</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxHeight: '100px', overflowY: 'auto' }}>
-                      {categories.map(cat => {
-                        const isSelected = (newStationForm.categoryIds || []).includes(cat.id);
-                        return (
-                          <button
-                            key={cat.id}
-                            onClick={() => {
-                              setNewStationForm(prev => ({
-                                ...prev,
-                                categoryIds: isSelected
-                                  ? prev.categoryIds.filter(id => id !== cat.id)
-                                  : [...prev.categoryIds, cat.id]
-                              }));
-                            }}
-                            style={{
-                              padding: '3px 8px', borderRadius: '12px', fontSize: '11px', border: 'none',
-                              cursor: 'pointer',
-                              backgroundColor: isSelected ? '#2563eb' : '#e5e7eb',
-                              color: isSelected ? '#fff' : '#374151',
-                            }}
-                          >
-                            {cat.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                <PrinterIcon type={printer.type} />
+                <span style={{ fontWeight: 500 }}>{printer.name}</span>
+                <span style={{ color: '#9ca3af', fontSize: '11px' }}>{printer.address}</span>
+                {/* Health status indicator */}
+                {health && (
+                  <span style={{
+                    display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px',
+                    color: health === 'online' ? '#16a34a' : health === 'offline' ? '#dc2626' : '#9ca3af',
+                  }}>
+                    <span style={{
+                      width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0,
+                      backgroundColor: health === 'online' ? '#22c55e' : health === 'offline' ? '#ef4444' : '#d1d5db',
+                      boxShadow: health === 'online' ? '0 0 4px #22c55e' : health === 'offline' ? '0 0 4px #ef4444' : 'none',
+                    }} />
+                    {health === 'online' ? 'Online' : health === 'offline' ? 'Offline' : ''}
+                  </span>
                 )}
-                <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px', alignItems: 'center' }}>
+                  {/* Test button */}
                   <button
-                    onClick={() => setNewStationForm(null)}
+                    onClick={(e) => { e.stopPropagation(); testSpecificPrinter(printer); }}
+                    disabled={testStatus === 'printing'}
                     style={{
-                      padding: '6px 12px', fontSize: '12px', color: '#6b7280',
-                      background: 'none', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer',
+                      padding: '2px 8px', fontSize: '10px', fontWeight: 500,
+                      backgroundColor: testStatus === 'success' ? '#16a34a' : testStatus === 'error' ? '#dc2626' : '#6b7280',
+                      color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer',
                     }}
-                  >Cancel</button>
-                  <button
-                    onClick={() => addStation(newStationForm)}
-                    disabled={!newStationForm.name.trim()}
-                    style={{
-                      padding: '6px 12px', fontSize: '12px', fontWeight: 600, color: 'white',
-                      backgroundColor: newStationForm.name.trim() ? '#2563eb' : '#d1d5db',
-                      border: 'none', borderRadius: '6px',
-                      cursor: newStationForm.name.trim() ? 'pointer' : 'not-allowed',
-                    }}
-                  >Add Station</button>
+                  >
+                    {testStatus === 'printing' ? '...' : testStatus === 'success' ? 'OK' : testStatus === 'error' ? 'Fail' : 'Test'}
+                  </button>
+                  {printer.type === 'network' && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); removeNetworkPrinter(printer.address); }}
+                      style={{ fontSize: '10px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}
+                    >Remove</button>
+                  )}
+                  {isSelected && (
+                    <FaCheckCircle style={{ color: '#16a34a', fontSize: '12px' }} />
+                  )}
                 </div>
               </div>
-            </div>
-          ) : (
-            <div style={{
-              padding: '12px', backgroundColor: '#eff6ff', borderRadius: '8px',
-              border: '1px solid #bfdbfe',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: '#1d4ed8' }}>
-                  Print Destinations
-                </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Info line — when single printer, no stations */}
+      {selectedPrinter && printStations.length === 0 && (
+        <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '8px' }}>
+          All bills & KOTs print to <strong>{selectedPrinter.name}</strong>
+        </div>
+      )}
+
+      {/* ── KOT Stations (multi-printer routing) ── */}
+      {supportsRouting && (
+        <div style={{ marginTop: printStations.length > 0 || addingStation ? '4px' : '0' }}>
+
+          {/* Station Cards — only show when stations exist */}
+          {printStations.length > 0 && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#374151' }}>KOT Stations</span>
                 <span style={{ fontSize: '11px', color: '#6b7280' }}>
-                  {printStations.length} station{printStations.length !== 1 ? 's' : ''} + receipt
+                  — orders route to printers by category
                 </span>
               </div>
 
-              {/* Receipt Printer (always shown in multi mode) */}
-              <div style={{
-                padding: '10px 12px', backgroundColor: 'white', borderRadius: '8px',
-                border: '1px solid #e5e7eb', marginBottom: '8px',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                  <FaPrint style={{ color: '#2563eb', flexShrink: 0 }} />
-                  <span style={{ fontWeight: 600, fontSize: '13px', color: '#374151' }}>Receipt Printer</span>
-                  <span style={{
-                    fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '4px',
-                    backgroundColor: '#dbeafe', color: '#1d4ed8', textTransform: 'uppercase',
-                  }}>Receipt</span>
-                  {(() => {
-                    const h = billPrinter && (printerHealth[billPrinter.address] || printerHealth[billPrinter.name]);
-                    return isElectronPlatform && h ? (
-                      <span style={{
-                        width: '7px', height: '7px', borderRadius: '50%', marginLeft: 'auto',
-                        backgroundColor: h === 'online' ? '#22c55e' : '#ef4444',
-                      }} />
-                    ) : null;
-                  })()}
-                </div>
-                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              {/* Bill printer override */}
+              {printers.length > 0 && (
+                <div style={{
+                  display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '8px',
+                  padding: '8px 10px', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0',
+                }}>
+                  <FaPrint style={{ color: '#2563eb', fontSize: '12px', flexShrink: 0 }} />
+                  <span style={{ fontSize: '11px', color: '#374151', fontWeight: 500, flexShrink: 0 }}>Bill Printer:</span>
                   <select
                     value={billPrinter?.address || billPrinter?.name || ''}
                     onChange={(e) => {
-                      const p = printers.find(pr => pr.address === e.target.value || pr.name === e.target.value);
+                      const p = printers.find(pr => (pr.address === e.target.value || pr.name === e.target.value));
                       assignPrinter('bill', p || null);
                     }}
                     style={{
-                      flex: 1, padding: '6px 10px', fontSize: '12px', borderRadius: '6px',
-                      border: '1px solid #d1d5db', backgroundColor: '#f9fafb',
+                      flex: 1, padding: '5px 8px', fontSize: '11px', borderRadius: '5px',
+                      border: '1px solid #d1d5db', backgroundColor: 'white',
                     }}
                   >
-                    <option value="">Use default printer</option>
-                    {printers.map((p, i) => (
-                      <option key={p.address || i} value={isElectronPlatform ? (p.type === 'network' ? p.address : p.name) : p.address}>
-                        {p.name}{p.type === 'serial' ? ' (Built-in)' : ''}
-                      </option>
-                    ))}
+                    <option value="">{selectedPrinter?.name || 'Default printer'}</option>
+                    {renderPrinterOptions()}
                   </select>
                   <button
                     onClick={testBillPrint}
                     disabled={testBillStatus === 'printing'}
                     style={{
-                      padding: '6px 12px', fontSize: '11px', fontWeight: 500,
+                      padding: '4px 10px', fontSize: '11px', fontWeight: 500,
                       backgroundColor: '#2563eb', color: 'white',
-                      border: 'none', borderRadius: '6px', cursor: 'pointer',
+                      border: 'none', borderRadius: '5px', cursor: 'pointer',
                     }}
                   >
-                    {testBillStatus === 'printing' ? '...' : testBillStatus === 'success' ? '✓' : testBillStatus === 'error' ? '✗' : 'Test'}
+                    {testBillStatus === 'printing' ? '...' : testBillStatus === 'success' ? 'OK' : testBillStatus === 'error' ? 'Fail' : 'Test'}
                   </button>
                 </div>
-              </div>
+              )}
 
-              {/* KOT Station rows */}
               {printStations.map(station => {
                 const st = stationTestStatus[station.id];
-                const isEditing = editingDestination === station.id;
-                const isExpanded = expandedStation === station.id;
+                const isEditing = editingStationId === station.id;
                 const catCount = (station.categoryIds || []).length;
+                const assignedPrinterKey = stationPrinters[station.id];
+                const assignedPrinterObj = printers.find(p => getPrinterId(p) === assignedPrinterKey);
+                const assignedCatNames = (station.categoryIds || [])
+                  .map(id => categories.find(c => c.id === id)?.name).filter(Boolean);
                 return (
                   <div key={station.id} style={{
-                    padding: '10px 12px', backgroundColor: 'white', borderRadius: '8px',
-                    border: '1px solid #e5e7eb', marginBottom: '8px',
+                    padding: isEditing ? '10px 12px' : '8px 12px', backgroundColor: 'white', borderRadius: '8px',
+                    border: `1px solid ${isEditing ? '#93c5fd' : '#e5e7eb'}`, marginBottom: '6px',
                   }}>
-                    {/* Station header */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-                      <FaPrint style={{ color: '#f97316', flexShrink: 0 }} />
-                      {isEditing ? (
-                        <div style={{ display: 'flex', gap: '4px', flex: 1 }}>
+                    {/* Compact row — always visible */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {station.type && (
+                        <span style={{
+                          fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '4px',
+                          backgroundColor: '#fff7ed', color: '#c2410c', textTransform: 'uppercase',
+                        }}>{station.type}</span>
+                      )}
+                      <span style={{ fontWeight: 600, fontSize: '13px', color: '#374151' }}>{station.name}</span>
+                      {renderHealthDot(assignedPrinterKey)}
+                      <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                        {assignedPrinterObj?.name || assignedPrinterKey || 'Default printer'}
+                      </span>
+                      {!isEditing && catCount > 0 && (
+                        <span style={{ fontSize: '10px', color: '#6b7280', marginLeft: '2px' }}>
+                          ({catCount} cat{catCount !== 1 ? 's' : ''})
+                        </span>
+                      )}
+                      <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
+                        <button
+                          onClick={() => setEditingStationId(isEditing ? null : station.id)}
+                          style={{ fontSize: '11px', color: isEditing ? '#2563eb' : '#6b7280', background: 'none', border: 'none', cursor: 'pointer', fontWeight: isEditing ? 600 : 400 }}
+                        >{isEditing ? 'Done' : 'Edit'}</button>
+                        <button onClick={() => deleteStation(station.id)} style={{ fontSize: '11px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>Delete</button>
+                      </div>
+                    </div>
+
+                    {/* Expanded edit panel — only when editing */}
+                    {isEditing && (
+                      <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #e5e7eb' }}>
+                        {/* Station name */}
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '6px' }}>
+                          <span style={{ fontSize: '11px', color: '#6b7280', flexShrink: 0, width: '50px' }}>Name:</span>
                           <input
                             type="text"
                             defaultValue={station.name}
@@ -921,252 +922,205 @@ export default function NativePrinterSettings({ restaurantId }) {
                             maxLength={50}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' && e.target.value.trim()) updateStation(station.id, { name: e.target.value.trim() });
-                              if (e.key === 'Escape') setEditingDestination(null);
                             }}
-                            style={{ flex: 1, padding: '3px 6px', fontSize: '12px', borderRadius: '4px', border: '1px solid #d1d5db' }}
+                            onBlur={(e) => {
+                              if (e.target.value.trim() && e.target.value.trim() !== station.name) updateStation(station.id, { name: e.target.value.trim() });
+                            }}
+                            style={{ flex: 1, padding: '5px 8px', fontSize: '12px', borderRadius: '5px', border: '1px solid #d1d5db' }}
                           />
-                          <button onClick={() => setEditingDestination(null)} style={{ fontSize: '11px', color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }}>Cancel</button>
                         </div>
-                      ) : (
-                        <>
-                          <span style={{ fontWeight: 600, fontSize: '13px', color: '#374151' }}>{station.name}</span>
-                          {station.type && (
-                            <span style={{
-                              fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '4px',
-                              backgroundColor: '#fff7ed', color: '#c2410c', textTransform: 'uppercase',
-                            }}>{station.type}</span>
-                          )}
-                          {station.isDefault && (
-                            <span style={{
-                              fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '4px',
-                              backgroundColor: '#dcfce7', color: '#15803d',
-                            }}>DEFAULT</span>
-                          )}
-                          {isElectronPlatform && stationPrinters[station.id] && printerHealth[stationPrinters[station.id]] && (
-                            <span style={{
-                              width: '7px', height: '7px', borderRadius: '50%',
-                              backgroundColor: printerHealth[stationPrinters[station.id]] === 'online' ? '#22c55e' : '#ef4444',
-                            }} />
-                          )}
-                          <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
-                            <button onClick={() => setEditingDestination(station.id)} style={{ fontSize: '11px', color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }} title="Edit name">✏️</button>
-                            <button onClick={() => deleteStation(station.id)} style={{ fontSize: '11px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }} title="Delete">🗑</button>
+                        {/* Printer dropdown + test */}
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '6px' }}>
+                          <span style={{ fontSize: '11px', color: '#6b7280', flexShrink: 0, width: '50px' }}>Printer:</span>
+                          <select
+                            value={assignedPrinterKey || ''}
+                            onChange={(e) => assignStationPrinter(station.id, e.target.value || null)}
+                            style={{
+                              flex: 1, padding: '5px 8px', fontSize: '12px', borderRadius: '5px',
+                              border: '1px solid #d1d5db', backgroundColor: '#f9fafb',
+                            }}
+                          >
+                            <option value="">{selectedPrinter?.name || 'Default printer'}</option>
+                            {renderPrinterOptions()}
+                          </select>
+                          <button
+                            onClick={() => testStationPrint(station.id, station.name)}
+                            disabled={st === 'printing'}
+                            style={{
+                              padding: '4px 10px', fontSize: '11px', fontWeight: 500,
+                              backgroundColor: '#f97316', color: 'white',
+                              border: 'none', borderRadius: '5px', cursor: 'pointer',
+                            }}
+                          >
+                            {st === 'printing' ? '...' : st === 'success' ? 'OK' : st === 'error' ? 'Fail' : 'Test'}
+                          </button>
+                        </div>
+                        {/* Categories */}
+                        {categories.length > 0 && (
+                          <div>
+                            <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '3px' }}>
+                              Categories ({catCount}){catCount === 0 && <span style={{ color: '#f59e0b' }}> — all items route here</span>}:
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxHeight: '120px', overflowY: 'auto' }}>
+                              {categories.map(cat => {
+                                const isSelected = (station.categoryIds || []).includes(cat.id);
+                                const assignedElsewhere = !isSelected && printStations.some(s => s.id !== station.id && (s.categoryIds || []).includes(cat.id));
+                                return (
+                                  <button
+                                    key={cat.id}
+                                    onClick={() => {
+                                      const newIds = isSelected
+                                        ? (station.categoryIds || []).filter(id => id !== cat.id)
+                                        : [...(station.categoryIds || []), cat.id];
+                                      updateStationCategories(station.id, newIds);
+                                    }}
+                                    disabled={assignedElsewhere}
+                                    style={{
+                                      padding: '3px 8px', borderRadius: '12px', fontSize: '11px', border: 'none',
+                                      cursor: assignedElsewhere ? 'not-allowed' : 'pointer',
+                                      backgroundColor: isSelected ? '#2563eb' : assignedElsewhere ? '#f3f4f6' : '#e5e7eb',
+                                      color: isSelected ? '#fff' : assignedElsewhere ? '#9ca3af' : '#374151',
+                                      opacity: assignedElsewhere ? 0.5 : 1,
+                                    }}
+                                  >
+                                    {cat.name}{assignedElsewhere ? ' (taken)' : ''}
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Printer dropdown */}
-                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '6px' }}>
-                      <select
-                        value={stationPrinters[station.id] || ''}
-                        onChange={(e) => assignStationPrinter(station.id, e.target.value || null)}
-                        style={{
-                          flex: 1, padding: '6px 10px', fontSize: '12px', borderRadius: '6px',
-                          border: '1px solid #d1d5db', backgroundColor: '#f9fafb',
-                        }}
-                      >
-                        <option value="">Use default printer</option>
-                        {printers.map((p, i) => (
-                          <option key={p.address || i} value={isElectronPlatform ? (p.type === 'network' ? p.address : p.name) : p.address}>
-                            {p.name}{p.type === 'serial' ? ' (Built-in)' : ''}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={() => testStationPrint(station.id, station.name)}
-                        disabled={st === 'printing'}
-                        style={{
-                          padding: '6px 12px', fontSize: '11px', fontWeight: 500,
-                          backgroundColor: '#f97316', color: 'white',
-                          border: 'none', borderRadius: '6px', cursor: 'pointer',
-                        }}
-                      >
-                        {st === 'printing' ? '...' : st === 'success' ? '✓' : st === 'error' ? '✗' : 'Test'}
-                      </button>
-                    </div>
-
-                    {/* Categories — expandable */}
-                    <button
-                      onClick={() => setExpandedStation(isExpanded ? null : station.id)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '4px', width: '100%',
-                        padding: '4px 0', fontSize: '11px', color: '#6b7280',
-                        background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
-                      }}
-                    >
-                      <span style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}>▶</span>
-                      {catCount} categor{catCount === 1 ? 'y' : 'ies'} assigned
-                      {catCount === 0 && <span style={{ color: '#f59e0b', marginLeft: '4px' }}>(routes to default)</span>}
-                    </button>
-                    {isExpanded && categories.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px', maxHeight: '120px', overflowY: 'auto' }}>
-                        {categories.map(cat => {
-                          const isSelected = (station.categoryIds || []).includes(cat.id);
-                          const assignedElsewhere = !isSelected && printStations.some(s => s.id !== station.id && (s.categoryIds || []).includes(cat.id));
-                          return (
-                            <button
-                              key={cat.id}
-                              onClick={() => {
-                                const newIds = isSelected
-                                  ? (station.categoryIds || []).filter(id => id !== cat.id)
-                                  : [...(station.categoryIds || []), cat.id];
-                                updateStationCategories(station.id, newIds);
-                              }}
-                              disabled={assignedElsewhere}
-                              style={{
-                                padding: '3px 8px', borderRadius: '12px', fontSize: '11px', border: 'none', cursor: assignedElsewhere ? 'not-allowed' : 'pointer',
-                                backgroundColor: isSelected ? '#2563eb' : assignedElsewhere ? '#f3f4f6' : '#e5e7eb',
-                                color: isSelected ? '#fff' : assignedElsewhere ? '#9ca3af' : '#374151',
-                                opacity: assignedElsewhere ? 0.5 : 1,
-                              }}
-                            >
-                              {cat.name}{assignedElsewhere ? ' ✓' : ''}
-                            </button>
-                          );
-                        })}
+                        )}
                       </div>
                     )}
                   </div>
                 );
               })}
 
-              {/* Add new station form */}
-              {newStationForm ? (
-                <div style={{
-                  padding: '10px 12px', backgroundColor: 'white', borderRadius: '8px',
-                  border: '2px dashed #bfdbfe', marginBottom: '8px',
-                }}>
-                  <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
-                    <input
-                      type="text"
-                      placeholder="Station name (e.g. Main Kitchen)"
-                      value={newStationForm.name}
-                      onChange={(e) => setNewStationForm(prev => ({ ...prev, name: e.target.value }))}
-                      autoFocus
-                      maxLength={50}
-                      style={{
-                        flex: 1, padding: '6px 10px', fontSize: '12px', borderRadius: '6px',
-                        border: '1px solid #d1d5db', backgroundColor: 'white',
-                      }}
-                    />
-                    <input
-                      type="text"
-                      list="station-types-list-multi"
-                      placeholder="Type (e.g. Kitchen)"
-                      value={newStationForm.type === 'kitchen' && !newStationForm._typeEdited ? '' : newStationForm.type}
-                      onChange={(e) => setNewStationForm(prev => ({ ...prev, type: e.target.value || 'kitchen', _typeEdited: true }))}
-                      maxLength={30}
-                      style={{
-                        width: '130px', padding: '6px 10px', fontSize: '12px', borderRadius: '6px',
-                        border: '1px solid #d1d5db', backgroundColor: 'white',
-                      }}
-                    />
-                    <datalist id="station-types-list-multi">
-                      <option value="Kitchen" />
-                      <option value="Bar" />
-                      <option value="Expo" />
-                      <option value="Pastry" />
-                      <option value="Grill" />
-                      <option value="Drinks" />
-                      <option value="Packing" />
-                    </datalist>
-                  </div>
-                  {/* Category selection for new station */}
-                  {categories.length > 0 && (
-                    <div style={{ marginBottom: '8px' }}>
-                      <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Assign categories:</div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxHeight: '100px', overflowY: 'auto' }}>
-                        {categories.map(cat => {
-                          const isSelected = (newStationForm.categoryIds || []).includes(cat.id);
-                          const assignedElsewhere = printStations.some(s => (s.categoryIds || []).includes(cat.id));
-                          return (
-                            <button
-                              key={cat.id}
-                              onClick={() => {
-                                setNewStationForm(prev => ({
-                                  ...prev,
-                                  categoryIds: isSelected
-                                    ? prev.categoryIds.filter(id => id !== cat.id)
-                                    : [...prev.categoryIds, cat.id]
-                                }));
-                              }}
-                              disabled={assignedElsewhere}
-                              style={{
-                                padding: '3px 8px', borderRadius: '12px', fontSize: '11px', border: 'none',
-                                cursor: assignedElsewhere ? 'not-allowed' : 'pointer',
-                                backgroundColor: isSelected ? '#2563eb' : assignedElsewhere ? '#f3f4f6' : '#e5e7eb',
-                                color: isSelected ? '#fff' : assignedElsewhere ? '#9ca3af' : '#374151',
-                                opacity: assignedElsewhere ? 0.5 : 1,
-                              }}
-                            >
-                              {cat.name}{assignedElsewhere ? ' ✓' : ''}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                    <button
-                      onClick={() => setNewStationForm(null)}
-                      style={{
-                        padding: '6px 12px', fontSize: '12px', color: '#6b7280',
-                        background: 'none', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer',
-                      }}
-                    >Cancel</button>
-                    <button
-                      onClick={() => addStation(newStationForm)}
-                      disabled={!newStationForm.name.trim()}
-                      style={{
-                        padding: '6px 12px', fontSize: '12px', fontWeight: 600, color: 'white',
-                        backgroundColor: newStationForm.name.trim() ? '#2563eb' : '#d1d5db',
-                        border: 'none', borderRadius: '6px',
-                        cursor: newStationForm.name.trim() ? 'pointer' : 'not-allowed',
-                      }}
-                    >Add Station</button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setNewStationForm({ name: '', type: 'kitchen', categoryIds: [] })}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                    width: '100%', padding: '8px', fontSize: '12px', color: '#1d4ed8',
-                    backgroundColor: 'white', border: '1px dashed #93c5fd', borderRadius: '8px',
-                    cursor: 'pointer', marginBottom: '8px',
-                  }}
-                >
-                  + Add KOT Station
-                </button>
-              )}
-
               {/* Unassigned categories notice */}
               {(() => {
                 const unassigned = categories.filter(c => !assignedCatIds.has(c.id));
-                return unassigned.length > 0 && printStations.length > 0 ? (
+                return unassigned.length > 0 ? (
                   <div style={{ fontSize: '11px', color: '#92400e', padding: '6px 8px', backgroundColor: '#fef3c7', borderRadius: '6px', marginBottom: '8px' }}>
-                    <strong>Unassigned:</strong> {unassigned.map(c => c.name).join(', ')} — these route to the default station.
+                    <strong>Unassigned:</strong> {unassigned.map(c => c.name).join(', ')} — these route to the default printer.
                   </div>
                 ) : null;
               })()}
+            </>
+          )}
 
-              {/* Switch to simple */}
-              <button
-                onClick={switchToSimple}
-                style={{
-                  fontSize: '11px', color: '#6b7280', background: 'none', border: 'none',
-                  cursor: 'pointer', padding: 0, textDecoration: 'underline',
-                }}
-              >
-                Switch to simple mode (single printer)
-              </button>
+          {/* Add Station Form or Button */}
+          {addingStation ? (
+            <div style={{
+              padding: '10px 12px', backgroundColor: 'white', borderRadius: '8px',
+              border: '2px dashed #93c5fd', marginBottom: '8px',
+            }}>
+              {/* Row 1: Type → Printer → Name (optional) → Add/Cancel */}
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: categories.length > 0 ? '8px' : '0' }}>
+                <select
+                  value={newStationType}
+                  onChange={(e) => setNewStationType(e.target.value)}
+                  autoFocus
+                  style={{
+                    width: '110px', padding: '6px 8px', fontSize: '12px', borderRadius: '6px',
+                    border: '1px solid #d1d5db', backgroundColor: '#f9fafb', fontWeight: 500,
+                  }}
+                >
+                  <option value="kitchen">Kitchen</option>
+                  <option value="bar">Bar</option>
+                  <option value="expo">Expo</option>
+                  <option value="pastry">Pastry</option>
+                  <option value="grill">Grill</option>
+                  <option value="drinks">Drinks</option>
+                  <option value="packing">Packing</option>
+                </select>
+                <select
+                  value={newStationPrinter}
+                  onChange={(e) => setNewStationPrinter(e.target.value)}
+                  style={{
+                    flex: 1, padding: '6px 8px', fontSize: '12px', borderRadius: '6px',
+                    border: '1px solid #d1d5db', backgroundColor: '#f9fafb',
+                  }}
+                >
+                  <option value="">{selectedPrinter?.name || 'Default printer'}</option>
+                  {renderPrinterOptions()}
+                </select>
+                <input
+                  type="text"
+                  placeholder="Name (optional)"
+                  value={newStationName}
+                  onChange={(e) => setNewStationName(e.target.value)}
+                  maxLength={50}
+                  style={{
+                    width: '140px', padding: '6px 8px', fontSize: '12px', borderRadius: '6px',
+                    border: '1px solid #d1d5db',
+                  }}
+                />
+                <button
+                  onClick={handleAddStation}
+                  style={{
+                    padding: '6px 14px', fontSize: '12px', fontWeight: 600, color: 'white',
+                    backgroundColor: '#2563eb', border: 'none', borderRadius: '6px', cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                >Add</button>
+                <button
+                  onClick={() => { setAddingStation(false); setNewStationName(''); setNewStationCatIds([]); setNewStationPrinter(''); }}
+                  style={{
+                    padding: '6px 8px', fontSize: '12px', color: '#6b7280',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                  }}
+                >Cancel</button>
+              </div>
+              {/* Row 2: Category selection */}
+              {categories.length > 0 && (
+                <div>
+                  <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '3px' }}>Assign categories:</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxHeight: '100px', overflowY: 'auto' }}>
+                    {categories.map(cat => {
+                      const isSelected = newStationCatIds.includes(cat.id);
+                      const assignedElsewhere = printStations.some(s => (s.categoryIds || []).includes(cat.id));
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={() => {
+                            setNewStationCatIds(prev =>
+                              isSelected ? prev.filter(id => id !== cat.id) : [...prev, cat.id]
+                            );
+                          }}
+                          disabled={assignedElsewhere}
+                          style={{
+                            padding: '3px 8px', borderRadius: '12px', fontSize: '11px', border: 'none',
+                            cursor: assignedElsewhere ? 'not-allowed' : 'pointer',
+                            backgroundColor: isSelected ? '#2563eb' : assignedElsewhere ? '#f3f4f6' : '#e5e7eb',
+                            color: isSelected ? '#fff' : assignedElsewhere ? '#9ca3af' : '#374151',
+                            opacity: assignedElsewhere ? 0.5 : 1,
+                          }}
+                        >
+                          {cat.name}{assignedElsewhere ? ' (taken)' : ''}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
+          ) : (
+            <button
+              onClick={switchToMulti}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                width: '100%', padding: '8px', fontSize: '12px', color: '#6b7280',
+                backgroundColor: 'transparent', border: '1px dashed #d1d5db', borderRadius: '8px',
+                cursor: 'pointer', marginBottom: '8px',
+              }}
+            >
+              + Add KOT Station {printStations.length === 0 && <span style={{ fontSize: '11px', color: '#9ca3af' }}>(for multi-printer setup)</span>}
+            </button>
           )}
         </div>
       )}
 
-      {/* Diagnostics */}
+      {/* ── Diagnostics ── */}
       <div style={{ marginTop: '12px', borderTop: '1px solid #d1d5db', paddingTop: '12px' }}>
         <button
           onClick={runDiagnostics}

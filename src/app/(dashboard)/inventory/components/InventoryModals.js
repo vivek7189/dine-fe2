@@ -178,15 +178,58 @@ function CustomSelect({ value, onChange, options, placeholder = 'Select...', cre
   );
 }
 
-function FocusInput({ style, type, ...props }) {
+function FocusInput({ style, type, onChange, value, ...props }) {
   const isNumeric = type === 'number';
+  // For numeric inputs, keep the raw text while typing so decimals aren't stripped.
+  // E.g. typing "1." would parseFloat to 1, losing the decimal point.
+  const [rawText, setRawText] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+
+  const displayValue = isNumeric && isFocused ? rawText : (value ?? '');
+
+  const handleChange = (e) => {
+    if (isNumeric) {
+      const text = e.target.value;
+      if (text === '' || text === '-' || text === '.' || text === '-.' || /^-?\d*\.?\d*$/.test(text)) {
+        setRawText(text);
+        const num = parseFloat(text);
+        if (!isNaN(num)) {
+          onChange && onChange({ ...e, target: { ...e.target, value: num } });
+        } else if (text === '' || text === '0') {
+          onChange && onChange({ ...e, target: { ...e.target, value: 0 } });
+        }
+      }
+    } else {
+      onChange && onChange(e);
+    }
+  };
+
   return (
     <input
       style={style || inputStyle}
       type={isNumeric ? 'text' : (type || 'text')}
       inputMode={isNumeric ? 'decimal' : undefined}
-      onFocus={e => { e.target.style.borderColor = '#059669'; e.target.style.boxShadow = '0 0 0 3px rgba(5,150,105,0.08)'; }}
-      onBlur={e => { e.target.style.borderColor = '#e8ecf1'; e.target.style.boxShadow = 'none'; }}
+      value={displayValue}
+      onChange={handleChange}
+      onFocus={e => {
+        e.target.style.borderColor = '#059669';
+        e.target.style.boxShadow = '0 0 0 3px rgba(5,150,105,0.08)';
+        if (isNumeric) {
+          setIsFocused(true);
+          setRawText(value !== undefined && value !== null && value !== 0 ? String(value) : '');
+        }
+      }}
+      onBlur={e => {
+        e.target.style.borderColor = '#e8ecf1';
+        e.target.style.boxShadow = 'none';
+        if (isNumeric) {
+          setIsFocused(false);
+          const num = parseFloat(rawText);
+          if (!isNaN(num)) {
+            onChange && onChange({ ...e, target: { ...e.target, value: num } });
+          }
+        }
+      }}
       {...props}
     />
   );

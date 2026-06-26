@@ -189,26 +189,68 @@ export function useAutoPrint(restaurantId, printSettings) {
     // duplicate prints — especially for orders placed from the mobile app
     // which don't set window.__lastLocalPrintedKOT.
     markPrinted(orderId, 'kot');
+    // Cross-dedup: also set the global flag so OrderSummary's KOT print effect
+    // knows this orderId was already handled and skips its own print.
+    if (typeof window !== 'undefined') {
+      window.__lastLocalPrintedKOT = orderId;
+    }
 
-    const { stations, mode } = printStationsRef.current;
+    const { stations, mode, loaded } = printStationsRef.current;
+    console.log('[AutoPrint] handleKotCreated:', { orderId, stationsCount: stations.length, stationsLoaded: loaded, mode });
 
-    // If stations configured: print per-station KOTs (single or multi-printer mode)
-    if (stations.length > 1) {
+    // If any stations configured: print per-station KOTs (routes each station to its assigned printer)
+    if (stations.length >= 1) {
       try {
+        const queueLenBefore = printQueueRef.current.length;
+        const hasDefaultStation = stations.some(s => s.isDefault);
+
         for (const station of stations) {
           const renderData = await apiClient.getKOTRender(restaurantId, orderId, { stationId: station.id });
+          // Skip if backend says no items, or if kot items array is empty
+          const kotItems = renderData?.kot?.items || [];
+          if (renderData?.empty || kotItems.length === 0) {
+            console.log(`[AutoPrint] Station KOT skipped (0 items): ${station.name} (${station.id})`);
+            continue;
+          }
           const html = kotRenderToHtml(renderData);
           if (html) {
             printQueueRef.current.push({ html, type: 'kot', orderId: `${orderId}-${station.id}`, stationId: station.id });
+            const itemNames = kotItems.map(i => `${i.quantity || 1}x ${i.name || i.itemName}`).join(', ');
+            console.log(`[AutoPrint] Station KOT queued: ${station.name} (${station.id}) [${kotItems.length} items]${station.isDefault ? ' [default - includes unassigned]' : ''}`);
+            console.log(`[AutoPrint]   → Items: ${itemNames}`);
           }
         }
-        if (printQueueRef.current.length > 0) {
-          processQueue();
+
+        // Catch-all: if no station is marked as default, unassigned categories won't be
+        // in any station KOT. Print a combined KOT (all items) to the default printer
+        // so no items are lost. If a default station exists, the backend already includes
+        // unassigned items in that station's KOT.
+        if (!hasDefaultStation) {
+          const allAssignedCatIds = new Set();
+          for (const s of stations) {
+            for (const cId of (s.categoryIds || [])) allAssignedCatIds.add(cId);
+          }
+          // Only print catch-all if there could be unassigned items (not all categories are covered)
+          if (allAssignedCatIds.size > 0) {
+            const renderData = await apiClient.getKOTRender(restaurantId, orderId);
+            const html = kotRenderToHtml(renderData);
+            if (html) {
+              // Print to default printer (no stationId) — catch-all for unassigned items
+              printQueueRef.current.push({ html, type: 'kot', orderId: `${orderId}-default` });
+              console.log('[AutoPrint] Catch-all KOT queued for unassigned categories → default printer');
+            }
+          }
         }
+
+        if (printQueueRef.current.length > queueLenBefore) {
+          processQueue();
+          return;
+        }
+        // Fallback: all station-filtered KOTs were empty — print combined KOT
+        console.warn('Auto-print: all station KOTs empty, falling back to combined KOT');
       } catch (err) {
-        console.warn('Auto-print station KOTs skipped:', err.message);
+        console.warn('Auto-print station KOTs failed, falling back to combined KOT:', err.message);
       }
-      return;
     }
 
     // Default: single KOT with all items

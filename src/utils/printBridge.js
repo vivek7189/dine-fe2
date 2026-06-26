@@ -23,8 +23,8 @@ import { isCapacitor, isTauri, isElectron, isWeb, isReactNativeWebView } from '.
  * @param {object} [options.printSettings] - Print settings from /admin
  */
 export async function printDocument({ html, domSelector, type = 'bill', orderId, restaurantId, stationId, printSettings = {}, orderData } = {}) {
-  // Debug: log platform detection
-  console.log('[PrintBridge] printDocument called:', { type, hasHtml: !!html, isTauri: isTauri(), isCapacitor: isCapacitor(), isRNWebView: isReactNativeWebView(), isWeb: isWeb(), hasTauriInternals: typeof window !== 'undefined' && !!window.__TAURI_INTERNALS__ });
+  // Debug: log print request details
+  console.log('[PrintBridge] printDocument called:', { type, stationId: stationId || null, orderId: orderId || null, hasHtml: !!html, itemCount: orderData?.items?.length || 0 });
 
   // React Native WebView: send print data to native app via postMessage
   // The native app (dine-app) handles printing via its printerService (BLE/WiFi/USB/AirPrint)
