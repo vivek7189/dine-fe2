@@ -206,13 +206,16 @@ body {
   display: none;
 }
 
-/* Menu item card - simple styles, no transforms */
+/* Menu item card - optimized for scroll performance */
 .menu-item-card {
-  contain: content;
+  contain: layout style paint;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 150px;
 }
 
 .menu-item-card img {
   image-rendering: -webkit-optimize-contrast;
+  will-change: opacity;
 }
 
 /* Prevent layout shifts and flickering */

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useMemo, memo, useCallback } from 'react';
+import React, { useState, useRef, useMemo, memo, useCallback, useEffect } from 'react';
 import { FaPlus, FaMinus, FaLeaf, FaDrumstickBite, FaStar, FaFire, FaHeart, FaUtensils } from 'react-icons/fa';
 import { getDisplayImage } from '../utils/placeholderImages';
 import { useCurrency } from '../contexts/CurrencyContext';
@@ -84,12 +84,23 @@ const MenuItemCard = ({
   const imageUrl = useMemo(() => getDisplayImage(item), [item.image, item.id]);
   const hasImage = (hideImages || item.hideImage) ? false : (imageUrl !== null);
 
-  // Simple ref for image element
+  // Image loading state for smooth fade-in
   const imageRef = useRef(null);
   const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  // Reset loaded state when image URL changes
+  useEffect(() => {
+    setImageLoaded(false);
+    setImageError(false);
+  }, [imageUrl]);
 
   const handleImageError = useCallback(() => {
     setImageError(true);
+  }, []);
+
+  const handleImageLoad = useCallback(() => {
+    setImageLoaded(true);
   }, []);
   
   if (!useModernDesign) {
@@ -472,24 +483,36 @@ const MenuItemCard = ({
           zIndex: 0,
           overflow: 'hidden'
         }}>
-          {/* Image - Always visible, no opacity transitions */}
+          {/* Image with async decode + lazy load + fade-in */}
           {hasImage && (
             <img
               ref={imageRef}
               src={imageUrl}
               alt={item.name}
-              loading="eager"
+              loading="lazy"
+              decoding="async"
+              fetchPriority="low"
               style={{
                 position: 'absolute',
                 inset: 0,
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                display: 'block'
+                display: 'block',
+                opacity: imageLoaded ? 1 : 0,
+                transition: 'opacity 0.2s ease-out',
               }}
-              decoding="sync"
+              onLoad={handleImageLoad}
               onError={handleImageError}
             />
+          )}
+          {/* Placeholder bg while image loads */}
+          {hasImage && !imageLoaded && (
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundColor: isVeg ? '#f0fdf4' : '#fef2f2',
+            }} />
           )}
 
           {/* Dark Gradient Overlay for text visibility */}
