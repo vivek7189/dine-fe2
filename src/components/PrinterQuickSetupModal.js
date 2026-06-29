@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { FaPrint, FaTimes, FaSpinner, FaSave, FaCheckCircle, FaReceipt, FaBell, FaEye, FaEdit, FaTicketAlt, FaClock, FaGlobe, FaDesktop, FaExternalLinkAlt } from 'react-icons/fa';
+import Link from 'next/link';
 import apiClient from '../lib/api';
 import dynamic from 'next/dynamic';
 
@@ -266,7 +267,7 @@ export default function PrinterQuickSetupModal({ isOpen, onClose, restaurantId, 
               </div>
 
               {/* ── Link to Full Settings ── */}
-              <a href="/admin?tab=print" style={{
+              <Link href="/admin?tab=print" style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                 padding: '10px', borderRadius: '10px', border: '1px solid #e5e7eb',
                 color: '#6b7280', fontSize: '12px', fontWeight: '500',
@@ -278,7 +279,7 @@ export default function PrinterQuickSetupModal({ isOpen, onClose, restaurantId, 
               >
                 <FaExternalLinkAlt size={10} />
                 Advanced Print Settings (Receipt Layout, Logo, KOT Exclusion)
-              </a>
+              </Link>
             </div>
           ) : (
             <div style={{ padding: '40px', textAlign: 'center', color: '#9ca3af', fontSize: '13px' }}>
