@@ -271,6 +271,7 @@ function DashboardLayoutContent({ children }) {
         const types = restaurant?.orderSettings?.notificationOrderTypes;
         setNotificationOrderTypes(types && types.length > 0 ? types : ['online']);
         apiClient.setBusinessDayStartHour(restaurant?.posSettings?.businessDayStartHour || 0);
+        apiClient.setRestaurantBaseURL(restaurant);
       } catch { setNotificationOrderTypes(['online']); }
     };
 
@@ -287,6 +288,7 @@ function DashboardLayoutContent({ children }) {
         const types = restaurant?.orderSettings?.notificationOrderTypes;
         setNotificationOrderTypes(types && types.length > 0 ? types : ['online']);
         apiClient.setBusinessDayStartHour(restaurant?.posSettings?.businessDayStartHour || 0);
+        apiClient.setRestaurantBaseURL(restaurant);
       } catch { setNotificationOrderTypes(['online']); }
     };
 

@@ -820,6 +820,12 @@ const OrderSummary = ({
     window.__autoPrintBill = false;
     const timer = setTimeout(() => {
         if (!invoice) return;
+        // Skip if AutoPrint (useAutoPrint) already printed this bill via Firebase event
+        const localOrderId = invoice?.id || invoice?.orderId;
+        if (localOrderId && typeof window !== 'undefined' && window.__lastLocalPrintedBill === localOrderId) {
+          console.log('[OrderSummary] Bill print skipped — already printed by AutoPrint:', localOrderId);
+          return;
+        }
         const currencySymbol = getCurrencySymbol();
 
         // Build bill labels from i18n

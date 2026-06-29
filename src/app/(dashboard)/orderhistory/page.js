@@ -18,6 +18,7 @@ import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { getBillPrintCSS, getKOTPrintCSS, getBillHeaderHTML, buildTokenSlipsDocumentHTML } from '../../../utils/printFontSizes';
 import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '../../../utils/printBridge';
+import { generateBillHTML } from '../../../utils/printHtmlGenerator';
 import dynamic from 'next/dynamic';
 const OrderSummary = dynamic(() => import('../../../components/OrderSummary'), { ssr: false });
 const OrderEditModal = dynamic(() => import('../../../components/OrderEditModal'), { ssr: false });
@@ -1601,9 +1602,65 @@ const OrderHistory = () => {
     }
   };
 
-  // Browser print fallback function - format matches KOT Printer app
-  const browserPrint = (order) => {
-    const restaurantName = restaurant?.name || 'Restaurant';
+  // Build invoice data from an order for the bill template system
+  const buildInvoiceFromOrder = (order) => {
+    const items = order.items || [];
+    const subtotal = items.reduce((sum, item) => sum + (Number(item.total) || (Number(item.price) * Number(item.quantity)) || 0), 0);
+    const isPreBill = order.status !== 'completed';
+
+    return {
+      id: order.id,
+      orderId: order.id,
+      dailyOrderId: order.dailyOrderId || order.orderNumber,
+      restaurantName: restaurant?.name || 'Restaurant',
+      legalBusinessName: restaurant?.legalBusinessName || '',
+      address: restaurant?.address || '',
+      phone: restaurant?.phone || '',
+      gstin: restaurant?.gstin || '',
+      fssai: restaurant?.fssai || '',
+      vatNumber: restaurant?.vatNumber || '',
+      taxId: restaurant?.taxId || '',
+      businessRegistrationNumber: restaurant?.businessRegistrationNumber || '',
+      showGstOnInvoice: restaurant?.showGstOnInvoice,
+      showFssaiOnInvoice: restaurant?.showFssaiOnInvoice,
+      showTaxIdOnInvoice: restaurant?.showTaxIdOnInvoice,
+      items,
+      subtotal,
+      taxBreakdown: order.taxBreakdown || [],
+      taxAmount: order.taxAmount || 0,
+      showInclusiveTaxOnBill: order.showInclusiveTaxOnBill,
+      finalAmount: Number(order.finalAmount) || subtotal + (Number(order.taxAmount) || 0),
+      tableNumber: order.tableNumber || order.customerDisplay?.tableNumber || order.customerInfo?.tableNumber || '',
+      floorName: order.floorName || '',
+      roomNumber: order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || '',
+      customerName: order.customerDisplay?.name || order.customerInfo?.name || '',
+      customerPhone: order.customerDisplay?.phone || order.customerInfo?.phone || '',
+      waiterName: order.waiterName || '',
+      cashierName: order.cashierName || '',
+      orderType: order.orderType || '',
+      paymentMethod: order.paymentMethod || 'CASH',
+      currencySymbol: getCurrencySymbol(),
+      isPreBill,
+      editCount: order.editCount || 0,
+      updateCount: order.updateCount || 0,
+      offerDiscount: order.offerDiscount || 0,
+      offerName: order.offerName || '',
+      manualDiscount: order.manualDiscount || 0,
+      loyaltyDiscount: order.loyaltyDiscount || 0,
+      serviceCharge: order.serviceCharge || 0,
+      tip: order.tip || 0,
+      roundOff: order.roundOff || 0,
+      splitPayment: order.splitPayment,
+      cashReceived: order.cashReceived,
+      change: order.change,
+      partialPayment: order.partialPayment,
+      splitBill: order.splitBill,
+      deliveryAddress: order.deliveryAddress,
+    };
+  };
+
+  // Print bill using template system (supports pre-bill banner, silent printing, same as dashboard)
+  const browserPrintBill = (order) => {
     const btype = restaurant?.businessType || 'restaurant';
     const billingLabels = {
       restaurant: { billTitle: 'BILL / INVOICE', itemCol: 'Item', qtyCol: 'Qty', customerLabel: 'Customer', footer: 'Thank you for dining with us!', billLabel: 'Bill' },
@@ -1614,6 +1671,43 @@ const OrderHistory = () => {
       qsr: { billTitle: 'ORDER RECEIPT', itemCol: 'Item', qtyCol: 'Qty', customerLabel: 'Token', footer: 'Thank you! Visit again.', billLabel: 'Receipt' }
     };
     const bLabels = billingLabels[btype] || billingLabels.restaurant;
+
+    const invoiceData = buildInvoiceFromOrder(order);
+    const billLabels = {
+      billTitle: bLabels.billTitle, billLabel: bLabels.billLabel,
+      itemCol: bLabels.itemCol, qtyCol: bLabels.qtyCol, amt: 'Amt',
+      date: 'Date', table: 'Table', room: 'Room',
+      customer: bLabels.customerLabel, payment: 'Payment',
+      subtotal: 'Subtotal', offer: 'Offer', manualDiscount: 'Discount',
+      loyaltyRedeem: 'Loyalty', serviceCharge: 'Service Charge', tip: 'Tip',
+      roundOff: 'Round Off', total: 'TOTAL', splitPayment: 'Split Payment',
+      cashReceived: 'Cash Received', change: 'Change', partialPayment: 'Partial Payment',
+      paid: 'Paid', outstanding: 'Outstanding', walletApplied: 'Wallet Applied',
+      amountToPay: 'Amount to Pay',
+      footer: bLabels.footer, poweredBy: 'Powered by DineOpen', tel: 'Tel',
+    };
+
+    const billContent = generateBillHTML(invoiceData, printSettings || {}, billLabels);
+
+    if (supportsNativeAutoPrint()) {
+      printDocument({ html: billContent, type: 'bill', orderId: order.id, restaurantId, printSettings: printSettings || {}, orderData: invoiceData });
+    } else {
+      const win = window.open('', '_blank', 'width=400,height=600');
+      if (win) {
+        win.document.write(billContent);
+        win.document.close();
+        win.focus();
+        setTimeout(() => { win.print(); }, 500);
+      }
+    }
+    if (order.status === 'completed') {
+      printFoodCourtTokensForOrder(order);
+    }
+  };
+
+  // Print KOT using inline HTML (KOT format only used for explicit "Print KOT" action)
+  const browserPrintKOT = (order) => {
+    const restaurantName = restaurant?.name || 'Restaurant';
     const orderNum = order.dailyOrderId ?? order.orderNumber ?? order.id ?? '—';
     const tableNum = order.tableNumber || order.customerDisplay?.tableNumber || order.customerInfo?.tableNumber || null;
     const roomNum = order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || null;
@@ -1622,103 +1716,55 @@ const OrderHistory = () => {
     const items = order.items || [];
     const formattedTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
     const formattedDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    const totalItems = items.reduce((sum, i) => sum + (i.quantity || 1), 0);
+    const specialInstructions = order.specialInstructions || '';
+    const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${orderNum}</title><style>${getKOTPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily, printSettings?.printerWidth, printSettings)}</style></head><body><div class="kot-header"><div class="restaurant-name">${restaurantName.replace(/</g,'&lt;')}</div><div class="kot-title">--- KITCHEN ORDER ---</div></div><div class="divider">--------------------------------</div><div class="kot-info"><div><strong>Order#:</strong> ${orderNum}</div>${tableNum ? `<div><strong>Table:</strong> ${tableNum}</div>` : ''}${roomNum ? `<div><strong>Room:</strong> ${roomNum}</div>` : ''}<div><strong>Time:</strong> ${formattedTime}</div><div><strong>Date:</strong> ${formattedDate}</div>${customerName ? `<div><strong>Customer:</strong> ${String(customerName).replace(/</g,'&lt;')}</div>` : ''}${orderType ? `<div><strong>Type:</strong> ${orderType}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${items.map(i => `<div class="item"><div class="item-main"><span class="item-qty">${i.quantity || 1}x</span><span class="item-name">${(i.name || '').replace(/</g,'&lt;')}</span></div>${i.selectedVariant?.name ? `<div class="item-detail">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${(c.name || c || '').toString().replace(/</g,'&lt;')}</div>`).join('')}${i.notes ? `<div class="item-note">Note: ${(i.notes || '').replace(/</g,'&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div>${specialInstructions ? `<div class="special-instructions"><strong>*** SPECIAL INSTRUCTIONS ***</strong><div>${specialInstructions.replace(/</g,'&lt;')}</div></div><div class="divider">--------------------------------</div>` : ''}<div class="kot-footer">Total Items: ${totalItems}</div><div class="divider">================================</div></body></html>`;
 
-    if (order.status === 'completed') {
-      // Bill/Invoice format - matches KOT Printer app's generateBillHtml
-      const subtotal = items.reduce((sum, item) => sum + (Number(item.total) || (Number(item.price) * Number(item.quantity)) || 0), 0);
-      let totalTax = 0;
-      const taxBreakdownArr = [];
-
-      if (order.taxBreakdown && Array.isArray(order.taxBreakdown) && order.taxBreakdown.length > 0) {
-        order.taxBreakdown.forEach(t => {
-          const amt = Number(t.amount) || 0;
-          totalTax += amt;
-          taxBreakdownArr.push({ name: t.name || 'Tax', rate: t.rate, amount: amt });
-        });
-      } else if (Number(order.taxAmount) > 0) {
-        totalTax = Number(order.taxAmount);
-        taxBreakdownArr.push({ name: 'Tax', rate: null, amount: totalTax });
-      }
-
-      const total = Number(order.finalAmount) > 0 ? Number(order.finalAmount) : (subtotal + totalTax);
-      const symbol = getCurrencySymbol();
-      const itemsHtml = items.map(item => `<tr><td style="text-align:left;">${(item.name || '').replace(/</g,'&lt;')}</td><td style="text-align:center;">${item.quantity || 1}</td><td style="text-align:right;">${symbol}${((Number(item.price) || Number(item.total)/(Number(item.quantity)||1) || 0) * (Number(item.quantity) || 1)).toFixed(2)}</td></tr>`).join('');
-      const taxHtml = taxBreakdownArr.map(t => `<tr><td colspan="2" style="text-align:left;">${(t.name || 'Tax').replace(/</g,'&lt;')}${t.rate != null ? ` (${t.rate}%)` : ''}</td><td style="text-align:right;">${symbol}${(Number(t.amount) || 0).toFixed(2)}</td></tr>`).join('');
-
-      // Build identity lines for print header
-      const _idLines = [];
-      if (restaurant?.legalBusinessName && restaurant.legalBusinessName !== restaurantName) _idLines.push(restaurant.legalBusinessName.replace(/</g,'&lt;'));
-      const _receiptAddr = printSettings?.receiptAddress || restaurant?.address;
-      const _receiptPhone = printSettings?.receiptPhone || restaurant?.phone;
-      if (_receiptAddr) _idLines.push(_receiptAddr.replace(/</g,'&lt;'));
-      if (_receiptPhone) _idLines.push('Tel: ' + _receiptPhone);
-      if (restaurant?.showGstOnInvoice && restaurant?.gstin) _idLines.push('GSTIN: ' + restaurant.gstin);
-      if (restaurant?.showFssaiOnInvoice && restaurant?.fssai) _idLines.push('FSSAI: ' + restaurant.fssai);
-      if (restaurant?.showTaxIdOnInvoice && restaurant?.vatNumber) _idLines.push('Tax ID: ' + restaurant.vatNumber);
-      if (restaurant?.showTaxIdOnInvoice && restaurant?.taxId) _idLines.push('Tax ID: ' + restaurant.taxId);
-      if (restaurant?.showTaxIdOnInvoice && restaurant?.businessRegistrationNumber) _idLines.push('Reg#: ' + restaurant.businessRegistrationNumber);
-      const _idHtml = _idLines.map(l => `<div style="font-size:11px;">${l}</div>`).join('');
-      const _headerHtml = getBillHeaderHTML(restaurantName.replace(/</g,'&lt;'), _idHtml, printSettings?.receiptLogo || null, `--- ${bLabels.billTitle} ---`);
-
-      const billContent = `<!DOCTYPE html><html><head><title>${bLabels.billLabel} #${orderNum}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily, printSettings?.printerWidth, printSettings)}</style></head><body>${_headerHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div class="info-row"><span>${bLabels.billLabel}#:</span><span><strong>${orderNum}</strong></span></div><div class="info-row"><span>Date:</span><span>${formattedDate} ${formattedTime}</span></div>${tableNum ? `<div class="info-row"><span>Table:</span><span>${tableNum}</span></div>` : ''}${roomNum ? `<div class="info-row"><span>Room:</span><span>${roomNum}</span></div>` : ''}${customerName ? `<div class="info-row"><span>${bLabels.customerLabel}:</span><span>${String(customerName).replace(/</g,'&lt;')}</span></div>` : ''}<div class="info-row"><span>Payment:</span><span>${(order.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;width:55%;">${bLabels.itemCol}</th><th style="text-align:center;width:15%;">${bLabels.qtyCol}</th><th style="text-align:right;width:30%;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div class="info-row"><span>Subtotal:</span><span>${symbol}${subtotal.toFixed(2)}</span></div></div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}<div class="total-row"><span>TOTAL:</span><span>${symbol}${total.toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer"><p>${bLabels.footer}</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
-
-      if (supportsNativeAutoPrint()) {
-        printDocument({ html: billContent, type: 'bill', printSettings: printSettings || {} });
-      } else {
-        const win = window.open('', '_blank', 'width=400,height=600');
-        if (win) {
-          win.document.write(billContent);
-          win.document.close();
-          win.focus();
-          setTimeout(() => { win.print(); }, 500);
-        }
-      }
-      printFoodCourtTokensForOrder(order);
+    if (supportsNativeAutoPrint()) {
+      printDocument({ html: kotContent, type: 'kot', orderId: order.id, restaurantId, printSettings: printSettings || {} });
     } else {
-      // KOT format - matches KOT Printer app's generateKOTHtml
-      const totalItems = items.reduce((sum, i) => sum + (i.quantity || 1), 0);
-      const specialInstructions = order.specialInstructions || '';
-      const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${orderNum}</title><style>${getKOTPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily, printSettings?.printerWidth, printSettings)}</style></head><body><div class="kot-header"><div class="restaurant-name">${restaurantName.replace(/</g,'&lt;')}</div><div class="kot-title">--- KITCHEN ORDER ---</div></div><div class="divider">--------------------------------</div><div class="kot-info"><div><strong>Order#:</strong> ${orderNum}</div>${tableNum ? `<div><strong>Table:</strong> ${tableNum}</div>` : ''}${roomNum ? `<div><strong>Room:</strong> ${roomNum}</div>` : ''}<div><strong>Time:</strong> ${formattedTime}</div><div><strong><strong>Date:</strong></strong> ${formattedDate}</div>${customerName ? `<div><strong>Customer:</strong> ${String(customerName).replace(/</g,'&lt;')}</div>` : ''}${orderType ? `<div><strong>Type:</strong> ${orderType}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${items.map(i => `<div class="item"><div class="item-main"><span class="item-qty">${i.quantity || 1}x</span><span class="item-name">${(i.name || '').replace(/</g,'&lt;')}</span></div>${i.selectedVariant?.name ? `<div class="item-detail">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${(c.name || c || '').toString().replace(/</g,'&lt;')}</div>`).join('')}${i.notes ? `<div class="item-note">Note: ${(i.notes || '').replace(/</g,'&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div>${specialInstructions ? `<div class="special-instructions"><strong>*** SPECIAL INSTRUCTIONS ***</strong><div>${specialInstructions.replace(/</g,'&lt;')}</div></div><div class="divider">--------------------------------</div>` : ''}<div class="kot-footer">Total Items: ${totalItems}</div><div class="divider">================================</div></body></html>`;
-
-      if (supportsNativeAutoPrint()) {
-        printDocument({ html: kotContent, type: 'kot', printSettings: printSettings || {} });
-      } else {
-        const pw = window.open('', '_blank', 'width=400,height=600');
-        if (pw) {
-          pw.document.write(kotContent);
-          pw.document.close();
-          pw.focus();
-          setTimeout(() => { pw.print(); }, 400);
-        }
+      const pw = window.open('', '_blank', 'width=400,height=600');
+      if (pw) {
+        pw.document.write(kotContent);
+        pw.document.close();
+        pw.focus();
+        setTimeout(() => { pw.print(); }, 400);
       }
+    }
+  };
+
+  // Legacy browserPrint - routes to bill or KOT based on context
+  const browserPrint = (order, forceType) => {
+    if (forceType === 'kot') {
+      browserPrintKOT(order);
+    } else {
+      browserPrintBill(order);
     }
   };
 
   const handlePrintBill = (order) => {
     setPrintDropdownOrderId(null);
-    // Force bill print by temporarily setting status
-    const billOrder = { ...order, status: 'completed' };
+    // Print bill with original status — template shows PRE-BILL banner when not completed
     if (printSettings?.kotPrinterEnabled && printSettings?.usePusherForKOT) {
       // Try KOT printer app first
       setPrintingOrderId(order.id);
       apiClient.requestManualPrint(order.id, 'bill')
         .then((response) => {
           if (response?.success) {
-            setPrintSuccess(`Bill sent to printer (#${order.dailyOrderId || order.id?.slice(-4)})`);
+            const label = order.status === 'completed' ? 'Bill' : 'Pre-Bill';
+            setPrintSuccess(`${label} sent to printer (#${order.dailyOrderId || order.id?.slice(-4)})`);
             setTimeout(() => setPrintSuccess(null), 3000);
           }
         })
-        .catch(() => browserPrint(billOrder))
+        .catch(() => browserPrintBill(order))
         .finally(() => setPrintingOrderId(null));
     } else {
-      browserPrint(billOrder);
+      browserPrintBill(order);
     }
   };
 
   const handlePrintKOT = (order) => {
     setPrintDropdownOrderId(null);
-    // Force KOT print by temporarily setting status to pending
-    const kotOrder = { ...order, status: 'active' };
     if (printSettings?.kotPrinterEnabled && printSettings?.usePusherForKOT) {
       setPrintingOrderId(order.id);
       apiClient.requestManualPrint(order.id, 'kot')
@@ -1728,10 +1774,10 @@ const OrderHistory = () => {
             setTimeout(() => setPrintSuccess(null), 3000);
           }
         })
-        .catch(() => browserPrint(kotOrder))
+        .catch(() => browserPrintKOT(order))
         .finally(() => setPrintingOrderId(null));
     } else {
-      browserPrint(kotOrder);
+      browserPrintKOT(order);
     }
   };
 
@@ -1743,25 +1789,20 @@ const OrderHistory = () => {
         setPrintingOrderId(order.id);
         const response = await apiClient.requestManualPrint(order.id);
         if (response?.success) {
-          const printType = order.status === 'completed' ? 'Bill' : 'KOT';
+          const printType = order.status === 'completed' ? 'Bill' : 'Pre-Bill';
           setPrintSuccess(`${printType} sent to printer (#${order.dailyOrderId || order.id?.slice(-4)})`);
           setTimeout(() => setPrintSuccess(null), 3000);
         }
       } catch (error) {
         console.error('Manual print API error:', error);
-        // If API fails or returns fallbackToBrowser, use browser print
-        if (error.response?.data?.fallbackToBrowser || error.message?.includes('disabled')) {
-          browserPrint(order);
-        } else {
-          // Still try browser print as fallback
-          browserPrint(order);
-        }
+        // Fallback to local print
+        browserPrintBill(order);
       } finally {
         setPrintingOrderId(null);
       }
     } else {
-      // KOT Printer not enabled, use browser print
-      browserPrint(order);
+      // KOT Printer not enabled, use local print
+      browserPrintBill(order);
     }
   };
 
@@ -3480,7 +3521,7 @@ const OrderHistory = () => {
                                         onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; }}
                                         onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                                       >
-                                        <FaReceipt size={10} style={{ color: '#10b981' }} /> Print Bill
+                                        <FaReceipt size={10} style={{ color: '#10b981' }} /> {order.status === 'completed' ? 'Print Bill' : 'Print Pre-Bill'}
                                       </button>
                                       <button
                                         onClick={(e) => { e.stopPropagation(); handlePrintKOT(order); }}
@@ -4004,7 +4045,7 @@ const OrderHistory = () => {
                                     onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; }}
                                     onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                                   >
-                                    <FaReceipt size={10} style={{ color: '#10b981' }} /> Print Bill
+                                    <FaReceipt size={10} style={{ color: '#10b981' }} /> {order.status === 'completed' ? 'Print Bill' : 'Print Pre-Bill'}
                                   </button>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); handlePrintKOT(order); }}

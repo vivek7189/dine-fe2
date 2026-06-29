@@ -24,7 +24,9 @@ import { isCapacitor, isTauri, isElectron, isWeb, isReactNativeWebView } from '.
  */
 export async function printDocument({ html, domSelector, type = 'bill', orderId, restaurantId, stationId, printSettings = {}, orderData } = {}) {
   // Debug: log print request details
-  console.log('[PrintBridge] printDocument called:', { type, stationId: stationId || null, orderId: orderId || null, hasHtml: !!html, itemCount: orderData?.items?.length || 0 });
+  // itemCount from orderData (when available), otherwise estimate from HTML item rows
+  const _itemCount = orderData?.items?.length || (html ? (html.match(/<tr|item-main|item-qty/g) || []).length : 0);
+  console.log('[PrintBridge] printDocument called:', { type, stationId: stationId || null, orderId: orderId || null, hasHtml: !!html, htmlLen: html?.length || 0 });
 
   // React Native WebView: send print data to native app via postMessage
   // The native app (dine-app) handles printing via its printerService (BLE/WiFi/USB/AirPrint)

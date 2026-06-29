@@ -330,6 +330,11 @@ export function useAutoPrint(restaurantId, printSettings) {
       console.log(`🖨️ AutoPrint: Bill HTML generated:`, html ? `${html.length} chars` : 'null');
       if (html) {
         markPrinted(dedupKey, 'bill');
+        // Cross-dedup: tell OrderSummary this bill was already printed by AutoPrint
+        // so its bill print effect skips the duplicate print.
+        if (typeof window !== 'undefined') {
+          window.__lastLocalPrintedBill = orderId;
+        }
         printQueueRef.current.push({ html, type: 'bill', orderId: dedupKey });
         processQueue();
       }

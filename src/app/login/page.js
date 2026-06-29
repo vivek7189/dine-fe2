@@ -1597,7 +1597,10 @@ const Login = () => {
         const staffRestaurantId = data.user?.restaurantId || data.restaurant?.id;
         if (staffRestaurantId) {
           localStorage.setItem('selectedRestaurantId', staffRestaurantId);
-          if (data.restaurant) localStorage.setItem('selectedRestaurant', JSON.stringify(data.restaurant));
+          if (data.restaurant) {
+            localStorage.setItem('selectedRestaurant', JSON.stringify(data.restaurant));
+            apiClient.setRestaurantBaseURL(data.restaurant);
+          }
           // Pre-fetch currency so dashboard shows correct symbol immediately
           await prefetchCurrencySettings(staffRestaurantId, data.token);
         }
@@ -1688,6 +1691,7 @@ const Login = () => {
       // Set selectedRestaurantId for the picked restaurant
       localStorage.setItem('selectedRestaurantId', restaurant.id);
       localStorage.setItem('selectedRestaurant', JSON.stringify(restaurant));
+      apiClient.setRestaurantBaseURL(restaurant);
       // Pre-fetch currency so dashboard shows correct symbol immediately
       await prefetchCurrencySettings(restaurant.id, pendingLoginData.token);
 

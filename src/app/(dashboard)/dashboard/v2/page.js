@@ -21,6 +21,7 @@ const BulkMenuUpload = dynamic(() => import('../../../../components/BulkMenuUplo
 const ItemCustomizationModal = dynamic(() => import('../../../../components/ItemCustomizationModal'), { ssr: false });
 const IntelligentChatbot = dynamic(() => import('../../../../components/IntelligentChatbot'), { ssr: false });
 const RAGInitializer = dynamic(() => import('../../../../components/RAGInitializer'), { ssr: false });
+const PrinterQuickSetupModal = dynamic(() => import('../../../../components/PrinterQuickSetupModal'), { ssr: false });
 import { 
   FaSearch, 
   FaShoppingCart, 
@@ -619,6 +620,7 @@ function RestaurantPOSContent() {
   // QR Code modal state
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [showPrinterSetup, setShowPrinterSetup] = useState(false);
 
   // Authentication guard - simplified with URL token support
   useEffect(() => {
@@ -6959,6 +6961,24 @@ function RestaurantPOSContent() {
                 </div>
               </Link>
 
+              {/* Printer Setup */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  padding: '6px 12px',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onClick={() => setShowPrinterSetup(true)}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1e293b'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <FaPrint size={22} color="#a78bfa" />
+              </div>
+
               {/* DineBot AI */}
               <div
                 style={{
@@ -9270,6 +9290,16 @@ function RestaurantPOSContent() {
           restaurantId={selectedRestaurant?.id}
           onMenuItemsAdded={handleMenuItemsAdded}
           currentMenuItems={menuItems}
+        />
+      )}
+
+      {/* Printer Quick Setup Modal */}
+      {showPrinterSetup && (
+        <PrinterQuickSetupModal
+          isOpen={showPrinterSetup}
+          onClose={() => setShowPrinterSetup(false)}
+          restaurantId={selectedRestaurant?.id}
+          onSettingsChanged={(newSettings) => setPrintSettings(newSettings)}
         />
       )}
 

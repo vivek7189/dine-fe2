@@ -93,6 +93,22 @@ class ApiClient {
     this._inflight.clear();
   }
 
+  /**
+   * Switch API base URL based on restaurant config.
+   * If restaurant has pgBackendUrl set, route all API calls to that URL (e.g. GCP Cloud Run).
+   * Otherwise, fall back to the default (Vercel).
+   * Call this on restaurant selection/switch and after login.
+   */
+  setRestaurantBaseURL(restaurant) {
+    const customUrl = restaurant?.pgBackendUrl;
+    const newBase = customUrl || API_BASE_URL;
+    if (this.baseURL !== newBase) {
+      console.log(`🔀 API routing: ${newBase}${customUrl ? ' (pgBackendUrl)' : ' (default)'}`);
+      this.baseURL = newBase;
+      this.clearAllCache(); // Clear cache when switching backends
+    }
+  }
+
   // Process queued requests after token refresh
   processQueue(newToken) {
     this.refreshQueue.forEach(({ resolve }) => resolve(newToken));
@@ -1076,6 +1092,25 @@ class ApiClient {
       console.error('API Error:', error);
       throw error;
     }
+  }
+
+  // ─── Signed-URL bulk upload (large files) ─────────────────────────────────
+  async getMenuUploadUrl(restaurantId, { fileName, fileType, fileSize }) {
+    return this.request(`/api/menus/upload-url/${restaurantId}`, {
+      method: 'POST',
+      body: { fileName, fileType, fileSize },
+    });
+  }
+
+  async processMenuUpload(restaurantId, { jobId, gcsPath, fileName, fileType }) {
+    return this.request(`/api/menus/process-upload/${restaurantId}`, {
+      method: 'POST',
+      body: { jobId, gcsPath, fileName, fileType },
+    });
+  }
+
+  async getMenuUploadResult(restaurantId, jobId) {
+    return this.request(`/api/menus/upload-result/${restaurantId}/${jobId}`);
   }
 
   async bulkSaveMenuItems(restaurantId, menuItems, categories = null) {
