@@ -22,7 +22,6 @@ import {
   FaSpinner,
   FaExclamationTriangle,
   FaTimesCircle,
-  FaRupeeSign,
   FaShoppingCart,
   FaSyncAlt,
   FaTimes,
@@ -171,7 +170,10 @@ const DonutChart = ({ data = [], size = 120 }) => {
 
 export function HeadquartersContent({ embedded = false }) {
   const router = useRouter();
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency, getCurrencySymbol } = useCurrency();
+  const CurrencyIcon = ({ size = 20, style = {} }) => (
+    <span style={{ fontSize: size * 0.75, fontWeight: 700, lineHeight: 1, ...style }}>{getCurrencySymbol()}</span>
+  );
 
   // Auth state
   const [authorized, setAuthorized] = useState(false);
@@ -1863,7 +1865,7 @@ export function HeadquartersContent({ embedded = false }) {
             color="#8b5cf6"
           />
           <MetricCard
-            icon={FaRupeeSign}
+            icon={CurrencyIcon}
             label={t('hq.revenue')}
             value={formatCurrency ? formatCurrency(filteredTotalRevenue) : `₹${filteredTotalRevenue.toLocaleString()}`}
             subtitle={filteredTotalRevenueWithTax > filteredTotalRevenue ? `${t('hq.inclTax')} ${formatCurrency ? formatCurrency(filteredTotalRevenueWithTax) : `₹${filteredTotalRevenueWithTax.toLocaleString()}`}` : null}
@@ -1940,7 +1942,7 @@ export function HeadquartersContent({ embedded = false }) {
                     backgroundColor: '#dcfce7',
                     borderRadius: '20px'
                   }}>
-                    <FaRupeeSign size={12} style={{ color: '#16a34a' }} />
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a' }}>{getCurrencySymbol()}</span>
                     <span style={{ fontSize: '13px', fontWeight: '600', color: '#16a34a' }}>
                       {formatCurrency ? formatCurrency(filteredTotalRevenue) : `₹${filteredTotalRevenue.toLocaleString()}`}
                     </span>

@@ -5423,7 +5423,7 @@ const MenuManagement = () => {
                           <option value="per_lb">per lb</option>
                         </select>
                         <p style={{ fontSize: '10px', color: '#6b7280', margin: 0 }}>
-                          Price entered above = {formData.priceUnit === 'per_100g' ? '₹/100g' : formData.priceUnit === 'per_lb' ? '₹/lb' : '₹/kg'}
+                          Price entered above = {formData.priceUnit === 'per_100g' ? `${getCurrencySymbol()}/100g` : formData.priceUnit === 'per_lb' ? `${getCurrencySymbol()}/lb` : `${getCurrencySymbol()}/kg`}
                         </p>
                       </div>
                       <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>

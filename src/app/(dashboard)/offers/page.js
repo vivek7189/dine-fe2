@@ -957,7 +957,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
     if (offer.discountType === 'percentage') {
       return `${offer.discountValue}% OFF`;
     }
-    return `Rs. ${offer.discountValue} OFF`;
+    return `${getCurrencySymbol()}${offer.discountValue} OFF`;
   };
 
   const getAudienceBadge = (offer) => {
@@ -980,7 +980,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
     const list = offer.tiers
       .slice()
       .sort((a, b) => (a.minSubtotal || 0) - (b.minSubtotal || 0))
-      .map(t => `Rs.${t.minSubtotal || 0}+`)
+      .map(t => `${getCurrencySymbol()}${t.minSubtotal || 0}+`)
       .join(', ');
     return `${offer.tiers.length} tier${offer.tiers.length !== 1 ? 's' : ''} · ${list}`;
   };
@@ -2292,10 +2292,10 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                     )}
                     <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '13px', color: '#6b7280' }}>
                       {offer.minOrderValue > 0 && (
-                        <span>Min order: Rs. {offer.minOrderValue}</span>
+                        <span>Min order: {getCurrencySymbol()}{offer.minOrderValue}</span>
                       )}
                       {offer.maxDiscount && (
-                        <span>Max discount: Rs. {offer.maxDiscount}</span>
+                        <span>Max discount: {getCurrencySymbol()}{offer.maxDiscount}</span>
                       )}
                       {offer.usageLimit && (
                         <span>Usage limit: {offer.usageCount || 0}/{offer.usageLimit}</span>
@@ -2500,7 +2500,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                     }}
                   >
                     <option value="percentage">Percentage (%)</option>
-                    <option value="flat">Flat Amount (Rs.)</option>
+                    <option value="flat">Flat Amount ({getCurrencySymbol()})</option>
                   </select>
                 </div>
 
@@ -2539,7 +2539,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                    Min Order Value (Rs.)
+                    Min Order Value ({getCurrencySymbol()})
                   </label>
                   <input
                     type="text"
@@ -2564,7 +2564,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
 
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                    Max Discount (Rs.)
+                    Max Discount ({getCurrencySymbol()})
                   </label>
                   <input
                     type="text"

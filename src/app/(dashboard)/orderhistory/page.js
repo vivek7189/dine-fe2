@@ -4952,7 +4952,7 @@ const OrderHistory = () => {
                         return (
                           <div className={`flex justify-between items-center text-xs pt-2 border-t border-blue-200 font-semibold ${balanced ? 'text-green-600' : 'text-amber-600'}`}>
                             <span>Total: {formatCurrency(splitTotal)} / {formatCurrency(orderTotal)}</span>
-                            <span>{balanced ? '✓ Balanced' : `₹${Math.abs(orderTotal - splitTotal).toFixed(2)} ${splitTotal < orderTotal ? 'remaining' : 'over'}`}</span>
+                            <span>{balanced ? '✓ Balanced' : `${getCurrencySymbol()}${Math.abs(orderTotal - splitTotal).toFixed(2)} ${splitTotal < orderTotal ? 'remaining' : 'over'}`}</span>
                           </div>
                         );
                       })()}

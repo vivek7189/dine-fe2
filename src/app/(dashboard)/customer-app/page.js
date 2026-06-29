@@ -23,7 +23,6 @@ import {
   FaLink,
   FaStore,
   FaPercent,
-  FaRupeeSign,
   FaHandHoldingUsd,
   FaCreditCard,
   FaExternalLinkAlt,
@@ -1902,7 +1901,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
           border: '1px solid #e5e7eb',
         }}>
           <h2 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: '600', color: '#1f2937', margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FaRupeeSign style={{ color: '#059669' }} />
+            <span style={{ color: '#059669', fontWeight: 700 }}>{getCurrencySymbol()}</span>
             Billing Settings
           </h2>
           <p style={{ fontSize: '13px', color: '#6b7280', margin: '-12px 0 20px' }}>

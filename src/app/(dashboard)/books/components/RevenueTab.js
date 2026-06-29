@@ -9,7 +9,7 @@ const cardStyle = {
   boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6',
 };
 
-const PAYMENT_COLORS = { cash: '#059669', card: '#2563eb', upi: '#8b5cf6', online: '#f59e0b' };
+const PAYMENT_COLORS = { cash: '#059669', card: '#2563eb', upi: '#8b5cf6', online: '#f59e0b', split: '#ec4899', wallet: '#14b8a6', bank_transfer: '#6366f1', credit_card: '#2563eb', debit_card: '#3b82f6', aggregator: '#f97316' };
 const ORDER_COLORS = { 'dine-in': '#2563eb', takeaway: '#f59e0b', delivery: '#8b5cf6', pickup: '#059669' };
 
 function CustomTooltip({ active, payload, label, formatCurrency }) {

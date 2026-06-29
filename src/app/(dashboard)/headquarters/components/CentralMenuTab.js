@@ -472,7 +472,7 @@ const CentralMenuTab = ({ orgData, outlets, formatCurrency }) => {
 
   const fmtPrice = (val) => {
     if (formatCurrency) return formatCurrency(val);
-    return `₹${val}`;
+    return `${val}`;
   };
 
   // ---- STYLES ----

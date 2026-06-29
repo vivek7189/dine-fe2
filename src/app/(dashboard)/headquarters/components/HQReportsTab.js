@@ -1008,7 +1008,7 @@ const SalesSummaryView = ({ data, formatCurrency }) => {
   const { summary, paymentBreakdown = [], serviceTypeBreakdown = [], dailyTrend = [], peakHours = [], outletBreakdown = [] } = data;
 
   const svcLabels = { dine_in: 'Dine-in', takeaway: 'Takeaway', delivery: 'Delivery', aggregator: 'Aggregator' };
-  const pmLabels = { cash: 'Cash', card: 'Card', upi: 'UPI', aggregator: 'Aggregator', other: 'Other' };
+  const pmLabels = { cash: 'Cash', card: 'Card', upi: 'UPI', aggregator: 'Aggregator', other: 'Other', credit_card: 'Credit Card', debit_card: 'Debit Card', bank_transfer: 'Bank Transfer', razorpay: 'Razorpay', phonepe: 'PhonePe', gpay: 'GPay', paytm: 'Paytm', split: 'Split', wallet: 'Wallet', online: 'Online' };
 
   return (
     <div>

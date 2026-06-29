@@ -3902,8 +3902,8 @@ const Customers = () => {
                                     <div style={{ fontWeight: '600', color: '#111827' }}>{row.name || 'Unknown'}</div>
                                     <div style={{ fontSize: '11px', color: '#6b7280' }}>{row.phone}</div>
                                   </td>
-                                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#dc2626' }}>₹{row.totalDiscount.toLocaleString()}</td>
-                                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#374151' }}>₹{row.totalSpent.toLocaleString()}</td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#dc2626' }}>{formatCurrency(row.totalDiscount)}</td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#374151' }}>{formatCurrency(row.totalSpent)}</td>
                                   <td style={{ padding: '10px 12px', textAlign: 'right', color: '#374151' }}>{row.orderCount}</td>
                                   {reportsRestaurantFilter === 'all' && <td style={{ padding: '10px 12px', color: '#6b7280', fontSize: '12px' }}>{row.restaurantName}</td>}
                                 </tr>
@@ -3978,8 +3978,8 @@ const Customers = () => {
                                     <div style={{ fontWeight: '600', color: '#111827' }}>{row.name || 'Unknown'}</div>
                                     <div style={{ fontSize: '11px', color: '#6b7280' }}>{row.phone}</div>
                                   </td>
-                                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#059669' }}>₹{row.totalSpent.toLocaleString()}</td>
-                                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#dc2626' }}>₹{row.totalDiscount.toLocaleString()}</td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#059669' }}>{formatCurrency(row.totalSpent)}</td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#dc2626' }}>{formatCurrency(row.totalDiscount)}</td>
                                   <td style={{ padding: '10px 12px', textAlign: 'right', color: '#374151' }}>{row.orderCount}</td>
                                   {reportsRestaurantFilter === 'all' && <td style={{ padding: '10px 12px', color: '#6b7280', fontSize: '12px' }}>{row.restaurantName}</td>}
                                 </tr>
@@ -4055,8 +4055,8 @@ const Customers = () => {
                                     <div style={{ fontSize: '11px', color: '#6b7280' }}>{row.phone}</div>
                                   </td>
                                   <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#2563eb' }}>{row.orderCount}</td>
-                                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#374151' }}>₹{row.totalSpent.toLocaleString()}</td>
-                                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#dc2626' }}>₹{row.totalDiscount.toLocaleString()}</td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#374151' }}>{formatCurrency(row.totalSpent)}</td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#dc2626' }}>{formatCurrency(row.totalDiscount)}</td>
                                   {reportsRestaurantFilter === 'all' && <td style={{ padding: '10px 12px', color: '#6b7280', fontSize: '12px' }}>{row.restaurantName}</td>}
                                 </tr>
                               );
@@ -4143,9 +4143,9 @@ const Customers = () => {
                                     </span>
                                   </td>
                                   <td style={{ padding: '10px 12px', textAlign: 'right', color: '#374151' }}>{row.memberCount}</td>
-                                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#059669' }}>₹{row.totalRevenue.toLocaleString()}</td>
-                                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#374151' }}>₹{row.avgSpending.toLocaleString()}</td>
-                                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#dc2626' }}>₹{row.totalDiscount.toLocaleString()}</td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#059669' }}>{formatCurrency(row.totalRevenue)}</td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#374151' }}>{formatCurrency(row.avgSpending)}</td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#dc2626' }}>{formatCurrency(row.totalDiscount)}</td>
                                   <td style={{ padding: '10px 12px', textAlign: 'right', color: '#374151' }}>{row.totalOrders}</td>
                                   {reportsRestaurantFilter === 'all' && <td style={{ padding: '10px 12px', color: '#6b7280', fontSize: '12px' }}>{row.restaurantName}</td>}
                                 </tr>

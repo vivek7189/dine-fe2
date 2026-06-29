@@ -5,10 +5,11 @@ import {
   FaCalendarAlt, FaClock, FaUser, FaPhone, FaBuilding, FaCheck, FaTimes,
   FaPlay, FaFlag, FaCog, FaQrcode, FaPlus, FaMapMarkerAlt, FaEnvelope,
   FaSpinner, FaChevronLeft, FaChevronRight, FaEye, FaEllipsisV, FaDoorOpen,
-  FaRupeeSign, FaStickyNote, FaExternalLinkAlt, FaCopy, FaShareAlt
+  FaStickyNote, FaExternalLinkAlt, FaCopy, FaShareAlt
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 import QRCodeModal from '../../../components/QRCodeModal';
+import { useCurrency } from '../../../contexts/CurrencyContext';
 
 const PRIMARY = '#0d9488';
 const PRIMARY_DARK = '#0f766e';
@@ -49,6 +50,7 @@ function formatDate(dateStr) {
 
 // ═════════════════════════════════════════════════════════
 export default function SpacesAdminPage() {
+  const { getCurrencySymbol, formatCurrency } = useCurrency();
   const [tab, setTab] = useState('bookings');
   const [spaces, setSpaces] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -387,7 +389,7 @@ export default function SpacesAdminPage() {
                 { label: 'Pending', count: bookingStats.pending, bg: '#fef3c7', text: '#92400e', border: '#fde68a' },
                 { label: 'Confirmed', count: bookingStats.confirmed, bg: '#dbeafe', text: '#1e40af', border: '#bfdbfe' },
                 { label: 'In Use', count: bookingStats.inUse, bg: '#dcfce7', text: '#166534', border: '#bbf7d0' },
-                { label: 'Revenue', count: `₹${bookingStats.revenue.toLocaleString('en-IN')}`, bg: PRIMARY_BG, text: PRIMARY_DARK, border: PRIMARY_LIGHT },
+                { label: 'Revenue', count: formatCurrency(bookingStats.revenue), bg: PRIMARY_BG, text: PRIMARY_DARK, border: PRIMARY_LIGHT },
               ].map(s => (
                 <div key={s.label} style={{
                   padding: '8px 16px', borderRadius: 12, background: s.bg,
@@ -545,7 +547,7 @@ export default function SpacesAdminPage() {
                           {sb.label}
                         </div>
                         <div style={{ fontSize: isMobile ? 15 : 16, fontWeight: 700, color: PRIMARY }}>
-                          ₹{b.totalAmount}
+                          {formatCurrency(b.totalAmount)}
                         </div>
                       </div>
                     </div>
@@ -756,7 +758,7 @@ export default function SpacesAdminPage() {
                                 fontSize: 12, fontWeight: 600, color: PRIMARY_DARK, background: PRIMARY_LIGHT,
                                 padding: '3px 10px', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 3
                               }}>
-                                <FaRupeeSign size={10} />{s.hourlyRate}/hr
+                                {getCurrencySymbol()}{s.hourlyRate}/hr
                               </span>
                             )}
                             {s.operatingHours && (
@@ -827,7 +829,7 @@ export default function SpacesAdminPage() {
                       }}>
                         {/* Hourly Rate */}
                         <div>
-                          <label className="sp-label">Hourly Rate (₹)</label>
+                          <label className="sp-label">Hourly Rate ({getCurrencySymbol()})</label>
                           <input type="number" value={s.hourlyRate ?? 0} className="sp-input"
                             onChange={e => {
                               if (!editing) startEditing(space);
