@@ -1155,7 +1155,7 @@ export function HeadquartersContent({ embedded = false }) {
       setTestEmailSent(false);
       // Auto-save preferences when sending test email
       await apiClient.updateEmailPreferences(prefs);
-      await apiClient.sendTestReport(emails);
+      await apiClient.sendTestReport(emails, getCurrencySymbol());
       setTestEmailSent(true);
       setTimeout(() => setTestEmailSent(false), 5000);
     } catch (error) {
