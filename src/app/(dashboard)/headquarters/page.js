@@ -240,7 +240,8 @@ export function HeadquartersContent({ embedded = false }) {
     emailEnabled: false,
     reportEmails: [],
     timezone: typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'Asia/Kolkata',
-    reportTime: '08:00'
+    reportTime: '08:00',
+    reportFrequency: 'daily'
   });
   const [newEmailInput, setNewEmailInput] = useState('');
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
@@ -1155,7 +1156,7 @@ export function HeadquartersContent({ embedded = false }) {
       setTestEmailSent(false);
       // Auto-save preferences when sending test email
       await apiClient.updateEmailPreferences(prefs);
-      await apiClient.sendTestReport(emails, getCurrencySymbol());
+      await apiClient.sendTestReport(emails, getCurrencySymbol(), prefs.reportFrequency || 'daily');
       setTestEmailSent(true);
       setTimeout(() => setTestEmailSent(false), 5000);
     } catch (error) {
@@ -1307,6 +1308,42 @@ export function HeadquartersContent({ embedded = false }) {
                 boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
               }} />
             </button>
+          </div>
+
+          {/* Report frequency selector */}
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px', display: 'block' }}>
+              Report Frequency
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {[
+                { value: 'daily', label: 'Daily', desc: 'End of day report' },
+                { value: 'weekly', label: 'Weekly', desc: 'Every Sunday' },
+                { value: 'both', label: 'Both', desc: 'Daily + Weekly' }
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setEmailPreferences(prev => ({ ...prev, reportFrequency: opt.value }))}
+                  style={{
+                    flex: 1,
+                    padding: '12px 8px',
+                    borderRadius: '12px',
+                    border: (emailPreferences.reportFrequency || 'daily') === opt.value ? '2px solid #ef4444' : '2px solid #e5e7eb',
+                    backgroundColor: (emailPreferences.reportFrequency || 'daily') === opt.value ? '#fef2f2' : '#fff',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: (emailPreferences.reportFrequency || 'daily') === opt.value ? '#dc2626' : '#374151' }}>
+                    {opt.label}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>
+                    {opt.desc}
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Email input — multi-email chips (max 5) */}
