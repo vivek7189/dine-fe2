@@ -18,6 +18,7 @@ import {
   HiDocumentText,
 } from 'react-icons/hi';
 import DownloadPDFButton from '../../components/pdf/DownloadPDFButton';
+import { useCurrency } from '../../../../../contexts/CurrencyContext';
 
 const statusBadgeMap = {
   draft: { variant: 'default', label: 'Draft' },
@@ -26,14 +27,6 @@ const statusBadgeMap = {
   declined: { variant: 'danger', label: 'Declined' },
   invoiced: { variant: 'warning', label: 'Invoiced' },
 };
-
-function formatCurrency(amount) {
-  if (amount === null || amount === undefined || isNaN(amount)) return 'Rs.0.00';
-  return `Rs.${Number(amount).toLocaleString('en-IN', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
 
 function formatDate(dateStr) {
   if (!dateStr) return '-';
@@ -48,6 +41,16 @@ export default function QuoteDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { showToast } = useToast();
+  const { getCurrencySymbol } = useCurrency();
+  const cs = getCurrencySymbol();
+
+  function formatCurrency(amount) {
+    if (amount === null || amount === undefined || isNaN(amount)) return `${cs}0.00`;
+    return `${cs}${Number(amount).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  }
   const quoteId = params.id;
 
   const [quote, setQuote] = useState(null);

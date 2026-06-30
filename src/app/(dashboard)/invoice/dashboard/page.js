@@ -7,6 +7,7 @@ import Card from '../components/ui/Card';
 import Tabs from '../components/ui/Tabs';
 import Button from '../components/ui/Button';
 import { HiPlus, HiCurrencyRupee } from 'react-icons/hi';
+import { useCurrency } from '../../../../contexts/CurrencyContext';
 import {
   BarChart,
   Bar,
@@ -46,6 +47,8 @@ function formatCurrency(amount) {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { getCurrencySymbol } = useCurrency();
+  const cs = getCurrencySymbol();
   const [orgName, setOrgName] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [receivables, setReceivables] = useState(null);
@@ -171,7 +174,7 @@ export default function DashboardPage() {
                   <div className="h-8 w-40 bg-gray-200 rounded animate-pulse mt-1" />
                 ) : (
                   <p className="text-2xl font-bold text-gray-900 mt-1">
-                    Rs.{formatCurrency(totalReceivable)}
+                    {cs}{formatCurrency(totalReceivable)}
                   </p>
                 )}
               </div>
@@ -214,7 +217,7 @@ export default function DashboardPage() {
                   <div>
                     <p className="text-xs font-medium text-green-600 uppercase">Current</p>
                     <p className="text-sm font-semibold text-gray-900 mt-0.5">
-                      Rs.{formatCurrency(currentAmount)}
+                      {cs}{formatCurrency(currentAmount)}
                     </p>
                   </div>
                   <div className="col-span-1 md:col-span-2 lg:col-span-5">
@@ -224,7 +227,7 @@ export default function DashboardPage() {
                         <div key={bucket.key}>
                           <p className="text-xs text-gray-500">{bucket.label}</p>
                           <p className="text-sm font-semibold text-gray-900">
-                            Rs.{formatCurrency(overdueAmounts[bucket.key] || 0)}
+                            {cs}{formatCurrency(overdueAmounts[bucket.key] || 0)}
                           </p>
                         </div>
                       ))}
@@ -266,7 +269,7 @@ export default function DashboardPage() {
                         tickFormatter={(v) => (v >= 1000 ? `${v / 1000}k` : v)}
                       />
                       <Tooltip
-                        formatter={(value) => [`Rs.${formatCurrency(value)}`]}
+                        formatter={(value) => [`${cs}${formatCurrency(value)}`]}
                         contentStyle={{
                           borderRadius: '8px',
                           border: '1px solid #e2e8f0',
@@ -287,19 +290,19 @@ export default function DashboardPage() {
                   <div className="flex-1 bg-blue-50 rounded-lg p-3">
                     <p className="text-xs text-blue-600 font-medium">Total Sales</p>
                     <p className="text-lg font-bold text-blue-900 mt-1">
-                      Rs.{formatCurrency(salesData?.totalSales || 0)}
+                      {cs}{formatCurrency(salesData?.totalSales || 0)}
                     </p>
                   </div>
                   <div className="flex-1 bg-green-50 rounded-lg p-3">
                     <p className="text-xs text-green-600 font-medium">Total Receipts</p>
                     <p className="text-lg font-bold text-green-900 mt-1">
-                      Rs.{formatCurrency(salesData?.totalReceipts || 0)}
+                      {cs}{formatCurrency(salesData?.totalReceipts || 0)}
                     </p>
                   </div>
                   <div className="flex-1 bg-orange-50 rounded-lg p-3">
                     <p className="text-xs text-orange-600 font-medium">Total Expenses</p>
                     <p className="text-lg font-bold text-orange-900 mt-1">
-                      Rs.{formatCurrency(salesData?.totalExpenses || 0)}
+                      {cs}{formatCurrency(salesData?.totalExpenses || 0)}
                     </p>
                   </div>
                 </div>

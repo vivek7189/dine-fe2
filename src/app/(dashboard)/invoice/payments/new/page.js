@@ -10,6 +10,7 @@ import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import Card from '../../components/ui/Card';
 import { HiSearch } from 'react-icons/hi';
+import { useCurrency } from '../../../../../contexts/CurrencyContext';
 
 const paymentModeOptions = [
   { value: '', label: 'Select Payment Mode' },
@@ -34,6 +35,8 @@ function todayISO() {
 }
 
 export default function NewPaymentPage() {
+  const { getCurrencySymbol } = useCurrency();
+  const cs = getCurrencySymbol();
   const router = useRouter();
   const { showToast } = useToast();
 
@@ -168,7 +171,7 @@ export default function NewPaymentPage() {
     { value: '', label: loadingInvoices ? 'Loading invoices...' : 'Select an invoice (optional)' },
     ...invoices.map((inv) => ({
       value: inv._id || inv.id,
-      label: `${inv.invoiceNumber} - Balance: Rs.${formatCurrency(inv.balanceDue || inv.total)}`,
+      label: `${inv.invoiceNumber} - Balance: ${cs}${formatCurrency(inv.balanceDue || inv.total)}`,
     })),
   ];
 
@@ -313,7 +316,7 @@ export default function NewPaymentPage() {
                 Recording payment for invoice{' '}
                 <span className="font-semibold">{form.invoiceNumber}</span>
                 {form.amount && (
-                  <> of <span className="font-semibold">Rs.{formatCurrency(form.amount)}</span></>
+                  <> of <span className="font-semibold">{cs}{formatCurrency(form.amount)}</span></>
                 )}
               </p>
             </div>

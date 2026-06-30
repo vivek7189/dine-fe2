@@ -4,9 +4,11 @@ import { Document, Page, Text, View, Image, StyleSheet, Font } from '@react-pdf/
 
 // ── Helpers ──────────────────────────────────────────────────────
 
+let _cs = 'Rs.';
+function setCS(symbol) { _cs = symbol || 'Rs.'; }
 function fmtCurrency(amount) {
-  if (amount == null || isNaN(amount)) return 'Rs.0.00';
-  return `Rs.${Number(amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (amount == null || isNaN(amount)) return `${_cs}0.00`;
+  return `${_cs}${Number(amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function fmtDate(d) {
@@ -1253,7 +1255,8 @@ const REPORT_TITLES = {
   'item-sales': 'Item-wise Sales Report',
 };
 
-export function HQReportPDFDocument({ reportType, data, orgName, logoUrl, dateRange }) {
+export function HQReportPDFDocument({ reportType, data, orgName, logoUrl, dateRange, currencySymbol }) {
+  setCS(currencySymbol);
   const title = REPORT_TITLES[reportType] || 'Report';
 
   return (

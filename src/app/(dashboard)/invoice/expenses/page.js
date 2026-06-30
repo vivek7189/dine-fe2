@@ -11,6 +11,7 @@ import EmptyState from '../components/ui/EmptyState';
 import Select from '../components/ui/Select';
 import Input from '../components/ui/Input';
 import { HiPlus, HiCash } from 'react-icons/hi';
+import { useCurrency } from '../../../../contexts/CurrencyContext';
 
 const categoryOptions = [
   { value: '', label: 'All Categories' },
@@ -37,14 +38,6 @@ const categoryLabels = Object.fromEntries(
   categoryOptions.filter((o) => o.value).map((o) => [o.value, o.label])
 );
 
-function formatCurrency(amount) {
-  if (amount === null || amount === undefined) return 'Rs.0.00';
-  return `Rs.${Number(amount).toLocaleString('en-IN', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
-
 function formatDate(dateStr) {
   if (!dateStr) return '-';
   return new Date(dateStr).toLocaleDateString('en-IN', {
@@ -57,6 +50,16 @@ function formatDate(dateStr) {
 export default function ExpensesPage() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { getCurrencySymbol } = useCurrency();
+  const cs = getCurrencySymbol();
+
+  function formatCurrency(amount) {
+    if (amount === null || amount === undefined) return `${cs}0.00`;
+    return `${cs}${Number(amount).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  }
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState('');

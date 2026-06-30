@@ -5,8 +5,10 @@ import { pdf } from '@react-pdf/renderer';
 import { InventoryPDFDocument } from './InventoryPDFDocument';
 import { FaDownload } from 'react-icons/fa';
 import apiClient from '../../../../../lib/api';
+import { useCurrency } from '../../../../../contexts/CurrencyContext';
 
 export default function InventoryDownloadPDFButton({ reportType, data, org, logoUrl: logoUrlProp, filename, style }) {
+  const { getCurrencySymbol } = useCurrency();
   const [generating, setGenerating] = useState(false);
 
   async function handleDownload() {
@@ -43,7 +45,7 @@ export default function InventoryDownloadPDFButton({ reportType, data, org, logo
       })();
 
       const blob = await pdf(
-        <InventoryPDFDocument reportType={reportType} data={data} org={safeOrg} logoUrl={logoUrl} />
+        <InventoryPDFDocument reportType={reportType} data={data} org={safeOrg} logoUrl={logoUrl} currencySymbol={getCurrencySymbol()} />
       ).toBlob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');

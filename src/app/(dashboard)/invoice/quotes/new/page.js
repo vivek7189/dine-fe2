@@ -7,10 +7,11 @@ import { useToast } from '../../contexts/InvoiceToastContext';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { HiPlus, HiX, HiCog, HiChevronDown } from 'react-icons/hi';
+import { useCurrency } from '../../../../../contexts/CurrencyContext';
 
-function formatCurrency(amount) {
-  if (amount === null || amount === undefined || isNaN(amount)) return 'Rs.0.00';
-  return `Rs.${Number(amount).toLocaleString('en-IN', {
+function formatCurrency(amount, cs = 'Rs.') {
+  if (amount === null || amount === undefined || isNaN(amount)) return `${cs}0.00`;
+  return `${cs}${Number(amount).toLocaleString('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
@@ -113,7 +114,7 @@ function SearchableSelect({ label, required, placeholder, options, value, onChan
 }
 
 // Item row search dropdown with free-text support
-function ItemSearchSelect({ items, value, onSelect, onCustomItem }) {
+function ItemSearchSelect({ items, value, onSelect, onCustomItem, cs }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef(null);
@@ -187,7 +188,7 @@ function ItemSearchSelect({ items, value, onSelect, onCustomItem }) {
             >
               <div className="flex justify-between">
                 <span>{item.name}</span>
-                <span className="text-gray-400">{formatCurrency(item.sellingPrice || item.rate || item.price || 0)}</span>
+                <span className="text-gray-400">{formatCurrency(item.sellingPrice || item.rate || item.price || 0, cs)}</span>
               </div>
             </button>
           ))}
@@ -219,6 +220,8 @@ function ItemSearchSelect({ items, value, onSelect, onCustomItem }) {
 export default function NewQuotePage() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { getCurrencySymbol } = useCurrency();
+  const cs = getCurrencySymbol();
   const [saving, setSaving] = useState(false);
 
   // Master data
@@ -571,6 +574,7 @@ export default function NewQuotePage() {
                       value={item.name}
                       onSelect={(selected) => handleItemSelect(item.id, selected)}
                       onCustomItem={(name) => handleCustomItem(item.id, name)}
+                      cs={cs}
                     />
                   </div>
                   <div className="col-span-2 px-3 py-2">
@@ -594,7 +598,7 @@ export default function NewQuotePage() {
                   </div>
                   <div className="col-span-2 px-3 py-2 text-right">
                     <span className="text-sm font-medium text-gray-700">
-                      {formatCurrency(item.quantity * item.rate)}
+                      {formatCurrency(item.quantity * item.rate, cs)}
                     </span>
                   </div>
                   <div className="col-span-1 px-2 py-2 text-center">
@@ -691,7 +695,7 @@ export default function NewQuotePage() {
                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Sub Total</span>
-                    <span className="font-medium text-gray-900">{formatCurrency(subTotal)}</span>
+                    <span className="font-medium text-gray-900">{formatCurrency(subTotal, cs)}</span>
                   </div>
 
                   {/* Discount */}
@@ -713,11 +717,11 @@ export default function NewQuotePage() {
                         onChange={(e) => setDiscountType(e.target.value)}
                       >
                         <option value="percentage">%</option>
-                        <option value="fixed">Rs.</option>
+                        <option value="fixed">{cs}</option>
                       </select>
                     </div>
                     <span className="text-sm text-gray-900 font-medium w-24 text-right">
-                      -{formatCurrency(discountAmount)}
+                      -{formatCurrency(discountAmount, cs)}
                     </span>
                   </div>
 
@@ -725,7 +729,7 @@ export default function NewQuotePage() {
                   {taxTotal > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Tax</span>
-                      <span className="font-medium text-gray-900">{formatCurrency(taxTotal)}</span>
+                      <span className="font-medium text-gray-900">{formatCurrency(taxTotal, cs)}</span>
                     </div>
                   )}
 
@@ -743,8 +747,8 @@ export default function NewQuotePage() {
                   </div>
 
                   <div className="border-t border-gray-200 pt-3 flex justify-between">
-                    <span className="text-sm font-semibold text-gray-900">Total (Rs.)</span>
-                    <span className="text-lg font-bold text-gray-900">{formatCurrency(total)}</span>
+                    <span className="text-sm font-semibold text-gray-900">{`Total (${cs})`}</span>
+                    <span className="text-lg font-bold text-gray-900">{formatCurrency(total, cs)}</span>
                   </div>
                 </div>
               )}

@@ -10,6 +10,7 @@ import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import Card from '../../components/ui/Card';
 import { HiPlus, HiTrash, HiSearch } from 'react-icons/hi';
+import { useCurrency } from '../../../../../contexts/CurrencyContext';
 
 const challanTypeOptions = [
   { value: '', label: 'Select Challan Type' },
@@ -33,6 +34,8 @@ function todayISO() {
 const emptyItem = { name: '', description: '', quantity: 1, rate: 0 };
 
 export default function NewChallanPage() {
+  const { getCurrencySymbol } = useCurrency();
+  const cs = getCurrencySymbol();
   const router = useRouter();
   const { showToast } = useToast();
 
@@ -371,7 +374,7 @@ export default function NewChallanPage() {
             <div className="w-full max-w-xs space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Sub Total</span>
-                <span className="font-medium text-gray-900">Rs.{formatCurrency(subTotal)}</span>
+                <span className="font-medium text-gray-900">{cs}{formatCurrency(subTotal)}</span>
               </div>
               <div className="flex items-center justify-between text-sm gap-2">
                 <span className="text-gray-600">Discount</span>
@@ -386,7 +389,7 @@ export default function NewChallanPage() {
                     className="w-16 px-2 py-1 text-sm border border-gray-300 rounded text-right focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   />
                   <span className="text-gray-500">%</span>
-                  <span className="font-medium text-gray-900 ml-2">-Rs.{formatCurrency(discountAmount)}</span>
+                  <span className="font-medium text-gray-900 ml-2">-{cs}{formatCurrency(discountAmount)}</span>
                 </div>
               </div>
               <div className="flex items-center justify-between text-sm gap-2">
@@ -401,7 +404,7 @@ export default function NewChallanPage() {
               </div>
               <div className="flex justify-between text-sm pt-2 border-t border-gray-200">
                 <span className="font-semibold text-gray-900">Total</span>
-                <span className="font-bold text-gray-900 text-base">Rs.{formatCurrency(total)}</span>
+                <span className="font-bold text-gray-900 text-base">{cs}{formatCurrency(total)}</span>
               </div>
             </div>
           </div>

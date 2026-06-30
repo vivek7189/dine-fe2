@@ -2,9 +2,11 @@
 
 import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
 
+let _cs = 'Rs.';
+function setCS(symbol) { _cs = symbol || 'Rs.'; }
 function formatCurrency(amount) {
-  if (amount === null || amount === undefined || isNaN(amount)) return 'Rs.0.00';
-  return `Rs.${Number(amount).toLocaleString('en-IN', {
+  if (amount === null || amount === undefined || isNaN(amount)) return `${_cs}0.00`;
+  return `${_cs}${Number(amount).toLocaleString('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
@@ -408,7 +410,8 @@ const reportTitles = {
   audit: 'Stock Audit Report',
 };
 
-export function InventoryPDFDocument({ reportType, data, org, logoUrl }) {
+export function InventoryPDFDocument({ reportType, data, org, logoUrl, currencySymbol }) {
+  setCS(currencySymbol);
   const safeOrg = org || {};
   const safeData = data || {};
   const title = reportTitles[reportType] || 'Inventory Report';

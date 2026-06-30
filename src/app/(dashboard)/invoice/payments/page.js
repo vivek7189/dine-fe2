@@ -21,14 +21,7 @@ import {
   HiClock,
   HiCheckCircle,
 } from 'react-icons/hi';
-
-function formatCurrency(amount) {
-  if (amount === null || amount === undefined) return 'Rs.0.00';
-  return `Rs.${Number(amount).toLocaleString('en-IN', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
+import { useCurrency } from '../../../../contexts/CurrencyContext';
 
 function formatDate(dateStr) {
   if (!dateStr) return '-';
@@ -126,6 +119,16 @@ function PaymentLifecycleDiagram() {
 export default function PaymentsPage() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { getCurrencySymbol } = useCurrency();
+  const cs = getCurrencySymbol();
+
+  function formatCurrency(amount) {
+    if (amount === null || amount === undefined) return `${cs}0.00`;
+    return `${cs}${Number(amount).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  }
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
 

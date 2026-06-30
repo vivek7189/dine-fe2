@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCurrency } from '../../../../contexts/CurrencyContext';
 import {
   FaChartLine,
   FaBoxes,
@@ -1977,6 +1978,7 @@ const SpinnerKeyframes = () => (
 // ---- Main Component ----
 
 export default function HQReportsTab({ orgData, outlets, formatCurrency, restaurantData: restaurantDataProp, selectedRestaurants, setSelectedRestaurants, allRestaurants, dateRange }) {
+  const { getCurrencySymbol } = useCurrency();
   const [activeReport, setActiveReport] = useState(null);
   const [startDate, setStartDate] = useState(getDefaultStartDate);
   const [endDate, setEndDate] = useState(getDefaultEndDate);
@@ -2334,6 +2336,7 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
           orgName={orgName}
           logoUrl={logoUrl}
           dateRange={dateRangeStr}
+          currencySymbol={getCurrencySymbol()}
         />
       ).toBlob();
       const url = URL.createObjectURL(blob);

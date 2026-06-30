@@ -11,6 +11,7 @@ import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
 import { HiPencil, HiTrash, HiArrowLeft, HiRefresh } from 'react-icons/hi';
 import DownloadPDFButton from '../../components/pdf/DownloadPDFButton';
+import { useCurrency } from '../../../../../contexts/CurrencyContext';
 
 const statusBadgeMap = {
   draft: { variant: 'default', label: 'Draft' },
@@ -23,14 +24,6 @@ const challanTypeLabels = {
   job_work: 'Job Work',
   supply_return: 'Supply Return',
 };
-
-function formatCurrency(amount) {
-  if (amount === null || amount === undefined) return 'Rs.0.00';
-  return `Rs.${Number(amount).toLocaleString('en-IN', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
 
 function formatDate(dateStr) {
   if (!dateStr) return '-';
@@ -45,6 +38,16 @@ export default function ChallanDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { showToast } = useToast();
+  const { getCurrencySymbol } = useCurrency();
+  const cs = getCurrencySymbol();
+
+  function formatCurrency(amount) {
+    if (amount === null || amount === undefined) return `${cs}0.00`;
+    return `${cs}${Number(amount).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  }
   const [challan, setChallan] = useState(null);
   const [orgData, setOrgData] = useState({});
   const [pdfSettings, setPdfSettings] = useState({ template: 'standard', colors: {} });

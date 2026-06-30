@@ -14,14 +14,7 @@ import {
   HiChevronDown,
   HiChevronUp,
 } from 'react-icons/hi';
-
-function formatCurrency(amount) {
-  if (amount === null || amount === undefined) return 'Rs.0.00';
-  return `Rs.${Number(amount).toLocaleString('en-IN', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
+import { useCurrency } from '../../../../contexts/CurrencyContext';
 
 function formatDate(dateStr) {
   if (!dateStr) return '-';
@@ -55,6 +48,12 @@ const reportCards = [
 
 export default function ReportsPage() {
   const { showToast } = useToast();
+  const { getCurrencySymbol } = useCurrency();
+  const cs = getCurrencySymbol();
+  function formatCurrency(amount) {
+    if (amount === null || amount === undefined) return `${cs}0.00`;
+    return `${cs}${Number(amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
   const [expandedCard, setExpandedCard] = useState(null);
   const [summaries, setSummaries] = useState({});
   const [loadingSummaries, setLoadingSummaries] = useState(true);
@@ -115,7 +114,7 @@ export default function ReportsPage() {
   function getSummaryValue(key) {
     if (loadingSummaries) return null;
     const data = summaries[key];
-    if (!data) return 'Rs.0.00';
+    if (!data) return `${cs}0.00`;
 
     switch (key) {
       case 'receivables':
@@ -125,7 +124,7 @@ export default function ReportsPage() {
       case 'expenses':
         return formatCurrency(data.summary?.totalExpenses || 0);
       default:
-        return 'Rs.0.00';
+        return `${cs}0.00`;
     }
   }
 
