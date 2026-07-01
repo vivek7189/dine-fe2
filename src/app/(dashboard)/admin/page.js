@@ -5325,9 +5325,10 @@ const Admin = () => {
   const ROLE_DEFAULT_PAGE_ACCESS = {
     admin:    { dashboard:true, history:true, tables:true, menu:true, analytics:true, inventory:true, kot:true, admin:{ settings:true, tax:true, pricing:true, payments:true, billingSettings:true, currency:true, print:true, features:true, restaurants:true, staff:true, orderManagement:true, offers:true, loyalty:true, googleReviews:true, whatsapp:true }, completeBill:true, invoice:true, customers:true, offers:true, printer:true },
     manager:  { dashboard:true, history:true, tables:true, menu:true, analytics:true, inventory:{ read:true, add:true, update:true, delete:false }, kot:true, admin:false, completeBill:true, invoice:true, customers:true, offers:true, printer:true },
-    waiter:   { dashboard:true, history:true, tables:true, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:false, invoice:false, customers:false, offers:false, printer:true, orders:{ read:true, update:true, cancel:true, refund:false, completeBill:false } },
+    waiter:   { dashboard:true, history:true, tables:{ read:true, add:false, update:true, delete:false, reset:false }, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:false, invoice:false, customers:false, offers:false, printer:true, orders:{ read:true, update:true, cancel:true, refund:false, completeBill:false } },
     cashier:  { dashboard:true, history:true, tables:false, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:true, invoice:true, customers:false, offers:false, printer:true },
-    employee: { dashboard:true, history:true, tables:true, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:false, invoice:false, customers:false, offers:false, printer:true },
+    employee: { dashboard:true, history:true, tables:{ read:true, add:false, update:false, delete:false, reset:false }, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:false, invoice:false, customers:false, offers:false, printer:true },
+    captain:  { dashboard:true, history:true, tables:{ read:true, add:false, update:true, delete:false, reset:true }, menu:true, analytics:false, inventory:false, kot:true, admin:false, completeBill:true, invoice:false, customers:false, offers:false, printer:true, orders:{ read:true, update:true, cancel:true, refund:true, completeBill:true } },
     sales:    { dashboard:true, history:true, tables:false, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:false, invoice:false, customers:true, offers:true, printer:true },
   };
 
@@ -5336,6 +5337,7 @@ const Admin = () => {
     manager:  'Elevated staff with access to most features. Cannot access admin settings by default.',
     waiter:   'Service staff. Basic access to tables, orders, and menu.',
     cashier:  'Billing-focused staff. Access to POS, orders, and invoices.',
+    captain:  'Floor supervisor. Manages waiters and tables in assigned sections. Can override orders, void/comp items, and approve discounts.',
     employee: 'Basic staff. Only gets access to what you explicitly grant.',
     sales:    'Sales staff. Access to customers and offers by default.',
   };
@@ -5365,7 +5367,7 @@ const Admin = () => {
     }
   });
   const [showPassword, setShowPassword] = useState({});
-  const [customRoles, setCustomRoles] = useState(['employee', 'waiter', 'cashier', 'manager', 'sales', 'admin']);
+  const [customRoles, setCustomRoles] = useState(['employee', 'waiter', 'captain', 'cashier', 'manager', 'sales', 'admin']);
   const [newCustomRole, setNewCustomRole] = useState('');
   const [currentUserRole, setCurrentUserRole] = useState('owner');
   const [copiedCredentials, setCopiedCredentials] = useState({});
@@ -5991,6 +5993,12 @@ const Admin = () => {
         color: '#3b82f6',
         bg: '#dbeafe'
       },
+      captain: {
+        label: 'Captain',
+        icon: FaUserShield,
+        color: '#7e22ce',
+        bg: '#f3e8ff'
+      },
       waiter: {
         label: 'Waiter',
         icon: FaUtensils,
@@ -6283,9 +6291,17 @@ const Admin = () => {
       email: selectedStaff.email || '',
       role: selectedStaff.role || 'employee',
       isDeliveryPartner: selectedStaff.isDeliveryPartner || false,
+      assignedFloorIds: selectedStaff.assignedFloorIds || [],
+      assignedWaiterIds: selectedStaff.assignedWaiterIds || [],
       pageAccess: JSON.parse(JSON.stringify(selectedStaff.pageAccess || ROLE_DEFAULT_PAGE_ACCESS[selectedStaff.role] || ROLE_DEFAULT_PAGE_ACCESS.employee)),
     });
     setEditingStaff(true);
+    // Ensure floors are loaded for captain assignment UI
+    if ((selectedStaff.role === 'captain' || !floors || floors.length === 0) && selectedRestaurant?.id) {
+      apiClient.getFloors(selectedRestaurant.id).then(res => {
+        setFloors(res?.floors || res || []);
+      }).catch(() => {});
+    }
   };
 
   const handleSaveStaffEdit = async () => {
@@ -6314,6 +6330,12 @@ const Admin = () => {
       // Always send pageAccess (user may have customized it)
       updateData.pageAccess = editStaffForm.pageAccess;
       updateData.isDeliveryPartner = !!editStaffForm.isDeliveryPartner;
+
+      // Captain-specific fields
+      if (role === 'captain') {
+        updateData.assignedFloorIds = editStaffForm.assignedFloorIds || [];
+        updateData.assignedWaiterIds = editStaffForm.assignedWaiterIds || [];
+      }
 
       await apiClient.updateStaff(selectedStaff.id, updateData);
 
@@ -9858,6 +9880,77 @@ const Admin = () => {
                           {editStaffForm.isDeliveryPartner ? 'Can receive delivery assignments' : 'Not a delivery partner'}
                         </span>
                       </div>
+
+                      {/* Captain Assignment — Floors & Waiters */}
+                      {editStaffForm.role === 'captain' && (
+                        <div style={{ marginTop: '16px', padding: '14px', backgroundColor: '#faf5ff', borderRadius: '12px', border: '1px solid #e9d5ff' }}>
+                          <h4 style={{ fontSize: '13px', fontWeight: '700', color: '#7e22ce', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <FaUserShield size={12} /> Captain Assignment
+                          </h4>
+                          {/* Assigned Floors */}
+                          <div style={{ marginBottom: '12px' }}>
+                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#581c87', marginBottom: '6px' }}>Assigned Floors</label>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                              {(floors || []).map(floor => {
+                                const isSelected = (editStaffForm.assignedFloorIds || []).includes(floor.id);
+                                return (
+                                  <button key={floor.id} type="button"
+                                    onClick={() => setEditStaffForm(f => ({
+                                      ...f,
+                                      assignedFloorIds: isSelected
+                                        ? (f.assignedFloorIds || []).filter(id => id !== floor.id)
+                                        : [...(f.assignedFloorIds || []), floor.id]
+                                    }))}
+                                    style={{
+                                      padding: '5px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: '500',
+                                      border: isSelected ? '2px solid #7e22ce' : '1px solid #d1d5db',
+                                      backgroundColor: isSelected ? '#f3e8ff' : '#fff',
+                                      color: isSelected ? '#7e22ce' : '#6b7280',
+                                      cursor: 'pointer', transition: 'all 0.15s'
+                                    }}
+                                  >
+                                    {floor.name || `Floor ${floor.id}`}
+                                  </button>
+                                );
+                              })}
+                              {(!floors || floors.length === 0) && (
+                                <span style={{ fontSize: '12px', color: '#9ca3af' }}>No floors configured. Add floors in Tables tab first.</span>
+                              )}
+                            </div>
+                          </div>
+                          {/* Assigned Waiters */}
+                          <div>
+                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#581c87', marginBottom: '6px' }}>Assigned Waiters</label>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                              {(staff || []).filter(s => s.role === 'waiter' && s.id !== selectedStaff?.id).map(waiter => {
+                                const isSelected = (editStaffForm.assignedWaiterIds || []).includes(waiter.id);
+                                return (
+                                  <button key={waiter.id} type="button"
+                                    onClick={() => setEditStaffForm(f => ({
+                                      ...f,
+                                      assignedWaiterIds: isSelected
+                                        ? (f.assignedWaiterIds || []).filter(id => id !== waiter.id)
+                                        : [...(f.assignedWaiterIds || []), waiter.id]
+                                    }))}
+                                    style={{
+                                      padding: '5px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: '500',
+                                      border: isSelected ? '2px solid #7e22ce' : '1px solid #d1d5db',
+                                      backgroundColor: isSelected ? '#f3e8ff' : '#fff',
+                                      color: isSelected ? '#7e22ce' : '#6b7280',
+                                      cursor: 'pointer', transition: 'all 0.15s'
+                                    }}
+                                  >
+                                    {waiter.name}
+                                  </button>
+                                );
+                              })}
+                              {(staff || []).filter(s => s.role === 'waiter').length === 0 && (
+                                <span style={{ fontSize: '12px', color: '#9ca3af' }}>No waiters found. Create waiter staff first.</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
@@ -9870,6 +9963,21 @@ const Admin = () => {
                         <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <FaTruck size={12} color="#10b981" />
                           <span style={{ color: '#059669', fontWeight: '600' }}>Delivery Partner</span>
+                        </div>
+                      )}
+                      {selectedStaff.role === 'captain' && (
+                        <div style={{ marginTop: '8px', padding: '10px', backgroundColor: '#faf5ff', borderRadius: '8px', border: '1px solid #e9d5ff' }}>
+                          <div style={{ fontSize: '12px', fontWeight: '600', color: '#7e22ce', marginBottom: '6px' }}>Captain Assignment</div>
+                          <div style={{ marginBottom: '4px', fontSize: '13px' }}>
+                            <strong>Floors:</strong> {(selectedStaff.assignedFloorIds || []).length > 0
+                              ? (selectedStaff.assignedFloorIds || []).map(fId => (floors || []).find(f => f.id === fId)?.name || fId).join(', ')
+                              : 'None assigned'}
+                          </div>
+                          <div style={{ fontSize: '13px' }}>
+                            <strong>Waiters:</strong> {(selectedStaff.assignedWaiterIds || []).length > 0
+                              ? (selectedStaff.assignedWaiterIds || []).map(wId => (staff || []).find(s => s.id === wId)?.name || wId).join(', ')
+                              : 'None assigned'}
+                          </div>
                         </div>
                       )}
                     </div>

@@ -9,7 +9,7 @@ import {
 } from 'react-icons/fa';
 import apiClient from '../lib/api';
 
-const VALID_ROLES = ['admin', 'manager', 'waiter', 'cashier', 'employee', 'sales', 'kitchen', 'delivery'];
+const VALID_ROLES = ['admin', 'manager', 'captain', 'waiter', 'cashier', 'employee', 'sales', 'kitchen', 'delivery'];
 
 const BulkStaffUpload = ({ isOpen, onClose, restaurantId, onStaffAdded }) => {
   const [step, setStep] = useState(1); // 1=upload, 2=preview, 3=credentials
