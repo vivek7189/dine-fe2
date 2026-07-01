@@ -217,7 +217,9 @@ class ApiClient {
       }
 
       // Electron desktop: route through Node.js main process for SQLite offline cache
-      if (typeof window !== 'undefined' && window.electronAPI?.apiRequest) {
+      // Skip IPC for FormData (file uploads) — FormData can't be serialized through IPC;
+      // send directly via fetch to the cloud API instead.
+      if (typeof window !== 'undefined' && window.electronAPI?.apiRequest && !(config.body instanceof FormData)) {
         return await this._electronRequest(endpoint, config);
       }
 
