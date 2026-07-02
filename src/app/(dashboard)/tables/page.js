@@ -1066,8 +1066,14 @@ const TableManagement = () => {
         if (selectedRestaurant?.phone) _tpIdLines.push('Tel: ' + selectedRestaurant.phone);
         if (selectedRestaurant?.showGstOnInvoice && selectedRestaurant?.gstin) _tpIdLines.push('GSTIN: ' + selectedRestaurant.gstin);
         if (selectedRestaurant?.showFssaiOnInvoice && selectedRestaurant?.fssai) _tpIdLines.push('FSSAI: ' + selectedRestaurant.fssai);
-        if (selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.vatNumber) _tpIdLines.push('Tax ID: ' + selectedRestaurant.vatNumber);
-        if (selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.taxId) _tpIdLines.push('Tax ID: ' + selectedRestaurant.taxId);
+        if (selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.vatNumber) {
+          const _taxPrefix = selectedRestaurant?.countryCode === 'AE' || selectedRestaurant?.countryCode === 'SA' ? 'TRN' : selectedRestaurant?.currencySettings?.taxLabel || 'Tax ID';
+          _tpIdLines.push(_taxPrefix + ': ' + selectedRestaurant.vatNumber);
+        }
+        if (selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.taxId) {
+          const _taxPrefix2 = selectedRestaurant?.countryCode === 'AU' ? 'ABN' : selectedRestaurant?.currencySettings?.taxLabel || 'Tax ID';
+          _tpIdLines.push(_taxPrefix2 + ': ' + selectedRestaurant.taxId);
+        }
         if (selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.businessRegistrationNumber) _tpIdLines.push('Reg#: ' + selectedRestaurant.businessRegistrationNumber);
         const _tpIdHtml = _tpIdLines.map(l => `<div style="font-size:11px;">${l}</div>`).join('');
         const _tpHeaderHtml = getBillHeaderHTML(restaurantName.replace(/</g, '&lt;'), _tpIdHtml, printSettings?.receiptLogo || null, '--- BILL / INVOICE ---');

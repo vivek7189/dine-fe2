@@ -27,7 +27,8 @@ const MenuItemCard = ({
   // Check if item has variants or customizations
   const hasVariants = item.variants && Array.isArray(item.variants) && item.variants.length > 0;
   const hasCustomizations = item.customizations && Array.isArray(item.customizations) && item.customizations.length > 0;
-  const needsCustomization = hasVariants || hasCustomizations;
+  const hasModifierGroups = item.modifierGroups && Array.isArray(item.modifierGroups) && item.modifierGroups.length > 0;
+  const needsCustomization = hasVariants || hasCustomizations || hasModifierGroups;
 
   const dm = darkMode ? {
     cardBg: '#1e293b', cardBorder: '#334155', cardHover: '#475569',

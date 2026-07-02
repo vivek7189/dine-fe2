@@ -381,6 +381,7 @@ export default function DashboardTablesPanel({
       showFssaiOnInvoice: selectedRestaurant?.showFssaiOnInvoice,
       showTaxIdOnInvoice: selectedRestaurant?.showTaxIdOnInvoice,
       countryCode: selectedRestaurant?.countryCode || countryCode,
+      taxLabel: selectedRestaurant?.currencySettings?.taxLabel || '',
       customerName: order.customerDisplay?.name || order.customerInfo?.name || order.customerName,
     };
   };

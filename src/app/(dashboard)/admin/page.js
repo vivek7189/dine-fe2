@@ -179,6 +179,7 @@ const AdminTabSkeleton = ({ variant = 'single' }) => (
 const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRestaurant, initialLoading }) => {
   const { showSuccess, showError, NotificationContainer: TaxNotifications } = useNotification();
   const allRoles = ['owner', 'manager', 'admin', 'waiter', 'cashier', 'employee'];
+  const taxLabel = selectedRestaurant?.currencySettings?.taxLabel || getCurrencyByCountryCode(selectedRestaurant?.currencySettings?.countryCode || 'IN')?.taxLabel || 'Tax';
   // --- Tax state ---
   const [taxSettings, setTaxSettings] = useState({
     enabled: false,
@@ -448,9 +449,10 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
                       const enabling = e.target.checked;
                       setTaxSettings(prev => {
                         const updated = { ...prev, enabled: enabling };
-                        // Auto-add default GST 5% for Indian restaurants when enabling tax for the first time
-                        if (enabling && countryCode === 'IN' && (!prev.taxes || prev.taxes.length === 0)) {
-                          updated.taxes = [{ id: `tax_${Date.now()}`, name: 'GST', rate: 5, enabled: true, type: 'percentage' }];
+                        // Auto-add default tax when enabling for the first time
+                        if (enabling && (!prev.taxes || prev.taxes.length === 0)) {
+                          const defaultRate = countryCode === 'IN' ? 5 : 0;
+                          updated.taxes = [{ id: `tax_${Date.now()}`, name: taxLabel, rate: defaultRate, enabled: true, type: 'percentage' }];
                         }
                         return updated;
                       });
@@ -469,10 +471,10 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
                           checked={taxSettings.taxInclusivePricing || false}
                           onChange={(e) => setTaxSettings(prev => ({ ...prev, taxInclusivePricing: e.target.checked }))}
                           style={{ width: '16px', height: '16px' }} />
-                        Menu prices include GST (Inclusive Pricing)
+                        Menu prices include {taxLabel} (Inclusive Pricing)
                       </label>
                       <p style={{ color: '#6b7280', fontSize: '11px', margin: '4px 0 0 24px' }}>
-                        When enabled, all menu prices are treated as GST-inclusive. Tax will be back-calculated from the price. Individual items can override this setting from the menu editor.
+                        When enabled, all menu prices are treated as {taxLabel}-inclusive. Tax will be back-calculated from the price. Individual items can override this setting from the menu editor.
                       </p>
                       {taxSettings.taxInclusivePricing && (
                         <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600, color: '#374151', cursor: 'pointer', marginTop: '8px', marginLeft: '24px' }}>
@@ -2338,6 +2340,81 @@ const COUNTRY_IDENTITY_FIELDS = {
       { key: 'businessRegistrationNumber', label: 'SIRET Number', placeholder: '12345678901234', showKey: 'showTaxIdOnInvoice', hint: '14-digit SIRET business registration' },
     ]
   },
+  KE: {
+    label: 'Kenya',
+    fields: [
+      { key: 'vatNumber', label: 'KRA PIN (Tax PIN)', placeholder: 'P051234567X', showKey: 'showTaxIdOnInvoice', showLabel: 'Show KRA PIN on Invoice', hint: 'Kenya Revenue Authority PIN' },
+    ]
+  },
+  QA: {
+    label: 'Qatar',
+    fields: [
+      { key: 'vatNumber', label: 'Tax Registration Number', placeholder: 'Tax number', showKey: 'showTaxIdOnInvoice', showLabel: 'Show Tax Number on Invoice', hint: 'Qatar tax registration number' },
+      { key: 'businessRegistrationNumber', label: 'Commercial Registration (CR)', placeholder: 'CR number', showKey: 'showTaxIdOnInvoice', hint: 'Commercial registration number' },
+    ]
+  },
+  BH: {
+    label: 'Bahrain',
+    fields: [
+      { key: 'vatNumber', label: 'VAT Registration Number', placeholder: 'VAT number', showKey: 'showTaxIdOnInvoice', showLabel: 'Show VAT Number on Invoice', hint: 'Bahrain VAT registration number' },
+      { key: 'businessRegistrationNumber', label: 'CR Number', placeholder: 'CR number', showKey: 'showTaxIdOnInvoice', hint: 'Commercial registration number' },
+    ]
+  },
+  OM: {
+    label: 'Oman',
+    fields: [
+      { key: 'vatNumber', label: 'VAT Registration Number', placeholder: 'VAT number', showKey: 'showTaxIdOnInvoice', showLabel: 'Show VAT Number on Invoice', hint: 'Oman VAT registration number' },
+    ]
+  },
+  KW: {
+    label: 'Kuwait',
+    fields: [
+      { key: 'businessRegistrationNumber', label: 'Commercial License Number', placeholder: 'License number', showKey: 'showTaxIdOnInvoice', showLabel: 'Show License on Invoice', hint: 'Kuwait commercial license number' },
+    ]
+  },
+  EG: {
+    label: 'Egypt',
+    fields: [
+      { key: 'vatNumber', label: 'Tax Registration Number', placeholder: 'Tax reg number', showKey: 'showTaxIdOnInvoice', showLabel: 'Show Tax Number on Invoice', hint: 'Egyptian Tax Authority registration number' },
+    ]
+  },
+  NG: {
+    label: 'Nigeria',
+    fields: [
+      { key: 'vatNumber', label: 'TIN (Tax Identification Number)', placeholder: 'TIN number', showKey: 'showTaxIdOnInvoice', showLabel: 'Show TIN on Invoice', hint: 'Federal Inland Revenue Service TIN' },
+    ]
+  },
+  ZA: {
+    label: 'South Africa',
+    fields: [
+      { key: 'vatNumber', label: 'VAT Registration Number', placeholder: 'VAT number', showKey: 'showTaxIdOnInvoice', showLabel: 'Show VAT Number on Invoice', hint: 'SARS VAT registration number' },
+    ]
+  },
+  PK: {
+    label: 'Pakistan',
+    fields: [
+      { key: 'vatNumber', label: 'NTN (National Tax Number)', placeholder: 'NTN number', showKey: 'showTaxIdOnInvoice', showLabel: 'Show NTN on Invoice', hint: 'FBR National Tax Number' },
+      { key: 'businessRegistrationNumber', label: 'STRN (Sales Tax Registration)', placeholder: 'STRN number', showKey: 'showTaxIdOnInvoice', hint: 'Sales Tax Registration Number' },
+    ]
+  },
+  LK: {
+    label: 'Sri Lanka',
+    fields: [
+      { key: 'vatNumber', label: 'TIN (Taxpayer Identification Number)', placeholder: 'TIN number', showKey: 'showTaxIdOnInvoice', showLabel: 'Show TIN on Invoice', hint: 'Inland Revenue Department TIN' },
+    ]
+  },
+  NZ: {
+    label: 'New Zealand',
+    fields: [
+      { key: 'vatNumber', label: 'GST Number', placeholder: 'XX-XXX-XXX', showKey: 'showTaxIdOnInvoice', showLabel: 'Show GST Number on Invoice', hint: 'Inland Revenue GST registration' },
+    ]
+  },
+  JP: {
+    label: 'Japan',
+    fields: [
+      { key: 'vatNumber', label: 'Invoice Registration Number', placeholder: 'T + 13 digits', showKey: 'showTaxIdOnInvoice', showLabel: 'Show Registration on Invoice', hint: 'Qualified Invoice Issuer registration number' },
+    ]
+  },
 };
 
 // Default fields for countries not explicitly listed
@@ -2362,7 +2439,7 @@ const CurrencyManagement = ({ restaurants, selectedRestaurant, setSelectedRestau
     thousandSeparator: ',',
     decimalSeparator: '.',
     locale: 'en-IN',
-    taxLabel: 'GST'
+    taxLabel: 'Tax'
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -4612,7 +4689,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                       { name: 'Masala Dosa', quantity: 1, price: 120, total: 120, categoryName: 'South Indian' },
                     ],
                     subtotal: 530,
-                    taxBreakdown: [{ name: 'GST', rate: 5, amount: 26.50 }],
+                    taxBreakdown: [{ name: selectedRestaurant?.currencySettings?.taxLabel || 'Tax', rate: 5, amount: 26.50 }],
                     grandTotal: 556.50,
                     offerDiscount: 0,
                     manualDiscount: 0,

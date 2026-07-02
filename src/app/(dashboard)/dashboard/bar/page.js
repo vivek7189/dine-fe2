@@ -335,11 +335,11 @@ function BarPOSContent() {
       });
     } else if (taxSettings.defaultTaxRate) {
       const amount = subtotal * (taxSettings.defaultTaxRate / 100);
-      taxes.push({ name: 'GST', rate: taxSettings.defaultTaxRate, amount });
+      taxes.push({ name: selectedRestaurant?.currencySettings?.taxLabel || 'Tax', rate: taxSettings.defaultTaxRate, amount });
       total = amount;
     }
     return { taxBreakdown: taxes, totalTax: total };
-  }, [taxSettings]);
+  }, [taxSettings, selectedRestaurant]);
 
   // ─── Tab Functions ──────────────────────────────────────
 

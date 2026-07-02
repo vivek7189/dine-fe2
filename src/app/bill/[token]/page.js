@@ -146,7 +146,7 @@ export default function PublicBillPage() {
                   <tr key={i} style={{ borderBottom: i < items.length - 1 ? '1px solid #f8fafc' : 'none' }}>
                     <td style={{ padding: '10px 0', fontSize: '13px', color: '#1e293b', fontWeight: 500 }}>
                       {item.name}
-                      {item.variant && <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 400 }}>{item.variant}</div>}
+                      {(item.selectedVariant?.name || item.variant) && <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 400 }}>{item.selectedVariant?.name || item.variant}</div>}
                     </td>
                     <td style={{ textAlign: 'center', fontSize: '13px', color: '#64748b' }}>{item.quantity || 1}</td>
                     <td style={{ textAlign: 'right', fontSize: '13px', color: '#64748b' }}>{cs}{r2(item.price)}</td>

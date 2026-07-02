@@ -1624,6 +1624,8 @@ const OrderHistory = () => {
       showGstOnInvoice: restaurant?.showGstOnInvoice,
       showFssaiOnInvoice: restaurant?.showFssaiOnInvoice,
       showTaxIdOnInvoice: restaurant?.showTaxIdOnInvoice,
+      countryCode: restaurant?.countryCode || '',
+      taxLabel: restaurant?.currencySettings?.taxLabel || '',
       items,
       subtotal,
       taxBreakdown: order.taxBreakdown || [],
@@ -4338,6 +4340,7 @@ const OrderHistory = () => {
                     billingSettings={restaurant?.billingSettings || {}}
                     businessType={restaurant?.businessType || 'restaurant'}
                     countryCode={restaurant?.countryCode || 'IN'}
+                    defaultTaxName={restaurant?.currencySettings?.taxLabel || 'Tax'}
                     multiPricingEnabled={multiPricingEnabled}
                     pricingRules={pricingRules}
                     activePricingRuleId={activePricingRuleId}

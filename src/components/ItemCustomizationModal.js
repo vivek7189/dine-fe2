@@ -20,10 +20,13 @@ const ItemCustomizationModal = ({
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [selectedCustomizations, setSelectedCustomizations] = useState([]);
   const [quantity, setQuantity] = useState(1);
+  const [selectedGroupItems, setSelectedGroupItems] = useState({});
 
   // Check if item has variants or customizations (safe checks)
   const hasVariants = item?.variants && Array.isArray(item.variants) && item.variants.length > 0;
   const hasCustomizations = item?.customizations && Array.isArray(item.customizations) && item.customizations.length > 0;
+  const hasModifierGroups = item?.modifierGroups && Array.isArray(item.modifierGroups) && item.modifierGroups.length > 0;
+  const useGroupedUI = hasModifierGroups;
 
   // Initialize variant/customization selection when modal opens
   useEffect(() => {
@@ -33,6 +36,7 @@ const ItemCustomizationModal = ({
       setSelectedVariant(null);
       setSelectedCustomizations([]);
       setQuantity(1);
+      setSelectedGroupItems({});
       return;
     }
 
@@ -52,6 +56,20 @@ const ItemCustomizationModal = ({
       setSelectedCustomizations(initialCustomizations);
     } else {
       setSelectedCustomizations([]);
+    }
+
+    // Pre-populate group selections from initialCustomizations
+    if (item?.modifierGroups?.length > 0 && initialCustomizations && initialCustomizations.length > 0) {
+      const map = {};
+      for (const group of item.modifierGroups) {
+        const matched = initialCustomizations.filter(c =>
+          (group.items || []).some(gi => gi.id === c.id || gi.name === c.name)
+        );
+        if (matched.length > 0) map[group.id] = matched.map(c => ({ id: c.id, name: c.name, price: c.price || 0 }));
+      }
+      setSelectedGroupItems(map);
+    } else {
+      setSelectedGroupItems({});
     }
 
     // Pre-set quantity
@@ -103,6 +121,42 @@ const ItemCustomizationModal = ({
     });
   };
 
+  const handleGroupItemToggle = (group, groupItem) => {
+    setSelectedGroupItems(prev => {
+      const current = prev[group.id] || [];
+      const exists = current.find(c => c.id === groupItem.id);
+
+      let next;
+      if ((group.max || 1) === 1) {
+        // Radio: replace (deselect if same item clicked again)
+        next = exists ? [] : [{ id: groupItem.id, name: groupItem.name, price: groupItem.price || 0 }];
+      } else {
+        // Checkbox with max limit
+        if (exists) {
+          next = current.filter(c => c.id !== groupItem.id);
+        } else {
+          if (current.length >= (group.max || 99)) return prev; // max reached
+          next = [...current, { id: groupItem.id, name: groupItem.name, price: groupItem.price || 0 }];
+        }
+      }
+      const updated = { ...prev, [group.id]: next };
+      // Sync flat selectedCustomizations from all groups
+      const flat = Object.values(updated).flat();
+      setSelectedCustomizations(flat);
+      return updated;
+    });
+  };
+
+  const isGroupValid = (group) => {
+    const selected = (selectedGroupItems[group.id] || []).length;
+    if (group.required) return selected >= (group.min || 1);
+    return true;
+  };
+
+  const allGroupsValid = hasModifierGroups
+    ? item.modifierGroups.every(g => isGroupValid(g))
+    : true;
+
   // Handle add to cart
   const handleAddToCart = () => {
     // Validation: Must select variant if variants exist
@@ -133,6 +187,7 @@ const ItemCustomizationModal = ({
     // Reset and close
     setSelectedVariant(null);
     setSelectedCustomizations([]);
+    setSelectedGroupItems({});
     setQuantity(1);
     onClose();
   };
@@ -431,8 +486,125 @@ const ItemCustomizationModal = ({
               </div>
             )}
 
+            {/* GROUPED MODIFIER UI */}
+                {useGroupedUI && (
+                  <div style={{ marginBottom: '24px' }}>
+                    {item.modifierGroups.map((group) => {
+                      const selectedInGroup = selectedGroupItems[group.id] || [];
+                      const isValid = isGroupValid(group);
+                      const isRadio = (group.max || 1) === 1;
+
+                      return (
+                        <div key={group.id} style={{ marginBottom: '20px' }}>
+                          {/* Group Header */}
+                          <div style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            marginBottom: '10px', flexWrap: 'wrap', gap: '6px'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>
+                                {group.name}
+                              </span>
+                              {group.required && (
+                                <span style={{ color: '#ef4444', fontSize: '14px', fontWeight: '700' }}>*</span>
+                              )}
+                            </div>
+                            <span style={{
+                              fontSize: '11px', fontWeight: '600',
+                              padding: '3px 10px', borderRadius: '20px',
+                              backgroundColor: isValid ? '#f0fdf4' : '#fef2f2',
+                              color: isValid ? '#16a34a' : '#ef4444'
+                            }}>
+                              {selectedInGroup.length}/{group.max || 1}
+                              {' · '}
+                              {group.required
+                                ? ((group.min || 1) === (group.max || 1) ? `Pick ${group.min || 1}` : `Pick ${group.min || 1}-${group.max || 1}`)
+                                : `Optional${group.max ? `, up to ${group.max}` : ''}`
+                              }
+                            </span>
+                          </div>
+
+                          {/* Group Items */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {(group.items || []).map((groupItem) => {
+                              const isSelected = selectedInGroup.some(c => c.id === groupItem.id);
+                              const atMax = !isSelected && selectedInGroup.length >= (group.max || 1) && (group.max || 1) > 1;
+                              return (
+                                <button
+                                  key={groupItem.id}
+                                  type="button"
+                                  onClick={() => handleGroupItemToggle(group, groupItem)}
+                                  disabled={atMax}
+                                  style={{
+                                    padding: '12px 16px',
+                                    backgroundColor: isSelected ? '#fef2f2' : (atMax ? '#f3f4f6' : 'white'),
+                                    border: isSelected ? '2px solid #ef4444' : '1px solid #e5e7eb',
+                                    borderRadius: '10px',
+                                    cursor: atMax ? 'not-allowed' : 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    opacity: atMax ? 0.5 : 1,
+                                    transition: 'all 0.15s ease',
+                                    textAlign: 'left',
+                                    width: '100%'
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    {isRadio ? (
+                                      <div style={{
+                                        width: '20px', height: '20px', borderRadius: '50%',
+                                        border: `2px solid ${isSelected ? '#ef4444' : '#d1d5db'}`,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        flexShrink: 0
+                                      }}>
+                                        {isSelected && <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ef4444' }} />}
+                                      </div>
+                                    ) : (
+                                      <div style={{
+                                        width: '20px', height: '20px', borderRadius: '4px',
+                                        border: `2px solid ${isSelected ? '#ef4444' : '#d1d5db'}`,
+                                        backgroundColor: isSelected ? '#ef4444' : 'transparent',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        flexShrink: 0
+                                      }}>
+                                        {isSelected && <span style={{ color: 'white', fontSize: '12px', fontWeight: 'bold', lineHeight: 1 }}>✓</span>}
+                                      </div>
+                                    )}
+                                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>
+                                      {groupItem.name}
+                                    </span>
+                                  </div>
+                                  {groupItem.price > 0 && (
+                                    <span style={{
+                                      fontSize: '14px', fontWeight: '600',
+                                      color: isSelected ? '#ef4444' : '#6b7280'
+                                    }}>
+                                      +{formatCurrency(groupItem.price)}
+                                    </span>
+                                  )}
+                                  {groupItem.price === 0 && (
+                                    <span style={{ fontSize: '12px', color: '#9ca3af' }}>
+                                      Included
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {/* Validation hint */}
+                          {group.required && !isValid && (
+                            <p style={{ fontSize: '11px', color: '#ef4444', margin: '6px 0 0 0', fontWeight: '500' }}>
+                              Please select {(group.min || 1) === 1 ? '1 option' : `at least ${group.min || 1} options`}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
             {/* Customizations Section (Toppings/Add-ons) */}
-            {hasCustomizations && (
+            {!useGroupedUI && hasCustomizations && (
               <div style={{ marginBottom: '24px' }}>
                 <label style={{
                   display: 'block',
@@ -601,7 +773,7 @@ const ItemCustomizationModal = ({
                   {formatCurrency(getBasePrice())}
                 </span>
               </div>
-              {hasCustomizations && selectedCustomizations.length > 0 && (
+              {(hasCustomizations || hasModifierGroups) && selectedCustomizations.length > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <span style={{ fontSize: '14px', color: '#6b7280' }}>
                     Toppings/Extras ({selectedCustomizations.length})
@@ -642,33 +814,33 @@ const ItemCustomizationModal = ({
             {/* Add to Cart Button */}
             <button
               onClick={handleAddToCart}
-              disabled={hasVariants && !selectedVariant}
+              disabled={(hasVariants && !selectedVariant) || (hasModifierGroups && !allGroupsValid)}
               style={{
                 width: '100%',
                 padding: '16px',
-                backgroundColor: (hasVariants && !selectedVariant) ? '#d1d5db' : '#ef4444',
+                backgroundColor: ((hasVariants && !selectedVariant) || (hasModifierGroups && !allGroupsValid)) ? '#d1d5db' : '#ef4444',
                 color: 'white',
                 border: 'none',
                 borderRadius: '12px',
                 fontSize: '16px',
                 fontWeight: '700',
-                cursor: (hasVariants && !selectedVariant) ? 'not-allowed' : 'pointer',
+                cursor: ((hasVariants && !selectedVariant) || (hasModifierGroups && !allGroupsValid)) ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s ease',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                boxShadow: (hasVariants && !selectedVariant) ? 'none' : '0 4px 12px rgba(239, 68, 68, 0.3)'
+                boxShadow: ((hasVariants && !selectedVariant) || (hasModifierGroups && !allGroupsValid)) ? 'none' : '0 4px 12px rgba(239, 68, 68, 0.3)'
               }}
               onMouseEnter={(e) => {
-                if (!(hasVariants && !selectedVariant)) {
+                if (!((hasVariants && !selectedVariant) || (hasModifierGroups && !allGroupsValid))) {
                   e.target.style.transform = 'translateY(-2px)';
                   e.target.style.boxShadow = '0 6px 20px rgba(239, 68, 68, 0.4)';
                 }
               }}
               onMouseLeave={(e) => {
                 e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = (hasVariants && !selectedVariant) ? 'none' : '0 4px 12px rgba(239, 68, 68, 0.3)';
+                e.target.style.boxShadow = ((hasVariants && !selectedVariant) || (hasModifierGroups && !allGroupsValid)) ? 'none' : '0 4px 12px rgba(239, 68, 68, 0.3)';
               }}
             >
               <FaPlus size={14} />
@@ -685,6 +857,11 @@ const ItemCustomizationModal = ({
                 Please select a size/portion
               </p>
             )}
+                {hasModifierGroups && !allGroupsValid && (
+                  <p style={{ fontSize: '12px', color: '#ef4444', margin: '8px 0 0 0', textAlign: 'center', fontWeight: '500' }}>
+                    Please complete all required selections
+                  </p>
+                )}
           </div>
         </div>
       </div>

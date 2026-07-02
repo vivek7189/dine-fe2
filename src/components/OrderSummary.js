@@ -128,6 +128,7 @@ const OrderSummary = ({
   businessType = 'restaurant',
   userRole = 'waiter',
   countryCode = 'IN',
+  defaultTaxName = 'Tax',
   onCustomerDataChange,
   // Billing feature settings
   billingSettings = {},
@@ -342,6 +343,7 @@ const OrderSummary = ({
   // Manual Discount State (kept local — not part of offer engine)
   const [manualDiscountValue, setManualDiscountValue] = useState('');
   const [manualDiscountTypeState, setManualDiscountTypeState] = useState('flat'); // 'flat' or 'percentage'
+  const [discountReason, setDiscountReason] = useState('');
 
   // Discount Approval State
   const [showDiscountApproval, setShowDiscountApproval] = useState(false);
@@ -1125,6 +1127,13 @@ const OrderSummary = ({
           const menuCust = menuCustomizations.find(mc => mc.id === c.id || mc.name === c.name);
           if (menuCust && typeof menuCust.price === 'number') return sum + menuCust.price;
         }
+        // Fallback: search modifierGroups if menu item has them
+        if (menuItem?.modifierGroups) {
+          for (const group of menuItem.modifierGroups) {
+            const match = (group.items || []).find(gi => gi.id === c.id || gi.name === c.name);
+            if (match && typeof match.price === 'number') return sum + match.price;
+          }
+        }
         return sum + (c?.price || 0);
       }, 0);
     } else if (typeof cartItem?.customizationPrice === 'number') {
@@ -1296,7 +1305,7 @@ const OrderSummary = ({
           ? taxableAmount * (taxSettings.defaultTaxRate / (100 + taxSettings.defaultTaxRate))
           : taxableAmount * (taxSettings.defaultTaxRate / 100);
         calculatedTaxes.push({
-          name: 'GST',
+          name: defaultTaxName,
           rate: taxSettings.defaultTaxRate,
           amount: taxAmount,
           inclusive: isGlobalInclusive
@@ -1395,6 +1404,9 @@ const OrderSummary = ({
       // Backward compat: old orders only have the computed amount, restore as flat
       setManualDiscountValue(String(currentOrder.manualDiscount));
       setManualDiscountTypeState(currentOrder.manualDiscountType || 'flat');
+    }
+    if (currentOrder.discountReason) {
+      setDiscountReason(currentOrder.discountReason);
     }
 
     // Coupon code - restore if one was applied (re-validation happens on next apply)
@@ -2020,6 +2032,7 @@ const OrderSummary = ({
       serviceChargeEnabled: serviceChargeOverride,
       manualDiscountType: manualDiscountTypeState,
       manualDiscountValue: manualDiscountValue !== '' ? parseFloat(manualDiscountValue) : null,
+      discountReason: discountReason.trim() || null,
       tipAmount: tipAmount > 0 ? tipAmount : null,
       tipPercentage: tipPercentage || null,
       cashReceived: cashReceivedNum > 0 ? cashReceivedNum : null,
@@ -3384,10 +3397,10 @@ const OrderSummary = ({
                     )}
                     {/* International: VAT/Tax ID */}
                     {invoice?.showTaxIdOnInvoice && invoice?.vatNumber && (
-                      <div style={{ fontSize: '11px', color: dm ? dm.greenText : '#166534', marginBottom: '1px' }}><strong>{invoice?.countryCode === 'GB' ? 'VAT' : invoice?.countryCode === 'CA' ? 'GST/HST' : invoice?.countryCode === 'AE' ? 'TRN' : invoice?.countryCode === 'DE' ? 'USt-IdNr' : invoice?.countryCode === 'FR' ? 'TVA' : 'Tax ID'}:</strong> {invoice.vatNumber}</div>
+                      <div style={{ fontSize: '11px', color: dm ? dm.greenText : '#166534', marginBottom: '1px' }}><strong>{invoice?.taxLabel || 'Tax ID'}:</strong> {invoice.vatNumber}</div>
                     )}
                     {invoice?.showTaxIdOnInvoice && invoice?.taxId && (
-                      <div style={{ fontSize: '11px', color: dm ? dm.greenText : '#166534', marginBottom: '1px' }}><strong>{invoice?.countryCode === 'AU' ? 'ABN' : 'Tax ID'}:</strong> {invoice.taxId}</div>
+                      <div style={{ fontSize: '11px', color: dm ? dm.greenText : '#166534', marginBottom: '1px' }}><strong>{invoice?.countryCode === 'AU' ? 'ABN' : invoice?.taxLabel || 'Tax ID'}:</strong> {invoice.taxId}</div>
                     )}
                     {invoice?.showTaxIdOnInvoice && invoice?.businessRegistrationNumber && (
                       <div style={{ fontSize: '11px', color: dm ? dm.greenText : '#166534', marginBottom: '1px' }}><strong>Reg#:</strong> {invoice.businessRegistrationNumber}</div>
@@ -4550,6 +4563,26 @@ const OrderSummary = ({
                             -{formatCurrency(getManualDiscountAmount())}
                           </span>
                         )}
+                      </div>
+                    )}
+                    {getManualDiscountAmount() > 0 && (
+                      <div style={{ marginTop: '4px', flexBasis: '100%' }}>
+                        <input
+                          type="text"
+                          placeholder="Discount reason (optional)"
+                          value={discountReason}
+                          onChange={(e) => setDiscountReason(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '6px 10px',
+                            border: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            outline: 'none',
+                            backgroundColor: dm ? dm.white : 'white',
+                            color: dm ? dm.text : '#374151',
+                          }}
+                        />
                       </div>
                     )}
                     {showSC && (
@@ -6186,6 +6219,7 @@ const OrderSummary = ({
                       specialInstructions: specialInstructions.trim() || null,
                       offerIds: saveOfferIds,
                       manualDiscount: getManualDiscountAmount(),
+                      discountReason: discountReason.trim() || null,
                       offerDiscount: effectiveOfferDiscount,
                       selectedOfferName: selectedOfferName || currentOrder?.selectedOfferName || null,
                       totalDiscountAmount: effectiveOfferDiscount + getManualDiscountAmount() + getLoyaltyDiscountAmount(),

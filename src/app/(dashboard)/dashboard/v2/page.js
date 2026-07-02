@@ -8441,6 +8441,7 @@ function RestaurantPOSContent() {
             businessType={selectedRestaurant?.businessType || 'restaurant'}
             userRole={JSON.parse(localStorage.getItem('user') || '{}').role || 'waiter'}
             countryCode={selectedRestaurant?.currencySettings?.countryCode || 'IN'}
+            defaultTaxName={selectedRestaurant?.currencySettings?.taxLabel || 'Tax'}
             onCustomerDataChange={setCustomerData}
             billingSettings={selectedRestaurant?.billingSettings || {}}
             multiPricingEnabled={multiPricingEnabled}

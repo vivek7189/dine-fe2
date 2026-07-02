@@ -511,7 +511,7 @@ const CustomDropdown = ({ value, onChange, options, placeholder, style = {} }) =
 };
 
 // Ultra Compact Menu Item Card Component
-const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onToggleHideImage, onGenerateRecipe, generatingRecipeFor, hasRecipe, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, taxInclusiveGlobal, compact, scaleBarcodeFlag, scalePluDigits, globalHideImages = false }) => {
+const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onToggleHideImage, onGenerateRecipe, generatingRecipeFor, hasRecipe, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, taxInclusiveGlobal, taxLabel = 'Tax', compact, scaleBarcodeFlag, scalePluDigits, globalHideImages = false }) => {
   const { formatCurrency: formatCurrencyHook } = useCurrency();
   const formatCurrency = formatCurrencyProp || formatCurrencyHook;
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -901,7 +901,7 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
                 fontSize: '10px',
                 fontWeight: '600'
               }}>
-                GST incl.
+                {taxLabel} incl.
               </span>
             )}
         </div>
@@ -2173,6 +2173,7 @@ const MenuManagement = () => {
     pluCode: '',
     variants: [],
     customizations: [],
+    modifierGroups: [],
     generateRecipe: true,
     // Bar-specific fields
     spiritCategory: '',
@@ -2597,13 +2598,43 @@ const MenuManagement = () => {
         description: v.description || ''
       }));
 
-      // Clean up customizations - parse prices and filter out empty ones
-      const cleanedCustomizations = (formData.customizations || []).filter(c => c.name).map(c => ({
-        id: c.id || Date.now().toString(),
-        name: c.name,
-        price: parseFloat(c.price) || 0,
-        description: c.description || ''
-      }));
+      // Clean up modifier groups and auto-generate flat customizations
+      const hasGroups = Array.isArray(formData.modifierGroups) && formData.modifierGroups.length > 0;
+
+      const cleanedModifierGroups = hasGroups
+        ? formData.modifierGroups
+            .filter(g => g.name || (g.items && g.items.some(item => item.name)))
+            .map(g => ({
+              id: g.id,
+              name: g.name || '',
+              required: g.required === true,
+              min: parseInt(g.min) || 0,
+              max: parseInt(g.max) || 1,
+              items: (g.items || [])
+                .filter(item => item.name)
+                .map(item => ({
+                  id: item.id,
+                  name: item.name,
+                  price: parseFloat(item.price) || 0,
+                  description: item.description || ''
+                }))
+            }))
+        : [];
+
+      // Auto-generate flat customizations from groups for backward compat
+      const cleanedCustomizations = hasGroups
+        ? cleanedModifierGroups.flatMap(g => (g.items || []).map(item => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            description: item.description || ''
+          })))
+        : (formData.customizations || []).filter(c => c.name).map(c => ({
+            id: c.id || Date.now().toString(),
+            name: c.name,
+            price: parseFloat(c.price) || 0,
+            description: c.description || ''
+          }));
 
       // Check if any channel prices are set
       const dineInVal = parseFloat(formData.dineInPrice);
@@ -2662,12 +2693,18 @@ const MenuManagement = () => {
       if (takeawayRule && !isNaN(takeawayVal) && takeawayVal >= 0) cleanedPricingRules[takeawayRule.id] = takeawayVal;
       if (deliveryRule && !isNaN(deliveryVal) && deliveryVal >= 0) cleanedPricingRules[deliveryRule.id] = deliveryVal;
 
+      // When variants exist, auto-set base price to lowest variant price (Square-style)
+      const effectivePrice = cleanedVariants.length > 0
+        ? Math.min(...cleanedVariants.map(v => v.price))
+        : parseFloat(formData.price);
+
       const itemData = {
         ...formData,
-        price: parseFloat(formData.price),
+        price: effectivePrice || parseFloat(formData.price) || 0,
         restaurantId: currentRestaurant.id,
         variants: cleanedVariants,
         customizations: cleanedCustomizations,
+        modifierGroups: cleanedModifierGroups,
         pricingRules: cleanedPricingRules
       };
 
@@ -2850,6 +2887,96 @@ const MenuManagement = () => {
     setFormData({ ...formData, customizations: updatedCustomizations });
   };
 
+  // ---- Modifier Group helpers ----
+  const addModifierGroup = () => {
+    setFormData(prev => ({
+      ...prev,
+      modifierGroups: [...(prev.modifierGroups || []), {
+        id: `grp_${Date.now()}`,
+        name: '',
+        required: false,
+        min: 0,
+        max: 5,
+        items: []
+      }]
+    }));
+  };
+
+  const updateModifierGroup = (groupIndex, field, value) => {
+    setFormData(prev => {
+      const groups = [...(prev.modifierGroups || [])];
+      groups[groupIndex] = { ...groups[groupIndex], [field]: value };
+      return { ...prev, modifierGroups: groups };
+    });
+  };
+
+  const removeModifierGroup = (groupIndex) => {
+    setFormData(prev => ({
+      ...prev,
+      modifierGroups: (prev.modifierGroups || []).filter((_, i) => i !== groupIndex)
+    }));
+  };
+
+  const addItemToGroup = (groupIndex) => {
+    setFormData(prev => {
+      const groups = [...(prev.modifierGroups || [])];
+      const group = { ...groups[groupIndex] };
+      group.items = [...(group.items || []), {
+        id: `cust_${Date.now()}_${Math.random().toString(36).substr(2, 7)}`,
+        name: '',
+        price: '',
+        description: ''
+      }];
+      groups[groupIndex] = group;
+      return { ...prev, modifierGroups: groups };
+    });
+  };
+
+  const updateGroupItem = (groupIndex, itemIndex, field, value) => {
+    setFormData(prev => {
+      const groups = [...(prev.modifierGroups || [])];
+      const group = { ...groups[groupIndex] };
+      const items = [...(group.items || [])];
+      items[itemIndex] = { ...items[itemIndex], [field]: value };
+      group.items = items;
+      groups[groupIndex] = group;
+      return { ...prev, modifierGroups: groups };
+    });
+  };
+
+  const removeGroupItem = (groupIndex, itemIndex) => {
+    setFormData(prev => {
+      const groups = [...(prev.modifierGroups || [])];
+      const group = { ...groups[groupIndex] };
+      group.items = (group.items || []).filter((_, i) => i !== itemIndex);
+      groups[groupIndex] = group;
+      return { ...prev, modifierGroups: groups };
+    });
+  };
+
+  const migrateCustomizationsToGroup = () => {
+    const existing = formData.customizations || [];
+    if (existing.length === 0) return;
+    const migratedGroup = {
+      id: `grp_${Date.now()}`,
+      name: t('menu.addOns') || 'Add-ons',
+      required: false,
+      min: 0,
+      max: existing.length,
+      items: existing.map(c => ({
+        id: c.id || `cust_${Date.now()}_${Math.random().toString(36).substr(2, 7)}`,
+        name: c.name,
+        price: c.price || 0,
+        description: c.description || ''
+      }))
+    };
+    setFormData(prev => ({
+      ...prev,
+      modifierGroups: [migratedGroup],
+      customizations: []
+    }));
+  };
+
   const handleEdit = useCallback((item) => {
     console.log('Editing item:', item);
     setFormData({
@@ -2872,6 +2999,7 @@ const MenuManagement = () => {
       pluCode: item.pluCode || '',
       variants: item.variants || [],
       customizations: item.customizations || [],
+      modifierGroups: item.modifierGroups || [],
       spiritCategory: item.spiritCategory || '',
       ingredients: item.ingredients || '',
       abv: item.abv?.toString() || '',
@@ -3485,6 +3613,7 @@ const MenuManagement = () => {
       pluCode: '',
       variants: [],
       customizations: [],
+      modifierGroups: [],
       generateRecipe: true,
       spiritCategory: '',
       ingredients: '',
@@ -4366,6 +4495,7 @@ const MenuManagement = () => {
                   activePricingRules={activePricingRules}
                   formatCurrency={formatCurrency}
                   taxInclusiveGlobal={currentRestaurant?.taxSettings?.taxInclusivePricing}
+                  taxLabel={currentRestaurant?.currencySettings?.taxLabel || 'Tax'}
                   compact={isMobile}
                   scaleBarcodeFlag={currentRestaurant?.posSettings?.scaleBarcodeFlag}
                   scalePluDigits={currentRestaurant?.posSettings?.scalePluDigits}
@@ -4494,7 +4624,7 @@ const MenuManagement = () => {
                             fontWeight: '600',
                             flexShrink: 0
                           }}>
-                            GST incl.
+                            {taxLabel} incl.
                           </span>
                         )}
                       </div>
@@ -5018,34 +5148,63 @@ const MenuManagement = () => {
               }}>
                 {/* Price */}
                 <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#374151',
-                    marginBottom: '6px'
-                  }}>
-                    {t('menu.priceLabel', { currency: getCurrencySymbol() })}
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.price}
-                    onChange={(e) => setFormData({...formData, price: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      outline: 'none',
-                      backgroundColor: 'white',
-                      transition: 'border-color 0.2s ease'
-                    }}
-                    placeholder={t('menu.enterPrice')}
-                    onFocus={(e) => e.target.style.borderColor = btype.accent}
-                    onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                  />
+                  {formData.variants && formData.variants.length > 0 && formData.variants.some(v => v.name && v.price) ? (
+                    <>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        color: '#374151',
+                        marginBottom: '6px'
+                      }}>
+                        {t('menu.priceLabel', { currency: getCurrencySymbol() })}
+                      </label>
+                      <div style={{
+                        padding: '12px 16px',
+                        backgroundColor: '#f3f4f6',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        color: '#6b7280'
+                      }}>
+                        {t('menu.priceSetByVariants') || 'Price is set by variants below'}
+                        <div style={{ marginTop: '4px', fontSize: '12px', color: '#9ca3af' }}>
+                          {formData.variants.filter(v => v.name && v.price).map(v => `${v.name}: ${getCurrencySymbol()}${v.price}`).join(' · ')}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        color: '#374151',
+                        marginBottom: '6px'
+                      }}>
+                        {t('menu.priceLabel', { currency: getCurrencySymbol() })}
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.price}
+                        onChange={(e) => setFormData({...formData, price: e.target.value})}
+                        style={{
+                          width: '100%',
+                          padding: '12px 16px',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '6px',
+                          fontSize: '14px',
+                          outline: 'none',
+                          backgroundColor: 'white',
+                          transition: 'border-color 0.2s ease'
+                        }}
+                        placeholder={t('menu.enterPrice')}
+                        onFocus={(e) => e.target.style.borderColor = btype.accent}
+                        onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                      />
+                    </>
+                  )}
                 </div>
 
                 {/* Tax Inclusive Override */}
@@ -5884,47 +6043,264 @@ const MenuManagement = () => {
                 )}
               </div>
 
-              {/* Customizations Section */}
+              {/* Modifier Groups / Customizations Section */}
               <div style={{ marginBottom: '16px' }}>
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  marginBottom: '8px'
+                  marginBottom: '8px',
+                  flexWrap: 'wrap',
+                  gap: '6px'
                 }}>
                   <label style={{
                     fontSize: '13px',
                     fontWeight: '600',
                     color: '#374151'
                   }}>
-                    {isBarMode ? t('menu.mixers') : isIceCreamMode ? t('menu.toppings') : isBakeryMode ? 'Add-ons' : t('menu.customizations')}
+                    {t('menu.modifierGroups') || 'Modifier Groups'}
                   </label>
-                  <button
-                    type="button"
-                    onClick={addCustomization}
-                    style={{
-                      padding: '4px 10px',
-                      backgroundColor: '#ef4444',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '3px'
-                    }}
-                  >
-                    <FaPlus size={8} />
-                    {t('menu.add')}
-                  </button>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {(!formData.modifierGroups || formData.modifierGroups.length === 0) &&
+                      formData.customizations && formData.customizations.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={migrateCustomizationsToGroup}
+                        style={{
+                          padding: '4px 10px',
+                          backgroundColor: '#7c3aed',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {t('menu.switchToGroups') || 'Switch to Groups'}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={addModifierGroup}
+                      style={{
+                        padding: '4px 10px',
+                        backgroundColor: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '3px'
+                      }}
+                    >
+                      <FaPlus size={8} />
+                      {t('menu.addGroup') || 'Add Group'}
+                    </button>
+                  </div>
                 </div>
-                {formData.customizations && formData.customizations.length > 0 ? (
+
+                {formData.modifierGroups && formData.modifierGroups.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {formData.modifierGroups.map((group, gIdx) => (
+                      <div
+                        key={group.id || gIdx}
+                        style={{
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '10px',
+                          padding: '12px',
+                          backgroundColor: '#f9fafb'
+                        }}
+                      >
+                        {/* Group Header */}
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap' }}>
+                          <input
+                            type="text"
+                            placeholder={t('menu.groupNamePlaceholder') || 'Group name, e.g. Choose Bread'}
+                            value={group.name}
+                            onChange={(e) => updateModifierGroup(gIdx, 'name', e.target.value)}
+                            style={{
+                              flex: 1,
+                              minWidth: '120px',
+                              padding: '7px 10px',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '6px',
+                              fontSize: '13px',
+                              fontWeight: '600',
+                              outline: 'none'
+                            }}
+                          />
+                          <label style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                            color: group.required ? '#dc2626' : '#6b7280',
+                            fontWeight: '600',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            <input
+                              type="checkbox"
+                              checked={group.required === true}
+                              onChange={(e) => {
+                                updateModifierGroup(gIdx, 'required', e.target.checked);
+                                if (e.target.checked && (group.min || 0) < 1) {
+                                  updateModifierGroup(gIdx, 'min', 1);
+                                }
+                              }}
+                              style={{ accentColor: '#ef4444' }}
+                            />
+                            {t('menu.required') || 'Required'}
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => removeModifierGroup(gIdx)}
+                            style={{
+                              padding: '6px',
+                              backgroundColor: '#fee2e2',
+                              color: '#dc2626',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '11px',
+                              flexShrink: 0
+                            }}
+                          >
+                            <FaTrash size={9} />
+                          </button>
+                        </div>
+
+                        {/* Min/Max Row */}
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>{t('menu.min') || 'Min'}:</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={group.min ?? 0}
+                              onChange={(e) => updateModifierGroup(gIdx, 'min', parseInt(e.target.value) || 0)}
+                              style={{
+                                width: '48px',
+                                padding: '4px 6px',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                outline: 'none',
+                                textAlign: 'center'
+                              }}
+                            />
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>{t('menu.max') || 'Max'}:</span>
+                            <input
+                              type="number"
+                              min="1"
+                              value={group.max ?? 1}
+                              onChange={(e) => updateModifierGroup(gIdx, 'max', parseInt(e.target.value) || 1)}
+                              style={{
+                                width: '48px',
+                                padding: '4px 6px',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                outline: 'none',
+                                textAlign: 'center'
+                              }}
+                            />
+                          </div>
+                          <span style={{ fontSize: '11px', color: '#9ca3af', fontStyle: 'italic' }}>
+                            {(group.max ?? 1) === 1 ? `(${t('menu.radioSingle') || 'pick one'})` : `(${t('menu.checkboxMulti') || 'multi-select'})`}
+                          </span>
+                        </div>
+
+                        {/* Items within group */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {(group.items || []).map((item, iIdx) => (
+                            <div
+                              key={item.id || iIdx}
+                              style={{
+                                display: 'flex',
+                                gap: '8px',
+                                alignItems: 'center'
+                              }}
+                            >
+                              <input
+                                type="text"
+                                placeholder={t('menu.itemNamePlaceholder') || 'e.g. Extra Cheese'}
+                                value={item.name}
+                                onChange={(e) => updateGroupItem(gIdx, iIdx, 'name', e.target.value)}
+                                style={{
+                                  flex: 1,
+                                  padding: '6px 10px',
+                                  border: '1px solid #e5e7eb',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  outline: 'none'
+                                }}
+                              />
+                              <input
+                                type="number"
+                                placeholder={t('menu.price') || 'Price'}
+                                value={item.price}
+                                onChange={(e) => updateGroupItem(gIdx, iIdx, 'price', e.target.value)}
+                                style={{
+                                  width: '72px',
+                                  padding: '6px 8px',
+                                  border: '1px solid #e5e7eb',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  outline: 'none'
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeGroupItem(gIdx, iIdx)}
+                                style={{
+                                  padding: '6px',
+                                  backgroundColor: '#fee2e2',
+                                  color: '#dc2626',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer',
+                                  fontSize: '11px',
+                                  flexShrink: 0
+                                }}
+                              >
+                                <FaTrash size={9} />
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => addItemToGroup(gIdx)}
+                            style={{
+                              fontSize: '11px',
+                              color: '#ef4444',
+                              backgroundColor: 'transparent',
+                              border: '1px dashed #fca5a5',
+                              borderRadius: '6px',
+                              padding: '6px 10px',
+                              cursor: 'pointer',
+                              fontWeight: '600',
+                              textAlign: 'center'
+                            }}
+                          >
+                            + {t('menu.addItem') || 'Add item'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : formData.customizations && formData.customizations.length > 0 ? (
+                  /* LEGACY FLAT CUSTOMIZATIONS UI — for items without groups */
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {formData.customizations.map((customization, index) => (
                       <div
-                        key={customization.id || index}
+                        key={index}
                         style={{
                           padding: '10px',
                           backgroundColor: '#f9fafb',
@@ -5937,7 +6313,7 @@ const MenuManagement = () => {
                       >
                         <input
                           type="text"
-                          placeholder={isBarMode ? t('menu.customPlaceholderBar') : isIceCreamMode ? t('menu.customPlaceholderIceCream') : t('menu.customPlaceholderDefault')}
+                          placeholder={isBarMode ? t('menu.customizationPlaceholderBar') : isIceCreamMode ? t('menu.customizationPlaceholderIceCream') : t('menu.customizationPlaceholderDefault')}
                           value={customization.name}
                           onChange={(e) => updateCustomization(index, 'name', e.target.value)}
                           style={{
@@ -5981,6 +6357,23 @@ const MenuManagement = () => {
                         </button>
                       </div>
                     ))}
+                    <button
+                      type="button"
+                      onClick={addCustomization}
+                      style={{
+                        fontSize: '11px',
+                        color: '#ef4444',
+                        backgroundColor: 'transparent',
+                        border: '1px dashed #fca5a5',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        cursor: 'pointer',
+                        fontWeight: '600',
+                        textAlign: 'center'
+                      }}
+                    >
+                      + {t('menu.add') || 'Add'}
+                    </button>
                   </div>
                 ) : (
                   <p style={{
@@ -5993,7 +6386,7 @@ const MenuManagement = () => {
                     border: '1px dashed #d1d5db',
                     margin: 0
                   }}>
-                    {isBarMode ? t('menu.customEmptyBar') : isIceCreamMode ? t('menu.customEmptyIceCream') : isBakeryMode ? t('menu.customEmptyBakery') : t('menu.customEmptyDefault')}
+                    {t('menu.modifierGroupsEmpty') || 'No modifier groups. Add a group to organize your add-ons with selection rules.'}
                   </p>
                 )}
               </div>

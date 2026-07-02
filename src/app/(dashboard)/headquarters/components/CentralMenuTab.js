@@ -844,6 +844,39 @@ const CentralMenuTab = ({ orgData, outlets, formatCurrency }) => {
                   </div>
                 )}
               </div>
+
+              {/* Modifier Groups Display (read-only) */}
+              {(() => {
+                const currentItem = editingItemId ? templateItems.find(i => i.id === editingItemId) : null;
+                return currentItem?.modifierGroups && currentItem.modifierGroups.length > 0 ? (
+                  <div style={{ marginTop: '12px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '8px' }}>
+                      Modifier Groups
+                    </label>
+                    {currentItem.modifierGroups.map((group, gIdx) => (
+                      <div key={group.id || gIdx} style={{
+                        border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px', marginBottom: '8px', backgroundColor: '#f9fafb'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                          <span style={{ fontWeight: '600', fontSize: '13px', color: '#1f2937' }}>{group.name}</span>
+                          <span style={{ fontSize: '11px', color: group.required ? '#dc2626' : '#6b7280', fontWeight: '600' }}>
+                            {group.required ? 'Required' : 'Optional'} · {group.min || 0}-{group.max || 1}
+                          </span>
+                        </div>
+                        {(group.items || []).map((modItem, iIdx) => (
+                          <div key={modItem.id || iIdx} style={{
+                            display: 'flex', justifyContent: 'space-between', padding: '4px 8px',
+                            fontSize: '12px', color: '#4b5563'
+                          }}>
+                            <span>{modItem.name}</span>
+                            <span style={{ fontWeight: '500' }}>{modItem.price > 0 ? `+${modItem.price}` : 'Included'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                ) : null;
+              })()}
             </div>
           </div>
 
@@ -918,6 +951,34 @@ const CentralMenuTab = ({ orgData, outlets, formatCurrency }) => {
                   <span key={i} style={{ ...styles.badge, backgroundColor: '#fef3c7', color: '#d97706' }}>+{c.name} — {fmtPrice(c.price)}</span>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Modifier Groups */}
+          {item.modifierGroups && item.modifierGroups.length > 0 && (
+            <div style={{ marginBottom: '16px' }}>
+              <h4 style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>Modifier Groups</h4>
+              {item.modifierGroups.map((group, gIdx) => (
+                <div key={group.id || gIdx} style={{
+                  border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px', marginBottom: '8px', backgroundColor: '#f9fafb'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span style={{ fontWeight: '600', fontSize: '13px', color: '#1f2937' }}>{group.name}</span>
+                    <span style={{ fontSize: '11px', color: group.required ? '#dc2626' : '#6b7280', fontWeight: '600' }}>
+                      {group.required ? 'Required' : 'Optional'} · {group.min || 0}-{group.max || 1}
+                    </span>
+                  </div>
+                  {(group.items || []).map((modItem, iIdx) => (
+                    <div key={modItem.id || iIdx} style={{
+                      display: 'flex', justifyContent: 'space-between', padding: '4px 8px',
+                      fontSize: '12px', color: '#4b5563'
+                    }}>
+                      <span>{modItem.name}</span>
+                      <span style={{ fontWeight: '500' }}>{modItem.price > 0 ? `+${modItem.price}` : 'Included'}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
             </div>
           )}
 
