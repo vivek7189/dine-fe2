@@ -492,6 +492,11 @@ function OnboardingContent() {
         const currencyData = getCurrencyByCountryCode(countryCode);
         await apiClient.updateCurrencySettings(rid, currencyData);
       } catch {}
+      // Auto-detect and save restaurant timezone from browser
+      try {
+        const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (detectedTz) await apiClient.updateRestaurant(rid, { posSettings: { timezone: detectedTz } });
+      } catch {}
       // Auto-seed sample menu in background so the preview works immediately
       apiClient.seedDefaultMenu(rid, selectedCountry?.code || localStorage.getItem('selectedCountryCode') || 'IN').then(() => setMenuSeeded(true)).catch(() => {});
       goNext();

@@ -38,12 +38,17 @@ export function render(kotData, printSettings = {}, labels = {}) {
   const specialInstructionsHtml = buildSpecialInstructionsHtml(k, L);
   const { dateStr, timeStr } = formatDateTime();
 
+  const showPrice = !!printSettings.showPriceOnKot;
+  const cs = k.currencySymbol || printSettings.currencySymbol || '';
   const renderRow = (item, opts = {}) => {
     const qty = item.quantity || 1;
     const noteLabel = L.note || 'Note';
     const label = opts.isRemoved ? ' <span style="color:#666;">[X]</span>' : (opts.showDelta && item.quantityDelta > 0 ? ' <span>[+]</span>' : '');
     const strikeStyle = opts.isRemoved ? 'text-decoration:line-through;color:#999;' : '';
-    return `<div class="item" style="${strikeStyle}"><div class="item-main"><span class="item-qty">${qty}x</span><span class="item-name">${esc(item.name)}${label}</span></div>` +
+    const price = item.price || (item.total ? item.total / (item.quantity || 1) : 0);
+    const itemTotal = price * qty;
+    const priceHtml = showPrice && itemTotal > 0 && !opts.isRemoved ? `<span style="float:right;font-weight:bold;">${cs}${itemTotal.toFixed(2)}</span>` : '';
+    return `<div class="item" style="${strikeStyle}"><div class="item-main"><span class="item-qty">${qty}x</span><span class="item-name">${esc(item.name)}${label}</span>${priceHtml}</div>` +
       (item.selectedVariant?.name ? `<div class="item-detail">[${esc(item.selectedVariant.name)}]</div>` : '') +
       ((item.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${esc(c.name || c)}</div>`).join('')) +
       (item.notes ? `<div class="item-note">${noteLabel}: ${esc(item.notes)}</div>` : '') +

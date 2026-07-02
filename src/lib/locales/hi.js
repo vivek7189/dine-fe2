@@ -498,7 +498,27 @@ const hi = {
       kitchenKot: 'किचन KOT',
       customerCrm: 'ग्राहक CRM',
       skipAll: 'सब छोड़ें',
+    },
+  tokenDisplay: {
+    title: 'टोकन डिस्प्ले',
+    preparing: 'तैयारी हो रही है',
+    ready: 'तैयार',
+    enterPin: 'टोकन डिस्प्ले एक्सेस करने के लिए PIN दर्ज करें',
+    pinPlaceholder: 'PIN दर्ज करें',
+    submit: 'डिस्प्ले देखें',
+    invalidPin: 'गलत PIN। कृपया पुनः प्रयास करें।',
+    noOrders: 'कोई सक्रिय ऑर्डर नहीं',
+    tokenReady: 'टोकन #{{number}} तैयार है',
+    poweredBy: 'Powered by DineOpen',
+    soundOn: 'ध्वनि चालू',
+    soundOff: 'ध्वनि बंद',
+    orderTypes: {
+      'dine-in': 'डाइन-इन',
+      'takeaway': 'टेकअवे',
+      'delivery': 'डिलीवरी',
+      'online': 'ऑनलाइन',
     }
+  }
 };
 
 export default hi;

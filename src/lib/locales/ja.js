@@ -501,6 +501,26 @@ const ja = {
     customerCrm: '顧客管理',
     skipAll: 'すべてスキップ',
   },
+  tokenDisplay: {
+    title: 'トークン表示',
+    preparing: '準備中',
+    ready: '準備完了',
+    enterPin: 'トークン表示にアクセスするにはPINを入力してください',
+    pinPlaceholder: 'PINを入力',
+    submit: '表示を見る',
+    invalidPin: 'PINが無効です。もう一度お試しください。',
+    noOrders: 'アクティブな注文はありません',
+    tokenReady: 'トークン #{{number}} の準備ができました',
+    poweredBy: 'Powered by DineOpen',
+    soundOn: 'サウンドオン',
+    soundOff: 'サウンドオフ',
+    orderTypes: {
+      'dine-in': '店内飲食',
+      'takeaway': 'テイクアウト',
+      'delivery': 'デリバリー',
+      'online': 'オンライン',
+    }
+  }
 };
 
 export default ja;

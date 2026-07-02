@@ -11379,6 +11379,72 @@ const Admin = () => {
               </div>
             )}
 
+            {/* Restaurant Timezone */}
+            <div style={{ marginBottom: '16px', padding: '14px', backgroundColor: '#f0fdf4', borderRadius: '10px', border: '1px solid #bbf7d0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                <FaClock size={16} color="#15803d" />
+                <span style={{ fontSize: '13px', fontWeight: '600', color: '#14532d' }}>Restaurant Timezone</span>
+              </div>
+              <select
+                value={posSettings.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone}
+                onChange={(e) => setPosSettings(prev => ({ ...prev, timezone: e.target.value }))}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #bbf7d0', fontSize: '12px', backgroundColor: 'white', color: '#374151' }}
+              >
+                <optgroup label="India & South Asia">
+                  <option value="Asia/Kolkata">Asia/Kolkata (UTC+5:30)</option>
+                  <option value="Asia/Colombo">Asia/Colombo (UTC+5:30)</option>
+                  <option value="Asia/Dhaka">Asia/Dhaka (UTC+6:00)</option>
+                  <option value="Asia/Kathmandu">Asia/Kathmandu (UTC+5:45)</option>
+                </optgroup>
+                <optgroup label="Middle East">
+                  <option value="Asia/Dubai">Asia/Dubai (UTC+4:00)</option>
+                  <option value="Asia/Qatar">Asia/Qatar (UTC+3:00)</option>
+                  <option value="Asia/Riyadh">Asia/Riyadh (UTC+3:00)</option>
+                  <option value="Asia/Bahrain">Asia/Bahrain (UTC+3:00)</option>
+                  <option value="Asia/Kuwait">Asia/Kuwait (UTC+3:00)</option>
+                  <option value="Asia/Muscat">Asia/Muscat (UTC+4:00)</option>
+                </optgroup>
+                <optgroup label="Southeast Asia">
+                  <option value="Asia/Singapore">Asia/Singapore (UTC+8:00)</option>
+                  <option value="Asia/Bangkok">Asia/Bangkok (UTC+7:00)</option>
+                  <option value="Asia/Jakarta">Asia/Jakarta (UTC+7:00)</option>
+                  <option value="Asia/Kuala_Lumpur">Asia/Kuala Lumpur (UTC+8:00)</option>
+                </optgroup>
+                <optgroup label="East Asia">
+                  <option value="Asia/Tokyo">Asia/Tokyo (UTC+9:00)</option>
+                  <option value="Asia/Shanghai">Asia/Shanghai (UTC+8:00)</option>
+                  <option value="Asia/Hong_Kong">Asia/Hong Kong (UTC+8:00)</option>
+                  <option value="Asia/Seoul">Asia/Seoul (UTC+9:00)</option>
+                </optgroup>
+                <optgroup label="Europe">
+                  <option value="Europe/London">Europe/London (UTC+0/+1)</option>
+                  <option value="Europe/Paris">Europe/Paris (UTC+1/+2)</option>
+                  <option value="Europe/Berlin">Europe/Berlin (UTC+1/+2)</option>
+                  <option value="Europe/Istanbul">Europe/Istanbul (UTC+3:00)</option>
+                  <option value="Europe/Moscow">Europe/Moscow (UTC+3:00)</option>
+                </optgroup>
+                <optgroup label="Americas">
+                  <option value="America/New_York">America/New York (UTC-5/-4)</option>
+                  <option value="America/Chicago">America/Chicago (UTC-6/-5)</option>
+                  <option value="America/Denver">America/Denver (UTC-7/-6)</option>
+                  <option value="America/Los_Angeles">America/Los Angeles (UTC-8/-7)</option>
+                  <option value="America/Toronto">America/Toronto (UTC-5/-4)</option>
+                </optgroup>
+                <optgroup label="Africa">
+                  <option value="Africa/Cairo">Africa/Cairo (UTC+2:00)</option>
+                  <option value="Africa/Lagos">Africa/Lagos (UTC+1:00)</option>
+                  <option value="Africa/Nairobi">Africa/Nairobi (UTC+3:00)</option>
+                </optgroup>
+                <optgroup label="Oceania">
+                  <option value="Australia/Sydney">Australia/Sydney (UTC+10/+11)</option>
+                  <option value="Pacific/Auckland">Pacific/Auckland (UTC+12/+13)</option>
+                </optgroup>
+              </select>
+              <p style={{ fontSize: '10px', color: '#6b7280', margin: '6px 0 0' }}>
+                Used for daily reports, order date boundaries, and invoice timestamps
+              </p>
+            </div>
+
             {/* Business Day Timing */}
             <div style={{ marginBottom: '16px', padding: '14px', backgroundColor: '#f0f9ff', borderRadius: '10px', border: '1px solid #bae6fd' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: posSettings.businessDayStartHour > 0 ? '12px' : '0' }}>
@@ -11417,6 +11483,130 @@ const Admin = () => {
                   <span style={{ fontSize: '11px', color: '#6b7280' }}>
                     Orders before {posSettings.businessDayStartHour || 3}:00 AM count as previous day
                   </span>
+                </div>
+              )}
+            </div>
+
+            {/* Token Display System */}
+            <div style={{ marginBottom: '16px', padding: '14px', backgroundColor: '#fefce8', borderRadius: '10px', border: '1px solid #fde68a' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <span style={{ fontSize: '18px' }}>📺</span>
+                <span style={{ fontSize: '13px', fontWeight: '600', color: '#713f12' }}>Token Display System</span>
+              </div>
+
+              {/* Enable Toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPosSettings(prev => ({ ...prev, tokenDisplayEnabled: !prev.tokenDisplayEnabled }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {posSettings.tokenDisplayEnabled
+                    ? <FaToggleOn size={28} color="#eab308" />
+                    : <FaToggleOff size={28} color="#d1d5db" />}
+                </button>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>Enable Token Display</span>
+                  <div style={{ fontSize: '11px', color: '#92400e' }}>Show order token numbers on a TV/monitor for customers</div>
+                </div>
+              </div>
+
+              {posSettings.tokenDisplayEnabled && (
+                <div style={{ marginLeft: '38px' }}>
+                  {/* PIN Protection */}
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ fontSize: '12px', color: '#374151', display: 'block', marginBottom: '4px' }}>PIN Protection (optional, 4-6 digits)</label>
+                    <input
+                      type="text"
+                      placeholder="Leave empty for no PIN"
+                      value={posSettings.tokenDisplayPin || ''}
+                      onChange={(e) => setPosSettings(prev => ({ ...prev, tokenDisplayPin: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+                      maxLength={6}
+                      style={{
+                        width: '180px', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: '8px',
+                        fontSize: '16px', fontFamily: 'monospace', letterSpacing: '4px', textAlign: 'center', backgroundColor: '#fafafa',
+                      }}
+                    />
+                    {posSettings.tokenDisplayPin && posSettings.tokenDisplayPin.length > 0 && posSettings.tokenDisplayPin.length < 4 && (
+                      <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px' }}>PIN must be at least 4 digits</div>
+                    )}
+                  </div>
+
+                  {/* Auto-clear seconds */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <label style={{ fontSize: '12px', color: '#374151' }}>Auto-clear ready tokens after:</label>
+                    <select
+                      value={posSettings.tokenDisplayAutoClearSeconds || 60}
+                      onChange={(e) => setPosSettings(prev => ({ ...prev, tokenDisplayAutoClearSeconds: Number(e.target.value) }))}
+                      style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '12px', backgroundColor: 'white' }}
+                    >
+                      <option value={30}>30 seconds</option>
+                      <option value={60}>60 seconds</option>
+                      <option value={90}>90 seconds</option>
+                      <option value={120}>2 minutes</option>
+                      <option value={180}>3 minutes</option>
+                      <option value={300}>5 minutes</option>
+                    </select>
+                  </div>
+
+                  {/* Show customer name */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setPosSettings(prev => ({ ...prev, tokenDisplayShowName: prev.tokenDisplayShowName === false ? true : false }))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                    >
+                      {posSettings.tokenDisplayShowName !== false
+                        ? <FaToggleOn size={24} color="#eab308" />
+                        : <FaToggleOff size={24} color="#d1d5db" />}
+                    </button>
+                    <span style={{ fontSize: '12px', color: '#374151' }}>Show customer name</span>
+                  </div>
+
+                  {/* Show order type */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setPosSettings(prev => ({ ...prev, tokenDisplayShowOrderType: prev.tokenDisplayShowOrderType === false ? true : false }))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                    >
+                      {posSettings.tokenDisplayShowOrderType !== false
+                        ? <FaToggleOn size={24} color="#eab308" />
+                        : <FaToggleOff size={24} color="#d1d5db" />}
+                    </button>
+                    <span style={{ fontSize: '12px', color: '#374151' }}>Show order type badge</span>
+                  </div>
+
+                  {/* Display URL */}
+                  <div style={{ padding: '10px', backgroundColor: '#fffbeb', borderRadius: '8px', border: '1px solid #fde68a' }}>
+                    <label style={{ fontSize: '11px', color: '#92400e', display: 'block', marginBottom: '4px' }}>
+                      Display URL for <strong>{selectedRestaurant?.name || 'this restaurant'}</strong> (open on TV browser)
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        readOnly
+                        value={typeof window !== 'undefined' ? `${window.location.origin}/token-display?restaurant=${selectedRestaurant?.id || ''}` : ''}
+                        style={{
+                          flex: 1, padding: '6px 10px', border: '1px solid #e5e7eb', borderRadius: '6px',
+                          fontSize: '11px', backgroundColor: '#fff', color: '#374151', fontFamily: 'monospace',
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const url = `${window.location.origin}/token-display?restaurant=${selectedRestaurant?.id || ''}`;
+                          navigator.clipboard.writeText(url).catch(() => {});
+                        }}
+                        style={{
+                          padding: '6px 12px', border: '1px solid #e5e7eb', borderRadius: '6px',
+                          fontSize: '11px', backgroundColor: '#fff', cursor: 'pointer', color: '#374151', whiteSpace: 'nowrap',
+                        }}
+                      >
+                        📋 Copy
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -11981,6 +12171,148 @@ const Admin = () => {
                   >
                     {pm.label}
                   </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div style={{ borderTop: '1px solid #f3e8f0', margin: '20px 0' }} />
+
+            {/* Waiter App Settings */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                <FaMobileAlt size={14} color="#6366f1" />
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', margin: 0 }}>Waiter App Settings</label>
+                <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 400 }}>Control what waiters see in the mobile app</span>
+              </div>
+
+              {/* Home Screen Quick Actions */}
+              <div style={{ marginBottom: '14px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: '8px' }}>Home Screen</span>
+                {[
+                  { key: 'showStartOrder', label: 'Start Order Button', desc: 'Main "Start Order" action on waiter home' },
+                  { key: 'showTables', label: 'Tables Button', desc: 'Quick action to view tables' },
+                  { key: 'showKitchen', label: 'Kitchen Button', desc: 'Quick action to view kitchen orders' },
+                  { key: 'showOrders', label: 'Orders Button', desc: 'Quick action to view orders' },
+                ].map(item => (
+                  <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setPosSettings(prev => ({
+                        ...prev,
+                        waiterAppConfig: {
+                          ...(prev.waiterAppConfig || {}),
+                          [item.key]: !(prev.waiterAppConfig?.[item.key] !== false)
+                        }
+                      }))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                    >
+                      {posSettings.waiterAppConfig?.[item.key] !== false
+                        ? <FaToggleOn size={24} color="#6366f1" />
+                        : <FaToggleOff size={24} color="#d1d5db" />}
+                    </button>
+                    <div>
+                      <span style={{ fontSize: '12px', color: '#374151' }}>{item.label}</span>
+                      <div style={{ fontSize: '10px', color: '#9ca3af' }}>{item.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Bottom Navigation Tabs */}
+              <div style={{ marginBottom: '14px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: '8px' }}>Bottom Navigation Tabs</span>
+                {[
+                  { key: 'showTablesTab', label: 'Tables Tab', desc: 'Tables tab in bottom navigation' },
+                  { key: 'showMenuTab', label: 'Menu Tab', desc: 'Menu tab in bottom navigation' },
+                  { key: 'showOrdersTab', label: 'Orders Tab', desc: 'Orders tab in bottom navigation' },
+                ].map(item => (
+                  <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setPosSettings(prev => ({
+                        ...prev,
+                        waiterAppConfig: {
+                          ...(prev.waiterAppConfig || {}),
+                          [item.key]: !(prev.waiterAppConfig?.[item.key] !== false)
+                        }
+                      }))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                    >
+                      {posSettings.waiterAppConfig?.[item.key] !== false
+                        ? <FaToggleOn size={24} color="#6366f1" />
+                        : <FaToggleOff size={24} color="#d1d5db" />}
+                    </button>
+                    <div>
+                      <span style={{ fontSize: '12px', color: '#374151' }}>{item.label}</span>
+                      <div style={{ fontSize: '10px', color: '#9ca3af' }}>{item.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Tables Screen Buttons */}
+              <div style={{ marginBottom: '14px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: '8px' }}>Tables Screen</span>
+                {[
+                  { key: 'showResetTablesButton', label: 'Reset Tables Button', desc: 'Red reset button on tables screen (default: hidden)' },
+                  { key: 'showRefreshButton', label: 'Refresh Button', desc: 'Sync/refresh button on tables screen (default: hidden)' },
+                ].map(item => (
+                  <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setPosSettings(prev => ({
+                        ...prev,
+                        waiterAppConfig: {
+                          ...(prev.waiterAppConfig || {}),
+                          [item.key]: !prev.waiterAppConfig?.[item.key]
+                        }
+                      }))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                    >
+                      {posSettings.waiterAppConfig?.[item.key]
+                        ? <FaToggleOn size={24} color="#6366f1" />
+                        : <FaToggleOff size={24} color="#d1d5db" />}
+                    </button>
+                    <div>
+                      <span style={{ fontSize: '12px', color: '#374151' }}>{item.label}</span>
+                      <div style={{ fontSize: '10px', color: '#9ca3af' }}>{item.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* More Tab Items */}
+              <div>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: '8px' }}>More Tab Items</span>
+                {[
+                  { key: 'showKitchenDisplay', label: 'Kitchen Display', desc: 'Kitchen display screen in More menu' },
+                  { key: 'showAttendance', label: 'Attendance', desc: 'Attendance tracking in More menu' },
+                  { key: 'showBilling', label: 'Billing', desc: 'Billing screen in More menu' },
+                  { key: 'showPrinterSettings', label: 'Printer Settings', desc: 'Printer settings in More menu' },
+                  { key: 'showOrderHistory', label: 'Order History', desc: 'Order history in More menu' },
+                ].map(item => (
+                  <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setPosSettings(prev => ({
+                        ...prev,
+                        waiterAppConfig: {
+                          ...(prev.waiterAppConfig || {}),
+                          [item.key]: !(prev.waiterAppConfig?.[item.key] !== false)
+                        }
+                      }))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                    >
+                      {posSettings.waiterAppConfig?.[item.key] !== false
+                        ? <FaToggleOn size={24} color="#6366f1" />
+                        : <FaToggleOff size={24} color="#d1d5db" />}
+                    </button>
+                    <div>
+                      <span style={{ fontSize: '12px', color: '#374151' }}>{item.label}</span>
+                      <div style={{ fontSize: '10px', color: '#9ca3af' }}>{item.desc}</div>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

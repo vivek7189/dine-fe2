@@ -1819,6 +1819,26 @@ const ar = {
     noZones: 'لم يتم تهيئة مناطق المواقف',
     noRates: 'لم يتم تهيئة تعرفة المواقف',
     setupRequired: 'يجب إعداد المواقف. قم بتهيئة الموقف أولاً.',
+  },
+  tokenDisplay: {
+    title: 'عرض الرموز',
+    preparing: 'قيد التحضير',
+    ready: 'جاهز',
+    enterPin: 'أدخل رمز PIN للوصول إلى عرض الرموز',
+    pinPlaceholder: 'أدخل PIN',
+    submit: 'عرض الشاشة',
+    invalidPin: 'رمز PIN غير صحيح. حاول مرة أخرى.',
+    noOrders: 'لا توجد طلبات نشطة',
+    tokenReady: 'الرمز #{{number}} جاهز',
+    poweredBy: 'Powered by DineOpen',
+    soundOn: 'الصوت مفعل',
+    soundOff: 'الصوت مغلق',
+    orderTypes: {
+      'dine-in': 'تناول في المطعم',
+      'takeaway': 'سفري',
+      'delivery': 'توصيل',
+      'online': 'عبر الإنترنت',
+    }
   }
 };
 

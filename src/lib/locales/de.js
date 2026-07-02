@@ -501,6 +501,26 @@ const de = {
     customerCrm: 'Kunden-CRM',
     skipAll: 'Alles uberspringen',
   },
+  tokenDisplay: {
+    title: 'Token-Anzeige',
+    preparing: 'In Zubereitung',
+    ready: 'Bereit',
+    enterPin: 'PIN eingeben um auf die Token-Anzeige zuzugreifen',
+    pinPlaceholder: 'PIN eingeben',
+    submit: 'Anzeige öffnen',
+    invalidPin: 'Ungültige PIN. Bitte versuchen Sie es erneut.',
+    noOrders: 'Keine aktiven Bestellungen',
+    tokenReady: 'Token #{{number}} ist bereit',
+    poweredBy: 'Powered by DineOpen',
+    soundOn: 'Ton an',
+    soundOff: 'Ton aus',
+    orderTypes: {
+      'dine-in': 'Vor Ort',
+      'takeaway': 'Zum Mitnehmen',
+      'delivery': 'Lieferung',
+      'online': 'Online',
+    }
+  }
 };
 
 export default de;

@@ -38,7 +38,9 @@ export function render(kotData, printSettings = {}, labels = {}) {
   const removedItems = k.removedItems || [];
   const hasChanges = k.isIncremental && ((k.items || []).length > 0 || removedItems.length > 0);
 
-  const renderRow = (item, opts = {}) => renderKOTItemRow(item, opts, L);
+  const showPrice = !!printSettings.showPriceOnKot;
+  const cs = k.currencySymbol || printSettings.currencySymbol || '';
+  const renderRow = (item, opts = {}) => renderKOTItemRow(item, { ...opts, showPrice, currencySymbol: cs }, L);
 
   let itemsHtml = '';
   let footerText;
@@ -103,7 +105,7 @@ export function render(kotData, printSettings = {}, labels = {}) {
 
   const tableStr = k.roomNumber
     ? `<span><strong>${dualLabel(L.room, AR.room, showAr)}:</strong> ${k.roomNumber}</span>`
-    : (k.tableNumber ? `<span><strong>${dualLabel(L.table, AR.table, showAr)}:</strong> ${k.tableNumber}${k.floorName ? ` · ${k.floorName}` : ''}</span>` : '');
+    : (k.tableNumber ? `<span><strong>${dualLabel(L.table, AR.table, showAr)}:</strong> ${k.tableNumber}${k.floorName ? ` - ${k.floorName}` : ''}</span>` : '');
 
   const bodyHtml =
     `<div class="kot-header">${kl.showRestaurantName !== false ? `<div class="restaurant-name">${esc(k.restaurantName || 'Restaurant')}</div>` : ''}${kl.showKotTitle !== false ? `<div class="kot-title">--- ${title} ---</div>` : ''}</div>` +

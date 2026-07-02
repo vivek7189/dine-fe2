@@ -500,6 +500,26 @@ const es = {
     kitchenKot: 'Cocina KOT',
     customerCrm: 'CRM Clientes',
     skipAll: 'Omitir todo',
+  },
+  tokenDisplay: {
+    title: 'Pantalla de Tokens',
+    preparing: 'Preparando',
+    ready: 'Listo',
+    enterPin: 'Ingrese el PIN para acceder a la pantalla de tokens',
+    pinPlaceholder: 'Ingrese PIN',
+    submit: 'Ver Pantalla',
+    invalidPin: 'PIN inválido. Intente de nuevo.',
+    noOrders: 'No hay pedidos activos',
+    tokenReady: 'Token #{{number}} está listo',
+    poweredBy: 'Powered by DineOpen',
+    soundOn: 'Sonido activado',
+    soundOff: 'Sonido desactivado',
+    orderTypes: {
+      'dine-in': 'En el lugar',
+      'takeaway': 'Para llevar',
+      'delivery': 'Entrega',
+      'online': 'En línea',
+    }
   }
 };
 

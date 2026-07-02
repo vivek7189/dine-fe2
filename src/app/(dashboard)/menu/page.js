@@ -55,7 +55,11 @@ import {
   FaCheckCircle,
   FaFlask,
   FaBarcode,
-  FaEyeSlash
+  FaEyeSlash,
+  FaFileExport,
+  FaFileExcel,
+  FaFileCsv,
+  FaFilePdf
 } from 'react-icons/fa';
 const RecipeFormBody = dynamic(() => import('../inventory/components/InventoryModals').then(m => ({ default: m.RecipeFormBody })), { ssr: false });
 
@@ -80,6 +84,7 @@ const CategoryDropdown = ({
   const [newCategory, setNewCategory] = useState({ name: '', emoji: '🍽️', description: '' });
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
+  const dropdownContentRef = useRef(null);
 
   const selectedCategory = categories.find(cat => cat.id === value) || null;
   
@@ -137,12 +142,16 @@ const CategoryDropdown = ({
 
   const handleEdit = (category) => {
     setEditingCategory(category);
-    setNewCategory({ 
-      name: category.name, 
-      emoji: category.emoji, 
-      description: category.description || '' 
+    setNewCategory({
+      name: category.name,
+      emoji: category.emoji || '🍽️',
+      description: category.description || ''
     });
     setShowEditForm(true);
+    // Scroll dropdown to top so edit form is visible
+    setTimeout(() => {
+      if (dropdownContentRef.current) dropdownContentRef.current.scrollTop = 0;
+    }, 50);
   };
 
   const handleUpdate = async () => {
@@ -207,7 +216,7 @@ const CategoryDropdown = ({
       </button>
       
       {isOpen && (
-        <div className="absolute z-50 w-full mt-2 bg-white border border-gray-300 rounded-lg shadow-lg max-h-80 overflow-hidden">
+        <div ref={dropdownContentRef} className="absolute z-50 w-full mt-2 bg-white border border-gray-300 rounded-lg shadow-lg max-h-80 overflow-auto">
           {/* Add New Category Form */}
           {showAddForm && (
             <div className="p-3 border-b border-gray-200 bg-blue-50">
@@ -343,26 +352,26 @@ const CategoryDropdown = ({
             </button>
                 
                 {/* Category Actions */}
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex gap-1" style={{ flexShrink: 0 }}>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleEdit(category);
                     }}
-                    className="p-1 text-blue-600 hover:text-blue-800"
-                    title={t('menu.edit')}
+                    className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
+                    title="Edit category name"
                   >
-                    <FaEdit size={10} />
+                    <FaEdit size={12} />
                   </button>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDelete(category);
                     }}
-                    className="p-1 text-red-600 hover:text-red-800"
-                    title={t('menu.delete')}
+                    className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded"
+                    title="Delete category"
                   >
-                    <FaTrash size={10} />
+                    <FaTrash size={11} />
                   </button>
                 </div>
               </div>
@@ -2132,6 +2141,8 @@ const MenuManagement = () => {
   // recipeConfirmItem removed — replaced by showMenuRecipeModal
   const [menuItemRecipes, setMenuItemRecipes] = useState({}); // menuItemId → recipe data
   const cameraInputRef = useRef(null);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
 
   // Permission gating
   const menuUserData = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
@@ -2917,6 +2928,135 @@ const MenuManagement = () => {
     }
   }, [deleteConfirmItem, currentRestaurant?.id]);
 
+
+  // ---- Menu Export Handler ----
+  const handleExportMenu = useCallback(async (format) => {
+    setExportLoading(true);
+    try {
+      const activeItems = menuItems.filter(item => item.status !== 'deleted');
+      if (activeItems.length === 0) { setError('No menu items to export'); setExportLoading(false); return; }
+
+      // Build category map for display names
+      const catMap = {};
+      (categories || []).forEach(c => { catMap[c.id || c.name] = c.name; });
+
+      // Build export rows with all details
+      const rows = activeItems.map(item => {
+        const recipe = menuItemRecipes[item.id];
+        const ingredientsList = recipe?.ingredients?.map(ing =>
+          `${ing.inventoryItemName || ing.itemName || ing.name}${ing.quantity ? ` (${ing.quantity} ${ing.unit || ''})`.trim() : ''}`
+        ).join(', ') || '';
+        const variantsList = (item.variants || []).map(v => `${v.name}: ${v.price}`).join(', ');
+        const customizationsList = (item.customizations || []).map(c => `${c.name}${c.price ? `: ${c.price}` : ''}`).join(', ');
+        const allergensList = (item.allergens || []).join(', ');
+
+        return {
+          'Short Code': item.shortCode || '',
+          'Name': item.name || '',
+          'Category': catMap[item.category] || item.category || '',
+          'Price': item.price || 0,
+          'Description': item.description || '',
+          'Veg/Non-Veg': item.isVeg === true ? 'Veg' : item.isVeg === false ? 'Non-Veg' : '',
+          'Available': item.isAvailable !== false ? 'Yes' : 'No',
+          'Tax Inclusive': item.taxInclusive === true ? 'Yes' : item.taxInclusive === false ? 'No' : 'Default',
+          'Variants': variantsList,
+          'Customizations': customizationsList,
+          'Allergens': allergensList,
+          'Stock Managed': item.isStockManaged ? 'Yes' : 'No',
+          'Stock Qty': item.isStockManaged ? (item.stockQuantity ?? '') : '',
+          'Low Stock Threshold': item.isStockManaged ? (item.lowStockThreshold ?? 5) : '',
+          'Sold By Weight': item.soldByWeight ? 'Yes' : 'No',
+          'Price Unit': item.priceUnit || '',
+          'PLU Code': item.pluCode || '',
+          'Recipe Linked': recipe ? 'Yes' : 'No',
+          'Ingredients': ingredientsList,
+          'Servings': recipe?.servings || '',
+          'Prep Time (min)': recipe?.prepTime || '',
+          'Cook Time (min)': recipe?.cookTime || '',
+          ...(isBarMode ? {
+            'Spirit Category': item.spiritCategory || '',
+            'ABV %': item.abv || '',
+            'Serving Unit': item.servingUnit || '',
+            'Bottle Size': item.bottleSize || '',
+          } : {}),
+          ...(isBakeryMode ? {
+            'Unit': item.unit || '',
+            'Weight': item.weight || '',
+            'Shelf Life': item.shelfLife || '',
+          } : {}),
+        };
+      });
+
+      const restaurantName = (currentRestaurant?.name || 'Menu').replace(/[^a-zA-Z0-9 ]/g, '').trim();
+      const dateStr = new Date().toISOString().split('T')[0];
+      const fileName = `${restaurantName}-Menu-${dateStr}`;
+
+      if (format === 'csv') {
+        // CSV export
+        const headers = Object.keys(rows[0]);
+        const csvContent = [
+          headers.join(','),
+          ...rows.map(row => headers.map(h => {
+            const val = String(row[h] ?? '');
+            return val.includes(',') || val.includes('"') || val.includes('\n') ? `"${val.replace(/"/g, '""')}"` : val;
+          }).join(','))
+        ].join('\n');
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `${fileName}.csv`; a.click();
+        URL.revokeObjectURL(url);
+
+      } else if (format === 'excel') {
+        // Excel export using xlsx library
+        const XLSX = (await import('xlsx')).default || await import('xlsx');
+        const ws = XLSX.utils.json_to_sheet(rows);
+        // Auto-width columns
+        const colWidths = Object.keys(rows[0]).map(key => ({
+          wch: Math.max(key.length, ...rows.map(r => String(r[key] ?? '').length).slice(0, 50)) + 2
+        }));
+        ws['!cols'] = colWidths;
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Menu');
+        XLSX.writeFile(wb, `${fileName}.xlsx`);
+
+      } else if (format === 'pdf') {
+        // PDF: generate a clean HTML table and open print dialog
+        const headers = Object.keys(rows[0]).filter(h => !['Variants', 'Customizations', 'Allergens', 'Ingredients'].includes(h) || rows.some(r => r[h]));
+        const htmlContent = `<!DOCTYPE html><html><head><title>${restaurantName} - Menu</title><style>
+          @page { size: landscape; margin: 10mm; }
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 10px; color: #1f2937; }
+          h1 { font-size: 18px; margin-bottom: 4px; }
+          h2 { font-size: 12px; font-weight: 400; color: #6b7280; margin-bottom: 12px; }
+          table { width: 100%; border-collapse: collapse; }
+          th { background: #f3f4f6; padding: 6px 8px; text-align: left; font-weight: 600; border: 1px solid #d1d5db; white-space: nowrap; }
+          td { padding: 5px 8px; border: 1px solid #e5e7eb; }
+          tr:nth-child(even) { background: #f9fafb; }
+          .veg { color: #16a34a; } .nonveg { color: #dc2626; }
+        </style></head><body>
+          <h1>${restaurantName}</h1>
+          <h2>Complete Menu Export &mdash; ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} &mdash; ${activeItems.length} items</h2>
+          <table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+          <tbody>${rows.map(row => `<tr>${headers.map(h => {
+            let val = String(row[h] ?? '');
+            if (h === 'Veg/Non-Veg') val = val === 'Veg' ? '<span class="veg">● Veg</span>' : val === 'Non-Veg' ? '<span class="nonveg">● Non-Veg</span>' : '';
+            return `<td>${val}</td>`;
+          }).join('')}</tr>`).join('')}</tbody></table></body></html>`;
+        const printWin = window.open('', '_blank');
+        printWin.document.write(htmlContent);
+        printWin.document.close();
+        printWin.onload = () => { printWin.print(); };
+      }
+
+      setShowExportModal(false);
+      setSuccessMessage(`Menu exported as ${format === 'excel' ? 'Excel' : format === 'csv' ? 'CSV' : 'PDF'} successfully`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      console.error('Export error:', err);
+      setError('Failed to export menu: ' + (err.message || 'Unknown error'));
+    } finally {
+      setExportLoading(false);
+    }
+  }, [menuItems, categories, menuItemRecipes, currentRestaurant, isBarMode, isBakeryMode]);
 
   const handleBulkDeleteClick = () => {
     if (!isOnline) { alert('You are offline. Go online to make changes.'); return; }
@@ -3842,6 +3982,7 @@ const MenuManagement = () => {
           <div style={{ display: 'flex', gap: isMobileEmbed ? '6px' : '10px', flexWrap: 'wrap', marginBottom: isMobileEmbed ? '8px' : '16px' }}>
             {[
               { icon: <FaCloudUploadAlt size={isMobileEmbed ? 11 : 16} />, label: t('menu.upload'), onClick: () => setShowBulkUpload(true), bg: '#fef2f2', color: '#dc2626', hoverBg: '#fee2e2', border: '#fecaca' },
+              { icon: <FaFileExport size={isMobileEmbed ? 11 : 16} />, label: 'Export', onClick: () => setShowExportModal(true), bg: '#f0fdf4', color: '#15803d', hoverBg: '#dcfce7', border: '#a7f3d0' },
               { icon: <FaCamera size={isMobileEmbed ? 11 : 16} />, label: t('menu.photo'), onClick: handleCameraCapture, bg: '#fffbeb', color: '#d97706', hoverBg: '#fef3c7', border: '#fde68a' },
               { icon: <FaQrcode size={isMobileEmbed ? 11 : 16} />, label: t('menu.qrCode'), onClick: () => setShowQRCodeModal(true), bg: '#ecfdf5', color: '#059669', hoverBg: '#d1fae5', border: '#a7f3d0' },
               { icon: <FaEye size={isMobileEmbed ? 11 : 16} />, label: t('menu.customize'), onClick: () => { const rid = currentRestaurant?.id || localStorage.getItem('restaurantId'); const p = `/menu/customize${rid ? `?restaurant=${rid}` : ''}`; router.push(isMobileEmbed ? `/mobile${p}` : p); }, bg: '#eff6ff', color: '#2563eb', hoverBg: '#dbeafe', border: '#bfdbfe' },
@@ -5921,6 +6062,48 @@ const MenuManagement = () => {
           </div>
         </div>,
         document.body
+      )}
+
+      {/* Menu Export Modal */}
+      {showExportModal && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }} onClick={() => setShowExportModal(false)}>
+          <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '28px', width: '380px', maxWidth: '90vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>Export Menu</h3>
+              <button onClick={() => setShowExportModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#9ca3af' }}><FaTimes size={18} /></button>
+            </div>
+            <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '20px' }}>
+              Export {menuItems.filter(item => item.status !== 'deleted').length} menu items with all details including recipes, inventory info, variants, and customizations.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {[
+                { format: 'excel', icon: <FaFileExcel size={20} />, label: 'Excel (.xlsx)', desc: 'Full spreadsheet with all columns', color: '#15803d', bg: '#f0fdf4', border: '#a7f3d0' },
+                { format: 'csv', icon: <FaFileCsv size={20} />, label: 'CSV (.csv)', desc: 'Universal format, importable anywhere', color: '#0369a1', bg: '#f0f9ff', border: '#bae6fd' },
+                { format: 'pdf', icon: <FaFilePdf size={20} />, label: 'PDF (Print)', desc: 'Clean printable table layout', color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
+              ].map(opt => (
+                <button
+                  key={opt.format}
+                  onClick={() => handleExportMenu(opt.format)}
+                  disabled={exportLoading}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px',
+                    backgroundColor: opt.bg, border: `1px solid ${opt.border}`, borderRadius: '12px',
+                    cursor: exportLoading ? 'wait' : 'pointer', textAlign: 'left', width: '100%',
+                    transition: 'all 0.2s', opacity: exportLoading ? 0.6 : 1
+                  }}
+                  onMouseEnter={e => { if (!exportLoading) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; }}}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+                >
+                  <div style={{ color: opt.color }}>{exportLoading ? <FaSpinner size={20} className="spin" /> : opt.icon}</div>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: opt.color }}>{opt.label}</div>
+                    <div style={{ fontSize: '11px', color: '#6b7280' }}>{opt.desc}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Bulk Upload Modal — lazy-loaded, portal to render above sidebar */}

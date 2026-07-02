@@ -746,7 +746,8 @@ const OrderSummary = ({
         totalItems: t('invoice.totalItems'), specialInstructions: t('invoice.specialInstructions'),
         note: t('invoice.note'),
       };
-      const kotContent = generateKOTHTML(k, printSettings || {}, kotLabels);
+      const kotPrintSettings = { ...(printSettings || {}), showPriceOnKot: !!posSettings?.showPriceOnKot, currencySymbol: getCurrencySymbol() };
+      const kotContent = generateKOTHTML(k, kotPrintSettings, kotLabels);
 
       if (isNative) {
         console.log('[OrderSummary] Sending KOT to native printer...');
@@ -2532,10 +2533,10 @@ const OrderSummary = ({
                         setShowDeliveryStaffDropdown(false);
                       }} style={{
                         padding: '7px 10px', fontSize: '12px', cursor: 'pointer',
-                        color: dm ? dm.text : '#374151', borderBottom: '1px solid #f3f4f6',
+                        color: dm ? dm.text : '#374151', borderBottom: dm ? '1px solid ' + dm.border : '1px solid #f3f4f6',
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = '#fff7ed'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = 'white'; }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = dm ? dm.cardHover : '#fff7ed'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = dm ? dm.card : 'white'; }}
                       >
                         {s.name} {s.phone ? <span style={{ color: dm ? dm.textMuted : '#9ca3af' }}>({s.phone})</span> : ''}
                       </div>
@@ -2919,10 +2920,10 @@ const OrderSummary = ({
               transition: 'all 0.2s ease'
             }}
             onMouseEnter={(e) => {
-              e.target.style.background = '#fee2e2';
+              e.target.style.background = dm ? dm.redBg : '#fee2e2';
             }}
             onMouseLeave={(e) => {
-              e.target.style.background = 'white';
+              e.target.style.background = dm ? dm.card : 'white';
             }}
           >
             <FaExchangeAlt size={10} />
@@ -2955,7 +2956,7 @@ const OrderSummary = ({
             overflowX: 'auto',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
-            borderBottom: '1px solid #f3f4f6'
+            borderBottom: dm ? '1px solid ' + dm.border : '1px solid #f3f4f6'
           }} className="hide-scrollbar">
             <span style={{
               fontSize: '10px',
@@ -2975,8 +2976,8 @@ const OrderSummary = ({
                   alignItems: 'center',
                   gap: '4px',
                   padding: '4px 8px',
-                  backgroundColor: activeSavedOrderId === order.id ? '#ea580c' : '#fff7ed',
-                  border: activeSavedOrderId === order.id ? '1px solid #ea580c' : '1px solid #fdba74',
+                  backgroundColor: activeSavedOrderId === order.id ? '#ea580c' : (dm ? dm.orangeBg : '#fff7ed'),
+                  border: activeSavedOrderId === order.id ? '1px solid #ea580c' : (dm ? '1px solid ' + dm.border : '1px solid #fdba74'),
                   borderRadius: '12px',
                   cursor: loadingSavedOrderId === order.id ? 'wait' : 'pointer',
                   transition: 'all 0.2s ease',
@@ -3001,7 +3002,7 @@ const OrderSummary = ({
                   <span style={{
                     fontSize: '10px',
                     fontWeight: '600',
-                    color: activeSavedOrderId === order.id ? '#ffffff' : '#9a3412'
+                    color: activeSavedOrderId === order.id ? '#ffffff' : (dm ? dm.orangeText : '#9a3412')
                   }}>
                     {order.name || `#${order.dailyOrderId || order.id.slice(-4).toUpperCase()}`}
                   </span>
@@ -3017,7 +3018,7 @@ const OrderSummary = ({
                     height: '14px',
                     borderRadius: '50%',
                     border: 'none',
-                    backgroundColor: activeSavedOrderId === order.id ? 'rgba(255,255,255,0.25)' : '#fee2e2',
+                    backgroundColor: activeSavedOrderId === order.id ? 'rgba(255,255,255,0.25)' : (dm ? dm.redBg : '#fee2e2'),
                     color: activeSavedOrderId === order.id ? '#ffffff' : '#dc2626',
                     cursor: deletingSavedOrderId === order.id ? 'wait' : 'pointer',
                     display: 'flex',
@@ -3049,7 +3050,7 @@ const OrderSummary = ({
             overflowX: 'auto',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
-            borderBottom: '1px solid #f3f4f6'
+            borderBottom: dm ? '1px solid ' + dm.border : '1px solid #f3f4f6'
           }} className="hide-scrollbar">
             <span style={{
               fontSize: '10px',
@@ -3184,7 +3185,7 @@ const OrderSummary = ({
                 <div style={{
                   display: 'inline-flex', alignItems: 'center', gap: '8px',
                   padding: '6px 14px', marginBottom: '12px',
-                  backgroundColor: '#fefce8', border: '1px solid #fde68a',
+                  backgroundColor: dm ? dm.orangeBg : '#fefce8', border: dm ? '1px solid ' + dm.border : '1px solid #fde68a',
                   borderRadius: '20px', fontSize: '12px', fontWeight: 600, color: '#92400e',
                 }}>
                   <span style={{
@@ -3201,7 +3202,7 @@ const OrderSummary = ({
                 <div style={{
                   display: 'inline-flex', alignItems: 'center', gap: '6px',
                   padding: '5px 12px', marginBottom: '12px',
-                  backgroundColor: '#fffbeb', border: '1px solid #fde68a',
+                  backgroundColor: dm ? dm.orangeBg : '#fffbeb', border: dm ? '1px solid ' + dm.border : '1px solid #fde68a',
                   borderRadius: '20px', fontSize: '12px', fontWeight: 600, color: '#92400e',
                 }}>
                   <FaInfoCircle size={10} />
@@ -3293,7 +3294,7 @@ const OrderSummary = ({
                                 )}
                                 {kdReducedItems.length > 0 && (
                                   <>
-                                    <tr><td colSpan={3} style={{ textAlign: 'center', fontWeight: 'bold', padding: '4px', backgroundColor: '#fef3c7', color: '#d97706', fontSize: '11px' }}>REDUCED</td></tr>
+                                    <tr><td colSpan={3} style={{ textAlign: 'center', fontWeight: 'bold', padding: '4px', backgroundColor: dm ? dm.orangeBg : '#fef3c7', color: '#d97706', fontSize: '11px' }}>REDUCED</td></tr>
                                     {kdReducedItems.map((i, idx) => renderRow(i, idx, { prefix: 'dec', isRemoved: true, showDelta: true }))}
                                   </>
                                 )}
@@ -3313,7 +3314,7 @@ const OrderSummary = ({
                       );
                     })()}
                     {orderSuccess.kotData.specialInstructions && (
-                      <div style={{ marginTop: '8px', padding: '8px', backgroundColor: '#fef3c7', border: '1px dashed #f59e0b', borderRadius: '4px', textAlign: 'left' }}>
+                      <div style={{ marginTop: '8px', padding: '8px', backgroundColor: dm ? dm.orangeBg : '#fef3c7', border: dm ? '1px dashed ' + dm.border : '1px dashed #f59e0b', borderRadius: '4px', textAlign: 'left' }}>
                         <div style={{ fontWeight: 'bold', fontSize: '11px', color: '#92400e', marginBottom: '4px' }}>*** {t('invoice.specialInstructions')} ***</div>
                         <div style={{ fontSize: '12px', color: '#78350f' }}>{orderSuccess.kotData.specialInstructions}</div>
                       </div>
@@ -3339,7 +3340,8 @@ const OrderSummary = ({
                         item: t('invoice.item'), totalItems: t('invoice.totalItems'),
                         specialInstructions: t('invoice.specialInstructions'), note: t('invoice.note'),
                       };
-                      const kotContent = generateKOTHTML(k, printSettings || {}, kotLabels);
+                      const kotPrintSettings = { ...(printSettings || {}), showPriceOnKot: !!posSettings?.showPriceOnKot, currencySymbol: getCurrencySymbol() };
+      const kotContent = generateKOTHTML(k, kotPrintSettings, kotLabels);
                       const newPw = window.open('', '_blank', 'width=400,height=600');
                       if (newPw) {
                         kotPrintWindowRef.current = newPw;
@@ -3725,7 +3727,7 @@ const OrderSummary = ({
                 width: '12px',
                 height: '12px',
                 borderRadius: '50%',
-                backgroundColor: '#fecaca',
+                backgroundColor: dm ? '#7f1d1d' : '#fecaca',
                 animation: 'pulse 2s ease-in-out infinite'
               }} />
               <div style={{
@@ -3859,11 +3861,11 @@ const OrderSummary = ({
               <div 
                 key={item.id} 
                 style={{ 
-                  backgroundColor: '#f8fafc', 
-                  borderRadius: '8px', 
-                  padding: '8px', 
+                  backgroundColor: dm ? dm.card : '#f8fafc',
+                  borderRadius: '8px',
+                  padding: '8px',
                   border: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
+                  boxShadow: dm ? '0 1px 3px rgba(0, 0, 0, 0.2)' : '0 1px 3px rgba(0, 0, 0, 0.04)'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
@@ -3890,8 +3892,8 @@ const OrderSummary = ({
                             <span style={{
                               fontSize: isMobile ? '7px' : '8px',
                               fontWeight: 'bold',
-                              color: '#f59e0b',
-                              backgroundColor: '#fef3c7',
+                              color: dm ? '#fbbf24' : '#f59e0b',
+                              backgroundColor: dm ? 'rgba(245,158,11,0.15)' : '#fef3c7',
                               padding: '1px 3px',
                               borderRadius: '3px',
                               border: isMobile ? 'none' : '1px solid #f59e0b',
@@ -3904,8 +3906,8 @@ const OrderSummary = ({
                               <span style={{
                                 fontSize: isMobile ? '7px' : '8px',
                                 fontWeight: 'bold',
-                                color: '#10b981',
-                                backgroundColor: '#d1fae5',
+                                color: dm ? '#4ade80' : '#10b981',
+                                backgroundColor: dm ? dm.greenBg : '#d1fae5',
                                 padding: '1px 3px',
                                 borderRadius: '3px',
                                 border: isMobile ? 'none' : '1px solid #10b981',
@@ -3938,8 +3940,8 @@ const OrderSummary = ({
                         <span style={{
                           fontSize: isMobile ? '7px' : '8px',
                           fontWeight: 'bold',
-                          color: '#10b981',
-                          backgroundColor: '#d1fae5',
+                          color: dm ? '#4ade80' : '#10b981',
+                          backgroundColor: dm ? dm.greenBg : '#d1fae5',
                           padding: '1px 3px',
                           borderRadius: '3px',
                           border: isMobile ? 'none' : '1px solid #10b981',
@@ -3960,7 +3962,7 @@ const OrderSummary = ({
                       ) : null;
                     })()}
                     {item.isStockManaged && typeof item.stockQuantity === 'number' && item.stockQuantity > 0 && item.stockQuantity <= (item.lowStockThreshold || 5) && (
-                      <span style={{ fontSize: '9px', fontWeight: '600', color: '#92400e', backgroundColor: '#fef3c7', padding: '1px 4px', borderRadius: '3px', border: '1px solid #fde68a', marginLeft: '4px', display: 'inline-block', marginTop: '2px' }}>
+                      <span style={{ fontSize: '9px', fontWeight: '600', color: dm ? '#fbbf24' : '#92400e', backgroundColor: dm ? 'rgba(245,158,11,0.15)' : '#fef3c7', padding: '1px 4px', borderRadius: '3px', border: dm ? '1px solid rgba(245,158,11,0.3)' : '1px solid #fde68a', marginLeft: '4px', display: 'inline-block', marginTop: '2px' }}>
                         ⚠️ {item.stockQuantity} left
                       </span>
                     )}
@@ -4073,7 +4075,7 @@ const OrderSummary = ({
                             style={{
                               width: '60px', padding: '2px 6px', border: '1.5px solid #3b82f6', borderRadius: '4px',
                               fontSize: '11px', fontWeight: 'bold', textAlign: 'right', outline: 'none',
-                              background: '#eff6ff', color: '#1e40af',
+                              background: dm ? dm.blueBg : '#eff6ff', color: dm ? '#60a5fa' : '#1e40af',
                             }}
                           />
                         ) : (
@@ -4098,8 +4100,8 @@ const OrderSummary = ({
                           borderRadius: '4px',
                           fontSize: '6px',
                           fontWeight: 'bold',
-                          backgroundColor: (item.isVeg === true || item.category === 'veg') ? '#dcfce7' : '#fee2e2',
-                          color: (item.isVeg === true || item.category === 'veg') ? '#166534' : '#dc2626'
+                          backgroundColor: (item.isVeg === true || item.category === 'veg') ? (dm ? dm.greenBg : '#dcfce7') : (dm ? dm.redBg : '#fee2e2'),
+                          color: (item.isVeg === true || item.category === 'veg') ? (dm ? dm.greenText : '#166534') : (dm ? dm.redText : '#dc2626')
                         }}>
                           {(item.isVeg === true || item.category === 'veg') ? 'V' : 'N'}
                         </div>
@@ -4124,8 +4126,8 @@ const OrderSummary = ({
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: item.notes ? '#d97706' : '#94a3b8',
-                        backgroundColor: item.notes ? '#fffbeb' : 'transparent',
-                        border: `1px solid ${item.notes ? '#fde68a' : '#e2e8f0'}`,
+                        backgroundColor: item.notes ? (dm ? 'rgba(245,158,11,0.15)' : '#fffbeb') : 'transparent',
+                        border: `1px solid ${item.notes ? '#fde68a' : (dm ? dm.border : '#e2e8f0')}`,
                         borderRadius: '4px',
                         cursor: 'pointer',
                         transition: 'all 0.2s'
@@ -4149,18 +4151,18 @@ const OrderSummary = ({
                         justifyContent: 'center',
                         color: '#ef4444',
                         backgroundColor: 'transparent',
-                        border: '1px solid #fecaca',
+                        border: dm ? '1px solid rgba(239,68,68,0.3)' : '1px solid #fecaca',
                         borderRadius: '4px',
                         cursor: 'pointer',
                         transition: 'all 0.2s'
                       }}
                       onMouseEnter={(e) => {
-                        e.target.style.backgroundColor = '#fef2f2';
+                        e.target.style.backgroundColor = dm ? dm.redBg : '#fef2f2';
                         e.target.style.borderColor = '#ef4444';
                       }}
                       onMouseLeave={(e) => {
                         e.target.style.backgroundColor = 'transparent';
-                        e.target.style.borderColor = '#fecaca';
+                        e.target.style.borderColor = dm ? 'rgba(239,68,68,0.3)' : '#fecaca';
                       }}
                       title="Remove item"
                     >
@@ -4171,8 +4173,8 @@ const OrderSummary = ({
                     {item.soldByWeight ? (
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: '4px',
-                        backgroundColor: '#fefce8', borderRadius: '6px', border: '1px solid #fde047',
-                        padding: '2px 8px', fontSize: '11px', fontWeight: '600', color: '#854d0e',
+                        backgroundColor: dm ? 'rgba(234,179,8,0.15)' : '#fefce8', borderRadius: '6px', border: dm ? '1px solid rgba(234,179,8,0.3)' : '1px solid #fde047',
+                        padding: '2px 8px', fontSize: '11px', fontWeight: '600', color: dm ? '#fbbf24' : '#854d0e',
                       }}>
                         ⚖️ {item.itemWeight || 0} {item.weightUnit || 'kg'}
                       </div>
@@ -4202,7 +4204,7 @@ const OrderSummary = ({
                           transition: 'background-color 0.2s'
                         }}
                         onMouseEnter={(e) => {
-                          e.target.style.backgroundColor = '#fef2f2';
+                          e.target.style.backgroundColor = dm ? dm.redBg : '#fef2f2';
                         }}
                         onMouseLeave={(e) => {
                           e.target.style.backgroundColor = 'transparent';
@@ -4258,7 +4260,7 @@ const OrderSummary = ({
                           transition: 'background-color 0.2s'
                         }}
                         onMouseEnter={(e) => {
-                          e.target.style.backgroundColor = '#f0fdf4';
+                          e.target.style.backgroundColor = dm ? dm.greenBg : '#f0fdf4';
                         }}
                         onMouseLeave={(e) => {
                           e.target.style.backgroundColor = 'transparent';
@@ -4366,12 +4368,12 @@ const OrderSummary = ({
                   onClick={() => setShowCustomItemForm(true)}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
-                    padding: '6px', borderRadius: '8px', border: '1.5px dashed #d1d5db',
+                    padding: '6px', borderRadius: '8px', border: dm ? '1.5px dashed #475569' : '1.5px dashed #d1d5db',
                     background: 'transparent', color: dm ? dm.textMuted : '#9ca3af', fontSize: '11px', fontWeight: 600,
                     cursor: 'pointer', transition: 'all 0.2s',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#22c55e'; e.currentTarget.style.color = '#22c55e'; e.currentTarget.style.background = '#f0fdf4'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#d1d5db'; e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.background = 'transparent'; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#22c55e'; e.currentTarget.style.color = '#22c55e'; e.currentTarget.style.background = dm ? dm.greenBg : '#f0fdf4'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = dm ? '#475569' : '#d1d5db'; e.currentTarget.style.color = dm ? dm.textMuted : '#9ca3af'; e.currentTarget.style.background = 'transparent'; }}
                 >
                   <FaPlus size={9} /> {t('dashboard.addCustomItem')}
                 </button>
@@ -4561,7 +4563,7 @@ const OrderSummary = ({
                           style={{
                             padding: '4px 8px', border: 'none', cursor: 'pointer',
                             fontSize: '9px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px',
-                            background: serviceChargeOverride !== false ? '#dcfce7' : '#fee2e2',
+                            background: serviceChargeOverride !== false ? (dm ? dm.greenBg : '#dcfce7') : (dm ? dm.redBg : '#fee2e2'),
                             color: serviceChargeOverride !== false ? '#16a34a' : '#dc2626',
                             transition: 'all 0.2s',
                           }}
@@ -6576,7 +6578,7 @@ const OrderSummary = ({
                   <FaTag size={13} style={{ color: '#fff' }} />
                 </div>
                 <div>
-                  <span style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', display: 'block' }}>Order Details</span>
+                  <span style={{ fontSize: '16px', fontWeight: 700, color: dm ? dm.text : '#0f172a', display: 'block' }}>Order Details</span>
                   <span style={{ fontSize: '11px', color: '#94a3b8' }}>{cart.reduce((s, i) => s + i.quantity, 0)} items · {formatCurrency(getTotalAmount())}</span>
                 </div>
               </div>
@@ -6588,10 +6590,10 @@ const OrderSummary = ({
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'background 0.15s',
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#e2e8f0'}
-                onMouseLeave={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                onMouseEnter={(e) => e.currentTarget.style.background = dm ? dm.cardHover : '#e2e8f0'}
+                onMouseLeave={(e) => e.currentTarget.style.background = dm ? dm.card : '#f1f5f9'}
               >
-                <FaTimes size={12} style={{ color: '#64748b' }} />
+                <FaTimes size={12} style={{ color: dm ? dm.textSec : '#64748b' }} />
               </button>
             </div>
 
@@ -6615,8 +6617,8 @@ const OrderSummary = ({
                   </div>
                   <div style={{
                     padding: '14px', borderRadius: '14px',
-                    background: 'linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 50%, #f0fdfa 100%)',
-                    border: '1px solid #5eead4',
+                    background: dm ? dm.greenBg : 'linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 50%, #f0fdfa 100%)',
+                    border: dm ? '1px solid ' + dm.border : '1px solid #5eead4',
                     boxShadow: '0 2px 8px rgba(13,148,136,0.08)',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
@@ -6629,7 +6631,7 @@ const OrderSummary = ({
                         <FaUser size={14} style={{ color: '#fff' }} />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#134e4a' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: dm ? dm.text : '#134e4a' }}>
                           {customerData.name}
                         </div>
                         <div style={{ fontSize: '11px', color: '#5eaaa0' }}>
@@ -6653,31 +6655,31 @@ const OrderSummary = ({
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <div style={{
                         flex: 1, padding: '10px 6px', borderRadius: '10px',
-                        background: 'linear-gradient(135deg, #f0fdfa, #ccfbf1)',
-                        textAlign: 'center', border: '1px solid #2dd4bf',
+                        background: dm ? dm.greenBg : 'linear-gradient(135deg, #f0fdfa, #ccfbf1)',
+                        textAlign: 'center', border: dm ? '1px solid ' + dm.border : '1px solid #2dd4bf',
                       }}>
                         <div style={{ fontSize: '17px', fontWeight: 700, color: '#0d9488' }}>{customerData.totalOrders || 0}</div>
-                        <div style={{ fontSize: '9px', color: '#0891b2', fontWeight: 600 }}>Orders</div>
+                        <div style={{ fontSize: '9px', color: dm ? dm.textSec : '#0891b2', fontWeight: 600 }}>Orders</div>
                       </div>
                       <div style={{
                         flex: 1, padding: '10px 6px', borderRadius: '10px',
-                        background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
-                        textAlign: 'center', border: '1px solid #fbbf24',
+                        background: dm ? dm.orangeBg : 'linear-gradient(135deg, #fef3c7, #fde68a)',
+                        textAlign: 'center', border: dm ? '1px solid ' + dm.border : '1px solid #fbbf24',
                       }}>
                         <div style={{ fontSize: '17px', fontWeight: 700, color: '#b45309' }}>
                           {customerData.loyaltyPoints || 0}
                         </div>
-                        <div style={{ fontSize: '9px', color: '#b45309', fontWeight: 600 }}>Points</div>
+                        <div style={{ fontSize: '9px', color: dm ? dm.textSec : '#b45309', fontWeight: 600 }}>Points</div>
                       </div>
                       <div style={{
                         flex: 1, padding: '10px 6px', borderRadius: '10px',
-                        background: 'linear-gradient(135deg, #ecfdf5, #a7f3d0)',
-                        textAlign: 'center', border: '1px solid #6ee7b7',
+                        background: dm ? dm.greenBg : 'linear-gradient(135deg, #ecfdf5, #a7f3d0)',
+                        textAlign: 'center', border: dm ? '1px solid ' + dm.border : '1px solid #6ee7b7',
                       }}>
                         <div style={{ fontSize: '17px', fontWeight: 700, color: '#047857' }}>
                           {formatCurrency(customerData.totalSpent || 0)}
                         </div>
-                        <div style={{ fontSize: '9px', color: '#059669', fontWeight: 600 }}>Spent</div>
+                        <div style={{ fontSize: '9px', color: dm ? dm.textSec : '#059669', fontWeight: 600 }}>Spent</div>
                       </div>
                     </div>
                     {customerOfferGroups && customerOfferGroups.length > 0 && (
@@ -6692,7 +6694,7 @@ const OrderSummary = ({
                     )}
                     {/* Wallet Balance */}
                     {walletBalance > 0 && (
-                      <div style={{ marginTop: '10px', padding: '10px', borderRadius: '10px', background: 'linear-gradient(135deg, #eff6ff, #dbeafe)', border: '1px solid #93c5fd' }}>
+                      <div style={{ marginTop: '10px', padding: '10px', borderRadius: '10px', background: dm ? dm.blueBg : 'linear-gradient(135deg, #eff6ff, #dbeafe)', border: dm ? '1px solid ' + dm.border : '1px solid #93c5fd' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: useWallet ? '8px' : 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <FaWallet size={12} style={{ color: '#2563eb' }} />
@@ -6750,7 +6752,7 @@ const OrderSummary = ({
                               }}
                               style={{
                                 padding: '4px 8px', borderRadius: '6px', fontSize: '9px', fontWeight: 700,
-                                background: '#dbeafe', color: '#1e40af', border: '1px solid #93c5fd',
+                                background: dm ? dm.blueBg : '#dbeafe', color: '#1e40af', border: dm ? '1px solid #1e3a5f' : '1px solid #93c5fd',
                                 cursor: 'pointer', whiteSpace: 'nowrap',
                               }}
                             >
@@ -6784,8 +6786,8 @@ const OrderSummary = ({
                           }}
                           style={{
                             width: '100%', padding: '12px 14px', borderRadius: '12px',
-                            border: isSelected ? '1.5px solid #0ea5e9' : '1.5px solid #e2e8f0',
-                            background: isSelected ? '#f0f9ff' : '#fff',
+                            border: isSelected ? '1.5px solid #0ea5e9' : (dm ? '1.5px solid ' + dm.border : '1.5px solid #e2e8f0'),
+                            background: isSelected ? (dm ? dm.blueBg : '#f0f9ff') : (dm ? dm.card : '#fff'),
                             cursor: 'pointer', textAlign: 'left',
                             display: 'flex', alignItems: 'center', gap: '10px',
                             transition: 'all 0.15s',
@@ -6794,14 +6796,14 @@ const OrderSummary = ({
                         >
                           <div style={{
                             width: '20px', height: '20px', borderRadius: '6px', flexShrink: 0,
-                            border: isSelected ? 'none' : '2px solid #cbd5e1',
-                            background: isSelected ? 'linear-gradient(135deg, #0ea5e9, #0284c7)' : '#fff',
+                            border: isSelected ? 'none' : (dm ? '2px solid #475569' : '2px solid #cbd5e1'),
+                            background: isSelected ? 'linear-gradient(135deg, #0ea5e9, #0284c7)' : (dm ? dm.inputBg : '#fff'),
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                           }}>
                             {isSelected && <FaCheckCircle size={10} style={{ color: '#fff' }} />}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: '13px', fontWeight: 600, color: isSelected ? '#0c4a6e' : '#334155' }}>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: isSelected ? (dm ? '#7dd3fc' : '#0c4a6e') : (dm ? dm.text : '#334155') }}>
                               {offer.name}
                             </div>
                             {offer.description && (
@@ -6814,7 +6816,7 @@ const OrderSummary = ({
                             <span style={{
                               fontSize: '12px', fontWeight: 700, flexShrink: 0,
                               color: '#16a34a',
-                              background: isSelected ? '#f0fdf4' : 'transparent',
+                              background: isSelected ? (dm ? dm.greenBg : '#f0fdf4') : 'transparent',
                               padding: isSelected ? '2px 8px' : '0',
                               borderRadius: '6px',
                             }}>
@@ -6846,8 +6848,8 @@ const OrderSummary = ({
                               }}
                               style={{
                                 width: '100%', padding: '12px 14px', borderRadius: '12px',
-                                border: isSelected ? '1.5px solid #d97706' : '1.5px solid #fde68a',
-                                background: isSelected ? '#fffbeb' : '#fff',
+                                border: isSelected ? '1.5px solid #d97706' : (dm ? '1.5px solid ' + dm.border : '1.5px solid #fde68a'),
+                                background: isSelected ? (dm ? dm.orangeBg : '#fffbeb') : (dm ? dm.card : '#fff'),
                                 cursor: 'pointer', textAlign: 'left',
                                 display: 'flex', alignItems: 'center', gap: '10px',
                                 transition: 'all 0.15s',
@@ -6856,14 +6858,14 @@ const OrderSummary = ({
                             >
                               <div style={{
                                 width: '20px', height: '20px', borderRadius: '6px', flexShrink: 0,
-                                border: isSelected ? 'none' : '2px solid #fbbf24',
-                                background: isSelected ? 'linear-gradient(135deg, #f59e0b, #d97706)' : '#fff',
+                                border: isSelected ? 'none' : (dm ? '2px solid #78350f' : '2px solid #fbbf24'),
+                                background: isSelected ? 'linear-gradient(135deg, #f59e0b, #d97706)' : (dm ? dm.inputBg : '#fff'),
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                               }}>
                                 {isSelected && <FaCheckCircle size={10} style={{ color: '#fff' }} />}
                               </div>
                               <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: '13px', fontWeight: 600, color: isSelected ? '#78350f' : '#92400e' }}>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: isSelected ? (dm ? '#fbbf24' : '#78350f') : (dm ? dm.orangeText : '#92400e') }}>
                                   {offer.name}
                                 </div>
                                 {(offer.description || matchedGroup) && (
@@ -6882,7 +6884,7 @@ const OrderSummary = ({
                                 <span style={{
                                   fontSize: '12px', fontWeight: 700, flexShrink: 0,
                                   color: '#16a34a',
-                                  background: isSelected ? '#f0fdf4' : 'transparent',
+                                  background: isSelected ? (dm ? dm.greenBg : '#f0fdf4') : 'transparent',
                                   padding: isSelected ? '2px 8px' : '0',
                                   borderRadius: '6px',
                                 }}>
@@ -6920,7 +6922,7 @@ const OrderSummary = ({
                   {appliedCoupon ? (
                     <div style={{
                       padding: '12px 14px', borderRadius: '12px',
-                      border: '1.5px solid #86efac', background: dm ? dm.greenBg : '#f0fdf4',
+                      border: dm ? '1.5px solid ' + dm.border : '1.5px solid #86efac', background: dm ? dm.greenBg : '#f0fdf4',
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     }}>
                       <div>
@@ -6946,9 +6948,10 @@ const OrderSummary = ({
                           onKeyDown={(e) => { if (e.key === 'Enter') handleApplyCoupon(couponCode); }}
                           style={{
                             flex: 1, padding: '10px 12px', borderRadius: '10px',
-                            border: couponError ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0',
+                            border: couponError ? '1.5px solid #fca5a5' : (dm ? '1.5px solid ' + dm.border : '1.5px solid #e2e8f0'),
                             fontSize: '13px', fontFamily: 'monospace', fontWeight: 600,
                             letterSpacing: '1px', outline: 'none',
+                            background: dm ? dm.inputBg : '#fff', color: dm ? dm.text : 'inherit',
                           }}
                         />
                         <button
@@ -6956,7 +6959,7 @@ const OrderSummary = ({
                           disabled={couponLoading || !couponCode.trim()}
                           style={{
                             padding: '10px 16px', borderRadius: '10px', border: 'none',
-                            background: couponLoading || !couponCode.trim() ? '#e5e7eb' : '#ef4444',
+                            background: couponLoading || !couponCode.trim() ? (dm ? dm.card : '#e5e7eb') : '#ef4444',
                             color: couponLoading || !couponCode.trim() ? '#9ca3af' : 'white',
                             fontWeight: 600, fontSize: '12px', cursor: couponLoading ? 'not-allowed' : 'pointer',
                             whiteSpace: 'nowrap',
@@ -7021,7 +7024,7 @@ const OrderSummary = ({
                         <span style={{
                           fontSize: '11px', fontWeight: 600, color: '#16a34a',
                           background: dm ? dm.greenBg : '#f0fdf4', padding: '3px 8px', borderRadius: '8px',
-                          border: '1px solid #bbf7d0',
+                          border: dm ? '1px solid ' + dm.border : '1px solid #bbf7d0',
                         }}>
                           Will earn +{getLoyaltyPointsToEarn()} pts
                         </span>
@@ -7061,7 +7064,7 @@ const OrderSummary = ({
                             style={{
                               width: '100%', height: '8px', borderRadius: '4px',
                               appearance: 'none', WebkitAppearance: 'none',
-                              background: `linear-gradient(to right, #f59e0b 0%, #f59e0b ${displayPct}%, #e5e7eb ${displayPct}%, #e5e7eb 100%)`,
+                              background: `linear-gradient(to right, #f59e0b 0%, #f59e0b ${displayPct}%, ${dm ? '#334155' : '#e5e7eb'} ${displayPct}%, ${dm ? '#334155' : '#e5e7eb'} 100%)`,
                               outline: 'none', cursor: 'pointer', marginBottom: '8px',
                             }}
                           />
@@ -7079,7 +7082,7 @@ const OrderSummary = ({
                               style={{
                                 marginTop: '6px', fontSize: '10px', fontWeight: 600, color: '#dc2626',
                                 background: dm ? dm.redBg : '#fee2e2', padding: '4px 10px', borderRadius: '6px',
-                                border: '1px solid #fecaca', cursor: 'pointer',
+                                border: dm ? '1px solid ' + dm.border : '1px solid #fecaca', cursor: 'pointer',
                               }}
                             >
                               Clear Redemption
@@ -7104,12 +7107,12 @@ const OrderSummary = ({
                   rows={2}
                   style={{
                     width: '100%', padding: '10px 12px', borderRadius: '10px',
-                    border: '1.5px solid #e2e8f0', fontSize: '12px', resize: 'none',
+                    border: dm ? '1.5px solid ' + dm.border : '1.5px solid #e2e8f0', fontSize: '12px', resize: 'none',
                     outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
-                    transition: 'border-color 0.15s', background: dm ? dm.white : '#fff',
+                    transition: 'border-color 0.15s', background: dm ? dm.inputBg : '#fff', color: dm ? dm.text : 'inherit',
                   }}
                   onFocus={(e) => e.target.style.borderColor = '#0ea5e9'}
-                  onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+                  onBlur={(e) => e.target.style.borderColor = dm ? dm.border : '#e2e8f0'}
                 />
               </div>
 
@@ -7121,10 +7124,10 @@ const OrderSummary = ({
               background: dm ? dm.white : '#fff',
             }}>
               {/* Full price breakdown */}
-              <div style={{ marginBottom: '12px', fontSize: '12px', color: '#64748b' }}>
+              <div style={{ marginBottom: '12px', fontSize: '12px', color: dm ? dm.textSec : '#64748b' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                   <span>Subtotal</span>
-                  <span style={{ fontWeight: 600, color: '#334155' }}>{formatCurrency(getTotalAmount())}</span>
+                  <span style={{ fontWeight: 600, color: dm ? dm.text : '#334155' }}>{formatCurrency(getTotalAmount())}</span>
                 </div>
                 {effectiveOfferDiscount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
@@ -7151,8 +7154,8 @@ const OrderSummary = ({
                   </div>
                 ))}
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0', marginTop: '6px' }}>
-                  <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '15px' }}>Total</span>
-                  <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '15px' }}>{formatCurrency(grandTotal !== null ? grandTotal : getTotalAmount())}</span>
+                  <span style={{ fontWeight: 700, color: dm ? dm.text : '#0f172a', fontSize: '15px' }}>Total</span>
+                  <span style={{ fontWeight: 700, color: dm ? dm.text : '#0f172a', fontSize: '15px' }}>{formatCurrency(grandTotal !== null ? grandTotal : getTotalAmount())}</span>
                 </div>
               </div>
               <button

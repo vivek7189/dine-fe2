@@ -1863,6 +1863,26 @@ const en = {
     noZones: 'No parking zones configured',
     noRates: 'No parking rates configured',
     setupRequired: 'Parking setup required. Configure your lot first.',
+  },
+  tokenDisplay: {
+    title: 'Token Display',
+    preparing: 'Preparing',
+    ready: 'Ready',
+    enterPin: 'Enter PIN to access Token Display',
+    pinPlaceholder: 'Enter PIN',
+    submit: 'View Display',
+    invalidPin: 'Invalid PIN. Please try again.',
+    noOrders: 'No active orders',
+    tokenReady: 'Token #{{number}} is ready',
+    poweredBy: 'Powered by DineOpen',
+    soundOn: 'Sound On',
+    soundOff: 'Sound Off',
+    orderTypes: {
+      'dine-in': 'Dine-in',
+      'takeaway': 'Takeaway',
+      'delivery': 'Delivery',
+      'online': 'Online',
+    }
   }
 };
 

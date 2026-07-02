@@ -501,6 +501,26 @@ const fr = {
     customerCrm: 'CRM Clients',
     skipAll: 'Tout passer',
   },
+  tokenDisplay: {
+    title: 'Affichage des Jetons',
+    preparing: 'En préparation',
+    ready: 'Prêt',
+    enterPin: 'Entrez le PIN pour accéder à l\'affichage des jetons',
+    pinPlaceholder: 'Entrez le PIN',
+    submit: 'Voir l\'affichage',
+    invalidPin: 'PIN invalide. Veuillez réessayer.',
+    noOrders: 'Aucune commande active',
+    tokenReady: 'Jeton #{{number}} est prêt',
+    poweredBy: 'Powered by DineOpen',
+    soundOn: 'Son activé',
+    soundOff: 'Son désactivé',
+    orderTypes: {
+      'dine-in': 'Sur place',
+      'takeaway': 'À emporter',
+      'delivery': 'Livraison',
+      'online': 'En ligne',
+    }
+  }
 };
 
 export default fr;

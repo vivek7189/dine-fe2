@@ -500,6 +500,26 @@ const zh = {
     kitchenKot: '厨房打印',
     customerCrm: '客户管理',
     skipAll: '跳过全部',
+  },
+  tokenDisplay: {
+    title: '取餐显示',
+    preparing: '准备中',
+    ready: '已就绪',
+    enterPin: '请输入PIN码访问取餐显示',
+    pinPlaceholder: '输入PIN码',
+    submit: '查看显示',
+    invalidPin: 'PIN码无效，请重试。',
+    noOrders: '暂无活跃订单',
+    tokenReady: '取餐号 #{{number}} 已就绪',
+    poweredBy: 'Powered by DineOpen',
+    soundOn: '声音开',
+    soundOff: '声音关',
+    orderTypes: {
+      'dine-in': '堂食',
+      'takeaway': '外带',
+      'delivery': '外卖',
+      'online': '在线',
+    }
   }
 };
 

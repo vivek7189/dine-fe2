@@ -23,7 +23,9 @@ export function render(kotData, printSettings = {}, labels = {}) {
   const specialInstructionsHtml = buildSpecialInstructionsHtml(k, L);
   const { dateStr, timeStr } = formatDateTime();
 
-  const renderRow = (item, opts = {}) => renderKOTItemRow(item, opts, L);
+  const showPrice = !!printSettings.showPriceOnKot;
+  const cs = k.currencySymbol || printSettings.currencySymbol || '';
+  const renderRow = (item, opts = {}) => renderKOTItemRow(item, { ...opts, showPrice, currencySymbol: cs }, L);
   const { html: itemsHtml, footerText, hasChanges } = buildKOTItemsSections(k, renderRow, L);
   const title = hasChanges ? (showAr ? dualTitle(L.kotUpdate, AR.kotUpdate, showAr) : L.kotUpdate) : (showAr ? dualTitle(L.kitchenOrder, AR.kitchenOrder, showAr) : L.kitchenOrder);
 
@@ -33,7 +35,7 @@ export function render(kotData, printSettings = {}, labels = {}) {
   // Build table/room inline text
   const tableStr = k.roomNumber
     ? `<span><strong>${dualLabel(L.room, AR.room, showAr)}:</strong> ${k.roomNumber}</span>`
-    : (k.tableNumber ? `<span><strong>${dualLabel(L.table, AR.table, showAr)}:</strong> ${k.tableNumber}${k.floorName ? ` · ${k.floorName}` : ''}</span>` : '');
+    : (k.tableNumber ? `<span><strong>${dualLabel(L.table, AR.table, showAr)}:</strong> ${k.tableNumber}${k.floorName ? ` - ${k.floorName}` : ''}</span>` : '');
 
   const bodyHtml =
     `<div class="kot-header">${kl.showRestaurantName !== false ? `<div class="restaurant-name">${esc(k.restaurantName || 'Restaurant')}</div>` : ''}${kl.showKotTitle !== false ? `<div class="kot-title">--- ${title} ---</div>` : ''}</div>` +
@@ -45,7 +47,7 @@ export function render(kotData, printSettings = {}, labels = {}) {
       (kl.showCustomer !== false && k.customerName ? `<div><strong>${dualLabel(L.customer, AR.customer, showAr)}:</strong> ${esc(k.customerName)}</div>` : '') +
     `</div>` +
     `<div class="divider">--------------------------------</div>` +
-    `<div style="font-weight:bold;margin-bottom:2px;display:flex;"><span style="width:30px;">${dualLabel(L.qty, AR.qty, showAr)}</span><span>${dualLabel(L.item, AR.item, showAr)}</span></div>` +
+    `<div style="font-weight:bold;margin-bottom:2px;display:flex;"><span style="width:30px;">${dualLabel(L.qty, AR.qty, showAr)}</span><span style="flex:1;">${dualLabel(L.item, AR.item, showAr)}</span>${showPrice ? '<span>Price</span>' : ''}</div>` +
     itemsHtml +
     `<div class="divider">--------------------------------</div>` +
     `<div class="kot-footer">${footerText}</div>` +

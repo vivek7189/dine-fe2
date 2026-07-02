@@ -17,6 +17,9 @@ class ApiClient {
     this._cacheMaxSize = 150;
     // Business day start hour (0 = midnight/default, 1-23 = custom)
     this._businessDayStartHour = 0;
+    // Restaurant's IANA timezone (e.g. 'Asia/Kolkata', 'Asia/Qatar')
+    // When set, API calls use this instead of browser's OS timezone
+    this._restaurantTimezone = null;
 
     // Periodic cleanup: prune expired entries every 5 minutes
     // Prevents memory growth in long-running POS sessions (12-16 hours)
@@ -162,10 +165,14 @@ class ApiClient {
   async request(endpoint, options = {}, isRetry = false) {
     // Auto-inject client timezone offset into every API call so the backend
     // can compute correct date boundaries regardless of server timezone.
+    // Uses restaurant's stored timezone when available, falls back to browser OS timezone.
     // tz = minutes from UTC (e.g. -180 for UTC+3, -330 for IST UTC+5:30)
     if (!endpoint.includes('tz=')) {
       const sep = endpoint.includes('?') ? '&' : '?';
-      endpoint = `${endpoint}${sep}tz=${new Date().getTimezoneOffset()}`;
+      const tzOffset = this._restaurantTimezone
+        ? this._computeIanaOffset(this._restaurantTimezone)
+        : new Date().getTimezoneOffset();
+      endpoint = `${endpoint}${sep}tz=${tzOffset}`;
     }
     // Auto-inject business day start hour if configured (custom day boundary)
     if (this._businessDayStartHour > 0 && !endpoint.includes('dayStart=')) {
@@ -624,6 +631,29 @@ class ApiClient {
   setBusinessDayStartHour(hour) {
     const n = Number(hour);
     this._businessDayStartHour = (isNaN(n) || n < 0 || n > 23) ? 0 : Math.floor(n);
+  }
+
+  setRestaurantTimezone(iana) {
+    this._restaurantTimezone = iana || null;
+  }
+
+  // Convert IANA timezone string to getTimezoneOffset()-compatible value
+  _computeIanaOffset(iana) {
+    try {
+      const now = new Date();
+      const fmt = new Intl.DateTimeFormat('en-US', {
+        timeZone: iana,
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false
+      });
+      const parts = fmt.formatToParts(now);
+      const get = (t) => parseInt(parts.find(p => p.type === t)?.value);
+      const local = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour') === 24 ? 0 : get('hour'), get('minute'), get('second'));
+      return Math.round((now.getTime() - local) / 60000);
+    } catch (_) {
+      return new Date().getTimezoneOffset();
+    }
   }
 
   // Cookie helper methods for cross-subdomain SSO
