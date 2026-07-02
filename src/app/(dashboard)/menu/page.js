@@ -2125,6 +2125,7 @@ const MenuManagement = () => {
   };
   const btype = businessTypeConfig[currentRestaurant?.businessType] || businessTypeConfig.restaurant;
   const globalHideImages = currentRestaurant?.posSettings?.hideMenuImages === true;
+  const taxLabel = currentRestaurant?.currencySettings?.taxLabel || 'Tax';
   const [isClient, setIsClient] = useState(false);
   const [collapsedCategories, setCollapsedCategories] = useState({});
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
@@ -6457,8 +6458,8 @@ const MenuManagement = () => {
         document.body
       )}
 
-      {/* Menu Export Modal */}
-      {showExportModal && (
+      {/* Menu Export Modal — portal to render above sidebar */}
+      {showExportModal && typeof document !== 'undefined' && createPortal(
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }} onClick={() => setShowExportModal(false)}>
           <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '28px', width: '380px', maxWidth: '90vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -6496,7 +6497,8 @@ const MenuManagement = () => {
               ))}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Bulk Upload Modal — lazy-loaded, portal to render above sidebar */}
