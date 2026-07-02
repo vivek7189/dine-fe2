@@ -1,5 +1,5 @@
 'use client';
-// Dynamic tax labels + waiter app granular controls
+// Dynamic tax labels + waiter app granular controls v2
 import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
