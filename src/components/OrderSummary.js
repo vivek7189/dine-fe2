@@ -2464,8 +2464,8 @@ const OrderSummary = ({
               fontSize: '10px',
               fontWeight: '600',
               fontFamily: 'monospace',
-              backgroundColor: barcodeResult.type === 'success' ? '#dcfce7' : '#fee2e2',
-              color: barcodeResult.type === 'success' ? '#166534' : '#991b1b',
+              backgroundColor: barcodeResult.type === 'success' ? (dm ? dm.greenBg : '#dcfce7') : (dm ? dm.redBg : '#fee2e2'),
+              color: barcodeResult.type === 'success' ? (dm ? dm.greenText : '#166534') : (dm ? dm.redText : '#991b1b'),
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
@@ -2572,8 +2572,8 @@ const OrderSummary = ({
                   ? '1.5px solid #22c55e'
                   : '1.5px solid #fdba74',
                 background: deliveryInfo.cashHandedOver
-                  ? '#dcfce7'
-                  : 'white',
+                  ? (dm ? dm.greenBg : '#dcfce7')
+                  : (dm ? dm.white : 'white'),
                 color: deliveryInfo.cashHandedOver
                   ? '#16a34a'
                   : '#9a3412',
@@ -4617,7 +4617,7 @@ const OrderSummary = ({
                             color: dm ? dm.text : '#1f2937',
                             outline: 'none',
                             boxSizing: 'border-box',
-                            background: assignedStaff?.name ? '#f0fdf4' : '#fafafa',
+                            background: assignedStaff?.name ? (dm ? dm.greenBg : '#f0fdf4') : (dm ? dm.inputBg : '#fafafa'),
                             transition: 'border-color 0.2s',
                             height: '100%',
                           }}
@@ -4640,8 +4640,8 @@ const OrderSummary = ({
                                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                                 borderBottom: '1px solid #f8fafc',
                               }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                                onMouseEnter={(e) => e.currentTarget.style.background = dm ? dm.cardHover : '#f8fafc'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = dm ? dm.white : 'white'}
                               >
                                 <span style={{ fontWeight: 500, color: dm ? dm.text : '#1f2937' }}>{s.name}</span>
                                 <span style={{ fontSize: '9px', color: dm ? dm.textMuted : '#9ca3af' }}>{s.role}</span>
@@ -4693,7 +4693,7 @@ const OrderSummary = ({
                         borderRadius: isMobile ? '6px' : '8px',
                         fontSize: isMobile ? '11px' : '12px',
                         outline: 'none',
-                        backgroundColor: lookupStatus === 'found' ? '#f0fdf4' : lookupStatus === 'error' ? '#fef2f2' : '#ffffff',
+                        backgroundColor: lookupStatus === 'found' ? (dm ? dm.greenBg : '#f0fdf4') : lookupStatus === 'error' ? (dm ? dm.redBg : '#fef2f2') : (dm ? dm.inputBg : '#ffffff'),
                         transition: 'border-color 0.2s, box-shadow 0.2s, background-color 0.2s',
                         boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                         boxSizing: 'border-box',
@@ -4811,7 +4811,7 @@ const OrderSummary = ({
                         borderRadius: isMobile ? '6px' : '8px',
                         fontSize: isMobile ? '11px' : '12px',
                         outline: 'none',
-                        backgroundColor: (lookupStatus === 'found' && customerData) ? '#ecfeff' : '#ffffff',
+                        backgroundColor: (lookupStatus === 'found' && customerData) ? (dm ? dm.blueBg : '#ecfeff') : (dm ? dm.inputBg : '#ffffff'),
                         transition: 'border-color 0.2s, box-shadow 0.2s',
                         boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                         boxSizing: 'border-box',
@@ -5091,9 +5091,9 @@ const OrderSummary = ({
                         style={{
                           flex: 1,
                           padding: '6px 4px',
-                          backgroundColor: isSelected ? '#ef4444' : 'white',
-                          color: isSelected ? 'white' : '#6b7280',
-                          border: isSelected ? '1px solid #ef4444' : '1px solid #e5e7eb',
+                          backgroundColor: isSelected ? '#ef4444' : (dm ? dm.white : 'white'),
+                          color: isSelected ? 'white' : (dm ? dm.textSec : '#6b7280'),
+                          border: isSelected ? '1px solid #ef4444' : (dm ? '1px solid ' + dm.border : '1px solid #e5e7eb'),
                           borderRadius: '6px',
                           fontWeight: '600',
                           fontSize: '9px',
@@ -5260,7 +5260,7 @@ const OrderSummary = ({
                             padding: '4px 10px',
                             borderRadius: '6px',
                             border: dm ? '1px solid ' + dm.border : '1px solid #d1d5db',
-                            background: cashReceived === String(d) ? '#dcfce7' : 'white',
+                            background: cashReceived === String(d) ? (dm ? dm.greenBg : '#dcfce7') : (dm ? dm.white : 'white'),
                             fontSize: '10px',
                             fontWeight: 600,
                             cursor: 'pointer',
@@ -5278,7 +5278,7 @@ const OrderSummary = ({
                         justifyContent: 'space-between',
                         alignItems: 'center',
                         padding: '8px 12px',
-                        background: parseFloat(cashReceived) >= grandTotal ? '#dcfce7' : '#fef2f2',
+                        background: parseFloat(cashReceived) >= grandTotal ? (dm ? dm.greenBg : '#dcfce7') : (dm ? dm.redBg : '#fef2f2'),
                         borderRadius: '8px',
                         fontWeight: 700
                       }}>
@@ -5972,7 +5972,7 @@ const OrderSummary = ({
                 {/* Void Panel */}
                 {activeBillingPanel === 'void' && (
                   <div style={{
-                    background: '#f9fafb',
+                    background: dm ? dm.inputBg : '#f9fafb',
                     border: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb',
                     borderRadius: '10px',
                     padding: '12px',
@@ -7494,7 +7494,7 @@ const OrderSummary = ({
                   Clear All
                 </button>
                 <button onClick={() => setShowSplitBillPopup(false)}
-                  style={{ width: '28px', height: '28px', borderRadius: '8px', border: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '14px', color: dm ? dm.textSec : '#6b7280' }}>
+                  style={{ width: '28px', height: '28px', borderRadius: '8px', border: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb', background: dm ? dm.inputBg : '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '14px', color: dm ? dm.textSec : '#6b7280' }}>
                   x
                 </button>
               </div>
