@@ -12,8 +12,9 @@ extraMetadata:
   main: electron/main.js
 
 publish:
-  provider: generic
-  url: https://storage.googleapis.com/dineopen-releases
+  provider: github
+  owner: vivek7189
+  repo: dine-fe2
 
 win:
   icon: electron/icons/icon.ico

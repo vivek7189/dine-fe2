@@ -945,10 +945,8 @@ try {
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = false; // We handle install manually
 
-  autoUpdater.setFeedURL({
-    provider: 'generic',
-    url: 'https://storage.googleapis.com/dineopen-releases',
-  });
+  // Feed URL is auto-configured from electron-builder.yml (provider: github)
+  // No manual setFeedURL needed — electron-updater reads publish config at build time
 
   autoUpdater.on('error', (err) => {
     console.error('[AutoUpdater] Error:', err.message);
@@ -1008,50 +1006,61 @@ ipcMain.handle('electron:checkForUpdates', async () => {
 });
 
 ipcMain.handle('electron:restartApp', async () => {
-  console.log('[AutoUpdater] Restart requested, updateDownloaded =', updateDownloaded, 'zip:', downloadedZipPath);
-  if (updateDownloaded && downloadedZipPath && fs.existsSync(downloadedZipPath)) {
-    // Bypass Squirrel.Mac (which requires code signing) — manually extract zip and replace app
-    const appPath = path.dirname(path.dirname(path.dirname(app.getAppPath()))); // .app bundle
-    console.log('[AutoUpdater] Manual install: extracting', downloadedZipPath, 'to replace', appPath);
-    try {
-      const { execSync } = require('child_process');
-      const tmpDir = path.join(app.getPath('temp'), 'dineopen-update');
-      // Clean and extract
-      execSync(`rm -rf "${tmpDir}" && mkdir -p "${tmpDir}"`);
-      execSync(`ditto -xk "${downloadedZipPath}" "${tmpDir}"`);
-      // Find the .app inside the extracted zip
-      const extracted = fs.readdirSync(tmpDir).find(f => f.endsWith('.app'));
-      if (!extracted) throw new Error('No .app found in update zip');
-      const extractedApp = path.join(tmpDir, extracted);
-      console.log('[AutoUpdater] Extracted:', extractedApp);
-      // Replace the current app — use a shell script that waits for app to quit
-      const script = `
-        sleep 1
-        rm -rf "${appPath}"
-        mv "${extractedApp}" "${appPath}"
-        rm -rf "${tmpDir}"
-        open "${appPath}"
-      `;
-      const scriptPath = path.join(app.getPath('temp'), 'dineopen-update.sh');
-      fs.writeFileSync(scriptPath, script, { mode: 0o755 });
-      // Launch the updater script detached so it survives app quit
-      const { spawn } = require('child_process');
-      spawn('bash', [scriptPath], { detached: true, stdio: 'ignore' }).unref();
-      console.log('[AutoUpdater] Update script launched, quitting app...');
-      setTimeout(() => app.exit(0), 500);
+  console.log('[AutoUpdater] Restart requested, updateDownloaded =', updateDownloaded, 'platform:', process.platform, 'zip:', downloadedZipPath);
+
+  if (updateDownloaded) {
+    // Windows: use electron-updater's native NSIS install
+    if (process.platform === 'win32') {
+      console.log('[AutoUpdater] Windows: calling quitAndInstall...');
+      autoUpdater.quitAndInstall(false, true); // isSilent=false, isForceRunAfter=true
       return { restarting: true };
-    } catch (err) {
-      console.error('[AutoUpdater] Manual install failed:', err);
-      return { restarting: false, error: err.message };
     }
-  } else {
-    console.log('[AutoUpdater] No update downloaded, just relaunching...');
-    setTimeout(() => {
-      app.relaunch();
-      app.exit(0);
-    }, 500);
-    return { restarting: true };
+
+    // macOS: manually extract ZIP and replace .app bundle (bypasses Squirrel which needs code signing)
+    if (downloadedZipPath && fs.existsSync(downloadedZipPath)) {
+      const appPath = path.dirname(path.dirname(path.dirname(app.getAppPath()))); // .app bundle
+      console.log('[AutoUpdater] macOS: extracting', downloadedZipPath, 'to replace', appPath);
+      try {
+        const { execSync } = require('child_process');
+        const tmpDir = path.join(app.getPath('temp'), 'dineopen-update');
+        // Clean and extract
+        execSync(`rm -rf "${tmpDir}" && mkdir -p "${tmpDir}"`);
+        execSync(`ditto -xk "${downloadedZipPath}" "${tmpDir}"`);
+        // Find the .app inside the extracted zip
+        const extracted = fs.readdirSync(tmpDir).find(f => f.endsWith('.app'));
+        if (!extracted) throw new Error('No .app found in update zip');
+        const extractedApp = path.join(tmpDir, extracted);
+        console.log('[AutoUpdater] Extracted:', extractedApp);
+        // Replace the current app — use a shell script that waits for app to quit
+        const script = `
+          sleep 1
+          rm -rf "${appPath}"
+          mv "${extractedApp}" "${appPath}"
+          rm -rf "${tmpDir}"
+          open "${appPath}"
+        `;
+        const scriptPath = path.join(app.getPath('temp'), 'dineopen-update.sh');
+        fs.writeFileSync(scriptPath, script, { mode: 0o755 });
+        // Launch the updater script detached so it survives app quit
+        const { spawn } = require('child_process');
+        spawn('bash', [scriptPath], { detached: true, stdio: 'ignore' }).unref();
+        console.log('[AutoUpdater] Update script launched, quitting app...');
+        setTimeout(() => app.exit(0), 500);
+        return { restarting: true };
+      } catch (err) {
+        console.error('[AutoUpdater] macOS manual install failed:', err);
+        return { restarting: false, error: err.message };
+      }
+    }
   }
+
+  // Fallback: no update downloaded, just relaunch
+  console.log('[AutoUpdater] No update downloaded, just relaunching...');
+  setTimeout(() => {
+    app.relaunch();
+    app.exit(0);
+  }, 500);
+  return { restarting: true };
 });
 
 ipcMain.handle('electron:getVersion', async () => {
