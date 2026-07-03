@@ -959,7 +959,8 @@ export default function ShiftsCashPage() {
 
             {/* Report Schedule */}
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '8px' }}>Report Schedule</label>
+              <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '4px' }}>Report Schedule</label>
+              <p style={{ fontSize: '11px', color: '#9ca3af', margin: '0 0 8px 0' }}>Choose one report type</p>
               <div style={{ border: '2px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>
                 {/* Morning Summary */}
                 <div style={{ padding: '16px', backgroundColor: emailPreferences.morningSummary?.enabled ? '#fffbeb' : '#f9fafb' }}>
@@ -970,7 +971,8 @@ export default function ShiftsCashPage() {
                     </div>
                     <div onClick={() => setEmailPreferences(prev => ({
                       ...prev,
-                      morningSummary: { ...prev.morningSummary, enabled: !prev.morningSummary?.enabled }
+                      morningSummary: { ...prev.morningSummary, enabled: !prev.morningSummary?.enabled },
+                      dayClosing: { ...prev.dayClosing, enabled: prev.morningSummary?.enabled ? prev.dayClosing?.enabled : false }
                     }))} style={{
                       width: '48px', height: '26px', borderRadius: '13px', padding: '2px', cursor: 'pointer',
                       backgroundColor: emailPreferences.morningSummary?.enabled ? '#f59e0b' : '#d1d5db', transition: 'all 0.2s'
@@ -1011,7 +1013,8 @@ export default function ShiftsCashPage() {
                     </div>
                     <div onClick={() => setEmailPreferences(prev => ({
                       ...prev,
-                      dayClosing: { ...prev.dayClosing, enabled: !prev.dayClosing?.enabled }
+                      dayClosing: { ...prev.dayClosing, enabled: !prev.dayClosing?.enabled },
+                      morningSummary: { ...prev.morningSummary, enabled: prev.dayClosing?.enabled ? prev.morningSummary?.enabled : false }
                     }))} style={{
                       width: '48px', height: '26px', borderRadius: '13px', padding: '2px', cursor: 'pointer',
                       backgroundColor: emailPreferences.dayClosing?.enabled ? '#3b82f6' : '#d1d5db', transition: 'all 0.2s'
