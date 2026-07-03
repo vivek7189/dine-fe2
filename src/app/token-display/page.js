@@ -15,8 +15,6 @@ function playChime() {
     const gain = ctx.createGain();
     gain.connect(ctx.destination);
     gain.gain.value = 0.2;
-
-    // Three-tone ascending chime: C5 → E5 → G5
     const notes = [523.25, 659.25, 783.99];
     notes.forEach((freq, i) => {
       const o = ctx.createOscillator();
@@ -26,7 +24,6 @@ function playChime() {
       o.start(ctx.currentTime + i * 0.18);
       o.stop(ctx.currentTime + i * 0.18 + 0.2);
     });
-
     setTimeout(() => ctx.close(), 2000);
   } catch (e) { /* Audio not supported */ }
 }
@@ -43,78 +40,79 @@ function Clock() {
   return <span>{fmt} &middot; {date}</span>;
 }
 
-// ─── Order Type Badge ───
-function OrderTypeBadge({ type }) {
-  const colors = {
-    'dine-in': { bg: 'rgba(147,197,253,0.15)', text: '#93c5fd', border: 'rgba(147,197,253,0.3)' },
-    'takeaway': { bg: 'rgba(251,191,36,0.15)', text: '#fbbf24', border: 'rgba(251,191,36,0.3)' },
-    'delivery': { bg: 'rgba(110,231,183,0.15)', text: '#6ee7b7', border: 'rgba(110,231,183,0.3)' },
-    'online': { bg: 'rgba(196,181,253,0.15)', text: '#c4b5fd', border: 'rgba(196,181,253,0.3)' },
-  };
-  const c = colors[type] || colors['dine-in'];
-  const label = t(`tokenDisplay.orderTypes.${type}`) || type;
+// ─── Token Number ───
+// Renders just the number in a large, always-visible format. Never truncates.
+function TokenNumber({ number, isReady }) {
   return (
-    <span style={{
-      display: 'inline-block', padding: '3px 12px', borderRadius: '20px',
-      fontSize: 'clamp(9px, 1.1vw, 13px)', fontWeight: '600', letterSpacing: '0.3px',
-      backgroundColor: c.bg, color: c.text, border: `1px solid ${c.border}`,
+    <div style={{
+      fontSize: 'clamp(32px, 5vw, 80px)',
+      fontWeight: '800',
+      lineHeight: 1,
+      color: isReady ? '#4ade80' : '#ffffff',
+      fontVariantNumeric: 'tabular-nums',
+      textShadow: isReady ? '0 0 24px rgba(74,222,128,0.4)' : 'none',
+      whiteSpace: 'nowrap',
+      textAlign: 'center',
     }}>
-      {label}
-    </span>
+      {number}
+    </div>
   );
 }
 
 // ─── Token Card ───
-function TokenCard({ order, status, isNew, settings }) {
-  const isReady = status === 'ready';
+function TokenCard({ order, isNew, isReady, settings }) {
+  const badge = settings.showOrderType && order.orderType ? order.orderType : null;
+  const badgeColors = {
+    'dine-in': '#60a5fa',
+    'takeaway': '#fbbf24',
+    'delivery': '#34d399',
+    'online': '#a78bfa',
+  };
+
   return (
     <div style={{
-      background: isReady
-        ? 'linear-gradient(145deg, #0a2e1a, #052e16)'
-        : 'linear-gradient(145deg, #2a1a1a, #1f1212)',
-      border: isReady ? '2px solid #22c55e' : '2px solid rgba(239,68,68,0.3)',
-      borderLeft: isReady ? '2px solid #22c55e' : '4px solid #ef4444',
-      borderRadius: '20px',
-      padding: 'clamp(14px, 2vw, 28px)',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
-      animation: isNew ? 'tokenAppear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)' : (isReady ? 'readyPulse 2s ease-in-out infinite' : 'none'),
-      transition: 'all 0.4s ease',
-      minWidth: 0,
-      overflow: 'hidden',
-      boxShadow: isReady
-        ? '0 0 30px rgba(34,197,94,0.2), 0 4px 20px rgba(0,0,0,0.3)'
-        : '0 4px 20px rgba(0,0,0,0.3)',
-      minHeight: 'clamp(80px, 10vw, 150px)',
+      background: isReady ? 'rgba(22,101,52,0.35)' : 'rgba(255,255,255,0.04)',
+      border: isReady ? '2px solid rgba(74,222,128,0.5)' : '1px solid rgba(255,255,255,0.08)',
+      borderRadius: '16px',
+      padding: 'clamp(16px, 2vw, 32px) clamp(12px, 1.5vw, 24px)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
       justifyContent: 'center',
+      gap: '8px',
+      animation: isNew
+        ? 'tokenAppear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'
+        : (isReady ? 'readyGlow 2.5s ease-in-out infinite' : 'none'),
+      transition: 'all 0.3s ease',
     }}>
-      <div style={{
-        fontSize: 'clamp(28px, 4vw, 72px)', fontWeight: '800', lineHeight: 1,
-        color: isReady ? '#4ade80' : '#f1f5f9',
-        fontVariantNumeric: 'tabular-nums',
-        textShadow: isReady ? '0 0 20px rgba(74,222,128,0.3)' : '0 2px 4px rgba(0,0,0,0.3)',
-        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        maxWidth: '100%',
-      }}>
-        #{order.dailyOrderId}
-      </div>
-      {/* Status sub-label */}
-      <div style={{
-        fontSize: 'clamp(10px, 1.1vw, 14px)', fontWeight: '600',
-        color: isReady ? '#4ade80' : '#d97706',
-        opacity: isReady ? 1 : 0.7,
-        letterSpacing: '0.5px',
-      }}>
-        {isReady ? 'Pick Up!' : <span className="preparing-dots">Preparing</span>}
-      </div>
+      <TokenNumber number={order.dailyOrderId} isReady={isReady} />
+
       {settings.showCustomerName && order.customerName && (
         <div style={{
-          fontSize: 'clamp(10px, 1.2vw, 15px)', color: 'rgba(148,163,184,0.8)',
-          maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          fontSize: 'clamp(11px, 1.2vw, 16px)',
+          color: 'rgba(255,255,255,0.5)',
+          maxWidth: '100%',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          textAlign: 'center',
         }}>
           {order.customerName}
         </div>
       )}
-      {settings.showOrderType && <OrderTypeBadge type={order.orderType} />}
+
+      {badge && (
+        <span style={{
+          fontSize: 'clamp(9px, 0.9vw, 12px)',
+          fontWeight: '600',
+          color: badgeColors[badge] || '#94a3b8',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
+          opacity: 0.8,
+        }}>
+          {(t(`tokenDisplay.orderTypes.${badge}`) || badge)}
+        </span>
+      )}
     </div>
   );
 }
@@ -151,22 +149,20 @@ function PinEntry({ restaurantId, onSuccess, error: externalError }) {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'linear-gradient(145deg, #1a0a0a, #2d1215)', padding: '20px',
+      backgroundColor: '#111111', padding: '20px',
     }}>
       <div style={{
-        background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-        borderRadius: '24px', padding: '40px',
+        backgroundColor: '#1a1a1a', borderRadius: '24px', padding: '48px 40px',
         width: '100%', maxWidth: '400px', textAlign: 'center',
-        border: '1px solid rgba(239,68,68,0.2)', boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+        border: '1px solid rgba(255,255,255,0.06)',
       }}>
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>🍽️</div>
-        <h1 style={{ fontSize: '22px', fontWeight: '700', color: '#f1f5f9', margin: '0 0 8px' }}>
+        <h1 style={{ fontSize: '22px', fontWeight: '700', color: '#ffffff', margin: '0 0 8px' }}>
           {t('tokenDisplay.title')}
         </h1>
-        <p style={{ fontSize: '14px', color: '#94a3b8', margin: '0 0 28px' }}>
+        <p style={{ fontSize: '14px', color: '#666', margin: '0 0 28px' }}>
           {t('tokenDisplay.enterPin')}
         </p>
-
         <form onSubmit={handleSubmit}>
           <input
             type="password"
@@ -179,8 +175,8 @@ function PinEntry({ restaurantId, onSuccess, error: externalError }) {
             style={{
               width: '100%', padding: '14px', fontSize: '28px', textAlign: 'center',
               fontFamily: 'monospace', letterSpacing: '8px',
-              backgroundColor: 'rgba(0,0,0,0.3)', border: '2px solid rgba(239,68,68,0.3)', borderRadius: '12px',
-              color: '#f1f5f9', outline: 'none', boxSizing: 'border-box',
+              backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px',
+              color: '#fff', outline: 'none', boxSizing: 'border-box',
             }}
           />
           {(error || externalError) && (
@@ -193,7 +189,7 @@ function PinEntry({ restaurantId, onSuccess, error: externalError }) {
             disabled={loading || pin.length < 4}
             style={{
               width: '100%', padding: '14px', marginTop: '20px',
-              background: pin.length >= 4 ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'rgba(255,255,255,0.1)',
+              backgroundColor: pin.length >= 4 ? '#dc2626' : '#333',
               color: '#fff', border: 'none', borderRadius: '12px',
               fontSize: '16px', fontWeight: '600', cursor: pin.length >= 4 ? 'pointer' : 'not-allowed',
               opacity: loading ? 0.7 : 1,
@@ -212,7 +208,7 @@ function TokenDisplayContent() {
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant');
 
-  const [screen, setScreen] = useState('loading'); // loading, pin, display, error
+  const [screen, setScreen] = useState('loading');
   const [pin, setPin] = useState('');
   const [restaurant, setRestaurant] = useState(null);
   const [settings, setSettings] = useState({ autoClearSeconds: 60, showCustomerName: true, showOrderType: true });
@@ -227,41 +223,23 @@ function TokenDisplayContent() {
   useEffect(() => { ordersRef.current = orders; }, [orders]);
   const autoClearTimers = useRef({});
 
-  // ─── Responsive breakpoint ───
   const [cols, setCols] = useState(2);
   useEffect(() => {
-    const handleResize = () => {
-      const w = window.innerWidth;
-      setCols(w < 768 ? 1 : 2);
-    };
+    const handleResize = () => setCols(window.innerWidth < 768 ? 1 : 2);
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // ─── Initial load: check if PIN required ───
+  // ─── Initial load ───
   useEffect(() => {
     if (!restaurantId) { setScreen('error'); setErrorMsg('No restaurant ID provided'); return; }
-
     (async () => {
       try {
-        // Try without PIN first
         const res = await fetch(`${API_BASE_URL}/api/public/token-display/${restaurantId}?pin=`);
-        if (res.status === 401) {
-          // PIN required
-          setScreen('pin');
-          return;
-        }
-        if (res.status === 403) {
-          setScreen('error');
-          setErrorMsg('Token display is not enabled for this restaurant');
-          return;
-        }
-        if (!res.ok) {
-          setScreen('error');
-          setErrorMsg('Failed to load token display');
-          return;
-        }
+        if (res.status === 401) { setScreen('pin'); return; }
+        if (res.status === 403) { setScreen('error'); setErrorMsg('Token display is not enabled for this restaurant'); return; }
+        if (!res.ok) { setScreen('error'); setErrorMsg('Failed to load token display'); return; }
         const data = await res.json();
         setRestaurant(data.restaurant);
         setSettings(data.settings);
@@ -283,15 +261,12 @@ function TokenDisplayContent() {
       if (!res.ok) return;
       const data = await res.json();
 
-      // Detect newly ready tokens
       const prevOrders = ordersRef.current;
       const newReady = (data.orders || []).filter(o =>
         o.status === 'ready' && !prevOrders.find(p => p.id === o.id && p.status === 'ready')
       );
-      if (newReady.length > 0 && soundEnabledRef.current) {
-        playChime();
-      }
-      // Mark new tokens for animation
+      if (newReady.length > 0 && soundEnabledRef.current) playChime();
+
       const prevIds = new Set(prevOrders.map(o => o.id));
       const brandNew = (data.orders || []).filter(o => !prevIds.has(o.id));
       if (brandNew.length > 0) {
@@ -326,7 +301,6 @@ function TokenDisplayContent() {
         }, (settings.autoClearSeconds || 60) * 1000);
       }
     });
-    // Clean up timers for orders no longer in list
     Object.keys(autoClearTimers.current).forEach(id => {
       if (!orders.find(o => o.id === id && o.status === 'ready')) {
         clearTimeout(autoClearTimers.current[id]);
@@ -338,38 +312,31 @@ function TokenDisplayContent() {
   // ─── Firebase RTDB Subscription ───
   useEffect(() => {
     if (screen !== 'display' || !restaurantId || !database) return;
-
     const now = Date.now();
     const ordersPath = query(ref(database, `events/${restaurantId}/orders`), orderByChild('ts'), startAt(now));
-
     let debounceTimer = null;
     const handleSnapshot = (snapshot) => {
-      const data = snapshot.val();
-      if (!data) return;
+      if (!snapshot.val()) return;
       if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        fetchOrders();
-      }, 1000);
+      debounceTimer = setTimeout(() => fetchOrders(), 1000);
     };
-
     onChildAdded(ordersPath, handleSnapshot, (error) => {
       console.error('Token display RTDB error:', error.message);
     });
-
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
       off(ordersPath, 'child_added', handleSnapshot);
     };
   }, [screen, restaurantId, fetchOrders]);
 
-  // ─── Periodic refresh fallback (every 30s) ───
+  // ─── Periodic refresh fallback ───
   useEffect(() => {
     if (screen !== 'display') return;
     const interval = setInterval(fetchOrders, 30000);
     return () => clearInterval(interval);
   }, [screen, fetchOrders]);
 
-  // ─── Sound toggle persistence ───
+  // ─── Sound toggle ───
   useEffect(() => {
     const stored = localStorage.getItem('tokenDisplaySoundEnabled');
     if (stored !== null) setSoundEnabled(stored === 'true');
@@ -381,13 +348,12 @@ function TokenDisplayContent() {
     });
   };
 
-  // ─── PIN submit handler ───
+  // ─── PIN handler ───
   const handlePinSuccess = (enteredPin, data) => {
     setPin(enteredPin);
     setRestaurant(data.restaurant);
     setSettings(data.settings);
     setScreen('display');
-    // Fetch orders with the validated PIN
     setTimeout(() => {
       fetch(`${API_BASE_URL}/api/public/token-display/${restaurantId}?pin=${encodeURIComponent(enteredPin)}`)
         .then(r => r.json())
@@ -396,18 +362,18 @@ function TokenDisplayContent() {
     }, 100);
   };
 
-  // ─── Screens ───
+  // ─── Non-display screens ───
+  const bgColor = '#111111';
   if (screen === 'loading') {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #1a0a0a, #2d1215)' }}>
-        <div style={{ color: '#94a3b8', fontSize: '18px' }}>Loading...</div>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: bgColor }}>
+        <div style={{ color: '#555', fontSize: '18px' }}>Loading...</div>
       </div>
     );
   }
-
   if (screen === 'error') {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #1a0a0a, #2d1215)', padding: '20px' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: bgColor, padding: '20px' }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
           <div style={{ color: '#f87171', fontSize: '18px', fontWeight: '600' }}>{errorMsg}</div>
@@ -415,7 +381,6 @@ function TokenDisplayContent() {
       </div>
     );
   }
-
   if (screen === 'pin') {
     return <PinEntry restaurantId={restaurantId} onSuccess={handlePinSuccess} />;
   }
@@ -424,201 +389,209 @@ function TokenDisplayContent() {
   const preparing = orders.filter(o => ['pending', 'confirmed', 'preparing'].includes(o.status));
   const ready = orders.filter(o => o.status === 'ready');
 
-  const tokenGrid = (items, status) => (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: `repeat(auto-fill, minmax(clamp(130px, 15vw, 220px), 1fr))`,
-      gap: 'clamp(10px, 1.4vw, 20px)',
-      padding: '4px',
-    }}>
-      {items.map(order => (
-        <TokenCard
-          key={order.id}
-          order={order}
-          status={status === 'ready' ? 'ready' : order.status}
-          isNew={newTokenIds.has(order.id)}
-          settings={settings}
-        />
-      ))}
-    </div>
-  );
-
   return (
     <div style={{
-      minHeight: '100vh', display: 'flex', flexDirection: 'column',
-      background: 'linear-gradient(145deg, #1a0a0a 0%, #2d1215 50%, #1a0a0a 100%)',
-      color: '#f1f5f9', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      minHeight: '100vh', height: '100vh', display: 'flex', flexDirection: 'column',
+      backgroundColor: '#111111', color: '#ffffff',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     }}>
-      {/* Header */}
+      {/* ── Header ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: 'clamp(10px, 1.5vw, 18px) clamp(16px, 2vw, 32px)',
-        background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-        borderBottom: '1px solid rgba(239,68,68,0.15)',
+        padding: '12px 24px',
+        backgroundColor: '#161616',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
         flexShrink: 0,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {restaurant?.logo && (
-            <img src={restaurant.logo} alt="" style={{ width: '36px', height: '36px', borderRadius: '10px', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} />
+            <img src={restaurant.logo} alt="" style={{
+              width: '32px', height: '32px', borderRadius: '8px', objectFit: 'cover',
+            }} />
           )}
-          <span style={{ fontSize: 'clamp(16px, 2vw, 24px)', fontWeight: '700' }}>
+          <span style={{ fontSize: '18px', fontWeight: '700', color: '#fff' }}>
             {restaurant?.name || 'Restaurant'}
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{
-            fontSize: 'clamp(10px, 1vw, 13px)', color: 'rgba(239,68,68,0.8)',
-            padding: '4px 14px', borderRadius: '20px',
-            background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
-            fontWeight: '600', letterSpacing: '0.5px', textTransform: 'uppercase',
+            fontSize: '11px', fontWeight: '600', letterSpacing: '1px',
+            textTransform: 'uppercase', color: '#666',
           }}>
             {t('tokenDisplay.title')}
           </span>
           <button
             onClick={toggleSound}
             style={{
-              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px',
-              padding: '6px 12px', cursor: 'pointer', color: soundEnabled ? '#4ade80' : '#64748b',
-              display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'clamp(11px, 1vw, 14px)',
-              transition: 'all 0.2s',
+              background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px',
+              padding: '5px 10px', cursor: 'pointer',
+              color: soundEnabled ? '#4ade80' : '#444',
+              fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px',
             }}
-            title={soundEnabled ? t('tokenDisplay.soundOn') : t('tokenDisplay.soundOff')}
           >
             {soundEnabled ? '🔊' : '🔇'}
-            <span style={{ display: cols > 1 ? 'inline' : 'none' }}>
-              {soundEnabled ? t('tokenDisplay.soundOn') : t('tokenDisplay.soundOff')}
-            </span>
+            {cols > 1 && <span style={{ fontSize: '12px' }}>{soundEnabled ? t('tokenDisplay.soundOn') : t('tokenDisplay.soundOff')}</span>}
           </button>
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* ── Main Content ── */}
       <div style={{
         flex: 1, display: 'flex',
         flexDirection: cols === 1 ? 'column' : 'row',
         overflow: 'hidden',
       }}>
-        {/* Preparing Column */}
+        {/* ── Preparing Section ── */}
         <div style={{
-          flex: 1, minWidth: 0, minHeight: 0,
-          display: 'flex', flexDirection: 'column',
-          padding: 'clamp(12px, 2vw, 24px)',
-          overflow: 'auto',
+          flex: 1, display: 'flex', flexDirection: 'column',
+          padding: '20px 24px', overflow: 'auto', minWidth: 0,
         }}>
+          {/* Section Header */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: '10px',
-            marginBottom: 'clamp(10px, 1.5vw, 20px)', flexShrink: 0,
+            marginBottom: '16px', flexShrink: 0,
           }}>
-            <span style={{ fontSize: 'clamp(20px, 2.5vw, 36px)' }}>🔥</span>
+            <div style={{
+              width: '10px', height: '10px', borderRadius: '50%',
+              backgroundColor: '#f59e0b',
+              boxShadow: '0 0 8px rgba(245,158,11,0.5)',
+              animation: 'pulse 2s ease-in-out infinite',
+            }} />
             <h2 style={{
-              margin: 0, fontSize: 'clamp(18px, 2.5vw, 32px)', fontWeight: '700',
-              color: '#fbbf24',
+              margin: 0, fontSize: 'clamp(16px, 2vw, 24px)', fontWeight: '700',
+              color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '1px',
             }}>
               {t('tokenDisplay.preparing')}
             </h2>
             <span style={{
-              background: 'linear-gradient(135deg, #92400e, #78350f)',
-              color: '#fbbf24', borderRadius: '20px',
-              padding: '2px 14px', fontSize: 'clamp(12px, 1.2vw, 16px)', fontWeight: '700',
-              boxShadow: '0 2px 8px rgba(146,64,14,0.3)',
+              backgroundColor: 'rgba(245,158,11,0.15)', color: '#f59e0b',
+              borderRadius: '12px', padding: '2px 10px',
+              fontSize: '13px', fontWeight: '700',
             }}>
               {preparing.length}
             </span>
           </div>
+
           {preparing.length === 0 ? (
-            <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: 'clamp(14px, 1.5vw, 20px)', textAlign: 'center', marginTop: '40px' }}>
+            <div style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#333', fontSize: '16px',
+            }}>
               {t('tokenDisplay.noOrders')}
             </div>
-          ) : tokenGrid(preparing, 'preparing')}
+          ) : (
+            <div style={{
+              display: 'flex', flexWrap: 'wrap', gap: '12px',
+              alignContent: 'flex-start',
+            }}>
+              {preparing.map(order => (
+                <TokenCard
+                  key={order.id}
+                  order={order}
+                  isReady={false}
+                  isNew={newTokenIds.has(order.id)}
+                  settings={settings}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Divider */}
+        {/* ── Divider ── */}
         {cols > 1 ? (
-          <div style={{
-            width: '1px', flexShrink: 0,
-            background: 'linear-gradient(to bottom, transparent 0%, rgba(127,29,29,0.5) 30%, rgba(239,68,68,0.3) 50%, rgba(127,29,29,0.5) 70%, transparent 100%)',
-          }} />
+          <div style={{ width: '1px', backgroundColor: 'rgba(255,255,255,0.06)', flexShrink: 0 }} />
         ) : (
-          <div style={{
-            height: '1px', flexShrink: 0, margin: '0 24px',
-            background: 'linear-gradient(to right, transparent, rgba(239,68,68,0.3), transparent)',
-          }} />
+          <div style={{ height: '1px', backgroundColor: 'rgba(255,255,255,0.06)', flexShrink: 0, margin: '0 24px' }} />
         )}
 
-        {/* Ready Column */}
+        {/* ── Ready Section ── */}
         <div style={{
-          flex: 1, minWidth: 0, minHeight: 0,
-          display: 'flex', flexDirection: 'column',
-          padding: 'clamp(12px, 2vw, 24px)',
-          overflow: 'auto',
+          flex: 1, display: 'flex', flexDirection: 'column',
+          padding: '20px 24px', overflow: 'auto', minWidth: 0,
+          backgroundColor: 'rgba(22,101,52,0.08)',
         }}>
+          {/* Section Header */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: '10px',
-            marginBottom: 'clamp(10px, 1.5vw, 20px)', flexShrink: 0,
+            marginBottom: '16px', flexShrink: 0,
           }}>
-            <span style={{ fontSize: 'clamp(20px, 2.5vw, 36px)' }}>✅</span>
+            <div style={{
+              width: '10px', height: '10px', borderRadius: '50%',
+              backgroundColor: '#22c55e',
+              boxShadow: '0 0 8px rgba(34,197,94,0.5)',
+            }} />
             <h2 style={{
-              margin: 0, fontSize: 'clamp(18px, 2.5vw, 32px)', fontWeight: '700',
-              color: '#4ade80',
+              margin: 0, fontSize: 'clamp(16px, 2vw, 24px)', fontWeight: '700',
+              color: '#22c55e', textTransform: 'uppercase', letterSpacing: '1px',
             }}>
               {t('tokenDisplay.ready')}
             </h2>
             <span style={{
-              background: 'linear-gradient(135deg, #064e3b, #052e16)',
-              color: '#4ade80', borderRadius: '20px',
-              padding: '2px 14px', fontSize: 'clamp(12px, 1.2vw, 16px)', fontWeight: '700',
-              boxShadow: '0 2px 8px rgba(6,78,59,0.3)',
+              backgroundColor: 'rgba(34,197,94,0.15)', color: '#22c55e',
+              borderRadius: '12px', padding: '2px 10px',
+              fontSize: '13px', fontWeight: '700',
             }}>
               {ready.length}
             </span>
           </div>
+
           {ready.length === 0 ? (
-            <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: 'clamp(14px, 1.5vw, 20px)', textAlign: 'center', marginTop: '40px' }}>
+            <div style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#333', fontSize: '16px',
+            }}>
               {t('tokenDisplay.noOrders')}
             </div>
-          ) : tokenGrid(ready, 'ready')}
+          ) : (
+            <div style={{
+              display: 'flex', flexWrap: 'wrap', gap: '12px',
+              alignContent: 'flex-start',
+            }}>
+              {ready.map(order => (
+                <TokenCard
+                  key={order.id}
+                  order={order}
+                  isReady={true}
+                  isNew={newTokenIds.has(order.id)}
+                  settings={settings}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Footer */}
+      {/* ── Footer ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: 'clamp(8px, 1vw, 14px) clamp(16px, 2vw, 32px)',
-        background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-        borderTop: '1px solid rgba(239,68,68,0.15)',
-        fontSize: 'clamp(11px, 1vw, 14px)', color: 'rgba(255,255,255,0.3)',
+        padding: '8px 24px',
+        backgroundColor: '#161616',
+        borderTop: '1px solid rgba(255,255,255,0.06)',
+        fontSize: '12px', color: '#444',
         flexShrink: 0,
       }}>
         <span>{t('tokenDisplay.poweredBy')}</span>
         <Clock />
       </div>
 
-      {/* Animations */}
       <style>{`
         @keyframes tokenAppear {
-          0% { transform: scale(0.7); opacity: 0; }
-          60% { transform: scale(1.06); }
+          0% { transform: scale(0.8); opacity: 0; }
+          60% { transform: scale(1.04); }
           100% { transform: scale(1); opacity: 1; }
         }
-        @keyframes readyPulse {
-          0%, 100% { box-shadow: 0 0 30px rgba(34,197,94,0.15), 0 4px 20px rgba(0,0,0,0.3); }
-          50% { box-shadow: 0 0 40px rgba(34,197,94,0.3), 0 0 60px rgba(34,197,94,0.1), 0 4px 20px rgba(0,0,0,0.3); }
+        @keyframes readyGlow {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
+          50% { box-shadow: 0 0 24px 4px rgba(74,222,128,0.15); }
         }
-        .preparing-dots::after {
-          content: '';
-          animation: dots 1.4s steps(4, end) infinite;
-        }
-        @keyframes dots {
-          0% { content: ''; }
-          25% { content: '.'; }
-          50% { content: '..'; }
-          75% { content: '...'; }
-          100% { content: ''; }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
         }
         body { margin: 0; padding: 0; overflow: hidden; }
-        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar { width: 3px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(239,68,68,0.2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #222; border-radius: 3px; }
       `}</style>
     </div>
   );
@@ -627,8 +600,8 @@ function TokenDisplayContent() {
 export default function TokenDisplayPage() {
   return (
     <Suspense fallback={
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #1a0a0a, #2d1215)' }}>
-        <div style={{ color: '#94a3b8', fontSize: '18px' }}>Loading...</div>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#111111' }}>
+        <div style={{ color: '#555', fontSize: '18px' }}>Loading...</div>
       </div>
     }>
       <TokenDisplayContent />
