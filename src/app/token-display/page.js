@@ -46,18 +46,18 @@ function Clock() {
 // ─── Order Type Badge ───
 function OrderTypeBadge({ type }) {
   const colors = {
-    'dine-in': { bg: '#1e3a5f', text: '#93c5fd' },
-    'takeaway': { bg: '#3b2f1e', text: '#fbbf24' },
-    'delivery': { bg: '#1e3b2f', text: '#6ee7b7' },
-    'online': { bg: '#2e1e3b', text: '#c4b5fd' },
+    'dine-in': { bg: 'rgba(147,197,253,0.15)', text: '#93c5fd', border: 'rgba(147,197,253,0.3)' },
+    'takeaway': { bg: 'rgba(251,191,36,0.15)', text: '#fbbf24', border: 'rgba(251,191,36,0.3)' },
+    'delivery': { bg: 'rgba(110,231,183,0.15)', text: '#6ee7b7', border: 'rgba(110,231,183,0.3)' },
+    'online': { bg: 'rgba(196,181,253,0.15)', text: '#c4b5fd', border: 'rgba(196,181,253,0.3)' },
   };
   const c = colors[type] || colors['dine-in'];
   const label = t(`tokenDisplay.orderTypes.${type}`) || type;
   return (
     <span style={{
-      display: 'inline-block', padding: '3px 10px', borderRadius: '12px',
-      fontSize: 'clamp(10px, 1.2vw, 14px)', fontWeight: '600',
-      backgroundColor: c.bg, color: c.text,
+      display: 'inline-block', padding: '3px 12px', borderRadius: '20px',
+      fontSize: 'clamp(9px, 1.1vw, 13px)', fontWeight: '600', letterSpacing: '0.3px',
+      backgroundColor: c.bg, color: c.text, border: `1px solid ${c.border}`,
     }}>
       {label}
     </span>
@@ -69,25 +69,46 @@ function TokenCard({ order, status, isNew, settings }) {
   const isReady = status === 'ready';
   return (
     <div style={{
-      backgroundColor: isReady ? '#064e3b' : '#1e293b',
-      border: `2px solid ${isReady ? '#10b981' : '#334155'}`,
-      borderRadius: '16px',
-      padding: 'clamp(12px, 2vw, 24px)',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
-      animation: isNew ? 'tokenAppear 0.4s ease-out' : (isReady ? 'readyPulse 2s ease-in-out infinite' : 'none'),
+      background: isReady
+        ? 'linear-gradient(145deg, #0a2e1a, #052e16)'
+        : 'linear-gradient(145deg, #2a1a1a, #1f1212)',
+      border: isReady ? '2px solid #22c55e' : '2px solid rgba(239,68,68,0.3)',
+      borderLeft: isReady ? '2px solid #22c55e' : '4px solid #ef4444',
+      borderRadius: '20px',
+      padding: 'clamp(14px, 2vw, 28px)',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+      animation: isNew ? 'tokenAppear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)' : (isReady ? 'readyPulse 2s ease-in-out infinite' : 'none'),
       transition: 'all 0.4s ease',
       minWidth: 0,
+      overflow: 'hidden',
+      boxShadow: isReady
+        ? '0 0 30px rgba(34,197,94,0.2), 0 4px 20px rgba(0,0,0,0.3)'
+        : '0 4px 20px rgba(0,0,0,0.3)',
+      minHeight: 'clamp(80px, 10vw, 150px)',
+      justifyContent: 'center',
     }}>
       <div style={{
-        fontSize: 'clamp(36px, 5vw, 96px)', fontWeight: '800', lineHeight: 1,
-        color: isReady ? '#34d399' : '#f1f5f9',
+        fontSize: 'clamp(28px, 4vw, 72px)', fontWeight: '800', lineHeight: 1,
+        color: isReady ? '#4ade80' : '#f1f5f9',
         fontVariantNumeric: 'tabular-nums',
+        textShadow: isReady ? '0 0 20px rgba(74,222,128,0.3)' : '0 2px 4px rgba(0,0,0,0.3)',
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        maxWidth: '100%',
       }}>
         #{order.dailyOrderId}
       </div>
+      {/* Status sub-label */}
+      <div style={{
+        fontSize: 'clamp(10px, 1.1vw, 14px)', fontWeight: '600',
+        color: isReady ? '#4ade80' : '#d97706',
+        opacity: isReady ? 1 : 0.7,
+        letterSpacing: '0.5px',
+      }}>
+        {isReady ? 'Pick Up!' : <span className="preparing-dots">Preparing</span>}
+      </div>
       {settings.showCustomerName && order.customerName && (
         <div style={{
-          fontSize: 'clamp(12px, 1.4vw, 18px)', color: '#94a3b8',
+          fontSize: 'clamp(10px, 1.2vw, 15px)', color: 'rgba(148,163,184,0.8)',
           maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {order.customerName}
@@ -130,12 +151,13 @@ function PinEntry({ restaurantId, onSuccess, error: externalError }) {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      backgroundColor: '#0f172a', padding: '20px',
+      background: 'linear-gradient(145deg, #1a0a0a, #2d1215)', padding: '20px',
     }}>
       <div style={{
-        backgroundColor: '#1e293b', borderRadius: '20px', padding: '40px',
+        background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+        borderRadius: '24px', padding: '40px',
         width: '100%', maxWidth: '400px', textAlign: 'center',
-        border: '1px solid #334155', boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+        border: '1px solid rgba(239,68,68,0.2)', boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
       }}>
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>🍽️</div>
         <h1 style={{ fontSize: '22px', fontWeight: '700', color: '#f1f5f9', margin: '0 0 8px' }}>
@@ -157,7 +179,7 @@ function PinEntry({ restaurantId, onSuccess, error: externalError }) {
             style={{
               width: '100%', padding: '14px', fontSize: '28px', textAlign: 'center',
               fontFamily: 'monospace', letterSpacing: '8px',
-              backgroundColor: '#0f172a', border: '2px solid #334155', borderRadius: '12px',
+              backgroundColor: 'rgba(0,0,0,0.3)', border: '2px solid rgba(239,68,68,0.3)', borderRadius: '12px',
               color: '#f1f5f9', outline: 'none', boxSizing: 'border-box',
             }}
           />
@@ -171,7 +193,7 @@ function PinEntry({ restaurantId, onSuccess, error: externalError }) {
             disabled={loading || pin.length < 4}
             style={{
               width: '100%', padding: '14px', marginTop: '20px',
-              backgroundColor: pin.length >= 4 ? '#10b981' : '#334155',
+              background: pin.length >= 4 ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'rgba(255,255,255,0.1)',
               color: '#fff', border: 'none', borderRadius: '12px',
               fontSize: '16px', fontWeight: '600', cursor: pin.length >= 4 ? 'pointer' : 'not-allowed',
               opacity: loading ? 0.7 : 1,
@@ -377,7 +399,7 @@ function TokenDisplayContent() {
   // ─── Screens ───
   if (screen === 'loading') {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #1a0a0a, #2d1215)' }}>
         <div style={{ color: '#94a3b8', fontSize: '18px' }}>Loading...</div>
       </div>
     );
@@ -385,7 +407,7 @@ function TokenDisplayContent() {
 
   if (screen === 'error') {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a', padding: '20px' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #1a0a0a, #2d1215)', padding: '20px' }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
           <div style={{ color: '#f87171', fontSize: '18px', fontWeight: '600' }}>{errorMsg}</div>
@@ -405,8 +427,8 @@ function TokenDisplayContent() {
   const tokenGrid = (items, status) => (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: `repeat(auto-fill, minmax(clamp(100px, 12vw, 180px), 1fr))`,
-      gap: 'clamp(8px, 1.2vw, 16px)',
+      gridTemplateColumns: `repeat(auto-fill, minmax(clamp(130px, 15vw, 220px), 1fr))`,
+      gap: 'clamp(10px, 1.4vw, 20px)',
       padding: '4px',
     }}>
       {items.map(order => (
@@ -421,43 +443,44 @@ function TokenDisplayContent() {
     </div>
   );
 
-  const sectionStyle = (isReady) => ({
-    flex: 1, minWidth: 0, minHeight: 0,
-    display: 'flex', flexDirection: 'column',
-    padding: 'clamp(12px, 2vw, 24px)',
-    overflow: 'auto',
-  });
-
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', flexDirection: 'column',
-      backgroundColor: '#0f172a', color: '#f1f5f9', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      background: 'linear-gradient(145deg, #1a0a0a 0%, #2d1215 50%, #1a0a0a 100%)',
+      color: '#f1f5f9', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     }}>
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: 'clamp(10px, 1.5vw, 20px) clamp(16px, 2vw, 32px)',
-        backgroundColor: '#1e293b', borderBottom: '1px solid #334155',
+        padding: 'clamp(10px, 1.5vw, 18px) clamp(16px, 2vw, 32px)',
+        background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+        borderBottom: '1px solid rgba(239,68,68,0.15)',
         flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {restaurant?.logo && (
-            <img src={restaurant.logo} alt="" style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover' }} />
+            <img src={restaurant.logo} alt="" style={{ width: '36px', height: '36px', borderRadius: '10px', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} />
           )}
           <span style={{ fontSize: 'clamp(16px, 2vw, 24px)', fontWeight: '700' }}>
             {restaurant?.name || 'Restaurant'}
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span style={{ fontSize: 'clamp(12px, 1.2vw, 16px)', color: '#94a3b8' }}>
+          <span style={{
+            fontSize: 'clamp(10px, 1vw, 13px)', color: 'rgba(239,68,68,0.8)',
+            padding: '4px 14px', borderRadius: '20px',
+            background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
+            fontWeight: '600', letterSpacing: '0.5px', textTransform: 'uppercase',
+          }}>
             {t('tokenDisplay.title')}
           </span>
           <button
             onClick={toggleSound}
             style={{
-              background: 'none', border: '1px solid #475569', borderRadius: '8px',
-              padding: '6px 12px', cursor: 'pointer', color: soundEnabled ? '#34d399' : '#64748b',
+              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px',
+              padding: '6px 12px', cursor: 'pointer', color: soundEnabled ? '#4ade80' : '#64748b',
               display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'clamp(11px, 1vw, 14px)',
+              transition: 'all 0.2s',
             }}
             title={soundEnabled ? t('tokenDisplay.soundOn') : t('tokenDisplay.soundOff')}
           >
@@ -476,7 +499,12 @@ function TokenDisplayContent() {
         overflow: 'hidden',
       }}>
         {/* Preparing Column */}
-        <div style={sectionStyle(false)}>
+        <div style={{
+          flex: 1, minWidth: 0, minHeight: 0,
+          display: 'flex', flexDirection: 'column',
+          padding: 'clamp(12px, 2vw, 24px)',
+          overflow: 'auto',
+        }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: '10px',
             marginBottom: 'clamp(10px, 1.5vw, 20px)', flexShrink: 0,
@@ -489,14 +517,16 @@ function TokenDisplayContent() {
               {t('tokenDisplay.preparing')}
             </h2>
             <span style={{
-              backgroundColor: '#92400e', color: '#fbbf24', borderRadius: '20px',
-              padding: '2px 12px', fontSize: 'clamp(12px, 1.2vw, 16px)', fontWeight: '700',
+              background: 'linear-gradient(135deg, #92400e, #78350f)',
+              color: '#fbbf24', borderRadius: '20px',
+              padding: '2px 14px', fontSize: 'clamp(12px, 1.2vw, 16px)', fontWeight: '700',
+              boxShadow: '0 2px 8px rgba(146,64,14,0.3)',
             }}>
               {preparing.length}
             </span>
           </div>
           {preparing.length === 0 ? (
-            <div style={{ color: '#475569', fontSize: 'clamp(14px, 1.5vw, 20px)', textAlign: 'center', marginTop: '40px' }}>
+            <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: 'clamp(14px, 1.5vw, 20px)', textAlign: 'center', marginTop: '40px' }}>
               {t('tokenDisplay.noOrders')}
             </div>
           ) : tokenGrid(preparing, 'preparing')}
@@ -504,13 +534,24 @@ function TokenDisplayContent() {
 
         {/* Divider */}
         {cols > 1 ? (
-          <div style={{ width: '2px', backgroundColor: '#334155', flexShrink: 0 }} />
+          <div style={{
+            width: '1px', flexShrink: 0,
+            background: 'linear-gradient(to bottom, transparent 0%, rgba(127,29,29,0.5) 30%, rgba(239,68,68,0.3) 50%, rgba(127,29,29,0.5) 70%, transparent 100%)',
+          }} />
         ) : (
-          <div style={{ height: '2px', backgroundColor: '#334155', flexShrink: 0, margin: '0 16px' }} />
+          <div style={{
+            height: '1px', flexShrink: 0, margin: '0 24px',
+            background: 'linear-gradient(to right, transparent, rgba(239,68,68,0.3), transparent)',
+          }} />
         )}
 
         {/* Ready Column */}
-        <div style={sectionStyle(true)}>
+        <div style={{
+          flex: 1, minWidth: 0, minHeight: 0,
+          display: 'flex', flexDirection: 'column',
+          padding: 'clamp(12px, 2vw, 24px)',
+          overflow: 'auto',
+        }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: '10px',
             marginBottom: 'clamp(10px, 1.5vw, 20px)', flexShrink: 0,
@@ -518,19 +559,21 @@ function TokenDisplayContent() {
             <span style={{ fontSize: 'clamp(20px, 2.5vw, 36px)' }}>✅</span>
             <h2 style={{
               margin: 0, fontSize: 'clamp(18px, 2.5vw, 32px)', fontWeight: '700',
-              color: '#34d399',
+              color: '#4ade80',
             }}>
               {t('tokenDisplay.ready')}
             </h2>
             <span style={{
-              backgroundColor: '#064e3b', color: '#34d399', borderRadius: '20px',
-              padding: '2px 12px', fontSize: 'clamp(12px, 1.2vw, 16px)', fontWeight: '700',
+              background: 'linear-gradient(135deg, #064e3b, #052e16)',
+              color: '#4ade80', borderRadius: '20px',
+              padding: '2px 14px', fontSize: 'clamp(12px, 1.2vw, 16px)', fontWeight: '700',
+              boxShadow: '0 2px 8px rgba(6,78,59,0.3)',
             }}>
               {ready.length}
             </span>
           </div>
           {ready.length === 0 ? (
-            <div style={{ color: '#475569', fontSize: 'clamp(14px, 1.5vw, 20px)', textAlign: 'center', marginTop: '40px' }}>
+            <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: 'clamp(14px, 1.5vw, 20px)', textAlign: 'center', marginTop: '40px' }}>
               {t('tokenDisplay.noOrders')}
             </div>
           ) : tokenGrid(ready, 'ready')}
@@ -541,8 +584,9 @@ function TokenDisplayContent() {
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: 'clamp(8px, 1vw, 14px) clamp(16px, 2vw, 32px)',
-        backgroundColor: '#1e293b', borderTop: '1px solid #334155',
-        fontSize: 'clamp(11px, 1vw, 14px)', color: '#64748b',
+        background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+        borderTop: '1px solid rgba(239,68,68,0.15)',
+        fontSize: 'clamp(11px, 1vw, 14px)', color: 'rgba(255,255,255,0.3)',
         flexShrink: 0,
       }}>
         <span>{t('tokenDisplay.poweredBy')}</span>
@@ -553,17 +597,28 @@ function TokenDisplayContent() {
       <style>{`
         @keyframes tokenAppear {
           0% { transform: scale(0.7); opacity: 0; }
-          50% { transform: scale(1.05); }
+          60% { transform: scale(1.06); }
           100% { transform: scale(1); opacity: 1; }
         }
         @keyframes readyPulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.3); }
-          50% { box-shadow: 0 0 20px 8px rgba(52, 211, 153, 0.15); }
+          0%, 100% { box-shadow: 0 0 30px rgba(34,197,94,0.15), 0 4px 20px rgba(0,0,0,0.3); }
+          50% { box-shadow: 0 0 40px rgba(34,197,94,0.3), 0 0 60px rgba(34,197,94,0.1), 0 4px 20px rgba(0,0,0,0.3); }
+        }
+        .preparing-dots::after {
+          content: '';
+          animation: dots 1.4s steps(4, end) infinite;
+        }
+        @keyframes dots {
+          0% { content: ''; }
+          25% { content: '.'; }
+          50% { content: '..'; }
+          75% { content: '...'; }
+          100% { content: ''; }
         }
         body { margin: 0; padding: 0; overflow: hidden; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(239,68,68,0.2); border-radius: 4px; }
       `}</style>
     </div>
   );
@@ -572,7 +627,7 @@ function TokenDisplayContent() {
 export default function TokenDisplayPage() {
   return (
     <Suspense fallback={
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #1a0a0a, #2d1215)' }}>
         <div style={{ color: '#94a3b8', fontSize: '18px' }}>Loading...</div>
       </div>
     }>
