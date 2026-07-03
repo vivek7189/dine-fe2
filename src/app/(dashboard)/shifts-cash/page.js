@@ -163,7 +163,9 @@ export default function ShiftsCashPage() {
     emailEnabled: false,
     reportEmails: [],
     timezone: typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'Asia/Kolkata',
-    reportTime: '08:00'
+    reportTime: '08:00',
+    morningSummary: { enabled: true, time: '08:00' },
+    dayClosing: { enabled: false, time: '23:00' }
   });
   const [newEmailInput, setNewEmailInput] = useState('');
   const [sendingReport, setSendingReport] = useState(false);
@@ -246,6 +248,13 @@ export default function ShiftsCashPage() {
         if (!prefs.reportEmails) prefs.reportEmails = [];
         prefs.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         if (prefs.reportTime && !prefs.reportTime.endsWith(':00')) prefs.reportTime = prefs.reportTime.split(':')[0] + ':00';
+        // Migrate legacy format
+        if (!prefs.morningSummary) {
+          prefs.morningSummary = { enabled: true, time: prefs.reportTime || '08:00' };
+        }
+        if (!prefs.dayClosing) {
+          prefs.dayClosing = { enabled: false, time: '23:00' };
+        }
         setEmailPreferences(prefs);
       }
     } catch (e) { console.error('Error loading email preferences:', e); }
@@ -261,6 +270,11 @@ export default function ShiftsCashPage() {
         setEmailPreferences(prefsToSave);
         setNewEmailInput('');
       }
+      if (prefsToSave.emailEnabled && !prefsToSave.morningSummary?.enabled && !prefsToSave.dayClosing?.enabled) {
+        alert('Please enable at least one report type (Morning Summary or Day Closing).');
+        setSavingEmailPrefs(false);
+        return;
+      }
       await apiClient.updateEmailPreferences(prefsToSave);
       setShowEmailModal(false);
     } catch (e) { console.error('Error saving email preferences:', e); }
@@ -268,10 +282,14 @@ export default function ShiftsCashPage() {
   };
 
   const sendReportToEmail = async () => {
+    const emails = emailPreferences.reportEmails || [];
+    if (emails.length === 0) return;
     try {
       setSendingReport(true);
       setReportSent(false);
-      await apiClient.sendTestReport();
+      await apiClient.updateEmailPreferences(emailPreferences);
+      const reportType = emailPreferences.morningSummary?.enabled ? 'morning' : 'closing';
+      await apiClient.sendTestReport(emails, getCurrencySymbol(), emailPreferences.reportFrequency || 'daily', reportType);
       setReportSent(true);
       setTimeout(() => setReportSent(false), 5000);
     } catch (e) { console.error('Error sending report:', e); }
@@ -939,20 +957,89 @@ export default function ShiftsCashPage() {
               <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>Press Enter or comma to add. Max 5 emails.</p>
             </div>
 
-            {/* Delivery Time */}
+            {/* Report Schedule */}
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '8px' }}>Delivery Time</label>
-              <select
-                value={emailPreferences.reportTime}
-                onChange={(e) => setEmailPreferences(prev => ({ ...prev, reportTime: e.target.value }))}
-                style={{ width: '100%', padding: '14px 16px', borderRadius: '12px', border: '2px solid #e5e7eb', fontSize: '14px', backgroundColor: '#fff' }}
-              >
-                {Array.from({ length: 24 }, (_, i) => {
-                  const val = `${String(i).padStart(2, '0')}:00`;
-                  const label = i === 0 ? '12:00 AM' : i < 12 ? `${i}:00 AM` : i === 12 ? '12:00 PM' : `${i - 12}:00 PM`;
-                  return <option key={val} value={val}>{label}</option>;
-                })}
-              </select>
+              <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '8px' }}>Report Schedule</label>
+              <div style={{ border: '2px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>
+                {/* Morning Summary */}
+                <div style={{ padding: '16px', backgroundColor: emailPreferences.morningSummary?.enabled ? '#fffbeb' : '#f9fafb' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: emailPreferences.morningSummary?.enabled ? '12px' : '0' }}>
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Morning Summary</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>Yesterday&apos;s complete report</div>
+                    </div>
+                    <div onClick={() => setEmailPreferences(prev => ({
+                      ...prev,
+                      morningSummary: { ...prev.morningSummary, enabled: !prev.morningSummary?.enabled }
+                    }))} style={{
+                      width: '48px', height: '26px', borderRadius: '13px', padding: '2px', cursor: 'pointer',
+                      backgroundColor: emailPreferences.morningSummary?.enabled ? '#f59e0b' : '#d1d5db', transition: 'all 0.2s'
+                    }}>
+                      <div style={{
+                        width: '22px', height: '22px', borderRadius: '11px', backgroundColor: 'white',
+                        transition: 'all 0.2s', marginLeft: emailPreferences.morningSummary?.enabled ? '22px' : '0'
+                      }} />
+                    </div>
+                  </div>
+                  {emailPreferences.morningSummary?.enabled && (
+                    <select
+                      value={emailPreferences.morningSummary?.time || '08:00'}
+                      onChange={(e) => setEmailPreferences(prev => ({
+                        ...prev,
+                        morningSummary: { ...prev.morningSummary, time: e.target.value }
+                      }))}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '13px', backgroundColor: '#fff' }}
+                    >
+                      {Array.from({ length: 24 }, (_, i) => {
+                        const val = `${String(i).padStart(2, '0')}:00`;
+                        const lb = i === 0 ? '12:00 AM' : i < 12 ? `${i}:00 AM` : i === 12 ? '12:00 PM' : `${i - 12}:00 PM`;
+                        return <option key={val} value={val}>{lb}</option>;
+                      })}
+                    </select>
+                  )}
+                </div>
+
+                {/* Divider */}
+                <div style={{ borderTop: '1px dashed #d1d5db' }} />
+
+                {/* Day Closing */}
+                <div style={{ padding: '16px', backgroundColor: emailPreferences.dayClosing?.enabled ? '#eff6ff' : '#f9fafb' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: emailPreferences.dayClosing?.enabled ? '12px' : '0' }}>
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Day Closing Report</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>Today&apos;s end-of-day snapshot</div>
+                    </div>
+                    <div onClick={() => setEmailPreferences(prev => ({
+                      ...prev,
+                      dayClosing: { ...prev.dayClosing, enabled: !prev.dayClosing?.enabled }
+                    }))} style={{
+                      width: '48px', height: '26px', borderRadius: '13px', padding: '2px', cursor: 'pointer',
+                      backgroundColor: emailPreferences.dayClosing?.enabled ? '#3b82f6' : '#d1d5db', transition: 'all 0.2s'
+                    }}>
+                      <div style={{
+                        width: '22px', height: '22px', borderRadius: '11px', backgroundColor: 'white',
+                        transition: 'all 0.2s', marginLeft: emailPreferences.dayClosing?.enabled ? '22px' : '0'
+                      }} />
+                    </div>
+                  </div>
+                  {emailPreferences.dayClosing?.enabled && (
+                    <select
+                      value={emailPreferences.dayClosing?.time || '23:00'}
+                      onChange={(e) => setEmailPreferences(prev => ({
+                        ...prev,
+                        dayClosing: { ...prev.dayClosing, time: e.target.value }
+                      }))}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '13px', backgroundColor: '#fff' }}
+                    >
+                      {Array.from({ length: 24 }, (_, i) => {
+                        const val = `${String(i).padStart(2, '0')}:00`;
+                        const lb = i === 0 ? '12:00 AM' : i < 12 ? `${i}:00 AM` : i === 12 ? '12:00 PM' : `${i - 12}:00 PM`;
+                        return <option key={val} value={val}>{lb}</option>;
+                      })}
+                    </select>
+                  )}
+                </div>
+              </div>
               <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '6px' }}>
                 Your timezone: {emailPreferences.timezone?.replace(/_/g, ' ')}
               </p>

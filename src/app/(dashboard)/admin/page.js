@@ -5733,6 +5733,7 @@ const Admin = () => {
       { id: 'currency', label: 'Currency', icon: FaMoneyBillWave },
       { id: 'print', label: 'Print Settings', icon: FaPrint },
       { id: 'features', label: 'Features', icon: FaToggleOn },
+      { id: 'waiter-app', label: 'Waiter App', icon: FaMobileAlt },
       { id: 'offline-data', label: 'Offline Data', icon: FaDatabase },
       ...(typeof window !== 'undefined' && window.electronAPI ? [{ id: 'terminals', label: 'Terminals & LAN', icon: FaNetworkWired }] : []),
       { id: 'app-download', label: 'App Download', icon: FaDownload },
@@ -12252,148 +12253,6 @@ const Admin = () => {
               </div>
             </div>
 
-            {/* Divider */}
-            <div style={{ borderTop: '1px solid #f3e8f0', margin: '20px 0' }} />
-
-            {/* Waiter App Settings */}
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                <FaMobileAlt size={14} color="#6366f1" />
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', margin: 0 }}>Waiter App Settings</label>
-                <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 400 }}>Control what waiters see in the mobile app</span>
-              </div>
-
-              {/* Home Screen Quick Actions */}
-              <div style={{ marginBottom: '14px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: '8px' }}>Home Screen</span>
-                {[
-                  { key: 'showStartOrder', label: 'Start Order Button', desc: 'Main "Start Order" action on waiter home' },
-                  { key: 'showTables', label: 'Tables Button', desc: 'Quick action to view tables' },
-                  { key: 'showKitchen', label: 'Kitchen Button', desc: 'Quick action to view kitchen orders' },
-                  { key: 'showOrders', label: 'Orders Button', desc: 'Quick action to view orders' },
-                ].map(item => (
-                  <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                    <button
-                      type="button"
-                      onClick={() => setPosSettings(prev => ({
-                        ...prev,
-                        waiterAppConfig: {
-                          ...(prev.waiterAppConfig || {}),
-                          [item.key]: !(prev.waiterAppConfig?.[item.key] !== false)
-                        }
-                      }))}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
-                    >
-                      {posSettings.waiterAppConfig?.[item.key] !== false
-                        ? <FaToggleOn size={24} color="#6366f1" />
-                        : <FaToggleOff size={24} color="#d1d5db" />}
-                    </button>
-                    <div>
-                      <span style={{ fontSize: '12px', color: '#374151' }}>{item.label}</span>
-                      <div style={{ fontSize: '10px', color: '#9ca3af' }}>{item.desc}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Bottom Navigation Tabs */}
-              <div style={{ marginBottom: '14px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: '8px' }}>Bottom Navigation Tabs</span>
-                {[
-                  { key: 'showTablesTab', label: 'Tables Tab', desc: 'Tables tab in bottom navigation' },
-                  { key: 'showMenuTab', label: 'Menu Tab', desc: 'Menu tab in bottom navigation' },
-                  { key: 'showOrdersTab', label: 'Orders Tab', desc: 'Orders tab in bottom navigation' },
-                ].map(item => (
-                  <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                    <button
-                      type="button"
-                      onClick={() => setPosSettings(prev => ({
-                        ...prev,
-                        waiterAppConfig: {
-                          ...(prev.waiterAppConfig || {}),
-                          [item.key]: !(prev.waiterAppConfig?.[item.key] !== false)
-                        }
-                      }))}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
-                    >
-                      {posSettings.waiterAppConfig?.[item.key] !== false
-                        ? <FaToggleOn size={24} color="#6366f1" />
-                        : <FaToggleOff size={24} color="#d1d5db" />}
-                    </button>
-                    <div>
-                      <span style={{ fontSize: '12px', color: '#374151' }}>{item.label}</span>
-                      <div style={{ fontSize: '10px', color: '#9ca3af' }}>{item.desc}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Tables Screen Buttons */}
-              <div style={{ marginBottom: '14px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: '8px' }}>Tables Screen</span>
-                {[
-                  { key: 'showResetTablesButton', label: 'Reset Tables Button', desc: 'Red reset button on tables screen (default: hidden)' },
-                  { key: 'showRefreshButton', label: 'Refresh Button', desc: 'Sync/refresh button on tables screen (default: hidden)' },
-                ].map(item => (
-                  <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                    <button
-                      type="button"
-                      onClick={() => setPosSettings(prev => ({
-                        ...prev,
-                        waiterAppConfig: {
-                          ...(prev.waiterAppConfig || {}),
-                          [item.key]: !prev.waiterAppConfig?.[item.key]
-                        }
-                      }))}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
-                    >
-                      {posSettings.waiterAppConfig?.[item.key]
-                        ? <FaToggleOn size={24} color="#6366f1" />
-                        : <FaToggleOff size={24} color="#d1d5db" />}
-                    </button>
-                    <div>
-                      <span style={{ fontSize: '12px', color: '#374151' }}>{item.label}</span>
-                      <div style={{ fontSize: '10px', color: '#9ca3af' }}>{item.desc}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* More Tab Items */}
-              <div>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: '8px' }}>More Tab Items</span>
-                {[
-                  { key: 'showKitchenDisplay', label: 'Kitchen Display', desc: 'Kitchen display screen in More menu' },
-                  { key: 'showAttendance', label: 'Attendance', desc: 'Attendance tracking in More menu' },
-                  { key: 'showBilling', label: 'Billing', desc: 'Billing screen in More menu' },
-                  { key: 'showPrinterSettings', label: 'Printer Settings', desc: 'Printer settings in More menu' },
-                  { key: 'showOrderHistory', label: 'Order History', desc: 'Order history in More menu' },
-                ].map(item => (
-                  <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                    <button
-                      type="button"
-                      onClick={() => setPosSettings(prev => ({
-                        ...prev,
-                        waiterAppConfig: {
-                          ...(prev.waiterAppConfig || {}),
-                          [item.key]: !(prev.waiterAppConfig?.[item.key] !== false)
-                        }
-                      }))}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
-                    >
-                      {posSettings.waiterAppConfig?.[item.key] !== false
-                        ? <FaToggleOn size={24} color="#6366f1" />
-                        : <FaToggleOff size={24} color="#d1d5db" />}
-                    </button>
-                    <div>
-                      <span style={{ fontSize: '12px', color: '#374151' }}>{item.label}</span>
-                      <div style={{ fontSize: '10px', color: '#9ca3af' }}>{item.desc}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {/* Save Button */}
             <button
               type="button"
@@ -14274,6 +14133,205 @@ const Admin = () => {
             restaurantId={selectedRestaurant?.id}
             selectedRestaurant={selectedRestaurant}
           />
+        </div>
+      )}
+
+      {/* ==================== WAITER APP SETTINGS TAB ==================== */}
+      {activeTab === 'waiter-app' && !(loading && restaurants.length === 0) && (
+        <div>
+          {/* Header */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '24px',
+            flexWrap: 'wrap',
+            gap: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <FaMobileAlt size={18} color="white" />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: 0 }}>Waiter App Settings</h2>
+                <p style={{ color: '#6b7280', margin: '2px 0 0 0', fontSize: '13px' }}>
+                  Control what waiters see in the mobile app
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleSaveDashboardSettings}
+              disabled={posSettingsSaving || !selectedRestaurant}
+              style={{
+                padding: '10px 24px',
+                background: (posSettingsSaving || !selectedRestaurant) ? '#e5e7eb' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                color: (posSettingsSaving || !selectedRestaurant) ? '#9ca3af' : 'white',
+                border: 'none',
+                borderRadius: '10px',
+                fontWeight: '600',
+                fontSize: '13px',
+                cursor: (posSettingsSaving || !selectedRestaurant) ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {posSettingsSaving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+
+          {/* Restaurant selector info */}
+          {selectedRestaurant && (
+            <div style={{
+              padding: '10px 14px',
+              background: '#f0f0ff',
+              borderRadius: '8px',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '12px',
+              color: '#4f46e5'
+            }}>
+              <FaStore size={12} />
+              <span>Settings for: <strong>{selectedRestaurant.name}</strong></span>
+            </div>
+          )}
+
+          {/* Home Screen Quick Actions */}
+          <div style={{ background: '#fff', border: '1px solid #f3f4f6', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '12px' }}>Home Screen</span>
+            {[
+              { key: 'showStartOrder', label: 'Start Order Button', desc: 'Main "Start Order" action on waiter home' },
+              { key: 'showTables', label: 'Tables Button', desc: 'Quick action to view tables' },
+              { key: 'showKitchen', label: 'Kitchen Button', desc: 'Quick action to view kitchen orders' },
+              { key: 'showOrders', label: 'Orders Button', desc: 'Quick action to view orders' },
+            ].map(item => (
+              <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPosSettings(prev => ({
+                    ...prev,
+                    waiterAppConfig: {
+                      ...(prev.waiterAppConfig || {}),
+                      [item.key]: !(prev.waiterAppConfig?.[item.key] !== false)
+                    }
+                  }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {posSettings.waiterAppConfig?.[item.key] !== false
+                    ? <FaToggleOn size={26} color="#6366f1" />
+                    : <FaToggleOff size={26} color="#d1d5db" />}
+                </button>
+                <div>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>{item.label}</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>{item.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Bottom Navigation Tabs */}
+          <div style={{ background: '#fff', border: '1px solid #f3f4f6', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '12px' }}>Bottom Navigation Tabs</span>
+            {[
+              { key: 'showTablesTab', label: 'Tables Tab', desc: 'Tables tab in bottom navigation' },
+              { key: 'showMenuTab', label: 'Menu Tab', desc: 'Menu tab in bottom navigation' },
+              { key: 'showOrdersTab', label: 'Orders Tab', desc: 'Orders tab in bottom navigation' },
+            ].map(item => (
+              <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPosSettings(prev => ({
+                    ...prev,
+                    waiterAppConfig: {
+                      ...(prev.waiterAppConfig || {}),
+                      [item.key]: !(prev.waiterAppConfig?.[item.key] !== false)
+                    }
+                  }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {posSettings.waiterAppConfig?.[item.key] !== false
+                    ? <FaToggleOn size={26} color="#6366f1" />
+                    : <FaToggleOff size={26} color="#d1d5db" />}
+                </button>
+                <div>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>{item.label}</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>{item.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Tables Screen Buttons */}
+          <div style={{ background: '#fff', border: '1px solid #f3f4f6', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '12px' }}>Tables Screen</span>
+            {[
+              { key: 'showResetTablesButton', label: 'Reset Tables Button', desc: 'Red reset button on tables screen (default: hidden)' },
+              { key: 'showRefreshButton', label: 'Refresh Button', desc: 'Sync/refresh button on tables screen (default: hidden)' },
+            ].map(item => (
+              <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPosSettings(prev => ({
+                    ...prev,
+                    waiterAppConfig: {
+                      ...(prev.waiterAppConfig || {}),
+                      [item.key]: !prev.waiterAppConfig?.[item.key]
+                    }
+                  }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {posSettings.waiterAppConfig?.[item.key]
+                    ? <FaToggleOn size={26} color="#6366f1" />
+                    : <FaToggleOff size={26} color="#d1d5db" />}
+                </button>
+                <div>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>{item.label}</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>{item.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* More Tab Items */}
+          <div style={{ background: '#fff', border: '1px solid #f3f4f6', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '12px' }}>More Tab Items</span>
+            {[
+              { key: 'showKitchenDisplay', label: 'Kitchen Display', desc: 'Kitchen display screen in More menu' },
+              { key: 'showAttendance', label: 'Attendance', desc: 'Attendance tracking in More menu' },
+              { key: 'showBilling', label: 'Billing', desc: 'Billing screen in More menu' },
+              { key: 'showPrinterSettings', label: 'Printer Settings', desc: 'Printer settings in More menu' },
+              { key: 'showOrderHistory', label: 'Order History', desc: 'Order history in More menu' },
+            ].map(item => (
+              <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPosSettings(prev => ({
+                    ...prev,
+                    waiterAppConfig: {
+                      ...(prev.waiterAppConfig || {}),
+                      [item.key]: !(prev.waiterAppConfig?.[item.key] !== false)
+                    }
+                  }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {posSettings.waiterAppConfig?.[item.key] !== false
+                    ? <FaToggleOn size={26} color="#6366f1" />
+                    : <FaToggleOff size={26} color="#d1d5db" />}
+                </button>
+                <div>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>{item.label}</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>{item.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

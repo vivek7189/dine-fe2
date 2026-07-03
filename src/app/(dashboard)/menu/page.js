@@ -83,6 +83,8 @@ const CategoryDropdown = ({
   const [editingCategory, setEditingCategory] = useState(null);
   const [newCategory, setNewCategory] = useState({ name: '', emoji: '🍽️', description: '' });
   const [loading, setLoading] = useState(false);
+  const [deletingCategory, setDeletingCategory] = useState(null);
+  const [categoryNotice, setCategoryNotice] = useState(null); // { type: 'error'|'info', message: string }
   const dropdownRef = useRef(null);
   const dropdownContentRef = useRef(null);
 
@@ -120,7 +122,7 @@ const CategoryDropdown = ({
   };
 
   const handleAddNew = async () => {
-    if (!navigator.onLine && !(typeof window !== 'undefined' && window.electronAPI?.apiRequest)) { alert('You are offline. Go online to make changes.'); return; }
+    if (!navigator.onLine && !(typeof window !== 'undefined' && window.electronAPI?.apiRequest)) { setCategoryNotice({ type: 'error', message: 'You are offline. Go online to make changes.' }); return; }
     if (!newCategory.name.trim()) return;
 
     try {
@@ -134,7 +136,7 @@ const CategoryDropdown = ({
       setSearchTerm('');
     } catch (error) {
       console.error('Error creating category:', error);
-      alert(t('menu.failedCreateCategory', { error: error.message || 'Unknown error' }));
+      setCategoryNotice({ type: 'error', message: t('menu.failedCreateCategory', { error: error.message || 'Unknown error' }) });
     } finally {
       setLoading(false);
     }
@@ -155,7 +157,7 @@ const CategoryDropdown = ({
   };
 
   const handleUpdate = async () => {
-    if (!navigator.onLine && !(typeof window !== 'undefined' && window.electronAPI?.apiRequest)) { alert('You are offline. Go online to make changes.'); return; }
+    if (!navigator.onLine && !(typeof window !== 'undefined' && window.electronAPI?.apiRequest)) { setCategoryNotice({ type: 'error', message: 'You are offline. Go online to make changes.' }); return; }
     if (!editingCategory || !newCategory.name.trim()) return;
 
     try {
@@ -169,29 +171,33 @@ const CategoryDropdown = ({
       setEditingCategory(null);
     } catch (error) {
       console.error('Error updating category:', error);
-      alert(t('menu.failedUpdateCategory', { error: error.message || 'Unknown error' }));
+      setCategoryNotice({ type: 'error', message: t('menu.failedUpdateCategory', { error: error.message || 'Unknown error' }) });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (category) => {
-    if (!navigator.onLine && !(typeof window !== 'undefined' && window.electronAPI?.apiRequest)) { alert('You are offline. Go online to make changes.'); return; }
-    if (!confirm(t('menu.deleteCategoryConfirm', { name: category.name }))) return;
+  const handleDelete = (category) => {
+    if (!navigator.onLine && !(typeof window !== 'undefined' && window.electronAPI?.apiRequest)) { setCategoryNotice({ type: 'error', message: 'You are offline. Go online to make changes.' }); return; }
+    setDeletingCategory(category);
+  };
 
+  const confirmDeleteCategory = async () => {
+    if (!deletingCategory) return;
     try {
       setLoading(true);
-      await apiClient.deleteCategory(restaurantId, category.id);
+      await apiClient.deleteCategory(restaurantId, deletingCategory.id);
       if (onCategoryDeleted) {
-        onCategoryDeleted(category.id);
+        onCategoryDeleted(deletingCategory.id);
       }
-      // If the deleted category was selected, clear selection
-      if (value === category.id) {
+      if (value === deletingCategory.id) {
         onChange('');
       }
+      setDeletingCategory(null);
     } catch (error) {
       console.error('Error deleting category:', error);
-      alert(t('menu.failedDeleteCategory', { error: error.message || 'Unknown error' }));
+      setCategoryNotice({ type: 'error', message: t('menu.failedDeleteCategory', { error: error.message || 'Unknown error' }) });
+      setDeletingCategory(null);
     } finally {
       setLoading(false);
     }
@@ -383,6 +389,126 @@ const CategoryDropdown = ({
             )}
           </div>
         </div>
+      )}
+
+      {/* Category Delete Confirmation Modal */}
+      {deletingCategory && typeof document !== 'undefined' && createPortal(
+        <div
+          onClick={() => { if (!loading) setDeletingCategory(null); }}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 10002, padding: '16px',
+            animation: 'fadeIn 0.15s ease-out',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: 'white', borderRadius: '12px',
+              padding: '20px', maxWidth: '340px', width: '100%',
+              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.15)',
+              animation: 'slideInUp 0.15s ease-out',
+            }}
+          >
+            <div style={{
+              width: '40px', height: '40px', margin: '0 auto 12px',
+              backgroundColor: '#fee2e2', borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <FaTrash size={16} color="#dc2626" />
+            </div>
+            <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#1f2937', textAlign: 'center', margin: '0 0 6px 0' }}>
+              Delete Category
+            </h3>
+            <p style={{ fontSize: '13px', color: '#6b7280', textAlign: 'center', margin: '0 0 16px 0', lineHeight: 1.4 }}>
+              {t('menu.deleteCategoryConfirm', { name: deletingCategory.name })}
+            </p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setDeletingCategory(null)}
+                disabled={loading}
+                style={{
+                  flex: 1, padding: '8px 12px', fontSize: '13px', fontWeight: 500,
+                  backgroundColor: '#f3f4f6', color: '#374151',
+                  border: 'none', borderRadius: '8px',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.5 : 1,
+                }}
+              >
+                {t('menu.cancel')}
+              </button>
+              <button
+                onClick={confirmDeleteCategory}
+                disabled={loading}
+                style={{
+                  flex: 1, padding: '8px 12px', fontSize: '13px', fontWeight: 600,
+                  backgroundColor: '#dc2626', color: 'white',
+                  border: 'none', borderRadius: '8px',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.9 : 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                }}
+              >
+                {loading ? (
+                  <>
+                    <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                    {t('menu.deleting') || 'Deleting...'}
+                  </>
+                ) : t('menu.delete') || 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Category Notice Toast */}
+      {categoryNotice && typeof document !== 'undefined' && createPortal(
+        <div
+          onClick={() => setCategoryNotice(null)}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 10003, padding: '16px',
+            animation: 'fadeIn 0.15s ease-out',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: 'white', borderRadius: '12px',
+              padding: '20px', maxWidth: '340px', width: '100%',
+              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.15)',
+              animation: 'slideInUp 0.15s ease-out',
+            }}
+          >
+            <div style={{
+              width: '40px', height: '40px', margin: '0 auto 12px',
+              backgroundColor: categoryNotice.type === 'error' ? '#fee2e2' : '#dbeafe',
+              borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <FaExclamationTriangle size={16} color={categoryNotice.type === 'error' ? '#dc2626' : '#2563eb'} />
+            </div>
+            <p style={{ fontSize: '13px', color: '#374151', textAlign: 'center', margin: '0 0 16px 0', lineHeight: 1.5 }}>
+              {categoryNotice.message}
+            </p>
+            <button
+              onClick={() => setCategoryNotice(null)}
+              style={{
+                width: '100%', padding: '8px 12px', fontSize: '13px', fontWeight: 600,
+                backgroundColor: '#f3f4f6', color: '#374151',
+                border: 'none', borderRadius: '8px', cursor: 'pointer',
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -647,17 +773,15 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
                   <FaEdit size={10} />
                 </button>
               )}
-              {onToggleHideImage && (
-                <button type="button" onClick={(e) => { e.stopPropagation(); onToggleHideImage(item); }}
-                  title={item.hideImage ? 'Show image' : 'Hide image'}
+              <button type="button" onClick={(e) => { e.stopPropagation(); onItemClick(item); }}
+                  title={t('menu.viewDetails')}
                   style={{
                     padding: '5px', border: 'none', borderRadius: '6px', cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: item.hideImage ? 'linear-gradient(135deg, #6b7280, #4b5563)' : 'linear-gradient(135deg, #8b5cf6, #7c3aed)', color: '#fff',
+                    background: 'linear-gradient(135deg, #6b7280, #4b5563)', color: '#fff',
                   }}>
-                  {item.hideImage ? <FaEyeSlash size={10} /> : <FaImage size={10} />}
+                  <FaEye size={10} />
                 </button>
-              )}
             </div>
           </div>
         </div>
@@ -1066,23 +1190,23 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
               {item.isAvailable ? <><FaMinus size={10} /> Hide</> : <><FaCheck size={10} /> Show</>}
           </button>}
 
-          {/* Primary: Hide/Show Image */}
-          {onToggleHideImage && <button
+          {/* Primary: View Details */}
+          <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); e.preventDefault(); onToggleHideImage(item); }}
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); onItemClick(item); }}
               style={{
                 padding: '5px 8px',
-                background: item.hideImage ? 'linear-gradient(135deg, #6b7280, #4b5563)' : 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                background: 'linear-gradient(135deg, #6b7280, #4b5563)',
                 color: 'white', border: 'none', borderRadius: '7px', cursor: 'pointer', transition: 'all 0.2s ease',
                 display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 500,
-                boxShadow: '0 1px 3px rgba(139, 92, 246, 0.2)'
+                boxShadow: '0 1px 3px rgba(107, 114, 128, 0.2)'
               }}
               onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
-              title={item.hideImage ? 'Show image' : 'Hide image'}
+              title={t('menu.viewDetails')}
             >
-              {item.hideImage ? <><FaEyeSlash size={10} /> Show Img</> : <><FaImage size={10} /> Hide Img</>}
-          </button>}
+              <FaEye size={10} />
+          </button>
 
           {/* More menu */}
           {(onToggleFavorite || onGenerateRecipe || onDelete) && (
@@ -1122,6 +1246,25 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
                   >
                     <FaEye size={11} style={{ color: '#6b7280', flexShrink: 0 }} /> {t('menu.viewDetails')}
                   </button>
+                  {/* Hide/Show Image */}
+                  {onToggleHideImage && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setShowMoreMenu(false); onToggleHideImage(item); }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
+                        padding: '8px 10px', border: 'none', background: 'none', borderRadius: '6px',
+                        cursor: 'pointer', fontSize: '12px', color: '#374151', textAlign: 'left',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+                    >
+                      {item.hideImage
+                        ? <FaEye size={11} style={{ color: '#6b7280', flexShrink: 0 }} />
+                        : <FaEyeSlash size={11} style={{ color: '#6b7280', flexShrink: 0 }} />}
+                      {item.hideImage ? 'Show Image' : 'Hide Image'}
+                    </button>
+                  )}
                   {/* Favorite */}
                   {onToggleFavorite && (
                     <button
@@ -1444,16 +1587,16 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
         >
           {item.isAvailable ? <FaMinus size={10} /> : <FaCheck size={10} />}
         </button>}
-        {onToggleHideImage && <button
+        <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();
-            onToggleHideImage(item);
+            onItemClick(item);
           }}
           style={{
             padding: '6px',
-            backgroundColor: item.hideImage ? '#6b7280' : '#8b5cf6',
+            backgroundColor: '#6b7280',
             color: 'white',
             border: 'none',
             borderRadius: '6px',
@@ -1463,10 +1606,10 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
             alignItems: 'center',
             justifyContent: 'center'
           }}
-          title={item.hideImage ? 'Show image' : 'Hide image'}
+          title={t('menu.viewDetails')}
         >
-          {item.hideImage ? <FaEyeSlash size={10} /> : <FaImage size={10} />}
-        </button>}
+          <FaEye size={10} />
+        </button>
         {onDelete && <button
           type="button"
           onClick={(e) => {
@@ -2116,7 +2259,7 @@ const MenuManagement = () => {
 
   // Business-type-aware labels
   const businessTypeConfig = {
-    restaurant: { item: t('menu.dish'), add: t('menu.addNewDish'), empty: t('menu.createRestaurantMenu'), emptyDesc: t('menu.addDishesDesc'), icon: '🍽️', label: t('menu.labelRestaurant'), accent: '#dc2626', accentLight: '#fef2f2', gradient: 'linear-gradient(135deg, #ef4444, #dc2626)' },
+    restaurant: { item: t('menu.item'), add: t('menu.addItem'), empty: t('menu.createRestaurantMenu'), emptyDesc: t('menu.addDishesDesc'), icon: '🍽️', label: t('menu.labelRestaurant'), accent: '#dc2626', accentLight: '#fef2f2', gradient: 'linear-gradient(135deg, #ef4444, #dc2626)' },
     bar: { item: t('menu.drink'), add: t('menu.addDrink'), empty: t('menu.startDrinksMenu'), emptyDesc: t('menu.addDrinksDesc'), icon: '🍸', label: t('menu.labelBar'), accent: '#1e293b', accentLight: '#f1f5f9', gradient: 'linear-gradient(135deg, #334155, #1e293b)' },
     bakery: { item: t('menu.item'), add: t('menu.addItem'), empty: t('menu.startBakeryMenu'), emptyDesc: t('menu.addBakeryDesc'), icon: '🧁', label: t('menu.labelBakery'), accent: '#d97706', accentLight: '#fffbeb', gradient: 'linear-gradient(135deg, #f59e0b, #d97706)' },
     ice_cream: { item: t('menu.flavor'), add: t('menu.addFlavor'), empty: t('menu.startIceCreamMenu'), emptyDesc: t('menu.addIceCreamDesc'), icon: '🍦', label: t('menu.labelIceCreamParlor'), accent: '#2563eb', accentLight: '#eff6ff', gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)' },
@@ -2585,7 +2728,7 @@ const MenuManagement = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isOnline && !editingItem) { alert('You are offline. Go online to add new items.'); return; }
+    if (!isOnline && !editingItem) { setError('You are offline. Go online to add new items.'); return; }
     if (!currentRestaurant) return;
 
     try {
@@ -3037,7 +3180,7 @@ const MenuManagement = () => {
   }, [activePricingRules]);
 
   const handleDelete = useCallback((itemId) => {
-    if (!isOnline) { alert('You are offline. Go online to make changes.'); return; }
+    if (!isOnline) { setError('You are offline. Go online to make changes.'); return; }
     const item = menuItems.find(i => i.id === itemId);
     setDeleteConfirmItem(item || { id: itemId, name: '' });
   }, [isOnline, menuItems]);
@@ -3188,7 +3331,7 @@ const MenuManagement = () => {
   }, [menuItems, categories, menuItemRecipes, currentRestaurant, isBarMode, isBakeryMode]);
 
   const handleBulkDeleteClick = () => {
-    if (!isOnline) { alert('You are offline. Go online to make changes.'); return; }
+    if (!isOnline) { setError('You are offline. Go online to make changes.'); return; }
     console.log('🗑️ Bulk delete clicked. Current restaurant:', currentRestaurant);
 
     if (!currentRestaurant?.id) {
@@ -3679,7 +3822,7 @@ const MenuManagement = () => {
 
   // Image upload handlers
   const handleImagesUploaded = async (files) => {
-    if (!isOnline) { alert('You are offline. Go online to upload images.'); return; }
+    if (!isOnline) { setError('You are offline. Go online to upload images.'); return; }
     console.log('🖼️ Uploading images for item:', {
       editingItem: !!editingItem,
       itemId: editingItem?.id,
@@ -3734,7 +3877,7 @@ const MenuManagement = () => {
       }
     } catch (error) {
       console.error('❌ Error uploading images:', error);
-      alert(t('menu.failedUploadImages', { error: error.message || error }));
+      setError(t('menu.failedUploadImages', { error: error.message || error }));
     } finally {
       setUploadingImages(false);
     }
@@ -3787,7 +3930,7 @@ const MenuManagement = () => {
       }
     } catch (error) {
       console.error('Error deleting image:', error);
-      alert(t('menu.failedDeleteImage'));
+      setError(t('menu.failedDeleteImage'));
     }
   };
 
@@ -3816,7 +3959,7 @@ const MenuManagement = () => {
   };
 
   const handlePhotoUpload = async (event) => {
-    if (!isOnline) { alert('You are offline. Go online to upload.'); return; }
+    if (!isOnline) { setError('You are offline. Go online to upload.'); return; }
     const files = Array.from(event.target.files);
     if (files.length === 0) return;
 

@@ -3632,12 +3632,13 @@ class ApiClient {
   }
 
   // Send test email report (accepts single email string or array)
-  async sendTestReport(emailOrEmails, currencySymbol, reportFrequency) {
+  async sendTestReport(emailOrEmails, currencySymbol, reportFrequency, reportType) {
     const body = Array.isArray(emailOrEmails)
       ? { emails: emailOrEmails }
       : { email: emailOrEmails };
     if (currencySymbol) body.currencySymbol = currencySymbol;
     if (reportFrequency) body.reportFrequency = reportFrequency;
+    if (reportType) body.reportType = reportType;
     return this.request('/api/ai/send-test-report', {
       method: 'POST',
       body
