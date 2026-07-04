@@ -1199,50 +1199,33 @@ export function HeadquartersContent({ embedded = false }) {
     }}>
       <div style={{
         backgroundColor: 'white',
-        borderRadius: '24px',
+        borderRadius: '16px',
         width: '100%',
-        maxWidth: '480px',
+        maxWidth: '440px',
+        maxHeight: '85vh',
+        display: 'flex',
+        flexDirection: 'column',
         overflow: 'hidden',
         boxShadow: '0 25px 50px rgba(0,0,0,0.25)'
       }}>
         {/* Header */}
         <div style={{
-          padding: '24px',
+          padding: '12px 16px',
           background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-          position: 'relative',
-          overflow: 'hidden'
+          flexShrink: 0,
         }}>
-          <div style={{
-            position: 'absolute',
-            top: '-30px',
-            right: '-30px',
-            width: '120px',
-            height: '120px',
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.1)'
-          }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '12px',
-                background: 'rgba(255,255,255,0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <FaBell size={20} style={{ color: 'white' }} />
-              </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <FaBell size={16} style={{ color: 'white' }} />
               <div>
-                <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'white', margin: 0 }}>{t('hq.dailyReports')}</h3>
-                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)', margin: '2px 0 0' }}>{t('hq.aiInsightsToInbox')}</p>
+                <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'white', margin: 0 }}>{t('hq.dailyReports')}</h3>
+                <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.8)', margin: 0 }}>{t('hq.aiInsightsToInbox')}</p>
               </div>
             </div>
             <button onClick={() => setShowEmailModal(false)} style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
+              width: '28px',
+              height: '28px',
+              borderRadius: '8px',
               background: 'rgba(255,255,255,0.2)',
               border: 'none',
               color: 'white',
@@ -1251,75 +1234,75 @@ export function HeadquartersContent({ embedded = false }) {
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <FaTimes size={16} />
+              <FaTimes size={12} />
             </button>
           </div>
         </div>
 
-        {/* Info Banner */}
-        <div style={{
-          margin: '20px 24px 0',
-          padding: '14px 16px',
-          background: '#fef2f2',
-          borderRadius: '12px',
-          borderLeft: '4px solid #ef4444',
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: '12px'
-        }}>
-          <FaRobot size={18} style={{ color: '#ef4444', marginTop: '2px', flexShrink: 0 }} />
-          <div>
-            <div style={{ fontSize: '13px', fontWeight: '600', color: '#dc2626', marginBottom: '2px' }}>{t('hq.whatYouReceive')}</div>
-            <div style={{ fontSize: '12px', color: '#7f1d1d', lineHeight: 1.5 }}>
-              {t('hq.dailySummaryDesc')}
+        {/* Scrollable Content */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
+          {/* Info Banner */}
+          <div style={{
+            padding: '10px 12px',
+            background: '#fef2f2',
+            borderRadius: '10px',
+            borderLeft: '3px solid #ef4444',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '8px',
+            marginBottom: '12px'
+          }}>
+            <FaRobot size={14} style={{ color: '#ef4444', marginTop: '1px', flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: '12px', fontWeight: '600', color: '#dc2626' }}>{t('hq.whatYouReceive')}</div>
+              <div style={{ fontSize: '11px', color: '#7f1d1d', lineHeight: 1.4 }}>
+                {t('hq.dailySummaryDesc')}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Content */}
-        <div style={{ padding: '20px 24px 24px' }}>
           {/* Enable toggle */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '18px 20px',
+            padding: '10px 14px',
             backgroundColor: emailPreferences.emailEnabled ? '#f0fdf4' : '#f9fafb',
-            borderRadius: '14px',
-            marginBottom: '20px',
+            borderRadius: '10px',
+            marginBottom: '12px',
             border: emailPreferences.emailEnabled ? '2px solid #86efac' : '2px solid transparent',
-            transition: 'all 0.2s ease'
           }}>
             <div>
-              <div style={{ fontSize: '15px', fontWeight: '600', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {emailPreferences.emailEnabled && <FaCheck size={12} style={{ color: '#22c55e' }} />}
+              <div style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {emailPreferences.emailEnabled && <FaCheck size={10} style={{ color: '#22c55e' }} />}
                 {t('hq.enableDailyReports')}
               </div>
-              <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
+              <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '1px' }}>
                 {emailPreferences.emailEnabled ? t('hq.reportsWillBeSent') : t('hq.turnOnToReceive')}
               </div>
             </div>
             <button
               onClick={() => setEmailPreferences(prev => ({ ...prev, emailEnabled: !prev.emailEnabled }))}
               style={{
-                width: '56px',
-                height: '30px',
-                borderRadius: '15px',
+                width: '48px',
+                height: '26px',
+                borderRadius: '13px',
                 border: 'none',
                 backgroundColor: emailPreferences.emailEnabled ? '#22c55e' : '#d1d5db',
                 cursor: 'pointer',
                 position: 'relative',
-                transition: 'background-color 0.2s'
+                transition: 'background-color 0.2s',
+                flexShrink: 0,
               }}
             >
               <div style={{
-                width: '24px',
-                height: '24px',
+                width: '20px',
+                height: '20px',
                 borderRadius: '50%',
                 backgroundColor: 'white',
                 position: 'absolute',
                 top: '3px',
-                left: emailPreferences.emailEnabled ? '29px' : '3px',
+                left: emailPreferences.emailEnabled ? '25px' : '3px',
                 transition: 'left 0.2s',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
               }} />
@@ -1327,11 +1310,11 @@ export function HeadquartersContent({ embedded = false }) {
           </div>
 
           {/* Report frequency selector */}
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px', display: 'block' }}>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>
               Report Frequency
             </label>
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '6px' }}>
               {[
                 { value: 'daily', label: 'Daily', desc: 'End of day report' },
                 { value: 'weekly', label: 'Weekly', desc: 'Every Sunday' },
@@ -1342,19 +1325,18 @@ export function HeadquartersContent({ embedded = false }) {
                   onClick={() => setEmailPreferences(prev => ({ ...prev, reportFrequency: opt.value }))}
                   style={{
                     flex: 1,
-                    padding: '12px 8px',
-                    borderRadius: '12px',
+                    padding: '8px 6px',
+                    borderRadius: '10px',
                     border: (emailPreferences.reportFrequency || 'daily') === opt.value ? '2px solid #ef4444' : '2px solid #e5e7eb',
                     backgroundColor: (emailPreferences.reportFrequency || 'daily') === opt.value ? '#fef2f2' : '#fff',
                     cursor: 'pointer',
                     textAlign: 'center',
-                    transition: 'all 0.2s'
                   }}
                 >
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: (emailPreferences.reportFrequency || 'daily') === opt.value ? '#dc2626' : '#374151' }}>
+                  <div style={{ fontSize: '12px', fontWeight: '600', color: (emailPreferences.reportFrequency || 'daily') === opt.value ? '#dc2626' : '#374151' }}>
                     {opt.label}
                   </div>
-                  <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>
+                  <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '1px' }}>
                     {opt.desc}
                   </div>
                 </button>
@@ -1363,32 +1345,31 @@ export function HeadquartersContent({ embedded = false }) {
           </div>
 
           {/* Email input — multi-email chips (max 5) */}
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
               <span>{t('hq.emailAddress')}</span>
-              <span style={{ fontSize: '11px', fontWeight: '500', color: '#9ca3af' }}>
+              <span style={{ fontSize: '10px', fontWeight: '500', color: '#9ca3af' }}>
                 {emailPreferences.reportEmails?.length || 0}/5
               </span>
             </label>
             <div style={{
               width: '100%',
-              padding: '10px 12px',
-              borderRadius: '12px',
+              padding: '8px 10px',
+              borderRadius: '10px',
               border: '2px solid #e5e7eb',
               display: 'flex',
               flexWrap: 'wrap',
-              gap: '6px',
+              gap: '5px',
               alignItems: 'center',
-              minHeight: '48px',
-              transition: 'border-color 0.2s',
+              minHeight: '40px',
               cursor: 'text'
             }} onClick={(e) => { const inp = e.currentTarget.querySelector('input'); if (inp) inp.focus(); }}>
               {(emailPreferences.reportEmails || []).map((email, i) => (
                 <span key={i} style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '4px',
-                  padding: '4px 10px', borderRadius: '20px',
-                  background: '#eff6ff', color: '#1d4ed8', fontSize: '13px', fontWeight: '500',
-                  border: '1px solid #bfdbfe', lineHeight: 1.3
+                  display: 'inline-flex', alignItems: 'center', gap: '3px',
+                  padding: '3px 8px', borderRadius: '16px',
+                  background: '#eff6ff', color: '#1d4ed8', fontSize: '12px', fontWeight: '500',
+                  border: '1px solid #bfdbfe', lineHeight: 1.2
                 }}>
                   {email}
                   <button onClick={(e) => {
@@ -1399,7 +1380,7 @@ export function HeadquartersContent({ embedded = false }) {
                     }));
                   }} style={{
                     background: 'none', border: 'none', cursor: 'pointer',
-                    color: '#6b7280', fontSize: '14px', lineHeight: 1, padding: '0 2px',
+                    color: '#6b7280', fontSize: '13px', lineHeight: 1, padding: '0 2px',
                     fontWeight: '700'
                   }}>×</button>
                 </span>
@@ -1428,32 +1409,32 @@ export function HeadquartersContent({ embedded = false }) {
                   }}
                   placeholder={(emailPreferences.reportEmails?.length || 0) === 0 ? t('hq.emailPlaceholder') : 'Add another...'}
                   style={{
-                    border: 'none', outline: 'none', flex: 1, minWidth: '120px',
-                    fontSize: '14px', padding: '4px 0', background: 'transparent'
+                    border: 'none', outline: 'none', flex: 1, minWidth: '100px',
+                    fontSize: '12px', padding: '2px 0', background: 'transparent'
                   }}
                 />
               )}
             </div>
             {(emailPreferences.reportEmails?.length || 0) >= 5 && (
-              <div style={{ fontSize: '11px', color: '#f59e0b', marginTop: '4px' }}>Maximum 5 email addresses</div>
+              <div style={{ fontSize: '10px', color: '#f59e0b', marginTop: '3px' }}>Maximum 5 email addresses</div>
             )}
           </div>
 
           {/* Report Schedule */}
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '4px' }}>
+          <div style={{ marginBottom: '14px' }}>
+            <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '3px' }}>
               Report Schedule
             </label>
-            <p style={{ fontSize: '11px', color: '#9ca3af', margin: '0 0 10px 0' }}>Choose one report type</p>
-            <div style={{ border: '2px solid #e5e7eb', borderRadius: '14px', overflow: 'hidden' }}>
+            <p style={{ fontSize: '10px', color: '#9ca3af', margin: '0 0 8px 0' }}>Choose one report type</p>
+            <div style={{ border: '2px solid #e5e7eb', borderRadius: '10px', overflow: 'hidden' }}>
               {/* Morning Summary */}
-              <div style={{ padding: '16px', backgroundColor: emailPreferences.morningSummary?.enabled ? '#fffbeb' : '#f9fafb' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: emailPreferences.morningSummary?.enabled ? '12px' : '0' }}>
+              <div style={{ padding: '10px 12px', backgroundColor: emailPreferences.morningSummary?.enabled ? '#fffbeb' : '#f9fafb' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: emailPreferences.morningSummary?.enabled ? '8px' : '0' }}>
                   <div>
-                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '16px' }}>&#9728;&#65039;</span> Morning Summary
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <span style={{ fontSize: '14px' }}>&#9728;&#65039;</span> Morning Summary
                     </div>
-                    <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>Yesterday&apos;s complete report</div>
+                    <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '1px' }}>Yesterday&apos;s complete report</div>
                   </div>
                   <button
                     onClick={() => setEmailPreferences(prev => ({
@@ -1483,8 +1464,8 @@ export function HeadquartersContent({ embedded = false }) {
                       morningSummary: { ...prev.morningSummary, time: e.target.value }
                     }))}
                     style={{
-                      width: '100%', padding: '10px 12px', borderRadius: '10px',
-                      border: '1px solid #e5e7eb', fontSize: '13px', backgroundColor: '#fff'
+                      width: '100%', padding: '7px 10px', borderRadius: '8px',
+                      border: '1px solid #e5e7eb', fontSize: '12px', backgroundColor: '#fff'
                     }}
                   >
                     {Array.from({ length: 24 }, (_, i) => {
@@ -1500,13 +1481,13 @@ export function HeadquartersContent({ embedded = false }) {
               <div style={{ borderTop: '1px dashed #e5e7eb' }} />
 
               {/* Day Closing Report */}
-              <div style={{ padding: '16px', backgroundColor: emailPreferences.dayClosing?.enabled ? '#eff6ff' : '#f9fafb', opacity: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: emailPreferences.dayClosing?.enabled ? '12px' : '0' }}>
+              <div style={{ padding: '10px 12px', backgroundColor: emailPreferences.dayClosing?.enabled ? '#eff6ff' : '#f9fafb', opacity: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: emailPreferences.dayClosing?.enabled ? '8px' : '0' }}>
                   <div>
-                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '16px' }}>&#127769;</span> Day Closing Report
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <span style={{ fontSize: '14px' }}>&#127769;</span> Day Closing Report
                     </div>
-                    <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>Today&apos;s end-of-day snapshot</div>
+                    <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '1px' }}>Today&apos;s end-of-day snapshot</div>
                   </div>
                   <button
                     onClick={() => setEmailPreferences(prev => ({
@@ -1536,8 +1517,8 @@ export function HeadquartersContent({ embedded = false }) {
                       dayClosing: { ...prev.dayClosing, time: e.target.value }
                     }))}
                     style={{
-                      width: '100%', padding: '10px 12px', borderRadius: '10px',
-                      border: '1px solid #e5e7eb', fontSize: '13px', backgroundColor: '#fff'
+                      width: '100%', padding: '7px 10px', borderRadius: '8px',
+                      border: '1px solid #e5e7eb', fontSize: '12px', backgroundColor: '#fff'
                     }}
                   >
                     {Array.from({ length: 24 }, (_, i) => {
@@ -1549,48 +1530,47 @@ export function HeadquartersContent({ embedded = false }) {
                 )}
               </div>
             </div>
-            <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '6px' }}>
+            <p style={{ fontSize: '10px', color: '#9ca3af', marginTop: '4px' }}>
               Your timezone: {emailPreferences.timezone?.replace(/_/g, ' ')}
             </p>
           </div>
 
           {/* Buttons */}
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
             {/* Send Test Email */}
             <button
               onClick={sendTestEmail}
               disabled={sendingTestEmail || !(emailPreferences.reportEmails?.length > 0)}
               style={{
                 flex: 1,
-                padding: '14px',
-                borderRadius: '12px',
+                padding: '10px',
+                borderRadius: '10px',
                 border: '2px solid #ef4444',
                 background: testEmailSent ? '#f0fdf4' : 'white',
                 color: testEmailSent ? '#22c55e' : '#ef4444',
-                fontSize: '14px',
+                fontSize: '12px',
                 fontWeight: '600',
                 cursor: sendingTestEmail || !(emailPreferences.reportEmails?.length > 0) ? 'not-allowed' : 'pointer',
                 opacity: !(emailPreferences.reportEmails?.length > 0) ? 0.5 : 1,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px',
-                transition: 'all 0.2s'
+                gap: '6px',
               }}
             >
               {sendingTestEmail ? (
                 <>
-                  <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                  <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} />
                   {t('hq.sending')}
                 </>
               ) : testEmailSent ? (
                 <>
-                  <FaCheck size={14} />
+                  <FaCheck size={12} />
                   {t('hq.sent')}
                 </>
               ) : (
                 <>
-                  <FaEnvelope size={14} />
+                  <FaEnvelope size={12} />
                   {t('hq.testEmail')}
                 </>
               )}
@@ -1601,12 +1581,12 @@ export function HeadquartersContent({ embedded = false }) {
               onClick={saveEmailPreferences}
               style={{
                 flex: 1,
-                padding: '14px',
-                borderRadius: '12px',
+                padding: '10px',
+                borderRadius: '10px',
                 border: 'none',
                 background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                 color: 'white',
-                fontSize: '14px',
+                fontSize: '12px',
                 fontWeight: '600',
                 cursor: 'pointer',
                 boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
