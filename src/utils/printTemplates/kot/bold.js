@@ -108,6 +108,7 @@ export function render(kotData, printSettings = {}, labels = {}) {
       (kl.showDate !== false ? `<div>Date: ${dateStr}</div>` : '') +
       `<div>Time: ${timeStr}</div>` +
       (kl.showCustomer !== false && k.customerName ? `<div>${dualLabel(L.customer, AR.customer, showAr)}: ${esc(k.customerName)}</div>` : '') +
+      (kl.showCovers !== false && k.covers && k.covers > 1 ? `<div>${showAr ? dualLabel('Covers', 'أغطية', showAr) : 'Covers'}: ${k.covers}</div>` : '') +
     `</div>` +
     `<div class="divider">................................</div>` +
     itemsHtml +

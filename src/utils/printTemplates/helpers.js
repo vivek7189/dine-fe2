@@ -49,6 +49,9 @@ export function getSublineHtml(item) {
 // opts: { isRemoved, showDelta, showPrice, currencySymbol }
 export function renderKOTItemRow(item, opts = {}, labels = {}) {
   const qty = item.quantity || 1;
+  const qtyDisplay = item.soldByWeight && item.itemWeight
+    ? `${item.itemWeight}${item.weightUnit || 'kg'}`
+    : `${qty}x`;
   const noteLabel = labels.note || 'Note';
   const label = opts.isRemoved ? ' <span style="color:#666;">[CANCEL]</span>' : (opts.showDelta && item.quantityDelta > 0 ? ' <span>[+NEW]</span>' : '');
   const strikeStyle = opts.isRemoved ? 'text-decoration:line-through;color:#999;' : '';
@@ -57,7 +60,7 @@ export function renderKOTItemRow(item, opts = {}, labels = {}) {
   const priceHtml = opts.showPrice && itemTotal > 0 && !opts.isRemoved
     ? `<span style="float:right;font-weight:bold;">${opts.currencySymbol || ''}${itemTotal.toFixed(2)}</span>`
     : '';
-  return `<div class="item" style="${strikeStyle}"><div class="item-main"><span class="item-qty">${qty}x</span><span class="item-name">${esc(item.name)}${label}</span>${priceHtml}</div>` +
+  return `<div class="item" style="${strikeStyle}"><div class="item-main"><span class="item-qty">${qtyDisplay}</span><span class="item-name">${esc(item.name)}${label}</span>${priceHtml}</div>` +
     (item.selectedVariant?.name ? `<div class="item-detail">[${esc(item.selectedVariant.name)}]</div>` : '') +
     ((item.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${esc(c.name || c)}</div>`).join('')) +
     (item.notes ? `<div class="item-note">${noteLabel}: ${esc(item.notes)}</div>` : '') +

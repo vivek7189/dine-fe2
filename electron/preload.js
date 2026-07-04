@@ -116,6 +116,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
     open: () => ipcRenderer.invoke('electron:openCashDrawer'),
   },
 
+  // Customer Display (Secondary Screen)
+  display: {
+    getDisplays: () => ipcRenderer.invoke('electron:getDisplays'),
+    open: (options) => ipcRenderer.invoke('electron:openCustomerDisplay', options),
+    close: () => ipcRenderer.invoke('electron:closeCustomerDisplay'),
+    getStatus: () => ipcRenderer.invoke('electron:getCustomerDisplayStatus'),
+  },
+  onDisplayClosed: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('customer-display-closed', handler);
+    return () => ipcRenderer.removeListener('customer-display-closed', handler);
+  },
+
   // Window refocus (fixes Windows keyboard focus after alert/confirm dialogs)
   _refocusWindow: () => ipcRenderer.invoke('electron:refocusWindow'),
 

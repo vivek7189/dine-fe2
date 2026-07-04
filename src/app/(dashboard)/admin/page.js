@@ -4134,6 +4134,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                     { key: 'showDelivery', label: 'Delivery' },
                     { key: 'showSubtotal', label: 'Subtotal' },
                     { key: 'showTaxBreakdown', label: 'Tax Lines' },
+                    { key: 'showCovers', label: 'Covers' },
                     { key: 'showFooter', label: 'Footer' },
                     { key: 'showPoweredBy', label: 'Powered By' },
                   ];
@@ -4146,6 +4147,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                     { key: 'showWaiter', label: 'Waiter' },
                     { key: 'showDate', label: 'Date' },
                     { key: 'showOrderType', label: 'Order Type' },
+                    { key: 'showCovers', label: 'Covers' },
                   ];
                   const billHidden = billFields.filter(f => printSettings.billLayout?.[f.key] === false);
                   const kotHidden = kotFields.filter(f => printSettings.kotLayout?.[f.key] === false);
@@ -11153,7 +11155,7 @@ const Admin = () => {
 
             {/* Weighing Scale (Electron desktop only) */}
             {/* Cash Drawer */}
-            {typeof window !== 'undefined' && window.electronAPI?.cashDrawer && (
+            {typeof window !== 'undefined' && (window.electronAPI?.cashDrawer || window.Capacitor) && (
               <div style={{ marginBottom: '16px', padding: '14px', backgroundColor: '#ecfdf5', borderRadius: '10px', border: '1px solid #6ee7b7' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: posSettings.enableCashDrawer ? '12px' : '0' }}>
                   <button
@@ -11466,6 +11468,27 @@ const Admin = () => {
                 <p style={{ fontSize: '10px', color: '#78716c', margin: '6px 0 0', lineHeight: '1.4' }}>
                   When a barcode starting with this prefix is scanned, the system extracts the PLU code and weight, then auto-adds the item to the cart. Assign PLU codes in Menu → Edit Item → Sold by Weight.
                 </p>
+              </div>
+            )}
+
+            {/* Customer-Facing Display */}
+            {typeof window !== 'undefined' && window.electronAPI?.display && (
+              <div style={{ marginBottom: '16px', padding: '14px', backgroundColor: '#eff6ff', borderRadius: '10px', border: '1px solid #93c5fd' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setPosSettings(prev => ({ ...prev, enableCustomerDisplay: !prev.enableCustomerDisplay }))}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                  >
+                    {posSettings.enableCustomerDisplay
+                      ? <FaToggleOn size={28} color="#2563eb" />
+                      : <FaToggleOff size={28} color="#d1d5db" />}
+                  </button>
+                  <div>
+                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#1e40af' }}>Customer-Facing Display</span>
+                    <div style={{ fontSize: '11px', color: '#3b82f6' }}>Show order items and totals on a secondary screen for customers</div>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -11938,6 +11961,25 @@ const Admin = () => {
                 </div>
               )}
             </div>
+
+            {/* Order Restore Window */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>Order Restore Window (hours)</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>How long after cancellation an order can be restored</div>
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  max="168"
+                  value={posSettings.orderRestoreWindowHours || 24}
+                  onChange={(e) => setPosSettings(prev => ({ ...prev, orderRestoreWindowHours: parseInt(e.target.value) || 24 }))}
+                  style={{
+                    width: '80px', padding: '6px 10px', border: '1px solid #e5e7eb',
+                    borderRadius: '8px', fontSize: '13px', textAlign: 'center', backgroundColor: '#fafafa'
+                  }}
+                />
+              </div>
 
             {/* Divider */}
             <div style={{ borderTop: '1px solid #f3e8f0', margin: '20px 0' }} />

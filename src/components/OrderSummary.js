@@ -264,6 +264,7 @@ const OrderSummary = ({
   const [staffQuery, setStaffQuery] = useState('');
   const [staffDropdownOpen, setStaffDropdownOpen] = useState(false);
   const [staffFetched, setStaffFetched] = useState(false);
+  const [covers, setCovers] = useState(1);
 
   const fetchStaffList = async () => {
     if (staffFetched || !restaurantId) return;
@@ -298,6 +299,19 @@ const OrderSummary = ({
 
   // Customer Lookup Hook
   const { customerData, lookupStatus, triggerLookup, clearCustomer } = useCustomerLookup({ restaurantId, countryCode });
+
+  // Card scan lookup — triggers customer lookup by wallet card number
+  const handleCardScan = useCallback(async (cardNumber) => {
+    if (!cardNumber || !restaurantId) return;
+    try {
+      const result = await apiClient.lookupCustomerByCard(cardNumber, restaurantId);
+      if (result.customerId && result.phone) {
+        triggerLookup(result.phone.replace(/\D/g, ''));
+      }
+    } catch (err) {
+      console.error('Card lookup failed:', err.message);
+    }
+  }, [restaurantId, triggerLookup]);
 
   // Auto-trigger customer lookup when phone is pre-filled (e.g., billing modal from order history/tables)
   const initialLookupDone = useRef(false);
@@ -579,6 +593,7 @@ const OrderSummary = ({
       setShowInvoicePermanently(false);
       setWaSent(false);
       setWaSending(false);
+      setCovers(1);
       // Fresh order: reset all customer-specific state
       resetOffers();
       setManualDiscountValue('');
@@ -669,6 +684,7 @@ const OrderSummary = ({
       setFullDueMode(false);
       setWaSent(false);
       setWaSending(false);
+      setCovers(1);
     }
   }, [cart?.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -771,6 +787,7 @@ const OrderSummary = ({
             removedItems: k.removedItems || [],
             isIncremental: k.isIncremental || false,
             specialInstructions: k.specialInstructions || '',
+            covers: k.covers || 1,
           },
         });
         // Track printed order to prevent duplicate from Pusher auto-print / effect re-fire
@@ -1854,6 +1871,7 @@ const OrderSummary = ({
           customizations: item.selectedCustomizations,
         })),
         tableNumber: tableNumber || selectedTable?.name || selectedTable?.number || '',
+        covers: covers,
         floorName: selectedTable?.floor || '',
         customerName: customerName || 'Walk-in',
         customerPhone: customerMobile || '',
@@ -2053,6 +2071,7 @@ const OrderSummary = ({
       walletRedeemAmount: useWallet && parseFloat(walletRedeemAmount) > 0 ? Math.min(parseFloat(walletRedeemAmount), grandTotal ?? getTotalAmount()) : null,
       walletCustomerId: useWallet && parseFloat(walletRedeemAmount) > 0 ? customerData?.id : null,
       splitBill: splitBillMode ? calculateSplitBillData() : null,
+      covers: covers,
     };
   };
 
@@ -2167,6 +2186,18 @@ const OrderSummary = ({
           if (appliedCoupon?.id) {
             apiClient.redeemCoupon(restaurantId, appliedCoupon.id, result.orderId).catch(err => console.warn('Coupon redeem (non-blocking):', err));
             setAppliedCoupon(null);
+          }
+          // Auto-open cash drawer for cash payments
+          if (paymentMethod === 'cash' && posSettings.enableCashDrawer) {
+            try {
+              if (window.electronAPI?.cashDrawer) {
+                window.electronAPI.cashDrawer.open().catch(() => {});
+              } else if (typeof window !== 'undefined' && window.Capacitor) {
+                import('capacitor-dine-printer').then(({ DinePrinter }) => {
+                  DinePrinter.openCashDrawer().catch(() => {});
+                }).catch(() => {});
+              }
+            } catch (e) { /* ignore drawer errors */ }
           }
         }
       } catch (error) {
@@ -3150,6 +3181,7 @@ const OrderSummary = ({
                   setInvoice(null);
                   setShowInvoicePermanently(false);
                   setSpecialInstructions(''); // Clear special instructions for new order
+                  setCovers(1);
                   // Reset offer/loyalty/discount before clearing cart
                   resetOffers();
                   setManualDiscountValue('');
@@ -3655,6 +3687,7 @@ const OrderSummary = ({
                   setInvoice(null);
                   setShowInvoicePermanently(false);
                   setSpecialInstructions(''); // Clear special instructions for new order
+                  setCovers(1);
                   // Reset offer/loyalty/discount before clearing cart
                   resetOffers();
                   setManualDiscountValue('');
@@ -5090,6 +5123,16 @@ const OrderSummary = ({
                     </div>
                   );
                 })()}
+
+              {/* Covers (Pax) Stepper — only for Dine-In */}
+              {(orderType === 'dine_in' || orderType === 'dine-in') && posSettings?.showCovers !== false && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', background: '#f8fafc', borderRadius: '8px', marginTop: '6px' }}>
+                  <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Covers:</span>
+                  <button type="button" onClick={() => setCovers(c => Math.max(1, c - 1))} style={{ width: '24px', height: '24px', borderRadius: '6px', border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 600, color: '#374151' }}>−</button>
+                  <span style={{ fontSize: '14px', fontWeight: 600, color: '#1f2937', minWidth: '20px', textAlign: 'center' }}>{covers}</span>
+                  <button type="button" onClick={() => setCovers(c => c + 1)} style={{ width: '24px', height: '24px', borderRadius: '6px', border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 600, color: '#374151' }}>+</button>
+                </div>
+              )}
 
               {/* Payment Method Selection */}
               {isRoleAllowed(billingSettings.paymentMethodRoles) && <div style={{ marginBottom: isMobile ? '6px' : '16px' }}>
@@ -6724,6 +6767,12 @@ const OrderSummary = ({
                             background: g.color || '#0ea5e9', color: '#fff', fontWeight: 700,
                           }}>{g.name}</span>
                         ))}
+                      </div>
+                    )}
+                    {/* Wallet Card Number */}
+                    {customerData.walletCardNumber && (
+                      <div style={{ marginTop: '6px', fontSize: '10px', color: '#6b7280' }}>
+                        Card: {customerData.walletCardNumber}
                       </div>
                     )}
                     {/* Wallet Balance */}

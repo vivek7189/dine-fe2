@@ -701,6 +701,29 @@ export default function ShiftsCashPage() {
               >
                 <LuBanknote size={16} /> Cash Drop
               </button>
+              {typeof window !== 'undefined' && (window.electronAPI?.cashDrawer || window.Capacitor) && (
+                <button
+                  onClick={() => {
+                    if (window.electronAPI?.cashDrawer) {
+                      window.electronAPI.cashDrawer.open().catch(() => {});
+                    } else if (window.Capacitor) {
+                      import('capacitor-dine-printer').then(({ DinePrinter }) => {
+                        DinePrinter.openCashDrawer().catch(() => {});
+                      }).catch(() => {});
+                    }
+                  }}
+                  style={{
+                    ...btnBase,
+                    background: '#f8fafc',
+                    color: '#475569',
+                    border: '1px solid #e2e8f0',
+                    padding: '10px 20px',
+                    fontSize: '14px',
+                  }}
+                >
+                  <LuLockOpen size={16} /> Open Drawer
+                </button>
+              )}
             </div>
 
             {/* Inline Cash Form */}

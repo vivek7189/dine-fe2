@@ -130,10 +130,17 @@ const zh = {
     clearOrder: '清空订单',
     placeOrder: '下单',
     saveOrder: '保存订单',
+    cancelOrder: '取消订单',
+    restoreOrder: '恢复订单',
+    restoreReason: '恢复原因',
+    orderRestored: '订单恢复成功',
+    confirmRestore: '这将重新扣减库存、恢复客户统计数据并重新应用忠诚积分。',
+    tableReassigned: '桌位已被其他订单占用。订单已恢复但未分配桌位。',
     completeBilling: '完成结账',
     tableNumber: '桌号',
     customerName: '顾客姓名',
     customerPhone: '顾客电话',
+    covers: '人数',
     dineIn: '堂食',
     takeaway: '外带',
     noItems: '购物车为空',
@@ -151,7 +158,11 @@ const zh = {
     emptyCart: '购物车为空',
     addItemsFirst: '请先向购物车添加菜品',
     orderProcessing: '正在处理订单...',
-    paymentProcessing: '正在处理支付...'
+    paymentProcessing: '正在处理支付...',
+    // Customer Display
+    customerDisplay: '顾客显示屏',
+    openDisplay: '打开显示屏',
+    enableCustomerDisplay: '启用顾客显示屏'
   },
 
   // 菜单
@@ -187,6 +198,9 @@ const zh = {
     enterPrice: '输入价格',
     describeDish: '描述此菜品...',
     selectCategory: '选择分类',
+    subCategory: '子分类',
+    noSubCategory: '无',
+    parentCategoryNone: '无父级（顶级）',
     addNewCategory: '新增分类',
     categoryName: '分类名称',
     categoryDescription: '描述（可选）',

@@ -130,6 +130,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
       `<span>${justDate} - ${timeStr}</span>` +
     `</div>` +
     (bl.showTable !== false && invoice.tableNumber ? `<div class="info-line"><span>${dualLabel(L.table, AR.table, showAr)}: ${invoice.tableNumber}${invoice.floorName ? ` - ${invoice.floorName}` : ''}</span>${bl.showPayment !== false ? `<span>${(invoice.paymentMethod || 'CASH').toUpperCase()}</span>` : ''}</div>` : '') +
+    (bl.showCovers !== false && invoice.covers && invoice.covers > 1 ? `<div class="info-line"><span>${showAr ? dualLabel('Covers', 'أغطية', showAr) : 'Covers'}: ${invoice.covers}</span></div>` : '') +
     (bl.showCustomer !== false && invoice.customerName ? `<div class="info-line"><span>${dualLabel(L.customer, AR.customer, showAr)}: ${esc(invoice.customerName)}</span></div>` : '') +
     (bl.showOrderType !== false && invoice.orderType ? `<div class="info-line"><span>Type: ${invoice.orderType}</span></div>` : '') +
     (bl.showWaiter !== false && waiterInfo ? `<div class="info-line"><span>#${invoice.dailyOrderId || invoice.id || 'N/A'}</span></div>` : '') +

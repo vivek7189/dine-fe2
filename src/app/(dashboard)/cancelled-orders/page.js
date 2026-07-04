@@ -14,6 +14,7 @@ import {
   FaUser,
   FaChevronDown,
   FaChevronUp,
+  FaUndo,
 } from 'react-icons/fa';
 
 export default function CancelledOrdersPage() {
@@ -41,6 +42,30 @@ export default function CancelledOrdersPage() {
 
   // Expanded order detail
   const [expandedOrderId, setExpandedOrderId] = useState(null);
+  const [restoreModalOrder, setRestoreModalOrder] = useState(null);
+  const [restoreReason, setRestoreReason] = useState('');
+  const [restoring, setRestoring] = useState(false);
+  const [restoreMessage, setRestoreMessage] = useState(null);
+
+  const handleRestoreOrder = async () => {
+    if (!restoreModalOrder) return;
+    try {
+      setRestoring(true);
+      const result = await apiClient.restoreOrder(restoreModalOrder.id, restoreReason);
+      setOrders(prev => prev.filter(o => o.id !== restoreModalOrder.id));
+      setRestoreMessage(result.tableWarning
+        ? `Order restored. ${result.tableWarning}`
+        : 'Order restored successfully');
+      setTimeout(() => setRestoreMessage(null), 5000);
+    } catch (err) {
+      setRestoreMessage(`Failed to restore: ${err.message || 'Unknown error'}`);
+      setTimeout(() => setRestoreMessage(null), 5000);
+    } finally {
+      setRestoring(false);
+      setRestoreModalOrder(null);
+      setRestoreReason('');
+    }
+  };
 
   // Load restaurant info
   useEffect(() => {
@@ -450,6 +475,14 @@ export default function CancelledOrdersPage() {
                                 <span className="text-gray-700 font-medium">{order.itemCount} items</span>
                               </div>
                             </div>
+                            {order.status === 'cancelled' && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setRestoreModalOrder(order); }}
+                                className="mt-2 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition flex items-center gap-1.5"
+                              >
+                                <FaUndo size={10} /> Restore Order
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -461,6 +494,53 @@ export default function CancelledOrdersPage() {
           </>
         )}
       </div>
+
+      {/* Restore Toast */}
+      {restoreMessage && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg max-w-md text-center">
+          {restoreMessage}
+        </div>
+      )}
+
+      {/* Restore Confirmation Modal */}
+      {restoreModalOrder && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => !restoring && setRestoreModalOrder(null)}>
+          <div className="bg-white rounded-xl p-5 max-w-sm w-full shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-center w-10 h-10 mx-auto mb-3 bg-green-100 rounded-full">
+              <FaUndo size={16} className="text-green-600" />
+            </div>
+            <h3 className="text-sm font-semibold text-gray-900 text-center mb-1">Restore Order</h3>
+            <p className="text-xs text-gray-500 text-center mb-3">
+              Restore order #{restoreModalOrder.orderNumber || restoreModalOrder.id?.slice(-6)}? This will re-deduct inventory, restore customer stats, and re-apply loyalty points.
+            </p>
+            <input
+              type="text"
+              value={restoreReason}
+              onChange={e => setRestoreReason(e.target.value)}
+              placeholder="Reason for restoring (optional)"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-green-500"
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setRestoreModalOrder(null); setRestoreReason(''); }}
+                disabled={restoring}
+                className="flex-1 px-3 py-2 text-sm font-medium bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRestoreOrder}
+                disabled={restoring}
+                className="flex-1 px-3 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-1.5"
+              >
+                {restoring ? <FaSpinner size={12} className="animate-spin" /> : <FaUndo size={12} />}
+                {restoring ? 'Restoring...' : 'Restore'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

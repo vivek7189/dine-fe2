@@ -427,6 +427,72 @@ function RestaurantPOSContent() {
 
   // Floating Command Bar ref
   const commandBarInputRef = useRef(null);
+  const displaySenderRef = useRef(null);
+  const lastDisplayTotalRef = useRef(0);
+  const [customerDisplayOpen, setCustomerDisplayOpen] = useState(false);
+
+  // Customer display sync — send cart data to secondary screen
+  useEffect(() => {
+    if (!selectedRestaurant?.id || !selectedRestaurant?.posSettings?.enableCustomerDisplay) return;
+    const { createDisplaySender } = require('@/lib/displaySync');
+    displaySenderRef.current = createDisplaySender(selectedRestaurant.id);
+    return () => {
+      if (displaySenderRef.current) {
+        displaySenderRef.current.close();
+        displaySenderRef.current = null;
+      }
+    };
+  }, [selectedRestaurant?.id, selectedRestaurant?.posSettings?.enableCustomerDisplay]);
+
+  useEffect(() => {
+    if (!displaySenderRef.current) return;
+    if (cart.length === 0) {
+      displaySenderRef.current.sendIdle();
+      return;
+    }
+    const cs = selectedRestaurant?.currencySettings?.symbol || '₹';
+    const items = cart.map(item => ({
+      name: item.name,
+      quantity: item.quantity || 1,
+      unitPrice: item.price || 0,
+      lineTotal: (item.price || 0) * (item.quantity || 1),
+    }));
+    const subtotal = items.reduce((s, i) => s + i.lineTotal, 0);
+    lastDisplayTotalRef.current = subtotal;
+    displaySenderRef.current.send({
+      status: 'active',
+      items,
+      subtotal,
+      discount: 0,
+      tax: 0,
+      total: subtotal,
+      currencySymbol: cs,
+      storeName: selectedRestaurant?.name,
+      tableNumber: tableNumber || selectedTable?.name || null,
+      lastAddedItem: items.length > 0 ? items[items.length - 1] : null,
+    });
+  }, [cart, selectedRestaurant, tableNumber, selectedTable]);
+
+  useEffect(() => {
+    if (!displaySenderRef.current) return;
+    if (orderSuccess?.show && orderSuccess?.orderId) {
+      const cs = selectedRestaurant?.currencySettings?.symbol || '₹';
+      displaySenderRef.current.send({
+        status: 'completed',
+        storeName: selectedRestaurant?.name,
+        currencySymbol: cs,
+        total: lastDisplayTotalRef.current || 0,
+        customerName: customerName || null,
+      });
+      lastDisplayTotalRef.current = 0;
+    }
+  }, [orderSuccess]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.electronAPI?.onDisplayClosed) return;
+    const unsub = window.electronAPI.onDisplayClosed(() => setCustomerDisplayOpen(false));
+    return unsub;
+  }, []);
 
   // Save view settings to localStorage + DB when they change
   useEffect(() => {
@@ -1204,7 +1270,7 @@ function RestaurantPOSContent() {
             // Update state with fresh data (or load defaults if empty)
             if (freshMenuItems.length === 0) {
               const businessType = restaurant?.businessType || 'restaurant';
-              const { getDefaultMenu } = await import('../../../lib/defaultMenus');
+              const { getDefaultMenu } = await import('../../../../lib/defaultMenus');
               setMenuItems(getDefaultMenu(businessType));
               setIsDemoMode(true);
             } else {
@@ -1312,7 +1378,7 @@ function RestaurantPOSContent() {
           // Update state (or load defaults if empty)
           if (fetchedMenuItems.length === 0) {
             const businessType = restaurant?.businessType || 'restaurant';
-            const { getDefaultMenu } = await import('../../../lib/defaultMenus');
+            const { getDefaultMenu } = await import('../../../../lib/defaultMenus');
             setMenuItems(getDefaultMenu(businessType));
             setIsDemoMode(true);
           } else {
@@ -1475,7 +1541,7 @@ function RestaurantPOSContent() {
       if (realItems.length === 0) {
         console.log('📋 No menu items found, loading default menu for business type');
         const businessType = selectedRestaurant?.businessType || 'restaurant';
-        const { getDefaultMenu } = await import('../../../lib/defaultMenus');
+        const { getDefaultMenu } = await import('../../../../lib/defaultMenus');
         const defaultItems = getDefaultMenu(businessType);
         setMenuItems(defaultItems);
         setIsDemoMode(true);
@@ -1980,10 +2046,16 @@ function RestaurantPOSContent() {
         ? true
         : selectedCategory === 'favorites'
         ? item.isFavorite === true
-        : item.category?.toLowerCase() === selectedCategory;
+        : (() => {
+            if (item.category?.toLowerCase() === selectedCategory) return true;
+            const childIds = categories.filter(c => c.parentId === selectedCategory).map(c => c.id?.toLowerCase());
+            if (childIds.length > 0 && childIds.includes(item.category?.toLowerCase())) return true;
+            if (item.subCategory?.toLowerCase() === selectedCategory) return true;
+            return false;
+          })();
       return matchesCategory;
     });
-  }, [effectiveMenuItems, debouncedSearchTerm, selectedCategory, posSettings.hideOutOfStock]);
+  }, [effectiveMenuItems, debouncedSearchTerm, selectedCategory, posSettings.hideOutOfStock, categories]);
 
   // Multi-tier pricing: resolve display price for an item
   const getItemDisplayPrice = useCallback((item) => {
@@ -7081,7 +7153,20 @@ function RestaurantPOSContent() {
             boxSizing: 'border-box',
             borderBottom: '1px solid #1e293b'
           }}>
-            {categories.map((category) => {
+            {(() => {
+              const topLevel = categories.filter(c => !c.parentId);
+              const childOf = (pid) => categories.filter(c => c.parentId === pid);
+              const ordered = [];
+              topLevel.forEach(p => {
+                ordered.push({ ...p, _depth: 0 });
+                childOf(p.id).forEach(ch => {
+                  ordered.push({ ...ch, _depth: 1 });
+                  childOf(ch.id).forEach(gc => ordered.push({ ...gc, _depth: 2 }));
+                });
+              });
+              categories.forEach(c => { if (c.parentId && !categories.find(p => p.id === c.parentId) && !ordered.find(o => o.id === c.id)) ordered.push({ ...c, _depth: 0 }); });
+              return ordered;
+            })().map((category) => {
               const isSelected = selectedCategory === category.id;
 
               return (
@@ -7114,7 +7199,7 @@ function RestaurantPOSContent() {
                     }
                   }}
                 >
-                  {category.name}
+                  {(category._depth || 0) > 0 ? `› ${category.name}` : category.name}
                 </button>
               );
             })}
@@ -7137,7 +7222,20 @@ function RestaurantPOSContent() {
             zIndex: 90
           }}>
             <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0 8px 8px', minHeight: 0 }} className="hide-scrollbar">
-              {categories.map((category) => {
+              {(() => {
+                const topLevel = categories.filter(c => !c.parentId);
+                const childOf = (pid) => categories.filter(c => c.parentId === pid);
+                const ordered = [];
+                topLevel.forEach(p => {
+                  ordered.push({ ...p, _depth: 0 });
+                  childOf(p.id).forEach(ch => {
+                    ordered.push({ ...ch, _depth: 1 });
+                    childOf(ch.id).forEach(gc => ordered.push({ ...gc, _depth: 2 }));
+                  });
+                });
+                categories.forEach(c => { if (c.parentId && !categories.find(p => p.id === c.parentId) && !ordered.find(o => o.id === c.id)) ordered.push({ ...c, _depth: 0 }); });
+                return ordered;
+              })().map((category) => {
                 const isSelected = selectedCategory === category.id;
                 return (
                   <div
@@ -7145,6 +7243,7 @@ function RestaurantPOSContent() {
                     onClick={() => setSelectedCategory(isSelected && category.id !== 'all-items' ? 'all-items' : category.id)}
                     style={{
                       padding: '10px 12px',
+                      paddingLeft: `${12 + (category._depth || 0) * 14}px`,
                       marginBottom: '2px',
                       backgroundColor: isSelected ? '#1e293b' : 'transparent',
                       borderRadius: '10px 0 0 10px',
@@ -7175,7 +7274,7 @@ function RestaurantPOSContent() {
                       whiteSpace: 'nowrap',
                       display: 'block'
                     }}>
-                      {category.name}
+                      {(category._depth || 0) > 0 ? `› ${category.name}` : category.name}
                     </span>
                   </div>
                 );
@@ -7685,7 +7784,20 @@ function RestaurantPOSContent() {
                   msOverflowStyle: 'none',
                   WebkitOverflowScrolling: 'touch'
                 }}>
-                {categories.map((category, index) => {
+                {(() => {
+                  const topLevel = categories.filter(c => !c.parentId);
+                  const childOf = (pid) => categories.filter(c => c.parentId === pid);
+                  const ordered = [];
+                  topLevel.forEach(p => {
+                    ordered.push({ ...p, _depth: 0 });
+                    childOf(p.id).forEach(ch => {
+                      ordered.push({ ...ch, _depth: 1 });
+                      childOf(ch.id).forEach(gc => ordered.push({ ...gc, _depth: 2 }));
+                    });
+                  });
+                  categories.forEach(c => { if (c.parentId && !categories.find(p => p.id === c.parentId) && !ordered.find(o => o.id === c.id)) ordered.push({ ...c, _depth: 0 }); });
+                  return ordered;
+                })().map((category, index) => {
                   const isSelected = selectedCategory === category.id;
                   const categoryCount = categoryItemCountMap.get(category.id) || 0;
 
@@ -7763,7 +7875,7 @@ function RestaurantPOSContent() {
                         position: 'relative',
                         zIndex: 1
                       }}>
-                        {category.name}
+                        {(category._depth || 0) > 0 ? `› ${category.name}` : category.name}
                       </span>
                       {categoryCount > 0 && (
                         <span style={{
@@ -8630,16 +8742,29 @@ function RestaurantPOSContent() {
               scrollbarWidth: 'none',
               msOverflowStyle: 'none'
             }} className="hide-scrollbar">
-              {categories.map((category) => {
+              {(() => {
+                const topLevel = categories.filter(c => !c.parentId);
+                const childOf = (pid) => categories.filter(c => c.parentId === pid);
+                const ordered = [];
+                topLevel.forEach(p => {
+                  ordered.push({ ...p, _depth: 0 });
+                  childOf(p.id).forEach(ch => {
+                    ordered.push({ ...ch, _depth: 1 });
+                    childOf(ch.id).forEach(gc => ordered.push({ ...gc, _depth: 2 }));
+                  });
+                });
+                categories.forEach(c => { if (c.parentId && !categories.find(p => p.id === c.parentId) && !ordered.find(o => o.id === c.id)) ordered.push({ ...c, _depth: 0 }); });
+                return ordered;
+              })().map((category) => {
                 const isSelected = selectedCategory === category.id;
 
                 return (
                   <div key={category.id} onClick={() => {
                     setSelectedCategory(isSelected && category.id !== 'all-items' ? 'all-items' : category.id);
                     setShowMobileSidebar(false);
-                  }}>
+                  }} style={{ paddingLeft: `${12 + (category._depth || 0) * 14}px` }}>
                     <CategoryButton
-                      category={category}
+                      category={{ ...category, name: (category._depth || 0) > 0 ? `› ${category.name}` : category.name }}
                       isSelected={isSelected}
                     onClick={() => {
                       setSelectedCategory(isSelected && category.id !== 'all-items' ? 'all-items' : category.id);
@@ -9427,6 +9552,34 @@ function RestaurantPOSContent() {
         >
           <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: scaleStatus.connected ? '#22c55e' : '#ef4444' }} />
           ⚖️ {scaleStatus.connected ? 'Scale Connected' : 'Scale Disconnected'}
+        </div>
+      )}
+
+      {/* Customer Display Launch Button */}
+      {typeof window !== 'undefined' && window.electronAPI?.display && selectedRestaurant?.posSettings?.enableCustomerDisplay && (
+        <div
+          onClick={async () => {
+            if (customerDisplayOpen) {
+              await window.electronAPI.display.close();
+              setCustomerDisplayOpen(false);
+            } else {
+              const result = await window.electronAPI.display.open({ storeId: selectedRestaurant.id });
+              if (result?.success) setCustomerDisplayOpen(true);
+            }
+          }}
+          style={{
+            position: 'fixed', bottom: '20px', left: '20px', zIndex: 1000,
+            padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
+            display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer',
+            backgroundColor: customerDisplayOpen ? '#1e3a5f' : '#1e293b',
+            color: customerDisplayOpen ? '#93c5fd' : '#94a3b8',
+            border: `1px solid ${customerDisplayOpen ? '#3b82f6' : '#334155'}`,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+          }}
+          title={customerDisplayOpen ? 'Close customer display' : 'Open customer display on secondary screen'}
+        >
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: customerDisplayOpen ? '#3b82f6' : '#64748b' }} />
+          {customerDisplayOpen ? 'Display On' : 'Open Display'}
         </div>
       )}
 

@@ -227,6 +227,7 @@ const ar = {
     tableNumber: 'رقم الطاولة',
     customerName: 'اسم العميل',
     customerPhone: 'هاتف العميل',
+    covers: 'أغطية',
     dineIn: 'تناول في المكان',
     takeaway: 'طلب خارجي',
     noItems: 'لا توجد عناصر في السلة',
@@ -435,7 +436,11 @@ const ar = {
     orderQueuedSyncMsg: 'مشكلة في الاتصال. تم حفظ الطلب وسيتم المزامنة تلقائياً عند الاتصال.',
     orderFailedRestored: 'فشل في تقديم الطلب. تم استعادة سلتك.',
     syncFailedRetries: 'فشل مزامنة طلب غير متصل بعد 5 محاولات.',
-    networkErrorBillingSaved: 'تم اكتشاف خطأ في الشبكة. تم حفظ الفاتورة محلياً — سيتم المزامنة عند الاتصال.'
+    networkErrorBillingSaved: 'تم اكتشاف خطأ في الشبكة. تم حفظ الفاتورة محلياً — سيتم المزامنة عند الاتصال.',
+    // Customer Display
+    customerDisplay: 'شاشة العميل',
+    openDisplay: 'فتح الشاشة',
+    enableCustomerDisplay: 'تفعيل شاشة العميل'
   },
 
   // Menu
@@ -471,6 +476,9 @@ const ar = {
     enterPrice: 'أدخل السعر',
     describeDish: 'صف هذا الطبق...',
     selectCategory: 'اختر الفئة',
+    subCategory: 'فئة فرعية',
+    noSubCategory: 'لا شيء',
+    parentCategoryNone: 'بدون أصل (المستوى الأعلى)',
     addNewCategory: 'إضافة فئة جديدة',
     categoryName: 'اسم الفئة',
     categoryDescription: 'الوصف (اختياري)',
@@ -678,6 +686,11 @@ const ar = {
     keepOrder: 'الإبقاء على الطلب',
     cancelling: 'جاري الإلغاء…',
     cancelOrder: 'إلغاء الطلب',
+    restoreOrder: 'استعادة الطلب',
+    restoreReason: 'سبب الاستعادة',
+    orderRestored: 'تم استعادة الطلب بنجاح',
+    confirmRestore: 'سيتم إعادة خصم المخزون واستعادة إحصائيات العملاء وإعادة تطبيق نقاط الولاء.',
+    tableReassigned: 'الطاولة مشغولة بطلب آخر. تم استعادة الطلب بدون طاولة.',
     // Billing Modal
     completeBilling: 'إكمال الفاتورة',
     orderHash: 'الطلب #',

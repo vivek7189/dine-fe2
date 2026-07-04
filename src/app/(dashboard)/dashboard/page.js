@@ -335,6 +335,64 @@ function RestaurantPOSContent() {
     return () => { if (unsubWeight) unsubWeight(); };
   }, []);
 
+  // Cleanup Web Serial on unmount
+  useEffect(() => {
+    return () => {
+      if (webSerialReaderRef.current) {
+        webSerialReaderRef.current.cancel().catch(() => {});
+        webSerialReaderRef.current = null;
+      }
+      if (webSerialPortRef.current) {
+        webSerialPortRef.current.close().catch(() => {});
+        webSerialPortRef.current = null;
+      }
+    };
+  }, []);
+
+  // Web Serial scale connection (Chrome web tablets — non-Electron)
+  const connectWebSerialScale = useCallback(async () => {
+    if (typeof navigator === 'undefined' || !navigator.serial) return;
+    try {
+      const port = await navigator.serial.requestPort();
+      await port.open({ baudRate: 9600 });
+      webSerialPortRef.current = port;
+      setScaleStatus({ connected: true });
+      // Read loop
+      const reader = port.readable.getReader();
+      webSerialReaderRef.current = reader;
+      let buffer = '';
+      const readLoop = async () => {
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += new TextDecoder().decode(value);
+            // Parse weight lines (common format: "ST,GS,  0.450 kg\r\n" or "  0.450 kg\r\n")
+            const lines = buffer.split(/\r?\n/);
+            buffer = lines.pop() || '';
+            for (const line of lines) {
+              if (!line.trim()) continue;
+              const match = line.match(/([\d.]+)\s*(kg|g|lb|oz)/i);
+              if (match) {
+                const weight = parseFloat(match[1]);
+                const unit = match[2].toLowerCase();
+                const stable = /ST|stable/i.test(line);
+                setScaleWeight({ weight, unit, stable });
+              }
+            }
+          }
+        } catch (err) {
+          if (err.name !== 'TypeError') console.warn('Serial read error:', err);
+        }
+        setScaleStatus({ connected: false });
+        webSerialPortRef.current = null;
+      };
+      readLoop();
+    } catch (err) {
+      console.warn('Web Serial connect failed:', err);
+    }
+  }, []);
+
   // Card design toggle state - Initialize from localStorage based on user ID
   // Card size: 'compact' | 'standard' | 'large' — replaces old boolean useModernCards
   const [cardSize, setCardSize] = useState(() => {
@@ -419,13 +477,84 @@ function RestaurantPOSContent() {
   const [isNavigationHidden, setIsNavigationHidden] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Weighing scale state (Electron only)
+  // Weighing scale state (Electron or Web Serial)
   const [scaleStatus, setScaleStatus] = useState({ connected: false });
   const [scaleWeight, setScaleWeight] = useState(null); // { weight, unit, stable }
   const [showWeightPopup, setShowWeightPopup] = useState(null); // item being weighed
+  const webSerialPortRef = useRef(null);
+  const webSerialReaderRef = useRef(null);
 
   // Floating Command Bar ref
   const commandBarInputRef = useRef(null);
+  const displaySenderRef = useRef(null);
+  const lastDisplayTotalRef = useRef(0);
+  const [customerDisplayOpen, setCustomerDisplayOpen] = useState(false);
+
+  // Customer display sync — send cart data to secondary screen
+  useEffect(() => {
+    if (!selectedRestaurant?.id || !selectedRestaurant?.posSettings?.enableCustomerDisplay) return;
+    const { createDisplaySender } = require('@/lib/displaySync');
+    displaySenderRef.current = createDisplaySender(selectedRestaurant.id);
+    return () => {
+      if (displaySenderRef.current) {
+        displaySenderRef.current.close();
+        displaySenderRef.current = null;
+      }
+    };
+  }, [selectedRestaurant?.id, selectedRestaurant?.posSettings?.enableCustomerDisplay]);
+
+  // Sync cart changes to customer display
+  useEffect(() => {
+    if (!displaySenderRef.current) return;
+    if (cart.length === 0) {
+      displaySenderRef.current.sendIdle();
+      return;
+    }
+    const cs = selectedRestaurant?.currencySettings?.symbol || '₹';
+    const items = cart.map(item => ({
+      name: item.name,
+      quantity: item.quantity || 1,
+      unitPrice: item.price || 0,
+      lineTotal: (item.price || 0) * (item.quantity || 1),
+    }));
+    const subtotal = items.reduce((s, i) => s + i.lineTotal, 0);
+    lastDisplayTotalRef.current = subtotal;
+    displaySenderRef.current.send({
+      status: 'active',
+      items,
+      subtotal,
+      discount: 0,
+      tax: 0,
+      total: subtotal,
+      currencySymbol: cs,
+      storeName: selectedRestaurant?.name,
+      tableNumber: tableNumber || selectedTable?.name || null,
+      lastAddedItem: items.length > 0 ? items[items.length - 1] : null,
+    });
+  }, [cart, selectedRestaurant, tableNumber, selectedTable]);
+
+  // Send completed signal to customer display when billing finishes
+  useEffect(() => {
+    if (!displaySenderRef.current) return;
+    if (orderSuccess?.show && orderSuccess?.orderId) {
+      const cs = selectedRestaurant?.currencySettings?.symbol || '₹';
+      displaySenderRef.current.send({
+        status: 'completed',
+        storeName: selectedRestaurant?.name,
+        currencySymbol: cs,
+        total: lastDisplayTotalRef.current || 0,
+        customerName: customerName || null,
+      });
+      lastDisplayTotalRef.current = 0;
+    }
+  }, [orderSuccess]);
+
+  // Listen for customer display closed event (Electron)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.electronAPI?.onDisplayClosed) return;
+    const unsub = window.electronAPI.onDisplayClosed(() => setCustomerDisplayOpen(false));
+    return unsub;
+  }, []);
 
   // Save view settings to localStorage + DB when they change
   useEffect(() => {
@@ -1979,10 +2108,19 @@ function RestaurantPOSContent() {
         ? true
         : selectedCategory === 'favorites'
         ? item.isFavorite === true
-        : item.category?.toLowerCase() === selectedCategory;
+        : (() => {
+            // Direct match
+            if (item.category?.toLowerCase() === selectedCategory) return true;
+            // If selectedCategory is a parent group, also match items in child categories
+            const childIds = categories.filter(c => c.parentId === selectedCategory).map(c => c.id?.toLowerCase());
+            if (childIds.length > 0 && childIds.includes(item.category?.toLowerCase())) return true;
+            // Match subCategory
+            if (item.subCategory?.toLowerCase() === selectedCategory) return true;
+            return false;
+          })();
       return matchesCategory;
     });
-  }, [effectiveMenuItems, debouncedSearchTerm, selectedCategory, posSettings.hideOutOfStock]);
+  }, [effectiveMenuItems, debouncedSearchTerm, selectedCategory, posSettings.hideOutOfStock, categories]);
 
   // Multi-tier pricing: resolve display price for an item
   const getItemDisplayPrice = useCallback((item) => {
@@ -4625,6 +4763,7 @@ function RestaurantPOSContent() {
       partialPayAmount: partialPay = null, compItems: compData = null, voidItems: voidData = null, managerPin: mgrPin = null,
       deliveryInfo: deliveryInfoData = null, deliveryAddress: deliveryAddr2 = null,
       walletRedeemAmount: walletRedeem = null, walletCustomerId: walletCustId = null,
+      covers: coverCount = null,
     } = taxData;
 
     try {
@@ -4798,7 +4937,8 @@ function RestaurantPOSContent() {
               customerName: customerName || null,
               orderType,
               restaurantName: selectedRestaurant?.name || 'Restaurant',
-              specialInstructions: specialInstructions || null
+              specialInstructions: specialInstructions || null,
+              covers: coverCount || currentOrder.covers || 1
             }
           });
 
@@ -4826,6 +4966,7 @@ function RestaurantPOSContent() {
                 customerName: customerName || '',
                 timestamp: new Date().toISOString(),
                 items: kotItems,
+                covers: coverCount || currentOrder.covers || 1,
               },
             });
           }
@@ -5035,7 +5176,8 @@ function RestaurantPOSContent() {
                 customerName: customerName || null,
                 orderType,
                 restaurantName: selectedRestaurant?.name || 'Restaurant',
-                specialInstructions: specialInstructions || null
+                specialInstructions: specialInstructions || null,
+                covers: coverCount || 1
               }
             });
             setActiveSavedOrderId(null);
@@ -5098,7 +5240,8 @@ function RestaurantPOSContent() {
             customerName: savedCustomerName,
             orderType,
             restaurantName: savedRestaurantName,
-            specialInstructions: savedSpecialInstructions
+            specialInstructions: savedSpecialInstructions,
+            covers: coverCount || 1
           }
         });
 
@@ -5155,7 +5298,8 @@ function RestaurantPOSContent() {
                 customerName: savedCustomerName,
                 orderType,
                 restaurantName: savedRestaurantName,
-                specialInstructions: savedSpecialInstructions
+                specialInstructions: savedSpecialInstructions,
+                covers: coverCount || 1
               }
             });
 
@@ -5181,6 +5325,7 @@ function RestaurantPOSContent() {
                   customerName: savedCustomerName || '',
                   timestamp: new Date().toISOString(),
                   items: cartKotItems,
+                  covers: coverCount || 1,
                 },
               });
             }
@@ -7029,8 +7174,24 @@ function RestaurantPOSContent() {
               padding: '8px 0 8px 8px',
               minHeight: 0
             }} className="hide-scrollbar">
-              {categories.map((category, index) => {
+              {(() => {
+                // Build hierarchical order: top-level first, children indented below parent
+                const topLevel = categories.filter(c => !c.parentId);
+                const childOf = (pid) => categories.filter(c => c.parentId === pid);
+                const ordered = [];
+                topLevel.forEach(p => {
+                  ordered.push({ ...p, _depth: 0 });
+                  childOf(p.id).forEach(ch => {
+                    ordered.push({ ...ch, _depth: 1 });
+                    childOf(ch.id).forEach(gc => ordered.push({ ...gc, _depth: 2 }));
+                  });
+                });
+                // Add orphans
+                categories.forEach(c => { if (c.parentId && !categories.find(p => p.id === c.parentId) && !ordered.find(o => o.id === c.id)) ordered.push({ ...c, _depth: 0 }); });
+                return ordered;
+              })().map((category, index) => {
                 const isSelected = selectedCategory === category.id;
+                const depth = category._depth || 0;
 
                 return (
                   <div
@@ -7038,6 +7199,7 @@ function RestaurantPOSContent() {
                     onClick={() => setSelectedCategory(isSelected && category.id !== 'all-items' ? 'all-items' : category.id)}
                     style={{
                       padding: '10px 12px',
+                      paddingLeft: `${12 + depth * 14}px`,
                       marginBottom: '2px',
                       backgroundColor: isSelected ? 'white' : 'transparent',
                       borderRadius: isSelected ? '10px 0 0 10px' : '10px 0 0 10px',
@@ -7127,8 +7289,22 @@ function RestaurantPOSContent() {
             }}>
               {/* Category Chips */}
               <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', flex: 1 }}>
-                {categories.map((category) => {
+                {(() => {
+                  const topLevel = categories.filter(c => !c.parentId);
+                  const childOf = (pid) => categories.filter(c => c.parentId === pid);
+                  const ordered = [];
+                  topLevel.forEach(p => {
+                    ordered.push({ ...p, _depth: 0 });
+                    childOf(p.id).forEach(ch => {
+                      ordered.push({ ...ch, _depth: 1 });
+                      childOf(ch.id).forEach(gc => ordered.push({ ...gc, _depth: 2 }));
+                    });
+                  });
+                  categories.forEach(c => { if (c.parentId && !categories.find(p => p.id === c.parentId) && !ordered.find(o => o.id === c.id)) ordered.push({ ...c, _depth: 0 }); });
+                  return ordered;
+                })().map((category) => {
                   const isSelected = selectedCategory === category.id;
+                  const depth = category._depth || 0;
 
                   return (
                     <button
@@ -7141,8 +7317,8 @@ function RestaurantPOSContent() {
                         border: isSelected ? 'none' : '1px solid #e5e7eb',
                         borderRadius: '16px',
                         cursor: 'pointer',
-                        fontSize: '12px',
-                        fontWeight: '500',
+                        fontSize: depth > 0 ? '11px' : '12px',
+                        fontWeight: depth === 0 ? '600' : '500',
                         whiteSpace: 'nowrap',
                         transition: 'all 0.15s ease',
                         boxShadow: isSelected ? '0 2px 4px rgba(239, 68, 68, 0.2)' : 'none'
@@ -7160,7 +7336,7 @@ function RestaurantPOSContent() {
                         }
                       }}
                     >
-                      {category.name}
+                      {depth > 0 ? `› ${category.name}` : category.name}
                     </button>
                   );
                 })}
@@ -7632,7 +7808,20 @@ function RestaurantPOSContent() {
                   msOverflowStyle: 'none',
                   WebkitOverflowScrolling: 'touch'
                 }}>
-                {categories.map((category, index) => {
+                {(() => {
+                  const topLevel = categories.filter(c => !c.parentId);
+                  const childOf = (pid) => categories.filter(c => c.parentId === pid);
+                  const ordered = [];
+                  topLevel.forEach(p => {
+                    ordered.push({ ...p, _depth: 0 });
+                    childOf(p.id).forEach(ch => {
+                      ordered.push({ ...ch, _depth: 1 });
+                      childOf(ch.id).forEach(gc => ordered.push({ ...gc, _depth: 2 }));
+                    });
+                  });
+                  categories.forEach(c => { if (c.parentId && !categories.find(p => p.id === c.parentId) && !ordered.find(o => o.id === c.id)) ordered.push({ ...c, _depth: 0 }); });
+                  return ordered;
+                })().map((category, index) => {
                   const isSelected = selectedCategory === category.id;
                   const categoryCount = categoryItemCountMap.get(category.id) || 0;
 
@@ -7710,7 +7899,7 @@ function RestaurantPOSContent() {
                         position: 'relative',
                         zIndex: 1
                       }}>
-                        {category.name}
+                        {(category._depth || 0) > 0 ? `› ${category.name}` : category.name}
                       </span>
                       {categoryCount > 0 && (
                         <span style={{
@@ -9342,8 +9531,8 @@ function RestaurantPOSContent() {
         />
       )}
 
-      {/* Scale Status Badge — floating indicator for Electron scale connection */}
-      {typeof window !== 'undefined' && window.electronAPI?.scale && scaleStatus?.enabled && (
+      {/* Scale Status Badge — floating indicator for Electron or Web Serial scale connection */}
+      {typeof window !== 'undefined' && (window.electronAPI?.scale ? scaleStatus?.enabled : webSerialPortRef.current) && (
         <div
           onClick={async () => {
             if (!scaleStatus.connected && scaleStatus.port) {
@@ -9369,6 +9558,34 @@ function RestaurantPOSContent() {
         >
           <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: scaleStatus.connected ? '#22c55e' : '#ef4444' }} />
           ⚖️ {scaleStatus.connected ? 'Scale Connected' : 'Scale Disconnected'}
+        </div>
+      )}
+
+      {/* Customer Display Launch Button */}
+      {typeof window !== 'undefined' && window.electronAPI?.display && selectedRestaurant?.posSettings?.enableCustomerDisplay && (
+        <div
+          onClick={async () => {
+            if (customerDisplayOpen) {
+              await window.electronAPI.display.close();
+              setCustomerDisplayOpen(false);
+            } else {
+              const result = await window.electronAPI.display.open({ storeId: selectedRestaurant.id });
+              if (result?.success) setCustomerDisplayOpen(true);
+            }
+          }}
+          style={{
+            position: 'fixed', bottom: '20px', left: typeof window !== 'undefined' && window.electronAPI?.scale && scaleStatus?.enabled ? '180px' : '20px', zIndex: 1000,
+            padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
+            display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer',
+            backgroundColor: customerDisplayOpen ? '#eff6ff' : '#f8fafc',
+            color: customerDisplayOpen ? '#1d4ed8' : '#475569',
+            border: `1px solid ${customerDisplayOpen ? '#93c5fd' : '#e2e8f0'}`,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          }}
+          title={customerDisplayOpen ? 'Close customer display' : 'Open customer display on secondary screen'}
+        >
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: customerDisplayOpen ? '#3b82f6' : '#94a3b8' }} />
+          {customerDisplayOpen ? 'Display On' : 'Open Display'}
         </div>
       )}
 
@@ -9399,8 +9616,16 @@ function RestaurantPOSContent() {
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: wpConnected ? '#22c55e' : '#ef4444', display: 'inline-block',
                   animation: wpConnected && wpReading && !wpReading.stable ? 'pulse 1s infinite' : 'none' }} />
                 {wpConnected
-                  ? (wpReading?.stable ? '⚖️ Scale Connected — Stable' : '⚖️ Scale Connected — Stabilizing...')
-                  : '⚖️ Scale Not Connected — Enter weight manually'}
+                  ? (wpReading?.stable ? 'Scale Connected — Stable' : 'Scale Connected — Stabilizing...')
+                  : 'Scale Not Connected — Enter weight manually'}
+                {!wpConnected && !window.electronAPI?.scale && typeof navigator !== 'undefined' && navigator.serial && (
+                  <button
+                    onClick={connectWebSerialScale}
+                    style={{ marginLeft: 'auto', padding: '4px 10px', borderRadius: '6px', border: '1px solid #3b82f6', backgroundColor: '#eff6ff', color: '#1d4ed8', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}
+                  >
+                    Connect Scale
+                  </button>
+                )}
               </div>
 
               {/* Live weight display */}

@@ -241,6 +241,7 @@ const en = {
       tableNumber: 'Table Number',
       customerName: 'Customer Name',
       customerPhone: 'Customer Phone',
+      covers: 'Covers',
       dineIn: 'DINE IN',
       takeaway: 'TAKEAWAY',
       noItems: 'No items in cart',
@@ -449,7 +450,11 @@ const en = {
       orderQueuedSyncMsg: 'Connection issue. Order saved and will sync automatically when online.',
       orderFailedRestored: 'Failed to place order. Your cart has been restored.',
       syncFailedRetries: 'An offline order failed to sync after 5 retries.',
-      networkErrorBillingSaved: 'Network error detected. Billing saved locally — will sync when online.'
+      networkErrorBillingSaved: 'Network error detected. Billing saved locally — will sync when online.',
+      // Customer Display
+      customerDisplay: 'Customer Display',
+      openDisplay: 'Open Display',
+      enableCustomerDisplay: 'Enable Customer Display'
     },
 
     // Menu
@@ -704,6 +709,11 @@ const en = {
       keepOrder: 'Keep Order',
       cancelling: 'Cancelling…',
       cancelOrder: 'Cancel Order',
+      restoreOrder: 'Restore Order',
+      restoreReason: 'Reason for restoring',
+      orderRestored: 'Order restored successfully',
+      confirmRestore: 'This will re-deduct inventory, restore customer stats, and re-apply loyalty points.',
+      tableReassigned: 'Table is now occupied by another order. Order restored without table.',
       // Billing Modal
       completeBilling: 'Complete Billing',
       orderHash: 'Order #',
@@ -1575,6 +1585,9 @@ const en = {
     adminPricingRules: 'Admin → Pricing Rules',
     categoryRequired: 'Category *',
     selectCategory: 'Select category',
+    subCategory: 'Sub-Category',
+    noSubCategory: 'None',
+    parentCategoryNone: 'No parent (top-level)',
     abvPercent: 'ABV %',
     abvPlaceholder: 'e.g., 40',
     ingredientsCocktails: 'Ingredients (for cocktails)',

@@ -1754,6 +1754,24 @@ class ApiClient {
     });
   }
 
+  async lookupCustomerByCard(cardNumber, restaurantId) {
+    return this.request(`/api/customers/lookup-card/${encodeURIComponent(cardNumber)}?restaurantId=${restaurantId}`);
+  }
+
+  async linkCustomerCard(customerId, data) {
+    return this.request(`/api/customers/${customerId}/link-card`, {
+      method: 'POST',
+      body: data,
+    });
+  }
+
+  async restoreOrder(orderId, reason = '') {
+    return this.request(`/api/orders/${orderId}/restore`, {
+      method: 'PATCH',
+      body: { reason },
+    });
+  }
+
   async getStaffCredentials(staffId) {
     return this.request(`/api/staff/${staffId}/credentials`);
   }

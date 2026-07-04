@@ -81,7 +81,7 @@ const CategoryDropdown = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
-  const [newCategory, setNewCategory] = useState({ name: '', emoji: '🍽️', description: '' });
+  const [newCategory, setNewCategory] = useState({ name: '', emoji: '🍽️', description: '', parentId: '' });
   const [loading, setLoading] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState(null);
   const [categoryNotice, setCategoryNotice] = useState(null); // { type: 'error'|'info', message: string }
@@ -90,7 +90,28 @@ const CategoryDropdown = ({
 
   const selectedCategory = categories.find(cat => cat.id === value) || null;
   
-  const filteredCategories = categories.filter(category =>
+  // Build hierarchical category list: top-level first, children indented below parent
+  const topLevelCategories = categories.filter(c => !c.parentId);
+  const childrenOf = (parentId) => categories.filter(c => c.parentId === parentId);
+  const hierarchicalCategories = [];
+  topLevelCategories.forEach(parent => {
+    hierarchicalCategories.push(parent);
+    childrenOf(parent.id).forEach(child => {
+      hierarchicalCategories.push(child);
+      // Support 3rd level
+      childrenOf(child.id).forEach(grandchild => {
+        hierarchicalCategories.push(grandchild);
+      });
+    });
+  });
+  // Add any orphan categories (parentId set but parent doesn't exist)
+  categories.forEach(c => {
+    if (c.parentId && !categories.find(p => p.id === c.parentId) && !hierarchicalCategories.includes(c)) {
+      hierarchicalCategories.push(c);
+    }
+  });
+
+  const filteredCategories = hierarchicalCategories.filter(category =>
     category.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -131,7 +152,7 @@ const CategoryDropdown = ({
       if (onCategoryAdded) {
         onCategoryAdded(response.category);
       }
-      setNewCategory({ name: '', emoji: '🍽️', description: '' });
+      setNewCategory({ name: '', emoji: '🍽️', description: '', parentId: '' });
       setShowAddForm(false);
       setSearchTerm('');
     } catch (error) {
@@ -147,7 +168,8 @@ const CategoryDropdown = ({
     setNewCategory({
       name: category.name,
       emoji: category.emoji || '🍽️',
-      description: category.description || ''
+      description: category.description || '',
+      parentId: category.parentId || ''
     });
     setShowEditForm(true);
     // Scroll dropdown to top so edit form is visible
@@ -166,7 +188,7 @@ const CategoryDropdown = ({
       if (onCategoryUpdated) {
         onCategoryUpdated(response.category);
       }
-      setNewCategory({ name: '', emoji: '🍽️', description: '' });
+      setNewCategory({ name: '', emoji: '🍽️', description: '', parentId: '' });
       setShowEditForm(false);
       setEditingCategory(null);
     } catch (error) {
@@ -254,6 +276,18 @@ const CategoryDropdown = ({
                     className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
+                <div>
+                  <select
+                    value={newCategory.parentId}
+                    onChange={(e) => setNewCategory({...newCategory, parentId: e.target.value})}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">{t('menu.parentCategoryNone') || 'No parent (top-level)'}</option>
+                    {categories.filter(c => !c.parentId).map(c => (
+                      <option key={c.id} value={c.id}>{c.emoji || '🍽️'} {c.name}</option>
+                    ))}
+                  </select>
+                </div>
                   <div className="flex gap-2">
                 <button
                       onClick={handleAddNew}
@@ -265,7 +299,7 @@ const CategoryDropdown = ({
                     <button
                       onClick={() => {
                         setShowAddForm(false);
-                      setNewCategory({ name: '', emoji: '🍽️', description: '' });
+                      setNewCategory({ name: '', emoji: '🍽️', description: '', parentId: '' });
                       }}
                       className="px-3 py-1 text-xs bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
                     >
@@ -307,6 +341,18 @@ const CategoryDropdown = ({
                     className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
+                <div>
+                  <select
+                    value={newCategory.parentId}
+                    onChange={(e) => setNewCategory({...newCategory, parentId: e.target.value})}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  >
+                    <option value="">{t('menu.parentCategoryNone') || 'No parent (top-level)'}</option>
+                    {categories.filter(c => !c.parentId && c.id !== editingCategory?.id).map(c => (
+                      <option key={c.id} value={c.id}>{c.emoji || '🍽️'} {c.name}</option>
+                    ))}
+                  </select>
+                </div>
                   <div className="flex gap-2">
                     <button
                              onClick={handleUpdate}
@@ -319,7 +365,7 @@ const CategoryDropdown = ({
                       onClick={() => {
                       setShowEditForm(false);
                       setEditingCategory(null);
-                      setNewCategory({ name: '', emoji: '🍽️', description: '' });
+                      setNewCategory({ name: '', emoji: '🍽️', description: '', parentId: '' });
                       }}
                       className="px-3 py-1 text-xs bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
                     >
@@ -344,13 +390,16 @@ const CategoryDropdown = ({
           
           {/* Categories List */}
           <div className="max-h-48 overflow-y-auto">
-            {filteredCategories.map((category) => (
-              <div key={category.id} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 group">
+            {filteredCategories.map((category) => {
+              const depth = category.parentId ? (categories.find(c => c.id === category.parentId)?.parentId ? 2 : 1) : 0;
+              return (
+              <div key={category.id} className="flex items-center justify-between py-3 hover:bg-gray-50 group" style={{ paddingLeft: `${16 + depth * 16}px`, paddingRight: '16px' }}>
             <button
               type="button"
                            onClick={() => handleSelect(category)}
                            className="flex-1 text-left text-sm text-gray-900 hover:text-gray-700 flex items-center gap-2"
                          >
+                           {depth > 0 && <span className="text-gray-400" style={{ fontSize: '10px' }}>{'└'}</span>}
                            <span>{category.name}</span>
                            {selectedCategory?.id === category.id && (
                              <FaCheck className="text-red-500 ml-auto" size={12} />
@@ -381,7 +430,8 @@ const CategoryDropdown = ({
                   </button>
                 </div>
               </div>
-            ))}
+              );
+            })}
             {filteredCategories.length === 0 && (
               <div className="px-4 py-3 text-sm text-gray-500 text-center">
                 {t('menu.noCategoriesFound')}
@@ -2302,6 +2352,7 @@ const MenuManagement = () => {
     description: '',
     price: '',
     category: '',
+    subCategory: '',
     isVeg: true,
     shortCode: '',
     image: '',
@@ -2712,7 +2763,9 @@ const MenuManagement = () => {
   const filteredItems = useMemo(() => {
     const lowerSearch = searchTerm.toLowerCase();
     return menuItems.filter(item => {
-      const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+      const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory ||
+        item.subCategory === selectedCategory ||
+        categories.filter(c => c.parentId === selectedCategory).some(child => item.category === child.id);
       const matchesVegFilter = selectedVegFilter === 'all' ||
         (selectedVegFilter === 'veg' && item.isVeg) ||
         (selectedVegFilter === 'non-veg' && !item.isVeg);
@@ -2724,7 +2777,7 @@ const MenuManagement = () => {
                            item.description?.toLowerCase().includes(lowerSearch);
       return matchesCategory && matchesVegFilter && matchesWeightFilter && matchesSearch;
     });
-  }, [menuItems, selectedCategory, selectedVegFilter, selectedWeightFilter, searchTerm]);
+  }, [menuItems, selectedCategory, selectedVegFilter, selectedWeightFilter, searchTerm, categories]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -2865,6 +2918,7 @@ const MenuManagement = () => {
             price: itemData.price,
             description: itemData.description,
             category: itemData.category,
+            subCategory: itemData.subCategory || null,
             veg: itemData.veg,
             variants: itemData.variants,
             customizations: itemData.customizations,
@@ -3128,6 +3182,7 @@ const MenuManagement = () => {
       description: item.description || '',
       price: item.price?.toString() || '',
       category: item.category || '',
+      subCategory: item.subCategory || '',
       isVeg: item.isVeg !== false,
       shortCode: item.shortCode || '',
       image: item.image || '',
@@ -3742,6 +3797,7 @@ const MenuManagement = () => {
       description: '',
       price: '',
       category: categories[0]?.id || '',
+      subCategory: '',
       isVeg: true,
       shortCode: '',
       image: '',
@@ -4386,10 +4442,20 @@ const MenuManagement = () => {
             onChange={setSelectedCategory}
             options={[
               { value: 'all', label: t('menu.allCategories') },
-              ...categories.map(category => ({
-                value: category.id,
-                label: category.name
-              }))
+              ...(() => {
+                const topLevel = categories.filter(c => !c.parentId);
+                const childOf = (pid) => categories.filter(c => c.parentId === pid);
+                const ordered = [];
+                topLevel.forEach(p => {
+                  ordered.push({ value: p.id, label: p.name });
+                  childOf(p.id).forEach(ch => {
+                    ordered.push({ value: ch.id, label: `  › ${ch.name}` });
+                    childOf(ch.id).forEach(gc => ordered.push({ value: gc.id, label: `    › ${gc.name}` }));
+                  });
+                });
+                categories.forEach(c => { if (c.parentId && !categories.find(p => p.id === c.parentId) && !ordered.find(o => o.value === c.id)) ordered.push({ value: c.id, label: c.name }); });
+                return ordered;
+              })()
             ]}
             placeholder={t('menu.allCategories')}
           />
@@ -5529,7 +5595,7 @@ const MenuManagement = () => {
                   <CategoryDropdown
                     label={t('menu.categoryRequired')}
                     value={formData.category}
-                    onChange={(value) => setFormData({...formData, category: value})}
+                    onChange={(value) => setFormData({...formData, category: value, subCategory: ''})}
                     categories={categories}
                     placeholder={t('menu.selectCategory')}
                     restaurantId={currentRestaurant?.id}
@@ -5538,6 +5604,29 @@ const MenuManagement = () => {
                     onCategoryDeleted={handleCategoryDeleted}
                   />
                 </div>
+
+                {/* Sub-Category — shown only if selected category has children */}
+                {(() => {
+                  const subCats = categories.filter(c => c.parentId === formData.category);
+                  if (subCats.length === 0) return null;
+                  return (
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {t('menu.subCategory') || 'Sub-Category'}
+                      </label>
+                      <select
+                        value={formData.subCategory}
+                        onChange={(e) => setFormData({...formData, subCategory: e.target.value})}
+                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                      >
+                        <option value="">{t('menu.noSubCategory') || 'None'}</option>
+                        {subCats.map(sc => (
+                          <option key={sc.id} value={sc.id}>{sc.emoji || '🍽️'} {sc.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })()}
 
               </div>
               

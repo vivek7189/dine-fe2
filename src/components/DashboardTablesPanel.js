@@ -452,6 +452,7 @@ export default function DashboardTablesPanel({
         restaurantName: restaurantName || 'Restaurant',
         orderId: order.id,
         customerName: order.customerDisplay?.name || order.customerInfo?.name || order.customerName,
+        covers: order.covers || 1,
       };
       const kotHtml = generateKOTHTML(kotData, printSettings || {});
 

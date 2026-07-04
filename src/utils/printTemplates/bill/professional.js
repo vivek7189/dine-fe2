@@ -145,6 +145,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
       `<div><span>${dualLabel(L.billLabel, AR.billLabel, showAr)}#:</span><span>${invoice.dailyOrderId || invoice.id || 'N/A'}</span></div>` +
       `<div><span>${dualLabel(L.date, AR.date, showAr)}:</span><span>${dateStr}</span></div>` +
       (bl.showTable !== false && invoice.tableNumber ? `<div><span>${dualLabel(L.table, AR.table, showAr)}:</span><span>${invoice.tableNumber}${invoice.floorName ? ` - ${invoice.floorName}` : ''}</span></div>` : '') +
+      (bl.showCovers !== false && invoice.covers && invoice.covers > 1 ? `<div><span>${showAr ? dualLabel('Covers', 'أغطية', showAr) : 'Covers'}:</span><span>${invoice.covers}</span></div>` : '') +
       (bl.showWaiter !== false && (invoice.waiterName || invoice.cashierName) ? `<div><span>${showAr ? dualLabel('Staff', 'الموظف', showAr) : 'Staff'}:</span><span>${esc(invoice.waiterName || invoice.cashierName)}</span></div>` : '') +
       (bl.showCustomer !== false && invoice.customerName ? `<div><span>${dualLabel(L.customer, AR.customer, showAr)}:</span><span>${esc(invoice.customerName)}</span></div>` : '') +
       (bl.showOrderType !== false && invoice.orderType ? `<div><span>${showAr ? dualLabel('Type', 'النوع', showAr) : 'Type'}:</span><span>${invoice.orderType}</span></div>` : '') +

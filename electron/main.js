@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, protocol, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol, Menu, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const net = require('net');
@@ -6,6 +6,7 @@ const { initOfflineEngine, shutdownOfflineEngine } = require('./offline');
 
 let mainWindow;
 let printWindow;
+let customerDisplayWindow = null;
 const OUT_DIR = path.join(__dirname, '..', 'out');
 
 // ──── Printer cache (avoid OS enumeration on every print) ────
@@ -1507,6 +1508,103 @@ ipcMain.handle('electron:openCashDrawer', async () => {
     diagnostics.fatalError = err.message;
     return { success: false, error: err.message, diagnostics };
   }
+});
+
+// ──── IPC: Customer Display (Secondary Screen) ────
+
+ipcMain.handle('electron:getDisplays', async () => {
+  const displays = screen.getAllDisplays();
+  const primary = screen.getPrimaryDisplay();
+  return displays.map(d => ({
+    id: d.id,
+    label: d.label || `Display ${d.id}`,
+    bounds: d.bounds,
+    workArea: d.workArea,
+    isPrimary: d.id === primary.id,
+    scaleFactor: d.scaleFactor,
+  }));
+});
+
+ipcMain.handle('electron:openCustomerDisplay', async (_event, options = {}) => {
+  const { storeId, displayId } = options;
+
+  if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
+    customerDisplayWindow.close();
+    customerDisplayWindow = null;
+  }
+
+  const displays = screen.getAllDisplays();
+  const primary = screen.getPrimaryDisplay();
+  let targetDisplay;
+
+  if (displayId) {
+    targetDisplay = displays.find(d => d.id === displayId);
+  }
+  if (!targetDisplay) {
+    targetDisplay = displays.find(d => d.id !== primary.id) || primary;
+  }
+
+  const displayRoute = `/customer-display${storeId ? `?store=${storeId}` : ''}`;
+  const indexPath = path.join(OUT_DIR, 'index.html');
+  const isProduction = fs.existsSync(indexPath);
+
+  customerDisplayWindow = new BrowserWindow({
+    x: targetDisplay.bounds.x,
+    y: targetDisplay.bounds.y,
+    width: targetDisplay.bounds.width,
+    height: targetDisplay.bounds.height,
+    fullscreen: targetDisplay.id !== primary.id,
+    frame: targetDisplay.id !== primary.id ? false : true,
+    alwaysOnTop: targetDisplay.id !== primary.id,
+    title: 'Customer Display',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      webSecurity: false,
+    },
+  });
+
+  if (isProduction) {
+    customerDisplayWindow.loadURL(`app://pos${displayRoute}`);
+  } else {
+    customerDisplayWindow.loadURL(`http://localhost:3002${displayRoute}`);
+  }
+
+  customerDisplayWindow.on('closed', () => {
+    customerDisplayWindow = null;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('customer-display-closed');
+    }
+  });
+
+  console.log('[CustomerDisplay] Opened on display:', targetDisplay.id,
+    'bounds:', targetDisplay.bounds, 'fullscreen:', targetDisplay.id !== primary.id);
+
+  return {
+    success: true,
+    displayId: targetDisplay.id,
+    isPrimary: targetDisplay.id === primary.id,
+    bounds: targetDisplay.bounds,
+  };
+});
+
+ipcMain.handle('electron:closeCustomerDisplay', async () => {
+  if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
+    customerDisplayWindow.close();
+    customerDisplayWindow = null;
+    return { success: true };
+  }
+  return { success: false, error: 'No customer display window open' };
+});
+
+ipcMain.handle('electron:getCustomerDisplayStatus', async () => {
+  const isOpen = customerDisplayWindow && !customerDisplayWindow.isDestroyed();
+  return {
+    isOpen,
+    displayCount: screen.getAllDisplays().length,
+    hasSecondaryDisplay: screen.getAllDisplays().length > 1,
+  };
 });
 
 // ──── IPC: Open external URL in system browser (for desktop auth flow) ────

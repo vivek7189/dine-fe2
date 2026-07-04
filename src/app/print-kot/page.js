@@ -269,6 +269,7 @@ const PrintKOTContent = () => {
       removedItems: order.removedItems || [],
       isIncremental: isUpdateReprint,
       currencySymbol: order.currencySymbol || '',
+      covers: order.covers || 1,
     };
 
     try {

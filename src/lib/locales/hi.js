@@ -130,10 +130,17 @@ const hi = {
       clearOrder: 'ऑर्डर साफ करें',
       placeOrder: 'ऑर्डर दें',
       saveOrder: 'ऑर्डर सहेजें',
+      cancelOrder: 'ऑर्डर रद्द करें',
+      restoreOrder: 'ऑर्डर पुनर्स्थापित करें',
+      restoreReason: 'पुनर्स्थापना का कारण',
+      orderRestored: 'ऑर्डर सफलतापूर्वक पुनर्स्थापित',
+      confirmRestore: 'यह इन्वेंटरी को फिर से काटेगा, ग्राहक आँकड़े पुनर्स्थापित करेगा, और लॉयल्टी पॉइंट्स फिर से लागू करेगा।',
+      tableReassigned: 'टेबल अब किसी अन्य ऑर्डर द्वारा अधिगृहीत है। ऑर्डर बिना टेबल के पुनर्स्थापित।',
       completeBilling: 'बिलिंग पूर्ण करें',
       tableNumber: 'टेबल नंबर',
       customerName: 'ग्राहक का नाम',
       customerPhone: 'ग्राहक का फोन',
+      covers: 'कवर',
       dineIn: 'डाइन इन',
       takeaway: 'टेकअवे',
       noItems: 'कार्ट में कोई आइटम नहीं',
@@ -151,7 +158,11 @@ const hi = {
       emptyCart: 'कार्ट खाली है',
       addItemsFirst: 'कृपया पहले कार्ट में आइटम जोड़ें',
       orderProcessing: 'ऑर्डर प्रसंस्करण...',
-      paymentProcessing: 'भुगतान प्रसंस्करण...'
+      paymentProcessing: 'भुगतान प्रसंस्करण...',
+      // Customer Display
+      customerDisplay: 'ग्राहक डिस्प्ले',
+      openDisplay: 'डिस्प्ले खोलें',
+      enableCustomerDisplay: 'ग्राहक डिस्प्ले सक्षम करें'
     },
 
     // Menu
@@ -187,6 +198,9 @@ const hi = {
       enterPrice: 'कीमत दर्ज करें',
       describeDish: 'इस व्यंजन का वर्णन करें...',
       selectCategory: 'श्रेणी चुनें',
+      subCategory: 'उप-श्रेणी',
+      noSubCategory: 'कोई नहीं',
+      parentCategoryNone: 'कोई पैरेंट नहीं (शीर्ष-स्तर)',
       addNewCategory: 'नई श्रेणी जोड़ें',
       categoryName: 'श्रेणी का नाम',
       categoryDescription: 'विवरण (वैकल्पिक)',

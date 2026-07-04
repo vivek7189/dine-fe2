@@ -30,6 +30,14 @@ const nextConfig = {
     optimizePackageImports: ['react-icons'],
     esmExternals: 'loose',
   },
+  // Ignore Capacitor native plugin during web builds (only available at runtime on device)
+  webpack: (config) => {
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      'capacitor-dine-printer': false,
+    };
+    return config;
+  },
   // Enable static optimization
   swcMinify: true,
   // Block Vercel preview domain from being indexed (prevents duplicate content)

@@ -130,10 +130,17 @@ const pt = {
     clearOrder: 'Limpar Pedido',
     placeOrder: 'Fazer Pedido',
     saveOrder: 'Salvar Pedido',
+    cancelOrder: 'Cancelar Pedido',
+    restoreOrder: 'Restaurar Pedido',
+    restoreReason: 'Motivo da restauração',
+    orderRestored: 'Pedido restaurado com sucesso',
+    confirmRestore: 'Isto irá re-deduzir estoque, restaurar estatísticas do cliente e reaplicar pontos de fidelidade.',
+    tableReassigned: 'A mesa está ocupada por outro pedido. Pedido restaurado sem mesa.',
     completeBilling: 'Finalizar Faturamento',
     tableNumber: 'Número da Mesa',
     customerName: 'Nome do Cliente',
     customerPhone: 'Telefone do Cliente',
+    covers: 'Talheres',
     dineIn: 'CONSUMO LOCAL',
     takeaway: 'PARA VIAGEM',
     noItems: 'Nenhum item no carrinho',
@@ -151,7 +158,11 @@ const pt = {
     emptyCart: 'O carrinho está vazio',
     addItemsFirst: 'Por favor, adicione itens ao carrinho primeiro',
     orderProcessing: 'Processando pedido...',
-    paymentProcessing: 'Processando pagamento...'
+    paymentProcessing: 'Processando pagamento...',
+    // Customer Display
+    customerDisplay: 'Tela do Cliente',
+    openDisplay: 'Abrir Tela',
+    enableCustomerDisplay: 'Ativar Tela do Cliente'
   },
 
   // Menu
@@ -187,6 +198,9 @@ const pt = {
     enterPrice: 'Digite o preço',
     describeDish: 'Descreva este prato...',
     selectCategory: 'Selecionar categoria',
+    subCategory: 'Subcategoria',
+    noSubCategory: 'Nenhuma',
+    parentCategoryNone: 'Sem pai (nível superior)',
     addNewCategory: 'Adicionar nova categoria',
     categoryName: 'Nome da categoria',
     categoryDescription: 'Descrição (opcional)',
