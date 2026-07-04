@@ -846,6 +846,18 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
                       </div>
                     </div>
                   )}
+
+                  {/* Save Discount Settings */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+                    <button onClick={saveTaxSettings} disabled={saving}
+                      style={{
+                        backgroundColor: saving ? '#9ca3af' : '#ef4444', color: 'white', padding: '8px 16px', borderRadius: '8px',
+                        border: 'none', fontSize: '12px', fontWeight: '600', cursor: saving ? 'not-allowed' : 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s'
+                      }}>
+                      {saving ? <><FaSpinner size={11} style={{ animation: 'spin 1s linear infinite' }} /> Saving...</> : <><FaSave size={11} /> Save Discount Settings</>}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
