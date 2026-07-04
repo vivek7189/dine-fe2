@@ -1240,232 +1240,182 @@ export function HeadquartersContent({ embedded = false }) {
         </div>
 
         {/* Scrollable Content */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
-          {/* Info Banner */}
-          <div style={{
-            padding: '10px 12px',
-            background: '#fef2f2',
-            borderRadius: '10px',
-            borderLeft: '3px solid #ef4444',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '8px',
-            marginBottom: '12px'
-          }}>
-            <FaRobot size={14} style={{ color: '#ef4444', marginTop: '1px', flexShrink: 0 }} />
-            <div>
-              <div style={{ fontSize: '12px', fontWeight: '600', color: '#dc2626' }}>{t('hq.whatYouReceive')}</div>
-              <div style={{ fontSize: '11px', color: '#7f1d1d', lineHeight: 1.4 }}>
-                {t('hq.dailySummaryDesc')}
-              </div>
-            </div>
-          </div>
-
-          {/* Enable toggle */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px' }}>
+          {/* Enable toggle — compact single row */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '10px 14px',
+            padding: '8px 12px',
             backgroundColor: emailPreferences.emailEnabled ? '#f0fdf4' : '#f9fafb',
-            borderRadius: '10px',
-            marginBottom: '12px',
-            border: emailPreferences.emailEnabled ? '2px solid #86efac' : '2px solid transparent',
+            borderRadius: '8px',
+            marginBottom: '10px',
+            border: emailPreferences.emailEnabled ? '1px solid #86efac' : '1px solid #e5e7eb',
           }}>
-            <div>
-              <div style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {emailPreferences.emailEnabled && <FaCheck size={10} style={{ color: '#22c55e' }} />}
-                {t('hq.enableDailyReports')}
-              </div>
-              <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '1px' }}>
-                {emailPreferences.emailEnabled ? t('hq.reportsWillBeSent') : t('hq.turnOnToReceive')}
-              </div>
+            <div style={{ fontSize: '12px', fontWeight: '600', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              {emailPreferences.emailEnabled && <FaCheck size={9} style={{ color: '#22c55e' }} />}
+              {t('hq.enableDailyReports')}
+              <span style={{ fontSize: '10px', fontWeight: '400', color: '#9ca3af' }}>
+                {emailPreferences.emailEnabled ? '— active' : '— off'}
+              </span>
             </div>
             <button
               onClick={() => setEmailPreferences(prev => ({ ...prev, emailEnabled: !prev.emailEnabled }))}
               style={{
-                width: '48px',
-                height: '26px',
-                borderRadius: '13px',
-                border: 'none',
+                width: '40px', height: '22px', borderRadius: '11px', border: 'none',
                 backgroundColor: emailPreferences.emailEnabled ? '#22c55e' : '#d1d5db',
-                cursor: 'pointer',
-                position: 'relative',
-                transition: 'background-color 0.2s',
-                flexShrink: 0,
+                cursor: 'pointer', position: 'relative', transition: 'background-color 0.2s', flexShrink: 0,
               }}
             >
               <div style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                backgroundColor: 'white',
-                position: 'absolute',
-                top: '3px',
-                left: emailPreferences.emailEnabled ? '25px' : '3px',
-                transition: 'left 0.2s',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'white',
+                position: 'absolute', top: '3px',
+                left: emailPreferences.emailEnabled ? '21px' : '3px',
+                transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)'
               }} />
             </button>
           </div>
 
-          {/* Report frequency selector */}
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>
-              Report Frequency
-            </label>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              {[
-                { value: 'daily', label: 'Daily', desc: 'End of day report' },
-                { value: 'weekly', label: 'Weekly', desc: 'Every Sunday' },
-                { value: 'both', label: 'Both', desc: 'Daily + Weekly' }
-              ].map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => setEmailPreferences(prev => ({ ...prev, reportFrequency: opt.value }))}
-                  style={{
-                    flex: 1,
-                    padding: '8px 6px',
-                    borderRadius: '10px',
-                    border: (emailPreferences.reportFrequency || 'daily') === opt.value ? '2px solid #ef4444' : '2px solid #e5e7eb',
-                    backgroundColor: (emailPreferences.reportFrequency || 'daily') === opt.value ? '#fef2f2' : '#fff',
-                    cursor: 'pointer',
-                    textAlign: 'center',
-                  }}
-                >
-                  <div style={{ fontSize: '12px', fontWeight: '600', color: (emailPreferences.reportFrequency || 'daily') === opt.value ? '#dc2626' : '#374151' }}>
+          {/* Frequency + Email — side by side */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+            {/* Report frequency */}
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', marginBottom: '4px', display: 'block' }}>
+                Frequency
+              </label>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                {[
+                  { value: 'daily', label: 'Daily' },
+                  { value: 'weekly', label: 'Weekly' },
+                  { value: 'both', label: 'Both' }
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setEmailPreferences(prev => ({ ...prev, reportFrequency: opt.value }))}
+                    style={{
+                      flex: 1,
+                      padding: '5px 4px',
+                      borderRadius: '6px',
+                      border: (emailPreferences.reportFrequency || 'daily') === opt.value ? '2px solid #ef4444' : '1px solid #e5e7eb',
+                      backgroundColor: (emailPreferences.reportFrequency || 'daily') === opt.value ? '#fef2f2' : '#fff',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      color: (emailPreferences.reportFrequency || 'daily') === opt.value ? '#dc2626' : '#374151',
+                    }}
+                  >
                     {opt.label}
-                  </div>
-                  <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '1px' }}>
-                    {opt.desc}
-                  </div>
-                </button>
-              ))}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Email input — multi-email chips (max 5) */}
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
-              <span>{t('hq.emailAddress')}</span>
-              <span style={{ fontSize: '10px', fontWeight: '500', color: '#9ca3af' }}>
-                {emailPreferences.reportEmails?.length || 0}/5
-              </span>
-            </label>
-            <div style={{
-              width: '100%',
-              padding: '8px 10px',
-              borderRadius: '10px',
-              border: '2px solid #e5e7eb',
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '5px',
-              alignItems: 'center',
-              minHeight: '40px',
-              cursor: 'text'
-            }} onClick={(e) => { const inp = e.currentTarget.querySelector('input'); if (inp) inp.focus(); }}>
-              {(emailPreferences.reportEmails || []).map((email, i) => (
-                <span key={i} style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '3px',
-                  padding: '3px 8px', borderRadius: '16px',
-                  background: '#eff6ff', color: '#1d4ed8', fontSize: '12px', fontWeight: '500',
-                  border: '1px solid #bfdbfe', lineHeight: 1.2
-                }}>
-                  {email}
-                  <button onClick={(e) => {
-                    e.stopPropagation();
-                    setEmailPreferences(prev => ({
-                      ...prev,
-                      reportEmails: prev.reportEmails.filter((_, idx) => idx !== i)
-                    }));
-                  }} style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: '#6b7280', fontSize: '13px', lineHeight: 1, padding: '0 2px',
-                    fontWeight: '700'
-                  }}>×</button>
+            {/* Email */}
+            <div style={{ flex: 1.2 }}>
+              <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <span>Email</span>
+                <span style={{ fontSize: '9px', fontWeight: '400', color: '#9ca3af' }}>
+                  {emailPreferences.reportEmails?.length || 0}/5
                 </span>
-              ))}
-              {(emailPreferences.reportEmails?.length || 0) < 5 && (
-                <input
-                  type="email"
-                  value={newEmailInput}
-                  onChange={(e) => setNewEmailInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ',') {
-                      e.preventDefault();
+              </label>
+              <div style={{
+                padding: '5px 8px',
+                borderRadius: '6px',
+                border: '1px solid #e5e7eb',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '4px',
+                alignItems: 'center',
+                minHeight: '30px',
+                cursor: 'text',
+                backgroundColor: '#fff',
+              }} onClick={(e) => { const inp = e.currentTarget.querySelector('input'); if (inp) inp.focus(); }}>
+                {(emailPreferences.reportEmails || []).map((email, i) => (
+                  <span key={i} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '2px',
+                    padding: '2px 6px', borderRadius: '10px',
+                    background: '#eff6ff', color: '#1d4ed8', fontSize: '10px', fontWeight: '500',
+                    border: '1px solid #bfdbfe',
+                  }}>
+                    {email.split('@')[0]}@...
+                    <button onClick={(e) => {
+                      e.stopPropagation();
+                      setEmailPreferences(prev => ({
+                        ...prev,
+                        reportEmails: prev.reportEmails.filter((_, idx) => idx !== i)
+                      }));
+                    }} style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      color: '#6b7280', fontSize: '11px', lineHeight: 1, padding: 0,
+                      fontWeight: '700'
+                    }}>×</button>
+                  </span>
+                ))}
+                {(emailPreferences.reportEmails?.length || 0) < 5 && (
+                  <input
+                    type="email"
+                    value={newEmailInput}
+                    onChange={(e) => setNewEmailInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ',') {
+                        e.preventDefault();
+                        const val = newEmailInput.trim().replace(/,$/, '');
+                        if (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) && !(emailPreferences.reportEmails || []).includes(val)) {
+                          setEmailPreferences(prev => ({ ...prev, reportEmails: [...(prev.reportEmails || []), val] }));
+                          setNewEmailInput('');
+                        }
+                      }
+                    }}
+                    onBlur={() => {
                       const val = newEmailInput.trim().replace(/,$/, '');
-                      if (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) && !(emailPreferences.reportEmails || []).includes(val)) {
+                      if (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) && !(emailPreferences.reportEmails || []).includes(val) && (emailPreferences.reportEmails?.length || 0) < 5) {
                         setEmailPreferences(prev => ({ ...prev, reportEmails: [...(prev.reportEmails || []), val] }));
                         setNewEmailInput('');
                       }
-                    }
-                  }}
-                  onBlur={() => {
-                    const val = newEmailInput.trim().replace(/,$/, '');
-                    if (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) && !(emailPreferences.reportEmails || []).includes(val) && (emailPreferences.reportEmails?.length || 0) < 5) {
-                      setEmailPreferences(prev => ({ ...prev, reportEmails: [...(prev.reportEmails || []), val] }));
-                      setNewEmailInput('');
-                    }
-                  }}
-                  placeholder={(emailPreferences.reportEmails?.length || 0) === 0 ? t('hq.emailPlaceholder') : 'Add another...'}
-                  style={{
-                    border: 'none', outline: 'none', flex: 1, minWidth: '100px',
-                    fontSize: '12px', padding: '2px 0', background: 'transparent'
-                  }}
-                />
-              )}
+                    }}
+                    placeholder="email@..."
+                    style={{
+                      border: 'none', outline: 'none', flex: 1, minWidth: '60px',
+                      fontSize: '11px', padding: '1px 0', background: 'transparent'
+                    }}
+                  />
+                )}
+              </div>
             </div>
-            {(emailPreferences.reportEmails?.length || 0) >= 5 && (
-              <div style={{ fontSize: '10px', color: '#f59e0b', marginTop: '3px' }}>Maximum 5 email addresses</div>
-            )}
           </div>
 
-          {/* Report Schedule */}
-          <div style={{ marginBottom: '14px' }}>
-            <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '3px' }}>
-              Report Schedule
+          {/* Report Schedule — side by side tabs */}
+          <div style={{ marginBottom: '10px' }}>
+            <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '4px' }}>
+              Schedule
             </label>
-            <p style={{ fontSize: '10px', color: '#9ca3af', margin: '0 0 8px 0' }}>Choose one report type</p>
-            <div style={{ border: '2px solid #e5e7eb', borderRadius: '10px', overflow: 'hidden' }}>
-              {/* Morning Summary */}
-              <div style={{ padding: '10px 12px', backgroundColor: emailPreferences.morningSummary?.enabled ? '#fffbeb' : '#f9fafb' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: emailPreferences.morningSummary?.enabled ? '8px' : '0' }}>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                      <span style={{ fontSize: '14px' }}>&#9728;&#65039;</span> Morning Summary
-                    </div>
-                    <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '1px' }}>Yesterday&apos;s complete report</div>
-                  </div>
-                  <button
-                    onClick={() => setEmailPreferences(prev => ({
-                      ...prev,
-                      morningSummary: { ...prev.morningSummary, enabled: !prev.morningSummary?.enabled },
-                      dayClosing: { ...prev.dayClosing, enabled: prev.morningSummary?.enabled ? prev.dayClosing?.enabled : false }
-                    }))}
-                    style={{
-                      width: '48px', height: '26px', borderRadius: '13px', border: 'none',
-                      backgroundColor: emailPreferences.morningSummary?.enabled ? '#f59e0b' : '#d1d5db',
-                      cursor: 'pointer', position: 'relative', transition: 'background-color 0.2s', flexShrink: 0
-                    }}
-                  >
-                    <div style={{
-                      width: '20px', height: '20px', borderRadius: '50%', backgroundColor: 'white',
-                      position: 'absolute', top: '3px',
-                      left: emailPreferences.morningSummary?.enabled ? '25px' : '3px',
-                      transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                    }} />
-                  </button>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {/* Morning Summary tab */}
+              <div
+                onClick={() => setEmailPreferences(prev => ({
+                  ...prev,
+                  morningSummary: { ...prev.morningSummary, enabled: true },
+                  dayClosing: { ...prev.dayClosing, enabled: false }
+                }))}
+                style={{
+                  flex: 1, padding: '8px 10px', borderRadius: '8px', cursor: 'pointer',
+                  border: emailPreferences.morningSummary?.enabled ? '2px solid #f59e0b' : '1px solid #e5e7eb',
+                  backgroundColor: emailPreferences.morningSummary?.enabled ? '#fffbeb' : '#f9fafb',
+                }}
+              >
+                <div style={{ fontSize: '11px', fontWeight: '600', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+                  <span style={{ fontSize: '12px' }}>&#9728;&#65039;</span> Morning
                 </div>
+                <div style={{ fontSize: '9px', color: '#6b7280' }}>Yesterday&apos;s report</div>
                 {emailPreferences.morningSummary?.enabled && (
                   <select
                     value={emailPreferences.morningSummary?.time || '08:00'}
-                    onChange={(e) => setEmailPreferences(prev => ({
-                      ...prev,
-                      morningSummary: { ...prev.morningSummary, time: e.target.value }
-                    }))}
+                    onChange={(e) => { e.stopPropagation(); setEmailPreferences(prev => ({ ...prev, morningSummary: { ...prev.morningSummary, time: e.target.value } })); }}
+                    onClick={(e) => e.stopPropagation()}
                     style={{
-                      width: '100%', padding: '7px 10px', borderRadius: '8px',
-                      border: '1px solid #e5e7eb', fontSize: '12px', backgroundColor: '#fff'
+                      width: '100%', padding: '4px 6px', borderRadius: '5px',
+                      border: '1px solid #e5e7eb', fontSize: '11px', backgroundColor: '#fff', marginTop: '5px'
                     }}
                   >
                     {Array.from({ length: 24 }, (_, i) => {
@@ -1477,48 +1427,31 @@ export function HeadquartersContent({ embedded = false }) {
                 )}
               </div>
 
-              {/* Divider */}
-              <div style={{ borderTop: '1px dashed #e5e7eb' }} />
-
-              {/* Day Closing Report */}
-              <div style={{ padding: '10px 12px', backgroundColor: emailPreferences.dayClosing?.enabled ? '#eff6ff' : '#f9fafb', opacity: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: emailPreferences.dayClosing?.enabled ? '8px' : '0' }}>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                      <span style={{ fontSize: '14px' }}>&#127769;</span> Day Closing Report
-                    </div>
-                    <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '1px' }}>Today&apos;s end-of-day snapshot</div>
-                  </div>
-                  <button
-                    onClick={() => setEmailPreferences(prev => ({
-                      ...prev,
-                      dayClosing: { ...prev.dayClosing, enabled: !prev.dayClosing?.enabled },
-                      morningSummary: { ...prev.morningSummary, enabled: prev.dayClosing?.enabled ? prev.morningSummary?.enabled : false }
-                    }))}
-                    style={{
-                      width: '48px', height: '26px', borderRadius: '13px', border: 'none',
-                      backgroundColor: emailPreferences.dayClosing?.enabled ? '#3b82f6' : '#d1d5db',
-                      cursor: 'pointer', position: 'relative', transition: 'background-color 0.2s', flexShrink: 0
-                    }}
-                  >
-                    <div style={{
-                      width: '20px', height: '20px', borderRadius: '50%', backgroundColor: 'white',
-                      position: 'absolute', top: '3px',
-                      left: emailPreferences.dayClosing?.enabled ? '25px' : '3px',
-                      transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                    }} />
-                  </button>
+              {/* Day Closing tab */}
+              <div
+                onClick={() => setEmailPreferences(prev => ({
+                  ...prev,
+                  dayClosing: { ...prev.dayClosing, enabled: true },
+                  morningSummary: { ...prev.morningSummary, enabled: false }
+                }))}
+                style={{
+                  flex: 1, padding: '8px 10px', borderRadius: '8px', cursor: 'pointer',
+                  border: emailPreferences.dayClosing?.enabled ? '2px solid #3b82f6' : '1px solid #e5e7eb',
+                  backgroundColor: emailPreferences.dayClosing?.enabled ? '#eff6ff' : '#f9fafb',
+                }}
+              >
+                <div style={{ fontSize: '11px', fontWeight: '600', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+                  <span style={{ fontSize: '12px' }}>&#127769;</span> Day Close
                 </div>
+                <div style={{ fontSize: '9px', color: '#6b7280' }}>End-of-day snapshot</div>
                 {emailPreferences.dayClosing?.enabled && (
                   <select
                     value={emailPreferences.dayClosing?.time || '23:00'}
-                    onChange={(e) => setEmailPreferences(prev => ({
-                      ...prev,
-                      dayClosing: { ...prev.dayClosing, time: e.target.value }
-                    }))}
+                    onChange={(e) => { e.stopPropagation(); setEmailPreferences(prev => ({ ...prev, dayClosing: { ...prev.dayClosing, time: e.target.value } })); }}
+                    onClick={(e) => e.stopPropagation()}
                     style={{
-                      width: '100%', padding: '7px 10px', borderRadius: '8px',
-                      border: '1px solid #e5e7eb', fontSize: '12px', backgroundColor: '#fff'
+                      width: '100%', padding: '4px 6px', borderRadius: '5px',
+                      border: '1px solid #e5e7eb', fontSize: '11px', backgroundColor: '#fff', marginTop: '5px'
                     }}
                   >
                     {Array.from({ length: 24 }, (_, i) => {
@@ -1530,9 +1463,9 @@ export function HeadquartersContent({ embedded = false }) {
                 )}
               </div>
             </div>
-            <p style={{ fontSize: '10px', color: '#9ca3af', marginTop: '4px' }}>
-              Your timezone: {emailPreferences.timezone?.replace(/_/g, ' ')}
-            </p>
+            <div style={{ fontSize: '9px', color: '#9ca3af', marginTop: '3px' }}>
+              Timezone: {emailPreferences.timezone?.replace(/_/g, ' ')}
+            </div>
           </div>
 
           {/* Buttons */}
