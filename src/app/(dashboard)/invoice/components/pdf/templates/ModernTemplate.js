@@ -1,6 +1,7 @@
 'use client';
 import { Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 import { formatCurrency, formatDate, getTypeFields } from '../pdfHelpers';
+import '../../../../../../utils/pdfFonts';
 
 export default function ModernTemplate({ data, type = 'invoice', org = {}, colors = {} }) {
   const bg = colors.background || '#ffffff';
@@ -13,8 +14,8 @@ export default function ModernTemplate({ data, type = 'invoice', org = {}, color
   const labelBg5 = label + '0D'; // 5% opacity
 
   const styles = StyleSheet.create({
-    page: { padding: 40, fontSize: 10, fontFamily: 'Helvetica', color: font, backgroundColor: bg },
-    orgName: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: font, marginBottom: 8 },
+    page: { padding: 40, fontSize: 10, fontFamily: 'NotoSans', color: font, backgroundColor: bg },
+    orgName: { fontSize: 18, fontFamily: 'NotoSans', fontWeight: 700, color: font, marginBottom: 8 },
     orgDetail: { fontSize: 9, color: label, marginBottom: 2 },
     pill: {
       backgroundColor: labelBg15,
@@ -24,15 +25,15 @@ export default function ModernTemplate({ data, type = 'invoice', org = {}, color
       alignSelf: 'flex-start',
       marginTop: 12,
     },
-    pillText: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: label },
+    pillText: { fontSize: 10, fontFamily: 'NotoSans', fontWeight: 700, color: label },
     dateText: { fontSize: 9, color: label, marginTop: 6, marginBottom: 24 },
     billToSection: { marginBottom: 24 },
     billToLabel: { fontSize: 8, color: label, textTransform: 'uppercase', marginBottom: 4, letterSpacing: 1 },
-    customerName: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: font, marginBottom: 2 },
+    customerName: { fontSize: 12, fontFamily: 'NotoSans', fontWeight: 700, color: font, marginBottom: 2 },
     customerDetail: { fontSize: 9, color: label, marginBottom: 1 },
     table: { marginBottom: 24 },
     tableHeader: { flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 8, marginBottom: 2 },
-    headerText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: label, textTransform: 'uppercase', letterSpacing: 0.5 },
+    headerText: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: label, textTransform: 'uppercase', letterSpacing: 0.5 },
     tableRow: { flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 8 },
     tableRowAlt: { flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 8, backgroundColor: labelBg5 },
     colItem: { width: '50%', textAlign: 'left' },
@@ -44,7 +45,7 @@ export default function ModernTemplate({ data, type = 'invoice', org = {}, color
     totalsBox: { width: 220 },
     totalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5 },
     totalLabel: { fontSize: 10, color: label },
-    totalValue: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: font },
+    totalValue: { fontSize: 10, fontFamily: 'NotoSans', fontWeight: 700, color: font },
     grandTotalBox: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -54,10 +55,10 @@ export default function ModernTemplate({ data, type = 'invoice', org = {}, color
       borderRadius: 6,
       marginTop: 6,
     },
-    grandTotalLabel: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: font },
-    grandTotalValue: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: font },
+    grandTotalLabel: { fontSize: 12, fontFamily: 'NotoSans', fontWeight: 700, color: font },
+    grandTotalValue: { fontSize: 12, fontFamily: 'NotoSans', fontWeight: 700, color: font },
     notesSection: { marginTop: 24 },
-    notesTitle: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: label, textTransform: 'uppercase', marginBottom: 4, letterSpacing: 0.5 },
+    notesTitle: { fontSize: 9, fontFamily: 'NotoSans', fontWeight: 700, color: label, textTransform: 'uppercase', marginBottom: 4, letterSpacing: 0.5 },
     notesText: { fontSize: 9, color: font, lineHeight: 1.5 },
     footer: { position: 'absolute', bottom: 30, left: 40, right: 40, textAlign: 'center', fontSize: 8, color: label },
   });
@@ -149,7 +150,7 @@ export default function ModernTemplate({ data, type = 'invoice', org = {}, color
           </View>
           {type === 'invoice' && data.balanceDue !== undefined && data.balanceDue !== data.total && (
             <View style={[styles.totalRow, { marginTop: 4 }]}>
-              <Text style={[styles.totalLabel, { fontFamily: 'Helvetica-Bold' }]}>Balance Due</Text>
+              <Text style={[styles.totalLabel, { fontFamily: 'NotoSans', fontWeight: 700 }]}>Balance Due</Text>
               <Text style={[styles.totalValue, { color: '#2563eb' }]}>{formatCurrency(data.balanceDue, data.currencySymbol)}</Text>
             </View>
           )}

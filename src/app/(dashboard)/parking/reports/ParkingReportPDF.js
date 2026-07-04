@@ -1,6 +1,7 @@
 'use client';
 
 import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
+import '../../../../utils/pdfFonts';
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -61,35 +62,35 @@ const C = {
 // ── Styles ───────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  page: { padding: 36, fontSize: 9, fontFamily: 'Helvetica', color: C.gray900, position: 'relative' },
+  page: { padding: 36, fontSize: 9, fontFamily: 'NotoSans', color: C.gray900, position: 'relative' },
   // Header
   headerBar: { height: 4, backgroundColor: C.primary, marginBottom: 12, borderRadius: 2 },
   headerBrand: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 10 },
   logo: { width: 44, height: 44, objectFit: 'contain', borderRadius: 4 },
-  orgName: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: C.gray900 },
-  reportTitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: C.primary, marginBottom: 2 },
+  orgName: { fontSize: 16, fontFamily: 'NotoSans', fontWeight: 700, color: C.gray900 },
+  reportTitle: { fontSize: 13, fontFamily: 'NotoSans', fontWeight: 700, color: C.primary, marginBottom: 2 },
   dateRange: { fontSize: 9, color: C.gray500 },
   genDate: { fontSize: 8, color: C.gray500, marginTop: 2, marginBottom: 14 },
   // Section
-  sectionTitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: C.gray900, marginTop: 18, marginBottom: 8, paddingBottom: 4, borderBottomWidth: 2, borderBottomColor: C.primary },
+  sectionTitle: { fontSize: 11, fontFamily: 'NotoSans', fontWeight: 700, color: C.gray900, marginTop: 18, marginBottom: 8, paddingBottom: 4, borderBottomWidth: 2, borderBottomColor: C.primary },
   // Summary row
   statsRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
   statBox: { flex: 1, padding: 10, borderRadius: 6, borderWidth: 1, borderColor: C.gray200, backgroundColor: C.white },
-  statLabel: { fontSize: 7, fontFamily: 'Helvetica-Bold', color: C.gray500, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
-  statValue: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: C.gray900 },
+  statLabel: { fontSize: 7, fontFamily: 'NotoSans', fontWeight: 700, color: C.gray500, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
+  statValue: { fontSize: 14, fontFamily: 'NotoSans', fontWeight: 700, color: C.gray900 },
   statSub: { fontSize: 7, color: C.gray500, marginTop: 2 },
   // Tables
   tHead: { flexDirection: 'row', backgroundColor: C.gray100, borderBottomWidth: 1, borderBottomColor: C.gray200, paddingVertical: 6, paddingHorizontal: 6 },
   tRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: C.gray100, paddingVertical: 5, paddingHorizontal: 6 },
   tRowAlt: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: C.gray100, paddingVertical: 5, paddingHorizontal: 6, backgroundColor: C.gray50 },
-  th: { fontSize: 7, fontFamily: 'Helvetica-Bold', color: C.gray500, textTransform: 'uppercase', letterSpacing: 0.5 },
+  th: { fontSize: 7, fontFamily: 'NotoSans', fontWeight: 700, color: C.gray500, textTransform: 'uppercase', letterSpacing: 0.5 },
   td: { fontSize: 9, color: C.gray700 },
-  tdBold: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.gray900 },
+  tdBold: { fontSize: 9, fontFamily: 'NotoSans', fontWeight: 700, color: C.gray900 },
   // Payment cards
   paymentRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
   paymentCard: { flex: 1, padding: 10, borderRadius: 6, borderWidth: 1, textAlign: 'center', alignItems: 'center' },
-  paymentValue: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginTop: 4 },
-  paymentLabel: { fontSize: 8, fontFamily: 'Helvetica-Bold', marginTop: 2 },
+  paymentValue: { fontSize: 13, fontFamily: 'NotoSans', fontWeight: 700, marginTop: 4 },
+  paymentLabel: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, marginTop: 2 },
   paymentCount: { fontSize: 7, color: C.gray500, marginTop: 2 },
   // Footer
   footer: { position: 'absolute', bottom: 24, left: 36, right: 36, flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: C.gray200, paddingTop: 8 },

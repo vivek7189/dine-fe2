@@ -7,11 +7,8 @@ import {
   FaSpinner,
   FaCheckCircle,
   FaExclamationTriangle,
-  FaEye,
   FaEdit,
-  FaTrash,
   FaSave,
-  FaPlus,
   FaImage,
   FaFilePdf
 } from 'react-icons/fa';
@@ -20,9 +17,11 @@ import { useCurrency } from '../contexts/CurrencyContext';
 import { useFirebaseRealtime } from '../hooks/useFirebaseRealtime';
 
 const SUPPORTED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'tiff', 'pdf', 'csv', 'xls', 'xlsx', 'doc', 'docx', 'txt'];
-const MAX_FILE_SIZE = 300 * 1024 * 1024; // 300MB (direct GCS upload)
-const MAX_TOTAL_SIZE = 300 * 1024 * 1024; // 300MB
+const MAX_FILE_SIZE = 300 * 1024 * 1024; // 300MB (GCS direct upload supports large files)
+const MAX_TOTAL_SIZE = 300 * 1024 * 1024;
 const MAX_FILES = 10;
+// Vercel serverless body limit — files above this use signed URL flow
+const MULTIPART_SIZE_LIMIT = 4.5 * 1024 * 1024; // 4.5MB (Vercel body limit)
 
 const BulkMenuUpload = ({
   isOpen,
@@ -50,14 +49,13 @@ const BulkMenuUpload = ({
   const fileInputRef = useRef(null);
   const dragCounter = useRef(0);
 
-  // ─── New upload pipeline state ──────────────────────────────────────────────
+  // ─── Signed URL pipeline state (used when multipart fails / large files) ──
   const [processingPhase, setProcessingPhase] = useState(null); // 'uploading' | 'extracting' | null
-  const [uploadProgress, setUploadProgress] = useState(0); // 0–100 for GCS upload
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [extractionProgress, setExtractionProgress] = useState({ page: 0, total: 0, items: 0 });
   const [currentJobId, setCurrentJobId] = useState(null);
-  const [currentFileIndex, setCurrentFileIndex] = useState(0);
 
-  // ─── RTDB listener for extraction progress ─────────────────────────────────
+  // ─── RTDB listener for extraction progress (signed URL flow only) ─────────
   useFirebaseRealtime(restaurantId, 'bulk-upload', useCallback((event) => {
     if (!currentJobId || event.jobId !== currentJobId) return;
     switch (event.type) {
@@ -72,7 +70,6 @@ const BulkMenuUpload = ({
         }));
         break;
       case 'bulk-upload-page-error':
-        // Page failed but keep going — other pages still processing
         setExtractionProgress(prev => ({
           ...prev,
           page: event.page,
@@ -80,7 +77,6 @@ const BulkMenuUpload = ({
         }));
         break;
       case 'bulk-upload-complete':
-        // Fetch results from Redis
         fetchResultAndShow(event.jobId);
         break;
       case 'bulk-upload-failed':
@@ -91,59 +87,14 @@ const BulkMenuUpload = ({
     }
   }, [currentJobId]), processingPhase === 'extracting');
 
-  // ─── Fetch extraction result from backend ───────────────────────────────────
+  // ─── Fetch extraction result from backend (signed URL flow) ───────────────
   const fetchResultAndShow = async (jobId) => {
     try {
       const result = await apiClient.getMenuUploadResult(restaurantId, jobId);
       const categories = result.extractedCategories || result.categories || [];
       const menuItems = result.menuItems || [];
-
       if (menuItems.length > 0) {
-        // Wrap in the format the preview expects
-        setExtractedMenus([{ file: 'Uploaded Menu', menuItems, extractionStatus: 'success' }]);
-        setExtractedCategories(categories);
-        setSelectedItems(menuItems.map((item, i) => ({ ...item, key: `0-${i}`, fileIndex: 0, itemIndex: i })));
-
-        // Auto-save
-        try {
-          setSuccess('Saving menu items to database...');
-          let savedCount = 0;
-
-          if (mode === 'template' && orgId && templateId) {
-            for (const item of menuItems) {
-              try {
-                await apiClient.addMenuTemplateItem(orgId, templateId, {
-                  name: item.name || '', category: item.category || 'Uncategorized',
-                  basePrice: item.price || 0, description: item.description || '',
-                  isVeg: item.isVeg !== undefined ? item.isVeg : true,
-                  variants: item.variants || [], customizations: item.customizations || [],
-                  shortCode: item.shortCode || '', images: [],
-                });
-                savedCount++;
-              } catch (itemErr) { console.error('Failed to save template item:', item.name, itemErr); }
-            }
-          } else {
-            const itemsToSave = markTaxInclusive != null
-              ? menuItems.map(item => ({ ...item, taxInclusive: markTaxInclusive }))
-              : menuItems;
-            const saveResponse = await apiClient.bulkSaveMenuItems(restaurantId, itemsToSave, categories);
-            savedCount = saveResponse.savedCount || 0;
-          }
-
-          if (savedCount > 0) {
-            setSuccess(`${savedCount} menu items extracted and saved successfully!`);
-            onMenuItemsAdded && onMenuItemsAdded();
-            setTimeout(() => { onClose(); resetForm(); }, 3000);
-          } else {
-            setError('Failed to save menu items to database. Please try again.');
-            setPreviewMode(true);
-          }
-        } catch (saveError) {
-          console.error('Auto-save error:', saveError);
-          setError(`Menu items extracted but failed to save: ${saveError.message}`);
-          setPreviewMode(true);
-          setSuccess('Menu items extracted successfully. You can review and save them manually below.');
-        }
+        handleExtractionSuccess([{ file: 'Uploaded Menu', menuItems, extractionStatus: 'success' }], categories, menuItems);
       } else {
         setError('No menu items were extracted. Please try with clearer files.');
       }
@@ -156,9 +107,61 @@ const BulkMenuUpload = ({
     }
   };
 
-  // ─── Upload a single file via signed URL → GCS → trigger processing ────────
-  const uploadSingleFile = async (file) => {
-    // Step 1: Get signed URL
+  // ─── Shared: handle successful extraction (used by both flows) ────────────
+  const handleExtractionSuccess = async (menus, categories, allItems) => {
+    setExtractedMenus(menus);
+    setExtractedCategories(categories);
+    setSelectedItems(allItems.map((item, i) => {
+      const fileIndex = menus.findIndex(m => (m.menuItems || []).includes(item));
+      const itemIndex = (menus[fileIndex >= 0 ? fileIndex : 0]?.menuItems || []).indexOf(item);
+      return { ...item, key: `${Math.max(fileIndex, 0)}-${Math.max(itemIndex, 0)}`, fileIndex: Math.max(fileIndex, 0), itemIndex: Math.max(itemIndex, 0) };
+    }));
+
+    // Auto-save extracted items
+    try {
+      setSuccess('Saving menu items to database...');
+      let savedCount = 0;
+
+      if (mode === 'template' && orgId && templateId) {
+        for (const item of allItems) {
+          try {
+            await apiClient.addMenuTemplateItem(orgId, templateId, {
+              name: item.name || '', category: item.category || 'Uncategorized',
+              basePrice: item.price || 0, description: item.description || '',
+              isVeg: item.isVeg !== undefined ? item.isVeg : true,
+              variants: item.variants || [], customizations: item.customizations || [],
+              shortCode: item.shortCode || '', images: [],
+            });
+            savedCount++;
+          } catch (itemErr) { console.error('Failed to save template item:', item.name, itemErr); }
+        }
+      } else {
+        const itemsToSave = markTaxInclusive != null
+          ? allItems.map(item => ({ ...item, taxInclusive: markTaxInclusive }))
+          : allItems;
+        const saveResponse = await apiClient.bulkSaveMenuItems(restaurantId, itemsToSave, categories);
+        savedCount = saveResponse.savedCount || 0;
+      }
+
+      if (savedCount > 0) {
+        setSuccess(`${savedCount} menu items extracted and saved successfully!`);
+        onMenuItemsAdded && onMenuItemsAdded();
+        setTimeout(() => { onClose(); resetForm(); }, 3000);
+      } else {
+        setError('Failed to save menu items to database. Please try again.');
+        setPreviewMode(true);
+      }
+    } catch (saveError) {
+      console.error('Auto-save error:', saveError);
+      setError(`Menu items extracted but failed to save: ${saveError.message}`);
+      setPreviewMode(true);
+      setSuccess('Menu items extracted successfully. You can review and save them manually below.');
+    }
+  };
+
+  // ─── Signed URL upload (GCP / large files) ───────────────────────────────
+  const uploadViaSignedUrl = async (file) => {
+    // Step 1: Get signed URL from backend
     const { jobId, uploadUrl, gcsPath } = await apiClient.getMenuUploadUrl(restaurantId, {
       fileName: file.name,
       fileType: file.type || 'application/octet-stream',
@@ -189,7 +192,7 @@ const BulkMenuUpload = ({
       xhr.send(file);
     });
 
-    // Step 3: Trigger processing (returns 202 immediately)
+    // Step 3: Trigger async processing (returns 202 immediately)
     setProcessingPhase('extracting');
     setExtractionProgress({ page: 0, total: 0, items: 0 });
 
@@ -200,11 +203,28 @@ const BulkMenuUpload = ({
       fileType: file.type || 'application/octet-stream',
     });
 
-    // Now we wait for RTDB events to fire (handled by useFirebaseRealtime above)
-    // The 'bulk-upload-complete' event will call fetchResultAndShow()
+    // Now RTDB events handle progress + completion via useFirebaseRealtime above
   };
 
-  // ─── Main upload handler ────────────────────────────────────────────────────
+  // ─── Multipart upload (Vercel / small files) ─────────────────────────────
+  const uploadViaMultipart = async () => {
+    const formData = new FormData();
+    uploadedFiles.forEach(file => formData.append('menuFiles', file));
+
+    const result = await apiClient.bulkUploadMenu(restaurantId, formData);
+
+    const menus = result.data || [];
+    const categories = result.extractedCategories || [];
+    const allItems = menus.flatMap(m => m.menuItems || []);
+
+    if (allItems.length > 0) {
+      await handleExtractionSuccess(menus, categories, allItems);
+    } else {
+      setError('No menu items were extracted. Please try with clearer files.');
+    }
+  };
+
+  // ─── Main upload handler — auto-detects which flow to use ─────────────────
   const handleUploadAndExtract = async () => {
     if (uploadedFiles.length === 0) { setError('Please select files to upload'); return; }
     if (!restaurantId) { setError('Restaurant ID is required'); return; }
@@ -217,37 +237,52 @@ const BulkMenuUpload = ({
       const token = localStorage.getItem('authToken');
       if (!token) { setError('Please log in to upload files'); setProcessing(false); return; }
 
-      // Process files sequentially (each gets its own signed URL + job)
-      // For now, process first file. Multi-file can be added later.
-      // Most users upload one file (a single PDF/image with their full menu).
-      const file = uploadedFiles[0];
-      setCurrentFileIndex(0);
+      const totalSize = uploadedFiles.reduce((sum, f) => sum + f.size, 0);
 
-      await uploadSingleFile(file);
-
-      // If we had multiple files, we'd loop here.
-      // But the RTDB listener handles completion + auto-save.
-      // Processing continues async — we wait for RTDB events.
-
+      // If total file size is small enough, use multipart (works on Vercel + GCP)
+      // If files are large, try signed URL first (GCP), fall back to multipart
+      if (totalSize <= MULTIPART_SIZE_LIMIT) {
+        // Small files — multipart works everywhere
+        await uploadViaMultipart();
+      } else {
+        // Large files — try signed URL (GCP async processing)
+        // If signed URL endpoint doesn't exist (Vercel), fall back to multipart
+        try {
+          // For signed URL flow, process first file (most users upload one PDF/image)
+          await uploadViaSignedUrl(uploadedFiles[0]);
+          // Async flow — RTDB events handle the rest, don't setProcessing(false) here
+          return;
+        } catch (signedUrlError) {
+          console.warn('Signed URL upload not available, falling back to multipart:', signedUrlError.message);
+          // Signed URL endpoints don't exist on this backend — fall back to multipart
+          setProcessingPhase(null);
+          setCurrentJobId(null);
+          await uploadViaMultipart();
+        }
+      }
     } catch (error) {
       console.error('Upload error:', error);
       let errorMessage = 'Upload failed';
       if (error.message) {
         if (error.message.includes('Network')) errorMessage = 'Network error. Please check your connection.';
-        else if (error.message.includes('timeout')) errorMessage = 'Request timed out. Please try again.';
+        else if (error.message.includes('timeout')) errorMessage = 'Request timed out. The file may be too large for this server. Try a smaller file or fewer pages.';
+        else if (error.message.includes('413') || error.message.includes('too large') || error.message.includes('payload')) errorMessage = 'File too large for this server. Try a smaller file or fewer pages.';
         else errorMessage = error.message;
       }
       setError(errorMessage);
       setProcessingPhase(null);
-      setProcessing(false);
+    } finally {
+      // Only clear processing if not in async signed URL flow
+      if (processingPhase !== 'extracting') {
+        setProcessing(false);
+      }
     }
   };
 
-  // ─── Fallback: poll for result if RTDB event missed ─────────────────────────
+  // ─── Fallback: poll for result if RTDB event missed (signed URL flow) ─────
   useEffect(() => {
     if (processingPhase !== 'extracting' || !currentJobId) return;
 
-    // Poll every 10s as fallback (RTDB is primary)
     const pollInterval = setInterval(async () => {
       try {
         const result = await apiClient.getMenuUploadResult(restaurantId, currentJobId);
@@ -414,7 +449,7 @@ const BulkMenuUpload = ({
     setPreviewMode(false); setError(''); setSuccess(''); setIsDragging(false);
     setProcessingPhase(null); setUploadProgress(0);
     setExtractionProgress({ page: 0, total: 0, items: 0 });
-    setCurrentJobId(null); setCurrentFileIndex(0);
+    setCurrentJobId(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -440,53 +475,66 @@ const BulkMenuUpload = ({
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
   const isShortScreen = typeof window !== 'undefined' && window.innerHeight < 700;
 
-  // ─── Progress UI ────────────────────────────────────────────────────────────
+  // ─── Progress UI (signed URL flow shows detailed progress) ────────────────
   const ProgressDisplay = () => {
-    if (!processingPhase) return null;
+    if (!processing) return null;
 
-    const isUploading = processingPhase === 'uploading';
-    const isExtracting = processingPhase === 'extracting';
-    const progressPercent = isUploading
-      ? uploadProgress
-      : extractionProgress.total > 0
-        ? Math.round((extractionProgress.page / extractionProgress.total) * 100)
-        : 0;
+    // Signed URL flow — show detailed upload/extraction progress
+    if (processingPhase) {
+      const isUploading = processingPhase === 'uploading';
+      const progressPercent = isUploading
+        ? uploadProgress
+        : extractionProgress.total > 0
+          ? Math.round((extractionProgress.page / extractionProgress.total) * 100)
+          : 0;
 
+      return (
+        <div style={{
+          padding: '12px', backgroundColor: '#eff6ff', borderRadius: '10px',
+          border: '1px solid #bfdbfe', marginBottom: '12px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+            <FaSpinner className="animate-spin" size={14} style={{ color: '#3b82f6' }} />
+            <span style={{ fontSize: '13px', fontWeight: '600', color: '#1e40af' }}>
+              {isUploading
+                ? `Uploading file... ${uploadProgress}%`
+                : extractionProgress.total > 1
+                  ? `AI reading your menu — Page ${extractionProgress.page} of ${extractionProgress.total}`
+                  : 'AI reading your menu...'
+              }
+            </span>
+          </div>
+          <div style={{
+            height: '5px', backgroundColor: '#dbeafe', borderRadius: '3px', overflow: 'hidden',
+          }}>
+            <div style={{
+              height: '100%',
+              width: `${progressPercent}%`,
+              backgroundColor: '#3b82f6',
+              borderRadius: '3px',
+              transition: 'width 0.3s ease',
+            }} />
+          </div>
+          {!isUploading && extractionProgress.items > 0 && (
+            <div style={{ fontSize: '11px', color: '#3b82f6', marginTop: '6px', fontWeight: '500' }}>
+              {extractionProgress.items} items found so far
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Multipart flow — simple spinner
     return (
       <div style={{
-        padding: '16px', backgroundColor: '#eff6ff', borderRadius: '12px',
-        border: '1px solid #bfdbfe', marginBottom: '16px',
+        padding: '12px', backgroundColor: '#eff6ff', borderRadius: '10px',
+        border: '1px solid #bfdbfe', marginBottom: '12px',
+        display: 'flex', alignItems: 'center', gap: '10px',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-          <FaSpinner className="animate-spin" size={14} style={{ color: '#3b82f6' }} />
-          <span style={{ fontSize: '13px', fontWeight: '600', color: '#1e40af' }}>
-            {isUploading
-              ? `Uploading file... ${uploadProgress}%`
-              : extractionProgress.total > 1
-                ? `AI reading your menu — Page ${extractionProgress.page} of ${extractionProgress.total}`
-                : 'AI reading your menu...'
-            }
-          </span>
-        </div>
-
-        {/* Progress bar */}
-        <div style={{
-          height: '6px', backgroundColor: '#dbeafe', borderRadius: '3px', overflow: 'hidden',
-        }}>
-          <div style={{
-            height: '100%',
-            width: `${progressPercent}%`,
-            backgroundColor: '#3b82f6',
-            borderRadius: '3px',
-            transition: 'width 0.3s ease',
-          }} />
-        </div>
-
-        {isExtracting && extractionProgress.items > 0 && (
-          <div style={{ fontSize: '12px', color: '#3b82f6', marginTop: '8px', fontWeight: '500' }}>
-            {extractionProgress.items} items found so far
-          </div>
-        )}
+        <FaSpinner className="animate-spin" size={14} style={{ color: '#3b82f6' }} />
+        <span style={{ fontSize: '13px', fontWeight: '600', color: '#1e40af' }}>
+          Uploading & extracting menu items with AI...
+        </span>
       </div>
     );
   };
@@ -495,35 +543,35 @@ const BulkMenuUpload = ({
   const ActionButtons = () => !previewMode ? (
     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
       <button onClick={handleClose} disabled={processing} style={{
-        padding: isShortScreen ? '8px 16px' : '10px 20px', backgroundColor: 'white', color: '#6b7280',
-        fontSize: '13px', fontWeight: '500', border: '1px solid #e5e7eb', borderRadius: '8px',
+        padding: '7px 14px', backgroundColor: 'white', color: '#6b7280',
+        fontSize: '12px', fontWeight: '500', border: '1px solid #e5e7eb', borderRadius: '8px',
         cursor: processing ? 'not-allowed' : 'pointer', opacity: processing ? 0.5 : 1,
       }}>Cancel</button>
       <button onClick={handleUploadAndExtract} disabled={uploadedFiles.length === 0 || processing} style={{
-        padding: isShortScreen ? '8px 16px' : '10px 20px',
+        padding: '7px 14px',
         background: uploadedFiles.length === 0 || processing ? '#d1d5db' : 'linear-gradient(135deg, #ef4444, #dc2626)',
-        color: 'white', fontSize: '13px', fontWeight: '600', border: 'none', borderRadius: '8px',
+        color: 'white', fontSize: '12px', fontWeight: '600', border: 'none', borderRadius: '8px',
         cursor: uploadedFiles.length === 0 || processing ? 'not-allowed' : 'pointer',
         display: 'flex', alignItems: 'center', gap: '6px',
         boxShadow: uploadedFiles.length === 0 || processing ? 'none' : '0 4px 12px rgba(239, 68, 68, 0.3)',
       }}>
-        {processing ? <FaSpinner className="animate-spin" size={12} /> : <FaUpload size={12} />}
+        {processing ? <FaSpinner className="animate-spin" size={11} /> : <FaUpload size={11} />}
         {processing ? 'Processing...' : 'Upload & Extract'}
       </button>
     </div>
   ) : (
     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
       <button onClick={() => setPreviewMode(false)} style={{
-        padding: isShortScreen ? '8px 16px' : '10px 20px', backgroundColor: '#f3f4f6', color: '#6b7280',
-        fontSize: '13px', fontWeight: '500', border: '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer',
+        padding: '7px 14px', backgroundColor: '#f3f4f6', color: '#6b7280',
+        fontSize: '12px', fontWeight: '500', border: '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer',
       }}>Back</button>
       <button onClick={handleSaveMenuItems} disabled={selectedItems.length === 0 || processing} style={{
-        padding: isShortScreen ? '8px 16px' : '10px 20px',
+        padding: '7px 14px',
         backgroundColor: processing ? '#d1d5db' : '#10b981', color: 'white',
-        fontSize: '13px', fontWeight: '600', border: 'none', borderRadius: '8px',
+        fontSize: '12px', fontWeight: '600', border: 'none', borderRadius: '8px',
         cursor: processing ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
       }}>
-        {processing ? <FaSpinner className="animate-spin" size={12} /> : <FaSave size={12} />}
+        {processing ? <FaSpinner className="animate-spin" size={11} /> : <FaSave size={11} />}
         {processing ? 'Saving...' : `Save ${selectedItems.length} Items`}
       </button>
     </div>
@@ -542,16 +590,16 @@ const BulkMenuUpload = ({
       onDrop={handleDrop}
     >
       <div style={{
-        backgroundColor: 'white', borderRadius: isShortScreen ? '16px' : '24px',
+        backgroundColor: 'white', borderRadius: '16px',
         boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
-        width: '100%', maxWidth: previewMode ? '1200px' : '580px',
-        maxHeight: isShortScreen ? '98vh' : '90vh',
+        width: '100%', maxWidth: previewMode ? '1200px' : '520px',
+        maxHeight: '85vh',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
         {/* Header */}
         <div style={{
           background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-          padding: '10px 18px',
+          padding: '8px 16px',
           flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -576,7 +624,7 @@ const BulkMenuUpload = ({
         </div>
 
         {/* Scrollable Content */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: isShortScreen ? '14px 16px' : '20px 24px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
           {!previewMode ? (
             <div>
               {/* Top action buttons on short screens */}
@@ -592,14 +640,13 @@ const BulkMenuUpload = ({
                 <div
                   style={{
                     border: `2px dashed ${isDragging ? '#ef4444' : '#e5e7eb'}`,
-                    borderRadius: '14px',
-                    padding: isShortScreen ? '20px 16px' : '30px 20px',
+                    borderRadius: '12px',
+                    padding: '16px',
                     textAlign: 'center',
-                    marginBottom: '16px',
+                    marginBottom: '12px',
                     backgroundColor: isDragging ? '#fef2f2' : '#fafafa',
                     transition: 'all 0.2s ease',
                     cursor: 'pointer',
-                    transform: isDragging ? 'scale(1.01)' : 'scale(1)',
                   }}
                   onClick={() => fileInputRef.current?.click()}
                   onDragEnter={handleDragEnter}
@@ -608,19 +655,25 @@ const BulkMenuUpload = ({
                   onDrop={handleDrop}
                 >
                   <div style={{
-                    width: isShortScreen ? '40px' : '50px', height: isShortScreen ? '40px' : '50px',
-                    background: isDragging ? 'linear-gradient(135deg, #ef4444, #fecaca)' : 'linear-gradient(135deg, #fecaca, #fef2f2)',
-                    borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    margin: '0 auto 10px auto', transition: 'all 0.2s',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
                   }}>
-                    <FaUpload size={isShortScreen ? 16 : 20} style={{ color: isDragging ? '#fff' : '#ef4444' }} />
+                    <div style={{
+                      width: '36px', height: '36px',
+                      background: isDragging ? 'linear-gradient(135deg, #ef4444, #fecaca)' : 'linear-gradient(135deg, #fecaca, #fef2f2)',
+                      borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <FaUpload size={14} style={{ color: isDragging ? '#fff' : '#ef4444' }} />
+                    </div>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937' }}>
+                        {isDragging ? 'Drop files here!' : 'Click to upload or drag & drop'}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>
+                        Photos, PDFs, Excel, CSV — up to {MAX_FILES} files, {MAX_TOTAL_SIZE / (1024 * 1024)}MB
+                      </div>
+                    </div>
                   </div>
-                  <h4 style={{ fontSize: isShortScreen ? '13px' : '15px', fontWeight: '600', color: '#1f2937', marginBottom: '4px' }}>
-                    {isDragging ? 'Drop files here!' : 'Click to upload or drag & drop'}
-                  </h4>
-                  <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0, lineHeight: '1.4' }}>
-                    Photos, PDFs, Excel, CSV, Documents — up to {MAX_FILES} files, {MAX_TOTAL_SIZE / (1024 * 1024)}MB
-                  </p>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -632,13 +685,13 @@ const BulkMenuUpload = ({
                 </div>
               )}
 
-              {/* Feature Chips */}
-              {!isShortScreen && !processing && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px', justifyContent: 'center' }}>
+              {/* Feature Chips — hidden on short screens or when files selected */}
+              {!isShortScreen && !processing && uploadedFiles.length === 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '12px', justifyContent: 'center' }}>
                   {['📸 Photos', '📄 PDFs', '📊 Excel/CSV', '🤖 AI Extract'].map(text => (
                     <span key={text} style={{
-                      display: 'inline-flex', alignItems: 'center', padding: '4px 10px',
-                      backgroundColor: '#f3f4f6', borderRadius: '16px', fontSize: '11px', color: '#4b5563', fontWeight: '500'
+                      display: 'inline-flex', alignItems: 'center', padding: '3px 8px',
+                      backgroundColor: '#f3f4f6', borderRadius: '12px', fontSize: '10px', color: '#4b5563', fontWeight: '500'
                     }}>{text}</span>
                   ))}
                 </div>
@@ -646,11 +699,11 @@ const BulkMenuUpload = ({
 
               {/* Uploaded Files List */}
               {uploadedFiles.length > 0 && (
-                <div style={{ marginBottom: '16px' }}>
-                  <h4 style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                <div style={{ marginBottom: '12px' }}>
+                  <h4 style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
                     Selected Files ({uploadedFiles.length})
                   </h4>
-                  <div style={{ maxHeight: isShortScreen ? '120px' : '160px', overflowY: 'auto' }}>
+                  <div style={{ maxHeight: '120px', overflowY: 'auto' }}>
                     {uploadedFiles.map((file, index) => (
                       <div key={index} style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -683,11 +736,11 @@ const BulkMenuUpload = ({
               {/* Tax Inclusive Option */}
               {taxSettings?.enabled && uploadedFiles.length > 0 && !processing && (
                 <div style={{
-                  marginBottom: '14px', padding: '10px 14px', backgroundColor: '#f8fafc',
+                  marginBottom: '12px', padding: '8px 12px', backgroundColor: '#f8fafc',
                   borderRadius: '8px', border: '1px solid #e2e8f0'
                 }}>
-                  <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '4px' }}>
-                    Tax Pricing for uploaded items
+                  <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '3px' }}>
+                    Tax Pricing
                   </label>
                   <select
                     value={markTaxInclusive === null || markTaxInclusive === undefined ? 'default' : markTaxInclusive ? 'inclusive' : 'exclusive'}

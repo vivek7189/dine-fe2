@@ -1,6 +1,7 @@
 'use client';
 
 import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
+import '../../../../../utils/pdfFonts';
 
 let _cs = 'Rs.';
 function setCS(symbol) { _cs = symbol || 'Rs.'; }
@@ -22,35 +23,35 @@ function formatDate(dateStr) {
 }
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontSize: 10, fontFamily: 'Helvetica', color: '#111827' },
+  page: { padding: 40, fontSize: 10, fontFamily: 'NotoSans', color: '#111827' },
   header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  title: { fontSize: 20, fontFamily: 'Helvetica-Bold' },
+  title: { fontSize: 20, fontFamily: 'NotoSans', fontWeight: 700 },
   subtitle: { fontSize: 9, color: '#6b7280', marginTop: 3 },
-  orgName: { fontSize: 14, fontFamily: 'Helvetica-Bold' },
+  orgName: { fontSize: 14, fontFamily: 'NotoSans', fontWeight: 700 },
   logo: { width: 48, height: 48, objectFit: 'contain', borderRadius: 4, marginBottom: 4 },
   headerBar: { height: 4, backgroundColor: '#16a34a', marginBottom: 16, borderRadius: 2 },
-  sectionTitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', marginTop: 16, marginBottom: 8 },
+  sectionTitle: { fontSize: 12, fontFamily: 'NotoSans', fontWeight: 700, marginTop: 16, marginBottom: 8 },
   statsRow: { flexDirection: 'row', marginBottom: 16, gap: 12 },
   statBox: { flex: 1, backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 4, padding: 10 },
-  statLabel: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#6b7280', textTransform: 'uppercase', marginBottom: 3 },
-  statValue: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#111827' },
+  statLabel: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 3 },
+  statValue: { fontSize: 14, fontFamily: 'NotoSans', fontWeight: 700, color: '#111827' },
   table: { marginBottom: 20 },
   tableHeader: { flexDirection: 'row', backgroundColor: '#f3f4f6', borderBottomWidth: 1, borderBottomColor: '#e5e7eb', paddingVertical: 8, paddingHorizontal: 8 },
   tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#f3f4f6', paddingVertical: 8, paddingHorizontal: 8 },
-  headerText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#6b7280', textTransform: 'uppercase' },
+  headerText: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' },
   cellText: { fontSize: 9, color: '#111827' },
   summaryBox: { backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 4, padding: 12, marginBottom: 16 },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
   summaryLabel: { fontSize: 10, color: '#6b7280' },
-  summaryValue: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#111827' },
+  summaryValue: { fontSize: 10, fontFamily: 'NotoSans', fontWeight: 700, color: '#111827' },
   grandTotalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderTopWidth: 1, borderTopColor: '#d1d5db', marginTop: 4 },
-  grandTotalLabel: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#111827' },
-  grandTotalValue: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#111827' },
+  grandTotalLabel: { fontSize: 12, fontFamily: 'NotoSans', fontWeight: 700, color: '#111827' },
+  grandTotalValue: { fontSize: 12, fontFamily: 'NotoSans', fontWeight: 700, color: '#111827' },
   footer: { position: 'absolute', bottom: 30, left: 40, right: 40, textAlign: 'center', fontSize: 8, color: '#6b7280' },
   textRed: { color: '#dc2626' },
   textGreen: { color: '#16a34a' },
   recipeCard: { marginBottom: 16, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 4, padding: 12 },
-  recipeName: { fontSize: 12, fontFamily: 'Helvetica-Bold', marginBottom: 8 },
+  recipeName: { fontSize: 12, fontFamily: 'NotoSans', fontWeight: 700, marginBottom: 8 },
   instructionItem: { fontSize: 9, color: '#111827', marginBottom: 3, lineHeight: 1.5 },
   noData: { fontSize: 10, color: '#6b7280', textAlign: 'center', paddingVertical: 20 },
 });

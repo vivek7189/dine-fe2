@@ -1,6 +1,7 @@
 'use client';
 import { Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 import { formatCurrency, formatDate, getTypeFields } from '../pdfHelpers';
+import '../../../../../../utils/pdfFonts';
 
 export default function CompactTemplate({ data, type = 'invoice', org = {}, colors = {} }) {
   const bg = colors.background || '#ffffff';
@@ -12,7 +13,7 @@ export default function CompactTemplate({ data, type = 'invoice', org = {}, colo
   const labelBg8 = label + '14'; // 8% opacity
 
   const styles = StyleSheet.create({
-    page: { padding: 30, fontSize: 9, fontFamily: 'Helvetica', color: font, backgroundColor: bg },
+    page: { padding: 30, fontSize: 9, fontFamily: 'NotoSans', color: font, backgroundColor: bg },
     headerBlock: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -22,7 +23,7 @@ export default function CompactTemplate({ data, type = 'invoice', org = {}, colo
       paddingHorizontal: 14,
       marginBottom: 14,
     },
-    orgName: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: font },
+    orgName: { fontSize: 12, fontFamily: 'NotoSans', fontWeight: 700, color: font },
     orgGstin: { fontSize: 8, color: label, marginTop: 2 },
     numberBadge: {
       backgroundColor: label,
@@ -30,7 +31,7 @@ export default function CompactTemplate({ data, type = 'invoice', org = {}, colo
       paddingVertical: 4,
       borderRadius: 4,
     },
-    numberBadgeText: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#ffffff' },
+    numberBadgeText: { fontSize: 9, fontFamily: 'NotoSans', fontWeight: 700, color: '#ffffff' },
     dateText: { fontSize: 8, color: label, marginTop: 4, textAlign: 'right' },
     billToRow: {
       flexDirection: 'row',
@@ -41,7 +42,7 @@ export default function CompactTemplate({ data, type = 'invoice', org = {}, colo
       borderBottomColor: label + '40',
       marginBottom: 14,
     },
-    billToName: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: font },
+    billToName: { fontSize: 10, fontFamily: 'NotoSans', fontWeight: 700, color: font },
     billToDetail: { fontSize: 8, color: label },
     itemRow: {
       flexDirection: 'row',
@@ -53,12 +54,12 @@ export default function CompactTemplate({ data, type = 'invoice', org = {}, colo
       borderBottomStyle: 'dotted',
     },
     itemLeft: { fontSize: 9, color: font, maxWidth: '70%' },
-    itemAmount: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: font },
+    itemAmount: { fontSize: 9, fontFamily: 'NotoSans', fontWeight: 700, color: font },
     totalsSection: { marginTop: 12, alignItems: 'flex-end', marginBottom: 16 },
     totalsBox: { width: 200 },
     totalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
     totalLabel: { fontSize: 9, color: label },
-    totalValue: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: font },
+    totalValue: { fontSize: 9, fontFamily: 'NotoSans', fontWeight: 700, color: font },
     grandTotalRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -67,10 +68,10 @@ export default function CompactTemplate({ data, type = 'invoice', org = {}, colo
       backgroundColor: labelBg8,
       marginTop: 4,
     },
-    grandTotalLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: font },
-    grandTotalValue: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: font },
+    grandTotalLabel: { fontSize: 10, fontFamily: 'NotoSans', fontWeight: 700, color: font },
+    grandTotalValue: { fontSize: 10, fontFamily: 'NotoSans', fontWeight: 700, color: font },
     notesSection: { marginTop: 14, paddingTop: 10, borderTopWidth: 0.5, borderTopColor: label + '40' },
-    notesTitle: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: label, textTransform: 'uppercase', marginBottom: 3 },
+    notesTitle: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: label, textTransform: 'uppercase', marginBottom: 3 },
     notesText: { fontSize: 8, color: font, lineHeight: 1.4 },
     footer: { position: 'absolute', bottom: 20, left: 30, right: 30, textAlign: 'center', fontSize: 7, color: label },
   });
@@ -105,7 +106,7 @@ export default function CompactTemplate({ data, type = 'invoice', org = {}, colo
         </View>
         <View style={{ alignItems: 'flex-end' }}>
           {data.customer?.email && <Text style={styles.billToDetail}>{data.customer.email}</Text>}
-          <Text style={[styles.billToDetail, { fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginTop: 2 }]}>
+          <Text style={[styles.billToDetail, { fontFamily: 'NotoSans', fontWeight: 700, textTransform: 'uppercase', marginTop: 2 }]}>
             {(data.status || 'draft').toUpperCase()}
           </Text>
         </View>
@@ -158,7 +159,7 @@ export default function CompactTemplate({ data, type = 'invoice', org = {}, colo
           </View>
           {type === 'invoice' && data.balanceDue !== undefined && data.balanceDue !== data.total && (
             <View style={[styles.totalRow, { marginTop: 4 }]}>
-              <Text style={[styles.totalLabel, { fontFamily: 'Helvetica-Bold' }]}>Balance Due</Text>
+              <Text style={[styles.totalLabel, { fontFamily: 'NotoSans', fontWeight: 700 }]}>Balance Due</Text>
               <Text style={[styles.totalValue, { color: '#2563eb' }]}>{formatCurrency(data.balanceDue, data.currencySymbol)}</Text>
             </View>
           )}

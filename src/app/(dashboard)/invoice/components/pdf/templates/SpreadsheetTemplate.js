@@ -1,6 +1,7 @@
 'use client';
 import { Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 import { formatCurrency, formatDate, getTypeFields } from '../pdfHelpers';
+import '../../../../../../utils/pdfFonts';
 
 export default function SpreadsheetTemplate({ data, type = 'invoice', org = {}, colors = {} }) {
   const bg = colors.background || '#ffffff';
@@ -13,7 +14,7 @@ export default function SpreadsheetTemplate({ data, type = 'invoice', org = {}, 
   const showTax = type !== 'challan';
 
   const styles = StyleSheet.create({
-    page: { padding: 30, fontSize: 9, fontFamily: 'Helvetica', color: font, backgroundColor: bg },
+    page: { padding: 30, fontSize: 9, fontFamily: 'NotoSans', color: font, backgroundColor: bg },
     topBar: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -23,22 +24,22 @@ export default function SpreadsheetTemplate({ data, type = 'invoice', org = {}, 
       paddingHorizontal: 16,
       marginBottom: 16,
     },
-    topBarTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#ffffff' },
-    topBarNumber: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#ffffff' },
+    topBarTitle: { fontSize: 16, fontFamily: 'NotoSans', fontWeight: 700, color: '#ffffff' },
+    topBarNumber: { fontSize: 10, fontFamily: 'NotoSans', fontWeight: 700, color: '#ffffff' },
     fromToSection: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
     fromToBlock: { width: '48%' },
     sectionLabel: {
       fontSize: 7,
-      fontFamily: 'Helvetica-Bold',
+      fontFamily: 'NotoSans', fontWeight: 700,
       color: label,
       textTransform: 'uppercase',
       letterSpacing: 1,
       marginBottom: 4,
     },
-    orgName: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: font, marginBottom: 2 },
+    orgName: { fontSize: 10, fontFamily: 'NotoSans', fontWeight: 700, color: font, marginBottom: 2 },
     detailText: { fontSize: 8, color: label, marginBottom: 1 },
     metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
-    metaLabel: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: label },
+    metaLabel: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: label },
     metaValue: { fontSize: 8, color: font },
     table: { marginBottom: 16 },
     tableHeader: {
@@ -47,7 +48,7 @@ export default function SpreadsheetTemplate({ data, type = 'invoice', org = {}, 
       paddingVertical: 6,
       paddingHorizontal: 6,
     },
-    headerText: { fontSize: 7, fontFamily: 'Helvetica-Bold', color: '#ffffff', textTransform: 'uppercase' },
+    headerText: { fontSize: 7, fontFamily: 'NotoSans', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' },
     tableRow: { flexDirection: 'row', paddingVertical: 5, paddingHorizontal: 6 },
     tableRowAlt: { flexDirection: 'row', paddingVertical: 5, paddingHorizontal: 6, backgroundColor: labelBg5 },
     cellText: { fontSize: 8, color: font },
@@ -67,7 +68,7 @@ export default function SpreadsheetTemplate({ data, type = 'invoice', org = {}, 
       paddingHorizontal: 8,
     },
     totalLabel: { fontSize: 9, color: label },
-    totalValue: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: font },
+    totalValue: { fontSize: 9, fontFamily: 'NotoSans', fontWeight: 700, color: font },
     grandTotalRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -76,10 +77,10 @@ export default function SpreadsheetTemplate({ data, type = 'invoice', org = {}, 
       backgroundColor: label + '1A',
       marginTop: 2,
     },
-    grandTotalLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: font },
-    grandTotalValue: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: font },
+    grandTotalLabel: { fontSize: 10, fontFamily: 'NotoSans', fontWeight: 700, color: font },
+    grandTotalValue: { fontSize: 10, fontFamily: 'NotoSans', fontWeight: 700, color: font },
     notesSection: { marginTop: 16, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#e5e7eb' },
-    notesTitle: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: label, textTransform: 'uppercase', marginBottom: 3 },
+    notesTitle: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: label, textTransform: 'uppercase', marginBottom: 3 },
     notesText: { fontSize: 8, color: font, lineHeight: 1.4 },
     footer: { position: 'absolute', bottom: 20, left: 30, right: 30, textAlign: 'center', fontSize: 7, color: label },
   });
@@ -129,7 +130,7 @@ export default function SpreadsheetTemplate({ data, type = 'invoice', org = {}, 
             )}
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Status:</Text>
-              <Text style={[styles.metaValue, { fontFamily: 'Helvetica-Bold', textTransform: 'uppercase' }]}>
+              <Text style={[styles.metaValue, { fontFamily: 'NotoSans', fontWeight: 700, textTransform: 'uppercase' }]}>
                 {(data.status || 'draft').toUpperCase()}
               </Text>
             </View>
@@ -202,7 +203,7 @@ export default function SpreadsheetTemplate({ data, type = 'invoice', org = {}, 
           </View>
           {type === 'invoice' && data.balanceDue !== undefined && data.balanceDue !== data.total && (
             <View style={styles.totalRow}>
-              <Text style={[styles.totalLabel, { fontFamily: 'Helvetica-Bold' }]}>Balance Due</Text>
+              <Text style={[styles.totalLabel, { fontFamily: 'NotoSans', fontWeight: 700 }]}>Balance Due</Text>
               <Text style={[styles.totalValue, { color: '#2563eb' }]}>{formatCurrency(data.balanceDue, data.currencySymbol)}</Text>
             </View>
           )}

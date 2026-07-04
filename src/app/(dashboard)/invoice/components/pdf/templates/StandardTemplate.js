@@ -1,6 +1,7 @@
 'use client';
 import { Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 import { formatCurrency, formatDate, getTypeFields } from '../pdfHelpers';
+import '../../../../../../utils/pdfFonts';
 
 export default function StandardTemplate({ data, type = 'invoice', org = {}, colors = {} }) {
   const bg = colors.background || '#ffffff';
@@ -10,14 +11,14 @@ export default function StandardTemplate({ data, type = 'invoice', org = {}, col
   const items = data.items || [];
 
   const styles = StyleSheet.create({
-    page: { padding: 40, fontSize: 10, fontFamily: 'Helvetica', color: font, backgroundColor: bg },
+    page: { padding: 40, fontSize: 10, fontFamily: 'NotoSans', color: font, backgroundColor: bg },
     header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30 },
-    title: { fontSize: 24, fontFamily: 'Helvetica-Bold', color: font },
+    title: { fontSize: 24, fontFamily: 'NotoSans', fontWeight: 700, color: font },
     subtitle: { fontSize: 10, color: label, marginTop: 4 },
-    statusBadge: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginTop: 4 },
+    statusBadge: { fontSize: 10, fontFamily: 'NotoSans', fontWeight: 700, textTransform: 'uppercase', marginTop: 4 },
     infoSection: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
     infoBlock: { width: '48%' },
-    label: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: label, textTransform: 'uppercase', marginBottom: 3 },
+    label: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: label, textTransform: 'uppercase', marginBottom: 3 },
     value: { fontSize: 10, color: font, marginBottom: 8 },
     table: { marginBottom: 20 },
     tableHeader: {
@@ -42,13 +43,13 @@ export default function StandardTemplate({ data, type = 'invoice', org = {}, col
     colTax: { width: '12%', textAlign: 'right' },
     colAmount: { width: '20%', textAlign: 'right' },
     colAmountWide: { width: '32%', textAlign: 'right' },
-    headerText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: label, textTransform: 'uppercase' },
+    headerText: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: label, textTransform: 'uppercase' },
     cellText: { fontSize: 9, color: font },
     totalsSection: { alignItems: 'flex-end', marginBottom: 20 },
     totalsBox: { width: 220 },
     totalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
     totalLabel: { fontSize: 10, color: label },
-    totalValue: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: font },
+    totalValue: { fontSize: 10, fontFamily: 'NotoSans', fontWeight: 700, color: font },
     grandTotalRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -57,10 +58,10 @@ export default function StandardTemplate({ data, type = 'invoice', org = {}, col
       borderTopColor: font,
       marginTop: 4,
     },
-    grandTotalLabel: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: font },
-    grandTotalValue: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: font },
+    grandTotalLabel: { fontSize: 12, fontFamily: 'NotoSans', fontWeight: 700, color: font },
+    grandTotalValue: { fontSize: 12, fontFamily: 'NotoSans', fontWeight: 700, color: font },
     notesSection: { marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#e5e7eb' },
-    notesTitle: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: label, textTransform: 'uppercase', marginBottom: 4 },
+    notesTitle: { fontSize: 9, fontFamily: 'NotoSans', fontWeight: 700, color: label, textTransform: 'uppercase', marginBottom: 4 },
     notesText: { fontSize: 9, color: font, lineHeight: 1.5 },
     footer: { position: 'absolute', bottom: 30, left: 40, right: 40, textAlign: 'center', fontSize: 8, color: label },
   });
@@ -74,7 +75,7 @@ export default function StandardTemplate({ data, type = 'invoice', org = {}, col
           <Text style={styles.subtitle}>{numberField || ''}</Text>
         </View>
         <View style={{ alignItems: 'flex-end' }}>
-          <Text style={{ fontSize: 14, fontFamily: 'Helvetica-Bold', color: font }}>{org.name || ''}</Text>
+          <Text style={{ fontSize: 14, fontFamily: 'NotoSans', fontWeight: 700, color: font }}>{org.name || ''}</Text>
           {org.email && <Text style={styles.subtitle}>{org.email}</Text>}
           {org.phone && <Text style={styles.subtitle}>{org.phone}</Text>}
           {org.gstin && <Text style={[styles.subtitle, { marginTop: 6 }]}>GSTIN: {org.gstin}</Text>}
@@ -170,7 +171,7 @@ export default function StandardTemplate({ data, type = 'invoice', org = {}, col
           </View>
           {type === 'invoice' && data.balanceDue !== undefined && data.balanceDue !== data.total && (
             <View style={styles.totalRow}>
-              <Text style={[styles.totalLabel, { fontFamily: 'Helvetica-Bold' }]}>Balance Due</Text>
+              <Text style={[styles.totalLabel, { fontFamily: 'NotoSans', fontWeight: 700 }]}>Balance Due</Text>
               <Text style={[styles.totalValue, { color: '#2563eb' }]}>{formatCurrency(data.balanceDue, data.currencySymbol)}</Text>
             </View>
           )}

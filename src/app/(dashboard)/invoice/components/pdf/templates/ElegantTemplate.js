@@ -1,6 +1,7 @@
 'use client';
 import { Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 import { formatCurrency, formatDate, getTypeFields } from '../pdfHelpers';
+import '../../../../../../utils/pdfFonts';
 
 export default function ElegantTemplate({ data, type = 'invoice', org = {}, colors = {} }) {
   const bg = colors.background || '#ffffff';
@@ -10,7 +11,7 @@ export default function ElegantTemplate({ data, type = 'invoice', org = {}, colo
   const items = data.items || [];
 
   const styles = StyleSheet.create({
-    page: { padding: 40, paddingLeft: 52, fontSize: 10, fontFamily: 'Helvetica', color: font, backgroundColor: bg },
+    page: { padding: 40, paddingLeft: 52, fontSize: 10, fontFamily: 'NotoSans', color: font, backgroundColor: bg },
     accentBar: {
       position: 'absolute',
       top: 0,
@@ -20,12 +21,12 @@ export default function ElegantTemplate({ data, type = 'invoice', org = {}, colo
       backgroundColor: label,
     },
     headerSection: { alignItems: 'center', marginBottom: 8 },
-    orgName: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: font, textAlign: 'center' },
+    orgName: { fontSize: 16, fontFamily: 'NotoSans', fontWeight: 700, color: font, textAlign: 'center' },
     orgSubtext: { fontSize: 9, color: label, textAlign: 'center', marginTop: 3, maxWidth: 300 },
     separator: { height: 1, backgroundColor: label + '40', marginVertical: 16 },
     infoSection: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
     infoBlock: { width: '48%' },
-    label: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: label, textTransform: 'uppercase', marginBottom: 3, letterSpacing: 0.5 },
+    label: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: label, textTransform: 'uppercase', marginBottom: 3, letterSpacing: 0.5 },
     value: { fontSize: 10, color: font, marginBottom: 6 },
     table: { marginBottom: 24 },
     tableTopBorder: { height: 2, backgroundColor: label, marginBottom: 0 },
@@ -36,7 +37,7 @@ export default function ElegantTemplate({ data, type = 'invoice', org = {}, colo
       borderBottomWidth: 1,
       borderBottomColor: label,
     },
-    headerText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: label, textTransform: 'uppercase', letterSpacing: 0.5 },
+    headerText: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: label, textTransform: 'uppercase', letterSpacing: 0.5 },
     tableRow: {
       flexDirection: 'row',
       paddingVertical: 8,
@@ -53,7 +54,7 @@ export default function ElegantTemplate({ data, type = 'invoice', org = {}, colo
     totalsBox: { width: 220 },
     totalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
     totalLabel: { fontSize: 10, color: label },
-    totalValue: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: font },
+    totalValue: { fontSize: 10, fontFamily: 'NotoSans', fontWeight: 700, color: font },
     grandTotalRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -61,10 +62,10 @@ export default function ElegantTemplate({ data, type = 'invoice', org = {}, colo
       marginTop: 6,
     },
     grandTotalUnderline: { height: 2, backgroundColor: label, marginTop: 2 },
-    grandTotalLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: font },
-    grandTotalValue: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: font },
+    grandTotalLabel: { fontSize: 13, fontFamily: 'NotoSans', fontWeight: 700, color: font },
+    grandTotalValue: { fontSize: 13, fontFamily: 'NotoSans', fontWeight: 700, color: font },
     notesSection: { marginTop: 24 },
-    notesTitle: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: label, textTransform: 'uppercase', marginBottom: 4, letterSpacing: 0.5 },
+    notesTitle: { fontSize: 9, fontFamily: 'NotoSans', fontWeight: 700, color: label, textTransform: 'uppercase', marginBottom: 4, letterSpacing: 0.5 },
     notesText: { fontSize: 9, color: font, lineHeight: 1.5 },
     thankYou: {
       position: 'absolute',
@@ -73,7 +74,7 @@ export default function ElegantTemplate({ data, type = 'invoice', org = {}, colo
       right: 40,
       textAlign: 'center',
       fontSize: 10,
-      fontFamily: 'Helvetica-Oblique',
+      fontFamily: 'NotoSans', fontStyle: 'italic',
       color: label,
     },
     footer: { position: 'absolute', bottom: 30, left: 52, right: 40, textAlign: 'center', fontSize: 8, color: label },
@@ -102,7 +103,7 @@ export default function ElegantTemplate({ data, type = 'invoice', org = {}, colo
       <View style={styles.infoSection}>
         <View style={styles.infoBlock}>
           <Text style={styles.label}>{typeLabel} To</Text>
-          <Text style={[styles.value, { fontFamily: 'Helvetica-Bold' }]}>{data.customer?.name || data.customerName || '-'}</Text>
+          <Text style={[styles.value, { fontFamily: 'NotoSans', fontWeight: 700 }]}>{data.customer?.name || data.customerName || '-'}</Text>
           {data.customer?.email && <Text style={[styles.value, { fontSize: 9, color: label }]}>{data.customer.email}</Text>}
           {data.customer?.phone && <Text style={[styles.value, { fontSize: 9, color: label }]}>{data.customer.phone}</Text>}
           {data.customer?.address && <Text style={[styles.value, { fontSize: 9, color: label }]}>{data.customer.address}</Text>}
@@ -125,7 +126,7 @@ export default function ElegantTemplate({ data, type = 'invoice', org = {}, colo
             </>
           )}
           <Text style={styles.label}>Status</Text>
-          <Text style={[styles.value, { fontFamily: 'Helvetica-Bold', textTransform: 'uppercase' }]}>
+          <Text style={[styles.value, { fontFamily: 'NotoSans', fontWeight: 700, textTransform: 'uppercase' }]}>
             {(data.status || 'draft').toUpperCase()}
           </Text>
         </View>
@@ -185,7 +186,7 @@ export default function ElegantTemplate({ data, type = 'invoice', org = {}, colo
           <View style={styles.grandTotalUnderline} />
           {type === 'invoice' && data.balanceDue !== undefined && data.balanceDue !== data.total && (
             <View style={[styles.totalRow, { marginTop: 6 }]}>
-              <Text style={[styles.totalLabel, { fontFamily: 'Helvetica-Bold' }]}>Balance Due</Text>
+              <Text style={[styles.totalLabel, { fontFamily: 'NotoSans', fontWeight: 700 }]}>Balance Due</Text>
               <Text style={[styles.totalValue, { color: '#2563eb' }]}>{formatCurrency(data.balanceDue, data.currencySymbol)}</Text>
             </View>
           )}

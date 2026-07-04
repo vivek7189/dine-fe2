@@ -1,6 +1,7 @@
 'use client';
 
-import { Document, Page, Text, View, Image, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
+import '../../../../utils/pdfFonts';
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -55,36 +56,36 @@ const C = {
 // ── Styles ───────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  page: { padding: 36, fontSize: 9, fontFamily: 'Helvetica', color: C.gray900, position: 'relative' },
+  page: { padding: 36, fontSize: 9, fontFamily: 'NotoSans', color: C.gray900, position: 'relative' },
   // Header
   headerBar: { height: 4, backgroundColor: C.primary, marginBottom: 12, borderRadius: 2 },
   headerBrand: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 10 },
   logo: { width: 40, height: 40, objectFit: 'contain', borderRadius: 4 },
-  orgName: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: C.gray900 },
+  orgName: { fontSize: 16, fontFamily: 'NotoSans', fontWeight: 700, color: C.gray900 },
   reportTitleRow: { marginBottom: 4 },
-  reportTitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: C.primary, marginBottom: 2 },
+  reportTitle: { fontSize: 13, fontFamily: 'NotoSans', fontWeight: 700, color: C.primary, marginBottom: 2 },
   dateRange: { fontSize: 9, color: C.gray500 },
   genDate: { fontSize: 8, color: C.gray500, marginTop: 2, marginBottom: 14 },
   // Section
-  sectionTitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: C.gray900, marginTop: 18, marginBottom: 10, paddingBottom: 4, borderBottomWidth: 2, borderBottomColor: C.primary },
-  subTitle: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: C.gray700, marginTop: 12, marginBottom: 6 },
+  sectionTitle: { fontSize: 12, fontFamily: 'NotoSans', fontWeight: 700, color: C.gray900, marginTop: 18, marginBottom: 10, paddingBottom: 4, borderBottomWidth: 2, borderBottomColor: C.primary },
+  subTitle: { fontSize: 10, fontFamily: 'NotoSans', fontWeight: 700, color: C.gray700, marginTop: 12, marginBottom: 6 },
   // Summary cards
   statsRow: { flexDirection: 'row', gap: 8, marginBottom: 14, flexWrap: 'wrap' },
   statBox: { flex: 1, minWidth: 100, padding: 10, borderRadius: 6, borderWidth: 1 },
-  statLabel: { fontSize: 7, fontFamily: 'Helvetica-Bold', color: C.gray500, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
-  statValue: { fontSize: 14, fontFamily: 'Helvetica-Bold' },
+  statLabel: { fontSize: 7, fontFamily: 'NotoSans', fontWeight: 700, color: C.gray500, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
+  statValue: { fontSize: 14, fontFamily: 'NotoSans', fontWeight: 700 },
   statSub: { fontSize: 7, color: C.gray500, marginTop: 2 },
   // Tables
   table: { marginBottom: 12 },
   tHead: { flexDirection: 'row', backgroundColor: C.gray100, borderBottomWidth: 1, borderBottomColor: C.gray200, paddingVertical: 6, paddingHorizontal: 6 },
   tRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: C.gray100, paddingVertical: 5, paddingHorizontal: 6 },
   tRowAlt: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: C.gray100, paddingVertical: 5, paddingHorizontal: 6, backgroundColor: C.gray50 },
-  th: { fontSize: 7, fontFamily: 'Helvetica-Bold', color: C.gray500, textTransform: 'uppercase', letterSpacing: 0.5 },
+  th: { fontSize: 7, fontFamily: 'NotoSans', fontWeight: 700, color: C.gray500, textTransform: 'uppercase', letterSpacing: 0.5 },
   td: { fontSize: 8, color: C.gray900 },
-  tdBold: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.gray900 },
+  tdBold: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: C.gray900 },
   tdRight: { fontSize: 8, color: C.gray900, textAlign: 'right' },
-  tdGreen: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.primary },
-  tdRed: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.red },
+  tdGreen: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: C.primary },
+  tdRed: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: C.red },
   // Progress bar
   barBg: { height: 6, backgroundColor: C.gray100, borderRadius: 3, flex: 1 },
   barFill: { height: 6, borderRadius: 3 },
@@ -95,7 +96,7 @@ const s = StyleSheet.create({
   pageNum: { fontSize: 7, color: C.gray500 },
   // Rank badge
   rankBadge: { width: 20, height: 20, borderRadius: 10, backgroundColor: C.amberLight, justifyContent: 'center', alignItems: 'center' },
-  rankText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.amber },
+  rankText: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: C.amber },
   // Misc
   noData: { fontSize: 9, color: C.gray500, textAlign: 'center', paddingVertical: 20 },
   divider: { height: 1, backgroundColor: C.gray200, marginVertical: 12 },
