@@ -15,6 +15,14 @@ const nextConfig = {
     esmExternals: 'loose',
   },
   swcMinify: true,
+  // Ignore Capacitor native plugin during Electron builds (only available at runtime on device)
+  webpack: (config) => {
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      'capacitor-dine-printer': false,
+    };
+    return config;
+  },
 };
 
 export default nextConfig;
