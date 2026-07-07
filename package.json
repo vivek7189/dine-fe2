@@ -1,6 +1,6 @@
 {
   "name": "dine-frontend",
-  "version": "1.13.8",
+  "version": "1.13.9",
   "author": "",
   "private": true,
   "scripts": {
@@ -45,6 +45,7 @@
     "@vercel/analytics": "^1.5.0",
     "axios": "^1.12.2",
     "better-sqlite3": "^12.9.0",
+    "bwip-js": "^4.11.2",
     "electron-updater": "^6.0.0",
     "firebase": "^10.14.1",
     "html5-qrcode": "^2.3.8",
