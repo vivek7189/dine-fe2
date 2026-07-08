@@ -91,7 +91,8 @@ import {
   FaQrcode,
   FaLink,
   FaTruck,
-  FaAndroid
+  FaAndroid,
+  FaMicrosoft
 } from 'react-icons/fa';
 // ShiftScheduling moved to /shifts page df
 import dynamic from 'next/dynamic';
@@ -100,6 +101,7 @@ import OfflineDataTab from '../../../components/OfflineDataTab';
 import TerminalsTab from '../../../components/lan/TerminalsTab';
 import WhatsAppTab from '../../../components/WhatsAppTab';
 import EcrTerminalSettings from '../../../components/EcrTerminalSettings';
+import D365Settings from '../../../components/D365Settings';
 import BulkStaffUpload from '../../../components/BulkStaffUpload';
 import { useNotification } from '../../../components/Notification';
 
@@ -4129,6 +4131,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                     { key: 'showTable', label: 'Table' },
                     { key: 'showWaiter', label: 'Waiter' },
                     { key: 'showCustomer', label: 'Customer' },
+                    { key: 'showCustomerPhone', label: 'Customer Phone' },
                     { key: 'showPayment', label: 'Payment' },
                     { key: 'showOrderType', label: 'Order Type' },
                     { key: 'showDelivery', label: 'Delivery' },
@@ -5766,6 +5769,7 @@ const Admin = () => {
       { id: 'google-reviews', label: 'Google Reviews', icon: FaGoogle },
       { id: 'whatsapp', label: 'WhatsApp', icon: FaPhone },
       { id: 'ecr-terminal', label: 'ECR Terminal', icon: FaCashRegister },
+      { id: 'd365', label: 'Dynamics 365', icon: FaMicrosoft },
     ]},
   ];
   // Filter admin tabs based on user's pageAccess.admin sub-permissions
@@ -14184,6 +14188,22 @@ const Admin = () => {
           border: '1px solid #f1f5f9'
         }}>
           <EcrTerminalSettings
+            restaurantId={selectedRestaurant?.id}
+            selectedRestaurant={selectedRestaurant}
+          />
+        </div>
+      )}
+
+      {/* ==================== DYNAMICS 365 BUSINESS CENTRAL TAB ==================== */}
+      {activeTab === 'd365' && !(loading && restaurants.length === 0) && (
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          padding: '24px',
+          border: '1px solid #f1f5f9'
+        }}>
+          <D365Settings
             restaurantId={selectedRestaurant?.id}
             selectedRestaurant={selectedRestaurant}
           />

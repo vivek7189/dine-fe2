@@ -106,6 +106,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
       (bl.showCovers !== false && invoice.covers && invoice.covers > 1 ? `<div class="meta-row"><span>${showAr ? dualLabel('Covers', 'أغطية', showAr) : 'Covers'}: ${invoice.covers}</span></div>` : '') +
       (bl.showWaiter !== false && (invoice.waiterName || invoice.cashierName) ? `<div class="meta-row"><span>Staff: ${esc(invoice.waiterName || invoice.cashierName)}</span></div>` : '') +
       (bl.showCustomer !== false && invoice.customerName ? `<div class="meta-row"><span>${esc(invoice.customerName)}</span></div>` : '') +
+      (bl.showCustomerPhone && invoice.customerPhone ? `<div class="meta-row"><span>${dualLabel('Phone', 'هاتف', showAr)}: ${esc(invoice.customerPhone)}</span></div>` : '') +
       (bl.showOrderType !== false && invoice.orderType ? `<div class="meta-row"><span>Type: ${invoice.orderType}</span></div>` : '') +
     `</div>` +
     deliveryHtml +

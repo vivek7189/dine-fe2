@@ -3443,6 +3443,7 @@ const OrderSummary = ({
                       <div><strong>{t('invoice.date')}:</strong> {invoice?.generatedAt ? new Date(invoice.generatedAt).toLocaleString() : (invoice?.invoiceDate ? new Date(invoice.invoiceDate).toLocaleString() : 'N/A')}</div>
                       {invoice?.tableNumber && <div><strong>{t('invoice.table')}:</strong> {invoice.tableNumber}{invoice?.floorName ? ` · ${invoice.floorName}` : ''}</div>}
                       {invoice?.customerName && <div><strong>{bLabels.customerLabel}:</strong> {invoice.customerName}</div>}
+                      {printSettings?.billLayout?.showCustomerPhone && invoice?.customerPhone && <div><strong>{t('invoice.phone') || 'Phone'}:</strong> {invoice.customerPhone}</div>}
                       <div><strong>{t('invoice.payment')}:</strong> {(invoice?.paymentMethod || 'CASH').toUpperCase()}</div>
                       {invoice?.ecrResponse && (
                         <div style={{ marginTop: '4px', padding: '4px 0', borderTop: '1px dashed #d1d5db', fontSize: '11px' }}>

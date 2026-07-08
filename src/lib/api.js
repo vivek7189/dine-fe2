@@ -1337,6 +1337,99 @@ class ApiClient {
     return this.request(`/api/analytics/${restaurantId}?${params.toString()}`);
   }
 
+  async getHourlySales(restaurantId, options = {}) {
+    const params = new URLSearchParams();
+    if (options.startDate) params.append('startDate', options.startDate);
+    if (options.endDate) params.append('endDate', options.endDate);
+    if (options.subRestaurantId) params.append('subRestaurantId', options.subRestaurantId);
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz) params.append('tz', tz);
+    const qs = params.toString();
+    return this.request(`/api/analytics/${restaurantId}/hourly-sales${qs ? '?' + qs : ''}`);
+  }
+
+  async getMenuEngineering(restaurantId, options = {}) {
+    const params = new URLSearchParams();
+    if (options.startDate) params.append('startDate', options.startDate);
+    if (options.endDate) params.append('endDate', options.endDate);
+    if (options.subRestaurantId) params.append('subRestaurantId', options.subRestaurantId);
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz) params.append('tz', tz);
+    const qs = params.toString();
+    return this.request(`/api/analytics/${restaurantId}/menu-engineering${qs ? '?' + qs : ''}`);
+  }
+
+  async getReprintLog(restaurantId, options = {}) {
+    const params = new URLSearchParams();
+    if (options.startDate) params.append('startDate', options.startDate);
+    if (options.endDate) params.append('endDate', options.endDate);
+    if (options.subRestaurantId) params.append('subRestaurantId', options.subRestaurantId);
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz) params.append('tz', tz);
+    const qs = params.toString();
+    return this.request(`/api/analytics/${restaurantId}/reprint-log${qs ? '?' + qs : ''}`);
+  }
+
+  async getStaffSales(restaurantId, options = {}) {
+    const params = new URLSearchParams();
+    if (options.startDate) params.append('startDate', options.startDate);
+    if (options.endDate) params.append('endDate', options.endDate);
+    if (options.subRestaurantId) params.append('subRestaurantId', options.subRestaurantId);
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz) params.append('tz', tz);
+    const qs = params.toString();
+    return this.request(`/api/analytics/${restaurantId}/staff-sales${qs ? '?' + qs : ''}`);
+  }
+
+  async getPromotionReport(restaurantId, options = {}) {
+    const params = new URLSearchParams();
+    if (options.startDate) params.append('startDate', options.startDate);
+    if (options.endDate) params.append('endDate', options.endDate);
+    if (options.subRestaurantId) params.append('subRestaurantId', options.subRestaurantId);
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz) params.append('tz', tz);
+    const qs = params.toString();
+    return this.request(`/api/analytics/${restaurantId}/promotion-report${qs ? '?' + qs : ''}`);
+  }
+
+  async getSplitBills(restaurantId, options = {}) {
+    const params = new URLSearchParams();
+    if (options.startDate) params.append('startDate', options.startDate);
+    if (options.endDate) params.append('endDate', options.endDate);
+    if (options.subRestaurantId) params.append('subRestaurantId', options.subRestaurantId);
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz) params.append('tz', tz);
+    const qs = params.toString();
+    return this.request(`/api/analytics/${restaurantId}/split-bills${qs ? '?' + qs : ''}`);
+  }
+
+  async getCompReport(restaurantId, options = {}) {
+    const params = new URLSearchParams();
+    if (options.startDate) params.append('startDate', options.startDate);
+    if (options.endDate) params.append('endDate', options.endDate);
+    if (options.subRestaurantId) params.append('subRestaurantId', options.subRestaurantId);
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz) params.append('tz', tz);
+    const qs = params.toString();
+    return this.request(`/api/analytics/${restaurantId}/comp-report${qs ? '?' + qs : ''}`);
+  }
+
+  async getAuditTrail(restaurantId, options = {}) {
+    const params = new URLSearchParams();
+    if (options.startDate) params.append('startDate', options.startDate);
+    if (options.endDate) params.append('endDate', options.endDate);
+    if (options.subRestaurantId) params.append('subRestaurantId', options.subRestaurantId);
+    if (options.actionType) params.append('actionType', options.actionType);
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz) params.append('tz', tz);
+    const qs = params.toString();
+    return this.request(`/api/analytics/${restaurantId}/audit-trail${qs ? '?' + qs : ''}`);
+  }
+
+  async logReprint(orderId) {
+    return this.request(`/api/orders/${orderId}/reprint-log`, { method: 'POST' });
+  }
+
   async getDailySummary(restaurantId, options = {}) {
     const params = new URLSearchParams();
     if (options.date) params.append('date', options.date);
@@ -3861,6 +3954,7 @@ class ApiClient {
   addMenuTemplateItem(orgId, templateId, data) { return this.request(`/api/org-menu/${orgId}/templates/${templateId}/items`, { method: 'POST', body: data }); }
   updateMenuTemplateItem(orgId, templateId, itemId, data) { return this.request(`/api/org-menu/${orgId}/templates/${templateId}/items/${itemId}`, { method: 'PATCH', body: data }); }
   deleteMenuTemplateItem(orgId, templateId, itemId) { return this.request(`/api/org-menu/${orgId}/templates/${templateId}/items/${itemId}`, { method: 'DELETE' }); }
+  updateOutletPrices(orgId, templateId, itemId, outletPrices) { return this.request(`/api/org-menu/${orgId}/templates/${templateId}/items/${itemId}/outlet-prices`, { method: 'PATCH', body: { outletPrices } }); }
   pushMenuTemplate(orgId, templateId, data) { return this.request(`/api/org-menu/${orgId}/templates/${templateId}/push`, { method: 'POST', body: data }); }
   syncMenuTemplate(orgId, templateId) { return this.request(`/api/org-menu/${orgId}/templates/${templateId}/sync`, { method: 'POST' }); }
   getMenuSyncStatus(orgId) { return this.request(`/api/org-menu/${orgId}/sync-status`); }
@@ -3984,6 +4078,19 @@ class ApiClient {
   markTalabatOrderPrepared(restaurantId, orderId) { return this.request(`/api/aggregators/talabat/mark-prepared/${restaurantId}/${orderId}`, { method: 'POST' }); }
   getTalabatOrders(restaurantId, limit) { return this.request(`/api/aggregators/talabat/orders/${restaurantId}${limit ? `?limit=${limit}` : ''}`); }
   getAggregatorWebhookUrls() { return this.request('/api/aggregators/webhook-url'); }
+
+  // ── Dynamics 365 Business Central ─────────────────────────────
+  connectD365(restaurantId, config) { return this.request(`/api/d365/connect/${restaurantId}`, { method: 'POST', body: config }); }
+  disconnectD365(restaurantId) { return this.request(`/api/d365/disconnect/${restaurantId}`, { method: 'DELETE' }); }
+  getD365Status(restaurantId) { return this.request(`/api/d365/status/${restaurantId}`); }
+  updateD365Settings(restaurantId, settings) { return this.request(`/api/d365/settings/${restaurantId}`, { method: 'PATCH', body: settings }); }
+  getD365Accounts(restaurantId) { return this.request(`/api/d365/accounts/${restaurantId}`); }
+  getD365Companies(restaurantId) { return this.request(`/api/d365/companies/${restaurantId}`); }
+  syncD365Daily(restaurantId, date) { return this.request(`/api/d365/sync-daily/${restaurantId}${date ? `?date=${date}` : ''}`, { method: 'POST' }); }
+  postOrderToD365(restaurantId, orderId) { return this.request(`/api/d365/post-order/${restaurantId}/${orderId}`, { method: 'POST' }); }
+  syncD365Items(restaurantId, direction) { return this.request(`/api/d365/sync-items/${restaurantId}`, { method: 'POST', body: { direction } }); }
+  syncD365Customers(restaurantId) { return this.request(`/api/d365/sync-customers/${restaurantId}`, { method: 'POST' }); }
+  getD365SyncLog(restaurantId, params = {}) { const q = new URLSearchParams(params).toString(); return this.request(`/api/d365/sync-log/${restaurantId}${q ? `?${q}` : ''}`); }
 
   // ── Parking Management ──────────────────────────────────────
   getParkingConfig(restaurantId) { return this.request(`/api/parking/config/${restaurantId}`); }

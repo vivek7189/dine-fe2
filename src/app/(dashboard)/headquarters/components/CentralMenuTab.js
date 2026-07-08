@@ -8,7 +8,7 @@ import {
   FaUtensils, FaPlus, FaEdit, FaTrash, FaLock, FaUnlock,
   FaSync, FaUpload, FaArrowLeft, FaSpinner, FaCheck,
   FaLeaf, FaDownload, FaTh, FaList, FaSearch,
-  FaCloudUploadAlt, FaEye, FaTimes, FaChevronDown
+  FaCloudUploadAlt, FaEye, FaTimes, FaChevronDown, FaTags
 } from 'react-icons/fa';
 
 // ============================================
@@ -94,6 +94,11 @@ const CentralMenuTab = ({ orgData, outlets, formatCurrency }) => {
 
   // Item detail modal
   const [detailItem, setDetailItem] = useState(null);
+
+  // Outlet pricing modal
+  const [outletPricingItem, setOutletPricingItem] = useState(null);
+  const [outletPriceValues, setOutletPriceValues] = useState({});
+  const [savingOutletPrices, setSavingOutletPrices] = useState(false);
 
   // Responsive detection
   useEffect(() => {
@@ -330,6 +335,32 @@ const CentralMenuTab = ({ orgData, outlets, formatCurrency }) => {
       setMessage({ type: 'error', text: err.message || 'Failed to toggle lock' });
     } finally {
       setTogglingLockId(null);
+    }
+  };
+
+  // Open outlet pricing modal
+  const openOutletPricing = (item) => {
+    setOutletPricingItem(item);
+    setOutletPriceValues(item.outletPrices || {});
+  };
+
+  // Save outlet prices
+  const handleSaveOutletPrices = async () => {
+    if (!outletPricingItem) return;
+    setSavingOutletPrices(true);
+    try {
+      const res = await apiClient.updateOutletPrices(orgData.id, selectedTemplateId, outletPricingItem.id, outletPriceValues);
+      if (res.success !== false) {
+        setTemplateItems(prev => prev.map(i => i.id === outletPricingItem.id ? { ...i, outletPrices: res.outletPrices || outletPriceValues } : i));
+        setMessage({ type: 'success', text: 'Outlet prices updated' });
+        setOutletPricingItem(null);
+      } else {
+        setMessage({ type: 'error', text: res.error || 'Failed to save outlet prices' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Failed to save outlet prices' });
+    } finally {
+      setSavingOutletPrices(false);
     }
   };
 
@@ -1142,6 +1173,11 @@ const CentralMenuTab = ({ orgData, outlets, formatCurrency }) => {
           <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
             <button onClick={() => setDetailItem(item)} style={{ ...styles.button, ...styles.ghostButton, padding: '6px 10px', fontSize: '13px', color: '#6b7280' }} title="View details"><FaEye /></button>
             <button onClick={() => startEditItem(item)} style={{ ...styles.button, ...styles.ghostButton, padding: '6px 10px', fontSize: '13px', color: '#3b82f6' }} title="Edit item"><FaEdit /></button>
+            {allOutlets.length > 0 && (
+              <button onClick={() => openOutletPricing(item)} style={{ ...styles.button, ...styles.ghostButton, padding: '6px 10px', fontSize: '13px', color: Object.keys(item.outletPrices || {}).length > 0 ? '#7c3aed' : '#9ca3af' }} title="Outlet pricing">
+                <FaTags />
+              </button>
+            )}
             <button onClick={() => handleToggleLock(item)} disabled={togglingLockId === item.id} style={{ ...styles.button, ...styles.ghostButton, padding: '6px 10px', fontSize: '13px', color: item.isLocked ? '#d97706' : '#9ca3af' }} title={item.isLocked ? 'Unlock' : 'Lock'}>
               {togglingLockId === item.id ? <FaSpinner style={{ animation: 'spin 1s linear infinite' }} /> : (item.isLocked ? <FaLock /> : <FaUnlock />)}
             </button>
@@ -1210,6 +1246,9 @@ const CentralMenuTab = ({ orgData, outlets, formatCurrency }) => {
                   <td style={{ padding: '10px 16px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                     <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
                       <button onClick={() => startEditItem(item)} style={{ ...styles.button, ...styles.ghostButton, padding: '6px 8px', fontSize: '12px', color: '#3b82f6' }}><FaEdit /></button>
+                      {allOutlets.length > 0 && (
+                        <button onClick={() => openOutletPricing(item)} style={{ ...styles.button, ...styles.ghostButton, padding: '6px 8px', fontSize: '12px', color: Object.keys(item.outletPrices || {}).length > 0 ? '#7c3aed' : '#9ca3af' }} title="Outlet pricing"><FaTags /></button>
+                      )}
                       <button onClick={() => handleDeleteItem(item.id)} disabled={deletingItemId === item.id} style={{ ...styles.button, ...styles.ghostButton, padding: '6px 8px', fontSize: '12px', color: '#dc2626' }}>
                         {deletingItemId === item.id ? <FaSpinner style={{ animation: 'spin 1s linear infinite' }} /> : <FaTrash />}
                       </button>
@@ -1398,6 +1437,75 @@ const CentralMenuTab = ({ orgData, outlets, formatCurrency }) => {
       {renderPushModal()}
       {renderItemModal()}
       {renderItemDetail()}
+
+      {/* Outlet Pricing Modal */}
+      {outletPricingItem && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
+          onClick={e => e.target === e.currentTarget && setOutletPricingItem(null)}>
+          <div style={{ backgroundColor: 'white', borderRadius: '16px', width: '100%', maxWidth: '560px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#1f2937' }}>Outlet Pricing</h3>
+                <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#6b7280' }}>{outletPricingItem.name} &middot; Base: {fmtPrice(outletPricingItem.basePrice)}</p>
+              </div>
+              <button onClick={() => setOutletPricingItem(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#9ca3af', padding: '4px' }}>&times;</button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+              <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: 0, marginBottom: '12px' }}>Set per-outlet price overrides. Leave empty to use the base price ({fmtPrice(outletPricingItem.basePrice)}).</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {allOutlets.map(outlet => {
+                  const outletId = outlet._id || outlet.id;
+                  const outletName = outlet.restaurantName || outlet.name || outletId;
+                  const currentOverride = outletPriceValues[outletId];
+                  const hasOverride = currentOverride !== undefined && currentOverride !== '' && currentOverride !== null;
+                  return (
+                    <div key={outletId} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '10px', backgroundColor: hasOverride ? '#f5f3ff' : '#f9fafb', border: hasOverride ? '1px solid #ddd6fe' : '1px solid #f3f4f6' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{outletName}</div>
+                        {hasOverride && (
+                          <div style={{ fontSize: '11px', color: '#7c3aed', fontWeight: '500' }}>Override active</div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                        <input
+                          type="number"
+                          placeholder={String(outletPricingItem.basePrice || 0)}
+                          value={currentOverride ?? ''}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setOutletPriceValues(prev => {
+                              const next = { ...prev };
+                              if (val === '') {
+                                delete next[outletId];
+                              } else {
+                                next[outletId] = parseFloat(val);
+                              }
+                              return next;
+                            });
+                          }}
+                          style={{ width: '90px', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', textAlign: 'right', outline: 'none', background: '#fff' }}
+                          onFocus={e => e.target.style.borderColor = '#7c3aed'}
+                          onBlur={e => e.target.style.borderColor = '#d1d5db'}
+                        />
+                        {hasOverride && (
+                          <button onClick={() => setOutletPriceValues(prev => { const next = { ...prev }; delete next[outletId]; return next; })}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '14px', padding: '4px' }} title="Remove override">&times;</button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div style={{ padding: '12px 20px', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end', gap: '8px', flexShrink: 0 }}>
+              <button onClick={() => setOutletPricingItem(null)} style={{ ...styles.button, ...styles.ghostButton, padding: '8px 16px' }}>Cancel</button>
+              <button onClick={handleSaveOutletPrices} disabled={savingOutletPrices} style={{ ...styles.button, ...styles.primaryButton, padding: '8px 20px', opacity: savingOutletPrices ? 0.7 : 1 }}>
+                {savingOutletPrices ? <><FaSpinner style={{ animation: 'spin 1s linear infinite' }} /> Saving...</> : 'Save Prices'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bulk Upload Modal */}
       <BulkMenuUpload

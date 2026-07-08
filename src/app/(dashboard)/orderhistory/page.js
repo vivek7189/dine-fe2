@@ -2761,6 +2761,40 @@ const OrderHistory = () => {
                 <span className="font-medium">{totalOrders}</span>
                 <span className="text-gray-400">{t('orderHistory.orders')}</span>
               </div>
+              <button
+                onClick={async () => {
+                  try {
+                    const XLSX = await import('xlsx');
+                    const rows = [['Order #', 'Date', 'Time', 'Type', 'Table', 'Customer', 'Items', 'Subtotal', 'Tax', 'Discount', 'Total', 'Payment', 'Status']];
+                    (orders || []).forEach(o => {
+                      const d = o.createdAt ? new Date(o.createdAt) : null;
+                      rows.push([
+                        o.dailyOrderId || o.orderNumber || o.id,
+                        d ? d.toLocaleDateString('en-IN') : '',
+                        d ? d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '',
+                        o.orderType || 'dine_in',
+                        o.tableNumber || '',
+                        o.customerInfo?.name || o.customerName || '',
+                        (o.items || []).map(i => `${i.quantity}x ${i.name}`).join(', '),
+                        o.totalAmount || 0,
+                        o.taxAmount || 0,
+                        o.discountAmount || 0,
+                        o.finalAmount || o.totalAmount || 0,
+                        o.paymentMethod || 'cash',
+                        o.status || '',
+                      ]);
+                    });
+                    const wb = XLSX.utils.book_new();
+                    const ws = XLSX.utils.aoa_to_sheet(rows);
+                    XLSX.utils.book_append_sheet(wb, ws, 'Orders');
+                    XLSX.writeFile(wb, `order-history-${new Date().toISOString().split('T')[0]}.xlsx`);
+                  } catch (err) { console.error('Order export failed:', err); }
+                }}
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-green-50 hover:text-green-700 hover:border-green-300 transition-all"
+                title="Export orders to Excel"
+              >
+                <FaFileExcel className="text-green-600" /> Export
+              </button>
               <div className="flex bg-white border border-gray-200 p-0.5 sm:p-1 rounded-lg shadow-sm" title={isCompactView ? t('orderHistory.compactView') : t('orderHistory.detailedView')}>
                 <button
                   onClick={() => setIsCompactView(true)}

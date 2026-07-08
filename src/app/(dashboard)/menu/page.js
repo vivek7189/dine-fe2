@@ -9,6 +9,7 @@ import ImageCarousel from '../../../components/ImageCarousel';
 import ImageUpload from '../../../components/ImageUpload';
 const BulkMenuUpload = dynamic(() => import('../../../components/BulkMenuUpload'), { ssr: false });
 const QRCodeModal = dynamic(() => import('../../../components/QRCodeModal'), { ssr: false });
+const BarcodeTab = dynamic(() => import('./components/BarcodeTab'), { ssr: false });
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t } from '../../../lib/i18n';
@@ -62,6 +63,9 @@ import {
   FaFilePdf
 } from 'react-icons/fa';
 const RecipeFormBody = dynamic(() => import('../inventory/components/InventoryModals').then(m => ({ default: m.RecipeFormBody })), { ssr: false });
+
+// Capitalize first character, keep rest as-is
+const capitalizeFirst = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 
 // Enhanced Category Dropdown Component with Management
 const CategoryDropdown = ({ 
@@ -238,7 +242,7 @@ const CategoryDropdown = ({
         className="w-full px-4 py-3 text-left bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 flex items-center justify-between transition-all duration-200 hover:border-gray-400"
       >
                  <span className={selectedCategory ? 'text-gray-900' : 'text-gray-500'}>
-                   {selectedCategory ? selectedCategory.name : placeholder}
+                   {selectedCategory ? capitalizeFirst(selectedCategory.name) : placeholder}
         </span>
         <FaChevronDown className={`text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} size={12} />
       </button>
@@ -388,6 +392,23 @@ const CategoryDropdown = ({
             </div>
           )}
           
+          {/* Search Categories */}
+          {!showAddForm && !showEditForm && hierarchicalCategories.length > 5 && (
+            <div className="px-3 py-2 border-b border-gray-200">
+              <div className="relative">
+                <FaSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" size={11} />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder={t('menu.searchCategories') || 'Search categories...'}
+                  className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
+                  autoFocus
+                />
+              </div>
+            </div>
+          )}
+
           {/* Categories List */}
           <div className="max-h-48 overflow-y-auto">
             {filteredCategories.map((category) => {
@@ -400,7 +421,7 @@ const CategoryDropdown = ({
                            className="flex-1 text-left text-sm text-gray-900 hover:text-gray-700 flex items-center gap-2"
                          >
                            {depth > 0 && <span className="text-gray-400" style={{ fontSize: '10px' }}>{'└'}</span>}
-                           <span>{category.name}</span>
+                           <span>{capitalizeFirst(category.name)}</span>
                            {selectedCategory?.id === category.id && (
                              <FaCheck className="text-red-500 ml-auto" size={12} />
                 )}
@@ -793,7 +814,7 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
               fontSize: '10px', fontWeight: '500', color: '#9ca3af',
               maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
             }}>
-              {categoryMap.get(item.category)?.name || ''}
+              {capitalizeFirst(categoryMap.get(item.category)?.name) || ''}
             </span>
           </div>
           {/* Price + actions */}
@@ -1064,7 +1085,7 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
               fontSize: '11px',
               fontWeight: '600'
             }}>
-              {categoryMap.get(item.category)?.name || t('menu.mainCourse')}
+              {capitalizeFirst(categoryMap.get(item.category)?.name) || t('menu.mainCourse')}
             </span>
             {(item.taxInclusive === true || (taxInclusiveGlobal && item.taxInclusive !== false)) && (
               <span style={{
@@ -2287,6 +2308,7 @@ const MenuManagement = () => {
   const [displaySearch, setDisplaySearch] = useState('');
   const searchDebounceRef = useRef(null);
   const [viewMode, setViewMode] = useState('grid');
+  const [showBarcodeTab, setShowBarcodeTab] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showMoreActions, setShowMoreActions] = useState(false);
@@ -4447,13 +4469,13 @@ const MenuManagement = () => {
                 const childOf = (pid) => categories.filter(c => c.parentId === pid);
                 const ordered = [];
                 topLevel.forEach(p => {
-                  ordered.push({ value: p.id, label: p.name });
+                  ordered.push({ value: p.id, label: capitalizeFirst(p.name) });
                   childOf(p.id).forEach(ch => {
-                    ordered.push({ value: ch.id, label: `  › ${ch.name}` });
-                    childOf(ch.id).forEach(gc => ordered.push({ value: gc.id, label: `    › ${gc.name}` }));
+                    ordered.push({ value: ch.id, label: `  › ${capitalizeFirst(ch.name)}` });
+                    childOf(ch.id).forEach(gc => ordered.push({ value: gc.id, label: `    › ${capitalizeFirst(gc.name)}` }));
                   });
                 });
-                categories.forEach(c => { if (c.parentId && !categories.find(p => p.id === c.parentId) && !ordered.find(o => o.value === c.id)) ordered.push({ value: c.id, label: c.name }); });
+                categories.forEach(c => { if (c.parentId && !categories.find(p => p.id === c.parentId) && !ordered.find(o => o.value === c.id)) ordered.push({ value: c.id, label: capitalizeFirst(c.name) }); });
                 return ordered;
               })()
             ]}
@@ -4474,6 +4496,24 @@ const MenuManagement = () => {
 
           {/* Spacer */}
           <div style={{ flex: 1 }} />
+
+          {/* Barcodes Button */}
+          <button
+            onClick={() => setShowBarcodeTab(!showBarcodeTab)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '6px 12px', borderRadius: '20px',
+              border: showBarcodeTab ? '2px solid #1e293b' : '1px solid #e5e7eb',
+              backgroundColor: showBarcodeTab ? '#f0fdf4' : '#fff',
+              color: showBarcodeTab ? '#1e293b' : '#6b7280',
+              fontSize: '12px', fontWeight: '600',
+              cursor: 'pointer', flexShrink: 0,
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <FaBarcode size={12} />
+            {t('Barcodes')}
+          </button>
 
           {/* View Toggle */}
           <div style={{
@@ -4519,11 +4559,25 @@ const MenuManagement = () => {
         </div>
         </div>{/* END Sticky Header */}
 
+        {/* Barcode Tab */}
+        {showBarcodeTab && (
+          <BarcodeTab
+            items={menuItems}
+            restaurantId={restaurantId}
+            onUpdateItem={(itemId, updates) => {
+              // Update local state when barcode is saved
+              setMenuItems(prev => prev.map(item =>
+                item.id === itemId ? { ...item, ...updates } : item
+              ));
+            }}
+          />
+        )}
+
         {/* Offline Banner */}
-        <OfflineBanner />
+        {!showBarcodeTab && <OfflineBanner />}
 
         {/* Error Message */}
-        {error && (
+        {!showBarcodeTab && error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
             <FaExclamationTriangle size={16} />
             {error}
@@ -4848,7 +4902,7 @@ const MenuManagement = () => {
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap'
                     }}>
-                      {category?.emoji ? `${category.emoji} ` : ''}{category?.name || '—'}
+                      {category?.emoji ? `${category.emoji} ` : ''}{category?.name ? capitalizeFirst(category.name) : '—'}
                     </span>
                     {/* Price */}
                     <div style={{ textAlign: 'right' }}>

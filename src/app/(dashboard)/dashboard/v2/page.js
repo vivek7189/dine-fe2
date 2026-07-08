@@ -93,6 +93,9 @@ function useSafeDineBot() {
   try { return useDineBot(); } catch { return { openDineBot: () => {} }; }
 }
 
+// Capitalize first character, keep rest as-is
+const capitalizeFirst = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+
 /**
  * Filter out items excluded from KOT printing by category or item ID.
  * Returns items unchanged when the feature is disabled.
@@ -7199,7 +7202,7 @@ function RestaurantPOSContent() {
                     }
                   }}
                 >
-                  {(category._depth || 0) > 0 ? `› ${category.name}` : category.name}
+                  {(category._depth || 0) > 0 ? `› ${capitalizeFirst(category.name)}` : capitalizeFirst(category.name)}
                 </button>
               );
             })}
@@ -7274,7 +7277,7 @@ function RestaurantPOSContent() {
                       whiteSpace: 'nowrap',
                       display: 'block'
                     }}>
-                      {(category._depth || 0) > 0 ? `› ${category.name}` : category.name}
+                      {(category._depth || 0) > 0 ? `› ${capitalizeFirst(category.name)}` : capitalizeFirst(category.name)}
                     </span>
                   </div>
                 );
@@ -7875,7 +7878,7 @@ function RestaurantPOSContent() {
                         position: 'relative',
                         zIndex: 1
                       }}>
-                        {(category._depth || 0) > 0 ? `› ${category.name}` : category.name}
+                        {(category._depth || 0) > 0 ? `› ${capitalizeFirst(category.name)}` : capitalizeFirst(category.name)}
                       </span>
                       {categoryCount > 0 && (
                         <span style={{
@@ -7966,10 +7969,9 @@ function RestaurantPOSContent() {
                           <span style={{
                             fontSize: '15px',
                             fontWeight: '700',
-                            color: '#f1f5f9',
-                            textTransform: 'capitalize'
+                            color: '#f1f5f9'
                           }}>
-                            {categoryName}
+                            {capitalizeFirst(categoryName)}
                           </span>
                           <span style={{
                             fontSize: '12px',
@@ -8764,7 +8766,7 @@ function RestaurantPOSContent() {
                     setShowMobileSidebar(false);
                   }} style={{ paddingLeft: `${12 + (category._depth || 0) * 14}px` }}>
                     <CategoryButton
-                      category={{ ...category, name: (category._depth || 0) > 0 ? `› ${category.name}` : category.name }}
+                      category={{ ...category, name: (category._depth || 0) > 0 ? `› ${capitalizeFirst(category.name)}` : capitalizeFirst(category.name) }}
                       isSelected={isSelected}
                     onClick={() => {
                       setSelectedCategory(isSelected && category.id !== 'all-items' ? 'all-items' : category.id);

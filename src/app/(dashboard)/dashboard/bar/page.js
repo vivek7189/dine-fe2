@@ -37,6 +37,9 @@ import {
   FaUsers
 } from 'react-icons/fa';
 
+// Capitalize first character, keep rest as-is
+const capitalizeFirst = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+
 function BarPOSContent() {
   const router = useRouter();
   const { formatCurrency, getCurrencySymbol } = useCurrency();
@@ -1160,7 +1163,7 @@ function BarPOSContent() {
                     lineHeight: '1.4'
                   }}
                 >
-                  {cat.name} <span style={{ fontWeight: '400', opacity: 0.7 }}>{cat.count}</span>
+                  {capitalizeFirst(cat.name)} <span style={{ fontWeight: '400', opacity: 0.7 }}>{cat.count}</span>
                 </button>
               ))}
             </div>
