@@ -604,12 +604,14 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
   }, [restaurantId, customerInfo?.isFirstOrder]);
 
   // Smart schedule timer — sets a precise timeout for the next schedule transition
+  // so happy hour offers auto-activate/deactivate without page refresh
   useEffect(() => {
     if (allOffers.length === 0) return;
     const msToNext = getNextScheduleTransition(allOffers);
     if (!msToNext || msToNext <= 0) return;
-    // Cap at 1 hour to handle edge cases (page left open overnight)
-    const timeout = Math.min(msToNext + 1000, 3600000);
+    // Use exact transition time + 1s buffer. Cap at 4 hours for very long waits
+    // (timer re-fires on each transition, so it chains correctly for multi-day gaps)
+    const timeout = Math.min(msToNext + 1000, 4 * 3600000);
     const timer = setTimeout(() => setScheduleCheckKey(prev => prev + 1), timeout);
     return () => clearTimeout(timer);
   }, [allOffers, scheduleCheckKey]);
@@ -803,6 +805,32 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
       setTimeout(() => setFirstOrderOfferRejected(false), 5000);
     }
   }, [customerInfo, selectedOfferId, allOffers]);
+
+  // Auto-deselect offer when it's no longer applicable (e.g., happy hour ended)
+  useEffect(() => {
+    if (!selectedOfferId && selectedOfferIds.length === 0) return;
+    if (applicableOffers.length === 0 && (selectedOfferId || selectedOfferIds.length > 0)) {
+      setSelectedOfferIdInternal(null);
+      setSelectedOfferIdsInternal([]);
+      setAutoApplied(false);
+      wasManuallySelectedRef.current = false;
+      return;
+    }
+    // Single offer mode: check if selected offer is still applicable
+    if (selectedOfferId && !applicableOffers.find(o => (o.id || o._id) === selectedOfferId)) {
+      setSelectedOfferIdInternal(null);
+      setAutoApplied(false);
+      wasManuallySelectedRef.current = false;
+    }
+    // Multi-offer mode: filter out any that are no longer applicable
+    if (selectedOfferIds.length > 0) {
+      const validIds = selectedOfferIds.filter(oid => applicableOffers.find(o => (o.id || o._id) === oid));
+      if (validIds.length !== selectedOfferIds.length) {
+        setSelectedOfferIdsInternal(validIds);
+        if (validIds.length === 0) setAutoApplied(false);
+      }
+    }
+  }, [applicableOffers]);
 
   // Clear offers when cart is empty
   useEffect(() => {
