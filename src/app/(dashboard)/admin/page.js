@@ -4205,10 +4205,11 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                         {billExpanded && (
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e5e7eb' }}>
                             {billFields.map(({ key, label }) => {
-                              const isOn = printSettings.billLayout?.[key] ?? true;
+                              const defaultOn = key === 'showCustomerPhone' ? false : true;
+                              const isOn = printSettings.billLayout?.[key] ?? defaultOn;
                               return toggleChip(label, isOn, () => setPrintSettings(prev => ({
                                 ...prev,
-                                billLayout: { ...prev.billLayout, [key]: !(prev.billLayout?.[key] ?? true) }
+                                billLayout: { ...prev.billLayout, [key]: !(prev.billLayout?.[key] ?? defaultOn) }
                               })));
                             })}
                           </div>
