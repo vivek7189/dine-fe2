@@ -170,7 +170,7 @@ async function printViaCapacitor({ html, type, printSettings }) {
       html,
       type,
       printerWidth: printSettings.printerWidth || 80,
-      copies: type === 'kot' ? (printSettings.kotCopies || 1) : 1,
+      copies: type === 'kot' ? (printSettings.printKOTCopy || 1) : (printSettings.printBillCopy || 1),
     });
   } catch (err) {
     console.error('Capacitor print failed, falling back to window.print:', err);
@@ -186,7 +186,7 @@ async function printViaTauri({ html, type, printSettings }) {
       html,
       printType: type,
       printerWidth: printSettings.printerWidth || 80,
-      copies: type === 'kot' ? (printSettings.kotCopies || 1) : 1,
+      copies: type === 'kot' ? (printSettings.printKOTCopy || 1) : (printSettings.printBillCopy || 1),
     });
   } catch (err) {
     console.error('Tauri print failed, falling back to window.print:', err);
@@ -197,10 +197,13 @@ async function printViaTauri({ html, type, printSettings }) {
 /** Electron: send to system printer via IPC — routes to KOT/bill printer based on type */
 async function printViaElectron({ html, type, stationId, printSettings }) {
   try {
+    const copies = type === 'kot'
+      ? (printSettings.printKOTCopy || 1)
+      : (printSettings.printBillCopy || 1);
     const result = await window.electronAPI.print(html, {
       type,
       stationId,
-      copies: type === 'kot' ? (printSettings.kotCopies || 1) : 1,
+      copies,
       printerWidth: printSettings.printerWidth || 80,
     });
 
