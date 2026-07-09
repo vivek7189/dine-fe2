@@ -14,6 +14,8 @@ import { HiSearch, HiUpload, HiCloudUpload } from 'react-icons/hi';
 import useInvoiceAI from '../../hooks/useInvoiceAI';
 import SparkleIcon from '../../components/ai/SparkleIcon';
 import ComboBox from '../../components/ui/ComboBox';
+import { useCurrency } from '../../../../../contexts/CurrencyContext';
+import { getAllCountriesWithCurrency } from '../../../../../lib/currencyData';
 
 const expenseTabs = [
   { key: 'expense', label: 'Record Expense' },
@@ -21,12 +23,15 @@ const expenseTabs = [
   { key: 'bulk', label: 'Bulk Add' },
 ];
 
-const currencyOptions = [
-  { value: 'INR', label: 'INR - Indian Rupee' },
-  { value: 'USD', label: 'USD - US Dollar' },
-  { value: 'EUR', label: 'EUR - Euro' },
-  { value: 'GBP', label: 'GBP - British Pound' },
-];
+// Build currency options from all supported countries, deduplicating by currency code
+const allCountries = getAllCountriesWithCurrency();
+const currencyMap = new Map();
+allCountries.forEach(c => {
+  if (!currencyMap.has(c.currencyCode)) {
+    currencyMap.set(c.currencyCode, { value: c.currencyCode, label: `${c.currencyCode} - ${c.currencyName}` });
+  }
+});
+const currencyOptions = Array.from(currencyMap.values()).sort((a, b) => a.value.localeCompare(b.value));
 
 function todayISO() {
   return new Date().toISOString().split('T')[0];
@@ -35,6 +40,7 @@ function todayISO() {
 export default function NewExpensePage() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { currencySettings } = useCurrency();
 
   const [activeTab, setActiveTab] = useState('expense');
   const [saving, setSaving] = useState(false);
@@ -50,17 +56,32 @@ export default function NewExpensePage() {
   const [aiCategory, setAiCategory] = useState(null);
   const debounceRef = useRef(null);
 
+  const defaultCurrency = currencySettings?.currencyCode || 'INR';
+
   const [form, setForm] = useState({
     date: todayISO(),
     category: '',
     amount: '',
-    currency: 'INR',
+    currency: defaultCurrency,
     invoiceNumber: '',
     notes: '',
     customerId: '',
     customerName: '',
     isBillable: false,
   });
+
+  // Update default currency when currencySettings loads asynchronously
+  useEffect(() => {
+    if (currencySettings?.currencyCode) {
+      setForm(prev => {
+        // Only update if user hasn't manually changed from the initial default
+        if (prev.currency === 'INR' || !prev.currency) {
+          return { ...prev, currency: currencySettings.currencyCode };
+        }
+        return prev;
+      });
+    }
+  }, [currencySettings?.currencyCode]);
 
   const searchCustomers = useCallback(async (query) => {
     if (!query || query.length < 2) {
@@ -162,7 +183,7 @@ export default function NewExpensePage() {
           date: todayISO(),
           category: '',
           amount: '',
-          currency: 'INR',
+          currency: defaultCurrency,
           invoiceNumber: '',
           notes: '',
           customerId: '',

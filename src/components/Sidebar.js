@@ -94,6 +94,16 @@ export default function Sidebar({ isDashboardPage = false }) {
     return [];
   });
 
+  const [superAdminDisabledPages, setSuperAdminDisabledPages] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('navSuperAdminDisabledPages');
+        return cached ? JSON.parse(cached) : [];
+      } catch { return []; }
+    }
+    return [];
+  });
+
   // Navigation is ready immediately if we have cached data
   const [isNavigationReady, setIsNavigationReady] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -131,6 +141,10 @@ export default function Sidebar({ isDashboardPage = false }) {
             const notAllowed = accessData.notAllowedPages || [];
             setNotAllowedPages(notAllowed);
             localStorage.setItem('navNotAllowedPages', JSON.stringify(notAllowed));
+            // Set and cache superAdminDisabledPages
+            const saDisabled = accessData.superAdminDisabledPages || [];
+            setSuperAdminDisabledPages(saDisabled);
+            localStorage.setItem('navSuperAdminDisabledPages', JSON.stringify(saDisabled));
           } catch (error) {
             console.error('Error fetching page access:', error);
             if (parsedUser.role && parsedUser.role !== 'owner' && parsedUser.role !== 'admin') {
@@ -293,6 +307,11 @@ export default function Sidebar({ isDashboardPage = false }) {
 
   const navItems = getAllNavItems().filter(item => {
     if (!user || !user.role) return false;
+
+    // Super admin override — can hide ANY page except home/profile (to avoid total lockout)
+    if (superAdminDisabledPages?.length > 0 && superAdminDisabledPages.includes(item.id) && item.id !== 'home' && item.id !== 'profile') {
+      return false;
+    }
 
     // These pages are always visible (not hideable via feature selection)
     // but still respect role-based access below

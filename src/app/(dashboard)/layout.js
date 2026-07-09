@@ -127,6 +127,15 @@ function DashboardLayoutContent({ children }) {
 
   // Route guard: check if user has permission to access current page
   useEffect(() => {
+    // Map URL segments to sidebar nav item IDs (for superAdminDisabledPages check)
+    const ROUTE_TO_NAV_ID = {
+      'dashboard': 'pos', 'orderhistory': 'orders', 'kot': 'kot', 'tables': 'tables',
+      'menu': 'menu', 'inventory': 'inventory', 'customers': 'customers', 'billing': 'billing',
+      'invoice': 'invoice', 'admin': 'admin', 'attendance': 'attendance', 'hotel': 'hotel',
+      'dineai': 'dineai', 'analytics': 'analytics', 'parking': 'parking', 'bookings': 'bookings',
+      'shifts-cash': 'shifts-cash', 'books': 'books', 'offers': 'offers',
+    };
+
     try {
       const userData = localStorage.getItem('user');
       if (!userData) {
@@ -139,6 +148,20 @@ function DashboardLayoutContent({ children }) {
         return;
       }
 
+      // Super admin disabled pages check — applies to ALL roles including owner/admin
+      const routeSegment = pathname.split('/').filter(Boolean)[0] || '';
+      const navId = ROUTE_TO_NAV_ID[routeSegment];
+      if (navId) {
+        try {
+          const cachedSA = localStorage.getItem('navSuperAdminDisabledPages');
+          const saDisabled = cachedSA ? JSON.parse(cachedSA) : [];
+          if (saDisabled.includes(navId)) {
+            router.replace('/home');
+            return;
+          }
+        } catch {}
+      }
+
       // For roles that need pageAccess, check permissions
       if (!['owner', 'admin', 'waiter'].includes(user.role)) {
         const cached = localStorage.getItem('navPageAccess');
@@ -147,19 +170,28 @@ function DashboardLayoutContent({ children }) {
           router.replace('/home');
           return;
         }
-
-        // Async: re-check with fresh data from API (covers cache staleness)
-        apiClient.getUserPageAccess?.()
-          .then(res => {
-            if (res?.pageAccess) {
-              localStorage.setItem('navPageAccess', JSON.stringify(res.pageAccess));
-              if (!checkRouteAccess(pathname, user, res.pageAccess)) {
-                router.replace('/home');
-              }
-            }
-          })
-          .catch(() => {}); // Don't block on API failure
       }
+
+      // Async: re-check with fresh data from API (covers cache staleness)
+      apiClient.getUserPageAccess?.()
+        .then(res => {
+          if (!res) return;
+          // Update superAdminDisabledPages cache and re-check
+          const freshSA = res.superAdminDisabledPages || [];
+          localStorage.setItem('navSuperAdminDisabledPages', JSON.stringify(freshSA));
+          if (navId && freshSA.includes(navId)) {
+            router.replace('/home');
+            return;
+          }
+          // Update pageAccess cache and re-check for non-owner roles
+          if (res.pageAccess) {
+            localStorage.setItem('navPageAccess', JSON.stringify(res.pageAccess));
+            if (!checkRouteAccess(pathname, user, res.pageAccess)) {
+              router.replace('/home');
+            }
+          }
+        })
+        .catch(() => {}); // Don't block on API failure
     } catch {
       // On error, allow access (don't lock users out due to parsing errors)
     }

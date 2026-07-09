@@ -1707,7 +1707,11 @@ class ApiClient {
 
   // User Page Access
   async getUserPageAccess() {
-    return this.request('/api/user/page-access');
+    // Include selectedRestaurantId so backend can look up superAdminDisabledPages
+    // (owners may not have restaurantId on their user doc since they can own multiple restaurants)
+    const rid = typeof window !== 'undefined' ? localStorage.getItem('selectedRestaurantId') : null;
+    const query = rid ? `?restaurantId=${encodeURIComponent(rid)}` : '';
+    return this.request(`/api/user/page-access${query}`);
   }
 
   // Intelligent Chatbot
