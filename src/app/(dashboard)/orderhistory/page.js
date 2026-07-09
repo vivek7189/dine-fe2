@@ -10,7 +10,7 @@ import apiClient from '../../../lib/api';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
 import { getCachedOrderHistoryData, setCachedOrderHistoryData } from '../../../utils/dashboardCache';
 import { setCachedData, getCachedData } from '../../../lib/offlineDb';
-import { getAllOfflineOrders, updateOrderSyncStatus } from '../../../lib/offlineDb';
+import { getAllOfflineOrders, updateOrderSyncStatus, deleteOfflineOrder } from '../../../lib/offlineDb';
 import { syncPendingOrders, queueOfflineOrder, generateIdempotencyKey } from '../../../lib/syncEngine';
 import { getOfflineEngineEnabled } from '../../../hooks/useSyncEngine';
 import OfflineBanner from '../../../components/OfflineBanner';
@@ -106,8 +106,14 @@ async function mergeOfflineOrderHistory(existingOrders, restaurantId) {
       }));
 
     if (offlineDisplay.length === 0) return existingOrders;
-    // Put offline orders first (most recent)
-    return [...offlineDisplay, ...existingOrders];
+    // Merge offline orders into existing orders sorted by createdAt (newest first)
+    const merged = [...offlineDisplay, ...existingOrders];
+    merged.sort((a, b) => {
+      const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : (a.createdAt?._seconds ? new Date(a.createdAt._seconds * 1000) : new Date(a.createdAt));
+      const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : (b.createdAt?._seconds ? new Date(b.createdAt._seconds * 1000) : new Date(b.createdAt));
+      return dateB - dateA;
+    });
+    return merged;
   } catch (e) {
     return existingOrders;
   }
@@ -1556,7 +1562,9 @@ const OrderHistory = () => {
   };
 
   const handleDeleteOrder = (orderId) => {
-    if (!isOnline) return;
+    // Allow delete for offline orders even when offline; server orders need connectivity
+    const targetOrder = orders.find(o => o.id === orderId);
+    if (!targetOrder?._isOffline && !isOnline) return;
     setDeleteError(null);
     setDeleteConfirmOrderId(orderId);
   };
@@ -1566,11 +1574,22 @@ const OrderHistory = () => {
     setDeleteSubmitting(true);
     setDeleteError(null);
     try {
-      await apiClient.deleteOrder(deleteConfirmOrderId);
-      setDeleteConfirmOrderId(null);
-      setDeleteSuccess(t('orderHistory.deleteSuccess') || 'Order deleted. View it under status "Deleted".');
-      setTimeout(() => setDeleteSuccess(null), 5000);
-      fetchOrders(false);
+      // Check if this is an unsynced offline order
+      const targetOrder = orders.find(o => o.id === deleteConfirmOrderId);
+      if (targetOrder?._isOffline) {
+        // Delete from local IndexedDB — no server call needed
+        await deleteOfflineOrder(deleteConfirmOrderId);
+        setOrders(prev => prev.filter(o => o.id !== deleteConfirmOrderId));
+        setDeleteConfirmOrderId(null);
+        setDeleteSuccess(t('orderHistory.deleteSuccess') || 'Offline order deleted.');
+        setTimeout(() => setDeleteSuccess(null), 5000);
+      } else {
+        await apiClient.deleteOrder(deleteConfirmOrderId);
+        setDeleteConfirmOrderId(null);
+        setDeleteSuccess(t('orderHistory.deleteSuccess') || 'Order deleted. View it under status "Deleted".');
+        setTimeout(() => setDeleteSuccess(null), 5000);
+        fetchOrders(false);
+      }
     } catch (error) {
       console.error('Error deleting order:', error);
       setDeleteError(error.message || t('common.error') || 'Failed to delete order');
