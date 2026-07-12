@@ -2154,8 +2154,15 @@ function RestaurantPOSContent() {
   useEffect(() => {
     if (!multiPricingEnabled || cart.length === 0) return;
     setCart(prevCart => prevCart.map(item => {
-      // Find the original menu item to get pricingRules overrides
-      const menuItem = menuItems.find(m => m.id === item.id || m._id === item._id);
+      // Find the original menu item to get pricingRules overrides.
+      // NOTE: menu items from Firestore only have `id` (never `_id`). Guard the
+      // `_id` fallback so it can't match on `undefined === undefined`, which
+      // would otherwise resolve EVERY cart line to menuItems[0] and collapse
+      // all prices to the first item's price on order-type switch.
+      const menuItem = menuItems.find(m =>
+        (item.id != null && m.id === item.id) ||
+        (item._id != null && m._id === item._id)
+      );
       // Resolve true base price: the authoritative source is the menu item's
       // original price. Cart-stored basePrice can become stale or corrupted
       // (e.g. set to a pricing-rule price instead of the original), so we
