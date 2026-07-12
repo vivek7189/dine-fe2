@@ -1118,8 +1118,15 @@ const OrderSummary = ({
     if (cartItem?.selectedVariant?.price != null) {
       unitPrice = cartItem.selectedVariant.price;
     } else if (multiPricingEnabled && activePricingRuleId) {
-      // Check per-item pricing rule override (cart item carries pricingRules from menu item)
-      const perItemPrice = cartItem?.pricingRules?.[activePricingRuleId];
+      // Check per-item pricing rule override. Prefer the CURRENT menu item's
+      // pricingRules (authoritative/fresh) over the cart item's embedded copy.
+      // The cart copy is snapshotted at add-time and can be stale — e.g. the
+      // item was added before its channel (takeaway/delivery/zone) price was
+      // set — which would otherwise show the base price in the cart while the
+      // menu grid (which reads fresh data) shows the updated channel price.
+      const freshMenuItem = cartItem?.id != null ? menuItems.find(m => m.id === cartItem.id) : undefined;
+      const perItemPrice = freshMenuItem?.pricingRules?.[activePricingRuleId]
+        ?? cartItem?.pricingRules?.[activePricingRuleId];
       const parsed = perItemPrice != null ? Number(perItemPrice) : NaN;
       if (!isNaN(parsed) && parsed >= 0) {
         unitPrice = parsed;
