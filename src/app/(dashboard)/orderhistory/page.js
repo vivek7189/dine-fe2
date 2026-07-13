@@ -1664,19 +1664,40 @@ const OrderHistory = () => {
       isPreBill,
       editCount: order.editCount || 0,
       updateCount: order.updateCount || 0,
-      offerDiscount: order.offerDiscount || 0,
-      offerName: order.offerName || '',
-      manualDiscount: order.manualDiscount || 0,
-      loyaltyDiscount: order.loyaltyDiscount || 0,
-      serviceCharge: order.serviceCharge || 0,
-      tip: order.tip || 0,
-      roundOff: order.roundOff || 0,
-      splitPayment: order.splitPayment,
+      covers: order.covers,
+      // ── Bill-template fields ──────────────────────────────────────────────
+      // IMPORTANT: the bill templates (printTemplates/*) read the backend
+      // invoice field names — grandTotal, serviceChargeAmount, tipAmount,
+      // roundOffAmount, changeReturned, splitPayments, discountAmount,
+      // walletRedeemAmount. The stored order uses those exact names too (see
+      // getOrderBreakdown). Emit them so the printed bill matches the on-screen
+      // breakdown and the charged total. grandTotal is set from the authoritative
+      // saved finalAmount so the printed TOTAL is always correct regardless of
+      // how the individual lines are reconstructed.
+      grandTotal: Number(order.finalAmount) || (subtotal + (Number(order.taxAmount) || 0)),
+      discountAmount: Number(order.discountAmount) || 0,
+      appliedOffer: order.appliedOffer || order.offerName || '',
+      manualDiscount: Number(order.manualDiscount) || 0,
+      loyaltyDiscount: Number(order.loyaltyDiscount) || 0,
+      couponDiscount: Number(order.couponDiscount) || 0,
+      couponCode: order.couponCode || '',
+      serviceChargeAmount: Number(order.serviceChargeAmount) || 0,
+      serviceChargeRate: order.serviceChargeRate,
+      tipAmount: Number(order.tipAmount) || 0,
+      tipPercentage: order.tipPercentage,
+      roundOffAmount: Number(order.roundOffAmount) || 0,
       cashReceived: order.cashReceived,
-      change: order.change,
+      changeReturned: order.changeReturned != null ? order.changeReturned : order.change,
+      splitPayments: order.splitPayments || order.splitPayment,
+      walletRedeemAmount: Number(order.walletRedeemAmount) || 0,
+      paidAmount: order.paidAmount,
+      outstandingAmount: order.outstandingAmount,
       partialPayment: order.partialPayment,
       splitBill: order.splitBill,
+      taxInclusiveMode: order.taxInclusiveMode,
       deliveryAddress: order.deliveryAddress,
+      deliveryInfo: order.deliveryInfo,
+      restaurantEmail: restaurant?.email || '',
     };
   };
 
@@ -1765,8 +1786,14 @@ const OrderHistory = () => {
 
   const handlePrintBill = (order) => {
     setPrintDropdownOrderId(null);
+    // On the Electron desktop POS, always print locally (silent) — same as the
+    // dashboard billing screen. The Pusher/KOT-printer-app path below is only for
+    // WEB terminals that offload printing to a separate networked KOT app; on
+    // Electron it sends the job to the cloud and nothing prints on this machine
+    // (and requestManualPrint resolves "success", so the fallback never fires).
+    const isElectronApp = typeof window !== 'undefined' && !!window.electronAPI;
     // Print bill with original status — template shows PRE-BILL banner when not completed
-    if (printSettings?.kotPrinterEnabled && printSettings?.usePusherForKOT) {
+    if (!isElectronApp && printSettings?.kotPrinterEnabled && printSettings?.usePusherForKOT) {
       // Try KOT printer app first
       setPrintingOrderId(order.id);
       apiClient.requestManualPrint(order.id, 'bill')
@@ -1786,7 +1813,10 @@ const OrderHistory = () => {
 
   const handlePrintKOT = (order) => {
     setPrintDropdownOrderId(null);
-    if (printSettings?.kotPrinterEnabled && printSettings?.usePusherForKOT) {
+    // Electron desktop POS → local silent print (routes to the configured KOT
+    // printer, incl. IP printers). Pusher/KOT-app path is web-only. See handlePrintBill.
+    const isElectronApp = typeof window !== 'undefined' && !!window.electronAPI;
+    if (!isElectronApp && printSettings?.kotPrinterEnabled && printSettings?.usePusherForKOT) {
       setPrintingOrderId(order.id);
       apiClient.requestManualPrint(order.id, 'kot')
         .then((response) => {
@@ -1804,8 +1834,11 @@ const OrderHistory = () => {
 
   // Smart print - tries KOT Printer app first, falls back to browser print
   const handleSmartPrint = async (order) => {
+    // Electron desktop POS → local silent print (same as dashboard). Pusher/KOT-app
+    // path is web-only; on Electron it would send to the cloud and not print here.
+    const isElectronApp = typeof window !== 'undefined' && !!window.electronAPI;
     // If KOT Printer is enabled, send to printer app via API
-    if (printSettings?.kotPrinterEnabled && printSettings?.usePusherForKOT) {
+    if (!isElectronApp && printSettings?.kotPrinterEnabled && printSettings?.usePusherForKOT) {
       try {
         setPrintingOrderId(order.id);
         const response = await apiClient.requestManualPrint(order.id);

@@ -173,17 +173,37 @@ function createPrintWindow() {
 
 // Fix A: wait for the print window to actually render before printing.
 // loadURL() resolves when the document has loaded, NOT after Chromium has laid
-// out and painted it. On slower Windows 10 hardware, print() then captures an
-// empty frame → silent no-print. A double requestAnimationFrame guarantees one
-// painted frame; the whole thing is hard-capped by maxMs so it can never hang a
-// print job (worst case adds a few hundred ms; unchanged machines still print).
-async function waitForPrintPaint(webContents, maxMs = 700) {
+// out and painted it — and crucially NOT after remote <img> (the bill logo /
+// feedback QR) have downloaded. KOT is pure text so it paints instantly, but a
+// BILL waits on a remote logo image; if print() fires before that image loads,
+// the bill prints blank / fails on slower Windows 10 while KOT works fine.
+//
+// So we wait for: all pending images to load-or-error, fonts to be ready, then
+// two paint frames. Image-less jobs (KOT/text) resolve in a few ms, so they stay
+// fast; only jobs with slow remote images approach the cap. Hard-capped by maxMs
+// so it can never hang a print job (worst case prints without the logo at maxMs).
+async function waitForPrintPaint(webContents, maxMs = 2500) {
+  const waiter = `
+    new Promise(function(resolve){
+      function afterSettle(){
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){ resolve(true); }); });
+      }
+      try {
+        var imgs = Array.prototype.slice.call(document.images || []);
+        var pending = imgs.filter(function(img){ return !img.complete; });
+        var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+        if (pending.length === 0) { fontsReady.then(afterSettle).catch(afterSettle); return; }
+        var done = 0, finished = false;
+        function one(){ done++; if (!finished && done >= pending.length) { finished = true; fontsReady.then(afterSettle).catch(afterSettle); } }
+        pending.forEach(function(img){
+          if (img.decode) { img.decode().then(one).catch(one); }
+          else { img.addEventListener('load', one); img.addEventListener('error', one); }
+        });
+      } catch (e) { afterSettle(); }
+    })`;
   try {
     await Promise.race([
-      webContents.executeJavaScript(
-        'new Promise(function(r){requestAnimationFrame(function(){requestAnimationFrame(function(){r(true)})})})',
-        true
-      ),
+      webContents.executeJavaScript(waiter, true),
       new Promise((res) => setTimeout(res, maxMs)),
     ]);
   } catch {
