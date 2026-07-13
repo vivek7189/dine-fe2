@@ -378,12 +378,17 @@ export default function Sidebar({ isDashboardPage = false }) {
     }
   }, []);
 
-  // Close mobile menu when entering dashboard page to prevent sidebar flash
+  // Close the nav overlay on every route change. On the full-width
+  // dashboard/billing screen the sidebar must never persist — it should only
+  // ever appear as a deliberate overlay (opened via the header menu button) and
+  // collapse again the moment the user navigates. Keying on `pathname` (rather
+  // than only `isDashboardPage`) also covers moves between two dashboard pages,
+  // where isDashboardPage never changes and the overlay would otherwise stay
+  // stuck open, eating billing space. On non-dashboard pages the desktop
+  // sidebar's visibility is driven by isDesktopWidth, so this is a no-op there.
   useEffect(() => {
-    if (isDashboardPage && isMobileMenuOpen) {
-      setIsMobileMenuOpen(false);
-    }
-  }, [isDashboardPage]);
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   // Listen for openNavSidebar event from dashboard
   useEffect(() => {

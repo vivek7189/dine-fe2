@@ -449,6 +449,16 @@ function RestaurantPOSContent() {
     }
     return 'sidebar';
   }); // 'sidebar' or 'chips'
+
+  // Collapsible category chip bar (chips mode): clamp to 2 rows by default so a
+  // long category list can't push the menu grid off-screen. A "More/Less"
+  // toggle reveals the rest. Row height is measured from a real chip so the
+  // clamp lands on an exact row boundary regardless of font/zoom. The measuring
+  // effect lives further down, after `categories` is defined.
+  const [chipsExpanded, setChipsExpanded] = useState(false);
+  const [chipsOverflow, setChipsOverflow] = useState(false);
+  const [chipsCollapsedHeight, setChipsCollapsedHeight] = useState(72);
+  const chipsWrapRef = useRef(null);
   const [showMobileCart, setShowMobileCart] = useState(false);
 
   // Auto-close mobile cart slider when switching away from orders view (e.g. returning to tables after placing order)
@@ -954,6 +964,32 @@ function RestaurantPOSContent() {
       ? [favorites, allItems, ...otherCategories]
       : [allItems, ...otherCategories];
   }, [effectiveMenuItems, categoryItemCountMap, getCategoryEmoji]);
+
+  // Measure the category chip bar to decide whether the 2-row clamp overflows
+  // (i.e. whether to show the More/Less toggle). Placed here because it depends
+  // on `categories`, which is defined just above.
+  useEffect(() => {
+    if (categoryViewMode !== 'chips') return;
+    const el = chipsWrapRef.current;
+    if (!el) return;
+    const measure = () => {
+      const firstChip = el.querySelector('[data-cat-chip]');
+      const rowH = firstChip ? firstChip.offsetHeight : 30;
+      const gap = 6; // matches the flex gap of the chip wrap below
+      const twoRows = rowH * 2 + gap;
+      setChipsCollapsedHeight(twoRows);
+      // scrollHeight reflects the full content height even while clamped, so
+      // overflow detection stays correct in both collapsed and expanded states.
+      setChipsOverflow(el.scrollHeight > twoRows + 4);
+    };
+    measure();
+    let ro;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(measure);
+      ro.observe(el);
+    }
+    return () => { if (ro) ro.disconnect(); };
+  }, [categoryViewMode, categories, orderPanelWidth, chipsExpanded]);
 
   // Mobile detection hook — Electron (desktop POS) always uses desktop layout
   useEffect(() => {
@@ -7290,15 +7326,28 @@ function RestaurantPOSContent() {
           {!isMobile && viewMode === 'orders' && categoryViewMode === 'chips' && (
             <div style={{
               display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
+              alignItems: 'flex-start',
+              gap: '8px',
               padding: '10px 16px',
               paddingRight: `${orderPanelWidth + 10}px`,
               backgroundColor: 'white',
               borderBottom: '1px solid #f1f5f9'
             }}>
-              {/* Category Chips */}
-              <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', flex: 1 }}>
+              {/* Category Chips — clamped to 2 rows unless expanded */}
+              <div
+                ref={chipsWrapRef}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  alignContent: 'flex-start',
+                  flexWrap: 'wrap',
+                  gap: '6px',
+                  flex: 1,
+                  maxHeight: chipsExpanded ? 'none' : `${chipsCollapsedHeight}px`,
+                  overflow: 'hidden',
+                  transition: 'max-height 0.2s ease'
+                }}
+              >
                 {(() => {
                   const topLevel = categories.filter(c => !c.parentId);
                   const childOf = (pid) => categories.filter(c => c.parentId === pid);
@@ -7319,12 +7368,17 @@ function RestaurantPOSContent() {
                   return (
                     <button
                       key={category.id}
+                      data-cat-chip
                       onClick={() => setSelectedCategory(isSelected ? 'all-items' : category.id)}
                       style={{
                         padding: '6px 14px',
+                        // border-box keeps selected (no border) and unselected
+                        // (1px border) chips the exact same height so the 2-row
+                        // clamp lands cleanly on a row boundary.
+                        boxSizing: 'border-box',
                         backgroundColor: isSelected ? '#ef4444' : 'white',
                         color: isSelected ? 'white' : '#4b5563',
-                        border: isSelected ? 'none' : '1px solid #e5e7eb',
+                        border: isSelected ? '1px solid #ef4444' : '1px solid #e5e7eb',
                         borderRadius: '16px',
                         cursor: 'pointer',
                         fontSize: depth > 0 ? '11px' : '12px',
@@ -7351,6 +7405,33 @@ function RestaurantPOSContent() {
                   );
                 })}
               </div>
+
+              {/* More / Less toggle — only when the list overflows 2 rows */}
+              {chipsOverflow && (
+                <button
+                  onClick={() => setChipsExpanded(v => !v)}
+                  style={{
+                    flexShrink: 0,
+                    padding: '6px 12px',
+                    boxSizing: 'border-box',
+                    backgroundColor: '#fef2f2',
+                    color: '#ef4444',
+                    border: '1px solid #fecaca',
+                    borderRadius: '16px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title={chipsExpanded ? 'Show fewer categories' : 'Show all categories'}
+                >
+                  {chipsExpanded ? '▲ Less' : '▾ More'}
+                </button>
+              )}
 
             </div>
           )}

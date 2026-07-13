@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, protocol, Menu, screen } = require('electro
 const path = require('path');
 const fs = require('fs');
 const net = require('net');
+const os = require('os');
 const { initOfflineEngine, shutdownOfflineEngine } = require('./offline');
 
 let mainWindow;
@@ -158,12 +159,84 @@ function createPrintWindow() {
     show: false,
     width: 302,
     height: 900,
-    webPreferences: { contextIsolation: true, nodeIntegration: false },
+    // Fix B: hidden windows are throttled/deprioritized by Chromium, so on some
+    // Windows 10 machines the offscreen print window never paints a frame and
+    // webContents.print() sends an empty/no job. Disabling background throttling
+    // keeps it rendering reliably. Only affects this hidden print window.
+    webPreferences: { contextIsolation: true, nodeIntegration: false, backgroundThrottling: false },
   });
   printWindow.loadURL('data:text/html;charset=utf-8,<html><body></body></html>');
   printWindow.on('closed', () => {
     printWindow = null;
   });
+}
+
+// Fix A: wait for the print window to actually render before printing.
+// loadURL() resolves when the document has loaded, NOT after Chromium has laid
+// out and painted it. On slower Windows 10 hardware, print() then captures an
+// empty frame → silent no-print. A double requestAnimationFrame guarantees one
+// painted frame; the whole thing is hard-capped by maxMs so it can never hang a
+// print job (worst case adds a few hundred ms; unchanged machines still print).
+async function waitForPrintPaint(webContents, maxMs = 700) {
+  try {
+    await Promise.race([
+      webContents.executeJavaScript(
+        'new Promise(function(r){requestAnimationFrame(function(){requestAnimationFrame(function(){r(true)})})})',
+        true
+      ),
+      new Promise((res) => setTimeout(res, maxMs)),
+    ]);
+  } catch {
+    // executeJavaScript can reject if the frame navigates mid-wait; fall back to
+    // a tiny fixed settle so we still don't print an unpainted frame.
+    await new Promise((res) => setTimeout(res, 60));
+  }
+}
+
+// ──── Print diagnostics log (local, for remote root-cause without site visit) ────
+// Every print attempt appends one structured line here with the REAL outcome and
+// full machine context. This does NOT change what the handler returns to the app
+// (so no behavior change for working customers) — it only records the truth so we
+// can diagnose a failing terminal from this file alone.
+const printLogPath = path.join(app.getPath('userData'), 'dineopen-print-log.jsonl');
+
+function windowsLabel() {
+  if (process.platform !== 'win32') return null;
+  // os.release() → e.g. "10.0.19045" (Win10) or "10.0.22631" (Win11)
+  const build = parseInt((os.release() || '').split('.')[2] || '0', 10);
+  if (build >= 22000) return `Windows 11 (build ${build})`;
+  if (build > 0) return `Windows 10 (build ${build})`;
+  return 'Windows';
+}
+
+function logPrintEvent(entry) {
+  let rec;
+  try {
+    rec = {
+      ts: new Date().toISOString(),
+      platform: process.platform,
+      osRelease: os.release(),
+      os: windowsLabel() || `${process.platform} ${os.release()}`,
+      electron: process.versions.electron,
+      appVersion: app.getVersion(),
+      ...entry,
+    };
+    fs.appendFileSync(printLogPath, JSON.stringify(rec) + '\n');
+    // Keep only the last 200 lines so the file can't grow unbounded.
+    const content = fs.readFileSync(printLogPath, 'utf8');
+    const lines = content.split('\n').filter(Boolean);
+    if (lines.length > 200) {
+      fs.writeFileSync(printLogPath, lines.slice(-200).join('\n') + '\n');
+    }
+  } catch { /* logging must never break printing */ }
+  // Side-channel the record to the renderer so it can POST failures to the
+  // backend telemetry endpoint (it has the auth token + restaurantId). Wrapped
+  // and best-effort — must never affect the print flow.
+  try {
+    if (rec && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('print-diag', rec);
+    }
+  } catch { /* ignore */ }
 }
 
 app.whenReady().then(() => {
@@ -604,6 +677,11 @@ ipcMain.handle('electron:print', async (event, { html, copies, type, printerWidt
           console.log('[Print] TCP print recovered on attempt', attempt + 1);
         }
         console.log('[Print] TCP print successful (' + totalCopies + ' copies)');
+        logPrintEvent({
+          type: type || 'unknown', method: 'tcp', success: true,
+          configuredDeviceName: deviceName, host, port, copies: totalCopies,
+          attempts: attempt + 1, hint: null,
+        });
         return { success: true, method: 'tcp', printer: deviceName, attempts: attempt + 1 };
       } catch (err) {
         lastErr = err;
@@ -612,6 +690,15 @@ ipcMain.handle('electron:print', async (event, { html, copies, type, printerWidt
     }
 
     console.error('[Print] TCP print failed after', TCP_MAX_RETRIES, 'attempts:', lastErr?.message);
+    logPrintEvent({
+      type: type || 'unknown', method: 'tcp', success: false,
+      configuredDeviceName: deviceName, host, port,
+      failureReason: lastErr?.message || 'TCP print failed',
+      reachable, attempts: TCP_MAX_RETRIES,
+      hint: reachable
+        ? `Reached ${host}:${port} but printing failed — check paper/printer state or that ${port} is the raw/ESC-POS port (usually 9100).`
+        : `Could not reach the network printer at ${host}:${port} — verify the printer IP, that it's on the same network, and port ${port} is open.`,
+    });
     return { success: false, error: lastErr?.message || 'TCP print failed', method: 'tcp', printer: deviceName, attempts: TCP_MAX_RETRIES };
   }
 
@@ -624,6 +711,10 @@ ipcMain.handle('electron:print', async (event, { html, copies, type, printerWidt
 
   // Load HTML into the reusable print window
   await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+
+  // Fix A: ensure the receipt has actually painted before we hand it to the
+  // printer (see waitForPrintPaint). This is the core Windows 10 fix.
+  await waitForPrintPaint(printWindow.webContents);
 
   // Use cached printer list (avoids OS enumeration on every print)
   const printers = await getCachedPrinters(printWindow.webContents);
@@ -640,8 +731,19 @@ ipcMain.handle('electron:print', async (event, { html, copies, type, printerWidt
       pageSize: { width: widthMicrons, height: 297000 },
     });
     fs.writeFileSync(pdfPath, pdfData);
+    logPrintEvent({
+      type: type || 'unknown', method: 'pdf-fallback', success: false,
+      configuredDeviceName: deviceName || null, printerCount: 0,
+      hint: 'No printers detected by the OS — check that the printer is installed, powered on, and shows in Windows Settings > Printers.',
+      pdfPath,
+    });
     return { success: true, fallback: 'pdf', path: pdfPath };
   }
+
+  // Diagnostic context: does the configured printer actually exist in the OS list?
+  // A name mismatch here is a very common silent-fail cause on Windows.
+  const printerNames = printers.map((p) => p.name);
+  const deviceMatched = deviceName ? printerNames.includes(deviceName) : true; // no name = system default
 
   // Fire-and-forget: send to printer and return immediately (don't wait for spool)
   printWindow.webContents.print(
@@ -664,6 +766,27 @@ ipcMain.handle('electron:print', async (event, { html, copies, type, printerWidt
       } else {
         console.error('[Print] Failed:', failureReason);
       }
+      // Record the REAL outcome for remote diagnosis. We still returned
+      // success:true to the app above (unchanged behavior), but the truth lands
+      // in the log with enough context to pinpoint the cause without a site visit.
+      let hint = null;
+      if (!success) {
+        if (deviceName && !deviceMatched) {
+          hint = `Configured printer "${deviceName}" was NOT found in the OS printer list [${printerNames.join(', ')}] — name mismatch. Re-select the printer in Admin > Print Settings on this machine.`;
+        } else if (!failureReason || failureReason === 'cancelled') {
+          hint = 'Driver rejected/cancelled the job with no reason — often a page-size or driver issue on older Windows 10 print drivers, or the print fired before render (should be fixed by the paint-wait).';
+        } else {
+          hint = `Print driver reported: ${failureReason}`;
+        }
+      }
+      logPrintEvent({
+        type: type || 'unknown', method: 'os-driver', success,
+        failureReason: failureReason || null,
+        configuredDeviceName: deviceName || '(system default)',
+        deviceMatched, printerNames, copies: copies || 1,
+        printerWidth: printerWidth || 80, stationId: stationId || null,
+        hint,
+      });
     }
   );
 
@@ -933,6 +1056,34 @@ function stopPrinterHeartbeat() {
 
 ipcMain.handle('electron:getPrinterHealth', async () => {
   return { ...printerHealthState };
+});
+
+// ──── IPC: Print diagnostics (for remote root-cause) ────
+// Returns the last N print-log entries + the log file path + machine context.
+// Support/dev can call this to see exactly why prints are failing on a terminal,
+// or ask the customer to send the file at the returned path.
+ipcMain.handle('electron:getPrintDiagnostics', async (_event, { limit = 50 } = {}) => {
+  let entries = [];
+  try {
+    if (fs.existsSync(printLogPath)) {
+      const lines = fs.readFileSync(printLogPath, 'utf8').split('\n').filter(Boolean);
+      entries = lines.slice(-limit).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+    }
+  } catch { /* ignore */ }
+  const recentFailures = entries.filter((e) => e.success === false).length;
+  return {
+    logPath: printLogPath,
+    machine: {
+      os: windowsLabel() || `${process.platform} ${os.release()}`,
+      osRelease: os.release(),
+      electron: process.versions.electron,
+      appVersion: app.getVersion(),
+      hostname: os.hostname(),
+    },
+    settings: (() => { const s = loadSettings(); return { defaultPrinter: s.defaultPrinter || null, kotPrinter: s.kotPrinter || null, billPrinter: s.billPrinter || null, stationPrinters: s.stationPrinters || null }; })(),
+    recentFailures,
+    entries,
+  };
 });
 
 // ──── IPC: Auto-update ────

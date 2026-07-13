@@ -17,6 +17,7 @@ import PrintEventToast from '../../components/PrintEventToast';
 import { isWeb, isTauri, isElectron } from '../../utils/platform';
 import { isAutoUpdateEnabled, checkForUpdates, restartApp } from '../../utils/autoUpdater';
 import apiClient from '../../lib/api';
+import { initPrintDiagnostics } from '../../lib/printDiagnostics';
 import { ROUTE_TO_ACCESS_KEY, ALWAYS_ACCESSIBLE } from '../../lib/pageAccessConfig';
 import { FaCloudUploadAlt, FaArrowRight, FaUtensils, FaSyncAlt } from 'react-icons/fa';
 import { DineBotProvider } from '../../components/DineBotProvider';
@@ -88,6 +89,11 @@ function DashboardLayoutContent({ children }) {
 
   // Prefetch dashboard data when browser is idle (skips if already on /dashboard)
   useIdlePrefetch(pathname);
+
+  // Register print-failure telemetry (Electron desktop only; idempotent + no-op on web)
+  useEffect(() => {
+    initPrintDiagnostics();
+  }, []);
 
   // Fetch print settings for native auto-print (no-op on web)
   useEffect(() => {

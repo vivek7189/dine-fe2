@@ -18,10 +18,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('electron:scanNetworkPrinters'),
   getPrinterHealth: () =>
     ipcRenderer.invoke('electron:getPrinterHealth'),
+  getPrintDiagnostics: (options = {}) =>
+    ipcRenderer.invoke('electron:getPrintDiagnostics', options),
   onPrinterStatus: (callback) => {
     const handler = (_event, data) => callback(data);
     ipcRenderer.on('printer-status', handler);
     return () => ipcRenderer.removeListener('printer-status', handler);
+  },
+  onPrintDiag: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on('print-diag', handler);
+    return () => ipcRenderer.removeListener('print-diag', handler);
   },
 
   // Auto-update
