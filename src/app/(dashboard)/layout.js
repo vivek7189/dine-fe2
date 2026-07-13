@@ -59,8 +59,20 @@ function DashboardLayoutContent({ children }) {
   const [nativePrintSettings, setNativePrintSettings] = useState(null);
   const [hasDefaultMenu, setHasDefaultMenu] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
-  // Check if current page is dashboard (POS) — these pages hide the sidebar for full-width billing panel
-  const isDashboardPage = pathname === '/dashboard' || pathname === '/dashboard/bar' || pathname === '/dashboard/v2';
+  // Check if current page is dashboard (POS) — these pages hide the persistent
+  // sidebar so the billing panel gets full width; the nav only appears as a
+  // click-triggered overlay (slides in over the content, click-outside closes).
+  //
+  // NOTE: must be robust to Electron. The desktop app loads via the app://
+  // protocol (e.g. `app://pos/dashboard`), so usePathname() can carry a host/path
+  // prefix, a trailing slash, or a ".html" suffix. A strict `=== '/dashboard'`
+  // match silently failed there, which is why the sidebar wrongly took layout
+  // space on the desktop app (worked on web, broke on Electron/Windows+Mac).
+  const _navPath = (pathname || '').split('?')[0].split('#')[0].replace(/\.html$/, '').replace(/\/+$/, '') || '/';
+  const isDashboardPage =
+    _navPath.endsWith('/dashboard') ||
+    _navPath.endsWith('/dashboard/bar') ||
+    _navPath.endsWith('/dashboard/v2');
 
   // ─── Order Notifications (global Pusher listener) ───
   const {
