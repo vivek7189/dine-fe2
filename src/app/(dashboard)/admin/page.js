@@ -226,7 +226,11 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
         apiClient.getMenu(rid).catch(() => ({ menuItems: [] })),
       ]);
       if (taxRes.success) {
-        setTaxSettings({ ...taxRes.taxSettings, taxGroups: taxRes.taxSettings.taxGroups || [] });
+        setTaxSettings({
+          ...taxRes.taxSettings,
+          taxes: Array.isArray(taxRes.taxSettings.taxes) ? taxRes.taxSettings.taxes : [],
+          taxGroups: taxRes.taxSettings.taxGroups || [],
+        });
       }
       setCategories(catsRes?.categories || []);
       setMenuItems(menuRes?.menuItems || []);
@@ -259,7 +263,17 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
     if (!restaurantId) return;
     setSaving(true);
     try {
-      const response = await apiClient.updateTaxSettings(restaurantId, taxSettings);
+      // The backend rejects the whole save with 400 unless `taxes` is an array.
+      // A restaurant with tax disabled / never configured can have taxes === undefined,
+      // which would make EVERY save here fail — including the Discount Settings
+      // (e.g. adding "cashier" to who-can-apply-discounts). Guarantee arrays so
+      // discountSettings always persists regardless of tax configuration.
+      const payload = {
+        ...taxSettings,
+        taxes: Array.isArray(taxSettings.taxes) ? taxSettings.taxes : [],
+        taxGroups: Array.isArray(taxSettings.taxGroups) ? taxSettings.taxGroups : [],
+      };
+      const response = await apiClient.updateTaxSettings(restaurantId, payload);
       if (response.success) showSuccess('Tax settings saved successfully!');
     } catch (error) {
       console.error('Error saving tax settings:', error);

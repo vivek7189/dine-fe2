@@ -1054,9 +1054,12 @@ const OrderSummary = ({
   // Discount settings from taxSettings
   const discountSettings = taxSettings?.discountSettings || {};
   const discountEnabled = discountSettings.enabled || false;
+  const _normUserRole = String(userRole || '').toLowerCase().trim();
   const canEditManualDiscount = discountEnabled &&
     discountSettings.allowManualDiscount !== false &&
-    (discountSettings.manualDiscountRoles || ['owner']).includes(userRole?.toLowerCase());
+    (discountSettings.manualDiscountRoles || ['owner'])
+      .map((r) => String(r).toLowerCase().trim())
+      .includes(_normUserRole);
 
   // Check if current user role is allowed for a billing feature
   // Empty/missing roles array = all roles allowed (backward compatible)
