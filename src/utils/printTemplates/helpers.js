@@ -12,7 +12,14 @@ export function buildIdentityHtml(info, printSettings) {
   const lines = [];
   if (info.restaurantLegalName && info.restaurantLegalName !== info.restaurantName)
     lines.push(esc(info.restaurantLegalName));
-  if (bl.showAddress !== false && info.restaurantAddress) lines.push(esc(info.restaurantAddress));
+  if (bl.showAddress !== false && info.restaurantAddress) {
+    // Address may be multi-line (e.g. native-language tagline + English area
+    // entered in Print Settings → Receipt Address) — print each line separately
+    String(info.restaurantAddress).split(/\r?\n+/).forEach((l) => {
+      const line = l.trim();
+      if (line) lines.push(esc(line));
+    });
+  }
   if (bl.showPhone !== false && info.restaurantPhone) lines.push('Tel: ' + info.restaurantPhone);
   if (info.showGstOnInvoice && info.gstin) lines.push('GSTIN: ' + info.gstin);
   if (info.showFssaiOnInvoice && info.fssai) lines.push('FSSAI: ' + info.fssai);

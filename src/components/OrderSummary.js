@@ -3425,7 +3425,7 @@ const OrderSummary = ({
                       <div style={{ fontSize: '11px', color: dm ? dm.greenText : '#166534', marginBottom: '2px' }}>{invoice.restaurantLegalName}</div>
                     )}
                     {invoice?.restaurantAddress && (
-                      <div style={{ fontSize: '11px', color: dm ? dm.greenText : '#166534', marginBottom: '2px' }}>{invoice.restaurantAddress}</div>
+                      <div style={{ fontSize: '11px', color: dm ? dm.greenText : '#166534', marginBottom: '2px', whiteSpace: 'pre-line' }}>{invoice.restaurantAddress}</div>
                     )}
                     {invoice?.restaurantPhone && (
                       <div style={{ fontSize: '11px', color: dm ? dm.greenText : '#166534', marginBottom: '2px' }}>{t('invoice.tel')}: {invoice.restaurantPhone}</div>
