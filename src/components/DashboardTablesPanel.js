@@ -212,6 +212,10 @@ export default function DashboardTablesPanel({
           selectedVariant: item.selectedVariant,
           selectedCustomizations: item.selectedCustomizations,
           basePrice: item.basePrice || item.price || 0,
+          notes: item.notes || '',
+          // Seat-level ordering: seat must survive the order→cart round-trip,
+          // otherwise editing a running order silently wipes seat assignments
+          ...(item.seat != null ? { seat: item.seat } : {}),
           cartId: `${item.menuItemId || item.id}-${Date.now()}-${Math.random()}`
         }));
         

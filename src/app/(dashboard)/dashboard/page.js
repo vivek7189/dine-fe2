@@ -76,7 +76,7 @@ import { t } from '../../../lib/i18n';
 import { useLoading } from '../../../contexts/LoadingContext';
 // IntelligentChatbot and RAGInitializer are dynamically imported above
 import { getCachedDashboardData, setCachedDashboardData, getCachedTablesData, setCachedTablesData } from '../../../utils/dashboardCache';
-import { getOrderItemKey } from '../../../utils/orderItemKey';
+import { getOrderItemKey, getOrderItemBaseKey, sanitizeSeat, seatLabel } from '../../../utils/orderItemKey';
 import { useSyncEngine } from '../../../hooks/useSyncEngine';
 import { setCachedData, getCachedData, saveEssentialData, getEssentialData } from '../../../lib/offlineDb';
 import { canPerform } from '../../../lib/permissions';
@@ -252,6 +252,14 @@ function RestaurantPOSContent() {
     const ps = selectedRestaurant?.posSettings || {};
     return { hideSearchBar: true, ...ps };
   }, [selectedRestaurant]);
+
+  // Seat-level ordering (7A/7B/7C): enabled via admin toggle; default off.
+  // activeSeat = the "seat cursor" — newly added items are stamped with it.
+  // null = shared / "Table". Ref mirrors state so addToCart closures never go stale.
+  const seatOrderingEnabled = posSettings.seatOrdering === 'optional' || posSettings.seatOrdering === 'required';
+  const [activeSeat, setActiveSeat] = useState(null);
+  const activeSeatRef = useRef(null);
+  useEffect(() => { activeSeatRef.current = seatOrderingEnabled ? activeSeat : null; }, [activeSeat, seatOrderingEnabled]);
 
   // Responsive panel width for order summary (tablet = narrower)
   const orderPanelWidth = isTablet ? 340 : 450;
@@ -2286,6 +2294,7 @@ function RestaurantPOSContent() {
       setCart([]);
       setCurrentOrder(null);
       setActiveSavedOrderId(null);
+      setActiveSeat(null);
       setCustomerName(''); setAssignedStaff(null);
       setCustomerMobile('');
       setCustomerData(null);
@@ -2303,6 +2312,13 @@ function RestaurantPOSContent() {
 
     // Multi-tier pricing: always preserve the true base price and set rule-adjusted price
     let item = itemRaw;
+    // Seat-level ordering: stamp the active seat cursor on newly added items.
+    // activeSeat is only ever set when posSettings.seatOrdering is enabled,
+    // so this is inert for everyone else. Items that already carry a seat
+    // (e.g. reloaded from an order) keep it.
+    if (item?.seat === undefined && sanitizeSeat(activeSeatRef.current) !== null) {
+      item = { ...item, seat: sanitizeSeat(activeSeatRef.current) };
+    }
     if (multiPricingEnabled && activePricingRuleId && !itemRaw?.selectedVariant) {
       const adjustedPrice = getItemDisplayPrice(itemRaw);
       // Use _originalPrice (set by filteredItems mapping) or existing basePrice as the true base
@@ -2332,7 +2348,9 @@ function RestaurantPOSContent() {
         const ciToppings = Array.isArray(ci?.selectedCustomizations) && ci.selectedCustomizations.length > 0
           ? [...ci.selectedCustomizations].map(c => c.id || c.name).sort().join('|')
           : null;
-        return ci.id === item.id && ciVariant === variantKey && ciToppings === toppingsRaw;
+        // Seat-level ordering: same item on different seats never merges
+        return ci.id === item.id && ciVariant === variantKey && ciToppings === toppingsRaw
+          && sanitizeSeat(ci.seat) === sanitizeSeat(item.seat);
       });
 
       if (existingIndex !== -1) {
@@ -2575,6 +2593,7 @@ function RestaurantPOSContent() {
       quantity: item.quantity,
       total,
       notes: item.notes || '',
+      seat: sanitizeSeat(item.seat),
       category: item.category || '',
       categoryId: item.categoryId || null,
       taxGroupId: item.taxGroupId || null,
@@ -4914,16 +4933,28 @@ function RestaurantPOSContent() {
           const existingItemMap = new Map(existingItemsArr.map(i => [getOrderItemKey(i), i]));
           const cartItemKeys = new Set(cart.map(i => getOrderItemKey(i)));
 
-          const newItems = cart.filter(item => !existingItemMap.has(getOrderItemKey(item)));
+          // Seat-move guard: aggregate quantities by BASE key (ignores seat).
+          // An item whose base-key total is unchanged merely moved between
+          // seats — it must NOT re-fire the kitchen as removed+new.
+          const sumByBaseKey = (arr) => {
+            const m = new Map();
+            arr.forEach(i => { const k = getOrderItemBaseKey(i); m.set(k, (m.get(k) || 0) + (i.quantity || 0)); });
+            return m;
+          };
+          const oldBaseQty = sumByBaseKey(existingItemsArr);
+          const newBaseQty = sumByBaseKey(cart);
+          const seatMoveKeys = new Set([...oldBaseQty.keys()].filter(k => (newBaseQty.get(k) || 0) === oldBaseQty.get(k)));
+
+          const newItems = cart.filter(item => !existingItemMap.has(getOrderItemKey(item)) && !seatMoveKeys.has(getOrderItemBaseKey(item)));
           const updatedItems = cart.filter(item => {
             const existing = existingItemMap.get(getOrderItemKey(item));
-            return existing && existing.quantity !== item.quantity;
+            return existing && existing.quantity !== item.quantity && !seatMoveKeys.has(getOrderItemBaseKey(item));
           });
           const incrementalItems = [...newItems, ...updatedItems];
 
           // Detect removed items for KOT
           const removedKotItems = existingItemsArr
-            .filter(existing => !cartItemKeys.has(getOrderItemKey(existing)))
+            .filter(existing => !cartItemKeys.has(getOrderItemKey(existing)) && !seatMoveKeys.has(getOrderItemBaseKey(existing)))
             .map(item => ({
               name: item.name, quantity: item.quantity, notes: item.notes || '',
               selectedVariant: item.selectedVariant || null,

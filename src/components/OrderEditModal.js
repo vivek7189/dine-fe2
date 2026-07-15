@@ -120,14 +120,16 @@ const OrderEditModal = ({
     // of the same item are treated as separate line items
     const existingItem = order.items.find(item => {
       if (item.menuItemId !== menuItem.id) return false;
-      // Only merge if both have no variant (base item match)
-      return !item.selectedVariant?.name && !menuItem.selectedVariant?.name;
+      // Only merge if both have no variant (base item match).
+      // Seat-level ordering: never merge into a seat-assigned line — items
+      // added from this modal are unassigned (shared).
+      return !item.selectedVariant?.name && !menuItem.selectedVariant?.name && item.seat == null;
     });
 
     if (existingItem) {
       // Update existing item quantity
       const updatedItems = order.items.map(item =>
-        item.menuItemId === menuItem.id && !item.selectedVariant?.name
+        item.menuItemId === menuItem.id && !item.selectedVariant?.name && item.seat == null
           ? { ...item, quantity: item.quantity + 1, total: item.price * (item.quantity + 1) }
           : item
       );
@@ -153,11 +155,15 @@ const OrderEditModal = ({
   };
 
   // Update item quantity — uses variant name to distinguish same item with different variants
-  const updateItemQuantity = (menuItemId, newQuantity, variantName = null) => {
+  const updateItemQuantity = (menuItemId, newQuantity, variantName = null, seat = null) => {
     if (!order || newQuantity < 0) return;
 
+    // Seat-level ordering: seat joins the match so +/- on a 7B line never
+    // touches the 7C line of the same item (both null when feature unused)
     const matchItem = (item) =>
-      item.menuItemId === menuItemId && (item.selectedVariant?.name || null) === variantName;
+      item.menuItemId === menuItemId &&
+      (item.selectedVariant?.name || null) === variantName &&
+      (item.seat ?? null) === seat;
 
     if (newQuantity === 0) {
       // Remove item
@@ -452,7 +458,7 @@ const OrderEditModal = ({
                   {order?.items?.length > 0 ? (
                     <div className="space-y-3">
                       {order.items.map(item => (
-                        <div key={item.menuItemId} className="bg-gray-50 rounded-lg p-3">
+                        <div key={`${item.menuItemId}|${item.selectedVariant?.name || ''}|${item.seat ?? ''}`} className="bg-gray-50 rounded-lg p-3">
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
@@ -468,7 +474,7 @@ const OrderEditModal = ({
                             </div>
                             <div className="flex items-center gap-2">
                               <button
-                                onClick={() => updateItemQuantity(item.menuItemId, item.quantity - 1, item.selectedVariant?.name || null)}
+                                onClick={() => updateItemQuantity(item.menuItemId, item.quantity - 1, item.selectedVariant?.name || null, item.seat ?? null)}
                                 className="p-1 text-gray-400 hover:text-gray-600"
                               >
                                 <FaMinus size={12} />
@@ -477,13 +483,13 @@ const OrderEditModal = ({
                                 {item.quantity}
                               </span>
                               <button
-                                onClick={() => updateItemQuantity(item.menuItemId, item.quantity + 1, item.selectedVariant?.name || null)}
+                                onClick={() => updateItemQuantity(item.menuItemId, item.quantity + 1, item.selectedVariant?.name || null, item.seat ?? null)}
                                 className="p-1 text-gray-400 hover:text-gray-600"
                               >
                                 <FaPlus size={12} />
                               </button>
                               <button
-                                onClick={() => updateItemQuantity(item.menuItemId, 0, item.selectedVariant?.name || null)}
+                                onClick={() => updateItemQuantity(item.menuItemId, 0, item.selectedVariant?.name || null, item.seat ?? null)}
                                 className="p-1 text-red-400 hover:text-red-600 ml-2"
                               >
                                 <FaTrash size={12} />
