@@ -2368,11 +2368,14 @@ function RestaurantPOSContent() {
       }
 
       // Ensure a stable cartId for customized lines
+      // Seat-assigned lines always get a cartId: two same-item lines on
+      // different seats share an id, so id-keyed handlers need cartId to
+      // disambiguate (same reason customized lines always had one).
       const withId = item.cartId
         ? item
         : {
             ...item,
-            cartId: item.selectedVariant || item.selectedCustomizations
+            cartId: item.selectedVariant || item.selectedCustomizations || item.seat != null
               ? `${item.id}-${Date.now()}-${Math.random().toString(36).slice(2,7)}`
               : undefined
           };
@@ -2431,7 +2434,9 @@ function RestaurantPOSContent() {
   const removeFromCart = (itemId) => {
     setCart(prevCart => {
       return prevCart.map(cartItem =>
-        cartItem.id === itemId
+        // Match by cartId (line-level) OR bare menu-item id (menu-card minus,
+        // voice remove) — id fallback must work even when the line has a cartId
+        (cartItem.cartId === itemId || cartItem.id === itemId)
           ? { ...cartItem, quantity: Math.max(0, cartItem.quantity - 1) }
           : cartItem
       ).filter(cartItem => cartItem.quantity > 0);
@@ -4922,6 +4927,24 @@ function RestaurantPOSContent() {
           assignedStaff: assignedStaff || null
         };
 
+        // Seat-only update detection (BEFORE the PATCH): base-key quantities all
+        // unchanged but at least one line's exact (seat-aware) key changed means
+        // items only moved between seats. Kitchen must not re-fire — tell the
+        // backend to skip its KOT reprint/notification too.
+        const preOldItems = currentOrder.items || [];
+        const preSumByBase = (arr) => {
+          const m = new Map();
+          arr.forEach(i => { const k = getOrderItemBaseKey(i); m.set(k, (m.get(k) || 0) + (i.quantity || 0)); });
+          return m;
+        };
+        const preOldBase = preSumByBase(preOldItems);
+        const preNewBase = preSumByBase(cart);
+        const baseUnchanged = preOldBase.size === preNewBase.size &&
+          [...preOldBase.entries()].every(([k, q]) => preNewBase.get(k) === q);
+        const preOldKeys = new Set(preOldItems.map(i => getOrderItemKey(i)));
+        const seatOnlyUpdate = baseUnchanged && cart.some(i => !preOldKeys.has(getOrderItemKey(i)));
+        if (seatOnlyUpdate) updateData.skipKOT = true;
+
         const response = await apiClient.updateOrder(currentOrder.id, updateData);
 
         // Cloud returns { message, data: { orderId } }, Electron local fallback returns { order, success }
@@ -4959,6 +4982,7 @@ function RestaurantPOSContent() {
               name: item.name, quantity: item.quantity, notes: item.notes || '',
               selectedVariant: item.selectedVariant || null,
               selectedCustomizations: item.selectedCustomizations || [],
+              seat: item.seat ?? null,
               isRemoved: true,
             }));
 
@@ -4989,7 +5013,7 @@ function RestaurantPOSContent() {
             kotData: {
               orderId: currentOrder.id,
               dailyOrderId: currentOrder.dailyOrderId,
-              items: filterKotExcludedItems(incrementalItems.length > 0 ? incrementalItems : cart, printSettings).map(item => {
+              items: filterKotExcludedItems(incrementalItems.length > 0 ? incrementalItems : (seatOnlyUpdate ? [] : cart), printSettings).map(item => {
                 const isNew = newItems.includes(item);
                 const isUpdated = updatedItems.includes(item);
                 const existing = isUpdated ? existingItemMap.get(item.id) : null;
@@ -5000,6 +5024,7 @@ function RestaurantPOSContent() {
                   notes: item.notes || '',
                   selectedVariant: item.selectedVariant || null,
                   selectedCustomizations: item.selectedCustomizations || [],
+                  seat: item.seat ?? null,
                   isNew,
                   isUpdated,
                   quantityDelta: isUpdated ? quantityDelta : 0,
@@ -5021,10 +5046,11 @@ function RestaurantPOSContent() {
 
           // Direct KOT print for React Native WebView — fire immediately before view switches
           // Skip when multi-station is configured (2+ stations) — Electron handles station routing
-          if (window.__autoPrintKOT && window.ReactNativeWebView && printStationCount < 2) {
-            const kotItems = filterKotExcludedItems(incrementalItems.length > 0 ? incrementalItems : cart, printSettings).map(item => ({
+          if (!seatOnlyUpdate && window.__autoPrintKOT && window.ReactNativeWebView && printStationCount < 2) {
+            const kotItems = filterKotExcludedItems(incrementalItems.length > 0 ? incrementalItems : (seatOnlyUpdate ? [] : cart), printSettings).map(item => ({
               name: item.name, quantity: item.quantity || 1, notes: item.notes || '',
               selectedVariant: item.selectedVariant || null, selectedCustomizations: item.selectedCustomizations || [],
+              seat: item.seat ?? null,
             }));
             window.__autoPrintKOT = false;
             window.__lastKOTPrintedByEffect = currentOrder.id;
@@ -5229,7 +5255,7 @@ function RestaurantPOSContent() {
             return;
           }
           try {
-            const cartKotItemsOffline = filterKotExcludedItems(cart, printSettings).map(item => ({ name: item.name, quantity: item.quantity || 1, notes: item.notes || '', selectedVariant: item.selectedVariant || null, selectedCustomizations: item.selectedCustomizations || [] }));
+            const cartKotItemsOffline = filterKotExcludedItems(cart, printSettings).map(item => ({ name: item.name, quantity: item.quantity || 1, notes: item.notes || '', selectedVariant: item.selectedVariant || null, selectedCustomizations: item.selectedCustomizations || [], seat: item.seat ?? null }));
             await queueOfflineOrder(orderData);
             setNotification({
               type: 'success',
@@ -5279,7 +5305,7 @@ function RestaurantPOSContent() {
 
         // ONLINE PATH: Wait for API, then show success + auto-print, then return to tables
         const cartBackup = [...cart];
-        const cartKotItems = filterKotExcludedItems(cart, printSettings).map(item => ({ name: item.name, quantity: item.quantity || 1, notes: item.notes || '', selectedVariant: item.selectedVariant || null, selectedCustomizations: item.selectedCustomizations || [] }));
+        const cartKotItems = filterKotExcludedItems(cart, printSettings).map(item => ({ name: item.name, quantity: item.quantity || 1, notes: item.notes || '', selectedVariant: item.selectedVariant || null, selectedCustomizations: item.selectedCustomizations || [], seat: item.seat ?? null }));
         const savedTableNumber = roomNumber ? null : (finalTableNumber || null);
         const savedRoomNumber = roomNumber || null;
         const savedCustomerName = customerName || null;
@@ -8717,6 +8743,9 @@ function RestaurantPOSContent() {
             setScheduledTime={setScheduledTime}
             onBarcodeScanned={handleBarcodeScanned}
             canCompleteBill={canCompleteBill}
+            seatOrderingEnabled={seatOrderingEnabled}
+            activeSeat={activeSeat}
+            setActiveSeat={setActiveSeat}
           />
         </div>
                 ) : (
@@ -8814,6 +8843,9 @@ function RestaurantPOSContent() {
                     setScheduledTime={setScheduledTime}
                     onBarcodeScanned={handleBarcodeScanned}
                     canCompleteBill={canCompleteBill}
+                    seatOrderingEnabled={seatOrderingEnabled}
+                    activeSeat={activeSeat}
+                    setActiveSeat={setActiveSeat}
                   />
             )}
           </>

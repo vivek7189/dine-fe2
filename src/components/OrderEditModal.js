@@ -6,6 +6,7 @@ import { FaTimes, FaSearch, FaEdit, FaCheck, FaPlus, FaMinus, FaTrash, FaUtensil
 import apiClient from '../lib/api';
 import { useLoading } from '../contexts/LoadingContext';
 import { useCurrency } from '../contexts/CurrencyContext';
+import { seatLabel } from '../utils/orderItemKey';
 
 const OrderEditModal = ({
   isOpen,
@@ -464,6 +465,11 @@ const OrderEditModal = ({
                               <div className="flex items-center gap-2">
                                 <span className={`w-3 h-3 rounded-full ${item.isVeg ? 'bg-green-500' : 'bg-red-500'}`} />
                                 <h4 className="font-medium text-gray-900">{item.name}</h4>
+                                {item.seat != null && (
+                                  <span className="px-2 py-1 bg-blue-100 text-xs font-semibold text-blue-700 rounded">
+                                    {seatLabel(item.seat)}
+                                  </span>
+                                )}
                                 {item.shortCode && (
                                   <span className="px-2 py-1 bg-gray-200 text-xs text-gray-600 rounded">
                                     {item.shortCode}

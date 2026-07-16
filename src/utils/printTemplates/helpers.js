@@ -3,8 +3,15 @@
 
 export { getBillPrintCSS, getKOTPrintCSS, getBillHeaderHTML, getPrintFontSizes, getPrintFontFamily, getContentWidth } from '../printFontSizes';
 
+import { seatLabel, sanitizeSeat } from '../orderItemKey';
+
 // HTML-escape a string
 export const esc = (str) => String(str ?? '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// Seat tag for print rows — letter-only label ("A", "B"), '' when the item has
+// no seat. Items only carry a seat when seat-level ordering was on at order
+// time, so gating on the item field alone keeps legacy orders unchanged.
+const seatTag = (item) => (sanitizeSeat(item?.seat) === null ? '' : seatLabel(item.seat));
 
 // Build identity lines (GSTIN, FSSAI, VAT, address, phone) for bill header.
 export function buildIdentityHtml(info, printSettings) {
@@ -42,6 +49,8 @@ export function buildIdentityHtml(info, printSettings) {
 // Get item subline HTML (variant + customizations + notes) for bill item rows.
 export function getSublineHtml(item) {
   let sub = '';
+  const seat = seatTag(item);
+  if (seat) sub += ` <small style="font-weight:bold;">[${seat}]</small>`;
   const variant = item.selectedVariant?.name || item.variant;
   if (variant) sub += `<br/><small style="color:#666;">[${esc(variant)}]</small>`;
   const custs = item.selectedCustomizations || item.customizations || [];
@@ -67,7 +76,9 @@ export function renderKOTItemRow(item, opts = {}, labels = {}) {
   const priceHtml = opts.showPrice && itemTotal > 0 && !opts.isRemoved
     ? `<span style="float:right;font-weight:bold;">${opts.currencySymbol || ''}${itemTotal.toFixed(2)}</span>`
     : '';
-  return `<div class="item" style="${strikeStyle}"><div class="item-main"><span class="item-qty">${qtyDisplay}</span><span class="item-name">${esc(item.name)}${label}</span>${priceHtml}</div>` +
+  const seat = seatTag(item);
+  const seatHtml = seat ? ` <strong>[${seat}]</strong>` : '';
+  return `<div class="item" style="${strikeStyle}"><div class="item-main"><span class="item-qty">${qtyDisplay}</span><span class="item-name">${esc(item.name)}${seatHtml}${label}</span>${priceHtml}</div>` +
     (item.selectedVariant?.name ? `<div class="item-detail">[${esc(item.selectedVariant.name)}]</div>` : '') +
     ((item.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${esc(c.name || c)}</div>`).join('')) +
     (item.notes ? `<div class="item-note">${noteLabel}: ${esc(item.notes)}</div>` : '') +
@@ -167,6 +178,25 @@ export function buildFeedbackSection(printSettings = {}) {
   return `<div style="text-align:center;margin-top:8px;padding-top:8px;border-top:1px dashed #ccc;">` +
     `<div style="font-size:11px;font-weight:bold;margin-bottom:4px;">📝 Rate your experience</div>` +
     (qrDataUrl ? `<img src="${qrDataUrl}" style="width:80px;height:80px;margin:4px auto;display:block;" />` : '') +
+    `<div style="font-size:9px;color:#666;word-break:break-all;">${url}</div>` +
+    `</div>`;
+}
+
+// "Track your order" QR on the bill. Because the QR image is generated
+// asynchronously (qrcode lib) but templates are synchronous, the template only
+// emits a marker here; printBridge replaces it with the real QR + link right
+// before printing (native path). If it's never replaced (e.g. web window.print),
+// the marker is an invisible HTML comment — so it can never corrupt a bill.
+export const ORDER_STATUS_QR_MARKER = '<!--DINE_ORDER_STATUS_QR-->';
+export function buildOrderStatusSection(printSettings = {}) {
+  return printSettings.showOrderStatusQR ? ORDER_STATUS_QR_MARKER : '';
+}
+// The actual printed block, built once the QR data URL is ready.
+export function renderOrderStatusQRHtml(url, qrDataUrl) {
+  if (!url || !qrDataUrl) return '';
+  return `<div style="text-align:center;margin-top:8px;padding-top:8px;border-top:1px dashed #ccc;">` +
+    `<div style="font-size:11px;font-weight:bold;margin-bottom:4px;">📱 Track your order</div>` +
+    `<img src="${qrDataUrl}" style="width:80px;height:80px;margin:4px auto;display:block;" />` +
     `<div style="font-size:9px;color:#666;word-break:break-all;">${url}</div>` +
     `</div>`;
 }

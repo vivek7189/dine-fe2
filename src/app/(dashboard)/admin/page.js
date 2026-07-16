@@ -3510,6 +3510,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
     autoPrintOnKOTAndPrint: true,
     autoPrintOnCompleteBilling: false,
     autoPrintOnBillAndPrint: true,
+    showOrderStatusQR: false,
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -3721,6 +3722,13 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
       section: 'remote'
     },
     // Display settings (shared)
+    {
+      key: 'showOrderStatusQR',
+      title: 'Track-Your-Order QR on Bill',
+      description: 'Print a QR on the customer bill that opens a live order-status page on their phone. Works on thermal/native prints.',
+      icon: <FaReceipt size={18} />,
+      section: 'display'
+    },
     {
       key: 'showSuccessNotifications',
       title: 'Show Success Notifications',
@@ -5687,6 +5695,7 @@ const Admin = () => {
     refundsRequireApproval: true,
     emailInvoiceEnabled: false,
     whatsappBillingEnabled: false,
+    orderStatusRoles: [],
   });
   const [billingSaving, setBillingSaving] = useState(false);
   const [billingMessage, setBillingMessage] = useState({ type: '', text: '' });
@@ -11092,6 +11101,37 @@ const Admin = () => {
                   </select>
                 </div>
               </div>
+
+              {/* Seat-Level Ordering */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <div style={{ width: 28, display: 'flex', justifyContent: 'center' }}>
+                  <FaChair size={18} color="#6b7280" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>Seat-Level Ordering</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '4px' }}>Assign items to individual seats (7A/7B/7C) while taking orders</div>
+                  <select
+                    value={posSettings.seatOrdering || ''}
+                    onChange={(e) => setPosSettings(prev => ({ ...prev, seatOrdering: e.target.value }))}
+                    style={{
+                      padding: '6px 10px',
+                      fontSize: '13px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      background: '#fff',
+                      color: '#374151',
+                      cursor: 'pointer',
+                      outline: 'none',
+                    }}
+                  >
+                    <option value="">Off</option>
+                    <option value="optional">On</option>
+                    {/* 'required' (force a seat on every item) is reserved for a
+                        future phase — enforcement isn't implemented yet, so the
+                        option is hidden to avoid a dead setting */}
+                  </select>
+                </div>
+              </div>
             </div>
 
             {/* Divider */}
@@ -11737,6 +11777,23 @@ const Admin = () => {
                       >
                         📋 Copy
                       </button>
+                    </div>
+                  </div>
+
+                  {/* Customer "order ready" WhatsApp alert */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setPosSettings(prev => ({ ...prev, orderReadyAlertEnabled: !prev.orderReadyAlertEnabled }))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                    >
+                      {posSettings.orderReadyAlertEnabled
+                        ? <FaToggleOn size={24} color="#eab308" />
+                        : <FaToggleOff size={24} color="#d1d5db" />}
+                    </button>
+                    <div>
+                      <span style={{ fontSize: '12px', color: '#374151' }}>Send customer a WhatsApp when order is ready</span>
+                      <div style={{ fontSize: '10px', color: '#9ca3af' }}>Requires WhatsApp connected. Includes a link to the customer&apos;s live order tracker.</div>
                     </div>
                   </div>
                 </div>
@@ -13193,6 +13250,21 @@ const Admin = () => {
                           Restrict which roles can see and change the payment method (Cash, Card, UPI, etc.) on the billing screen.
                         </p>
                         {renderRoleChips('paymentMethodRoles')}
+                      </div>
+                    )
+                  },
+                  {
+                    key: 'orderStatusControl',
+                    name: 'Order Status Control',
+                    desc: 'Who can mark orders preparing / ready / served',
+                    icon: FaConciergeBell,
+                    alwaysOn: true,
+                    expandedContent: (
+                      <div style={{ marginTop: '8px' }}>
+                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 6px 0' }}>
+                          Restrict which roles can advance an order&apos;s kitchen status (Preparing → Ready → Served) from the Kitchen screen, the waiter app, or the cashier orders list. Ready orders show live on the Token Display. Leave all selected to allow any staff.
+                        </p>
+                        {renderRoleChips('orderStatusRoles', 'Who can advance order status?')}
                       </div>
                     )
                   },

@@ -36,6 +36,7 @@ import OfflineBanner from '../../../components/OfflineBanner';
 import { t } from '../../../lib/i18n';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { useCurrency } from '../../../contexts/CurrencyContext';
+import { seatLabel } from '../../../utils/orderItemKey';
 
 // ─── Tab Definitions ───
 const TABS = [
@@ -1283,6 +1284,11 @@ const KitchenOrderTicket = () => {
                                     <span style={{ fontSize: '13px', fontWeight: '600', color: isRemovedItem ? '#ef4444' : '#1f2937' }}>
                                       {item.name}
                                     </span>
+                                    {item.seat != null && (
+                                      <span style={{ fontSize: '8px', fontWeight: '700', color: '#1d4ed8', backgroundColor: '#dbeafe', padding: '1px 4px', borderRadius: '3px' }}>
+                                        {seatLabel(item.seat)}
+                                      </span>
+                                    )}
                                     {isNewItem && <span style={{ fontSize: '8px', fontWeight: '700', color: 'white', backgroundColor: '#22c55e', padding: '1px 4px', borderRadius: '3px' }}>{t('kot.new')}</span>}
                                     {isUpdatedItem && isDeltaPositive && (
                                       <span style={{ fontSize: '8px', fontWeight: '700', color: 'white', backgroundColor: '#22c55e', padding: '1px 4px', borderRadius: '3px' }}>+{item.quantityDelta} {t('kot.new')}</span>
@@ -1755,6 +1761,11 @@ const KitchenOrderTicket = () => {
                           {item.quantity}×
                         </span>
                         <span style={{ fontWeight: '600', color: '#1f2937', fontSize: '14px' }}>{item.name}</span>
+                        {item.seat != null && (
+                          <span style={{ fontSize: '10px', fontWeight: '700', color: '#1d4ed8', backgroundColor: '#dbeafe', padding: '2px 6px', borderRadius: '4px' }}>
+                            {seatLabel(item.seat)}
+                          </span>
+                        )}
                         {item.category && (
                           <span style={{ fontSize: '10px', color: '#6b7280', backgroundColor: '#e5e7eb', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>
                             {item.category}

@@ -92,6 +92,9 @@ export default function TableBillingModal({
               pricingRules: menuItem?.pricingRules || item.pricingRules || {},
               category: item.category || menuItem?.category || '',
               taxGroupId: menuItem?.taxGroupId || item.taxGroupId || null,
+              notes: item.notes || '',
+              // Seat-level ordering: seat must survive the billing round-trip
+              ...(item.seat != null ? { seat: item.seat } : {}),
               cartId: `${item.menuItemId || item.id}-${Date.now()}-${Math.random()}`
             };
           });

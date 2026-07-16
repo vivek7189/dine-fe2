@@ -12,6 +12,7 @@ import { useCurrency } from '../contexts/CurrencyContext';
 import { buildTokenSlipsDocumentHTML, buildTokenSlipHTML } from '../utils/printFontSizes';
 import { generateBillHTML, generateKOTHTML } from '../utils/printHtmlGenerator';
 import { printHtmlInHiddenFrame, printDocument, supportsNativeAutoPrint } from '../utils/printBridge';
+import { seatLabel } from '../utils/orderItemKey';
 
 export default function DashboardTablesPanel({
   floors = [],
@@ -1508,6 +1509,18 @@ export default function DashboardTablesPanel({
               <div>
                 <div style={{ fontSize: '15px', fontWeight: '700', color: '#111827' }}>Table {quickViewOrder.tableName}</div>
                 <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>Order #{quickViewOrder.orderNumber || quickViewOrder.id?.slice(-6)}</div>
+                {/* Seat chips — distinct seats present on this order (seat-level ordering) */}
+                {(quickViewOrder.items || []).some(it => it.seat != null) && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
+                    {[...new Set((quickViewOrder.items || []).filter(it => it.seat != null).map(it => it.seat))]
+                      .sort((a, b) => a - b)
+                      .map(s => (
+                        <span key={s} style={{ fontSize: '10px', fontWeight: '700', color: '#1d4ed8', backgroundColor: '#dbeafe', padding: '1px 6px', borderRadius: '999px' }}>
+                          {seatLabel(s, quickViewOrder.tableNumber ?? quickViewOrder.tableName)}
+                        </span>
+                      ))}
+                  </div>
+                )}
               </div>
               <button onClick={() => setQuickViewOrder(null)} style={{ width: '28px', height: '28px', borderRadius: '8px', border: 'none', backgroundColor: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <FaTimes size={12} color="#6b7280" />
@@ -1521,6 +1534,11 @@ export default function DashboardTablesPanel({
                     <div style={{ fontSize: '13px', fontWeight: '500', color: '#1f2937' }}>
                       <span style={{ color: '#6b7280', marginRight: '4px' }}>{item.quantity || 1}x</span>
                       {item.name}
+                      {item.seat != null && (
+                        <span style={{ fontSize: '10px', fontWeight: '700', color: '#1d4ed8', backgroundColor: '#dbeafe', padding: '1px 5px', borderRadius: '4px', marginLeft: '6px', verticalAlign: 'middle' }}>
+                          {seatLabel(item.seat)}
+                        </span>
+                      )}
                     </div>
                     {item.variant && <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '1px', paddingLeft: '20px' }}>{typeof item.variant === 'object' ? item.variant.name : item.variant}</div>}
                     {item.customizations?.length > 0 && <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '1px', paddingLeft: '20px' }}>{item.customizations.map(c => c.name || c).join(', ')}</div>}

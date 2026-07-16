@@ -10,6 +10,7 @@ import useOfferEngine, { calculateDiscountForOffer } from '../hooks/useOfferEngi
 import { getKOTPrintCSS, buildTokenSlipHTML, buildTokenSlipsDocumentHTML } from '../utils/printFontSizes';
 import { generateBillHTML, generateKOTHTML } from '../utils/printHtmlGenerator';
 import { buildSplitInvoice } from '../utils/printTemplates/helpers';
+import { seatLabel, sanitizeSeat, getOrderItemKey } from '../utils/orderItemKey';
 import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '../utils/printBridge';
 
 const CustomerDetailModal = dynamic(() => import('./CustomerDetailModal'), { ssr: false });
@@ -157,6 +158,10 @@ const OrderSummary = ({
   onBarcodeScanned,
   canCompleteBill = true,
   darkMode = false,
+  // Seat-level ordering (feature-flagged; defaults keep all other callers unchanged)
+  seatOrderingEnabled = false,
+  activeSeat = null,
+  setActiveSeat,
 }) => {
   // Dark-mode color mapping for V2
   const dm = darkMode ? {
@@ -258,6 +263,19 @@ const OrderSummary = ({
   const [customItemPrice, setCustomItemPrice] = useState('');
   const [customItemQty, setCustomItemQty] = useState('1');
   const [editingPriceId, setEditingPriceId] = useState(null);
+
+  // Seat-level ordering — extra chips added via "+" and per-line seat picker
+  const [extraSeatCount, setExtraSeatCount] = useState(0);
+  const [seatPickerItemId, setSeatPickerItemId] = useState(null);
+  const highestCartSeat = seatOrderingEnabled
+    ? cart.reduce((mx, c) => Math.max(mx, sanitizeSeat(c?.seat) || 0), 0)
+    : 0;
+  const seatChipCount = Math.min(26, Math.max(4, highestCartSeat, sanitizeSeat(activeSeat) || 0) + extraSeatCount);
+  // Cart line identity: cartId when present, else id + seat. Before seats,
+  // two no-cartId lines could never share an id (they always merged); with
+  // seats they can (same item on 7B and 7C), so the fallback must include
+  // the seat or note/price/seat editors would target BOTH lines.
+  const cartLineId = (it) => it.cartId || `${it.id}|s${sanitizeSeat(it?.seat) ?? ''}`;
 
   // Staff assignment state
   const [staffList, setStaffList] = useState([]);
@@ -3914,9 +3932,59 @@ const OrderSummary = ({
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {/* Seat chips row — seat-level ordering (feature-flagged) */}
+            {seatOrderingEnabled && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }}>
+                {[null, ...Array.from({ length: seatChipCount }, (_, i) => i + 1)].map((seatNum) => {
+                  const isActive = sanitizeSeat(activeSeat) === seatNum;
+                  return (
+                    <button
+                      key={seatNum === null ? 'table' : seatNum}
+                      onClick={() => setActiveSeat && setActiveSeat(seatNum)}
+                      style={{
+                        flexShrink: 0,
+                        padding: seatNum === null ? '3px 10px' : '3px 8px',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        borderRadius: '999px',
+                        cursor: 'pointer',
+                        lineHeight: 1.2,
+                        backgroundColor: isActive ? '#ef4444' : (dm ? dm.card : '#ffffff'),
+                        color: isActive ? 'white' : (dm ? dm.textSec : '#6b7280'),
+                        border: isActive ? '1px solid #ef4444' : (dm ? '1px solid ' + dm.border : '1px solid #e2e8f0'),
+                        transition: 'all 0.15s',
+                      }}
+                      title={seatNum === null ? 'Shared items for the table' : `Add next items to seat ${seatLabel(seatNum)}`}
+                    >
+                      {seatNum === null ? 'Table' : seatLabel(seatNum)}
+                    </button>
+                  );
+                })}
+                {seatChipCount < 26 && (
+                  <button
+                    onClick={() => setExtraSeatCount((c) => c + 1)}
+                    style={{
+                      flexShrink: 0,
+                      padding: '3px 8px',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      borderRadius: '999px',
+                      cursor: 'pointer',
+                      lineHeight: 1.2,
+                      backgroundColor: 'transparent',
+                      color: dm ? dm.textMuted : '#9ca3af',
+                      border: dm ? '1px dashed ' + dm.border : '1px dashed #cbd5e1',
+                    }}
+                    title="Add another seat"
+                  >
+                    +
+                  </button>
+                )}
+              </div>
+            )}
             {cart.map((item) => (
               <div 
-                key={item.id} 
+                key={cartLineId(item)} 
                 style={{ 
                   backgroundColor: dm ? dm.card : '#f8fafc',
                   borderRadius: '8px',
@@ -4008,6 +4076,29 @@ const OrderSummary = ({
                           NEW
                         </span>
                       )}
+                      {/* Seat badge — seat-level ordering (click to reassign) */}
+                      {seatOrderingEnabled && item.seat != null && (
+                        <span
+                          onClick={() => setSeatPickerItemId(
+                            seatPickerItemId === cartLineId(item) ? null : cartLineId(item)
+                          )}
+                          style={{
+                            fontSize: isMobile ? '7px' : '8px',
+                            fontWeight: 'bold',
+                            color: dm ? '#60a5fa' : '#1d4ed8',
+                            backgroundColor: dm ? dm.blueBg : '#dbeafe',
+                            padding: '1px 4px',
+                            borderRadius: '3px',
+                            border: isMobile ? 'none' : '1px solid #93c5fd',
+                            lineHeight: 1,
+                            whiteSpace: 'nowrap',
+                            cursor: 'pointer',
+                          }}
+                          title="Change seat"
+                        >
+                          {seatLabel(item.seat)}
+                        </span>
+                      )}
                     </h4>
                     {/* Business-type details */}
                     {(() => {
@@ -4048,9 +4139,9 @@ const OrderSummary = ({
                     )}
 
                     {/* Per-item note display (when collapsed but has note) */}
-                    {item.notes && expandedNoteId !== (item.cartId || item.id) && (
+                    {item.notes && expandedNoteId !== cartLineId(item) && (
                       <div
-                        onClick={() => setExpandedNoteId(item.cartId || item.id)}
+                        onClick={() => setExpandedNoteId(cartLineId(item))}
                         style={{ fontSize: '10px', color: '#d97706', background: dm ? dm.orangeBg : '#fffbeb', padding: '2px 6px', borderRadius: '4px', marginTop: '2px', cursor: 'pointer', border: '1px solid #fef3c7' }}
                       >
                         <FaStickyNote size={8} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
@@ -4059,7 +4150,7 @@ const OrderSummary = ({
                     )}
 
                     {/* Per-item note input (expanded) */}
-                    {expandedNoteId === (item.cartId || item.id) && (
+                    {expandedNoteId === cartLineId(item) && (
                       <div style={{ marginTop: '4px' }}>
                         <input
                           type="text"
@@ -4068,7 +4159,7 @@ const OrderSummary = ({
                           onChange={(e) => {
                             const newNotes = e.target.value;
                             setCart(prev => prev.map(c =>
-                              (c.cartId || c.id) === (item.cartId || item.id)
+                              cartLineId(c) === cartLineId(item)
                                 ? { ...c, notes: newNotes }
                                 : c
                             ));
@@ -4090,6 +4181,63 @@ const OrderSummary = ({
                       </div>
                     )}
 
+                    {/* Inline seat picker — reassign this line's seat (seat-level ordering) */}
+                    {seatOrderingEnabled && seatPickerItemId === cartLineId(item) && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '4px' }}>
+                        {[null, ...Array.from({ length: seatChipCount }, (_, i) => i + 1)].map((seatNum) => {
+                          const isCurrent = sanitizeSeat(item.seat) === seatNum;
+                          return (
+                            <button
+                              key={seatNum === null ? 'table' : seatNum}
+                              onClick={() => {
+                                setCart(prev => {
+                                  const movedId = cartLineId(item);
+                                  const moved = prev.map(c =>
+                                    cartLineId(c) === movedId ? { ...c, seat: seatNum } : c
+                                  );
+                                  // Merge ONLY the moved line into an existing line with the
+                                  // same composite key (moved 7B Pepsi onto a seat that already
+                                  // has Pepsi). Never touch other lines; never merge weighed
+                                  // lines or lines whose kitchen notes differ.
+                                  const movedLine = moved.find(c => cartLineId(c) === movedId);
+                                  if (!movedLine || movedLine.soldByWeight) return moved;
+                                  const movedKey = getOrderItemKey(movedLine);
+                                  const target = moved.find(c =>
+                                    cartLineId(c) !== movedId &&
+                                    getOrderItemKey(c) === movedKey &&
+                                    !c.soldByWeight &&
+                                    (c.notes || '') === (movedLine.notes || '')
+                                  );
+                                  if (!target) return moved;
+                                  return moved
+                                    .filter(c => cartLineId(c) !== movedId)
+                                    .map(c => {
+                                      if (cartLineId(c) !== cartLineId(target)) return c;
+                                      const qty = (c.quantity || 1) + (movedLine.quantity || 1);
+                                      return { ...c, quantity: qty, total: (c.price || 0) * qty };
+                                    });
+                                });
+                                setSeatPickerItemId(null);
+                              }}
+                              style={{
+                                padding: '2px 7px',
+                                fontSize: '10px',
+                                fontWeight: '700',
+                                borderRadius: '999px',
+                                cursor: 'pointer',
+                                lineHeight: 1.2,
+                                backgroundColor: isCurrent ? '#3b82f6' : (dm ? dm.inputBg : '#ffffff'),
+                                color: isCurrent ? 'white' : (dm ? dm.textSec : '#6b7280'),
+                                border: isCurrent ? '1px solid #3b82f6' : (dm ? '1px solid ' + dm.border : '1px solid #e2e8f0'),
+                              }}
+                            >
+                              {seatNum === null ? 'Table' : seatLabel(seatNum)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{
@@ -4099,7 +4247,7 @@ const OrderSummary = ({
                         }}>
                           Subtotal: {formatCurrency(getItemUnitPrice(item) * item.quantity)}
                         </span>
-                        {posSettings.allowPriceEdit && isRoleAllowed(billingSettings?.priceEditRoles) && editingPriceId === (item.cartId || item.id) ? (
+                        {posSettings.allowPriceEdit && isRoleAllowed(billingSettings?.priceEditRoles) && editingPriceId === cartLineId(item) ? (
                           <input
                             type="text"
                             inputMode="decimal"
@@ -4109,7 +4257,7 @@ const OrderSummary = ({
                               const newPrice = parseFloat(e.target.value);
                               if (!isNaN(newPrice) && newPrice >= 0) {
                                 setCart(prev => prev.map(c => {
-                                  if ((c.cartId || c.id) !== (item.cartId || item.id)) return c;
+                                  if (cartLineId(c) !== cartLineId(item)) return c;
                                   // Preserve original menu price on first edit; keep it on subsequent edits
                                   const originalMenuPrice = c.menuPrice != null
                                     ? c.menuPrice
@@ -4143,7 +4291,7 @@ const OrderSummary = ({
                               display: 'inline-flex', alignItems: 'center', gap: '3px',
                             }}
                             onClick={() => {
-                              if (posSettings.allowPriceEdit && isRoleAllowed(billingSettings?.priceEditRoles)) setEditingPriceId(item.cartId || item.id);
+                              if (posSettings.allowPriceEdit && isRoleAllowed(billingSettings?.priceEditRoles)) setEditingPriceId(cartLineId(item));
                             }}
                           >
                             {formatCurrency(getItemUnitPrice(item))}
@@ -4171,10 +4319,37 @@ const OrderSummary = ({
                     alignItems: 'center', 
                     gap: '4px'
                   }}>
+                    {/* Seat Assign Toggle — seat-level ordering */}
+                    {seatOrderingEnabled && (
+                      <button
+                        onClick={() => setSeatPickerItemId(
+                          seatPickerItemId === cartLineId(item) ? null : cartLineId(item)
+                        )}
+                        style={{
+                          width: '20px',
+                          height: '20px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: item.seat != null ? (dm ? '#60a5fa' : '#1d4ed8') : '#94a3b8',
+                          backgroundColor: item.seat != null ? (dm ? dm.blueBg : '#eff6ff') : 'transparent',
+                          border: `1px solid ${item.seat != null ? '#93c5fd' : (dm ? dm.border : '#e2e8f0')}`,
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          fontSize: '8px',
+                          fontWeight: '700',
+                          padding: 0,
+                        }}
+                        title="Assign seat"
+                      >
+                        {item.seat != null ? seatLabel(item.seat) : <FaChair size={8} />}
+                      </button>
+                    )}
                     {/* Kitchen Note Toggle */}
                     <button
                       onClick={() => setExpandedNoteId(
-                        expandedNoteId === (item.cartId || item.id) ? null : (item.cartId || item.id)
+                        expandedNoteId === cartLineId(item) ? null : cartLineId(item)
                       )}
                       style={{
                         width: '20px',
@@ -4302,7 +4477,7 @@ const OrderSummary = ({
                         }}
                       />
                       <button
-                        onClick={() => onUpdateCartItemQuantity && onUpdateCartItemQuantity((item.cartId || item.id), (item.quantity || 1) + 1)}
+                        onClick={() => onUpdateCartItemQuantity && onUpdateCartItemQuantity(item.cartId || item.id, (item.quantity || 1) + 1)}
                         style={{
                           width: '22px',
                           height: '22px',

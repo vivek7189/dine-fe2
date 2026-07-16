@@ -1181,6 +1181,9 @@ const OrderHistory = () => {
         pricingRules: menuItem?.pricingRules || item.pricingRules || {},
         category: item.category || menuItem?.category || '',
         taxGroupId: item.taxGroupId || menuItem?.taxGroupId || null,
+        notes: item.notes || '',
+        // Seat-level ordering: seat must survive the billing round-trip
+        ...(item.seat != null ? { seat: item.seat } : {}),
         cartId: `${item.menuItemId || item.id}-${Date.now()}-${Math.random()}`
       };
     });
@@ -2743,6 +2746,36 @@ const OrderHistory = () => {
     } catch { return true; }
   })();
 
+  // Who can advance order status (preparing/ready/served) from the orders list.
+  const canAdvanceStatus = (() => {
+    const roles = restaurant?.billingSettings?.orderStatusRoles;
+    if (!roles || roles.length === 0) return true; // unset = any staff
+    try {
+      const userRole = (JSON.parse(localStorage.getItem('user') || '{}').role || 'waiter').toLowerCase();
+      return userRole === 'owner' || userRole === 'admin' || roles.includes(userRole);
+    } catch { return true; }
+  })();
+
+  // Next status action for an active order (contextual: Start → Ready → Served).
+  const nextStatusAction = (status) => {
+    if (status === 'pending' || status === 'confirmed') return { label: 'Start', next: 'preparing', color: '#f59e0b' };
+    if (status === 'preparing') return { label: 'Ready', next: 'ready', color: '#16a34a' };
+    if (status === 'ready') return { label: 'Served', next: 'served', color: '#2563eb' };
+    return null;
+  };
+
+  const handleAdvanceStatus = async (order, next) => {
+    try {
+      if (next === 'preparing') await apiClient.startCooking(order.id);
+      else if (next === 'ready') await apiClient.markReady(order.id);
+      else if (next === 'served') await apiClient.markServed(order.id, restaurant?.id);
+      else return;
+      setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: next } : o));
+    } catch (e) {
+      alert(e?.message || 'Failed to update order status');
+    }
+  };
+
   const subRestaurantOptions = [
     { value: 'all', label: 'All Outlets' },
     ...subRestaurants.map(sr => ({ value: sr.id, label: sr.name }))
@@ -3641,6 +3674,20 @@ const OrderHistory = () => {
                                 >
                                   <FaEye size={11} />
                                 </button>
+                                {canAdvanceStatus && (() => {
+                                  const act = nextStatusAction(order.status);
+                                  if (!act) return null;
+                                  return (
+                                    <button
+                                      onClick={() => handleAdvanceStatus(order, act.next)}
+                                      className="h-7 px-2 rounded-lg flex items-center justify-center text-white border transition-colors text-[11px] font-bold whitespace-nowrap"
+                                      style={{ backgroundColor: act.color, borderColor: act.color }}
+                                      title={`Mark ${act.label}`}
+                                    >
+                                      {act.label}
+                                    </button>
+                                  );
+                                })()}
                                 {order.status !== 'deleted' && order.status !== 'completed' && !order.orderFlow?.isDirectBilling && (
                                   <button
                                     onClick={() => handleEditOrder(order.id)}
@@ -4176,6 +4223,20 @@ const OrderHistory = () => {
                                 <FaUndoAlt size={isMobile ? 11 : 12} /> {!isMobile && 'Refund'}
                               </button>
                             )}
+                            {canAdvanceStatus && (() => {
+                              const act = nextStatusAction(order.status);
+                              if (!act) return null;
+                              return (
+                                <button
+                                  onClick={() => handleAdvanceStatus(order, act.next)}
+                                  className={`${isMobile ? 'p-1.5 text-[10px]' : 'px-3 py-1.5 text-xs'} font-bold text-white rounded-md transition-all flex items-center gap-1 whitespace-nowrap flex-shrink-0`}
+                                  style={{ backgroundColor: act.color }}
+                                  title={`Mark ${act.label}`}
+                                >
+                                  {act.label}
+                                </button>
+                              );
+                            })()}
                             {order.status !== 'deleted' && order.status !== 'completed' && !order.orderFlow?.isDirectBilling && (
                               <button
                                 onClick={() => handleEditOrder(order.id)}
