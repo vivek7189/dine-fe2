@@ -137,6 +137,17 @@ export function buildKOTItemsSections(kotData, renderRowFn, labels = {}) {
   return { html: itemsHtml, footerText, hasChanges };
 }
 
+// Cashback earned line for bills — renders only when the order carries a
+// cashback credit (invoice.cashbackEarned set by the FE at billing time or by
+// the invoice endpoint on reprints)
+export function buildCashbackHtml(invoice, cs) {
+  const cb = Number(invoice?.cashbackEarned) || 0;
+  if (cb <= 0) return '';
+  return `<div style="text-align:center;margin:4px 0;padding:4px;border:1px dashed #000;font-size:11px;">` +
+    `\u{1F381} Cashback ${cs}${cb.toFixed(2)} credited to your wallet \u2014 use on your next visit!` +
+    `</div>`;
+}
+
 // Build bill items table rows HTML
 export function buildBillItemRows(items, cs, showAr) {
   return items.map(item => {

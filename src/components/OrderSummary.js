@@ -354,7 +354,7 @@ const OrderSummary = ({
     applicableOffers, genericOffers, personalizedOffers,
     selectedOfferId, setSelectedOfferId,
     selectedOfferIds, toggleOffer,
-    offerDiscount, selectedOfferName, resetOffers,
+    offerDiscount, selectedOfferName, resetOffers, getCashbackForAmount,
     autoApplied, firstOrderOfferRejected,
     offerSettings, loyaltySettings,
     freeItems,
@@ -1857,6 +1857,18 @@ const OrderSummary = ({
     if (useWallet && parseFloat(walletRedeemAmount) > 0) {
       invoiceData.walletRedeemAmount = parseFloat(walletRedeemAmount);
     }
+    // Expected cashback (display/receipt only — the backend evaluates
+    // independently at completion and credits the wallet). No cashback on
+    // due/partial bills: the backend won't credit until fully paid.
+    try {
+      const cbBase = invoiceData.grandTotal ?? localTaxData.finalAmount ?? 0;
+      const fullyPaid = !(invoiceData.outstandingAmount > 0);
+      const cb = typeof getCashbackForAmount === 'function' ? getCashbackForAmount(cbBase) : { amount: 0 };
+      if (cb.amount > 0 && fullyPaid) {
+        invoiceData.cashbackEarned = cb.amount;
+        invoiceData.cashbackOfferName = cb.offerName;
+      }
+    } catch (_) { /* display-only — never block billing */ }
     return invoiceData;
   };
 

@@ -6,8 +6,9 @@ import {
   buildBillItemRows, buildTaxHtml, buildDiscountHtml, buildChargesHtml,
   buildPaymentHtml, buildEcrPaymentHtml, buildDeliveryAddressHtml, calcGrandTotal, formatDateTime,
   getPrintFontSizes, getContentWidth, getBillHeaderHTML, wrapInDocument, buildInclusiveTaxNote,
-  buildFeedbackSection, buildSplitBillHtml,
+  buildFeedbackSection, buildOrderStatusSection, buildSplitBillHtml,
   BILL_LABELS_AR, getBillDualCSS, dualLabel, dualTitle,
+  buildCashbackHtml,
 } from '../helpers';
 
 export const id = 'elegant';
@@ -86,11 +87,13 @@ export function render(invoice, printSettings = {}, labels = {}) {
       chargesHtml +
       `<div class="total-row"><span>${dualLabel(L.total, AR.total, showAr)}:</span><span>${cs}${grandTotal.toFixed(2)}</span></div>` +
       paymentHtml +
+      buildCashbackHtml(invoice, cs) +
       ecrHtml +
       inclusiveNote +
     `</div>` +
     `<div class="divider">════════════════════════════</div>` +
     buildFeedbackSection(printSettings) +
+    buildOrderStatusSection(printSettings) +
     `<div class="bill-footer">${bl.showFooter !== false ? `<p>${showAr ? dualLabel(L.footer, AR.footer, showAr) : L.footer}</p>` : ''}${bl.showPoweredBy !== false ? `<p style="font-size:10px;margin-top:6px;">${showAr ? dualLabel(L.poweredBy, AR.poweredBy, showAr) : L.poweredBy}</p>` : ''}</div>`;
 
   return wrapInDocument(`${L.billLabel} #${invoice.dailyOrderId || invoice.id || 'N/A'}`, finalCss, bodyHtml);

@@ -5,8 +5,9 @@ import {
   esc, getBillLabels, buildIdentityHtml,
   buildChargesHtml, buildPaymentHtml, buildEcrPaymentHtml, buildDeliveryAddressHtml, calcGrandTotal, formatDateTime,
   getPrintFontSizes, getContentWidth, wrapInDocument, buildInclusiveTaxNote,
-  buildFeedbackSection, buildSplitBillHtml,
+  buildFeedbackSection, buildOrderStatusSection, buildSplitBillHtml,
   BILL_LABELS_AR, getBillDualCSS, dualLabel, dualTitle, dualItemName,
+  buildCashbackHtml,
 } from '../helpers';
 
 export const id = 'minimal';
@@ -122,10 +123,12 @@ export function render(invoice, printSettings = {}, labels = {}) {
       chargesHtml +
       `<div class="grand-total"><span>${dualLabel(L.total, AR.total, showAr)}</span><span>${cs}${grandTotal.toFixed(2)}</span></div>` +
       paymentHtml +
+      buildCashbackHtml(invoice, cs) +
       ecrHtml +
       inclusiveNote +
     `</div>` +
     buildFeedbackSection(printSettings) +
+    buildOrderStatusSection(printSettings) +
     // Footer
     `<div class="footer">${bl.showFooter !== false ? `<p>${showAr ? dualLabel(L.footer, AR.footer, showAr) : L.footer}</p>` : ''}${bl.showPoweredBy !== false ? `<p style="margin-top:4px;">${showAr ? dualLabel(L.poweredBy, AR.poweredBy, showAr) : L.poweredBy}</p>` : ''}</div>`;
 

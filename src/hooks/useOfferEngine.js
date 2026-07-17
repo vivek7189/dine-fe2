@@ -625,6 +625,7 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     const result = [];
     for (const offer of allOffers) {
       // Schedule check (happy hour, recurring)
+      if (offer.promotionType === 'cashback') continue; // automatic post-payment credit, not a discount
       if (!isScheduleValid(offer)) continue;
       if (!isDateValid(offer)) continue;
       if (offer.minOrderValue && subtotal < offer.minOrderValue) continue;
@@ -891,8 +892,31 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     wasManuallySelectedRef.current = false;
   }, []);
 
+  // Expected cashback for a given paid amount (display/receipt only — the
+  // backend evaluates independently at completion and credits the wallet)
+  const getCashbackForAmount = useCallback((amount) => {
+    const amt = Number(amount) || 0;
+    if (amt <= 0 || !Array.isArray(allOffers)) return { amount: 0, offerName: null };
+    let best = { amount: 0, offerName: null };
+    for (const offer of allOffers) {
+      if (!offer || offer.promotionType !== 'cashback' || offer.isActive === false) continue;
+      if (!isScheduleValid(offer)) continue;
+      if (!isDateValid(offer)) continue;
+      let cb = 0;
+      if (Array.isArray(offer.tiers) && offer.tiers.length > 0) {
+        const tier = resolveTier(offer, amt);
+        cb = tier ? (Number(tier.cashbackAmount != null ? tier.cashbackAmount : tier.discountValue) || 0) : 0;
+      } else if (!offer.minOrderValue || amt >= offer.minOrderValue) {
+        cb = Number(offer.cashbackAmount) || 0;
+      }
+      if (cb > best.amount) best = { amount: Math.round(cb * 100) / 100, offerName: offer.name || 'Cashback' };
+    }
+    return best;
+  }, [allOffers]);
+
   return {
     applicableOffers,
+    getCashbackForAmount,
     genericOffers,
     personalizedOffers,
     selectedOfferId,

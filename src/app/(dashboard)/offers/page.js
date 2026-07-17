@@ -25,6 +25,7 @@ import {
   FaArrowLeft,
   FaCheckCircle,
   FaUserPlus,
+  FaWallet,
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
@@ -598,6 +599,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
   const denomTotal = couponDenominations.reduce((s, d) => s + d, 0);
 
   const inferDiscountMode = (offer) => {
+    if (offer?.promotionType === 'cashback') return 'cashback';
     if (offer?.crossItemBogo?.enabled) return 'bogo_cross';
     if (Array.isArray(offer?.tiers) && offer.tiers.length > 0) return 'tiered';
     if (offer?.promotionType === 'bogo') return 'bogo_same';
@@ -667,6 +669,25 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
         payload.tiers = [];
         payload.crossItemBogo = { ...payload.crossItemBogo, enabled: false };
         payload.promotionType = 'bogo';
+      } else if (discountMode === 'cashback') {
+        // Cashback: tiers define wallet credit per spend level; never discounts
+        // the current bill (engine returns 0 discount; credit happens at
+        // completion server-side)
+        payload.promotionType = 'cashback';
+        payload.crossItemBogo = { ...payload.crossItemBogo, enabled: false };
+        payload.discountValue = 0;
+        const validTiers = (payload.tiers || []).filter(t => t && Number(t.minSubtotal) > 0 && Number(t.cashbackAmount ?? t.discountValue) > 0);
+        if (validTiers.length === 0) {
+          showWarning('Please add at least one cashback tier (min spend + cashback amount)');
+          setSaving(false);
+          return;
+        }
+        payload.tiers = validTiers.map(t => ({
+          minSubtotal: Number(t.minSubtotal),
+          discountType: 'flat',
+          discountValue: Number(t.cashbackAmount ?? t.discountValue),
+          cashbackAmount: Number(t.cashbackAmount ?? t.discountValue),
+        }));
       } else if (discountMode === 'bogo_cross') {
         payload.tiers = [];
         payload.crossItemBogo = { ...payload.crossItemBogo, enabled: true };
@@ -2481,7 +2502,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: formData.discountMode === 'cashback' ? 'none' : 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
                     Discount Type
@@ -2697,6 +2718,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                     { value: 'tiered', label: 'Tiered', desc: 'Spend more, save more', icon: <FaLayerGroup /> },
                     { value: 'bogo_same', label: 'BOGO', desc: 'Same item', icon: <FaGift /> },
                     { value: 'bogo_cross', label: 'Cross BOGO', desc: 'Buy X, get Y', icon: <FaExchangeAlt /> },
+                    { value: 'cashback', label: 'Cashback', desc: 'Wallet credit for next visit', icon: <FaWallet /> },
                   ].map(opt => {
                     const selected = formData.discountMode === opt.value;
                     return (
@@ -2706,9 +2728,13 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                         onClick={() => setFormData(prev => ({
                           ...prev,
                           discountMode: opt.value,
-                          promotionType: opt.value === 'bogo_same' ? 'bogo' : (prev.promotionType === 'bogo' ? 'discount' : prev.promotionType),
-                          tiers: opt.value === 'tiered' && (!prev.tiers || prev.tiers.length === 0)
-                            ? [{ minSubtotal: 500, discountType: 'percentage', discountValue: 10 }]
+                          promotionType: opt.value === 'bogo_same' ? 'bogo'
+                            : opt.value === 'cashback' ? 'cashback'
+                            : (prev.promotionType === 'bogo' || prev.promotionType === 'cashback') ? 'discount' : prev.promotionType,
+                          tiers: (opt.value === 'tiered' || opt.value === 'cashback') && (!prev.tiers || prev.tiers.length === 0)
+                            ? (opt.value === 'cashback'
+                                ? [{ minSubtotal: 249, discountType: 'flat', discountValue: 49, cashbackAmount: 49 }]
+                                : [{ minSubtotal: 500, discountType: 'percentage', discountValue: 10 }])
                             : prev.tiers,
                           crossItemBogo: opt.value === 'bogo_cross'
                             ? { ...(prev.crossItemBogo || {}), enabled: true, buyQty: prev.crossItemBogo?.buyQty || 1, getQty: prev.crossItemBogo?.getQty || 1 }
@@ -2740,6 +2766,68 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
               </div>
 
               {/* Tiered discount rows */}
+              {formData.discountMode === 'cashback' && (
+                <div style={{ padding: '12px', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #86efac' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#15803d', marginBottom: '4px' }}>
+                    Cashback Tiers
+                  </label>
+                  <p style={{ fontSize: '11px', color: '#16a34a', margin: '0 0 8px' }}>
+                    Credited to the customer&apos;s wallet after payment — spendable on their next order. Does not discount the current bill. Highest matching tier applies. Requires a customer (phone) on the order.
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {(formData.tiers || []).map((tier, idx) => (
+                      <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr auto', gap: '8px', alignItems: 'end' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '10px', color: '#15803d', marginBottom: '2px' }}>Bill Above (₹)</label>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={tier.minSubtotal ?? ''}
+                            onChange={(e) => {
+                              const v = e.target.value.replace(/[^0-9.]/g, '');
+                              setFormData(prev => ({ ...prev, tiers: prev.tiers.map((t, i) => i === idx ? { ...t, minSubtotal: v === '' ? '' : parseFloat(v) } : t) }));
+                            }}
+                            style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #86efac', fontSize: '14px', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '10px', color: '#15803d', marginBottom: '2px' }}>Cashback (₹)</label>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={tier.cashbackAmount ?? tier.discountValue ?? ''}
+                            onChange={(e) => {
+                              const v = e.target.value.replace(/[^0-9.]/g, '');
+                              setFormData(prev => ({ ...prev, tiers: prev.tiers.map((t, i) => i === idx ? { ...t, cashbackAmount: v === '' ? '' : parseFloat(v), discountValue: v === '' ? '' : parseFloat(v), discountType: 'flat' } : t) }));
+                            }}
+                            style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #86efac', fontSize: '14px', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, tiers: prev.tiers.filter((_, i) => i !== idx) }))}
+                          style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #fca5a5', backgroundColor: '#fef2f2', color: '#dc2626', cursor: 'pointer', fontSize: '12px' }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => {
+                      const last = prev.tiers?.[prev.tiers.length - 1];
+                      const nextMin = last ? (Number(last.minSubtotal) || 0) + 100 : 249;
+                      const nextCb = last ? (Number(last.cashbackAmount ?? last.discountValue) || 0) + 50 : 49;
+                      return { ...prev, tiers: [...(prev.tiers || []), { minSubtotal: nextMin, discountType: 'flat', discountValue: nextCb, cashbackAmount: nextCb }] };
+                    })}
+                    style={{ marginTop: '8px', padding: '8px 12px', borderRadius: '6px', border: '1px dashed #22c55e', backgroundColor: 'white', color: '#15803d', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}
+                  >
+                    + Add Tier
+                  </button>
+                </div>
+              )}
+
               {formData.discountMode === 'tiered' && (
                 <div style={{ padding: '12px', backgroundColor: '#ecfeff', borderRadius: '8px', border: '1px solid #a5f3fc' }}>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#0e7490', marginBottom: '8px' }}>
