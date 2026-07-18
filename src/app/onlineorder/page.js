@@ -382,6 +382,12 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     const now = new Date();
     return offersData.offers.filter(offer => {
       if (!offer.isActive) return false;
+      // Cashback offers are automatic post-payment wallet credits, not bill
+      // discounts. This page's offer math would otherwise render them as
+      // "₹X off" and charge the deflated total via Razorpay. Defensive guard
+      // for offers already cached in localStorage before the backend excluded
+      // them from /api/public/offers.
+      if (offer.promotionType === 'cashback') return false;
       if (offer.validUntil) {
         const expiryDate = new Date(offer.validUntil);
         expiryDate.setHours(23, 59, 59, 999);
