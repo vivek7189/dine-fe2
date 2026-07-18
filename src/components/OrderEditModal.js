@@ -1,13 +1,19 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { FaTimes, FaSearch, FaEdit, FaCheck, FaPlus, FaMinus, FaTrash, FaUtensils, FaHome, FaShoppingBag, FaTruck } from 'react-icons/fa';
+import { FaTimes, FaSearch, FaSpinner, FaUtensils } from 'react-icons/fa';
 import apiClient from '../lib/api';
-import { useLoading } from '../contexts/LoadingContext';
-import { useCurrency } from '../contexts/CurrencyContext';
-import { seatLabel } from '../utils/orderItemKey';
+import OrderSummary from './OrderSummary';
+import MenuItemCard from './MenuItemCard';
+import { sanitizeSeat, getOrderItemKey } from '../utils/orderItemKey';
 
+/**
+ * Edit Order modal — rebuilt to reuse the dashboard billing UI.
+ * LEFT: searchable menu grid (MenuItemCard). RIGHT: <OrderSummary billingMode>
+ * which computes offers/tax/loyalty/wallet/split internally and hands back a
+ * single taxData object. Renders via createPortal so it sits above nav.
+ */
 const OrderEditModal = ({
   isOpen,
   onClose,
@@ -19,646 +25,678 @@ const OrderEditModal = ({
   mode = 'active',
   editReason = '',
   pinCode = '',
+  // New optional props (orderhistory passes these; defaults keep it safe)
+  menuItems = [],
+  taxSettings,
+  printSettings,
+  billingSettings = {},
+  multiPricingEnabled = false,
+  pricingRules = [],
+  activePricingRuleId = null,
+  setActivePricingRuleId,
+  upiSettings = {},
+  whatsappConnected = false,
+  countryCode = 'IN',
+  businessType = 'restaurant',
+  defaultTaxName = 'Tax',
 }) => {
-  const { startLoading, stopLoading } = useLoading();
-  const { formatCurrency } = useCurrency();
   const [order, setOrder] = useState(null);
-  const [menuItems, setMenuItems] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [menuLoadedItems, setMenuLoadedItems] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All Items');
   const [searchTerm, setSearchTerm] = useState('');
-  const [orderType, setOrderType] = useState('dine-in');
-  const [paymentMethod, setPaymentMethod] = useState('cash');
-  const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '', email: '' });
-  const [notes, setNotes] = useState('');
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
+  const [modalCart, setModalCart] = useState([]);
+  const [modalPaymentMethod, setModalPaymentMethod] = useState('cash');
+  const [modalCustomerName, setModalCustomerName] = useState('');
+  const [modalCustomerMobile, setModalCustomerMobile] = useState('');
+  const [activeSeat, setActiveSeat] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
+  const [mounted, setMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const closeTimerRef = useRef(null);
 
+  const seatOrderingEnabled =
+    selectedRestaurant?.posSettings?.seatOrdering === 'optional' ||
+    selectedRestaurant?.posSettings?.seatOrdering === 'required';
 
+  // Effective menu: prefer the prop, fall back to a locally fetched menu
+  const effectiveMenu = (menuItems && menuItems.length > 0) ? menuItems : menuLoadedItems;
+
+  // Portal target + viewport size (client only)
   useEffect(() => {
-    if (isOpen && (orderId || orderNumber) && selectedRestaurant?.id) {
-      // Call functions directly without including them in dependencies
-      const loadData = async () => {
-        try {
-          startLoading('Loading order details...');
-          setError(null);
-          
-          let response;
-          if (orderId) {
-            response = await apiClient.getOrderById(orderId);
-          } else if (orderNumber) {
-            response = await apiClient.getOrders(selectedRestaurant.id, {
-              search: orderNumber,
-              limit: 1
-            });
-          }
-          
-          if (response.orders && response.orders.length > 0) {
-            const orderData = response.orders[0];
-            setOrder(orderData);
-            setOrderType(orderData.orderType || 'dine-in');
-            setPaymentMethod(orderData.paymentMethod || 'cash');
-            setNotes(orderData.notes || '');
-            
-            if (orderData.customerInfo) {
-              setCustomerInfo({
-                name: orderData.customerInfo.name || '',
-                phone: orderData.customerInfo.phone || '',
-                email: orderData.customerInfo.email || ''
-              });
-            }
-            
-            setSuccess('Order loaded successfully!');
-            setTimeout(() => setSuccess(null), 3000);
-          } else {
-            setError('Order not found');
-          }
-        } catch (error) {
-          console.error('Error fetching order:', error);
-          setError('Failed to load order details');
-        } finally {
-          stopLoading();
-        }
-      };
-
-      const loadMenu = async () => {
-        try {
-          const response = await apiClient.getMenu(selectedRestaurant.id);
-          if (response.success && response.items) {
-            setMenuItems(response.items);
-            
-            // Extract categories
-            const categorySet = new Set(['All Items']);
-            response.items.forEach(item => {
-              if (item.category) categorySet.add(item.category);
-            });
-            setCategories(Array.from(categorySet));
-          }
-        } catch (error) {
-          console.error('Error fetching menu items:', error);
-        }
-      };
-
-      loadData();
-      loadMenu();
+    setMounted(true);
+    const update = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768);
+    update();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', update);
+      return () => window.removeEventListener('resize', update);
     }
-  }, [isOpen, orderId, orderNumber, selectedRestaurant?.id]);
+  }, []);
 
-  // Filter menu items based on category and search
-  const filteredMenuItems = menuItems.filter(item => {
-    const matchesCategory = selectedCategory === 'All Items' || item.category === selectedCategory;
-    const matchesSearch = !searchTerm || 
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.shortCode && item.shortCode.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesCategory && matchesSearch;
-  });
+  // Cleanup pending close timer on unmount
+  useEffect(() => {
+    return () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current); };
+  }, []);
 
-  // Add item to order
-  const addItemToOrder = (menuItem) => {
-    if (!order) return;
+  // Lock body scroll while open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = ''; };
+    }
+  }, [isOpen]);
 
-    // Match by menuItemId + variant name so different variants (e.g., Half/Full)
-    // of the same item are treated as separate line items
-    const existingItem = order.items.find(item => {
-      if (item.menuItemId !== menuItem.id) return false;
-      // Only merge if both have no variant (base item match).
-      // Seat-level ordering: never merge into a seat-assigned line — items
-      // added from this modal are unassigned (shared).
-      return !item.selectedVariant?.name && !menuItem.selectedVariant?.name && item.seat == null;
+  // Load order (+ menu fallback) when the modal opens
+  useEffect(() => {
+    if (!isOpen || !selectedRestaurant?.id || (!orderId && !orderNumber)) return;
+
+    setOrder(null);
+    setModalCart([]);
+    setModalPaymentMethod('cash');
+    setModalCustomerName('');
+    setModalCustomerMobile('');
+    setActiveSeat(null);
+    setErrorMsg(null);
+    setLoading(true);
+
+    (async () => {
+      try {
+        // Menu fallback: only fetch when the prop is empty
+        let liveMenu = (menuItems && menuItems.length > 0) ? menuItems : null;
+        if (!liveMenu) {
+          try {
+            const menuRes = await apiClient.getMenu(selectedRestaurant.id);
+            liveMenu = menuRes?.menuItems || [];
+            setMenuLoadedItems(liveMenu);
+          } catch (menuErr) {
+            console.error('Error fetching menu for edit modal:', menuErr);
+            liveMenu = [];
+          }
+        }
+
+        // Load the order
+        let response;
+        if (orderId) {
+          response = await apiClient.getOrderById(orderId);
+        } else {
+          response = await apiClient.getOrders(selectedRestaurant.id, { search: orderNumber, limit: 1 });
+        }
+
+        if (response?.orders && response.orders.length > 0) {
+          const ord = response.orders[0];
+          setOrder(ord);
+
+          // Rehydrate order.items -> cart (preserves variant/customizations/seat,
+          // refreshes price from live menu). Mirrors TableBillingModal.
+          const cartItems = (ord.items || []).map(item => {
+            const menuItem = liveMenu?.find(m => m.id === (item.menuItemId || item.id));
+            const refreshedPrice = item.selectedVariant?.price != null
+              ? item.selectedVariant.price
+              : (menuItem?.price ?? item.price ?? 0);
+            const variantPriceVal = item.selectedVariant?.price;
+            const itemBasePrice = variantPriceVal != null
+              ? variantPriceVal
+              : (menuItem?.price ?? item.basePrice ?? item.price ?? 0);
+            return {
+              id: item.menuItemId || item.id,
+              name: menuItem?.name || item.name,
+              price: refreshedPrice,
+              quantity: item.quantity || 1,
+              selectedVariant: item.selectedVariant,
+              selectedCustomizations: item.selectedCustomizations,
+              basePrice: itemBasePrice,
+              isCustomItem: item.isCustomItem || false,
+              pricingRules: menuItem?.pricingRules || item.pricingRules || {},
+              category: item.category || menuItem?.category || '',
+              taxGroupId: menuItem?.taxGroupId || item.taxGroupId || null,
+              notes: item.notes || '',
+              ...(item.seat != null ? { seat: item.seat } : {}),
+              cartId: `${item.menuItemId || item.id}-${Date.now()}-${Math.random()}`
+            };
+          });
+          setModalCart(cartItems);
+          setModalPaymentMethod(ord.paymentMethod || 'cash');
+          setModalCustomerName(ord.customerInfo?.name || '');
+          setModalCustomerMobile(ord.customerInfo?.phone || '');
+        } else {
+          setErrorMsg('Order not found');
+        }
+      } catch (error) {
+        console.error('Error fetching order for edit modal:', error);
+        setErrorMsg('Failed to load order details');
+      } finally {
+        setLoading(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, orderId, orderNumber, selectedRestaurant?.id, menuItems?.length]);
+
+  // Derive category tabs from the effective menu
+  const categories = useMemo(() => {
+    const set = new Set(['All Items']);
+    (effectiveMenu || []).forEach(item => { if (item.category) set.add(item.category); });
+    return Array.from(set);
+  }, [effectiveMenu]);
+
+  const filteredMenuItems = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    return (effectiveMenu || []).filter(item => {
+      const matchesCategory = selectedCategory === 'All Items' || item.category === selectedCategory;
+      const matchesSearch = !term ||
+        (item.name && item.name.toLowerCase().includes(term)) ||
+        (item.shortCode && item.shortCode.toLowerCase().includes(term));
+      return matchesCategory && matchesSearch;
     });
+  }, [effectiveMenu, selectedCategory, searchTerm]);
 
-    if (existingItem) {
-      // Update existing item quantity
-      const updatedItems = order.items.map(item =>
-        item.menuItemId === menuItem.id && !item.selectedVariant?.name && item.seat == null
-          ? { ...item, quantity: item.quantity + 1, total: item.price * (item.quantity + 1) }
-          : item
-      );
-      setOrder({ ...order, items: updatedItems });
-    } else {
-      // Add new item
-      const newItem = {
-        menuItemId: menuItem.id,
-        name: menuItem.name,
-        price: parseFloat(menuItem.price),
-        quantity: 1,
-        total: parseFloat(menuItem.price),
-        shortCode: menuItem.shortCode || null,
-        notes: '',
-        category: menuItem.category || null,
-        isVeg: menuItem.isVeg || false,
-        selectedVariant: menuItem.selectedVariant || null,
-        selectedCustomizations: menuItem.selectedCustomizations || [],
-        basePrice: parseFloat(menuItem.price),
-      };
-      setOrder({ ...order, items: [...order.items, newItem] });
-    }
-  };
+  // ---- Cart handlers (mirror dashboard) ----
+  const addToCart = (itemRaw) => {
+    if (!itemRaw) return;
+    if (itemRaw.isAvailable === false) return;
 
-  // Update item quantity — uses variant name to distinguish same item with different variants
-  const updateItemQuantity = (menuItemId, newQuantity, variantName = null, seat = null) => {
-    if (!order || newQuantity < 0) return;
-
-    // Seat-level ordering: seat joins the match so +/- on a 7B line never
-    // touches the 7C line of the same item (both null when feature unused)
-    const matchItem = (item) =>
-      item.menuItemId === menuItemId &&
-      (item.selectedVariant?.name || null) === variantName &&
-      (item.seat ?? null) === seat;
-
-    if (newQuantity === 0) {
-      // Remove item
-      const updatedItems = order.items.filter(item => !matchItem(item));
-      setOrder({ ...order, items: updatedItems });
-    } else {
-      // Update quantity
-      const updatedItems = order.items.map(item =>
-        matchItem(item)
-          ? { ...item, quantity: newQuantity, total: item.price * newQuantity }
-          : item
-      );
-      setOrder({ ...order, items: updatedItems });
-    }
-  };
-
-  // Calculate totals using the order's actual tax rate (derived from stored tax data)
-  const calculateTotals = () => {
-    if (!order?.items) return { subtotal: 0, tax: 0, total: 0, taxRate: 0 };
-
-    const subtotal = order.items.reduce((sum, item) => sum + (item.total || 0), 0);
-
-    // Derive effective tax rate from the order's stored tax data rather than hardcoding.
-    // Priority: taxBreakdown rates > computed from taxAmount/subtotal > 0
-    let taxRate = 0;
-    if (order.taxBreakdown && order.taxBreakdown.length > 0) {
-      taxRate = order.taxBreakdown.reduce((sum, t) => sum + (t.rate || 0), 0) / 100;
-    } else {
-      const origSubtotal = order.subtotalAmount || order.totalAmount;
-      if (order.taxAmount > 0 && origSubtotal > 0) {
-        taxRate = order.taxAmount / origSubtotal;
-      }
+    let item = itemRaw;
+    // Seat-level ordering: stamp the active seat cursor on newly added items
+    if (item.seat === undefined && seatOrderingEnabled && sanitizeSeat(activeSeat) !== null) {
+      item = { ...item, seat: sanitizeSeat(activeSeat) };
     }
 
-    const tax = Math.round(subtotal * taxRate * 100) / 100;
-    const total = subtotal + tax;
-
-    return { subtotal, tax, total, taxRate };
-  };
-
-  const totals = calculateTotals();
-
-  // Update order
-  const handleUpdateOrder = async () => {
-    if (!order) return;
-
-    try {
-      startLoading(mode === 'completed' ? 'Saving changes...' : 'Updating order...');
-      setError(null);
-
-      if (mode === 'completed') {
-        // Completed order edit — use dedicated endpoint
-        const itemsPayload = order.items.map(item => ({
-          menuItemId: item.menuItemId,
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price,
-          notes: item.notes || '',
-          selectedVariant: item.selectedVariant || null,
-          selectedCustomizations: item.selectedCustomizations || [],
-          category: item.category || '',
-        }));
-
-        const response = await apiClient.editCompletedOrderItems(order.id, {
-          items: itemsPayload,
-          editReason: editReason || 'Order edited',
-          pinCode: pinCode || undefined,
-        });
-
-        if (response.success) {
-          const diff = response.amountDiff || 0;
-          let msg = 'Order updated successfully!';
-          if (diff < 0) msg += ` Refund note of ${formatCurrency(Math.abs(diff))} auto-created.`;
-          else if (diff > 0) msg += ` Total increased by ${formatCurrency(diff)}.`;
-          setSuccess(msg);
-          setTimeout(() => {
-            setSuccess(null);
-            onOrderUpdated?.(response.order || order, response);
-          }, 2500);
-        }
-      } else {
-        // Active order edit — use regular PATCH
-        const isSplitOrder = order?.splitPayments?.length >= 2;
-        const updateData = {
-          items: order.items.map(item => ({
-            menuItemId: item.menuItemId,
-            name: item.name,
-            quantity: item.quantity,
-            price: item.price,
-            basePrice: item.basePrice || item.price,
-            notes: item.notes || '',
-            selectedVariant: item.selectedVariant || null,
-            selectedCustomizations: item.selectedCustomizations || [],
-            category: item.category || '',
-            priceEdited: item.priceEdited || false,
-            isCustomItem: item.isCustomItem || false,
-          })),
-          orderType,
-          paymentMethod: isSplitOrder ? 'split' : paymentMethod,
-          ...(isSplitOrder && { splitPayments: order.splitPayments }),
-          customerInfo,
-          notes,
-          updatedAt: new Date().toISOString(),
-          lastUpdatedBy: (() => {
-            try {
-              const u = JSON.parse(localStorage.getItem('user') || '{}');
-              return { name: u.name || u.username || 'Staff Member', id: u.id || u._id || 'unknown' };
-            } catch { return { name: 'Staff Member', id: 'unknown' }; }
-          })()
+    setModalCart(prev => {
+      const targetKey = getOrderItemKey(item);
+      const idx = prev.findIndex(ci => getOrderItemKey(ci) === targetKey);
+      if (idx !== -1) {
+        const updated = [...prev];
+        updated[idx] = {
+          ...updated[idx],
+          quantity: (updated[idx].quantity || 0) + (item.quantity || 1),
         };
-
-        const response = await apiClient.updateOrder(order.id, updateData);
-
-        if (response.data) {
-          setSuccess('Order updated successfully!');
-          setTimeout(() => setSuccess(null), 3000);
-          onOrderUpdated?.(order);
-        }
+        return updated;
       }
-    } catch (error) {
-      console.error('Error updating order:', error);
-      setError(error.message || 'Failed to update order');
-    } finally {
-      stopLoading();
-    }
+      const cartId = `${item.id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      return [
+        {
+          ...item,
+          quantity: item.quantity || 1,
+          basePrice: typeof item.basePrice === 'number' ? item.basePrice : item.price,
+          cartId,
+        },
+        ...prev,
+      ];
+    });
   };
 
-  // Complete billing
-  const handleCompleteBilling = async () => {
-    if (!order) return;
-    
+  const removeFromCart = (itemId) => {
+    setModalCart(prev => prev.map(ci =>
+      (ci.cartId === itemId || ci.id === itemId)
+        ? { ...ci, quantity: Math.max(0, (ci.quantity || 0) - 1) }
+        : ci
+    ).filter(ci => ci.quantity > 0));
+  };
+
+  const getItemQuantityInCart = (itemId) =>
+    modalCart.filter(ci => ci.id === itemId).reduce((sum, ci) => sum + (ci.quantity || 0), 0);
+
+  const getModalTotalAmount = () =>
+    modalCart.reduce((total, item) => total + (item.price * item.quantity), 0);
+
+  const buildModalItemPayload = (item) => {
+    const price = typeof item.price === 'number' ? item.price : parseFloat(item.price) || 0;
+    const total = price * (item.quantity || 1);
+    return {
+      menuItemId: item.id || item.menuItemId,
+      name: item.name,
+      nameAr: item.nameAr || null,
+      price,
+      quantity: item.quantity || 1,
+      total,
+      notes: item.notes || '',
+      seat: sanitizeSeat(item.seat),
+      category: item.category || '',
+      categoryId: item.categoryId || null,
+      taxGroupId: item.taxGroupId || null,
+      selectedVariant: item.selectedVariant || null,
+      selectedCustomizations: Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [],
+      basePrice: typeof item.basePrice === 'number' ? item.basePrice : price,
+      priceEdited: item.priceEdited === true,
+      ...(item.isCustomItem ? { isCustomItem: true } : {}),
+    };
+  };
+
+  const isManualPrintEnabled = () => printSettings?.manualPrintEnabled !== false;
+
+  const handleClose = () => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    setOrder(null);
+    setModalCart([]);
+    setSaving(false);
+    onClose?.();
+  };
+
+  // ---- Save (baseline copied from TableBillingModal.handleModalProcessOrder) ----
+  const handleSave = async (taxData = {}) => {
+    if (!order || !selectedRestaurant?.id || saving) return;
+
+    setSaving(true);
+    setErrorMsg(null);
+
+    const {
+      taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null,
+      serviceChargeAmount, serviceChargeRate, tipAmount, tipPercentage,
+      cashReceived, changeReturned, splitPayments, roundOffAmount,
+      compItems, voidItems, partialPayAmount, manualDiscount, offerDiscount,
+      offerIds, selectedOfferName, totalDiscountAmount, specialInstructions,
+      redeemLoyaltyPoints, loyaltyDiscount,
+      serviceChargeEnabled, manualDiscountType, manualDiscountValue,
+      fullDue,
+      couponDiscount, couponCode, couponId,
+      walletRedeemAmount, walletCustomerId,
+      deliveryInfo: deliveryInfoData, deliveryAddress: deliveryAddrData,
+      managerPin, taxInclusiveMode,
+    } = taxData;
+
     try {
-      startLoading('Completing billing...');
-      setError(null);
-      
-      const isSplitOrder = order?.splitPayments?.length >= 2;
-      const billingData = {
-        items: order.items.map(item => ({
-          menuItemId: item.menuItemId,
-          quantity: item.quantity,
-          notes: item.notes || ''
-        })),
-        orderType,
-        paymentMethod: isSplitOrder ? 'split' : paymentMethod,
-        ...(isSplitOrder && { splitPayments: order.splitPayments }),
-        customerInfo,
-        notes,
-        status: 'completed',
-        completedAt: new Date().toISOString(),
-        totalAmount: totals.total,
-        taxAmount: totals.tax,
-        subtotalAmount: totals.subtotal,
-        // Preserve existing discount/offer/billing fields from the order
-        discountAmount: order.discountAmount || 0,
-        manualDiscount: order.manualDiscount || 0,
-        manualDiscountType: order.manualDiscountType || null,
-        manualDiscountValue: order.manualDiscountValue || 0,
-        offerDiscount: order.offerDiscount || 0,
-        couponDiscount: order.couponDiscount || 0,
-        couponCode: order.couponCode || null,
-        couponId: order.couponId || null,
-        loyaltyDiscount: order.loyaltyDiscount || 0,
-        serviceChargeAmount: order.serviceChargeAmount || 0,
-        tipAmount: order.tipAmount || 0,
-        roundOff: order.roundOff || 0,
-        taxBreakdown: order.taxBreakdown || [],
-        finalAmount: totals.total,
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+
+      const paymentAmount = finalAmount ?? order.finalAmount ?? order.totalAmount ?? getModalTotalAmount();
+      const isFullDue = fullDue === true || (partialPayAmount != null && partialPayAmount === 0);
+      const isPartialPayment = !isFullDue && partialPayAmount && partialPayAmount > 0 && partialPayAmount < paymentAmount;
+
+      // The backend PATCH blocks updating a completed/cancelled order unless the
+      // payload re-sends status:'completed'. For an already-completed order we
+      // re-bill with the edits; for an active order we must NOT force completion
+      // (that would prematurely bill it) — leave status/payment fields untouched.
+      const isCompletedOrder = mode === 'completed' || order?.status === 'completed';
+
+      const updateData = {
+        // Edited items MUST be sent so item changes persist (both modes)
+        items: modalCart.map(buildModalItemPayload),
+        // Audit trail for the edit
+        editReason: editReason || null,
+        ...(pinCode ? { pinCode } : {}),
+        status: isCompletedOrder ? 'completed' : (order?.status || undefined),
+        paymentStatus: isCompletedOrder
+          ? (isFullDue ? 'due' : (isPartialPayment ? 'partial' : 'paid'))
+          : (order?.paymentStatus || undefined),
+        paymentMethod: splitPayments ? 'split' : modalPaymentMethod,
+        completedAt: isCompletedOrder ? new Date().toISOString() : (order?.completedAt || undefined),
+        updatedAt: new Date().toISOString(),
+        ...(taxBreakdown.length > 0 && {
+          totalAmount: subtotal || getModalTotalAmount(),
+          taxBreakdown: taxBreakdown,
+          taxAmount: totalTax,
+          finalAmount: finalAmount
+        }),
+        ...(serviceChargeAmount > 0 && { serviceChargeAmount, serviceChargeRate }),
+        ...(serviceChargeEnabled != null && { serviceChargeEnabled }),
+        ...(tipAmount > 0 && { tipAmount, tipPercentage }),
+        ...(cashReceived > 0 && { cashReceived, changeReturned }),
+        ...(splitPayments && { splitPayments }),
+        ...(roundOffAmount && roundOffAmount !== 0 && { roundOffAmount }),
+        ...(compItems && { compItems }),
+        ...(voidItems && { voidItems }),
+        ...(isFullDue && {
+          partialPayAmount: 0,
+          paidAmount: 0,
+          outstandingAmount: Math.round(paymentAmount * 100) / 100,
+        }),
+        ...(isPartialPayment && {
+          partialPayAmount,
+          paidAmount: partialPayAmount,
+          outstandingAmount: Math.round((paymentAmount - partialPayAmount) * 100) / 100,
+        }),
+        // Discount fields — always include so zeros can clear previous values
+        manualDiscount: manualDiscount || 0,
+        manualDiscountType: manualDiscountType || null,
+        manualDiscountValue: manualDiscountValue != null ? manualDiscountValue : null,
+        offerDiscount: offerDiscount || 0,
+        offerIds: offerIds && offerIds.length > 0 ? offerIds : [],
+        selectedOfferName: selectedOfferName || null,
+        totalDiscountAmount: totalDiscountAmount || 0,
+        specialInstructions: specialInstructions || null,
+        redeemLoyaltyPoints: redeemLoyaltyPoints || 0,
+        loyaltyDiscount: loyaltyDiscount || 0,
+        couponDiscount: couponDiscount || null,
+        couponCode: couponCode || null,
+        couponId: couponId || null,
+        walletRedeemAmount: walletRedeemAmount || null,
+        walletCustomerId: walletCustomerId || null,
+        deliveryInfo: deliveryInfoData || order.deliveryInfo || null,
+        deliveryAddress: deliveryAddrData || order.deliveryAddress || null,
+        managerPin: managerPin || null,
+        taxInclusiveMode: taxInclusiveMode || null,
+        customerId: order.customerId || null,
+        customerInfo: {
+          name: modalCustomerName || order.customerInfo?.name || '',
+          phone: modalCustomerMobile || order.customerInfo?.phone || null,
+          tableNumber: order.tableNumber || null,
+        },
+        lastUpdatedBy: {
+          name: currentUser.name || 'Staff',
+          id: currentUser.id,
+          role: currentUser.role || 'waiter'
+        }
       };
 
-      const response = await apiClient.updateOrder(order.id, billingData);
-      
-      if (response.data) {
-        setSuccess('Billing completed successfully!');
-        setTimeout(() => {
-          setSuccess(null);
-          onOrderCompleted?.(order);
-          onClose();
-        }, 2000);
+      const completedOrderId = order.id;
+
+      await apiClient.updateOrder(completedOrderId, updateData);
+
+      // Only record/verify payment when we're actually billing a completed order.
+      // Active orders are just being edited — verifying payment would bill them early.
+      if (isCompletedOrder) {
+        // Backend only accepts 'cash', 'card', 'upi' as offline methods
+        const effectiveMethod = splitPayments
+          ? (splitPayments[0]?.method || 'cash')
+          : modalPaymentMethod;
+        const safePaymentMethod = ['cash', 'card', 'upi'].includes(effectiveMethod) ? effectiveMethod : 'cash';
+
+        await apiClient.verifyPayment({
+          orderId: completedOrderId,
+          paymentMethod: safePaymentMethod,
+          amount: isPartialPayment ? partialPayAmount : paymentAmount,
+          userId: currentUser.id,
+          restaurantId: selectedRestaurant.id,
+          paymentStatus: isPartialPayment ? 'partial' : 'completed'
+        });
       }
+
+      if (isCompletedOrder && !isManualPrintEnabled()) {
+        try {
+          await apiClient.requestManualPrint(completedOrderId, 'bill');
+        } catch (printError) {
+          console.error('Auto-print failed:', printError);
+        }
+      }
+
+      onOrderUpdated?.(order);
+      onOrderCompleted?.(order);
+
+      // Delay close so OrderSummary can generate the invoice + auto-print fires
+      const isRNWebView = typeof window !== 'undefined' && !!window.ReactNativeWebView;
+      const wantsPrint = (typeof window !== 'undefined' && !!window.__autoPrintBill) ||
+        !!printSettings?.autoPrintOnCompleteBilling ||
+        (isRNWebView && !!printSettings?.autoPrintOnBilling);
+      closeTimerRef.current = setTimeout(() => handleClose(), wantsPrint ? 3000 : 500);
+
+      return { orderId: completedOrderId };
     } catch (error) {
-      console.error('Error completing billing:', error);
-      setError('Failed to complete billing');
-    } finally {
-      stopLoading();
+      console.error('Order edit save error:', error);
+      setSaving(false);
+      setErrorMsg('Save failed: ' + (error.message || 'Unknown error'));
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-[9999] overflow-hidden">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black bg-opacity-50 transition-opacity"
-        onClick={onClose}
-      />
-      
-      {/* Slider */}
-      <div className="absolute right-0 top-0 h-full w-full max-w-4xl bg-white shadow-xl transform transition-transform duration-300 ease-in-out">
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gray-50">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">
-                {order ? `Order #${order.dailyOrderId || order.orderNumber}` : 'Order Details'}
-              </h2>
-              <p className="text-sm text-gray-500">
-                {order ? `Table ${order.tableNumber || 'N/A'} • ${order.status}` : 'Loading...'}
-              </p>
+  const posSettingsForSummary = {
+    ...(selectedRestaurant?.posSettings || {}),
+    completeBillingLabel: 'Save Changes',
+  };
+
+  const modalContent = (
+    <div
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(0,0,0,0.6)',
+        backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 99999, padding: 0,
+      }}
+      onClick={handleClose}
+    >
+      <style>{`
+        @keyframes editModalSlideUp {
+          from { transform: translateY(40px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        .edit-modal-panel { animation: editModalSlideUp 0.25s cubic-bezier(0.22, 0.61, 0.36, 1); }
+        .edit-modal-body { display: flex; flex-direction: row; }
+        .edit-modal-left { flex: 1.3; min-width: 0; }
+        .edit-modal-right { flex: 1; min-width: 380px; }
+        @media (max-width: 768px) {
+          .edit-modal-panel {
+            max-width: 100% !important; width: 100% !important;
+            height: 100dvh !important; max-height: 100dvh !important;
+            border-radius: 0 !important;
+          }
+          .edit-modal-header { border-radius: 0 !important; }
+          .edit-modal-body { flex-direction: column; }
+          .edit-modal-left, .edit-modal-right { flex: none; width: 100%; min-width: 0; }
+          .edit-modal-left { height: 42%; }
+          .edit-modal-right { height: 58%; }
+        }
+      `}</style>
+      <div
+        className="edit-modal-panel"
+        style={{
+          background: '#fff', borderRadius: '14px',
+          width: '96vw', maxWidth: '1100px', height: '92vh', maxHeight: '92vh',
+          overflow: 'hidden',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.05)',
+          display: 'flex', flexDirection: 'column', position: 'relative',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="edit-modal-header" style={{
+          background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+          padding: '12px 16px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          borderRadius: '14px 14px 0 0', flexShrink: 0,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+            <div style={{
+              width: '32px', height: '32px', borderRadius: '8px',
+              background: 'rgba(255,255,255,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <FaUtensils size={14} style={{ color: '#fff' }} />
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <FaTimes size={20} />
-            </button>
-          </div>
-
-          {/* Content */}
-          <div className="flex-1 overflow-hidden">
-            <div className="h-full flex">
-              {/* Left Panel - Menu Items */}
-              <div className="w-1/2 border-r border-gray-200 flex flex-col">
-                {/* Search and Categories */}
-                <div className="p-4 border-b border-gray-200">
-                  <div className="relative mb-3">
-                    <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Search menu items..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    />
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-2">
-                    {categories.map(category => (
-                      <button
-                        key={category}
-                        onClick={() => setSelectedCategory(category)}
-                        className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                          selectedCategory === category
-                            ? 'bg-red-500 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        {category}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Menu Items */}
-                <div className="flex-1 overflow-y-auto p-4">
-                  <div className="grid grid-cols-1 gap-3">
-                    {filteredMenuItems.map(item => (
-                      <div key={item.id} className="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className={`w-3 h-3 rounded-full ${item.isVeg ? 'bg-green-500' : 'bg-red-500'}`} />
-                              <h3 className="font-medium text-gray-900">{item.name}</h3>
-                              {item.shortCode && (
-                                <span className="px-2 py-1 bg-gray-100 text-xs text-gray-600 rounded">
-                                  {item.shortCode}
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-sm text-gray-500 mt-1">{item.description}</p>
-                            <p className="text-sm font-semibold text-red-600 mt-1">{formatCurrency(item.price)}</p>
-                          </div>
-                          <button
-                            onClick={() => addItemToOrder(item)}
-                            className="ml-3 px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
-                          >
-                            <FaPlus size={12} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>
+                Order #{order?.dailyOrderId || order?.id?.slice(-6) || orderNumber || '—'} — Edit
               </div>
-
-              {/* Right Panel - Order Details */}
-              <div className="w-1/2 flex flex-col">
-                {/* Order Items */}
-                <div className="flex-1 overflow-y-auto p-4">
-                  <h3 className="font-semibold text-gray-900 mb-4">Order Items ({order?.items?.length || 0})</h3>
-                  
-                  {order?.items?.length > 0 ? (
-                    <div className="space-y-3">
-                      {order.items.map(item => (
-                        <div key={`${item.menuItemId}|${item.selectedVariant?.name || ''}|${item.seat ?? ''}`} className="bg-gray-50 rounded-lg p-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className={`w-3 h-3 rounded-full ${item.isVeg ? 'bg-green-500' : 'bg-red-500'}`} />
-                                <h4 className="font-medium text-gray-900">{item.name}</h4>
-                                {item.seat != null && (
-                                  <span className="px-2 py-1 bg-blue-100 text-xs font-semibold text-blue-700 rounded">
-                                    {seatLabel(item.seat)}
-                                  </span>
-                                )}
-                                {item.shortCode && (
-                                  <span className="px-2 py-1 bg-gray-200 text-xs text-gray-600 rounded">
-                                    {item.shortCode}
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-sm text-gray-600">{formatCurrency(item.price)} × {item.quantity} = {formatCurrency(item.total)}</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => updateItemQuantity(item.menuItemId, item.quantity - 1, item.selectedVariant?.name || null, item.seat ?? null)}
-                                className="p-1 text-gray-400 hover:text-gray-600"
-                              >
-                                <FaMinus size={12} />
-                              </button>
-                              <span className="px-2 py-1 bg-white border border-gray-300 rounded text-sm font-medium min-w-[2rem] text-center">
-                                {item.quantity}
-                              </span>
-                              <button
-                                onClick={() => updateItemQuantity(item.menuItemId, item.quantity + 1, item.selectedVariant?.name || null, item.seat ?? null)}
-                                className="p-1 text-gray-400 hover:text-gray-600"
-                              >
-                                <FaPlus size={12} />
-                              </button>
-                              <button
-                                onClick={() => updateItemQuantity(item.menuItemId, 0, item.selectedVariant?.name || null, item.seat ?? null)}
-                                className="p-1 text-red-400 hover:text-red-600 ml-2"
-                              >
-                                <FaTrash size={12} />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center text-gray-500 py-8">
-                      <FaUtensils size={48} className="mx-auto mb-4 text-gray-300" />
-                      <p>No items in order</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Order Settings */}
-                <div className="border-t border-gray-200 p-4">
-                  <div className="space-y-4">
-                    {/* Order Type */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Order Type</label>
-                      <div className="flex gap-2">
-                        {[
-                          { value: 'dine-in', label: 'Dine In', icon: FaHome },
-                          { value: 'takeaway', label: 'Takeaway', icon: FaShoppingBag },
-                          { value: 'delivery', label: 'Delivery', icon: FaTruck }
-                        ].map(type => (
-                          <button
-                            key={type.value}
-                            onClick={() => setOrderType(type.value)}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                              orderType === type.value
-                                ? 'bg-red-500 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                          >
-                            <type.icon size={14} />
-                            {type.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Payment Method */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
-                      <div className="flex gap-2">
-                        {['cash', 'card', 'upi', 'online'].map(method => (
-                          <button
-                            key={method}
-                            onClick={() => setPaymentMethod(method)}
-                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
-                              paymentMethod === method
-                                ? 'bg-red-500 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                          >
-                            {method}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Customer Info */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
-                        <input
-                          type="text"
-                          value={customerInfo.name}
-                          onChange={(e) => setCustomerInfo({ ...customerInfo, name: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                        <input
-                          type="text"
-                          value={customerInfo.phone}
-                          onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Notes */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                      <textarea
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        rows={2}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                        placeholder="Special instructions..."
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Totals and Actions */}
-                <div className="border-t border-gray-200 p-4 bg-gray-50">
-                  <div className="space-y-3">
-                    {/* Totals */}
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Subtotal:</span>
-                        <span>{formatCurrency(totals.subtotal)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Tax ({totals.taxRate > 0 ? `${Math.round(totals.taxRate * 100)}%` : '0%'}):</span>
-                        <span>{formatCurrency(totals.tax)}</span>
-                      </div>
-                      <div className="flex justify-between font-semibold text-lg border-t border-gray-300 pt-2">
-                        <span>Total:</span>
-                        <span>{formatCurrency(totals.total)}</span>
-                      </div>
-                    </div>
-
-                    {/* Error/Success Messages */}
-                    {error && (
-                      <div className="p-3 bg-red-100 border border-red-300 text-red-700 rounded-lg text-sm">
-                        {error}
-                      </div>
-                    )}
-                    {success && (
-                      <div className="p-3 bg-green-100 border border-green-300 text-green-700 rounded-lg text-sm">
-                        {success}
-                      </div>
-                    )}
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-3">
-                      <button
-                        onClick={handleUpdateOrder}
-                        disabled={!order?.items?.length}
-                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium ${mode === 'completed' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-500 hover:bg-blue-600'}`}
-                      >
-                        <FaEdit size={16} />
-                        {mode === 'completed' ? 'Save Changes' : 'Update Order'}
-                      </button>
-                      {mode !== 'completed' && (
-                        <button
-                          onClick={handleCompleteBilling}
-                          disabled={!order?.items?.length}
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
-                        >
-                          <FaCheck size={16} />
-                          Complete Billing
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.75)', marginTop: '1px' }}>
+                {order?.tableNumber ? `Table ${order.tableNumber}` : (mode === 'completed' ? 'Completed order' : 'Active order')}
+                {order?.status ? ` · ${order.status}` : ''}
               </div>
             </div>
           </div>
+          <button
+            onClick={handleClose}
+            style={{
+              width: '32px', height: '32px', borderRadius: '50%', border: 'none',
+              background: 'rgba(255,255,255,0.15)', color: '#fff', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.25)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
+          >
+            <FaTimes size={14} />
+          </button>
         </div>
+
+        {/* Body */}
+        {loading ? (
+          <div style={{
+            flex: 1, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: '14px',
+          }}>
+            <FaSpinner className="animate-spin" size={24} style={{ color: '#dc2626' }} />
+            <div style={{ fontSize: '13px', color: '#6b7280', fontWeight: 500 }}>Loading order...</div>
+          </div>
+        ) : !order ? (
+          <div style={{
+            flex: 1, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', padding: '40px',
+          }}>
+            <div style={{
+              width: '56px', height: '56px', borderRadius: '50%', background: '#f3f4f6',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px',
+            }}>
+              <FaUtensils size={22} style={{ color: '#9ca3af' }} />
+            </div>
+            <div style={{ fontSize: '14px', color: '#6b7280', fontWeight: 500 }}>{errorMsg || 'No order found'}</div>
+          </div>
+        ) : (
+          <div className="edit-modal-body" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            {/* LEFT: menu grid */}
+            <div className="edit-modal-left" style={{
+              display: 'flex', flexDirection: 'column', borderRight: '1px solid #e5e7eb', minHeight: 0,
+            }}>
+              {/* Search + categories (sticky) */}
+              <div style={{ padding: '12px 14px', borderBottom: '1px solid #f0f0f0', flexShrink: 0 }}>
+                <div style={{ position: 'relative', marginBottom: '10px' }}>
+                  <FaSearch style={{
+                    position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
+                    color: '#9ca3af', fontSize: '13px',
+                  }} />
+                  <input
+                    type="text"
+                    placeholder="Search menu items..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{
+                      width: '100%', padding: '9px 12px 9px 34px',
+                      border: '1px solid #e5e7eb', borderRadius: '10px',
+                      fontSize: '14px', outline: 'none',
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
+                  {categories.map(category => (
+                    <button
+                      key={category}
+                      onClick={() => setSelectedCategory(category)}
+                      style={{
+                        padding: '5px 12px', borderRadius: '999px',
+                        fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer',
+                        border: 'none',
+                        background: selectedCategory === category ? '#dc2626' : '#f3f4f6',
+                        color: selectedCategory === category ? '#fff' : '#374151',
+                      }}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Grid */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', minHeight: 0 }}>
+                {filteredMenuItems.length > 0 ? (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                    gap: '10px',
+                  }}>
+                    {filteredMenuItems.map(item => (
+                      <MenuItemCard
+                        key={item.id}
+                        item={item}
+                        quantityInCart={getItemQuantityInCart(item.id)}
+                        onAddToCart={addToCart}
+                        onRemoveFromCart={removeFromCart}
+                        onItemClick={addToCart}
+                        isMobile={isMobile}
+                        useModernDesign={true}
+                        cardSize="standard"
+                        hideImages={selectedRestaurant?.posSettings?.hideMenuImages}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', color: '#9ca3af', padding: '40px 0', fontSize: '13px' }}>
+                    No menu items found
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* RIGHT: OrderSummary */}
+            <div className="edit-modal-right" style={{
+              display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto',
+            }}>
+              {errorMsg && (
+                <div style={{
+                  margin: '10px 12px 0', padding: '10px 12px', borderRadius: '8px',
+                  background: '#fee2e2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: '13px',
+                }}>
+                  {errorMsg}
+                </div>
+              )}
+              <OrderSummary
+                cart={modalCart}
+                setCart={setModalCart}
+                orderType={order.orderType || 'dine-in'}
+                setOrderType={() => {}}
+                paymentMethod={modalPaymentMethod}
+                setPaymentMethod={setModalPaymentMethod}
+                onClearCart={() => {}}
+                onProcessOrder={handleSave}
+                onSaveOrder={() => {}}
+                onPlaceOrder={() => {}}
+                onRemoveFromCart={() => {}}
+                onAddToCart={() => {}}
+                onUpdateCartItemQuantity={(cartId, newQty) => {
+                  setModalCart(prev => prev.map(item =>
+                    item.cartId === cartId ? { ...item, quantity: newQty } : item
+                  ).filter(item => item.quantity > 0));
+                }}
+                onTableNumberChange={() => {}}
+                onCustomerNameChange={(val) => setModalCustomerName(val)}
+                onCustomerMobileChange={(val) => setModalCustomerMobile(val)}
+                processing={saving}
+                placingOrder={false}
+                orderSuccess={false}
+                setOrderSuccess={() => {}}
+                error={null}
+                getTotalAmount={getModalTotalAmount}
+                tableNumber={order.tableNumber || ''}
+                selectedTable={{
+                  id: null,
+                  name: order.tableNumber || '',
+                  floor: order.floorName || null,
+                  floorId: order.floorId || null,
+                }}
+                customerName={modalCustomerName}
+                customerMobile={modalCustomerMobile}
+                orderLookup=""
+                setOrderLookup={() => {}}
+                currentOrder={order}
+                setCurrentOrder={() => {}}
+                onShowQRCode={() => {}}
+                restaurantId={selectedRestaurant?.id}
+                restaurantName={selectedRestaurant?.name || ''}
+                taxSettings={taxSettings}
+                printSettings={printSettings}
+                menuItems={effectiveMenu}
+                onClose={handleClose}
+                billingMode={true}
+                billingSettings={billingSettings}
+                multiPricingEnabled={multiPricingEnabled}
+                pricingRules={pricingRules}
+                activePricingRuleId={activePricingRuleId}
+                setActivePricingRuleId={setActivePricingRuleId || (() => {})}
+                countryCode={countryCode}
+                businessType={businessType}
+                defaultTaxName={defaultTaxName}
+                upiSettings={upiSettings}
+                whatsappConnected={whatsappConnected}
+                posSettings={posSettingsForSummary}
+                seatOrderingEnabled={seatOrderingEnabled}
+                activeSeat={activeSeat}
+                setActiveSeat={setActiveSeat}
+                userRole={(() => { try { return JSON.parse(localStorage.getItem('user') || '{}').role || 'waiter'; } catch { return 'waiter'; } })()}
+              />
+            </div>
+          </div>
+        )}
       </div>
-    </div>,
-    document.body
+    </div>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 export default OrderEditModal;

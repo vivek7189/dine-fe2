@@ -5432,6 +5432,19 @@ const OrderHistory = () => {
           mode="completed"
           editReason={editReason}
           pinCode={pinCode}
+          menuItems={menuItems}
+          taxSettings={taxSettings}
+          printSettings={printSettings}
+          billingSettings={restaurant?.billingSettings || {}}
+          multiPricingEnabled={multiPricingEnabled}
+          pricingRules={pricingRules}
+          activePricingRuleId={activePricingRuleId}
+          setActivePricingRuleId={setActivePricingRuleId}
+          upiSettings={upiSettings}
+          whatsappConnected={whatsappConnected}
+          countryCode={restaurant?.countryCode || 'IN'}
+          businessType={restaurant?.businessType || 'restaurant'}
+          defaultTaxName={restaurant?.currencySettings?.taxLabel || 'Tax'}
         />
       )}
 
