@@ -131,13 +131,18 @@ const OrderEditModal = ({
           // refreshes price from live menu). Mirrors TableBillingModal.
           const cartItems = (ord.items || []).map(item => {
             const menuItem = liveMenu?.find(m => m.id === (item.menuItemId || item.id));
-            const refreshedPrice = item.selectedVariant?.price != null
-              ? item.selectedVariant.price
-              : (menuItem?.price ?? item.price ?? 0);
+            // Preserve the price this SETTLED bill was actually billed at — do NOT
+            // re-price existing lines to today's menu (that would silently change a
+            // completed bill's total if menu prices changed since it was placed, or
+            // revert a manually price-edited line). Variant price from the order,
+            // then the stored line price, and menu price only as a last resort.
             const variantPriceVal = item.selectedVariant?.price;
+            const refreshedPrice = variantPriceVal != null
+              ? variantPriceVal
+              : (item.price != null ? item.price : (menuItem?.price ?? 0));
             const itemBasePrice = variantPriceVal != null
               ? variantPriceVal
-              : (menuItem?.price ?? item.basePrice ?? item.price ?? 0);
+              : (item.basePrice != null ? item.basePrice : (item.price != null ? item.price : (menuItem?.price ?? 0)));
             return {
               id: item.menuItemId || item.id,
               name: menuItem?.name || item.name,
@@ -147,6 +152,9 @@ const OrderEditModal = ({
               selectedCustomizations: item.selectedCustomizations,
               basePrice: itemBasePrice,
               isCustomItem: item.isCustomItem || false,
+              // Carry the price-edit provenance so it isn't lost on re-save
+              priceEdited: item.priceEdited === true,
+              ...(item.menuPrice != null ? { menuPrice: item.menuPrice } : {}),
               pricingRules: menuItem?.pricingRules || item.pricingRules || {},
               category: item.category || menuItem?.category || '',
               taxGroupId: menuItem?.taxGroupId || item.taxGroupId || null,
@@ -306,6 +314,22 @@ const OrderEditModal = ({
       // re-bill with the edits; for an active order we must NOT force completion
       // (that would prematurely bill it) — leave status/payment fields untouched.
       const isCompletedOrder = mode === 'completed' || order?.status === 'completed';
+      // Distinguish "editing an order that was ALREADY completed" from "completing
+      // for the first time". For an already-completed bill we re-bill the edits
+      // but must NOT re-record payment (duplicate payment doc + clobbers a split
+      // method down to 'cash') nor re-date completedAt.
+      const wasAlreadyCompleted = order?.status === 'completed';
+      // Khata safety: editing an already-completed DUE/PARTIAL bill without an
+      // explicit re-payment must keep it due (else OrderSummary defaulting to
+      // "paid" would mark the khata collected while the customer's outstanding
+      // balance is never decremented). Re-derive outstanding from the new total.
+      const wasUnpaid = order?.paymentStatus === 'due' || order?.paymentStatus === 'partial';
+      const explicitRepay = partialPayAmount != null || fullDue === true;
+      const preserveDue = wasAlreadyCompleted && wasUnpaid && !explicitRepay;
+      const preservedPaid = preserveDue ? (Number(order?.paidAmount) || 0) : 0;
+      const preservedOutstanding = preserveDue
+        ? Math.round(Math.max(0, paymentAmount - preservedPaid) * 100) / 100
+        : 0;
 
       const updateData = {
         // Edited items MUST be sent so item changes persist (both modes)
@@ -314,11 +338,17 @@ const OrderEditModal = ({
         editReason: editReason || null,
         ...(pinCode ? { pinCode } : {}),
         status: isCompletedOrder ? 'completed' : (order?.status || undefined),
-        paymentStatus: isCompletedOrder
-          ? (isFullDue ? 'due' : (isPartialPayment ? 'partial' : 'paid'))
-          : (order?.paymentStatus || undefined),
+        paymentStatus: preserveDue
+          ? order.paymentStatus
+          : (isCompletedOrder
+            ? (isFullDue ? 'due' : (isPartialPayment ? 'partial' : 'paid'))
+            : (order?.paymentStatus || undefined)),
+        // Persist the full-due flag so the due state survives future round-trips
+        fullDue: preserveDue ? (order.paymentStatus === 'due') : isFullDue,
         paymentMethod: splitPayments ? 'split' : modalPaymentMethod,
-        completedAt: isCompletedOrder ? new Date().toISOString() : (order?.completedAt || undefined),
+        completedAt: wasAlreadyCompleted
+          ? (order?.completedAt || new Date().toISOString())
+          : (isCompletedOrder ? new Date().toISOString() : (order?.completedAt || undefined)),
         updatedAt: new Date().toISOString(),
         ...(taxBreakdown.length > 0 && {
           totalAmount: subtotal || getModalTotalAmount(),
@@ -334,12 +364,16 @@ const OrderEditModal = ({
         ...(roundOffAmount && roundOffAmount !== 0 && { roundOffAmount }),
         ...(compItems && { compItems }),
         ...(voidItems && { voidItems }),
-        ...(isFullDue && {
+        ...(preserveDue && {
+          paidAmount: preservedPaid,
+          outstandingAmount: preservedOutstanding,
+        }),
+        ...(!preserveDue && isFullDue && {
           partialPayAmount: 0,
           paidAmount: 0,
           outstandingAmount: Math.round(paymentAmount * 100) / 100,
         }),
-        ...(isPartialPayment && {
+        ...(!preserveDue && isPartialPayment && {
           partialPayAmount,
           paidAmount: partialPayAmount,
           outstandingAmount: Math.round((paymentAmount - partialPayAmount) * 100) / 100,
@@ -381,14 +415,13 @@ const OrderEditModal = ({
 
       await apiClient.updateOrder(completedOrderId, updateData);
 
-      // Only record/verify payment when we're actually billing a completed order.
-      // Active orders are just being edited — verifying payment would bill them early.
-      if (isCompletedOrder) {
-        // Backend only accepts 'cash', 'card', 'upi' as offline methods
-        const effectiveMethod = splitPayments
-          ? (splitPayments[0]?.method || 'cash')
-          : modalPaymentMethod;
-        const safePaymentMethod = ['cash', 'card', 'upi'].includes(effectiveMethod) ? effectiveMethod : 'cash';
+      // Record/verify payment ONLY on a FIRST completion. Editing an
+      // already-completed bill must not re-verify (that mints a duplicate payment
+      // record and collapses a split method to 'cash'); the PATCH already persisted
+      // the updated billing state, and the delta is captured by the edit history /
+      // auto-refund fields. Skip for split payments too.
+      if (isCompletedOrder && !wasAlreadyCompleted && !splitPayments) {
+        const safePaymentMethod = ['cash', 'card', 'upi'].includes(modalPaymentMethod) ? modalPaymentMethod : 'cash';
 
         await apiClient.verifyPayment({
           orderId: completedOrderId,
@@ -408,8 +441,16 @@ const OrderEditModal = ({
         }
       }
 
-      onOrderUpdated?.(order);
-      onOrderCompleted?.(order);
+      // Re-fetch the saved order so the caller updates its list with the fresh
+      // totals, incremented editCount and new editHistory entry (the local `order`
+      // is the pre-edit snapshot; passing it would leave "Revised #N" stale).
+      let refreshedOrder = order;
+      try {
+        const refetch = await apiClient.getOrderById(completedOrderId);
+        if (refetch?.orders?.[0]) refreshedOrder = refetch.orders[0];
+      } catch (_) { /* non-fatal — fall back to the pre-edit order */ }
+      onOrderUpdated?.(refreshedOrder);
+      onOrderCompleted?.(refreshedOrder);
 
       // Delay close so OrderSummary can generate the invoice + auto-print fires
       const isRNWebView = typeof window !== 'undefined' && !!window.ReactNativeWebView;
