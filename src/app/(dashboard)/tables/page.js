@@ -289,6 +289,9 @@ const TableManagement = () => {
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddFloor, setShowAddFloor] = useState(false);
+  const [editTableModal, setEditTableModal] = useState(null);   // { id, name, capacity }
+  const [deleteTableConfirm, setDeleteTableConfirm] = useState(null); // { tableId, name }
+  const [tableCfgSaving, setTableCfgSaving] = useState(false);
   const [showEditFloor, setShowEditFloor] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   const [showBookingForm, setShowBookingForm] = useState(false);
@@ -355,6 +358,10 @@ const TableManagement = () => {
   const canDeleteTable = canPerform(userData, userPageAccess, 'tables', 'delete');
   const canResetTables = canPerform(userData, userPageAccess, 'tables', 'reset');
   const canManageTables = canAddTable || canEditTable || canDeleteTable;
+  // Editing a table's name/config and deleting a table are OWNER/ADMIN-only by
+  // default (distinct from status changes like Service/Clean, which staff can do).
+  const _tableRole = (userData.role || '').toLowerCase();
+  const canEditTableConfig = _tableRole === 'owner' || _tableRole === 'admin';
 
   // Timer tick to keep elapsed times updated (every 60s)
   const [, setTick] = useState(0);
@@ -995,14 +1002,42 @@ const TableManagement = () => {
     }
   };
 
-  const deleteTable = async (tableId) => {
+  // Open the styled confirmation modal (replaces the native window.confirm).
+  const deleteTable = (tableId) => {
     if (!isOnline) { showError('You are offline. Go online to make changes.'); return; }
-    if (!confirm(t('tables.deleteThisTable'))) return;
+    if (!canEditTableConfig) { showError('Only the owner or admin can delete tables.'); return; }
+    const table = floors.flatMap(f => f.tables || []).find(t => t.id === tableId);
+    setDeleteTableConfirm({ tableId, name: table?.name || '' });
+    setActiveDropdown(null);
+  };
+  const confirmDeleteTable = async () => {
+    if (!deleteTableConfirm) return;
+    setTableCfgSaving(true);
     try {
-      await apiClient.deleteTable(tableId, selectedRestaurant?.id);
-      setFloors(prev => prev.map(f => ({ ...f, tables: (f.tables || []).filter(t => t.id !== tableId) })));
-      setActiveDropdown(null);
+      await apiClient.deleteTable(deleteTableConfirm.tableId, selectedRestaurant?.id);
+      setFloors(prev => prev.map(f => ({ ...f, tables: (f.tables || []).filter(t => t.id !== deleteTableConfirm.tableId) })));
+      setDeleteTableConfirm(null);
     } catch (err) { showError(`Failed: ${err.message}`); }
+    finally { setTableCfgSaving(false); }
+  };
+
+  // Edit a table's name / seats (owner/admin only).
+  const openEditTable = (table) => {
+    if (!canEditTableConfig) { showError('Only the owner or admin can edit tables.'); return; }
+    setEditTableModal({ id: table.id, name: table.name || '', capacity: table.capacity || 4 });
+    setActiveDropdown(null);
+  };
+  const saveTableEdit = async () => {
+    if (!editTableModal || !String(editTableModal.name).trim()) { showError('Table name is required'); return; }
+    setTableCfgSaving(true);
+    try {
+      const name = String(editTableModal.name).trim();
+      const capacity = Math.max(1, parseInt(editTableModal.capacity) || 1);
+      await apiClient.updateTable(editTableModal.id, { name, capacity }, selectedRestaurant?.id);
+      setFloors(prev => prev.map(f => ({ ...f, tables: (f.tables || []).map(t => t.id === editTableModal.id ? { ...t, name, capacity } : t) })));
+      setEditTableModal(null);
+    } catch (err) { showError(`Failed: ${err.message}`); }
+    finally { setTableCfgSaving(false); }
   };
 
   const createBooking = async () => {
@@ -2006,6 +2041,11 @@ const TableManagement = () => {
                                   <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('book-table', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#f59e0b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderBottom: '1px solid #f5f5f5' }}>
                                     <FaCalendarAlt size={12} /> {t('tables.book')}
                                   </button>
+                                  {canEditTableConfig && (
+                                    <button className="tbl-action" onClick={(e) => { e.stopPropagation(); openEditTable(table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#2563eb', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderBottom: '1px solid #f5f5f5', borderLeft: '1px solid #f5f5f5' }}>
+                                      <FaEdit size={12} /> {t('tables.edit') || 'Edit'}
+                                    </button>
+                                  )}
                                   {canEditTable && (
                                     <>
                                       <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('out-of-service', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#8b5cf6', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderBottom: '1px solid #f5f5f5', borderLeft: '1px solid #f5f5f5' }}>
@@ -2016,7 +2056,7 @@ const TableManagement = () => {
                                       </button>
                                     </>
                                   )}
-                                  {canDeleteTable && (
+                                  {canEditTableConfig && (
                                       <button className="tbl-action" onClick={(e) => { e.stopPropagation(); deleteTable(table.id); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#ef4444', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderLeft: '1px solid #f5f5f5' }}>
                                         <FaTrash size={12} /> {t('tables.delete')}
                                       </button>
@@ -2043,10 +2083,15 @@ const TableManagement = () => {
                                   <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#22c55e', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
                                     <FaCheck size={12} /> {t('tables.free')}
                                   </button>
-                                  {canDeleteTable && (
-                                    <button className="tbl-action" onClick={(e) => { e.stopPropagation(); deleteTable(table.id); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#ef4444', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderLeft: '1px solid #f5f5f5' }}>
+                                  {canEditTableConfig && (
+                                    <>
+                                    <button className="tbl-action" onClick={(e) => { e.stopPropagation(); openEditTable(table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#2563eb', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderLeft: '1px solid #f5f5f5', borderTop: '1px solid #f5f5f5' }}>
+                                      <FaEdit size={12} /> {t('tables.edit') || 'Edit'}
+                                    </button>
+                                    <button className="tbl-action" onClick={(e) => { e.stopPropagation(); deleteTable(table.id); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#ef4444', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderLeft: '1px solid #f5f5f5', borderTop: '1px solid #f5f5f5' }}>
                                       <FaTrash size={12} /> {t('tables.delete')}
                                     </button>
+                                    </>
                                   )}
                                 </>
                               )}
@@ -2246,6 +2291,58 @@ const TableManagement = () => {
               >
                 {deletingFloor ? t('tables.deleting') : t('tables.delete')}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── DELETE TABLE CONFIRM (styled modal, replaces native confirm) ─── */}
+      {deleteTableConfirm && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10002, padding: '20px' }}>
+          <div style={{ backgroundColor: 'white', padding: '28px', borderRadius: '16px', maxWidth: '400px', width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }}>
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <FaTrash size={22} color="#ef4444" />
+              </div>
+              <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: '0 0 8px 0' }}>{t('tables.delete') || 'Delete'} {t('tables.table') || 'Table'}</h3>
+              <p style={{ fontSize: '14px', color: '#6b7280', margin: 0, lineHeight: '1.5' }}>
+                {t('tables.deleteTableNamed', { name: deleteTableConfirm.name }) || `Delete table "${deleteTableConfirm.name}"? This cannot be undone.`}
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={() => setDeleteTableConfirm(null)} disabled={tableCfgSaving} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: '2px solid #e5e7eb', backgroundColor: 'white', color: '#6b7280', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>{t('tables.cancel') || 'Cancel'}</button>
+              <button onClick={confirmDeleteTable} disabled={tableCfgSaving} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: 'none', backgroundColor: '#ef4444', color: 'white', fontWeight: '600', fontSize: '14px', cursor: tableCfgSaving ? 'not-allowed' : 'pointer', opacity: tableCfgSaving ? 0.7 : 1 }}>{tableCfgSaving ? (t('tables.deleting') || 'Deleting...') : (t('tables.delete') || 'Delete')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── EDIT TABLE MODAL (name / seats — owner/admin only) ─── */}
+      {editTableModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10002, padding: '20px' }}>
+          <div style={{ backgroundColor: 'white', padding: '28px', borderRadius: '16px', maxWidth: '400px', width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FaEdit size={16} color="#2563eb" /> {t('tables.editTable') || 'Edit Table'}
+            </h3>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>{t('tables.tableName') || 'Table Name'}</label>
+            <input
+              autoFocus
+              value={editTableModal.name}
+              onChange={(e) => setEditTableModal(m => ({ ...m, name: e.target.value }))}
+              onKeyDown={(e) => { if (e.key === 'Enter') saveTableEdit(); }}
+              placeholder="e.g. 1, Patio A, Bar 3"
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', marginBottom: '16px', boxSizing: 'border-box' }}
+            />
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>{t('tables.seats') || 'Seats'}</label>
+            <input
+              type="number" min="1"
+              value={editTableModal.capacity}
+              onChange={(e) => setEditTableModal(m => ({ ...m, capacity: e.target.value }))}
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', marginBottom: '20px', boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={() => setEditTableModal(null)} disabled={tableCfgSaving} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: '2px solid #e5e7eb', backgroundColor: 'white', color: '#6b7280', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>{t('tables.cancel') || 'Cancel'}</button>
+              <button onClick={saveTableEdit} disabled={tableCfgSaving || !String(editTableModal.name).trim()} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: 'none', backgroundColor: '#2563eb', color: 'white', fontWeight: '600', fontSize: '14px', cursor: (tableCfgSaving || !String(editTableModal.name).trim()) ? 'not-allowed' : 'pointer', opacity: (tableCfgSaving || !String(editTableModal.name).trim()) ? 0.6 : 1 }}>{tableCfgSaving ? (t('tables.saving') || 'Saving...') : (t('common.save') || 'Save')}</button>
             </div>
           </div>
         </div>
