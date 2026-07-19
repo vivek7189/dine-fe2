@@ -259,7 +259,7 @@ const en = {
       emptyCart: 'Cart is empty',
       addItemsFirst: 'Please add items to cart first',
       orderProcessing: 'Processing order...',
-      paymentProcessing: 'Processing payment...',
+      paymentProcessing: 'Processing...',
       // Header & Navigation
       newOrder: 'NEW ORDER',
       orderId: 'Order ID',

@@ -1024,7 +1024,7 @@ function BillingContent() {
             textAlign: 'center', boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
           }}>
             <FaSpinner className="animate-spin" size={32} color="#ef4444" />
-            <p style={{ marginTop: '16px', color: '#374151' }}>Processing payment...</p>
+            <p style={{ marginTop: '16px', color: '#374151' }}>Processing...</p>
           </div>
         </div>
       )}
