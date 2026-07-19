@@ -6295,6 +6295,23 @@ const MenuManagement = () => {
                             outline: 'none'
                           }}
                         />
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          placeholder="×1"
+                          title="Recipe multiplier for inventory tracking: Half = 0.5, Full = 1, Large = 1.5. Deducts this fraction of the recipe."
+                          value={variant.recipeMultiplier ?? 1}
+                          onChange={(e) => updateVariant(index, 'recipeMultiplier', e.target.value)}
+                          style={{
+                            width: '64px',
+                            padding: '8px 10px',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            outline: 'none'
+                          }}
+                        />
                         <button
                           type="button"
                           onClick={() => removeVariant(index)}

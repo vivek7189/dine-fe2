@@ -1,7 +1,8 @@
 'use client';
 
-import { FaSearch, FaPlus, FaEdit, FaTrash, FaSortAmountDown, FaSortAmountUp, FaBoxes, FaExclamationTriangle, FaCheckCircle, FaFireAlt, FaClock } from 'react-icons/fa';
+import { FaSearch, FaPlus, FaEdit, FaTrash, FaSortAmountDown, FaSortAmountUp, FaBoxes, FaExclamationTriangle, FaCheckCircle, FaFireAlt, FaClock, FaFileCsv, FaFileExcel } from 'react-icons/fa';
 import dynamic from 'next/dynamic';
+import { exportInventoryCSV, exportInventoryExcel } from '../utils/inventoryExport';
 const InventoryDownloadPDFButton = dynamic(() => import('./pdf/InventoryDownloadPDFButton'), { ssr: false });
 
 export default function StockTab({
@@ -140,6 +141,23 @@ export default function StockTab({
             <FaPlus size={12} /> Add Item
           </button>
         )}
+
+        <button
+          type="button"
+          onClick={() => exportInventoryCSV(sortedItems, currentRestaurant?.name)}
+          title="Download inventory as CSV"
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', color: '#374151', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+        >
+          <FaFileCsv size={13} color="#10b981" /> CSV
+        </button>
+        <button
+          type="button"
+          onClick={() => exportInventoryExcel(sortedItems, currentRestaurant?.name)}
+          title="Download inventory as Excel"
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', color: '#374151', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+        >
+          <FaFileExcel size={13} color="#217346" /> Excel
+        </button>
 
         <InventoryDownloadPDFButton
           reportType="stock"

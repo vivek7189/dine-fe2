@@ -6,7 +6,7 @@ import { FaTimes, FaPlus, FaTrash, FaSave, FaCamera, FaMinus, FaClipboardList, F
 import SmartImportModalInline from './SmartImportModal';
 import { convertUnits } from '../utils/unitConversion';
 
-const units = ['kg', 'g', 'L', 'ml', 'pcs', 'dozen', 'bunch', 'bottle', 'can', 'bag', 'box', 'pack'];
+const units = ['kg', 'g', 'mg', 'L', 'ml', 'cl', 'fl oz', 'oz', 'lb', 'pcs', 'dozen', 'bunch', 'bottle', 'can', 'bag', 'box', 'pack', 'case', 'keg', 'scoop', 'tub', 'peg', 'shot'];
 
 const inputStyle = {
   width: '100%', padding: '11px 14px', borderRadius: '10px', border: '1.5px solid #e8ecf1',
@@ -331,9 +331,20 @@ function ManualItemForm({ formData, setFormData, categories, suppliers }) {
         <CustomSelect value={formData.category} onChange={v => update('category', v)} options={categoryOptions} placeholder="Select category" creatable />
       </div>
       <div style={fieldWrap}>
-        <label style={labelStyle}>Unit</label>
+        <label style={labelStyle}>Stock / Usage Unit</label>
         <CustomSelect value={formData.unit} onChange={v => update('unit', v)} options={unitOptions} placeholder="Select unit" />
       </div>
+      <div style={fieldWrap}>
+        <label style={labelStyle}>Purchase Unit (optional)</label>
+        <CustomSelect value={formData.purchaseUnit || ''} onChange={v => update('purchaseUnit', v)} options={unitOptions} placeholder="Same as stock unit" />
+        <span style={{ fontSize: 11, color: '#6b7280' }}>Buy in this unit (e.g. bottle, case), track/deduct in the stock unit.</span>
+      </div>
+      {formData.purchaseUnit && formData.purchaseUnit !== formData.unit && (
+        <div style={fieldWrap}>
+          <label style={labelStyle}>1 {formData.purchaseUnit} = ? {formData.unit || 'stock units'}</label>
+          <FocusInput type="number" step="any" value={formData.conversionFactor || ''} onChange={e => update('conversionFactor', parseFloat(e.target.value) || 1)} placeholder="e.g. 750" />
+        </div>
+      )}
       <SectionHeader icon={<FaClipboardList size={10} color="white" />} title="Stock & Pricing" />
       <div style={fieldWrap}>
         <label style={labelStyle}>Current Stock</label>

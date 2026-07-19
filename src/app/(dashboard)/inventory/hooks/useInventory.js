@@ -50,7 +50,8 @@ export default function useInventory() {
   // Form data
   const [formData, setFormData] = useState({
     name: '', category: '', unit: '', currentStock: 0, minStock: 0, maxStock: 0,
-    costPerUnit: 0, supplier: '', description: '', barcode: '', mfgDate: '', expiryDays: '', expiryDate: '', expiryMethod: 'days', location: ''
+    costPerUnit: 0, supplier: '', description: '', barcode: '', mfgDate: '', expiryDays: '', expiryDate: '', expiryMethod: 'days', location: '',
+    purchaseUnit: '', conversionFactor: 1
   });
 
   const [supplierFormData, setSupplierFormData] = useState({
