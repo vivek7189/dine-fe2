@@ -10,6 +10,28 @@
 // Falls back to window.print() if nothing else works.
 
 import { isCapacitor, isTauri, isElectron, isWeb, isReactNativeWebView } from './platform';
+import { ORDER_STATUS_QR_MARKER, renderOrderStatusQRHtml } from './printTemplates/helpers';
+
+// Replace the bill's order-status QR marker (emitted by the templates when the
+// store enables "Track your order" QR) with a real QR image + link. Runs only
+// for native/thermal bill prints. Fully guarded: any failure just strips the
+// marker so the bill still prints normally — printing is never broken by this.
+async function injectOrderStatusQR(html, { orderId, printSettings = {} } = {}) {
+  try {
+    if (!html || typeof html !== 'string' || !html.includes(ORDER_STATUS_QR_MARKER)) return html;
+    if (!orderId) return html.split(ORDER_STATUS_QR_MARKER).join('');
+    const base = printSettings.orderStatusBaseUrl
+      || (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_WEB_URL)
+      || 'https://www.dineopen.com';
+    const url = `${String(base).replace(/\/$/, '')}/order-status/${orderId}`;
+    const QRCode = (await import('qrcode')).default;
+    const dataUrl = await QRCode.toDataURL(url, { width: 160, margin: 1 });
+    return html.split(ORDER_STATUS_QR_MARKER).join(renderOrderStatusQRHtml(url, dataUrl));
+  } catch (e) {
+    console.warn('injectOrderStatusQR failed, printing without QR:', e?.message);
+    try { return html.split(ORDER_STATUS_QR_MARKER).join(''); } catch { return html; }
+  }
+}
 
 /**
  * Print a document across all platforms.
@@ -60,6 +82,12 @@ export async function printDocument({ html, domSelector, type = 'bill', orderId,
     console.warn('printDocument: no HTML available, falling back to window.print()');
     window.print();
     return;
+  }
+
+  // Bill only: swap the order-status QR marker for a real QR (guarded — never
+  // throws, so a QR issue can't stop the bill from printing).
+  if (type === 'bill' && printHtml.includes(ORDER_STATUS_QR_MARKER)) {
+    printHtml = await injectOrderStatusQR(printHtml, { orderId, printSettings });
   }
 
   // Route to platform-specific printer
