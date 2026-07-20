@@ -309,6 +309,12 @@ const TableManagement = () => {
   const [assignServerTable, setAssignServerTable] = useState(null); // table being assigned
   const [assignSaving, setAssignSaving] = useState(false);
   const [myTablesOnly, setMyTablesOnly] = useState(false);
+  // Walk-in waitlist
+  const [showWaitlist, setShowWaitlist] = useState(false);
+  const [waitlist, setWaitlist] = useState([]);
+  const [waitlistLoading, setWaitlistLoading] = useState(false);
+  const [waitlistSaving, setWaitlistSaving] = useState(false);
+  const [waitlistForm, setWaitlistForm] = useState({ name: '', phone: '', partySize: 2, quotedWait: '' });
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [selectedTable, setSelectedTable] = useState(null);
   const [bookingFromHeader, setBookingFromHeader] = useState(false);
@@ -394,6 +400,16 @@ const TableManagement = () => {
       .then(res => setWaiters(res?.waiters || []))
       .catch(() => setWaiters([]));
   }, [selectedRestaurant?.id]);
+
+  // Load the waitlist (for the badge count + panel). Refreshes on the timer tick.
+  const loadWaitlist = useCallback(async () => {
+    if (!selectedRestaurant?.id) return;
+    try {
+      const res = await apiClient.getWaitlist(selectedRestaurant.id);
+      setWaitlist(res?.waitlist || []);
+    } catch { /* leave as-is */ }
+  }, [selectedRestaurant?.id]);
+  useEffect(() => { loadWaitlist(); }, [loadWaitlist]);
 
   // ── Status config (matching dashboard POS cards) ───────
   const statusConfig = {
@@ -1128,6 +1144,52 @@ const TableManagement = () => {
     }
   };
 
+  // ── Walk-in waitlist ──────────────────────────────────
+  const addWaitlistEntry = async () => {
+    if (!waitlistForm.name.trim()) { showError('Enter the guest name.'); return; }
+    if (!selectedRestaurant?.id) return;
+    setWaitlistSaving(true);
+    try {
+      await apiClient.addWaitlist(selectedRestaurant.id, {
+        name: waitlistForm.name.trim(),
+        phone: waitlistForm.phone.trim() || null,
+        partySize: Number(waitlistForm.partySize) || 1,
+        quotedWait: waitlistForm.quotedWait !== '' ? Number(waitlistForm.quotedWait) : null,
+      });
+      setWaitlistForm({ name: '', phone: '', partySize: 2, quotedWait: '' });
+      await loadWaitlist();
+    } catch (err) {
+      showError(err?.message || 'Failed to add to waitlist');
+    } finally {
+      setWaitlistSaving(false);
+    }
+  };
+  const notifyWaitlistEntry = async (entry) => {
+    if (!selectedRestaurant?.id) return;
+    setWaitlistSaving(true);
+    try {
+      await apiClient.notifyWaitlist(selectedRestaurant.id, entry.id);
+      showSuccess(`Notified ${entry.name} 🎉`);
+      await loadWaitlist();
+    } catch (err) {
+      showError(err?.message || 'Failed to notify guest');
+    } finally {
+      setWaitlistSaving(false);
+    }
+  };
+  const setWaitlistStatus = async (entry, status) => {
+    if (!selectedRestaurant?.id) return;
+    setWaitlistSaving(true);
+    try {
+      await apiClient.updateWaitlist(selectedRestaurant.id, entry.id, { status });
+      await loadWaitlist();
+    } catch (err) {
+      showError(err?.message || 'Failed to update waitlist');
+    } finally {
+      setWaitlistSaving(false);
+    }
+  };
+
   // Edit a table's name / seats (requires the tables.manage capability).
   const openEditTable = (table) => {
     if (!canEditTableConfig) { showError('You do not have permission to manage tables. Ask the owner to grant table management access.'); return; }
@@ -1654,6 +1716,21 @@ const TableManagement = () => {
                     width: isMobileEmbed ? '30px' : undefined, height: isMobileEmbed ? '30px' : undefined,
                   }} title="Merge Tables">
                     <FaLayerGroup size={isMobileEmbed ? 11 : 12} /> {!isMobileEmbed && 'Merge'}
+                  </button>
+                )}
+                {canEditTable && (
+                  <button onClick={() => { setShowWaitlist(true); loadWaitlist(); }} style={{
+                    position: 'relative',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? 0 : '6px',
+                    padding: isMobileEmbed ? '6px' : '8px 16px', borderRadius: isMobileEmbed ? '8px' : '10px',
+                    background: 'linear-gradient(135deg, #f97316, #ea580c)', border: 'none', color: 'white',
+                    fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(249,115,22,0.3)',
+                    width: isMobileEmbed ? '30px' : undefined, height: isMobileEmbed ? '30px' : undefined,
+                  }} title="Waitlist">
+                    <FaConciergeBell size={isMobileEmbed ? 11 : 12} /> {!isMobileEmbed && 'Waitlist'}
+                    {waitlist.length > 0 && (
+                      <span style={{ position: 'absolute', top: '-6px', right: '-6px', minWidth: '18px', height: '18px', padding: '0 4px', borderRadius: '9px', background: '#dc2626', color: 'white', fontSize: '10px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid white' }}>{waitlist.length}</span>
+                    )}
                   </button>
                 )}
               </div>
@@ -3221,6 +3298,83 @@ const TableManagement = () => {
           </div>
         </div>
       )}
+
+      {/* Walk-in Waitlist panel */}
+      {showWaitlist && (() => {
+        const waitMin = (createdAt) => {
+          const t0 = (createdAt && createdAt.toDate) ? createdAt.toDate().getTime() : (createdAt ? new Date(createdAt).getTime() : Date.now());
+          return Math.max(0, Math.round((Date.now() - t0) / 60000));
+        };
+        return (
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={() => setShowWaitlist(false)}>
+            <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '560px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #f97316, #ea580c)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaConciergeBell size={16} color="white" /></div>
+                  <div>
+                    <div style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>Waitlist</div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>{waitlist.length} {waitlist.length === 1 ? 'party' : 'parties'} waiting</div>
+                  </div>
+                </div>
+                <button onClick={() => setShowWaitlist(false)} style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', backgroundColor: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaTimes size={14} color="#6b7280" /></button>
+              </div>
+
+              {/* Add walk-in form */}
+              <div style={{ padding: '14px 20px', borderBottom: '1px solid #f1f5f9', background: '#fafafa' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <input value={waitlistForm.name} onChange={(e) => setWaitlistForm(f => ({ ...f, name: e.target.value }))} placeholder="Guest name" style={{ flex: '2 1 140px', padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: '9px', fontSize: '13px' }} />
+                  <input value={waitlistForm.phone} onChange={(e) => setWaitlistForm(f => ({ ...f, phone: e.target.value }))} placeholder="Phone (for WhatsApp)" style={{ flex: '2 1 140px', padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: '9px', fontSize: '13px' }} />
+                  <input type="number" min="1" value={waitlistForm.partySize} onChange={(e) => setWaitlistForm(f => ({ ...f, partySize: e.target.value }))} placeholder="Party" title="Party size" style={{ flex: '1 1 70px', width: '70px', padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: '9px', fontSize: '13px' }} />
+                  <input type="number" min="0" value={waitlistForm.quotedWait} onChange={(e) => setWaitlistForm(f => ({ ...f, quotedWait: e.target.value }))} placeholder="Wait min" title="Quoted wait (min)" style={{ flex: '1 1 80px', width: '80px', padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: '9px', fontSize: '13px' }} />
+                  <button onClick={addWaitlistEntry} disabled={waitlistSaving || !waitlistForm.name.trim()} style={{ flex: '0 0 auto', padding: '9px 16px', borderRadius: '9px', border: 'none', background: 'linear-gradient(135deg, #f97316, #ea580c)', color: 'white', fontSize: '13px', fontWeight: 700, cursor: waitlistSaving || !waitlistForm.name.trim() ? 'not-allowed' : 'pointer', opacity: waitlistSaving || !waitlistForm.name.trim() ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <FaPlus size={11} /> Add
+                  </button>
+                </div>
+              </div>
+
+              {/* List */}
+              <div style={{ padding: '10px 16px', overflowY: 'auto', flex: 1 }}>
+                {waitlist.length === 0 ? (
+                  <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>No one is waiting. Add a walk-in above.</div>
+                ) : waitlist.map(entry => {
+                  const mins = waitMin(entry.createdAt);
+                  const overdue = entry.quotedWait != null && mins > entry.quotedWait;
+                  return (
+                    <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 12px', marginBottom: '7px', borderRadius: '11px', border: '1px solid #e2e8f0', background: entry.status === 'notified' ? '#f0fdf4' : 'white' }}>
+                      <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fff7ed', color: '#ea580c', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800 }}>
+                        <span style={{ fontSize: '14px', lineHeight: 1 }}>{entry.partySize}</span>
+                        <span style={{ fontSize: '7px', fontWeight: 700, textTransform: 'uppercase' }}>pax</span>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {entry.name}
+                          {entry.status === 'notified' && <span style={{ fontSize: '9px', fontWeight: 700, color: '#16a34a', background: '#dcfce7', padding: '1px 6px', borderRadius: '5px' }}>NOTIFIED</span>}
+                        </div>
+                        <div style={{ fontSize: '11px', color: overdue ? '#dc2626' : '#94a3b8', fontWeight: overdue ? 700 : 400 }}>
+                          waiting {mins}m{entry.quotedWait != null ? ` / quoted ${entry.quotedWait}m` : ''}{entry.phone ? ` · ${entry.phone}` : ''}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '5px', flexShrink: 0 }}>
+                        {entry.phone && (
+                          <button onClick={() => notifyWaitlistEntry(entry)} disabled={waitlistSaving} title="Notify via WhatsApp" style={{ width: '34px', height: '34px', borderRadius: '9px', border: 'none', background: '#dcfce7', color: '#16a34a', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <FaConciergeBell size={13} />
+                          </button>
+                        )}
+                        <button onClick={() => setWaitlistStatus(entry, 'seated')} disabled={waitlistSaving} title="Mark seated" style={{ width: '34px', height: '34px', borderRadius: '9px', border: 'none', background: '#dbeafe', color: '#2563eb', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <FaCheck size={13} />
+                        </button>
+                        <button onClick={() => setWaitlistStatus(entry, 'cancelled')} disabled={waitlistSaving} title="Remove" style={{ width: '34px', height: '34px', borderRadius: '9px', border: 'none', background: '#fee2e2', color: '#dc2626', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <FaTimes size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Shared Billing Modal — only mount when opened */}
       {billingModalOpen && (

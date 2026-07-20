@@ -1558,6 +1558,20 @@ class ApiClient {
     });
   }
 
+  // ── Walk-in waitlist ──
+  async getWaitlist(restaurantId) {
+    return this.request(`/api/waitlist/${restaurantId}`);
+  }
+  async addWaitlist(restaurantId, entry) {
+    return this.request(`/api/waitlist/${restaurantId}`, { method: 'POST', body: entry });
+  }
+  async updateWaitlist(restaurantId, entryId, update) {
+    return this.request(`/api/waitlist/${restaurantId}/${entryId}`, { method: 'PATCH', body: update });
+  }
+  async notifyWaitlist(restaurantId, entryId) {
+    return this.request(`/api/waitlist/${restaurantId}/${entryId}/notify`, { method: 'POST', body: {} });
+  }
+
   // Floor management endpoints
   // NOT cached — floors contain table statuses which change with every order
   async getFloors(restaurantId) {
