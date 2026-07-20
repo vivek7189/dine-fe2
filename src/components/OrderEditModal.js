@@ -383,6 +383,11 @@ const OrderEditModal = ({
         manualDiscountType: manualDiscountType || null,
         manualDiscountValue: manualDiscountValue != null ? manualDiscountValue : null,
         offerDiscount: offerDiscount || 0,
+        // Mirror the dashboard-billing payload: the backend "POS override" reads
+        // the offer discount from `discountAmount`. Without this, an edited bill
+        // stored discountAmount=0 while finalAmount reflected the offer — so the
+        // revised receipt showed subtotal 40 / total 31 with no discount line.
+        discountAmount: offerDiscount || 0,
         offerIds: offerIds && offerIds.length > 0 ? offerIds : [],
         selectedOfferName: selectedOfferName || null,
         totalDiscountAmount: totalDiscountAmount || 0,
