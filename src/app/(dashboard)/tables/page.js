@@ -1795,6 +1795,11 @@ const TableManagement = () => {
                               {!isMobileEmbed && (
                                 <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                   <FaChair size={9} /> {table.capacity || '-'} {t('tables.seats')}
+                                  {isOccupied && table.currentOrderCovers > 0 && (
+                                    <span title="Guests seated (covers)" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', marginLeft: '4px', padding: '1px 5px', borderRadius: '6px', background: '#eff6ff', color: '#2563eb', fontWeight: 700 }}>
+                                      <FaUsers size={9} /> {table.currentOrderCovers}
+                                    </span>
+                                  )}
                                   {isOccupied && table.currentOrderId && (
                                     <button onClick={(e) => handleQuickView(e, table)} title="Quick view order" style={{
                                       background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
