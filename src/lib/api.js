@@ -1511,10 +1511,34 @@ class ApiClient {
   async deleteTable(tableId, restaurantId = null) {
     const body = {};
     if (restaurantId) body.restaurantId = restaurantId;
-    
+
     return this.request(`/api/tables/${tableId}`, {
       method: 'DELETE',
       body,
+    });
+  }
+
+  // Merge two or more tables into one non-destructive group (primary + secondaries).
+  async mergeTables(restaurantId, primaryTableId, tableIds) {
+    return this.request(`/api/tables/${restaurantId}/merge`, {
+      method: 'POST',
+      body: { primaryTableId, tableIds },
+    });
+  }
+
+  // Un-merge a group by its primary table id.
+  async unmergeTables(restaurantId, primaryTableId) {
+    return this.request(`/api/tables/${restaurantId}/unmerge`, {
+      method: 'POST',
+      body: { primaryTableId },
+    });
+  }
+
+  // Transfer an order/table to another server (waiter). Metadata only.
+  async transferServer(orderId, { waiterId = null, waiterName = null, restaurantId = null } = {}) {
+    return this.request(`/api/orders/${orderId}/transfer-server`, {
+      method: 'POST',
+      body: { waiterId, waiterName, restaurantId },
     });
   }
 

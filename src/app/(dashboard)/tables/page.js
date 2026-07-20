@@ -299,6 +299,11 @@ const TableManagement = () => {
   const [turnTimeData, setTurnTimeData] = useState(null);
   const [turnTimeLoading, setTurnTimeLoading] = useState(false);
   const [turnTimeError, setTurnTimeError] = useState(null);
+  // Merge tables
+  const [showMergeModal, setShowMergeModal] = useState(false);
+  const [mergeSelection, setMergeSelection] = useState([]); // selected table ids (first = primary)
+  const [mergeSaving, setMergeSaving] = useState(false);
+  const [unmergeConfirm, setUnmergeConfirm] = useState(null); // { primaryTableId, name }
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [selectedTable, setSelectedTable] = useState(null);
   const [bookingFromHeader, setBookingFromHeader] = useState(false);
@@ -385,6 +390,7 @@ const TableManagement = () => {
     reserved: { color: '#3b82f6', bg: '#eff6ff', text: '#1e40af', label: t('tables.statusReserved'), icon: FaClock, border: '#3b82f6' },
     cleaning: { color: '#6b7280', bg: '#f3f4f6', text: '#475569', label: t('tables.statusCleaning'), icon: FaTools, border: '#9ca3af' },
     'out-of-service': { color: '#ef4444', bg: '#fef2f2', text: '#991b1b', label: t('tables.statusOutOfService'), icon: FaBan, border: '#ef4444' },
+    merged: { color: '#0ea5e9', bg: '#f0f9ff', text: '#075985', label: 'Merged', icon: FaLayerGroup, border: '#7dd3fc' },
   };
   const getTableStatusInfo = (status) => statusConfig[status] || statusConfig.available;
 
@@ -1045,6 +1051,47 @@ const TableManagement = () => {
     }
   };
 
+  // ── Merge tables ──────────────────────────────────────
+  const openMergeModal = () => {
+    if (!canEditTableConfig) { showError('You do not have permission to manage tables. Ask the owner to grant table management access.'); return; }
+    setMergeSelection([]);
+    setShowMergeModal(true);
+    setActiveDropdown(null);
+  };
+  const toggleMergeSelect = (tableId) => {
+    setMergeSelection(prev => prev.includes(tableId) ? prev.filter(id => id !== tableId) : [...prev, tableId]);
+  };
+  const confirmMerge = async () => {
+    if (mergeSelection.length < 2) { showError('Select at least two tables to merge.'); return; }
+    if (!selectedRestaurant?.id) return;
+    setMergeSaving(true);
+    try {
+      // First selected table is the primary (holds the combined order/bill).
+      const [primaryTableId, ...rest] = mergeSelection;
+      await apiClient.mergeTables(selectedRestaurant.id, primaryTableId, mergeSelection);
+      setShowMergeModal(false);
+      setMergeSelection([]);
+      await loadFloorsAndTables(selectedRestaurant.id, true);
+    } catch (err) {
+      showError(err?.message || 'Failed to merge tables');
+    } finally {
+      setMergeSaving(false);
+    }
+  };
+  const confirmUnmerge = async () => {
+    if (!unmergeConfirm || !selectedRestaurant?.id) return;
+    setMergeSaving(true);
+    try {
+      await apiClient.unmergeTables(selectedRestaurant.id, unmergeConfirm.primaryTableId);
+      setUnmergeConfirm(null);
+      await loadFloorsAndTables(selectedRestaurant.id, true);
+    } catch (err) {
+      showError(err?.message || 'Failed to un-merge tables');
+    } finally {
+      setMergeSaving(false);
+    }
+  };
+
   // Edit a table's name / seats (requires the tables.manage capability).
   const openEditTable = (table) => {
     if (!canEditTableConfig) { showError('You do not have permission to manage tables. Ask the owner to grant table management access.'); return; }
@@ -1554,6 +1601,17 @@ const TableManagement = () => {
                     <FaClock size={isMobileEmbed ? 11 : 12} /> {!isMobileEmbed && 'Turn Times'}
                   </button>
                 )}
+                {canEditTableConfig && (
+                  <button onClick={openMergeModal} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? 0 : '6px',
+                    padding: isMobileEmbed ? '6px' : '8px 16px', borderRadius: isMobileEmbed ? '8px' : '10px',
+                    background: 'linear-gradient(135deg, #14b8a6, #0d9488)', border: 'none', color: 'white',
+                    fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(20,184,166,0.3)',
+                    width: isMobileEmbed ? '30px' : undefined, height: isMobileEmbed ? '30px' : undefined,
+                  }} title="Merge Tables">
+                    <FaLayerGroup size={isMobileEmbed ? 11 : 12} /> {!isMobileEmbed && 'Merge'}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -1781,6 +1839,16 @@ const TableManagement = () => {
                                 <span style={{ fontSize: isMobileEmbed ? '12px' : '16px', fontWeight: 800, color: '#111827', lineHeight: 1.1 }}>
                                   {table.name}
                                 </span>
+                                {table.mergePrimary && table.mergedTableNames?.length > 0 && (
+                                  <span title={`Merged with ${table.mergedTableNames.join(', ')}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: isMobileEmbed ? '8px' : '10px', fontWeight: 700, color: '#0369a1', background: '#e0f2fe', padding: '1px 5px', borderRadius: '5px', whiteSpace: 'nowrap' }}>
+                                    <FaLayerGroup size={8} /> +{table.mergedTableNames.length}
+                                  </span>
+                                )}
+                                {table.mergedInto && (
+                                  <span title={`Merged into ${table.mergedIntoName || ''}`} style={{ fontSize: isMobileEmbed ? '8px' : '10px', fontWeight: 700, color: '#0369a1', background: '#e0f2fe', padding: '1px 5px', borderRadius: '5px', whiteSpace: 'nowrap' }}>
+                                    → {table.mergedIntoName}
+                                  </span>
+                                )}
                                 {isOccupied && elapsed && (
                                   <span style={{
                                     fontSize: isMobileEmbed ? '8px' : '10px', fontWeight: 700, whiteSpace: 'nowrap',
@@ -2083,6 +2151,11 @@ const TableManagement = () => {
                             animation: 'tblDropdown 0.15s ease-out',
                           }}>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0' }}>
+                              {table.mergeGroupId && canEditTableConfig && (
+                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); setActiveDropdown(null); setUnmergeConfirm({ primaryTableId: table.mergePrimary ? table.id : table.mergedInto, name: table.mergePrimary ? table.name : (table.mergedIntoName || table.name) }); }} style={{ flex: '1 1 100%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#0284c7', display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '5px', borderBottom: '1px solid #f5f5f5' }}>
+                                  <FaLayerGroup size={12} /> Un-merge
+                                </button>
+                              )}
                               {isAvailable && (
                                 <>
                                   <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('book-table', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#f59e0b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderBottom: '1px solid #f5f5f5' }}>
@@ -2973,6 +3046,78 @@ const TableManagement = () => {
           </div>
         );
       })()}
+
+      {/* Merge Tables modal */}
+      {showMergeModal && (() => {
+        const allTbls = floors.flatMap(f => (f.tables || []).map(t => ({ ...t, _floorName: f.name })));
+        return (
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={() => !mergeSaving && setShowMergeModal(false)}>
+            <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '520px', maxHeight: '88vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #14b8a6, #0d9488)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaLayerGroup size={16} color="white" /></div>
+                  <div>
+                    <div style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>Merge Tables</div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>First selected table becomes the primary (holds the bill)</div>
+                  </div>
+                </div>
+                <button onClick={() => !mergeSaving && setShowMergeModal(false)} style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', backgroundColor: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaTimes size={14} color="#6b7280" /></button>
+              </div>
+
+              <div style={{ padding: '12px 16px', overflowY: 'auto', flex: 1 }}>
+                {allTbls.map(tb => {
+                  const isMerged = !!tb.mergeGroupId;
+                  const selIdx = mergeSelection.indexOf(tb.id);
+                  const isSelected = selIdx !== -1;
+                  const isPrimary = selIdx === 0;
+                  const sInfo = getTableStatusInfo(tb.status);
+                  return (
+                    <button key={tb.id} type="button" disabled={isMerged} onClick={() => toggleMergeSelect(tb.id)}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', marginBottom: '6px', borderRadius: '10px', textAlign: 'left', cursor: isMerged ? 'not-allowed' : 'pointer', opacity: isMerged ? 0.5 : 1, border: `1.5px solid ${isSelected ? '#0d9488' : '#e2e8f0'}`, background: isSelected ? '#f0fdfa' : 'white' }}>
+                      <div style={{ width: '20px', height: '20px', borderRadius: '6px', border: `2px solid ${isSelected ? '#0d9488' : '#cbd5e1'}`, background: isSelected ? '#0d9488' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {isSelected && <FaCheck size={11} color="white" />}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {tb.name}
+                          {isPrimary && <span style={{ fontSize: '10px', fontWeight: 700, color: '#0d9488', background: '#ccfbf1', padding: '1px 6px', borderRadius: '6px' }}>PRIMARY</span>}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>{tb._floorName} · {tb.capacity || '-'} seats</div>
+                      </div>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: sInfo.text, background: sInfo.bg, padding: '2px 8px', borderRadius: '6px' }}>
+                        {isMerged ? 'Merged' : sInfo.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{ padding: '14px 20px', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                <div style={{ fontSize: '12px', color: '#64748b' }}>{mergeSelection.length} selected{mergeSelection.length >= 2 ? ' · only free tables can join' : ''}</div>
+                <button onClick={confirmMerge} disabled={mergeSelection.length < 2 || mergeSaving} style={{ padding: '9px 20px', borderRadius: '10px', border: 'none', color: 'white', fontSize: '14px', fontWeight: 700, cursor: mergeSelection.length < 2 || mergeSaving ? 'not-allowed' : 'pointer', opacity: mergeSelection.length < 2 || mergeSaving ? 0.5 : 1, background: 'linear-gradient(135deg, #14b8a6, #0d9488)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {mergeSaving ? <FaSpinner size={13} className="animate-spin" /> : <FaLayerGroup size={13} />} Merge
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Un-merge confirm */}
+      {unmergeConfirm && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', zIndex: 10003, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={() => !mergeSaving && setUnmergeConfirm(null)}>
+          <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '380px', padding: '22px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', marginBottom: '8px' }}>Un-merge {unmergeConfirm.name}?</div>
+            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>This splits the group back into separate tables. Orders are not affected.</div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setUnmergeConfirm(null)} disabled={mergeSaving} style={{ padding: '9px 18px', borderRadius: '10px', border: '1px solid #e2e8f0', background: 'white', color: '#475569', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={confirmUnmerge} disabled={mergeSaving} style={{ padding: '9px 18px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', fontSize: '14px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {mergeSaving ? <FaSpinner size={13} className="animate-spin" /> : null} Un-merge
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Shared Billing Modal — only mount when opened */}
       {billingModalOpen && (
