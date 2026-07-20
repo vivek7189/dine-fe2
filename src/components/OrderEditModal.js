@@ -300,6 +300,7 @@ const OrderEditModal = ({
       walletRedeemAmount, walletCustomerId,
       deliveryInfo: deliveryInfoData, deliveryAddress: deliveryAddrData,
       managerPin, taxInclusiveMode,
+      splitBill, ecrResponse,
     } = taxData;
 
     try {
@@ -361,6 +362,9 @@ const OrderEditModal = ({
         ...(tipAmount > 0 && { tipAmount, tipPercentage }),
         ...(cashReceived > 0 && { cashReceived, changeReturned }),
         ...(splitPayments && { splitPayments }),
+        // Parity with dashboard billing: persist split-among-guests + card-terminal response
+        ...(splitBill && { splitBill }),
+        ...(ecrResponse && { ecrResponse }),
         ...(roundOffAmount && roundOffAmount !== 0 && { roundOffAmount }),
         ...(compItems && { compItems }),
         ...(voidItems && { voidItems }),
@@ -408,6 +412,9 @@ const OrderEditModal = ({
           name: modalCustomerName || order.customerInfo?.name || '',
           phone: modalCustomerMobile || order.customerInfo?.phone || null,
           tableNumber: order.tableNumber || null,
+          // Preserve hotel/room + floor context on edit (parity with dashboard)
+          roomNumber: order.roomNumber || order.customerInfo?.roomNumber || null,
+          floorName: order.floorName || order.customerInfo?.floorName || null,
         },
         lastUpdatedBy: {
           name: currentUser.name || 'Staff',
