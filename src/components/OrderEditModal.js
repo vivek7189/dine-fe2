@@ -48,6 +48,9 @@ const OrderEditModal = ({
   const [modalPaymentMethod, setModalPaymentMethod] = useState('cash');
   const [modalCustomerName, setModalCustomerName] = useState('');
   const [modalCustomerMobile, setModalCustomerMobile] = useState('');
+  // The CRM customer OrderSummary resolves from the phone (parity with dashboard),
+  // used to re-link customerId on save (loyalty/wallet accrual).
+  const [editCustomerData, setEditCustomerData] = useState(null);
   const [activeSeat, setActiveSeat] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -413,7 +416,10 @@ const OrderEditModal = ({
         deliveryAddress: deliveryAddrData || order.deliveryAddress || null,
         managerPin: managerPin || null,
         taxInclusiveMode: taxInclusiveMode || null,
-        customerId: order.customerId || null,
+        // Prefer a freshly-resolved CRM customer (dashboard parity), else keep the
+        // order's existing link. Preserve delivery staff assignment on edit.
+        customerId: editCustomerData?.id || order.customerId || null,
+        assignedStaff: order.assignedStaff || null,
         customerInfo: {
           name: modalCustomerName || order.customerInfo?.name || '',
           phone: modalCustomerMobile || order.customerInfo?.phone || null,
@@ -733,6 +739,7 @@ const OrderEditModal = ({
                 onClose={handleClose}
                 billingMode={true}
                 allowCompletedEdit={true}
+                onCustomerDataChange={setEditCustomerData}
                 billingSettings={billingSettings}
                 multiPricingEnabled={multiPricingEnabled}
                 pricingRules={pricingRules}
