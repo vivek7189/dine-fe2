@@ -294,6 +294,11 @@ const TableManagement = () => {
   const [tableCfgSaving, setTableCfgSaving] = useState(false);
   const [showEditFloor, setShowEditFloor] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
+  // Turn-time analytics panel
+  const [showTurnTimes, setShowTurnTimes] = useState(false);
+  const [turnTimeData, setTurnTimeData] = useState(null);
+  const [turnTimeLoading, setTurnTimeLoading] = useState(false);
+  const [turnTimeError, setTurnTimeError] = useState(null);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [selectedTable, setSelectedTable] = useState(null);
   const [bookingFromHeader, setBookingFromHeader] = useState(false);
@@ -1023,6 +1028,23 @@ const TableManagement = () => {
     finally { setTableCfgSaving(false); }
   };
 
+  // Load turn-time / covers analytics for the current view date.
+  const openTurnTimes = async () => {
+    setShowTurnTimes(true);
+    if (!selectedRestaurant?.id) return;
+    setTurnTimeLoading(true);
+    setTurnTimeError(null);
+    try {
+      const dateStr = (selectedDate instanceof Date ? selectedDate : new Date(selectedDate)).toISOString().split('T')[0];
+      const data = await apiClient.getTableAnalytics(selectedRestaurant.id, { date: dateStr });
+      setTurnTimeData(data);
+    } catch (err) {
+      setTurnTimeError(err?.message || 'Failed to load turn-time analytics');
+    } finally {
+      setTurnTimeLoading(false);
+    }
+  };
+
   // Edit a table's name / seats (requires the tables.manage capability).
   const openEditTable = (table) => {
     if (!canEditTableConfig) { showError('You do not have permission to manage tables. Ask the owner to grant table management access.'); return; }
@@ -1521,6 +1543,17 @@ const TableManagement = () => {
                 }} title="QR Codes">
                   <FaQrcode size={isMobileEmbed ? 11 : 12} /> {!isMobileEmbed && 'QR Codes'}
                 </button>
+                {['owner', 'admin', 'manager'].includes((userData.role || '').toLowerCase()) && (
+                  <button onClick={openTurnTimes} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? 0 : '6px',
+                    padding: isMobileEmbed ? '6px' : '8px 16px', borderRadius: isMobileEmbed ? '8px' : '10px',
+                    background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', border: 'none', color: 'white',
+                    fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(14,165,233,0.3)',
+                    width: isMobileEmbed ? '30px' : undefined, height: isMobileEmbed ? '30px' : undefined,
+                  }} title="Turn Times">
+                    <FaClock size={isMobileEmbed ? 11 : 12} /> {!isMobileEmbed && 'Turn Times'}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -2856,6 +2889,85 @@ const TableManagement = () => {
           restaurant={selectedRestaurant}
         />
       )}
+
+      {/* Turn-Time & Covers analytics panel */}
+      {showTurnTimes && (() => {
+        const fmtMin = (m) => (m == null || m <= 0) ? '—' : (m >= 60 ? `${Math.floor(m / 60)}h ${Math.round(m % 60)}m` : `${Math.round(m)}m`);
+        const fmtHour = (h) => (h == null) ? '—' : `${((h % 12) || 12)}${h < 12 ? 'am' : 'pm'}`;
+        const d = turnTimeData;
+        const stat = (label, value, color) => (
+          <div style={{ flex: '1 1 140px', minWidth: '130px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
+            <div style={{ fontSize: '22px', fontWeight: '800', color: color || '#0f172a', lineHeight: 1.1 }}>{value}</div>
+            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px', fontWeight: '600' }}>{label}</div>
+          </div>
+        );
+        return (
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={() => setShowTurnTimes(false)}>
+            <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '680px', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid #f1f5f9', position: 'sticky', top: 0, background: 'white', zIndex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaClock size={16} color="white" /></div>
+                  <div>
+                    <div style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>Turn Times & Covers</div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>{(selectedDate instanceof Date ? selectedDate : new Date(selectedDate)).toLocaleDateString()}</div>
+                  </div>
+                </div>
+                <button onClick={() => setShowTurnTimes(false)} style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', backgroundColor: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaTimes size={14} color="#6b7280" /></button>
+              </div>
+
+              <div style={{ padding: '18px 20px' }}>
+                {turnTimeLoading ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '40px', color: '#64748b' }}>
+                    <FaSpinner className="animate-spin" size={18} /> Loading analytics…
+                  </div>
+                ) : turnTimeError ? (
+                  <div style={{ padding: '30px', textAlign: 'center', color: '#dc2626', fontSize: '14px' }}>{turnTimeError}</div>
+                ) : !d || d.completedOrders === 0 ? (
+                  <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>No completed orders for this date yet.</div>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '18px' }}>
+                      {stat('Avg turn time', fmtMin(d.avgTurnMinutes), '#0284c7')}
+                      {stat('Median turn', fmtMin(d.medianTurnMinutes))}
+                      {stat('Total covers', d.totalCovers)}
+                      {stat('Covers / hour', d.coversPerHour)}
+                      {stat('Turns / table', d.turnsPerTable)}
+                      {stat('Tables used', d.tablesUsed)}
+                      {stat('Completed orders', d.completedOrders)}
+                      {stat('Busiest hour', fmtHour(d.peakHour), '#7c3aed')}
+                    </div>
+
+                    {d.perTable && d.perTable.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '8px' }}>Per-table breakdown</div>
+                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
+                          <div style={{ display: 'flex', padding: '8px 12px', background: '#f8fafc', fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                            <div style={{ flex: 2 }}>Table</div>
+                            <div style={{ flex: 1, textAlign: 'right' }}>Orders</div>
+                            <div style={{ flex: 1, textAlign: 'right' }}>Covers</div>
+                            <div style={{ flex: 1.4, textAlign: 'right' }}>Avg turn</div>
+                            <div style={{ flex: 1.4, textAlign: 'right' }}>Revenue</div>
+                          </div>
+                          {d.perTable.map((t2, i) => (
+                            <div key={t2.table} style={{ display: 'flex', padding: '9px 12px', fontSize: '13px', color: '#0f172a', borderTop: i === 0 ? 'none' : '1px solid #f1f5f9', alignItems: 'center' }}>
+                              <div style={{ flex: 2, fontWeight: '600' }}>{t2.table}</div>
+                              <div style={{ flex: 1, textAlign: 'right' }}>{t2.orders}</div>
+                              <div style={{ flex: 1, textAlign: 'right' }}>{t2.covers}</div>
+                              <div style={{ flex: 1.4, textAlign: 'right' }}>{fmtMin(t2.avgTurnMinutes)}</div>
+                              <div style={{ flex: 1.4, textAlign: 'right', fontWeight: '600' }}>{formatCurrency ? formatCurrency(t2.revenue) : t2.revenue}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Shared Billing Modal — only mount when opened */}
       {billingModalOpen && (

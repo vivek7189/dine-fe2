@@ -1337,6 +1337,17 @@ class ApiClient {
     return this.request(`/api/analytics/${restaurantId}?${params.toString()}`);
   }
 
+  async getTableAnalytics(restaurantId, options = {}) {
+    const params = new URLSearchParams();
+    if (options.date) params.append('date', options.date);
+    if (options.startDate) params.append('startDate', options.startDate);
+    if (options.endDate) params.append('endDate', options.endDate);
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz) params.append('tz', tz);
+    const qs = params.toString();
+    return this.request(`/api/tables/${restaurantId}/analytics${qs ? '?' + qs : ''}`);
+  }
+
   async getHourlySales(restaurantId, options = {}) {
     const params = new URLSearchParams();
     if (options.startDate) params.append('startDate', options.startDate);
