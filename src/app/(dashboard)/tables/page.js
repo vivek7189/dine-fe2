@@ -358,10 +358,12 @@ const TableManagement = () => {
   const canDeleteTable = canPerform(userData, userPageAccess, 'tables', 'delete');
   const canResetTables = canPerform(userData, userPageAccess, 'tables', 'reset');
   const canManageTables = canAddTable || canEditTable || canDeleteTable;
-  // Editing a table's name/config and deleting a table are OWNER/ADMIN-only by
-  // default (distinct from status changes like Service/Clean, which staff can do).
-  const _tableRole = (userData.role || '').toLowerCase();
-  const canEditTableConfig = _tableRole === 'owner' || _tableRole === 'admin';
+  // Editing a table's name/config and deleting a table require the "manage"
+  // capability. Owner/admin have it by default (canPerform returns true for
+  // them); an owner can also grant `tables.manage` to any other role (cashier,
+  // waiter…) via the staff permission editor. This is distinct from status
+  // changes like Service/Clean, which staff can do.
+  const canEditTableConfig = canPerform(userData, userPageAccess, 'tables', 'manage');
 
   // Timer tick to keep elapsed times updated (every 60s)
   const [, setTick] = useState(0);
@@ -1005,7 +1007,7 @@ const TableManagement = () => {
   // Open the styled confirmation modal (replaces the native window.confirm).
   const deleteTable = (tableId) => {
     if (!isOnline) { showError('You are offline. Go online to make changes.'); return; }
-    if (!canEditTableConfig) { showError('Only the owner or admin can delete tables.'); return; }
+    if (!canEditTableConfig) { showError('You do not have permission to manage tables. Ask the owner to grant table management access.'); return; }
     const table = floors.flatMap(f => f.tables || []).find(t => t.id === tableId);
     setDeleteTableConfirm({ tableId, name: table?.name || '' });
     setActiveDropdown(null);
@@ -1021,9 +1023,9 @@ const TableManagement = () => {
     finally { setTableCfgSaving(false); }
   };
 
-  // Edit a table's name / seats (owner/admin only).
+  // Edit a table's name / seats (requires the tables.manage capability).
   const openEditTable = (table) => {
-    if (!canEditTableConfig) { showError('Only the owner or admin can edit tables.'); return; }
+    if (!canEditTableConfig) { showError('You do not have permission to manage tables. Ask the owner to grant table management access.'); return; }
     // Only a FREE table can be edited — never rename/resize a table that is occupied,
     // reserved, or has an active order (would confuse a running bill/KOT).
     const status = (table.status || 'available').toLowerCase();

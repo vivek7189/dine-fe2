@@ -11,7 +11,7 @@ export const FEATURE_OPS = {
   inventory: ['read', 'add', 'update', 'delete'],
   menu: ['read', 'add', 'update', 'delete', 'markOutOfStock'],
   orders: ['read', 'update', 'cancel', 'refund', 'completeBill'],
-  tables: ['read', 'add', 'update', 'delete', 'reset'],
+  tables: ['read', 'add', 'update', 'delete', 'reset', 'manage'],
   customers: ['read', 'add', 'update', 'delete'],
   offers: ['read', 'add', 'update', 'delete'],
   parking: ['read', 'add', 'update', 'delete', 'config'],
@@ -28,7 +28,8 @@ export const OP_LABELS = {
   refund: 'Refund',
   completeBill: 'Complete Bill',
   reset: 'Reset All',
-  config: 'Configure'
+  config: 'Configure',
+  manage: 'Manage (edit/delete/merge/layout)'
 };
 
 export const ADMIN_TAB_LABELS = {
