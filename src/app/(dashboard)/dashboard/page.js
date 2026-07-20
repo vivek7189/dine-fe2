@@ -5003,9 +5003,16 @@ function RestaurantPOSContent() {
 
           const tableToUseForKot = tableToUse || currentOrder.tableNumber;
           const roomForKot = inRoomDiningEnabled && locationType === 'room' ? manualRoomNumber : (currentOrder.roomNumber || null);
-          // Unique per-print token so an UPDATE KOT isn't deduped against the
-          // original placement's KOT (same orderId, different items).
-          const kotToken = `kot-${currentOrder.id}-${Date.now()}`;
+          // WEB ONLY: this order was already KOT-printed on placement, so the
+          // effect's dedup flags (set then) would skip the incremental UPDATE
+          // KOT. On a pure web browser, useAutoPrint (the event-driven printer)
+          // does NOT run, so it's safe to reset ONLY the client-effect flags here
+          // and let the effect reprint the diff. On Electron/RN we leave their
+          // coordinated print paths completely untouched (they dedup on their own).
+          if (typeof window !== 'undefined' && !window.electronAPI && !window.ReactNativeWebView) {
+            window.__lastKOTPrintedByEffect = null;
+            window.__lastLocalPrintedKOT = null;
+          }
           setOrderSuccess({
             orderId: currentOrder.id,
             dailyOrderId: currentOrder.dailyOrderId,
@@ -5014,7 +5021,6 @@ function RestaurantPOSContent() {
               ? `KOT Update: ${incrementalItems.length} new/changed item(s)`
               : t('dashboard.orderUpdatedShort'),
             kotData: {
-              _kotToken: kotToken,
               orderId: currentOrder.id,
               dailyOrderId: currentOrder.dailyOrderId,
               items: filterKotExcludedItems(incrementalItems.length > 0 ? incrementalItems : (seatOnlyUpdate ? [] : cart), printSettings).map(item => {
@@ -5057,7 +5063,7 @@ function RestaurantPOSContent() {
               seat: item.seat ?? null,
             }));
             window.__autoPrintKOT = false;
-            window.__lastKOTPrintedByEffect = kotToken;
+            window.__lastKOTPrintedByEffect = currentOrder.id;
             printDocument({
               type: 'kot',
               orderId: currentOrder.id,

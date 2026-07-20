@@ -4894,6 +4894,13 @@ function RestaurantPOSContent() {
 
           const tableToUseForKot = tableToUse || currentOrder.tableNumber;
           const roomForKot = inRoomDiningEnabled && locationType === 'room' ? manualRoomNumber : (currentOrder.roomNumber || null);
+          // WEB ONLY: reset the client-effect KOT dedup flags so the incremental
+          // UPDATE KOT reprints (they were set on placement). useAutoPrint doesn't
+          // run on pure web; Electron/RN keep their own coordinated print paths.
+          if (typeof window !== 'undefined' && !window.electronAPI && !window.ReactNativeWebView) {
+            window.__lastKOTPrintedByEffect = null;
+            window.__lastLocalPrintedKOT = null;
+          }
           setOrderSuccess({
             orderId: currentOrder.id,
             dailyOrderId: currentOrder.dailyOrderId,

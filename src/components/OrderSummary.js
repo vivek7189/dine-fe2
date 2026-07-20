@@ -765,26 +765,22 @@ const OrderSummary = ({
       return;
     }
 
-    // Dedup by a PER-PRINT token (unique per place AND per update), not by orderId.
-    // Deduping by orderId wrongly skipped an incremental UPDATE KOT for an order
-    // that was already printed on placement (same id, different items). The token
-    // falls back to orderId only for legacy callers that don't set one.
+    // Dedup: skip if this exact orderId was already printed by this effect or by useAutoPrint
     const thisOrderId = orderSuccess.kotData.orderId;
-    const thisToken = orderSuccess.kotData._kotToken || thisOrderId;
-    if (thisToken && window.__lastKOTPrintedByEffect === thisToken) {
-      console.log('[OrderSummary] KOT skipped — already printed by this effect:', thisToken);
+    if (thisOrderId && window.__lastKOTPrintedByEffect === thisOrderId) {
+      console.log('[OrderSummary] KOT skipped — already printed by this effect:', thisOrderId);
       window.__autoPrintKOT = false;
       return;
     }
-    if (thisToken && window.__lastLocalPrintedKOT === thisToken) {
-      console.log('[OrderSummary] KOT skipped — already printed by useAutoPrint:', thisToken);
+    if (thisOrderId && window.__lastLocalPrintedKOT === thisOrderId) {
+      console.log('[OrderSummary] KOT skipped — already printed by useAutoPrint:', thisOrderId);
       window.__autoPrintKOT = false;
       return;
     }
 
     window.__autoPrintKOT = false;
     // Set dedup flag immediately (not inside setTimeout) to prevent race with effect re-fires
-    if (thisToken) window.__lastKOTPrintedByEffect = thisToken;
+    if (thisOrderId) window.__lastKOTPrintedByEffect = thisOrderId;
     // Native (WebView/Electron/Capacitor): print almost immediately — postMessage is synchronous,
     // no DOM rendering needed. Web: 800ms delay for window.open + print dialog setup.
     const printDelay = isNative ? 50 : 800;
@@ -828,9 +824,8 @@ const OrderSummary = ({
         });
         // Track printed order to prevent duplicate from Pusher auto-print / effect re-fire
         if (k.orderId) {
-          const tok = k._kotToken || k.orderId;
-          window.__lastLocalPrintedKOT = tok;
-          window.__lastKOTPrintedByEffect = tok;
+          window.__lastLocalPrintedKOT = k.orderId;
+          window.__lastKOTPrintedByEffect = k.orderId;
         }
       } else {
         // Web: window.open + print dialog
