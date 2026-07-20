@@ -113,6 +113,7 @@ const OrderSummary = ({
   manualRoomNumber = '',
   setManualRoomNumber,
   billingMode = false, // When true, hides Save/Place Order buttons, only shows Complete Billing
+  allowCompletedEdit = false, // When true (order-history edit), the action button stays enabled for a COMPLETED order so edits can be saved
   onBillingComplete, // Callback when billing is completed in billingMode
   onStartVoiceOrder, // Callback to start voice ordering from dashboard
   // Saved orders props
@@ -228,6 +229,11 @@ const OrderSummary = ({
   const editPreFillPendingRef = useRef(false); // Synchronous flag for cross-hook blocking
   // Unified flag: disables ALL order buttons when any action is in progress
   const orderBusy = processing || placingOrder || savingOrder || editPreFillPending;
+  // Normally the billing action is blocked for an already-completed order (no
+  // double-completion). But the order-history edit modal (allowCompletedEdit)
+  // re-bills completed orders on purpose, so the "Save Changes" button must stay
+  // enabled there.
+  const completedBillingBlocked = currentOrder && currentOrder.status === 'completed' && !allowCompletedEdit;
   // True when editing a loaded saved order (disable save button, keep place order text normal)
   const isEditingSavedOrder = currentOrder && currentOrder.status === 'saved';
 
@@ -6537,10 +6543,10 @@ const OrderSummary = ({
                     setTimeout(() => onClose(), 500);
                   }
                 }}
-                disabled={orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
+                disabled={orderBusy || cart.length === 0 || completedBillingBlocked}
                 style={{
                   flex: 1,
-                  background: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')
+                  background: orderBusy || cart.length === 0 || completedBillingBlocked
                     ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
                     : 'linear-gradient(135deg, #ef4444, #dc2626)',
                   color: 'white',
@@ -6548,14 +6554,14 @@ const OrderSummary = ({
                   borderRadius: '8px',
                   fontWeight: '600',
                   border: 'none',
-                  cursor: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
+                  cursor: orderBusy || cart.length === 0 || completedBillingBlocked ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '5px',
                   fontSize: '11px',
                   transition: 'all 0.2s',
-                  boxShadow: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 2px 8px rgba(239, 68, 68, 0.3)',
+                  boxShadow: orderBusy || cart.length === 0 || completedBillingBlocked ? 'none' : '0 2px 8px rgba(239, 68, 68, 0.3)',
                   minWidth: 0,
                 }}
               >
@@ -6582,10 +6588,10 @@ const OrderSummary = ({
                       setTimeout(() => onClose(), 500);
                     }
                   }}
-                  disabled={orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
+                  disabled={orderBusy || cart.length === 0 || completedBillingBlocked}
                   style={{
                     flex: 1,
-                    background: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')
+                    background: orderBusy || cart.length === 0 || completedBillingBlocked
                       ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
                       : 'linear-gradient(135deg, #991b1b, #7f1d1d)',
                     color: 'white',
@@ -6593,14 +6599,14 @@ const OrderSummary = ({
                     borderRadius: '8px',
                     fontWeight: '600',
                     border: 'none',
-                    cursor: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
+                    cursor: orderBusy || cart.length === 0 || completedBillingBlocked ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '5px',
                     fontSize: '11px',
                     transition: 'all 0.2s',
-                    boxShadow: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 2px 8px rgba(153,27,27,0.3)',
+                    boxShadow: orderBusy || cart.length === 0 || completedBillingBlocked ? 'none' : '0 2px 8px rgba(153,27,27,0.3)',
                     minWidth: 0,
                   }}
                 >
@@ -6623,10 +6629,10 @@ const OrderSummary = ({
                 }
                 handleProcessOrder();
               }}
-              disabled={orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
+              disabled={orderBusy || cart.length === 0 || completedBillingBlocked}
               style={{
                 width: printSettings?.enableSaveAndPrint ? '50%' : '100%',
-                background: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')
+                background: orderBusy || cart.length === 0 || completedBillingBlocked
                   ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
                   : 'linear-gradient(135deg, #10b981, #059669)',
                 color: 'white',
@@ -6634,14 +6640,14 @@ const OrderSummary = ({
                 borderRadius: billingMode ? (isMobile ? '8px' : '10px') : '8px',
                 fontWeight: '700',
                 border: 'none',
-                cursor: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
+                cursor: orderBusy || cart.length === 0 || completedBillingBlocked ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: isMobile ? '6px' : '8px',
                 fontSize: billingMode ? (isMobile ? '13px' : '15px') : (isMobile ? '11px' : '12px'),
                 transition: 'all 0.2s',
-                boxShadow: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 4px 12px rgba(34, 197, 94, 0.35)'
+                boxShadow: orderBusy || cart.length === 0 || completedBillingBlocked ? 'none' : '0 4px 12px rgba(34, 197, 94, 0.35)'
               }}
             >
               {processing ? (
@@ -6665,10 +6671,10 @@ const OrderSummary = ({
                     window.__autoPrintBill = true;
                     handleProcessOrder();
                   }}
-                  disabled={orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
+                  disabled={orderBusy || cart.length === 0 || completedBillingBlocked}
                   style={{
                     width: '50%',
-                    background: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')
+                    background: orderBusy || cart.length === 0 || completedBillingBlocked
                       ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
                       : 'linear-gradient(135deg, #065f46, #064e3b)',
                     color: 'white',
@@ -6676,14 +6682,14 @@ const OrderSummary = ({
                     borderRadius: billingMode ? (isMobile ? '8px' : '10px') : '8px',
                     fontWeight: '700',
                     border: 'none',
-                    cursor: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
+                    cursor: orderBusy || cart.length === 0 || completedBillingBlocked ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: isMobile ? '6px' : '8px',
                     fontSize: billingMode ? (isMobile ? '13px' : '15px') : (isMobile ? '11px' : '12px'),
                     transition: 'all 0.2s',
-                    boxShadow: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 4px 12px rgba(6, 95, 70, 0.35)'
+                    boxShadow: orderBusy || cart.length === 0 || completedBillingBlocked ? 'none' : '0 4px 12px rgba(6, 95, 70, 0.35)'
                   }}
                 >
                   {processing ? (

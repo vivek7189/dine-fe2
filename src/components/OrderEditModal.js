@@ -726,6 +726,7 @@ const OrderEditModal = ({
                 menuItems={effectiveMenu}
                 onClose={handleClose}
                 billingMode={true}
+                allowCompletedEdit={true}
                 billingSettings={billingSettings}
                 multiPricingEnabled={multiPricingEnabled}
                 pricingRules={pricingRules}
