@@ -304,6 +304,11 @@ const TableManagement = () => {
   const [mergeSelection, setMergeSelection] = useState([]); // selected table ids (first = primary)
   const [mergeSaving, setMergeSaving] = useState(false);
   const [unmergeConfirm, setUnmergeConfirm] = useState(null); // { primaryTableId, name }
+  // Server assignment
+  const [waiters, setWaiters] = useState([]);
+  const [assignServerTable, setAssignServerTable] = useState(null); // table being assigned
+  const [assignSaving, setAssignSaving] = useState(false);
+  const [myTablesOnly, setMyTablesOnly] = useState(false);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [selectedTable, setSelectedTable] = useState(null);
   const [bookingFromHeader, setBookingFromHeader] = useState(false);
@@ -381,6 +386,14 @@ const TableManagement = () => {
     const interval = setInterval(() => setTick(t => t + 1), 60000);
     return () => clearInterval(interval);
   }, []);
+
+  // Load the waiter/server roster (for server assignment + transfer).
+  useEffect(() => {
+    if (!selectedRestaurant?.id) return;
+    apiClient.getWaiters(selectedRestaurant.id)
+      .then(res => setWaiters(res?.waiters || []))
+      .catch(() => setWaiters([]));
+  }, [selectedRestaurant?.id]);
 
   // ── Status config (matching dashboard POS cards) ───────
   const statusConfig = {
@@ -1092,6 +1105,29 @@ const TableManagement = () => {
     }
   };
 
+  // ── Assign server to a table ──────────────────────────
+  const openAssignServer = (table) => {
+    setAssignServerTable(table);
+    setActiveDropdown(null);
+  };
+  const assignServer = async (waiter) => {
+    if (!assignServerTable || !selectedRestaurant?.id) return;
+    setAssignSaving(true);
+    try {
+      await apiClient.assignTableServer(assignServerTable.id, {
+        restaurantId: selectedRestaurant.id,
+        waiterId: waiter?.id || null,
+        waiterName: waiter?.name || null,
+      });
+      setAssignServerTable(null);
+      await loadFloorsAndTables(selectedRestaurant.id, true);
+    } catch (err) {
+      showError(err?.message || 'Failed to assign server');
+    } finally {
+      setAssignSaving(false);
+    }
+  };
+
   // Edit a table's name / seats (requires the tables.manage capability).
   const openEditTable = (table) => {
     if (!canEditTableConfig) { showError('You do not have permission to manage tables. Ask the owner to grant table management access.'); return; }
@@ -1383,8 +1419,16 @@ const TableManagement = () => {
     });
   };
 
+  // Current staff id/name (for the "My Tables" filter).
+  const myId = userData.id || userData.userId || userData.uid || userData.staffId || null;
+  const myName = userData.name || null;
+  const isMyTable = (tbl) => (myId && tbl.waiterId === myId) || (myName && tbl.waiterName === myName);
+
   const filteredFloors = useMemo(() => (selectedFloorId === 'all' ? floors : floors.filter(f => f.id === selectedFloorId))
-    .map(f => ({ ...f, tables: sortTables(f.tables || []) })), [selectedFloorId, floors]);
+    .map(f => ({
+      ...f,
+      tables: sortTables(f.tables || []).filter(tbl => !myTablesOnly || isMyTable(tbl)),
+    })), [selectedFloorId, floors, myTablesOnly, myId, myName]);
 
   const formatDate = (dateStr) => {
     const d = new Date(dateStr + 'T00:00:00');
@@ -1677,6 +1721,17 @@ const TableManagement = () => {
                 <FaPlus size={9} /> {t('tables.floor')}
               </button>
             )}
+            {(myId || myName) && (
+              <button onClick={() => setMyTablesOnly(v => !v)} title="Show only tables assigned to me" style={{
+                padding: isMobileEmbed ? '3px 8px' : '5px 12px', borderRadius: '20px', fontSize: isMobileEmbed ? '10px' : '12px', fontWeight: '600',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all 0.2s',
+                ...(myTablesOnly
+                  ? { backgroundColor: '#0d9488', color: 'white', border: 'none', boxShadow: '0 2px 6px rgba(13,148,136,0.25)' }
+                  : { backgroundColor: 'white', color: '#0d9488', border: '1px solid #99f6e4' }),
+              }}>
+                <FaUser size={9} /> My Tables
+              </button>
+            )}
           </>}
 
           {/* Stats — compact dots on mobile embed, pushed right */}
@@ -1866,6 +1921,11 @@ const TableManagement = () => {
                                   {isOccupied && table.currentOrderCovers > 0 && (
                                     <span title="Guests seated (covers)" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', marginLeft: '4px', padding: '1px 5px', borderRadius: '6px', background: '#eff6ff', color: '#2563eb', fontWeight: 700 }}>
                                       <FaUsers size={9} /> {table.currentOrderCovers}
+                                    </span>
+                                  )}
+                                  {table.waiterName && (
+                                    <span title={`Server: ${table.waiterName}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', marginLeft: '4px', padding: '1px 5px', borderRadius: '6px', background: '#f0fdfa', color: '#0d9488', fontWeight: 700, maxWidth: '90px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      <FaUser size={8} /> {table.waiterName}
                                     </span>
                                   )}
                                   {isOccupied && table.currentOrderId && (
@@ -2154,6 +2214,11 @@ const TableManagement = () => {
                               {table.mergeGroupId && canEditTableConfig && (
                                 <button className="tbl-action" onClick={(e) => { e.stopPropagation(); setActiveDropdown(null); setUnmergeConfirm({ primaryTableId: table.mergePrimary ? table.id : table.mergedInto, name: table.mergePrimary ? table.name : (table.mergedIntoName || table.name) }); }} style={{ flex: '1 1 100%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#0284c7', display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '5px', borderBottom: '1px solid #f5f5f5' }}>
                                   <FaLayerGroup size={12} /> Un-merge
+                                </button>
+                              )}
+                              {canEditTable && waiters.length > 0 && (
+                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); openAssignServer(table); }} style={{ flex: '1 1 100%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#0d9488', display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '5px', borderBottom: '1px solid #f5f5f5' }}>
+                                  <FaUser size={12} /> {table.waiterName ? `Server: ${table.waiterName}` : 'Assign Server'}
                                 </button>
                               )}
                               {isAvailable && (
@@ -3114,6 +3179,44 @@ const TableManagement = () => {
               <button onClick={confirmUnmerge} disabled={mergeSaving} style={{ padding: '9px 18px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', fontSize: '14px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {mergeSaving ? <FaSpinner size={13} className="animate-spin" /> : null} Un-merge
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Server picker */}
+      {assignServerTable && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', zIndex: 10003, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={() => !assignSaving && setAssignServerTable(null)}>
+          <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '420px', maxHeight: '82vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid #f1f5f9' }}>
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>Assign Server</div>
+                <div style={{ fontSize: '12px', color: '#64748b' }}>{assignServerTable.name}{assignServerTable.currentOrderId ? ' · updates the running order' : ''}</div>
+              </div>
+              <button onClick={() => !assignSaving && setAssignServerTable(null)} style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', backgroundColor: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaTimes size={14} color="#6b7280" /></button>
+            </div>
+            <div style={{ padding: '10px 14px', overflowY: 'auto', flex: 1 }}>
+              {assignServerTable.waiterId && (
+                <button type="button" disabled={assignSaving} onClick={() => assignServer(null)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 12px', marginBottom: '6px', borderRadius: '10px', textAlign: 'left', cursor: 'pointer', border: '1px solid #fecaca', background: '#fef2f2', color: '#b91c1c', fontWeight: 600, fontSize: '13px' }}>
+                  <FaBan size={13} /> Unassign current server
+                </button>
+              )}
+              {waiters.map(w => {
+                const isCurrent = assignServerTable.waiterId === w.id;
+                return (
+                  <button key={w.id} type="button" disabled={assignSaving} onClick={() => assignServer(w)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 12px', marginBottom: '6px', borderRadius: '10px', textAlign: 'left', cursor: 'pointer', border: `1.5px solid ${isCurrent ? '#0d9488' : '#e2e8f0'}`, background: isCurrent ? '#f0fdfa' : 'white' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #14b8a6, #0d9488)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '13px', flexShrink: 0 }}>
+                      {(w.name || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>{w.name}</div>
+                      <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'capitalize' }}>{w.role || 'staff'}</div>
+                    </div>
+                    {isCurrent && <FaCheck size={13} color="#0d9488" />}
+                  </button>
+                );
+              })}
+              {waiters.length === 0 && <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>No staff found.</div>}
             </div>
           </div>
         </div>

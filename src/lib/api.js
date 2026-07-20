@@ -1542,6 +1542,22 @@ class ApiClient {
     });
   }
 
+  // Assign (or clear, pass nulls) the server on a single table.
+  async assignTableServer(tableId, { restaurantId, waiterId = null, waiterName = null }) {
+    return this.request(`/api/tables/${tableId}/assign-server`, {
+      method: 'PATCH',
+      body: { restaurantId, waiterId, waiterName },
+    });
+  }
+
+  // Assign a server to every table in a section or floor.
+  async assignSectionServer(restaurantId, { section = null, floorId = null, waiterId = null, waiterName = null }) {
+    return this.request(`/api/tables/${restaurantId}/assign-section-server`, {
+      method: 'POST',
+      body: { section, floorId, waiterId, waiterName },
+    });
+  }
+
   // Floor management endpoints
   // NOT cached — floors contain table statuses which change with every order
   async getFloors(restaurantId) {
