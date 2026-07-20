@@ -351,21 +351,27 @@ const OrderEditModal = ({
           ? (order?.completedAt || new Date().toISOString())
           : (isCompletedOrder ? new Date().toISOString() : (order?.completedAt || undefined)),
         updatedAt: new Date().toISOString(),
-        ...(taxBreakdown.length > 0 && {
-          totalAmount: subtotal || getModalTotalAmount(),
-          taxBreakdown: taxBreakdown,
-          taxAmount: totalTax,
-          finalAmount: finalAmount
-        }),
-        ...(serviceChargeAmount > 0 && { serviceChargeAmount, serviceChargeRate }),
+        // Always persist totals (mirror dashboard) — otherwise a tax-free / 0%
+        // order keeps its stale finalAmount/totalAmount after an edit because
+        // taxBreakdown is empty. taxAmount is 0 when there's no tax.
+        totalAmount: subtotal ?? getModalTotalAmount(),
+        taxBreakdown: taxBreakdown || [],
+        taxAmount: totalTax || 0,
+        finalAmount: finalAmount ?? paymentAmount,
+        // Send SC / tip / round-off / cash unconditionally (|| null) so REMOVING
+        // them during an edit clears the prior values instead of leaving stale ones.
+        serviceChargeAmount: serviceChargeAmount || null,
+        serviceChargeRate: serviceChargeRate || null,
         ...(serviceChargeEnabled != null && { serviceChargeEnabled }),
-        ...(tipAmount > 0 && { tipAmount, tipPercentage }),
-        ...(cashReceived > 0 && { cashReceived, changeReturned }),
+        tipAmount: tipAmount || null,
+        tipPercentage: tipPercentage || null,
+        cashReceived: cashReceived || null,
+        changeReturned: changeReturned || null,
         ...(splitPayments && { splitPayments }),
         // Parity with dashboard billing: persist split-among-guests + card-terminal response
         ...(splitBill && { splitBill }),
         ...(ecrResponse && { ecrResponse }),
-        ...(roundOffAmount && roundOffAmount !== 0 && { roundOffAmount }),
+        roundOffAmount: roundOffAmount || null,
         ...(compItems && { compItems }),
         ...(voidItems && { voidItems }),
         ...(preserveDue && {

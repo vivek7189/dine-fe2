@@ -523,8 +523,13 @@ const OrderSummary = ({
         .finally(() => setWalletLoading(false));
     } else {
       setWalletBalance(0);
-      setUseWallet(false);
-      setWalletRedeemAmount('');
+      // Don't wipe a restored wallet redemption while editing an order that used
+      // wallet — the customer lookup may still be resolving to 'found'. Once it
+      // resolves the branch above loads the real balance and keeps the amount.
+      if (!(Number(currentOrder?.walletRedeemAmount) > 0)) {
+        setUseWallet(false);
+        setWalletRedeemAmount('');
+      }
     }
   }, [lookupStatus, customerData?.id]);
 
@@ -1480,6 +1485,15 @@ const OrderSummary = ({
     if (currentOrder.tipAmount > 0) {
       setTipAmount(currentOrder.tipAmount);
       if (currentOrder.tipPercentage) setTipPercentage(currentOrder.tipPercentage);
+    }
+
+    // Wallet redemption — restore so an edited bill keeps the wallet discount.
+    // Without this the redemption is dropped, the total rises, and the save
+    // erases the redemption (over-billing the customer). The reset effect is
+    // guarded to not wipe this while the customer lookup resolves.
+    if (Number(currentOrder.walletRedeemAmount) > 0) {
+      setUseWallet(true);
+      setWalletRedeemAmount(String(currentOrder.walletRedeemAmount));
     }
 
     // Split payments — restore if order was completed with split settlement
