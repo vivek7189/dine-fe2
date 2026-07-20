@@ -1024,6 +1024,13 @@ const TableManagement = () => {
   // Edit a table's name / seats (owner/admin only).
   const openEditTable = (table) => {
     if (!canEditTableConfig) { showError('Only the owner or admin can edit tables.'); return; }
+    // Only a FREE table can be edited — never rename/resize a table that is occupied,
+    // reserved, or has an active order (would confuse a running bill/KOT).
+    const status = (table.status || 'available').toLowerCase();
+    if (status !== 'available' || table.currentOrderId) {
+      showError('You can only edit a table when it is free (not occupied or reserved).');
+      return;
+    }
     setEditTableModal({ id: table.id, name: table.name || '', capacity: table.capacity || 4 });
     setActiveDropdown(null);
   };
@@ -2083,15 +2090,13 @@ const TableManagement = () => {
                                   <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#22c55e', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
                                     <FaCheck size={12} /> {t('tables.free')}
                                   </button>
+                                  {/* Edit (name/seats) is intentionally NOT offered here — only when
+                                      the table is free/available. Delete is still allowed for a
+                                      cleaning / out-of-service table (owner/admin). */}
                                   {canEditTableConfig && (
-                                    <>
-                                    <button className="tbl-action" onClick={(e) => { e.stopPropagation(); openEditTable(table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#2563eb', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderLeft: '1px solid #f5f5f5', borderTop: '1px solid #f5f5f5' }}>
-                                      <FaEdit size={12} /> {t('tables.edit') || 'Edit'}
-                                    </button>
                                     <button className="tbl-action" onClick={(e) => { e.stopPropagation(); deleteTable(table.id); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#ef4444', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderLeft: '1px solid #f5f5f5', borderTop: '1px solid #f5f5f5' }}>
                                       <FaTrash size={12} /> {t('tables.delete')}
                                     </button>
-                                    </>
                                   )}
                                 </>
                               )}
