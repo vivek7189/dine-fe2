@@ -25,6 +25,13 @@ export default function TableCard({
   canEditTableConfig,
   canEditTable,
   waitersCount = 0,
+  // When false, the card-top management dropdown (un-merge/assign/book/edit/
+  // service/clean/delete) is never rendered. Defaults true so the /tables page
+  // is unaffected; the dashboard "quick live view" passes false.
+  showManagementDropdown = true,
+  // When true, draws a subtle highlight ring around the card root (used by the
+  // dashboard's recently-updated flash). Defaults false — no layout change.
+  highlighted = false,
   // transient UI state + setters
   activeDropdown,
   setActiveDropdown,
@@ -72,7 +79,9 @@ export default function TableCard({
       background: sInfo.bg,
       borderRadius: isMobileEmbed ? '8px' : '12px',
       border: isOccupied ? 'none' : `1px solid ${sInfo.border}`,
-      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+      boxShadow: highlighted
+        ? '0 0 0 3px rgba(59,130,246,0.55), 0 1px 3px rgba(0,0,0,0.05)'
+        : '0 1px 3px rgba(0,0,0,0.05)',
       padding: '0', position: 'relative', overflow: isMobileEmbed ? 'hidden' : 'visible',
       minHeight: isMobileEmbed ? 'auto' : '120px', display: 'flex', flexDirection: 'column',
     }} onClick={() => setActiveDropdown(isDropdownOpen ? null : table.id)}
@@ -396,7 +405,7 @@ export default function TableCard({
       </div>
 
       {/* Dropdown overlay on card top (today only) */}
-      {isToday && isDropdownOpen && (
+      {showManagementDropdown && isToday && isDropdownOpen && (
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0,
           backgroundColor: 'white', borderRadius: '12px 12px 0 0',
