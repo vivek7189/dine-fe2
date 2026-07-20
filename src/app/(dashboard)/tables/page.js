@@ -12,6 +12,7 @@ import { getCachedTablesData, setCachedTablesData } from '../../../utils/dashboa
 import { getCachedData, setCachedData } from '../../../lib/offlineDb';
 import OfflineBanner from '../../../components/OfflineBanner';
 import TableFloorPlan from '../../../components/TableFloorPlan';
+import TableCard from '../../../components/TableCard';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import {
   FaPlus, FaTrash, FaCog, FaUsers, FaClock, FaUtensils, FaCheck, FaBan, FaChair,
@@ -1972,436 +1973,56 @@ const TableManagement = () => {
                     const tblBookings = tableBookingsMap[table.id] || [];
                     const hasBookings = tblBookings.length > 0;
                     const tableStatus = isToday ? (tableStatusesForDate[table.id] || table.status) : (hasBookings ? 'reserved' : 'available');
-                    const sInfo = getTableStatusInfo(tableStatus);
-                    const StatusIcon = sInfo.icon;
-                    const isDropdownOpen = activeDropdown === table.id;
-                    const isOccupied = isToday && (tableStatus === 'occupied' || tableStatus === 'serving');
-                    const isAvailable = tableStatus === 'available';
-                    const elapsed = isToday ? getElapsed(table) : null;
-                    const elapsedHrs = isOccupied ? getElapsedHours(table) : 0;
-                    // Aging thresholds: configurable via posSettings, defaults 2h/6h
-                    const warnHours = posSettings?.tableWarnHours || 2;
-                    const dangerHours = posSettings?.tableDangerHours || 6;
-                    const elapsedIsLong = elapsedHrs >= dangerHours;
-                    const elapsedIsWarn = !elapsedIsLong && elapsedHrs >= warnHours;
-
                     return (
-                      <div key={table.id} className="tbl-card table-dropdown" style={{
-                        background: sInfo.bg,
-                        borderRadius: isMobileEmbed ? '8px' : '12px',
-                        border: isOccupied ? 'none' : `1px solid ${sInfo.border}`,
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                        padding: '0', position: 'relative', overflow: isMobileEmbed ? 'hidden' : 'visible',
-                        minHeight: isMobileEmbed ? 'auto' : '120px', display: 'flex', flexDirection: 'column',
-                      }} onClick={() => setActiveDropdown(isDropdownOpen ? null : table.id)}
-                         onMouseEnter={() => setHoveredTableId(table.id)}
-                         onMouseLeave={() => setHoveredTableId(null)}>
-
-                        {/* Animated dotted border for occupied tables (today only) */}
-                        {isOccupied && (
-                          <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }}>
-                            <rect x="1.5" y="1.5" width="calc(100% - 3px)" height="calc(100% - 3px)" rx={isMobileEmbed ? "6.5" : "10.5"} ry={isMobileEmbed ? "6.5" : "10.5"} fill="none" stroke={sInfo.color} strokeWidth={isMobileEmbed ? "1.5" : "2"} strokeDasharray={isMobileEmbed ? "4,4" : "6,6"} strokeDashoffset="100">
-                              <animate attributeName="stroke-dashoffset" from="100" to="0" dur="3s" repeatCount="indefinite" />
-                            </rect>
-                          </svg>
-                        )}
-
-                        <div style={{ padding: isMobileEmbed ? '6px 8px' : '12px', flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 2 }}>
-                          {/* Header: name + status */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: isMobileEmbed ? '2px' : '8px' }}>
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'baseline', gap: isMobileEmbed ? '3px' : '6px' }}>
-                                <span style={{ fontSize: isMobileEmbed ? '12px' : '16px', fontWeight: 800, color: '#111827', lineHeight: 1.1 }}>
-                                  {table.name}
-                                </span>
-                                {table.mergePrimary && table.mergedTableNames?.length > 0 && (
-                                  <span title={`Merged with ${table.mergedTableNames.join(', ')}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: isMobileEmbed ? '8px' : '10px', fontWeight: 700, color: '#0369a1', background: '#e0f2fe', padding: '1px 5px', borderRadius: '5px', whiteSpace: 'nowrap' }}>
-                                    <FaLayerGroup size={8} /> +{table.mergedTableNames.length}
-                                  </span>
-                                )}
-                                {table.mergedInto && (
-                                  <span title={`Merged into ${table.mergedIntoName || ''}`} style={{ fontSize: isMobileEmbed ? '8px' : '10px', fontWeight: 700, color: '#0369a1', background: '#e0f2fe', padding: '1px 5px', borderRadius: '5px', whiteSpace: 'nowrap' }}>
-                                    → {table.mergedIntoName}
-                                  </span>
-                                )}
-                                {isOccupied && elapsed && (
-                                  <span style={{
-                                    fontSize: isMobileEmbed ? '8px' : '10px', fontWeight: 700, whiteSpace: 'nowrap',
-                                    color: elapsedIsLong ? '#fff' : elapsedIsWarn ? '#92400e' : '#6b7280',
-                                    ...(elapsedIsLong ? { background: '#dc2626', padding: '1px 3px', borderRadius: '3px' } : {}),
-                                    ...(elapsedIsWarn ? { background: '#fef3c7', padding: '1px 3px', borderRadius: '3px' } : {}),
-                                  }}>
-                                    {elapsed}
-                                  </span>
-                                )}
-                              </div>
-                              {!isMobileEmbed && (
-                                <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                  <FaChair size={9} /> {table.capacity || '-'} {t('tables.seats')}
-                                  {isOccupied && table.currentOrderCovers > 0 && (
-                                    <span title="Guests seated (covers)" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', marginLeft: '4px', padding: '1px 5px', borderRadius: '6px', background: '#eff6ff', color: '#2563eb', fontWeight: 700 }}>
-                                      <FaUsers size={9} /> {table.currentOrderCovers}
-                                    </span>
-                                  )}
-                                  {table.waiterName && (
-                                    <span title={`Server: ${table.waiterName}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', marginLeft: '4px', padding: '1px 5px', borderRadius: '6px', background: '#f0fdfa', color: '#0d9488', fontWeight: 700, maxWidth: '90px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                      <FaUser size={8} /> {table.waiterName}
-                                    </span>
-                                  )}
-                                  {isOccupied && table.currentOrderId && (
-                                    <button onClick={(e) => handleQuickView(e, table)} title="Quick view order" style={{
-                                      background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
-                                      color: '#6b7280', display: 'flex', alignItems: 'center', marginLeft: '2px',
-                                    }}>
-                                      {quickViewLoading === table.id ? <FaSpinner size={10} className="animate-spin" /> : <FaEye size={10} />}
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                              {isMobileEmbed && (
-                                <div style={{ fontSize: '8px', color: '#9ca3af', marginTop: '1px' }}>
-                                  {table.capacity || '-'} seats
-                                </div>
-                              )}
-                            </div>
-                            {isAvailable ? (
-                              <div style={{ width: isMobileEmbed ? '6px' : '8px', height: isMobileEmbed ? '6px' : '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 0 2px #d1fae5' }} />
-                            ) : (
-                              isMobileEmbed ? (
-                                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: sInfo.color, flexShrink: 0 }} />
-                              ) : (
-                                <div style={{
-                                  background: sInfo.bg, color: sInfo.color, padding: '3px 8px', borderRadius: '12px',
-                                  fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', border: `1px solid ${sInfo.border}`,
-                                  display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', flexShrink: 0,
-                                }}>
-                                  {sInfo.label}
-                                </div>
-                              )
-                            )}
-                          </div>
-
-                          {/* Content */}
-                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                            {isToday ? (
-                              /* ── TODAY: show live data ── */
-                              <>
-                                {isOccupied && (table.currentOrderFinalAmount || table.currentOrderTotal) ? (
-                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                                    {!isMobileEmbed && <div style={{ fontSize: '9px', color: '#92400e', fontWeight: 500, marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                      {t('tables.totalInclTax')} {table.currentOrderTax ? t('tables.inclTax') : ''}
-                                    </div>}
-                                    <div style={{
-                                      fontSize: isMobileEmbed ? '13px' : '18px', fontWeight: 800, color: '#b45309',
-                                      background: 'linear-gradient(135deg, #fef3c7, #fde68a)', padding: isMobileEmbed ? '2px 6px' : '4px 12px',
-                                      borderRadius: isMobileEmbed ? '5px' : '8px', border: '1px solid #fcd34d',
-                                    }}>
-                                      {formatCurrency(table.currentOrderFinalAmount || table.currentOrderTotal)}
-                                    </div>
-                                  </div>
-                                ) : isOccupied && table.customerName ? (
-                                  <div style={{ textAlign: 'center', fontSize: isMobileEmbed ? '10px' : '12px', fontWeight: 600, color: '#92400e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{table.customerName}</div>
-                                ) : tableStatus === 'reserved' ? (
-                                  <div style={{ textAlign: 'center' }}>
-                                    <div style={{ fontSize: isMobileEmbed ? '10px' : '12px', fontWeight: 600, color: '#1e40af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{table.customerName || t('tables.statusReserved')}</div>
-                                    {!isMobileEmbed && table.reservationTime && <div style={{ fontSize: '10px', color: '#3b82f6', marginTop: '2px' }}>{table.reservationTime}</div>}
-                                  </div>
-                                ) : tableStatus === 'cleaning' ? (
-                                  <div style={{ textAlign: 'center', fontSize: isMobileEmbed ? '9px' : '11px', color: '#64748b', fontStyle: 'italic' }}>{t('tables.beingCleaned')}</div>
-                                ) : tableStatus === 'out-of-service' ? (
-                                  <div style={{ textAlign: 'center', fontSize: isMobileEmbed ? '9px' : '11px', color: '#ef4444' }}>{t('tables.unavailable')}</div>
-                                ) : (
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.1 }}>
-                                    <StatusIcon size={isMobileEmbed ? 20 : 32} color={sInfo.color} />
-                                  </div>
-                                )}
-                              </>
-                            ) : (
-                              /* ── NON-TODAY: show booking info for this date ── */
-                              <>
-                                {hasBookings ? (
-                                  <div style={{ textAlign: 'center' }}>
-                                    <div style={{
-                                      fontSize: isMobileEmbed ? '14px' : '20px', fontWeight: 800, color: '#1e40af', marginBottom: '2px',
-                                    }}>
-                                      {tblBookings.length}
-                                    </div>
-                                    <div style={{ fontSize: isMobileEmbed ? '8px' : '10px', color: '#3b82f6', fontWeight: 600 }}>
-                                      {tblBookings.length === 1 ? t('tables.booking') : t('tables.bookings')}
-                                    </div>
-                                    {!isMobileEmbed && tblBookings[0]?.customerName && (
-                                      <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        {tblBookings[0].customerName}
-                                        {tblBookings.length > 1 && ` +${tblBookings.length - 1}`}
-                                      </div>
-                                    )}
-                                    {!isMobileEmbed && tblBookings[0]?.bookingTime && (
-                                      <div style={{ fontSize: '10px', color: '#3b82f6', marginTop: '2px' }}>
-                                        {tblBookings[0].bookingTime}
-                                        {tblBookings.length > 1 && ` ...`}
-                                      </div>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.1 }}>
-                                      <FaChair size={isMobileEmbed ? 18 : 32} color="#10b981" />
-                                    </div>
-                                    {!isMobileEmbed && <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '4px' }}>{t('tables.noBookings')}</div>}
-                                  </div>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Hover tooltip showing booking details (non-today) */}
-                        {!isToday && hasBookings && hoveredTableId === table.id && !isDropdownOpen && (
-                          <div style={{
-                            position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
-                            marginBottom: '8px', backgroundColor: '#1f2937', color: 'white', borderRadius: '12px',
-                            padding: '10px 14px', fontSize: '11px', minWidth: '180px', maxWidth: '240px',
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 40,
-                            animation: 'tblDropdown 0.12s ease-out',
-                          }}>
-                            <div style={{ fontWeight: 700, marginBottom: '6px', fontSize: '12px' }}>
-                              {tblBookings.length} {tblBookings.length > 1 ? t('tables.bookings') : t('tables.booking')}
-                            </div>
-                            {tblBookings.slice(0, 4).map((b, bi) => (
-                              <div key={bi} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', padding: '3px 0', borderTop: bi > 0 ? '1px solid rgba(255,255,255,0.1)' : 'none' }}>
-                                <span style={{ opacity: 0.9 }}>{b.customerName || t('tables.guest')}</span>
-                                <span style={{ opacity: 0.6 }}>{b.bookingTime || '—'} · {b.partySize || '?'}p</span>
-                              </div>
-                            ))}
-                            {tblBookings.length > 4 && (
-                              <div style={{ opacity: 0.5, marginTop: '4px' }}>+{tblBookings.length - 4} {t('tables.more')}</div>
-                            )}
-                            {/* Arrow */}
-                            <div style={{
-                              position: 'absolute', bottom: '-5px', left: '50%', transform: 'translateX(-50%)',
-                              width: '10px', height: '10px', backgroundColor: '#1f2937',
-                              borderRadius: '2px', transform: 'translateX(-50%) rotate(45deg)',
-                            }} />
-                          </div>
-                        )}
-
-                        {/* Action buttons at bottom */}
-                        <div style={{ padding: isMobileEmbed ? '0 6px 6px' : '0 8px 8px', position: 'relative', zIndex: 2 }}>
-                          {isToday ? (
-                            /* ── TODAY: live action buttons ── */
-                            <>
-                              {isAvailable && (
-                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('take-order', table); }} style={{
-                                  width: '100%', padding: isMobileEmbed ? '6px 4px' : '8px 12px', background: '#059669', color: 'white', border: 'none',
-                                  borderRadius: '6px', fontSize: isMobileEmbed ? '10px' : '11px', fontWeight: 600, cursor: 'pointer',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? '3px' : '6px',
-                                  whiteSpace: 'nowrap',
-                                }}>
-                                  <FaUtensils size={isMobileEmbed ? 8 : 10} /> {isMobileEmbed ? 'Order' : t('tables.takeOrder')}
-                                </button>
-                              )}
-                              {isOccupied && (
-                                <div style={{ display: 'flex', gap: isMobileEmbed ? '4px' : '5px', position: 'relative' }}>
-                                  {/* Add items — primary action */}
-                                  <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('view-order', table); }} style={{
-                                    flex: 1, padding: isMobileEmbed ? '4px 4px' : '7px 8px', background: 'white', border: '1px solid #e5e7eb', color: '#374151',
-                                    borderRadius: isMobileEmbed ? '6px' : '8px', fontSize: isMobileEmbed ? '9px' : '11px', fontWeight: 600, cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', whiteSpace: 'nowrap',
-                                  }}>
-                                    <FaPlus size={isMobileEmbed ? 7 : 9} style={{ color: '#059669' }} /> Add
-                                  </button>
-                                  {/* Complete Bill — primary action */}
-                                  <button className="tbl-action" onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (table.currentOrderId) {
-                                      setBillingModalTable(table);
-                                      setBillingModalOpen(true);
-                                    } else {
-                                      handleTableAction('make-available', table);
-                                    }
-                                  }} style={{
-                                    flex: 1, padding: isMobileEmbed ? '4px 4px' : '7px 8px', background: '#dc2626', border: 'none', color: 'white',
-                                    borderRadius: isMobileEmbed ? '6px' : '8px', fontSize: isMobileEmbed ? '9px' : '11px', fontWeight: 600, cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', whiteSpace: 'nowrap',
-                                  }}>
-                                    <FaReceipt size={isMobileEmbed ? 7 : 9} /> Bill
-                                  </button>
-                                  {/* Print + Move — combined in one icon menu */}
-                                  <div style={{ position: 'relative' }}>
-                                    <button className="tbl-action" onClick={(e) => { e.stopPropagation(); setPrintDropdownTable(printDropdownTable === table.id ? null : table.id); }} style={{
-                                      width: isMobileEmbed ? '26px' : '32px', height: isMobileEmbed ? '26px' : '32px', padding: 0,
-                                      background: printingTables[table.id]
-                                        ? 'linear-gradient(135deg, #dbeafe, #bfdbfe)'
-                                        : printDropdownTable === table.id ? 'linear-gradient(135deg, #fef3c7, #fde68a)' : 'rgba(0,0,0,0.03)',
-                                      color: printingTables[table.id] ? '#3b82f6' : printDropdownTable === table.id ? '#b45309' : '#6b7280',
-                                      border: 'none', borderRadius: '8px', cursor: 'pointer',
-                                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                                    }}>
-                                      {printingTables[table.id] ? <FaSpinner size={10} className="spin" /> : <FaPrint size={11} />}
-                                    </button>
-                                    {printDropdownTable === table.id && (
-                                      <div onClick={(e) => e.stopPropagation()} style={{
-                                        position: 'absolute', bottom: '100%', right: 0, marginBottom: '4px',
-                                        background: 'white', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                                        border: '1px solid #e5e7eb', zIndex: 999, minWidth: '140px', overflow: 'hidden',
-                                        padding: '4px 0',
-                                      }}>
-                                        {posSettings.moveOrderEnabled && table.currentOrderId && (
-                                          <button onClick={(e) => { e.stopPropagation(); setPrintDropdownTable(null); handleTableAction('move-order', table); }} style={{
-                                            width: '100%', padding: '8px 12px', border: 'none', background: 'transparent', cursor: 'pointer',
-                                            fontSize: '11px', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: '8px',
-                                          }}
-                                          onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
-                                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                                          >
-                                            <FaExchangeAlt size={10} style={{ color: '#6366f1' }} /> Move Order
-                                          </button>
-                                        )}
-                                        <button onClick={() => { handlePrintBill(table); setPrintDropdownTable(null); }} style={{
-                                          width: '100%', padding: '8px 12px', border: 'none', background: 'transparent', cursor: 'pointer',
-                                          fontSize: '11px', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: '8px',
-                                        }}
-                                        onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
-                                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                                        >
-                                          <FaReceipt size={10} style={{ color: '#10b981' }} /> Print Bill
-                                        </button>
-                                        <button onClick={() => { handlePrintKOT(table); setPrintDropdownTable(null); }} style={{
-                                          width: '100%', padding: '8px 12px', border: 'none', background: 'transparent', cursor: 'pointer',
-                                          fontSize: '11px', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: '8px',
-                                        }}
-                                        onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
-                                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                                        >
-                                          <FaUtensils size={10} style={{ color: '#f59e0b' }} /> Print KOT
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                              {tableStatus === 'reserved' && (
-                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('take-order', table); }} style={{
-                                  width: '100%', padding: isMobileEmbed ? '6px 4px' : '8px 12px', background: '#059669', color: 'white', border: 'none',
-                                  borderRadius: '6px', fontSize: isMobileEmbed ? '10px' : '11px', fontWeight: 600, cursor: 'pointer',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? '3px' : '6px',
-                                  whiteSpace: 'nowrap',
-                                }}>
-                                  <FaUtensils size={isMobileEmbed ? 8 : 10} /> {isMobileEmbed ? 'Seat' : t('tables.seatGuest')}
-                                </button>
-                              )}
-                              {(tableStatus === 'cleaning' || tableStatus === 'out-of-service') && (
-                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{
-                                  width: '100%', padding: isMobileEmbed ? '6px 4px' : '8px 12px', background: 'white', color: '#059669', border: '1px solid #d1fae5',
-                                  borderRadius: '6px', fontSize: isMobileEmbed ? '10px' : '11px', fontWeight: 600, cursor: 'pointer',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? '3px' : '6px',
-                                }}>
-                                  <FaCheck size={10} /> {t('tables.makeAvailable')}
-                                </button>
-                              )}
-                            </>
-                          ) : (
-                            /* ── NON-TODAY: book table button ── */
-                            <button className="tbl-action" onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedTable(table);
-                              setBookingData(prev => ({ ...prev, bookingDate: selectedDate, partySize: Math.min(table.capacity, prev.partySize || 2) }));
-                              setBookingFromHeader(false);
-                              setShowBookingForm(true);
-                            }} style={{
-                              width: '100%', padding: isMobileEmbed ? '6px 4px' : '8px 12px',
-                              background: hasBookings ? 'white' : 'linear-gradient(135deg, #22c55e, #16a34a)',
-                              color: hasBookings ? '#059669' : 'white',
-                              border: hasBookings ? '1px solid #bbf7d0' : 'none',
-                              borderRadius: '6px', fontSize: isMobileEmbed ? '10px' : '11px', fontWeight: 600, cursor: 'pointer',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? '3px' : '6px',
-                            }}>
-                              <FaCalendarAlt size={10} /> {hasBookings ? t('tables.addBooking') : t('tables.bookTable')}
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Dropdown overlay on card top (today only) */}
-                        {isToday && isDropdownOpen && (
-                          <div style={{
-                            position: 'absolute', top: 0, left: 0, right: 0,
-                            backgroundColor: 'white', borderRadius: '12px 12px 0 0',
-                            boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-                            zIndex: 30, overflow: 'hidden',
-                            animation: 'tblDropdown 0.15s ease-out',
-                          }}>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0' }}>
-                              {table.mergeGroupId && canEditTableConfig && (
-                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); setActiveDropdown(null); setUnmergeConfirm({ primaryTableId: table.mergePrimary ? table.id : table.mergedInto, name: table.mergePrimary ? table.name : (table.mergedIntoName || table.name) }); }} style={{ flex: '1 1 100%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#0284c7', display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '5px', borderBottom: '1px solid #f5f5f5' }}>
-                                  <FaLayerGroup size={12} /> Un-merge
-                                </button>
-                              )}
-                              {canEditTable && waiters.length > 0 && (
-                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); openAssignServer(table); }} style={{ flex: '1 1 100%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#0d9488', display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '5px', borderBottom: '1px solid #f5f5f5' }}>
-                                  <FaUser size={12} /> {table.waiterName ? `Server: ${table.waiterName}` : 'Assign Server'}
-                                </button>
-                              )}
-                              {isAvailable && (
-                                <>
-                                  <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('book-table', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#f59e0b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderBottom: '1px solid #f5f5f5' }}>
-                                    <FaCalendarAlt size={12} /> {t('tables.book')}
-                                  </button>
-                                  {canEditTableConfig && (
-                                    <button className="tbl-action" onClick={(e) => { e.stopPropagation(); openEditTable(table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#2563eb', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderBottom: '1px solid #f5f5f5', borderLeft: '1px solid #f5f5f5' }}>
-                                      <FaEdit size={12} /> {t('tables.edit') || 'Edit'}
-                                    </button>
-                                  )}
-                                  {canEditTable && (
-                                    <>
-                                      <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('out-of-service', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#8b5cf6', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderBottom: '1px solid #f5f5f5', borderLeft: '1px solid #f5f5f5' }}>
-                                        <FaBan size={12} /> {t('tables.service')}
-                                      </button>
-                                      <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('cleaning', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-                                        <FaTools size={12} /> {t('tables.clean')}
-                                      </button>
-                                    </>
-                                  )}
-                                  {canEditTableConfig && (
-                                      <button className="tbl-action" onClick={(e) => { e.stopPropagation(); deleteTable(table.id); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#ef4444', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderLeft: '1px solid #f5f5f5' }}>
-                                        <FaTrash size={12} /> {t('tables.delete')}
-                                      </button>
-                                  )}
-                                </>
-                              )}
-                              {isOccupied && (
-                                <>
-                                  <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('cleaning', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-                                    <FaTools size={12} /> {t('tables.clean')}
-                                  </button>
-                                  <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#22c55e', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderLeft: '1px solid #f5f5f5' }}>
-                                    <FaCheck size={12} /> {t('tables.free')}
-                                  </button>
-                                </>
-                              )}
-                              {tableStatus === 'reserved' && (
-                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{ flex: '1 1 100%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#22c55e', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-                                  <FaCheck size={12} /> {t('tables.cancelAndFree')}
-                                </button>
-                              )}
-                              {(tableStatus === 'cleaning' || tableStatus === 'out-of-service') && (
-                                <>
-                                  <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#22c55e', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-                                    <FaCheck size={12} /> {t('tables.free')}
-                                  </button>
-                                  {/* Edit (name/seats) is intentionally NOT offered here — only when
-                                      the table is free/available. Delete is still allowed for a
-                                      cleaning / out-of-service table (owner/admin). */}
-                                  {canEditTableConfig && (
-                                    <button className="tbl-action" onClick={(e) => { e.stopPropagation(); deleteTable(table.id); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#ef4444', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderLeft: '1px solid #f5f5f5', borderTop: '1px solid #f5f5f5' }}>
-                                      <FaTrash size={12} /> {t('tables.delete')}
-                                    </button>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                      <TableCard
+                        key={table.id}
+                        table={table}
+                        isToday={isToday}
+                        isMobile={isMobile}
+                        isMobileEmbed={isMobileEmbed}
+                        posSettings={posSettings}
+                        tblBookings={tblBookings}
+                        tableStatus={tableStatus}
+                        canEditTableConfig={canEditTableConfig}
+                        canEditTable={canEditTable}
+                        waitersCount={waiters.length}
+                        activeDropdown={activeDropdown}
+                        setActiveDropdown={setActiveDropdown}
+                        hoveredTableId={hoveredTableId}
+                        setHoveredTableId={setHoveredTableId}
+                        printDropdownTable={printDropdownTable}
+                        setPrintDropdownTable={setPrintDropdownTable}
+                        printingTables={printingTables}
+                        quickViewLoading={quickViewLoading}
+                        getTableStatusInfo={getTableStatusInfo}
+                        getElapsed={getElapsed}
+                        getElapsedHours={getElapsedHours}
+                        formatCurrency={formatCurrency}
+                        t={t}
+                        onTableAction={handleTableAction}
+                        onQuickView={handleQuickView}
+                        onPrintBill={handlePrintBill}
+                        onPrintKOT={handlePrintKOT}
+                        onEditTable={openEditTable}
+                        onDeleteTable={(tbl) => deleteTable(tbl.id)}
+                        onAssignServer={openAssignServer}
+                        onUnmerge={(tbl) => setUnmergeConfirm({ primaryTableId: tbl.mergePrimary ? tbl.id : tbl.mergedInto, name: tbl.mergePrimary ? tbl.name : (tbl.mergedIntoName || tbl.name) })}
+                        onOpenBilling={(tbl) => {
+                          if (tbl.currentOrderId) {
+                            setBillingModalTable(tbl);
+                            setBillingModalOpen(true);
+                          } else {
+                            handleTableAction('make-available', tbl);
+                          }
+                        }}
+                        onMoveOrder={(tbl) => handleTableAction('move-order', tbl)}
+                        onBookTable={(tbl) => {
+                          setSelectedTable(tbl);
+                          setBookingData(prev => ({ ...prev, bookingDate: selectedDate, partySize: Math.min(tbl.capacity, prev.partySize || 2) }));
+                          setBookingFromHeader(false);
+                          setShowBookingForm(true);
+                        }}
+                      />
                     );
                   })}
                 </div>
