@@ -4940,7 +4940,7 @@ const OrderHistory = () => {
       )}
 
       {/* ========== EDIT COMPLETED ORDER MODAL ========== */}
-      {editCompletedOrder && (
+      {editCompletedOrder && typeof document !== 'undefined' && createPortal(
         <>
           <style dangerouslySetInnerHTML={{ __html: `
             @keyframes editCompBackdropIn { from { opacity: 0; } to { opacity: 1; } }
@@ -5336,10 +5336,10 @@ const OrderHistory = () => {
             </div>
           </div>
         </>
-      )}
+      , document.body)}
 
       {/* ========== EDIT REASON MODAL ========== */}
-      {editReasonModal && (
+      {editReasonModal && typeof document !== 'undefined' && createPortal(
         <>
           <style dangerouslySetInnerHTML={{ __html: `
             @keyframes editReasonIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
@@ -5381,10 +5381,10 @@ const OrderHistory = () => {
             </div>
           </div>
         </>
-      )}
+      , document.body)}
 
       {/* ========== PIN VERIFICATION MODAL ========== */}
-      {pinModal && (
+      {pinModal && typeof document !== 'undefined' && createPortal(
         <>
           <div className="fixed inset-0 z-[10500] flex items-center justify-center p-4" onClick={() => setPinModal(null)}>
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
@@ -5419,7 +5419,7 @@ const OrderHistory = () => {
             </div>
           </div>
         </>
-      )}
+      , document.body)}
 
       {/* ========== ORDER EDIT MODAL (COMPLETED ORDER ITEMS) ========== */}
       {editItemsOrder && (
