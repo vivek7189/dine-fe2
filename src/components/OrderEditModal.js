@@ -391,6 +391,14 @@ const OrderEditModal = ({
           paidAmount: partialPayAmount,
           outstandingAmount: Math.round((paymentAmount - partialPayAmount) * 100) / 100,
         }),
+        // Fully paid — the edited bill IS the final amount the customer paid, so
+        // keep paidAmount in sync with the new total (else a raised/lowered bill
+        // would show a stale paidAmount, e.g. "paid 40 of 50"). Cashier reconciles
+        // the physical cash difference in person.
+        ...(!preserveDue && !isFullDue && !isPartialPayment && isCompletedOrder && {
+          paidAmount: Math.round(paymentAmount * 100) / 100,
+          outstandingAmount: 0,
+        }),
         // Discount fields — always include so zeros can clear previous values
         manualDiscount: manualDiscount || 0,
         manualDiscountType: manualDiscountType || null,
