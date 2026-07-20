@@ -7,6 +7,7 @@ import { FaEye, FaReceipt, FaTimes, FaMinus, FaChevronUp, FaWindowMaximize, FaCh
 import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
 import TableCard from './TableCard';
+import TableFloorPlan from './TableFloorPlan';
 import TableBillingModal from './TableBillingModal';
 import MoveOrderModal from './MoveOrderModal';
 import { t as translate } from '../lib/i18n';
@@ -109,6 +110,7 @@ export default function DashboardTablesPanel({
   // still reads/sets them, so we provide harmless local state.
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [hoveredTableId, setHoveredTableId] = useState(null);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'floorplan' (live floor map, view-only here)
 
   // Mobile grid columns: '2' or '3' (only used on isMobileEmbed)
   const [mobileGridCols, setMobileGridCols] = useState(() => {
@@ -728,6 +730,25 @@ export default function DashboardTablesPanel({
         }
       `}</style>
 
+      {/* Grid / live Floor-plan view toggle */}
+      {grouped.length > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', gap: '2px', backgroundColor: '#f1f5f9', borderRadius: '10px', padding: '3px' }}>
+            {[{ k: 'grid', I: FaTh, label: 'Grid' }, { k: 'floorplan', I: FaThLarge, label: 'Floor Map' }].map(v => (
+              <button key={v.k} onClick={() => setViewMode(v.k)} title={`${v.label} view`} style={{
+                padding: '6px 12px', borderRadius: '8px', border: 'none', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap',
+                backgroundColor: viewMode === v.k ? 'white' : 'transparent',
+                color: viewMode === v.k ? '#1f2937' : '#9ca3af',
+                boxShadow: viewMode === v.k ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+              }}>
+                <v.I size={11} /> {v.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {grouped.map((group, idx) => (
         <div key={idx} style={{ background: 'transparent' }}>
           <div style={{
@@ -796,6 +817,22 @@ export default function DashboardTablesPanel({
             )}
           </div>
 
+          {viewMode === 'floorplan' ? (
+            <TableFloorPlan
+              floor={{ id: group.info?.id, name: group.info?.name, tables: group.tables || [] }}
+              editable={false}
+              statusInfo={getTableStatusInfo}
+              formatCurrency={formatCurrency}
+              onTableClick={(tbl) => {
+                if (tbl.currentOrderId) {
+                  if (sliderOpen) handleSliderClose();
+                  router.push(`/dashboard?orderId=${tbl.currentOrderId}&mode=edit&from=tables`);
+                } else {
+                  handleTakeOrderGuarded(tbl, group.info?.name, group.info?.id);
+                }
+              }}
+            />
+          ) : (
           <div style={{
             display: 'grid',
             gridTemplateColumns: isMobileEmbed
@@ -875,6 +912,7 @@ export default function DashboardTablesPanel({
               <div style={{ fontSize: '14px', color: '#9ca3af', fontStyle: 'italic' }}>No tables on this floor.</div>
             )}
           </div>
+          )}
         </div>
       ))}
       {grouped.length === 0 && (
