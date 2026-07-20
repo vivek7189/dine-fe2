@@ -4914,7 +4914,10 @@ function RestaurantPOSContent() {
               items: filterKotExcludedItems(incrementalItems.length > 0 ? incrementalItems : (seatOnlyUpdate ? [] : cart), printSettings).map(item => {
                 const isNew = newItems.includes(item);
                 const isUpdated = updatedItems.includes(item);
-                const existing = isUpdated ? existingItemMap.get(item.id) : null;
+                // existingItemMap is keyed by getOrderItemKey (composite), NOT item.id.
+                // Using item.id returned undefined, so a quantity increase (2→3)
+                // computed delta 0 and was dropped from the KOT update.
+                const existing = isUpdated ? existingItemMap.get(getOrderItemKey(item)) : null;
                 const quantityDelta = existing ? (item.quantity - existing.quantity) : 0;
                 return {
                   name: item.name,
