@@ -370,6 +370,9 @@ const OrderSummary = ({
       customerPhone: customerData.phone,
       isFirstOrder: customerData.isFirstOrder,
     } : null,
+    // Re-billing an already-completed order (order-history edit) must NOT
+    // auto-apply a new offer — preserve exactly what was saved on the bill.
+    disableAutoApply: currentOrder?.status === 'completed',
   });
 
   // Manual Discount State (kept local — not part of offer engine)

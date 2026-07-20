@@ -337,7 +337,7 @@ const getNextScheduleTransition = (offers) => {
   return minMs;
 };
 
-const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = null, taxSettings = null, customerContext = null }) => {
+const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = null, taxSettings = null, customerContext = null, disableAutoApply = false }) => {
   const [allOffers, setAllOffers] = useState([]);
   const [offerSettings, setOfferSettings] = useState({
     autoApplyBestOffer: false,
@@ -738,6 +738,11 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
   // Auto-apply best offer(s)
   useEffect(() => {
     if (!offerSettings.autoApplyBestOffer) return;
+    // When re-billing an already-completed order (order-history edit), never
+    // auto-apply a NEW offer — the order's discounts must come only from what
+    // was saved. Otherwise editing a bill silently adds a discount that wasn't
+    // on the original (printed subtotal > total with a phantom reduction).
+    if (disableAutoApply) return;
     if (wasManuallySelectedRef.current) return;
     if (applicableOffers.length === 0) {
       if (selectedOfferId && !wasManuallySelectedRef.current) {
@@ -790,7 +795,7 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
         }
       }
     }
-  }, [applicableOffers, subtotal, cart, offerSettings.autoApplyBestOffer, offerSettings.allowMultipleOffers, offerSettings.maxOffersAllowed]);
+  }, [applicableOffers, subtotal, cart, offerSettings.autoApplyBestOffer, offerSettings.allowMultipleOffers, offerSettings.maxOffersAllowed, disableAutoApply]);
 
   // First-order offer rejection: if customer looked up and not first order, deselect first-order-only offer
   useEffect(() => {
