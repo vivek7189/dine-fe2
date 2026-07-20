@@ -5003,6 +5003,9 @@ function RestaurantPOSContent() {
 
           const tableToUseForKot = tableToUse || currentOrder.tableNumber;
           const roomForKot = inRoomDiningEnabled && locationType === 'room' ? manualRoomNumber : (currentOrder.roomNumber || null);
+          // Unique per-print token so an UPDATE KOT isn't deduped against the
+          // original placement's KOT (same orderId, different items).
+          const kotToken = `kot-${currentOrder.id}-${Date.now()}`;
           setOrderSuccess({
             orderId: currentOrder.id,
             dailyOrderId: currentOrder.dailyOrderId,
@@ -5011,6 +5014,7 @@ function RestaurantPOSContent() {
               ? `KOT Update: ${incrementalItems.length} new/changed item(s)`
               : t('dashboard.orderUpdatedShort'),
             kotData: {
+              _kotToken: kotToken,
               orderId: currentOrder.id,
               dailyOrderId: currentOrder.dailyOrderId,
               items: filterKotExcludedItems(incrementalItems.length > 0 ? incrementalItems : (seatOnlyUpdate ? [] : cart), printSettings).map(item => {
@@ -5053,7 +5057,7 @@ function RestaurantPOSContent() {
               seat: item.seat ?? null,
             }));
             window.__autoPrintKOT = false;
-            window.__lastKOTPrintedByEffect = currentOrder.id;
+            window.__lastKOTPrintedByEffect = kotToken;
             printDocument({
               type: 'kot',
               orderId: currentOrder.id,
