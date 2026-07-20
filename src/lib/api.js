@@ -1572,6 +1572,14 @@ class ApiClient {
     return this.request(`/api/waitlist/${restaurantId}/${entryId}/notify`, { method: 'POST', body: {} });
   }
 
+  // Save the drag-and-drop floor-plan layout for a floor.
+  async saveFloorLayout(restaurantId, floorId, tables) {
+    return this.request(`/api/tables/${restaurantId}/layout`, {
+      method: 'POST',
+      body: { floorId, tables },
+    });
+  }
+
   // Floor management endpoints
   // NOT cached — floors contain table statuses which change with every order
   async getFloors(restaurantId) {

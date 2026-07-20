@@ -11,6 +11,7 @@ import { canPerform } from '../../../lib/permissions';
 import { getCachedTablesData, setCachedTablesData } from '../../../utils/dashboardCache';
 import { getCachedData, setCachedData } from '../../../lib/offlineDb';
 import OfflineBanner from '../../../components/OfflineBanner';
+import TableFloorPlan from '../../../components/TableFloorPlan';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import {
   FaPlus, FaTrash, FaCog, FaUsers, FaClock, FaUtensils, FaCheck, FaBan, FaChair,
@@ -309,6 +310,8 @@ const TableManagement = () => {
   const [assignServerTable, setAssignServerTable] = useState(null); // table being assigned
   const [assignSaving, setAssignSaving] = useState(false);
   const [myTablesOnly, setMyTablesOnly] = useState(false);
+  // Floor-plan view
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'floorplan'
   // Walk-in waitlist
   const [showWaitlist, setShowWaitlist] = useState(false);
   const [waitlist, setWaitlist] = useState([]);
@@ -1144,6 +1147,19 @@ const TableManagement = () => {
     }
   };
 
+  // Persist a floor's drag-and-drop layout.
+  const saveFloorLayout = async (floorId, layoutTables) => {
+    if (!selectedRestaurant?.id) return;
+    try {
+      await apiClient.saveFloorLayout(selectedRestaurant.id, floorId, layoutTables);
+      showSuccess('Floor layout saved');
+      await loadFloorsAndTables(selectedRestaurant.id, true);
+    } catch (err) {
+      showError(err?.message || 'Failed to save layout');
+      throw err;
+    }
+  };
+
   // ── Walk-in waitlist ──────────────────────────────────
   const addWaitlistEntry = async () => {
     if (!waitlistForm.name.trim()) { showError('Enter the guest name.'); return; }
@@ -1759,6 +1775,24 @@ const TableManagement = () => {
             ))}
           </div>
 
+          {/* Grid / Floor-plan view toggle */}
+          {activeMainTab === 'tables' && (
+            <div style={{ display: 'flex', gap: '2px', backgroundColor: '#f1f5f9', borderRadius: isMobileEmbed ? '8px' : '10px', padding: '3px', flexShrink: 0 }}>
+              {[{ k: 'grid', I: FaTh, label: 'Grid' }, { k: 'floorplan', I: FaThLarge, label: 'Layout' }].map(v => (
+                <button key={v.k} onClick={() => setViewMode(v.k)} title={`${v.label} view`} style={{
+                  padding: isMobileEmbed ? '4px 8px' : '6px 12px', borderRadius: isMobileEmbed ? '6px' : '8px', border: 'none',
+                  fontSize: isMobileEmbed ? '10px' : '12px', fontWeight: '600', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap',
+                  backgroundColor: viewMode === v.k ? 'white' : 'transparent',
+                  color: viewMode === v.k ? '#1f2937' : '#9ca3af',
+                  boxShadow: viewMode === v.k ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                }}>
+                  <v.I size={isMobileEmbed ? 9 : 11} /> {!isMobileEmbed && v.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Divider */}
           {activeMainTab === 'tables' && <div style={{ width: '1px', height: '20px', backgroundColor: '#e2e8f0', flexShrink: 0 }} />}
 
@@ -1918,6 +1952,15 @@ const TableManagement = () => {
                     </button>
                   )}
                 </div>
+              ) : (isToday && viewMode === 'floorplan') ? (
+                <TableFloorPlan
+                  floor={floor}
+                  editable={canEditTableConfig}
+                  statusInfo={getTableStatusInfo}
+                  formatCurrency={formatCurrency}
+                  onTableClick={(tbl) => handleTableAction(tbl.status === 'available' ? 'take-order' : 'view-order', tbl)}
+                  onSaveLayout={saveFloorLayout}
+                />
               ) : (
                 <div style={{
                   display: 'grid',
