@@ -57,7 +57,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={inter.variable} suppressHydrationWarning={true}>
       <head>
         <meta name="google-site-verification" content="RTIIGHLt3AjnBo3YbmCmbEc32r0dYS6XpO0n2bX7T1A" />
         {/* TODO: Add GA4 - get measurement ID from https://analytics.google.com */}

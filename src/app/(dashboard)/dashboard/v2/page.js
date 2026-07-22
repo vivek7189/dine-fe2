@@ -77,6 +77,8 @@ import { useLoading } from '../../../../contexts/LoadingContext';
 // IntelligentChatbot and RAGInitializer are dynamically imported above
 import { getCachedDashboardData, setCachedDashboardData, getCachedTablesData, setCachedTablesData } from '../../../../utils/dashboardCache';
 import { getOrderItemKey, getOrderItemBaseKey, sanitizeSeat, seatLabel } from '../../../../utils/orderItemKey';
+import { buildCategoryIndex, resolveCategoryPath, isAncestorOrSelf } from '../../../../utils/categoryTree';
+import CategorySubRow from '../../../../components/CategorySubRow';
 import { useSyncEngine } from '../../../../hooks/useSyncEngine';
 import { setCachedData, getCachedData, saveEssentialData, getEssentialData } from '../../../../lib/offlineDb';
 import { canPerform } from '../../../../lib/permissions';
@@ -178,6 +180,9 @@ function RestaurantPOSContent() {
 
   // API state
   const [menuItems, setMenuItems] = useState([]);
+  // Real category tree (id, name, emoji, parentId, displayOrder) from GET /api/menus.
+  // Drives sub-category drill-down. Empty/flat => POS behaves exactly as before.
+  const [menuCategories, setMenuCategories] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [subRestaurants, setSubRestaurants] = useState([]);
@@ -855,21 +860,42 @@ function RestaurantPOSContent() {
     return emojiMap[categoryLower] || '🍽️';
   }, []);
 
-  // Pre-compute category item counts — avoids O(n²) filtering in render
+  // Category tree (auto-detect). hasCategoryTree === true ONLY when a category
+  // actually has a parentId; otherwise every consumer below falls back to the
+  // exact flat behavior the POS had before.
+  const categoryIndex = useMemo(() => buildCategoryIndex(menuCategories), [menuCategories]);
+  const hasCategoryTree = categoryIndex.hasTree;
+  // Top-level ancestor of the selected category — lets the parent tab stay
+  // highlighted while the user browses one of its sub-categories.
+  const selectedTopId = useMemo(() => {
+    if (!hasCategoryTree || selectedCategory === 'all-items' || selectedCategory === 'favorites') return null;
+    const path = resolveCategoryPath({ category: selectedCategory }, categoryIndex);
+    return path.length ? (path[0].id || '').toLowerCase() : null;
+  }, [hasCategoryTree, selectedCategory, categoryIndex]);
+
+  // Pre-compute category item counts — avoids O(n²) filtering in render.
+  // With a tree, an item's count rolls up to EVERY node in its path so a
+  // top-level tab shows the total of all its descendants (like eZee).
   const categoryItemCountMap = useMemo(() => {
     const countMap = new Map();
     countMap.set('all-items', effectiveMenuItems.length);
     let favCount = 0;
     effectiveMenuItems.forEach(item => {
       if (item.isFavorite === true) favCount++;
-      if (item.category) {
+      if (hasCategoryTree) {
+        const path = resolveCategoryPath(item, categoryIndex);
+        path.forEach(node => {
+          const key = (node.id || '').toLowerCase();
+          if (key) countMap.set(key, (countMap.get(key) || 0) + 1);
+        });
+      } else if (item.category) {
         const catId = item.category.toLowerCase();
         countMap.set(catId, (countMap.get(catId) || 0) + 1);
       }
     });
     countMap.set('favorites', favCount);
     return countMap;
-  }, [effectiveMenuItems]);
+  }, [effectiveMenuItems, hasCategoryTree, categoryIndex]);
 
   // Generate dynamic categories based on actual menu items
   const categories = useMemo(() => {
@@ -886,20 +912,51 @@ function RestaurantPOSContent() {
     const favoritesCount = categoryItemCountMap.get('favorites') || 0;
     catMap.set('favorites', { id: 'favorites', name: t('dashboard.favorites'), emoji: '❤️', count: favoritesCount });
 
-    effectiveMenuItems.forEach(item => {
-      if (item.category) {
-        const categoryId = item.category.toLowerCase();
-        if (!catMap.has(categoryId)) {
-          const emoji = getCategoryEmoji(item.category);
-          catMap.set(categoryId, {
-            id: categoryId,
-            name: item.category.charAt(0).toUpperCase() + item.category.slice(1),
-            emoji: emoji,
-            count: categoryItemCountMap.get(categoryId) || 0
+    if (hasCategoryTree) {
+      // Hierarchical store: the MAIN bar shows only top-level categories. Their
+      // children are rendered by the drill-down sub-row (see CategorySubRow),
+      // so the existing tab blocks — which filter to `!parentId` — render the
+      // top row exactly, with no code change. Counts are rolled-up descendants.
+      categoryIndex.roots.forEach(node => {
+        const key = (node.id || '').toLowerCase();
+        catMap.set(key, {
+          id: key,
+          name: node.name || key,
+          emoji: node.emoji || getCategoryEmoji(node.name || key),
+          count: categoryItemCountMap.get(key) || 0,
+        });
+      });
+      // Safety net: surface any item category NOT in the tree (legacy free-text)
+      // as its own top-level tab so no item becomes unreachable in a tree store.
+      effectiveMenuItems.forEach(item => {
+        const leaf = item.subCategory || item.category;
+        if (!leaf || categoryIndex.resolve(leaf)) return;
+        const key = leaf.toLowerCase();
+        if (!catMap.has(key)) {
+          catMap.set(key, {
+            id: key,
+            name: leaf.charAt(0).toUpperCase() + leaf.slice(1),
+            emoji: getCategoryEmoji(leaf),
+            count: categoryItemCountMap.get(key) || 0,
           });
         }
-      }
-    });
+      });
+    } else {
+      effectiveMenuItems.forEach(item => {
+        if (item.category) {
+          const categoryId = item.category.toLowerCase();
+          if (!catMap.has(categoryId)) {
+            const emoji = getCategoryEmoji(item.category);
+            catMap.set(categoryId, {
+              id: categoryId,
+              name: item.category.charAt(0).toUpperCase() + item.category.slice(1),
+              emoji: emoji,
+              count: categoryItemCountMap.get(categoryId) || 0
+            });
+          }
+        }
+      });
+    }
 
     const allCats = Array.from(catMap.values());
     const favorites = allCats.find(c => c.id === 'favorites');
@@ -909,7 +966,7 @@ function RestaurantPOSContent() {
     return favorites && favorites.count > 0
       ? [favorites, allItems, ...otherCategories]
       : [allItems, ...otherCategories];
-  }, [effectiveMenuItems, categoryItemCountMap, getCategoryEmoji]);
+  }, [effectiveMenuItems, categoryItemCountMap, getCategoryEmoji, hasCategoryTree, categoryIndex]);
 
   // Mobile detection hook — Electron (desktop POS) always uses desktop layout
   useEffect(() => {
@@ -1248,6 +1305,7 @@ function RestaurantPOSContent() {
             console.log('⚡ Loading cached data instantly...');
             // Restore cached state immediately
             if (cachedData.menuItems) setMenuItems(cachedData.menuItems);
+            if (cachedData.categories) setMenuCategories(cachedData.categories);
             if (cachedData.floors) setFloors(cachedData.floors);
             if (cachedData.tablesData) setTablesData({ ...cachedData.tablesData, floors: applyTableOverrides(cachedData.tablesData.floors) });
             // Hide loading immediately to show cached data
@@ -1286,6 +1344,7 @@ function RestaurantPOSContent() {
             ]);
             
             const freshMenuItems = menuResponse.menuItems || [];
+            setMenuCategories(menuResponse.categories || []);
             const freshFloors = floorsResponse.floors || floorsResponse || [];
             
             // Update state with fresh data (or load defaults if empty)
@@ -1309,6 +1368,7 @@ function RestaurantPOSContent() {
             // Cache the fresh data with tablesData structure (cache raw, not overridden)
             const dataToCache = {
               menuItems: freshMenuItems,
+              categories: menuResponse.categories || [],
               floors: freshFloors,
               tablesData: { floors: freshFloors, tables: [] }
             };
@@ -1394,6 +1454,7 @@ function RestaurantPOSContent() {
           }
           
           const fetchedMenuItems = menuResponse.menuItems || [];
+          setMenuCategories(menuResponse.categories || []);
           const fetchedFloors = floorsResponse.floors || floorsResponse || [];
           
           // Update state (or load defaults if empty)
@@ -1415,6 +1476,7 @@ function RestaurantPOSContent() {
 
           const dataToCache = {
             menuItems: fetchedMenuItems,
+            categories: menuResponse.categories || [],
             floors: fetchedFloors,
             tablesData: { floors: fetchedFloors, tables: [] }
           };
@@ -1558,6 +1620,7 @@ function RestaurantPOSContent() {
     try {
       const response = await apiClient.getMenu(restaurantId);
       const realItems = response.menuItems || [];
+      setMenuCategories(response.categories || []);
 
       if (realItems.length === 0) {
         console.log('📋 No menu items found, loading default menu for business type');
@@ -2067,16 +2130,21 @@ function RestaurantPOSContent() {
         ? true
         : selectedCategory === 'favorites'
         ? item.isFavorite === true
+        : hasCategoryTree
+        // Hierarchical: an item matches if the selected node is its leaf OR any
+        // ancestor — so a top-level tab shows all descendants, a leaf shows just
+        // its own items. One rule, any depth. (Handles old category+subCategory
+        // data and new single-leaf data identically.)
+        ? isAncestorOrSelf(selectedCategory, item, categoryIndex)
         : (() => {
+            // Flat store (unchanged legacy behavior)
             if (item.category?.toLowerCase() === selectedCategory) return true;
-            const childIds = categories.filter(c => c.parentId === selectedCategory).map(c => c.id?.toLowerCase());
-            if (childIds.length > 0 && childIds.includes(item.category?.toLowerCase())) return true;
             if (item.subCategory?.toLowerCase() === selectedCategory) return true;
             return false;
           })();
       return matchesCategory;
     });
-  }, [effectiveMenuItems, debouncedSearchTerm, selectedCategory, posSettings.hideOutOfStock, categories]);
+  }, [effectiveMenuItems, debouncedSearchTerm, selectedCategory, posSettings.hideOutOfStock, categories, hasCategoryTree, categoryIndex]);
 
   // Multi-tier pricing: resolve display price for an item
   const getItemDisplayPrice = useCallback((item) => {
@@ -2167,6 +2235,26 @@ function RestaurantPOSContent() {
         })
       : filteredItemsBase;
   }, [filteredItemsBase, multiPricingEnabled, activePricingRuleId, getItemDisplayPrice]);
+
+  // Sub-category "folder" cards (see V1 for rationale).
+  const subCategoryFolders = useMemo(() => {
+    if (!hasCategoryTree || debouncedSearchTerm.trim() || selectedCategory === 'all-items' || selectedCategory === 'favorites') return [];
+    const node = categoryIndex.resolve(selectedCategory);
+    if (!node) return [];
+    return categoryIndex.childrenOf(node.id)
+      .map(ch => { const id = (ch.id || '').toLowerCase(); return { id, name: ch.name, emoji: ch.emoji, count: categoryItemCountMap.get(id) || 0 }; })
+      .filter(f => f.count > 0);
+  }, [hasCategoryTree, debouncedSearchTerm, selectedCategory, categoryIndex, categoryItemCountMap]);
+
+  const gridItems = useMemo(() => {
+    if (!subCategoryFolders.length) return filteredItems;
+    const sel = (selectedCategory || '').toLowerCase();
+    return filteredItems.filter(item => {
+      const path = resolveCategoryPath(item, categoryIndex);
+      const leaf = path.length ? (path[path.length - 1].id || '').toLowerCase() : '';
+      return leaf === sel;
+    });
+  }, [subCategoryFolders, filteredItems, selectedCategory, categoryIndex]);
 
   const addToCart = (itemRaw) => {
     // Weight-based items: open weight popup instead of adding directly
@@ -2566,6 +2654,7 @@ function RestaurantPOSContent() {
       apiClient.invalidateCache(`/api/menus/${restaurantId}`);
       const menuResponse = await apiClient.getMenu(restaurantId);
       const freshMenuItems = menuResponse.menuItems || [];
+      setMenuCategories(menuResponse.categories || []);
       if (freshMenuItems.length > 0) {
         setMenuItems(freshMenuItems);
         setIsDemoMode(false);
@@ -6625,7 +6714,7 @@ function RestaurantPOSContent() {
               fontSize: '12px', color: '#94a3b8', margin: '2px 0 0 0',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
             }}>
-              {filteredItems.length} {t('dashboard.items')} • {selectedCategory === 'all-items' ? t('dashboard.allCategories') : categories.find(c => c.id === selectedCategory)?.name}
+              {filteredItems.length} {t('dashboard.items')} • {selectedCategory === 'all-items' ? t('dashboard.allCategories') : (categories.find(c => c.id === selectedCategory)?.name || categoryIndex.resolve(selectedCategory)?.name || selectedCategory)}
             </p>
           </div>
 
@@ -7247,7 +7336,7 @@ function RestaurantPOSContent() {
               categories.forEach(c => { if (c.parentId && !categories.find(p => p.id === c.parentId) && !ordered.find(o => o.id === c.id)) ordered.push({ ...c, _depth: 0 }); });
               return ordered;
             })().map((category) => {
-              const isSelected = selectedCategory === category.id;
+              const isSelected = selectedCategory === category.id || (!!selectedTopId && category.id === selectedTopId);
 
               return (
                 <button
@@ -7303,59 +7392,81 @@ function RestaurantPOSContent() {
           }}>
             <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0 8px 8px', minHeight: 0 }} className="hide-scrollbar">
               {(() => {
-                const topLevel = categories.filter(c => !c.parentId);
-                const childOf = (pid) => categories.filter(c => c.parentId === pid);
-                const ordered = [];
-                topLevel.forEach(p => {
-                  ordered.push({ ...p, _depth: 0 });
-                  childOf(p.id).forEach(ch => {
-                    ordered.push({ ...ch, _depth: 1 });
-                    childOf(ch.id).forEach(gc => ordered.push({ ...gc, _depth: 2 }));
+                if (hasCategoryTree) {
+                  const selPath = new Set(resolveCategoryPath({ category: selectedCategory }, categoryIndex).map(n => (n.id || '').toLowerCase()));
+                  const ordered = [];
+                  categories.filter(c => c.id === 'all-items' || c.id === 'favorites').forEach(c => ordered.push({ ...c, _depth: 0, _hasChildren: false, _expanded: false }));
+                  const walk = (node, depth) => {
+                    const id = (node.id || '').toLowerCase();
+                    const kids = categoryIndex.childrenOf(node.id);
+                    const expanded = kids.length > 0 && selPath.has(id);
+                    ordered.push({ id, name: node.name, _depth: depth, _hasChildren: kids.length > 0, _expanded: expanded, count: categoryItemCountMap.get(id) || 0 });
+                    if (expanded) kids.forEach(k => walk(k, depth + 1));
+                  };
+                  categoryIndex.roots.forEach(r => walk(r, 0));
+                  effectiveMenuItems.forEach(item => {
+                    const leaf = item.subCategory || item.category;
+                    if (!leaf || categoryIndex.resolve(leaf)) return;
+                    const id = leaf.toLowerCase();
+                    if (!ordered.find(o => o.id === id)) ordered.push({ id, name: leaf, _depth: 0, _hasChildren: false, _expanded: false, count: categoryItemCountMap.get(id) || 0 });
                   });
-                });
-                categories.forEach(c => { if (c.parentId && !categories.find(p => p.id === c.parentId) && !ordered.find(o => o.id === c.id)) ordered.push({ ...c, _depth: 0 }); });
-                return ordered;
+                  return ordered;
+                }
+                return categories.map(c => ({ ...c, _depth: 0, _hasChildren: false, _expanded: false }));
               })().map((category) => {
-                const isSelected = selectedCategory === category.id;
+                const isExact = selectedCategory === category.id;
+                const isSelected = isExact || (!!selectedTopId && category.id === selectedTopId);
+                const depth = category._depth || 0;
                 return (
                   <div
                     key={category.id}
-                    onClick={() => setSelectedCategory(isSelected && category.id !== 'all-items' ? 'all-items' : category.id)}
+                    onClick={() => setSelectedCategory(isExact && category.id !== 'all-items' ? 'all-items' : category.id)}
                     style={{
-                      padding: '10px 12px',
-                      paddingLeft: `${12 + (category._depth || 0) * 14}px`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '9px 12px',
+                      paddingLeft: `${12 + depth * 16}px`,
                       marginBottom: '2px',
-                      backgroundColor: isSelected ? '#1e293b' : 'transparent',
+                      backgroundColor: isExact ? '#1e293b' : (isSelected ? 'rgba(30,41,59,0.5)' : 'transparent'),
                       borderRadius: '10px 0 0 10px',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
-                      borderLeft: isSelected ? '3px solid #ef4444' : '3px solid transparent',
-                      boxShadow: isSelected ? '2px 0 8px rgba(0,0,0,0.2)' : 'none'
+                      borderLeft: isExact ? '3px solid #ef4444' : (isSelected ? '3px solid #f87171' : '3px solid transparent'),
+                      boxShadow: isExact ? '2px 0 8px rgba(0,0,0,0.2)' : 'none'
                     }}
                     onMouseEnter={(e) => {
-                      if (!isSelected) {
+                      if (!isExact) {
                         e.currentTarget.style.backgroundColor = 'rgba(30,41,59,0.6)';
                         e.currentTarget.style.borderLeftColor = '#f87171';
                       }
                     }}
                     onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                        e.currentTarget.style.borderLeftColor = 'transparent';
+                      if (!isExact) {
+                        e.currentTarget.style.backgroundColor = isSelected ? 'rgba(30,41,59,0.5)' : 'transparent';
+                        e.currentTarget.style.borderLeftColor = isSelected ? '#f87171' : 'transparent';
                       }
                     }}
                   >
+                    {category._hasChildren ? (
+                      <span style={{ fontSize: '9px', color: '#64748b', width: '10px', flexShrink: 0, transition: 'transform 0.2s', transform: category._expanded ? 'rotate(90deg)' : 'none' }}>▶</span>
+                    ) : depth > 0 ? (
+                      <span style={{ width: '10px', flexShrink: 0, color: '#475569', fontSize: '11px' }}>·</span>
+                    ) : null}
                     <span style={{
-                      fontSize: '13px',
+                      flex: 1,
+                      fontSize: depth > 0 ? '12.5px' : '13px',
                       fontWeight: isSelected ? '600' : '500',
                       color: isSelected ? '#f1f5f9' : '#94a3b8',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      display: 'block'
+                      whiteSpace: 'nowrap'
                     }}>
-                      {(category._depth || 0) > 0 ? `› ${capitalizeFirst(category.name)}` : capitalizeFirst(category.name)}
+                      {capitalizeFirst(category.name)}
                     </span>
+                    {category._hasChildren && category.count > 0 ? (
+                      <span style={{ fontSize: '10px', color: '#64748b', flexShrink: 0 }}>{category.count}</span>
+                    ) : null}
                   </div>
                 );
               })}
@@ -7878,7 +7989,7 @@ function RestaurantPOSContent() {
                   categories.forEach(c => { if (c.parentId && !categories.find(p => p.id === c.parentId) && !ordered.find(o => o.id === c.id)) ordered.push({ ...c, _depth: 0 }); });
                   return ordered;
                 })().map((category, index) => {
-                  const isSelected = selectedCategory === category.id;
+                  const isSelected = selectedCategory === category.id || (!!selectedTopId && category.id === selectedTopId);
                   const categoryCount = categoryItemCountMap.get(category.id) || 0;
 
                   return (
@@ -8019,6 +8130,20 @@ function RestaurantPOSContent() {
 
             {viewMode === 'orders' ? (
             <div>
+              {/* Breadcrumb — jump back up; drill down via the folder cards. */}
+              {hasCategoryTree && selectedCategory !== 'all-items' && selectedCategory !== 'favorites' && (() => {
+                const path = resolveCategoryPath({ category: selectedCategory }, categoryIndex);
+                if (path.length <= 1) return null;
+                const segs = [];
+                segs.push(<span key="crumb-all" onClick={() => setSelectedCategory('all-items')} style={{ fontSize: '12px', color: '#64748b', cursor: 'pointer' }}>{t('dashboard.allItems') || 'All'}</span>);
+                path.forEach((n, i) => {
+                  const id = (n.id || '').toLowerCase();
+                  const isLast = i === path.length - 1;
+                  segs.push(<span key={`crumb-sep-${i}`} style={{ color: '#475569', fontSize: '12px' }}>›</span>);
+                  segs.push(<span key={`crumb-${id}`} onClick={() => { if (!isLast) setSelectedCategory(id); }} style={{ fontSize: '13px', fontWeight: isLast ? 700 : 600, color: isLast ? '#f1f5f9' : '#f87171', cursor: isLast ? 'default' : 'pointer' }}>{capitalizeFirst(n.name)}</span>);
+                });
+                return <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 6px 4px', flexWrap: 'wrap' }}>{segs}</div>;
+              })()}
               {/* Group items by category when showing all items */}
               {selectedCategory === 'all-items' ? (
                 // Get unique categories from filtered items and render grouped
@@ -8232,7 +8357,7 @@ function RestaurantPOSContent() {
                         color: '#f1f5f9',
                         textTransform: 'capitalize'
                       }}>
-                        {categories.find(c => c.id === selectedCategory)?.name || selectedCategory}
+                        {categories.find(c => c.id === selectedCategory)?.name || categoryIndex.resolve(selectedCategory)?.name || selectedCategory}
                       </span>
                       <span style={{
                         fontSize: '12px',
@@ -8345,7 +8470,37 @@ function RestaurantPOSContent() {
                         : (isMobile ? '12px' : '18px'),
                     justifyContent: 'start'
                   }}>
-                    {filteredItems.map((item) => {
+                    {/* Sub-category folder cards (click to open the sub-category) */}
+                    {subCategoryFolders.map((folder) => (
+                      <div
+                        key={`folder-${folder.id}`}
+                        onClick={() => setSelectedCategory(folder.id)}
+                        style={{
+                          display: 'flex', flexDirection: 'column', gap: '10px',
+                          minHeight: cardSize === 'large' ? '150px' : '130px',
+                          padding: '16px', borderRadius: '16px', cursor: 'pointer',
+                          background: 'linear-gradient(160deg, #1e293b 0%, #172033 100%)',
+                          border: '1px solid #334155', transition: 'all 0.18s',
+                          position: 'relative', overflow: 'hidden'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 10px 24px rgba(0,0,0,0.4)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+                      >
+                        <span style={{ position: 'absolute', right: '-12px', bottom: '-16px', fontSize: '78px', opacity: 0.07, lineHeight: 1, pointerEvents: 'none' }}>📁</span>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', boxShadow: '0 4px 10px rgba(239,68,68,0.35)' }}>{folder.emoji && folder.emoji !== '🍽️' ? folder.emoji : '📁'}</div>
+                          <span style={{ fontSize: '10px', fontWeight: 700, color: '#f87171', textTransform: 'uppercase', letterSpacing: '0.6px', background: 'rgba(239,68,68,0.12)', padding: '3px 8px', borderRadius: '999px' }}>Category</span>
+                        </div>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                          <div style={{ fontSize: '16px', fontWeight: 700, color: '#f1f5f9', marginBottom: '6px', lineHeight: 1.2 }}>{capitalizeFirst(folder.name)}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>{folder.count} {t('dashboard.items')}</span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '999px', background: 'rgba(239,68,68,0.15)', color: '#f87171', fontSize: '14px', fontWeight: 700 }}>›</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {gridItems.map((item) => {
                       const quantityInCart = getItemQuantityInCart(item.id);
 
                     return (
@@ -8843,7 +8998,7 @@ function RestaurantPOSContent() {
                 categories.forEach(c => { if (c.parentId && !categories.find(p => p.id === c.parentId) && !ordered.find(o => o.id === c.id)) ordered.push({ ...c, _depth: 0 }); });
                 return ordered;
               })().map((category) => {
-                const isSelected = selectedCategory === category.id;
+                const isSelected = selectedCategory === category.id || (!!selectedTopId && category.id === selectedTopId);
 
                 return (
                   <div key={category.id} onClick={() => {

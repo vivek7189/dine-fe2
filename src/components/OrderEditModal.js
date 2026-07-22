@@ -5,6 +5,8 @@ import { createPortal } from 'react-dom';
 import { FaTimes, FaSearch, FaSpinner, FaUtensils } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
+import CategorySubRow from './CategorySubRow';
+import { buildCategoryIndex, isAncestorOrSelf } from '../utils/categoryTree';
 import MenuItemCard from './MenuItemCard';
 import { sanitizeSeat, getOrderItemKey } from '../utils/orderItemKey';
 
@@ -42,6 +44,7 @@ const OrderEditModal = ({
 }) => {
   const [order, setOrder] = useState(null);
   const [menuLoadedItems, setMenuLoadedItems] = useState([]);
+  const [menuCategories, setMenuCategories] = useState([]); // real category tree (for sub-category drill-down)
   const [selectedCategory, setSelectedCategory] = useState('All Items');
   const [searchTerm, setSearchTerm] = useState('');
   const [modalCart, setModalCart] = useState([]);
@@ -112,6 +115,7 @@ const OrderEditModal = ({
             const menuRes = await apiClient.getMenu(selectedRestaurant.id);
             liveMenu = menuRes?.menuItems || [];
             setMenuLoadedItems(liveMenu);
+            setMenuCategories(menuRes?.categories || []);
           } catch (menuErr) {
             console.error('Error fetching menu for edit modal:', menuErr);
             liveMenu = [];
@@ -183,23 +187,44 @@ const OrderEditModal = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, orderId, orderNumber, selectedRestaurant?.id, menuItems?.length]);
 
-  // Derive category tabs from the effective menu
+  // Category tree (auto-detect). Same behavior as the billing screen: when the
+  // store has a real hierarchy, the top bar shows top-level categories and the
+  // <CategorySubRow> below handles drill-down. Flat stores are unchanged.
+  const categoryIndex = useMemo(() => buildCategoryIndex(menuCategories), [menuCategories]);
+  const hasCategoryTree = categoryIndex.hasTree;
+
+  // Derive category tabs from the effective menu (top-level only when tree)
   const categories = useMemo(() => {
+    if (hasCategoryTree) {
+      const list = ['All Items', ...categoryIndex.roots.map(r => r.name)];
+      // Surface any item category not in the tree (legacy) so nothing is hidden.
+      const seen = new Set(list.map(n => (n || '').toLowerCase()));
+      (effectiveMenu || []).forEach(item => {
+        const leaf = item.subCategory || item.category;
+        if (!leaf || categoryIndex.resolve(leaf)) return;
+        if (!seen.has(String(leaf).toLowerCase())) { seen.add(String(leaf).toLowerCase()); list.push(leaf); }
+      });
+      return list;
+    }
     const set = new Set(['All Items']);
     (effectiveMenu || []).forEach(item => { if (item.category) set.add(item.category); });
     return Array.from(set);
-  }, [effectiveMenu]);
+  }, [effectiveMenu, hasCategoryTree, categoryIndex]);
 
   const filteredMenuItems = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
     return (effectiveMenu || []).filter(item => {
-      const matchesCategory = selectedCategory === 'All Items' || item.category === selectedCategory;
+      const matchesCategory = selectedCategory === 'All Items'
+        ? true
+        : hasCategoryTree
+        ? isAncestorOrSelf(selectedCategory, item, categoryIndex)
+        : item.category === selectedCategory;
       const matchesSearch = !term ||
         (item.name && item.name.toLowerCase().includes(term)) ||
         (item.shortCode && item.shortCode.toLowerCase().includes(term));
       return matchesCategory && matchesSearch;
     });
-  }, [effectiveMenu, selectedCategory, searchTerm]);
+  }, [effectiveMenu, selectedCategory, searchTerm, hasCategoryTree, categoryIndex]);
 
   // ---- Cart handlers (mirror dashboard) ----
   const addToCart = (itemRaw) => {
@@ -653,6 +678,13 @@ const OrderEditModal = ({
                     </button>
                   ))}
                 </div>
+                {/* Sub-category drill-down (auto-detect; renders only for tree stores) */}
+                <CategorySubRow
+                  categoryIndex={categoryIndex}
+                  selectedCategory={selectedCategory}
+                  onSelect={setSelectedCategory}
+                  theme="light"
+                />
               </div>
 
               {/* Grid */}

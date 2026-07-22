@@ -219,7 +219,7 @@ export default function SalesSummaryPage() {
     let data = [];
     if (tabType === 'category') {
       data = [['Category', 'Items Sold', 'Revenue', '% of Total'],
-        ...(summary?.categoryBreakdown || []).map(c => [c.category, c.itemsSold, c.revenue, c.percentage + '%'])];
+        ...(summary?.categoryBreakdown || []).map(c => [`${'    '.repeat(c.depth || 0)}${c.depth ? '› ' : ''}${c.category}`, c.itemsSold, c.revenue, c.percentage + '%'])];
     } else if (tabType === 'payment') {
       data = [['Payment Method', 'Transactions', 'Amount', '% of Total'],
         ...(summary?.paymentBreakdown || []).map(p => [prettifyPaymentMethod(p.method), p.transactions, p.amount, p.percentage + '%'])];
@@ -695,8 +695,11 @@ export default function SalesSummaryPage() {
                       </thead>
                       <tbody className="divide-y divide-gray-50">
                         {summary.categoryBreakdown.map((cat, idx) => (
-                          <tr key={idx} className="hover:bg-gray-50/80 transition-colors">
-                            <td className="px-4 py-3 font-medium text-gray-800 text-sm">{cat.category}</td>
+                          <tr key={idx} className={`hover:bg-gray-50/80 transition-colors ${cat.depth ? 'bg-gray-50/40' : ''}`}>
+                            <td className={`px-4 py-3 text-sm text-gray-800 ${cat.isParent ? 'font-bold' : cat.depth ? 'font-normal' : 'font-medium'}`}
+                                style={{ paddingLeft: `${16 + (cat.depth || 0) * 20}px` }}>
+                              {cat.depth ? <span className="text-gray-400 mr-1">›</span> : null}{cat.category}
+                            </td>
                             <td className="px-4 py-3 text-center">
                               <span className="inline-flex items-center justify-center bg-blue-50 text-blue-700 font-bold text-sm px-3 py-0.5 rounded-full min-w-[40px]">
                                 {cat.itemsSold}
@@ -719,10 +722,10 @@ export default function SalesSummaryPage() {
                           <td className="px-4 py-3 text-gray-800">Total</td>
                           <td className="px-4 py-3 text-center">
                             <span className="inline-flex items-center justify-center bg-blue-100 text-blue-800 font-bold text-sm px-3 py-0.5 rounded-full">
-                              {summary.categoryBreakdown.reduce((s, c) => s + c.itemsSold, 0)}
+                              {summary.categoryBreakdown.filter(c => !c.depth).reduce((s, c) => s + c.itemsSold, 0)}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-right text-emerald-700 text-sm">{formatCurrency(summary.categoryBreakdown.reduce((s, c) => s + c.revenue, 0))}</td>
+                          <td className="px-4 py-3 text-right text-emerald-700 text-sm">{formatCurrency(summary.categoryBreakdown.filter(c => !c.depth).reduce((s, c) => s + c.revenue, 0))}</td>
                           <td className="px-4 py-3 text-right text-xs text-gray-500">100%</td>
                         </tr>
                       </tfoot>
