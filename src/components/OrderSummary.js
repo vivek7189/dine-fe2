@@ -88,6 +88,7 @@ const OrderSummary = ({
   processing,
   placingOrder,
   savingOrder = false, // Separate loading state for save order button
+  onProcessingTimeout, // Optional: called if the billing button stays busy too long (watchdog)
   orderSuccess,
   setOrderSuccess,
   error,
@@ -229,6 +230,23 @@ const OrderSummary = ({
   const editPreFillPendingRef = useRef(false); // Synchronous flag for cross-hook blocking
   // Unified flag: disables ALL order buttons when any action is in progress
   const orderBusy = processing || placingOrder || savingOrder || editPreFillPending;
+
+  // ---- Stuck-button watchdog (belt-and-suspenders) --------------------------
+  // The ApiClient already times out any request (75s for mutations) so the
+  // parent's finally/error handler resets `processing`. This watchdog is a
+  // last resort for a pure FE state bug where a button stays busy even though
+  // the request already settled. It fires only AFTER the request timeout would
+  // have, and asks the parent to release the button (and show its own "couldn't
+  // confirm — check before retrying" toast) via onProcessingTimeout. No-op if
+  // the prop isn't passed. It never touches the print flow and never retries.
+  const WATCHDOG_MS = 85000; // > mutation request timeout (75s), so requests resolve first
+  useEffect(() => {
+    if (!orderBusy || typeof onProcessingTimeout !== 'function') return;
+    const t = setTimeout(() => {
+      try { onProcessingTimeout(); } catch { /* ignore */ }
+    }, WATCHDOG_MS);
+    return () => clearTimeout(t);
+  }, [orderBusy, onProcessingTimeout]);
   // Normally the billing action is blocked for an already-completed order (no
   // double-completion). But the order-history edit modal (allowCompletedEdit)
   // re-bills completed orders on purpose, so the "Save Changes" button must stay

@@ -3,6 +3,58 @@ import { setCachedData, getCachedData } from './offlineDb';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
+// ---------------------------------------------------------------------------
+// Request timeout budgets (client-side safety net so a request can NEVER hang
+// the UI forever — e.g. a stalled serverless function or a dropped connection).
+//
+// Tuned deliberately, POS-style:
+//  • GET (reads: menu, reports…) — short; safe to fail fast, cache/retry covers it.
+//  • MUTATION (create/complete order, payment) — GENEROUS, set *above* the
+//    backend's max serverless function duration (~60s on Vercel). If this fires,
+//    the server has already died, so there is no "did it go through after we
+//    aborted?" ambiguity. A retry is duplicate-safe because order-create sends
+//    an idempotencyKey the backend dedupes on. NEVER make this aggressive —
+//    cutting off a live-but-slow billing call is worse than waiting.
+// Change these numbers here, in one place.
+// ---------------------------------------------------------------------------
+const REQUEST_TIMEOUT_MS = {
+  GET: 30000,        // 30s for reads (generous — heavy reports/analytics can be slow;
+                     //   still bounded so a dropped socket can't hang a read forever)
+  MUTATION: 75000,   // 75s for writes (> Vercel's 60s function cap, ~Stripe's 80s default)
+};
+
+const timeoutForMethod = (method) =>
+  (method || 'GET').toUpperCase() === 'GET'
+    ? REQUEST_TIMEOUT_MS.GET
+    : REQUEST_TIMEOUT_MS.MUTATION;
+
+// A clear, recognizable timeout error. The message is safe to surface to the
+// cashier; the `.isTimeout` flag lets UI code special-case it (e.g. "check
+// Order History before billing again") without string-matching.
+class RequestTimeoutError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'RequestTimeoutError';
+    this.isTimeout = true;
+  }
+}
+
+// Race any promise against a timeout. Used for the Electron/Tauri IPC paths,
+// where the actual fetch happens in another process and AbortController on the
+// renderer's fetch wouldn't reach it. On timeout we reject on the renderer side
+// so the awaiting UI unblocks; the underlying request may still complete on the
+// backend, which is fine — idempotency makes any retry safe.
+const withTimeout = (promise, timeoutMs, label) => {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(
+      () => reject(new RequestTimeoutError(`Request timed out after ${Math.round(timeoutMs / 1000)}s${label ? ` (${label})` : ''}. Please check before retrying.`)),
+      timeoutMs
+    );
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+};
+
 class ApiClient {
   constructor() {
     this.baseURL = API_BASE_URL;
@@ -218,19 +270,38 @@ class ApiClient {
     }
 
     try {
-      // Tauri desktop: route through Rust proxy for offline SQLite cache
+      // Tauri desktop: route through Rust proxy for offline SQLite cache.
+      // Race the IPC against the timeout so a hung main process can't wedge the UI.
       if (typeof window !== 'undefined' && window.__TAURI_INTERNALS__) {
-        return await this._tauriRequest(endpoint, config);
+        return await withTimeout(this._tauriRequest(endpoint, config), timeoutForMethod(config.method), endpoint);
       }
 
       // Electron desktop: route through Node.js main process for SQLite offline cache
       // Skip IPC for FormData (file uploads) — FormData can't be serialized through IPC;
       // send directly via fetch to the cloud API instead.
       if (typeof window !== 'undefined' && window.electronAPI?.apiRequest && !(config.body instanceof FormData)) {
-        return await this._electronRequest(endpoint, config);
+        return await withTimeout(this._electronRequest(endpoint, config), timeoutForMethod(config.method), endpoint);
       }
 
-      const response = await fetch(url, config);
+      // Abort the request if it exceeds the per-verb timeout budget, so a
+      // stalled connection can never hang the UI forever. Respect any signal
+      // the caller already passed (don't clobber it).
+      const _timeoutMs = timeoutForMethod(config.method);
+      const _timeoutCtrl = (typeof AbortController !== 'undefined' && !config.signal) ? new AbortController() : null;
+      const _timeoutId = _timeoutCtrl ? setTimeout(() => _timeoutCtrl.abort(), _timeoutMs) : null;
+      let response;
+      try {
+        response = await fetch(url, _timeoutCtrl ? { ...config, signal: _timeoutCtrl.signal } : config);
+      } catch (fetchErr) {
+        // Our own timeout fired → surface a clear, cashier-safe timeout error.
+        if (_timeoutCtrl && _timeoutCtrl.signal.aborted) {
+          reportNetworkFailure();
+          throw new RequestTimeoutError(`Request timed out after ${Math.round(_timeoutMs / 1000)}s. Please check before retrying.`);
+        }
+        throw fetchErr;
+      } finally {
+        if (_timeoutId) clearTimeout(_timeoutId);
+      }
 
       // Report network success — we got a response from the server
       reportNetworkSuccess();
@@ -341,7 +412,10 @@ class ApiClient {
     } catch (error) {
       // Network error (fetch itself failed — no response at all)
       // Chrome/Firefox: "Failed to fetch", Safari/WebKit/Tauri: "Load failed"
-      const isNetworkError = error instanceof TypeError && (error.message.includes('fetch') || error.message.includes('Load failed') || error.message.includes('NetworkError') || error.message.includes('cancelled'));
+      // A request timeout is treated the same for the GET cache-fallback below:
+      // a read that timed out should still serve last-known data offline. A
+      // mutation timeout is NOT cache-recoverable and propagates the clear error.
+      const isNetworkError = (error instanceof TypeError && (error.message.includes('fetch') || error.message.includes('Load failed') || error.message.includes('NetworkError') || error.message.includes('cancelled'))) || error.isTimeout === true;
       if (isNetworkError) {
         reportNetworkFailure();
 

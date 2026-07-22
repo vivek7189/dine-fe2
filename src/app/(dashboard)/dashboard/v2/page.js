@@ -220,6 +220,16 @@ function RestaurantPOSContent() {
   const [loadingSavedOrderId, setLoadingSavedOrderId] = useState(null); // Currently loading order ID
   const [activeSavedOrderId, setActiveSavedOrderId] = useState(null); // Currently loaded saved order
   const [savingOrder, setSavingOrder] = useState(false); // Separate loading state for save order button
+  // Watchdog: if a billing/order action stays busy longer than the request
+  // timeout (see ApiClient), release every busy flag so the button can never
+  // stay stuck spinning, and tell the cashier to verify before re-billing.
+  // Stable identity (useCallback) so it doesn't reset OrderSummary's timer.
+  const handleBillingTimeout = useCallback(() => {
+    setProcessing(false);
+    setPlacingOrder(false);
+    setSavingOrder(false);
+    setError('The request is taking too long and could not be confirmed. Please check Order History before billing again.');
+  }, []);
   const [deletingSavedOrderId, setDeletingSavedOrderId] = useState(null); // Currently deleting order ID
   const [printSettings, setPrintSettings] = useState(null); // Print settings for the restaurant
   const [printStationCount, setPrintStationCount] = useState(0); // Enabled print station count for multi-station skip logic
@@ -8591,6 +8601,7 @@ function RestaurantPOSContent() {
             processing={processing}
             placingOrder={placingOrder}
             savingOrder={savingOrder}
+            onProcessingTimeout={handleBillingTimeout}
             orderSuccess={orderSuccess}
             setOrderSuccess={setOrderSuccess}
             error={error}
@@ -8695,6 +8706,7 @@ function RestaurantPOSContent() {
                     processing={processing}
                     placingOrder={placingOrder}
                     savingOrder={savingOrder}
+                    onProcessingTimeout={handleBillingTimeout}
                     orderSuccess={orderSuccess}
                     setOrderSuccess={setOrderSuccess}
                     error={error}
