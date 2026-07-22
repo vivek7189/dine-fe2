@@ -429,8 +429,8 @@ const MenuItemCard = ({
           borderRadius: cardSize === 'large' ? '12px' : '8px',
           cursor: 'pointer',
           height: cardSize === 'large'
-            ? (isMobile ? '162px' : '178px')
-            : (isMobile ? '124px' : '130px'),
+            ? (isMobile ? '180px' : '200px')
+            : (isMobile ? '140px' : '150px'),
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'flex-end',

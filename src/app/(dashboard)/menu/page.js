@@ -952,7 +952,7 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
       {/* Image Section */}
       {!(globalHideImages || item.hideImage) && (
       <div style={{
-        height: '120px',
+        height: '104px',
         position: 'relative',
         overflow: 'hidden',
         background: 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)'
@@ -1269,25 +1269,27 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
           );
         })()}
 
-        {/* Price and Actions */}
+        {/* Price and Actions — stacked so all action buttons stay visible on
+            narrower cards (price on top, buttons on a full-width wrapping row) */}
         <div style={{
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginTop: '16px',
-          paddingTop: '16px',
+          flexDirection: 'column',
+          alignItems: 'stretch',
+          gap: '10px',
+          marginTop: '12px',
+          paddingTop: '12px',
           borderTop: '1px solid #f3f4f6'
         }}>
           <div style={{
             color: '#000000',
-            fontSize: '14px',
+            fontSize: '15px',
             fontWeight: '700',
-            padding: '4px 0'
+            padding: '0'
           }}>
             {formatCurrency(item.price)}
           </div>
 
-          <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '5px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
           {/* Primary: Edit */}
           {onEdit && <button
               type="button"
