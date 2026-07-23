@@ -5773,6 +5773,40 @@ function RestaurantPOSContent() {
     // by passing a flag through to OrderSummary
   };
 
+  // Kenya KRA eTIMS "live" toggle: ON only when the store is Kenya AND eTIMS is
+  // enabled AND the device is initialised AND we're in the desktop app. Until
+  // then (e.g. during setup/approval), the normal bill flow is used unchanged.
+  const etimsActive = !!(
+    (selectedRestaurant?.currencySettings?.countryCode === 'KE' || selectedRestaurant?.currencySettings?.currencyCode === 'KES')
+    && selectedRestaurant?.etimsConfig?.enabled
+    && selectedRestaurant?.etimsConfig?.device?.sdcId
+    && typeof window !== 'undefined' && window.electronAPI?.etimsRelay
+  );
+  // Tell OrderSummary to SKIP the normal bill auto-print when eTIMS is live —
+  // the eTIMS flow prints ONE combined receipt (bill + KRA block) instead.
+  // Cleared on unmount so it can never strand a non-Kenya store's bill print.
+  useEffect(() => {
+    if (typeof window !== 'undefined') window.__etimsFiscalActive = etimsActive;
+    return () => { if (typeof window !== 'undefined') window.__etimsFiscalActive = false; };
+  }, [etimsActive]);
+
+  // When a bill completes and eTIMS is live: fiscalise against the local VSCU,
+  // then print ONE receipt = the normal bill + KRA fiscal block/QR (silent).
+  useEffect(() => {
+    if (!etimsActive || !orderSuccess?.show || !orderSuccess?.orderId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { fiscaliseAndPrint } = await import('../../../lib/etimsPrint');
+        const res = await fiscaliseAndPrint({ restaurantId: selectedRestaurant.id, order: { id: orderSuccess.orderId }, restaurant: selectedRestaurant, printSettings });
+        if (!cancelled && res && res.error) {
+          setNotification({ type: 'error', title: 'KRA eTIMS', message: `Fiscalisation failed: ${res.error}.${res.fallbackPrinted ? ' A standard receipt was printed — please re-fiscalise once the VSCU is available.' : ''}`, show: true });
+        }
+      } catch { /* never block the POS on fiscalisation */ }
+    })();
+    return () => { cancelled = true; };
+  }, [etimsActive, orderSuccess?.orderId, orderSuccess?.show, selectedRestaurant?.id]);
+
   const clearCart = (opts = {}) => {
     const { keepOrderSuccess = false, preserveUrl = false, keepTable = false } = opts;
     setCart([]);

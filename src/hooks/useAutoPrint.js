@@ -307,6 +307,12 @@ export function useAutoPrint(restaurantId, printSettings) {
   const handleBillingPrint = useCallback(async (data) => {
     const isPreBill = data.isPreBill === true;
     console.log(`🖨️ AutoPrint: handleBillingPrint called, isPreBill=${isPreBill}, orderId=${data.orderId || data.id}`);
+    // Kenya KRA eTIMS: when live, the eTIMS flow prints the combined fiscal
+    // receipt. Skip the normal final-bill print here (a pre-bill still prints).
+    if (!isPreBill && typeof window !== 'undefined' && window.__etimsFiscalActive) {
+      console.log('🖨️ AutoPrint: Billing print skipped — eTIMS fiscal receipt handles it');
+      return;
+    }
     // Pre-bill requests always print (user explicitly tapped Pre-Bill on mobile).
     // Regular bill print requires autoPrintOnBilling setting.
     if (!isPreBill && !printSettings?.autoPrintOnBilling) {

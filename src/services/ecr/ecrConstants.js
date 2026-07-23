@@ -54,12 +54,22 @@ export const ECR_PROVIDERS = {
   SADAD_CLOUD: 'sadad-cloud',
 };
 
-// Sadad Cloud transaction status codes
+// Sadad Cloud (PayCloud) base URLs
+export const SADAD_URLS = {
+  PRODUCTION: 'https://open.sadadpos.com',
+  UAT: 'https://open-uat.sadadpos.com', // sandbox / testing
+};
+
+// Sadad Cloud transaction status codes.
+// CONFIRMED by docs: PENDING = 9 (pre-order / awaiting payment).
+// ⚠ The rest mirror the backend's working assumption and MUST be confirmed
+//   against Sadad's status-code table. The frontend only consumes the backend's
+//   already-mapped status string, so these are informational here.
 export const SADAD_TRANS_STATUS = {
-  SUCCESS: 2,
-  PENDING: 9,
-  FAILED: 11,
-  CANCELLED: 13,
-  PARTIAL_REFUND: 14,
-  FULL_REFUND: 17,
+  SUCCESS: 2,          // ⚠ VERIFY
+  PENDING: 9,          // CONFIRMED
+  FAILED: 11,          // ⚠ VERIFY
+  CANCELLED: 13,       // ⚠ VERIFY
+  PARTIAL_REFUND: 14,  // ⚠ VERIFY
+  FULL_REFUND: 17,     // ⚠ VERIFY
 };

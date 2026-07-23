@@ -129,6 +129,7 @@ const ConfirmModal = ({ open, title, message, onConfirm, onCancel, confirmText =
 const OffersManagement = dynamic(() => import('../offers/page'), { ssr: false });
 const CustomerAppSettings = dynamic(() => import('../customer-app/page'), { ssr: false });
 import { getAllCountriesWithCurrency, getCurrencyByCountryCode } from '../../../lib/currencyData';
+import EtimsSettings from '../../../components/EtimsSettings';
 import { FEATURE_OPS, OP_LABELS, ADMIN_TAB_LABELS, ADMIN_TAB_ID_TO_KEY, resolveFeaturePermissions } from '@/lib/permissions';
 import { PAGE_ACCESS_CONFIG } from '@/lib/pageAccessConfig';
 import { getPrintFontSizes, getPrintFontFamily, PRINT_FONTS, getContentWidthRange } from '../../../utils/printFontSizes';
@@ -369,6 +370,13 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
   return (
     <div>
       <TaxNotifications />
+
+      {/* Kenya KRA eTIMS — shown ONLY for Kenya (KES) stores; dormant elsewhere */}
+      {(selectedRestaurant?.currencySettings?.countryCode === 'KE' || selectedRestaurant?.currencySettings?.currencyCode === 'KES') && restaurantId && (
+        <div style={{ marginBottom: '24px' }}>
+          <EtimsSettings restaurantId={restaurantId} />
+        </div>
+      )}
 
       {/* Header */}
       <div style={{ marginBottom: '20px' }}>

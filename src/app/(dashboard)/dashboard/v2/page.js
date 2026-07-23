@@ -5653,6 +5653,35 @@ function RestaurantPOSContent() {
     // by passing a flag through to OrderSummary
   };
 
+  // Kenya KRA eTIMS "live" toggle — ON only when Kenya + enabled + device
+  // initialised + desktop app. Until then the normal bill flow is used.
+  const etimsActive = !!(
+    (selectedRestaurant?.currencySettings?.countryCode === 'KE' || selectedRestaurant?.currencySettings?.currencyCode === 'KES')
+    && selectedRestaurant?.etimsConfig?.enabled
+    && selectedRestaurant?.etimsConfig?.device?.sdcId
+    && typeof window !== 'undefined' && window.electronAPI?.etimsRelay
+  );
+  // Cleared on unmount so it can never strand a non-Kenya store's bill print.
+  useEffect(() => {
+    if (typeof window !== 'undefined') window.__etimsFiscalActive = etimsActive;
+    return () => { if (typeof window !== 'undefined') window.__etimsFiscalActive = false; };
+  }, [etimsActive]);
+
+  useEffect(() => {
+    if (!etimsActive || !orderSuccess?.show || !orderSuccess?.orderId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { fiscaliseAndPrint } = await import('../../../../lib/etimsPrint');
+        const res = await fiscaliseAndPrint({ restaurantId: selectedRestaurant.id, order: { id: orderSuccess.orderId }, restaurant: selectedRestaurant, printSettings });
+        if (!cancelled && res && res.error) {
+          setNotification({ type: 'error', title: 'KRA eTIMS', message: `Fiscalisation failed: ${res.error}.${res.fallbackPrinted ? ' A standard receipt was printed — please re-fiscalise once the VSCU is available.' : ''}`, show: true });
+        }
+      } catch { /* never block the POS on fiscalisation */ }
+    })();
+    return () => { cancelled = true; };
+  }, [etimsActive, orderSuccess?.orderId, orderSuccess?.show, selectedRestaurant?.id]);
+
   const clearCart = (opts = {}) => {
     const { keepOrderSuccess = false, preserveUrl = false, keepTable = false } = opts;
     setCart([]);

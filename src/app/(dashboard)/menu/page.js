@@ -2439,6 +2439,8 @@ const MenuManagement = () => {
     price: '',
     category: '',
     subCategory: '',
+    kraItemClassCode: '',
+    kraTaxBand: '',
     isVeg: true,
     shortCode: '',
     image: '',
@@ -3005,6 +3007,8 @@ const MenuManagement = () => {
             description: itemData.description,
             category: itemData.category,
             subCategory: itemData.subCategory || null,
+            kraItemClassCode: itemData.kraItemClassCode || null,
+            kraTaxBand: itemData.kraTaxBand || null,
             veg: itemData.veg,
             variants: itemData.variants,
             customizations: itemData.customizations,
@@ -3269,6 +3273,8 @@ const MenuManagement = () => {
       price: item.price?.toString() || '',
       category: item.category || '',
       subCategory: item.subCategory || '',
+      kraItemClassCode: item.kraItemClassCode || '',
+      kraTaxBand: item.kraTaxBand || '',
       isVeg: item.isVeg !== false,
       shortCode: item.shortCode || '',
       image: item.image || '',
@@ -3884,6 +3890,8 @@ const MenuManagement = () => {
       price: '',
       category: categories[0]?.id || '',
       subCategory: '',
+      kraItemClassCode: '',
+      kraTaxBand: '',
       isVeg: true,
       shortCode: '',
       image: '',
@@ -6152,6 +6160,41 @@ const MenuManagement = () => {
                     </div>
                   );
                 })()}
+
+                {/* Kenya KRA eTIMS — per-item tax fields. Shown ONLY for Kenya (KES) stores. */}
+                {(currentRestaurant?.currencySettings?.countryCode === 'KE' || currentRestaurant?.currencySettings?.currencyCode === 'KES') && (
+                  <div style={{ marginBottom: 16, padding: 12, background: '#fef7f7', border: '1px solid #fde0e0', borderRadius: 10 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#b91c1c', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span>🇰🇪</span> KRA eTIMS (Kenya tax)
+                    </div>
+                    <div style={{ marginBottom: 10 }}>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">VAT rate</label>
+                      <select
+                        value={formData.kraTaxBand}
+                        onChange={(e) => setFormData({ ...formData, kraTaxBand: e.target.value })}
+                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                      >
+                        <option value="">Default (16% standard)</option>
+                        <option value="B">B — 16% (Standard rated)</option>
+                        <option value="E">E — 8%</option>
+                        <option value="C">C — 0% (Zero-rated)</option>
+                        <option value="A">A — Exempt</option>
+                        <option value="D">D — Non-VAT</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">KRA item classification code</label>
+                      <input
+                        type="text"
+                        value={formData.kraItemClassCode}
+                        onChange={(e) => setFormData({ ...formData, kraItemClassCode: e.target.value })}
+                        placeholder="e.g. 5059690800 (leave blank to use the store default)"
+                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                      />
+                      <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>KRA UNSPSC-based code. Optional — falls back to the default set in Admin → Tax → eTIMS.</div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Image Upload */}
                 <div style={{ marginBottom: '20px' }}>

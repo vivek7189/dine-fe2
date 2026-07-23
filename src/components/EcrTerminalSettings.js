@@ -321,50 +321,53 @@ export default function EcrTerminalSettings({ restaurantId, selectedRestaurant }
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div style={fieldGroupStyle}>
                   <label style={labelStyle}>Sadad API URL</label>
-                  <input type="text" value={settings.sadadApiUrl} onChange={(e) => update('sadadApiUrl', e.target.value)} placeholder="https://open.sadadpos.com" style={inputStyle} />
-                  <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0' }}>Use sandbox URL for testing</p>
+                  <select
+                    value={settings.sadadApiUrl}
+                    onChange={(e) => update('sadadApiUrl', e.target.value)}
+                    style={{ ...inputStyle, cursor: 'pointer' }}
+                  >
+                    <option value="https://open.sadadpos.com">Production — https://open.sadadpos.com</option>
+                    <option value="https://open-uat.sadadpos.com">Sandbox / UAT — https://open-uat.sadadpos.com</option>
+                  </select>
+                  <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0' }}>Use Sandbox / UAT for testing first.</p>
                 </div>
                 <div style={fieldGroupStyle}>
                   <label style={labelStyle}>App ID</label>
-                  <input type="text" value={settings.sadadAppId} onChange={(e) => update('sadadAppId', e.target.value)} placeholder="From Sadad" style={inputStyle} />
+                  <input type="text" value={settings.sadadAppId} onChange={(e) => update('sadadAppId', e.target.value)} placeholder="e.g. wzaf502bde7e10f150" style={inputStyle} />
                 </div>
                 <div style={fieldGroupStyle}>
                   <label style={labelStyle}>Merchant No</label>
-                  <input type="text" value={settings.sadadMerchantNo} onChange={(e) => update('sadadMerchantNo', e.target.value)} placeholder="From Sadad" style={inputStyle} />
+                  <input type="text" value={settings.sadadMerchantNo} onChange={(e) => update('sadadMerchantNo', e.target.value)} placeholder="e.g. 302400004438" style={inputStyle} />
                 </div>
                 <div style={fieldGroupStyle}>
                   <label style={labelStyle}>Store No</label>
-                  <input type="text" value={settings.sadadStoreNo} onChange={(e) => update('sadadStoreNo', e.target.value)} placeholder="From Sadad" style={inputStyle} />
+                  <input type="text" value={settings.sadadStoreNo} onChange={(e) => update('sadadStoreNo', e.target.value)} placeholder="e.g. 4024000040" style={inputStyle} />
                 </div>
                 <div style={fieldGroupStyle}>
                   <label style={labelStyle}>Terminal SN</label>
-                  <input type="text" value={settings.sadadTerminalSn} onChange={(e) => update('sadadTerminalSn', e.target.value)} placeholder="Serial number from WiseCashier device" style={inputStyle} />
-                  <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0' }}>Shown at bottom of WiseCashier screen</p>
-                </div>
-                <div style={fieldGroupStyle}>
-                  <label style={labelStyle}>Access Token</label>
-                  <input type="password" value={settings.sadadAccessToken} onChange={(e) => update('sadadAccessToken', e.target.value)} placeholder="From Sadad" style={inputStyle} />
+                  <input type="text" value={settings.sadadTerminalSn} onChange={(e) => update('sadadTerminalSn', e.target.value)} placeholder="e.g. WPYB002602006535" style={inputStyle} />
+                  <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0' }}>Serial number printed on the SADAD device / shown in WiseCashier.</p>
                 </div>
               </div>
 
               <div style={fieldGroupStyle}>
                 <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <FaKey size={11} /> RSA Private Key (for signing requests)
+                  <FaKey size={11} /> App RSA Private Key (signs our requests)
                 </label>
                 <textarea
                   value={settings.sadadPrivateKey}
                   onChange={(e) => update('sadadPrivateKey', e.target.value)}
-                  placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                  placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
                   style={textareaStyle}
                 />
                 <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0' }}>
-                  Your private key for signing API requests. Never share this key.
+                  The application (merchant) RSA private key from the Sadad portal — PKCS8 or PKCS1. Never share it.
                 </p>
               </div>
 
               <div style={fieldGroupStyle}>
                 <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <FaKey size={11} /> Sadad Public Key (for verifying callbacks)
+                  <FaKey size={11} /> Sadad Gateway Public Key (verifies responses/webhooks)
                 </label>
                 <textarea
                   value={settings.sadadPublicKey}
@@ -373,7 +376,7 @@ export default function EcrTerminalSettings({ restaurantId, selectedRestaurant }
                   style={textareaStyle}
                 />
                 <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0' }}>
-                  Sadad&apos;s public key for verifying webhook signatures.
+                  Sadad&apos;s (gateway) RSA public key used to verify response and webhook signatures.
                 </p>
               </div>
 

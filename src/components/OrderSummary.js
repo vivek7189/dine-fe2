@@ -882,6 +882,14 @@ const OrderSummary = ({
 
     console.log('[OrderSummary] Bill print effect fired:', { isNative, buttonPrintRequested, autoPrintEnabled, billAndPrintAllowed, invoiceId: invoice?.id });
 
+    // Kenya KRA eTIMS: when live, the eTIMS flow prints ONE combined receipt
+    // (bill + KRA fiscal block/QR) after fiscalisation. Skip the normal bill
+    // auto-print here so the customer never gets two receipts.
+    if (typeof window !== 'undefined' && window.__etimsFiscalActive) {
+      window.__autoPrintBill = false;
+      return;
+    }
+
     if (!shouldPrint) {
       window.__autoPrintBill = false;
       return;
