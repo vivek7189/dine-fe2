@@ -128,7 +128,7 @@ export default function SEOStructuredData() {
         "name": "How much does DineOpen cost?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen starts at $9.99/month (Spark plan) for international users, with localized pricing available in each region. The Blaze plan for restaurant chains is $89/month. All plans include a 30-day free trial with no credit card required, zero transaction fees, and unlimited menu items."
+          "text": "DineOpen starts at $9.99/month (Spark plan) for international users, with localized pricing available in each region. The Blaze plan for restaurant chains is $89/month. All plans include a 7-day free trial with no credit card required, zero transaction fees, and unlimited menu items."
         }
       },
       {
@@ -152,7 +152,7 @@ export default function SEOStructuredData() {
         "name": "Is there a free trial available?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all new users. No credit card required. You get access to all features during the trial period including AI Agent, POS, inventory management, and analytics."
+          "text": "Yes, DineOpen offers a 7-day free trial for all new users. No credit card required. You get access to all features during the trial period including AI Agent, POS, inventory management, and analytics."
         }
       },
       {

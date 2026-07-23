@@ -183,7 +183,7 @@ export default function OnlineMenuClient() {
             Put Your Menu Online Today
           </h2>
           <p style={{ fontSize: '18px', color: 'rgba(255,255,255,0.9)', marginBottom: '28px', lineHeight: '1.6' }}>
-            Start your 30-day free trial. Create a beautiful online menu in minutes.
+            Start your 7-day free trial. Create a beautiful online menu in minutes.
           </p>
           <Link href="/login?ref=menu" style={{ padding: '16px 36px', borderRadius: '10px', backgroundColor: '#fff', color: '#ef4444', fontWeight: '700', fontSize: '16px', textDecoration: 'none', display: 'inline-block' }}>
             Start Free Trial

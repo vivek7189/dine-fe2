@@ -80,7 +80,7 @@ export default function HaridwarPOSPage() {
         "name": "Can I get a free trial of DineOpen in Haridwar?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Haridwar restaurants and bhojanalayas. No credit card required. Get full access to sattvic menu management, GST billing, and pilgrim crowd features."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Haridwar restaurants and bhojanalayas. No credit card required. Get full access to sattvic menu management, GST billing, and pilgrim crowd features."
         }
       }
     ]

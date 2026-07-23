@@ -274,7 +274,7 @@ export default function ROICalculatorClient() {
               Start Saving Today
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '24px' }}>
-              30-day free trial. No credit card required. Cancel anytime.
+              7-day free trial. No credit card required. Cancel anytime.
             </p>
             <Link
               href="https://dineopen.com/login"

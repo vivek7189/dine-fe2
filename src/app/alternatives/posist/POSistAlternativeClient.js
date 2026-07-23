@@ -185,7 +185,7 @@ export default function POSistAlternativeClient() {
               Ready to Switch from POSist?
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '32px' }}>
-              Start your free 30-day trial. No credit card. No setup fee. No annual contract.
+              Start your free 7-day trial. No credit card. No setup fee. No annual contract.
             </p>
             <Link
               href="https://dineopen.com/login"

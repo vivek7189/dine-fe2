@@ -71,7 +71,7 @@ export default function RishikeshPOSPage() {
         "name": "Can I get a free trial of DineOpen in Rishikesh?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Rishikesh restaurants and cafes. No credit card required. Get full access to vegan tagging, multi-currency display, and organic menu features."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Rishikesh restaurants and cafes. No credit card required. Get full access to vegan tagging, multi-currency display, and organic menu features."
         }
       }
     ]

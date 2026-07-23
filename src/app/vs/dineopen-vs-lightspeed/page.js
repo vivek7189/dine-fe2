@@ -29,7 +29,7 @@ const faqSchema = {
     { '@type': 'Question', name: 'Where does Lightspeed still win?', acceptedAnswer: { '@type': 'Answer', text: 'Large chains (20+ locations), restaurants that need deep retail + restaurant hybrid features, hotel F&B operations, and operators who want a public company with audited financials as their vendor. Lightspeed is listed on NYSE and has enterprise support SLAs that DineOpen does not match. For single-location or small chain (up to 10 locations), DineOpen is the better fit.' } },
     { '@type': 'Question', name: 'Can I migrate from Lightspeed to DineOpen?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. Export your Lightspeed menu as CSV, or skip the export entirely — just take a photo of a printed menu and DineOpen AI extraction creates the digital menu in about 2 minutes. Customer data and past sales can be imported via CSV. Most operators are fully migrated in under 2 hours.' } },
     { '@type': 'Question', name: 'Does DineOpen work outside the US?', acceptedAnswer: { '@type': 'Answer', text: 'Yes, DineOpen serves 20+ countries including the US, UK, Canada, India, UAE, Singapore, and Australia. Multi-currency, multi-tax, multi-language labels for bars, bakeries, cafés, QSR, and full-service restaurants. Lightspeed also has wide global reach — this is one area where they match up well.' } },
-    { '@type': 'Question', name: 'Free trial?', acceptedAnswer: { '@type': 'Answer', text: 'Yes, 30 days, full features, no credit card. Lightspeed also offers a trial but typically requires a sales call first. DineOpen signup is self-serve.' } }
+    { '@type': 'Question', name: 'Free trial?', acceptedAnswer: { '@type': 'Answer', text: 'Yes, 7 days, full features, no credit card. Lightspeed also offers a trial but typically requires a sales call first. DineOpen signup is self-serve.' } }
   ]
 };
 
@@ -240,7 +240,7 @@ export default function DineOpenVsLightspeedPage() {
 
         <section style={{ background: 'linear-gradient(135deg,#b91c1c 0%,#ef4444 100%)', color: '#fff', padding: '60px 20px', margin: '60px 0 0' }}>
           <div style={{ ...wrap, textAlign: 'center' }}>
-            <h2 style={{ ...h2, color: '#fff', margin: '0 0 12px' }}>Try DineOpen free for 30 days</h2>
+            <h2 style={{ ...h2, color: '#fff', margin: '0 0 12px' }}>Try DineOpen free for 7 days</h2>
             <p style={{ ...p, color: '#fecaca', fontSize: '18px' }}>Enterprise features. Indie price. No sales call required.</p>
             <Link href="https://app.dineopen.com/signup" style={{ display: 'inline-block', background: '#fff', color: '#b91c1c', padding: '16px 36px', borderRadius: '999px', fontSize: '17px', fontWeight: 800, textDecoration: 'none', marginTop: '12px', boxShadow: '0 8px 24px rgba(0,0,0,.18)' }}>Start free trial →</Link>
           </div>

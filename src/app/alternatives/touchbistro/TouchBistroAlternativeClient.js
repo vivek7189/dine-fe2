@@ -166,7 +166,7 @@ export default function TouchBistroAlternativeClient() {
               Ready to Switch from TouchBistro?
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '32px' }}>
-              Start your free 30-day trial. No credit card required. No contracts.
+              Start your free 7-day trial. No credit card required. No contracts.
             </p>
             <Link
               href="https://dineopen.com/login"

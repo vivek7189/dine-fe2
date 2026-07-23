@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Zomato Base Alternative 2026 | DineOpen - AI POS, Lower Fees',
-  description: 'Looking for a Zomato Base alternative? DineOpen offers AI voice ordering, zero transaction fees, multi-location support. Not locked to Zomato ecosystem. Free 30-day trial.',
+  description: 'Looking for a Zomato Base alternative? DineOpen offers AI voice ordering, zero transaction fees, multi-location support. Not locked to Zomato ecosystem. Free 7-day trial.',
   keywords: 'Zomato Base alternative, Zomato Base competitor, better than Zomato Base, Zomato POS alternative, restaurant POS India, Zomato billing software alternative',
   openGraph: {
     title: 'Best Zomato Base Alternative | DineOpen - AI-Powered POS',
@@ -36,7 +36,7 @@ const faqSchema = {
       "name": "Is DineOpen free like Zomato Base?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at ₹300/month with a 30-day free trial. Unlike Zomato Base, you get an independent platform with no ecosystem lock-in, AI features, and full data ownership."
+        "text": "DineOpen starts at ₹300/month with a 7-day free trial. Unlike Zomato Base, you get an independent platform with no ecosystem lock-in, AI features, and full data ownership."
       }
     },
     {

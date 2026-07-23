@@ -111,7 +111,7 @@ export default function KochiPOSPage() {
         "name": "Can I get a free trial of DineOpen in Kochi?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Kochi restaurants. No credit card required. Get full access to Malayalam language support, seafood inventory tracking, and tourist-friendly features."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Kochi restaurants. No credit card required. Get full access to Malayalam language support, seafood inventory tracking, and tourist-friendly features."
         }
       }
     ]

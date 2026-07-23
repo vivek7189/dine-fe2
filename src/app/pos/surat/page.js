@@ -96,7 +96,7 @@ export default function SuratPOSPage() {
         "name": "Can I get a free trial of DineOpen in Surat?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Surat restaurants and food shops. No credit card required. Get full access to Gujarati language support, GST billing, and weight-based billing."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Surat restaurants and food shops. No credit card required. Get full access to Gujarati language support, GST billing, and weight-based billing."
         }
       }
     ]

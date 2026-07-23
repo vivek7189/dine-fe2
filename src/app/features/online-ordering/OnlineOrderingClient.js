@@ -159,7 +159,7 @@ export default function OnlineOrderingClient() {
               Ready to Go Digital?
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.9, marginBottom: '32px' }}>
-              Set up online ordering in 10 minutes. Free 30-day trial, no credit card required.
+              Set up online ordering in 10 minutes. Free 7-day trial, no credit card required.
             </p>
             <Link href="https://dineopen.com/login" style={{ display: 'inline-block', padding: '18px 40px', backgroundColor: '#3b82f6', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
               Start Free Trial

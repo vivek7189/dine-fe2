@@ -111,7 +111,7 @@ export default function KolkataPOSPage() {
         "name": "Can I get a free trial of DineOpen in Kolkata?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Kolkata restaurants and sweet shops. No credit card required. Get full access to Bengali language support, GST billing, and delivery integrations."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Kolkata restaurants and sweet shops. No credit card required. Get full access to Bengali language support, GST billing, and delivery integrations."
         }
       }
     ]

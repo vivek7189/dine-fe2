@@ -122,7 +122,7 @@ export default function IndiaHubClient() {
                 Book Demo
               </Link>
             </div>
-            <p style={{ marginTop: '20px', opacity: 0.8 }}>Starting at ₹999/month • 30-day free trial • No credit card</p>
+            <p style={{ marginTop: '20px', opacity: 0.8 }}>Starting at ₹999/month • 7-day free trial • No credit card</p>
           </div>
         </div>
 
@@ -302,7 +302,7 @@ export default function IndiaHubClient() {
               Ready to Transform Your Restaurant?
             </h2>
             <p style={{ fontSize: '20px', opacity: 0.95, marginBottom: '32px' }}>
-              Join 50,000+ Indian restaurants using DineOpen. Free 30-day trial, no credit card required.
+              Join 50,000+ Indian restaurants using DineOpen. Free 7-day trial, no credit card required.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link

@@ -29,7 +29,7 @@ const faqSchema = {
     { '@type': 'Question', name: 'What does DineOpen do that TouchBistro does not?', acceptedAnswer: { '@type': 'Answer', text: 'AI voice ordering in English and Spanish, AI menu extraction from a photo, multi-tier pricing per item (Dine-in / AC / Takeaway / Delivery), WhatsApp ordering, customer khata/credit, and a native Android KOT printer app. TouchBistro has none of these. TouchBistro does have stronger US-only reservation management (TouchBistro Reservations).' } },
     { '@type': 'Question', name: 'Where does TouchBistro still win?', acceptedAnswer: { '@type': 'Answer', text: 'TouchBistro has been around since 2010 and has a strong full-service restaurant focus. Its reservation system (TouchBistro Reservations) competes well with OpenTable for independent restaurants. Its US sales and onboarding support is more hands-on than DineOpen self-serve. If you want a vendor that will walk you through setup over a phone call, TouchBistro is more white-glove.' } },
     { '@type': 'Question', name: 'Can I switch from TouchBistro without losing data?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. Export menu, customers, and historical sales from TouchBistro as CSV. Import to DineOpen, or skip the CSV entirely and use AI menu extraction on a printed menu. Most operators are migrated in under 2 hours.' } },
-    { '@type': 'Question', name: 'Free trial?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. DineOpen offers a 30-day free trial with all features unlocked, no credit card required. TouchBistro requires a sales demo call before trial access.' } }
+    { '@type': 'Question', name: 'Free trial?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. DineOpen offers a 7-day free trial with all features unlocked, no credit card required. TouchBistro requires a sales demo call before trial access.' } }
   ]
 };
 
@@ -230,7 +230,7 @@ export default function DineOpenVsTouchBistroPage() {
 
         <section style={{ background: 'linear-gradient(135deg,#0e7490 0%,#06b6d4 100%)', color: '#fff', padding: '60px 20px', margin: '60px 0 0' }}>
           <div style={{ ...wrap, textAlign: 'center' }}>
-            <h2 style={{ ...h2, color: '#fff', margin: '0 0 12px' }}>Try DineOpen free for 30 days</h2>
+            <h2 style={{ ...h2, color: '#fff', margin: '0 0 12px' }}>Try DineOpen free for 7 days</h2>
             <p style={{ ...p, color: '#cffafe', fontSize: '18px' }}>One flat price. Unlimited devices. No license counting.</p>
             <Link href="https://app.dineopen.com/signup" style={{ display: 'inline-block', background: '#fff', color: '#0e7490', padding: '16px 36px', borderRadius: '999px', fontSize: '17px', fontWeight: 800, textDecoration: 'none', marginTop: '12px', boxShadow: '0 8px 24px rgba(0,0,0,.18)' }}>Start free trial →</Link>
           </div>

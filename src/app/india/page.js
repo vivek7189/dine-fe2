@@ -9,7 +9,7 @@ export const metadata = {
   keywords: 'restaurant POS India, billing software India, restaurant management India, GST billing software, FSSAI compliant POS, Zomato integration, Swiggy POS, QR menu India, restaurant billing India, cafe POS India, bar POS India, hotel POS India',
   openGraph: {
     title: 'Restaurant POS Software India | DineOpen',
-    description: 'Best restaurant POS for India. GST billing, FSSAI compliance, Zomato/Swiggy integration, UPI payments. Free 30-day trial.',
+    description: 'Best restaurant POS for India. GST billing, FSSAI compliance, Zomato/Swiggy integration, UPI payments. Free 7-day trial.',
     url: 'https://www.dineopen.com/india',
     siteName: 'DineOpen',
     locale: 'en_IN',

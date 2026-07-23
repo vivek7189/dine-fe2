@@ -128,7 +128,7 @@ export default function HomePage() {
         <h2>Pricing</h2>
         <p>
           DineOpen Spark plan starts at $9.99 per month internationally and ₹300 per month in India.
-          Blaze plan for restaurant chains at $89 per month. All plans include a 30-day free trial
+          Blaze plan for restaurant chains at $89 per month. All plans include a 7-day free trial
           with zero transaction fees.
         </p>
         <h2>Industries</h2>

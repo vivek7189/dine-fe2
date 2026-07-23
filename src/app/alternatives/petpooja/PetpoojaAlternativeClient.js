@@ -11,7 +11,7 @@ const comparisonData = [
     { feature: 'Starting Price', dineopen: '₹300/month ($9.99)', petpooja: '₹1,000+/month (custom quote)', winner: 'dineopen' },
     { feature: 'Transaction Fees', dineopen: '0% — zero transaction fees', petpooja: '1.5-2% per transaction', winner: 'dineopen' },
     { feature: 'Pricing Transparency', dineopen: 'Published on website', petpooja: 'Contact sales for quote', winner: 'dineopen' },
-    { feature: 'Free Trial', dineopen: '30 days, no credit card', petpooja: '14 days', winner: 'dineopen' },
+    { feature: 'Free Trial', dineopen: '7 days, no credit card', petpooja: '14 days', winner: 'dineopen' },
     { feature: 'Add-on Costs', dineopen: 'All features included', petpooja: 'Inventory, CRM, online ordering cost extra', winner: 'dineopen' },
     { feature: 'Hardware Required', dineopen: 'Works on any device (phone/tablet/laptop)', petpooja: 'Often requires proprietary hardware', winner: 'dineopen' },
   ]},
@@ -59,7 +59,7 @@ export default function PetpoojaAlternativeClient() {
     },
     {
       q: 'Can I switch from Petpooja to DineOpen easily?',
-      a: 'Yes. Start a free 30-day trial alongside your Petpooja setup. Add your menu (AI extracts it from a photo in 2 minutes). Train staff (15 minutes). Run both systems in parallel for a few days to build confidence, then switch over. No downtime, no data loss.'
+      a: 'Yes. Start a free 7-day trial alongside your Petpooja setup. Add your menu (AI extracts it from a photo in 2 minutes). Train staff (15 minutes). Run both systems in parallel for a few days to build confidence, then switch over. No downtime, no data loss.'
     },
     {
       q: 'Does DineOpen work for large restaurant chains?',
@@ -542,7 +542,7 @@ export default function PetpoojaAlternativeClient() {
       }}>
         <div style={{ maxWidth: '700px', margin: '0 auto' }}>
           <h2 style={{ fontSize: '32px', fontWeight: '800', color: 'white', marginBottom: '16px' }}>
-            Try DineOpen Free for 30 Days
+            Try DineOpen Free for 7 Days
           </h2>
           <p style={{ fontSize: '18px', color: 'rgba(255,255,255,0.9)', marginBottom: '32px', lineHeight: '1.7' }}>
             No credit card. No contracts. No hardware needed. Set up in 15 minutes and see if DineOpen is right for your restaurant.

@@ -159,7 +159,7 @@ export default function ResourcesClient() {
               Ready to Start Your Restaurant?
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '32px' }}>
-              Use DineOpen to manage your restaurant from day one. Free 30-day trial.
+              Use DineOpen to manage your restaurant from day one. Free 7-day trial.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link

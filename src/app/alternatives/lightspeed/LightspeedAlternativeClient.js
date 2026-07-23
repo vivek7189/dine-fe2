@@ -166,7 +166,7 @@ export default function LightspeedAlternativeClient() {
               Ready to Switch from Lightspeed?
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '32px' }}>
-              Start your free 30-day trial. No credit card required. Import your menu in minutes.
+              Start your free 7-day trial. No credit card required. Import your menu in minutes.
             </p>
             <Link
               href="https://dineopen.com/login"

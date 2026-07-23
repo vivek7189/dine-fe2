@@ -102,7 +102,7 @@ export default function GSTBillingClient() {
     },
     {
       question: 'Is there a free trial for the GST billing software?',
-      answer: 'Yes. DineOpen offers a free 30-day trial with all GST features included. No credit card required. Pricing starts at just Rs 300 per month after the trial.'
+      answer: 'Yes. DineOpen offers a free 7-day trial with all GST features included. No credit card required. Pricing starts at just Rs 300 per month after the trial.'
     },
   ];
 
@@ -191,7 +191,7 @@ export default function GSTBillingClient() {
             fontWeight: '600',
             marginBottom: '40px'
           }}>
-            Starting at just Rs 300/month | Free 30-day trial | No credit card required
+            Starting at just Rs 300/month | Free 7-day trial | No credit card required
           </p>
 
           <div style={{
@@ -260,7 +260,7 @@ export default function GSTBillingClient() {
         }}>
           <p style={{ fontSize: '13px', fontWeight: '700', color: '#991b1b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Quick Answer</p>
           <p style={{ fontSize: '16px', color: '#1f2937', lineHeight: '1.7', margin: 0 }}>
-            <strong>DineOpen is GST billing software built for Indian restaurants.</strong> It auto-calculates 5% GST (non-AC restaurants) or 18% GST (AC restaurants), splits into CGST + SGST on every invoice, adds your GSTIN and HSN code (9963), and generates GSTR-1/GSTR-3B ready reports with one click. Supports e-invoicing. Starts at ₹300/month with a 30-day free trial. Used by 1,000+ restaurants across India.
+            <strong>DineOpen is GST billing software built for Indian restaurants.</strong> It auto-calculates 5% GST (non-AC restaurants) or 18% GST (AC restaurants), splits into CGST + SGST on every invoice, adds your GSTIN and HSN code (9963), and generates GSTR-1/GSTR-3B ready reports with one click. Supports e-invoicing. Starts at ₹300/month with a 7-day free trial. Used by 1,000+ restaurants across India.
           </p>
         </div>
       </section>
@@ -590,7 +590,7 @@ export default function GSTBillingClient() {
                 'Export to Tally/Excel',
                 'E-invoicing ready',
                 'Unlimited invoices',
-                '30-day free trial'
+                '7-day free trial'
               ].map((item, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <FaCheckCircle size={14} color="#22c55e" />
@@ -614,7 +614,7 @@ export default function GSTBillingClient() {
                 marginBottom: '16px'
               }}
             >
-              Start Free 30-Day Trial
+              Start Free 7-Day Trial
             </button>
 
             <div>
@@ -678,7 +678,7 @@ export default function GSTBillingClient() {
             color: 'white',
             marginBottom: '20px'
           }}>
-            Start GST-Compliant Billing Today — Free 30-Day Trial
+            Start GST-Compliant Billing Today — Free 7-Day Trial
           </h2>
           <p style={{
             fontSize: '18px',

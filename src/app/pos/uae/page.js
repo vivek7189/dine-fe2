@@ -129,7 +129,7 @@ export default function UAEPOSPage() {
         "name": "Can I get a free trial of DineOpen in UAE?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all UAE restaurants. No credit card required. Get full access to VAT billing, Talabat/Deliveroo integration, and multi-language features."
+          "text": "Yes, DineOpen offers a 7-day free trial for all UAE restaurants. No credit card required. Get full access to VAT billing, Talabat/Deliveroo integration, and multi-language features."
         }
       }
     ]

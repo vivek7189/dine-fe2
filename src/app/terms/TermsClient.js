@@ -218,7 +218,7 @@ export default function TermsOfService() {
               Free Trial
             </h3>
             <p style={{ marginBottom: '16px' }}>
-              We offer a 14-day free trial for new users. Your subscription will automatically begin after the trial period unless you cancel before it ends.
+              We offer a 7-day free trial for new users. Your subscription will automatically begin after the trial period unless you cancel before it ends.
             </p>
           </section>
 

@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Mumbai | GST Billing | DineOpen',
-  description: 'Best restaurant POS software for Mumbai restaurants. GST billing, QR menus, Zomato/Swiggy integration, UPI payments. AI voice ordering in Hindi & English. Free 30-day trial.',
+  description: 'Best restaurant POS software for Mumbai restaurants. GST billing, QR menus, Zomato/Swiggy integration, UPI payments. AI voice ordering in Hindi & English. Free 7-day trial.',
   keywords: 'restaurant POS Mumbai, billing software Mumbai, restaurant management Mumbai, GST billing software Mumbai, cafe POS Mumbai, bar POS Mumbai, Zomato integration Mumbai, Swiggy POS Mumbai, QR menu Mumbai',
   openGraph: {
     title: 'Best Restaurant POS Software in Mumbai | DineOpen',
@@ -95,7 +95,7 @@ export default function MumbaiPOSPage() {
         "name": "Can I get a free trial of DineOpen in Mumbai?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Mumbai restaurants. No credit card required. Get full access to GST billing, delivery integration, and offline mode that works even during monsoons."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Mumbai restaurants. No credit card required. Get full access to GST billing, delivery integration, and offline mode that works even during monsoons."
         }
       }
     ]

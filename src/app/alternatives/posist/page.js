@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best POSist Alternative 2026 | DineOpen - Save 60% on Restaurant POS',
-  description: 'Looking for a POSist alternative in India? DineOpen offers AI voice ordering, lower monthly fees, better support. Save ₹50,000+/year vs POSist. Free 30-day trial.',
+  description: 'Looking for a POSist alternative in India? DineOpen offers AI voice ordering, lower monthly fees, better support. Save ₹50,000+/year vs POSist. Free 7-day trial.',
   keywords: 'POSist alternative, POSist POS alternative, better than POSist, POSist competitor India, affordable restaurant POS India, POSist replacement, restaurant billing software India',
   openGraph: {
     title: 'Best POSist Alternative | DineOpen - AI-Powered Restaurant POS India',
@@ -49,7 +49,7 @@ const faqSchema = {
       "name": "Can I switch from POSist to DineOpen?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, switching from POSist to DineOpen is easy with our guided migration. Start a free 30-day trial to test all features before fully committing."
+        "text": "Yes, switching from POSist to DineOpen is easy with our guided migration. Start a free 7-day trial to test all features before fully committing."
       }
     },
     {

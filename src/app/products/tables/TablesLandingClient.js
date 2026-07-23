@@ -245,7 +245,7 @@ export default function TablesLandingClient() {
               Start Managing Tables Smarter
             </h2>
             <p style={{ fontSize: '18px', color: 'rgba(255,255,255,0.9)', marginBottom: '32px' }}>
-              Set up your floor plan and start taking reservations in minutes. Free 30-day trial.
+              Set up your floor plan and start taking reservations in minutes. Free 7-day trial.
             </p>
             <Link href="/login?ref=tables" style={{ display: 'inline-block', padding: '18px 40px', backgroundColor: 'white', color: '#dc2626', borderRadius: '12px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
               Start Free Trial

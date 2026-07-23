@@ -310,7 +310,7 @@ export default function HotelLandingClient() {
               Ready to Simplify Your Hotel Operations?
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '32px' }}>
-              Start your free 30-day trial. No credit card required. Set up your property in under 10 minutes.
+              Start your free 7-day trial. No credit card required. Set up your property in under 10 minutes.
             </p>
             <Link href="/login?ref=hotel" style={{ display: 'inline-block', padding: '18px 40px', backgroundColor: 'white', color: accentColor, borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
               Start Free Trial

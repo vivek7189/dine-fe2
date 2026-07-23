@@ -118,7 +118,7 @@ export default function LoyaltyClient() {
               Start Building Customer Loyalty Today
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '32px' }}>
-              Free 30-day trial. No credit card required.
+              Free 7-day trial. No credit card required.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link

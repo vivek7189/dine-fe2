@@ -129,7 +129,7 @@ export default function AustraliaPOSPage() {
         "name": "Can I get a free trial of DineOpen in Australia?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Australian restaurants and cafes. No credit card required. Get full access to GST billing, delivery integrations, and cafe-focused features."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Australian restaurants and cafes. No credit card required. Get full access to GST billing, delivery integrations, and cafe-focused features."
         }
       }
     ]

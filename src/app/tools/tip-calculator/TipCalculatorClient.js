@@ -172,7 +172,7 @@ export default function TipCalculatorClient() {
               Run a Restaurant? Try DineOpen POS
             </h2>
             <p style={{ fontSize: '16px', opacity: 0.9, marginBottom: '24px' }}>
-              AI-powered billing, QR menus, tip tracking & more. Free 30-day trial.
+              AI-powered billing, QR menus, tip tracking & more. Free 7-day trial.
             </p>
             <Link
               href="https://dineopen.com/login"

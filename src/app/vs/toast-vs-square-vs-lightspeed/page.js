@@ -79,7 +79,7 @@ const faqSchema = {
       name: 'Is there a free restaurant POS option?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Square offers a genuinely free POS plan with no monthly fee, but you pay 2.6% + $0.10 on every transaction. Toast has a $0/month Starter plan, but it charges higher processing fees (2.49% + $0.15) and limits features. These "free" plans can cost $9,000-$10,000+ per year in processing fees for a typical restaurant. DineOpen offers a 30-day free trial with all features, then $10/month with zero transaction fees — making it effectively the cheapest option long-term.',
+        text: 'Square offers a genuinely free POS plan with no monthly fee, but you pay 2.6% + $0.10 on every transaction. Toast has a $0/month Starter plan, but it charges higher processing fees (2.49% + $0.15) and limits features. These "free" plans can cost $9,000-$10,000+ per year in processing fees for a typical restaurant. DineOpen offers a 7-day free trial with all features, then $10/month with zero transaction fees — making it effectively the cheapest option long-term.',
       },
     },
   ],
@@ -141,7 +141,7 @@ const comparisonRows = [
   { feature: 'Inventory', toast: 'Add-on (xtraCHEF)', square: 'Basic stock tracking', lightspeed: 'Advanced (best-in-class)', dineopen: 'Recipe-level deduction included' },
   { feature: 'Offline Mode', toast: 'Yes (hardware-based)', square: 'Yes (limited)', lightspeed: 'Yes (limited)', dineopen: 'KOT printer works offline' },
   { feature: 'Countries', toast: 'US only', square: 'US, CA, UK, AU, JP, FR, ES, IE', lightspeed: 'US, CA, UK, AU, DE, FR, BE, NL', dineopen: '20+ countries worldwide' },
-  { feature: 'Free Trial', toast: 'Demo only', square: 'Free plan (forever)', lightspeed: '14-day trial', dineopen: '30-day trial, full features' },
+  { feature: 'Free Trial', toast: 'Demo only', square: 'Free plan (forever)', lightspeed: '7-day trial', dineopen: '7-day trial, full features' },
 ];
 
 export default function ToastVsSquareVsLightspeedPage() {
@@ -661,7 +661,7 @@ export default function ToastVsSquareVsLightspeedPage() {
               <ol style={{ ...p, paddingLeft: '20px', margin: 0 }}>
                 <li style={{ marginBottom: '8px' }}><strong>Check your annual renewal date.</strong> Lightspeed typically auto-renews annually. Time your switch to align with your contract end date to avoid paying for unused months.</li>
                 <li style={{ marginBottom: '8px' }}><strong>Export reports and menu.</strong> Download your sales reports, customer data, and item library before canceling.</li>
-                <li style={{ marginBottom: '8px' }}><strong>Set up DineOpen during your last Lightspeed month.</strong> Use DineOpen&rsquo;s 30-day free trial to run parallel before Lightspeed expires.</li>
+                <li style={{ marginBottom: '8px' }}><strong>Set up DineOpen during your last Lightspeed month.</strong> Use DineOpen&rsquo;s 7-day free trial to run parallel before Lightspeed expires.</li>
                 <li><strong>Transfer your iPad.</strong> If you used an iPad with Lightspeed, just open Safari and log into DineOpen. Same hardware, new (cheaper) software.</li>
               </ol>
             </div>
@@ -750,7 +750,7 @@ export default function ToastVsSquareVsLightspeedPage() {
               Square and Toast both offer $0/month plans, but they charge 2.5&ndash;2.6% on every transaction. On $30K/month in sales, that &ldquo;free&rdquo; plan costs $9,000&ndash;$10,000/year in processing fees. The word &ldquo;free&rdquo; is doing a lot of heavy lifting in those marketing pages.
             </p>
             <p style={p}>
-              DineOpen offers a 30-day free trial with all features unlocked, then $10/month with zero transaction fees &mdash; making it the cheapest option long-term at $120/year for POS software. If you&rsquo;re looking for the lowest total cost of ownership, DineOpen is the answer.
+              DineOpen offers a 7-day free trial with all features unlocked, then $10/month with zero transaction fees &mdash; making it the cheapest option long-term at $120/year for POS software. If you&rsquo;re looking for the lowest total cost of ownership, DineOpen is the answer.
             </p>
           </div>
         </section>
@@ -760,7 +760,7 @@ export default function ToastVsSquareVsLightspeedPage() {
           <div style={{ ...wrap, textAlign: 'center' }}>
             <h2 style={{ ...h2, color: '#fff', margin: '0 0 12px' }}>Try DineOpen Free &mdash; The 4th Option</h2>
             <p style={{ ...p, color: '#dbeafe', fontSize: '18px', maxWidth: '600px', margin: '0 auto 24px' }}>
-              Why pay $9,000+/year in POS fees? Start with a 30-day free trial. No credit card. No contract. Full features. Most restaurants take their first real order within an hour.
+              Why pay $9,000+/year in POS fees? Start with a 7-day free trial. No credit card. No contract. Full features. Most restaurants take their first real order within an hour.
             </p>
             <Link href="https://app.dineopen.com/signup" style={{
               display: 'inline-block', background: '#fff', color: '#1e40af', padding: '16px 36px',

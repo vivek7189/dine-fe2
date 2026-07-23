@@ -85,7 +85,7 @@ const faqSchema = {
       "name": "How much does a cloud kitchen POS cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen costs just $10/month with no long-term contracts, no setup fees, and no transaction fees. Competitors like Toast charge $69+/month with additional per-transaction fees. Start with a free 30-day trial."
+        "text": "DineOpen costs just $10/month with no long-term contracts, no setup fees, and no transaction fees. Competitors like Toast charge $69+/month with additional per-transaction fees. Start with a free 7-day trial."
       }
     },
     {

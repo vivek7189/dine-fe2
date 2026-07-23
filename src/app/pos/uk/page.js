@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS System UK | AI Voice Ordering | EPOS Alternative | DineOpen',
-  description: 'Best restaurant POS for UK restaurants. AI voice ordering, QR menus, VAT-compliant billing. Affordable alternative to Epos Now, Lightspeed. Free 30-day trial. From £8/month.',
+  description: 'Best restaurant POS for UK restaurants. AI voice ordering, QR menus, VAT-compliant billing. Affordable alternative to Epos Now, Lightspeed. Free 7-day trial. From £8/month.',
   keywords: 'restaurant POS UK, restaurant EPOS system, UK restaurant software, Epos Now alternative, Lightspeed alternative, restaurant billing software UK, cafe POS UK, pub POS system, British restaurant POS, QR menu ordering UK, VAT billing restaurant',
   openGraph: {
     title: 'Restaurant POS System UK | AI Voice Ordering | DineOpen',
@@ -124,7 +124,7 @@ export default function UKPOSPage() {
         "name": "Can I get a free trial of DineOpen in the UK?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all UK restaurants and pubs. No credit card required. You get full access to VAT billing, delivery integrations, and AI voice ordering features."
+          "text": "Yes, DineOpen offers a 7-day free trial for all UK restaurants and pubs. No credit card required. You get full access to VAT billing, delivery integrations, and AI voice ordering features."
         }
       }
     ]

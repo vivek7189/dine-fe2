@@ -268,7 +268,7 @@ export default function PricingClient() {
   ];
 
   const faqs = [
-    { q: 'Is there a free trial?', a: 'Yes — 14-day free trial on all plans. No credit card required. Full access to every feature.' },
+    { q: 'Is there a free trial?', a: 'Yes — 7-day free trial on all plans. No credit card required. Full access to every feature.' },
     { q: 'How does DineOpen keep prices so low?', a: 'We are a modern cloud-native product built by a lean team — no legacy infrastructure, no bloated sales teams, no expensive offices. We pass those savings to you. We also bundle AI features (Voice Ordering, AI Menu Generator, AI Insights) that competitors charge extra for or don\'t offer at all.' },
     { q: 'What are the transaction fees?', a: 'DineOpen charges 0% transaction fees, ever. You only pay your payment processor (Razorpay, Paytm, Stripe) at their standard rates — and even those are 0% for UPI in India when using our recommended Paytm integration.' },
     { q: 'Can I switch plans later?', a: 'Yes — upgrade or downgrade anytime from your dashboard. Changes take effect immediately and we prorate the difference.' },
@@ -678,7 +678,7 @@ export default function PricingClient() {
         {/* Final CTA */}
         <div style={{ padding: '60px 20px', textAlign: 'center', background: 'linear-gradient(135deg, #fef2f2 0%, #ffffff 100%)' }}>
           <h2 style={{ fontSize: '36px', fontWeight: '800', color: '#111827', marginBottom: '16px' }}>
-            Start your 14-day free trial
+            Start your 7-day free trial
           </h2>
           <p style={{ fontSize: '18px', color: '#6b7280', marginBottom: '8px' }}>
             Join 500+ restaurants already running on DineOpen.

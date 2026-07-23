@@ -107,7 +107,7 @@ export default function CloverAlternativeClient() {
           <div style={{ maxWidth: '600px', margin: '0 auto' }}>
             <h2 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '16px' }}>Ready to Switch from Clover?</h2>
             <p style={{ fontSize: '18px', opacity: 0.9, marginBottom: '32px' }}>
-              Start your free 30-day trial. No hardware to buy. No long-term contracts.
+              Start your free 7-day trial. No hardware to buy. No long-term contracts.
             </p>
             <Link href="https://dineopen.com/login" style={{ display: 'inline-block', padding: '16px 40px', backgroundColor: 'white', color: '#1d4ed8', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
               Start Free Trial →

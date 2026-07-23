@@ -67,7 +67,7 @@ export default function PrayagrajPOSPage() {
         "name": "Can I get a free trial of DineOpen in Prayagraj?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Prayagraj restaurants. No credit card required. Get full access to pure veg management, GST billing, and pilgrim crowd handling features."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Prayagraj restaurants. No credit card required. Get full access to pure veg management, GST billing, and pilgrim crowd handling features."
         }
       }
     ]

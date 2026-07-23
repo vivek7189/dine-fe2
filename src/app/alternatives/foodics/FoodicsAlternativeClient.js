@@ -169,7 +169,7 @@ export default function FoodicsAlternativeClient() {
             <div className="text-center">
               <div className="w-16 h-16 bg-teal-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">1</div>
               <h3 className="font-bold text-lg mb-2">Sign Up Free</h3>
-              <p className="text-gray-600">Create your DineOpen account in 2 minutes. No credit card required. 30-day free trial.</p>
+              <p className="text-gray-600">Create your DineOpen account in 2 minutes. No credit card required. 7-day free trial.</p>
             </div>
             <div className="text-center">
               <div className="w-16 h-16 bg-teal-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">2</div>
@@ -189,7 +189,7 @@ export default function FoodicsAlternativeClient() {
       <section className="py-16 px-4 bg-gradient-to-br from-teal-600 to-blue-700">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-white mb-4">Switch from Foodics Today</h2>
-          <p className="text-xl text-teal-100 mb-8">Start your free 30-day trial. No credit card required. No contracts. Import your menu in minutes.</p>
+          <p className="text-xl text-teal-100 mb-8">Start your free 7-day trial. No credit card required. No contracts. Import your menu in minutes.</p>
           <Link
             href="https://dineopen.com/login"
             className="bg-white text-teal-700 px-8 py-4 rounded-lg text-lg font-bold hover:bg-teal-50 transition-colors inline-block"

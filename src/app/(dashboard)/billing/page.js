@@ -184,7 +184,7 @@ function BillingContent() {
           name: 'Free Trial',
           price: 0,
           period: '30 days',
-          description: '30 days free, no credit card required',
+          description: '7 days free, no credit card required',
           popular: false,
           features: [
             'AI Agent (Voice/Chat)',
@@ -262,7 +262,7 @@ function BillingContent() {
           name: 'Free Trial',
           price: 0,
           period: '30 days',
-          description: '30 days free, no credit card required',
+          description: '7 days free, no credit card required',
           popular: false,
           features: [
             'AI Agent (Voice/Chat)',
@@ -1267,7 +1267,7 @@ function BillingContent() {
                 <span style={{ color: '#6b7280', fontSize: '13px', marginLeft: '8px' }}>
                   {trialInfo.isExpired
                     ? 'Please select a plan to continue using DineOpen'
-                    : '(30 day trial)'}
+                    : '(7 day trial)'}
                 </span>
               </div>
             </div>

@@ -92,7 +92,7 @@ const faqSchema = {
       name: 'How long does it take to switch from Toast to DineOpen?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Most operators are live on DineOpen in under an hour. You upload a photo of your existing menu, AI extraction creates the digital menu in 2-3 minutes, you confirm prices and tax rates, connect a payment processor, and start taking orders. There is no contract, no installation fee, and a 30-day free trial with full features.',
+        text: 'Most operators are live on DineOpen in under an hour. You upload a photo of your existing menu, AI extraction creates the digital menu in 2-3 minutes, you confirm prices and tax rates, connect a payment processor, and start taking orders. There is no contract, no installation fee, and a 7-day free trial with full features.',
       },
     },
     {
@@ -382,7 +382,7 @@ export default function DineOpenVsToastPage() {
         {/* ============ CTA ============ */}
         <section style={{ background: 'linear-gradient(135deg,#1e40af 0%,#2563eb 100%)', color: '#fff', padding: '60px 20px', margin: '60px 0 0' }}>
           <div style={{ ...wrap, textAlign: 'center' }}>
-            <h2 style={{ ...h2, color: '#fff', margin: '0 0 12px' }}>Try DineOpen free for 30 days</h2>
+            <h2 style={{ ...h2, color: '#fff', margin: '0 0 12px' }}>Try DineOpen free for 7 days</h2>
             <p style={{ ...p, color: '#dbeafe', fontSize: '18px' }}>
               No credit card. No contract. Full features. Most restaurants are taking real orders within an hour of signup.
             </p>

@@ -246,7 +246,7 @@ export default function BillingLandingClient() {
               Start Generating GST-Compliant Bills Today
             </h2>
             <p style={{ fontSize: '18px', color: 'rgba(255,255,255,0.9)', marginBottom: '32px' }}>
-              Free 30-day trial. No credit card required. Set up billing in under 5 minutes.
+              Free 7-day trial. No credit card required. Set up billing in under 5 minutes.
             </p>
             <Link href="/login?ref=billing" style={{ display: 'inline-block', padding: '18px 40px', backgroundColor: 'white', color: '#dc2626', borderRadius: '12px', fontWeight: '700', textDecoration: 'none', fontSize: '18px', boxShadow: '0 4px 14px rgba(0,0,0,0.15)' }}>
               Start Free Trial

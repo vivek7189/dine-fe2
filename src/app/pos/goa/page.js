@@ -107,7 +107,7 @@ export default function GoaPOSPage() {
         "name": "Can I get a free trial of DineOpen in Goa?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Goa restaurants, beach shacks, and bars. No credit card required. Get full access to multi-currency display, bar management, and seasonal billing features."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Goa restaurants, beach shacks, and bars. No credit card required. Get full access to multi-currency display, bar management, and seasonal billing features."
         }
       }
     ]

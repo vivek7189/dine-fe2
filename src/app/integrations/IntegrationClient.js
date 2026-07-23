@@ -98,7 +98,7 @@ export default function IntegrationClient({ data }) {
               Ready to Connect {name}?
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.9, marginBottom: '32px' }}>
-              Start your free 30-day trial. Integration is included at no extra cost.
+              Start your free 7-day trial. Integration is included at no extra cost.
             </p>
             <Link
               href="https://dineopen.com/login"

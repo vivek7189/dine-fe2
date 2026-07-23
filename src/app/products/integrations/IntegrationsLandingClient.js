@@ -368,7 +368,7 @@ export default function IntegrationsLandingClient() {
               Connect Your Restaurant to Zomato, Swiggy & Razorpay Today
             </h2>
             <p style={{ fontSize: '18px', color: 'rgba(255,255,255,0.9)', marginBottom: '32px' }}>
-              Free 30-day trial. All integrations included. Set up in under 10 minutes.
+              Free 7-day trial. All integrations included. Set up in under 10 minutes.
             </p>
             <Link href="/login?ref=integrations" style={{ display: 'inline-block', padding: '18px 40px', backgroundColor: 'white', color: '#dc2626', borderRadius: '12px', fontWeight: '700', textDecoration: 'none', fontSize: '18px', boxShadow: '0 4px 14px rgba(0,0,0,0.15)' }}>
               Start Free Trial

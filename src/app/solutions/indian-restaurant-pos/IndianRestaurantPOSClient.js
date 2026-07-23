@@ -336,7 +336,7 @@ export default function IndianRestaurantPOSClient() {
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Try DineOpen Free for Your Indian Restaurant</h2>
           <p className="text-xl text-gray-600 mb-8">
-            30-day free trial. No credit card required. Set up your full Indian menu with spice levels, thali combos, and modifiers in under an hour.
+            7-day free trial. No credit card required. Set up your full Indian menu with spice levels, thali combos, and modifiers in under an hour.
           </p>
           <Link
             href="https://dineopen.com/login"

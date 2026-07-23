@@ -67,7 +67,7 @@ export default function MeerutPOSPage() {
         "name": "Can I get a free trial of DineOpen in Meerut?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Meerut restaurants and food businesses. No credit card required. Get full access to canteen billing, GST compliance, and inventory management."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Meerut restaurants and food businesses. No credit card required. Get full access to canteen billing, GST compliance, and inventory management."
         }
       }
     ]

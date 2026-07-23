@@ -214,7 +214,7 @@ export default function WaiterAppClient() {
               href="https://dineopen.com/login"
               style={{ display: 'inline-block', padding: '18px 40px', backgroundColor: 'white', color: '#2563eb', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}
             >
-              Start Free 30-Day Trial →
+              Start Free 7-Day Trial →
             </Link>
           </div>
         </section>

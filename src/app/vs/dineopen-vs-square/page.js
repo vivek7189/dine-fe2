@@ -63,7 +63,7 @@ const faqSchema = {
     {
       '@type': 'Question',
       name: 'Is there a free trial?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Yes. DineOpen offers a 30-day free trial with full features, no credit card required. You can run your entire restaurant on it for a month before deciding. Most operators are fully onboarded and taking real orders within an hour because of AI menu extraction.' }
+      acceptedAnswer: { '@type': 'Answer', text: 'Yes. DineOpen offers a 7-day free trial with full features, no credit card required. You can run your entire restaurant on it for a month before deciding. Most operators are fully onboarded and taking real orders within an hour because of AI menu extraction.' }
     }
   ]
 };
@@ -278,7 +278,7 @@ export default function DineOpenVsSquarePage() {
 
         <section style={{ background: 'linear-gradient(135deg,#047857 0%,#10b981 100%)', color: '#fff', padding: '60px 20px', margin: '60px 0 0' }}>
           <div style={{ ...wrap, textAlign: 'center' }}>
-            <h2 style={{ ...h2, color: '#fff', margin: '0 0 12px' }}>Try DineOpen free for 30 days</h2>
+            <h2 style={{ ...h2, color: '#fff', margin: '0 0 12px' }}>Try DineOpen free for 7 days</h2>
             <p style={{ ...p, color: '#d1fae5', fontSize: '18px' }}>No credit card. No contract. AI menu extraction gets you live in under an hour.</p>
             <Link href="https://app.dineopen.com/signup" style={{ display: 'inline-block', background: '#fff', color: '#047857', padding: '16px 36px', borderRadius: '999px', fontSize: '17px', fontWeight: 800, textDecoration: 'none', marginTop: '12px', boxShadow: '0 8px 24px rgba(0,0,0,.18)' }}>Start free trial →</Link>
           </div>

@@ -309,7 +309,7 @@ export default function EnterpriseClient() {
                     Get Started
                   </a>
                   <p style={{ textAlign: 'center', fontSize: 11, color: '#9ca3af', marginTop: 8 }}>
-                    14-day free trial. No credit card required.
+                    7-day free trial. No credit card required.
                   </p>
                 </div>
               </div>
@@ -654,7 +654,7 @@ export default function EnterpriseClient() {
           Ready to scale your restaurant chain?
         </h2>
         <p style={{ fontSize: 16, opacity: 0.8, maxWidth: 500, margin: '0 auto 28px' }}>
-          Start your 14-day free trial or talk to our enterprise team.
+          Start your 7-day free trial or talk to our enterprise team.
         </p>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
           <a href="https://www.dineopen.com/signup" style={{

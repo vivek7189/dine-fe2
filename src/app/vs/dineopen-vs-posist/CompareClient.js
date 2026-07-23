@@ -60,7 +60,7 @@ const faqs = [
   },
   {
     q: 'Can I migrate from POSist to DineOpen without losing data?',
-    a: 'You can start a free 30-day DineOpen trial alongside your POSist setup. Use AI menu extraction to digitize your menu instantly. Historical transaction data from POSist would need to be exported separately for your records. We recommend running both systems in parallel for 5-7 days before switching. If you have complex multi-outlet setups or custom POSist integrations, plan for a 2-week transition period.'
+    a: 'You can start a free 7-day DineOpen trial alongside your POSist setup. Use AI menu extraction to digitize your menu instantly. Historical transaction data from POSist would need to be exported separately for your records. We recommend running both systems in parallel for 5-7 days before switching. If you have complex multi-outlet setups or custom POSist integrations, plan for a 2-week transition period.'
   },
   {
     q: 'Which POS is better for a single restaurant in India?',
@@ -214,7 +214,7 @@ export default function CompareClient() {
                   'AI voice ordering, chat assistant, menu extraction',
                   'Zero transaction fees on all plans',
                   '15-minute self-setup, works on any device',
-                  '30-day free trial, no credit card required',
+                  '7-day free trial, no credit card required',
                   'No Zomato/Swiggy integration (honest limitation)',
                 ].map((item, i) => (
                   <li key={i} style={{ padding: '8px 0', color: '#374151', fontSize: '15px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
@@ -632,7 +632,7 @@ export default function CompareClient() {
       }}>
         <div style={{ maxWidth: '700px', margin: '0 auto' }}>
           <h2 style={{ fontSize: '34px', fontWeight: '800', color: '#ffffff', marginBottom: '16px' }}>
-            Try DineOpen Free for 30 Days
+            Try DineOpen Free for 7 Days
           </h2>
           <p style={{ fontSize: '18px', color: 'rgba(255,255,255,0.9)', marginBottom: '32px', lineHeight: '1.6' }}>
             See if DineOpen is the right fit for your restaurant. No credit card, no contracts, no hardware needed. Full access to all features including AI voice ordering.
@@ -671,7 +671,7 @@ export default function CompareClient() {
             </Link>
           </div>
           <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '24px', flexWrap: 'wrap' }}>
-            {['No credit card needed', '30-day full access', 'Cancel anytime'].map((item, i) => (
+            {['No credit card needed', '7-day full access', 'Cancel anytime'].map((item, i) => (
               <span key={i} style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
                 &#10003; {item}
               </span>

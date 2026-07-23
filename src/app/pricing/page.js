@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'DineOpen Pricing | AI Restaurant POS from $10/month | Free Trial',
-  description: 'The world\'s most affordable AI-powered restaurant POS. Plans start at $10/month ($8 annual) with AI voice ordering, KOT printing, QR menus and zero transaction fees. Free 14-day trial.',
+  description: 'The world\'s most affordable AI-powered restaurant POS. Plans start at $10/month ($8 annual) with AI voice ordering, KOT printing, QR menus and zero transaction fees. Free 7-day trial.',
   keywords: 'DineOpen pricing, restaurant POS pricing, cheap restaurant POS, AI restaurant POS, affordable restaurant software, restaurant billing software price, POS system cost, Petpooja alternative, Toast alternative, Square alternative, free restaurant POS trial',
   openGraph: {
     title: 'DineOpen Pricing | AI Restaurant POS from $10/month',
-    description: 'The world\'s most affordable AI-powered restaurant POS. Starting at $10/month. Zero transaction fees. Free 14-day trial.',
+    description: 'The world\'s most affordable AI-powered restaurant POS. Starting at $10/month. Zero transaction fees. Free 7-day trial.',
     url: 'https://www.dineopen.com/pricing',
     siteName: 'DineOpen',
     type: 'website',
@@ -17,7 +17,7 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'DineOpen Pricing | AI Restaurant POS from $10/month',
-    description: 'The world\'s most affordable AI-powered POS. Starting at $10/month. Zero transaction fees. Free 14-day trial.',
+    description: 'The world\'s most affordable AI-powered POS. Starting at $10/month. Zero transaction fees. Free 7-day trial.',
   },
   alternates: {
     canonical: 'https://www.dineopen.com/pricing',
@@ -86,7 +86,7 @@ export default function PricingPage() {
         "name": "How much does DineOpen cost?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen Starter plan starts at just ₹299/month for a single outlet ($10/month internationally). Growth plan is ₹899/month with AI features for 1 outlet. Pro plan is ₹1,799/month for up to 2 outlets with chain dashboard. Enterprise pricing is custom for 3+ outlets - book a demo. All plans include a 14-day free trial with no credit card required."
+          "text": "DineOpen Starter plan starts at just ₹299/month for a single outlet ($10/month internationally). Growth plan is ₹899/month with AI features for 1 outlet. Pro plan is ₹1,799/month for up to 2 outlets with chain dashboard. Enterprise pricing is custom for 3+ outlets - book a demo. All plans include a 7-day free trial with no credit card required."
         }
       },
       {
@@ -94,7 +94,7 @@ export default function PricingPage() {
         "name": "Is there a free trial for DineOpen?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 14-day free trial with no credit card required. You get full access to all features including AI Voice Ordering, Cloud POS, KOT printing, inventory management, analytics, and customer loyalty. No feature restrictions during the trial."
+          "text": "Yes, DineOpen offers a 7-day free trial with no credit card required. You get full access to all features including AI Voice Ordering, Cloud POS, KOT printing, inventory management, analytics, and customer loyalty. No feature restrictions during the trial."
         }
       },
       {

@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Toast POS Alternative 2026 | DineOpen - AI-Powered, Lower Cost',
-  description: 'Looking for a Toast alternative? DineOpen offers AI voice ordering, zero transaction fees vs Toast\'s 2.49%. No hardware lock-in. Save $7,000+/year. Free 30-day trial.',
+  description: 'Looking for a Toast alternative? DineOpen offers AI voice ordering, zero transaction fees vs Toast\'s 2.49%. No hardware lock-in. Save $7,000+/year. Free 7-day trial.',
   keywords: 'Toast alternative, Toast POS alternative, better than Toast, Toast competitor, Toast replacement, Toast POS cheaper alternative, restaurant POS without fees, AI restaurant POS, Toast for restaurants alternative, affordable Toast alternative',
   openGraph: {
     title: 'Best Toast POS Alternative | DineOpen - AI-Powered, Zero Fees',
-    description: 'Switch from Toast to DineOpen. Get AI voice ordering, zero transaction fees, no hardware lock-in. Free 30-day trial.',
+    description: 'Switch from Toast to DineOpen. Get AI voice ordering, zero transaction fees, no hardware lock-in. Free 7-day trial.',
     url: 'https://www.dineopen.com/alternatives/toast',
     siteName: 'DineOpen',
     images: [
@@ -25,7 +25,7 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Best Toast POS Alternative | DineOpen - Save on Fees',
-    description: 'Switch from Toast to DineOpen. AI voice ordering, zero transaction fees. Free 30-day trial.',
+    description: 'Switch from Toast to DineOpen. AI voice ordering, zero transaction fees. Free 7-day trial.',
   },
   alternates: {
     canonical: 'https://www.dineopen.com/alternatives/toast',
@@ -65,7 +65,7 @@ const faqSchema = {
       "name": "Can I switch from Toast to DineOpen?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, switching from Toast to DineOpen is straightforward with our easy migration process. Start with a free 30-day trial to test all features before committing."
+        "text": "Yes, switching from Toast to DineOpen is straightforward with our easy migration process. Start with a free 7-day trial to test all features before committing."
       }
     },
     {

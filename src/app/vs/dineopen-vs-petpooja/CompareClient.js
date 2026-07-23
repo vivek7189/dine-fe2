@@ -126,7 +126,7 @@ export default function CompareClient() {
                   'AI-powered (voice ordering, chat, menu extraction)',
                   'Zero transaction fees',
                   'Available in 20+ countries',
-                  '30-day free trial',
+                  '7-day free trial',
                 ].map((item, i) => (
                   <li key={i} style={{ padding: '8px 0', color: '#374151', fontSize: '15px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                     <span style={{ color: '#16a34a', fontWeight: '700', flexShrink: 0 }}>&#10003;</span>
@@ -149,7 +149,7 @@ export default function CompareClient() {
                   'Established brand with large support team',
                   '1.5-2% transaction fees',
                   'India-focused platform',
-                  '14-day free trial',
+                  '7-day free trial',
                 ].map((item, i) => (
                   <li key={i} style={{ padding: '8px 0', color: '#374151', fontSize: '15px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                     <span style={{ color: '#7c3aed', fontWeight: '700', flexShrink: 0 }}>&#10003;</span>
@@ -445,7 +445,7 @@ export default function CompareClient() {
               If you need an <strong>established India-focused brand with a large local support team</strong> and you are already deeply integrated into Petpooja&apos;s ecosystem, Petpooja remains a solid choice.
             </p>
             <p style={{ fontSize: '15px', color: '#6b7280', lineHeight: '1.7', margin: 0, fontStyle: 'italic' }}>
-              Either way, we recommend trying DineOpen&apos;s free 30-day trial. You can test everything risk-free and decide based on your own experience.
+              Either way, we recommend trying DineOpen&apos;s free 7-day trial. You can test everything risk-free and decide based on your own experience.
             </p>
           </div>
         </div>
@@ -538,7 +538,7 @@ export default function CompareClient() {
       }}>
         <div style={{ maxWidth: '700px', margin: '0 auto' }}>
           <h2 style={{ fontSize: '34px', fontWeight: '800', color: '#ffffff', marginBottom: '16px' }}>
-            Try DineOpen Free for 30 Days
+            Try DineOpen Free for 7 Days
           </h2>
           <p style={{ fontSize: '18px', color: '#dbeafe', marginBottom: '32px', lineHeight: '1.6' }}>
             See the difference yourself. No credit card required. Full access to all features including AI voice ordering.
@@ -560,7 +560,7 @@ export default function CompareClient() {
             Start Free Trial — See the Difference
           </Link>
           <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '24px', flexWrap: 'wrap' }}>
-            {['No credit card needed', '30-day full access', 'Cancel anytime'].map((item, i) => (
+            {['No credit card needed', '7-day full access', 'Cancel anytime'].map((item, i) => (
               <span key={i} style={{ color: '#bfdbfe', fontSize: '14px' }}>
                 &#10003; {item}
               </span>

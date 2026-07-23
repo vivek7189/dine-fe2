@@ -29,7 +29,7 @@ const faqSchema = {
     { '@type': 'Question', name: 'What about the Clover app marketplace?', acceptedAnswer: { '@type': 'Answer', text: 'Clover has a larger third-party app marketplace (loyalty, scheduling, accounting) than DineOpen. This is a fair concession. However, DineOpen ships loyalty, inventory, KDS, waiter app, online ordering, WhatsApp ordering, and analytics in the base $9.99 plan — so most restaurants do not need third-party add-ons at all.' } },
     { '@type': 'Question', name: 'Am I stuck in a Clover contract?', acceptedAnswer: { '@type': 'Answer', text: 'Clover merchants sign processor agreements with the specific ISO (First Data, Payment Depot, Dharma, etc.) who sold them the hardware. These typically have 2-3 year terms and early termination fees of $300-$500. If you are within your contract, check the termination fee — often the switch to DineOpen pays for itself within the first 4-6 months of savings.' } },
     { '@type': 'Question', name: 'Does DineOpen offer restaurant-specific features Clover does not?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. AI voice ordering in English and Spanish, AI menu extraction from a photo, multi-tier pricing (AC / Non-AC / Takeaway / Delivery), recipe-level inventory deduction, bar pour tracking, WhatsApp ordering, and customer khata/credit are all built in. Clover offers some of these only through paid third-party apps.' } },
-    { '@type': 'Question', name: 'Is there a free trial?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. DineOpen offers a 30-day free trial with all features unlocked. No credit card required. AI menu extraction gets your menu digitized in about 2 minutes so you can be live the same hour you sign up.' } }
+    { '@type': 'Question', name: 'Is there a free trial?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. DineOpen offers a 7-day free trial with all features unlocked. No credit card required. AI menu extraction gets your menu digitized in about 2 minutes so you can be live the same hour you sign up.' } }
   ]
 };
 
@@ -235,7 +235,7 @@ export default function DineOpenVsCloverPage() {
 
         <section style={{ background: 'linear-gradient(135deg,#4338ca 0%,#6366f1 100%)', color: '#fff', padding: '60px 20px', margin: '60px 0 0' }}>
           <div style={{ ...wrap, textAlign: 'center' }}>
-            <h2 style={{ ...h2, color: '#fff', margin: '0 0 12px' }}>Try DineOpen free for 30 days</h2>
+            <h2 style={{ ...h2, color: '#fff', margin: '0 0 12px' }}>Try DineOpen free for 7 days</h2>
             <p style={{ ...p, color: '#e0e7ff', fontSize: '18px' }}>No hardware to buy. No contract. No credit card.</p>
             <Link href="https://app.dineopen.com/signup" style={{ display: 'inline-block', background: '#fff', color: '#4338ca', padding: '16px 36px', borderRadius: '999px', fontSize: '17px', fontWeight: 800, textDecoration: 'none', marginTop: '12px', boxShadow: '0 8px 24px rgba(0,0,0,.18)' }}>Start free trial →</Link>
           </div>

@@ -67,7 +67,7 @@ export default function SaharanpurPOSPage() {
         "name": "Can I get a free trial of DineOpen in Saharanpur?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Saharanpur restaurants and food businesses. No credit card required. Get full access to sweet shop billing, GST compliance, and inventory management."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Saharanpur restaurants and food businesses. No credit card required. Get full access to sweet shop billing, GST compliance, and inventory management."
         }
       }
     ]

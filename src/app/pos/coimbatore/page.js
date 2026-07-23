@@ -96,7 +96,7 @@ export default function CoimbatorePOSPage() {
         "name": "Can I get a free trial of DineOpen in Coimbatore?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Coimbatore restaurants. No credit card required. Get full access to Tamil language support, GST billing, and filter coffee shop management features."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Coimbatore restaurants. No credit card required. Get full access to Tamil language support, GST billing, and filter coffee shop management features."
         }
       }
     ]

@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS System USA | AI Voice Ordering | Square Alternative | DineOpen',
-  description: 'Best restaurant POS for US restaurants. AI voice ordering, QR menus, zero transaction fees (save vs Square 2.6%). Works with Toast, Clover hardware. Free 30-day trial.',
+  description: 'Best restaurant POS for US restaurants. AI voice ordering, QR menus, zero transaction fees (save vs Square 2.6%). Works with Toast, Clover hardware. Free 7-day trial.',
   keywords: 'restaurant POS USA, restaurant POS system America, US restaurant software, Square alternative USA, Toast alternative, restaurant billing software USA, cafe POS USA, bar POS system, American restaurant POS, QR menu ordering USA',
   openGraph: {
     title: 'Restaurant POS System USA | AI Voice Ordering | DineOpen',
@@ -120,7 +120,7 @@ export default function USAPOSPage() {
         "name": "Can I get a free trial of DineOpen in the USA?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all US restaurants. No credit card required. You get full access to all features including zero-fee payments, AI voice ordering, and delivery platform integrations."
+          "text": "Yes, DineOpen offers a 7-day free trial for all US restaurants. No credit card required. You get full access to all features including zero-fee payments, AI voice ordering, and delivery platform integrations."
         }
       }
     ]

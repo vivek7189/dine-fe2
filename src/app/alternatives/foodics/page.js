@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Foodics Alternative 2026 | DineOpen - Affordable UAE POS',
-  description: 'Looking for a Foodics alternative in UAE? Switch from Foodics (AED 300+/mo) to DineOpen (AED 149/mo). Zero transaction fees, no long contracts, Arabic + English support. Free 30-day trial.',
+  description: 'Looking for a Foodics alternative in UAE? Switch from Foodics (AED 300+/mo) to DineOpen (AED 149/mo). Zero transaction fees, no long contracts, Arabic + English support. Free 7-day trial.',
   keywords: 'Foodics alternative, Foodics alternative UAE, cheaper than Foodics, Foodics competitor, restaurant POS UAE',
   openGraph: {
     title: 'Best Foodics Alternative UAE | DineOpen - Half the Price',
-    description: 'Switch from Foodics to DineOpen. AED 149/mo vs AED 300+/mo. Zero transaction fees, no hardware lock-in, Arabic support. Free 30-day trial.',
+    description: 'Switch from Foodics to DineOpen. AED 149/mo vs AED 300+/mo. Zero transaction fees, no hardware lock-in, Arabic support. Free 7-day trial.',
     url: 'https://www.dineopen.com/alternatives/foodics',
     siteName: 'DineOpen',
     images: [
@@ -25,7 +25,7 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Best Foodics Alternative UAE | DineOpen - Save AED 5,400+/Year',
-    description: 'Switch from Foodics to DineOpen. AED 149/mo, zero transaction fees, no contracts. Free 30-day trial.',
+    description: 'Switch from Foodics to DineOpen. AED 149/mo, zero transaction fees, no contracts. Free 7-day trial.',
   },
   alternates: {
     canonical: 'https://www.dineopen.com/alternatives/foodics',
@@ -77,7 +77,7 @@ const faqSchema = {
       "name": "Can I migrate from Foodics to DineOpen easily?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, migrating from Foodics to DineOpen is simple. Sign up for a free 30-day trial, use AI-powered menu extraction to import your menu automatically, and go live within 24 hours. No professional installation required."
+        "text": "Yes, migrating from Foodics to DineOpen is simple. Sign up for a free 7-day trial, use AI-powered menu extraction to import your menu automatically, and go live within 24 hours. No professional installation required."
       }
     }
   ]

@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Delhi NCR | GST Billing | DineOpen',
-  description: 'Best restaurant POS for Delhi, Gurgaon, Noida restaurants. GST billing, QR menus, Zomato/Swiggy integration, UPI payments. AI voice ordering in Hindi. Free 30-day trial.',
+  description: 'Best restaurant POS for Delhi, Gurgaon, Noida restaurants. GST billing, QR menus, Zomato/Swiggy integration, UPI payments. AI voice ordering in Hindi. Free 7-day trial.',
   keywords: 'restaurant POS Delhi, billing software Delhi, restaurant management Delhi NCR, GST billing software Delhi, cafe POS Gurgaon, bar POS Noida, Zomato integration Delhi, QR menu Delhi',
   openGraph: {
     title: 'Best Restaurant POS Software in Delhi NCR | DineOpen',
@@ -63,7 +63,7 @@ export default function DelhiPOSPage() {
         "name": "What is the best restaurant POS software in Delhi NCR?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen is the top-rated restaurant POS software in Delhi NCR, offering GST-compliant billing, Zomato and Swiggy integration, UPI payments, and AI voice ordering in Hindi. Plans start at just ₹999/month with a free 30-day trial."
+          "text": "DineOpen is the top-rated restaurant POS software in Delhi NCR, offering GST-compliant billing, Zomato and Swiggy integration, UPI payments, and AI voice ordering in Hindi. Plans start at just ₹999/month with a free 7-day trial."
         }
       },
       {
@@ -95,7 +95,7 @@ export default function DelhiPOSPage() {
         "name": "Can I get a free trial of DineOpen in Delhi?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Delhi NCR restaurants. No credit card required. You get full access to GST billing, Zomato/Swiggy integration, and AI voice ordering features."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Delhi NCR restaurants. No credit card required. You get full access to GST billing, Zomato/Swiggy integration, and AI voice ordering features."
         }
       }
     ]

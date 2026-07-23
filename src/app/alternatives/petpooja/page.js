@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: '#1 Petpooja Alternative 2026 | Free Trial, Zero Fees | DineOpen',
-  description: 'Looking for a Petpooja alternative? Honest comparison of features & pricing. DineOpen: AI voice ordering, zero transaction fees, all features included from ₹300/mo. No hidden add-on costs. 30-day free trial.',
+  description: 'Looking for a Petpooja alternative? Honest comparison of features & pricing. DineOpen: AI voice ordering, zero transaction fees, all features included from ₹300/mo. No hidden add-on costs. 7-day free trial.',
   keywords: 'Petpooja alternative, Petpooja alternative free, Petpooja similar software, Petpooja competitor, top competitors to Petpooja, Petpooja app review, Petpooja POS review, restaurant POS India, GST billing software, Petpooja vs DineOpen, affordable restaurant POS India',
   openGraph: {
     title: 'DineOpen vs Petpooja — Honest Comparison 2026',
@@ -50,7 +50,7 @@ const faqSchema = {
       "name": "Can I switch from Petpooja to DineOpen?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, switching is easy. Start a free 30-day trial alongside Petpooja. Add your menu using AI photo extraction (2 minutes). Train staff (15 minutes). Run both systems in parallel for a few days, then switch. No downtime, no data loss, no contracts."
+        "text": "Yes, switching is easy. Start a free 7-day trial alongside Petpooja. Add your menu using AI photo extraction (2 minutes). Train staff (15 minutes). Run both systems in parallel for a few days, then switch. No downtime, no data loss, no contracts."
       }
     },
     {
@@ -82,7 +82,7 @@ const faqSchema = {
       "name": "Is there a free Petpooja alternative?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen offers a 30-day free trial with all features included — no credit card required. After the trial, the Spark plan starts at just ₹300/month ($9.99) with zero transaction fees. This makes it one of the most affordable Petpooja alternatives available in India."
+        "text": "DineOpen offers a 7-day free trial with all features included — no credit card required. After the trial, the Spark plan starts at just ₹300/month ($9.99) with zero transaction fees. This makes it one of the most affordable Petpooja alternatives available in India."
       }
     }
   ]

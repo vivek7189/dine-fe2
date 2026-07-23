@@ -111,7 +111,7 @@ export default function LucknowPOSPage() {
         "name": "Can I get a free trial of DineOpen in Lucknow?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Lucknow restaurants and kebab shops. No credit card required. Get full access to Awadhi cuisine features, GST billing, and delivery integrations."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Lucknow restaurants and kebab shops. No credit card required. Get full access to Awadhi cuisine features, GST billing, and delivery integrations."
         }
       }
     ]

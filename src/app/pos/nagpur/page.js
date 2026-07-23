@@ -96,7 +96,7 @@ export default function NagpurPOSPage() {
         "name": "Can I get a free trial of DineOpen in Nagpur?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Nagpur restaurants. No credit card required. Get full access to Marathi language support, GST billing, and Saoji cuisine customization features."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Nagpur restaurants. No credit card required. Get full access to Marathi language support, GST billing, and Saoji cuisine customization features."
         }
       }
     ]

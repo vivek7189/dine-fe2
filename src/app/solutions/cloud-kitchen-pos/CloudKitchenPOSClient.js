@@ -297,7 +297,7 @@ export default function CloudKitchenPOSClient() {
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Launch Your Cloud Kitchen with DineOpen</h2>
           <p className="text-lg text-gray-300 mb-8 leading-relaxed">
-            Start your free 30-day trial. No credit card required. No contracts. Set up multiple brands and start taking orders in minutes.
+            Start your free 7-day trial. No credit card required. No contracts. Set up multiple brands and start taking orders in minutes.
           </p>
           <Link
             href="https://dineopen.com/login"
@@ -328,7 +328,7 @@ export default function CloudKitchenPOSClient() {
             </div>
             <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100">
               <h3 className="font-bold text-lg text-gray-900 mb-2">How much does a cloud kitchen POS cost?</h3>
-              <p className="text-gray-600 leading-relaxed">DineOpen costs just $10/month with no long-term contracts, no setup fees, and no transaction fees. Competitors like Toast charge $69+/month with additional per-transaction fees. Start with a free 30-day trial.</p>
+              <p className="text-gray-600 leading-relaxed">DineOpen costs just $10/month with no long-term contracts, no setup fees, and no transaction fees. Competitors like Toast charge $69+/month with additional per-transaction fees. Start with a free 7-day trial.</p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100">
               <h3 className="font-bold text-lg text-gray-900 mb-2">Can I track performance for each brand separately?</h3>

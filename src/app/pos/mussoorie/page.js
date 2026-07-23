@@ -67,7 +67,7 @@ export default function MussooriePOSPage() {
         "name": "Can I get a free trial of DineOpen in Mussoorie?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Mussoorie restaurants and cafes. No credit card required. Get full access to seasonal management, GST billing, and tourist-friendly features."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Mussoorie restaurants and cafes. No credit card required. Get full access to seasonal management, GST billing, and tourist-friendly features."
         }
       }
     ]

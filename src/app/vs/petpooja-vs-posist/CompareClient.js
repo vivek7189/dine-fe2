@@ -112,7 +112,7 @@ export default function CompareClient() {
                   'Best for: Small-medium restaurants',
                   'Strong Zomato/Swiggy direct integration',
                   'Support in 150+ Indian cities',
-                  '14-day free trial available',
+                  '7-day free trial available',
                 ].map((item, i) => (
                   <li key={i} style={{ padding: '8px 0', color: '#374151', fontSize: '15px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                     <span style={{ color: '#f59e0b', fontWeight: '700', flexShrink: 0 }}>&#9679;</span>

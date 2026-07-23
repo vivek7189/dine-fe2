@@ -129,7 +129,7 @@ export default function CanadaPOSPage() {
         "name": "Can I get a free trial of DineOpen in Canada?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Canadian restaurants. No credit card required. Get full access to HST/GST billing, delivery integrations, and winter-ready offline mode."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Canadian restaurants. No credit card required. Get full access to HST/GST billing, delivery integrations, and winter-ready offline mode."
         }
       }
     ]

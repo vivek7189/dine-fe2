@@ -178,7 +178,7 @@ export default function BookingsClient() {
               Take Control of Your Bookings
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '32px' }}>
-              Calendar view, list view, and date-based availability. Start your free 30-day trial.
+              Calendar view, list view, and date-based availability. Start your free 7-day trial.
             </p>
             <Link href="/login?ref=hotel" style={{ display: 'inline-block', padding: '18px 40px', backgroundColor: 'white', color: accentColor, borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
               Start Free Trial

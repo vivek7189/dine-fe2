@@ -188,7 +188,7 @@ export default function InvoicesClient() {
               Start Generating Professional Invoices
             </h2>
             <p style={{ fontSize: '18px', color: 'rgba(255,255,255,0.9)', marginBottom: '32px' }}>
-              Set up your invoice template in minutes. Free 30-day trial with no credit card required.
+              Set up your invoice template in minutes. Free 7-day trial with no credit card required.
             </p>
             <Link href="/login?ref=billing" style={{ display: 'inline-block', padding: '18px 40px', backgroundColor: 'white', color: '#dc2626', borderRadius: '12px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
               Start Free Trial

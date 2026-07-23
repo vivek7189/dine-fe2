@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Lightspeed Restaurant Alternative 2026 | DineOpen - Save 70%',
-  description: 'Looking for a Lightspeed Restaurant alternative? DineOpen offers AI voice ordering, lower monthly fees, unlimited locations. Save $3,000+/year vs Lightspeed. Free 30-day trial.',
+  description: 'Looking for a Lightspeed Restaurant alternative? DineOpen offers AI voice ordering, lower monthly fees, unlimited locations. Save $3,000+/year vs Lightspeed. Free 7-day trial.',
   keywords: 'Lightspeed alternative, Lightspeed Restaurant alternative, Lightspeed POS alternative, better than Lightspeed, Lightspeed competitor, affordable restaurant POS, Lightspeed replacement',
   openGraph: {
     title: 'Best Lightspeed Restaurant Alternative | DineOpen - AI-Powered',
-    description: 'Switch from Lightspeed to DineOpen. Get AI voice ordering, lower fees, unlimited locations. Free 30-day trial.',
+    description: 'Switch from Lightspeed to DineOpen. Get AI voice ordering, lower fees, unlimited locations. Free 7-day trial.',
     url: 'https://www.dineopen.com/alternatives/lightspeed',
     siteName: 'DineOpen',
     type: 'website',
@@ -57,7 +57,7 @@ const faqSchema = {
       "name": "Can I switch from LightSpeed to DineOpen?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, switching is easy. Start a free 30-day trial to test all of DineOpen's features before fully migrating from LightSpeed."
+        "text": "Yes, switching is easy. Start a free 7-day trial to test all of DineOpen's features before fully migrating from LightSpeed."
       }
     },
     {

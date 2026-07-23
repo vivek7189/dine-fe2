@@ -13,7 +13,7 @@ const competitors = [
     voiceOrdering: true,
     qrOrdering: true,
     multiLocation: 'Unlimited',
-    freeTrial: '30 days',
+    freeTrial: '7 days',
     gstBilling: true,
     highlight: true,
   },
@@ -173,7 +173,7 @@ export default function CompareClient() {
               href="https://dineopen.com/login"
               className="bg-green-600 text-white px-8 py-4 rounded-lg text-lg font-bold hover:bg-green-700 transition-colors"
             >
-              Start Free 30-Day Trial →
+              Start Free 7-Day Trial →
             </Link>
           </div>
         </div>
@@ -194,7 +194,7 @@ export default function CompareClient() {
             </div>
             <div className="bg-white p-6 rounded-xl shadow-md">
               <h3 className="font-bold text-lg mb-2">Is there a free restaurant POS system?</h3>
-              <p className="text-gray-600">DineOpen offers a free 30-day trial with all features. After that, plans start at just $10/month with no hidden fees.</p>
+              <p className="text-gray-600">DineOpen offers a free 7-day trial with all features. After that, plans start at just $10/month with no hidden fees.</p>
             </div>
           </div>
         </div>

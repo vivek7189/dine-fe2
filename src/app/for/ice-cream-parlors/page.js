@@ -9,7 +9,7 @@ export const metadata = {
   keywords: 'best pos system for ice cream shop, pos system for ice cream shop, ice cream pos system, pos for ice cream shop, ice cream shop pos system, ice cream parlor POS, ice cream shop software, ice cream shop management software, ice cream inventory management, ice cream pos free, small ice cream shop pos software, ice cream pos software, gelato shop POS, frozen dessert billing, scoop billing software, ice cream distribution software, dessert parlor POS, best pos for ice cream shop, free pos ice cream',
   openGraph: {
     title: 'Best POS for Ice Cream Shops 2026 — Scoop Billing + Loyalty [Free Trial]',
-    description: 'Ice cream POS with scoop billing, combo pricing, loyalty programs & seasonal menus. Used by 1000+ parlors. ₹0 transaction fees. Try free for 30 days.',
+    description: 'Ice cream POS with scoop billing, combo pricing, loyalty programs & seasonal menus. Used by 1000+ parlors. ₹0 transaction fees. Try free for 7 days.',
     url: 'https://www.dineopen.com/for/ice-cream-parlors',
     siteName: 'DineOpen',
     type: 'website',
@@ -31,7 +31,7 @@ const faqSchema = {
       "name": "What is the best POS system for ice cream shop?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen is the best POS system for ice cream shops in 2026. It offers scoop-based billing, topping customizations, combo pricing, loyalty programs, seasonal menu management, and QR ordering to handle queues. Starting at $9.99/month with zero transaction fees and a free 30-day trial."
+        "text": "DineOpen is the best POS system for ice cream shops in 2026. It offers scoop-based billing, topping customizations, combo pricing, loyalty programs, seasonal menu management, and QR ordering to handle queues. Starting at $9.99/month with zero transaction fees and a free 7-day trial."
       }
     },
     {
@@ -71,7 +71,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for ice cream parlors?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a 30-day free trial with no credit card required. You get full access to all ice cream POS features including scoop billing, loyalty programs, seasonal menu management, and multi-location support."
+        "text": "Yes, DineOpen offers a 7-day free trial with no credit card required. You get full access to all ice cream POS features including scoop billing, loyalty programs, seasonal menu management, and multi-location support."
       }
     },
     {
@@ -103,7 +103,7 @@ const faqSchema = {
       "name": "Is there a free POS system for ice cream shops?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen offers a 30-day free trial with all ice cream POS features included — no credit card required. After the trial, the Spark plan starts at just $9.99/month with zero transaction fees. Some free POS systems exist but typically charge per-transaction fees (2-3%), which cost more than a paid POS for shops doing even moderate business."
+        "text": "DineOpen offers a 7-day free trial with all ice cream POS features included — no credit card required. After the trial, the Spark plan starts at just $9.99/month with zero transaction fees. Some free POS systems exist but typically charge per-transaction fees (2-3%), which cost more than a paid POS for shops doing even moderate business."
       }
     }
   ]

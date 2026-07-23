@@ -111,7 +111,7 @@ export default function AhmedabadPOSPage() {
         "name": "Can I get a free trial of DineOpen in Ahmedabad?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Ahmedabad restaurants. No credit card required. Get full access to Gujarati language support, GST billing, and Jain/non-Jain menu management."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Ahmedabad restaurants. No credit card required. Get full access to Gujarati language support, GST billing, and Jain/non-Jain menu management."
         }
       }
     ]

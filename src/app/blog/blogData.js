@@ -1430,7 +1430,7 @@ export const blogPostContent = {
         <p>You don't need a $1,200/month POS. You need a tool that takes orders, prints chits, tracks inventory, and gets out of your way. That's it.</p>
 
         <div style="background:#1e293b;color:#fff;padding:32px;border-radius:12px;margin:32px 0;text-align:center;">
-          <h3 style="color:#fbbf24;margin-top:0;">Try DineOpen free for 30 days</h3>
+          <h3 style="color:#fbbf24;margin-top:0;">Try DineOpen free for 7 days</h3>
           <p style="font-size:16px;line-height:1.7;margin:16px 0;">No credit card. No contract. Spark is $9.99/mo after trial. Bring your own processor or use ours.</p>
           <a href="/pricing" style="display:inline-block;background:#fbbf24;color:#1e293b;padding:14px 28px;border-radius:8px;font-weight:700;text-decoration:none;font-size:16px;">See pricing →</a>
         </div>
@@ -1900,7 +1900,7 @@ export const blogPostContent = {
                 <strong style="font-size: 18px; color: #ef4444;">DineOpen</strong>
                 <span style="font-size: 24px; font-weight: 700; color: #ef4444;">₹999-2,999</span>
               </div>
-              <p style="margin: 0; color: #6b7280;">✅ Zero transaction fees<br/>✅ 1 month free trial<br/>✅ All features included</p>
+              <p style="margin: 0; color: #6b7280;">✅ Zero transaction fees<br/>✅ 7 days free trial<br/>✅ All features included</p>
             </div>
             <div style="padding: 20px; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -2054,7 +2054,7 @@ export const blogPostContent = {
           <li>✅ Purpose-built for cafes (not adapted from retail)</li>
           <li>✅ Modern, intuitive interface</li>
           <li>✅ Transparent pricing (₹999/month starting)</li>
-          <li>✅ 1 month free trial (longest in the market)</li>
+          <li>✅ 7 days free trial (longest in the market)</li>
         </ul>
 
         <p>Start your free trial today and see why cafe owners are choosing DineOpen over traditional solutions.</p>
@@ -4109,7 +4109,7 @@ export const blogPostContent = {
           <li>✅ AI voice ordering (unique in the market)</li>
           <li>✅ Zero transaction fees (save ₹5-6 lakhs annually)</li>
           <li>✅ Transparent pricing (₹999/month starting)</li>
-          <li>✅ 1 month free trial (longest in the market)</li>
+          <li>✅ 7 days free trial (longest in the market)</li>
           <li>✅ Modern, intuitive interface</li>
         </ul>
 
@@ -4599,7 +4599,7 @@ export const blogPostContent = {
           <li>✅ AI voice ordering (unique in the market)</li>
           <li>✅ Zero transaction fees (save ₹15-21 lakhs annually)</li>
           <li>✅ Transparent pricing (₹999/month starting)</li>
-          <li>✅ 1 month free trial (longest in the market)</li>
+          <li>✅ 7 days free trial (longest in the market)</li>
         </ul>
 
         <p>Start your free trial today and see why bar owners are choosing DineOpen to brew higher profits while streamlining operations.</p>
@@ -6935,7 +6935,7 @@ export const blogPostContent = {
             <div style="font-size: 32px; font-weight: bold; color: #ef4444; min-width: 40px;">1</div>
             <div>
               <h4 style="color: #1f2937; margin-bottom: 8px;">Sign Up Free</h4>
-              <p style="color: #6b7280; margin: 0;">Get 1 month free trial—no credit card required. Start using DineOpen immediately.</p>
+              <p style="color: #6b7280; margin: 0;">Get 7 days free trial—no credit card required. Start using DineOpen immediately.</p>
             </div>
           </div>
 
@@ -7623,7 +7623,7 @@ export const blogPostContent = {
             <div style="font-size: 32px; font-weight: bold; color: #16a34a; min-width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; background: #f0fdf4; border-radius: 12px;">2</div>
             <div>
               <h4 style="color: #1f2937; margin-bottom: 8px; font-size: 18px;">Start Your Free Trial — 30 Days, No Card Required</h4>
-              <p style="color: #6b7280; margin: 0; font-size: 16px;">Sign up for DineOpen and get a full 30-day free trial with all features unlocked. No credit card required. No commitment. Just sign up and start exploring.</p>
+              <p style="color: #6b7280; margin: 0; font-size: 16px;">Sign up for DineOpen and get a full 7-day free trial with all features unlocked. No credit card required. No commitment. Just sign up and start exploring.</p>
             </div>
           </div>
 
@@ -7647,7 +7647,7 @@ export const blogPostContent = {
             <p style="font-size: 18px; margin-bottom: 8px; opacity: 0.95;">Your restaurant works hard for every rupee. Keep 100% of your payment revenue.</p>
             <p style="font-size: 16px; margin-bottom: 28px; opacity: 0.85;">Join restaurants saving ₹50,000+ per year with DineOpen's zero-fee model.</p>
             <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-              <a href="/#pricing" style="display: inline-block; padding: 18px 36px; background: white; color: #16a34a; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">Start Free Trial — 30 Days Free</a>
+              <a href="/#pricing" style="display: inline-block; padding: 18px 36px; background: white; color: #16a34a; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">Start Free Trial — 7 Days Free</a>
               <a href="/tools/roi-calculator" style="display: inline-block; padding: 18px 36px; background: rgba(255,255,255,0.2); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid white;">Calculate Your Savings</a>
             </div>
           </div>
@@ -7961,7 +7961,7 @@ export const blogPostContent = {
             <div style="min-width: 48px; height: 48px; background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 20px;">4</div>
             <div>
               <h3 style="color: #111827; margin: 0 0 8px; font-size: 20px;">Set Up Your Tech Stack</h3>
-              <p style="color: #374151; margin: 0; font-size: 16px;">Sign up for <a href="/" style="color: #ef4444; font-weight: 600;">DineOpen</a> (free 30-day trial). Set up your POS, configure your KDS, connect Zomato and Swiggy integration. Upload your menu — or let <a href="/products/ai-agent" style="color: #ef4444; font-weight: 600;">DineOpen's AI</a> extract it from a photo.</p>
+              <p style="color: #374151; margin: 0; font-size: 16px;">Sign up for <a href="/" style="color: #ef4444; font-weight: 600;">DineOpen</a> (free 7-day trial). Set up your POS, configure your KDS, connect Zomato and Swiggy integration. Upload your menu — or let <a href="/products/ai-agent" style="color: #ef4444; font-weight: 600;">DineOpen's AI</a> extract it from a photo.</p>
             </div>
           </div>
           <div style="display: flex; gap: 20px; margin-bottom: 24px; align-items: flex-start;">
@@ -8003,7 +8003,7 @@ export const blogPostContent = {
 
         <div style="background: linear-gradient(135deg, #111827, #374151); border-radius: 20px; padding: 48px 32px; text-align: center; margin: 50px 0; color: white;">
           <h2 style="font-size: 32px; font-weight: 800; margin-bottom: 16px;">Launch Your Cloud Kitchen with DineOpen</h2>
-          <p style="font-size: 18px; margin-bottom: 32px; opacity: 0.95;">Get POS, KDS, delivery integration, inventory, and multi-brand management — all in one platform at ₹300/month. Free 30-day trial.</p>
+          <p style="font-size: 18px; margin-bottom: 32px; opacity: 0.95;">Get POS, KDS, delivery integration, inventory, and multi-brand management — all in one platform at ₹300/month. Free 7-day trial.</p>
           <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
             <a href="https://dineopen.com/login" style="display: inline-block; padding: 16px 32px; background: #ef4444; color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start Free Trial →</a>
             <a href="/for/cloud-kitchens" style="display: inline-block; padding: 16px 32px; background: rgba(255,255,255,0.15); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid rgba(255,255,255,0.3);">Cloud Kitchen POS →</a>
@@ -8196,7 +8196,7 @@ export const blogPostContent = {
             <div style="min-width: 40px; height: 40px; background: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800;">1</div>
             <div>
               <h4 style="color: #111827; margin: 0 0 4px;">Set up DineOpen</h4>
-              <p style="color: #374151; margin: 0; font-size: 16px;">Free 30-day trial, no credit card required. Your POS data automatically feeds into the analytics dashboard.</p>
+              <p style="color: #374151; margin: 0; font-size: 16px;">Free 7-day trial, no credit card required. Your POS data automatically feeds into the analytics dashboard.</p>
             </div>
           </div>
           <div style="display: flex; gap: 20px; margin-bottom: 20px; align-items: flex-start;">
@@ -8770,7 +8770,7 @@ export const blogPostContent = {
 
         <div style="background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 16px; padding: 40px; margin: 40px 0; color: white; text-align: center;">
           <h3 style="color: white; margin-bottom: 16px; font-size: 26px;">Ready to upgrade your ice cream shop?</h3>
-          <p style="font-size: 18px; margin-bottom: 24px; opacity: 0.95;">DineOpen is built for ice cream shops — scoop billing, flavor management, loyalty programs, and zero transaction fees. Try free for 30 days.</p>
+          <p style="font-size: 18px; margin-bottom: 24px; opacity: 0.95;">DineOpen is built for ice cream shops — scoop billing, flavor management, loyalty programs, and zero transaction fees. Try free for 7 days.</p>
           <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
             <a href="/for/ice-cream-parlors" style="display: inline-block; padding: 16px 32px; background: white; color: #ef4444; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">See Ice Cream POS Features →</a>
             <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: rgba(255,255,255,0.2); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid white;">Start Free Trial</a>
@@ -9148,7 +9148,7 @@ export const blogPostContent = {
 
         <div style="background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 16px; padding: 40px; margin: 40px 0; color: white; text-align: center;">
           <h3 style="color: white; margin-bottom: 16px; font-size: 26px;">Need a billing app that does it all?</h3>
-          <p style="font-size: 18px; margin-bottom: 24px; opacity: 0.95;">DineOpen combines billing, inventory, KOT, analytics, and loyalty in one app. GST-compliant. Zero transaction fees. Try free for 30 days.</p>
+          <p style="font-size: 18px; margin-bottom: 24px; opacity: 0.95;">DineOpen combines billing, inventory, KOT, analytics, and loyalty in one app. GST-compliant. Zero transaction fees. Try free for 7 days.</p>
           <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
             <a href="/free-restaurant-billing-software" style="display: inline-block; padding: 16px 32px; background: white; color: #ef4444; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">See Free Billing Software →</a>
             <a href="/restaurant-billing-app" style="display: inline-block; padding: 16px 32px; background: rgba(255,255,255,0.2); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid white;">Billing App Features</a>
@@ -9247,7 +9247,7 @@ export const blogPostContent = {
         <!-- RIGHT SIDE CTA -->
         <div style="background: linear-gradient(135deg, #111827, #1f2937); border-radius: 16px; padding: 28px; margin: 32px 0; color: white; text-align: center;">
           <p style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #9ca3af; margin: 0 0 8px 0;">DineOpen Inventory</p>
-          <h3 style="color: white; margin: 0 0 12px 0; font-size: 22px;">Try It Free for 30 Days</h3>
+          <h3 style="color: white; margin: 0 0 12px 0; font-size: 22px;">Try It Free for 7 Days</h3>
           <p style="margin: 0 0 20px 0; opacity: 0.85; font-size: 15px; line-height: 1.6;">Stock tracking, recipe costing, supplier management, AI reorder — everything in one dashboard.</p>
           <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
             <a href="/login?ref=inventory-blog" style="display: inline-block; padding: 14px 28px; background: #ef4444; color: white; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 15px;">Start Free Trial</a>
@@ -9687,7 +9687,7 @@ export const blogPostContent = {
 
         <div style="background: #f8fafc; border-radius: 16px; padding: 28px; margin: 24px 0; border: 1px solid #e2e8f0;">
           <h3 style="margin: 0 0 20px 0; color: #0f172a; font-size: 20px;">Step 1: Sign Up & Add Your Items</h3>
-          <p style="color: #334155; line-height: 1.8; margin: 0 0 8px 0;"><a href="/login?ref=inventory-blog-setup" style="color:#ef4444;font-weight:600;">Create your DineOpen account</a> (free 30-day trial). Go to Inventory → Items. Add your ingredients one by one, or scan barcodes for faster entry. For each item, set:</p>
+          <p style="color: #334155; line-height: 1.8; margin: 0 0 8px 0;"><a href="/login?ref=inventory-blog-setup" style="color:#ef4444;font-weight:600;">Create your DineOpen account</a> (free 7-day trial). Go to Inventory → Items. Add your ingredients one by one, or scan barcodes for faster entry. For each item, set:</p>
           <ul style="color: #334155; line-height: 1.8;">
             <li>Item name, SKU, category</li>
             <li>Unit of measure (kg, g, ml, pieces)</li>
@@ -9792,7 +9792,7 @@ export const blogPostContent = {
 
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
             <h4 style="color: #1f2937; margin-bottom: 8px;">How much does DineOpen Inventory cost?</h4>
-            <p style="color: #4b5563; margin: 0; line-height: 1.7;">DineOpen Inventory is included with all plans. The Spark plan starts at $9.99/month (₹300/month in India) with basic stock tracking. The Blaze plan at $89/month (₹2,500/month in India) includes advanced features like recipe costing, purchase orders, invoice OCR, AI suggestions, and multi-location support. All plans come with a free 30-day trial. <a href="/pricing" style="color: #ef4444;">See full pricing →</a></p>
+            <p style="color: #4b5563; margin: 0; line-height: 1.7;">DineOpen Inventory is included with all plans. The Spark plan starts at $9.99/month (₹300/month in India) with basic stock tracking. The Blaze plan at $89/month (₹2,500/month in India) includes advanced features like recipe costing, purchase orders, invoice OCR, AI suggestions, and multi-location support. All plans come with a free 7-day trial. <a href="/pricing" style="color: #ef4444;">See full pricing →</a></p>
           </div>
 
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
@@ -9847,7 +9847,7 @@ export const blogPostContent = {
             <h3 style="color: white; margin-bottom: 12px; font-size: 28px;">Start Managing Your Inventory the Smart Way</h3>
             <p style="font-size: 18px; margin-bottom: 24px; opacity: 0.95; max-width: 600px; margin-left: auto; margin-right: auto;">Join thousands of restaurants using DineOpen to reduce waste, lower food costs, and never run out of stock again.</p>
             <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-              <a href="/login?ref=inventory-blog-final" style="display: inline-block; padding: 16px 36px; background: white; color: #dc2626; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start Free 30-Day Trial →</a>
+              <a href="/login?ref=inventory-blog-final" style="display: inline-block; padding: 16px 36px; background: white; color: #dc2626; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start Free 7-Day Trial →</a>
               <a href="/#contact" style="display: inline-block; padding: 16px 36px; background: rgba(255,255,255,0.2); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid white;">Book a Free Demo</a>
             </div>
             <p style="margin: 16px 0 0 0; font-size: 14px; opacity: 0.8;">No credit card required. All features included.</p>

@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restroworks Alternative 2026 | DineOpen - Affordable Restaurant POS',
-  description: 'Looking for a Restroworks (POSist) alternative? DineOpen offers AI-powered POS with zero transaction fees, no setup costs, and enterprise features at SMB prices. Free 30-day trial.',
+  description: 'Looking for a Restroworks (POSist) alternative? DineOpen offers AI-powered POS with zero transaction fees, no setup costs, and enterprise features at SMB prices. Free 7-day trial.',
   keywords: 'Restroworks alternative, POSist alternative, Restroworks competitor, restaurant POS India, Restroworks pricing, Restroworks replacement, affordable restaurant POS',
   openGraph: {
     title: 'Best Restroworks Alternative | DineOpen - AI-Powered Restaurant POS',
-    description: 'Switch from Restroworks to DineOpen. AI voice ordering, zero transaction fees, no enterprise pricing. Free 30-day trial.',
+    description: 'Switch from Restroworks to DineOpen. AI voice ordering, zero transaction fees, no enterprise pricing. Free 7-day trial.',
     url: 'https://www.dineopen.com/alternatives/restroworks',
     siteName: 'DineOpen',
     type: 'website',
@@ -49,7 +49,7 @@ const faqSchema = {
       "name": "Can I switch from Restroworks to DineOpen easily?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes. DineOpen offers instant self-serve setup — no IT team required. You can upload your menu via photos using AI extraction and start taking orders within minutes. Start with a free 30-day trial before committing."
+        "text": "Yes. DineOpen offers instant self-serve setup — no IT team required. You can upload your menu via photos using AI extraction and start taking orders within minutes. Start with a free 7-day trial before committing."
       }
     },
     {

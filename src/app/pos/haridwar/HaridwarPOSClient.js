@@ -165,7 +165,7 @@ export default function HaridwarPOSClient() {
                 ))}
               </ul>
               <Link href="https://dineopen.com/login" style={{ display: 'block', padding: '16px', backgroundColor: '#ea580c', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '16px' }}>
-                Start 30-Day Free Trial
+                Start 7-Day Free Trial
               </Link>
             </div>
           </div>

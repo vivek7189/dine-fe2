@@ -67,7 +67,7 @@ export default function AmritsarPOSPage() {
         "name": "Can I get a free trial of DineOpen in Amritsar?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Amritsar restaurants and dhabas. No credit card required. Get full access to high-volume billing, GST compliance, and 24/7 operation features."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Amritsar restaurants and dhabas. No credit card required. Get full access to high-volume billing, GST compliance, and 24/7 operation features."
         }
       }
     ]

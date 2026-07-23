@@ -229,7 +229,7 @@ export default function RestroworksAlternativeClient() {
               Ready to Switch from Restroworks?
             </h2>
             <p className="text-xl opacity-95 mb-8">
-              Start your free 30-day trial. No credit card required. No setup fees. No annual contracts.
+              Start your free 7-day trial. No credit card required. No setup fees. No annual contracts.
             </p>
             <Link
               href="https://dineopen.com/login"

@@ -111,7 +111,7 @@ export default function ChennaiPOSPage() {
         "name": "Can I get a free trial of DineOpen in Chennai?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Chennai restaurants. No credit card required. Get full access to Tamil voice ordering, GST billing, and Swiggy/Zomato integration."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Chennai restaurants. No credit card required. Get full access to Tamil voice ordering, GST billing, and Swiggy/Zomato integration."
         }
       }
     ]

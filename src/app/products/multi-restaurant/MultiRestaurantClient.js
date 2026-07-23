@@ -259,7 +259,7 @@ export default function MultiRestaurantClient() {
               Ready to Scale Your Restaurant Business?
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '32px' }}>
-              Start with one outlet, scale to hundreds. Free 30-day trial for all locations.
+              Start with one outlet, scale to hundreds. Free 7-day trial for all locations.
             </p>
             <Link
               href="https://dineopen.com/login"

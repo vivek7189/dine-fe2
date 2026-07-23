@@ -96,7 +96,7 @@ export default function IndorePOSPage() {
         "name": "Can I get a free trial of DineOpen in Indore?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Indore restaurants and food shops. No credit card required. Get full access to Hindi voice ordering, GST billing, and weight-based billing features."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Indore restaurants and food shops. No credit card required. Get full access to Hindi voice ordering, GST billing, and weight-based billing features."
         }
       }
     ]

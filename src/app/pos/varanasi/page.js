@@ -67,7 +67,7 @@ export default function VaranasiPOSPage() {
         "name": "Can I get a free trial of DineOpen in Varanasi?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Varanasi restaurants and cafes. No credit card required. Get full access to pure veg management, GST billing, and pilgrimage rush handling features."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Varanasi restaurants and cafes. No credit card required. Get full access to pure veg management, GST billing, and pilgrimage rush handling features."
         }
       }
     ]

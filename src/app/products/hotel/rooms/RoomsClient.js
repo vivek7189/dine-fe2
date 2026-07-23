@@ -155,7 +155,7 @@ export default function RoomsClient() {
               Set Up Your Room Inventory Today
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '32px' }}>
-              Add all your rooms in minutes with bulk creation. Start your free 30-day trial.
+              Add all your rooms in minutes with bulk creation. Start your free 7-day trial.
             </p>
             <Link href="/login?ref=hotel" style={{ display: 'inline-block', padding: '18px 40px', backgroundColor: 'white', color: accentColor, borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
               Start Free Trial

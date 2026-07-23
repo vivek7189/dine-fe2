@@ -67,7 +67,7 @@ export default function AgraPOSPage() {
         "name": "Can I get a free trial of DineOpen in Agra?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Agra restaurants. No credit card required. Get full access to multi-currency display, tour group billing, and GST-compliant features."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Agra restaurants. No credit card required. Get full access to multi-currency display, tour group billing, and GST-compliant features."
         }
       }
     ]

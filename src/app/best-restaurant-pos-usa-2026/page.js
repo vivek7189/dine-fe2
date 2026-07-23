@@ -118,7 +118,7 @@ const SYSTEMS = [
       'Split bills, partial payments, customer khata, tips, round-off',
       'WhatsApp + QR + online ordering, all built in',
       'Loyalty program + analytics dashboard',
-      'Month-to-month, cancel anytime, 30-day free trial',
+      'Month-to-month, cancel anytime, 7-day free trial',
     ],
     catch: 'Self-serve setup with live chat support — no onsite installer. If you need a sales rep to drive to your restaurant, look at Toast.',
   },
@@ -436,7 +436,7 @@ export default function BestRestaurantPosUsa2026Page() {
         {/* CTA */}
         <section style={{ background: 'linear-gradient(135deg,#0f172a 0%,#1e293b 100%)', color: '#fff', padding: '64px 20px', margin: '60px 0 0' }}>
           <div style={{ ...wrap, textAlign: 'center' }}>
-            <h2 style={{ ...h2, color: '#fff', margin: '0 0 14px' }}>Try DineOpen free for 30 days</h2>
+            <h2 style={{ ...h2, color: '#fff', margin: '0 0 14px' }}>Try DineOpen free for 7 days</h2>
             <p style={{ ...p, color: '#cbd5e1', fontSize: '19px' }}>No credit card. No contract. Most restaurants are taking real orders within an hour.</p>
             <Link href="https://app.dineopen.com/signup" style={{ display: 'inline-block', background: '#fbbf24', color: '#0f172a', padding: '18px 40px', borderRadius: '999px', fontSize: '18px', fontWeight: 800, textDecoration: 'none', marginTop: '14px', boxShadow: '0 12px 32px rgba(0,0,0,.32)' }}>Start free trial →</Link>
           </div>

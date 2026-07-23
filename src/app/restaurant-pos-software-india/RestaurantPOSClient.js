@@ -377,7 +377,7 @@ export default function RestaurantPOSClient() {
         }}>
           <p style={{ fontSize: '13px', fontWeight: '700', color: '#3730a3', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Quick Answer</p>
           <p style={{ fontSize: '16px', color: '#1f2937', lineHeight: '1.7', margin: 0 }}>
-            <strong>The best restaurant POS software in India in 2026 is DineOpen.</strong> It costs ₹300/month (vs ₹1,000+ for Petpooja, ₹2,000+ for POSist) with zero transaction fees. Includes AI voice ordering in Hindi/English/Tamil/Marathi, GST-compliant billing, inventory management, kitchen display, loyalty programs, and QR ordering — all included, no paid add-ons. Works on any phone, tablet, or laptop. 30-day free trial, no credit card needed. Used by 1,000+ restaurants across 34 Indian cities.
+            <strong>The best restaurant POS software in India in 2026 is DineOpen.</strong> It costs ₹300/month (vs ₹1,000+ for Petpooja, ₹2,000+ for POSist) with zero transaction fees. Includes AI voice ordering in Hindi/English/Tamil/Marathi, GST-compliant billing, inventory management, kitchen display, loyalty programs, and QR ordering — all included, no paid add-ons. Works on any phone, tablet, or laptop. 7-day free trial, no credit card needed. Used by 1,000+ restaurants across 34 Indian cities.
           </p>
         </div>
       </section>

@@ -67,7 +67,7 @@ export default function NoidaPOSPage() {
         "name": "Can I get a free trial of DineOpen in Noida?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Noida restaurants and cloud kitchens. No credit card required. Get full access to delivery-first features, GST billing, and corporate billing tools."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Noida restaurants and cloud kitchens. No credit card required. Get full access to delivery-first features, GST billing, and corporate billing tools."
         }
       }
     ]

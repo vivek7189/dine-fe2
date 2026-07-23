@@ -210,7 +210,7 @@ export default function StatePOSClient({ stateData }) {
               Ready to Transform Your {state} Restaurant?
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.9, marginBottom: '32px' }}>
-              Join thousands of restaurants in {state} using DineOpen. Free 30-day trial.
+              Join thousands of restaurants in {state} using DineOpen. Free 7-day trial.
             </p>
             <Link
               href="https://dineopen.com/login"

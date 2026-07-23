@@ -207,7 +207,7 @@ export default function ReeloAlternativeClient() {
               Ready to Switch from Reelo?
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '32px' }}>
-              Get loyalty + POS + AI + QR menus for less than what you pay for Reelo alone. Free 30-day trial.
+              Get loyalty + POS + AI + QR menus for less than what you pay for Reelo alone. Free 7-day trial.
             </p>
             <Link
               href="https://dineopen.com/login"

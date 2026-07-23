@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Reelo Alternative 2026 | DineOpen - Free Loyalty with POS',
-  description: 'Looking for a Reelo alternative? DineOpen includes loyalty, rewards & WhatsApp marketing FREE with POS. Save ₹30,000+/year vs Reelo. AI voice ordering included. Free 30-day trial.',
+  description: 'Looking for a Reelo alternative? DineOpen includes loyalty, rewards & WhatsApp marketing FREE with POS. Save ₹30,000+/year vs Reelo. AI voice ordering included. Free 7-day trial.',
   keywords: 'Reelo alternative, Reelo competitor, better than Reelo, Reelo vs DineOpen, restaurant loyalty software India, free loyalty program software, WhatsApp marketing restaurant, customer rewards program free, Reelo pricing alternative',
   openGraph: {
     title: 'Best Reelo Alternative | DineOpen - Free Loyalty with POS',

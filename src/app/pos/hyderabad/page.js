@@ -111,7 +111,7 @@ export default function HyderabadPOSPage() {
         "name": "Can I get a free trial of DineOpen in Hyderabad?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Hyderabad restaurants. No credit card required. Get full access to GST billing, delivery integration, and biryani restaurant specialized features."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Hyderabad restaurants. No credit card required. Get full access to GST billing, delivery integration, and biryani restaurant specialized features."
         }
       }
     ]

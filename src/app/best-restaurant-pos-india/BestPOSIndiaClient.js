@@ -11,7 +11,7 @@ const posData = [
   {
     name: 'DineOpen',
     price: '₹300/month',
-    trial: '30-day free trial',
+    trial: '7-day free trial',
     bestFor: 'Small to mid-size restaurants wanting an affordable all-in-one with AI',
     pros: [
       'Lowest price in the market at ₹300/month with zero transaction fees',
@@ -32,7 +32,7 @@ const posData = [
   {
     name: 'Petpooja',
     price: '₹1,000+/month',
-    trial: '14-day trial',
+    trial: '7-day trial',
     bestFor: 'Restaurants heavily dependent on Zomato/Swiggy orders',
     pros: [
       'Strongest Zomato/Swiggy/aggregator integration in the market',
@@ -777,7 +777,7 @@ export default function BestPOSIndiaClient() {
               display: 'inline-block',
               boxShadow: '0 4px 20px rgba(22, 163, 74, 0.4)',
             }}>
-              Start 30-Day Free Trial
+              Start 7-Day Free Trial
             </a>
             <Link href="/pricing" style={{
               padding: '18px 40px',
@@ -818,7 +818,7 @@ export default function BestPOSIndiaClient() {
             gap: '16px',
           }}>
             {[
-              { title: 'Free Restaurant Billing Software', href: '/free-restaurant-billing-software', desc: 'Start with a 30-day free trial of DineOpen' },
+              { title: 'Free Restaurant Billing Software', href: '/free-restaurant-billing-software', desc: 'Start with a 7-day free trial of DineOpen' },
               { title: 'DineOpen vs Petpooja', href: '/alternatives/petpooja', desc: 'Detailed head-to-head comparison' },
               { title: 'GST Billing Software for Restaurants', href: '/gst-billing-software-restaurant', desc: 'Everything about GST compliance for restaurants' },
               { title: 'Restaurant POS Features', href: '/features', desc: 'Complete feature breakdown of DineOpen' },

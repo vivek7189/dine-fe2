@@ -271,7 +271,7 @@ export default function CityPOSClient({ cityData }) {
               Ready to Transform Your {city} Restaurant?
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.9, marginBottom: '32px' }}>
-              Join {restaurants} restaurants in {city} using DineOpen. Free 30-day trial.
+              Join {restaurants} restaurants in {city} using DineOpen. Free 7-day trial.
             </p>
             <Link
               href="https://dineopen.com/login"

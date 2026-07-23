@@ -35,7 +35,7 @@ export default function FreeBillingClient() {
   ];
 
   const comparisonData = [
-    { feature: 'Monthly Cost', dineopen: 'Free for 30 days', square: '2.6% + 10¢ per transaction', zomato: 'Free but commission-locked', spreadsheet: 'Free but manual' },
+    { feature: 'Monthly Cost', dineopen: 'Free for 7 days', square: '2.6% + 10¢ per transaction', zomato: 'Free but commission-locked', spreadsheet: 'Free but manual' },
     { feature: 'Transaction Fees', dineopen: 'None', square: 'Yes, on every sale', zomato: 'Yes, platform commission', spreadsheet: 'None' },
     { feature: 'GST Billing', dineopen: 'Full compliance', square: 'Limited', zomato: 'Basic', spreadsheet: 'Manual calculation' },
     { feature: 'AI Ordering', dineopen: 'Included', square: 'Not available', zomato: 'Not available', spreadsheet: 'Not available' },
@@ -72,7 +72,7 @@ export default function FreeBillingClient() {
             color: '#166534',
             marginBottom: '24px',
           }}>
-            30-Day Free Trial — No Credit Card Required
+            7-Day Free Trial — No Credit Card Required
           </div>
           <h1 style={{
             fontSize: isMobile ? '36px' : '56px',
@@ -91,7 +91,7 @@ export default function FreeBillingClient() {
             maxWidth: '750px',
             margin: '0 auto 40px',
           }}>
-            Get a complete <Link href="/products/billing-software" style={{ color: '#16a34a', textDecoration: 'underline', fontWeight: '600' }}>restaurant billing software</Link> with cloud POS, AI ordering, GST billing, and inventory management — free for 30 days. No credit card. No hidden fees.
+            Get a complete <Link href="/products/billing-software" style={{ color: '#16a34a', textDecoration: 'underline', fontWeight: '600' }}>restaurant billing software</Link> with cloud POS, AI ordering, GST billing, and inventory management — free for 7 days. No credit card. No hidden fees.
           </p>
           <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <a href="https://dineopen.com/login" style={{
@@ -143,7 +143,7 @@ export default function FreeBillingClient() {
         }}>
           <p style={{ fontSize: '13px', fontWeight: '700', color: '#166534', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Quick Answer</p>
           <p style={{ fontSize: '16px', color: '#1f2937', lineHeight: '1.7', margin: 0 }}>
-            <strong>DineOpen offers free restaurant billing software</strong> with a 30-day trial — no credit card required. You get cloud POS, AI voice ordering, GST-compliant billing, kitchen display system, inventory management, and analytics. After the trial, plans start at ₹300/month ($9.99) with zero transaction fees. Works on any phone, tablet, or laptop — no hardware purchase needed. Sign up takes 2 minutes.
+            <strong>DineOpen offers free restaurant billing software</strong> with a 7-day trial — no credit card required. You get cloud POS, AI voice ordering, GST-compliant billing, kitchen display system, inventory management, and analytics. After the trial, plans start at ₹300/month ($9.99) with zero transaction fees. Works on any phone, tablet, or laptop — no hardware purchase needed. Sign up takes 2 minutes.
           </p>
         </div>
       </section>
@@ -169,7 +169,7 @@ export default function FreeBillingClient() {
             maxWidth: '600px',
             margin: '0 auto 48px',
           }}>
-            Every feature unlocked during your 30-day trial. No restrictions, no paywalls.
+            Every feature unlocked during your 7-day trial. No restrictions, no paywalls.
           </p>
           <div style={{
             display: 'grid',
@@ -450,7 +450,7 @@ export default function FreeBillingClient() {
             marginBottom: '36px',
             lineHeight: '1.7',
           }}>
-            Start your 30-day free trial today. Full access to every feature. No credit card required. Set up in under 5 minutes.
+            Start your 7-day free trial today. Full access to every feature. No credit card required. Set up in under 5 minutes.
           </p>
           <a href="https://dineopen.com/login" style={{
             padding: '18px 44px',

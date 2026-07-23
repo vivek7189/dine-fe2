@@ -67,7 +67,7 @@ export default function DehradunPOSPage() {
         "name": "Can I get a free trial of DineOpen in Dehradun?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen offers a 30-day free trial for all Dehradun restaurants and cafes. No credit card required. Get full access to GST billing, delivery integration, and cloud kitchen features."
+          "text": "Yes, DineOpen offers a 7-day free trial for all Dehradun restaurants and cafes. No credit card required. Get full access to GST billing, delivery integration, and cloud kitchen features."
         }
       }
     ]

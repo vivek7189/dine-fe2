@@ -82,7 +82,7 @@ const faqSchema = {
       "name": "Can I switch from POSist to DineOpen easily?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, but with caveats. DineOpen offers a 30-day free trial so you can test everything alongside your existing POSist setup. AI menu extraction can digitize your menu in minutes. However, if you rely on POSist's Zomato/Swiggy integration or have complex multi-outlet configurations, switching requires planning. We recommend running both systems in parallel for a week before fully transitioning."
+        "text": "Yes, but with caveats. DineOpen offers a 7-day free trial so you can test everything alongside your existing POSist setup. AI menu extraction can digitize your menu in minutes. However, if you rely on POSist's Zomato/Swiggy integration or have complex multi-outlet configurations, switching requires planning. We recommend running both systems in parallel for a week before fully transitioning."
       }
     }
   ]

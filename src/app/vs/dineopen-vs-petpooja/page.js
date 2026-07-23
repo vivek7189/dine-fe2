@@ -74,7 +74,7 @@ const faqSchema = {
       "name": "Can I switch from Petpooja to DineOpen easily?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes. DineOpen offers a guided migration process and a free 30-day trial so you can test everything before committing. AI menu extraction can digitize your existing menu in minutes."
+        "text": "Yes. DineOpen offers a guided migration process and a free 7-day trial so you can test everything before committing. AI menu extraction can digitize your existing menu in minutes."
       }
     },
     {
