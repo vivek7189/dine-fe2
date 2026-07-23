@@ -750,18 +750,15 @@ const OrderSummary = ({
     const isRNWebView = typeof window !== 'undefined' && !!window.ReactNativeWebView;
     const isElectronApp = typeof window !== 'undefined' && !!window.electronAPI;
 
-    // Skip local combined KOT print when station routing is active.
-    // On Electron: skip when any station exists (1+) — useAutoPrint handles station-specific routing.
-    // On RN WebView: skip when 2+ stations (useAutoPrint is disabled in WebView, so only skip
-    //   when the dashboard direct-print handles it via printStationCount).
-    const shouldSkipForStations =
-      (isElectronApp && printSettings?.__stationCount >= 1) ||
-      (isRNWebView && printSettings?.__stationCount >= 2);
-
-    if (shouldSkipForStations) {
+    // RN WebView with 2+ stations: the dashboard direct-print handles routing there.
+    // (Electron station routing is handled BELOW — split locally, with NO dependency
+    // on the real-time print events / dine-app path.)
+    if (isRNWebView && printSettings?.__stationCount >= 2) {
       window.__autoPrintKOT = false;
       return;
     }
+    // Electron + 1 or more KOT stations → we split per station locally further down.
+    const hasElectronStations = isElectronApp && printSettings?.__stationCount >= 1;
 
     const buttonPrintRequested = window.__autoPrintKOT;
     // autoPrintOnPlaceOrder = web/Electron/Tauri flag (from admin settings)
@@ -799,6 +796,65 @@ const OrderSummary = ({
     window.__autoPrintKOT = false;
     // Set dedup flag immediately (not inside setTimeout) to prevent race with effect re-fires
     if (thisOrderId) window.__lastKOTPrintedByEffect = thisOrderId;
+
+    // ── Electron + KOT stations: split the KOT PER STATION locally ──
+    // This makes multi-outlet/kitchen routing work for LOCAL orders without any
+    // dependency on "Enable Real-time Print Events" (that path is only for the
+    // dine-app / remote terminals). Each station's printer gets ONLY its
+    // categories' items; the default station also catches unassigned categories.
+    // We mark __lastLocalPrintedKOT so useAutoPrint skips this order (no double
+    // print if real-time events are also on). Single-printer setups (no stations)
+    // are untouched and fall through to the normal combined print below.
+    if (hasElectronStations) {
+      window.__lastLocalPrintedKOT = thisOrderId; // dedup vs useAutoPrint
+      const kotLabels = {
+        kitchenOrder: t('invoice.kitchenOrder'), orderHash: t('invoice.orderHash'),
+        table: t('invoice.table'), room: t('invoice.room'), time: t('invoice.time'),
+        date: t('invoice.date'), customer: t('invoice.customer'), type: t('invoice.type'),
+        waiter: t('invoice.waiter'), qty: t('invoice.qty'), item: t('invoice.item'),
+        totalItems: t('invoice.totalItems'), specialInstructions: t('invoice.specialInstructions'),
+        note: t('invoice.note'),
+      };
+      const kotPS = { ...(printSettings || {}), showPriceOnKot: !!posSettings?.showPriceOnKot, currencySymbol: getCurrencySymbol() };
+      const printCombinedFallback = async () => {
+        const k = orderSuccess.kotData;
+        const html = k && generateKOTHTML(k, kotPS, kotLabels);
+        if (html) await printDocument({ html, type: 'kot', orderId: thisOrderId, restaurantId, printSettings: printSettings || {} });
+      };
+      (async () => {
+        try {
+          const res = await apiClient.getPrintStations(restaurantId);
+          const stations = (res?.printStations || []).filter(s => s.enabled);
+          if (stations.length === 0) { await printCombinedFallback(); return; }
+          const hasDefaultStation = stations.some(s => s.isDefault);
+          let printedAny = false;
+          for (const station of stations) {
+            const rd = await apiClient.getKOTRender(restaurantId, thisOrderId, { stationId: station.id });
+            const items = rd?.kot?.items || [];
+            if (rd?.empty || items.length === 0) continue;
+            const kotData = { ...rd.kot, restaurantName: rd?.restaurant?.name || rd.kot.restaurantName || '' };
+            const html = generateKOTHTML(kotData, kotPS, kotLabels);
+            if (html) {
+              await printDocument({ html, type: 'kot', orderId: `${thisOrderId}-${station.id}`, stationId: station.id, restaurantId, printSettings: printSettings || {} });
+              printedAny = true;
+              console.log(`[OrderSummary] Local station KOT printed: ${station.name} [${items.length} items]`);
+            }
+          }
+          // No default station → send a combined KOT to the default printer so unassigned items aren't lost.
+          if (!hasDefaultStation) {
+            const rd = await apiClient.getKOTRender(restaurantId, thisOrderId);
+            const html = rd?.kot && generateKOTHTML({ ...rd.kot, restaurantName: rd?.restaurant?.name || '' }, kotPS, kotLabels);
+            if (html) { await printDocument({ html, type: 'kot', orderId: `${thisOrderId}-default`, restaurantId, printSettings: printSettings || {} }); printedAny = true; }
+          }
+          if (!printedAny) await printCombinedFallback();
+        } catch (e) {
+          console.warn('[OrderSummary] Local station split failed, printing combined:', e?.message);
+          try { await printCombinedFallback(); } catch { /* ignore */ }
+        }
+      })();
+      return; // stations handled — do NOT fall through to the combined print below
+    }
+
     // Native (WebView/Electron/Capacitor): print almost immediately — postMessage is synchronous,
     // no DOM rendering needed. Web: 800ms delay for window.open + print dialog setup.
     const printDelay = isNative ? 50 : 800;
