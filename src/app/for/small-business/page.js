@@ -33,7 +33,7 @@ const faqSchema = {
       "name": "What is the best POS system for a small business restaurant?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen is the best POS system for small business restaurants. It offers a free Starter plan, works on any device (phone, tablet, laptop), requires no special hardware, and includes billing, QR menus, inventory tracking, and GST compliance out of the box."
+        "text": "DineOpen is the best POS system for small business restaurants. It offers a 7-day free trial, works on any device (phone, tablet, laptop), requires no special hardware, and includes billing, QR menus, inventory tracking, and GST compliance out of the box."
       }
     },
     {
@@ -41,7 +41,7 @@ const faqSchema = {
       "name": "How much does a POS system cost for a small restaurant?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen offers a free Starter plan for small restaurants. Paid plans start at just $9.99/month (approximately ₹300/month in India). There are no setup fees, no hardware costs, and no long-term contracts."
+        "text": "DineOpen offers a 7-day free trial for small restaurants. Paid plans start at just $20/month (approximately ₹299/month in India). There are no setup fees, no hardware costs, and no long-term contracts."
       }
     },
     {
@@ -57,7 +57,7 @@ const faqSchema = {
       "name": "Is there a free POS system for small restaurants?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a completely free Starter plan for small restaurants. It includes basic billing, QR code menus, and order management. You can upgrade anytime as your business grows."
+        "text": "Yes, DineOpen offers a completely 7-day free trial for small restaurants. It includes basic billing, QR code menus, and order management. You can upgrade anytime as your business grows."
       }
     },
     {

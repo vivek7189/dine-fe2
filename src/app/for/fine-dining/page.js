@@ -52,7 +52,7 @@ const faqSchema = {
       "name": "How much does fine dining POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $9.99/month with premium features included. A free Starter plan is available to explore the platform before committing."
+        "text": "DineOpen starts at $20/month with premium features included. A 7-day free trial is available to explore the platform before committing."
       }
     },
     {
@@ -60,7 +60,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for fine dining?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan that lets you try core features. Upgrade to access course management, wine pairing, and guest preference tracking."
+        "text": "Yes, DineOpen offers a 7-day free trial that lets you try core features. Upgrade to access course management, wine pairing, and guest preference tracking."
       }
     }
   ]

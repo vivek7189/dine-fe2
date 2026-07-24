@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant Billing Software | GST Billing | DineOpen Billing',
-  description: 'Complete restaurant billing software with GST compliant invoices, automatic tax calculation, HSN codes, and multiple payment methods. Supports Razorpay, UPI, cards, and digital wallets. Pricing from $9.99/mo.',
+  description: 'Complete restaurant billing software with GST compliant invoices, automatic tax calculation, HSN codes, and multiple payment methods. Supports Razorpay, UPI, cards, and digital wallets. Pricing from $20/mo.',
   keywords: 'restaurant billing software, GST billing software, restaurant invoice software, billing system restaurants, GST compliant billing, restaurant payment gateway, Razorpay restaurant, UPI billing',
   openGraph: {
     title: 'Restaurant Billing Software | GST Billing | DineOpen',
@@ -35,10 +35,10 @@ export default function BillingPage() {
     "operatingSystem": "Web, iOS, Android",
     "url": "https://www.dineopen.com/products/billing",
     "offers": [
-      { "@type": "Offer", "price": "9.99", "priceCurrency": "USD", "description": "Spark plan - monthly" },
-      { "@type": "Offer", "price": "300", "priceCurrency": "INR", "description": "Spark plan - monthly (India)" },
-      { "@type": "Offer", "price": "89", "priceCurrency": "USD", "description": "Blaze plan - monthly" },
-      { "@type": "Offer", "price": "2500", "priceCurrency": "INR", "description": "Blaze plan - monthly (India)" }
+      { "@type": "Offer", "price": "20", "priceCurrency": "USD", "description": "Starter plan - monthly" },
+      { "@type": "Offer", "price": "299", "priceCurrency": "INR", "description": "Starter plan - monthly (India)" },
+      { "@type": "Offer", "price": "99", "priceCurrency": "USD", "description": "Pro plan - monthly" },
+      { "@type": "Offer", "price": "1799", "priceCurrency": "INR", "description": "Pro plan - monthly (India)" }
     ],
     "featureList": [
       "Bill generation for orders",
@@ -81,7 +81,7 @@ export default function BillingPage() {
         "name": "How much does DineOpen Billing cost?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen Billing starts at $9.99/month (Rs.300/month in India) on the Spark plan. The Blaze plan at $89/month (Rs.2,500 in India) includes advanced features. Zero transaction fees on all plans."
+          "text": "DineOpen Billing starts at $20/month (Rs.299/month in India) on the Starter plan. The Pro plan at $99/month (Rs.1,799 in India) includes advanced features. Zero transaction fees on all plans."
         }
       },
       {

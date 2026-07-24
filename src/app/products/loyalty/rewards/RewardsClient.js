@@ -191,7 +191,7 @@ export default function RewardsClient() {
               Start Rewarding Your Customers Today
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '32px', lineHeight: 1.6 }}>
-              Set up your loyalty rewards program in under 10 minutes. Included with every DineOpen plan starting at $9.99/month.
+              Set up your loyalty rewards program in under 10 minutes. Included with every DineOpen plan starting at $20/month.
             </p>
             <Link href="/login?ref=loyalty" style={{ padding: '18px 40px', backgroundColor: 'white', color: '#7c3aed', borderRadius: '10px', fontWeight: '700', textDecoration: 'none', fontSize: '18px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
               Get Started Free <FaArrowRight />

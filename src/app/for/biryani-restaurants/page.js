@@ -52,7 +52,7 @@ const faqSchema = {
       "name": "How much does biryani restaurant POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $9.99/month with a free Starter plan available. Portion management and high-volume billing features are included in all paid plans."
+        "text": "DineOpen starts at $20/month with a 7-day free trial available. Portion management and high-volume billing features are included in all paid plans."
       }
     },
     {
@@ -60,7 +60,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for biryani restaurants?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan so you can try the POS for your biryani restaurant. Upgrade to paid plans to access delivery integrations and analytics."
+        "text": "Yes, DineOpen offers a 7-day free trial so you can try the POS for your biryani restaurant. Upgrade to paid plans to access delivery integrations and analytics."
       }
     }
   ]

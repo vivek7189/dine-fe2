@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Catering Software India 2026 | Bulk Orders & GST Billing | DineOpen',
-  description: 'Best catering software in India for wedding, corporate & event catering. Bulk order management, advance bookings, GST invoicing, menu planning. Free 7-day trial. From ₹300/month.',
+  description: 'Best catering software in India for wedding, corporate & event catering. Bulk order management, advance bookings, GST invoicing, menu planning. Free 7-day trial. From $20/month (₹299 in India).',
   keywords: 'catering software India, catering management software, wedding catering billing, corporate catering POS, bulk order management, caterer billing software, event catering software, catering business software India',
   openGraph: {
     title: 'POS Software for Catering Business India | DineOpen',
@@ -50,7 +50,7 @@ const faqSchema = {
       "name": "How much does catering management software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $9.99/month with a free Starter plan available. Catering features like advance bookings and bulk order management are included in paid plans."
+        "text": "DineOpen starts at $20/month with a 7-day free trial available. Catering features like advance bookings and bulk order management are included in paid plans."
       }
     },
     {
@@ -58,7 +58,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for catering businesses?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan to explore core features. Upgrade to access advance booking management, bulk invoicing, and event planning tools."
+        "text": "Yes, DineOpen offers a 7-day free trial to explore core features. Upgrade to access advance booking management, bulk invoicing, and event planning tools."
       }
     }
   ]

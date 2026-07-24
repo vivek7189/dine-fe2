@@ -125,7 +125,7 @@ export default function CrmClient() {
               CRM Included in Every DineOpen Plan
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '24px', lineHeight: 1.6 }}>
-              Starting at $9.99/month (Rs 300/month in India). No per-customer fees, no data limits, no transaction charges.
+              Starting at $20/month (₹299/month in India). No per-customer fees, no data limits, no transaction charges.
             </p>
             <Link href="/login?ref=loyalty" style={{ padding: '16px 36px', backgroundColor: 'white', color: '#3b82f6', borderRadius: '10px', fontWeight: '700', textDecoration: 'none', fontSize: '17px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
               Start Free Trial <FaArrowRight />

@@ -41,7 +41,7 @@ const faqSchema = {
       "name": "Is DineOpen better than Toast POS?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen offers AI voice ordering and zero transaction fees compared to Toast's 2.49% + $0.15 per transaction. At $9.99/month vs Toast's $69/month, DineOpen is significantly more affordable with more advanced AI features."
+        "text": "DineOpen offers AI voice ordering and zero transaction fees compared to Toast's 2.49% + $0.15 per transaction. At $20/month vs Toast's $69/month, DineOpen is significantly more affordable with more advanced AI features."
       }
     },
     {
@@ -49,7 +49,7 @@ const faqSchema = {
       "name": "How much can I save switching from Toast to DineOpen?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Restaurants save $7,000+ per year by switching from Toast to DineOpen. DineOpen costs $9.99/month compared to Toast's $69/month, and charges zero transaction fees."
+        "text": "Restaurants save $7,000+ per year by switching from Toast to DineOpen. DineOpen costs $20/month compared to Toast's $69/month, and charges zero transaction fees."
       }
     },
     {

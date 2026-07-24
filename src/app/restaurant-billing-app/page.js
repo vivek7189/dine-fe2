@@ -89,7 +89,7 @@ const faqSchema = {
       "name": "What is the cost of the restaurant billing app?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen costs just Rs 300 per month in India or $9.99 per month internationally. There is a free 7-day trial with no credit card required."
+        "text": "DineOpen costs just $20 per month internationally or Rs 299 per month in India. There is a free 7-day trial with no credit card required."
       }
     }
   ]

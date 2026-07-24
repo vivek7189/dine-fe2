@@ -36,7 +36,7 @@ const faqSchema = {
       "name": "How much cheaper is DineOpen vs Clover?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen costs $9.99/month versus Clover's $14.95+/month. You also avoid Clover's $599+ hardware costs and transaction fees, saving thousands per year."
+        "text": "DineOpen costs $20/month versus Clover's $14.95+/month. You also avoid Clover's $599+ hardware costs and transaction fees, saving thousands per year."
       }
     },
     {

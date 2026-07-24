@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'POS Software for Juice Bars & Smoothie Shops India | DineOpen',
-  description: 'Best POS for juice bars, smoothie shops & fresh juice corners in India. Quick billing, customization handling, inventory for perishables, loyalty programs. ₹999/month.',
+  description: 'Best POS for juice bars, smoothie shops & fresh juice corners in India. Quick billing, customization handling, inventory for perishables, loyalty programs. From $20/month (₹299 in India).',
   keywords: 'juice bar POS India, smoothie shop software, fresh juice billing, juice corner POS, fruit juice shop software, healthy drinks billing',
   openGraph: {
     title: 'POS Software for Juice Bars & Smoothie Shops India | DineOpen',
@@ -50,7 +50,7 @@ const faqSchema = {
       "name": "How much does juice bar POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $9.99/month with a free Starter plan available. Customization handling and inventory tracking are included in paid plans."
+        "text": "DineOpen starts at $20/month with a 7-day free trial available. Customization handling and inventory tracking are included in paid plans."
       }
     },
     {
@@ -58,7 +58,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for juice bars?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan to try core POS features for your juice bar. Upgrade anytime to access inventory management and loyalty programs."
+        "text": "Yes, DineOpen offers a 7-day free trial to try core POS features for your juice bar. Upgrade anytime to access inventory management and loyalty programs."
       }
     }
   ]

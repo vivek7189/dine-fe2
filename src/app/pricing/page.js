@@ -63,7 +63,7 @@ export default function PricingPage() {
       {
         "@type": "Offer",
         "name": "Starter Plan",
-        "price": "10",
+        "price": "20",
         "priceCurrency": "USD",
         "priceValidUntil": "2027-12-31",
         "availability": "https://schema.org/InStock",
@@ -86,7 +86,7 @@ export default function PricingPage() {
         "name": "How much does DineOpen cost?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen Starter plan starts at just ₹299/month for a single outlet ($10/month internationally). Growth plan is ₹899/month with AI features for 1 outlet. Pro plan is ₹1,799/month for up to 2 outlets with chain dashboard. Enterprise pricing is custom for 3+ outlets - book a demo. All plans include a 7-day free trial with no credit card required."
+          "text": "DineOpen Starter plan starts at just ₹299/month for a single outlet ($20/month internationally). Growth plan is ₹899/month with AI features for 1 outlet. Pro plan is ₹1,799/month for up to 2 outlets with chain dashboard. Enterprise pricing is custom for 3+ outlets - book a demo. All plans include a 7-day free trial with no credit card required."
         }
       },
       {

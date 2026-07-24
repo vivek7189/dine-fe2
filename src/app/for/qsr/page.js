@@ -52,7 +52,7 @@ const faqSchema = {
       "name": "How much does QSR POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $9.99/month with a free Starter plan available. All QSR-specific features like combo management and fast billing are included in paid plans."
+        "text": "DineOpen starts at $20/month with a 7-day free trial available. All QSR-specific features like combo management and fast billing are included in paid plans."
       }
     },
     {
@@ -60,7 +60,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for fast food restaurants?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan so you can test core POS features for your QSR. Upgrade anytime to unlock advanced features like kiosk support and analytics."
+        "text": "Yes, DineOpen offers a 7-day free trial so you can test core POS features for your QSR. Upgrade anytime to unlock advanced features like kiosk support and analytics."
       }
     }
   ]

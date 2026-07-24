@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: '#1 Petpooja Alternative 2026 | Free Trial, Zero Fees | DineOpen',
-  description: 'Looking for a Petpooja alternative? Honest comparison of features & pricing. DineOpen: AI voice ordering, zero transaction fees, all features included from ₹300/mo. No hidden add-on costs. 7-day free trial.',
+  description: 'Looking for a Petpooja alternative? Honest comparison of features & pricing. DineOpen: AI voice ordering, zero transaction fees, all features included from $20/mo (₹299 in India). No hidden add-on costs. 7-day free trial.',
   keywords: 'Petpooja alternative, Petpooja alternative free, Petpooja similar software, Petpooja competitor, top competitors to Petpooja, Petpooja app review, Petpooja POS review, restaurant POS India, GST billing software, Petpooja vs DineOpen, affordable restaurant POS India',
   openGraph: {
     title: 'DineOpen vs Petpooja — Honest Comparison 2026',
@@ -34,7 +34,7 @@ const faqSchema = {
       "name": "Is DineOpen better than Petpooja?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen is better for small-to-medium restaurants that want affordable pricing (₹300/month vs Petpooja's ₹1,000+/month), AI features like voice ordering, and all features included without add-on costs. Petpooja is better for restaurants that rely heavily on Zomato/Swiggy delivery integration. Both offer GST billing and cloud-based POS."
+        "text": "DineOpen is better for small-to-medium restaurants that want affordable pricing ($20/month, or ₹299/month in India, vs Petpooja's ₹1,000+/month), AI features like voice ordering, and all features included without add-on costs. Petpooja is better for restaurants that rely heavily on Zomato/Swiggy delivery integration. Both offer GST billing and cloud-based POS."
       }
     },
     {
@@ -42,7 +42,7 @@ const faqSchema = {
       "name": "How much cheaper is DineOpen vs Petpooja?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen Spark plan starts at ₹300/month ($9.99) with ALL features included — inventory, loyalty, analytics, QR ordering. Petpooja starts at ₹1,000+/month with inventory, CRM, and online ordering as paid add-ons. Plus DineOpen charges zero transaction fees vs Petpooja's 1.5-2%. A restaurant doing ₹5 lakh/month in transactions saves ₹1.5+ lakh per year with DineOpen."
+        "text": "DineOpen Starter plan starts at $20/month (₹299 in India) with ALL features included — inventory, loyalty, analytics, QR ordering. Petpooja starts at ₹1,000+/month with inventory, CRM, and online ordering as paid add-ons. Plus DineOpen charges zero transaction fees vs Petpooja's 1.5-2%. A restaurant doing ₹5 lakh/month in transactions saves ₹1.5+ lakh per year with DineOpen."
       }
     },
     {
@@ -82,7 +82,7 @@ const faqSchema = {
       "name": "Is there a free Petpooja alternative?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen offers a 7-day free trial with all features included — no credit card required. After the trial, the Spark plan starts at just ₹300/month ($9.99) with zero transaction fees. This makes it one of the most affordable Petpooja alternatives available in India."
+        "text": "DineOpen offers a 7-day free trial with all features included — no credit card required. After the trial, the Starter plan starts at just $20/month (₹299 in India) with zero transaction fees. This makes it one of the most affordable Petpooja alternatives available in India."
       }
     }
   ]

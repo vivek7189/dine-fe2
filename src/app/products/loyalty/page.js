@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Customer Loyalty Program for Restaurants | CRM & Rewards | DineOpen Loyalty',
-  description: 'Complete customer loyalty platform for restaurants. CRM, rewards program, promotional offers, WhatsApp marketing, and branded customer app. Increase repeat visits by 40%. Spark plan from $9.99/month.',
+  description: 'Complete customer loyalty platform for restaurants. CRM, rewards program, promotional offers, WhatsApp marketing, and branded customer app. Increase repeat visits by 40%. Starter plan from $20/month.',
   keywords: 'restaurant loyalty program, restaurant CRM, customer rewards, WhatsApp marketing restaurants, restaurant customer app, loyalty software, customer retention restaurant, repeat customers, promotional offers restaurant, DineOpen Loyalty',
   openGraph: {
     title: 'Customer Loyalty Program for Restaurants | CRM & Rewards | DineOpen Loyalty',
@@ -36,10 +36,10 @@ export default function LoyaltyPage() {
     "operatingSystem": "Web, iOS, Android",
     "url": "https://www.dineopen.com/products/loyalty",
     "offers": [
-      { "@type": "Offer", "price": "9.99", "priceCurrency": "USD", "description": "Spark Plan - all loyalty features included" },
-      { "@type": "Offer", "price": "300", "priceCurrency": "INR", "description": "Spark Plan India - all loyalty features included" },
-      { "@type": "Offer", "price": "89", "priceCurrency": "USD", "description": "Blaze Plan - all loyalty features included" },
-      { "@type": "Offer", "price": "2500", "priceCurrency": "INR", "description": "Blaze Plan India - all loyalty features included" }
+      { "@type": "Offer", "price": "20", "priceCurrency": "USD", "description": "Starter Plan - all loyalty features included" },
+      { "@type": "Offer", "price": "299", "priceCurrency": "INR", "description": "Starter Plan India - all loyalty features included" },
+      { "@type": "Offer", "price": "99", "priceCurrency": "USD", "description": "Pro Plan - all loyalty features included" },
+      { "@type": "Offer", "price": "1799", "priceCurrency": "INR", "description": "Pro Plan India - all loyalty features included" }
     ],
     "featureList": [
       "Customer CRM with contact database",
@@ -75,7 +75,7 @@ export default function LoyaltyPage() {
         "name": "How much does DineOpen Loyalty cost?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "All loyalty features are included in DineOpen plans. The Spark Plan starts at $9.99/month (or Rs 300/month in India) and the Blaze Plan is $89/month (or Rs 2,500/month in India). There are zero transaction fees on any plan. Unlike standalone loyalty apps that charge separately, DineOpen includes CRM, rewards, WhatsApp marketing, and more at no extra cost."
+          "text": "All loyalty features are included in DineOpen plans. The Starter Plan starts at $20/month (or ₹299/month in India) and the Pro Plan is $99/month (or ₹1,799/month in India). There are zero transaction fees on any plan. Unlike standalone loyalty apps that charge separately, DineOpen includes CRM, rewards, WhatsApp marketing, and more at no extra cost."
         }
       },
       {

@@ -52,7 +52,7 @@ const faqSchema = {
       "name": "How much does chai tapri POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $9.99/month with a free Starter plan ideal for small chai stalls. It is the most affordable POS solution for tea businesses in India."
+        "text": "DineOpen starts at $20/month with a 7-day free trial ideal for small chai stalls. It is the most affordable POS solution for tea businesses in India."
       }
     },
     {
@@ -60,7 +60,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free plan for chai tapris?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan perfect for small chai tapris. You can start billing digitally with zero investment and upgrade as your business grows."
+        "text": "Yes, DineOpen offers a 7-day free trial perfect for small chai tapris. You can start billing digitally with zero investment and upgrade as your business grows."
       }
     }
   ]

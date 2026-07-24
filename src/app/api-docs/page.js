@@ -49,11 +49,11 @@ export default function ApiDocsPage() {
     "@context": "https://schema.org",
     "@type": "FAQPage",
     "mainEntity": [
-      { "@type": "Question", "name": "Does DineOpen have an API?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. DineOpen provides a REST API that lets you programmatically access POS data, orders, menu items, inventory, customers, and reports. API access is available on the Blaze plan." } },
+      { "@type": "Question", "name": "Does DineOpen have an API?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. DineOpen provides a REST API that lets you programmatically access POS data, orders, menu items, inventory, customers, and reports. API access is available on the Pro plan." } },
       { "@type": "Question", "name": "Which food delivery platforms does DineOpen integrate with?", "acceptedAnswer": { "@type": "Answer", "text": "DineOpen integrates with Zomato and Swiggy for automatic order sync. Online orders appear directly in your POS — no manual entry needed. Menu and availability sync in real-time." } },
       { "@type": "Question", "name": "What payment gateways are supported?", "acceptedAnswer": { "@type": "Answer", "text": "DineOpen supports Razorpay and Stripe for online payments, UPI for direct bank transfers, and all major card terminals. Payment status syncs automatically with your billing system." } },
       { "@type": "Question", "name": "Can I get webhook notifications?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Configure webhooks to receive real-time HTTP callbacks when events occur — new order placed, payment received, inventory low, reservation created, and more. Use webhooks to connect DineOpen with your own systems." } },
-      { "@type": "Question", "name": "Is there a setup fee for integrations?", "acceptedAnswer": { "@type": "Answer", "text": "No. All pre-built integrations (Zomato, Swiggy, Razorpay, WhatsApp) are included at no extra cost on the Blaze plan. API access is also included. Custom integration support is available on request." } },
+      { "@type": "Question", "name": "Is there a setup fee for integrations?", "acceptedAnswer": { "@type": "Answer", "text": "No. All pre-built integrations (Zomato, Swiggy, Razorpay, WhatsApp) are included at no extra cost on the Pro plan. API access is also included. Custom integration support is available on request." } },
     ]
   };
 

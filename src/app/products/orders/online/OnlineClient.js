@@ -29,18 +29,18 @@ export default function OnlineClient() {
     { feature: 'Commission per order', dineopen: '0%', aggregator: '15-30%' },
     { feature: 'Customer data ownership', dineopen: 'You own it', aggregator: 'Platform owns it' },
     { feature: 'Your branding', dineopen: 'Full branding', aggregator: 'Platform branding' },
-    { feature: 'Monthly cost', dineopen: 'From $9.99', aggregator: 'Free + commission' },
+    { feature: 'Monthly cost', dineopen: 'From $20', aggregator: 'Free + commission' },
     { feature: 'Menu control', dineopen: 'Full control', aggregator: 'Limited' },
-    { feature: 'On 100 orders/day', dineopen: '$9.99/mo total', aggregator: '$450-900/mo in fees' },
+    { feature: 'On 100 orders/day', dineopen: '$20/mo total', aggregator: '$450-900/mo in fees' },
   ];
 
   const faqs = [
-    { q: 'How is DineOpen different from Zomato or Swiggy?', a: 'DineOpen gives you your own branded ordering page with zero commissions. Zomato and Swiggy take 15-30% of every order and own the customer relationship. With DineOpen, you pay a flat $9.99/mo (₹300 in India) and keep 100% of order revenue. You also own all customer data.' },
+    { q: 'How is DineOpen different from Zomato or Swiggy?', a: 'DineOpen gives you your own branded ordering page with zero commissions. Zomato and Swiggy take 15-30% of every order and own the customer relationship. With DineOpen, you pay a flat $20/mo (₹299 in India) and keep 100% of order revenue. You also own all customer data.' },
     { q: 'Do customers need to download an app?', a: 'No. Your ordering page works in any web browser on phone, tablet, or desktop. Customers visit your URL, browse the menu, and place their order. No app download, no account creation required. This removes friction and increases order completion rates.' },
     { q: 'Can I customize my ordering page?', a: 'Yes. Your page features your restaurant name, logo, and full menu with categories, images, modifiers, and descriptions. The layout is clean and optimized for mobile devices where most orders originate.' },
     { q: 'How do I receive online orders?', a: 'Online orders appear instantly on your DineOpen dashboard with sound notifications. They also generate KOTs that show on your kitchen display. You can manage orders from any device - POS terminal, tablet, or phone.' },
     { q: 'Can I accept online payments?', a: 'Yes. DineOpen integrates with popular payment gateways for UPI, credit/debit cards, and digital wallets. You can also offer cash on delivery for takeout and delivery orders. Payment flexibility increases order conversion.' },
-    { q: 'How much can I save vs food delivery platforms?', a: 'If you process 100 orders per day averaging $15 each, a 20% platform commission costs you $9,000/month. With DineOpen at $9.99/mo, you save $8,990/month. The savings are even more dramatic for higher-volume restaurants.' },
+    { q: 'How much can I save vs food delivery platforms?', a: 'If you process 100 orders per day averaging $15 each, a 20% platform commission costs you $9,000/month. With DineOpen at $20/mo, you save $8,980/month. The savings are even more dramatic for higher-volume restaurants.' },
   ];
 
   return (
@@ -78,7 +78,7 @@ export default function OnlineClient() {
               </div>
               <div style={{ backgroundColor: '#f0fdf4', borderRadius: '12px', padding: '24px' }}>
                 <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>Same orders on DineOpen</p>
-                <p style={{ fontSize: '28px', fontWeight: '800', color: '#16a34a' }}>$9.99/mo</p>
+                <p style={{ fontSize: '28px', fontWeight: '800', color: '#16a34a' }}>$20/mo</p>
                 <p style={{ fontSize: '13px', color: '#6b7280' }}>Flat fee, keep everything</p>
               </div>
             </div>
@@ -132,15 +132,15 @@ export default function OnlineClient() {
             <h2 style={{ fontSize: isMobile ? '28px' : '36px', fontWeight: '700', color: '#111827', marginBottom: '40px' }}>Pricing</h2>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '24px', maxWidth: '700px', margin: '0 auto' }}>
               <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '32px', border: '1px solid #e5e7eb' }}>
-                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>Spark</h3>
-                <p style={{ fontSize: '40px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$9.99<span style={{ fontSize: '16px', fontWeight: '400', color: '#6b7280' }}>/mo</span></p>
-                <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '24px' }}>₹300/mo in India</p>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>Starter</h3>
+                <p style={{ fontSize: '40px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$20<span style={{ fontSize: '16px', fontWeight: '400', color: '#6b7280' }}>/mo</span></p>
+                <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '24px' }}>₹299/mo in India</p>
                 <Link href="/login?ref=orders" style={{ display: 'block', padding: '14px', backgroundColor: '#ef4444', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>Get Started</Link>
               </div>
               <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '32px', border: '2px solid #ef4444' }}>
-                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>Blaze</h3>
-                <p style={{ fontSize: '40px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$89<span style={{ fontSize: '16px', fontWeight: '400', color: '#6b7280' }}>/mo</span></p>
-                <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '24px' }}>₹2,500/mo in India</p>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>Pro</h3>
+                <p style={{ fontSize: '40px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$99<span style={{ fontSize: '16px', fontWeight: '400', color: '#6b7280' }}>/mo</span></p>
+                <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '24px' }}>₹1,799/mo in India</p>
                 <Link href="/login?ref=orders" style={{ display: 'block', padding: '14px', backgroundColor: '#dc2626', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>Get Started</Link>
               </div>
             </div>

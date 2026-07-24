@@ -9,7 +9,7 @@ export const revalidate = false;
 
 const TITLE = 'DineOpen vs TouchBistro 2026: Honest Comparison';
 const DESCRIPTION =
-  'TouchBistro is iPad-only and starts at $69/month per license. DineOpen runs on any device for $9.99/month flat with everything included. Real features, real math.';
+  'TouchBistro is iPad-only and starts at $69/month per license. DineOpen runs on any device for $20/month flat with everything included. Real features, real math.';
 const URL = 'https://www.dineopen.com/vs/dineopen-vs-touchbistro';
 
 export const metadata = {
@@ -23,9 +23,9 @@ export const metadata = {
 const faqSchema = {
   '@context': 'https://schema.org', '@type': 'FAQPage',
   mainEntity: [
-    { '@type': 'Question', name: 'Is DineOpen cheaper than TouchBistro?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. TouchBistro starts at $69/month for one license — meaning one iPad. Two iPads is $138/month. Three is $207/month. DineOpen Spark is $9.99/month flat for unlimited devices on one location. A 3-tablet restaurant pays TouchBistro ~$2,484/year vs DineOpen at $119.88/year — savings of ~$2,360 per year on software alone.' } },
+    { '@type': 'Question', name: 'Is DineOpen cheaper than TouchBistro?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. TouchBistro starts at $69/month for one license — meaning one iPad. Two iPads is $138/month. Three is $207/month. DineOpen Starter is $20/month flat for unlimited devices on one location. A 3-tablet restaurant pays TouchBistro ~$2,484/year vs DineOpen at $240/year — savings of ~$2,244 per year on software alone.' } },
     { '@type': 'Question', name: 'Does DineOpen run on iPad like TouchBistro?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. DineOpen runs in Safari or Chrome on any iPad, plus Android tablets, Windows laptops, and Macs. TouchBistro is iPad-only — if your second device is an Android tablet or a Windows POS terminal, TouchBistro will not work on it. DineOpen does.' } },
-    { '@type': 'Question', name: 'Does TouchBistro charge per-device licensing?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. TouchBistro pricing is per-license, where each license = one active iPad. Their Solo plan is $69/mo for 1 device, Dual is $129/mo for 2, Team is $249/mo for up to 5, Unlimited is $399/mo. DineOpen has no per-device fee — one $9.99/month plan covers unlimited tablets at one location.' } },
+    { '@type': 'Question', name: 'Does TouchBistro charge per-device licensing?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. TouchBistro pricing is per-license, where each license = one active iPad. Their Solo plan is $69/mo for 1 device, Dual is $129/mo for 2, Team is $249/mo for up to 5, Unlimited is $399/mo. DineOpen has no per-device fee — one $20/month plan covers unlimited tablets at one location.' } },
     { '@type': 'Question', name: 'What does DineOpen do that TouchBistro does not?', acceptedAnswer: { '@type': 'Answer', text: 'AI voice ordering in English and Spanish, AI menu extraction from a photo, multi-tier pricing per item (Dine-in / AC / Takeaway / Delivery), WhatsApp ordering, customer khata/credit, and a native Android KOT printer app. TouchBistro has none of these. TouchBistro does have stronger US-only reservation management (TouchBistro Reservations).' } },
     { '@type': 'Question', name: 'Where does TouchBistro still win?', acceptedAnswer: { '@type': 'Answer', text: 'TouchBistro has been around since 2010 and has a strong full-service restaurant focus. Its reservation system (TouchBistro Reservations) competes well with OpenTable for independent restaurants. Its US sales and onboarding support is more hands-on than DineOpen self-serve. If you want a vendor that will walk you through setup over a phone call, TouchBistro is more white-glove.' } },
     { '@type': 'Question', name: 'Can I switch from TouchBistro without losing data?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. Export menu, customers, and historical sales from TouchBistro as CSV. Import to DineOpen, or skip the CSV entirely and use AI menu extraction on a printed menu. Most operators are migrated in under 2 hours.' } },
@@ -80,7 +80,7 @@ export default function DineOpenVsTouchBistroPage() {
             <div style={{ background: '#fff', border: '2px solid #06b6d4', borderRadius: '14px', padding: '22px 24px', boxShadow: '0 4px 14px rgba(6,182,212,.12)' }}>
               <div style={{ fontSize: '12px', fontWeight: 800, color: '#0e7490', letterSpacing: '.08em', marginBottom: '8px' }}>THE SHORT ANSWER</div>
               <p style={{ ...p, margin: 0 }}>
-                <strong>DineOpen</strong> is better for independents who want one flat <strong>$9.99/month</strong> price covering unlimited tablets, plus AI voice ordering and menu extraction. <strong>TouchBistro</strong> is better if you want a vendor that will phone-walk you through setup and you only need 1–2 iPads. The biggest difference: TouchBistro charges per-license; DineOpen doesn&rsquo;t.
+                <strong>DineOpen</strong> is better for independents who want one flat <strong>$20/month</strong> price covering unlimited tablets, plus AI voice ordering and menu extraction. <strong>TouchBistro</strong> is better if you want a vendor that will phone-walk you through setup and you only need 1–2 iPads. The biggest difference: TouchBistro charges per-license; DineOpen doesn&rsquo;t.
               </p>
             </div>
           </div>
@@ -100,7 +100,7 @@ export default function DineOpenVsTouchBistroPage() {
         <section>
           <div style={wrap}>
             <h2 style={h2}>What DineOpen actually ships</h2>
-            <p style={p}>All on the $9.99 Spark plan. Unlimited tablets per location, no per-license fee.</p>
+            <p style={p}>All on the $20 Starter plan. Unlimited tablets per location, no per-license fee.</p>
 
             <h3 style={h3}>Cross-platform, not iPad-only</h3>
             <p style={p}>
@@ -157,10 +157,10 @@ export default function DineOpenVsTouchBistroPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div style={{ background: '#fff', border: '2px solid #06b6d4', borderRadius: '12px', padding: '20px' }}>
                   <div style={{ fontSize: '14px', fontWeight: 800, color: '#0e7490' }}>DINEOPEN</div>
-                  <div style={{ fontSize: '28px', fontWeight: 900, margin: '8px 0' }}>$9.99<span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}> /mo</span></div>
+                  <div style={{ fontSize: '28px', fontWeight: 900, margin: '8px 0' }}>$20<span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}> /mo</span></div>
                   <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '14px', color: '#334155', lineHeight: 1.7 }}>
                     <li>Unlimited devices included</li>
-                    <li>Spark plan, all features</li>
+                    <li>Starter plan, all features</li>
                     <li>Bring your own processor</li>
                     <li>iPad / Android / Windows / Mac</li>
                   </ul>

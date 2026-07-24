@@ -41,7 +41,7 @@ export default function HotelLandingClient() {
   ];
 
   const comparisons = [
-    { feature: 'Pricing', dineopen: 'From $9.99/mo', comp1: 'From $50/mo', comp2: 'From $40/mo', comp3: 'From $46/mo' },
+    { feature: 'Pricing', dineopen: 'From $20/mo', comp1: 'From $50/mo', comp2: 'From $40/mo', comp3: 'From $46/mo' },
     { feature: 'Restaurant POS Integration', dineopen: 'Built-in', comp1: 'Third-party', comp2: 'Third-party', comp3: 'Add-on' },
     { feature: 'Room Service to Kitchen', dineopen: 'Direct KOT', comp1: 'Manual', comp2: 'Separate module', comp3: 'Not available' },
     { feature: 'Setup Time', dineopen: '10 minutes', comp1: '1-2 days', comp2: '1 day', comp3: '2-3 hours' },
@@ -53,7 +53,7 @@ export default function HotelLandingClient() {
   const faqs = [
     { q: 'What is DineOpen Hotel management software?', a: 'DineOpen Hotel is a cloud-based hotel management module within the DineOpen platform. It helps small hotels, boutique stays, and hotel-restaurants manage rooms, bookings, check-ins, housekeeping, room service, and invoicing from one dashboard. It is not a booking marketplace like Booking.com or OYO -- it is operational software for hotel staff.' },
     { q: 'Is this a full hotel booking engine?', a: 'No. DineOpen Hotel is property management software for day-to-day hotel operations. It manages your room inventory, guest check-ins, housekeeping schedules, and generates invoices. If you need an online booking marketplace, you would use a separate OTA platform.' },
-    { q: 'How much does it cost?', a: 'The Spark Plan starts at $9.99/month (Rs 300/month in India). The Blaze Plan at $89/month (Rs 2,500/month in India) includes advanced features for larger properties. Both plans include the hotel management module along with the restaurant POS.' },
+    { q: 'How much does it cost?', a: 'The Starter Plan starts at $20/month (Rs 299/month in India). The Pro Plan at $99/month (Rs 1,799/month in India) includes advanced features for larger properties. Both plans include the hotel management module along with the restaurant POS.' },
     { q: 'Can I manage room service orders?', a: 'Yes. Room service is fully integrated with the restaurant POS. When a guest orders food from their room, the order is sent as a KOT (Kitchen Order Ticket) directly to the kitchen, just like a dine-in order. Charges are automatically added to the guest folio.' },
     { q: 'How do I add rooms to the system?', a: 'You can add rooms individually with details like room number, type, floor, and pricing. For faster setup, use the bulk add feature to create multiple rooms at once. You can also set room status and schedule maintenance periods.' },
     { q: 'Does it handle guest profiles?', a: 'Yes. During check-in, you can create guest profiles with contact details and ID information. Guest history is maintained so you can see past stays and preferences when a returning guest checks in.' },
@@ -211,11 +211,11 @@ export default function HotelLandingClient() {
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '24px' }}>
               <div style={{ padding: '32px', borderRadius: '16px', border: '1px solid #e5e7eb', backgroundColor: '#f9fafb' }}>
-                <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Spark Plan</h3>
+                <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Starter Plan</h3>
                 <div style={{ marginBottom: '20px' }}>
-                  <span style={{ fontSize: '36px', fontWeight: '800', color: '#111827' }}>$9.99</span>
+                  <span style={{ fontSize: '36px', fontWeight: '800', color: '#111827' }}>$20</span>
                   <span style={{ fontSize: '16px', color: '#6b7280' }}>/month</span>
-                  <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>Rs 300/month in India</p>
+                  <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>Rs 299/month in India</p>
                 </div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px' }}>
                   {['Room management', 'Booking calendar', 'Check-in / check-out', 'Invoice generation', 'Guest profiles', 'Restaurant POS included'].map((item, i) => (
@@ -230,14 +230,14 @@ export default function HotelLandingClient() {
               </div>
               <div style={{ padding: '32px', borderRadius: '16px', border: `2px solid ${accentColor}`, backgroundColor: 'white', position: 'relative' }}>
                 <div style={{ position: 'absolute', top: '-12px', left: '24px', backgroundColor: accentColor, color: 'white', padding: '4px 16px', borderRadius: '12px', fontSize: '12px', fontWeight: '700' }}>RECOMMENDED</div>
-                <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Blaze Plan</h3>
+                <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Pro Plan</h3>
                 <div style={{ marginBottom: '20px' }}>
-                  <span style={{ fontSize: '36px', fontWeight: '800', color: '#111827' }}>$89</span>
+                  <span style={{ fontSize: '36px', fontWeight: '800', color: '#111827' }}>$99</span>
                   <span style={{ fontSize: '16px', color: '#6b7280' }}>/month</span>
-                  <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>Rs 2,500/month in India</p>
+                  <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>Rs 1,799/month in India</p>
                 </div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px' }}>
-                  {['Everything in Spark', 'Room service integration', 'Housekeeping management', 'Maintenance scheduling', 'Operation history & reports', 'Priority support'].map((item, i) => (
+                  {['Everything in Starter', 'Room service integration', 'Housekeeping management', 'Maintenance scheduling', 'Operation history & reports', 'Priority support'].map((item, i) => (
                     <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0', fontSize: '14px', color: '#374151' }}>
                       <FaCheckCircle size={14} color="#22c55e" /> {item}
                     </li>

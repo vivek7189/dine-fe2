@@ -33,12 +33,12 @@ const faqSchema = {
     {
       '@type': 'Question',
       name: 'What is the best restaurant POS system in the USA in 2026?',
-      acceptedAnswer: { '@type': 'Answer', text: 'There is no single "best" POS — it depends on your size and how you want to handle payments. For independents wanting flat $9.99/month with zero per-swipe markup, DineOpen is the best value. For polished US-built hardware and onsite installation, Toast wins. For one-tablet pop-ups, Square is fastest to set up. For 20+ location chains, Lightspeed has the deepest enterprise features. We rank all 6 with honest math below.' }
+      acceptedAnswer: { '@type': 'Answer', text: 'There is no single "best" POS — it depends on your size and how you want to handle payments. For independents wanting flat $20/month with zero per-swipe markup, DineOpen is the best value. For polished US-built hardware and onsite installation, Toast wins. For one-tablet pop-ups, Square is fastest to set up. For 20+ location chains, Lightspeed has the deepest enterprise features. We rank all 6 with honest math below.' }
     },
     {
       '@type': 'Question',
       name: 'What is the cheapest restaurant POS in the USA?',
-      acceptedAnswer: { '@type': 'Answer', text: 'DineOpen Spark at $9.99/month flat is the cheapest full-featured restaurant POS in 2026. Square has a $0/month tier but charges 2.6% + $0.10 per card swipe, which on a $40,000/month restaurant is roughly $1,120/month — more expensive than every other option. The "free" Square plan is the most expensive POS in this guide.' }
+      acceptedAnswer: { '@type': 'Answer', text: 'DineOpen Starter at $20/month flat is the cheapest full-featured restaurant POS in 2026. Square has a $0/month tier but charges 2.6% + $0.10 per card swipe, which on a $40,000/month restaurant is roughly $1,120/month — more expensive than every other option. The "free" Square plan is the most expensive POS in this guide.' }
     },
     {
       '@type': 'Question',
@@ -53,7 +53,7 @@ const faqSchema = {
     {
       '@type': 'Question',
       name: 'How much should a small restaurant spend on POS software per month?',
-      acceptedAnswer: { '@type': 'Answer', text: 'A reasonable budget is 0.3% to 1% of monthly revenue. For a $40,000/month restaurant that means $120 to $400/month is normal. Anything over $1,000/month all-in (which is what Toast, Square, and Clover charge once you include swipe fees) is overpaying. DineOpen at $9.99/month is on the very low end because we do not take a per-swipe cut.' }
+      acceptedAnswer: { '@type': 'Answer', text: 'A reasonable budget is 0.3% to 1% of monthly revenue. For a $40,000/month restaurant that means $120 to $400/month is normal. Anything over $1,000/month all-in (which is what Toast, Square, and Clover charge once you include swipe fees) is overpaying. DineOpen at $20/month is on the very low end because we do not take a per-swipe cut.' }
     },
     {
       '@type': 'Question',
@@ -104,8 +104,8 @@ const linkStyle = { color: '#2563eb', textDecoration: 'underline', fontWeight: 5
 // Each ranked entry
 const SYSTEMS = [
   {
-    rank: 1, name: 'DineOpen', tagline: 'Best for independents that want flat pricing', price: '$9.99/mo flat',
-    color: '#2563eb', verdict: 'Pick this if you want everything included for a flat $9.99/month and you\'re willing to bring your own payment processor.',
+    rank: 1, name: 'DineOpen', tagline: 'Best for independents that want flat pricing', price: '$20/mo flat',
+    color: '#2563eb', verdict: 'Pick this if you want everything included for a flat $20/month and you\'re willing to bring your own payment processor.',
     bestFor: 'Independent and small-chain restaurants (1–10 locations) doing $15k+/month in card sales',
     link: '/pricing', linkText: 'See DineOpen pricing →',
     real: [
@@ -165,7 +165,7 @@ const SYSTEMS = [
       'Global presence in 100+ countries',
       'Lightspeed Payments option or BYO processor on some plans',
     ],
-    catch: 'Per-location licensing makes mid-size chains expensive. A 5-location group pays ~$945/month vs DineOpen Blaze at $89/month total. Many features are paid add-on modules.',
+    catch: 'Per-location licensing makes mid-size chains expensive. A 5-location group pays ~$945/month vs DineOpen Pro at $99/month total. Many features are paid add-on modules.',
   },
   {
     rank: 5, name: 'Clover', tagline: 'Best for owners who want a single physical terminal', price: '$14.95–$84.95/mo + 2.3% + hardware',
@@ -222,7 +222,7 @@ export default function BestRestaurantPosUsa2026Page() {
             <div style={{ background: '#fff', color: '#0f172a', border: '2px solid #fbbf24', borderRadius: '14px', padding: '24px 26px', boxShadow: '0 12px 32px rgba(0,0,0,.25)' }}>
               <div style={{ fontSize: '12px', fontWeight: 800, color: '#b45309', letterSpacing: '.08em', marginBottom: '10px' }}>THE SHORT ANSWER</div>
               <p style={{ ...p, margin: 0 }}>
-                For most independent US restaurants, <strong>DineOpen</strong> ($9.99/mo flat, zero per-swipe markup) is the best value. <strong>Toast</strong> wins if you want a US field team to install hardware. <strong>Square</strong> wins for one-person food trucks. <strong>Lightspeed</strong> wins for 20+ location chains. The order matters: rank #1 below saves a $40k/mo restaurant ~<strong>$13,000/year</strong> vs the next closest mainstream option.
+                For most independent US restaurants, <strong>DineOpen</strong> ($20/mo flat, zero per-swipe markup) is the best value. <strong>Toast</strong> wins if you want a US field team to install hardware. <strong>Square</strong> wins for one-person food trucks. <strong>Lightspeed</strong> wins for 20+ location chains. The order matters: rank #1 below saves a $40k/mo restaurant ~<strong>$13,000/year</strong> vs the next closest mainstream option.
               </p>
             </div>
           </div>
@@ -262,7 +262,7 @@ export default function BestRestaurantPosUsa2026Page() {
                 </thead>
                 <tbody>
                   {[
-                    ['1','DineOpen','$9.99/mo','$120','Independents wanting flat pricing'],
+                    ['1','DineOpen','$20/mo','$240','Independents wanting flat pricing'],
                     ['2','Toast (Essentials)','$69/mo + 2.49%','~$13,800','Full-service with onsite install'],
                     ['3','Square (Plus)','$60/mo + 2.6%','~$13,440','Food trucks & pop-ups'],
                     ['4','Lightspeed (Plus)','$189/mo + 2.6%','~$15,000','20+ location chains'],
@@ -364,7 +364,7 @@ export default function BestRestaurantPosUsa2026Page() {
               </ul>
             </div>
             <p style={p}>
-              The DineOpen play isn&rsquo;t &ldquo;we charge less for swipes.&rdquo; It&rsquo;s &ldquo;we don&rsquo;t touch your swipes at all, so you can negotiate them yourself.&rdquo; At $40k/month volume that&rsquo;s usually a wash. At $100k/month it&rsquo;s a huge win. <strong>And you only pay us $9.99/month for the software.</strong>
+              The DineOpen play isn&rsquo;t &ldquo;we charge less for swipes.&rdquo; It&rsquo;s &ldquo;we don&rsquo;t touch your swipes at all, so you can negotiate them yourself.&rdquo; At $40k/month volume that&rsquo;s usually a wash. At $100k/month it&rsquo;s a huge win. <strong>And you only pay us $20/month for the software.</strong>
             </p>
           </div>
         </section>
@@ -383,7 +383,7 @@ export default function BestRestaurantPosUsa2026Page() {
             </p>
 
             <p style={p}>
-              <strong>Casual dining with 2–10 locations:</strong> DineOpen Blaze ($89/mo unlimited locations). Lightspeed wants $189 × locations + add-ons, which gets to $945/month for 5 locations. DineOpen is $89/month total. <Link href="/vs/dineopen-vs-lightspeed" style={linkStyle}>See the Lightspeed comparison</Link>.
+              <strong>Casual dining with 2–10 locations:</strong> DineOpen Pro ($99/mo unlimited locations). Lightspeed wants $189 × locations + add-ons, which gets to $945/month for 5 locations. DineOpen is $99/month total. <Link href="/vs/dineopen-vs-lightspeed" style={linkStyle}>See the Lightspeed comparison</Link>.
             </p>
 
             <p style={p}>

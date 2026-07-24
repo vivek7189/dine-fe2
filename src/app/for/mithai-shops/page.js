@@ -52,7 +52,7 @@ const faqSchema = {
       "name": "How much does mithai shop POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $9.99/month with a free Starter plan available. Weight-based billing and box packing features are included in paid plans."
+        "text": "DineOpen starts at $20/month with a 7-day free trial available. Weight-based billing and box packing features are included in paid plans."
       }
     },
     {
@@ -60,7 +60,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for mithai shops?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan to explore core billing features. Upgrade to access weight-based billing, gift box management, and multi-location support."
+        "text": "Yes, DineOpen offers a 7-day free trial to explore core billing features. Upgrade to access weight-based billing, gift box management, and multi-location support."
       }
     }
   ]

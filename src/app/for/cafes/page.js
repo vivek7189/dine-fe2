@@ -36,7 +36,7 @@ const faqSchema = {
       "name": "How much does cafe POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at just $9.99/month (approximately ₹300 in India). There is also a free Starter plan available for small cafes to get started without any upfront cost."
+        "text": "DineOpen starts at just $20/month (approximately ₹299 in India). There is also a 7-day free trial available for small cafes to get started without any upfront cost."
       }
     },
     {
@@ -52,7 +52,7 @@ const faqSchema = {
       "name": "Can DineOpen manage multiple cafe locations?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen supports multi-location management. The Spark plan supports up to 3 locations, while the Blaze plan offers unlimited locations with centralized reporting and menu management."
+        "text": "Yes, DineOpen supports multi-location management. The Starter plan supports up to 3 locations, while the Pro plan offers unlimited locations with centralized reporting and menu management."
       }
     },
     {
@@ -60,7 +60,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for cafes?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan that lets you explore core features. You can upgrade to paid plans anytime as your cafe grows, with no long-term commitments required."
+        "text": "Yes, DineOpen offers a 7-day free trial that lets you explore core features. You can upgrade to paid plans anytime as your cafe grows, with no long-term commitments required."
       }
     }
   ]

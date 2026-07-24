@@ -30,7 +30,7 @@ export default function AboutClient() {
     },
     {
       title: 'All-in-One Platform',
-      description: 'POS, kitchen display, waiter app, inventory, analytics, loyalty, QR ordering — everything in a single platform starting at $9.99/month.',
+      description: 'POS, kitchen display, waiter app, inventory, analytics, loyalty, QR ordering — everything in a single platform starting at $20/month.',
     },
   ];
 
@@ -85,7 +85,7 @@ export default function AboutClient() {
                 Small restaurant owners were forced to choose between unaffordable enterprise software and clunky free tools that could not keep up. Meanwhile, AI was transforming every industry except the one that needed it most — hospitality.
               </p>
               <p>
-                We built DineOpen to change that. A single platform where any restaurant can get a cloud POS, AI-powered voice ordering, a waiter app, inventory management, analytics, and loyalty programs — all starting at just $9.99 per month with zero transaction fees. Today, over 1,000 restaurants across 20+ countries trust DineOpen to run their operations.
+                We built DineOpen to change that. A single platform where any restaurant can get a cloud POS, AI-powered voice ordering, a waiter app, inventory management, analytics, and loyalty programs — all starting at just $20 per month with zero transaction fees. Today, over 1,000 restaurants across 20+ countries trust DineOpen to run their operations.
               </p>
             </div>
           </div>

@@ -8,7 +8,7 @@ import InternalLinks from '../../../components/InternalLinks';
 
 const comparisonData = [
   { category: 'Pricing & Fees', features: [
-    { feature: 'Starting Price', dineopen: '₹300/month ($9.99)', posist: '₹2,000-5,000+/month (custom quote)', winner: 'dineopen' },
+    { feature: 'Starting Price', dineopen: '$20/month (₹300 in India)', posist: '₹2,000-5,000+/month (custom quote)', winner: 'dineopen' },
     { feature: 'Transaction Fees', dineopen: '0% — zero transaction fees', posist: 'Varies by plan', winner: 'dineopen' },
     { feature: 'Setup Fee', dineopen: '₹0', posist: '₹15,000-50,000 (typical)', winner: 'dineopen' },
     { feature: 'Pricing Transparency', dineopen: 'Published on website', posist: 'Contact sales for custom quote', winner: 'dineopen' },
@@ -32,9 +32,9 @@ const comparisonData = [
     { feature: 'WhatsApp Ordering', dineopen: 'Built-in', posist: 'Not standard', winner: 'dineopen' },
   ]},
   { category: 'Enterprise & Scale', features: [
-    { feature: 'Multi-Outlet Management', dineopen: 'Unlimited (Blaze plan)', posist: 'Purpose-built for chains', winner: 'posist' },
+    { feature: 'Multi-Outlet Management', dineopen: 'Unlimited (Pro plan)', posist: 'Purpose-built for chains', winner: 'posist' },
     { feature: 'Centralized Reporting', dineopen: 'Yes — all locations in one dashboard', posist: 'Advanced chain-wide analytics', winner: 'posist' },
-    { feature: 'Dedicated Account Manager', dineopen: 'For Blaze plan customers', posist: 'Standard for all customers', winner: 'posist' },
+    { feature: 'Dedicated Account Manager', dineopen: 'For Pro plan customers', posist: 'Standard for all customers', winner: 'posist' },
     { feature: 'On-Ground Support', dineopen: 'Remote support (24/7 chat & email)', posist: 'Local technicians in major cities', winner: 'posist' },
     { feature: 'Franchise Management', dineopen: 'Basic franchise support', posist: 'Advanced franchise controls', winner: 'posist' },
     { feature: 'Custom Integrations', dineopen: 'API available', posist: 'Extensive third-party ecosystem', winner: 'posist' },
@@ -210,7 +210,7 @@ export default function CompareClient() {
               <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '16px', fontStyle: 'italic' }}>Best for: Small-to-medium restaurants, 1-5 outlets</p>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {[
-                  '₹300/month Spark plan ($9.99) | $89/month Blaze plan',
+                  '$20/month Starter plan (₹300 in India) | $99/month Pro plan',
                   'AI voice ordering, chat assistant, menu extraction',
                   'Zero transaction fees on all plans',
                   '15-minute self-setup, works on any device',
@@ -363,7 +363,7 @@ export default function CompareClient() {
               { title: 'Delivery Aggregator Integration', desc: 'Direct, mature integrations with Zomato, Swiggy, and other delivery platforms. Orders flow automatically into the POS. DineOpen does not have this.' },
               { title: 'Enterprise Chain Management', desc: 'Purpose-built for 10-100+ outlet chains with centralized control, franchise management, and chain-wide analytics that go beyond what DineOpen offers.' },
               { title: 'On-Ground Support Team', desc: 'Local technicians in major Indian cities for in-person setup, hardware installation, and troubleshooting. DineOpen is remote-support only.' },
-              { title: 'Dedicated Account Managers', desc: 'Every POSist customer gets a dedicated account manager. DineOpen offers this only on the Blaze plan for chain restaurants.' },
+              { title: 'Dedicated Account Managers', desc: 'Every POSist customer gets a dedicated account manager. DineOpen offers this only on the Pro plan for chain restaurants.' },
               { title: 'Advanced Reporting', desc: 'Enterprise-grade reporting with chain-wide comparisons, franchise benchmarking, and deep operational analytics built for multi-outlet decision-making.' },
               { title: 'Established Enterprise Track Record', desc: 'POSist has years of experience managing large restaurant chains. If you run 20+ outlets, that enterprise DNA matters.' },
             ].map((card, i) => (
@@ -467,7 +467,7 @@ export default function CompareClient() {
                       padding: '20px',
                       border: '1px solid #fed7aa',
                     }}>
-                      <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>DineOpen (Spark)</p>
+                      <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>DineOpen (Starter)</p>
                       <p style={{ fontSize: '13px', color: '#374151', margin: '4px 0' }}>₹{s.dineSub}/month x {s.outlets} outlet{s.outlets > 1 ? 's' : ''} x 12</p>
                       <p style={{ fontSize: '13px', color: '#374151', margin: '4px 0' }}>Transaction fees: ₹0</p>
                       <p style={{ fontSize: '24px', fontWeight: '800', color: '#16a34a', marginTop: '12px', marginBottom: 0 }}>
@@ -534,7 +534,7 @@ export default function CompareClient() {
               {
                 title: 'Enterprise Franchise Management',
                 desc: 'For large franchise operations with 10-100+ outlets, POSist offers granular franchise controls, benchmarking across locations, and enterprise-grade access management that goes beyond DineOpen\'s current multi-location capabilities.',
-                alternative: 'DineOpen\'s Blaze plan ($89/month) supports unlimited locations with centralized control, but it is built for growing chains, not massive enterprise franchises.',
+                alternative: 'DineOpen\'s Pro plan ($99/month) supports unlimited locations with centralized control, but it is built for growing chains, not massive enterprise franchises.',
               },
             ].map((item, i) => (
               <div key={i} style={{ background: '#fff7ed', padding: '24px', borderRadius: '12px', border: '1px solid #fed7aa' }}>

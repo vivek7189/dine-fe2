@@ -52,7 +52,7 @@ const faqSchema = {
       "name": "How much does pizza shop POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $9.99/month with a free Starter plan available. Topping management, combo deals, and delivery tracking are all included in paid plans."
+        "text": "DineOpen starts at $20/month with a 7-day free trial available. Topping management, combo deals, and delivery tracking are all included in paid plans."
       }
     },
     {
@@ -60,7 +60,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for pizza shops?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan to try core POS features for your pizzeria. Upgrade to access delivery tracking, combo management, and analytics."
+        "text": "Yes, DineOpen offers a 7-day free trial to try core POS features for your pizzeria. Upgrade to access delivery tracking, combo management, and analytics."
       }
     }
   ]

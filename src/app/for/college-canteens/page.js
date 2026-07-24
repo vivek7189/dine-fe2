@@ -50,7 +50,7 @@ const faqSchema = {
       "name": "How much does college canteen POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $9.99/month with a free Starter plan available. Student wallet and ID integration features are included in paid plans at no extra cost."
+        "text": "DineOpen starts at $20/month with a 7-day free trial available. Student wallet and ID integration features are included in paid plans at no extra cost."
       }
     },
     {
@@ -58,7 +58,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for college canteens?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan to try core billing features. Upgrade to access student wallet integration, analytics, and multi-counter support."
+        "text": "Yes, DineOpen offers a 7-day free trial to try core billing features. Upgrade to access student wallet integration, analytics, and multi-counter support."
       }
     }
   ]

@@ -33,7 +33,7 @@ const faqSchema = {
       "name": "Is DineOpen better than TouchBistro?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen costs $9.99/month versus TouchBistro's $69/month, works on any device (not just iPad), and includes AI voice ordering and zero transaction fees."
+        "text": "DineOpen costs $20/month versus TouchBistro's $69/month, works on any device (not just iPad), and includes AI voice ordering and zero transaction fees."
       }
     },
     {
@@ -49,7 +49,7 @@ const faqSchema = {
       "name": "How much cheaper is DineOpen vs TouchBistro?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen costs $9.99/month compared to TouchBistro's $69/month. Restaurants save $700+ per year by switching to DineOpen."
+        "text": "DineOpen costs $20/month compared to TouchBistro's $69/month. Restaurants save $580+ per year by switching to DineOpen."
       }
     },
     {

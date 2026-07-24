@@ -33,10 +33,10 @@ export default function AdminPage() {
     "operatingSystem": "Web, iOS, Android",
     "url": "https://www.dineopen.com/products/admin",
     "offers": [
-      { "@type": "Offer", "price": "9.99", "priceCurrency": "USD", "description": "Spark plan" },
-      { "@type": "Offer", "price": "300", "priceCurrency": "INR", "description": "Spark plan (India)" },
-      { "@type": "Offer", "price": "89", "priceCurrency": "USD", "description": "Blaze plan" },
-      { "@type": "Offer", "price": "2500", "priceCurrency": "INR", "description": "Blaze plan (India)" }
+      { "@type": "Offer", "price": "20", "priceCurrency": "USD", "description": "Starter plan" },
+      { "@type": "Offer", "price": "299", "priceCurrency": "INR", "description": "Starter plan (India)" },
+      { "@type": "Offer", "price": "99", "priceCurrency": "USD", "description": "Pro plan" },
+      { "@type": "Offer", "price": "1799", "priceCurrency": "INR", "description": "Pro plan (India)" }
     ],
     "featureList": [
       "Multi-restaurant management",

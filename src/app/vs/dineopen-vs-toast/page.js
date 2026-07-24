@@ -12,13 +12,13 @@ export const revalidate = false;
 //   1 page = 1 person (independent US restaurant owner evaluating Toast)
 //   Quick Answer in first 100 words
 //   Real DineOpen features only — we don't trash Toast, we showcase ourselves
-//   Real pricing ($9.99 Spark / $89 Blaze) highlighted vs Toast's published rates
+//   Real pricing ($20 Starter / $99 Pro) highlighted vs Toast's published rates
 //   Hooks, screenshots, FAQ, internal links, author box, schema
 // =============================================================================
 
 const TITLE = 'DineOpen vs Toast 2026: Honest Comparison for US Restaurants';
 const DESCRIPTION =
-  'We built DineOpen after running our own restaurant. Here is exactly what we do, what it costs ($9.99/mo flat), and where Toast still wins. No fluff.';
+  'We built DineOpen after running our own restaurant. Here is exactly what we do, what it costs ($20/mo flat), and where Toast still wins. No fluff.';
 const URL = 'https://www.dineopen.com/vs/dineopen-vs-toast';
 
 export const metadata = {
@@ -52,7 +52,7 @@ const faqSchema = {
       name: 'Is DineOpen really cheaper than Toast for a small restaurant?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Yes. DineOpen Spark is $9.99/month flat with zero per-transaction fees. Toast Starter starts at $0/month but charges 2.49% + $0.15 on every card swipe, and the Essentials plan that most full-service restaurants need is $69/month. A restaurant doing $40,000/month in card volume pays Toast roughly $1,065/month all-in. The same restaurant pays DineOpen $9.99 plus whatever its own payment processor charges. Most operators save $800-$1,200 per month.',
+        text: 'Yes. DineOpen Starter is $20/month flat with zero per-transaction fees. Toast Starter starts at $0/month but charges 2.49% + $0.15 on every card swipe, and the Essentials plan that most full-service restaurants need is $69/month. A restaurant doing $40,000/month in card volume pays Toast roughly $1,065/month all-in. The same restaurant pays DineOpen $20 plus whatever its own payment processor charges. Most operators save $800-$1,200 per month.',
       },
     },
     {
@@ -60,7 +60,7 @@ const faqSchema = {
       name: 'What can DineOpen actually do? Be specific.',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'DineOpen runs cloud POS in any browser, an iOS/Android waiter app, a Kitchen Display System (KDS), an Android KOT printer app, AI voice ordering in English and Spanish, AI menu extraction from a photo, QR code dine-in ordering, WhatsApp ordering, real-time table management, inventory with recipe-level deduction, multi-tier pricing (AC/Non-AC/Takeaway), split bills, partial payments, GST/VAT/sales tax, loyalty programs, customer khata/credit, and a full analytics dashboard. All of that is included on the $9.99 plan, no add-ons.',
+        text: 'DineOpen runs cloud POS in any browser, an iOS/Android waiter app, a Kitchen Display System (KDS), an Android KOT printer app, AI voice ordering in English and Spanish, AI menu extraction from a photo, QR code dine-in ordering, WhatsApp ordering, real-time table management, inventory with recipe-level deduction, multi-tier pricing (AC/Non-AC/Takeaway), split bills, partial payments, GST/VAT/sales tax, loyalty programs, customer khata/credit, and a full analytics dashboard. All of that is included on the $20 plan, no add-ons.',
       },
     },
     {
@@ -115,7 +115,7 @@ const softwareSchemas = [
     operatingSystem: 'Web, iOS, Android, Windows, macOS',
     offers: {
       '@type': 'Offer',
-      price: '9.99',
+      price: '20',
       priceCurrency: 'USD',
       priceValidUntil: '2027-12-31',
     },
@@ -181,7 +181,7 @@ export default function DineOpenVsToastPage() {
             <div style={{ background: '#fff', border: '2px solid #f59e0b', borderRadius: '14px', padding: '22px 24px', boxShadow: '0 4px 14px rgba(245,158,11,.12)' }}>
               <div style={{ fontSize: '12px', fontWeight: 800, color: '#b45309', letterSpacing: '.08em', marginBottom: '8px' }}>THE SHORT ANSWER</div>
               <p style={{ ...p, margin: 0, fontSize: '17px' }}>
-                <strong>DineOpen</strong> is better for independent and small-chain restaurants that want a flat <strong>$9.99/month</strong> price, no per-transaction cut, and modern features like AI voice ordering and QR menus out of the box. <strong>Toast</strong> is better if you want a US sales rep on-site for installation, in-house payroll, and Toast Capital lending. The single biggest difference: Toast takes <strong>2.49% + $0.15</strong> of every card swipe forever; DineOpen takes <strong>zero</strong>.
+                <strong>DineOpen</strong> is better for independent and small-chain restaurants that want a flat <strong>$20/month</strong> price, no per-transaction cut, and modern features like AI voice ordering and QR menus out of the box. <strong>Toast</strong> is better if you want a US sales rep on-site for installation, in-house payroll, and Toast Capital lending. The single biggest difference: Toast takes <strong>2.49% + $0.15</strong> of every card swipe forever; DineOpen takes <strong>zero</strong>.
               </p>
             </div>
           </div>
@@ -207,7 +207,7 @@ export default function DineOpenVsToastPage() {
           <div style={wrap}>
             <h2 style={h2}>What DineOpen actually does (the real feature list)</h2>
             <p style={p}>
-              I&rsquo;m not going to put a 40-row table here pretending we have everything. Here&rsquo;s the honest list of what ships on the $9.99 Spark plan, today:
+              I&rsquo;m not going to put a 40-row table here pretending we have everything. Here&rsquo;s the honest list of what ships on the $20 Starter plan, today:
             </p>
 
             <h3 style={h3}>1. Cloud POS that runs in any browser</h3>
@@ -251,7 +251,7 @@ export default function DineOpenVsToastPage() {
 
             <h3 style={h3}>8. Billing &amp; payment features that actually exist</h3>
             <p style={p}>
-              Split bills by item, by guest, or by amount. Partial payments. Cash tendering with change calculation. Customer khata/credit. Tips by % or flat. Round-off. Service charge. Discounts (offer / manual / loyalty). Multiple tax rates per item. Refunds and voids with audit log. <Link href="/pricing" style={linkStyle}>All on the $9.99 plan</Link>.
+              Split bills by item, by guest, or by amount. Partial payments. Cash tendering with change calculation. Customer khata/credit. Tips by % or flat. Round-off. Service charge. Discounts (offer / manual / loyalty). Multiple tax rates per item. Refunds and voids with audit log. <Link href="/pricing" style={linkStyle}>All on the $20 plan</Link>.
             </p>
 
             <h3 style={h3}>9. Loyalty + WhatsApp ordering</h3>
@@ -283,9 +283,9 @@ export default function DineOpenVsToastPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div style={{ background: '#fff', border: '2px solid #2563eb', borderRadius: '12px', padding: '20px' }}>
                   <div style={{ fontSize: '14px', fontWeight: 800, color: '#2563eb' }}>DINEOPEN</div>
-                  <div style={{ fontSize: '28px', fontWeight: 900, margin: '8px 0', color: '#0f172a' }}>$9.99<span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}> /mo</span></div>
+                  <div style={{ fontSize: '28px', fontWeight: 900, margin: '8px 0', color: '#0f172a' }}>$20<span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}> /mo</span></div>
                   <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '14px', color: '#334155', lineHeight: 1.7 }}>
-                    <li>Spark plan, all features</li>
+                    <li>Starter plan, all features</li>
                     <li>Unlimited devices on 1 location</li>
                     <li>0% transaction fee from us</li>
                     <li>Pay your own processor (Stripe ~2.7%)</li>
@@ -319,9 +319,9 @@ export default function DineOpenVsToastPage() {
               The honest reading: even if we&rsquo;re generous to Toast and assume your existing Stripe processing fees match Toast&rsquo;s rates exactly, you still save <strong>~$948 per year on software alone</strong>. Most restaurants save closer to <strong>$10,000+/year</strong> when you account for hardware and add-on fees Toast charges separately for things DineOpen ships standard.
             </p>
 
-            <h3 style={h3}>What about Blaze ($89/month)?</h3>
+            <h3 style={h3}>What about Pro ($99/month)?</h3>
             <p style={p}>
-              If you run more than 3 locations or want centralized menu management across a chain, the <Link href="/pricing" style={linkStyle}>DineOpen Blaze plan</Link> is $89/month flat for unlimited locations. That&rsquo;s the same price as a single Toast Essentials seat — except Blaze covers your entire chain. If you&rsquo;re a 5-location group, Toast wants $69 × 5 = $345/month plus card fees. Blaze is $89 total.
+              If you run more than 3 locations or want centralized menu management across a chain, the <Link href="/pricing" style={linkStyle}>DineOpen Pro plan</Link> is $99/month flat for unlimited locations — and it covers your entire chain, not a single terminal. If you&rsquo;re a 5-location group, Toast wants $69 × 5 = $345/month plus card fees. Pro is $99 total.
             </p>
           </div>
         </section>

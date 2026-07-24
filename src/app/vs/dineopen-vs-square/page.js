@@ -9,7 +9,7 @@ export const revalidate = false;
 
 const TITLE = 'DineOpen vs Square for Restaurants 2026: Honest Comparison';
 const DESCRIPTION =
-  'Square for Restaurants charges 2.6% + 10¢ on every swipe forever. DineOpen is $9.99/mo flat with zero per-transaction fees. Real feature list, real math, honest concessions.';
+  'Square for Restaurants charges 2.6% + 10¢ on every swipe forever. DineOpen is $20/mo flat with zero per-transaction fees. Real feature list, real math, honest concessions.';
 const URL = 'https://www.dineopen.com/vs/dineopen-vs-square';
 
 export const metadata = {
@@ -33,7 +33,7 @@ const faqSchema = {
     {
       '@type': 'Question',
       name: 'Is DineOpen cheaper than Square for Restaurants?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Yes, significantly. Square for Restaurants Free plan is $0/month but charges 2.6% + $0.10 on every card swipe. The Plus plan is $60/month per location plus the same swipe fee. DineOpen Spark is $9.99/month flat with zero per-transaction fees — you only pay your own payment processor. A restaurant doing $40,000/month in card sales pays Square roughly $1,120/month on the Plus plan and saves ~$13,300/year by switching to DineOpen.' }
+      acceptedAnswer: { '@type': 'Answer', text: 'Yes, significantly. Square for Restaurants Free plan is $0/month but charges 2.6% + $0.10 on every card swipe. The Plus plan is $60/month per location plus the same swipe fee. DineOpen Starter is $20/month flat with zero per-transaction fees — you only pay your own payment processor. A restaurant doing $40,000/month in card sales pays Square roughly $1,120/month on the Plus plan and saves ~$13,200/year by switching to DineOpen.' }
     },
     {
       '@type': 'Question',
@@ -43,7 +43,7 @@ const faqSchema = {
     {
       '@type': 'Question',
       name: 'What does DineOpen do that Square for Restaurants does not?',
-      acceptedAnswer: { '@type': 'Answer', text: 'DineOpen includes AI voice ordering in English and Spanish, AI menu extraction from a photo, WhatsApp ordering, multi-tier pricing (AC / Non-AC / Takeaway / Delivery), recipe-level inventory deduction, and customer khata/credit — all on the base $9.99 plan. Square offers some of these only on higher tiers or through paid third-party integrations.' }
+      acceptedAnswer: { '@type': 'Answer', text: 'DineOpen includes AI voice ordering in English and Spanish, AI menu extraction from a photo, WhatsApp ordering, multi-tier pricing (AC / Non-AC / Takeaway / Delivery), recipe-level inventory deduction, and customer khata/credit — all on the base $20 plan. Square offers some of these only on higher tiers or through paid third-party integrations.' }
     },
     {
       '@type': 'Question',
@@ -72,7 +72,7 @@ const softwareSchemas = [{
   '@context': 'https://schema.org', '@type': 'SoftwareApplication',
   name: 'DineOpen', applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web, iOS, Android, Windows, macOS',
-  offers: { '@type': 'Offer', price: '9.99', priceCurrency: 'USD', priceValidUntil: '2027-12-31' },
+  offers: { '@type': 'Offer', price: '20', priceCurrency: 'USD', priceValidUntil: '2027-12-31' },
   aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', ratingCount: '500' },
   description: 'AI-powered cloud restaurant POS with voice ordering, QR menus, KDS, and zero per-transaction fees.'
 }];
@@ -115,7 +115,7 @@ export default function DineOpenVsSquarePage() {
             <div style={{ background: '#fff', border: '2px solid #10b981', borderRadius: '14px', padding: '22px 24px', boxShadow: '0 4px 14px rgba(16,185,129,.12)' }}>
               <div style={{ fontSize: '12px', fontWeight: 800, color: '#047857', letterSpacing: '.08em', marginBottom: '8px' }}>THE SHORT ANSWER</div>
               <p style={{ ...p, margin: 0 }}>
-                <strong>DineOpen</strong> is better for restaurants that want to keep software and payment processing separate — $9.99/month flat, zero per-swipe markup, and you bring your own processor (Stripe, or any other). <strong>Square</strong> is better if you want one vendor handling everything and you&rsquo;re OK paying <strong>2.6% + $0.10</strong> per swipe forever for that convenience. On $40k/month in card sales, the difference is <strong>~$13,000 a year</strong>.
+                <strong>DineOpen</strong> is better for restaurants that want to keep software and payment processing separate — $20/month flat, zero per-swipe markup, and you bring your own processor (Stripe, or any other). <strong>Square</strong> is better if you want one vendor handling everything and you&rsquo;re OK paying <strong>2.6% + $0.10</strong> per swipe forever for that convenience. On $40k/month in card sales, the difference is <strong>~$13,000 a year</strong>.
               </p>
             </div>
           </div>
@@ -138,7 +138,7 @@ export default function DineOpenVsSquarePage() {
         <section>
           <div style={wrap}>
             <h2 style={h2}>What DineOpen actually ships</h2>
-            <p style={p}>Here&rsquo;s the real list — everything below is on the $9.99 Spark plan, not locked behind upgrades:</p>
+            <p style={p}>Here&rsquo;s the real list — everything below is on the $20 Starter plan, not locked behind upgrades:</p>
 
             <h3 style={h3}>Cloud POS on any device you already own</h3>
             <p style={p}>
@@ -181,7 +181,7 @@ export default function DineOpenVsSquarePage() {
 
             <h3 style={h3}>Real billing features (not just a checkout screen)</h3>
             <p style={p}>
-              Split by item, by guest, by amount. Partial payments. Cash tendering with change calculator. Customer khata / house credit. Tips (% or flat). Round-off. Service charge. Offer / manual / loyalty discounts. Multi-rate tax per item. Voids and refunds with a full audit log. <Link href="/pricing" style={linkStyle}>All on the $9.99 plan.</Link>
+              Split by item, by guest, by amount. Partial payments. Cash tendering with change calculator. Customer khata / house credit. Tips (% or flat). Round-off. Service charge. Offer / manual / loyalty discounts. Multi-rate tax per item. Voids and refunds with a full audit log. <Link href="/pricing" style={linkStyle}>All on the $20 plan.</Link>
             </p>
 
             <h3 style={h3}>WhatsApp + online ordering, built in</h3>
@@ -200,14 +200,14 @@ export default function DineOpenVsSquarePage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div style={{ background: '#fff', border: '2px solid #10b981', borderRadius: '12px', padding: '20px' }}>
                   <div style={{ fontSize: '14px', fontWeight: 800, color: '#047857' }}>DINEOPEN</div>
-                  <div style={{ fontSize: '28px', fontWeight: 900, margin: '8px 0' }}>$9.99<span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}> /mo</span></div>
+                  <div style={{ fontSize: '28px', fontWeight: 900, margin: '8px 0' }}>$20<span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}> /mo</span></div>
                   <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '14px', color: '#334155', lineHeight: 1.7 }}>
-                    <li>Spark plan, everything included</li>
+                    <li>Starter plan, everything included</li>
                     <li>Unlimited devices on 1 location</li>
                     <li>0% from us on swipes</li>
                     <li>Bring your own processor (Stripe ~2.7%)</li>
                   </ul>
-                  <div style={{ marginTop: '14px', padding: '10px 12px', background: '#ecfdf5', borderRadius: '8px', fontSize: '13px', color: '#065f46' }}>12-month software: <strong>$119.88</strong></div>
+                  <div style={{ marginTop: '14px', padding: '10px 12px', background: '#ecfdf5', borderRadius: '8px', fontSize: '13px', color: '#065f46' }}>12-month software: <strong>$240</strong></div>
                 </div>
                 <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
                   <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>SQUARE (Plus)</div>

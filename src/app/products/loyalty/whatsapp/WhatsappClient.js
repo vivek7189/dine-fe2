@@ -207,7 +207,7 @@ export default function WhatsappClient() {
               Start Marketing on WhatsApp Today
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '32px', lineHeight: 1.6 }}>
-              WhatsApp campaign management included with every DineOpen plan. Starting at $9.99/month. Set up your first campaign in minutes.
+              WhatsApp campaign management included with every DineOpen plan. Starting at $20/month. Set up your first campaign in minutes.
             </p>
             <Link href="/login?ref=loyalty" style={{ padding: '18px 40px', backgroundColor: 'white', color: '#128c7e', borderRadius: '10px', fontWeight: '700', textDecoration: 'none', fontSize: '18px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
               Get Started Free <FaArrowRight />

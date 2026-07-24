@@ -37,17 +37,17 @@ export default function KitchenPage() {
     "offers": [
       {
         "@type": "Offer",
-        "name": "Spark",
-        "price": "9.99",
+        "name": "Starter",
+        "price": "20",
         "priceCurrency": "USD",
-        "description": "Perfect for small restaurants - $9.99/mo or ₹300/mo in India"
+        "description": "Perfect for small restaurants - $20/mo or ₹299/mo in India"
       },
       {
         "@type": "Offer",
-        "name": "Blaze",
-        "price": "89",
+        "name": "Pro",
+        "price": "99",
         "priceCurrency": "USD",
-        "description": "For multi-location restaurants - $89/mo or ₹2,500/mo in India"
+        "description": "For multi-location restaurants - $99/mo or ₹1,799/mo in India"
       }
     ],
     "featureList": [
@@ -84,7 +84,7 @@ export default function KitchenPage() {
         "name": "How does DineOpen Kitchen compare to FreshKDS?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen Kitchen includes cooking timers, sound notifications, real-time Pusher updates, order deletion with reasons, and print receipts - all included in the base plan. FreshKDS charges separately for many of these features. DineOpen starts at $9.99/mo vs FreshKDS at $29/mo."
+          "text": "DineOpen Kitchen includes cooking timers, sound notifications, real-time Pusher updates, order deletion with reasons, and print receipts - all included in the base plan. FreshKDS charges separately for many of these features. DineOpen starts at $20/mo vs FreshKDS at $29/mo."
         }
       },
       {

@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Cloud-Based POS System for Restaurants | No Hardware | DineOpen',
-  description: 'Cloud-based restaurant POS that runs on any device. Real-time sync across locations, no hardware needed, automatic updates. Access your POS from anywhere. Plans from $9.99/mo.',
+  description: 'Cloud-based restaurant POS that runs on any device. Real-time sync across locations, no hardware needed, automatic updates. Access your POS from anywhere. Plans from $20/mo.',
   keywords: 'cloud POS system, cloud-based POS, restaurant cloud POS, web-based POS, no hardware POS, SaaS POS restaurant, online POS system',
   openGraph: {
     title: 'Cloud-Based POS System for Restaurants | DineOpen',
@@ -29,7 +29,7 @@ export default function CloudPosPage() {
     "url": "https://www.dineopen.com/products/pos/cloud-pos",
     "offers": {
       "@type": "Offer",
-      "price": "9.99",
+      "price": "20",
       "priceCurrency": "USD"
     }
   };

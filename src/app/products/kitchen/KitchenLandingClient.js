@@ -43,13 +43,13 @@ export default function KitchenLandingClient() {
     { feature: 'Date-based filtering', dineopen: true, freshkds: false },
     { feature: 'Status filtering (5 statuses)', dineopen: true, freshkds: true },
     { feature: 'Individual KOT viewing', dineopen: true, freshkds: true },
-    { feature: 'Starting price', dineopen: '$9.99/mo', freshkds: '$29/mo' },
+    { feature: 'Starting price', dineopen: '$20/mo', freshkds: '$29/mo' },
     { feature: 'Transaction fees', dineopen: 'Zero', freshkds: 'Varies' },
   ];
 
   const faqs = [
     { q: 'What is a Kitchen Display System (KDS)?', a: 'A KDS replaces paper tickets in your kitchen with a digital screen that shows orders in real-time. Orders appear automatically when waiters submit them, with color-coded statuses, cooking timers, and sound alerts so your kitchen never misses an order. It runs on any tablet, monitor, or TV with a web browser.' },
-    { q: 'How does DineOpen Kitchen compare to FreshKDS?', a: 'DineOpen Kitchen includes cooking timers, sound notifications, real-time updates, order deletion with reasons, and print receipts - all in the base plan starting at $9.99/mo. FreshKDS starts at $29/mo and charges extra for many features. DineOpen also has zero transaction fees on all plans.' },
+    { q: 'How does DineOpen Kitchen compare to FreshKDS?', a: 'DineOpen Kitchen includes cooking timers, sound notifications, real-time updates, order deletion with reasons, and print receipts - all in the base plan starting at $20/mo. FreshKDS starts at $29/mo and charges extra for many features. DineOpen also has zero transaction fees on all plans.' },
     { q: 'Can I filter orders by status in the kitchen display?', a: 'Yes. You can filter by all orders, pending, in-progress, ready, and completed. Combined with date filtering (today, last 24 hours, or all), this keeps your kitchen screen focused only on the orders that matter right now.' },
     { q: 'Does the KDS support sound notifications?', a: 'Yes. DineOpen Kitchen plays audible alerts when new orders arrive so kitchen staff never miss an incoming ticket, even during the busiest service. Sound settings can be adjusted based on your kitchen environment.' },
     { q: 'Can I print KOT tickets from the kitchen display?', a: 'Absolutely. While the digital display reduces paper waste, you can print individual KOT tickets or receipts whenever needed. This is especially useful for expediting or for kitchens gradually transitioning from paper to digital workflows.' },
@@ -93,7 +93,7 @@ export default function KitchenLandingClient() {
               { metric: '50%', label: 'Faster ticket processing' },
               { metric: '5', label: 'Order status filters' },
               { metric: '0', label: 'Missed orders with alerts' },
-              { metric: '$9.99', label: 'Per month starting price' },
+              { metric: '$20', label: 'Per month starting price' },
             ].map((stat, idx) => (
               <div key={idx}>
                 <p style={{ fontSize: '40px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>{stat.metric}</p>
@@ -202,19 +202,19 @@ export default function KitchenLandingClient() {
             <p style={{ color: '#6b7280', fontSize: '18px', marginBottom: '40px' }}>Zero transaction fees on every plan.</p>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '24px', maxWidth: '700px', margin: '0 auto' }}>
               <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '32px', border: '1px solid #e5e7eb' }}>
-                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>Spark</h3>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>Starter</h3>
                 <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '16px' }}>For small restaurants</p>
-                <p style={{ fontSize: '40px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$9.99<span style={{ fontSize: '16px', fontWeight: '400', color: '#6b7280' }}>/mo</span></p>
-                <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '24px' }}>₹300/mo in India</p>
+                <p style={{ fontSize: '40px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$20<span style={{ fontSize: '16px', fontWeight: '400', color: '#6b7280' }}>/mo</span></p>
+                <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '24px' }}>₹299/mo in India</p>
                 <Link href="/login?ref=kitchen" style={{ display: 'block', padding: '14px', backgroundColor: '#ef4444', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', textAlign: 'center' }}>
                   Get Started
                 </Link>
               </div>
               <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '32px', border: '2px solid #ef4444' }}>
-                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>Blaze</h3>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>Pro</h3>
                 <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '16px' }}>For multi-location restaurants</p>
-                <p style={{ fontSize: '40px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$89<span style={{ fontSize: '16px', fontWeight: '400', color: '#6b7280' }}>/mo</span></p>
-                <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '24px' }}>₹2,500/mo in India</p>
+                <p style={{ fontSize: '40px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$99<span style={{ fontSize: '16px', fontWeight: '400', color: '#6b7280' }}>/mo</span></p>
+                <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '24px' }}>₹1,799/mo in India</p>
                 <Link href="/login?ref=kitchen" style={{ display: 'block', padding: '14px', backgroundColor: '#dc2626', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', textAlign: 'center' }}>
                   Get Started
                 </Link>

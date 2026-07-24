@@ -146,9 +146,9 @@ export default function InventoryLandingClient() {
             <p style={{ fontSize: '18px', color: '#6b7280', marginBottom: '40px' }}>Zero transaction fees. Inventory included in all plans.</p>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '24px', maxWidth: '700px', margin: '0 auto' }}>
               <div style={{ padding: '32px', borderRadius: '16px', border: '1px solid #e5e7eb', backgroundColor: 'white' }}>
-                <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Spark</h3>
-                <div style={{ fontSize: '36px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$9.99<span style={{ fontSize: '16px', color: '#6b7280', fontWeight: '500' }}>/mo</span></div>
-                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>Rs.300/mo in India</div>
+                <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Starter</h3>
+                <div style={{ fontSize: '36px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$20<span style={{ fontSize: '16px', color: '#6b7280', fontWeight: '500' }}>/mo</span></div>
+                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>₹299/mo in India</div>
                 {['Stock tracking', 'Item management', 'Category filtering', 'Basic reports'].map((f, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#374151', marginBottom: '8px', justifyContent: 'center' }}>
                     <FaCheckCircle style={{ color: '#22c55e', flexShrink: 0 }} /> {f}
@@ -157,10 +157,10 @@ export default function InventoryLandingClient() {
               </div>
               <div style={{ padding: '32px', borderRadius: '16px', border: '2px solid #ef4444', backgroundColor: 'white', position: 'relative' }}>
                 <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', padding: '4px 16px', backgroundColor: '#ef4444', color: 'white', borderRadius: '12px', fontSize: '12px', fontWeight: '700' }}>POPULAR</div>
-                <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Blaze</h3>
-                <div style={{ fontSize: '36px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$89<span style={{ fontSize: '16px', color: '#6b7280', fontWeight: '500' }}>/mo</span></div>
-                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>Rs.2,500/mo in India</div>
-                {['Everything in Spark', 'Recipe costing', 'Purchase orders & GRN', 'Invoice OCR', 'AI reorder suggestions', 'Multi-location transfers'].map((f, i) => (
+                <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Pro</h3>
+                <div style={{ fontSize: '36px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$99<span style={{ fontSize: '16px', color: '#6b7280', fontWeight: '500' }}>/mo</span></div>
+                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>₹1,799/mo in India</div>
+                {['Everything in Starter', 'Recipe costing', 'Purchase orders & GRN', 'Invoice OCR', 'AI reorder suggestions', 'Multi-location transfers'].map((f, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#374151', marginBottom: '8px', justifyContent: 'center' }}>
                     <FaCheckCircle style={{ color: '#22c55e', flexShrink: 0 }} /> {f}
                   </div>

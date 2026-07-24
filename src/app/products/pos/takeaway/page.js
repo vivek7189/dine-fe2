@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Takeaway POS System | Takeout Ordering Software | DineOpen',
-  description: 'Takeaway POS system for restaurants. Manage takeout orders, packaging, delivery integration, and quick checkout. Separate takeaway queue, receipt printing, and real-time order tracking. From $9.99/mo.',
+  description: 'Takeaway POS system for restaurants. Manage takeout orders, packaging, delivery integration, and quick checkout. Separate takeaway queue, receipt printing, and real-time order tracking. From $20/mo.',
   keywords: 'takeaway POS system, takeout POS software, takeaway ordering system, takeout restaurant POS, delivery POS, pickup order management',
   openGraph: {
     title: 'Takeaway POS System | Takeout Ordering Software | DineOpen',
@@ -28,7 +28,7 @@ export default function TakeawayPosPage() {
     "url": "https://www.dineopen.com/products/pos/takeaway",
     "offers": {
       "@type": "Offer",
-      "price": "9.99",
+      "price": "20",
       "priceCurrency": "USD"
     }
   };

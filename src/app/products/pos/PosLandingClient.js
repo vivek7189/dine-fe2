@@ -42,7 +42,7 @@ export default function PosLandingClient() {
   ];
 
   const comparisons = [
-    { name: 'DineOpen POS', price: 'From $9.99/mo', txFee: '0%', cloud: 'Yes', multiLoc: 'Yes', hardware: 'None required', highlight: true },
+    { name: 'DineOpen POS', price: 'From $20/mo', txFee: '0%', cloud: 'Yes', multiLoc: 'Yes', hardware: 'None required', highlight: true },
     { name: 'Petpooja', price: 'Custom quote', txFee: 'Varies', cloud: 'Yes', multiLoc: 'Add-on', hardware: 'Proprietary' },
     { name: 'Square POS', price: 'Free + fees', txFee: '2.6% + 10c', cloud: 'Yes', multiLoc: 'Yes', hardware: 'Square terminal' },
     { name: 'Toast POS', price: 'From $69/mo', txFee: '2.49% + 15c', cloud: 'Yes', multiLoc: 'Add-on', hardware: 'Toast terminal' },
@@ -51,13 +51,13 @@ export default function PosLandingClient() {
 
   const faqs = [
     { q: 'What is a restaurant POS system?', a: 'A restaurant POS (Point of Sale) system is software that handles order taking, payment processing, and restaurant operations from a single interface. DineOpen POS supports dine-in, takeout, delivery, and room service orders with real-time kitchen sync.' },
-    { q: 'Does DineOpen POS charge transaction fees?', a: 'No. DineOpen charges zero transaction fees on all plans. You pay only the monthly subscription - Spark at $9.99/mo or Blaze at $89/mo. Every dollar your restaurant earns stays with you.' },
+    { q: 'Does DineOpen POS charge transaction fees?', a: 'No. DineOpen charges zero transaction fees on all plans. You pay only the monthly subscription - Starter at $20/mo or Pro at $99/mo. Every dollar your restaurant earns stays with you.' },
     { q: 'Can I use DineOpen POS on my phone or tablet?', a: 'Yes. DineOpen POS is fully cloud-based and works on any device with a modern browser - phones, tablets, laptops, or desktops. No special hardware or app download required.' },
     { q: 'Does DineOpen POS support multiple payment methods?', a: 'Yes. DineOpen POS supports cash, credit/debit cards, and UPI payments. Select the payment method at checkout, and the system records it automatically for your accounting records.' },
     { q: 'Can I manage multiple restaurant locations?', a: 'Yes. DineOpen POS includes built-in multi-location support. Switch between locations from the POS interface, manage separate menus and staff for each, and view consolidated reports.' },
     { q: 'How do real-time updates work?', a: 'DineOpen uses Pusher for real-time websocket connections. When an order is placed, the kitchen sees it instantly. When the kitchen marks an order ready, the waiter gets notified immediately. No page refreshing needed.' },
     { q: 'Is there a demo mode?', a: 'Yes. DineOpen POS includes a built-in demo mode with sample menu items. Explore the full interface, create test orders, and experience the workflow before setting up your own restaurant.' },
-    { q: 'How does DineOpen compare to Square or Toast?', a: 'DineOpen offers zero transaction fees (Square charges 2.6%+10c, Toast 2.49%+15c per transaction), no hardware lock-in, and plans starting at just $9.99/mo versus Toast at $69/mo. Multi-location support is included on all plans.' },
+    { q: 'How does DineOpen compare to Square or Toast?', a: 'DineOpen offers zero transaction fees (Square charges 2.6%+10c, Toast 2.49%+15c per transaction), no hardware lock-in, and plans starting at just $20/mo versus Toast at $69/mo. Multi-location support is included on all plans.' },
   ];
 
   return (
@@ -208,8 +208,8 @@ export default function PosLandingClient() {
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '32px' }}>
               {[
-                { plan: 'Spark', price: '$9.99', inr: '₹300', period: '/mo', desc: 'Everything a single-location restaurant needs to get started.', items: ['Full POS with all order types', 'Multi-payment support', 'Receipt printing', 'Tax calculations', 'Demo mode'] },
-                { plan: 'Blaze', price: '$89', inr: '₹2,500', period: '/mo', desc: 'For growing restaurants and multi-location businesses.', items: ['Everything in Spark', 'Multi-location management', 'Real-time Pusher updates', 'Saved orders queue', 'Priority support'], highlight: true },
+                { plan: 'Starter', price: '$20', inr: '₹299', period: '/mo', desc: 'Everything a single-location restaurant needs to get started.', items: ['Full POS with all order types', 'Multi-payment support', 'Receipt printing', 'Tax calculations', 'Demo mode'] },
+                { plan: 'Pro', price: '$99', inr: '₹1,799', period: '/mo', desc: 'For growing restaurants and multi-location businesses.', items: ['Everything in Starter', 'Multi-location management', 'Real-time Pusher updates', 'Saved orders queue', 'Priority support'], highlight: true },
               ].map((p, i) => (
                 <div key={i} style={{ background: 'white', padding: '40px 32px', borderRadius: '16px', border: p.highlight ? '2px solid #ef4444' : '1px solid #e5e7eb', position: 'relative' }}>
                   {p.highlight && <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#ef4444', color: 'white', padding: '4px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: '700' }}>Most Popular</div>}

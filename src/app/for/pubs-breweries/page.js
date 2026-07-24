@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'POS Software for Pubs & Microbreweries India | Bar Management | DineOpen',
-  description: 'Best POS for pubs, microbreweries, bars & taprooms in India. Tab management, happy hour pricing, age verification, keg tracking, liquor inventory. ₹999/month.',
+  description: 'Best POS for pubs, microbreweries, bars & taprooms in India. Tab management, happy hour pricing, age verification, keg tracking, liquor inventory. From $20/month (₹299 in India).',
   keywords: 'pub POS India, microbrewery software, bar billing system, taproom POS, liquor inventory management, happy hour pricing software',
   openGraph: {
     title: 'POS Software for Pubs & Microbreweries India | DineOpen',
@@ -50,7 +50,7 @@ const faqSchema = {
       "name": "How much does pub and brewery POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $9.99/month with a free Starter plan available. Tab management, happy hour pricing, and keg tracking are included in paid plans."
+        "text": "DineOpen starts at $20/month with a 7-day free trial available. Tab management, happy hour pricing, and keg tracking are included in paid plans."
       }
     },
     {
@@ -58,7 +58,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for pubs and breweries?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan to explore core features. Upgrade to access keg tracking, happy hour automation, and detailed beverage analytics."
+        "text": "Yes, DineOpen offers a 7-day free trial to explore core features. Upgrade to access keg tracking, happy hour automation, and detailed beverage analytics."
       }
     }
   ]

@@ -71,7 +71,7 @@ export default function QatarClient() {
     },
     {
       q: 'How much does DineOpen cost in Qatar?',
-      a: 'DineOpen starts at $9.99/month with all features included — POS, kitchen display, inventory, analytics, and AI tools. No transaction fees, no hidden charges. Contact our Qatar team for local pricing and special deals.',
+      a: 'DineOpen starts at $20/month with all features included — POS, kitchen display, inventory, analytics, and AI tools. No transaction fees, no hidden charges. Contact our Qatar team for local pricing and special deals.',
     },
     {
       q: 'Can I get a free demo in Qatar?',
@@ -289,7 +289,7 @@ export default function QatarClient() {
                 Everything Your Qatar Restaurant Needs
               </h2>
               <p style={{ fontSize: '18px', color: '#6b7280', maxWidth: '600px', margin: '0 auto' }}>
-                One platform, all features, zero transaction fees. Starting at $9.99/month.
+                One platform, all features, zero transaction fees. Starting at $20/month.
               </p>
             </div>
             <div style={{

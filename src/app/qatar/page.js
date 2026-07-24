@@ -102,7 +102,7 @@ export default function QatarPage() {
         "name": "How much does DineOpen cost in Qatar?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen starts at $9.99/month with all features included — POS, kitchen display, inventory, analytics, and AI tools. No transaction fees, no hidden charges. Contact our Qatar team for local pricing and deals.",
+          "text": "DineOpen starts at $20/month with all features included — POS, kitchen display, inventory, analytics, and AI tools. No transaction fees, no hidden charges. Contact our Qatar team for local pricing and deals.",
         },
       },
       {

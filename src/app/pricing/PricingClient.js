@@ -63,15 +63,15 @@ export default function PricingClient() {
     },
     USD: {
       symbol: '$',
-      starter:  { monthly: 10, annual: 8,  annualBilled: 96 },
-      growth:   { monthly: 22, annual: 18, annualBilled: 216 },
-      pro:      { monthly: 45, annual: 37, annualBilled: 444 },
+      starter:  { monthly: 20, annual: 18, annualBilled: 215 },
+      growth:   { monthly: 50, annual: 46, annualBilled: 550 },
+      pro:      { monthly: 99, annual: 83, annualBilled: 999 },
     },
     GBP: {
       symbol: '£',
-      starter:  { monthly: 8,  annual: 7,  annualBilled: 84 },
-      growth:   { monthly: 18, annual: 15, annualBilled: 180 },
-      pro:      { monthly: 36, annual: 30, annualBilled: 360 },
+      starter:  { monthly: 16, annual: 14, annualBilled: 172 },
+      growth:   { monthly: 40, annual: 37, annualBilled: 440 },
+      pro:      { monthly: 79, annual: 67, annualBilled: 799 },
     },
   };
 

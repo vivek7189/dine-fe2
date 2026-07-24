@@ -129,7 +129,7 @@ const tdHighlight = {
 };
 
 const comparisonRows = [
-  { feature: 'Monthly Price', toast: '$0 (Starter) / $69 (Essentials)', square: '$0 (Free) / $60 (Plus)', lightspeed: '$69 (Essentials) / $189 (Premium)', dineopen: '$10 (Spark) / $89 (Blaze)' },
+  { feature: 'Monthly Price', toast: '$0 (Starter) / $69 (Essentials)', square: '$0 (Free) / $60 (Plus)', lightspeed: '$69 (Essentials) / $189 (Premium)', dineopen: '$20 (Starter) / $99 (Pro)' },
   { feature: 'Transaction Fees', toast: '2.49% + $0.15', square: '2.6% + $0.10', lightspeed: '2.6% + $0.10', dineopen: '0% from us' },
   { feature: 'Annual Cost ($30K/mo revenue)', toast: '~$9,792', square: '~$9,360', lightspeed: '~$10,188', dineopen: '$120' },
   { feature: 'Hardware', toast: 'Toast hardware required ($799+)', square: 'Square Reader/Terminal or any iPad', lightspeed: 'iPad + Lightspeed hardware', dineopen: 'Any device with a browser' },
@@ -566,7 +566,7 @@ export default function ToastVsSquareVsLightspeedPage() {
             <div style={{ borderLeft: '4px solid #16a34a', paddingLeft: '20px', margin: '24px 0' }}>
               <h3 style={{ ...h3, margin: '0 0 8px' }}>Scenario 3: 8-Location Pizza Chain, $200K/Month Combined Revenue</h3>
               <p style={{ ...p, margin: '0 0 4px' }}>
-                <strong>Best fit: Lightspeed or DineOpen.</strong> You need centralized menu management, cross-location reporting, and ingredient-level inventory. Lightspeed&rsquo;s multi-site tools are mature. DineOpen Blaze at $89/month covers all 8 locations vs Lightspeed at $69&ndash;$189 per location. Annual cost: DineOpen $1,068 vs Lightspeed $6,624&ndash;$18,144 (before transaction fees). The savings fund two new locations.
+                <strong>Best fit: Lightspeed or DineOpen.</strong> You need centralized menu management, cross-location reporting, and ingredient-level inventory. Lightspeed&rsquo;s multi-site tools are mature. DineOpen Pro at $99/month covers all 8 locations vs Lightspeed at $69&ndash;$189 per location. Annual cost: DineOpen $1,188 vs Lightspeed $6,624&ndash;$18,144 (before transaction fees). The savings fund two new locations.
               </p>
             </div>
 

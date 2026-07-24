@@ -27,8 +27,8 @@ export default function GstPage() {
     "operatingSystem": "Web, iOS, Android",
     "url": "https://www.dineopen.com/products/billing/gst",
     "offers": [
-      { "@type": "Offer", "price": "9.99", "priceCurrency": "USD", "description": "Spark plan" },
-      { "@type": "Offer", "price": "300", "priceCurrency": "INR", "description": "Spark plan (India)" }
+      { "@type": "Offer", "price": "20", "priceCurrency": "USD", "description": "Starter plan" },
+      { "@type": "Offer", "price": "299", "priceCurrency": "INR", "description": "Starter plan (India)" }
     ],
   };
 

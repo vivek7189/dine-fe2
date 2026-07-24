@@ -6,7 +6,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Free Restaurant Billing Software | 7-Day Free Trial | DineOpen',
-  description: 'Get free restaurant billing software with GST support, AI ordering, cloud POS, inventory management & more. Start your 7-day free trial today — no credit card required. Plans from ₹300/month after trial.',
+  description: 'Get free restaurant billing software with GST support, AI ordering, cloud POS, inventory management & more. Start your 7-day free trial today — no credit card required. Plans from $20/month ($215/year) internationally, or ₹299/month in India, after trial.',
   keywords: 'free restaurant billing software, free billing software for restaurant, free POS software, restaurant billing software free download, billing software free trial, free GST billing software, restaurant billing app free, free restaurant POS',
   openGraph: {
     title: 'Free Restaurant Billing Software | 7-Day Free Trial | DineOpen',
@@ -49,7 +49,7 @@ export default function FreeBillingSoftwarePage() {
         "name": "Can I use DineOpen billing software for free?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, you can use DineOpen billing software completely free for 7 days. After the trial, plans start at just ₹300/month for Indian restaurants or $9.99/month for international restaurants. There are no per-transaction fees, no hidden charges, and no long-term contracts required."
+          "text": "Yes, you can use DineOpen billing software completely free for 7 days. After the trial, plans start at just $20/month for international restaurants or ₹299/month for Indian restaurants. There are no per-transaction fees, no hidden charges, and no long-term contracts required."
         }
       },
       {

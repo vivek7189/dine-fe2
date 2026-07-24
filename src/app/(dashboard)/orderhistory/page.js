@@ -1313,8 +1313,9 @@ const OrderHistory = () => {
           setBillingModalProcessing(false);
           return;
         }
+        // Persist the REAL method (incl. custom methods like gpay/phonepe/bank) — do NOT collapse to 'cash'.
         const _offBillingMethod = splitPayments ? (splitPayments[0]?.method || 'cash') : billingModalPaymentMethod;
-        const _offSafeMethod = ['cash', 'card', 'upi'].includes(_offBillingMethod) ? _offBillingMethod : 'cash';
+        const _offSafeMethod = _offBillingMethod || 'cash';
         const paymentData = {
           orderId: order.id,
           paymentMethod: _offSafeMethod,
@@ -1348,9 +1349,9 @@ const OrderHistory = () => {
 
       await apiClient.updateOrder(order.id, updateData);
 
-      // Backend only accepts 'cash', 'card', 'upi' — normalize split/other methods
+      // Persist the REAL method (incl. custom methods like gpay/phonepe/bank) — do NOT collapse to 'cash'.
       const _billingMethod = splitPayments ? (splitPayments[0]?.method || 'cash') : billingModalPaymentMethod;
-      const _safeMethod = ['cash', 'card', 'upi'].includes(_billingMethod) ? _billingMethod : 'cash';
+      const _safeMethod = _billingMethod || 'cash';
       await apiClient.verifyPayment({
         orderId: order.id,
         paymentMethod: _safeMethod,

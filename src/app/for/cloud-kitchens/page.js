@@ -52,7 +52,7 @@ const faqSchema = {
       "name": "How much does cloud kitchen POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at just $9.99/month with a free Starter plan available. Multi-brand and delivery integrations are included in the paid plans with no hidden fees."
+        "text": "DineOpen starts at just $20/month with a 7-day free trial available. Multi-brand and delivery integrations are included in the paid plans with no hidden fees."
       }
     },
     {
@@ -60,7 +60,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for cloud kitchens?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen provides a free Starter plan to explore core features. You can upgrade to paid plans anytime to access delivery integrations and multi-brand support."
+        "text": "Yes, DineOpen provides a 7-day free trial to explore core features. You can upgrade to paid plans anytime to access delivery integrations and multi-brand support."
       }
     }
   ]

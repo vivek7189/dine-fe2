@@ -287,7 +287,7 @@ export default function IntegrationsLandingClient() {
             </p>
             <div style={{ display: 'grid', gap: '16px' }}>
               {[
-                { title: 'Free with Every Plan', desc: 'Zomato, Swiggy, and Razorpay integrations are included at no extra cost on all plans — Spark and Blaze.' },
+                { title: 'Free with Every Plan', desc: 'Zomato, Swiggy, and Razorpay integrations are included at no extra cost on all plans — Starter and Pro.' },
                 { title: 'No Per-Order Fees', desc: 'Unlike aggregator management platforms that charge per order, DineOpen has zero transaction fees. Every rupee stays with you.' },
                 { title: 'Single Dashboard', desc: 'No more separate tablets for Zomato and Swiggy. All orders from all channels appear in one unified queue.' },
                 { title: 'Indian Restaurant First', desc: 'Built specifically for the Indian restaurant market. Supports GST, FSSAI compliance, Hindi/regional menus, and India-specific payment methods.' },

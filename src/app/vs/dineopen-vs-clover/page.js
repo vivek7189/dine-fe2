@@ -9,7 +9,7 @@ export const revalidate = false;
 
 const TITLE = 'DineOpen vs Clover 2026: Honest Comparison for US Restaurants';
 const DESCRIPTION =
-  'Clover locks you into $1,300 hardware and a 3-year processor contract. DineOpen is $9.99/mo on any device you own, cancellable anytime. Real features, real math.';
+  'Clover locks you into $1,300 hardware and a 3-year processor contract. DineOpen is $20/mo on any device you own, cancellable anytime. Real features, real math.';
 const URL = 'https://www.dineopen.com/vs/dineopen-vs-clover';
 
 export const metadata = {
@@ -24,9 +24,9 @@ const faqSchema = {
   '@context': 'https://schema.org', '@type': 'FAQPage',
   mainEntity: [
     { '@type': 'Question', name: 'Can I run Clover software without Clover hardware?', acceptedAnswer: { '@type': 'Answer', text: 'No. Clover software is locked to Clover hardware (Clover Station Duo, Flex, Mini, Go). You cannot install it on a generic iPad or Android tablet. This is the single biggest lock-in concern with Clover — your $1,300 Station Duo only works with Clover software and Fiserv payment processing. DineOpen runs in any browser on any device you already own.' } },
-    { '@type': 'Question', name: 'How much does Clover really cost vs DineOpen?', acceptedAnswer: { '@type': 'Answer', text: 'Clover Register for Restaurants is $84.95/month per location plus 2.3% + $0.10 per card swipe on Fiserv processing, plus a hardware purchase or lease (Station Duo is roughly $1,349 one-time or ~$65/month financed). A $40k/month restaurant pays Clover roughly $1,205/month all-in. DineOpen Spark is $9.99/month flat with no hardware requirement and no per-swipe markup from us.' } },
+    { '@type': 'Question', name: 'How much does Clover really cost vs DineOpen?', acceptedAnswer: { '@type': 'Answer', text: 'Clover Register for Restaurants is $84.95/month per location plus 2.3% + $0.10 per card swipe on Fiserv processing, plus a hardware purchase or lease (Station Duo is roughly $1,349 one-time or ~$65/month financed). A $40k/month restaurant pays Clover roughly $1,205/month all-in. DineOpen Starter is $20/month flat with no hardware requirement and no per-swipe markup from us.' } },
     { '@type': 'Question', name: 'Does DineOpen work with receipt printers Clover restaurants already own?', acceptedAnswer: { '@type': 'Answer', text: 'Most Clover-branded printers are locked to Clover Stations. However, any generic ESC/POS thermal printer (80mm USB or Bluetooth) works with the DineOpen Android KOT printer app. Common compatible brands: Epson TM-series, Star TSP-series, Xprinter, Rongta. Cost of a new thermal printer: $60-$120.' } },
-    { '@type': 'Question', name: 'What about the Clover app marketplace?', acceptedAnswer: { '@type': 'Answer', text: 'Clover has a larger third-party app marketplace (loyalty, scheduling, accounting) than DineOpen. This is a fair concession. However, DineOpen ships loyalty, inventory, KDS, waiter app, online ordering, WhatsApp ordering, and analytics in the base $9.99 plan — so most restaurants do not need third-party add-ons at all.' } },
+    { '@type': 'Question', name: 'What about the Clover app marketplace?', acceptedAnswer: { '@type': 'Answer', text: 'Clover has a larger third-party app marketplace (loyalty, scheduling, accounting) than DineOpen. This is a fair concession. However, DineOpen ships loyalty, inventory, KDS, waiter app, online ordering, WhatsApp ordering, and analytics in the base $20 plan — so most restaurants do not need third-party add-ons at all.' } },
     { '@type': 'Question', name: 'Am I stuck in a Clover contract?', acceptedAnswer: { '@type': 'Answer', text: 'Clover merchants sign processor agreements with the specific ISO (First Data, Payment Depot, Dharma, etc.) who sold them the hardware. These typically have 2-3 year terms and early termination fees of $300-$500. If you are within your contract, check the termination fee — often the switch to DineOpen pays for itself within the first 4-6 months of savings.' } },
     { '@type': 'Question', name: 'Does DineOpen offer restaurant-specific features Clover does not?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. AI voice ordering in English and Spanish, AI menu extraction from a photo, multi-tier pricing (AC / Non-AC / Takeaway / Delivery), recipe-level inventory deduction, bar pour tracking, WhatsApp ordering, and customer khata/credit are all built in. Clover offers some of these only through paid third-party apps.' } },
     { '@type': 'Question', name: 'Is there a free trial?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. DineOpen offers a 7-day free trial with all features unlocked. No credit card required. AI menu extraction gets your menu digitized in about 2 minutes so you can be live the same hour you sign up.' } }
@@ -37,7 +37,7 @@ const softwareSchemas = [{
   '@context': 'https://schema.org', '@type': 'SoftwareApplication',
   name: 'DineOpen', applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web, iOS, Android, Windows, macOS',
-  offers: { '@type': 'Offer', price: '9.99', priceCurrency: 'USD', priceValidUntil: '2027-12-31' },
+  offers: { '@type': 'Offer', price: '20', priceCurrency: 'USD', priceValidUntil: '2027-12-31' },
   aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', ratingCount: '500' },
   description: 'Hardware-free cloud restaurant POS with AI voice ordering, QR menus, and zero per-transaction fees.'
 }];
@@ -80,7 +80,7 @@ export default function DineOpenVsCloverPage() {
             <div style={{ background: '#fff', border: '2px solid #6366f1', borderRadius: '14px', padding: '22px 24px', boxShadow: '0 4px 14px rgba(99,102,241,.12)' }}>
               <div style={{ fontSize: '12px', fontWeight: 800, color: '#4338ca', letterSpacing: '.08em', marginBottom: '8px' }}>THE SHORT ANSWER</div>
               <p style={{ ...p, margin: 0 }}>
-                <strong>DineOpen</strong> is better for restaurants that don&rsquo;t want to buy $1,300+ of proprietary hardware or sign a 3-year processor contract. It runs in a browser on any iPad, Android, or laptop for <strong>$9.99/month</strong>. <strong>Clover</strong> is better if you want one physical all-in-one terminal shipped ready-to-use and you&rsquo;re fine being locked into Fiserv payment processing. The main trade-off: Clover&rsquo;s polish vs DineOpen&rsquo;s freedom.
+                <strong>DineOpen</strong> is better for restaurants that don&rsquo;t want to buy $1,300+ of proprietary hardware or sign a 3-year processor contract. It runs in a browser on any iPad, Android, or laptop for <strong>$20/month</strong>. <strong>Clover</strong> is better if you want one physical all-in-one terminal shipped ready-to-use and you&rsquo;re fine being locked into Fiserv payment processing. The main trade-off: Clover&rsquo;s polish vs DineOpen&rsquo;s freedom.
               </p>
             </div>
           </div>
@@ -103,7 +103,7 @@ export default function DineOpenVsCloverPage() {
         <section>
           <div style={wrap}>
             <h2 style={h2}>What DineOpen actually ships</h2>
-            <p style={p}>Everything below is on the $9.99 Spark plan. No hardware purchase. No processor lock-in.</p>
+            <p style={p}>Everything below is on the $20 Starter plan. No hardware purchase. No processor lock-in.</p>
 
             <h3 style={h3}>Cloud POS on devices you already own</h3>
             <p style={p}>
@@ -141,7 +141,7 @@ export default function DineOpenVsCloverPage() {
 
             <h3 style={h3}>Full billing features</h3>
             <p style={p}>
-              Split by item / guest / amount. Partial payments. Cash tendering. Customer khata. Tips. Round-off. Service charge. Multi-rate tax. Voids, refunds, audit log. <Link href="/pricing" style={linkStyle}>All on Spark.</Link>
+              Split by item / guest / amount. Partial payments. Cash tendering. Customer khata. Tips. Round-off. Service charge. Multi-rate tax. Voids, refunds, audit log. <Link href="/pricing" style={linkStyle}>All on Starter.</Link>
             </p>
 
             <h3 style={h3}>Month-to-month, cancellable anytime</h3>
@@ -160,14 +160,14 @@ export default function DineOpenVsCloverPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div style={{ background: '#fff', border: '2px solid #6366f1', borderRadius: '12px', padding: '20px' }}>
                   <div style={{ fontSize: '14px', fontWeight: 800, color: '#4338ca' }}>DINEOPEN</div>
-                  <div style={{ fontSize: '28px', fontWeight: 900, margin: '8px 0' }}>$9.99<span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}> /mo</span></div>
+                  <div style={{ fontSize: '28px', fontWeight: 900, margin: '8px 0' }}>$20<span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}> /mo</span></div>
                   <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '14px', color: '#334155', lineHeight: 1.7 }}>
-                    <li>Spark plan, all features</li>
+                    <li>Starter plan, all features</li>
                     <li>No hardware purchase</li>
                     <li>Bring your own processor</li>
                     <li>Cancel anytime</li>
                   </ul>
-                  <div style={{ marginTop: '14px', padding: '10px 12px', background: '#eef2ff', borderRadius: '8px', fontSize: '13px', color: '#3730a3' }}>12-month software: <strong>$119.88</strong></div>
+                  <div style={{ marginTop: '14px', padding: '10px 12px', background: '#eef2ff', borderRadius: '8px', fontSize: '13px', color: '#3730a3' }}>12-month software: <strong>$240</strong></div>
                 </div>
                 <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
                   <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>CLOVER (Register)</div>
@@ -187,7 +187,7 @@ export default function DineOpenVsCloverPage() {
             </div>
 
             <p style={p}>
-              Honest framing: if you have your own Stripe account at ~2.7%, swipe fees on DineOpen are roughly the same as Clover&rsquo;s 2.3%. You save on software ($9.99 vs $84.95 = ~$900/yr) and on hardware ($1,349 vs $0). Total year-one savings: <strong>~$2,200</strong> minimum, more if you negotiate processor rates.
+              Honest framing: if you have your own Stripe account at ~2.7%, swipe fees on DineOpen are roughly the same as Clover&rsquo;s 2.3%. You save on software ($20 vs $84.95 = ~$780/yr) and on hardware ($1,349 vs $0). Total year-one savings: <strong>~$2,100</strong> minimum, more if you negotiate processor rates.
             </p>
           </div>
         </section>

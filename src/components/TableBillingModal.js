@@ -240,11 +240,11 @@ export default function TableBillingModal({
 
       await apiClient.updateOrder(completedOrderId, updateData);
 
-      // Backend only accepts 'cash', 'card', 'upi' as offline methods
+      // Persist the REAL method (incl. custom methods like gpay/phonepe/bank) — do NOT collapse to 'cash'.
       const effectiveMethod = splitPayments
         ? (splitPayments[0]?.method || 'cash')
         : modalPaymentMethod;
-      const safePaymentMethod = ['cash', 'card', 'upi'].includes(effectiveMethod) ? effectiveMethod : 'cash';
+      const safePaymentMethod = effectiveMethod || 'cash';
 
       await apiClient.verifyPayment({
         orderId: completedOrderId,

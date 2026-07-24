@@ -41,7 +41,7 @@ export default function LoyaltyLandingClient() {
   ];
 
   const competitors = [
-    { name: 'DineOpen Loyalty', price: '$9.99/mo', priceSub: 'All features included with POS', features: ['Customer CRM', 'Loyalty Rewards', 'WhatsApp Marketing', 'Customer App', 'Offers Management', 'POS Integrated', 'Zero Transaction Fees'], highlight: true },
+    { name: 'DineOpen Loyalty', price: '$20/mo', priceSub: 'All features included with POS', features: ['Customer CRM', 'Loyalty Rewards', 'WhatsApp Marketing', 'Customer App', 'Offers Management', 'POS Integrated', 'Zero Transaction Fees'], highlight: true },
     { name: 'Reelo', price: '$30+/mo', priceSub: 'Standalone loyalty app', features: ['Customer CRM', 'Loyalty Rewards', 'WhatsApp Marketing', 'No Customer App', 'Offers Management', 'Requires POS Integration', 'Transaction Fees Apply'], highlight: false },
     { name: 'FiveStars', price: '$299+/mo', priceSub: 'US-focused platform', features: ['Customer CRM', 'Loyalty Rewards', 'Email Marketing', 'No Customer App', 'Offers Management', 'Tablet Required', 'Transaction Fees Apply'], highlight: false },
     { name: 'Kangaroo', price: '$59+/mo', priceSub: 'Generic loyalty tool', features: ['Basic CRM', 'Loyalty Rewards', 'Email Marketing', 'No Customer App', 'Basic Offers', 'API Integration', 'Per-Transaction Pricing'], highlight: false },
@@ -49,7 +49,7 @@ export default function LoyaltyLandingClient() {
 
   const faqs = [
     { q: 'What is DineOpen Loyalty?', a: 'DineOpen Loyalty is a complete customer engagement platform built into DineOpen. It includes a customer CRM, loyalty rewards program, promotional offers management, WhatsApp marketing campaigns, and a branded customer app called Crave. All features are included in every DineOpen plan with zero transaction fees - no separate subscription needed.' },
-    { q: 'How much does DineOpen Loyalty cost?', a: 'All loyalty features are included in your DineOpen subscription. The Spark Plan starts at $9.99/month (Rs 300/month in India) and the Blaze Plan is $89/month (Rs 2,500/month in India). There are zero transaction fees. Unlike Reelo or FiveStars which charge separately for loyalty, everything is bundled with DineOpen.' },
+    { q: 'How much does DineOpen Loyalty cost?', a: 'All loyalty features are included in your DineOpen subscription. The Starter Plan starts at $20/month (₹299/month in India) and the Pro Plan is $99/month (₹1,799/month in India). There are zero transaction fees. Unlike Reelo or FiveStars which charge separately for loyalty, everything is bundled with DineOpen.' },
     { q: 'Do I need technical knowledge to set up a loyalty program?', a: 'Not at all. Setting up your loyalty program takes less than 10 minutes. Just define how many points customers earn per order, set your reward thresholds, and create your first promotional offer. The system handles everything automatically - capturing customer data, calculating points, and sending notifications.' },
     { q: 'How is this different from the loyalty-rewards page?', a: 'DineOpen Loyalty is the comprehensive product suite that covers everything related to customer engagement: CRM, rewards, offers, WhatsApp marketing, and the Crave customer app. The loyalty rewards feature is one component within the broader Loyalty platform.' },
     { q: 'Can I import my existing customer database?', a: 'Yes. You can import customer data from spreadsheets or other CRM systems. DineOpen also captures new customer data automatically from every order placed through POS, QR menus, or the Crave app, so your database grows organically over time.' },
@@ -251,9 +251,9 @@ export default function LoyaltyLandingClient() {
 
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '28px' }}>
               <div style={{ padding: '36px', borderRadius: '16px', border: '1px solid #e5e7eb', backgroundColor: '#f9fafb' }}>
-                <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Spark Plan</h3>
-                <p style={{ fontSize: '42px', fontWeight: '800', color: '#7c3aed', marginBottom: '4px' }}>$9.99<span style={{ fontSize: '18px', fontWeight: '500', color: '#6b7280' }}>/month</span></p>
-                <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px' }}>Rs 300/month in India</p>
+                <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Starter Plan</h3>
+                <p style={{ fontSize: '42px', fontWeight: '800', color: '#7c3aed', marginBottom: '4px' }}>$20<span style={{ fontSize: '18px', fontWeight: '500', color: '#6b7280' }}>/month</span></p>
+                <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px' }}>₹299/month in India</p>
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 28px', textAlign: 'left' }}>
                   {['Customer CRM', 'Loyalty Rewards', 'Offers Management', 'WhatsApp Marketing', 'Customer App (Crave)', 'Analytics Dashboard'].map((f, i) => (
                     <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0', fontSize: '15px', color: '#374151' }}>
@@ -270,11 +270,11 @@ export default function LoyaltyLandingClient() {
                 <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#7c3aed', color: 'white', padding: '4px 16px', borderRadius: '12px', fontSize: '12px', fontWeight: '700' }}>
                   MOST POPULAR
                 </div>
-                <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Blaze Plan</h3>
-                <p style={{ fontSize: '42px', fontWeight: '800', color: '#7c3aed', marginBottom: '4px' }}>$89<span style={{ fontSize: '18px', fontWeight: '500', color: '#6b7280' }}>/month</span></p>
-                <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px' }}>Rs 2,500/month in India</p>
+                <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Pro Plan</h3>
+                <p style={{ fontSize: '42px', fontWeight: '800', color: '#7c3aed', marginBottom: '4px' }}>$99<span style={{ fontSize: '18px', fontWeight: '500', color: '#6b7280' }}>/month</span></p>
+                <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px' }}>₹1,799/month in India</p>
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 28px', textAlign: 'left' }}>
-                  {['Everything in Spark', 'Advanced Customer Segments', 'Automated Campaigns', 'Priority WhatsApp Support', 'Multi-Location Support', 'Custom Reward Rules'].map((f, i) => (
+                  {['Everything in Starter', 'Advanced Customer Segments', 'Automated Campaigns', 'Priority WhatsApp Support', 'Multi-Location Support', 'Custom Reward Rules'].map((f, i) => (
                     <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0', fontSize: '15px', color: '#374151' }}>
                       <FaCheck style={{ color: '#10b981', flexShrink: 0 }} /> {f}
                     </li>

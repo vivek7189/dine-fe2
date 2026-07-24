@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'POS Software for Sweet Shops & Mithai Stores India | DineOpen',
-  description: 'Best POS for sweet shops, mithai stores, namkeen shops & halwai in India. Weight-based billing, festival rush management, box packaging, GST invoicing. ₹999/month.',
+  description: 'Best POS for sweet shops, mithai stores, namkeen shops & halwai in India. Weight-based billing, festival rush management, box packaging, GST invoicing. From $20/month (₹299 in India).',
   keywords: 'sweet shop POS India, mithai shop billing software, halwai POS system, namkeen shop software, Indian sweets billing, weight based billing POS',
   openGraph: {
     title: 'POS Software for Sweet Shops & Mithai Stores India | DineOpen',
@@ -50,7 +50,7 @@ const faqSchema = {
       "name": "How much does sweet shop POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $9.99/month with a free Starter plan available. Weight-based billing and box packaging features are included in paid plans."
+        "text": "DineOpen starts at $20/month with a 7-day free trial available. Weight-based billing and box packaging features are included in paid plans."
       }
     },
     {
@@ -58,7 +58,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for sweet shops?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan to try core billing features for your sweet shop. Upgrade to access weight-based billing and festival rush management tools."
+        "text": "Yes, DineOpen offers a 7-day free trial to try core billing features for your sweet shop. Upgrade to access weight-based billing and festival rush management tools."
       }
     }
   ]

@@ -44,7 +44,7 @@ export default function OrdersLandingClient() {
 
   const faqs = [
     { q: 'How does QR code ordering work?', a: 'You place a unique QR code at each table. Customers scan it with their phone camera, which opens your digital menu in their browser. They browse items, add modifiers, enter special instructions, and submit the order. It goes straight to your kitchen display or POS. No app download needed by the customer.' },
-    { q: 'Does DineOpen charge transaction fees?', a: 'No. DineOpen charges zero transaction fees on all orders, regardless of type. You pay only your monthly subscription ($9.99/mo Spark or $89/mo Blaze). Unlike food delivery platforms that take 15-30% commission, every rupee of revenue stays with you.' },
+    { q: 'Does DineOpen charge transaction fees?', a: 'No. DineOpen charges zero transaction fees on all orders, regardless of type. You pay only your monthly subscription ($20/mo Starter or $99/mo Pro). Unlike food delivery platforms that take 15-30% commission, every rupee of revenue stays with you.' },
     { q: 'Can customers order via WhatsApp?', a: 'Yes. DineOpen supports WhatsApp-based ordering where customers can browse your menu and place orders through WhatsApp. These orders flow into the same unified order management dashboard alongside dine-in, QR, and online orders.' },
     { q: 'How do I search past orders?', a: 'DineOpen Orders provides search by order ID, customer name, or table number. You can filter by status (pending, completed, cancelled) and by order type (dine-in, takeout, delivery, room service). Toggle between compact and expanded view to scan orders quickly.' },
     { q: 'Can I generate invoices for orders?', a: 'Yes. DineOpen automatically generates professional invoices for every order, including itemized details, taxes, discounts, and payment information. You can download as PDF, print directly, or share with customers via WhatsApp or email.' },
@@ -86,7 +86,7 @@ export default function OrdersLandingClient() {
               { metric: '0%', label: 'Transaction fees' },
               { metric: '4', label: 'Order channels' },
               { metric: '<1s', label: 'Real-time sync' },
-              { metric: '$9.99', label: 'Starting price' },
+              { metric: '$20', label: 'Starting price' },
             ].map((stat, idx) => (
               <div key={idx}>
                 <p style={{ fontSize: '40px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>{stat.metric}</p>
@@ -184,17 +184,17 @@ export default function OrdersLandingClient() {
             <p style={{ color: '#6b7280', fontSize: '18px', marginBottom: '40px' }}>Zero transaction fees. Every order channel included.</p>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '24px', maxWidth: '700px', margin: '0 auto' }}>
               <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '32px', border: '1px solid #e5e7eb' }}>
-                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>Spark</h3>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>Starter</h3>
                 <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '16px' }}>For small restaurants</p>
-                <p style={{ fontSize: '40px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$9.99<span style={{ fontSize: '16px', fontWeight: '400', color: '#6b7280' }}>/mo</span></p>
-                <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '24px' }}>₹300/mo in India</p>
+                <p style={{ fontSize: '40px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$20<span style={{ fontSize: '16px', fontWeight: '400', color: '#6b7280' }}>/mo</span></p>
+                <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '24px' }}>₹299/mo in India</p>
                 <Link href="/login?ref=orders" style={{ display: 'block', padding: '14px', backgroundColor: '#ef4444', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>Get Started</Link>
               </div>
               <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '32px', border: '2px solid #ef4444' }}>
-                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>Blaze</h3>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>Pro</h3>
                 <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '16px' }}>For multi-location restaurants</p>
-                <p style={{ fontSize: '40px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$89<span style={{ fontSize: '16px', fontWeight: '400', color: '#6b7280' }}>/mo</span></p>
-                <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '24px' }}>₹2,500/mo in India</p>
+                <p style={{ fontSize: '40px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$99<span style={{ fontSize: '16px', fontWeight: '400', color: '#6b7280' }}>/mo</span></p>
+                <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '24px' }}>₹1,799/mo in India</p>
                 <Link href="/login?ref=orders" style={{ display: 'block', padding: '14px', backgroundColor: '#dc2626', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>Get Started</Link>
               </div>
             </div>

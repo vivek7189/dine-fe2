@@ -478,7 +478,8 @@ const OrderEditModal = ({
       // the updated billing state, and the delta is captured by the edit history /
       // auto-refund fields. Skip for split payments too.
       if (isCompletedOrder && !wasAlreadyCompleted && !splitPayments) {
-        const safePaymentMethod = ['cash', 'card', 'upi'].includes(modalPaymentMethod) ? modalPaymentMethod : 'cash';
+        // Persist the REAL method (incl. custom methods like gpay/phonepe/bank) — do NOT collapse to 'cash'.
+        const safePaymentMethod = modalPaymentMethod || 'cash';
 
         await apiClient.verifyPayment({
           orderId: completedOrderId,

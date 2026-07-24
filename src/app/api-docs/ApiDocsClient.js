@@ -60,12 +60,12 @@ export default function ApiDocsClient() {
   ];
 
   const faqs = [
-    { q: 'Does DineOpen have an API?', a: 'Yes. DineOpen provides a REST API that lets you programmatically access POS data, orders, menu items, inventory, customers, and reports. API access is available on the Blaze plan.' },
+    { q: 'Does DineOpen have an API?', a: 'Yes. DineOpen provides a REST API that lets you programmatically access POS data, orders, menu items, inventory, customers, and reports. API access is available on the Pro plan.' },
     { q: 'Which food delivery platforms does DineOpen integrate with?', a: 'DineOpen integrates with Zomato and Swiggy for automatic order sync. Online orders appear directly in your POS — no manual entry needed. Menu and availability sync in real-time.' },
     { q: 'What payment gateways are supported?', a: 'DineOpen supports Razorpay and Stripe for online payments, UPI for direct bank transfers, and all major card terminals. Payment status syncs automatically with your billing system.' },
     { q: 'Can I get webhook notifications?', a: 'Yes. Configure webhooks to receive real-time HTTP callbacks when events occur — new order placed, payment received, inventory low, reservation created, and more. Use webhooks to connect DineOpen with your own systems.' },
-    { q: 'Is there a setup fee for integrations?', a: 'No. All pre-built integrations (Zomato, Swiggy, Razorpay, WhatsApp) are included at no extra cost on the Blaze plan. API access is also included. Custom integration support is available on request.' },
-    { q: 'Can I build custom integrations?', a: 'Absolutely. Use the REST API and webhooks to connect DineOpen with any system — your own apps, third-party tools, or automation platforms like Zapier. Full API documentation is provided with your Blaze plan access.' },
+    { q: 'Is there a setup fee for integrations?', a: 'No. All pre-built integrations (Zomato, Swiggy, Razorpay, WhatsApp) are included at no extra cost on the Pro plan. API access is also included. Custom integration support is available on request.' },
+    { q: 'Can I build custom integrations?', a: 'Absolutely. Use the REST API and webhooks to connect DineOpen with any system — your own apps, third-party tools, or automation platforms like Zapier. Full API documentation is provided with your Pro plan access.' },
   ];
 
   return (
@@ -183,7 +183,7 @@ export default function ApiDocsClient() {
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '32px' }}>
               {[
-                { step: '1', title: 'Sign Up for Blaze', desc: 'API access and all integrations are included in the Blaze plan. Start with a free trial — no credit card required.' },
+                { step: '1', title: 'Sign Up for Pro', desc: 'API access and all integrations are included in the Pro plan. Start with a free trial — no credit card required.' },
                 { step: '2', title: 'Connect Your Platforms', desc: 'Enable Zomato, Swiggy, Razorpay, or WhatsApp integrations from your dashboard with one click. No code needed for pre-built connectors.' },
                 { step: '3', title: 'Build Custom Flows', desc: 'Use the REST API and webhooks to connect DineOpen with your own systems. Full documentation and sample code provided.' },
               ].map((s) => (
@@ -203,10 +203,10 @@ export default function ApiDocsClient() {
         <section style={{ padding: isMobile ? '60px 20px' : '80px 40px', backgroundColor: '#ffffff' }}>
           <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
             <h2 style={{ fontSize: isMobile ? '26px' : '36px', fontWeight: '800', color: '#111827', marginBottom: '16px' }}>
-              Included in Blaze Plan
+              Included in Pro Plan
             </h2>
             <p style={{ fontSize: '17px', color: '#6b7280', lineHeight: '1.7', marginBottom: '32px' }}>
-              All integrations and API access come bundled with the Blaze plan. No per-API-call charges, no hidden fees.
+              All integrations and API access come bundled with the Pro plan. No per-API-call charges, no hidden fees.
             </p>
             <div style={{ padding: '32px', borderRadius: '16px', border: '2px solid #2563eb', backgroundColor: '#f0f9ff' }}>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px', textAlign: 'left' }}>

@@ -52,7 +52,7 @@ const faqSchema = {
       "name": "How much does bakery POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $9.99/month with a free Starter plan for small bakeries. All bakery-specific features like custom orders and inventory tracking are included."
+        "text": "DineOpen starts at $20/month with a 7-day free trial for small bakeries. All bakery-specific features like custom orders and inventory tracking are included."
       }
     },
     {
@@ -60,7 +60,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for bakeries?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan so you can try the POS system for your bakery. Upgrade anytime to access advanced inventory and multi-location features."
+        "text": "Yes, DineOpen offers a 7-day free trial so you can try the POS system for your bakery. Upgrade anytime to access advanced inventory and multi-location features."
       }
     }
   ]

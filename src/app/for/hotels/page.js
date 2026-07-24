@@ -52,7 +52,7 @@ const faqSchema = {
       "name": "How much does hotel F&B POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $9.99/month per outlet with a free Starter plan available. Room service and multi-outlet features are included in paid plans."
+        "text": "DineOpen starts at $20/month per outlet with a 7-day free trial available. Room service and multi-outlet features are included in paid plans."
       }
     },
     {
@@ -60,7 +60,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for hotels?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan to explore core POS features. Upgrade to access room charge integration, banquet management, and multi-outlet support."
+        "text": "Yes, DineOpen offers a 7-day free trial to explore core POS features. Upgrade to access room charge integration, banquet management, and multi-outlet support."
       }
     }
   ]

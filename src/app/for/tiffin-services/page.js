@@ -50,7 +50,7 @@ const faqSchema = {
       "name": "How much does tiffin service software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $9.99/month with a free Starter plan available. Subscription management and delivery tracking features are included in paid plans."
+        "text": "DineOpen starts at $20/month with a 7-day free trial available. Subscription management and delivery tracking features are included in paid plans."
       }
     },
     {
@@ -58,7 +58,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for tiffin services?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan to try core features. Upgrade to access subscription management, delivery route planning, and automated billing."
+        "text": "Yes, DineOpen offers a 7-day free trial to try core features. Upgrade to access subscription management, delivery route planning, and automated billing."
       }
     }
   ]

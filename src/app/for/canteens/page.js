@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'POS Software for Canteens India | Corporate, School, Factory | DineOpen',
-  description: 'Best POS for canteens - corporate offices, schools, colleges, factories. Meal subscriptions, prepaid cards, subsidized billing, attendance integration. ₹999/month.',
+  description: 'Best POS for canteens - corporate offices, schools, colleges, factories. Meal subscriptions, prepaid cards, subsidized billing, attendance integration. From $20/month (₹299 in India).',
   keywords: 'canteen POS India, corporate canteen software, school canteen billing, factory mess software, cafeteria management system, subsidized meal billing',
   openGraph: {
     title: 'POS Software for Canteens India | Corporate & School | DineOpen',
@@ -50,7 +50,7 @@ const faqSchema = {
       "name": "How much does canteen POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $9.99/month with a free Starter plan available. Canteen-specific features like subscriptions and prepaid billing are included in paid plans."
+        "text": "DineOpen starts at $20/month with a 7-day free trial available. Canteen-specific features like subscriptions and prepaid billing are included in paid plans."
       }
     },
     {
@@ -58,7 +58,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for canteens?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan to try core features for your canteen. Upgrade anytime to access meal subscriptions and prepaid card management."
+        "text": "Yes, DineOpen offers a 7-day free trial to try core features for your canteen. Upgrade anytime to access meal subscriptions and prepaid card management."
       }
     }
   ]

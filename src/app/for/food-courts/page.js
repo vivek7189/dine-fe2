@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'POS Software for Food Courts & Mall Food Zones India | DineOpen',
-  description: 'Best POS for mall food courts, food zones & multi-vendor setups. Centralized billing, token system, split payments, high-speed checkout. ₹999/month.',
+  description: 'Best POS for mall food courts, food zones & multi-vendor setups. Centralized billing, token system, split payments, high-speed checkout. From $20/month (₹299 in India).',
   keywords: 'food court POS India, mall food court software, multi-vendor POS, food zone billing, token system POS, centralized food court billing',
   openGraph: {
     title: 'POS Software for Food Courts & Mall Food Zones India | DineOpen',
@@ -50,7 +50,7 @@ const faqSchema = {
       "name": "How much does food court POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $9.99/month per vendor with a free Starter plan available. Token system and centralized billing are included in paid plans."
+        "text": "DineOpen starts at $20/month per vendor with a 7-day free trial available. Token system and centralized billing are included in paid plans."
       }
     },
     {
@@ -58,7 +58,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for food courts?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan to test core features. Upgrade to access multi-vendor management, token systems, and centralized analytics."
+        "text": "Yes, DineOpen offers a 7-day free trial to test core features. Upgrade to access multi-vendor management, token systems, and centralized analytics."
       }
     }
   ]

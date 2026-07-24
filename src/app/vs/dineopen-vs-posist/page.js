@@ -50,7 +50,7 @@ const faqSchema = {
       "name": "Is DineOpen cheaper than POSist?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, significantly. DineOpen Spark plan starts at Rs 300/month (about $9.99) with all features included and zero transaction fees. POSist uses custom enterprise pricing that typically ranges from Rs 2,000-5,000+ per month per outlet, plus setup fees of Rs 15,000-50,000. For a single-outlet restaurant, DineOpen costs Rs 3,600/year vs POSist at Rs 24,000-60,000+/year. However, POSist includes enterprise-grade features like delivery aggregator integration that DineOpen does not have."
+        "text": "Yes, significantly. DineOpen Starter plan is $20/month (about Rs 300 in India) with all features included and zero transaction fees. POSist uses custom enterprise pricing that typically ranges from Rs 2,000-5,000+ per month per outlet, plus setup fees of Rs 15,000-50,000. For a single-outlet restaurant, DineOpen costs Rs 3,600/year vs POSist at Rs 24,000-60,000+/year. However, POSist includes enterprise-grade features like delivery aggregator integration that DineOpen does not have."
       }
     },
     {

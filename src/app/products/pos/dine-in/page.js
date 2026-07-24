@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Dine-In POS System | Table Management & Ordering | DineOpen',
-  description: 'Dine-in POS system with table selection, floor management, and tableside ordering. Visual table layout, manual table entry, room service support, and real-time kitchen sync. From $9.99/mo.',
+  description: 'Dine-in POS system with table selection, floor management, and tableside ordering. Visual table layout, manual table entry, room service support, and real-time kitchen sync. From $20/mo.',
   keywords: 'dine-in POS system, table management POS, restaurant table ordering, tableside POS, floor plan POS, table selection POS, sit-down restaurant POS',
   openGraph: {
     title: 'Dine-In POS System | Table Management & Ordering | DineOpen',
@@ -28,7 +28,7 @@ export default function DineInPosPage() {
     "url": "https://www.dineopen.com/products/pos/dine-in",
     "offers": {
       "@type": "Offer",
-      "price": "9.99",
+      "price": "20",
       "priceCurrency": "USD"
     }
   };

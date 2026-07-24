@@ -3742,9 +3742,11 @@ function RestaurantPOSContent() {
         // Cloud returns { message, data: { orderId } }, Electron local fallback returns { order, success }
         if (response?.data || response?.success) {
           // Process payment for the updated order
-          // Backend only accepts 'cash', 'card', 'upi' — normalize split/other methods
+          // Persist the REAL payment method (incl. restaurant-defined custom methods
+          // like gpay/phonepe/bank). Backend now accepts any offline method — do NOT
+          // collapse to 'cash'. Split payments record as the first split's method.
           const _billingMethod = splitPay ? (splitPay[0]?.method || 'cash') : paymentMethod;
-          const _safeMethod = ['cash', 'card', 'upi'].includes(_billingMethod) ? _billingMethod : 'cash';
+          const _safeMethod = _billingMethod || 'cash';
           console.log('💳 Processing payment for updated order:', currentOrder.id);
           await apiClient.verifyPayment({
             orderId: currentOrder.id,
@@ -4079,6 +4081,19 @@ function RestaurantPOSContent() {
             paymentStatus: partialPay != null ? (partialPay === 0 ? 'due' : 'partial') : 'completed'
           });
           console.log('✅ Card payment verified:', paymentResult);
+      } else {
+          // Restaurant-defined custom methods (gpay/phonepe/paytm/bank/wallet/card-terminal…).
+          // Backend accepts any offline method — verify with the REAL method so the order,
+          // bill and reports all reflect it (and a payment record is created, same as above).
+          const paymentResult = await apiClient.verifyPayment({
+            orderId,
+            paymentMethod: paymentMethod || 'cash',
+            amount: paymentAmount,
+            userId: currentUser.id,
+            restaurantId: selectedRestaurant.id,
+            paymentStatus: partialPay != null ? (partialPay === 0 ? 'due' : 'partial') : 'completed'
+          });
+          console.log('✅ Custom-method payment verified:', paymentMethod, paymentResult);
         }
 
         // Redeem wallet balance if used

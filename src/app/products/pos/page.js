@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS System | Point of Sale Software | DineOpen POS',
-  description: 'DineOpen POS system for restaurants. Cloud-based point of sale with order management, multi-payment support, real-time updates, and multi-location management. Zero transaction fees. Plans from $9.99/mo.',
+  description: 'DineOpen POS system for restaurants. Cloud-based point of sale with order management, multi-payment support, real-time updates, and multi-location management. Zero transaction fees. Plans from $20/mo.',
   keywords: 'restaurant POS system, point of sale software, restaurant POS, cloud POS, POS for restaurants, restaurant billing, order management system, multi-location POS',
   openGraph: {
     title: 'Restaurant POS System | Point of Sale Software | DineOpen POS',
@@ -36,15 +36,15 @@ export default function PosPage() {
     "offers": [
       {
         "@type": "Offer",
-        "name": "Spark",
-        "price": "9.99",
+        "name": "Starter",
+        "price": "20",
         "priceCurrency": "USD",
         "description": "Essential POS for single-location restaurants"
       },
       {
         "@type": "Offer",
-        "name": "Blaze",
-        "price": "89",
+        "name": "Pro",
+        "price": "99",
         "priceCurrency": "USD",
         "description": "Full-featured POS for growing restaurant businesses"
       }
@@ -88,7 +88,7 @@ export default function PosPage() {
         "name": "Does DineOpen POS charge transaction fees?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "No. DineOpen charges zero transaction fees on all plans. You only pay the monthly subscription - Spark at $9.99/mo or Blaze at $89/mo. Every dollar your restaurant earns stays with you."
+          "text": "No. DineOpen charges zero transaction fees on all plans. You only pay the monthly subscription - Starter at $20/mo or Pro at $99/mo. Every dollar your restaurant earns stays with you."
         }
       },
       {
@@ -136,7 +136,7 @@ export default function PosPage() {
         "name": "How does DineOpen POS compare to Petpooja or Square?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen offers zero transaction fees (Square charges 2.6%+10c per transaction), no hardware lock-in (unlike Petpooja), and affordable plans starting at $9.99/mo. DineOpen also includes multi-location support and real-time updates on all plans."
+          "text": "DineOpen offers zero transaction fees (Square charges 2.6%+10c per transaction), no hardware lock-in (unlike Petpooja), and affordable plans starting at $20/mo. DineOpen also includes multi-location support and real-time updates on all plans."
         }
       }
     ]

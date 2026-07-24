@@ -52,7 +52,7 @@ const faqSchema = {
       "name": "How much does Chinese restaurant POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $9.99/month with a free Starter plan available. Combo management and customization features are included in all paid plans."
+        "text": "DineOpen starts at $20/month with a 7-day free trial available. Combo management and customization features are included in all paid plans."
       }
     },
     {
@@ -60,7 +60,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for Chinese restaurants?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan to try core features. Upgrade to access combo management, kitchen display systems, and delivery platform integrations."
+        "text": "Yes, DineOpen offers a 7-day free trial to try core features. Upgrade to access combo management, kitchen display systems, and delivery platform integrations."
       }
     }
   ]

@@ -41,7 +41,7 @@ export default function FreeBillingClient() {
     { feature: 'AI Ordering', dineopen: 'Included', square: 'Not available', zomato: 'Not available', spreadsheet: 'Not available' },
     { feature: 'Inventory Tracking', dineopen: 'Real-time alerts', square: 'Basic', zomato: 'Not included', spreadsheet: 'Manual' },
     { feature: 'Kitchen Display', dineopen: 'Included', square: 'Extra cost', zomato: 'Not included', spreadsheet: 'Not available' },
-    { feature: 'After Trial Price', dineopen: '₹300/mo or $9.99/mo', square: 'Transaction fees forever', zomato: 'Commission forever', spreadsheet: 'Free but limited' },
+    { feature: 'After Trial Price', dineopen: '$20/mo or ₹299/mo', square: 'Transaction fees forever', zomato: 'Commission forever', spreadsheet: 'Free but limited' },
   ];
 
   const audiences = [
@@ -143,7 +143,7 @@ export default function FreeBillingClient() {
         }}>
           <p style={{ fontSize: '13px', fontWeight: '700', color: '#166534', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Quick Answer</p>
           <p style={{ fontSize: '16px', color: '#1f2937', lineHeight: '1.7', margin: 0 }}>
-            <strong>DineOpen offers free restaurant billing software</strong> with a 7-day trial — no credit card required. You get cloud POS, AI voice ordering, GST-compliant billing, kitchen display system, inventory management, and analytics. After the trial, plans start at ₹300/month ($9.99) with zero transaction fees. Works on any phone, tablet, or laptop — no hardware purchase needed. Sign up takes 2 minutes.
+            <strong>DineOpen offers free restaurant billing software</strong> with a 7-day trial — no credit card required. You get cloud POS, AI voice ordering, GST-compliant billing, kitchen display system, inventory management, and analytics. After the trial, plans start at $20/month (₹299 in India) with zero transaction fees. Works on any phone, tablet, or laptop — no hardware purchase needed. Sign up takes 2 minutes.
           </p>
         </div>
       </section>
@@ -401,7 +401,7 @@ export default function FreeBillingClient() {
             }}>
               <div style={{ fontSize: '14px', fontWeight: '700', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>India</div>
               <div style={{ fontSize: '48px', fontWeight: '900', color: '#111827', marginBottom: '4px' }}>
-                &#8377;300<span style={{ fontSize: '18px', fontWeight: '500', color: '#6b7280' }}>/month</span>
+                &#8377;299<span style={{ fontSize: '18px', fontWeight: '500', color: '#6b7280' }}>/month</span>
               </div>
               <p style={{ fontSize: '15px', color: '#6b7280', margin: 0 }}>All features included. GST billing built-in.</p>
             </div>
@@ -413,7 +413,7 @@ export default function FreeBillingClient() {
             }}>
               <div style={{ fontSize: '14px', fontWeight: '700', color: '#374151', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>International</div>
               <div style={{ fontSize: '48px', fontWeight: '900', color: '#111827', marginBottom: '4px' }}>
-                $9.99<span style={{ fontSize: '18px', fontWeight: '500', color: '#6b7280' }}>/month</span>
+                $20<span style={{ fontSize: '18px', fontWeight: '500', color: '#6b7280' }}>/month</span>
               </div>
               <p style={{ fontSize: '15px', color: '#6b7280', margin: 0 }}>All features included. Multi-currency support.</p>
             </div>

@@ -52,7 +52,7 @@ const faqSchema = {
       "name": "How much does bar POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $9.99/month with a free Starter plan available. It includes features like happy hour pricing and tab management at no extra cost."
+        "text": "DineOpen starts at $20/month with a 7-day free trial available. It includes features like happy hour pricing and tab management at no extra cost."
       }
     },
     {
@@ -60,7 +60,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for bars?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan so you can try core POS features for your bar. Upgrade anytime to access advanced features like multi-location management."
+        "text": "Yes, DineOpen offers a 7-day free trial so you can try core POS features for your bar. Upgrade anytime to access advanced features like multi-location management."
       }
     }
   ]

@@ -343,70 +343,183 @@ function BillingContent() {
     }
   };
 
-  // International plans (Dodo Payments) - USD only
+  // International plans (Dodo Payments) — USD, monthly & yearly.
+  // Prices mirror the public pricing page (dineopen.com/pricing → USD):
+  //   Starter $10/mo ($8/mo billed yearly = $96), Growth $22/mo ($18/mo = $216),
+  //   Pro $45/mo ($37/mo = $444). Plan ids match the INR plans so the backend's
+  //   getFeaturesByPlan() applies the same feature limits regardless of gateway.
+  //   Each paid plan maps to a Dodo product (set via env vars — see docs).
   const internationalPlanData = {
-    USD: [
-      {
-        id: 'free-trial',
-        name: 'Free Trial',
-        price: 0,
-        period: '30 days',
-        description: 'Try everything free',
-        popular: false,
-        features: [
-          'AI Agent (Voice/Chat)',
-          'Unlimited menu items',
-          '1 restaurant location',
-          'Complete POS system',
-          'Up to 20 tables',
-          'Kitchen display',
-          'Basic analytics',
-          'Email support'
-        ]
-      },
-      {
-        id: 'spark',
-        name: 'Spark',
-        price: 9.99,
-        period: 'month',
-        productId: process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_SPARK || 'pdt_0NYkVJEF5ywGL040N55IY',
-        description: 'For growing restaurants',
-        popular: true,
-        features: [
-          'AI Agent (Voice/Chat)',
-          'Unlimited menu items',
-          'Up to 3 locations',
-          'Complete POS system',
-          'Unlimited tables',
-          'Real-time kitchen display',
-          'Staff management',
-          'Advanced analytics',
-          'Inventory management',
-          'Priority support'
-        ]
-      },
-      {
-        id: 'blaze',
-        name: 'Blaze',
-        price: 89,
-        period: 'month',
-        productId: process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_BLAZE || process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_FLAME || 'pdt_0NYkVvCPauMPQSMaIzqTS',
-        description: 'For restaurant chains',
-        popular: false,
-        features: [
-          'AI Agent (Voice/Chat): 5,000 credits',
-          'Everything in Spark',
-          'Unlimited locations',
-          'Chain dashboard',
-          'Cross-location analytics',
-          'Centralized menu management',
-          'Bulk staff management',
-          'API access',
-          'Custom integrations',
-          '24/7 phone support'
-        ]
-      }
-    ]
+    USD: {
+      monthly: [
+        {
+          id: 'free-trial',
+          name: 'Free Trial',
+          price: 0,
+          period: '7 days',
+          description: '7 days free, no credit card required',
+          popular: false,
+          features: [
+            'AI Agent (Voice/Chat)',
+            'Unlimited menu items',
+            '1 restaurant location',
+            'Complete POS system',
+            'Unlimited tables & floors',
+            'Real-time kitchen display',
+            'Staff management',
+            'Basic analytics',
+            'Email support',
+            'Full access for 7 days'
+          ]
+        },
+        {
+          id: 'starter-monthly',
+          name: 'Starter',
+          price: 20,
+          period: 'month',
+          productId: process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_STARTER_MONTHLY || 'pdt_0NjtZoveZfObeCmhTnhHW',
+          description: 'For new restaurants & cafes',
+          popular: false,
+          features: [
+            'AI Agent (Voice/Chat)',
+            'Unlimited menu items',
+            '1 restaurant location',
+            'Complete POS system',
+            'Unlimited tables & floors',
+            'Real-time kitchen display',
+            '3 staff accounts',
+            'Analytics & reports',
+            'Inventory management',
+            'Email support'
+          ]
+        },
+        {
+          id: 'growth-monthly',
+          name: 'Growth',
+          price: 50,
+          period: 'month',
+          productId: process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_GROWTH_MONTHLY || 'pdt_0Njta82Jh7fqR9Nh6kA0Y',
+          description: 'For busy restaurants',
+          popular: true,
+          features: [
+            'Everything in Starter',
+            'Up to 5 locations',
+            '10 staff accounts',
+            'Advanced analytics',
+            'Priority support',
+            'Customer loyalty programs',
+            'Multi-store management',
+            'Data backup'
+          ]
+        },
+        {
+          id: 'pro-monthly',
+          name: 'Pro',
+          price: 99,
+          period: 'month',
+          productId: process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_PRO_MONTHLY || 'pdt_0NjtaN5OcuQnncb7rS9hK',
+          description: 'For restaurant chains',
+          popular: false,
+          features: [
+            'Everything in Growth',
+            'Unlimited locations',
+            'Unlimited staff accounts',
+            'API access',
+            'Custom integrations',
+            'Dedicated support',
+            'White-label options',
+            'Advanced AI features'
+          ]
+        }
+      ],
+      yearly: [
+        {
+          id: 'free-trial',
+          name: 'Free Trial',
+          price: 0,
+          period: '7 days',
+          description: '7 days free, no credit card required',
+          popular: false,
+          features: [
+            'AI Agent (Voice/Chat)',
+            'Unlimited menu items',
+            '1 restaurant location',
+            'Complete POS system',
+            'Unlimited tables & floors',
+            'Real-time kitchen display',
+            'Staff management',
+            'Basic analytics',
+            'Email support',
+            'Full access for 7 days'
+          ]
+        },
+        {
+          id: 'starter-yearly',
+          name: 'Starter',
+          price: 215,
+          period: 'year',
+          monthlyEquivalent: 18,
+          productId: process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_STARTER_YEARLY || 'pdt_0Njta2mM6WZVhhXhxGVYT',
+          description: 'Save $25/year',
+          popular: false,
+          savings: '$25',
+          features: [
+            'AI Agent (Voice/Chat)',
+            'Unlimited menu items',
+            '1 restaurant location',
+            'Complete POS system',
+            'Unlimited tables & floors',
+            'Real-time kitchen display',
+            '3 staff accounts',
+            'Analytics & reports',
+            'Inventory management',
+            'Email support'
+          ]
+        },
+        {
+          id: 'growth-yearly',
+          name: 'Growth',
+          price: 550,
+          period: 'year',
+          monthlyEquivalent: 46,
+          productId: process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_GROWTH_YEARLY || 'pdt_0NjtaGGIP5s02dYAIZx9t',
+          description: 'Save $50/year',
+          popular: true,
+          savings: '$50',
+          features: [
+            'Everything in Starter',
+            'Up to 5 locations',
+            '10 staff accounts',
+            'Advanced analytics',
+            'Priority support',
+            'Customer loyalty programs',
+            'Multi-store management',
+            'Data backup'
+          ]
+        },
+        {
+          id: 'pro-yearly',
+          name: 'Pro',
+          price: 999,
+          period: 'year',
+          monthlyEquivalent: 83,
+          productId: process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_PRO_YEARLY || 'pdt_0NjtaS0JWeyjGcITvAnKp',
+          description: 'Save $189/year',
+          popular: false,
+          savings: '$189',
+          features: [
+            'Everything in Growth',
+            'Unlimited locations',
+            'Unlimited staff accounts',
+            'API access',
+            'Custom integrations',
+            'Dedicated support',
+            'White-label options',
+            'Advanced AI features'
+          ]
+        }
+      ]
+    }
   };
 
   useEffect(() => {
@@ -587,6 +700,13 @@ function BillingContent() {
   const handleDodoPayment = async (plan) => {
     if (!user) {
       showNotification('error', 'User data not available');
+      return;
+    }
+
+    // Paid Dodo plans require a configured Dodo product id (env var). If it's not
+    // set yet, fail gracefully instead of sending an empty productId to checkout.
+    if (plan.price > 0 && !plan.productId) {
+      showNotification('error', 'This plan is being set up. Please try again shortly or contact support.');
       return;
     }
 
@@ -940,7 +1060,7 @@ function BillingContent() {
 
   const currentPlans = (() => {
     if (currency === 'INR') return indianPlanData.INR[billingCycle] || indianPlanData.INR.monthly;
-    return internationalPlanData.USD;
+    return internationalPlanData.USD[billingCycle] || internationalPlanData.USD.monthly;
   })();
 
   const availableCurrencies = ['USD', 'INR'];
@@ -963,11 +1083,13 @@ function BillingContent() {
       return subPlanId === 'free-trial' || subPlanId === 'starter' || subPlanId === 'free';
     }
 
-    // INR plans should only match on INR tab, USD on USD tab
-    const isINRPlan = planId.includes('monthly') || planId.includes('yearly') || planId === 'spark-monthly' || planId === 'spark-yearly';
-    const isUSDPlan = planId === 'spark' || planId === 'blaze';
-    if (isINRPlan && currency !== 'INR') return false;
-    if (isUSDPlan && currency !== 'USD') return false;
+    // INR (Razorpay) and USD (Dodo) now share plan ids (starter/growth/pro-monthly/yearly),
+    // so differentiate by the subscription's stored currency vs the active currency tab —
+    // a plan card only reflects the current plan when the subscription is on the same currency.
+    // (Legacy USD plans spark/blaze/flame carry no -monthly/-yearly suffix.)
+    const subIsINR = subCurrency === 'INR';
+    const tabIsINR = currency === 'INR';
+    if (subIsINR !== tabIsINR) return false;
 
     // Direct planId match
     if (subPlanId === planId) return true;
@@ -1464,8 +1586,8 @@ function BillingContent() {
             </span>
           </div>
 
-          {/* Monthly / Yearly toggle — only for INR */}
-          {currency === 'INR' && (
+          {/* Monthly / Yearly toggle — INR (Razorpay) and USD (Dodo) both have both cycles */}
+          {(currency === 'INR' || currency === 'USD' || currency === 'GBP') && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: '4px',
               backgroundColor: '#f3f4f6', padding: '4px', borderRadius: '10px'

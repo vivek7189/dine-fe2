@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Hotel Room Management Software | Room Inventory & Status Tracking | DineOpen',
-  description: 'Manage hotel room inventory, track room status, add rooms in bulk, and schedule maintenance. Cloud-based room management for small hotels. From $9.99/month.',
+  description: 'Manage hotel room inventory, track room status, add rooms in bulk, and schedule maintenance. Cloud-based room management for small hotels. From $20/month.',
   keywords: 'hotel room management software, room inventory system, room status tracking, bulk room add, hotel maintenance scheduling, room availability software, small hotel room management',
   openGraph: {
     title: 'Hotel Room Management Software | DineOpen',
@@ -27,7 +27,7 @@ export default function RoomsPage() {
     "description": "Room inventory and status tracking software for small hotels. Add rooms individually or in bulk, track availability by date, and schedule maintenance.",
     "applicationCategory": "BusinessApplication",
     "url": "https://www.dineopen.com/products/hotel/rooms",
-    "offers": { "@type": "Offer", "price": "9.99", "priceCurrency": "USD" },
+    "offers": { "@type": "Offer", "price": "20", "priceCurrency": "USD" },
   };
 
   const faqSchema = {

@@ -33,7 +33,7 @@ const faqSchema = {
       "name": "Is DineOpen better than LightSpeed?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen costs just $9.99/month compared to LightSpeed's $89/month and includes AI voice ordering, AI chat assistant, and menu extraction — features LightSpeed does not offer."
+        "text": "DineOpen costs just $20/month compared to LightSpeed's $89/month and includes AI voice ordering, AI chat assistant, and menu extraction — features LightSpeed does not offer."
       }
     },
     {
@@ -41,7 +41,7 @@ const faqSchema = {
       "name": "How much cheaper is DineOpen vs LightSpeed?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Restaurants save $950+ per year with DineOpen at $9.99/month versus LightSpeed's $89/month. DineOpen includes more AI features at a fraction of the cost."
+        "text": "Restaurants save $800+ per year with DineOpen at $20/month versus LightSpeed's $89/month. DineOpen includes more AI features at a fraction of the cost."
       }
     },
     {
@@ -84,7 +84,7 @@ export default function LightspeedAlternativePage() {
       "applicationCategory": "BusinessApplication",
       "offers": {
         "@type": "Offer",
-        "price": "10",
+        "price": "20",
         "priceCurrency": "USD"
       }
     }

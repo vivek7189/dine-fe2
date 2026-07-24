@@ -52,7 +52,7 @@ const faqSchema = {
       "name": "How much does South Indian restaurant POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $9.99/month with a free Starter plan available. All South Indian restaurant features including combo management and fast billing are included."
+        "text": "DineOpen starts at $20/month with a 7-day free trial available. All South Indian restaurant features including combo management and fast billing are included."
       }
     },
     {
@@ -60,7 +60,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for South Indian restaurants?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan with core POS features. Upgrade to access kitchen display systems, delivery integration, and advanced analytics."
+        "text": "Yes, DineOpen offers a 7-day free trial with core POS features. Upgrade to access kitchen display systems, delivery integration, and advanced analytics."
       }
     }
   ]

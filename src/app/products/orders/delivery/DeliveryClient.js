@@ -35,7 +35,7 @@ export default function DeliveryClient() {
 
   const faqs = [
     { q: 'How does DineOpen handle delivery orders?', a: 'Delivery orders flow into DineOpen just like dine-in orders but with delivery-specific fields: customer address, phone number, delivery notes, and estimated delivery time. Orders are tagged as delivery type so kitchen staff know to prepare and package accordingly.' },
-    { q: 'Does DineOpen charge commission on delivery orders?', a: 'No. DineOpen charges zero commissions on all delivery orders. You pay only your flat monthly subscription ($9.99/mo Spark or $89/mo Blaze). Unlike Zomato, Swiggy, or UberEats that take 15-30% of every order, you keep all your delivery revenue.' },
+    { q: 'Does DineOpen charge commission on delivery orders?', a: 'No. DineOpen charges zero commissions on all delivery orders. You pay only your flat monthly subscription ($20/mo Starter or $99/mo Pro). Unlike Zomato, Swiggy, or UberEats that take 15-30% of every order, you keep all your delivery revenue.' },
     { q: 'Can I track delivery order status?', a: 'Yes. Delivery orders have full status tracking: pending, preparing, ready for pickup, out for delivery, and delivered. Each status change syncs in real-time across POS, kitchen display, and management dashboard. You always know where every delivery order stands.' },
     { q: 'How do customers place delivery orders?', a: 'Customers can order through your online ordering page, WhatsApp, or by calling your restaurant. Staff can also enter delivery orders directly in the POS. All delivery orders appear in the same unified dashboard regardless of the order channel.' },
     { q: 'Can I generate invoices for delivery orders?', a: 'Yes. DineOpen generates professional invoices for every delivery order including itemized details, delivery charges, taxes, discounts, and payment information. Download as PDF, print for packaging, or share with customers via WhatsApp.' },
@@ -120,7 +120,7 @@ export default function DeliveryClient() {
               <div style={{ backgroundColor: '#f0fdf4', borderRadius: '12px', padding: '28px', border: '1px solid #bbf7d0' }}>
                 <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>DineOpen (flat fee)</p>
                 <p style={{ fontSize: '14px', color: '#374151', marginBottom: '16px' }}>Same 30 orders/day</p>
-                <p style={{ fontSize: '32px', fontWeight: '800', color: '#16a34a' }}>$9.99/mo</p>
+                <p style={{ fontSize: '32px', fontWeight: '800', color: '#16a34a' }}>$20/mo</p>
                 <p style={{ fontSize: '13px', color: '#6b7280' }}>Keep all revenue</p>
               </div>
             </div>
@@ -133,15 +133,15 @@ export default function DeliveryClient() {
             <h2 style={{ fontSize: isMobile ? '28px' : '36px', fontWeight: '700', color: '#111827', marginBottom: '40px' }}>Pricing</h2>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '24px', maxWidth: '700px', margin: '0 auto' }}>
               <div style={{ backgroundColor: '#f9fafb', borderRadius: '12px', padding: '32px', border: '1px solid #e5e7eb' }}>
-                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>Spark</h3>
-                <p style={{ fontSize: '40px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$9.99<span style={{ fontSize: '16px', fontWeight: '400', color: '#6b7280' }}>/mo</span></p>
-                <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '24px' }}>₹300/mo in India</p>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>Starter</h3>
+                <p style={{ fontSize: '40px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$20<span style={{ fontSize: '16px', fontWeight: '400', color: '#6b7280' }}>/mo</span></p>
+                <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '24px' }}>₹299/mo in India</p>
                 <Link href="/login?ref=orders" style={{ display: 'block', padding: '14px', backgroundColor: '#ef4444', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>Get Started</Link>
               </div>
               <div style={{ backgroundColor: '#f9fafb', borderRadius: '12px', padding: '32px', border: '2px solid #ef4444' }}>
-                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>Blaze</h3>
-                <p style={{ fontSize: '40px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$89<span style={{ fontSize: '16px', fontWeight: '400', color: '#6b7280' }}>/mo</span></p>
-                <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '24px' }}>₹2,500/mo in India</p>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>Pro</h3>
+                <p style={{ fontSize: '40px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$99<span style={{ fontSize: '16px', fontWeight: '400', color: '#6b7280' }}>/mo</span></p>
+                <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '24px' }}>₹1,799/mo in India</p>
                 <Link href="/login?ref=orders" style={{ display: 'block', padding: '14px', backgroundColor: '#dc2626', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>Get Started</Link>
               </div>
             </div>

@@ -52,7 +52,7 @@ const faqSchema = {
       "name": "How much does food truck POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at just $9.99/month with a free Starter plan available. No expensive hardware required since it runs on your existing phone or tablet."
+        "text": "DineOpen starts at just $20/month with a 7-day free trial available. No expensive hardware required since it runs on your existing phone or tablet."
       }
     },
     {
@@ -60,7 +60,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for food trucks?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan with core billing features. You can start using it immediately on your phone without any upfront investment."
+        "text": "Yes, DineOpen offers a 7-day free trial with core billing features. You can start using it immediately on your phone without any upfront investment."
       }
     }
   ]

@@ -36,7 +36,7 @@ const faqSchema = {
       "name": "How much does restaurant POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at just $9.99/month (approximately ₹300 in India). A free Starter plan is also available for restaurants just getting started with digital billing."
+        "text": "DineOpen starts at just $20/month (approximately ₹299 in India). A 7-day free trial is also available for restaurants just getting started with digital billing."
       }
     },
     {
@@ -60,7 +60,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for restaurants?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan with core POS features. You can try it risk-free and upgrade to paid plans as your restaurant business grows."
+        "text": "Yes, DineOpen offers a 7-day free trial with core POS features. You can try it risk-free and upgrade to paid plans as your restaurant business grows."
       }
     }
   ]

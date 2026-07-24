@@ -173,7 +173,7 @@ export default function OffersClient() {
               Start Creating Promotions That Work
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '32px', lineHeight: 1.6 }}>
-              All offer management features included with DineOpen. Starting at $9.99/month with zero transaction fees.
+              All offer management features included with DineOpen. Starting at $20/month with zero transaction fees.
             </p>
             <Link href="/login?ref=loyalty" style={{ padding: '18px 40px', backgroundColor: 'white', color: '#ef4444', borderRadius: '10px', fontWeight: '700', textDecoration: 'none', fontSize: '18px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
               Get Started Free <FaArrowRight />

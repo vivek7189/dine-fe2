@@ -55,7 +55,7 @@ export default function SmallBusinessClient() {
   const faqs = [
     {
       question: 'Is DineOpen really free for small businesses?',
-      answer: 'Yes! Our Starter plan is completely free and includes billing, QR menus, and basic order management. No credit card required, no hidden fees. Upgrade to paid plans starting at just $9.99/month when you need advanced features.'
+      answer: 'Yes! Our Starter plan is completely free and includes billing, QR menus, and basic order management. No credit card required, no hidden fees. Upgrade to paid plans starting at just $20/month when you need advanced features.'
     },
     {
       question: 'Do I need to buy any special hardware?',
@@ -95,7 +95,7 @@ export default function SmallBusinessClient() {
       testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Start Free — No Credit Card Needed"
-      ctaDescription="Join thousands of small business owners using DineOpen. Free plan forever, paid plans from $9.99/month."
+      ctaDescription="Join thousands of small business owners using DineOpen. Free plan forever, paid plans from $20/month."
       relatedIndustries={relatedIndustries}
     />
   );

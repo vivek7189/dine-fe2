@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Hotel Management Software for Small Hotels | Room Booking System | DineOpen Hotel',
-  description: 'Affordable hotel management software for small hotels, boutique stays, and hotel-restaurants. Room booking, check-in/check-out, housekeeping, room service, and invoice generation. Cloud-based PMS from $9.99/month.',
+  description: 'Affordable hotel management software for small hotels, boutique stays, and hotel-restaurants. Room booking, check-in/check-out, housekeeping, room service, and invoice generation. Cloud-based PMS from $20/month.',
   keywords: 'hotel management software, small hotel software, hotel PMS, room booking system, hotel check-in software, hotel room management, boutique hotel software, hotel restaurant management, hotel billing software, property management system small hotel',
   openGraph: {
     title: 'Hotel Management Software for Small Hotels | DineOpen Hotel',
@@ -37,15 +37,15 @@ export default function HotelPage() {
     "offers": [
       {
         "@type": "Offer",
-        "name": "Spark Plan",
-        "price": "9.99",
+        "name": "Starter Plan",
+        "price": "20",
         "priceCurrency": "USD",
         "description": "Hotel management for small properties"
       },
       {
         "@type": "Offer",
-        "name": "Blaze Plan",
-        "price": "89",
+        "name": "Pro Plan",
+        "price": "99",
         "priceCurrency": "USD",
         "description": "Full hotel management with advanced features"
       }
@@ -89,7 +89,7 @@ export default function HotelPage() {
         "name": "How much does DineOpen Hotel cost?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen Hotel starts at $9.99/month (Spark Plan) or Rs 300/month in India. The Blaze Plan at $89/month (Rs 2,500/month in India) includes advanced features for larger properties."
+          "text": "DineOpen Hotel starts at $20/month (Starter Plan) or Rs 299/month in India. The Pro Plan at $99/month (Rs 1,799/month in India) includes advanced features for larger properties."
         }
       },
       {

@@ -49,7 +49,7 @@ const faqSchema = {
       "name": "How much cheaper is DineOpen vs Square?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen costs $9.99/month compared to Square's $60/month for restaurants. DineOpen also charges zero transaction fees versus Square's 2.6% + $0.10, saving restaurants thousands per year."
+        "text": "DineOpen costs $20/month compared to Square's $60/month for restaurants. DineOpen also charges zero transaction fees versus Square's 2.6% + $0.10, saving restaurants thousands per year."
       }
     },
     {
@@ -57,7 +57,7 @@ const faqSchema = {
       "name": "Does DineOpen have a free plan like Square?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen offers a 7-day free trial with all features included. The Spark plan at $9.99/month includes AI voice ordering and features that Square charges extra for on top of their transaction fees."
+        "text": "DineOpen offers a 7-day free trial with all features included. The Starter plan at $20/month includes AI voice ordering and features that Square charges extra for on top of their transaction fees."
       }
     },
     {

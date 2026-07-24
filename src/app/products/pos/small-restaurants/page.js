@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'POS for Small Restaurants | Affordable POS System | DineOpen',
-  description: 'Affordable POS system for small restaurants starting at $9.99/mo (₹300 in India). Easy setup, no hardware required, essential features included. Perfect for restaurants, cafes, and food trucks with limited budgets.',
+  description: 'Affordable POS system for small restaurants starting at $20/mo (₹299 in India). Easy setup, no hardware required, essential features included. Perfect for restaurants, cafes, and food trucks with limited budgets.',
   keywords: 'POS for small restaurants, affordable restaurant POS, cheap POS system, small restaurant POS software, budget restaurant POS, simple POS system',
   openGraph: {
     title: 'POS for Small Restaurants | Affordable POS System | DineOpen',
-    description: 'Affordable POS starting at $9.99/mo. Easy setup, no hardware, essential features for small restaurants.',
+    description: 'Affordable POS starting at $20/mo. Easy setup, no hardware, essential features for small restaurants.',
     url: 'https://www.dineopen.com/products/pos/small-restaurants',
     type: 'website',
   },
@@ -28,9 +28,9 @@ export default function SmallRestaurantsPosPage() {
     "url": "https://www.dineopen.com/products/pos/small-restaurants",
     "offers": {
       "@type": "Offer",
-      "price": "9.99",
+      "price": "20",
       "priceCurrency": "USD",
-      "description": "Spark plan for small restaurants"
+      "description": "Starter plan for small restaurants"
     }
   };
 
@@ -43,7 +43,7 @@ export default function SmallRestaurantsPosPage() {
         "name": "How much does DineOpen POS cost for small restaurants?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen Spark plan costs $9.99/mo (₹300/mo in India). It includes full POS functionality with all order types, multi-payment support, receipt printing, and tax calculations. Zero transaction fees - you keep every dollar you earn."
+          "text": "DineOpen Starter plan costs $20/mo (₹299/mo in India). It includes full POS functionality with all order types, multi-payment support, receipt printing, and tax calculations. Zero transaction fees - you keep every dollar you earn."
         }
       },
       {
@@ -75,7 +75,7 @@ export default function SmallRestaurantsPosPage() {
         "name": "Can I upgrade later if my restaurant grows?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes. Start with the Spark plan at $9.99/mo and upgrade to Blaze at $89/mo when you need multi-location support, real-time Pusher updates, and priority support. All your data carries over - no migration needed."
+          "text": "Yes. Start with the Starter plan at $20/mo and upgrade to Pro at $99/mo when you need multi-location support, real-time Pusher updates, and priority support. All your data carries over - no migration needed."
         }
       },
       {

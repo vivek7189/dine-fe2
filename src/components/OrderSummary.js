@@ -2013,6 +2013,13 @@ const OrderSummary = ({
         customerName: customerName || 'Walk-in',
         customerPhone: customerMobile || '',
         paymentMethod: paymentMethod || 'cash',
+        paymentMethodLabel: (() => {
+          const id = paymentMethod || 'cash';
+          const builtIn = { cash: 'Cash', card: 'Card', upi: 'UPI', 'card-terminal': 'Card', split: 'Split', due: 'Due' };
+          if (builtIn[id]) return builtIn[id];
+          const found = Array.isArray(posSettings?.paymentMethods) ? posSettings.paymentMethods.find(m => m?.id === id) : null;
+          return found?.label || String(id).replace(/[_-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        })(),
         orderType: orderType || 'dine_in',
         // Delivery fields for receipt printing
         deliveryAddress: orderType === 'delivery' ? (deliveryAddress || null) : null,
@@ -3581,7 +3588,7 @@ const OrderSummary = ({
                       {invoice?.tableNumber && <div><strong>{t('invoice.table')}:</strong> {invoice.tableNumber}{invoice?.floorName ? ` · ${invoice.floorName}` : ''}</div>}
                       {invoice?.customerName && <div><strong>{bLabels.customerLabel}:</strong> {invoice.customerName}</div>}
                       {printSettings?.billLayout?.showCustomerPhone && invoice?.customerPhone && <div><strong>{t('invoice.phone') || 'Phone'}:</strong> {invoice.customerPhone}</div>}
-                      <div><strong>{t('invoice.payment')}:</strong> {(invoice?.paymentMethod || 'CASH').toUpperCase()}</div>
+                      <div><strong>{t('invoice.payment')}:</strong> {(invoice?.paymentMethodLabel || invoice?.paymentMethod || 'CASH').toUpperCase()}</div>
                       {invoice?.ecrResponse && (
                         <div style={{ marginTop: '4px', padding: '4px 0', borderTop: '1px dashed #d1d5db', fontSize: '11px' }}>
                           {invoice.ecrResponse.CardType && <div><strong>Card:</strong> {invoice.ecrResponse.CardType} {invoice.ecrResponse.CardNumber || ''}</div>}

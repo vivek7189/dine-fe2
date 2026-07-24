@@ -37,17 +37,17 @@ export default function AiPage() {
     "offers": [
       {
         "@type": "Offer",
-        "name": "Spark",
-        "price": "9.99",
+        "name": "Starter",
+        "price": "20",
         "priceCurrency": "USD",
-        "description": "$9.99/mo or ₹300/mo in India"
+        "description": "$20/mo or ₹299/mo in India"
       },
       {
         "@type": "Offer",
-        "name": "Blaze",
-        "price": "89",
+        "name": "Pro",
+        "price": "99",
         "priceCurrency": "USD",
-        "description": "$89/mo or ₹2,500/mo in India"
+        "description": "$99/mo or ₹1,799/mo in India"
       }
     ],
     "featureList": [

@@ -52,7 +52,7 @@ const faqSchema = {
       "name": "How much does street food POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $9.99/month with a free Starter plan perfect for street food vendors. It is the most affordable digital billing solution for small food businesses."
+        "text": "DineOpen starts at $20/month with a 7-day free trial perfect for street food vendors. It is the most affordable digital billing solution for small food businesses."
       }
     },
     {
@@ -60,7 +60,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free plan for street food vendors?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan ideal for street food stalls. Start digital billing with zero investment and upgrade as your business grows."
+        "text": "Yes, DineOpen offers a 7-day free trial ideal for street food stalls. Start digital billing with zero investment and upgrade as your business grows."
       }
     }
   ]

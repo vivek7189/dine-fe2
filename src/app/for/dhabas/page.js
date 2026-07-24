@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'POS Software for Dhabas India | Highway & Roadside Restaurants | DineOpen',
-  description: 'Best POS for dhabas, highway restaurants & roadside eateries in India. Quick billing, driver loyalty, 24-hour operations, offline mode, GST compliance. ₹999/month.',
+  description: 'Best POS for dhabas, highway restaurants & roadside eateries in India. Quick billing, driver loyalty, 24-hour operations, offline mode, GST compliance. From $20/month (₹299 in India).',
   keywords: 'dhaba POS India, highway restaurant software, roadside dhaba billing, truck driver loyalty, 24 hour restaurant POS, offline billing software',
   openGraph: {
     title: 'POS Software for Dhabas India | Highway Restaurant | DineOpen',
@@ -50,7 +50,7 @@ const faqSchema = {
       "name": "How much does dhaba POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $9.99/month with a free Starter plan available. It runs on your existing smartphone, so no expensive hardware is needed for your dhaba."
+        "text": "DineOpen starts at $20/month with a 7-day free trial available. It runs on your existing smartphone, so no expensive hardware is needed for your dhaba."
       }
     },
     {
@@ -58,7 +58,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for dhabas?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a free Starter plan perfect for dhabas getting started with digital billing. Upgrade anytime to access loyalty programs and multi-location features."
+        "text": "Yes, DineOpen offers a 7-day free trial perfect for dhabas getting started with digital billing. Upgrade anytime to access loyalty programs and multi-location features."
       }
     }
   ]

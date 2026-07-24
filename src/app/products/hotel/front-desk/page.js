@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Hotel Front Desk Software | Check-in Check-out System | DineOpen',
-  description: 'Hotel front desk software for check-in, check-out, guest profile management, and invoice generation. Streamline front office operations for small hotels. Cloud-based from $9.99/month.',
+  description: 'Hotel front desk software for check-in, check-out, guest profile management, and invoice generation. Streamline front office operations for small hotels. Cloud-based from $20/month.',
   keywords: 'hotel front desk software, hotel check-in system, check-out software, guest profile management, hotel invoice software, front office hotel software, small hotel check-in',
   openGraph: {
     title: 'Hotel Front Desk Software | DineOpen',
@@ -27,7 +27,7 @@ export default function FrontDeskPage() {
     "description": "Front desk management software for small hotels with check-in/check-out, guest profiles, room service integration, and invoice generation.",
     "applicationCategory": "BusinessApplication",
     "url": "https://www.dineopen.com/products/hotel/front-desk",
-    "offers": { "@type": "Offer", "price": "9.99", "priceCurrency": "USD" },
+    "offers": { "@type": "Offer", "price": "20", "priceCurrency": "USD" },
   };
 
   const faqSchema = {

@@ -60,7 +60,7 @@ export default function BillingLandingClient() {
   const faqs = [
     { q: 'Does DineOpen Billing support GST invoicing?', a: 'Yes. DineOpen generates fully GST-compliant invoices with HSN codes, GSTIN display, and automatic CGST/SGST/IGST calculation based on your restaurant location and customer state.' },
     { q: 'What payment methods does DineOpen Billing support?', a: 'DineOpen supports cash, credit/debit cards, UPI (Google Pay, PhonePe, Paytm), digital wallets, and payment gateways like Razorpay and Dodo. Split payments across multiple methods are also supported.' },
-    { q: 'How much does DineOpen Billing cost?', a: 'DineOpen Billing starts at $9.99/month (Rs.300/month in India) on the Spark plan. The Blaze plan at $89/month (Rs.2,500 in India) includes advanced features. Zero transaction fees on all plans.' },
+    { q: 'How much does DineOpen Billing cost?', a: 'DineOpen Billing starts at $20/month (Rs.299/month in India) on the Starter plan. The Pro plan at $99/month (Rs.1,799 in India) includes advanced features. Zero transaction fees on all plans.' },
     { q: 'Can I generate tax reports for GST filing?', a: 'Yes. DineOpen maintains complete tax records and generates reports compatible with GSTR-1, GSTR-3B, and other GST filing formats. Export data in Excel or CSV for your accountant.' },
     { q: 'Does DineOpen support multiple tax rates?', a: 'Absolutely. Configure different GST rates (5%, 12%, 18%, 28%) per item category. The system handles service tax, packaging charges, and delivery charges separately with proper tax treatment.' },
     { q: 'Can I customize my invoice template?', a: 'Yes. Customize your invoice layout with your restaurant logo, address, FSSAI number, custom footer messages, and terms. Choose between thermal printer format and A4 format for different use cases.' },
@@ -163,9 +163,9 @@ export default function BillingLandingClient() {
             <p style={{ fontSize: '18px', color: '#6b7280', marginBottom: '40px' }}>Zero transaction fees. No hidden charges.</p>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '24px', maxWidth: '700px', margin: '0 auto' }}>
               <div style={{ padding: '32px', borderRadius: '16px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
-                <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Spark</h3>
-                <div style={{ fontSize: '36px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$9.99<span style={{ fontSize: '16px', color: '#6b7280', fontWeight: '500' }}>/mo</span></div>
-                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>Rs.300/mo in India</div>
+                <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Starter</h3>
+                <div style={{ fontSize: '36px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$20<span style={{ fontSize: '16px', color: '#6b7280', fontWeight: '500' }}>/mo</span></div>
+                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>Rs.299/mo in India</div>
                 {['Bill generation', 'GST invoices', 'Tax calculation', 'UPI & card payments'].map((f, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#374151', marginBottom: '8px', justifyContent: 'center' }}>
                     <FaCheckCircle style={{ color: '#22c55e', flexShrink: 0 }} /> {f}
@@ -174,10 +174,10 @@ export default function BillingLandingClient() {
               </div>
               <div style={{ padding: '32px', borderRadius: '16px', border: '2px solid #ef4444', textAlign: 'center', position: 'relative' }}>
                 <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', padding: '4px 16px', backgroundColor: '#ef4444', color: 'white', borderRadius: '12px', fontSize: '12px', fontWeight: '700' }}>POPULAR</div>
-                <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Blaze</h3>
-                <div style={{ fontSize: '36px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$89<span style={{ fontSize: '16px', color: '#6b7280', fontWeight: '500' }}>/mo</span></div>
-                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>Rs.2,500/mo in India</div>
-                {['Everything in Spark', 'Razorpay/Dodo integration', 'Subscription billing', 'Tax filing reports', 'Multi-location billing'].map((f, i) => (
+                <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Pro</h3>
+                <div style={{ fontSize: '36px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$99<span style={{ fontSize: '16px', color: '#6b7280', fontWeight: '500' }}>/mo</span></div>
+                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>Rs.1,799/mo in India</div>
+                {['Everything in Starter', 'Razorpay/Dodo integration', 'Subscription billing', 'Tax filing reports', 'Multi-location billing'].map((f, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#374151', marginBottom: '8px', justifyContent: 'center' }}>
                     <FaCheckCircle style={{ color: '#22c55e', flexShrink: 0 }} /> {f}
                   </div>
