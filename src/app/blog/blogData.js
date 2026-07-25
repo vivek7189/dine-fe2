@@ -3,6 +3,36 @@
 
 export const blogPosts = [
   {
+    slug: 'deliveroo-vs-just-eat-vs-uber-eats-commission-2026',
+    title: 'Deliveroo vs Just Eat vs Uber Eats: Commission and Fees Compared (UK 2026)',
+    excerpt: 'Compare Deliveroo, Just Eat and Uber Eats commission rates and fees for UK restaurants in 2026 — and how to cut what you pay with direct online ordering.',
+    date: '2026-07-25',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    readTime: '9 min read',
+    author: 'Vivek Sharma',
+  },
+  {
+    slug: 'best-pos-for-bars-usa-2026',
+    title: 'Best POS System for Bars in the USA (2026): Tabs, Speed and Fees Compared',
+    excerpt: 'The best bar POS systems for US bars, pubs and breweries in 2026 — compared on tab handling, pre-authorization, speed of service, mixed-beverage tax and fees.',
+    date: '2026-07-25',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    readTime: '10 min read',
+    author: 'Vivek Sharma',
+  },
+  {
+    slug: 'how-much-does-lightspeed-pos-cost-2026',
+    title: 'How Much Does Lightspeed POS Cost in 2026? (Real Pricing for Restaurants)',
+    excerpt: 'A transparent breakdown of Lightspeed Restaurant pricing in 2026 — software tiers, payments, hardware and contracts — plus cheaper alternatives for restaurants.',
+    date: '2026-07-25',
+    category: 'Pricing',
+    categoryColor: '#f59e0b',
+    readTime: '9 min read',
+    author: 'Vivek Sharma',
+  },
+  {
     slug: 'reduce-doordash-uber-eats-commission-2026',
     title: 'How to Reduce DoorDash and Uber Eats Commission (US Restaurants, 2026)',
     excerpt: 'Third-party delivery apps take 15-30% per order. Here are 9 practical ways US restaurants cut DoorDash, Uber Eats and Grubhub commission in 2026 — from direct online ordering to smarter menu pricing.',
@@ -1411,6 +1441,192 @@ export const blogPosts = [
 
 // Blog post content - for static generation
 export const blogPostContent = {
+  'deliveroo-vs-just-eat-vs-uber-eats-commission-2026': {
+    id: 'deliveroo-vs-just-eat-vs-uber-eats-commission-2026',
+    title: 'Deliveroo vs Just Eat vs Uber Eats: Commission and Fees Compared (UK 2026)',
+    excerpt: 'Compare Deliveroo, Just Eat and Uber Eats commission rates and fees for UK restaurants in 2026 — and how to cut what you pay with direct online ordering.',
+    author: 'Vivek Sharma',
+    publishDate: '2026-07-25',
+    dateModified: '2026-07-25',
+    readTime: '9 min read',
+    category: 'Comparison',
+    tags: ['Deliveroo commission', 'Just Eat fees', 'Uber Eats UK', 'restaurant delivery UK', 'delivery commission comparison'],
+    content: `
+        <div style="background:#eff6ff;border-left:4px solid #3b82f6;padding:20px;border-radius:8px;margin:24px 0;">
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#1e3a8a;"><strong>Quick answer:</strong> In the UK, delivery-app commission usually runs <strong>Deliveroo ~25-35%</strong>, <strong>Uber Eats ~25-35%</strong>, and <strong>Just Eat ~14-30%</strong> depending on the plan (Just Eat has lower "order &amp; pay" style tiers when you self-deliver). All three also add fees. The cheapest channel is always your <strong>own online ordering</strong> at 0% commission — use the apps for discovery and move repeat customers to direct.</p>
+        </div>
+
+        <p>Deliveroo, Just Eat and Uber Eats put your restaurant in front of thousands of hungry people — and take a serious slice of every order for the privilege. Here is how their commission compares in 2026, and how UK restaurants reduce it.</p>
+
+        <h2>How much commission do Deliveroo, Just Eat and Uber Eats charge?</h2>
+        <p>Commission depends on the plan you choose and whether the app delivers for you or you self-deliver. As a rough guide for 2026:</p>
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:15px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Platform</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Typical commission</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Notes</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Deliveroo</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">~25-35%</td><td style="padding:12px;border:1px solid #e5e7eb;">Strong in cities; Marketplace+ tiers</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Uber Eats</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">~25-35%</td><td style="padding:12px;border:1px solid #e5e7eb;">Global reach; lower rate if you self-deliver</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Just Eat</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">~14-30%</td><td style="padding:12px;border:1px solid #e5e7eb;">Often cheapest, esp. for self-delivery</td></tr>
+          </tbody>
+        </table>
+        <p>Remember these are commissions on the whole order value, and each app adds its own fees. On a 30% commission, a 20 pound order nets you 14 pounds before food and staff cost.</p>
+
+        <h2>Which delivery app is cheapest for UK restaurants?</h2>
+        <p><strong>Just Eat</strong> is frequently the cheapest headline commission, especially if you deliver the orders yourself. But "cheapest" is not just the rate — it also depends on which app brings <em>you</em> the most orders in your area. The smart approach is to be on the app that drives volume for discovery, and to move repeat customers to a cheaper channel.</p>
+
+        <h2>How do UK restaurants reduce delivery commission?</h2>
+        <ol>
+          <li><strong>Launch your own online ordering</strong> — 0% commission, you keep everything minus card fees.</li>
+          <li><strong>Self-deliver where you can</strong> to unlock the apps' lower commission tiers.</li>
+          <li><strong>Add a QR flyer to every delivery bag</strong> pointing to your direct ordering page with a first-order discount.</li>
+          <li><strong>Right-size your tier</strong> — test whether a higher-commission "boosted" plan actually pays for itself.</li>
+          <li><strong>Price your delivery menu separately</strong> to protect margin (within each app's policy).</li>
+          <li><strong>Get your VAT right</strong> — hot delivery is 20%; our <a href="/tools/vat-calculator">VAT calculator</a> and <a href="/blog/uk-restaurant-vat-eat-in-vs-takeaway-2026">eat-in vs takeaway guide</a> help.</li>
+        </ol>
+
+        <h2>Is direct online ordering worth it in the UK?</h2>
+        <p>Yes — the apps are great for being found, expensive for loyalty. A commission-free ordering page plus a loyalty nudge turns app customers into direct regulars. <a href="/uk">DineOpen</a> includes commission-free online ordering, QR dine-in, and Deliveroo/Just Eat/Uber Eats integration in one EPOS, so you can run both without extra tools.</p>
+
+        <h2>Frequently asked questions</h2>
+        <p><strong>Which is cheaper, Just Eat or Deliveroo?</strong> Just Eat usually has the lower headline commission, particularly if you self-deliver, while Deliveroo and Uber Eats tend to sit higher. The best value also depends on which app generates the most orders in your area.</p>
+        <p><strong>How much does Deliveroo take from restaurants?</strong> Deliveroo commission typically ranges from about 25% to 35% of the order value depending on your plan, plus additional fees.</p>
+        <p><strong>Can I reduce delivery app fees?</strong> You cannot avoid commission on marketplace orders, but you can move repeat customers to your own commission-free online ordering, self-deliver to unlock lower tiers, and price your delivery menu to protect margin.</p>
+    `,
+    faqs: [
+      { q: "Which is cheaper for restaurants, Just Eat or Deliveroo?", a: "Just Eat usually has the lower headline commission, particularly if you self-deliver, while Deliveroo and Uber Eats tend to sit higher at around 25 to 35 percent. The best value also depends on which app generates the most orders in your area." },
+      { q: "How much commission does Deliveroo take from restaurants?", a: "Deliveroo commission typically ranges from about 25 to 35 percent of the order value depending on your plan, plus additional fees." },
+      { q: "Can UK restaurants reduce delivery app fees?", a: "You cannot avoid commission on marketplace orders, but you can move repeat customers to your own commission-free online ordering, self-deliver to unlock lower app tiers, and price your delivery menu to protect margin." },
+      { q: "What is the cheapest way to offer delivery in the UK?", a: "Your own online ordering page combined with self-delivery is the cheapest, since you pay only delivery and card-processing costs instead of 14 to 35 percent marketplace commission." },
+    ],
+  },
+  'best-pos-for-bars-usa-2026': {
+    id: 'best-pos-for-bars-usa-2026',
+    title: 'Best POS System for Bars in the USA (2026): Tabs, Speed and Fees Compared',
+    excerpt: 'The best bar POS systems for US bars, pubs and breweries in 2026 — compared on tab handling, pre-authorization, speed of service, mixed-beverage tax and fees.',
+    author: 'Vivek Sharma',
+    publishDate: '2026-07-25',
+    dateModified: '2026-07-25',
+    readTime: '10 min read',
+    category: 'Comparison',
+    tags: ['best bar POS', 'bar POS system', 'pub POS', 'brewery POS', 'POS for bars USA'],
+    content: `
+        <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:20px;border-radius:8px;margin:24px 0;">
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#7f1d1d;"><strong>Quick answer:</strong> The best bar POS in 2026 is the one that nails <strong>fast tabs, card pre-authorization, quick re-orders, and tip-out</strong> — while handling your state's <strong>mixed-beverage tax</strong>. Toast and Square both work well for bars; Toast is deeper, Square is simpler and free to start. If you want those bar essentials without a contract or per-swipe markup, DineOpen does it at a flat $10/month.</p>
+        </div>
+
+        <p>Bars live and die on speed. A POS that takes three taps to fire a round, or drops a tab when the card reader hiccups, costs you money every busy night. Here is what actually matters when choosing a bar POS in the US — and how the main options compare.</p>
+
+        <h2>What does a bar actually need from a POS?</h2>
+        <ul>
+          <li><strong>Fast tabs &amp; pre-authorization</strong> — open a tab on a card, hold a pre-auth, re-fire rounds in one tap.</li>
+          <li><strong>Speed of service</strong> — a tight, thumb-friendly layout for your top pours.</li>
+          <li><strong>Tip and tip-out handling</strong> — tip lines, tip pooling, and end-of-shift tip-out. Try our <a href="/tools/tip-pooling-calculator">tip-pooling calculator</a>.</li>
+          <li><strong>Mixed-beverage tax</strong> — states like Texas require specific mixed-beverage reporting.</li>
+          <li><strong>Inventory / pour tracking</strong> — bottles and kegs are your biggest shrink risk.</li>
+          <li><strong>Offline mode</strong> — a dropped connection should never stop service.</li>
+        </ul>
+
+        <h2>Best bar POS systems compared</h2>
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:15px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">&nbsp;</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Toast</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Square</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">DineOpen</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Tabs &amp; pre-auth</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Strong</td><td style="padding:12px;border:1px solid #e5e7eb;">Good</td><td style="padding:12px;border:1px solid #e5e7eb;">Yes</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Software from</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">$0-$69+/mo</td><td style="padding:12px;border:1px solid #e5e7eb;">Free/paid</td><td style="padding:12px;border:1px solid #e5e7eb;">$10/mo flat</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Processing</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">~2.49-3.5%</td><td style="padding:12px;border:1px solid #e5e7eb;">~2.6% + 10¢</td><td style="padding:12px;border:1px solid #e5e7eb;">0% markup (BYO)</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Contract</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">1-3 yrs</td><td style="padding:12px;border:1px solid #e5e7eb;">None</td><td style="padding:12px;border:1px solid #e5e7eb;">None</td></tr>
+          </tbody>
+        </table>
+
+        <h2>Which bar POS is best for you?</h2>
+        <ul>
+          <li><strong>High-volume bar or nightclub:</strong> Toast — the deepest tab, KDS and reporting tools.</li>
+          <li><strong>Neighborhood bar / new spot:</strong> Square or a flat-rate system — start cheap, no contract.</li>
+          <li><strong>Brewery taproom / food + drink:</strong> a system that handles both a kitchen (KDS) and fast pours.</li>
+          <li><strong>Cost-sensitive owners:</strong> avoid per-swipe markups — on high card volume they dwarf the software fee.</li>
+        </ul>
+        <p>See the full <a href="/for/bars-pubs">bar &amp; pub POS features</a> and the <a href="/vs/dineopen-vs-toast">DineOpen vs Toast</a> comparison, or read <a href="/blog/how-much-does-toast-pos-cost-2026">how much Toast really costs</a> before you sign anything.</p>
+
+        <h2>Frequently asked questions</h2>
+        <p><strong>What is the best POS system for a bar?</strong> The best bar POS handles fast tabs, card pre-authorization, quick re-orders, tip-out, and your state's mixed-beverage tax. Toast is the deepest option, Square is the simplest and free to start, and flat-rate systems like DineOpen offer the same bar essentials without a contract or per-swipe markup.</p>
+        <p><strong>Does a bar POS handle tabs and pre-authorization?</strong> Yes — any serious bar POS lets you open a tab against a card, hold a pre-authorization, add rounds quickly, and settle with a tip at the end.</p>
+        <p><strong>How do bars handle mixed-beverage tax?</strong> In states like Texas, the POS should track mixed-beverage sales separately so you can file the mixed-beverage gross-receipts or sales tax correctly. Confirm this in a demo if you are in an affected state.</p>
+    `,
+    faqs: [
+      { q: "What is the best POS system for a bar in 2026?", a: "The best bar POS handles fast tabs, card pre-authorization, quick re-orders, tip-out, and your state's mixed-beverage tax. Toast is the deepest option, Square is the simplest and free to start, and flat-rate systems like DineOpen offer the same bar essentials without a contract or per-swipe markup." },
+      { q: "Does a bar POS handle tabs and pre-authorization?", a: "Yes. Any serious bar POS lets you open a tab against a card, hold a pre-authorization, add rounds quickly, and settle with a tip at the end of the visit." },
+      { q: "How do bars handle mixed-beverage tax?", a: "In states such as Texas the POS should track mixed-beverage sales separately so you can file the mixed-beverage gross-receipts or sales tax correctly. Confirm this in a demo if you operate in an affected state." },
+      { q: "What is the cheapest POS for a small bar?", a: "Square is free on software and flat-rate systems like DineOpen are 10 dollars per month with no contract. Always include card processing in the comparison, since on high card volume the processing rate matters more than the monthly software fee." },
+    ],
+  },
+  'how-much-does-lightspeed-pos-cost-2026': {
+    id: 'how-much-does-lightspeed-pos-cost-2026',
+    title: 'How Much Does Lightspeed POS Cost in 2026? (Real Pricing for Restaurants)',
+    excerpt: 'A transparent breakdown of Lightspeed Restaurant pricing in 2026 — software tiers, payments, hardware and contracts — plus cheaper alternatives for restaurants.',
+    author: 'Vivek Sharma',
+    publishDate: '2026-07-25',
+    dateModified: '2026-07-25',
+    readTime: '9 min read',
+    category: 'Pricing',
+    tags: ['Lightspeed cost', 'Lightspeed pricing', 'Lightspeed Restaurant', 'Lightspeed review', 'restaurant POS pricing'],
+    content: `
+        <div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:20px;border-radius:8px;margin:24px 0;">
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#78350f;"><strong>Quick answer:</strong> Lightspeed Restaurant software in 2026 typically starts around <strong>$89-$189/month</strong> depending on tier and region, often on an <strong>annual contract</strong>, plus <strong>payment processing</strong> (Lightspeed Payments or a third party) and <strong>hardware</strong>. Advanced modules and multi-location add more. For a single restaurant, realistic all-in cost commonly runs well over <strong>$2,000-$4,000/year</strong> before hardware.</p>
+        </div>
+
+        <p>Lightspeed is a powerful, well-regarded platform — especially for larger and multi-location operations. But like most enterprise-leaning POS systems, the sticker price is only part of the story. Here is the transparent breakdown.</p>
+
+        <h2>How much does Lightspeed POS cost in 2026?</h2>
+        <p>Lightspeed prices in tiers, and the exact numbers vary by country and by whether you pay monthly or annually (annual is cheaper per month but locks you in). As a guide:</p>
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:15px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Cost</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Typical 2026</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Software — entry tier</td><td style="padding:12px;border:1px solid #e5e7eb;">~$89/mo</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Software — higher tiers</td><td style="padding:12px;border:1px solid #e5e7eb;">~$149-$189+/mo</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Advanced modules / add-ons</td><td style="padding:12px;border:1px solid #e5e7eb;">extra per feature</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Payment processing</td><td style="padding:12px;border:1px solid #e5e7eb;">Lightspeed Payments or third-party rate</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Hardware</td><td style="padding:12px;border:1px solid #e5e7eb;">iPad-based; buy or bundle</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Contract</td><td style="padding:12px;border:1px solid #e5e7eb;">Often annual for best rate</td></tr>
+          </tbody>
+        </table>
+
+        <h2>What pushes the Lightspeed bill up?</h2>
+        <ul>
+          <li><strong>Tier upgrades</strong> — features like advanced reporting and inventory sit on higher plans.</li>
+          <li><strong>Payment processing</strong> — a percentage of every sale, which usually exceeds the software cost at volume.</li>
+          <li><strong>Add-on modules</strong> — loyalty, advanced analytics, and integrations can be separate.</li>
+          <li><strong>Per-location pricing</strong> — costs multiply across multiple sites.</li>
+          <li><strong>Annual commitment</strong> — the best rates come with a contract.</li>
+        </ul>
+
+        <h2>What do you actually pay? A worked example</h2>
+        <p>A single full-service restaurant on a mid tier (~$149/mo annual) with processing on ~$40k/month card volume: roughly <strong>$1,800/yr software</strong> + <strong>~$12,000+/yr processing</strong> + hardware. That is comfortably over <strong>$14,000/year</strong> all-in — the processing, again, dwarfs the software.</p>
+
+        <h2>Are there cheaper Lightspeed alternatives?</h2>
+        <p>Yes. If you like Lightspeed's capability but not the cost or the annual lock-in, <a href="/canada">DineOpen</a> offers the restaurant essentials — cloud POS, KDS, online ordering, inventory, AI ordering, delivery integrations, GST/HST/QST for Canada or sales tax for the US — at a flat <strong>$10/month (CAD 14) with zero transaction-fee markup and no contract</strong>. Compare directly on the <a href="/vs/dineopen-vs-lightspeed">DineOpen vs Lightspeed</a> page, browse <a href="/alternatives/lightspeed">Lightspeed alternatives</a>, or read the <a href="/blog/lightspeed-vs-touchbistro-vs-square-canada-2026">Lightspeed vs TouchBistro vs Square comparison</a>.</p>
+
+        <h2>Frequently asked questions</h2>
+        <p><strong>How much does Lightspeed Restaurant cost per month?</strong> Software typically starts around $89/month and rises to roughly $149-$189+/month for higher tiers, usually cheaper per month on an annual plan, plus payment processing and hardware.</p>
+        <p><strong>Does Lightspeed require a contract?</strong> Lightspeed's best pricing usually comes with an annual commitment. Month-to-month may be available at a higher rate — check the current terms before signing.</p>
+        <p><strong>Is Lightspeed expensive?</strong> For a small single-site restaurant it can feel expensive once you add processing, add-ons and hardware. It tends to make more sense for larger or multi-location operations that use its depth; smaller venues often pay less all-in with a flat-rate system.</p>
+    `,
+    faqs: [
+      { q: "How much does Lightspeed Restaurant cost per month in 2026?", a: "Lightspeed Restaurant software typically starts around 89 dollars per month and rises to roughly 149 to 189 dollars or more per month for higher tiers, usually cheaper per month on an annual plan, plus payment processing and hardware." },
+      { q: "Does Lightspeed POS require a contract?", a: "Lightspeed's best pricing usually comes with an annual commitment. Month-to-month may be available at a higher rate, so check the current terms before signing." },
+      { q: "Is Lightspeed POS expensive for a small restaurant?", a: "For a small single-site restaurant it can feel expensive once you add payment processing, add-on modules and hardware. It tends to make more sense for larger or multi-location operations; smaller venues often pay less all-in with a flat-rate system." },
+      { q: "What is a cheaper alternative to Lightspeed?", a: "Flat-rate systems with no per-transaction markup and no annual contract, such as DineOpen at about 10 dollars per month, are typically far cheaper all-in for a single restaurant while covering the core POS, ordering and inventory features." },
+    ],
+  },
   'reduce-doordash-uber-eats-commission-2026': {
     id: 'reduce-doordash-uber-eats-commission-2026',
     title: 'How to Reduce DoorDash and Uber Eats Commission (US Restaurants, 2026)',
