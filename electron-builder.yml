@@ -26,8 +26,11 @@ win:
 mac:
   icon: electron/icons/icon.icns
   target:
-    - dmg
-    - zip
+    # Universal binary → a single .dmg/.zip that runs on BOTH Intel and Apple Silicon Macs.
+    - target: dmg
+      arch: universal
+    - target: zip
+      arch: universal
   category: public.app-category.business
   identity: "Vivek Kumar (934QP9KSRD)"
   hardenedRuntime: true
