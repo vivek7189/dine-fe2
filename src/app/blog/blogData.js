@@ -3,6 +3,36 @@
 
 export const blogPosts = [
   {
+    slug: 'restaurant-labor-cost-guide-usa-2026',
+    title: 'Restaurant Labor Cost Guide (US 2026): Percentages, Minimum Wage and Tip Credit by State',
+    excerpt: 'How to calculate and control restaurant labor cost in 2026 — target percentages, minimum wage and tip-credit rules by state, and practical ways to cut labor cost without hurting service.',
+    date: '2026-07-25',
+    category: 'Guide',
+    categoryColor: '#10b981',
+    readTime: '11 min read',
+    author: 'Vivek Sharma',
+  },
+  {
+    slug: 'best-epos-for-cafes-uk-2026',
+    title: 'Best EPOS for Cafes and Coffee Shops in the UK (2026)',
+    excerpt: 'The best EPOS systems for UK cafes and coffee shops in 2026 — compared on speed, card fees, loyalty, VAT and price. What actually matters for fast counter service.',
+    date: '2026-07-25',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    readTime: '9 min read',
+    author: 'Vivek Sharma',
+  },
+  {
+    slug: 'how-to-open-restaurant-ontario-2026',
+    title: 'How to Open a Restaurant in Ontario (2026): Costs, Licences and Steps',
+    excerpt: 'What it costs to open a restaurant in Ontario in 2026, the licences and permits you need (from the city business licence to AGCO liquor), and a realistic step-by-step timeline.',
+    date: '2026-07-25',
+    category: 'Guide',
+    categoryColor: '#3b82f6',
+    readTime: '11 min read',
+    author: 'Vivek Sharma',
+  },
+  {
     slug: 'best-pos-for-food-trucks-usa-2026',
     title: 'Best POS System for Food Trucks in the USA (2026): Mobile, Offline and Cheap',
     excerpt: 'The best food truck POS systems in 2026 — compared on offline mode, mobile hardware, card fees and price. What actually matters when your restaurant moves.',
@@ -1471,6 +1501,211 @@ export const blogPosts = [
 
 // Blog post content - for static generation
 export const blogPostContent = {
+  'restaurant-labor-cost-guide-usa-2026': {
+    id: 'restaurant-labor-cost-guide-usa-2026',
+    title: 'Restaurant Labor Cost Guide (US 2026): Percentages, Minimum Wage and Tip Credit by State',
+    excerpt: 'How to calculate and control restaurant labor cost in 2026 — target percentages, minimum wage and tip-credit rules by state, and practical ways to cut labor cost without hurting service.',
+    author: 'Vivek Sharma',
+    publishDate: '2026-07-25',
+    dateModified: '2026-07-25',
+    readTime: '11 min read',
+    category: 'Guide',
+    tags: ['restaurant labor cost', 'labor cost percentage', 'tip credit', 'minimum wage restaurant', 'restaurant labor guide'],
+    content: `
+        <div style="background:#f0fdf4;border-left:4px solid #22c55e;padding:20px;border-radius:8px;margin:24px 0;">
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#166534;"><strong>Quick answer:</strong> Restaurant labor cost usually runs <strong>25-35% of revenue</strong> (full-service tends higher, QSR lower). The number swings with your state's <strong>minimum wage</strong> and whether it allows a <strong>tip credit</strong> — some states (like California) require full minimum wage for tipped staff, while others let you pay a lower cash wage plus tips. To calculate: <em>total labor cost ÷ total revenue × 100</em>. Aim to keep prime cost (labor + food) under ~60-65%.</p>
+        </div>
+
+        <p>Labor is one of your two biggest controllable costs (the other is food), and in 2026 it is the one under the most pressure from rising minimum wages. Here is how to measure it, what "good" looks like, and how the rules differ by state.</p>
+
+        <h2>How do you calculate restaurant labor cost?</h2>
+        <p>Labor cost is everything you pay staff — wages, salaries, payroll taxes, benefits, and overtime. The core metric is <strong>labor cost percentage</strong>:</p>
+        <p style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:16px;font-size:16px;"><strong>Labor cost % = (total labor cost ÷ total revenue) × 100</strong></p>
+        <p>If you spent $12,000 on labor in a month on $40,000 revenue, that is 30% — right in the healthy range. Track it weekly, not just monthly, so you can adjust scheduling before it drifts.</p>
+
+        <h2>What is a good labor cost percentage?</h2>
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:15px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Type</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Typical labor cost</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Quick service (QSR)</td><td style="padding:12px;border:1px solid #e5e7eb;">~25-30%</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Fast casual</td><td style="padding:12px;border:1px solid #e5e7eb;">~28-32%</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Full-service</td><td style="padding:12px;border:1px solid #e5e7eb;">~30-35%</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Fine dining</td><td style="padding:12px;border:1px solid #e5e7eb;">~35%+</td></tr>
+          </tbody>
+        </table>
+        <p>Also watch <strong>prime cost</strong> (labor + food combined). Under ~60% is strong; over 65% and margins get thin fast. Pair this with our <a href="/tools/food-cost-calculator">food cost calculator</a> to see both halves.</p>
+
+        <h2>How do minimum wage and tip credit vary by state?</h2>
+        <p>This is what makes labor cost so location-dependent. The federal minimum is $7.25 with a $2.13 tipped minimum (tip credit), but many states set higher wages — and several ban the tip credit entirely, requiring full minimum wage before tips.</p>
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:15px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">State</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Tip credit?</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">California, Washington, Oregon, Nevada, Minnesota, Alaska, Montana</td><td style="padding:12px;border:1px solid #e5e7eb;">No — full minimum wage for tipped staff</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">New York, Illinois, Florida, and many others</td><td style="padding:12px;border:1px solid #e5e7eb;">Yes — lower cash wage + tip credit (rules vary)</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Federal default</td><td style="padding:12px;border:1px solid #e5e7eb;">$2.13 tipped minimum + tip credit</td></tr>
+          </tbody>
+        </table>
+        <p>Always check your current state and city rate — several cities set their own higher minimums. A POS that tracks tips and hours makes tip-credit compliance and reporting far easier; our <a href="/tools/tip-calculator">tip calculator</a> and <a href="/tools/tip-pooling-calculator">tip-pooling calculator</a> help with the math.</p>
+
+        <h2>How do you reduce restaurant labor cost without hurting service?</h2>
+        <ul>
+          <li><strong>Schedule to demand</strong> — use sales data by hour to match staffing to covers, not habit.</li>
+          <li><strong>Cut overtime</strong> — it is the silent killer; watch approaching-40-hour staff.</li>
+          <li><strong>Cross-train</strong> so fewer people cover more roles on slow shifts.</li>
+          <li><strong>Reduce comps and re-fires</strong> — kitchen errors are labor cost you never see on the schedule.</li>
+          <li><strong>Use tech</strong> — QR/online ordering and a fast POS let the same team handle more covers.</li>
+        </ul>
+
+        <h2>Frequently asked questions</h2>
+        <p><strong>What is a good labor cost percentage for a restaurant?</strong> Most restaurants aim for 25-35% of revenue — QSR at the lower end, full-service and fine dining higher. Combined with food cost, keep prime cost under about 60-65%.</p>
+        <p><strong>What is a tip credit?</strong> A tip credit lets employers in some states pay tipped staff a lower cash wage (as low as $2.13 federally) and count tips toward meeting minimum wage. Several states, including California, do not allow it and require full minimum wage plus tips.</p>
+        <p><strong>How do I calculate labor cost percentage?</strong> Divide total labor cost (wages, taxes, benefits, overtime) by total revenue for the same period, then multiply by 100.</p>
+    `,
+    faqs: [
+      { q: "What is a good labor cost percentage for a restaurant?", a: "Most restaurants aim for 25 to 35 percent of revenue, with quick service at the lower end and full-service and fine dining higher. Combined with food cost, keep prime cost under about 60 to 65 percent." },
+      { q: "What is a tip credit and which states allow it?", a: "A tip credit lets employers in some states pay tipped staff a lower cash wage, as low as 2.13 dollars federally, and count tips toward meeting minimum wage. Several states including California, Washington, Oregon and Nevada do not allow it and require full minimum wage plus tips." },
+      { q: "How do I calculate restaurant labor cost percentage?", a: "Divide total labor cost, including wages, payroll taxes, benefits and overtime, by total revenue for the same period, then multiply by 100." },
+      { q: "How can I reduce restaurant labor cost?", a: "Schedule staff to hourly demand using sales data, control overtime, cross-train staff, reduce kitchen errors and comps, and use QR or online ordering and a fast POS so the same team handles more covers." },
+    ],
+  },
+  'best-epos-for-cafes-uk-2026': {
+    id: 'best-epos-for-cafes-uk-2026',
+    title: 'Best EPOS for Cafes and Coffee Shops in the UK (2026)',
+    excerpt: 'The best EPOS systems for UK cafes and coffee shops in 2026 — compared on speed, card fees, loyalty, VAT and price. What actually matters for fast counter service.',
+    author: 'Vivek Sharma',
+    publishDate: '2026-07-25',
+    dateModified: '2026-07-25',
+    readTime: '9 min read',
+    category: 'Comparison',
+    tags: ['best cafe EPOS', 'coffee shop EPOS UK', 'cafe POS UK', 'EPOS for coffee shops', 'counter service EPOS'],
+    content: `
+        <div style="background:#eff6ff;border-left:4px solid #3b82f6;padding:20px;border-radius:8px;margin:24px 0;">
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#1e3a8a;"><strong>Quick answer:</strong> The best EPOS for a UK cafe is <strong>fast, contactless-first, and handles eat-in vs takeaway VAT automatically</strong>. Square and Zettle are great low-cost starting points; for cafes that want loyalty, online ordering and no contract, DineOpen runs on a tablet at £8/month with zero transaction-fee markup. Prioritise <strong>speed of service</strong> and <strong>correct VAT</strong> over a long feature list.</p>
+        </div>
+
+        <p>A cafe POS has one main job: get a flat white and a pastry rung up and paid for in seconds, correctly. Deep table-management tools matter far less than raw speed and getting VAT right. Here is what to look for and how the options compare.</p>
+
+        <h2>What does a UK cafe need from an EPOS?</h2>
+        <ul>
+          <li><strong>Speed</strong> — a thumb-friendly layout for your top drinks and food, with quick modifiers (oat milk, extra shot).</li>
+          <li><strong>Contactless-first payments</strong> — most cafe transactions are tap; make it instant.</li>
+          <li><strong>Eat-in vs takeaway VAT</strong> — the same cold sandwich is 20% eaten in and 0% taken away. Your EPOS must handle this per order. See our <a href="/blog/uk-restaurant-vat-eat-in-vs-takeaway-2026">VAT guide</a> and <a href="/tools/vat-calculator">VAT calculator</a>.</li>
+          <li><strong>Loyalty</strong> — coffee is a habit; a simple stamp/points scheme drives repeat visits.</li>
+          <li><strong>Small footprint</strong> — a tablet, not a bulky till, for a tight counter.</li>
+          <li><strong>Online / QR ordering</strong> — for pre-order and click-and-collect.</li>
+        </ul>
+
+        <h2>Best cafe EPOS systems compared</h2>
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:15px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">&nbsp;</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Square</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Zettle</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">DineOpen</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Software</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Free/paid</td><td style="padding:12px;border:1px solid #e5e7eb;">Free app</td><td style="padding:12px;border:1px solid #e5e7eb;">£8/mo flat</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>VAT eat-in/takeaway</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Manual setup</td><td style="padding:12px;border:1px solid #e5e7eb;">Basic</td><td style="padding:12px;border:1px solid #e5e7eb;">Per order type</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Loyalty</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Add-on</td><td style="padding:12px;border:1px solid #e5e7eb;">Limited</td><td style="padding:12px;border:1px solid #e5e7eb;">Built-in</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Contract</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">None</td><td style="padding:12px;border:1px solid #e5e7eb;">None</td><td style="padding:12px;border:1px solid #e5e7eb;">None</td></tr>
+          </tbody>
+        </table>
+
+        <h2>Which cafe EPOS is best for you?</h2>
+        <ul>
+          <li><strong>Tiny cafe / market stall:</strong> Zettle or Square — cheap and instant.</li>
+          <li><strong>Busy high-street cafe:</strong> a system with fast modifiers, loyalty and proper eat-in/takeaway VAT.</li>
+          <li><strong>Cafe adding food / online orders:</strong> pick one that also does KOT/kitchen and click-and-collect.</li>
+        </ul>
+        <p>See the full <a href="/for/cafes">cafe POS features</a> and the wider <a href="/blog/best-restaurant-pos-uk-2026">best UK restaurant POS</a> guide.</p>
+
+        <h2>Frequently asked questions</h2>
+        <p><strong>What is the best EPOS for a coffee shop in the UK?</strong> The best coffee shop EPOS is fast, contactless-first, and handles eat-in vs takeaway VAT automatically. Square and Zettle suit very small cafes; systems like DineOpen add loyalty and online ordering at a flat £8/month with no contract.</p>
+        <p><strong>Does a cafe EPOS handle eat-in vs takeaway VAT?</strong> A good one does. It should let you set the correct 20% eat-in and 0% cold-takeaway rates per order type so your VAT return is accurate.</p>
+        <p><strong>How much does a cafe EPOS cost?</strong> From free (Zettle, Square base) to a flat £8/month, plus card processing. Avoid big upfront hardware costs and contracts for a small cafe.</p>
+    `,
+    faqs: [
+      { q: "What is the best EPOS for a coffee shop in the UK?", a: "The best coffee shop EPOS is fast, contactless-first, and handles eat-in versus takeaway VAT automatically. Square and Zettle suit very small cafes, while systems like DineOpen add loyalty and online ordering at a flat 8 pounds per month with no contract." },
+      { q: "Does a cafe EPOS handle eat-in versus takeaway VAT?", a: "A good one does. It should let you set the correct 20 percent eat-in rate and 0 percent cold-takeaway rate per order type so your VAT return stays accurate." },
+      { q: "How much does a cafe EPOS cost in the UK?", a: "From free with Zettle or Square base plans up to a flat 8 pounds per month, plus card processing. For a small cafe, avoid big upfront hardware costs and long contracts." },
+      { q: "What matters most in a cafe POS?", a: "Speed of service and correct VAT matter most. A tight, thumb-friendly layout with quick modifiers, instant contactless payments, and automatic eat-in versus takeaway VAT beats a long feature list for counter service." },
+    ],
+  },
+  'how-to-open-restaurant-ontario-2026': {
+    id: 'how-to-open-restaurant-ontario-2026',
+    title: 'How to Open a Restaurant in Ontario (2026): Costs, Licences and Steps',
+    excerpt: 'What it costs to open a restaurant in Ontario in 2026, the licences and permits you need (from the city business licence to AGCO liquor), and a realistic step-by-step timeline.',
+    author: 'Vivek Sharma',
+    publishDate: '2026-07-25',
+    dateModified: '2026-07-25',
+    readTime: '11 min read',
+    category: 'Guide',
+    tags: ['open a restaurant Ontario', 'restaurant licence Ontario', 'Toronto restaurant startup', 'AGCO liquor licence', 'how to open a restaurant Canada'],
+    content: `
+        <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:20px;border-radius:8px;margin:24px 0;">
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#7f1d1d;"><strong>Quick answer:</strong> Opening a restaurant in Ontario in 2026 typically costs <strong>CAD 200,000-500,000+</strong> depending on size, location and build-out (Toronto is at the higher end). You will need a <strong>business registration</strong>, a <strong>municipal business licence</strong>, a <strong>public health inspection</strong>, <strong>food handler certification</strong>, and — if you serve alcohol — an <strong>AGCO liquor licence</strong>. Ontario charges <strong>13% HST</strong>. Realistic timeline: <strong>6-12 months</strong>.</p>
+        </div>
+
+        <p>Ontario is Canada's biggest restaurant market, and Toronto one of its most competitive. The dream is easy; the paperwork and the numbers are where most first-timers get caught. Here is the grounded version for 2026.</p>
+
+        <h2>How much does it cost to open a restaurant in Ontario?</h2>
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:15px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Format</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:right;">Typical all-in (CAD)</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Cafe / small QSR</td><td style="padding:12px;border:1px solid #e5e7eb;text-align:right;">$120,000-$300,000</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Full-service restaurant</td><td style="padding:12px;border:1px solid #e5e7eb;text-align:right;">$250,000-$500,000+</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Toronto (premium locations)</td><td style="padding:12px;border:1px solid #e5e7eb;text-align:right;">higher end + key money</td></tr>
+          </tbody>
+        </table>
+        <p>The biggest swing is the space. A second-generation restaurant unit with existing kitchen infrastructure can cut build-out dramatically versus a raw retail conversion. Budget several months of "dark rent" before you open.</p>
+
+        <h2>What licences and permits do you need in Ontario?</h2>
+        <ul>
+          <li><strong>Business registration</strong> — register your business/corporation in Ontario and get your CRA business number (for HST).</li>
+          <li><strong>Municipal business licence</strong> — from your city (e.g. City of Toronto) to operate an eating establishment.</li>
+          <li><strong>Public health approval &amp; inspection</strong> — your local public health unit reviews the premises and inspects before opening.</li>
+          <li><strong>Food handler certification</strong> — required food-safety training for staff/supervisors.</li>
+          <li><strong>Building &amp; occupancy / fire approvals</strong> — for your renovation and capacity.</li>
+          <li><strong>AGCO liquor licence</strong> — if you serve alcohol; apply early, it is the slowest.</li>
+          <li><strong>Patio / sign / music permits</strong> — as applicable.</li>
+        </ul>
+        <p>Ontario applies <strong>13% HST</strong> to restaurant meals; a POS that handles it automatically keeps your returns clean — see our <a href="/tools/gst-hst-calculator">GST/HST calculator</a> and the <a href="/canada/ontario">Ontario restaurant POS guide</a>.</p>
+
+        <h2>The steps to open, in order</h2>
+        <ol>
+          <li><strong>Concept &amp; numbers</strong> — cuisine, price point, and a simple P&amp;L. Use a <a href="/tools/startup-cost-calculator">startup cost calculator</a>.</li>
+          <li><strong>Business plan &amp; funding</strong> — savings, bank/BDC loans, investors; add a contingency.</li>
+          <li><strong>Register the business</strong> and get your CRA/HST number.</li>
+          <li><strong>Find &amp; lease the space</strong> — prioritise second-generation units; check zoning.</li>
+          <li><strong>Design kitchen &amp; layout</strong> for flow and speed.</li>
+          <li><strong>Apply for licences</strong> — start with the AGCO liquor licence and public health.</li>
+          <li><strong>Build out &amp; equip</strong> — new vs used equipment is a big cost lever.</li>
+          <li><strong>Menu &amp; pricing</strong> for a target food cost (~28-35%). Use a <a href="/tools/food-cost-calculator">food cost calculator</a>.</li>
+          <li><strong>Choose your POS &amp; tech</strong> — month-to-month, no lock-in, HST-ready. See the <a href="/blog/lightspeed-vs-touchbistro-vs-square-canada-2026">Canadian POS comparison</a>.</li>
+          <li><strong>Hire &amp; train</strong>, then soft-launch before your grand opening.</li>
+        </ol>
+
+        <h2>Frequently asked questions</h2>
+        <p><strong>How much does it cost to open a restaurant in Toronto?</strong> A full-service restaurant in Ontario typically runs CAD 250,000-500,000+, with premium Toronto locations at the higher end once key money and higher rents are included. A cafe or small QSR can start around CAD 120,000-300,000.</p>
+        <p><strong>Do I need a liquor licence in Ontario?</strong> Only if you serve alcohol — through the AGCO. It is the most involved licence, so apply early in your timeline.</p>
+        <p><strong>What sales tax applies to Ontario restaurants?</strong> Ontario charges 13% HST on restaurant meals; a POS that applies it automatically simplifies your filing.</p>
+    `,
+    faqs: [
+      { q: "How much does it cost to open a restaurant in Ontario or Toronto?", a: "A full-service restaurant in Ontario typically runs CAD 250,000 to 500,000 or more, with premium Toronto locations at the higher end once key money and higher rents are included. A cafe or small quick-service spot can start around CAD 120,000 to 300,000." },
+      { q: "What licences do I need to open a restaurant in Ontario?", a: "You need business registration and a CRA number for HST, a municipal business licence, public health approval and inspection, food handler certification, building and occupancy approvals, and an AGCO liquor licence if you serve alcohol." },
+      { q: "How long does it take to open a restaurant in Ontario?", a: "Plan for 6 to 12 months from lease to opening. Build-out, public health approval and the AGCO liquor licence are usually the slowest steps." },
+      { q: "What sales tax applies to Ontario restaurants?", a: "Ontario charges 13 percent HST on restaurant meals. A POS that applies HST automatically keeps your tax returns accurate." },
+    ],
+  },
   'best-pos-for-food-trucks-usa-2026': {
     id: 'best-pos-for-food-trucks-usa-2026',
     title: 'Best POS System for Food Trucks in the USA (2026): Mobile, Offline and Cheap',
