@@ -98,7 +98,6 @@ export default function PricingClient() {
       ctaLink: 'https://dineopen.com/login',
       popular: false,
       features: [
-        '1 outlet',
         'Unlimited orders & menu items',
         'Unlimited staff accounts',
         'Cloud POS (web + Android tablet)',
@@ -125,7 +124,6 @@ export default function PricingClient() {
       ctaLink: 'https://dineopen.com/login',
       popular: true,
       features: [
-        '1 outlet',
         'Everything in Starter, plus:',
         'AI Voice Ordering (waiter speaks, AI takes order)',
         'AI Menu Generator & AI Insights',
@@ -152,7 +150,6 @@ export default function PricingClient() {
       ctaLink: 'https://dineopen.com/login',
       popular: false,
       features: [
-        'Up to 2 outlets',
         'Everything in Growth, plus:',
         'Centralized chain dashboard',
         'Cross-outlet analytics & reporting',

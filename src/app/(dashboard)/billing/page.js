@@ -183,20 +183,19 @@ function BillingContent() {
           id: 'free-trial',
           name: 'Free Trial',
           price: 0,
-          period: '30 days',
+          period: '7 days',
           description: '7 days free, no credit card required',
           popular: false,
           features: [
             'AI Agent (Voice/Chat)',
             'Unlimited menu items',
-            '1 restaurant location',
             'Complete POS system',
             'Unlimited tables & floors',
             'Real-time kitchen display',
             'Staff management',
             'Basic analytics',
             'Email support',
-            'Full access for 30 days'
+            'Full access for 7 days'
           ]
         },
         {
@@ -209,7 +208,6 @@ function BillingContent() {
           features: [
             'AI Agent (Voice/Chat)',
             'Unlimited menu items',
-            '1 restaurant location',
             'Complete POS system',
             'Unlimited tables & floors',
             'Real-time kitchen display',
@@ -228,7 +226,6 @@ function BillingContent() {
           popular: true,
           features: [
             'Everything in Starter',
-            'Up to 5 locations',
             '10 staff accounts',
             'Advanced analytics',
             'Priority support',
@@ -246,7 +243,6 @@ function BillingContent() {
           popular: false,
           features: [
             'Everything in Growth',
-            'Unlimited locations',
             'Unlimited staff accounts',
             'API access',
             'Custom integrations',
@@ -261,20 +257,19 @@ function BillingContent() {
           id: 'free-trial',
           name: 'Free Trial',
           price: 0,
-          period: '30 days',
+          period: '7 days',
           description: '7 days free, no credit card required',
           popular: false,
           features: [
             'AI Agent (Voice/Chat)',
             'Unlimited menu items',
-            '1 restaurant location',
             'Complete POS system',
             'Unlimited tables & floors',
             'Real-time kitchen display',
             'Staff management',
             'Basic analytics',
             'Email support',
-            'Full access for 30 days'
+            'Full access for 7 days'
           ]
         },
         {
@@ -289,7 +284,6 @@ function BillingContent() {
           features: [
             'AI Agent (Voice/Chat)',
             'Unlimited menu items',
-            '1 restaurant location',
             'Complete POS system',
             'Unlimited tables & floors',
             'Real-time kitchen display',
@@ -310,7 +304,6 @@ function BillingContent() {
           savings: '₹1,800',
           features: [
             'Everything in Starter',
-            'Up to 5 locations',
             '10 staff accounts',
             'Advanced analytics',
             'Priority support',
@@ -330,7 +323,6 @@ function BillingContent() {
           savings: '₹3,600',
           features: [
             'Everything in Growth',
-            'Unlimited locations',
             'Unlimited staff accounts',
             'API access',
             'Custom integrations',
@@ -362,7 +354,6 @@ function BillingContent() {
           features: [
             'AI Agent (Voice/Chat)',
             'Unlimited menu items',
-            '1 restaurant location',
             'Complete POS system',
             'Unlimited tables & floors',
             'Real-time kitchen display',
@@ -383,7 +374,6 @@ function BillingContent() {
           features: [
             'AI Agent (Voice/Chat)',
             'Unlimited menu items',
-            '1 restaurant location',
             'Complete POS system',
             'Unlimited tables & floors',
             'Real-time kitchen display',
@@ -403,7 +393,6 @@ function BillingContent() {
           popular: true,
           features: [
             'Everything in Starter',
-            'Up to 5 locations',
             '10 staff accounts',
             'Advanced analytics',
             'Priority support',
@@ -422,7 +411,6 @@ function BillingContent() {
           popular: false,
           features: [
             'Everything in Growth',
-            'Unlimited locations',
             'Unlimited staff accounts',
             'API access',
             'Custom integrations',
@@ -443,7 +431,6 @@ function BillingContent() {
           features: [
             'AI Agent (Voice/Chat)',
             'Unlimited menu items',
-            '1 restaurant location',
             'Complete POS system',
             'Unlimited tables & floors',
             'Real-time kitchen display',
@@ -466,7 +453,6 @@ function BillingContent() {
           features: [
             'AI Agent (Voice/Chat)',
             'Unlimited menu items',
-            '1 restaurant location',
             'Complete POS system',
             'Unlimited tables & floors',
             'Real-time kitchen display',
@@ -488,7 +474,6 @@ function BillingContent() {
           savings: '$50',
           features: [
             'Everything in Starter',
-            'Up to 5 locations',
             '10 staff accounts',
             'Advanced analytics',
             'Priority support',
@@ -509,7 +494,6 @@ function BillingContent() {
           savings: '$189',
           features: [
             'Everything in Growth',
-            'Unlimited locations',
             'Unlimited staff accounts',
             'API access',
             'Custom integrations',
@@ -632,7 +616,7 @@ function BillingContent() {
                       daysLeft: sub.trialDays || 30,
                       isExpired: false
                     });
-                    showNotification('success', 'Free trial started! You have 30 days to explore DineOpen.');
+                    showNotification('success', 'Free trial started! You have 7 days to explore DineOpen.');
                   }
                 } else {
                   throw new Error('Failed to create billing user');
@@ -1825,7 +1809,7 @@ function BillingContent() {
                       <div>
                         <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#16a34a' }}>Free</span>
                         <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                          {isCurrentPlan ? `${trialInfo.daysLeft} days remaining` : 'for 30 days'}
+                          {isCurrentPlan ? `${trialInfo.daysLeft} days remaining` : 'for 7 days'}
                         </div>
                         {isCurrentPlan && (
                           <div style={{
