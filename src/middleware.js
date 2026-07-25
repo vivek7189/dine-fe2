@@ -153,6 +153,7 @@ export function middleware(request) {
 export const config = {
   // Match app pages + blog rewrites. Blog slugs need rewrites; app pages need geo cookie.
   matcher: [
+    '/',
     '/blog/:slug*',
     '/hi/blog/:slug*',
     '/login',

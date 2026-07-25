@@ -31,12 +31,7 @@ export default function SEOStructuredData() {
       { "@type": "Country", "name": "Singapore" },
       { "@type": "Country", "name": "Canada" },
       { "@type": "Country", "name": "Australia" }
-    ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "reviewCount": "1000"
-    }
+    ]
   };
 
   // SoftwareApplication Schema
@@ -67,11 +62,6 @@ export default function SEOStructuredData() {
         "eligibleRegion": "IN"
       }
     ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "reviewCount": "1000"
-    },
     "description": "The all-in-one restaurant operating system powering 1000+ restaurants worldwide. Cloud POS, waiter apps, table reservations, inventory management, AI analytics, and loyalty programs. Free trial available.",
     "featureList": [
       "Lightning-Fast Cloud POS",
@@ -258,12 +248,7 @@ export default function SEOStructuredData() {
         "availability": "https://schema.org/InStock",
         "url": `${baseUrl}/restaurant-pos-software-india`
       }
-    ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "reviewCount": "500"
-    }
+    ]
   };
 
   // Service Schema for Restaurant Management
@@ -382,11 +367,6 @@ export default function SEOStructuredData() {
         "url": "https://www.dineopen.com/pricing"
       }
     ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "reviewCount": "1000"
-    },
     "featureList": [
       "Lightning-Fast Cloud POS",
       "Waiter & Captain App",

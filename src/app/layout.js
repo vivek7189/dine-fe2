@@ -14,6 +14,7 @@ const inter = Inter({
 })
 
 export const metadata = {
+  metadataBase: new URL('https://www.dineopen.com'),
   title: 'DineOpen | The Global Restaurant Operating System',
   description: 'DineOpen powers restaurants worldwide with an all-in-one operating system. Cloud POS, waiter apps, table reservations, inventory management, AI analytics & loyalty programs. Trusted by 1000+ restaurants across 20+ countries.',
   keywords: 'restaurant operating system, restaurant POS software, cloud POS system, restaurant management platform, waiter ordering app, captain app restaurant, table reservation system, restaurant inventory management, restaurant analytics software, loyalty program restaurant, multi-location restaurant POS, restaurant billing software, kitchen display system',
@@ -28,7 +29,7 @@ export const metadata = {
     siteName: 'DineOpen',
     images: [
       {
-        url: 'https://www.dineopen.com/og-image.jpg',
+        url: 'https://www.dineopen.com/opengraph-image',
         width: 1200,
         height: 630,
         alt: 'DineOpen - The Global Restaurant Operating System',
@@ -41,7 +42,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'DineOpen | Powering Restaurants Worldwide',
     description: 'The all-in-one restaurant operating system. POS, orders, inventory, analytics & growth. Trusted by 1000+ restaurants globally.',
-    images: ['https://www.dineopen.com/og-image.jpg'],
+    images: ['https://www.dineopen.com/opengraph-image'],
     creator: '@dineopen',
   },
 }

@@ -1,3 +1,30 @@
+import fs from 'fs';
+import path from 'path';
+
+// Read static blog slugs straight from the filesystem so the sitemap never
+// drifts from the actual posts in public/blog/ and public/hi/blog/.
+function htmlSlugs(dir) {
+  try {
+    return fs.readdirSync(path.join(process.cwd(), dir))
+      .filter((f) => f.endsWith('.html'))
+      .map((f) => f.replace(/\.html$/, ''))
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
+function subdirs(dir) {
+  try {
+    return fs.readdirSync(path.join(process.cwd(), dir), { withFileTypes: true })
+      .filter((d) => d.isDirectory() && !d.name.startsWith('_'))
+      .map((d) => d.name)
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
 export default function sitemap() {
   const baseUrl = 'https://www.dineopen.com';
   const currentDate = new Date().toISOString();
@@ -154,18 +181,8 @@ export default function sitemap() {
   }));
 
   // Tool pages — top 10 with impressions/clicks (10)
-  const toolPages = [
-    'food-cost-calculator',
-    'kot-system',
-    'bill-splitter',
-    'qr-menu-generator',
-    'qr-menu-maker',
-    'gst-calculator',
-    'tip-calculator',
-    'break-even-calculator',
-    'restaurant-invoice-generator',
-    'swiggy-zomato-calculator',
-  ].map((slug) => ({
+  // Tool pages — every calculator/generator under src/app/tools (no drift).
+  const toolPages = subdirs('src/app/tools').map((slug) => ({
     url: `${baseUrl}/tools/${slug}`,
     lastModified: currentDate,
     changeFrequency: 'weekly',
@@ -201,10 +218,16 @@ export default function sitemap() {
       changeFrequency: 'weekly',
       priority: 0.9,
     },
+    {
+      url: `${baseUrl}/vs/toast-vs-square-vs-lightspeed`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.85,
+    },
   ];
 
-  // Alternative pages — top 3 competitors (3)
-  const alternativePages = ['petpooja', 'toast', 'posist'].map((slug) => ({
+  // Alternative pages — every competitor page under src/app/alternatives (no drift).
+  const alternativePages = subdirs('src/app/alternatives').map((slug) => ({
     url: `${baseUrl}/alternatives/${slug}`,
     lastModified: currentDate,
     changeFrequency: 'weekly',
@@ -224,6 +247,26 @@ export default function sitemap() {
     lastModified: currentDate,
     changeFrequency: 'weekly',
     priority: 0.9,
+  }));
+
+  // Country marketing hubs — anchor the US/UK/Canada clusters
+  const countryHubPages = ['usa', 'uk', 'canada'].map((slug) => ({
+    url: `${baseUrl}/${slug}`,
+    lastModified: currentDate,
+    changeFrequency: 'weekly',
+    priority: 0.95,
+  }));
+
+  // Location sub-hubs — US states, UK cities, Canada provinces (filesystem-derived)
+  const locationHubPages = [
+    ...subdirs('src/app/usa').map((x) => `/usa/${x}`),
+    ...subdirs('src/app/uk').map((x) => `/uk/${x}`),
+    ...subdirs('src/app/canada').map((x) => `/canada/${x}`),
+  ].map((path) => ({
+    url: `${baseUrl}${path}`,
+    lastModified: currentDate,
+    changeFrequency: 'weekly',
+    priority: 0.85,
   }));
 
   // City pages — 8 metro cities only (8)
@@ -361,99 +404,18 @@ export default function sitemap() {
     priority: 0.7,
   }));
 
-  // Blog posts served as static HTML from public/blog/ (69)
-  // These have full content in .html files but their non-.html URLs are 404/empty
-  // Sitemap must point to the .html URLs where the actual content lives
-  const blogPostsHTML = [
-    'best-billing-software-small-restaurant',
-    'best-catering-management-software-india',
-    'best-free-pos-ice-cream-shop',
-    'best-pos-system-ice-cream-shop',
-    'best-pos-system-pizza-restaurant',
-    'best-pos-system-restaurant-india',
-    'best-restaurant-billing-app-india-2026',
-    'best-restaurant-loyalty-program-software-india',
-    'best-restaurant-pos-uae-dubai-2026',
-    'best-restaurant-pos-uk-2026',
-    'best-restaurant-software-india-2025',
-    'best-restaurant-technology-2026',
-    'chocolate-shop-pos-software-india',
-    'cloud-kitchen-pos-petpooja-vs-urbanpiper-vs-dineopen',
-    'cloud-kitchen-vs-restaurant-india',
-    'cost-to-open-restaurant-india-2026',
-    'dineopen-vs-posist-detailed-comparison',
-    'food-cost-calculator-complete-guide',
-    'food-waste-cost-management-cafe-restaurant',
-    'free-qr-menu-maker-guide',
-    'fssai-license-restaurant-complete-guide',
-    'gelato-vs-ice-cream-parlour-business-guide',
-    'gst-on-restaurant-india-guide',
-    'how-to-calculate-food-cost-percentage',
-    'how-to-hire-restaurant-staff-india',
-    'how-to-register-restaurant-zomato-swiggy',
-    'how-to-respond-negative-reviews-restaurant',
-    'how-to-start-bakery-india',
-    'how-to-start-cafe-coffee-shop-india',
-    'how-to-start-catering-business-india',
-    'how-to-start-chai-tapri-business',
-    'how-to-start-dhaba-business-india',
-    'how-to-start-food-truck-india',
-    'how-to-start-ice-cream-parlour-india',
-    'how-to-start-juice-bar-india',
-    'how-to-start-qsr-india',
-    'how-to-start-sweet-shop-india',
-    'how-to-start-tiffin-service-india',
-    'ice-cream-business-online-delivery-guide',
-    'ice-cream-shop-inventory-management',
-    'ice-cream-shop-menu-pricing-guide',
-    'increase-footfall-2026',
-    'kot-system-restaurant-complete-guide',
-    'lpg-gas-crisis-restaurants-india-2026',
-    'menu-engineering-guide-restaurants',
-    'menu-pricing-management',
-    'mudra-loan-restaurant-business-india',
-    'petpooja-alternative-2026',
-    'petpooja-alternative-free-2026',
-    'petpooja-pricing-plans-2026',
-    'petpooja-vs-slickpos-vs-dineopen-small-restaurant',
-    'qr-code-menus-future-trend-2026',
-    'reduce-zomato-swiggy-commission-restaurants',
-    'restaurant-automation-software-guide',
-    'restaurant-break-even-analysis-guide',
-    'restaurant-cost-management-profit',
-    'restaurant-efficiency-digital-tools',
-    'restaurant-grand-opening-marketing-plan',
-    'restaurant-instagram-marketing-guide',
-    'restaurant-inventory-sheet',
-    'restaurant-kitchen-hygiene-checklist',
-    'restaurant-loyalty-program-guide',
-    'restaurant-marketing-ideas-india',
-    'restaurant-menu-pricing-formula-guide',
-    'restaurant-profit-margins-india-guide',
-    'restaurant-technology-trends-2024',
-    'restaurant-technology-trends-2026',
-    'swiggy-zomato-commission-calculator-guide',
-    'what-is-restaurant-operating-system',
-    'best-free-restaurant-pos-usa-2026',
-    'toast-pos-alternatives-2026',
-    'takeaway-pos-system-setup-guide',
-    'qsr-pos-software-quick-service-restaurant-guide',
-    'best-epos-indian-takeaway-uk-2026',
-    'free-qr-code-menu-uk-restaurants',
-  ].map((slug) => ({
+  // Blog posts served as static HTML from public/blog/ — read from the
+  // filesystem so newly-added posts are always included (no manual drift).
+  const blogPostsHTML = htmlSlugs('public/blog').map((slug) => ({
     url: `${baseUrl}/blog/${slug}.html`,
     lastModified: currentDate,
     changeFrequency: 'monthly',
     priority: 0.7,
   }));
 
-  // Hindi blog posts that failed indexing — add to sitemap for stronger signals (3)
-  const hindiBlogPosts = [
-    'dhaba-business-kaise-shuru-kare',
-    'food-truck-business-kaise-shuru-kare',
-    'restaurant-loyalty-program-hindi',
-  ].map((slug) => ({
-    url: `${baseUrl}/hi/blog/${slug}`,
+  // Hindi static blog posts — read from the filesystem (all posts, no drift).
+  const hindiBlogPosts = htmlSlugs('public/hi/blog').map((slug) => ({
+    url: `${baseUrl}/hi/blog/${slug}.html`,
     lastModified: currentDate,
     changeFrequency: 'monthly',
     priority: 0.65,
@@ -475,6 +437,8 @@ export default function sitemap() {
     ...comparisonPages,
     ...alternativePages,
     ...countryPages,
+    ...countryHubPages,
+    ...locationHubPages,
     ...cityPages,
     ...integrationPages,
     ...industryPages,

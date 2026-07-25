@@ -63,6 +63,13 @@ const nextConfig = {
   // Redirects for SEO and product branding
   async redirects() {
     return [
+      // Canonical host: apex (dineopen.com) → www.dineopen.com, all paths (301)
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'dineopen.com' }],
+        destination: 'https://www.dineopen.com/:path*',
+        permanent: true,
+      },
       // Legacy product URL redirects → new branded URLs
       {
         source: '/products/pos-software',

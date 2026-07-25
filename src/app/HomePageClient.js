@@ -16,6 +16,23 @@ import {
   FaPhone, FaEnvelope, FaApple, FaWindows, FaAndroid, FaDownload, FaGooglePlay
 } from 'react-icons/fa';
 
+// --- Geo helpers: map the visitor's country (from the middleware `geo_country`
+// cookie) to a homepage currency + which region badge-card leads. Unknown geo
+// keeps the existing India-first order so nothing changes for uncovered visitors.
+const EUR_COUNTRIES = new Set(['DE','FR','ES','IT','NL','IE','PT','BE','AT','FI','GR','LU','SK','SI','EE','LV','LT','CY','MT']);
+function currencyForCountry(cc) {
+  if (!cc) return null;
+  const map = { US: 'USD', GB: 'GBP', IN: 'INR', CA: 'CAD', AU: 'AUD', NZ: 'AUD', AE: 'AED', SG: 'SGD' };
+  if (map[cc]) return map[cc];
+  if (EUR_COUNTRIES.has(cc)) return 'EUR';
+  return 'USD'; // sensible default for any other country
+}
+function regionForCountry(cc) {
+  if (!cc || cc === 'IN') return 'IN'; // default: India-first (current behavior)
+  if (cc === 'GB') return 'UK';
+  return 'WEST'; // US, CA, AU, EU, AE, SG, etc. → Western/global card first
+}
+
 export default function LandingPage() {
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
@@ -54,7 +71,21 @@ export default function LandingPage() {
   const [currency, setCurrency] = useState('USD');
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
-  
+  const [geoCountry, setGeoCountry] = useState(null);
+
+  // Detect the visitor's country from the middleware-set `geo_country` cookie and
+  // auto-select their local currency (US→USD, UK→GBP, CA→CAD, EU→EUR, …). The
+  // manual currency pills below still override this afterwards.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const m = document.cookie.match(/(?:^|;\s*)geo_country=([A-Za-z]{2})/);
+    const cc = m ? m[1].toUpperCase() : null;
+    if (!cc) return;
+    setGeoCountry(cc);
+    const cur = currencyForCountry(cc);
+    if (cur) setCurrency(cur);
+  }, []);
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
     checkMobile();
@@ -153,8 +184,17 @@ export default function LandingPage() {
     setDemoSuccess(false);
   };
 
-  const currencySymbols = { USD: '$', GBP: '£', INR: '₹' };
-  const currencyNames = { USD: 'USD', GBP: 'GBP', INR: 'INR' };
+  // Region-based ordering for the country badge cards (Western card leads for
+  // Western visitors; India-first stays the default for India / unknown geo).
+  const geoRegion = regionForCountry(geoCountry);
+  const cardOrder = geoRegion === 'WEST'
+    ? { usa: 1, uk: 2, india: 3 }
+    : geoRegion === 'UK'
+    ? { uk: 1, usa: 2, india: 3 }
+    : { india: 1, uk: 2, usa: 3 };
+
+  const currencySymbols = { USD: '$', GBP: '£', INR: '₹', CAD: 'C$', AUD: 'A$', SGD: 'S$', AED: 'AED', EUR: '€' };
+  const currencyNames = { USD: 'USD', GBP: 'GBP', INR: 'INR', CAD: 'CAD', AUD: 'AUD', SGD: 'SGD', AED: 'AED', EUR: 'EUR' };
 
   const priceTable = {
     INR: {
@@ -174,6 +214,36 @@ export default function LandingPage() {
       starter:  { monthly: 8,  annual: 7,  regular: 24 },
       growth:   { monthly: 18, annual: 15, regular: 49 },
       pro:      { monthly: 36, annual: 30, regular: 99 },
+    },
+    CAD: {
+      symbol: 'C$',
+      starter:  { monthly: 14, annual: 11, regular: 39 },
+      growth:   { monthly: 29, annual: 24, regular: 79 },
+      pro:      { monthly: 59, annual: 49, regular: 159 },
+    },
+    AUD: {
+      symbol: 'A$',
+      starter:  { monthly: 15, annual: 12, regular: 44 },
+      growth:   { monthly: 33, annual: 28, regular: 89 },
+      pro:      { monthly: 65, annual: 55, regular: 179 },
+    },
+    AED: {
+      symbol: 'AED ',
+      starter:  { monthly: 37,  annual: 29,  regular: 109 },
+      growth:   { monthly: 79,  annual: 65,  regular: 219 },
+      pro:      { monthly: 159, annual: 135, regular: 439 },
+    },
+    SGD: {
+      symbol: 'S$',
+      starter:  { monthly: 14, annual: 11, regular: 39 },
+      growth:   { monthly: 29, annual: 24, regular: 79 },
+      pro:      { monthly: 59, annual: 49, regular: 159 },
+    },
+    EUR: {
+      symbol: '€',
+      starter:  { monthly: 9,  annual: 7,  regular: 27 },
+      growth:   { monthly: 19, annual: 16, regular: 54 },
+      pro:      { monthly: 39, annual: 32, regular: 109 },
     },
   };
   const fmt = (n) => priceTable[currency].symbol + n.toLocaleString('en-IN');
@@ -681,6 +751,17 @@ export default function LandingPage() {
             }}>
              The all-in-one operating system for modern restaurants.<br/>
              <span style={{ fontWeight: '600', color: '#111827' }}>POS • Orders • Inventory • Analytics • Growth</span>
+            </p>
+
+            {/* Competitor frame — additive line under the hero (does not replace it) */}
+            <p style={{
+              fontSize: isMobile ? '15px' : '18px',
+              color: '#374151',
+              fontWeight: '600',
+              lineHeight: '1.6',
+              marginBottom: '32px'
+            }}>
+              The modern POS built to replace <span style={{ color: '#ef4444', fontWeight: '800' }}>Toast &amp; Square</span> — AI ordering, zero transaction fees, no hardware lock-in.
             </p>
 
             {/* Feature Highlights Grid - 6 Core Features */}
@@ -1801,7 +1882,7 @@ export default function LandingPage() {
             {/* India */}
             <div style={{
               padding: '28px', background: '#fff', borderRadius: '20px', border: '1px solid #f3f4f6',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.04)'
+              boxShadow: '0 4px 16px rgba(0,0,0,0.04)', order: cardOrder.india
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                 <span style={{ fontSize: '28px' }}>🇮🇳</span>
@@ -1831,7 +1912,7 @@ export default function LandingPage() {
             {/* UK & Europe */}
             <div style={{
               padding: '28px', background: '#fff', borderRadius: '20px', border: '1px solid #f3f4f6',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.04)'
+              boxShadow: '0 4px 16px rgba(0,0,0,0.04)', order: cardOrder.uk
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                 <span style={{ fontSize: '28px' }}>🇬🇧</span>
@@ -1861,7 +1942,7 @@ export default function LandingPage() {
             {/* USA & Global */}
             <div style={{
               padding: '28px', background: '#fff', borderRadius: '20px', border: '1px solid #f3f4f6',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.04)'
+              boxShadow: '0 4px 16px rgba(0,0,0,0.04)', order: cardOrder.usa
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                 <span style={{ fontSize: '28px' }}>🇺🇸</span>
@@ -2053,7 +2134,7 @@ export default function LandingPage() {
             background: '#f3f4f6',
             borderRadius: '12px'
           }}>
-            {['USD', 'GBP', 'INR'].map((curr) => (
+            {(['USD', 'GBP', 'CAD', 'INR'].includes(currency) ? ['USD', 'GBP', 'CAD', 'INR'] : [currency, 'USD', 'GBP', 'CAD', 'INR']).map((curr) => (
               <button
                 key={curr}
                 onClick={() => setCurrency(curr)}
@@ -2070,7 +2151,7 @@ export default function LandingPage() {
                   boxShadow: currency === curr ? '0 2px 8px rgba(0,0,0,0.08)' : 'none'
                 }}
               >
-                {currencySymbols[curr]} {curr}
+                {currencySymbols[curr] && currencySymbols[curr] !== curr ? `${currencySymbols[curr]} ${curr}` : curr}
               </button>
             ))}
           </div>
