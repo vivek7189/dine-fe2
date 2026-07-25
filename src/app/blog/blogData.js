@@ -3,6 +3,36 @@
 
 export const blogPosts = [
   {
+    slug: 'epos-now-alternatives-2026',
+    title: 'EPOS Now Alternatives 2026: 5 Cheaper, No-Lock-In UK Options',
+    excerpt: 'Thinking of leaving EPOS Now? Here are the five best alternatives for UK restaurants, cafes and pubs in 2026 — compared on price, contracts, hardware and support, with no sales spin.',
+    date: '2026-07-25',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    readTime: '10 min read',
+    author: 'Vivek Sharma',
+  },
+  {
+    slug: 'lightspeed-vs-touchbistro-vs-square-canada-2026',
+    title: 'Lightspeed vs TouchBistro vs Square: Best POS for Canadian Restaurants (2026)',
+    excerpt: 'Lightspeed, TouchBistro and Square are the go-to POS systems for Canadian restaurants. We compare real CAD pricing, processing fees, contracts and GST/HST handling to find the best fit in 2026.',
+    date: '2026-07-25',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    readTime: '11 min read',
+    author: 'Vivek Sharma',
+  },
+  {
+    slug: 'how-much-does-toast-pos-cost-2026',
+    title: 'How Much Does Toast POS Actually Cost in 2026? (Real Fees Breakdown)',
+    excerpt: 'Toast advertises a $0 starter kit, but the real bill is bigger. Here is a transparent breakdown of Toast POS pricing in 2026 — software tiers, hardware, processing rates, add-ons and the contract — plus what you actually pay.',
+    date: '2026-07-25',
+    category: 'Pricing',
+    categoryColor: '#f59e0b',
+    readTime: '9 min read',
+    author: 'Vivek Sharma',
+  },
+  {
     slug: 'square-vs-toast-vs-clover-2026',
     title: 'Square vs Toast vs Clover: The Honest Restaurant POS Comparison (2026)',
     excerpt: 'Square, Toast, and Clover are the three POS systems every US restaurant weighs up. We break down real pricing, processing fees, hardware, contracts, and who each one actually suits in 2026 — no sales spin.',
@@ -1351,6 +1381,191 @@ export const blogPosts = [
 
 // Blog post content - for static generation
 export const blogPostContent = {
+  'epos-now-alternatives-2026': {
+    id: 'epos-now-alternatives-2026',
+    title: 'EPOS Now Alternatives 2026: 5 Cheaper, No-Lock-In UK Options',
+    excerpt: 'Thinking of leaving EPOS Now? Here are the five best alternatives for UK restaurants, cafes and pubs in 2026 — compared on price, contracts, hardware and support, with no sales spin.',
+    author: 'Vivek Sharma',
+    publishDate: '2026-07-25',
+    dateModified: '2026-07-25',
+    readTime: '10 min read',
+    category: 'Comparison',
+    tags: ['EPOS Now alternatives', 'restaurant EPOS UK', 'best EPOS system UK', 'EPOS Now review', 'cheap EPOS'],
+    content: `
+        <div style="background:#eff6ff;border-left:4px solid #3b82f6;padding:20px;border-radius:8px;margin:24px 0;">
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#1e3a8a;"><strong>Quick answer:</strong> The best EPOS Now alternatives for UK hospitality in 2026 are <strong>DineOpen</strong> (flat £8/mo, no contract, zero transaction-fee markup), <strong>Square</strong> (free to start, great for cafes), <strong>Lightspeed</strong> (feature-rich but pricier), and <strong>SumUp</strong> or <strong>Zettle</strong> (simple and cheap for very small sites). Most restaurants leave EPOS Now over multi-year contracts, upfront hardware costs, and support — so prioritise <em>month-to-month</em> terms when you switch.</p>
+        </div>
+
+        <p>EPOS Now is one of the most recognisable EPOS brands in the UK, and for a lot of small businesses it does the job. But if you have landed on this page, you are probably weighing up a switch — usually because of a long contract, a chunky upfront hardware bill, or support that has not kept up. Here are the alternatives worth looking at, and how to choose.</p>
+
+        <h2>Why do restaurants leave EPOS Now?</h2>
+        <p>The reasons are consistent: <strong>long contracts</strong> that are hard to exit, <strong>upfront hardware and licence costs</strong>, add-ons that push the monthly bill up, and mixed reviews on <strong>support and cancellation</strong>. None of that means EPOS Now is bad — it means the terms do not suit everyone. When you switch, the fix is simple: choose something month-to-month with transparent pricing.</p>
+
+        <h2>The 5 best EPOS Now alternatives in 2026</h2>
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:15px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Alternative</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">From</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Contract</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Best for</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>DineOpen</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">£8/mo</td><td style="padding:12px;border:1px solid #e5e7eb;">None</td><td style="padding:12px;border:1px solid #e5e7eb;">Restaurants, pubs &amp; takeaways wanting full features, no lock-in</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Square</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Free</td><td style="padding:12px;border:1px solid #e5e7eb;">None</td><td style="padding:12px;border:1px solid #e5e7eb;">Cafes, coffee shops, small sites starting out</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Lightspeed</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">£££</td><td style="padding:12px;border:1px solid #e5e7eb;">Often annual</td><td style="padding:12px;border:1px solid #e5e7eb;">Larger or multi-site venues needing deep features</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>SumUp</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Low</td><td style="padding:12px;border:1px solid #e5e7eb;">None</td><td style="padding:12px;border:1px solid #e5e7eb;">Market stalls, tiny cafes, mobile</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Zettle (PayPal)</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Low</td><td style="padding:12px;border:1px solid #e5e7eb;">None</td><td style="padding:12px;border:1px solid #e5e7eb;">Simple counter service</td></tr>
+          </tbody>
+        </table>
+
+        <h2>Which EPOS Now alternative is cheapest?</h2>
+        <p>Square and Zettle are cheapest on software (Square is free to start), but remember to include card processing in the comparison — a low monthly fee with a higher swipe rate can cost more overall. For a restaurant that wants proper features (table plans, KOT/kitchen display, allergens, Deliveroo and Just Eat) without a contract, a flat-rate system like <a href="/uk">DineOpen</a> at £8/month with no per-transaction markup is usually the lowest all-in cost.</p>
+
+        <h2>What should you look for when switching EPOS?</h2>
+        <ul>
+          <li><strong>Month-to-month terms</strong> — never sign a multi-year contract for software you have not lived with.</li>
+          <li><strong>Transparent processing</strong> — know your effective card rate, not just the headline.</li>
+          <li><strong>UK compliance built in</strong> — 20% VAT with eat-in vs takeaway rates, Natasha&rsquo;s Law allergens, MTD/Xero export. Our <a href="/tools/vat-calculator">VAT calculator</a> shows how the eat-in vs takeaway split works.</li>
+          <li><strong>Delivery integrations</strong> — Deliveroo, Just Eat, Uber Eats.</li>
+          <li><strong>Own your hardware</strong> — avoid tie-ins to a single proprietary terminal you cannot reuse.</li>
+        </ul>
+
+        <h2>Frequently asked questions</h2>
+        <p><strong>Is there a free alternative to EPOS Now?</strong> Yes — Square offers a free base plan (you pay only card processing), and Zettle and SumUp are low-cost. For full restaurant features without a contract, DineOpen starts at £8/month.</p>
+        <p><strong>Can I leave EPOS Now early?</strong> It depends on your contract term. Check your agreement for the notice period and any early-termination charges before you switch, and line up your new EPOS so there is no gap in service.</p>
+        <p><strong>What is the best EPOS Now alternative for a UK restaurant?</strong> For most restaurants, pubs and takeaways, a modern cloud EPOS with no contract, VAT and allergen handling, and Deliveroo/Just Eat integration — such as DineOpen — is the best balance of features and cost.</p>
+    `,
+    faqs: [
+      { q: "Is there a free alternative to EPOS Now?", a: "Yes. Square offers a free base plan where you pay only card processing, and Zettle and SumUp are low-cost options. For full restaurant features without a contract, DineOpen starts at just 8 pounds per month." },
+      { q: "Can I leave EPOS Now early?", a: "It depends on your contract term. Check your agreement for the notice period and any early-termination charges before switching, and line up your new EPOS so there is no gap in service." },
+      { q: "What is the best EPOS Now alternative for a UK restaurant?", a: "For most restaurants, pubs and takeaways, a modern cloud EPOS with no contract, 20 percent VAT and allergen handling, and Deliveroo and Just Eat integration is the best balance of features and cost." },
+      { q: "Why do restaurants switch away from EPOS Now?", a: "The most common reasons are long contracts that are hard to exit, upfront hardware and licence costs, add-ons that raise the monthly bill, and mixed experiences with support and cancellation." },
+    ],
+  },
+  'lightspeed-vs-touchbistro-vs-square-canada-2026': {
+    id: 'lightspeed-vs-touchbistro-vs-square-canada-2026',
+    title: 'Lightspeed vs TouchBistro vs Square: Best POS for Canadian Restaurants (2026)',
+    excerpt: 'Lightspeed, TouchBistro and Square are the go-to POS systems for Canadian restaurants. We compare real CAD pricing, processing fees, contracts and GST/HST handling to find the best fit in 2026.',
+    author: 'Vivek Sharma',
+    publishDate: '2026-07-25',
+    dateModified: '2026-07-25',
+    readTime: '11 min read',
+    category: 'Comparison',
+    tags: ['Lightspeed vs TouchBistro', 'best restaurant POS Canada', 'TouchBistro vs Square', 'Canadian restaurant POS', 'POS comparison Canada'],
+    content: `
+        <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:20px;border-radius:8px;margin:24px 0;">
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#7f1d1d;"><strong>Quick answer:</strong> For Canadian restaurants in 2026: <strong>TouchBistro</strong> is purpose-built for full-service (iPad, tableside ordering); <strong>Lightspeed</strong> (Montreal-HQ) is powerful and scales to multi-site but costs more; <strong>Square</strong> is best for cafes and quick-service and lets you start free. All three handle GST/HST — but check Quebec QST and Bill 72 tipping if you operate in Quebec. If you want the essentials at a flat rate with no lock-in, <strong>DineOpen</strong> starts at CAD 14/month.</p>
+        </div>
+
+        <p>Canada has a crowded POS market, but three names dominate the shortlist: <strong>Lightspeed</strong>, <strong>TouchBistro</strong>, and <strong>Square</strong>. Two of them (Lightspeed and TouchBistro) are Canadian companies, which is a nice bit of trivia but not a reason to buy. Here is how they actually compare for a Canadian restaurant.</p>
+
+        <h2>Lightspeed vs TouchBistro vs Square: which is best for Canadian restaurants?</h2>
+        <p>Short version: <strong>TouchBistro</strong> for full-service dining, <strong>Lightspeed</strong> for larger or multi-location operations that need depth, and <strong>Square</strong> for cafes, quick-service, and anyone who wants to start without a monthly fee.</p>
+
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:15px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">&nbsp;</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Lightspeed</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">TouchBistro</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Square</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Software from</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">~CAD 89/mo</td><td style="padding:12px;border:1px solid #e5e7eb;">~CAD 69/mo</td><td style="padding:12px;border:1px solid #e5e7eb;">Free / paid tiers</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Processing</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Own or third-party</td><td style="padding:12px;border:1px solid #e5e7eb;">Own or third-party</td><td style="padding:12px;border:1px solid #e5e7eb;">~2.65% per tap</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Contract</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Often annual</td><td style="padding:12px;border:1px solid #e5e7eb;">Varies</td><td style="padding:12px;border:1px solid #e5e7eb;">None</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Best for</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Multi-site, full-service, retail+resto</td><td style="padding:12px;border:1px solid #e5e7eb;">Full-service dining, tableside</td><td style="padding:12px;border:1px solid #e5e7eb;">Cafes, QSR, starting free</td></tr>
+          </tbody>
+        </table>
+
+        <h2>How do they handle GST/HST and Quebec?</h2>
+        <p>All three apply GST/HST correctly by province — 13% HST in Ontario, 5% GST in Alberta, and so on. The area to test is <strong>Quebec</strong>: you need 5% GST plus 9.975% QST, mandatory <strong>French-language receipts</strong>, and <strong>Bill 72</strong> tipping (tips presented on the pre-tax subtotal). If you operate in Quebec, confirm the exact handling in a demo. Our <a href="/tools/gst-hst-calculator">GST/HST calculator</a> shows the combined rate by province, and the <a href="/canada/quebec">Quebec POS guide</a> covers Bill 72.</p>
+
+        <h2>Which is best for cafes, full-service and bars?</h2>
+        <ul>
+          <li><strong>Cafes &amp; quick-service:</strong> Square — fast and free to start.</li>
+          <li><strong>Full-service dining:</strong> TouchBistro — built around tables, coursing and tableside ordering.</li>
+          <li><strong>Multi-location / retail + restaurant:</strong> Lightspeed — the most depth, at a higher price.</li>
+          <li><strong>Bars &amp; pubs:</strong> any of the three, but check tab and pre-authorisation handling.</li>
+        </ul>
+
+        <h2>Where does DineOpen fit?</h2>
+        <p>All three are capable; the trade-off is cost and lock-in. <a href="/canada">DineOpen</a> gives Canadian restaurants the core they actually use — cloud POS, KDS, online ordering, inventory, AI ordering, SkipTheDishes/Uber Eats/DoorDash, GST/HST/QST, bilingual receipts — at a flat <strong>CAD 14/month with zero transaction-fee markup and no contract</strong>. If Lightspeed feels like too much and Square feels like too little, that middle is exactly the gap it fills. See <a href="/alternatives/lightspeed">Lightspeed alternatives</a> and <a href="/alternatives/touchbistro">TouchBistro alternatives</a>.</p>
+
+        <h2>Frequently asked questions</h2>
+        <p><strong>Is Lightspeed or TouchBistro better for a Canadian restaurant?</strong> TouchBistro is better for single-site full-service dining thanks to its tableside, coursing and floor-plan tools. Lightspeed is better for multi-location or combined retail-and-restaurant operations that need more depth and reporting — at a higher price.</p>
+        <p><strong>Is Square good for Canadian restaurants?</strong> Yes, especially for cafes and quick-service. It is free to start and easy to run, though it has fewer full-service dining features than TouchBistro.</p>
+        <p><strong>Do these POS systems handle Quebec QST and Bill 72?</strong> They can, but always confirm in a demo — you need GST plus QST, French receipts, and pre-tax tip presentation under Bill 72.</p>
+    `,
+    faqs: [
+      { q: "Is Lightspeed or TouchBistro better for a Canadian restaurant?", a: "TouchBistro is better for single-site full-service dining thanks to its tableside ordering, coursing and floor-plan tools. Lightspeed is better for multi-location or combined retail-and-restaurant operations that need more depth and reporting, at a higher price." },
+      { q: "Is Square good for Canadian restaurants?", a: "Yes, especially for cafes and quick-service. It is free to start and easy to run, though it has fewer full-service dining features than TouchBistro." },
+      { q: "Do these POS systems handle Quebec QST and Bill 72 tipping?", a: "They can, but always confirm in a demo. In Quebec you need 5 percent GST plus 9.975 percent QST, mandatory French-language receipts, and tips presented on the pre-tax subtotal under Bill 72." },
+      { q: "What is the cheapest POS for a Canadian restaurant?", a: "Square is free on software, and flat-rate systems like DineOpen are CAD 14 per month. Always include card processing in the comparison, since a lower monthly fee with a higher swipe rate can cost more overall." },
+    ],
+  },
+  'how-much-does-toast-pos-cost-2026': {
+    id: 'how-much-does-toast-pos-cost-2026',
+    title: 'How Much Does Toast POS Actually Cost in 2026? (Real Fees Breakdown)',
+    excerpt: 'Toast advertises a $0 starter kit, but the real bill is bigger. Here is a transparent breakdown of Toast POS pricing in 2026 — software tiers, hardware, processing rates, add-ons and the contract — plus what you actually pay.',
+    author: 'Vivek Sharma',
+    publishDate: '2026-07-25',
+    dateModified: '2026-07-25',
+    readTime: '9 min read',
+    category: 'Pricing',
+    tags: ['Toast POS cost', 'Toast POS pricing', 'Toast fees', 'Toast POS review', 'restaurant POS pricing'],
+    content: `
+        <div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:20px;border-radius:8px;margin:24px 0;">
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#78350f;"><strong>Quick answer:</strong> Toast POS in 2026 has a $0 "Starter" tier (which trades a higher processing rate), and paid software tiers from about $69/month per terminal. Add online ordering, KDS, inventory and payroll and a realistic full-service setup runs <strong>$200+/month per location in software</strong> — before ~2.49–3.5% + $0.15 card processing and hardware. On $40,000/month in card sales, all-in Toast cost commonly exceeds <strong>$20,000/year</strong>.</p>
+        </div>
+
+        <p>Toast is a genuinely strong restaurant platform. But its pricing is layered, and the headline "$0" gets a lot of attention while the real bill lives in processing fees and add-ons. Here is the transparent version.</p>
+
+        <h2>How much does Toast POS cost in 2026?</h2>
+        <p>Toast pricing has three parts you must add together: <strong>software</strong>, <strong>payment processing</strong>, and <strong>hardware</strong>. Ignore any one of them and the comparison is meaningless.</p>
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:15px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Cost</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Typical 2026</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Software — Starter</td><td style="padding:12px;border:1px solid #e5e7eb;">$0/mo (higher processing rate)</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Software — paid tiers</td><td style="padding:12px;border:1px solid #e5e7eb;">from ~$69/mo per terminal</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Add-ons (online order, KDS, inventory, payroll)</td><td style="padding:12px;border:1px solid #e5e7eb;">$50–$100+/mo each</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Payment processing</td><td style="padding:12px;border:1px solid #e5e7eb;">~2.49–3.5% + $0.15 per transaction</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Hardware</td><td style="padding:12px;border:1px solid #e5e7eb;">buy upfront or lease (proprietary)</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Contract</td><td style="padding:12px;border:1px solid #e5e7eb;">commonly 1–3 years</td></tr>
+          </tbody>
+        </table>
+
+        <h2>What are Toast's processing fees, and why do they dominate the bill?</h2>
+        <p>This is the part that matters most. On $40,000/month in card volume, every 0.1% of processing is <strong>$480/year</strong>. At roughly 2.6%, that volume is about <strong>$12,480/year</strong> in card fees alone — far more than the software. That is why the "$0 Starter" plan can be the <em>most</em> expensive option overall: the higher swipe rate more than makes up for the free software.</p>
+
+        <h2>What are the hidden costs?</h2>
+        <ul>
+          <li><strong>Per-terminal software</strong> — costs multiply with each till.</li>
+          <li><strong>Add-on modules</strong> — online ordering, KDS, inventory and payroll are usually separate line items.</li>
+          <li><strong>Proprietary hardware</strong> — you cannot bring your own; leaving means new kit.</li>
+          <li><strong>Contract</strong> — a 1–3 year term makes a bad fit an expensive mistake.</li>
+        </ul>
+
+        <h2>What do you actually pay? A worked example</h2>
+        <p>A 1-location full-service restaurant on a paid tier with a couple of add-ons and $40k/month card volume: roughly <strong>$150–$250/mo software</strong> + <strong>~$12,500/yr processing</strong> + hardware. That is comfortably over <strong>$20,000/year</strong> all-in. Multiply for extra terminals or locations.</p>
+
+        <h2>Are there cheaper Toast alternatives?</h2>
+        <p>Yes. If you like Toast's feature set but not the bill, the lever is the <em>cost structure</em>. <a href="/usa">DineOpen</a> offers the same essentials — POS, KDS, online ordering, inventory, AI ordering, DoorDash/Uber Eats/Grubhub, US sales tax and tip reporting — at a flat <strong>$10/month with zero transaction-fee markup and no contract</strong>. You keep the swipe fees you were paying anyway and drop the per-transaction premium on top. Compare directly on the <a href="/vs/dineopen-vs-toast">DineOpen vs Toast</a> page, see the full <a href="/blog/square-vs-toast-vs-clover-2026">Square vs Toast vs Clover comparison</a>, or read the <a href="/blog/i-got-quoted-1200-month-for-toast-heres-what-i-built-instead">founder cost breakdown</a>.</p>
+
+        <h2>Frequently asked questions</h2>
+        <p><strong>Is Toast POS really free?</strong> There is a $0 "Starter" software tier, but it comes with a higher payment-processing rate, so you pay through fees rather than a monthly bill. For most restaurants the processing cost dwarfs the software cost.</p>
+        <p><strong>Why is Toast so expensive?</strong> The bill stacks per-terminal software, several paid add-on modules, proprietary hardware, and percentage-based processing on every sale — plus a multi-year contract. Processing fees are usually the largest component.</p>
+        <p><strong>What is a cheaper alternative to Toast?</strong> Flat-rate systems with no per-transaction markup, such as DineOpen at $10/month with no contract, are typically far cheaper all-in for a busy restaurant.</p>
+    `,
+    faqs: [
+      { q: "Is Toast POS really free?", a: "There is a 0 dollar Starter software tier, but it comes with a higher payment-processing rate, so you pay through card fees rather than a monthly software bill. For most restaurants the processing cost is far larger than the software cost." },
+      { q: "How much does Toast POS cost per month in 2026?", a: "Paid Toast software tiers start around 69 dollars per month per terminal, and add-ons like online ordering, KDS, inventory and payroll are each 50 to 100 dollars or more. A realistic full-service setup runs over 200 dollars per month in software before processing and hardware." },
+      { q: "Why is Toast POS so expensive?", a: "The total bill stacks per-terminal software, several paid add-on modules, proprietary hardware, and percentage-based processing on every sale, plus a multi-year contract. Processing fees are usually the largest single component." },
+      { q: "What is a cheaper alternative to Toast POS?", a: "Flat-rate systems with no per-transaction markup, such as DineOpen at 10 dollars per month with no contract, are typically far cheaper all-in for a busy restaurant while offering the same core features." },
+    ],
+  },
   'square-vs-toast-vs-clover-2026': {
     id: 'square-vs-toast-vs-clover-2026',
     title: 'Square vs Toast vs Clover: The Honest Restaurant POS Comparison (2026)',
