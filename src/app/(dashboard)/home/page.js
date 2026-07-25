@@ -218,6 +218,7 @@ export default function HomePage() {
   const [pageAccess, setPageAccess] = useState(null);
   const [notAllowedPages, setNotAllowedPages] = useState([]);
   const [isMobile, setIsMobile] = useState(false);
+  const [isMobileEmbed, setIsMobileEmbed] = useState(false); // true inside dine-app WebView
   const [restaurantName, setRestaurantName] = useState('');
   const [currencySymbol, setCurrencySymbol] = useState('₹');
   const [isBar, setIsBar] = useState(false);
@@ -233,6 +234,11 @@ export default function HomePage() {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    // Detect the dine-app WebView (set in useEffect to avoid SSR hydration mismatch)
+    if (typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__) setIsMobileEmbed(true);
   }, []);
 
   useEffect(() => {
@@ -467,7 +473,7 @@ export default function HomePage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {canAccess('dashboard') && (
+          {canAccess('dashboard') && !isMobileEmbed && (
             <button
               onClick={() => navigateTo(posPath)}
               style={{

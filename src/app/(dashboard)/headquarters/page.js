@@ -236,6 +236,9 @@ export function HeadquartersContent({ embedded = false }) {
   const [restaurantSearch, setRestaurantSearch] = useState('');
   const [isMobile, setIsMobile] = useState(false);
   const isMobileEmbed = isMobile && typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
+  // True whenever running inside the dine-app WebView (any screen size) — used to
+  // hide "Start Taking Orders" in the app, where order-taking is a native tab.
+  const isAppEmbed = typeof window !== 'undefined' && !!window.__DINEOPEN_MOBILE_EMBED__;
   const [emailPreferences, setEmailPreferences] = useState({
     emailEnabled: false,
     reportEmails: [],
@@ -2555,8 +2558,8 @@ export function HeadquartersContent({ embedded = false }) {
           {(dashboardData?.restaurants?.length || 0) > 1 && <RestaurantSelector />}
           <DatePicker />
 
-          {/* Start Taking Orders CTA - Desktop */}
-          {!isMobile && (
+          {/* Start Taking Orders CTA - Desktop (hidden in dine-app WebView) */}
+          {!isMobile && !isAppEmbed && (
             <button
               onClick={() => {
                 const base = businessType === 'bar' ? '/dashboard/bar' : '/dashboard';
@@ -2628,8 +2631,8 @@ export function HeadquartersContent({ embedded = false }) {
         </div>
       </div>
 
-      {/* Mobile CTA - Start Taking Orders */}
-      {isMobile && (
+      {/* Mobile CTA - Start Taking Orders (hidden in dine-app WebView) */}
+      {isMobile && !isAppEmbed && (
         <button
           onClick={() => {
             const base = businessType === 'bar' ? '/dashboard/bar' : '/dashboard';
