@@ -1608,6 +1608,23 @@ class ApiClient {
     });
   }
 
+  // Split one table into N sub-tables (e.g. 7 → 7A/7B/7C). Each becomes a real,
+  // independently-billable table. count = 2..8.
+  async splitTable(restaurantId, tableId, count) {
+    return this.request(`/api/tables/${restaurantId}/split`, {
+      method: 'POST',
+      body: { tableId, count },
+    });
+  }
+
+  // Un-split: remove a table's sub-tables and restore it (all sub-tables must be free).
+  async unsplitTable(restaurantId, tableId) {
+    return this.request(`/api/tables/${restaurantId}/unsplit`, {
+      method: 'POST',
+      body: { tableId },
+    });
+  }
+
   // Transfer an order/table to another server (waiter). Metadata only.
   async transferServer(orderId, { waiterId = null, waiterName = null, restaurantId = null } = {}) {
     return this.request(`/api/orders/${orderId}/transfer-server`, {

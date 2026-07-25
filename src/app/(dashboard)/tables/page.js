@@ -19,7 +19,7 @@ import {
   FaHome, FaEdit, FaEllipsisV, FaCalendarAlt, FaTools, FaTimes, FaPhoneAlt,
   FaUser, FaChevronDown, FaEye, FaChevronLeft, FaChevronRight, FaSearch,
   FaLayerGroup, FaConciergeBell, FaArrowRight, FaSpinner, FaArrowUp, FaArrowDown, FaSortAmountDown, FaQrcode,
-  FaPrint, FaReceipt, FaExchangeAlt, FaTruck, FaTh, FaThLarge
+  FaPrint, FaReceipt, FaExchangeAlt, FaTruck, FaTh, FaThLarge, FaColumns
 } from 'react-icons/fa';
 import dynamic from 'next/dynamic';
 import { createPortal } from 'react-dom';
@@ -306,6 +306,11 @@ const TableManagement = () => {
   const [mergeSelection, setMergeSelection] = useState([]); // selected table ids (first = primary)
   const [mergeSaving, setMergeSaving] = useState(false);
   const [unmergeConfirm, setUnmergeConfirm] = useState(null); // { primaryTableId, name }
+  // Split table into sub-tables (7 → 7A/7B/7C)
+  const [splitModalTable, setSplitModalTable] = useState(null); // parent table being split
+  const [splitCount, setSplitCount] = useState(3);
+  const [splitSaving, setSplitSaving] = useState(false);
+  const [unsplitConfirm, setUnsplitConfirm] = useState(null); // { tableId, name }
   // Server assignment
   const [waiters, setWaiters] = useState([]);
   const [assignServerTable, setAssignServerTable] = useState(null); // table being assigned
@@ -452,6 +457,7 @@ const TableManagement = () => {
     cleaning: { color: '#6b7280', bg: '#f3f4f6', text: '#475569', label: t('tables.statusCleaning'), icon: FaTools, border: '#9ca3af' },
     'out-of-service': { color: '#ef4444', bg: '#fef2f2', text: '#991b1b', label: t('tables.statusOutOfService'), icon: FaBan, border: '#ef4444' },
     merged: { color: '#0ea5e9', bg: '#f0f9ff', text: '#075985', label: 'Merged', icon: FaLayerGroup, border: '#7dd3fc' },
+    split: { color: '#7c3aed', bg: '#faf5ff', text: '#5b21b6', label: 'Split', icon: FaColumns, border: '#c4b5fd' },
   };
   const getTableStatusInfo = (status) => statusConfig[status] || statusConfig.available;
 
@@ -1150,6 +1156,39 @@ const TableManagement = () => {
       showError(err?.message || 'Failed to un-merge tables');
     } finally {
       setMergeSaving(false);
+    }
+  };
+
+  // ── Split a table into sub-tables (7 → 7A/7B/7C) ──────────
+  const openSplitTable = (table) => {
+    setSplitModalTable(table);
+    setSplitCount(3);
+    setActiveDropdown(null);
+  };
+  const confirmSplit = async () => {
+    if (!splitModalTable || !selectedRestaurant?.id) return;
+    setSplitSaving(true);
+    try {
+      await apiClient.splitTable(selectedRestaurant.id, splitModalTable.id, splitCount);
+      setSplitModalTable(null);
+      await loadFloorsAndTables(selectedRestaurant.id, true);
+    } catch (err) {
+      showError(err?.message || 'Failed to split table');
+    } finally {
+      setSplitSaving(false);
+    }
+  };
+  const confirmUnsplit = async () => {
+    if (!unsplitConfirm || !selectedRestaurant?.id) return;
+    setSplitSaving(true);
+    try {
+      await apiClient.unsplitTable(selectedRestaurant.id, unsplitConfirm.tableId);
+      setUnsplitConfirm(null);
+      await loadFloorsAndTables(selectedRestaurant.id, true);
+    } catch (err) {
+      showError(err?.message || 'Failed to un-split table');
+    } finally {
+      setSplitSaving(false);
     }
   };
 
@@ -1996,63 +2035,106 @@ const TableManagement = () => {
                   gridTemplateColumns: isMobileEmbed ? `repeat(${mobileGridCols}, 1fr)` : isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(160px, 1fr))',
                   gap: isMobileEmbed ? '8px' : isMobile ? '12px' : '20px',
                 }}>
-                  {tables.map((table, idx) => {
-                    // For non-today: determine status from bookings, not live data
-                    const tblBookings = tableBookingsMap[table.id] || [];
-                    const hasBookings = tblBookings.length > 0;
-                    const tableStatus = isToday ? (tableStatusesForDate[table.id] || table.status) : (hasBookings ? 'reserved' : 'available');
-                    return (
-                      <TableCard
-                        key={table.id}
-                        table={table}
-                        isToday={isToday}
-                        isMobile={isMobile}
-                        isMobileEmbed={isMobileEmbed}
-                        posSettings={posSettings}
-                        tblBookings={tblBookings}
-                        tableStatus={tableStatus}
-                        canEditTableConfig={canEditTableConfig}
-                        canEditTable={canEditTable}
-                        waitersCount={waiters.length}
-                        activeDropdown={activeDropdown}
-                        setActiveDropdown={setActiveDropdown}
-                        hoveredTableId={hoveredTableId}
-                        setHoveredTableId={setHoveredTableId}
-                        printDropdownTable={printDropdownTable}
-                        setPrintDropdownTable={setPrintDropdownTable}
-                        printingTables={printingTables}
-                        quickViewLoading={quickViewLoading}
-                        getTableStatusInfo={getTableStatusInfo}
-                        getElapsed={getElapsed}
-                        getElapsedHours={getElapsedHours}
-                        formatCurrency={formatCurrency}
-                        t={t}
-                        onTableAction={handleTableAction}
-                        onQuickView={handleQuickView}
-                        onPrintBill={handlePrintBill}
-                        onPrintKOT={handlePrintKOT}
-                        onEditTable={openEditTable}
-                        onDeleteTable={(tbl) => deleteTable(tbl.id)}
-                        onAssignServer={openAssignServer}
-                        onUnmerge={(tbl) => setUnmergeConfirm({ primaryTableId: tbl.mergePrimary ? tbl.id : tbl.mergedInto, name: tbl.mergePrimary ? tbl.name : (tbl.mergedIntoName || tbl.name) })}
-                        onOpenBilling={(tbl) => {
-                          if (tbl.currentOrderId) {
-                            setBillingModalTable(tbl);
-                            setBillingModalOpen(true);
-                          } else {
-                            handleTableAction('make-available', tbl);
-                          }
-                        }}
-                        onMoveOrder={(tbl) => handleTableAction('move-order', tbl)}
-                        onBookTable={(tbl) => {
-                          setSelectedTable(tbl);
-                          setBookingData(prev => ({ ...prev, bookingDate: selectedDate, partySize: Math.min(tbl.capacity, prev.partySize || 2) }));
-                          setBookingFromHeader(false);
-                          setShowBookingForm(true);
-                        }}
-                      />
-                    );
-                  })}
+                  {(() => {
+                    // Render a single table's card (used for normal tables AND for
+                    // the sub-tables inside a split cluster). Self-contained.
+                    const renderCard = (table) => {
+                      const tblBookings = tableBookingsMap[table.id] || [];
+                      const hasBookings = tblBookings.length > 0;
+                      const tableStatus = isToday ? (tableStatusesForDate[table.id] || table.status) : (hasBookings ? 'reserved' : 'available');
+                      return (
+                        <TableCard
+                          key={table.id}
+                          table={table}
+                          isToday={isToday}
+                          isMobile={isMobile}
+                          isMobileEmbed={isMobileEmbed}
+                          posSettings={posSettings}
+                          tblBookings={tblBookings}
+                          tableStatus={tableStatus}
+                          canEditTableConfig={canEditTableConfig}
+                          canEditTable={canEditTable}
+                          waitersCount={waiters.length}
+                          activeDropdown={activeDropdown}
+                          setActiveDropdown={setActiveDropdown}
+                          hoveredTableId={hoveredTableId}
+                          setHoveredTableId={setHoveredTableId}
+                          printDropdownTable={printDropdownTable}
+                          setPrintDropdownTable={setPrintDropdownTable}
+                          printingTables={printingTables}
+                          quickViewLoading={quickViewLoading}
+                          getTableStatusInfo={getTableStatusInfo}
+                          getElapsed={getElapsed}
+                          getElapsedHours={getElapsedHours}
+                          formatCurrency={formatCurrency}
+                          t={t}
+                          onTableAction={handleTableAction}
+                          onQuickView={handleQuickView}
+                          onPrintBill={handlePrintBill}
+                          onPrintKOT={handlePrintKOT}
+                          onEditTable={openEditTable}
+                          onDeleteTable={(tbl) => deleteTable(tbl.id)}
+                          onAssignServer={openAssignServer}
+                          onSplitTable={openSplitTable}
+                          onUnmerge={(tbl) => setUnmergeConfirm({ primaryTableId: tbl.mergePrimary ? tbl.id : tbl.mergedInto, name: tbl.mergePrimary ? tbl.name : (tbl.mergedIntoName || tbl.name) })}
+                          onOpenBilling={(tbl) => {
+                            if (tbl.currentOrderId) {
+                              setBillingModalTable(tbl);
+                              setBillingModalOpen(true);
+                            } else {
+                              handleTableAction('make-available', tbl);
+                            }
+                          }}
+                          onMoveOrder={(tbl) => handleTableAction('move-order', tbl)}
+                          onBookTable={(tbl) => {
+                            setSelectedTable(tbl);
+                            setBookingData(prev => ({ ...prev, bookingDate: selectedDate, partySize: Math.min(tbl.capacity, prev.partySize || 2) }));
+                            setBookingFromHeader(false);
+                            setShowBookingForm(true);
+                          }}
+                        />
+                      );
+                    };
+                    return tables.map((table) => {
+                      // Sub-tables are rendered inside their parent's cluster below.
+                      if (table.isSubTable) return null;
+                      // A split parent renders as a full-width cluster of its sub-tables.
+                      if (table.isSplit) {
+                        const subs = tables.filter(s => s.isSubTable && s.parentTableId === table.id)
+                          .sort((a, b) => (a.subLabel || '').localeCompare(b.subLabel || ''));
+                        return (
+                          <div key={table.id} style={{ gridColumn: '1 / -1', border: '1.5px dashed #c4b5fd', background: '#faf5ff', borderRadius: isMobileEmbed ? '10px' : '14px', padding: isMobileEmbed ? '8px' : '12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <FaColumns size={13} color="#7c3aed" />
+                                <span style={{ fontWeight: 800, color: '#5b21b6', fontSize: isMobileEmbed ? '13px' : '15px' }}>{table.name}</span>
+                                <span style={{ fontSize: '10px', fontWeight: 700, color: '#7c3aed', background: '#ede9fe', padding: '2px 8px', borderRadius: '6px' }}>{t('tables.split') || 'Split'} · {subs.length}</span>
+                              </div>
+                              {canEditTableConfig && (
+                                <button onClick={() => setUnsplitConfirm({ tableId: table.id, name: table.name })} style={{
+                                  padding: '5px 10px', background: 'white', color: '#7c3aed', border: '1px solid #ddd6fe',
+                                  borderRadius: '8px', fontSize: '11px', fontWeight: 700, cursor: 'pointer',
+                                  display: 'flex', alignItems: 'center', gap: '5px',
+                                }}>
+                                  <FaTimes size={9} /> {t('tables.unsplit') || 'Un-split'}
+                                </button>
+                              )}
+                            </div>
+                            <div style={{
+                              display: 'grid',
+                              gridTemplateColumns: isMobileEmbed ? 'repeat(2, 1fr)' : isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(150px, 1fr))',
+                              gap: isMobileEmbed ? '8px' : '12px',
+                            }}>
+                              {subs.length === 0
+                                ? <div style={{ fontSize: '12px', color: '#9ca3af', padding: '8px' }}>{t('tables.noSubTables') || 'No sub-tables'}</div>
+                                : subs.map(s => renderCard(s))}
+                            </div>
+                          </div>
+                        );
+                      }
+                      return renderCard(table);
+                    });
+                  })()}
                 </div>
               )}
             </div>
@@ -2947,6 +3029,58 @@ const TableManagement = () => {
               <button onClick={() => setUnmergeConfirm(null)} disabled={mergeSaving} style={{ padding: '9px 18px', borderRadius: '10px', border: '1px solid #e2e8f0', background: 'white', color: '#475569', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
               <button onClick={confirmUnmerge} disabled={mergeSaving} style={{ padding: '9px 18px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', fontSize: '14px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {mergeSaving ? <FaSpinner size={13} className="animate-spin" /> : null} Un-merge
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Split table into sub-tables modal */}
+      {splitModalTable && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', zIndex: 10003, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={() => !splitSaving && setSplitModalTable(null)}>
+          <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '420px', padding: '22px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+              <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: '#f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaColumns size={15} color="#7c3aed" /></div>
+              <div style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>{t('tables.splitTable') || 'Split table'} {splitModalTable.name}</div>
+            </div>
+            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>{t('tables.splitHint') || 'Divide this table into separate sub-tables, each with its own order and bill.'}</div>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: '#374151', marginBottom: '8px' }}>{t('tables.numberOfSubTables') || 'Number of sub-tables'}</div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+              {[2, 3, 4, 5, 6].map(n => (
+                <button key={n} onClick={() => setSplitCount(n)} style={{
+                  width: '44px', height: '44px', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px',
+                  border: `1.5px solid ${splitCount === n ? '#7c3aed' : '#e2e8f0'}`,
+                  background: splitCount === n ? '#f5f3ff' : 'white', color: splitCount === n ? '#5b21b6' : '#475569',
+                }}>{n}</button>
+              ))}
+            </div>
+            <div style={{ background: '#faf5ff', border: '1px dashed #c4b5fd', borderRadius: '10px', padding: '10px 12px', marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {Array.from({ length: splitCount }, (_, i) => (
+                <span key={i} style={{ fontSize: '12px', fontWeight: 700, color: '#5b21b6', background: 'white', border: '1px solid #ddd6fe', padding: '3px 9px', borderRadius: '7px' }}>
+                  {splitModalTable.name}{String.fromCharCode(65 + i)}
+                </span>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setSplitModalTable(null)} disabled={splitSaving} style={{ padding: '9px 18px', borderRadius: '10px', border: '1px solid #e2e8f0', background: 'white', color: '#475569', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>{t('common.cancel') || 'Cancel'}</button>
+              <button onClick={confirmSplit} disabled={splitSaving} style={{ padding: '9px 18px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', color: 'white', fontSize: '14px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {splitSaving ? <FaSpinner size={13} className="animate-spin" /> : <FaColumns size={12} />} {t('tables.split') || 'Split'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Un-split confirm */}
+      {unsplitConfirm && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', zIndex: 10003, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={() => !splitSaving && setUnsplitConfirm(null)}>
+          <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '380px', padding: '22px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', marginBottom: '8px' }}>{t('tables.unsplit') || 'Un-split'} {unsplitConfirm.name}?</div>
+            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>{t('tables.unsplitHint') || 'This removes the sub-tables and restores the single table. All sub-tables must be free (no running bill).'}</div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setUnsplitConfirm(null)} disabled={splitSaving} style={{ padding: '9px 18px', borderRadius: '10px', border: '1px solid #e2e8f0', background: 'white', color: '#475569', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>{t('common.cancel') || 'Cancel'}</button>
+              <button onClick={confirmUnsplit} disabled={splitSaving} style={{ padding: '9px 18px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', color: 'white', fontSize: '14px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {splitSaving ? <FaSpinner size={13} className="animate-spin" /> : null} {t('tables.unsplit') || 'Un-split'}
               </button>
             </div>
           </div>

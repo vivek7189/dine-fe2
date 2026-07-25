@@ -3,7 +3,7 @@
 import {
   FaChair, FaUsers, FaLayerGroup, FaUser, FaEye, FaSpinner, FaCalendarAlt,
   FaEdit, FaTrash, FaBan, FaTools, FaCheck, FaReceipt, FaPrint, FaExchangeAlt,
-  FaUtensils, FaPlus,
+  FaUtensils, FaPlus, FaColumns,
 } from 'react-icons/fa';
 
 /**
@@ -56,6 +56,7 @@ export default function TableCard({
   onDeleteTable,
   onAssignServer,
   onUnmerge,
+  onSplitTable,
   onOpenBilling,
   onMoveOrder,
   onBookTable,
@@ -432,6 +433,11 @@ export default function TableCard({
                 {canEditTableConfig && (
                   <button className="tbl-action" onClick={(e) => { e.stopPropagation(); onEditTable(table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#2563eb', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderBottom: '1px solid #f5f5f5', borderLeft: '1px solid #f5f5f5' }}>
                     <FaEdit size={12} /> {t('tables.edit') || 'Edit'}
+                  </button>
+                )}
+                {canEditTableConfig && onSplitTable && !table.isSubTable && (
+                  <button className="tbl-action" onClick={(e) => { e.stopPropagation(); onSplitTable(table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#7c3aed', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderBottom: '1px solid #f5f5f5', borderLeft: '1px solid #f5f5f5' }}>
+                    <FaColumns size={12} /> {t('tables.split') || 'Split'}
                   </button>
                 )}
                 {canEditTable && (
