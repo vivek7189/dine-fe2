@@ -1,6 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  // Kenya KRA eTIMS — relay a request to the local VSCU (Kenya stores only)
+  etimsRelay: (args) => ipcRenderer.invoke('etims:relay', args),
   // Printing
   print: (html, options = {}) =>
     ipcRenderer.invoke('electron:print', { html, ...options }),

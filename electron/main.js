@@ -608,6 +608,9 @@ function probeTcpPort(host, port, timeoutMs = 800) {
   });
 }
 
+// ──── IPC: Kenya KRA eTIMS — VSCU local relay (self-contained; Kenya only) ────
+try { require('./etims/vscuRelay').register(ipcMain); } catch (e) { console.warn('eTIMS relay not registered:', e && e.message); }
+
 // ──── IPC: Printing ────
 
 ipcMain.handle('electron:print', async (event, { html, copies, type, printerWidth, stationId, printerOverride }) => {
