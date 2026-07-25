@@ -319,6 +319,13 @@ const TableManagement = () => {
   const [waitlistLoading, setWaitlistLoading] = useState(false);
   const [waitlistSaving, setWaitlistSaving] = useState(false);
   const [waitlistForm, setWaitlistForm] = useState({ name: '', phone: '', partySize: 2, quotedWait: '' });
+  // Live 'now' tick — re-renders the waitlist every 30s so the wait timers stay current.
+  const [nowTick, setNowTick] = useState(0);
+  useEffect(() => {
+    if (!showWaitlist) return;
+    const iv = setInterval(() => setNowTick((t) => t + 1), 30000);
+    return () => clearInterval(iv);
+  }, [showWaitlist]);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [selectedTable, setSelectedTable] = useState(null);
   const [bookingFromHeader, setBookingFromHeader] = useState(false);
@@ -2856,7 +2863,7 @@ const TableManagement = () => {
       {/* Merge Tables modal */}
       {showMergeModal && (() => {
         const allTbls = floors.flatMap(f => (f.tables || []).map(t => ({ ...t, _floorName: f.name })));
-        return (
+        return createPortal((
           <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={() => !mergeSaving && setShowMergeModal(false)}>
             <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '520px', maxHeight: '88vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid #f1f5f9' }}>
@@ -2906,7 +2913,7 @@ const TableManagement = () => {
               </div>
             </div>
           </div>
-        );
+        ), document.body);
       })()}
 
       {/* Un-merge confirm */}
@@ -2965,11 +2972,25 @@ const TableManagement = () => {
 
       {/* Walk-in Waitlist panel */}
       {showWaitlist && (() => {
+        void nowTick; // referenced so the 30s tick re-renders these timers
         const waitMin = (createdAt) => {
-          const t0 = (createdAt && createdAt.toDate) ? createdAt.toDate().getTime() : (createdAt ? new Date(createdAt).getTime() : Date.now());
+          // createdAt may be a Firestore Timestamp, a JSON-serialized {_seconds}, an
+          // ISO string, or null — handle all so we never render "NaNm".
+          let t0;
+          if (!createdAt) t0 = Date.now();
+          else if (typeof createdAt.toDate === 'function') t0 = createdAt.toDate().getTime();
+          else if (typeof createdAt === 'object' && createdAt._seconds != null) t0 = createdAt._seconds * 1000;
+          else t0 = new Date(createdAt).getTime();
+          if (isNaN(t0)) t0 = Date.now();
           return Math.max(0, Math.round((Date.now() - t0) / 60000));
         };
-        return (
+        // Tables free right now — so the host can seat / call a waiting party.
+        const freeTables = floors.flatMap(f => (f.tables || [])
+          .filter(t => (t.status || 'available') === 'available' && !t.mergedInto)
+          .map(t => ({ ...t, _floorName: f.name, cap: Number((t.mergePrimary && t.mergedCapacity) ? t.mergedCapacity : t.capacity) || 0 })))
+          .sort((a, b) => a.cap - b.cap);
+        const fitsParty = (party) => freeTables.filter(t => t.cap >= (Number(party) || 1));
+        return createPortal((
           <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={() => setShowWaitlist(false)}>
             <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '560px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid #f1f5f9' }}>
@@ -2996,6 +3017,19 @@ const TableManagement = () => {
                 </div>
               </div>
 
+              {/* Tables free right now — so the host can seat / call a waiting party */}
+              <div style={{ padding: '10px 20px', borderBottom: '1px solid #f1f5f9', background: freeTables.length ? '#f0fdf4' : '#fff7ed', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: freeTables.length ? '#16a34a' : '#ea580c', display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                  <FaChair size={11} /> {freeTables.length} free now
+                </div>
+                <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end' }}>
+                  {freeTables.slice(0, 10).map(t => (
+                    <span key={t.id} title={`${t._floorName} · ${t.cap} seats`} style={{ fontSize: '11px', fontWeight: 700, color: '#166534', background: '#dcfce7', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '7px', whiteSpace: 'nowrap' }}>{t.name} · {t.cap}</span>
+                  ))}
+                  {freeTables.length > 10 && <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 700 }}>+{freeTables.length - 10}</span>}
+                </div>
+              </div>
+
               {/* List */}
               <div style={{ padding: '10px 16px', overflowY: 'auto', flex: 1 }}>
                 {waitlist.length === 0 ? (
@@ -3003,8 +3037,9 @@ const TableManagement = () => {
                 ) : waitlist.map(entry => {
                   const mins = waitMin(entry.createdAt);
                   const overdue = entry.quotedWait != null && mins > entry.quotedWait;
+                  const seatable = fitsParty(entry.partySize);
                   return (
-                    <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 12px', marginBottom: '7px', borderRadius: '11px', border: '1px solid #e2e8f0', background: entry.status === 'notified' ? '#f0fdf4' : 'white' }}>
+                    <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 12px', marginBottom: '7px', borderRadius: '11px', border: seatable.length ? '1.5px solid #86efac' : '1px solid #e2e8f0', background: entry.status === 'notified' ? '#f0fdf4' : (seatable.length ? '#f7fee7' : 'white') }}>
                       <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fff7ed', color: '#ea580c', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800 }}>
                         <span style={{ fontSize: '14px', lineHeight: 1 }}>{entry.partySize}</span>
                         <span style={{ fontSize: '7px', fontWeight: 700, textTransform: 'uppercase' }}>pax</span>
@@ -3017,6 +3052,11 @@ const TableManagement = () => {
                         <div style={{ fontSize: '11px', color: overdue ? '#dc2626' : '#94a3b8', fontWeight: overdue ? 700 : 400 }}>
                           waiting {mins}m{entry.quotedWait != null ? ` / quoted ${entry.quotedWait}m` : ''}{entry.phone ? ` · ${entry.phone}` : ''}
                         </div>
+                        {seatable.length > 0 && (
+                          <div style={{ fontSize: '11px', color: '#16a34a', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                            <FaChair size={9} /> Seat now → {seatable[0].name} ({seatable[0].cap} seats){seatable.length > 1 ? ` +${seatable.length - 1}` : ''}
+                          </div>
+                        )}
                       </div>
                       <div style={{ display: 'flex', gap: '5px', flexShrink: 0 }}>
                         {entry.phone && (
@@ -3037,7 +3077,7 @@ const TableManagement = () => {
               </div>
             </div>
           </div>
-        );
+        ), document.body);
       })()}
 
       {/* Shared Billing Modal — only mount when opened */}
