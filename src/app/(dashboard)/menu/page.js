@@ -340,6 +340,7 @@ const CategoryDropdown = ({
                 </div>
                   <div className="flex gap-2">
                 <button
+                      type="button"
                       onClick={handleAddNew}
                              disabled={loading || !newCategory.name.trim()}
                              className="px-3 py-1 text-xs bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -347,6 +348,7 @@ const CategoryDropdown = ({
                              {loading ? t('menu.adding') : t('menu.add')}
                 </button>
                     <button
+                      type="button"
                       onClick={() => {
                         setShowAddForm(false);
                       setNewCategory({ name: '', emoji: '🍽️', description: '', parentId: '' });
@@ -408,6 +410,7 @@ const CategoryDropdown = ({
                 </div>
                   <div className="flex gap-2">
                     <button
+                             type="button"
                              onClick={handleUpdate}
                              disabled={loading || !newCategory.name.trim()}
                              className="px-3 py-1 text-xs bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -415,6 +418,7 @@ const CategoryDropdown = ({
                              {loading ? t('menu.updating') : t('menu.update')}
                     </button>
                     <button
+                      type="button"
                       onClick={() => {
                       setShowEditForm(false);
                       setEditingCategory(null);
@@ -433,6 +437,7 @@ const CategoryDropdown = ({
           {!showAddForm && !showEditForm && (
             <div className="p-3 border-b border-gray-200">
                        <button
+                         type="button"
                          onClick={() => setShowAddForm(true)}
                          className="w-full text-left text-sm text-red-600 hover:text-red-800 font-medium flex items-center gap-2"
                        >
@@ -479,6 +484,7 @@ const CategoryDropdown = ({
                 {/* Category Actions */}
                 <div className="flex gap-1" style={{ flexShrink: 0 }}>
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       // Quick-add a sub-category under this one (pre-fills parent)
@@ -492,6 +498,7 @@ const CategoryDropdown = ({
                     <FaPlus size={9} /> sub
                   </button>
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleEdit(category);
@@ -502,6 +509,7 @@ const CategoryDropdown = ({
                     <FaEdit size={12} />
                   </button>
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDelete(category);
