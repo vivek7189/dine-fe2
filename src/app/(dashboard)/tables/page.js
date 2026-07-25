@@ -321,6 +321,27 @@ const TableManagement = () => {
   const [waitlistForm, setWaitlistForm] = useState({ name: '', phone: '', partySize: 2, quotedWait: '' });
   // Live 'now' tick — re-renders the waitlist every 30s so the wait timers stay current.
   const [nowTick, setNowTick] = useState(0);
+  const [editWaitId, setEditWaitId] = useState(null);
+  const [editWaitForm, setEditWaitForm] = useState({ name: '', phone: '', partySize: 2, quotedWait: '' });
+  const startEditWait = (entry) => {
+    setEditWaitId(entry.id);
+    setEditWaitForm({ name: entry.name || '', phone: entry.phone || '', partySize: entry.partySize || 1, quotedWait: entry.quotedWait ?? '' });
+  };
+  const saveEditWait = async () => {
+    if (!selectedRestaurant?.id || !editWaitId) return;
+    setWaitlistSaving(true);
+    try {
+      await apiClient.updateWaitlist(selectedRestaurant.id, editWaitId, {
+        name: editWaitForm.name.trim(),
+        phone: editWaitForm.phone.trim() || null,
+        partySize: Number(editWaitForm.partySize) || 1,
+        quotedWait: editWaitForm.quotedWait === '' ? null : Number(editWaitForm.quotedWait),
+      });
+      setEditWaitId(null);
+      await loadWaitlist();
+    } catch (e) { showError(e.message || 'Failed to save changes'); }
+    finally { setWaitlistSaving(false); }
+  };
   useEffect(() => {
     if (!showWaitlist) return;
     const iv = setInterval(() => setNowTick((t) => t + 1), 30000);
@@ -3017,17 +3038,17 @@ const TableManagement = () => {
                 </div>
               </div>
 
-              {/* Tables free right now — so the host can seat / call a waiting party */}
-              <div style={{ padding: '10px 20px', borderBottom: '1px solid #f1f5f9', background: freeTables.length ? '#f0fdf4' : '#fff7ed', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: freeTables.length ? '#16a34a' : '#ea580c', display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                  <FaChair size={11} /> {freeTables.length} free now
+              {/* Tables free right now — clean summary; the per-party hint below names the exact table */}
+              <div style={{ padding: '8px 20px', borderBottom: '1px solid #f1f5f9', background: freeTables.length ? '#f0fdf4' : '#fff7ed', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '22px', height: '22px', borderRadius: '7px', background: freeTables.length ? '#dcfce7' : '#ffedd5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <FaChair size={11} color={freeTables.length ? '#16a34a' : '#ea580c'} />
                 </div>
-                <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end' }}>
-                  {freeTables.slice(0, 10).map(t => (
-                    <span key={t.id} title={`${t._floorName} · ${t.cap} seats`} style={{ fontSize: '11px', fontWeight: 700, color: '#166534', background: '#dcfce7', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '7px', whiteSpace: 'nowrap' }}>{t.name} · {t.cap}</span>
-                  ))}
-                  {freeTables.length > 10 && <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 700 }}>+{freeTables.length - 10}</span>}
+                <div style={{ fontSize: '13px', fontWeight: 700, color: freeTables.length ? '#166534' : '#c2410c' }}>
+                  {freeTables.length === 0 ? 'No tables free — all occupied' : `${freeTables.length} table${freeTables.length === 1 ? '' : 's'} free now`}
                 </div>
+                {freeTables.length > 0 && (
+                  <div style={{ fontSize: '11px', color: '#16a34a', marginLeft: 'auto' }}>smallest {freeTables[0].cap} seats</div>
+                )}
               </div>
 
               {/* List */}
@@ -3038,7 +3059,20 @@ const TableManagement = () => {
                   const mins = waitMin(entry.createdAt);
                   const overdue = entry.quotedWait != null && mins > entry.quotedWait;
                   const seatable = fitsParty(entry.partySize);
-                  return (
+                  return editWaitId === entry.id ? (
+                    <div key={entry.id} style={{ padding: '11px 12px', marginBottom: '7px', borderRadius: '11px', border: '1.5px solid #fdba74', background: '#fff7ed' }}>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                        <input value={editWaitForm.name} onChange={(e) => setEditWaitForm(fm => ({ ...fm, name: e.target.value }))} placeholder="Guest name" style={{ flex: '2 1 120px', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px' }} />
+                        <input value={editWaitForm.phone} onChange={(e) => setEditWaitForm(fm => ({ ...fm, phone: e.target.value }))} placeholder="Phone" style={{ flex: '2 1 120px', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px' }} />
+                        <input type="number" min="1" value={editWaitForm.partySize} onChange={(e) => setEditWaitForm(fm => ({ ...fm, partySize: e.target.value }))} title="Party size" style={{ width: '60px', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px' }} />
+                        <input type="number" min="0" value={editWaitForm.quotedWait} onChange={(e) => setEditWaitForm(fm => ({ ...fm, quotedWait: e.target.value }))} placeholder="Wait" title="Quoted wait (min)" style={{ width: '70px', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px' }} />
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                        <button onClick={() => setEditWaitId(null)} disabled={waitlistSaving} style={{ padding: '7px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', background: 'white', color: '#64748b', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                        <button onClick={saveEditWait} disabled={waitlistSaving || !editWaitForm.name.trim()} style={{ padding: '7px 16px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #f97316, #ea580c)', color: 'white', fontSize: '13px', fontWeight: 700, cursor: (waitlistSaving || !editWaitForm.name.trim()) ? 'not-allowed' : 'pointer', opacity: (waitlistSaving || !editWaitForm.name.trim()) ? 0.5 : 1 }}>Save</button>
+                      </div>
+                    </div>
+                  ) : (
                     <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 12px', marginBottom: '7px', borderRadius: '11px', border: seatable.length ? '1.5px solid #86efac' : '1px solid #e2e8f0', background: entry.status === 'notified' ? '#f0fdf4' : (seatable.length ? '#f7fee7' : 'white') }}>
                       <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fff7ed', color: '#ea580c', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800 }}>
                         <span style={{ fontSize: '14px', lineHeight: 1 }}>{entry.partySize}</span>
@@ -3059,6 +3093,9 @@ const TableManagement = () => {
                         )}
                       </div>
                       <div style={{ display: 'flex', gap: '5px', flexShrink: 0 }}>
+                        <button onClick={() => startEditWait(entry)} disabled={waitlistSaving} title="Edit" style={{ width: '34px', height: '34px', borderRadius: '9px', border: 'none', background: '#f1f5f9', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <FaEdit size={12} />
+                        </button>
                         {entry.phone && (
                           <button onClick={() => notifyWaitlistEntry(entry)} disabled={waitlistSaving} title="Notify via WhatsApp" style={{ width: '34px', height: '34px', borderRadius: '9px', border: 'none', background: '#dcfce7', color: '#16a34a', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <FaConciergeBell size={13} />
