@@ -11,6 +11,8 @@ import { canPerform } from '../../../lib/permissions';
 import { getCachedTablesData, setCachedTablesData } from '../../../utils/dashboardCache';
 import { getCachedData, setCachedData } from '../../../lib/offlineDb';
 import OfflineBanner from '../../../components/OfflineBanner';
+import TableFloorPlan from '../../../components/TableFloorPlan';
+import TableCard from '../../../components/TableCard';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import {
   FaPlus, FaTrash, FaCog, FaUsers, FaClock, FaUtensils, FaCheck, FaBan, FaChair,
@@ -294,6 +296,29 @@ const TableManagement = () => {
   const [tableCfgSaving, setTableCfgSaving] = useState(false);
   const [showEditFloor, setShowEditFloor] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
+  // Turn-time analytics panel
+  const [showTurnTimes, setShowTurnTimes] = useState(false);
+  const [turnTimeData, setTurnTimeData] = useState(null);
+  const [turnTimeLoading, setTurnTimeLoading] = useState(false);
+  const [turnTimeError, setTurnTimeError] = useState(null);
+  // Merge tables
+  const [showMergeModal, setShowMergeModal] = useState(false);
+  const [mergeSelection, setMergeSelection] = useState([]); // selected table ids (first = primary)
+  const [mergeSaving, setMergeSaving] = useState(false);
+  const [unmergeConfirm, setUnmergeConfirm] = useState(null); // { primaryTableId, name }
+  // Server assignment
+  const [waiters, setWaiters] = useState([]);
+  const [assignServerTable, setAssignServerTable] = useState(null); // table being assigned
+  const [assignSaving, setAssignSaving] = useState(false);
+  const [myTablesOnly, setMyTablesOnly] = useState(false);
+  // Floor-plan view
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'floorplan'
+  // Walk-in waitlist
+  const [showWaitlist, setShowWaitlist] = useState(false);
+  const [waitlist, setWaitlist] = useState([]);
+  const [waitlistLoading, setWaitlistLoading] = useState(false);
+  const [waitlistSaving, setWaitlistSaving] = useState(false);
+  const [waitlistForm, setWaitlistForm] = useState({ name: '', phone: '', partySize: 2, quotedWait: '' });
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [selectedTable, setSelectedTable] = useState(null);
   const [bookingFromHeader, setBookingFromHeader] = useState(false);
@@ -358,10 +383,12 @@ const TableManagement = () => {
   const canDeleteTable = canPerform(userData, userPageAccess, 'tables', 'delete');
   const canResetTables = canPerform(userData, userPageAccess, 'tables', 'reset');
   const canManageTables = canAddTable || canEditTable || canDeleteTable;
-  // Editing a table's name/config and deleting a table are OWNER/ADMIN-only by
-  // default (distinct from status changes like Service/Clean, which staff can do).
-  const _tableRole = (userData.role || '').toLowerCase();
-  const canEditTableConfig = _tableRole === 'owner' || _tableRole === 'admin';
+  // Editing a table's name/config and deleting a table require the "manage"
+  // capability. Owner/admin have it by default (canPerform returns true for
+  // them); an owner can also grant `tables.manage` to any other role (cashier,
+  // waiter…) via the staff permission editor. This is distinct from status
+  // changes like Service/Clean, which staff can do.
+  const canEditTableConfig = canPerform(userData, userPageAccess, 'tables', 'manage');
 
   // Timer tick to keep elapsed times updated (every 60s)
   const [, setTick] = useState(0);
@@ -369,6 +396,24 @@ const TableManagement = () => {
     const interval = setInterval(() => setTick(t => t + 1), 60000);
     return () => clearInterval(interval);
   }, []);
+
+  // Load the waiter/server roster (for server assignment + transfer).
+  useEffect(() => {
+    if (!selectedRestaurant?.id) return;
+    apiClient.getWaiters(selectedRestaurant.id)
+      .then(res => setWaiters(res?.waiters || []))
+      .catch(() => setWaiters([]));
+  }, [selectedRestaurant?.id]);
+
+  // Load the waitlist (for the badge count + panel). Refreshes on the timer tick.
+  const loadWaitlist = useCallback(async () => {
+    if (!selectedRestaurant?.id) return;
+    try {
+      const res = await apiClient.getWaitlist(selectedRestaurant.id);
+      setWaitlist(res?.waitlist || []);
+    } catch { /* leave as-is */ }
+  }, [selectedRestaurant?.id]);
+  useEffect(() => { loadWaitlist(); }, [loadWaitlist]);
 
   // ── Status config (matching dashboard POS cards) ───────
   const statusConfig = {
@@ -378,6 +423,7 @@ const TableManagement = () => {
     reserved: { color: '#3b82f6', bg: '#eff6ff', text: '#1e40af', label: t('tables.statusReserved'), icon: FaClock, border: '#3b82f6' },
     cleaning: { color: '#6b7280', bg: '#f3f4f6', text: '#475569', label: t('tables.statusCleaning'), icon: FaTools, border: '#9ca3af' },
     'out-of-service': { color: '#ef4444', bg: '#fef2f2', text: '#991b1b', label: t('tables.statusOutOfService'), icon: FaBan, border: '#ef4444' },
+    merged: { color: '#0ea5e9', bg: '#f0f9ff', text: '#075985', label: 'Merged', icon: FaLayerGroup, border: '#7dd3fc' },
   };
   const getTableStatusInfo = (status) => statusConfig[status] || statusConfig.available;
 
@@ -1005,7 +1051,7 @@ const TableManagement = () => {
   // Open the styled confirmation modal (replaces the native window.confirm).
   const deleteTable = (tableId) => {
     if (!isOnline) { showError('You are offline. Go online to make changes.'); return; }
-    if (!canEditTableConfig) { showError('Only the owner or admin can delete tables.'); return; }
+    if (!canEditTableConfig) { showError('You do not have permission to manage tables. Ask the owner to grant table management access.'); return; }
     const table = floors.flatMap(f => f.tables || []).find(t => t.id === tableId);
     setDeleteTableConfirm({ tableId, name: table?.name || '' });
     setActiveDropdown(null);
@@ -1021,9 +1067,149 @@ const TableManagement = () => {
     finally { setTableCfgSaving(false); }
   };
 
-  // Edit a table's name / seats (owner/admin only).
+  // Load turn-time / covers analytics for the current view date.
+  const openTurnTimes = async () => {
+    setShowTurnTimes(true);
+    if (!selectedRestaurant?.id) return;
+    setTurnTimeLoading(true);
+    setTurnTimeError(null);
+    try {
+      const dateStr = (selectedDate instanceof Date ? selectedDate : new Date(selectedDate)).toISOString().split('T')[0];
+      const data = await apiClient.getTableAnalytics(selectedRestaurant.id, { date: dateStr });
+      setTurnTimeData(data);
+    } catch (err) {
+      setTurnTimeError(err?.message || 'Failed to load turn-time analytics');
+    } finally {
+      setTurnTimeLoading(false);
+    }
+  };
+
+  // ── Merge tables ──────────────────────────────────────
+  const openMergeModal = () => {
+    if (!canEditTableConfig) { showError('You do not have permission to manage tables. Ask the owner to grant table management access.'); return; }
+    setMergeSelection([]);
+    setShowMergeModal(true);
+    setActiveDropdown(null);
+  };
+  const toggleMergeSelect = (tableId) => {
+    setMergeSelection(prev => prev.includes(tableId) ? prev.filter(id => id !== tableId) : [...prev, tableId]);
+  };
+  const confirmMerge = async () => {
+    if (mergeSelection.length < 2) { showError('Select at least two tables to merge.'); return; }
+    if (!selectedRestaurant?.id) return;
+    setMergeSaving(true);
+    try {
+      // First selected table is the primary (holds the combined order/bill).
+      const [primaryTableId, ...rest] = mergeSelection;
+      await apiClient.mergeTables(selectedRestaurant.id, primaryTableId, mergeSelection);
+      setShowMergeModal(false);
+      setMergeSelection([]);
+      await loadFloorsAndTables(selectedRestaurant.id, true);
+    } catch (err) {
+      showError(err?.message || 'Failed to merge tables');
+    } finally {
+      setMergeSaving(false);
+    }
+  };
+  const confirmUnmerge = async () => {
+    if (!unmergeConfirm || !selectedRestaurant?.id) return;
+    setMergeSaving(true);
+    try {
+      await apiClient.unmergeTables(selectedRestaurant.id, unmergeConfirm.primaryTableId);
+      setUnmergeConfirm(null);
+      await loadFloorsAndTables(selectedRestaurant.id, true);
+    } catch (err) {
+      showError(err?.message || 'Failed to un-merge tables');
+    } finally {
+      setMergeSaving(false);
+    }
+  };
+
+  // ── Assign server to a table ──────────────────────────
+  const openAssignServer = (table) => {
+    setAssignServerTable(table);
+    setActiveDropdown(null);
+  };
+  const assignServer = async (waiter) => {
+    if (!assignServerTable || !selectedRestaurant?.id) return;
+    setAssignSaving(true);
+    try {
+      await apiClient.assignTableServer(assignServerTable.id, {
+        restaurantId: selectedRestaurant.id,
+        waiterId: waiter?.id || null,
+        waiterName: waiter?.name || null,
+      });
+      setAssignServerTable(null);
+      await loadFloorsAndTables(selectedRestaurant.id, true);
+    } catch (err) {
+      showError(err?.message || 'Failed to assign server');
+    } finally {
+      setAssignSaving(false);
+    }
+  };
+
+  // Persist a floor's drag-and-drop layout.
+  const saveFloorLayout = async (floorId, layoutTables) => {
+    if (!selectedRestaurant?.id) return;
+    try {
+      await apiClient.saveFloorLayout(selectedRestaurant.id, floorId, layoutTables);
+      showSuccess('Floor layout saved');
+      await loadFloorsAndTables(selectedRestaurant.id, true);
+    } catch (err) {
+      showError(err?.message || 'Failed to save layout');
+      throw err;
+    }
+  };
+
+  // ── Walk-in waitlist ──────────────────────────────────
+  const addWaitlistEntry = async () => {
+    if (!waitlistForm.name.trim()) { showError('Enter the guest name.'); return; }
+    if (!selectedRestaurant?.id) return;
+    setWaitlistSaving(true);
+    try {
+      await apiClient.addWaitlist(selectedRestaurant.id, {
+        name: waitlistForm.name.trim(),
+        phone: waitlistForm.phone.trim() || null,
+        partySize: Number(waitlistForm.partySize) || 1,
+        quotedWait: waitlistForm.quotedWait !== '' ? Number(waitlistForm.quotedWait) : null,
+      });
+      setWaitlistForm({ name: '', phone: '', partySize: 2, quotedWait: '' });
+      await loadWaitlist();
+    } catch (err) {
+      showError(err?.message || 'Failed to add to waitlist');
+    } finally {
+      setWaitlistSaving(false);
+    }
+  };
+  const notifyWaitlistEntry = async (entry) => {
+    if (!selectedRestaurant?.id) return;
+    setWaitlistSaving(true);
+    try {
+      await apiClient.notifyWaitlist(selectedRestaurant.id, entry.id);
+      showSuccess(`Notified ${entry.name} 🎉`);
+      await loadWaitlist();
+    } catch (err) {
+      showError(err?.message || 'Failed to notify guest');
+    } finally {
+      setWaitlistSaving(false);
+    }
+  };
+  const setWaitlistStatus = async (entry, status) => {
+    if (!selectedRestaurant?.id) return;
+    setWaitlistSaving(true);
+    try {
+      await apiClient.updateWaitlist(selectedRestaurant.id, entry.id, { status });
+      await loadWaitlist();
+    } catch (err) {
+      showError(err?.message || 'Failed to update waitlist');
+    } finally {
+      setWaitlistSaving(false);
+    }
+  };
+
+  // Edit a table's name / seats (requires the tables.manage capability).
   const openEditTable = (table) => {
-    if (!canEditTableConfig) { showError('Only the owner or admin can edit tables.'); return; }
+    if (!canEditTableConfig) { showError('You do not have permission to manage tables. Ask the owner to grant table management access.'); return; }
     // Only a FREE table can be edited — never rename/resize a table that is occupied,
     // reserved, or has an active order (would confuse a running bill/KOT).
     const status = (table.status || 'available').toLowerCase();
@@ -1312,8 +1498,16 @@ const TableManagement = () => {
     });
   };
 
+  // Current staff id/name (for the "My Tables" filter).
+  const myId = userData.id || userData.userId || userData.uid || userData.staffId || null;
+  const myName = userData.name || null;
+  const isMyTable = (tbl) => (myId && tbl.waiterId === myId) || (myName && tbl.waiterName === myName);
+
   const filteredFloors = useMemo(() => (selectedFloorId === 'all' ? floors : floors.filter(f => f.id === selectedFloorId))
-    .map(f => ({ ...f, tables: sortTables(f.tables || []) })), [selectedFloorId, floors]);
+    .map(f => ({
+      ...f,
+      tables: sortTables(f.tables || []).filter(tbl => !myTablesOnly || isMyTable(tbl)),
+    })), [selectedFloorId, floors, myTablesOnly, myId, myName]);
 
   const formatDate = (dateStr) => {
     const d = new Date(dateStr + 'T00:00:00');
@@ -1519,6 +1713,43 @@ const TableManagement = () => {
                 }} title="QR Codes">
                   <FaQrcode size={isMobileEmbed ? 11 : 12} /> {!isMobileEmbed && 'QR Codes'}
                 </button>
+                {['owner', 'admin', 'manager'].includes((userData.role || '').toLowerCase()) && (
+                  <button onClick={openTurnTimes} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? 0 : '6px',
+                    padding: isMobileEmbed ? '6px' : '8px 16px', borderRadius: isMobileEmbed ? '8px' : '10px',
+                    background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', border: 'none', color: 'white',
+                    fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(14,165,233,0.3)',
+                    width: isMobileEmbed ? '30px' : undefined, height: isMobileEmbed ? '30px' : undefined,
+                  }} title="Turn Times">
+                    <FaClock size={isMobileEmbed ? 11 : 12} /> {!isMobileEmbed && 'Turn Times'}
+                  </button>
+                )}
+                {canEditTableConfig && (
+                  <button onClick={openMergeModal} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? 0 : '6px',
+                    padding: isMobileEmbed ? '6px' : '8px 16px', borderRadius: isMobileEmbed ? '8px' : '10px',
+                    background: 'linear-gradient(135deg, #14b8a6, #0d9488)', border: 'none', color: 'white',
+                    fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(20,184,166,0.3)',
+                    width: isMobileEmbed ? '30px' : undefined, height: isMobileEmbed ? '30px' : undefined,
+                  }} title="Merge Tables">
+                    <FaLayerGroup size={isMobileEmbed ? 11 : 12} /> {!isMobileEmbed && 'Merge'}
+                  </button>
+                )}
+                {canEditTable && (
+                  <button onClick={() => { setShowWaitlist(true); loadWaitlist(); }} style={{
+                    position: 'relative',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? 0 : '6px',
+                    padding: isMobileEmbed ? '6px' : '8px 16px', borderRadius: isMobileEmbed ? '8px' : '10px',
+                    background: 'linear-gradient(135deg, #f97316, #ea580c)', border: 'none', color: 'white',
+                    fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(249,115,22,0.3)',
+                    width: isMobileEmbed ? '30px' : undefined, height: isMobileEmbed ? '30px' : undefined,
+                  }} title="Waitlist">
+                    <FaConciergeBell size={isMobileEmbed ? 11 : 12} /> {!isMobileEmbed && 'Waitlist'}
+                    {waitlist.length > 0 && (
+                      <span style={{ position: 'absolute', top: '-6px', right: '-6px', minWidth: '18px', height: '18px', padding: '0 4px', borderRadius: '9px', background: '#dc2626', color: 'white', fontSize: '10px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid white' }}>{waitlist.length}</span>
+                    )}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -1544,6 +1775,24 @@ const TableManagement = () => {
               </button>
             ))}
           </div>
+
+          {/* Grid / Floor-plan view toggle */}
+          {activeMainTab === 'tables' && (
+            <div style={{ display: 'flex', gap: '2px', backgroundColor: '#f1f5f9', borderRadius: isMobileEmbed ? '8px' : '10px', padding: '3px', flexShrink: 0 }}>
+              {[{ k: 'grid', I: FaTh, label: 'Grid' }, { k: 'floorplan', I: FaThLarge, label: 'Layout' }].map(v => (
+                <button key={v.k} onClick={() => setViewMode(v.k)} title={`${v.label} view`} style={{
+                  padding: isMobileEmbed ? '4px 8px' : '6px 12px', borderRadius: isMobileEmbed ? '6px' : '8px', border: 'none',
+                  fontSize: isMobileEmbed ? '10px' : '12px', fontWeight: '600', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap',
+                  backgroundColor: viewMode === v.k ? 'white' : 'transparent',
+                  color: viewMode === v.k ? '#1f2937' : '#9ca3af',
+                  boxShadow: viewMode === v.k ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                }}>
+                  <v.I size={isMobileEmbed ? 9 : 11} /> {!isMobileEmbed && v.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Divider */}
           {activeMainTab === 'tables' && <div style={{ width: '1px', height: '20px', backgroundColor: '#e2e8f0', flexShrink: 0 }} />}
@@ -1582,6 +1831,17 @@ const TableManagement = () => {
                 color: '#9ca3af', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', flexShrink: 0,
               }}>
                 <FaPlus size={9} /> {t('tables.floor')}
+              </button>
+            )}
+            {(myId || myName) && (
+              <button onClick={() => setMyTablesOnly(v => !v)} title="Show only tables assigned to me" style={{
+                padding: isMobileEmbed ? '3px 8px' : '5px 12px', borderRadius: '20px', fontSize: isMobileEmbed ? '10px' : '12px', fontWeight: '600',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all 0.2s',
+                ...(myTablesOnly
+                  ? { backgroundColor: '#0d9488', color: 'white', border: 'none', boxShadow: '0 2px 6px rgba(13,148,136,0.25)' }
+                  : { backgroundColor: 'white', color: '#0d9488', border: '1px solid #99f6e4' }),
+              }}>
+                <FaUser size={9} /> My Tables
               </button>
             )}
           </>}
@@ -1693,6 +1953,15 @@ const TableManagement = () => {
                     </button>
                   )}
                 </div>
+              ) : (isToday && viewMode === 'floorplan') ? (
+                <TableFloorPlan
+                  floor={floor}
+                  editable={canEditTableConfig}
+                  statusInfo={getTableStatusInfo}
+                  formatCurrency={formatCurrency}
+                  onTableClick={(tbl) => handleTableAction(tbl.status === 'available' ? 'take-order' : 'view-order', tbl)}
+                  onSaveLayout={saveFloorLayout}
+                />
               ) : (
                 <div style={{
                   display: 'grid',
@@ -1704,406 +1973,56 @@ const TableManagement = () => {
                     const tblBookings = tableBookingsMap[table.id] || [];
                     const hasBookings = tblBookings.length > 0;
                     const tableStatus = isToday ? (tableStatusesForDate[table.id] || table.status) : (hasBookings ? 'reserved' : 'available');
-                    const sInfo = getTableStatusInfo(tableStatus);
-                    const StatusIcon = sInfo.icon;
-                    const isDropdownOpen = activeDropdown === table.id;
-                    const isOccupied = isToday && (tableStatus === 'occupied' || tableStatus === 'serving');
-                    const isAvailable = tableStatus === 'available';
-                    const elapsed = isToday ? getElapsed(table) : null;
-                    const elapsedHrs = isOccupied ? getElapsedHours(table) : 0;
-                    // Aging thresholds: configurable via posSettings, defaults 2h/6h
-                    const warnHours = posSettings?.tableWarnHours || 2;
-                    const dangerHours = posSettings?.tableDangerHours || 6;
-                    const elapsedIsLong = elapsedHrs >= dangerHours;
-                    const elapsedIsWarn = !elapsedIsLong && elapsedHrs >= warnHours;
-
                     return (
-                      <div key={table.id} className="tbl-card table-dropdown" style={{
-                        background: sInfo.bg,
-                        borderRadius: isMobileEmbed ? '8px' : '12px',
-                        border: isOccupied ? 'none' : `1px solid ${sInfo.border}`,
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                        padding: '0', position: 'relative', overflow: isMobileEmbed ? 'hidden' : 'visible',
-                        minHeight: isMobileEmbed ? 'auto' : '120px', display: 'flex', flexDirection: 'column',
-                      }} onClick={() => setActiveDropdown(isDropdownOpen ? null : table.id)}
-                         onMouseEnter={() => setHoveredTableId(table.id)}
-                         onMouseLeave={() => setHoveredTableId(null)}>
-
-                        {/* Animated dotted border for occupied tables (today only) */}
-                        {isOccupied && (
-                          <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }}>
-                            <rect x="1.5" y="1.5" width="calc(100% - 3px)" height="calc(100% - 3px)" rx={isMobileEmbed ? "6.5" : "10.5"} ry={isMobileEmbed ? "6.5" : "10.5"} fill="none" stroke={sInfo.color} strokeWidth={isMobileEmbed ? "1.5" : "2"} strokeDasharray={isMobileEmbed ? "4,4" : "6,6"} strokeDashoffset="100">
-                              <animate attributeName="stroke-dashoffset" from="100" to="0" dur="3s" repeatCount="indefinite" />
-                            </rect>
-                          </svg>
-                        )}
-
-                        <div style={{ padding: isMobileEmbed ? '6px 8px' : '12px', flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 2 }}>
-                          {/* Header: name + status */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: isMobileEmbed ? '2px' : '8px' }}>
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'baseline', gap: isMobileEmbed ? '3px' : '6px' }}>
-                                <span style={{ fontSize: isMobileEmbed ? '12px' : '16px', fontWeight: 800, color: '#111827', lineHeight: 1.1 }}>
-                                  {table.name}
-                                </span>
-                                {isOccupied && elapsed && (
-                                  <span style={{
-                                    fontSize: isMobileEmbed ? '8px' : '10px', fontWeight: 700, whiteSpace: 'nowrap',
-                                    color: elapsedIsLong ? '#fff' : elapsedIsWarn ? '#92400e' : '#6b7280',
-                                    ...(elapsedIsLong ? { background: '#dc2626', padding: '1px 3px', borderRadius: '3px' } : {}),
-                                    ...(elapsedIsWarn ? { background: '#fef3c7', padding: '1px 3px', borderRadius: '3px' } : {}),
-                                  }}>
-                                    {elapsed}
-                                  </span>
-                                )}
-                              </div>
-                              {!isMobileEmbed && (
-                                <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                  <FaChair size={9} /> {table.capacity || '-'} {t('tables.seats')}
-                                  {isOccupied && table.currentOrderId && (
-                                    <button onClick={(e) => handleQuickView(e, table)} title="Quick view order" style={{
-                                      background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
-                                      color: '#6b7280', display: 'flex', alignItems: 'center', marginLeft: '2px',
-                                    }}>
-                                      {quickViewLoading === table.id ? <FaSpinner size={10} className="animate-spin" /> : <FaEye size={10} />}
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                              {isMobileEmbed && (
-                                <div style={{ fontSize: '8px', color: '#9ca3af', marginTop: '1px' }}>
-                                  {table.capacity || '-'} seats
-                                </div>
-                              )}
-                            </div>
-                            {isAvailable ? (
-                              <div style={{ width: isMobileEmbed ? '6px' : '8px', height: isMobileEmbed ? '6px' : '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 0 2px #d1fae5' }} />
-                            ) : (
-                              isMobileEmbed ? (
-                                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: sInfo.color, flexShrink: 0 }} />
-                              ) : (
-                                <div style={{
-                                  background: sInfo.bg, color: sInfo.color, padding: '3px 8px', borderRadius: '12px',
-                                  fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', border: `1px solid ${sInfo.border}`,
-                                  display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', flexShrink: 0,
-                                }}>
-                                  {sInfo.label}
-                                </div>
-                              )
-                            )}
-                          </div>
-
-                          {/* Content */}
-                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                            {isToday ? (
-                              /* ── TODAY: show live data ── */
-                              <>
-                                {isOccupied && (table.currentOrderFinalAmount || table.currentOrderTotal) ? (
-                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                                    {!isMobileEmbed && <div style={{ fontSize: '9px', color: '#92400e', fontWeight: 500, marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                      {t('tables.totalInclTax')} {table.currentOrderTax ? t('tables.inclTax') : ''}
-                                    </div>}
-                                    <div style={{
-                                      fontSize: isMobileEmbed ? '13px' : '18px', fontWeight: 800, color: '#b45309',
-                                      background: 'linear-gradient(135deg, #fef3c7, #fde68a)', padding: isMobileEmbed ? '2px 6px' : '4px 12px',
-                                      borderRadius: isMobileEmbed ? '5px' : '8px', border: '1px solid #fcd34d',
-                                    }}>
-                                      {formatCurrency(table.currentOrderFinalAmount || table.currentOrderTotal)}
-                                    </div>
-                                  </div>
-                                ) : isOccupied && table.customerName ? (
-                                  <div style={{ textAlign: 'center', fontSize: isMobileEmbed ? '10px' : '12px', fontWeight: 600, color: '#92400e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{table.customerName}</div>
-                                ) : tableStatus === 'reserved' ? (
-                                  <div style={{ textAlign: 'center' }}>
-                                    <div style={{ fontSize: isMobileEmbed ? '10px' : '12px', fontWeight: 600, color: '#1e40af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{table.customerName || t('tables.statusReserved')}</div>
-                                    {!isMobileEmbed && table.reservationTime && <div style={{ fontSize: '10px', color: '#3b82f6', marginTop: '2px' }}>{table.reservationTime}</div>}
-                                  </div>
-                                ) : tableStatus === 'cleaning' ? (
-                                  <div style={{ textAlign: 'center', fontSize: isMobileEmbed ? '9px' : '11px', color: '#64748b', fontStyle: 'italic' }}>{t('tables.beingCleaned')}</div>
-                                ) : tableStatus === 'out-of-service' ? (
-                                  <div style={{ textAlign: 'center', fontSize: isMobileEmbed ? '9px' : '11px', color: '#ef4444' }}>{t('tables.unavailable')}</div>
-                                ) : (
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.1 }}>
-                                    <StatusIcon size={isMobileEmbed ? 20 : 32} color={sInfo.color} />
-                                  </div>
-                                )}
-                              </>
-                            ) : (
-                              /* ── NON-TODAY: show booking info for this date ── */
-                              <>
-                                {hasBookings ? (
-                                  <div style={{ textAlign: 'center' }}>
-                                    <div style={{
-                                      fontSize: isMobileEmbed ? '14px' : '20px', fontWeight: 800, color: '#1e40af', marginBottom: '2px',
-                                    }}>
-                                      {tblBookings.length}
-                                    </div>
-                                    <div style={{ fontSize: isMobileEmbed ? '8px' : '10px', color: '#3b82f6', fontWeight: 600 }}>
-                                      {tblBookings.length === 1 ? t('tables.booking') : t('tables.bookings')}
-                                    </div>
-                                    {!isMobileEmbed && tblBookings[0]?.customerName && (
-                                      <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        {tblBookings[0].customerName}
-                                        {tblBookings.length > 1 && ` +${tblBookings.length - 1}`}
-                                      </div>
-                                    )}
-                                    {!isMobileEmbed && tblBookings[0]?.bookingTime && (
-                                      <div style={{ fontSize: '10px', color: '#3b82f6', marginTop: '2px' }}>
-                                        {tblBookings[0].bookingTime}
-                                        {tblBookings.length > 1 && ` ...`}
-                                      </div>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.1 }}>
-                                      <FaChair size={isMobileEmbed ? 18 : 32} color="#10b981" />
-                                    </div>
-                                    {!isMobileEmbed && <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '4px' }}>{t('tables.noBookings')}</div>}
-                                  </div>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Hover tooltip showing booking details (non-today) */}
-                        {!isToday && hasBookings && hoveredTableId === table.id && !isDropdownOpen && (
-                          <div style={{
-                            position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
-                            marginBottom: '8px', backgroundColor: '#1f2937', color: 'white', borderRadius: '12px',
-                            padding: '10px 14px', fontSize: '11px', minWidth: '180px', maxWidth: '240px',
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 40,
-                            animation: 'tblDropdown 0.12s ease-out',
-                          }}>
-                            <div style={{ fontWeight: 700, marginBottom: '6px', fontSize: '12px' }}>
-                              {tblBookings.length} {tblBookings.length > 1 ? t('tables.bookings') : t('tables.booking')}
-                            </div>
-                            {tblBookings.slice(0, 4).map((b, bi) => (
-                              <div key={bi} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', padding: '3px 0', borderTop: bi > 0 ? '1px solid rgba(255,255,255,0.1)' : 'none' }}>
-                                <span style={{ opacity: 0.9 }}>{b.customerName || t('tables.guest')}</span>
-                                <span style={{ opacity: 0.6 }}>{b.bookingTime || '—'} · {b.partySize || '?'}p</span>
-                              </div>
-                            ))}
-                            {tblBookings.length > 4 && (
-                              <div style={{ opacity: 0.5, marginTop: '4px' }}>+{tblBookings.length - 4} {t('tables.more')}</div>
-                            )}
-                            {/* Arrow */}
-                            <div style={{
-                              position: 'absolute', bottom: '-5px', left: '50%', transform: 'translateX(-50%)',
-                              width: '10px', height: '10px', backgroundColor: '#1f2937',
-                              borderRadius: '2px', transform: 'translateX(-50%) rotate(45deg)',
-                            }} />
-                          </div>
-                        )}
-
-                        {/* Action buttons at bottom */}
-                        <div style={{ padding: isMobileEmbed ? '0 6px 6px' : '0 8px 8px', position: 'relative', zIndex: 2 }}>
-                          {isToday ? (
-                            /* ── TODAY: live action buttons ── */
-                            <>
-                              {isAvailable && (
-                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('take-order', table); }} style={{
-                                  width: '100%', padding: isMobileEmbed ? '6px 4px' : '8px 12px', background: '#059669', color: 'white', border: 'none',
-                                  borderRadius: '6px', fontSize: isMobileEmbed ? '10px' : '11px', fontWeight: 600, cursor: 'pointer',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? '3px' : '6px',
-                                  whiteSpace: 'nowrap',
-                                }}>
-                                  <FaUtensils size={isMobileEmbed ? 8 : 10} /> {isMobileEmbed ? 'Order' : t('tables.takeOrder')}
-                                </button>
-                              )}
-                              {isOccupied && (
-                                <div style={{ display: 'flex', gap: isMobileEmbed ? '4px' : '5px', position: 'relative' }}>
-                                  {/* Add items — primary action */}
-                                  <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('view-order', table); }} style={{
-                                    flex: 1, padding: isMobileEmbed ? '4px 4px' : '7px 8px', background: 'white', border: '1px solid #e5e7eb', color: '#374151',
-                                    borderRadius: isMobileEmbed ? '6px' : '8px', fontSize: isMobileEmbed ? '9px' : '11px', fontWeight: 600, cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', whiteSpace: 'nowrap',
-                                  }}>
-                                    <FaPlus size={isMobileEmbed ? 7 : 9} style={{ color: '#059669' }} /> Add
-                                  </button>
-                                  {/* Complete Bill — primary action */}
-                                  <button className="tbl-action" onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (table.currentOrderId) {
-                                      setBillingModalTable(table);
-                                      setBillingModalOpen(true);
-                                    } else {
-                                      handleTableAction('make-available', table);
-                                    }
-                                  }} style={{
-                                    flex: 1, padding: isMobileEmbed ? '4px 4px' : '7px 8px', background: '#dc2626', border: 'none', color: 'white',
-                                    borderRadius: isMobileEmbed ? '6px' : '8px', fontSize: isMobileEmbed ? '9px' : '11px', fontWeight: 600, cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', whiteSpace: 'nowrap',
-                                  }}>
-                                    <FaReceipt size={isMobileEmbed ? 7 : 9} /> Bill
-                                  </button>
-                                  {/* Print + Move — combined in one icon menu */}
-                                  <div style={{ position: 'relative' }}>
-                                    <button className="tbl-action" onClick={(e) => { e.stopPropagation(); setPrintDropdownTable(printDropdownTable === table.id ? null : table.id); }} style={{
-                                      width: isMobileEmbed ? '26px' : '32px', height: isMobileEmbed ? '26px' : '32px', padding: 0,
-                                      background: printingTables[table.id]
-                                        ? 'linear-gradient(135deg, #dbeafe, #bfdbfe)'
-                                        : printDropdownTable === table.id ? 'linear-gradient(135deg, #fef3c7, #fde68a)' : 'rgba(0,0,0,0.03)',
-                                      color: printingTables[table.id] ? '#3b82f6' : printDropdownTable === table.id ? '#b45309' : '#6b7280',
-                                      border: 'none', borderRadius: '8px', cursor: 'pointer',
-                                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                                    }}>
-                                      {printingTables[table.id] ? <FaSpinner size={10} className="spin" /> : <FaPrint size={11} />}
-                                    </button>
-                                    {printDropdownTable === table.id && (
-                                      <div onClick={(e) => e.stopPropagation()} style={{
-                                        position: 'absolute', bottom: '100%', right: 0, marginBottom: '4px',
-                                        background: 'white', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                                        border: '1px solid #e5e7eb', zIndex: 999, minWidth: '140px', overflow: 'hidden',
-                                        padding: '4px 0',
-                                      }}>
-                                        {posSettings.moveOrderEnabled && table.currentOrderId && (
-                                          <button onClick={(e) => { e.stopPropagation(); setPrintDropdownTable(null); handleTableAction('move-order', table); }} style={{
-                                            width: '100%', padding: '8px 12px', border: 'none', background: 'transparent', cursor: 'pointer',
-                                            fontSize: '11px', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: '8px',
-                                          }}
-                                          onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
-                                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                                          >
-                                            <FaExchangeAlt size={10} style={{ color: '#6366f1' }} /> Move Order
-                                          </button>
-                                        )}
-                                        <button onClick={() => { handlePrintBill(table); setPrintDropdownTable(null); }} style={{
-                                          width: '100%', padding: '8px 12px', border: 'none', background: 'transparent', cursor: 'pointer',
-                                          fontSize: '11px', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: '8px',
-                                        }}
-                                        onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
-                                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                                        >
-                                          <FaReceipt size={10} style={{ color: '#10b981' }} /> Print Bill
-                                        </button>
-                                        <button onClick={() => { handlePrintKOT(table); setPrintDropdownTable(null); }} style={{
-                                          width: '100%', padding: '8px 12px', border: 'none', background: 'transparent', cursor: 'pointer',
-                                          fontSize: '11px', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: '8px',
-                                        }}
-                                        onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
-                                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                                        >
-                                          <FaUtensils size={10} style={{ color: '#f59e0b' }} /> Print KOT
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                              {tableStatus === 'reserved' && (
-                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('take-order', table); }} style={{
-                                  width: '100%', padding: isMobileEmbed ? '6px 4px' : '8px 12px', background: '#059669', color: 'white', border: 'none',
-                                  borderRadius: '6px', fontSize: isMobileEmbed ? '10px' : '11px', fontWeight: 600, cursor: 'pointer',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? '3px' : '6px',
-                                  whiteSpace: 'nowrap',
-                                }}>
-                                  <FaUtensils size={isMobileEmbed ? 8 : 10} /> {isMobileEmbed ? 'Seat' : t('tables.seatGuest')}
-                                </button>
-                              )}
-                              {(tableStatus === 'cleaning' || tableStatus === 'out-of-service') && (
-                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{
-                                  width: '100%', padding: isMobileEmbed ? '6px 4px' : '8px 12px', background: 'white', color: '#059669', border: '1px solid #d1fae5',
-                                  borderRadius: '6px', fontSize: isMobileEmbed ? '10px' : '11px', fontWeight: 600, cursor: 'pointer',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? '3px' : '6px',
-                                }}>
-                                  <FaCheck size={10} /> {t('tables.makeAvailable')}
-                                </button>
-                              )}
-                            </>
-                          ) : (
-                            /* ── NON-TODAY: book table button ── */
-                            <button className="tbl-action" onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedTable(table);
-                              setBookingData(prev => ({ ...prev, bookingDate: selectedDate, partySize: Math.min(table.capacity, prev.partySize || 2) }));
-                              setBookingFromHeader(false);
-                              setShowBookingForm(true);
-                            }} style={{
-                              width: '100%', padding: isMobileEmbed ? '6px 4px' : '8px 12px',
-                              background: hasBookings ? 'white' : 'linear-gradient(135deg, #22c55e, #16a34a)',
-                              color: hasBookings ? '#059669' : 'white',
-                              border: hasBookings ? '1px solid #bbf7d0' : 'none',
-                              borderRadius: '6px', fontSize: isMobileEmbed ? '10px' : '11px', fontWeight: 600, cursor: 'pointer',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? '3px' : '6px',
-                            }}>
-                              <FaCalendarAlt size={10} /> {hasBookings ? t('tables.addBooking') : t('tables.bookTable')}
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Dropdown overlay on card top (today only) */}
-                        {isToday && isDropdownOpen && (
-                          <div style={{
-                            position: 'absolute', top: 0, left: 0, right: 0,
-                            backgroundColor: 'white', borderRadius: '12px 12px 0 0',
-                            boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-                            zIndex: 30, overflow: 'hidden',
-                            animation: 'tblDropdown 0.15s ease-out',
-                          }}>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0' }}>
-                              {isAvailable && (
-                                <>
-                                  <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('book-table', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#f59e0b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderBottom: '1px solid #f5f5f5' }}>
-                                    <FaCalendarAlt size={12} /> {t('tables.book')}
-                                  </button>
-                                  {canEditTableConfig && (
-                                    <button className="tbl-action" onClick={(e) => { e.stopPropagation(); openEditTable(table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#2563eb', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderBottom: '1px solid #f5f5f5', borderLeft: '1px solid #f5f5f5' }}>
-                                      <FaEdit size={12} /> {t('tables.edit') || 'Edit'}
-                                    </button>
-                                  )}
-                                  {canEditTable && (
-                                    <>
-                                      <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('out-of-service', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#8b5cf6', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderBottom: '1px solid #f5f5f5', borderLeft: '1px solid #f5f5f5' }}>
-                                        <FaBan size={12} /> {t('tables.service')}
-                                      </button>
-                                      <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('cleaning', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-                                        <FaTools size={12} /> {t('tables.clean')}
-                                      </button>
-                                    </>
-                                  )}
-                                  {canEditTableConfig && (
-                                      <button className="tbl-action" onClick={(e) => { e.stopPropagation(); deleteTable(table.id); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#ef4444', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderLeft: '1px solid #f5f5f5' }}>
-                                        <FaTrash size={12} /> {t('tables.delete')}
-                                      </button>
-                                  )}
-                                </>
-                              )}
-                              {isOccupied && (
-                                <>
-                                  <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('cleaning', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-                                    <FaTools size={12} /> {t('tables.clean')}
-                                  </button>
-                                  <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#22c55e', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderLeft: '1px solid #f5f5f5' }}>
-                                    <FaCheck size={12} /> {t('tables.free')}
-                                  </button>
-                                </>
-                              )}
-                              {tableStatus === 'reserved' && (
-                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{ flex: '1 1 100%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#22c55e', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-                                  <FaCheck size={12} /> {t('tables.cancelAndFree')}
-                                </button>
-                              )}
-                              {(tableStatus === 'cleaning' || tableStatus === 'out-of-service') && (
-                                <>
-                                  <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#22c55e', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-                                    <FaCheck size={12} /> {t('tables.free')}
-                                  </button>
-                                  {/* Edit (name/seats) is intentionally NOT offered here — only when
-                                      the table is free/available. Delete is still allowed for a
-                                      cleaning / out-of-service table (owner/admin). */}
-                                  {canEditTableConfig && (
-                                    <button className="tbl-action" onClick={(e) => { e.stopPropagation(); deleteTable(table.id); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#ef4444', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderLeft: '1px solid #f5f5f5', borderTop: '1px solid #f5f5f5' }}>
-                                      <FaTrash size={12} /> {t('tables.delete')}
-                                    </button>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                      <TableCard
+                        key={table.id}
+                        table={table}
+                        isToday={isToday}
+                        isMobile={isMobile}
+                        isMobileEmbed={isMobileEmbed}
+                        posSettings={posSettings}
+                        tblBookings={tblBookings}
+                        tableStatus={tableStatus}
+                        canEditTableConfig={canEditTableConfig}
+                        canEditTable={canEditTable}
+                        waitersCount={waiters.length}
+                        activeDropdown={activeDropdown}
+                        setActiveDropdown={setActiveDropdown}
+                        hoveredTableId={hoveredTableId}
+                        setHoveredTableId={setHoveredTableId}
+                        printDropdownTable={printDropdownTable}
+                        setPrintDropdownTable={setPrintDropdownTable}
+                        printingTables={printingTables}
+                        quickViewLoading={quickViewLoading}
+                        getTableStatusInfo={getTableStatusInfo}
+                        getElapsed={getElapsed}
+                        getElapsedHours={getElapsedHours}
+                        formatCurrency={formatCurrency}
+                        t={t}
+                        onTableAction={handleTableAction}
+                        onQuickView={handleQuickView}
+                        onPrintBill={handlePrintBill}
+                        onPrintKOT={handlePrintKOT}
+                        onEditTable={openEditTable}
+                        onDeleteTable={(tbl) => deleteTable(tbl.id)}
+                        onAssignServer={openAssignServer}
+                        onUnmerge={(tbl) => setUnmergeConfirm({ primaryTableId: tbl.mergePrimary ? tbl.id : tbl.mergedInto, name: tbl.mergePrimary ? tbl.name : (tbl.mergedIntoName || tbl.name) })}
+                        onOpenBilling={(tbl) => {
+                          if (tbl.currentOrderId) {
+                            setBillingModalTable(tbl);
+                            setBillingModalOpen(true);
+                          } else {
+                            handleTableAction('make-available', tbl);
+                          }
+                        }}
+                        onMoveOrder={(tbl) => handleTableAction('move-order', tbl)}
+                        onBookTable={(tbl) => {
+                          setSelectedTable(tbl);
+                          setBookingData(prev => ({ ...prev, bookingDate: selectedDate, partySize: Math.min(tbl.capacity, prev.partySize || 2) }));
+                          setBookingFromHeader(false);
+                          setShowBookingForm(true);
+                        }}
+                      />
                     );
                   })}
                 </div>
@@ -2854,6 +2773,272 @@ const TableManagement = () => {
           restaurant={selectedRestaurant}
         />
       )}
+
+      {/* Turn-Time & Covers analytics panel */}
+      {showTurnTimes && (() => {
+        const fmtMin = (m) => (m == null || m <= 0) ? '—' : (m >= 60 ? `${Math.floor(m / 60)}h ${Math.round(m % 60)}m` : `${Math.round(m)}m`);
+        const fmtHour = (h) => (h == null) ? '—' : `${((h % 12) || 12)}${h < 12 ? 'am' : 'pm'}`;
+        const d = turnTimeData;
+        const stat = (label, value, color) => (
+          <div style={{ flex: '1 1 140px', minWidth: '130px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
+            <div style={{ fontSize: '22px', fontWeight: '800', color: color || '#0f172a', lineHeight: 1.1 }}>{value}</div>
+            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px', fontWeight: '600' }}>{label}</div>
+          </div>
+        );
+        return (
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={() => setShowTurnTimes(false)}>
+            <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '680px', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid #f1f5f9', position: 'sticky', top: 0, background: 'white', zIndex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaClock size={16} color="white" /></div>
+                  <div>
+                    <div style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>Turn Times & Covers</div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>{(selectedDate instanceof Date ? selectedDate : new Date(selectedDate)).toLocaleDateString()}</div>
+                  </div>
+                </div>
+                <button onClick={() => setShowTurnTimes(false)} style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', backgroundColor: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaTimes size={14} color="#6b7280" /></button>
+              </div>
+
+              <div style={{ padding: '18px 20px' }}>
+                {turnTimeLoading ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '40px', color: '#64748b' }}>
+                    <FaSpinner className="animate-spin" size={18} /> Loading analytics…
+                  </div>
+                ) : turnTimeError ? (
+                  <div style={{ padding: '30px', textAlign: 'center', color: '#dc2626', fontSize: '14px' }}>{turnTimeError}</div>
+                ) : !d || d.completedOrders === 0 ? (
+                  <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>No completed orders for this date yet.</div>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '18px' }}>
+                      {stat('Avg turn time', fmtMin(d.avgTurnMinutes), '#0284c7')}
+                      {stat('Median turn', fmtMin(d.medianTurnMinutes))}
+                      {stat('Total covers', d.totalCovers)}
+                      {stat('Covers / hour', d.coversPerHour)}
+                      {stat('Turns / table', d.turnsPerTable)}
+                      {stat('Tables used', d.tablesUsed)}
+                      {stat('Completed orders', d.completedOrders)}
+                      {stat('Busiest hour', fmtHour(d.peakHour), '#7c3aed')}
+                    </div>
+
+                    {d.perTable && d.perTable.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '8px' }}>Per-table breakdown</div>
+                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
+                          <div style={{ display: 'flex', padding: '8px 12px', background: '#f8fafc', fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                            <div style={{ flex: 2 }}>Table</div>
+                            <div style={{ flex: 1, textAlign: 'right' }}>Orders</div>
+                            <div style={{ flex: 1, textAlign: 'right' }}>Covers</div>
+                            <div style={{ flex: 1.4, textAlign: 'right' }}>Avg turn</div>
+                            <div style={{ flex: 1.4, textAlign: 'right' }}>Revenue</div>
+                          </div>
+                          {d.perTable.map((t2, i) => (
+                            <div key={t2.table} style={{ display: 'flex', padding: '9px 12px', fontSize: '13px', color: '#0f172a', borderTop: i === 0 ? 'none' : '1px solid #f1f5f9', alignItems: 'center' }}>
+                              <div style={{ flex: 2, fontWeight: '600' }}>{t2.table}</div>
+                              <div style={{ flex: 1, textAlign: 'right' }}>{t2.orders}</div>
+                              <div style={{ flex: 1, textAlign: 'right' }}>{t2.covers}</div>
+                              <div style={{ flex: 1.4, textAlign: 'right' }}>{fmtMin(t2.avgTurnMinutes)}</div>
+                              <div style={{ flex: 1.4, textAlign: 'right', fontWeight: '600' }}>{formatCurrency ? formatCurrency(t2.revenue) : t2.revenue}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Merge Tables modal */}
+      {showMergeModal && (() => {
+        const allTbls = floors.flatMap(f => (f.tables || []).map(t => ({ ...t, _floorName: f.name })));
+        return (
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={() => !mergeSaving && setShowMergeModal(false)}>
+            <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '520px', maxHeight: '88vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #14b8a6, #0d9488)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaLayerGroup size={16} color="white" /></div>
+                  <div>
+                    <div style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>Merge Tables</div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>First selected table becomes the primary (holds the bill)</div>
+                  </div>
+                </div>
+                <button onClick={() => !mergeSaving && setShowMergeModal(false)} style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', backgroundColor: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaTimes size={14} color="#6b7280" /></button>
+              </div>
+
+              <div style={{ padding: '12px 16px', overflowY: 'auto', flex: 1 }}>
+                {allTbls.map(tb => {
+                  const isMerged = !!tb.mergeGroupId;
+                  const selIdx = mergeSelection.indexOf(tb.id);
+                  const isSelected = selIdx !== -1;
+                  const isPrimary = selIdx === 0;
+                  const sInfo = getTableStatusInfo(tb.status);
+                  return (
+                    <button key={tb.id} type="button" disabled={isMerged} onClick={() => toggleMergeSelect(tb.id)}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', marginBottom: '6px', borderRadius: '10px', textAlign: 'left', cursor: isMerged ? 'not-allowed' : 'pointer', opacity: isMerged ? 0.5 : 1, border: `1.5px solid ${isSelected ? '#0d9488' : '#e2e8f0'}`, background: isSelected ? '#f0fdfa' : 'white' }}>
+                      <div style={{ width: '20px', height: '20px', borderRadius: '6px', border: `2px solid ${isSelected ? '#0d9488' : '#cbd5e1'}`, background: isSelected ? '#0d9488' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {isSelected && <FaCheck size={11} color="white" />}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {tb.name}
+                          {isPrimary && <span style={{ fontSize: '10px', fontWeight: 700, color: '#0d9488', background: '#ccfbf1', padding: '1px 6px', borderRadius: '6px' }}>PRIMARY</span>}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>{tb._floorName} · {tb.capacity || '-'} seats</div>
+                      </div>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: sInfo.text, background: sInfo.bg, padding: '2px 8px', borderRadius: '6px' }}>
+                        {isMerged ? 'Merged' : sInfo.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{ padding: '14px 20px', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                <div style={{ fontSize: '12px', color: '#64748b' }}>{mergeSelection.length} selected{mergeSelection.length >= 2 ? ' · only free tables can join' : ''}</div>
+                <button onClick={confirmMerge} disabled={mergeSelection.length < 2 || mergeSaving} style={{ padding: '9px 20px', borderRadius: '10px', border: 'none', color: 'white', fontSize: '14px', fontWeight: 700, cursor: mergeSelection.length < 2 || mergeSaving ? 'not-allowed' : 'pointer', opacity: mergeSelection.length < 2 || mergeSaving ? 0.5 : 1, background: 'linear-gradient(135deg, #14b8a6, #0d9488)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {mergeSaving ? <FaSpinner size={13} className="animate-spin" /> : <FaLayerGroup size={13} />} Merge
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Un-merge confirm */}
+      {unmergeConfirm && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', zIndex: 10003, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={() => !mergeSaving && setUnmergeConfirm(null)}>
+          <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '380px', padding: '22px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', marginBottom: '8px' }}>Un-merge {unmergeConfirm.name}?</div>
+            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>This splits the group back into separate tables. Orders are not affected.</div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setUnmergeConfirm(null)} disabled={mergeSaving} style={{ padding: '9px 18px', borderRadius: '10px', border: '1px solid #e2e8f0', background: 'white', color: '#475569', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={confirmUnmerge} disabled={mergeSaving} style={{ padding: '9px 18px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', fontSize: '14px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {mergeSaving ? <FaSpinner size={13} className="animate-spin" /> : null} Un-merge
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Server picker */}
+      {assignServerTable && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', zIndex: 10003, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={() => !assignSaving && setAssignServerTable(null)}>
+          <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '420px', maxHeight: '82vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid #f1f5f9' }}>
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>Assign Server</div>
+                <div style={{ fontSize: '12px', color: '#64748b' }}>{assignServerTable.name}{assignServerTable.currentOrderId ? ' · updates the running order' : ''}</div>
+              </div>
+              <button onClick={() => !assignSaving && setAssignServerTable(null)} style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', backgroundColor: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaTimes size={14} color="#6b7280" /></button>
+            </div>
+            <div style={{ padding: '10px 14px', overflowY: 'auto', flex: 1 }}>
+              {assignServerTable.waiterId && (
+                <button type="button" disabled={assignSaving} onClick={() => assignServer(null)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 12px', marginBottom: '6px', borderRadius: '10px', textAlign: 'left', cursor: 'pointer', border: '1px solid #fecaca', background: '#fef2f2', color: '#b91c1c', fontWeight: 600, fontSize: '13px' }}>
+                  <FaBan size={13} /> Unassign current server
+                </button>
+              )}
+              {waiters.map(w => {
+                const isCurrent = assignServerTable.waiterId === w.id;
+                return (
+                  <button key={w.id} type="button" disabled={assignSaving} onClick={() => assignServer(w)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 12px', marginBottom: '6px', borderRadius: '10px', textAlign: 'left', cursor: 'pointer', border: `1.5px solid ${isCurrent ? '#0d9488' : '#e2e8f0'}`, background: isCurrent ? '#f0fdfa' : 'white' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #14b8a6, #0d9488)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '13px', flexShrink: 0 }}>
+                      {(w.name || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>{w.name}</div>
+                      <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'capitalize' }}>{w.role || 'staff'}</div>
+                    </div>
+                    {isCurrent && <FaCheck size={13} color="#0d9488" />}
+                  </button>
+                );
+              })}
+              {waiters.length === 0 && <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>No staff found.</div>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Walk-in Waitlist panel */}
+      {showWaitlist && (() => {
+        const waitMin = (createdAt) => {
+          const t0 = (createdAt && createdAt.toDate) ? createdAt.toDate().getTime() : (createdAt ? new Date(createdAt).getTime() : Date.now());
+          return Math.max(0, Math.round((Date.now() - t0) / 60000));
+        };
+        return (
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={() => setShowWaitlist(false)}>
+            <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '560px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #f97316, #ea580c)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaConciergeBell size={16} color="white" /></div>
+                  <div>
+                    <div style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>Waitlist</div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>{waitlist.length} {waitlist.length === 1 ? 'party' : 'parties'} waiting</div>
+                  </div>
+                </div>
+                <button onClick={() => setShowWaitlist(false)} style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', backgroundColor: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaTimes size={14} color="#6b7280" /></button>
+              </div>
+
+              {/* Add walk-in form */}
+              <div style={{ padding: '14px 20px', borderBottom: '1px solid #f1f5f9', background: '#fafafa' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <input value={waitlistForm.name} onChange={(e) => setWaitlistForm(f => ({ ...f, name: e.target.value }))} placeholder="Guest name" style={{ flex: '2 1 140px', padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: '9px', fontSize: '13px' }} />
+                  <input value={waitlistForm.phone} onChange={(e) => setWaitlistForm(f => ({ ...f, phone: e.target.value }))} placeholder="Phone (for WhatsApp)" style={{ flex: '2 1 140px', padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: '9px', fontSize: '13px' }} />
+                  <input type="number" min="1" value={waitlistForm.partySize} onChange={(e) => setWaitlistForm(f => ({ ...f, partySize: e.target.value }))} placeholder="Party" title="Party size" style={{ flex: '1 1 70px', width: '70px', padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: '9px', fontSize: '13px' }} />
+                  <input type="number" min="0" value={waitlistForm.quotedWait} onChange={(e) => setWaitlistForm(f => ({ ...f, quotedWait: e.target.value }))} placeholder="Wait min" title="Quoted wait (min)" style={{ flex: '1 1 80px', width: '80px', padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: '9px', fontSize: '13px' }} />
+                  <button onClick={addWaitlistEntry} disabled={waitlistSaving || !waitlistForm.name.trim()} style={{ flex: '0 0 auto', padding: '9px 16px', borderRadius: '9px', border: 'none', background: 'linear-gradient(135deg, #f97316, #ea580c)', color: 'white', fontSize: '13px', fontWeight: 700, cursor: waitlistSaving || !waitlistForm.name.trim() ? 'not-allowed' : 'pointer', opacity: waitlistSaving || !waitlistForm.name.trim() ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <FaPlus size={11} /> Add
+                  </button>
+                </div>
+              </div>
+
+              {/* List */}
+              <div style={{ padding: '10px 16px', overflowY: 'auto', flex: 1 }}>
+                {waitlist.length === 0 ? (
+                  <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>No one is waiting. Add a walk-in above.</div>
+                ) : waitlist.map(entry => {
+                  const mins = waitMin(entry.createdAt);
+                  const overdue = entry.quotedWait != null && mins > entry.quotedWait;
+                  return (
+                    <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 12px', marginBottom: '7px', borderRadius: '11px', border: '1px solid #e2e8f0', background: entry.status === 'notified' ? '#f0fdf4' : 'white' }}>
+                      <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fff7ed', color: '#ea580c', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800 }}>
+                        <span style={{ fontSize: '14px', lineHeight: 1 }}>{entry.partySize}</span>
+                        <span style={{ fontSize: '7px', fontWeight: 700, textTransform: 'uppercase' }}>pax</span>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {entry.name}
+                          {entry.status === 'notified' && <span style={{ fontSize: '9px', fontWeight: 700, color: '#16a34a', background: '#dcfce7', padding: '1px 6px', borderRadius: '5px' }}>NOTIFIED</span>}
+                        </div>
+                        <div style={{ fontSize: '11px', color: overdue ? '#dc2626' : '#94a3b8', fontWeight: overdue ? 700 : 400 }}>
+                          waiting {mins}m{entry.quotedWait != null ? ` / quoted ${entry.quotedWait}m` : ''}{entry.phone ? ` · ${entry.phone}` : ''}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '5px', flexShrink: 0 }}>
+                        {entry.phone && (
+                          <button onClick={() => notifyWaitlistEntry(entry)} disabled={waitlistSaving} title="Notify via WhatsApp" style={{ width: '34px', height: '34px', borderRadius: '9px', border: 'none', background: '#dcfce7', color: '#16a34a', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <FaConciergeBell size={13} />
+                          </button>
+                        )}
+                        <button onClick={() => setWaitlistStatus(entry, 'seated')} disabled={waitlistSaving} title="Mark seated" style={{ width: '34px', height: '34px', borderRadius: '9px', border: 'none', background: '#dbeafe', color: '#2563eb', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <FaCheck size={13} />
+                        </button>
+                        <button onClick={() => setWaitlistStatus(entry, 'cancelled')} disabled={waitlistSaving} title="Remove" style={{ width: '34px', height: '34px', borderRadius: '9px', border: 'none', background: '#fee2e2', color: '#dc2626', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <FaTimes size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Shared Billing Modal — only mount when opened */}
       {billingModalOpen && (

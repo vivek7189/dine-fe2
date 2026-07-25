@@ -496,6 +496,34 @@ const OrderSummary = ({
   const [showSplitBillPopup, setShowSplitBillPopup] = useState(false);
   const [activeAssignGuest, setActiveAssignGuest] = useState(0); // By Item: which guest is selected
 
+  // Distinct seats present in the cart (seat-level ordering). Detected straight
+  // from the items — they only carry a seat when seat ordering is on — so the
+  // one-tap "By Seat" split surfaces wherever OrderSummary is used (dashboard or
+  // the table-billing modal on the floor), regardless of how the flag is wired.
+  const distinctCartSeats = [...new Set((cart || []).map(it => sanitizeSeat(it?.seat)).filter(s => s != null && s > 0))].sort((a, b) => a - b);
+
+  // One-tap split-by-seat: reuse the existing "by-item" machinery, but auto-map
+  // each item to a guest by the seat it was ordered for. Shared/no-seat items go
+  // to the first guest. The server can still tweak assignments afterward.
+  const applySplitBySeat = () => {
+    if (distinctCartSeats.length < 2) return;
+    const seatToGuest = {};
+    distinctCartSeats.forEach((s, i) => { seatToGuest[s] = i; });
+    const assignments = {};
+    (cart || []).forEach((it, idx) => {
+      const s = sanitizeSeat(it?.seat);
+      assignments[idx] = (s != null && seatToGuest[s] != null) ? seatToGuest[s] : 0;
+    });
+    const names = {}, methods = {};
+    distinctCartSeats.forEach((s, i) => { names[i] = `Seat ${seatLabel(s)}`; methods[i] = 'cash'; });
+    setSplitBillMode('by-item');
+    setSplitBillGuests(distinctCartSeats.length);
+    setSplitBillItemAssignments(assignments);
+    setSplitBillGuestNames(names);
+    setSplitBillPaymentMethods(methods);
+    setActiveAssignGuest(0);
+  };
+
   // Calculate service charge
   const calcServiceCharge = useCallback((discountedAmount) => {
     // If user explicitly turned off SC for this order
@@ -5736,6 +5764,14 @@ const OrderSummary = ({
                       ))}
                     </div>
 
+                    {/* One-tap split by seat (seat-level ordering) */}
+                    {distinctCartSeats.length >= 2 && (
+                      <button onClick={applySplitBySeat}
+                        style={{ width: '100%', marginBottom: '10px', padding: '8px', borderRadius: '8px', border: '1px solid #99f6e4', background: '#f0fdfa', color: '#0d9488', fontSize: '11px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                        <FaChair size={11} /> Split by Seat ({distinctCartSeats.length} seats)
+                      </button>
+                    )}
+
                     {/* Guest count stepper (for equal & by-amount) */}
                     {splitBillMode && splitBillMode !== 'by-item' && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
@@ -7911,6 +7947,14 @@ const OrderSummary = ({
                   </button>
                 ))}
               </div>
+
+              {/* One-tap split by seat (seat-level ordering) */}
+              {distinctCartSeats.length >= 2 && (
+                <button onClick={applySplitBySeat}
+                  style={{ width: '100%', marginBottom: '14px', padding: '10px', borderRadius: '10px', border: '1px solid #99f6e4', background: '#f0fdfa', color: '#0d9488', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <FaChair size={13} /> Split by Seat ({distinctCartSeats.length} seats)
+                </button>
+              )}
 
               {/* Guest count stepper (equal & by-amount) */}
               {splitBillMode !== 'by-item' && (

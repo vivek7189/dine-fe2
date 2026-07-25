@@ -1411,6 +1411,17 @@ class ApiClient {
     return this.request(`/api/analytics/${restaurantId}?${params.toString()}`);
   }
 
+  async getTableAnalytics(restaurantId, options = {}) {
+    const params = new URLSearchParams();
+    if (options.date) params.append('date', options.date);
+    if (options.startDate) params.append('startDate', options.startDate);
+    if (options.endDate) params.append('endDate', options.endDate);
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz) params.append('tz', tz);
+    const qs = params.toString();
+    return this.request(`/api/tables/${restaurantId}/analytics${qs ? '?' + qs : ''}`);
+  }
+
   async getHourlySales(restaurantId, options = {}) {
     const params = new URLSearchParams();
     if (options.startDate) params.append('startDate', options.startDate);
@@ -1574,10 +1585,72 @@ class ApiClient {
   async deleteTable(tableId, restaurantId = null) {
     const body = {};
     if (restaurantId) body.restaurantId = restaurantId;
-    
+
     return this.request(`/api/tables/${tableId}`, {
       method: 'DELETE',
       body,
+    });
+  }
+
+  // Merge two or more tables into one non-destructive group (primary + secondaries).
+  async mergeTables(restaurantId, primaryTableId, tableIds) {
+    return this.request(`/api/tables/${restaurantId}/merge`, {
+      method: 'POST',
+      body: { primaryTableId, tableIds },
+    });
+  }
+
+  // Un-merge a group by its primary table id.
+  async unmergeTables(restaurantId, primaryTableId) {
+    return this.request(`/api/tables/${restaurantId}/unmerge`, {
+      method: 'POST',
+      body: { primaryTableId },
+    });
+  }
+
+  // Transfer an order/table to another server (waiter). Metadata only.
+  async transferServer(orderId, { waiterId = null, waiterName = null, restaurantId = null } = {}) {
+    return this.request(`/api/orders/${orderId}/transfer-server`, {
+      method: 'POST',
+      body: { waiterId, waiterName, restaurantId },
+    });
+  }
+
+  // Assign (or clear, pass nulls) the server on a single table.
+  async assignTableServer(tableId, { restaurantId, waiterId = null, waiterName = null }) {
+    return this.request(`/api/tables/${tableId}/assign-server`, {
+      method: 'PATCH',
+      body: { restaurantId, waiterId, waiterName },
+    });
+  }
+
+  // Assign a server to every table in a section or floor.
+  async assignSectionServer(restaurantId, { section = null, floorId = null, waiterId = null, waiterName = null }) {
+    return this.request(`/api/tables/${restaurantId}/assign-section-server`, {
+      method: 'POST',
+      body: { section, floorId, waiterId, waiterName },
+    });
+  }
+
+  // ── Walk-in waitlist ──
+  async getWaitlist(restaurantId) {
+    return this.request(`/api/waitlist/${restaurantId}`);
+  }
+  async addWaitlist(restaurantId, entry) {
+    return this.request(`/api/waitlist/${restaurantId}`, { method: 'POST', body: entry });
+  }
+  async updateWaitlist(restaurantId, entryId, update) {
+    return this.request(`/api/waitlist/${restaurantId}/${entryId}`, { method: 'PATCH', body: update });
+  }
+  async notifyWaitlist(restaurantId, entryId) {
+    return this.request(`/api/waitlist/${restaurantId}/${entryId}/notify`, { method: 'POST', body: {} });
+  }
+
+  // Save the drag-and-drop floor-plan layout for a floor.
+  async saveFloorLayout(restaurantId, floorId, tables) {
+    return this.request(`/api/tables/${restaurantId}/layout`, {
+      method: 'POST',
+      body: { floorId, tables },
     });
   }
 

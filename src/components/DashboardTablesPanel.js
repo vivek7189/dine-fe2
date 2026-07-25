@@ -3,11 +3,14 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { FaEye, FaReceipt, FaTimes, FaMinus, FaChevronUp, FaWindowMaximize, FaChair, FaClock, FaUserFriends, FaUtensils, FaTools, FaBan, FaPrint, FaPlus, FaEllipsisH, FaCreditCard, FaExchangeAlt, FaTrash, FaSpinner, FaTh, FaThLarge } from 'react-icons/fa';
+import { FaEye, FaReceipt, FaTimes, FaMinus, FaChevronUp, FaWindowMaximize, FaChair, FaClock, FaUserFriends, FaUtensils, FaTools, FaBan, FaPrint, FaPlus, FaEllipsisH, FaCreditCard, FaExchangeAlt, FaTrash, FaSpinner, FaTh, FaThLarge, FaLayerGroup } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
+import TableCard from './TableCard';
+import TableFloorPlan from './TableFloorPlan';
 import TableBillingModal from './TableBillingModal';
 import MoveOrderModal from './MoveOrderModal';
+import { t as translate } from '../lib/i18n';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { buildTokenSlipsDocumentHTML, buildTokenSlipHTML } from '../utils/printFontSizes';
 import { generateBillHTML, generateKOTHTML } from '../utils/printHtmlGenerator';
@@ -100,6 +103,14 @@ export default function DashboardTablesPanel({
   // Quick view modal
   const [quickViewOrder, setQuickViewOrder] = useState(null);
   const [quickViewLoading, setQuickViewLoading] = useState(null); // holds tableId while loading
+
+  // Transient UI state required by the shared <TableCard>. The management
+  // dropdown is disabled on the dashboard (showManagementDropdown={false}) so
+  // activeDropdown / hoveredTableId are effectively no-ops here, but TableCard
+  // still reads/sets them, so we provide harmless local state.
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  const [hoveredTableId, setHoveredTableId] = useState(null);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'floorplan' (live floor map, view-only here)
 
   // Mobile grid columns: '2' or '3' (only used on isMobileEmbed)
   const [mobileGridCols, setMobileGridCols] = useState(() => {
@@ -623,6 +634,44 @@ export default function DashboardTablesPanel({
     }
   };
 
+  // ── Adapters for the shared <TableCard> ─────────────────────────────
+  // TableCard expects getTableStatusInfo(status) → {color,bg,text,border,label,icon}.
+  // getStatusConfig returns the same shape minus `text`; add it, and add the
+  // `merged` status the /tables statusConfig carries (dashboard live tables
+  // rarely have it, but keep parity).
+  const getTableStatusInfo = (status) => {
+    if (status === 'merged') {
+      return { color: '#0ea5e9', bg: '#f0f9ff', text: '#075985', label: 'Merged', icon: FaLayerGroup, border: '#7dd3fc' };
+    }
+    const cfg = getStatusConfig(status);
+    return { ...cfg, text: cfg.color };
+  };
+
+  // TableCard's getElapsed(table) → short elapsed string (no "ago"); reads
+  // table.lastOrderTime (Firestore ts / _seconds / string / Date all handled).
+  const getElapsed = (table) => {
+    if (!table?.lastOrderTime) return null;
+    const raw = table.lastOrderTime;
+    const d = raw?.toDate ? raw.toDate() : raw?._seconds ? new Date(raw._seconds * 1000) : new Date(raw);
+    if (isNaN(d.getTime())) return null;
+    const mins = Math.floor((Date.now() - d.getTime()) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ${mins % 60}m`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ${hours % 24}h`;
+  };
+
+  // TableCard's getElapsedHours(table) → number of hours since last order.
+  const getElapsedHours = (table) => {
+    if (!table?.lastOrderTime) return 0;
+    const raw = table.lastOrderTime;
+    const d = raw?.toDate ? raw.toDate() : raw?._seconds ? new Date(raw._seconds * 1000) : new Date(raw);
+    if (isNaN(d.getTime())) return 0;
+    return (Date.now() - d.getTime()) / 3600000;
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: isMobileEmbed ? '12px' : '24px', padding: isMobileEmbed ? '0 10px 20px' : '0 24px 40px', maxWidth: '100%', boxSizing: 'border-box' }}>
       <style jsx>{`
@@ -680,6 +729,25 @@ export default function DashboardTablesPanel({
           }
         }
       `}</style>
+
+      {/* Grid / live Floor-plan view toggle */}
+      {grouped.length > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', gap: '2px', backgroundColor: '#f1f5f9', borderRadius: '10px', padding: '3px' }}>
+            {[{ k: 'grid', I: FaTh, label: 'Grid' }, { k: 'floorplan', I: FaThLarge, label: 'Floor Map' }].map(v => (
+              <button key={v.k} onClick={() => setViewMode(v.k)} title={`${v.label} view`} style={{
+                padding: '6px 12px', borderRadius: '8px', border: 'none', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap',
+                backgroundColor: viewMode === v.k ? 'white' : 'transparent',
+                color: viewMode === v.k ? '#1f2937' : '#9ca3af',
+                boxShadow: viewMode === v.k ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+              }}>
+                <v.I size={11} /> {v.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {grouped.map((group, idx) => (
         <div key={idx} style={{ background: 'transparent' }}>
@@ -749,6 +817,22 @@ export default function DashboardTablesPanel({
             )}
           </div>
 
+          {viewMode === 'floorplan' ? (
+            <TableFloorPlan
+              floor={{ id: group.info?.id, name: group.info?.name, tables: group.tables || [] }}
+              editable={false}
+              statusInfo={getTableStatusInfo}
+              formatCurrency={formatCurrency}
+              onTableClick={(tbl) => {
+                if (tbl.currentOrderId) {
+                  if (sliderOpen) handleSliderClose();
+                  router.push(`/dashboard?orderId=${tbl.currentOrderId}&mode=edit&from=tables`);
+                } else {
+                  handleTakeOrderGuarded(tbl, group.info?.name, group.info?.id);
+                }
+              }}
+            />
+          ) : (
           <div style={{
             display: 'grid',
             gridTemplateColumns: isMobileEmbed
@@ -757,450 +841,70 @@ export default function DashboardTablesPanel({
             gap: isMobileEmbed ? '8px' : '20px',
           }}>
             {(group.tables || []).map((t, tIdx) => {
-              const status = t.status || 'available';
-              const config = getStatusConfig(status);
-              const StatusIcon = config.icon;
-              const isOccupied = status === 'occupied';
-              const isAvailable = status === 'available';
-              const isReserved = status === 'reserved';
-              const isCleaning = status === 'cleaning';
-              const isOutOfService = status === 'out-of-service';
-
               const isRecentlyUpdated = recentlyUpdatedTableId && t.id === recentlyUpdatedTableId;
-
               return (
                 <div
                   key={t.id || tIdx}
                   ref={isRecentlyUpdated ? updatedTableRef : undefined}
-                  className="table-card"
-                  style={{
-                    background: config.bg, // Light background color based on status
-                    borderRadius: '12px',
-                    // No border for occupied (only animated dotted border), full 1px border with darker color for others
-                    border: isOccupied ? 'none' : `1px solid ${config.border}`,
-                    padding: '0',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    minHeight: isMobileEmbed ? 'auto' : '120px',
-                    position: 'relative',
-                    overflow: isMobileEmbed ? 'hidden' : 'visible',
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-                  }}
+                  style={{ minWidth: 0 }}
                 >
-                  {/* Animated Dotted Border for Occupied */}
-                  {isOccupied && (
-                    <svg
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        pointerEvents: 'none',
-                        zIndex: 1
-                      }}
-                    >
-                      <rect
-                        x="1.5"
-                        y="1.5"
-                        width="calc(100% - 3px)"
-                        height="calc(100% - 3px)"
-                        rx="10.5"
-                        ry="10.5"
-                        fill="none"
-                        stroke={config.color}
-                        strokeWidth="2"
-                        strokeDasharray="6,6"
-                        strokeDashoffset="100"
-                      >
-                         <animate attributeName="stroke-dashoffset" from="100" to="0" dur="3s" repeatCount="indefinite" />
-                      </rect>
-                    </svg>
-                  )}
-
-                  <div style={{ padding: isMobileEmbed ? '8px' : '12px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                    {/* Header */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: isMobileEmbed ? '4px' : '8px' }}>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: isMobileEmbed ? '4px' : '6px' }}>
-                          <span style={{ fontSize: isMobileEmbed ? '13px' : '16px', fontWeight: 800, color: '#111827', lineHeight: 1.1 }}>
-                            {t.name || t.number}
-                          </span>
-                          {/* Status: dot for available, small dot+elapsed for occupied, tiny badge for others */}
-                          {isAvailable ? (
-                            <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 0 2px #d1fae5', flexShrink: 0 }} title="Available" />
-                          ) : isOccupied ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
-                              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f59e0b' }} />
-                              {t.lastOrderTime && (() => {
-                                const elapsed = getTimeElapsed(t.lastOrderTime);
-                                if (!elapsed) return null;
-                                const isOverADay = elapsed.includes('d');
-                                return (
-                                  <span style={{ fontSize: '10px', fontWeight: 700, color: isOverADay ? '#dc2626' : '#92400e', whiteSpace: 'nowrap' }}>
-                                    {elapsed}
-                                  </span>
-                                );
-                              })()}
-                            </div>
-                          ) : (
-                            <span style={{ fontSize: '9px', fontWeight: 600, color: config.color, whiteSpace: 'nowrap' }}>
-                              {config.label}
-                            </span>
-                          )}
-                        </div>
-                        <div style={{ fontSize: isMobileEmbed ? '9px' : '10px', color: '#6b7280', marginTop: isMobileEmbed ? '1px' : '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <FaChair size={isMobileEmbed ? 7 : 9} />
-                          {t.capacity || '-'} Seats
-                        </div>
-                      </div>
-                      {/* Action icons for occupied tables — Quick View + Print/Actions menu */}
-                      {isOccupied && t.currentOrderId && (() => {
-                        const tableId = t.id || t.currentOrderId;
-                        const isPrinting = printingTables[tableId];
-                        const isDropdownOpen = printDropdownTable === tableId;
-                        return (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                            {/* Quick View Eye Button */}
-                            <button
-                              className="btn-action"
-                              onClick={(e) => handleQuickView(e, t)}
-                              title="Quick view order"
-                              style={{
-                                width: '26px', height: '26px', padding: 0,
-                                background: quickViewLoading === t.id ? 'linear-gradient(135deg, #dbeafe, #bfdbfe)' : 'rgba(0,0,0,0.04)',
-                                color: quickViewLoading === t.id ? '#3b82f6' : '#6b7280',
-                                border: 'none', borderRadius: '8px',
-                                cursor: 'pointer', display: 'flex',
-                                alignItems: 'center', justifyContent: 'center',
-                                transition: 'all 0.15s ease',
-                              }}
-                            >
-                              {quickViewLoading === t.id ? <FaSpinner size={11} className="animate-spin" /> : <FaEye size={12} />}
-                            </button>
-                            {/* Print / Actions Menu */}
-                            <div style={{ position: 'relative' }}>
-                            <button
-                              className="btn-action"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPrintDropdownTable(prev => prev === tableId ? null : tableId);
-                              }}
-                              style={{
-                                width: '26px', height: '26px', padding: 0,
-                                background: isPrinting
-                                  ? 'linear-gradient(135deg, #dbeafe, #bfdbfe)'
-                                  : isDropdownOpen ? 'linear-gradient(135deg, #fef3c7, #fde68a)' : 'rgba(0,0,0,0.04)',
-                                color: isPrinting ? '#3b82f6' : isDropdownOpen ? '#b45309' : '#6b7280',
-                                border: 'none', borderRadius: '8px',
-                                cursor: 'pointer', display: 'flex',
-                                alignItems: 'center', justifyContent: 'center',
-                                transition: 'all 0.15s ease',
-                              }}
-                              title="Actions"
-                            >
-                              {isPrinting ? <FaSpinner size={10} className="animate-spin" /> : <FaPrint size={11} />}
-                            </button>
-                            {isDropdownOpen && (
-                              <div
-                                onClick={(e) => e.stopPropagation()}
-                                style={{
-                                  position: 'absolute', top: '100%', right: 0,
-                                  marginTop: '4px', background: '#ffffff',
-                                  border: '1px solid #e5e7eb', borderRadius: '10px',
-                                  boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                                  zIndex: 999, minWidth: '140px', overflow: 'hidden',
-                                  padding: '4px 0',
-                                }}
-                              >
-                                {posSettings.moveOrderEnabled && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setPrintDropdownTable(null);
-                                      setMoveModalTable({ ...t, floorId: group.info?.id, floorName: group.info?.name || group.name });
-                                    }}
-                                    style={{
-                                      width: '100%', padding: '8px 12px', display: 'flex',
-                                      alignItems: 'center', gap: '8px', fontSize: '12px',
-                                      fontWeight: 500, color: '#374151', background: 'transparent',
-                                      border: 'none', cursor: 'pointer',
-                                    }}
-                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                                  >
-                                    <FaExchangeAlt size={10} style={{ color: '#6366f1' }} /> Move Order
-                                  </button>
-                                )}
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handlePrintBill(t); }}
-                                  style={{
-                                    width: '100%', padding: '8px 12px', display: 'flex',
-                                    alignItems: 'center', gap: '8px', fontSize: '12px',
-                                    fontWeight: 500, color: '#374151', background: 'transparent',
-                                    border: 'none', cursor: 'pointer',
-                                  }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                                >
-                                  <FaReceipt size={10} style={{ color: '#10b981' }} /> Print Bill
-                                </button>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handlePrintKOT(t); }}
-                                  style={{
-                                    width: '100%', padding: '8px 12px', display: 'flex',
-                                    alignItems: 'center', gap: '8px', fontSize: '12px',
-                                    fontWeight: 500, color: '#374151', background: 'transparent',
-                                    border: 'none', cursor: 'pointer',
-                                  }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                                >
-                                  <FaUtensils size={10} style={{ color: '#f59e0b' }} /> Print KOT
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-
-                    {/* Content - Show order total (with tax) for occupied tables, icon for others */}
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 0 }}>
-                      {isOccupied && (t.currentOrderFinalAmount || t.currentOrderTotal) ? (
-                        <div style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}>
-                          {!isMobileEmbed && <div style={{
-                            fontSize: '9px',
-                            color: '#92400e',
-                            fontWeight: 500,
-                            marginBottom: '2px',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.5px'
-                          }}>
-                            Total {t.currentOrderTax ? '(incl. tax)' : ''}
-                          </div>}
-                          <div style={{
-                            fontSize: isMobileEmbed ? '12px' : '18px',
-                            fontWeight: 800,
-                            color: '#b45309',
-                            background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
-                            padding: isMobileEmbed ? '1px 6px' : '4px 12px',
-                            borderRadius: isMobileEmbed ? '6px' : '8px',
-                            border: '1px solid #fcd34d'
-                          }}>
-                            {formatCurrency((() => {
-                              const total = t.currentOrderFinalAmount || t.currentOrderTotal || 0;
-                              return typeof total === 'number' ? total : 0;
-                            })())}
-                          </div>
-                          {!isMobileEmbed && t.currentOrderTax > 0 && (
-                            <div style={{
-                              fontSize: '9px',
-                              color: '#6b7280',
-                              marginTop: '3px'
-                            }}>
-                              Tax: {formatCurrency(typeof t.currentOrderTax === 'number' ? t.currentOrderTax : 0)}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div style={{
-                          display: isMobileEmbed ? 'none' : 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          height: '100%',
-                          opacity: 0.1
-                        }}>
-                          <StatusIcon size={32} color={config.color} />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Actions */}
-                    <div style={{ marginTop: isMobileEmbed ? '4px' : '8px' }}>
-                      {isAvailable ? (
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <button
-                            className="btn-action"
-                            onClick={() => handleTakeOrderGuarded(t, group.info?.name, group.info?.id)}
-                            style={{
-                              flex: 1,
-                              padding: isMobileEmbed ? '6px 4px' : '8px 12px',
-                              background: '#059669',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '6px',
-                              fontSize: isMobileEmbed ? '10px' : '11px',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: isMobileEmbed ? '3px' : '6px',
-                              whiteSpace: 'nowrap',
-                              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.target.style.background = '#047857';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.target.style.background = '#059669';
-                            }}
-                          >
-                            <FaReceipt size={isMobileEmbed ? 8 : 10} />
-                            {isMobileEmbed ? 'Order' : 'Take Order'}
-                          </button>
-                          {canDeleteTable && onDeleteTable && (
-                            <button
-                              className="btn-action"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (confirm(`Delete table "${t.name || t.number}"?`)) {
-                                  onDeleteTable(t.id);
-                                }
-                              }}
-                              style={{
-                                width: '32px', height: '32px', padding: 0,
-                                background: '#ffffff', color: '#ef4444', border: '1px solid #fecaca',
-                                borderRadius: '6px', cursor: 'pointer',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              }}
-                              onMouseEnter={(e) => { e.currentTarget.style.background = '#fef2f2'; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; }}
-                              title="Delete table"
-                            >
-                              <FaTrash size={10} />
-                            </button>
-                          )}
-                        </div>
-                      ) : isOutOfService ? (
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button
-                            className="btn-action"
-                            style={{
-                              flex: 1,
-                              padding: '6px 8px',
-                              background: '#fef2f2',
-                              color: '#ef4444',
-                              border: '1px solid #fecaca',
-                              borderRadius: '6px',
-                              fontSize: '10px',
-                              fontWeight: 700,
-                              cursor: 'not-allowed',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '4px'
-                            }}
-                            disabled
-                          >
-                            <FaBan size={10} />
-                            Out of Service
-                          </button>
-                          <button
-                            className="btn-action"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleTakeOrderGuarded(t, group.info?.name, group.info?.id);
-                            }}
-                            style={{
-                              flex: 1,
-                              padding: '6px 8px',
-                              background: '#ffffff',
-                              color: '#ef4444',
-                              border: '1px solid #ef4444',
-                              borderRadius: '6px',
-                              fontSize: '10px',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '4px'
-                            }}
-                            onMouseEnter={(e) => e.target.style.background = '#fef2f2'}
-                            onMouseLeave={(e) => e.target.style.background = '#ffffff'}
-                          >
-                            <FaReceipt size={10} />
-                            Override
-                          </button>
-                        </div>
-                      ) : (
-                        /* Occupied/Reserved/Cleaning tables - Show Add + Bill buttons; Move/Print are in top-right */
-                        <div style={{ display: 'flex', gap: isMobileEmbed ? '4px' : '6px' }}>
-                          {/* Add Items Button */}
-                          <button
-                            className="btn-action"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (sliderOpen) handleSliderClose();
-                              if (t.currentOrderId) {
-                                router.push(`/dashboard?orderId=${t.currentOrderId}&mode=edit&from=tables`);
-                              } else {
-                                handleTakeOrderGuarded(t, group.info?.name, group.info?.id);
-                              }
-                            }}
-                            style={{
-                              flex: 1,
-                              padding: isMobileEmbed ? '4px 4px' : '6px 10px',
-                              background: '#ffffff',
-                              color: '#4b5563',
-                              border: '1px solid #d1d5db',
-                              borderRadius: '6px',
-                              fontSize: isMobileEmbed ? '9px' : '10px',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '3px',
-                              whiteSpace: 'nowrap',
-                            }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; }}
-                          >
-                            <FaPlus size={isMobileEmbed ? 7 : 9} />
-                            Add
-                          </button>
-                          {/* Complete Bill Button */}
-                          <button
-                            className="btn-action"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (t.currentOrderId) openActionsModal({ ...t, floor: group.name, floorId: group.info?.id });
-                            }}
-                            style={{
-                              flex: 1,
-                              padding: isMobileEmbed ? '4px 4px' : '6px 10px',
-                              background: '#dc2626',
-                              color: '#ffffff',
-                              border: 'none',
-                              borderRadius: '6px',
-                              fontSize: isMobileEmbed ? '9px' : '10px',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '3px',
-                              whiteSpace: 'nowrap',
-                            }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = '#b91c1c'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = '#dc2626'; }}
-                            title="Complete Bill"
-                          >
-                            <FaReceipt size={isMobileEmbed ? 7 : 9} /> Bill
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <TableCard
+                    table={t}
+                    isToday={true}
+                    isMobile={isMobileEmbed}
+                    isMobileEmbed={isMobileEmbed}
+                    posSettings={posSettings}
+                    tblBookings={[]}
+                    tableStatus={t.status}
+                    canEditTableConfig={false}
+                    canEditTable={false}
+                    waitersCount={0}
+                    showManagementDropdown={false}
+                    highlighted={isRecentlyUpdated}
+                    activeDropdown={activeDropdown}
+                    setActiveDropdown={setActiveDropdown}
+                    hoveredTableId={hoveredTableId}
+                    setHoveredTableId={setHoveredTableId}
+                    printDropdownTable={printDropdownTable}
+                    setPrintDropdownTable={setPrintDropdownTable}
+                    printingTables={printingTables}
+                    quickViewLoading={quickViewLoading}
+                    getTableStatusInfo={getTableStatusInfo}
+                    getElapsed={getElapsed}
+                    getElapsedHours={getElapsedHours}
+                    formatCurrency={formatCurrency}
+                    t={translate}
+                    onTableAction={(action, tbl) => {
+                      if (action === 'take-order') {
+                        handleTakeOrderGuarded(tbl, group.info?.name, group.info?.id);
+                      } else if (action === 'view-order') {
+                        // Dashboard "Add items" flow for a running order
+                        if (sliderOpen) handleSliderClose();
+                        if (tbl.currentOrderId) {
+                          router.push(`/dashboard?orderId=${tbl.currentOrderId}&mode=edit&from=tables`);
+                        } else {
+                          handleTakeOrderGuarded(tbl, group.info?.name, group.info?.id);
+                        }
+                      } else if (action === 'make-available') {
+                        // Cleaning / out-of-service quick action → take order (override modal fires if out-of-service)
+                        handleTakeOrderGuarded(tbl, group.info?.name, group.info?.id);
+                      }
+                      // book-table / out-of-service / cleaning originate only from the
+                      // management dropdown, which is disabled on the dashboard.
+                    }}
+                    onOpenBilling={(tbl) => {
+                      if (tbl.currentOrderId) openActionsModal({ ...tbl, floor: group.info?.name, floorId: group.info?.id });
+                    }}
+                    onQuickView={handleQuickView}
+                    onPrintBill={handlePrintBill}
+                    onPrintKOT={handlePrintKOT}
+                    onMoveOrder={(tbl) => setMoveModalTable({ ...tbl, floorId: group.info?.id, floorName: group.info?.name || group.name })}
+                    onEditTable={() => {}}
+                    onDeleteTable={(tbl) => { if (onDeleteTable) onDeleteTable(tbl.id); }}
+                    onAssignServer={() => {}}
+                    onUnmerge={() => {}}
+                    onBookTable={() => {}}
+                  />
                 </div>
               );
             })}
@@ -1208,6 +912,7 @@ export default function DashboardTablesPanel({
               <div style={{ fontSize: '14px', color: '#9ca3af', fontStyle: 'italic' }}>No tables on this floor.</div>
             )}
           </div>
+          )}
         </div>
       ))}
       {grouped.length === 0 && (
