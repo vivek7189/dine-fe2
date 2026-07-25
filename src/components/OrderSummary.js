@@ -373,6 +373,36 @@ const OrderSummary = ({
   const [showUpiQr, setShowUpiQr] = useState(false);
   const [pendingUpiAction, setPendingUpiAction] = useState(null); // 'place' | 'complete'
 
+  // ── Customer name autocomplete — search existing customers by name (also phone) ──
+  const [nameSuggestions, setNameSuggestions] = useState([]);
+  const [showNameSuggest, setShowNameSuggest] = useState(false);
+  const nameSearchTimer = useRef(null);
+  const searchCustomersByName = useCallback((term) => {
+    const q = (term || '').trim();
+    if (nameSearchTimer.current) clearTimeout(nameSearchTimer.current);
+    if (q.length < 2 || !restaurantId) { setNameSuggestions([]); setShowNameSuggest(false); return; }
+    nameSearchTimer.current = setTimeout(async () => {
+      try {
+        const res = await apiClient.getCustomers(restaurantId, 1, 8, q);
+        const list = (res?.customers || []).filter((c) => c && (c.name || c.phone));
+        setNameSuggestions(list);
+        setShowNameSuggest(list.length > 0);
+      } catch {
+        setNameSuggestions([]); setShowNameSuggest(false);
+      }
+    }, 250);
+  }, [restaurantId]);
+  const pickCustomerSuggestion = useCallback((cust) => {
+    setShowNameSuggest(false);
+    setNameSuggestions([]);
+    onCustomerNameChange?.(cust.name || '');
+    if (cust.phone) {
+      onCustomerMobileChange?.(cust.phone);
+      const digits = String(cust.phone).replace(/\D/g, '');
+      if (digits.length >= getPhoneMinLength(countryCode)) triggerLookup(digits);
+    }
+  }, [onCustomerNameChange, onCustomerMobileChange, triggerLookup, countryCode]);
+
   // Offer Engine Hook
   const {
     applicableOffers, genericOffers, personalizedOffers,
@@ -5226,18 +5256,53 @@ const OrderSummary = ({
                         if (typeof onCustomerNameChange === 'function') {
                           onCustomerNameChange(e.target.value);
                         }
+                        searchCustomersByName(e.target.value);
                       }}
                         onFocus={(e) => {
                           e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)';
                           const val = e.target.value.trim();
                           e.target.style.borderColor = val.length > 3 ? '#22c55e' : '#6366f1';
+                          if (nameSuggestions.length > 0) setShowNameSuggest(true);
                         }}
                         onBlur={(e) => {
                           e.target.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)';
                           const val = e.target.value.trim();
                           e.target.style.borderColor = (lookupStatus === 'found' && customerData) ? '#0891b2' : val.length > 3 ? '#22c55e' : '#e5e7eb';
+                          setTimeout(() => setShowNameSuggest(false), 150);
                         }}
                     />
+                    {/* Customer name suggestions (existing customers matching the typed name) */}
+                    {showNameSuggest && nameSuggestions.length > 0 && (
+                      <div style={{
+                        position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 60,
+                        marginTop: '4px', background: dm ? dm.white : '#ffffff',
+                        border: `1px solid ${dm ? dm.border : '#e5e7eb'}`, borderRadius: '10px',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.14)', maxHeight: '240px', overflowY: 'auto',
+                      }}>
+                        {nameSuggestions.map((c) => (
+                          <button
+                            key={c.id || c.phone}
+                            type="button"
+                            onMouseDown={(e) => { e.preventDefault(); pickCustomerSuggestion(c); }}
+                            style={{
+                              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px',
+                              width: '100%', padding: '8px 10px', border: 'none', background: 'transparent',
+                              cursor: 'pointer', textAlign: 'left', borderBottom: `1px solid ${dm ? dm.border : '#f3f4f6'}`,
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = dm ? '#1e293b' : '#f9fafb'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                              <span style={{ fontSize: '12px', fontWeight: 600, color: dm ? dm.textSec : '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name || 'Unnamed'}</span>
+                              <span style={{ fontSize: '11px', color: dm ? dm.textMuted : '#6b7280' }}>{c.phone || ''}{c.totalOrders ? ` · ${c.totalOrders} orders` : ''}</span>
+                            </span>
+                            {c.outstandingBalance > 0 && (
+                              <span style={{ fontSize: '10px', fontWeight: 700, color: '#dc2626', flexShrink: 0 }}>Due {formatCurrency(c.outstandingBalance)}</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     {/* Verified badge inside name field */}
                     {lookupStatus === 'found' && customerData && (
                       <span style={{
