@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { blogPostContent } from './blog/blogData';
 
 // Read static blog slugs straight from the filesystem so the sitemap never
 // drifts from the actual posts in public/blog/ and public/hi/blog/.
@@ -367,37 +368,8 @@ export default function sitemap() {
   );
 
   // Blog posts served by Next.js dynamic route (blogData.js — have content in blogPostContent) (28)
-  const blogPostsDynamic = [
-    'restaurant-inventory-management-software-guide',
-    '5-ways-increase-restaurant-sales-digital-menus',
-    'ai-voice-ordering-restaurants-2026',
-    'bakery-pos-software-dineopen-increase-revenue',
-    'bar-brewery-pos-software-complete-guide-2026',
-    'beer-bar-inventory-management-complete-guide',
-    'best-pos-system-ice-cream-shop-2026',
-    'best-practices-restaurant-staff-management',
-    'cloud-kitchen-guide-2026',
-    'complete-cafe-coffee-shop-pos-system-guide',
-    'complete-restaurant-management-software-guide-2025',
-    'how-restaurants-attract-new-customers-2026',
-    'how-to-create-online-menu-restaurant',
-    'how-to-increase-restaurant-revenue',
-    'how-to-open-restaurant-india-2026',
-    'how-to-reduce-restaurant-operating-costs',
-    'ice-cream-dessert-shop-pos-software-complete-guide',
-    'ice-cream-parlour-pos-software-dineopen',
-    'petpooja-review-2026',
-    'qr-code-menu-benefits-restaurants',
-    'restaurant-billing-app-complete-guide',
-    'restaurant-heroes-celebrating-people-making-food-accessible',
-    'restaurant-inventory-management-best-practices-2025',
-    'restaurant-metrics-not-tracking',
-    'restaurant-pos-vs-billing-software',
-    'thank-you-restaurant-heroes-2025',
-    'why-qr-code-menus-are-essential-in-2024',
-    'zero-transaction-fees-restaurant-pos',
-    'i-got-quoted-1200-month-for-toast-heres-what-i-built-instead',
-  ].map((slug) => ({
+  // Dynamic blog posts — derived from blogData content map (no drift).
+  const blogPostsDynamic = Object.keys(blogPostContent).map((slug) => ({
     url: `${baseUrl}/blog/${slug}`,
     lastModified: currentDate,
     changeFrequency: 'monthly',

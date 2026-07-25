@@ -154,12 +154,23 @@ export default async function BlogDetailPage({ params }) {
       }
     },
     "datePublished": post.publishDate,
-    "dateModified": post.publishDate,
+    "dateModified": post.dateModified || post.publishDate,
     "mainEntityOfPage": {
       "@type": "WebPage",
       "@id": `https://www.dineopen.com/blog/${slug}`
     }
   };
+
+  // FAQPage schema (AEO / AI-answer + featured snippets) when the post has FAQs
+  const faqStructuredData = post.faqs && post.faqs.length ? {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": post.faqs.map((f) => ({
+      "@type": "Question",
+      "name": f.q,
+      "acceptedAnswer": { "@type": "Answer", "text": f.a },
+    })),
+  } : null;
 
   return (
     <>
@@ -169,6 +180,12 @@ export default async function BlogDetailPage({ params }) {
           __html: JSON.stringify(structuredData)
         }}
       />
+      {faqStructuredData && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqStructuredData) }}
+        />
+      )}
       <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
         <BlogClient blogPost={post} />
       </div>

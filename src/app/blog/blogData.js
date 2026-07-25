@@ -3,6 +3,26 @@
 
 export const blogPosts = [
   {
+    slug: 'square-vs-toast-vs-clover-2026',
+    title: 'Square vs Toast vs Clover: The Honest Restaurant POS Comparison (2026)',
+    excerpt: 'Square, Toast, and Clover are the three POS systems every US restaurant weighs up. We break down real pricing, processing fees, hardware, contracts, and who each one actually suits in 2026 — no sales spin.',
+    date: '2026-07-25',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    readTime: '11 min read',
+    author: 'Vivek Sharma',
+  },
+  {
+    slug: 'how-to-open-restaurant-usa-2026',
+    title: 'How to Open a Restaurant in the USA (2026): Real Costs, Licenses & Steps',
+    excerpt: 'What it actually costs to open a restaurant in the US in 2026, the licenses and permits you need, and a realistic 12-step timeline — from concept and LLC to your first service. No fluff, real numbers.',
+    date: '2026-07-25',
+    category: 'Guide',
+    categoryColor: '#3b82f6',
+    readTime: '13 min read',
+    author: 'Vivek Sharma',
+  },
+  {
     slug: 'best-restaurant-pos-canada-2026',
     title: 'I Tested 7 Canadian Restaurant POS Systems — Here\'s What Actually Works in 2026',
     excerpt: 'Compare 7 best restaurant POS systems in Canada 2026. TouchBistro (CAD 69/mo), Lightspeed (CAD 89/mo), Square, DineOpen (CAD 39/mo) compared. HST/GST/PST compliant, Skip The Dishes & DoorDash ready.',
@@ -1331,6 +1351,166 @@ export const blogPosts = [
 
 // Blog post content - for static generation
 export const blogPostContent = {
+  'square-vs-toast-vs-clover-2026': {
+    id: 'square-vs-toast-vs-clover-2026',
+    title: 'Square vs Toast vs Clover: The Honest Restaurant POS Comparison (2026)',
+    excerpt: 'Square, Toast, and Clover are the three POS systems every US restaurant weighs up. We break down real pricing, processing fees, hardware, contracts, and who each one actually suits in 2026 — no sales spin.',
+    author: 'Vivek Sharma',
+    publishDate: '2026-07-25',
+    dateModified: '2026-07-25',
+    readTime: '11 min read',
+    category: 'Comparison',
+    tags: ['Square', 'Toast', 'Clover', 'restaurant POS', 'POS comparison', 'best restaurant POS 2026'],
+    content: `
+        <div style="background:#eff6ff;border-left:4px solid #3b82f6;padding:20px;border-radius:8px;margin:24px 0;">
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#1e3a8a;"><strong>Quick answer:</strong> <strong>Square</strong> is the best free, low-friction starting point (free software, ~2.6% + 10¢ per tap). <strong>Toast</strong> is the most restaurant-specific and feature-rich, but it comes with hardware costs, multi-year contracts, and ~2.49–3.5% processing. <strong>Clover</strong> sits in the middle — flexible hardware, but your price and support depend heavily on which bank or reseller you buy it through. If you want the restaurant features without the lock-in or the per-swipe markup, that's the gap a flat-rate system like DineOpen fills at $10/month.</p>
+        </div>
+
+        <p>If you're opening — or switching — a US restaurant in 2026, three names come up again and again: <strong>Square</strong>, <strong>Toast</strong>, and <strong>Clover</strong>. On a feature grid they look almost identical. In real life they're built for very different businesses, and the option that looks "cheapest" on the pricing page is rarely the cheapest once card processing kicks in.</p>
+
+        <p>Here's the honest breakdown — based on public pricing and the things that actually matter once you're standing behind the counter on a Friday night.</p>
+
+        <h2>Square vs Toast vs Clover: which is best in 2026?</h2>
+        <p>Short version: <strong>Square</strong> wins on simplicity and starting free, <strong>Toast</strong> wins on deep restaurant features, and <strong>Clover</strong> wins on hardware flexibility. None of them is universally "best" — it depends on your card volume, how complex your menu is, and how much you hate being locked into a contract.</p>
+
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:15px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">&nbsp;</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Square</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Toast</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Clover</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Software</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Free plan; paid from ~$69/mo</td><td style="padding:12px;border:1px solid #e5e7eb;">$0 "Starter" (higher processing) up to $69+/mo/terminal</td><td style="padding:12px;border:1px solid #e5e7eb;">~$60–$90+/mo depending on plan</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Processing</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">~2.6% + 10¢ (in-person)</td><td style="padding:12px;border:1px solid #e5e7eb;">~2.49–3.5% + fee</td><td style="padding:12px;border:1px solid #e5e7eb;">~2.3–2.6% + 10¢ (varies by reseller)</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Contract</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">None</td><td style="padding:12px;border:1px solid #e5e7eb;">Often 1–3 years</td><td style="padding:12px;border:1px solid #e5e7eb;">Varies (reseller-dependent)</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Hardware</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Buy outright, low cost</td><td style="padding:12px;border:1px solid #e5e7eb;">Proprietary; buy or lease</td><td style="padding:12px;border:1px solid #e5e7eb;">Proprietary Clover devices</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Best for</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Cafes, QSR, food trucks, new/low volume</td><td style="padding:12px;border:1px solid #e5e7eb;">Full-service & multi-unit restaurants</td><td style="padding:12px;border:1px solid #e5e7eb;">Retail + restaurants wanting hardware choice</td></tr>
+          </tbody>
+        </table>
+
+        <h2>How much does each POS actually cost?</h2>
+        <p><strong>Square</strong> is genuinely free to start — no monthly software fee on the base plan, and you only pay the processing rate per transaction. That's why it's the default for food trucks, coffee shops, and new restaurants testing the waters. Paid restaurant plans add table management and coursing.</p>
+        <p><strong>Toast</strong> advertises a $0 "Starter Kit," but that plan carries a higher processing rate to make up for it — you pay either way. Add KDS, online ordering, inventory, and payroll and a full-service setup commonly lands well over $200/month per location <em>before</em> swipe fees. Hardware is proprietary and either bought upfront or leased.</p>
+        <p><strong>Clover</strong> is sold mostly through banks and resellers, so the same device can cost very different amounts depending on who you sign with. That flexibility is a double-edged sword: shop around and it's competitive; sign the first quote and you can overpay.</p>
+
+        <h2>Why do processing fees matter more than the software price?</h2>
+        <p>This is the part most comparison posts skip. On a restaurant doing <strong>$40,000/month in card sales</strong>, a 0.3% difference in processing is <strong>$1,440 a year</strong> — often more than the entire software bill. So a "free" POS with a higher swipe rate can quietly cost you more than a paid one with a lower rate.</p>
+        <p>When you compare, always calculate: <em>(monthly software) + (your card volume × processing rate)</em>. The winner on that number is almost never the winner on the pricing page. Our <a href="/tools/sales-tax-calculator">sales tax calculator</a> and the math in <a href="/blog/i-got-quoted-1200-month-for-toast-heres-what-i-built-instead">this founder cost breakdown</a> walk through a real example.</p>
+
+        <h2>Do they lock you into contracts and hardware?</h2>
+        <p>Square is month-to-month with no contract and inexpensive, non-proprietary-ish hardware — the easiest to walk away from. Toast typically involves a 1–3 year commitment and proprietary hardware, so switching later is genuinely painful. Clover's terms depend on the reseller, which is why reading the agreement matters more with Clover than with anyone else.</p>
+
+        <h2>Which POS is best for small restaurants, bars, and food trucks?</h2>
+        <ul>
+          <li><strong>Food trucks & pop-ups:</strong> Square — free, portable, offline-friendly.</li>
+          <li><strong>Cafes & QSR:</strong> Square or a flat-rate system — speed of service beats deep features here.</li>
+          <li><strong>Full-service & fine dining:</strong> Toast — coursing, seat maps, and KDS are its home turf.</li>
+          <li><strong>Bars:</strong> Toast or Clover for tab/pre-auth handling; check the mixed-beverage reporting for your state.</li>
+          <li><strong>Multi-location:</strong> Toast for depth, but weigh the per-terminal cost and contract carefully.</li>
+        </ul>
+
+        <h2>Where does DineOpen fit in this comparison?</h2>
+        <p>Honest take: Square, Toast, and Clover are all solid — the friction is <em>cost structure</em>, not capability. Toast-level features usually mean Toast-level contracts and per-swipe markup; Square-level pricing usually means fewer restaurant-specific features.</p>
+        <p><a href="/usa">DineOpen</a> was built to remove that trade-off: full restaurant features (POS, KDS, online ordering, inventory, AI ordering, DoorDash/Uber Eats/Grubhub) at a <strong>flat $10/month</strong>, with <strong>zero transaction fees</strong> (bring your own processor) and <strong>no hardware lock-in or contract</strong>. You keep the swipe fees you were paying anyway and stop paying a per-transaction markup on top. If the numbers above made you wince, that's the point — <a href="/vs/dineopen-vs-toast">compare it side by side with Toast</a>.</p>
+
+        <h2>Frequently asked questions</h2>
+        <p><strong>Is Square or Toast better for restaurants?</strong> Square is better for cafes, QSR, food trucks, and low-volume or new restaurants that want to start free with no contract. Toast is better for full-service and multi-location restaurants that need deep features like coursing, KDS, and advanced inventory — as long as you accept the contract and processing markup.</p>
+        <p><strong>Is Clover good for restaurants?</strong> Clover works for restaurants, especially if you want hardware flexibility, but because it's sold through banks and resellers the price and support quality vary a lot. Always compare the specific quote and contract you're offered.</p>
+        <p><strong>What's the cheapest restaurant POS overall?</strong> Cheapest on software is Square (free) or a flat-rate system like DineOpen ($10/mo). But "cheapest" should always include processing: multiply your monthly card volume by each system's rate and add the software fee before deciding.</p>
+    `,
+    faqs: [
+      { q: 'Is Square or Toast better for restaurants?', a: 'Square is better for cafes, QSR, food trucks, and low-volume or new restaurants that want to start free with no contract. Toast is better for full-service and multi-location restaurants needing deep features like coursing, KDS, and advanced inventory — provided you accept the contract and higher processing markup.' },
+      { q: 'Is Clover good for restaurants?', a: 'Clover works for restaurants and offers hardware flexibility, but because it is sold through banks and resellers the price, terms, and support quality vary widely. Always compare the specific quote and contract you are offered before signing.' },
+      { q: 'What is the cheapest restaurant POS in 2026?', a: 'Square is free on software and flat-rate systems like DineOpen are $10/month, but true cost must include card processing. Multiply your monthly card volume by the processing rate of each system and add the software fee — the cheapest on that combined number often differs from the cheapest on the pricing page.' },
+      { q: 'Do Toast and Clover require a contract?', a: 'Toast typically involves a 1–3 year contract with proprietary hardware. Clover terms depend on the reseller. Square is month-to-month with no contract, making it the easiest to leave.' },
+    ],
+  },
+  'how-to-open-restaurant-usa-2026': {
+    id: 'how-to-open-restaurant-usa-2026',
+    title: 'How to Open a Restaurant in the USA (2026): Real Costs, Licenses & Steps',
+    excerpt: 'What it actually costs to open a restaurant in the US in 2026, the licenses and permits you need, and a realistic 12-step timeline — from concept and LLC to your first service. No fluff, real numbers.',
+    author: 'Vivek Sharma',
+    publishDate: '2026-07-25',
+    dateModified: '2026-07-25',
+    readTime: '13 min read',
+    category: 'Guide',
+    tags: ['open a restaurant', 'restaurant startup costs', 'restaurant license', 'how to start a restaurant USA', 'restaurant business plan'],
+    content: `
+        <div style="background:#f0fdf4;border-left:4px solid #22c55e;padding:20px;border-radius:8px;margin:24px 0;">
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#166534;"><strong>Quick answer:</strong> Opening a restaurant in the US in 2026 typically costs <strong>$175,000–$750,000+</strong> depending on size, location, and whether you lease or build out. A small QSR or cafe can start near <strong>$95,000–$250,000</strong>; a full-service restaurant usually runs <strong>$275,000–$750,000</strong>. You'll need a business entity (LLC), an EIN, a food service license, a health permit, and — if you serve alcohol — a liquor license, plus a resale/sales-tax permit. Realistic timeline from concept to opening: <strong>6–12 months</strong>.</p>
+        </div>
+
+        <p>Opening a restaurant is equal parts creative dream and operational grind. The dream is the easy part. This guide is the grind — the real costs, the paperwork, and the order to do things in so you don't pay rent for three months before you're legally allowed to serve a plate.</p>
+
+        <h2>How much does it cost to open a restaurant in the USA?</h2>
+        <p>There's no single number, but here's a realistic 2026 range by format. These include build-out, equipment, licenses, initial inventory, and a few months of working capital — the last one is where most first-timers under-budget.</p>
+
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:15px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Format</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:right;">Typical all-in cost</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Food truck</td><td style="padding:12px;border:1px solid #e5e7eb;text-align:right;">$50,000–$175,000</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Coffee shop / cafe</td><td style="padding:12px;border:1px solid #e5e7eb;text-align:right;">$95,000–$300,000</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">QSR / fast casual</td><td style="padding:12px;border:1px solid #e5e7eb;text-align:right;">$150,000–$450,000</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Full-service restaurant</td><td style="padding:12px;border:1px solid #e5e7eb;text-align:right;">$275,000–$750,000+</td></tr>
+          </tbody>
+        </table>
+
+        <p>The single biggest swing factor is the space. Taking over a former restaurant ("second-generation" space) with working plumbing, hoods, and grease traps can cut build-out costs by 40–60% versus converting a raw retail unit. If you're on a tight budget, hunt for a second-gen space first.</p>
+
+        <h2>What licenses and permits do you need to open a restaurant?</h2>
+        <p>Requirements vary by state, county, and city, but almost every US restaurant needs this core stack:</p>
+        <ul>
+          <li><strong>Business entity (usually an LLC)</strong> — protects your personal assets. Register with your state.</li>
+          <li><strong>EIN</strong> — free federal tax ID from the IRS, needed to hire and open a business bank account.</li>
+          <li><strong>Business license</strong> — from your city/county to operate.</li>
+          <li><strong>Food service license / permit</strong> — from the local health department.</li>
+          <li><strong>Health department permit + inspection</strong> — before you can open.</li>
+          <li><strong>Food handler / manager certification</strong> — e.g. ServSafe for at least one manager.</li>
+          <li><strong>Sales tax / resale permit</strong> — to collect and remit state sales tax on meals.</li>
+          <li><strong>Sign permit, building/occupancy permit</strong> — for your space and signage.</li>
+          <li><strong>Liquor license</strong> — if you serve alcohol; the most expensive and slowest, so start early.</li>
+          <li><strong>Music/entertainment license</strong> — if you play music or host live acts.</li>
+        </ul>
+        <p>The liquor license is the one that catches people out. In some states it's a few hundred dollars and a few weeks; in others (quota states) it can cost tens of thousands and take many months. If alcohol is core to your concept, apply <em>first</em>.</p>
+
+        <h2>How long does it take to open a restaurant?</h2>
+        <p>Plan for <strong>6–12 months</strong> from signing a lease to opening. Build-out and permitting are the long poles — health and building inspections in particular can add weeks you can't control. Budget several months of rent as "dark rent" you'll pay before revenue starts.</p>
+
+        <h2>The 12 steps to open a restaurant, in order</h2>
+        <ol>
+          <li><strong>Nail the concept & do the math.</strong> Cuisine, price point, target customer — then a simple P&L. Use a <a href="/tools/startup-cost-calculator">startup cost calculator</a> and a <a href="/tools/break-even-calculator">break-even calculator</a> before you fall in love with a space.</li>
+          <li><strong>Write a lean business plan.</strong> Concept, market, menu, costs, funding, and projections. You'll need it for lenders and investors.</li>
+          <li><strong>Secure funding.</strong> Savings, SBA loans, investors, or equipment financing. Add a 15–20% contingency — you will need it.</li>
+          <li><strong>Form your LLC and get your EIN.</strong> Then open a business bank account and set up bookkeeping.</li>
+          <li><strong>Find and lease the right space.</strong> Prioritize second-generation restaurant spaces. Check zoning and grease-trap/hood requirements before you sign.</li>
+          <li><strong>Design the layout & kitchen.</strong> Flow matters more than looks — a bad kitchen line costs you speed every single service.</li>
+          <li><strong>Apply for licenses & permits.</strong> Start with the liquor license and health permit — the slowest ones.</li>
+          <li><strong>Build out & buy equipment.</strong> New vs used equipment is a big lever; used can save 30–50% on the big-ticket items.</li>
+          <li><strong>Build your menu & cost it.</strong> Price for a target food-cost percentage (usually ~28–35%). A <a href="/tools/food-cost-calculator">food cost calculator</a> keeps you honest.</li>
+          <li><strong>Choose your POS & tech stack.</strong> POS, payments, online ordering, KDS, inventory. Pick month-to-month with no lock-in so a bad fit isn't a multi-year mistake — see our <a href="/blog/square-vs-toast-vs-clover-2026">Square vs Toast vs Clover comparison</a>.</li>
+          <li><strong>Hire & train staff.</strong> Get at least one manager food-safety certified; run service rehearsals.</li>
+          <li><strong>Soft launch, then open.</strong> A friends-and-family soft open catches the problems before real reviews do.</li>
+        </ol>
+
+        <h2>What's the smartest way to save money opening a restaurant?</h2>
+        <p>Three levers save the most without hurting quality: <strong>(1) a second-generation space</strong> (biggest single saving), <strong>(2) used equipment</strong> for the expensive items, and <strong>(3) a POS with no contract and zero transaction-fee markup</strong> — because a per-swipe markup compounds every single day you're open. On $40k/month in card sales, a modern flat-rate POS like <a href="/usa">DineOpen</a> ($10/month, zero transaction fees, no lock-in) can save thousands a year versus contract-based systems.</p>
+
+        <h2>Frequently asked questions</h2>
+        <p><strong>How much money do you need to open a small restaurant in the US?</strong> A small cafe or QSR typically needs $95,000–$300,000 all-in, including build-out, equipment, licenses, initial inventory, and a few months of working capital. A food truck can start lower, around $50,000–$175,000.</p>
+        <p><strong>What licenses do I need to open a restaurant?</strong> At minimum: a business entity (LLC), EIN, business license, food service license, health department permit, food handler/manager certification, and a sales-tax permit — plus a liquor license if you serve alcohol.</p>
+        <p><strong>How long does it take to open a restaurant?</strong> Usually 6–12 months from lease to opening, with build-out and permitting (especially health inspections and liquor licenses) being the slowest steps.</p>
+    `,
+    faqs: [
+      { q: 'How much money do you need to open a small restaurant in the US?', a: 'A small cafe or QSR typically needs $95,000–$300,000 all-in — including build-out, equipment, licenses, initial inventory, and a few months of working capital. A food truck can start lower, around $50,000–$175,000, while a full-service restaurant usually runs $275,000–$750,000+.' },
+      { q: 'What licenses and permits do I need to open a restaurant in the USA?', a: 'At minimum you need a business entity (usually an LLC), an EIN, a business license, a food service license, a health department permit and inspection, food handler/manager certification (e.g. ServSafe), and a sales-tax/resale permit. If you serve alcohol you also need a liquor license, which is the most expensive and slowest to obtain.' },
+      { q: 'How long does it take to open a restaurant?', a: 'Plan for 6–12 months from signing a lease to opening. Build-out and permitting are the slowest steps — health and building inspections and liquor licenses in particular can add weeks or months you cannot fully control.' },
+      { q: 'What is the cheapest way to open a restaurant?', a: 'The biggest savings come from taking a second-generation restaurant space (existing kitchen infrastructure), buying used equipment for big-ticket items, and choosing a POS with no contract and zero transaction-fee markup so processing costs do not compound over time.' },
+    ],
+  },
   'i-got-quoted-1200-month-for-toast-heres-what-i-built-instead': {
     id: 'i-got-quoted-1200-month-for-toast-heres-what-i-built-instead',
     title: 'I Got Quoted $1,200/month for Toast. Here\'s What I Built Instead.',
