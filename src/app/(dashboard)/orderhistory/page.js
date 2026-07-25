@@ -487,7 +487,11 @@ const OrderHistory = () => {
       }
       case 'custom':
         if (customStartDate && customEndDate) {
-          return { startDate: new Date(customStartDate).toISOString(), endDate: new Date(customEndDate + 'T23:59:59.999').toISOString() };
+          // Parse BOTH bounds as local-day boundaries (append time), matching the
+          // presets above. `new Date('2026-07-25')` alone parses as UTC midnight,
+          // which shifted the custom range by the timezone offset and made a
+          // custom "yesterday" return different results than the Yesterday preset.
+          return { startDate: new Date(customStartDate + 'T00:00:00.000').toISOString(), endDate: new Date(customEndDate + 'T23:59:59.999').toISOString() };
         }
         return { todayOnly: true };
       default:
