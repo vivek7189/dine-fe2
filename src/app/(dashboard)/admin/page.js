@@ -5081,8 +5081,45 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
 
 /** App Download Tab — simple Google Drive download links for Windows + Mac */
 function AppDownloadTab() {
-  const WINDOWS_DOWNLOAD_URL = 'https://drive.google.com/file/d/11nkyOrv6TbIUj19cF4h_yifHCrK02MWS/view?usp=sharing';
-  const MAC_DOWNLOAD_URL = 'https://drive.google.com/file/d/11CEOnivkenTAU2Bdhkmtk5y7gWGiqnw1/view?usp=sharing';
+  // Desktop builds are published as GitHub Releases (public repo) by the
+  // build-electron workflow. We resolve the LATEST release's .exe / .dmg at
+  // runtime so these links never need manual updating on a new release.
+  const GITHUB_REPO = 'vivek7189/dine-fe2';
+  const RELEASES_PAGE = `https://github.com/${GITHUB_REPO}/releases/latest`;
+  const [release, setRelease] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const CACHE_KEY = 'dineopen_desktop_release_v1';
+    // Serve a cached result (1h) to stay well under GitHub's unauthenticated API limit.
+    try {
+      const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null');
+      if (cached && Date.now() - cached.t < 3600000) { setRelease(cached.data); return; }
+    } catch { /* ignore */ }
+    fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('release fetch failed'))))
+      .then((d) => {
+        const assets = Array.isArray(d.assets) ? d.assets : [];
+        const url = (test) => (assets.find((a) => test((a.name || '').toLowerCase())) || {}).browser_download_url || null;
+        const dmgs = assets.filter((a) => (a.name || '').toLowerCase().endsWith('.dmg'));
+        // Prefer a universal build, then Apple Silicon (arm64), then Intel (x64), then any dmg.
+        const dmg = dmgs.find((a) => /universal/i.test(a.name)) || dmgs.find((a) => /arm64/i.test(a.name)) || dmgs.find((a) => /x64|intel/i.test(a.name)) || dmgs[0];
+        const data = {
+          version: d.tag_name || null,
+          windowsUrl: url((n) => n.endsWith('.exe')),
+          macUrl: dmg ? dmg.browser_download_url : null,
+        };
+        if (!cancelled) setRelease(data);
+        try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), data })); } catch { /* ignore */ }
+      })
+      .catch(() => { if (!cancelled) setRelease({ version: null, windowsUrl: null, macUrl: null }); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Direct asset URL when resolved; otherwise fall back to the latest-release page (still downloads, one extra click).
+  const WINDOWS_DOWNLOAD_URL = release?.windowsUrl || RELEASES_PAGE;
+  const MAC_DOWNLOAD_URL = release?.macUrl || RELEASES_PAGE;
+  const versionLabel = release?.version || '';
 
   const btnStyle = (bg, shadow) => ({
     display: 'inline-flex', alignItems: 'center', gap: '8px',
@@ -5102,7 +5139,7 @@ function AppDownloadTab() {
           <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: '#111827' }}>Download DineOpen POS</h2>
           <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
             Install the DineOpen POS app on desktop or mobile for billing, orders, and more
-            <span style={{ marginLeft: '8px', padding: '2px 8px', background: '#dbeafe', color: '#1d4ed8', borderRadius: '6px', fontSize: '12px', fontWeight: '600' }}>v1.11.0</span>
+            {versionLabel && <span style={{ marginLeft: '8px', padding: '2px 8px', background: '#dbeafe', color: '#1d4ed8', borderRadius: '6px', fontSize: '12px', fontWeight: '600' }}>{versionLabel}</span>}
           </p>
         </div>
       </div>
