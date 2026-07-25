@@ -3,6 +3,36 @@
 
 export const blogPosts = [
   {
+    slug: 'best-pos-for-food-trucks-usa-2026',
+    title: 'Best POS System for Food Trucks in the USA (2026): Mobile, Offline and Cheap',
+    excerpt: 'The best food truck POS systems in 2026 — compared on offline mode, mobile hardware, card fees and price. What actually matters when your restaurant moves.',
+    date: '2026-07-25',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    readTime: '9 min read',
+    author: 'Vivek Sharma',
+  },
+  {
+    slug: 'how-much-does-epos-now-cost-2026',
+    title: 'How Much Does EPOS Now Cost in 2026? (Real UK Pricing Breakdown)',
+    excerpt: 'A transparent look at EPOS Now pricing in 2026 — upfront hardware, monthly software, payments and contract — plus cheaper alternatives for UK restaurants.',
+    date: '2026-07-25',
+    category: 'Pricing',
+    categoryColor: '#f59e0b',
+    readTime: '8 min read',
+    author: 'Vivek Sharma',
+  },
+  {
+    slug: 'reduce-skipthedishes-commission-2026',
+    title: 'How to Reduce SkipTheDishes and Uber Eats Commission (Canada 2026)',
+    excerpt: 'SkipTheDishes, Uber Eats and DoorDash take 15-30% per order. Here is how Canadian restaurants cut delivery commission in 2026 with direct ordering and smarter pricing.',
+    date: '2026-07-25',
+    category: 'Guide',
+    categoryColor: '#3b82f6',
+    readTime: '9 min read',
+    author: 'Vivek Sharma',
+  },
+  {
     slug: 'deliveroo-vs-just-eat-vs-uber-eats-commission-2026',
     title: 'Deliveroo vs Just Eat vs Uber Eats: Commission and Fees Compared (UK 2026)',
     excerpt: 'Compare Deliveroo, Just Eat and Uber Eats commission rates and fees for UK restaurants in 2026 — and how to cut what you pay with direct online ordering.',
@@ -1441,6 +1471,184 @@ export const blogPosts = [
 
 // Blog post content - for static generation
 export const blogPostContent = {
+  'best-pos-for-food-trucks-usa-2026': {
+    id: 'best-pos-for-food-trucks-usa-2026',
+    title: 'Best POS System for Food Trucks in the USA (2026): Mobile, Offline and Cheap',
+    excerpt: 'The best food truck POS systems in 2026 — compared on offline mode, mobile hardware, card fees and price. What actually matters when your restaurant moves.',
+    author: 'Vivek Sharma',
+    publishDate: '2026-07-25',
+    dateModified: '2026-07-25',
+    readTime: '9 min read',
+    category: 'Comparison',
+    tags: ['best food truck POS', 'food truck POS system', 'mobile POS', 'POS for food trucks USA', 'food truck payments'],
+    content: `
+        <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:20px;border-radius:8px;margin:24px 0;">
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#7f1d1d;"><strong>Quick answer:</strong> The best food truck POS in 2026 is <strong>mobile, cheap, and works offline</strong>. Square is the classic starting point (free software, portable readers). For food trucks that want full features — online ordering, loyalty, sales tax by location — without a contract, DineOpen runs on a tablet or phone at a flat $10/month with zero transaction-fee markup. Whatever you pick: prioritize <strong>offline mode</strong> and <strong>battery-friendly hardware</strong>.</p>
+        </div>
+
+        <p>A food truck POS has a different job than a restaurant POS. You are on cell data (or none), your counter is a serving window, and your busiest hour might be in a park with no Wi-Fi. Here is what matters, and which systems handle it.</p>
+
+        <h2>What does a food truck actually need from a POS?</h2>
+        <ul>
+          <li><strong>Offline mode</strong> — take orders and cards when the signal drops, then sync later. Non-negotiable.</li>
+          <li><strong>Mobile hardware</strong> — a tablet or phone plus a portable card reader, not a bulky terminal.</li>
+          <li><strong>Low, predictable cost</strong> — margins are tight; avoid contracts and big upfront hardware bills.</li>
+          <li><strong>Fast checkout</strong> — a tight menu layout for a short, high-volume rush.</li>
+          <li><strong>Sales tax by location</strong> — if you move between cities, the tax rate changes. Our <a href="/tools/sales-tax-calculator">sales tax calculator</a> shows how much.</li>
+          <li><strong>QR / online ordering</strong> — let a line order ahead from their phone.</li>
+        </ul>
+
+        <h2>Best food truck POS systems compared</h2>
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:15px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">&nbsp;</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Square</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Toast Go</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">DineOpen</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Software</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Free</td><td style="padding:12px;border:1px solid #e5e7eb;">$0-$69+/mo</td><td style="padding:12px;border:1px solid #e5e7eb;">$10/mo flat</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Hardware</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Cheap reader</td><td style="padding:12px;border:1px solid #e5e7eb;">Proprietary handheld</td><td style="padding:12px;border:1px solid #e5e7eb;">Your tablet/phone</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Offline mode</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Yes</td><td style="padding:12px;border:1px solid #e5e7eb;">Yes</td><td style="padding:12px;border:1px solid #e5e7eb;">Yes</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Processing</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">~2.6% + 10¢</td><td style="padding:12px;border:1px solid #e5e7eb;">~2.49-3.5%</td><td style="padding:12px;border:1px solid #e5e7eb;">0% markup (BYO)</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Contract</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">None</td><td style="padding:12px;border:1px solid #e5e7eb;">Often 1-3 yrs</td><td style="padding:12px;border:1px solid #e5e7eb;">None</td></tr>
+          </tbody>
+        </table>
+
+        <h2>Which food truck POS is best for you?</h2>
+        <ul>
+          <li><strong>Just starting out:</strong> Square — free, simple, and you can be taking cards in an hour.</li>
+          <li><strong>Growing to multiple trucks / adding online ordering:</strong> a flat-rate system that scales without per-location contracts.</li>
+          <li><strong>High card volume:</strong> mind the swipe rate — on a busy truck, processing dwarfs software, so a 0% POS markup saves real money.</li>
+        </ul>
+        <p>See the full <a href="/for/food-trucks">food truck POS features</a> and the <a href="/vs/dineopen-vs-square">DineOpen vs Square</a> comparison.</p>
+
+        <h2>Frequently asked questions</h2>
+        <p><strong>What is the best POS system for a food truck?</strong> The best food truck POS is mobile, affordable, and works offline. Square is the easiest free starting point; flat-rate systems like DineOpen add online ordering and location-based sales tax without a contract or per-swipe markup.</p>
+        <p><strong>Do food truck POS systems work without internet?</strong> Yes — a good food truck POS keeps taking orders and card payments offline and syncs the data automatically when the connection returns. Always confirm offline card acceptance before buying.</p>
+        <p><strong>How much does a food truck POS cost?</strong> Software ranges from free (Square) to a flat $10/month, plus a portable card reader and per-transaction processing of roughly 2.5-3%. Avoid systems with large upfront hardware costs or multi-year contracts.</p>
+    `,
+    faqs: [
+      { q: "What is the best POS system for a food truck in 2026?", a: "The best food truck POS is mobile, affordable, and works offline. Square is the easiest free starting point, while flat-rate systems like DineOpen add online ordering and location-based sales tax without a contract or per-swipe markup." },
+      { q: "Do food truck POS systems work without internet?", a: "Yes. A good food truck POS keeps taking orders and card payments offline and syncs the data automatically when the connection returns. Always confirm offline card acceptance before buying." },
+      { q: "How much does a food truck POS cost?", a: "Software ranges from free with Square to a flat 10 dollars per month, plus a portable card reader and per-transaction processing of roughly 2.5 to 3 percent. Avoid systems with large upfront hardware costs or multi-year contracts." },
+      { q: "Does a food truck need to charge different sales tax by city?", a: "Often yes. If you operate in different cities or counties the combined sales-tax rate can change, so a POS that applies the correct local rate by location keeps your tax accurate." },
+    ],
+  },
+  'how-much-does-epos-now-cost-2026': {
+    id: 'how-much-does-epos-now-cost-2026',
+    title: 'How Much Does EPOS Now Cost in 2026? (Real UK Pricing Breakdown)',
+    excerpt: 'A transparent look at EPOS Now pricing in 2026 — upfront hardware, monthly software, payments and contract — plus cheaper alternatives for UK restaurants.',
+    author: 'Vivek Sharma',
+    publishDate: '2026-07-25',
+    dateModified: '2026-07-25',
+    readTime: '8 min read',
+    category: 'Pricing',
+    tags: ['EPOS Now cost', 'EPOS Now pricing', 'EPOS Now review', 'UK EPOS pricing', 'restaurant EPOS cost'],
+    content: `
+        <div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:20px;border-radius:8px;margin:24px 0;">
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#78350f;"><strong>Quick answer:</strong> EPOS Now typically involves an <strong>upfront hardware bundle</strong> (commonly a few hundred pounds) plus a <strong>monthly software subscription</strong>, with <strong>card processing</strong> and any add-ons on top — often on a contract. Exact figures vary by the quote you are given, which is why it pays to compare. Flat-rate alternatives with no upfront hardware cost and no contract, like DineOpen at 8 pounds per month, are usually cheaper all-in for a small venue.</p>
+        </div>
+
+        <p>EPOS Now is one of the most advertised EPOS brands in the UK, but its pricing is quote-based, so the number you are given can vary a lot. Here is how the cost breaks down, and what to watch for.</p>
+
+        <h2>How much does EPOS Now cost in 2026?</h2>
+        <p>There are three parts to the EPOS Now bill, and you should always add them together:</p>
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:15px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Cost</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">What to expect</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Hardware bundle</td><td style="padding:12px;border:1px solid #e5e7eb;">Upfront, commonly a few hundred pounds per till</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Software subscription</td><td style="padding:12px;border:1px solid #e5e7eb;">Monthly, per till/location</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Card processing</td><td style="padding:12px;border:1px solid #e5e7eb;">A percentage of every sale</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Add-ons</td><td style="padding:12px;border:1px solid #e5e7eb;">Apps and integrations, extra</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Contract</td><td style="padding:12px;border:1px solid #e5e7eb;">Term commitment on many deals</td></tr>
+          </tbody>
+        </table>
+
+        <h2>What pushes the EPOS Now bill up?</h2>
+        <ul>
+          <li><strong>Upfront hardware</strong> — a real cash cost before you take a single order.</li>
+          <li><strong>Per-till software</strong> — costs multiply with each extra till or site.</li>
+          <li><strong>Card processing</strong> — usually the biggest long-term cost at volume.</li>
+          <li><strong>Add-on apps</strong> — features you might assume are included can be extras.</li>
+          <li><strong>Contract term</strong> — makes switching later harder and more expensive.</li>
+        </ul>
+
+        <h2>How does that compare to alternatives?</h2>
+        <p>The main difference with modern cloud EPOS is the <em>shape</em> of the cost: no big upfront hardware bill (run it on a tablet), a low flat monthly fee, and no contract. For a small UK restaurant or cafe, that usually works out cheaper and lower-risk. <a href="/uk">DineOpen</a> starts at 8 pounds per month with VAT and allergen handling, Deliveroo/Just Eat integration, and no lock-in — see the full <a href="/blog/epos-now-alternatives-2026">EPOS Now alternatives</a> comparison.</p>
+
+        <h2>Frequently asked questions</h2>
+        <p><strong>Does EPOS Now have an upfront cost?</strong> Yes, EPOS Now typically involves an upfront hardware bundle in addition to the monthly software subscription. Always confirm the hardware cost, the monthly fee, the processing rate, and the contract term in your quote.</p>
+        <p><strong>Is EPOS Now on a contract?</strong> Many EPOS Now deals include a contract term. Check the length, the notice period, and any early-termination charges before you sign.</p>
+        <p><strong>Is there a cheaper alternative to EPOS Now?</strong> Yes. Flat-rate cloud EPOS systems with no upfront hardware cost and no contract, such as DineOpen at 8 pounds per month, are usually cheaper all-in for a small venue.</p>
+    `,
+    faqs: [
+      { q: "Does EPOS Now have an upfront cost?", a: "Yes. EPOS Now typically involves an upfront hardware bundle in addition to a monthly software subscription. Always confirm the hardware cost, the monthly fee, the card-processing rate, and the contract term in your quote before signing." },
+      { q: "Is EPOS Now on a contract?", a: "Many EPOS Now deals include a contract term. Check the length, the notice period, and any early-termination charges before you commit." },
+      { q: "Is there a cheaper alternative to EPOS Now?", a: "Yes. Flat-rate cloud EPOS systems with no upfront hardware cost and no contract, such as DineOpen at 8 pounds per month, are usually cheaper all-in for a small UK restaurant or cafe." },
+      { q: "How much is EPOS Now per month?", a: "EPOS Now charges a monthly software subscription per till or location, plus card processing, on top of the initial hardware bundle. Because pricing is quote-based it varies, so compare the full all-in cost against alternatives." },
+    ],
+  },
+  'reduce-skipthedishes-commission-2026': {
+    id: 'reduce-skipthedishes-commission-2026',
+    title: 'How to Reduce SkipTheDishes and Uber Eats Commission (Canada 2026)',
+    excerpt: 'SkipTheDishes, Uber Eats and DoorDash take 15-30% per order. Here is how Canadian restaurants cut delivery commission in 2026 with direct ordering and smarter pricing.',
+    author: 'Vivek Sharma',
+    publishDate: '2026-07-25',
+    dateModified: '2026-07-25',
+    readTime: '9 min read',
+    category: 'Guide',
+    tags: ['reduce SkipTheDishes commission', 'Uber Eats Canada', 'DoorDash Canada', 'restaurant delivery Canada', 'delivery commission'],
+    content: `
+        <div style="background:#eff6ff;border-left:4px solid #3b82f6;padding:20px;border-radius:8px;margin:24px 0;">
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#1e3a8a;"><strong>Quick answer:</strong> SkipTheDishes, Uber Eats and DoorDash charge Canadian restaurants roughly <strong>15-30% commission</strong> per order, depending on the plan. Cut it by driving your own <strong>commission-free online ordering</strong>, choosing the right marketplace tier, self-delivering where possible, incentivizing pickup, and moving repeat customers to direct. Use the apps for discovery, not loyalty.</p>
+        </div>
+
+        <p>Delivery apps are how a lot of Canadian diners find restaurants — and how a lot of restaurants lose their margin. Here is how to keep more of every order in 2026 without vanishing from the marketplaces.</p>
+
+        <h2>How much commission do SkipTheDishes and Uber Eats charge in Canada?</h2>
+        <p>Like the US apps, Canadian delivery marketplaces offer tiers — typically around <strong>15% to 30%</strong> commission, where higher rates buy more visibility. On top of commission there are processing and optional marketing fees. On a 30% commission, a $30 order nets you $21 before food and staff cost.</p>
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:15px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Channel</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Typical commission</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">SkipTheDishes / Uber Eats / DoorDash marketplace</td><td style="padding:12px;border:1px solid #e5e7eb;">15-30% + fees</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Self-delivery tier (you deliver)</td><td style="padding:12px;border:1px solid #e5e7eb;">lower commission</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Your own online ordering</td><td style="padding:12px;border:1px solid #e5e7eb;">0% commission (delivery cost only)</td></tr>
+          </tbody>
+        </table>
+        <p>For a fuller side-by-side, see our <a href="/blog/food-delivery-commission-comparison-canada-2026">Canada delivery commission comparison</a>.</p>
+
+        <h2>How do Canadian restaurants reduce delivery commission?</h2>
+        <ol>
+          <li><strong>Launch your own online ordering</strong> — 0% commission, you keep everything minus card fees.</li>
+          <li><strong>Self-deliver where you can</strong> to unlock the apps' lower-commission tiers.</li>
+          <li><strong>Right-size your tier</strong> — test whether the top "boosted" plan actually pays for itself.</li>
+          <li><strong>Incentivize pickup</strong> with a small discount to shift orders to a cheaper channel.</li>
+          <li><strong>Add a QR flyer to every delivery bag</strong> pointing to your direct ordering page with a first-order discount.</li>
+          <li><strong>Own your customer data</strong> — direct orders give you the contact details the marketplaces keep.</li>
+        </ol>
+
+        <h2>Is direct online ordering worth it in Canada?</h2>
+        <p>Yes — once you have repeat customers. The apps are excellent for being discovered and expensive for loyalty. <a href="/canada">DineOpen</a> includes commission-free online ordering, QR dine-in, GST/HST/QST handling, and SkipTheDishes/Uber Eats/DoorDash integration in one POS, so you can run marketplace and direct together and steadily shift the mix.</p>
+
+        <h2>Frequently asked questions</h2>
+        <p><strong>How much commission does SkipTheDishes take?</strong> SkipTheDishes commission typically ranges from about 15% to 30% of the order value depending on the plan you choose, plus processing and optional marketing fees.</p>
+        <p><strong>Can Canadian restaurants avoid delivery commission?</strong> You cannot avoid it on marketplace orders, but you can avoid it on direct orders. Building your own commission-free online ordering and moving repeat customers to it is the most effective way to cut total delivery costs.</p>
+        <p><strong>What is the cheapest way to offer delivery in Canada?</strong> Your own online ordering page with self-delivery or an on-demand driver is cheapest, since you pay only delivery and card-processing costs instead of 15 to 30 percent marketplace commission.</p>
+    `,
+    faqs: [
+      { q: "How much commission does SkipTheDishes take from restaurants?", a: "SkipTheDishes commission typically ranges from about 15 to 30 percent of the order value depending on the plan you choose, plus payment processing and optional marketing fees." },
+      { q: "Can Canadian restaurants avoid delivery commission?", a: "You cannot avoid commission on marketplace orders, but you can avoid it on direct orders. Building your own commission-free online ordering and moving repeat customers to it is the most effective way to cut total delivery costs." },
+      { q: "What is the cheapest way to offer delivery in Canada?", a: "Your own online ordering page combined with self-delivery or an on-demand driver is the cheapest, since you pay only delivery and card-processing costs instead of 15 to 30 percent marketplace commission." },
+      { q: "Is direct online ordering worth it for Canadian restaurants?", a: "Yes, once you have repeat customers. Delivery apps are great for discovery but expensive for loyalty, so using them to get found and then moving regulars to your own commission-free ordering protects your margin." },
+    ],
+  },
   'deliveroo-vs-just-eat-vs-uber-eats-commission-2026': {
     id: 'deliveroo-vs-just-eat-vs-uber-eats-commission-2026',
     title: 'Deliveroo vs Just Eat vs Uber Eats: Commission and Fees Compared (UK 2026)',
