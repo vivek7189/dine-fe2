@@ -3,6 +3,36 @@
 
 export const blogPosts = [
   {
+    slug: 'reduce-doordash-uber-eats-commission-2026',
+    title: 'How to Reduce DoorDash and Uber Eats Commission (US Restaurants, 2026)',
+    excerpt: 'Third-party delivery apps take 15-30% per order. Here are 9 practical ways US restaurants cut DoorDash, Uber Eats and Grubhub commission in 2026 — from direct online ordering to smarter menu pricing.',
+    date: '2026-07-25',
+    category: 'Guide',
+    categoryColor: '#3b82f6',
+    readTime: '10 min read',
+    author: 'Vivek Sharma',
+  },
+  {
+    slug: 'uk-restaurant-vat-eat-in-vs-takeaway-2026',
+    title: 'UK Restaurant VAT: Eat-In vs Takeaway Explained (2026)',
+    excerpt: 'When do you charge 20% VAT and when is it zero-rated? A clear 2026 guide to UK restaurant VAT — hot vs cold, eat-in vs takeaway — with worked examples and a free VAT calculator.',
+    date: '2026-07-25',
+    category: 'Guide',
+    categoryColor: '#3b82f6',
+    readTime: '8 min read',
+    author: 'Vivek Sharma',
+  },
+  {
+    slug: 'restaurant-credit-card-processing-fees-2026',
+    title: 'Restaurant Credit Card Processing Fees Explained (US 2026)',
+    excerpt: 'Processing fees quietly cost US restaurants more than their POS software. Here is how interchange, flat-rate and interchange-plus pricing work in 2026 — and how to pay less on every swipe.',
+    date: '2026-07-25',
+    category: 'Guide',
+    categoryColor: '#10b981',
+    readTime: '9 min read',
+    author: 'Vivek Sharma',
+  },
+  {
     slug: 'epos-now-alternatives-2026',
     title: 'EPOS Now Alternatives 2026: 5 Cheaper, No-Lock-In UK Options',
     excerpt: 'Thinking of leaving EPOS Now? Here are the five best alternatives for UK restaurants, cafes and pubs in 2026 — compared on price, contracts, hardware and support, with no sales spin.',
@@ -1381,6 +1411,188 @@ export const blogPosts = [
 
 // Blog post content - for static generation
 export const blogPostContent = {
+  'reduce-doordash-uber-eats-commission-2026': {
+    id: 'reduce-doordash-uber-eats-commission-2026',
+    title: 'How to Reduce DoorDash and Uber Eats Commission (US Restaurants, 2026)',
+    excerpt: 'Third-party delivery apps take 15-30% per order. Here are 9 practical ways US restaurants cut DoorDash, Uber Eats and Grubhub commission in 2026 — from direct online ordering to smarter menu pricing.',
+    author: 'Vivek Sharma',
+    publishDate: '2026-07-25',
+    dateModified: '2026-07-25',
+    readTime: '10 min read',
+    category: 'Guide',
+    tags: ['reduce DoorDash commission', 'Uber Eats fees', 'delivery commission', 'direct online ordering', 'restaurant delivery costs'],
+    content: `
+        <div style="background:#eff6ff;border-left:4px solid #3b82f6;padding:20px;border-radius:8px;margin:24px 0;">
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#1e3a8a;"><strong>Quick answer:</strong> DoorDash, Uber Eats and Grubhub charge roughly <strong>15-30% commission</strong> per order. You can cut that by driving <strong>direct online ordering</strong> (your own site at 0% commission), choosing the lower-commission marketplace tiers, adding a modest delivery fee, pricing your delivery menu separately, offering pickup incentives, and using the apps mainly for <em>discovery</em> while moving repeat customers to direct ordering.</p>
+        </div>
+
+        <p>Third-party delivery is a great way to get discovered — and a fast way to watch your margin disappear. On a 30% commission, a $30 order nets you $21 before food and labor cost. Here is how US restaurants claw that back in 2026, without disappearing from the apps entirely.</p>
+
+        <h2>How much commission do DoorDash and Uber Eats charge?</h2>
+        <p>Commission depends on the plan you pick. The marketplaces offer tiers — typically around <strong>15%, 25% and 30%</strong> — where higher commission buys more visibility and wider delivery radius. Add payment processing and optional marketing and the effective take can climb further. The key insight: <em>you choose the tier</em>, and the highest one is not always worth it.</p>
+
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:15px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Channel</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Typical commission</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">DoorDash / Uber Eats / Grubhub marketplace</td><td style="padding:12px;border:1px solid #e5e7eb;">15-30% + fees</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Third-party "delivery-only" (you drive traffic)</td><td style="padding:12px;border:1px solid #e5e7eb;">~10-15%</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Your own online ordering + own driver / DoorDash Drive</td><td style="padding:12px;border:1px solid #e5e7eb;">0% commission (delivery cost only)</td></tr>
+          </tbody>
+        </table>
+
+        <h2>9 ways to reduce delivery commission</h2>
+        <ol>
+          <li><strong>Launch direct online ordering.</strong> A commission-free ordering page on your own site is the single biggest lever — you keep 100% minus card processing.</li>
+          <li><strong>Use QR-code ordering for dine-in and pickup</strong> so on-premise orders never touch a marketplace.</li>
+          <li><strong>Right-size your marketplace tier.</strong> Test whether the 30% tier actually drives enough extra orders to beat the 15% tier.</li>
+          <li><strong>Add a small delivery fee</strong> to marketplace orders to offset commission (within the app rules).</li>
+          <li><strong>Price a separate delivery menu</strong> so app orders carry the commission, not your dine-in guests.</li>
+          <li><strong>Incentivize pickup</strong> — a small discount for pickup shifts orders to a cheaper channel.</li>
+          <li><strong>Use "self-delivery" or DoorDash Drive</strong> for orders you generate yourself — fulfilment without the marketplace commission.</li>
+          <li><strong>Convert repeat customers to direct.</strong> Add a flyer or QR to every delivery bag pointing to your own ordering page and a first-order discount.</li>
+          <li><strong>Own your customer data.</strong> Direct orders give you the email/phone; marketplaces keep it. That is worth more than one order.</li>
+        </ol>
+
+        <h2>Should you pass the fee to customers?</h2>
+        <p>Menu "price-ups" on delivery apps are common and allowed within each platform's policy — many restaurants set delivery-menu prices 10-15% higher to protect margin. The trade-off is customer perception, so keep it modest and consistent. For pickup and direct orders, keep prices lower to reward the cheaper channel.</p>
+
+        <h2>Is direct online ordering actually worth it?</h2>
+        <p>Yes, once you have repeat customers. The apps are excellent for <em>discovery</em>; they are expensive for <em>loyalty</em>. The winning play is to use marketplaces to get found, then move regulars to your own <a href="/products/orders">online ordering</a> at 0% commission. A POS with built-in direct ordering makes this seamless — <a href="/usa">DineOpen</a> includes commission-free online ordering, QR dine-in, and DoorDash/Uber Eats/Grubhub integration in one place.</p>
+
+        <h2>Frequently asked questions</h2>
+        <p><strong>How much commission does DoorDash take from restaurants?</strong> DoorDash marketplace commission typically ranges from about 15% to 30% per order depending on the partnership tier you choose, plus payment processing and optional marketing fees.</p>
+        <p><strong>Can restaurants avoid delivery commission?</strong> You cannot avoid it on marketplace orders, but you can avoid it on direct orders. Building your own commission-free online ordering and moving repeat customers to it is the most effective way to cut total delivery costs.</p>
+        <p><strong>Is it legal to charge more on DoorDash than in-store?</strong> Menu price-ups on delivery apps are widely used and permitted within each platform's policies. Keep the increase modest and check the current terms of each app.</p>
+    `,
+    faqs: [
+      { q: "How much commission does DoorDash take from restaurants?", a: "DoorDash marketplace commission typically ranges from about 15 to 30 percent per order depending on the partnership tier you choose, plus payment processing and optional marketing fees." },
+      { q: "Can restaurants avoid delivery commission entirely?", a: "You cannot avoid commission on marketplace orders, but you can avoid it on direct orders. Building your own commission-free online ordering and moving repeat customers to it is the most effective way to cut total delivery costs." },
+      { q: "Is it legal to charge more on DoorDash than in-store?", a: "Menu price-ups on delivery apps are widely used and permitted within each platform's policies. Keep the increase modest and check the current terms of each app." },
+      { q: "What is the cheapest way to offer delivery?", a: "Your own online ordering page combined with self-delivery or an on-demand driver service is the cheapest, since you pay only delivery and card-processing costs instead of 15 to 30 percent marketplace commission." },
+    ],
+  },
+  'uk-restaurant-vat-eat-in-vs-takeaway-2026': {
+    id: 'uk-restaurant-vat-eat-in-vs-takeaway-2026',
+    title: 'UK Restaurant VAT: Eat-In vs Takeaway Explained (2026)',
+    excerpt: 'When do you charge 20% VAT and when is it zero-rated? A clear 2026 guide to UK restaurant VAT — hot vs cold, eat-in vs takeaway — with worked examples and a free VAT calculator.',
+    author: 'Vivek Sharma',
+    publishDate: '2026-07-25',
+    dateModified: '2026-07-25',
+    readTime: '8 min read',
+    category: 'Guide',
+    tags: ['restaurant VAT', 'takeaway VAT', 'eat in vs takeaway VAT', 'UK hospitality VAT', 'VAT on food'],
+    content: `
+        <div style="background:#eff6ff;border-left:4px solid #3b82f6;padding:20px;border-radius:8px;margin:24px 0;">
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#1e3a8a;"><strong>Quick answer:</strong> In the UK, <strong>eat-in food and drink is always standard-rated at 20% VAT</strong>. <strong>Hot takeaway food is also 20%</strong>. But <strong>most cold takeaway food is zero-rated (0%)</strong> when eaten off the premises. So the exact same sandwich can be 20% VAT eaten in, or 0% VAT taken away cold — which is why your EPOS needs to apply the right rate per order.</p>
+        </div>
+
+        <p>UK VAT on food trips up a lot of restaurant and cafe owners, because the rate depends less on <em>what</em> you sell and more on <em>how</em> it is sold. Get it wrong and your VAT return is off. Here is the plain-English version.</p>
+
+        <h2>What is the VAT rate for UK restaurants?</h2>
+        <p>The standard UK VAT rate is <strong>20%</strong>. Everything you serve to eat or drink on your premises is standard-rated at 20% — no exceptions for hot vs cold once it is eat-in. The nuance only appears with <strong>takeaway</strong>.</p>
+
+        <h2>Eat-in vs takeaway: the rule that decides the rate</h2>
+        <ul>
+          <li><strong>Eat-in (any food or drink):</strong> 20% VAT, always.</li>
+          <li><strong>Hot takeaway food:</strong> 20% VAT (it is heated to be eaten hot).</li>
+          <li><strong>Cold takeaway food:</strong> usually <strong>0% (zero-rated)</strong> when eaten off the premises — for example a cold sandwich, salad or bottled drink to go.</li>
+          <li><strong>Some items are always standard-rated</strong> even cold and to-go — e.g. crisps, confectionery, ice cream, and most soft/alcoholic drinks.</li>
+        </ul>
+
+        <h2>Hot vs cold: worked examples</h2>
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:15px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Item</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Eat-in</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Takeaway</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Hot coffee</td><td style="padding:12px;border:1px solid #e5e7eb;">20%</td><td style="padding:12px;border:1px solid #e5e7eb;">20% (hot)</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Cold sandwich</td><td style="padding:12px;border:1px solid #e5e7eb;">20%</td><td style="padding:12px;border:1px solid #e5e7eb;">0%</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Hot pizza / fish &amp; chips</td><td style="padding:12px;border:1px solid #e5e7eb;">20%</td><td style="padding:12px;border:1px solid #e5e7eb;">20% (hot)</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Bottled water</td><td style="padding:12px;border:1px solid #e5e7eb;">20%</td><td style="padding:12px;border:1px solid #e5e7eb;">20% (always standard)</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Cold salad</td><td style="padding:12px;border:1px solid #e5e7eb;">20%</td><td style="padding:12px;border:1px solid #e5e7eb;">0%</td></tr>
+          </tbody>
+        </table>
+        <p>Want to check a figure? Our free <a href="/tools/vat-calculator">UK VAT calculator</a> adds or removes 20% (or 5%/0%) instantly.</p>
+
+        <h2>How should you handle this on your EPOS?</h2>
+        <p>Trying to remember all this at the till is a recipe for VAT errors. The clean fix is an EPOS that stores the correct VAT rate per item <em>and</em> per order type, so a cold sandwich rings up at 20% for eat-in and 0% for takeaway automatically — and exports the totals for your Making Tax Digital return. That is exactly how <a href="/uk">DineOpen&rsquo;s UK EPOS</a> handles it, with Xero export built in.</p>
+
+        <h2>Frequently asked questions</h2>
+        <p><strong>Do you charge VAT on takeaway food in the UK?</strong> Hot takeaway food is standard-rated at 20%. Most cold takeaway food is zero-rated (0%) when eaten off the premises, though items like crisps, confectionery, ice cream and drinks are always standard-rated.</p>
+        <p><strong>Is eat-in food always 20% VAT?</strong> Yes. Any food or drink consumed on your premises is standard-rated at 20%, regardless of whether it is hot or cold.</p>
+        <p><strong>What is the VAT on a cold sandwich?</strong> Eaten in, it is 20%. Taken away cold to eat off the premises, it is usually zero-rated at 0%.</p>
+    `,
+    faqs: [
+      { q: "Do you charge VAT on takeaway food in the UK?", a: "Hot takeaway food is standard-rated at 20 percent. Most cold takeaway food is zero-rated at 0 percent when eaten off the premises, although items such as crisps, confectionery, ice cream and drinks are always standard-rated." },
+      { q: "Is eat-in food always 20 percent VAT?", a: "Yes. Any food or drink consumed on your premises is standard-rated at 20 percent, regardless of whether it is hot or cold." },
+      { q: "What is the VAT on a cold sandwich in the UK?", a: "Eaten in, a cold sandwich is 20 percent VAT. Taken away cold to eat off the premises, it is usually zero-rated at 0 percent." },
+      { q: "How do I apply the correct VAT on my EPOS?", a: "Use an EPOS that stores the correct VAT rate per item and per order type, so the same item rings up at 20 percent for eat-in and 0 percent for cold takeaway automatically, and exports the totals for Making Tax Digital." },
+    ],
+  },
+  'restaurant-credit-card-processing-fees-2026': {
+    id: 'restaurant-credit-card-processing-fees-2026',
+    title: 'Restaurant Credit Card Processing Fees Explained (US 2026)',
+    excerpt: 'Processing fees quietly cost US restaurants more than their POS software. Here is how interchange, flat-rate and interchange-plus pricing work in 2026 — and how to pay less on every swipe.',
+    author: 'Vivek Sharma',
+    publishDate: '2026-07-25',
+    dateModified: '2026-07-25',
+    readTime: '9 min read',
+    category: 'Guide',
+    tags: ['credit card processing fees', 'restaurant payment processing', 'interchange plus', 'flat rate processing', 'merchant fees'],
+    content: `
+        <div style="background:#f0fdf4;border-left:4px solid #22c55e;padding:20px;border-radius:8px;margin:24px 0;">
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#166534;"><strong>Quick answer:</strong> US restaurants typically pay <strong>2.3-3.5% per card transaction</strong>. Flat-rate pricing (Square, Toast Payments) is simple but often more expensive at volume; <strong>interchange-plus</strong> is more transparent and usually cheaper for busy restaurants. Watch out for POS systems that add a <em>markup on top</em> of processing — on $40k/month in card sales, a 0.3% difference is about $1,440 a year.</p>
+        </div>
+
+        <p>Ask a restaurant owner what their POS costs and they will quote the monthly software fee. Ask what card processing costs and you often get a shrug — even though it is usually the bigger number. Here is how it actually works, so you can stop overpaying.</p>
+
+        <h2>How much are restaurant credit card processing fees?</h2>
+        <p>Most US restaurants pay an effective rate of <strong>2.3% to 3.5%</strong> per card transaction, made up of three layers: <strong>interchange</strong> (set by Visa/Mastercard, goes to the card-issuing bank), <strong>assessments</strong> (the card networks), and the <strong>processor's margin</strong>. Only that last layer is negotiable — which is exactly where the pricing model matters.</p>
+
+        <h2>Interchange vs flat-rate vs interchange-plus</h2>
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:15px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Model</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">How it works</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Best for</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Flat-rate</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">One blended rate, e.g. 2.6% + 10¢</td><td style="padding:12px;border:1px solid #e5e7eb;">Low volume, simplicity</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Interchange-plus</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Interchange + fixed processor margin (e.g. +0.30%)</td><td style="padding:12px;border:1px solid #e5e7eb;">Busy restaurants; most transparent</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Tiered</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">"Qualified/mid/non-qualified" buckets</td><td style="padding:12px;border:1px solid #e5e7eb;">Usually avoid — least transparent</td></tr>
+          </tbody>
+        </table>
+        <p>Flat-rate is easy and fine when you are small. As volume grows, <strong>interchange-plus almost always wins</strong> because you stop overpaying the blended margin on every sale.</p>
+
+        <h2>Why your POS choice matters more than you think</h2>
+        <p>Some POS systems bundle payments and take a percentage on top of the underlying processing — a markup baked into every transaction, forever. Others let you <strong>bring your own processor</strong> and charge only a flat software fee. That difference compounds: at $40k/month, even a 0.3% POS markup is roughly <strong>$1,440/year</strong> — often more than the software itself. This is the hidden cost behind "cheap" or "free" POS deals; see the numbers in <a href="/blog/how-much-does-toast-pos-cost-2026">how much Toast POS really costs</a>.</p>
+
+        <h2>How to lower your processing fees</h2>
+        <ul>
+          <li><strong>Move to interchange-plus</strong> if you are on flat-rate or tiered and doing real volume.</li>
+          <li><strong>Use a POS with no per-transaction markup</strong> — bring your own merchant account. <a href="/usa">DineOpen</a> charges a flat $10/month and takes 0% of your transactions.</li>
+          <li><strong>Encourage debit and lower-cost cards</strong> where practical.</li>
+          <li><strong>Review your statement</strong> for junk fees (PCI, statement, batch) at least twice a year.</li>
+          <li><strong>Consider surcharging/cash discounts</strong> where legal in your state, within card-network rules.</li>
+        </ul>
+
+        <h2>Frequently asked questions</h2>
+        <p><strong>What is the average credit card processing fee for restaurants?</strong> Most US restaurants pay an effective 2.3% to 3.5% per transaction, combining interchange, network assessments, and the processor's margin.</p>
+        <p><strong>Is interchange-plus cheaper than flat-rate?</strong> For most busy restaurants, yes. Interchange-plus exposes the true interchange cost and adds a fixed, transparent margin, so you stop overpaying the blended rate that flat-rate pricing charges on every sale.</p>
+        <p><strong>Does my POS add to processing fees?</strong> It can. Some POS platforms take a percentage on top of processing. Choosing a POS with a flat software fee and no per-transaction markup — and bringing your own processor — avoids that.</p>
+    `,
+    faqs: [
+      { q: "What is the average credit card processing fee for US restaurants?", a: "Most US restaurants pay an effective 2.3 to 3.5 percent per card transaction, combining interchange set by the card networks, network assessments, and the payment processor's margin." },
+      { q: "Is interchange-plus cheaper than flat-rate processing?", a: "For most busy restaurants, yes. Interchange-plus exposes the true interchange cost and adds a fixed, transparent margin, so you stop overpaying the blended rate that flat-rate pricing charges on every sale." },
+      { q: "Does my POS add to my processing fees?", a: "It can. Some POS platforms take a percentage on top of the underlying processing. Choosing a POS with a flat software fee and no per-transaction markup, and bringing your own merchant account, avoids that extra cost." },
+      { q: "How can a restaurant lower its processing fees?", a: "Move to interchange-plus pricing at volume, use a POS with no per-transaction markup, review statements for junk fees, encourage lower-cost card types, and consider a compliant cash-discount or surcharge program where legal." },
+    ],
+  },
   'epos-now-alternatives-2026': {
     id: 'epos-now-alternatives-2026',
     title: 'EPOS Now Alternatives 2026: 5 Cheaper, No-Lock-In UK Options',
