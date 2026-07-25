@@ -5228,7 +5228,7 @@ function AppDownloadTab() {
             </div>
           </a>
           <a
-            href="https://drive.google.com/file/d/1HUNIooeVEQNephaGiQS5n-t7kym2Vo_i/view?usp=sharing"
+            href="https://github.com/vivek7189/dine-fe2/releases/download/android-latest/DineOpen-Waiter.apk"
             target="_blank"
             rel="noopener noreferrer"
             style={{
