@@ -1960,7 +1960,10 @@ const OrderHistory = () => {
         totalRevenue: analyticsStats.totalRevenue || 0,
         totalRevenueWithTax: analyticsStats.totalRevenueWithTax || 0,
         orderCount: analyticsStats.totalOrders || 0,
-        completedCount: orders.filter(o => o.status === 'completed').length,
+        // Use the server-side completed count over the FULL date range. Falling
+        // back to `orders` (only the current paginated page) capped this at the
+        // page size (e.g. 10) even when every order in the range was completed.
+        completedCount: analyticsStats.completedOrders ?? orders.filter(o => o.status === 'completed').length,
         paymentBreakdown: analyticsStats.paymentBreakdown || {}
       };
     }
