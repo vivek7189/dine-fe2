@@ -885,24 +885,45 @@ const OrderSummary = ({
           const stations = (res?.printStations || []).filter(s => s.enabled);
           if (stations.length === 0) { await printCombinedFallback(); return; }
           const hasDefaultStation = stations.some(s => s.isDefault);
+          // On an UPDATE, only the delta prints (newOnly). On a NEW order it's false → whole order.
+          const isIncremental = !!orderSuccess.kotData?.isIncremental;
           let printedAny = false;
           for (const station of stations) {
-            const rd = await apiClient.getKOTRender(restaurantId, thisOrderId, { stationId: station.id });
+            const rd = await apiClient.getKOTRender(restaurantId, thisOrderId, { stationId: station.id, newOnly: isIncremental });
             const items = rd?.kot?.items || [];
-            if (rd?.empty || items.length === 0) continue;
+            const removedItems = rd?.kot?.removedItems || [];
+            // Skip a station that has nothing to print (no added AND no removed items for it)
+            if (rd?.empty || (items.length === 0 && removedItems.length === 0)) {
+              if (isIncremental) console.log(`[KOT][station:${station.name}] update → no changes, skipped`);
+              continue;
+            }
             const kotData = { ...rd.kot, restaurantName: rd?.restaurant?.name || rd.kot.restaurantName || '' };
             const html = generateKOTHTML(kotData, kotPS, kotLabels);
             if (html) {
               await printDocument({ html, type: 'kot', orderId: `${thisOrderId}-${station.id}`, stationId: station.id, restaurantId, printSettings: printSettings || {} });
               printedAny = true;
-              console.log(`[OrderSummary] Local station KOT printed: ${station.name} [${items.length} items]`);
+              if (isIncremental) {
+                const newCount = items.filter(i => i.isNew || (i.isUpdated && i.quantityDelta > 0)).length;
+                const reducedCount = items.filter(i => i.isUpdated && i.quantityDelta < 0).length;
+                console.log(`[KOT][station:${station.name}] update → NEW:${newCount} REDUCED:${reducedCount} CANCELLED:${removedItems.length}`);
+              } else {
+                console.log(`[KOT][station:${station.name}] new → items:${items.length}`);
+              }
             }
           }
           // No default station → send a combined KOT to the default printer so unassigned items aren't lost.
           if (!hasDefaultStation) {
-            const rd = await apiClient.getKOTRender(restaurantId, thisOrderId);
-            const html = rd?.kot && generateKOTHTML({ ...rd.kot, restaurantName: rd?.restaurant?.name || '' }, kotPS, kotLabels);
-            if (html) { await printDocument({ html, type: 'kot', orderId: `${thisOrderId}-default`, restaurantId, printSettings: printSettings || {} }); printedAny = true; }
+            const rd = await apiClient.getKOTRender(restaurantId, thisOrderId, { newOnly: isIncremental });
+            const items = rd?.kot?.items || [];
+            const removedItems = rd?.kot?.removedItems || [];
+            if (!rd?.empty && (items.length > 0 || removedItems.length > 0)) {
+              const html = rd?.kot && generateKOTHTML({ ...rd.kot, restaurantName: rd?.restaurant?.name || '' }, kotPS, kotLabels);
+              if (html) {
+                await printDocument({ html, type: 'kot', orderId: `${thisOrderId}-default`, restaurantId, printSettings: printSettings || {} });
+                printedAny = true;
+                console.log(`[KOT][station:default/unassigned] ${isIncremental ? 'update' : 'new'} → items:${items.length} CANCELLED:${removedItems.length}`);
+              }
+            }
           }
           if (!printedAny) await printCombinedFallback();
         } catch (e) {
