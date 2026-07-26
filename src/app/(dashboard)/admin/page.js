@@ -3513,6 +3513,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
     enableUpdateWithoutKOT: false,
     enableKOTAndPrint: false,
     enableSaveAndPrint: false,
+    kotThenBill: false,
     // Auto-print on button click (Tauri desktop)
     autoPrintOnPlaceOrder: false,
     autoPrintOnKOTAndPrint: true,
@@ -3647,6 +3648,13 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
       key: 'enableSaveAndPrint',
       title: 'Bill & Print Button',
       description: 'Show combined button to complete billing and always print bill',
+      icon: <FaReceipt size={18} />,
+      section: 'buttons'
+    },
+    {
+      key: 'kotThenBill',
+      title: 'KOT + Bill Button (one-click)',
+      description: 'Show one button that places the order, prints the KOT, then prints the bill — order stays unpaid so you settle payment after',
       icon: <FaReceipt size={18} />,
       section: 'buttons'
     },

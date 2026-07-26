@@ -228,6 +228,9 @@ const OrderSummary = ({
   // Track whether edit-mode pre-fill (SC, discount) is still pending — prevents amount flicker
   const [editPreFillPending, setEditPreFillPending] = useState(false);
   const editPreFillPendingRef = useRef(false); // Synchronous flag for cross-hook blocking
+  // One-click "KOT + Bill" (printSettings.kotThenBill): after the order places + KOT prints,
+  // this ref tells the effect below to also print the bill (without settling/paying).
+  const kotThenBillRef = useRef(false);
   // Unified flag: disables ALL order buttons when any action is in progress
   const orderBusy = processing || placingOrder || savingOrder || editPreFillPending;
 
@@ -2240,6 +2243,20 @@ const OrderSummary = ({
 
     return { method, guestCount: splits.length, splits };
   }, [splitBillMode, splitBillGuests, splitBillItemAssignments, splitBillAmounts, splitBillPaymentMethods, splitBillGuestNames, grandTotal, cart, totalTax, taxBreakdown, serviceChargeAmount, tipAmount, effectiveOfferDiscount]);
+
+  // One-click "KOT + Bill": once the placed order's KOT data (with orderId) arrives, also
+  // render + print the bill — WITHOUT settling/paying (order stays open for later Complete
+  // Billing). getBillRender works on an unpaid order. Only runs when the flag flow armed it.
+  useEffect(() => {
+    const oid = orderSuccess?.kotData?.orderId;
+    if (!kotThenBillRef.current || !oid) return;
+    kotThenBillRef.current = false;
+    window.__autoPrintBill = true;
+    // Small delay so the KOT print (its own effect + ~800ms) fires before the bill.
+    const tid = setTimeout(() => { generateInvoice(oid); }, 900);
+    return () => clearTimeout(tid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderSuccess?.kotData?.orderId]);
 
   // Build tax data helper (shared by Place Order, Complete Billing, and UPI confirm)
   const buildTaxData = () => {
@@ -6839,6 +6856,47 @@ const OrderSummary = ({
                 </button>
               )}
             </div>
+          )}
+
+          {/* One-click KOT + Bill (unpaid) — gated by printSettings.kotThenBill (default off).
+              Places the order, prints the KOT, then prints the Bill; leaves it unpaid so the
+              cashier settles after. Additive — does not affect the other buttons. */}
+          {printSettings?.kotThenBill && (
+            <button
+              onClick={() => {
+                if (orderBusy || cart.length === 0) return;
+                window.__autoPrintKOT = true;
+                kotThenBillRef.current = true; // arm the bill-after-KOT effect
+                if (typeof onPlaceOrderAndPrint === 'function') {
+                  onPlaceOrderAndPrint(buildTaxData());
+                } else if (typeof onPlaceOrder === 'function') {
+                  onPlaceOrder(buildTaxData());
+                }
+                if (isMobile && onClose && !(typeof window !== 'undefined' && window.ReactNativeWebView)) {
+                  setTimeout(() => onClose(), 500);
+                }
+              }}
+              disabled={orderBusy || cart.length === 0 || completedBillingBlocked}
+              style={{
+                width: '100%',
+                marginBottom: isMobile ? '4px' : '8px',
+                background: orderBusy || cart.length === 0 || completedBillingBlocked
+                  ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
+                  : 'linear-gradient(135deg, #4f46e5, #4338ca)',
+                color: 'white',
+                padding: isMobile ? '10px 12px' : '14px 16px',
+                borderRadius: isMobile ? '8px' : '10px',
+                fontWeight: '700',
+                border: 'none',
+                cursor: orderBusy || cart.length === 0 || completedBillingBlocked ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                fontSize: isMobile ? '13px' : '15px',
+                transition: 'all 0.2s',
+                boxShadow: orderBusy || cart.length === 0 || completedBillingBlocked ? 'none' : '0 4px 12px rgba(79,70,229,0.35)',
+              }}
+            >
+              <FaPrint size={isMobile ? 13 : 15} /> KOT + Bill
+            </button>
           )}
 
           {/* Billing Row */}
