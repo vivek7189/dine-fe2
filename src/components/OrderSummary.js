@@ -1705,6 +1705,35 @@ const OrderSummary = ({
       setDeliveryAddress(currentOrder.deliveryAddress);
     }
 
+    // Split bill — restore the saved per-guest split so edit mode renders the same split
+    // the cashier created (names, per-guest payment method, amounts, and item assignments).
+    if (currentOrder.splitBill && currentOrder.splitBill.method && Array.isArray(currentOrder.splitBill.splits) && currentOrder.splitBill.splits.length >= 2) {
+      const sb = currentOrder.splitBill;
+      const names = {}; const methods = {}; const amounts = {}; const assignments = {};
+      const usedCartIdx = new Set();
+      let maxIdx = 1;
+      sb.splits.forEach((s, order) => {
+        const gi = typeof s.guestIndex === 'number' ? s.guestIndex : order;
+        if (gi > maxIdx) maxIdx = gi;
+        if (s.guestName || s.guestLabel) names[gi] = s.guestName || s.guestLabel;
+        methods[gi] = s.paymentMethod || 'cash';
+        if (sb.method === 'by-amount') amounts[gi] = s.totalAmount != null ? String(s.totalAmount) : '';
+        if (sb.method === 'by-item' && Array.isArray(s.items)) {
+          s.items.forEach(si => {
+            const idx = (cart || []).findIndex((c, ci) => !usedCartIdx.has(ci) && c.name === si.name);
+            if (idx >= 0) { assignments[idx] = gi; usedCartIdx.add(idx); }
+          });
+        }
+      });
+      setSplitBillMode(sb.method);
+      setSplitBillGuests(Math.max(2, maxIdx + 1));
+      setSplitBillGuestNames(names);
+      setSplitBillPaymentMethods(methods);
+      if (sb.method === 'by-amount') setSplitBillAmounts(amounts);
+      if (sb.method === 'by-item') setSplitBillItemAssignments(assignments);
+      setActiveBillingPanel('splitBill');
+    }
+
     editPreFilled.current = true;
     editPreFillPendingRef.current = false;
     // Do NOT call setEditPreFillPending(false) here — the setState(true) from hook 1 must
@@ -5685,16 +5714,23 @@ const OrderSummary = ({
                       <button
                         key={tool.id}
                         onClick={() => {
-                          if (isActive) {
-                            setActiveBillingPanel(null);
-                          } else {
-                            // Initialize splitBill default method when opening the panel
-                            if (tool.id === 'splitBill' && !splitBillMode) {
+                          // Split Bill always (re)opens in the right-side drawer — even when
+                          // already active (e.g. restored in edit mode) — since the sidebar is
+                          // too narrow for the full experience.
+                          if (tool.id === 'splitBill') {
+                            if (!splitBillMode) {
                               setSplitBillMode(billingSettings.splitBillDefaultMethod || 'equal');
                               const defaults = {};
                               for (let i = 0; i < splitBillGuests; i++) defaults[i] = 'cash';
                               setSplitBillPaymentMethods(defaults);
                             }
+                            setActiveBillingPanel('splitBill');
+                            setShowSplitBillPopup(true);
+                            return;
+                          }
+                          if (isActive) {
+                            setActiveBillingPanel(null);
+                          } else {
                             setActiveBillingPanel(tool.id);
                           }
                         }}
@@ -5815,8 +5851,36 @@ const OrderSummary = ({
                   </div>
                 )}
 
-                {/* Split Bill Panel */}
+                {/* Split Bill — compact launcher in the sidebar; the full editor lives in the
+                    right-side drawer (setShowSplitBillPopup) to keep the narrow sidebar clean. */}
                 {activeBillingPanel === 'splitBill' && (
+                  <div style={{ background: dm ? dm.blueBg : '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#0369a1' }}>
+                        Split Bill{splitBillMode ? ` — ${splitBillMode === 'by-item' ? 'By Item' : splitBillMode === 'by-amount' ? 'By Amount' : 'Equal'}` : ''}
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#0284c7', marginTop: '2px' }}>Total {formatCurrency(grandTotal)} &middot; tap Open to edit</div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                      <button onClick={() => setShowSplitBillPopup(true)}
+                        style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', background: '#0ea5e9', color: '#fff', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>
+                        Open
+                      </button>
+                      {splitBillMode && (
+                        <button onClick={() => {
+                          setSplitBillMode(null); setSplitBillSplits([]); setSplitBillItemAssignments({});
+                          setSplitBillAmounts({}); setSplitBillPaymentMethods({}); setSplitBillGuestNames({});
+                          setSplitBillGuests(2); setActiveAssignGuest(0);
+                        }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '10px', fontWeight: 600 }}>
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Full inline split editor — superseded by the right-side drawer above. */}
+                {false && activeBillingPanel === 'splitBill' && (
                   <div style={{
                     background: dm ? dm.blueBg : '#f0f9ff',
                     border: '1px solid #bae6fd',
@@ -8043,15 +8107,22 @@ const OrderSummary = ({
           style={{
             position: 'fixed', inset: 0, zIndex: 1000,
             background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-            display: 'flex', alignItems: isMobileEmbed ? 'center' : (isMobile ? 'flex-end' : 'center'), justifyContent: 'center',
-            padding: isMobileEmbed ? '8px 4px' : (isMobile ? '0' : '16px'),
+            display: 'flex',
+            // Desktop: slide-in drawer anchored to the right (roomy). Mobile: bottom sheet. Embed: centered.
+            alignItems: isMobileEmbed ? 'center' : (isMobile ? 'flex-end' : 'stretch'),
+            justifyContent: isMobileEmbed ? 'center' : (isMobile ? 'center' : 'flex-end'),
+            padding: isMobileEmbed ? '8px 4px' : '0',
           }}
         >
           <div style={{
-            background: dm ? dm.card : '#f8fafc', borderRadius: isMobileEmbed ? '16px' : (isMobile ? '20px 20px 0 0' : '16px'),
-            width: '100%', maxWidth: isMobileEmbed ? '96%' : (isMobile ? '100%' : '560px'),
-            maxHeight: isMobileEmbed ? 'calc(var(--app-height, 75vh) - 16px)' : (isMobile ? '92vh' : '80vh'), display: 'flex', flexDirection: 'column',
-            boxShadow: '0 25px 60px rgba(0,0,0,0.3)', overflow: 'hidden',
+            background: dm ? dm.card : '#f8fafc',
+            borderRadius: isMobileEmbed ? '16px' : (isMobile ? '20px 20px 0 0' : '16px 0 0 16px'),
+            width: '100%', maxWidth: isMobileEmbed ? '96%' : (isMobile ? '100%' : '520px'),
+            height: (!isMobile && !isMobileEmbed) ? '100%' : undefined,
+            maxHeight: isMobileEmbed ? 'calc(var(--app-height, 75vh) - 16px)' : (isMobile ? '92vh' : '100vh'),
+            display: 'flex', flexDirection: 'column',
+            boxShadow: (!isMobile && !isMobileEmbed) ? '-16px 0 48px rgba(0,0,0,0.28)' : '0 25px 60px rgba(0,0,0,0.3)',
+            overflow: 'hidden',
           }}>
             {/* Header */}
             <div style={{

@@ -2594,6 +2594,36 @@ const OrderHistory = () => {
                   ))}
                 </div>
               )}
+
+              {/* Split Bill — per-guest split (equal / by item / by amount) */}
+              {order.splitBill && Array.isArray(order.splitBill.splits) && order.splitBill.splits.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                    Split Bill · {order.splitBill.method === 'by-item' ? 'By Item' : order.splitBill.method === 'by-amount' ? 'By Amount' : 'Equal'} · {order.splitBill.splits.length} guests
+                  </div>
+                  <div className="space-y-2">
+                    {order.splitBill.splits.map((s, i) => (
+                      <div key={i} className="bg-white rounded-lg border border-gray-100 px-3 py-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-semibold text-gray-800">{s.guestName || s.guestLabel || `Guest ${(typeof s.guestIndex === 'number' ? s.guestIndex : i) + 1}`}</span>
+                          <span className="text-xs font-bold text-gray-900">{formatCurrency(s.totalAmount || 0)}</span>
+                        </div>
+                        <div className="text-[10px] text-gray-400 capitalize mt-0.5">{s.paymentMethod || 'cash'}{s.paid ? ' · paid' : ''}</div>
+                        {Array.isArray(s.items) && s.items.length > 0 && (
+                          <div className="mt-1 pt-1 border-t border-gray-50 space-y-0.5">
+                            {s.items.map((it, j) => (
+                              <div key={j} className="flex justify-between text-[10px] text-gray-500">
+                                <span>{it.quantity || 1}x {it.name}</span>
+                                <span>{formatCurrency(it.total || (it.price || 0) * (it.quantity || 1))}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               {order.cashReceived > 0 && (
                 <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500">
                   <div className="flex justify-between"><span>{t('orderHistory.cashReceived')}</span><span>{formatCurrency(order.cashReceived)}</span></div>
