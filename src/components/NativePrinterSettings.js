@@ -415,6 +415,10 @@ export default function NativePrinterSettings({ restaurantId }) {
         if (isElectron() && window.electronAPI?.getPrinterConfig) {
           const config = await window.electronAPI.getPrinterConfig();
           if (config?.stationPrinters) setStationPrinters(config.stationPrinters);
+        } else if (isCapacitor()) {
+          const { DinePrinter } = await import('capacitor-dine-printer');
+          const res = await DinePrinter.getStationPrinters();
+          if (res?.stations) setStationPrinters(res.stations);
         }
       } catch (e) { /* ignore */ }
     };
@@ -425,23 +429,29 @@ export default function NativePrinterSettings({ restaurantId }) {
     const updated = { ...stationPrinters, [stationId]: printerName || null };
     setStationPrinters(updated);
     try {
-      if (isElectronPlatform && window.electronAPI?.setPrinterConfig) {
+      if (isCapacitorPlatform) {
+        const { DinePrinter } = await import('capacitor-dine-printer');
+        await DinePrinter.setStationPrinter({ stationId, address: printerName || null });
+      } else if (isElectronPlatform && window.electronAPI?.setPrinterConfig) {
         await window.electronAPI.setPrinterConfig({ stationPrinters: { [stationId]: printerName || null } });
       }
     } catch (err) {
       console.error('Failed to save station printer:', err);
     }
-  }, [stationPrinters, isElectronPlatform]);
+  }, [stationPrinters, isElectronPlatform, isCapacitorPlatform]);
 
   // Add a network printer by IP address
   const addNetworkPrinter = useCallback(async (ipInput) => {
     if (!ipInput?.trim()) return;
-    let address = ipInput.trim();
+    let host = ipInput.trim();
     // Add default port if not specified
-    if (!address.includes(':')) address += ':9100';
+    if (!host.includes(':')) host += ':9100';
+    // The Capacitor plugin routes TCP printers by a "tcp:" address prefix; Electron uses
+    // the bare host:port. Use the right form so an assigned network printer actually prints.
+    const address = isCapacitorPlatform ? `tcp:${host}` : host;
     // Check if already in list
     if (networkPrinters.some(p => p.address === address)) return;
-    const printer = { name: `Network (${address})`, address, type: 'network' };
+    const printer = { name: `Network (${host})`, address, type: 'network' };
     const updated = [...networkPrinters, printer];
     setNetworkPrinters(updated);
     // Also add to scanned printers list so it appears in dropdowns
@@ -449,12 +459,13 @@ export default function NativePrinterSettings({ restaurantId }) {
       if (prev.some(p => p.address === address)) return prev;
       return [...prev, printer];
     });
-    // Persist to settings
+    // Persist to settings (Electron keeps a networkPrinters list; on Capacitor the printer is
+    // only a dropdown entry — the actual assignment persists via setDefaultPrinter/config).
     if (isElectronPlatform && window.electronAPI?.setPrinterConfig) {
       await window.electronAPI.setPrinterConfig({ networkPrinters: updated });
     }
     setNetworkIpInput('');
-  }, [networkPrinters, isElectronPlatform]);
+  }, [networkPrinters, isElectronPlatform, isCapacitorPlatform]);
 
   // Remove a manually added network printer
   const removeNetworkPrinter = useCallback(async (address) => {
@@ -532,11 +543,14 @@ export default function NativePrinterSettings({ restaurantId }) {
       const updatedSP = { ...stationPrinters };
       delete updatedSP[stationId];
       setStationPrinters(updatedSP);
-      if (isElectronPlatform && window.electronAPI?.setPrinterConfig) {
+      if (isCapacitorPlatform) {
+        const { DinePrinter } = await import('capacitor-dine-printer');
+        await DinePrinter.setStationPrinter({ stationId, address: null });
+      } else if (isElectronPlatform && window.electronAPI?.setPrinterConfig) {
         await window.electronAPI.setPrinterConfig({ stationPrinters: { [stationId]: null } });
       }
     } catch (err) { console.error('Failed to delete station:', err); }
-  }, [printStations, stationPrinters, restaurantId, isElectronPlatform]);
+  }, [printStations, stationPrinters, restaurantId, isElectronPlatform, isCapacitorPlatform]);
 
   const updateStation = useCallback(async (stationId, updates) => {
     const updated = printStations.map(s =>
@@ -708,8 +722,8 @@ export default function NativePrinterSettings({ restaurantId }) {
           </span>
         )}
       </div>
-      {/* Add by IP — secondary action, smaller row */}
-      {isElectronPlatform && (
+      {/* Add by IP — secondary action, smaller row (Electron + Capacitor/Android) */}
+      {(isElectronPlatform || isCapacitorPlatform) && (
         <div style={{ display: 'flex', gap: '4px', alignItems: 'center', marginBottom: '10px' }}>
           <span style={{ fontSize: '10px', color: '#9ca3af' }}>or add by IP:</span>
           <input
@@ -737,7 +751,7 @@ export default function NativePrinterSettings({ restaurantId }) {
           </button>
         </div>
       )}
-      {!isElectronPlatform && <div style={{ marginBottom: '10px' }} />}
+      {!(isElectronPlatform || isCapacitorPlatform) && <div style={{ marginBottom: '10px' }} />}
       {scanError && (
         <div style={{ fontSize: '11px', color: '#dc2626', backgroundColor: '#fef2f2', padding: '6px 10px', borderRadius: '6px', marginBottom: '10px' }}>
           {scanError}

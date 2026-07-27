@@ -810,6 +810,11 @@ const OrderSummary = ({
     const isNative = supportsNativeAutoPrint();
     const isRNWebView = typeof window !== 'undefined' && !!window.ReactNativeWebView;
     const isElectronApp = typeof window !== 'undefined' && !!window.electronAPI;
+    // Capacitor (Android tablet/phone build): local per-station routing works the same way as
+    // Electron — it fetches each station's items from the backend and prints via the native plugin.
+    const isCapacitorApp = typeof window !== 'undefined'
+      && !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())
+      && !window.electronAPI;
 
     // RN WebView with 2+ stations: the dashboard direct-print handles routing there.
     // (Electron station routing is handled BELOW — split locally, with NO dependency
@@ -818,8 +823,8 @@ const OrderSummary = ({
       window.__autoPrintKOT = false;
       return;
     }
-    // Electron + 1 or more KOT stations → we split per station locally further down.
-    const hasElectronStations = isElectronApp && printSettings?.__stationCount >= 1;
+    // Electron OR Capacitor + 1 or more KOT stations → we split per station locally further down.
+    const hasLocalStations = (isElectronApp || isCapacitorApp) && printSettings?.__stationCount >= 1;
 
     const buttonPrintRequested = window.__autoPrintKOT;
     // autoPrintOnPlaceOrder = web/Electron/Tauri flag (from admin settings)
@@ -866,7 +871,7 @@ const OrderSummary = ({
     // We mark __lastLocalPrintedKOT so useAutoPrint skips this order (no double
     // print if real-time events are also on). Single-printer setups (no stations)
     // are untouched and fall through to the normal combined print below.
-    if (hasElectronStations) {
+    if (hasLocalStations) {
       window.__lastLocalPrintedKOT = thisOrderId; // dedup vs useAutoPrint
       const kotLabels = {
         kitchenOrder: t('invoice.kitchenOrder'), orderHash: t('invoice.orderHash'),

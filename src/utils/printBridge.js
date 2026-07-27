@@ -92,7 +92,7 @@ export async function printDocument({ html, domSelector, type = 'bill', orderId,
 
   // Route to platform-specific printer
   if (isCapacitor()) {
-    return printViaCapacitor({ html: printHtml, type, printSettings });
+    return printViaCapacitor({ html: printHtml, type, stationId, printSettings });
   }
   if (isTauri()) {
     return printViaTauri({ html: printHtml, type, printSettings });
@@ -191,18 +191,45 @@ async function fetchPrintHtml({ type, orderId, restaurantId }) {
 }
 
 /** Capacitor: send to Bluetooth/USB thermal printer via custom plugin */
-async function printViaCapacitor({ html, type, printSettings }) {
+async function printViaCapacitor({ html, type, stationId, printSettings }) {
+  const emit = (detail) => {
+    if (typeof window !== 'undefined') {
+      try { window.dispatchEvent(new CustomEvent('dine-print-event', { detail })); } catch { /* ignore */ }
+    }
+  };
   try {
     const { DinePrinter } = await import('capacitor-dine-printer');
-    await DinePrinter.print({
+    const result = await DinePrinter.print({
       html,
       type,
+      stationId: stationId || null,
       printerWidth: printSettings.printerWidth || 80,
       copies: type === 'kot' ? (printSettings.printKOTCopy || 1) : (printSettings.printBillCopy || 1),
     });
+
+    // The native plugin returns { success, method, address, error }. Surface failures to the
+    // user (red toast via PrintEventToast) instead of silently opening a useless system dialog —
+    // so a client running the APK can report the exact printer error.
+    if (result && result.success === false) {
+      const errMsg = result.error || 'Print failed';
+      console.error('[PrintBridge] Capacitor print failed:', errMsg, 'method:', result.method, 'addr:', result.address);
+      emit({ type, status: 'failed', error: errMsg, method: result.method, stationId: stationId || null });
+      const printErr = new Error(errMsg);
+      printErr._printFailure = true;
+      throw printErr;
+    }
+    emit({ type, status: 'success', method: result?.method || 'capacitor', stationId: stationId || null });
+    return result;
   } catch (err) {
-    console.error('Capacitor print failed, falling back to window.print:', err);
-    window.print();
+    if (err && err._printFailure) throw err; // already surfaced above
+    // Plugin/bridge-level failure (plugin missing, native crash). Surface it — do NOT silently
+    // fall back to window.print() (a no-op dialog inside the WebView that hides the real problem).
+    const errMsg = (err && err.message) ? err.message : String(err);
+    console.error('[PrintBridge] Capacitor print bridge error:', errMsg);
+    emit({ type, status: 'failed', error: errMsg, method: 'capacitor', stationId: stationId || null });
+    const e2 = new Error(errMsg);
+    e2._printFailure = true;
+    throw e2;
   }
 }
 

@@ -75,6 +75,8 @@ public class DinePrinterPlugin extends Plugin {
     private static final String PREF_DEFAULT_PRINTER = "defaultPrinterAddress";
     private static final String PREF_KOT_PRINTER = "kotPrinterAddress";
     private static final String PREF_BILL_PRINTER = "billPrinterAddress";
+    // Per-station KOT printer map: key = "stationPrinter_<stationId>", value = printer address
+    private static final String PREF_STATION_PREFIX = "stationPrinter_";
     // Standard SPP UUID for Bluetooth serial communication
     private static final UUID SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
@@ -125,6 +127,7 @@ public class DinePrinterPlugin extends Plugin {
     public void print(PluginCall call) {
         String html = call.getString("html", "");
         String type = call.getString("type", "bill");
+        String stationId = call.getString("stationId", null);
         int copies = call.getInt("copies", 1);
         int printerWidth = call.getInt("printerWidth", 80);
 
@@ -133,8 +136,8 @@ public class DinePrinterPlugin extends Plugin {
             return;
         }
 
-        // Route to KOT/Bill-specific printer if configured
-        String defaultAddress = getRoutedPrinterAddress(type);
+        // Route to station-specific printer first (multi-station KOT), then KOT/Bill, then default.
+        String defaultAddress = getRoutedPrinterAddress(type, stationId);
 
         // 0. Vendor SDK built-in printer (ZCS, Sunmi, Telpo, etc. — highest priority)
         if (defaultAddress != null && defaultAddress.startsWith("vendor:")) {
@@ -143,24 +146,30 @@ public class DinePrinterPlugin extends Plugin {
                 for (int i = 0; i < copies; i++) {
                     printViaVendorSdk(defaultAddress, data);
                 }
-                call.resolve();
+                resolvePrintResult(call, true, "vendor", defaultAddress, stationId, null);
                 return;
             } catch (Exception e) {
                 Log.w(TAG, "Vendor SDK print failed: " + e.getMessage());
+                // A printer was explicitly configured and it failed — surface the real error
+                // to the app instead of silently opening the Android dialog.
+                resolvePrintResult(call, false, "vendor", defaultAddress, stationId, e.getMessage());
+                return;
             }
         }
 
-        // 1. Built-in serial port printer (silent, fast)
-        if (defaultAddress != null && defaultAddress.startsWith("serial:")) {
+        // 1. Built-in serial port printer (silent, fast). "serial:auto" falls through to auto-detect.
+        if (defaultAddress != null && defaultAddress.startsWith("serial:") && !defaultAddress.equals("serial:auto")) {
             String portPath = defaultAddress.replace("serial:", "");
             try {
                 for (int i = 0; i < copies; i++) {
                     printViaSerialPort(portPath, html);
                 }
-                call.resolve();
+                resolvePrintResult(call, true, "serial", defaultAddress, stationId, null);
                 return;
             } catch (Exception e) {
                 Log.w(TAG, "Serial port print failed: " + e.getMessage());
+                resolvePrintResult(call, false, "serial", defaultAddress, stationId, e.getMessage());
+                return;
             }
         }
 
@@ -170,10 +179,12 @@ public class DinePrinterPlugin extends Plugin {
                 for (int i = 0; i < copies; i++) {
                     printViaTcp(defaultAddress, html);
                 }
-                call.resolve();
+                resolvePrintResult(call, true, "tcp", defaultAddress, stationId, null);
                 return;
             } catch (Exception e) {
                 Log.w(TAG, "TCP print failed: " + e.getMessage());
+                resolvePrintResult(call, false, "tcp", defaultAddress, stationId, e.getMessage());
+                return;
             }
         }
 
@@ -189,7 +200,7 @@ public class DinePrinterPlugin extends Plugin {
                     }
                     SharedPreferences prefs = getContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
                     prefs.edit().putString(PREF_DEFAULT_PRINTER, "vendor:" + vendorName).apply();
-                    call.resolve();
+                    resolvePrintResult(call, true, "vendor", "vendor:" + vendorName, stationId, null);
                     return;
                 } catch (Exception e) {
                     Log.w(TAG, "Auto-detected vendor SDK print failed: " + e.getMessage());
@@ -205,35 +216,47 @@ public class DinePrinterPlugin extends Plugin {
                     }
                     SharedPreferences prefs = getContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
                     prefs.edit().putString(PREF_DEFAULT_PRINTER, "serial:" + detectedPort).apply();
-                    call.resolve();
+                    resolvePrintResult(call, true, "serial", "serial:" + detectedPort, stationId, null);
                     return;
                 } catch (Exception e) {
                     Log.w(TAG, "Auto-detected serial print failed: " + e.getMessage());
                 }
             }
-        }
 
-        // 4. USB printer
-        if (defaultAddress != null && defaultAddress.startsWith("usb:")) {
+            // Nothing configured and nothing auto-detected → Android system dialog as last resort.
             printViaSystem(html, type, call);
             return;
         }
 
-        // 5. Bluetooth thermal printer
-        if (defaultAddress != null && !defaultAddress.startsWith("usb:") && !defaultAddress.startsWith("serial:") && !defaultAddress.startsWith("tcp:")) {
-            try {
-                for (int i = 0; i < copies; i++) {
-                    printViaBluetooth(defaultAddress, html);
-                }
-                call.resolve();
-                return;
-            } catch (Exception e) {
-                Log.w(TAG, "Bluetooth print failed: " + e.getMessage());
-            }
+        // 4. USB printer — no silent USB driver, use the Android system print dialog
+        if (defaultAddress.startsWith("usb:")) {
+            printViaSystem(html, type, call);
+            return;
         }
 
-        // 6. Fallback: Android system print dialog
-        printViaSystem(html, type, call);
+        // 5. Bluetooth thermal printer (any other configured address)
+        try {
+            for (int i = 0; i < copies; i++) {
+                printViaBluetooth(defaultAddress, html);
+            }
+            resolvePrintResult(call, true, "bluetooth", defaultAddress, stationId, null);
+            return;
+        } catch (Exception e) {
+            Log.w(TAG, "Bluetooth print failed: " + e.getMessage());
+            resolvePrintResult(call, false, "bluetooth", defaultAddress, stationId, e.getMessage());
+            return;
+        }
+    }
+
+    /** Resolve print() with a structured result so the JS layer can surface success/failure. */
+    private void resolvePrintResult(PluginCall call, boolean success, String method, String address, String stationId, String error) {
+        JSObject r = new JSObject();
+        r.put("success", success);
+        if (method != null) r.put("method", method);
+        if (address != null) r.put("address", address);
+        if (stationId != null) r.put("stationId", stationId);
+        if (error != null) r.put("error", error);
+        call.resolve(r);
     }
 
     @PluginMethod
@@ -583,6 +606,42 @@ public class DinePrinterPlugin extends Plugin {
         config.put("kotPrinter", prefs.getString(PREF_KOT_PRINTER, null));
         config.put("billPrinter", prefs.getString(PREF_BILL_PRINTER, null));
         call.resolve(config);
+    }
+
+    /** Assign (or clear, if address is empty/null) the printer for a specific KOT station. */
+    @PluginMethod
+    public void setStationPrinter(PluginCall call) {
+        String stationId = call.getString("stationId");
+        if (stationId == null || stationId.isEmpty()) {
+            call.reject("stationId is required");
+            return;
+        }
+        String address = call.getString("address");
+        SharedPreferences prefs = getContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        if (address != null && !address.isEmpty()) {
+            editor.putString(PREF_STATION_PREFIX + stationId, address);
+        } else {
+            editor.remove(PREF_STATION_PREFIX + stationId);
+        }
+        editor.apply();
+        call.resolve();
+    }
+
+    /** Return the full station→printer map: { stations: { "<stationId>": "<address>", ... } }. */
+    @PluginMethod
+    public void getStationPrinters(PluginCall call) {
+        SharedPreferences prefs = getContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        JSObject stations = new JSObject();
+        for (Map.Entry<String, ?> entry : prefs.getAll().entrySet()) {
+            String key = entry.getKey();
+            if (key != null && key.startsWith(PREF_STATION_PREFIX) && entry.getValue() instanceof String) {
+                stations.put(key.substring(PREF_STATION_PREFIX.length()), (String) entry.getValue());
+            }
+        }
+        JSObject result = new JSObject();
+        result.put("stations", stations);
+        call.resolve(result);
     }
 
     @PluginMethod
@@ -1025,12 +1084,21 @@ public class DinePrinterPlugin extends Plugin {
      * KOT jobs route to kotPrinter, bill jobs route to billPrinter, else default.
      */
     private String getRoutedPrinterAddress(String type) {
+        return getRoutedPrinterAddress(type, null);
+    }
+
+    // Resolution order: per-station printer (if stationId given & mapped) → KOT/Bill printer → default.
+    private String getRoutedPrinterAddress(String type, String stationId) {
         SharedPreferences prefs = getContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String address = null;
 
-        if ("kot".equals(type)) {
+        if (stationId != null && !stationId.isEmpty()) {
+            address = prefs.getString(PREF_STATION_PREFIX + stationId, null);
+        }
+
+        if ((address == null || address.isEmpty()) && "kot".equals(type)) {
             address = prefs.getString(PREF_KOT_PRINTER, null);
-        } else if ("bill".equals(type)) {
+        } else if ((address == null || address.isEmpty()) && "bill".equals(type)) {
             address = prefs.getString(PREF_BILL_PRINTER, null);
         }
 

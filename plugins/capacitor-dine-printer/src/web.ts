@@ -1,10 +1,19 @@
 import { WebPlugin } from '@capacitor/core';
-import type { DinePrinterPlugin, PrintOptions, PrinterInfo, PrinterConfig, DiagnoseResult, PrinterStatus, DeviceCapabilities } from './definitions';
+import type { DinePrinterPlugin, PrintOptions, PrintResult, PrinterInfo, PrinterConfig, DiagnoseResult, PrinterStatus, DeviceCapabilities } from './definitions';
 
 // Web fallback — no-op for scanning, falls back to window.print() for printing
 export class DinePrinterWeb extends WebPlugin implements DinePrinterPlugin {
-  async print(_options: PrintOptions): Promise<void> {
+  async print(_options: PrintOptions): Promise<PrintResult> {
     window.print();
+    return { success: true, method: 'system_dialog' };
+  }
+
+  async setStationPrinter(_options: { stationId: string; address?: string | null }): Promise<void> {
+    console.warn('DinePrinter.setStationPrinter() is not available on web');
+  }
+
+  async getStationPrinters(): Promise<{ stations: Record<string, string> }> {
+    return { stations: {} };
   }
 
   async scanPrinters(): Promise<{ printers: PrinterInfo[] }> {

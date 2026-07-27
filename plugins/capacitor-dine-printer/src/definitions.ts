@@ -5,10 +5,25 @@ export interface PrintOptions {
   html: string;
   /** Print job type */
   type: 'bill' | 'kot';
+  /** KOT station id — routes to that station's assigned printer if mapped (multi-station) */
+  stationId?: string | null;
   /** Printer paper width in mm (58 or 80) */
   printerWidth?: number;
   /** Number of copies */
   copies?: number;
+}
+
+export interface PrintResult {
+  /** Whether the print job was successfully sent to the printer */
+  success: boolean;
+  /** Transport used: vendor | serial | tcp | bluetooth | system_dialog */
+  method?: string;
+  /** Resolved printer address */
+  address?: string;
+  /** Station id this job was routed for (if any) */
+  stationId?: string;
+  /** Error message when success === false */
+  error?: string;
 }
 
 export interface PrinterInfo {
@@ -63,8 +78,15 @@ export interface DeviceCapabilities {
 }
 
 export interface DinePrinterPlugin {
-  /** Print HTML content to the configured thermal printer */
-  print(options: PrintOptions): Promise<void>;
+  /** Print HTML content to the configured thermal printer. Resolves a PrintResult
+   *  describing success/failure so the app can surface print errors to the user. */
+  print(options: PrintOptions): Promise<PrintResult>;
+
+  /** Assign a printer to a specific KOT station (empty/omitted address clears it) */
+  setStationPrinter(options: { stationId: string; address?: string | null }): Promise<void>;
+
+  /** Get the full station→printer map */
+  getStationPrinters(): Promise<{ stations: Record<string, string> }>;
 
   /** Scan for nearby Bluetooth/USB/network/built-in printers */
   scanPrinters(): Promise<{ printers: PrinterInfo[] }>;
