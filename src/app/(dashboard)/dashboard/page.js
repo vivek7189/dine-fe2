@@ -86,6 +86,7 @@ import { useHubEvents } from '../../../hooks/useHubEvents';
 import { useDineBot } from '../../../components/DineBotProvider';
 import { parseScaleBarcode, isScaleBarcode } from '../../../utils/scaleBarcode';
 import { printDocument } from '../../../utils/printBridge';
+import { resolveVariantTierPrice } from '../../../utils/variantPricing';
 
 // Safe wrappers for contexts that may not be available in mobile embed mode
 function useSafeLoading() {
@@ -2282,6 +2283,26 @@ function RestaurantPOSContent() {
         (item.id != null && m.id === item.id) ||
         (item._id != null && m._id === item._id)
       );
+      // Variant lines: re-resolve the VARIANT's tier price for the active zone
+      // (not the item-level tier). Keep selectedVariant.price fresh so the summary,
+      // payload and display all agree after an order-type/zone switch. Manually
+      // edited lines are left untouched.
+      if (item.selectedVariant && !item.priceEdited) {
+        const freshVariant = menuItem?.variants?.find(v => v.name === item.selectedVariant.name) || item.selectedVariant;
+        const vBase = typeof freshVariant?.price === 'number' ? freshVariant.price : item.selectedVariant.price;
+        const vPrice = resolveVariantTierPrice(freshVariant, activePricingRuleId, pricingRules);
+        return {
+          ...item,
+          price: vPrice,
+          basePrice: vBase,
+          selectedVariant: {
+            ...item.selectedVariant,
+            price: vPrice,
+            ...(freshVariant?.pricingRules ? { pricingRules: freshVariant.pricingRules } : {}),
+          },
+          appliedPricingRuleId: activePricingRuleId || null,
+        };
+      }
       // Resolve true base price: the authoritative source is the menu item's
       // original price. Cart-stored basePrice can become stale or corrupted
       // (e.g. set to a pricing-rule price instead of the original), so we
@@ -2646,7 +2667,16 @@ function RestaurantPOSContent() {
   const getEffectiveItemPrice = (item) => {
     let base;
     if (item?.selectedVariant?.price != null) {
-      base = item.selectedVariant.price;
+      // Variant lines: resolve the variant's own tier price for the active zone
+      // (per-variant pricingRules → Dine-In inherit → variant base). Falls back to
+      // the stored variant price when multi-pricing is off or no rule is active.
+      if (multiPricingEnabled && activePricingRuleId) {
+        const freshVariant = (menuItems || []).find(m => m.id === item.id)
+          ?.variants?.find(v => v.name === item.selectedVariant.name);
+        base = resolveVariantTierPrice(freshVariant || item.selectedVariant, activePricingRuleId, pricingRules);
+      } else {
+        base = item.selectedVariant.price;
+      }
     } else if (multiPricingEnabled && activePricingRuleId) {
       const perItemPrice = item?.pricingRules?.[activePricingRuleId];
       const parsed = perItemPrice != null ? Number(perItemPrice) : NaN;
@@ -9919,6 +9949,9 @@ function RestaurantPOSContent() {
           initialVariant={customizationInitial.variant}
           initialCustomizations={customizationInitial.customizations}
           initialQuantity={customizationInitial.quantity}
+          multiPricingEnabled={multiPricingEnabled}
+          activePricingRuleId={activePricingRuleId}
+          pricingRules={pricingRules}
         />
       )}
 

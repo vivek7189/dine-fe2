@@ -2885,11 +2885,19 @@ const MenuManagement = () => {
       setError('');
 
       // Clean up variants - parse prices and filter out empty ones
-      const cleanedVariants = (formData.variants || []).filter(v => v.name && v.price).map(v => ({
-        name: v.name,
-        price: parseFloat(v.price) || 0,
-        description: v.description || ''
-      }));
+      const cleanedVariants = (formData.variants || []).filter(v => v.name && v.price).map(v => {
+        const out = {
+          name: v.name,
+          price: parseFloat(v.price) || 0,
+          description: v.description || ''
+        };
+        // Per-variant multi-tier prices — keep only numeric ≥ 0; omit when none set.
+        const prEntries = Object.entries(v.pricingRules || {})
+          .map(([k, val]) => [k, parseFloat(val)])
+          .filter(([, n]) => !isNaN(n) && n >= 0);
+        if (prEntries.length) out.pricingRules = Object.fromEntries(prEntries);
+        return out;
+      });
 
       // Clean up modifier groups and auto-generate flat customizations
       const hasGroups = Array.isArray(formData.modifierGroups) && formData.modifierGroups.length > 0;
@@ -3160,6 +3168,19 @@ const MenuManagement = () => {
   const updateVariant = (index, field, value) => {
     const updatedVariants = [...(formData.variants || [])];
     updatedVariants[index] = { ...updatedVariants[index], [field]: value };
+    setFormData({ ...formData, variants: updatedVariants });
+  };
+
+  // Set/clear a per-variant multi-tier (zone) price. Blank clears it → resolver falls back to
+  // the variant's base price. Stored on variant.pricingRules[ruleId].
+  const updateVariantPricingRule = (index, ruleId, value) => {
+    const updatedVariants = [...(formData.variants || [])];
+    const v = { ...updatedVariants[index] };
+    const pr = { ...(v.pricingRules || {}) };
+    if (value === '' || value == null) delete pr[ruleId];
+    else pr[ruleId] = value;
+    v.pricingRules = pr;
+    updatedVariants[index] = v;
     setFormData({ ...formData, variants: updatedVariants });
   };
 
@@ -6381,71 +6402,90 @@ const MenuManagement = () => {
                           border: '1px solid #e5e7eb',
                           borderRadius: '8px',
                           display: 'flex',
-                          gap: '8px',
-                          alignItems: 'center'
+                          flexDirection: 'column',
+                          gap: '8px'
                         }}
                       >
-                        <input
-                          type="text"
-                          placeholder={isBarMode ? t('menu.variantPlaceholderBar') : isIceCreamMode ? t('menu.variantPlaceholderIceCream') : t('menu.variantPlaceholderDefault')}
-                          value={variant.name}
-                          onChange={(e) => updateVariant(index, 'name', e.target.value)}
-                          style={{
-                            flex: 1,
-                            padding: '8px 10px',
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            outline: 'none'
-                          }}
-                        />
-                        <input
-                          type="number"
-                          placeholder={t('menu.price')}
-                          value={variant.price}
-                          onChange={(e) => updateVariant(index, 'price', e.target.value)}
-                          style={{
-                            width: '80px',
-                            padding: '8px 10px',
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            outline: 'none'
-                          }}
-                        />
-                        <input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          placeholder="×1"
-                          title="Recipe multiplier for inventory tracking: Half = 0.5, Full = 1, Large = 1.5. Deducts this fraction of the recipe."
-                          value={variant.recipeMultiplier ?? 1}
-                          onChange={(e) => updateVariant(index, 'recipeMultiplier', e.target.value)}
-                          style={{
-                            width: '64px',
-                            padding: '8px 10px',
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            outline: 'none'
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeVariant(index)}
-                          style={{
-                            padding: '8px',
-                            backgroundColor: '#fee2e2',
-                            color: '#dc2626',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontSize: '11px',
-                            flexShrink: 0
-                          }}
-                        >
-                          <FaTrash size={9} />
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <input
+                            type="text"
+                            placeholder={isBarMode ? t('menu.variantPlaceholderBar') : isIceCreamMode ? t('menu.variantPlaceholderIceCream') : t('menu.variantPlaceholderDefault')}
+                            value={variant.name}
+                            onChange={(e) => updateVariant(index, 'name', e.target.value)}
+                            style={{
+                              flex: 1,
+                              padding: '8px 10px',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              outline: 'none'
+                            }}
+                          />
+                          <input
+                            type="number"
+                            placeholder={t('menu.price')}
+                            value={variant.price}
+                            onChange={(e) => updateVariant(index, 'price', e.target.value)}
+                            style={{
+                              width: '80px',
+                              padding: '8px 10px',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              outline: 'none'
+                            }}
+                          />
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            placeholder="×1"
+                            title="Recipe multiplier for inventory tracking: Half = 0.5, Full = 1, Large = 1.5. Deducts this fraction of the recipe."
+                            value={variant.recipeMultiplier ?? 1}
+                            onChange={(e) => updateVariant(index, 'recipeMultiplier', e.target.value)}
+                            style={{
+                              width: '64px',
+                              padding: '8px 10px',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              outline: 'none'
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeVariant(index)}
+                            style={{
+                              padding: '8px',
+                              backgroundColor: '#fee2e2',
+                              color: '#dc2626',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '11px',
+                              flexShrink: 0
+                            }}
+                          >
+                            <FaTrash size={9} />
+                          </button>
+                        </div>
+                        {/* Per-variant zone/tier prices (multi-tier). Blank = inherit the variant's base price. */}
+                        {multiPricingEnabled && activePricingRules.length > 0 && (variant.name || variant.price) && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingTop: '2px', borderTop: '1px dashed #e5e7eb', marginTop: '2px' }}>
+                            {activePricingRules.map(rule => (
+                              <div key={rule.id} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                <span style={{ fontSize: '9px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.3px' }}>{rule.name}</span>
+                                <input
+                                  type="number"
+                                  placeholder={variant.price ? `${getCurrencySymbol()}${variant.price}` : 'base'}
+                                  value={variant.pricingRules?.[rule.id] ?? ''}
+                                  onChange={(e) => updateVariantPricingRule(index, rule.id, e.target.value)}
+                                  style={{ width: '76px', padding: '5px 7px', border: '1px solid #e5e7eb', borderRadius: '5px', fontSize: '11px', outline: 'none' }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

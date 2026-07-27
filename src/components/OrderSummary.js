@@ -12,6 +12,7 @@ import { generateBillHTML, generateKOTHTML } from '../utils/printHtmlGenerator';
 import { buildSplitInvoice } from '../utils/printTemplates/helpers';
 import { seatLabel, sanitizeSeat, getOrderItemKey } from '../utils/orderItemKey';
 import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '../utils/printBridge';
+import { resolveVariantTierPrice } from '../utils/variantPricing';
 
 const CustomerDetailModal = dynamic(() => import('./CustomerDetailModal'), { ssr: false });
 const DiscountApprovalModal = dynamic(() => import('./DiscountApprovalModal'), { ssr: false });
@@ -1315,7 +1316,15 @@ const OrderSummary = ({
   const getItemUnitPrice = useCallback((cartItem) => {
     let unitPrice;
     if (cartItem?.selectedVariant?.price != null) {
-      unitPrice = cartItem.selectedVariant.price;
+      // Variant selected — resolve its per-variant tier price for the active rule (prefer the
+      // fresh menu variant so newly-set tier prices apply; falls back to the variant base).
+      if (multiPricingEnabled && activePricingRuleId) {
+        const freshItem = cartItem?.id != null ? menuItems.find(m => m.id === cartItem.id) : undefined;
+        const freshVariant = freshItem?.variants?.find(v => v.name === cartItem.selectedVariant.name);
+        unitPrice = resolveVariantTierPrice(freshVariant || cartItem.selectedVariant, activePricingRuleId, pricingRules);
+      } else {
+        unitPrice = cartItem.selectedVariant.price;
+      }
     } else if (multiPricingEnabled && activePricingRuleId) {
       // Check per-item pricing rule override. Prefer the CURRENT menu item's
       // pricingRules (authoritative/fresh) over the cart item's embedded copy.
@@ -1363,7 +1372,7 @@ const OrderSummary = ({
       extras = cartItem.customizationPrice;
     }
     return (unitPrice || 0) + (extras || 0);
-  }, [multiPricingEnabled, activePricingRuleId, menuItems]);
+  }, [multiPricingEnabled, activePricingRuleId, menuItems, pricingRules]);
   
   // Determine if an item's price includes tax (inclusive pricing)
   const isItemTaxInclusive = useCallback((item, settings) => {

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { FaTimes, FaPlus, FaMinus, FaLeaf, FaDrumstickBite } from 'react-icons/fa';
 import { getDisplayImage } from '../utils/placeholderImages';
 import { useCurrency } from '../contexts/CurrencyContext';
+import { resolveVariantTierPrice } from '../utils/variantPricing';
 
 const ItemCustomizationModal = ({
   item,
@@ -14,6 +15,10 @@ const ItemCustomizationModal = ({
   initialVariant = null,
   initialCustomizations = null,
   initialQuantity = null,
+  // Multi-tier pricing context — so variant prices shown/added reflect the active zone.
+  multiPricingEnabled = false,
+  activePricingRuleId = null,
+  pricingRules = [],
 }) => {
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const { formatCurrency } = useCurrency();
@@ -85,10 +90,19 @@ const ItemCustomizationModal = ({
 
   const isVeg = item.isVeg !== false;
 
+  // Resolve a variant's price for the active zone (per-variant tier → base). Used for both the
+  // per-variant row prices and the selected base price, so the modal matches what will be billed.
+  const variantDisplayPrice = (variant) => {
+    if (multiPricingEnabled && activePricingRuleId) {
+      return resolveVariantTierPrice(variant, activePricingRuleId, pricingRules);
+    }
+    return variant?.price || 0;
+  };
+
   // Calculate base price
   const getBasePrice = () => {
     if (hasVariants && selectedVariant) {
-      return selectedVariant.price;
+      return variantDisplayPrice(selectedVariant);
     }
     return item.price || 0;
   };
@@ -169,7 +183,10 @@ const ItemCustomizationModal = ({
       cartId: `${item.id}-${Date.now()}`, // Unique ID for this cart entry
       selectedVariant: selectedVariant ? {
         name: selectedVariant.name,
-        price: selectedVariant.price
+        // Price reflects the active zone tier; carry pricingRules so re-pricing on a later
+        // order-type/zone change can re-resolve the correct variant tier.
+        price: variantDisplayPrice(selectedVariant),
+        ...(selectedVariant.pricingRules ? { pricingRules: selectedVariant.pricingRules } : {}),
       } : null,
       selectedCustomizations: selectedCustomizations.map(c => ({
         id: c.id,
@@ -478,7 +495,7 @@ const ItemCustomizationModal = ({
                         fontWeight: '700',
                         color: selectedVariant?.name === variant.name ? '#ef4444' : '#1f2937'
                       }}>
-                        {formatCurrency(variant.price)}
+                        {formatCurrency(variantDisplayPrice(variant))}
                       </div>
                     </button>
                   ))}
