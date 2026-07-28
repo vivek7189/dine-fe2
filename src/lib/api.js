@@ -1625,6 +1625,22 @@ class ApiClient {
     });
   }
 
+  // Dynamic parties: add another independent party (check) to a table on demand (base stays
+  // Party A; siblings 7-B/7-C). Returns { party }. Optional partyName (guest name).
+  async addTableParty(restaurantId, tableId, partyName) {
+    return this.request(`/api/tables/${restaurantId}/add-party`, {
+      method: 'POST',
+      body: { tableId, partyName: partyName || null },
+    });
+  }
+  // Remove an empty party (no active order).
+  async removeTableParty(restaurantId, tableId) {
+    return this.request(`/api/tables/${restaurantId}/remove-party`, {
+      method: 'POST',
+      body: { tableId },
+    });
+  }
+
   // Transfer an order/table to another server (waiter). Metadata only.
   async transferServer(orderId, { waiterId = null, waiterName = null, restaurantId = null } = {}) {
     return this.request(`/api/orders/${orderId}/transfer-server`, {

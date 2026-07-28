@@ -1193,6 +1193,27 @@ const TableManagement = () => {
     }
   };
 
+  // ── Dynamic parties (Path A): add a new party (sibling check) on a live table ──
+  // No pre-splitting on the floor. During service the waiter taps "+ New Party" on an
+  // occupied/available table; the backend creates the next sibling (Party B, C, …) and we
+  // jump straight into Take Order for it. Base table stays Party A and bills independently.
+  const [addingPartyFor, setAddingPartyFor] = useState(null);
+  const handleAddParty = async (table) => {
+    if (!table || !selectedRestaurant?.id || addingPartyFor) return;
+    setActiveDropdown(null);
+    setAddingPartyFor(table.id);
+    try {
+      const res = await apiClient.addTableParty(selectedRestaurant.id, table.id);
+      await loadFloorsAndTables(selectedRestaurant.id, true);
+      const party = res?.party || res?.table;
+      if (party?.id) handleTableAction('take-order', party);
+    } catch (err) {
+      showError(err?.message || 'Failed to add party');
+    } finally {
+      setAddingPartyFor(null);
+    }
+  };
+
   // ── Assign server to a table ──────────────────────────
   const openAssignServer = (table) => {
     setAssignServerTable(table);
@@ -2113,12 +2134,19 @@ const TableManagement = () => {
                             setBookingFromHeader(false);
                             setShowBookingForm(true);
                           }}
+                          // Dynamic parties (Path A): the sibling parties of this base table + handlers.
+                          parties={tables.filter(x => x.isPartyTable && x.partyOfTableId === table.id).sort((a, b) => (a.partyLabel || '').localeCompare(b.partyLabel || ''))}
+                          onAddParty={handleAddParty}
+                          onOpenParty={(pt) => {
+                            const pst = isToday ? (tableStatusesForDate[pt.id] || pt.status || 'available') : 'available';
+                            handleTableAction(pst === 'available' ? 'take-order' : 'view-order', pt);
+                          }}
                         />
                       );
                     };
                     return tables.map((table) => {
-                      // Sub-tables are rendered inside their parent's cluster below.
-                      if (table.isSubTable) return null;
+                      // Sub-tables + party siblings are rendered inside their base card, not standalone.
+                      if (table.isSubTable || table.isPartyTable) return null;
                       // A split parent renders as a full-width cluster of its sub-tables.
                       if (table.isSplit) {
                         const subs = tables.filter(s => s.isSubTable && s.parentTableId === table.id)

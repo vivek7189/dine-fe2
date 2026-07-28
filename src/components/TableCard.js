@@ -60,6 +60,10 @@ export default function TableCard({
   onOpenBilling,
   onMoveOrder,
   onBookTable,
+  // Dynamic parties (Path A): sibling party tables of this base + handlers.
+  parties = [],
+  onAddParty,
+  onOpenParty,
 }) {
   const hasBookings = tblBookings.length > 0;
   const sInfo = getTableStatusInfo(tableStatus);
@@ -74,6 +78,19 @@ export default function TableCard({
   const dangerHours = posSettings?.tableDangerHours || 6;
   const elapsedIsLong = elapsedHrs >= dangerHours;
   const elapsedIsWarn = !elapsedIsLong && elapsedHrs >= warnHours;
+
+  // Dynamic parties (Path A): a base dine-in table can host multiple independently-billed
+  // parties (Party A = this table, B/C/… = siblings). Not offered for sub-tables, party
+  // siblings, merged or split tables. Guarded by the onAddParty handler being passed.
+  const partiesEnabled = !!onAddParty && !table.isSubTable && !table.isPartyTable && !table.isSplit && !table.mergeGroupId && !table.mergedInto;
+  const pChipBase = {
+    fontSize: isMobileEmbed ? '8px' : '10px', fontWeight: 800, color: '#fff', background: '#7c3aed',
+    width: isMobileEmbed ? '16px' : '20px', height: isMobileEmbed ? '16px' : '20px', borderRadius: '6px',
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, lineHeight: 1,
+  };
+  const pChipSibling = { ...pChipBase, background: '#ede9fe', color: '#7c3aed', border: '1px solid #ddd6fe', cursor: 'pointer', padding: 0 };
+  const pChipAdd = { ...pChipBase, background: '#fff', color: '#7c3aed', border: '1px dashed #c4b5fd', cursor: 'pointer', padding: 0 };
+  const nextPartyLabel = String.fromCharCode(66 + parties.length); // A=base, so next is B, C…
 
   return (
     <div key={table.id} className="tbl-card table-dropdown" style={{
@@ -305,6 +322,28 @@ export default function TableCard({
         </div>
       )}
 
+      {/* Party chips (Path A) — Party A is this base table; siblings B/C… open their own order.
+          Only rendered once at least one sibling party exists, so single-party tables stay clean. */}
+      {isToday && partiesEnabled && parties.length > 0 && (
+        <div style={{ padding: isMobileEmbed ? '0 6px 4px' : '0 8px 6px', position: 'relative', zIndex: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '8px', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.3px', marginRight: '1px' }}>Parties</span>
+            <span title={table.partyName || 'Party A (this table)'} style={pChipBase}>A</span>
+            {parties.map((p) => {
+              const pOcc = !!p.currentOrderId || p.status === 'occupied' || p.status === 'serving';
+              return (
+                <button key={p.id} onClick={(e) => { e.stopPropagation(); onOpenParty?.(p); }}
+                  title={`${p.partyName || `Party ${p.partyLabel || ''}`}${pOcc ? ' · running' : ' · empty'}`}
+                  style={pOcc ? { ...pChipSibling, background: '#fef3c7', color: '#b45309', border: '1px solid #fcd34d' } : pChipSibling}>
+                  {p.partyLabel || '?'}
+                </button>
+              );
+            })}
+            <button onClick={(e) => { e.stopPropagation(); onAddParty?.(table); }} title={`Add Party ${nextPartyLabel}`} style={pChipAdd}>+</button>
+          </div>
+        </div>
+      )}
+
       {/* Action buttons at bottom */}
       <div style={{ padding: isMobileEmbed ? '0 6px 6px' : '0 8px 8px', position: 'relative', zIndex: 2 }}>
         {isToday ? (
@@ -443,6 +482,11 @@ export default function TableCard({
           animation: 'tblDropdown 0.15s ease-out',
         }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0' }}>
+            {partiesEnabled && (
+              <button className="tbl-action" onClick={(e) => { e.stopPropagation(); setActiveDropdown(null); onAddParty?.(table); }} style={{ flex: '1 1 100%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#7c3aed', display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '5px', borderBottom: '1px solid #f5f5f5' }}>
+                <FaUsers size={12} /> New Party ({nextPartyLabel})
+              </button>
+            )}
             {table.mergeGroupId && canEditTableConfig && (
               <button className="tbl-action" onClick={(e) => { e.stopPropagation(); setActiveDropdown(null); onUnmerge(table); }} style={{ flex: '1 1 100%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#0284c7', display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '5px', borderBottom: '1px solid #f5f5f5' }}>
                 <FaLayerGroup size={12} /> Un-merge
