@@ -451,6 +451,9 @@ export default function DashboardTablesPanel({
       const routed = await printKOTByStations({
         restaurantId: selectedRestaurant.id,
         orderId: order.id,
+        order,
+        restaurantName: restaurantName || selectedRestaurant?.name || '',
+        categories: selectedRestaurant?.categories || [],
         printSettings: printSettings || {},
         posSettings,
         t: translate,

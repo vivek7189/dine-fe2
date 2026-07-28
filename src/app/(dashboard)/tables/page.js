@@ -1407,6 +1407,9 @@ const TableManagement = () => {
       const routed = await printKOTByStations({
         restaurantId: selectedRestaurant.id,
         orderId: order.id,
+        order,
+        restaurantName: selectedRestaurant?.name || '',
+        categories: selectedRestaurant?.categories || [],
         printSettings: printSettings || {},
         posSettings,
         t,

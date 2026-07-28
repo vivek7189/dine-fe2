@@ -1764,6 +1764,9 @@ const OrderHistory = () => {
       const routed = await printKOTByStations({
         restaurantId,
         orderId: order.id,
+        order,
+        restaurantName: restaurant?.name || '',
+        categories: restaurant?.categories || [],
         printSettings: printSettings || {},
         posSettings: restaurant?.posSettings || {},
         t,
