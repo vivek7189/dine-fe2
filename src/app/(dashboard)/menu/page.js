@@ -5601,7 +5601,20 @@ const MenuManagement = () => {
                   </select>
                 </div>
 
-                {/* Channel & Zone Prices — Tree Layout */}
+                {/* Channel & Zone Prices — Tree Layout.
+                    Hidden when the item has variants: variant prices take priority and the
+                    item-level channel prices are never applied (a variant is always chosen). In
+                    that case we show a note pointing to the per-variant channel prices instead. */}
+                {(formData.variants && formData.variants.length > 0 && formData.variants.some(v => v.name && v.price)) ? (
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                      {t('menu.channelPricesOptional')}
+                    </label>
+                    <div style={{ padding: '12px 16px', backgroundColor: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '13px', color: '#6b7280' }}>
+                      {t('menu.channelPricesPerVariant') || 'Set Dine-In / Takeaway / Delivery prices per variant on the right — variant prices take priority for items with variants.'}
+                    </div>
+                  </div>
+                ) : (
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '10px' }}>
                     {t('menu.channelPricesOptional')} <span style={{ fontWeight: '400', color: '#9ca3af', fontSize: '12px' }}>{t('menu.optional')}</span>
@@ -5744,6 +5757,7 @@ const MenuManagement = () => {
                     <span onClick={() => router.push(isMobileEmbed ? '/mobile/admin' : '/admin')} style={{ color: '#ef4444', cursor: 'pointer', fontWeight: '600' }}>{t('menu.adminPricingRules')}</span>
                   </p>
                 </div>
+                )}
 
                 {/* Category + Sub-Category moved to the top of the RIGHT column
                     (above Image Upload) — see below. */}
