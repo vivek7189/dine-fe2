@@ -2128,31 +2128,28 @@ const TableManagement = () => {
                         // takes an order (available) or opens the running order (occupied) — same as a card.
                         return (
                           <div key={table.id} style={{
-                            // Size to content (span 2 grid columns) so split blocks flow compactly
-                            // next to normal tables instead of taking a full row.
-                            gridColumn: (isMobile || isMobileEmbed) ? '1 / -1' : 'span 2',
+                            // Occupies ONE card slot (like a normal table) — clean, uniform grid.
                             border: '1px solid #e5e7eb', background: '#fff',
-                            borderRadius: '10px', overflow: 'hidden', display: 'flex', flexDirection: 'column',
-                            boxShadow: '0 1px 3px rgba(15,23,42,0.06)',
+                            borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minHeight: isMobileEmbed ? 'auto' : '120px',
                           }}>
-                            {/* Header bar */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', background: '#f8fafc', borderBottom: '1px solid #eef2f6', gap: '6px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-                                <span style={{ fontWeight: 800, color: '#111827', fontSize: '13px' }}>{table.name}</span>
-                                <span style={{ fontSize: '9px', fontWeight: 700, color: '#64748b', background: '#eef2f6', padding: '1px 6px', borderRadius: '5px' }}>{t('tables.split') || 'Split'} · {subs.length}</span>
+                            {/* Header */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderBottom: '1px solid #f1f5f9', gap: '6px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
+                                <span style={{ fontWeight: 800, color: '#111827', fontSize: '14px' }}>{table.name}</span>
+                                <span style={{ fontSize: '9px', fontWeight: 700, color: '#7c3aed', background: '#f3e8ff', padding: '1px 6px', borderRadius: '999px' }}>{t('tables.split') || 'Split'} · {subs.length}</span>
                               </div>
                               {canEditTableConfig && (
                                 <button onClick={() => setUnsplitConfirm({ tableId: table.id, name: table.name })} title={t('tables.unsplit') || 'Un-split'} style={{
-                                  padding: '3px 7px', background: 'transparent', color: '#94a3b8', border: 'none',
-                                  borderRadius: '6px', fontSize: '10px', fontWeight: 700, cursor: 'pointer',
-                                  display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0,
+                                  width: '22px', height: '22px', padding: 0, background: 'transparent', color: '#94a3b8', border: 'none',
+                                  borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                                 }}>
-                                  <FaTimes size={9} /> {t('tables.unsplit') || 'Un-split'}
+                                  <FaTimes size={11} />
                                 </button>
                               )}
                             </div>
-                            {/* Compact seat grid — tiny single-line cells (label + status dot) */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '5px', padding: '6px' }}>
+                            {/* Square sub-table tiles */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', padding: '8px', flex: 1 }}>
                               {subs.length === 0
                                 ? <div style={{ fontSize: '12px', color: '#9ca3af', padding: '6px', gridColumn: '1 / -1' }}>{t('tables.noSubTables') || 'No sub-tables'}</div>
                                 : subs.map(s => {
@@ -2164,16 +2161,16 @@ const TableManagement = () => {
                                         onClick={() => handleTableAction(st === 'available' ? 'take-order' : 'view-order', s)}
                                         title={`${s.name} · ${info.label}`}
                                         style={{
-                                          cursor: 'pointer', borderRadius: '7px',
-                                          border: `1px solid ${occupied ? info.color : info.border}`,
+                                          cursor: 'pointer', borderRadius: '9px',
+                                          border: `1.5px solid ${occupied ? info.color : info.border}`,
                                           background: occupied ? info.color : info.bg,
                                           color: occupied ? '#fff' : info.text,
-                                          padding: '0 8px', height: '30px',
-                                          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px',
-                                          fontWeight: 700, fontSize: '12px', transition: 'all 0.12s',
+                                          minHeight: '42px', position: 'relative',
+                                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                          fontWeight: 800, fontSize: '15px', transition: 'all 0.12s',
                                         }}>
-                                        <span>{s.subLabel || s.name}</span>
-                                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: occupied ? '#fff' : info.color, flexShrink: 0 }} />
+                                        {s.subLabel || s.name}
+                                        <span style={{ position: 'absolute', top: '5px', right: '6px', width: '6px', height: '6px', borderRadius: '50%', background: occupied ? '#fff' : info.color }} />
                                       </button>
                                     );
                                   })}

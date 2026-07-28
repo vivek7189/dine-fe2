@@ -879,15 +879,15 @@ export default function DashboardTablesPanel({
                 };
                 return (
                   <div key={t.id || tIdx} style={{
-                    gridColumn: isMobileEmbed ? '1 / -1' : 'span 2',
-                    border: '1px solid #e5e7eb', background: '#fff', borderRadius: '10px',
-                    overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 3px rgba(15,23,42,0.06)', minWidth: 0,
+                    // One card slot (like a normal table) — clean, uniform grid.
+                    border: '1px solid #e5e7eb', background: '#fff', borderRadius: '12px',
+                    overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0,
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 10px', background: '#f8fafc', borderBottom: '1px solid #eef2f6' }}>
-                      <span style={{ fontWeight: 800, color: '#111827', fontSize: '13px' }}>{t.name}</span>
-                      <span style={{ fontSize: '9px', fontWeight: 700, color: '#64748b', background: '#eef2f6', padding: '1px 6px', borderRadius: '5px' }}>{translate('tables.split') || 'Split'} · {subs.length}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '8px 10px', borderBottom: '1px solid #f1f5f9' }}>
+                      <span style={{ fontWeight: 800, color: '#111827', fontSize: '14px' }}>{t.name}</span>
+                      <span style={{ fontSize: '9px', fontWeight: 700, color: '#7c3aed', background: '#f3e8ff', padding: '1px 6px', borderRadius: '999px' }}>{translate('tables.split') || 'Split'} · {subs.length}</span>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '5px', padding: '6px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', padding: '8px', flex: 1 }}>
                       {subs.map(s => {
                         const st = s.status || 'available';
                         const info = getTableStatusInfo(st);
@@ -895,16 +895,16 @@ export default function DashboardTablesPanel({
                         return (
                           <button key={s.id} onClick={() => subTap(s)} title={`${s.name} · ${info.label}`}
                             style={{
-                              cursor: 'pointer', borderRadius: '7px',
-                              border: `1px solid ${occupied ? info.color : info.border}`,
+                              cursor: 'pointer', borderRadius: '9px',
+                              border: `1.5px solid ${occupied ? info.color : info.border}`,
                               background: occupied ? info.color : info.bg,
                               color: occupied ? '#fff' : info.text,
-                              padding: '0 8px', height: '30px',
-                              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px',
-                              fontWeight: 700, fontSize: '12px', transition: 'all 0.12s',
+                              minHeight: '42px', position: 'relative',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontWeight: 800, fontSize: '15px', transition: 'all 0.12s',
                             }}>
-                            <span>{s.subLabel || s.name}</span>
-                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: occupied ? '#fff' : info.color, flexShrink: 0 }} />
+                            {s.subLabel || s.name}
+                            <span style={{ position: 'absolute', top: '5px', right: '6px', width: '6px', height: '6px', borderRadius: '50%', background: occupied ? '#fff' : info.color }} />
                           </button>
                         );
                       })}

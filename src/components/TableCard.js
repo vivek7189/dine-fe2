@@ -3,7 +3,7 @@
 import {
   FaChair, FaUsers, FaLayerGroup, FaUser, FaEye, FaSpinner, FaCalendarAlt,
   FaEdit, FaTrash, FaBan, FaTools, FaCheck, FaReceipt, FaPrint, FaExchangeAlt,
-  FaUtensils, FaPlus, FaColumns,
+  FaUtensils, FaPlus, FaColumns, FaEllipsisV,
 } from 'react-icons/fa';
 
 /**
@@ -85,9 +85,37 @@ export default function TableCard({
         : '0 1px 3px rgba(0,0,0,0.05)',
       padding: '0', position: 'relative', overflow: isMobileEmbed ? 'hidden' : 'visible',
       minHeight: isMobileEmbed ? 'auto' : '120px', display: 'flex', flexDirection: 'column',
-    }} onClick={() => setActiveDropdown(isDropdownOpen ? null : table.id)}
+    }} onClick={() => {
+         // Tapping the card body is the PRIMARY action (POS-standard): take an order when the
+         // table is free, or open the running order when occupied. Management actions live behind
+         // the ⋮ kebab. If the kebab menu is open, a body tap just closes it.
+         if (isDropdownOpen) { setActiveDropdown(null); return; }
+         const st = tableStatus;
+         if (st === 'cleaning' || st === 'out-of-service') { onTableAction?.('make-available', table); return; }
+         if (isOccupied || table.currentOrderId) { onTableAction?.('view-order', table); return; }
+         onTableAction?.('take-order', table);
+       }}
        onMouseEnter={() => setHoveredTableId(table.id)}
        onMouseLeave={() => setHoveredTableId(null)}>
+
+      {/* ⋮ Management kebab — the ONLY trigger for edit/split/assign/clean/delete. Keeps the card
+          body a clean primary tap target (matches Toast/Square/Petpooja). */}
+      {showManagementDropdown && isToday && (
+        <button
+          onClick={(e) => { e.stopPropagation(); setActiveDropdown(isDropdownOpen ? null : table.id); }}
+          title="Manage table"
+          style={{
+            position: 'absolute', top: '6px', right: '6px', zIndex: 4,
+            width: '24px', height: '24px', borderRadius: '7px',
+            border: '1px solid ' + (isDropdownOpen ? '#cbd5e1' : 'transparent'),
+            background: isDropdownOpen ? '#f1f5f9' : 'rgba(255,255,255,0.55)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', color: '#64748b', padding: 0,
+          }}
+        >
+          <FaEllipsisV size={12} />
+        </button>
+      )}
 
       {/* Animated dotted border for occupied tables (today only) */}
       {isOccupied && (
@@ -432,7 +460,7 @@ export default function TableCard({
                 </button>
                 {canEditTableConfig && (
                   <button className="tbl-action" onClick={(e) => { e.stopPropagation(); onEditTable(table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#2563eb', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderBottom: '1px solid #f5f5f5', borderLeft: '1px solid #f5f5f5' }}>
-                    <FaEdit size={12} /> {t('tables.edit') || 'Edit'}
+                    <FaEdit size={12} /> Edit
                   </button>
                 )}
                 {canEditTableConfig && onSplitTable && !table.isSubTable && (
