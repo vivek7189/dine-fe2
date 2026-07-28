@@ -26,6 +26,7 @@ import { createPortal } from 'react-dom';
 import QRCode from 'qrcode';
 import { getBillPrintCSS, getBillHeaderHTML } from '../../../utils/printFontSizes';
 import { printDocument, supportsNativeAutoPrint } from '../../../utils/printBridge';
+import { printKOTByStations } from '../../../utils/printKotStations';
 // Dynamic imports — loaded on first use
 const TableBillingModal = dynamic(() => import('../../../components/TableBillingModal'), { ssr: false });
 const MoveOrderModal = dynamic(() => import('../../../components/MoveOrderModal'), { ssr: false });
@@ -1399,6 +1400,23 @@ const TableManagement = () => {
         return;
       }
       const order = response.orders[0];
+
+      // Multi-station (Electron): route each category's items to its station printer, same as the
+      // dashboard billing KOT. Returns handled:false for single-printer/non-Electron → falls through
+      // to the combined single-printer print below (existing behaviour, unchanged).
+      const routed = await printKOTByStations({
+        restaurantId: selectedRestaurant.id,
+        orderId: order.id,
+        printSettings: printSettings || {},
+        posSettings,
+        t,
+        currencySymbol: getCurrencySymbol(),
+      });
+      if (routed?.handled) {
+        setTimeout(() => setPrintingTables(prev => ({ ...prev, [tableId]: false })), 1000);
+        return;
+      }
+
       const items = order.items || [];
       const restaurantName = selectedRestaurant?.name || 'Restaurant';
       const formattedTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -2130,10 +2148,10 @@ const TableManagement = () => {
                                 </button>
                               )}
                             </div>
-                            {/* Compact seat grid */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', padding: '8px' }}>
+                            {/* Compact seat grid — tiny single-line cells (label + status dot) */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '5px', padding: '6px' }}>
                               {subs.length === 0
-                                ? <div style={{ fontSize: '12px', color: '#9ca3af', padding: '8px', gridColumn: '1 / -1' }}>{t('tables.noSubTables') || 'No sub-tables'}</div>
+                                ? <div style={{ fontSize: '12px', color: '#9ca3af', padding: '6px', gridColumn: '1 / -1' }}>{t('tables.noSubTables') || 'No sub-tables'}</div>
                                 : subs.map(s => {
                                     const st = isToday ? (tableStatusesForDate[s.id] || s.status || 'available') : 'available';
                                     const info = getTableStatusInfo(st);
@@ -2143,21 +2161,16 @@ const TableManagement = () => {
                                         onClick={() => handleTableAction(st === 'available' ? 'take-order' : 'view-order', s)}
                                         title={`${s.name} · ${info.label}`}
                                         style={{
-                                          textAlign: 'left', cursor: 'pointer', borderRadius: '8px',
-                                          border: `1.5px solid ${occupied ? info.color : info.border}`,
+                                          cursor: 'pointer', borderRadius: '7px',
+                                          border: `1px solid ${occupied ? info.color : info.border}`,
                                           background: occupied ? info.color : info.bg,
                                           color: occupied ? '#fff' : info.text,
-                                          padding: '7px 9px', minHeight: '46px',
-                                          display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '3px',
-                                          transition: 'all 0.12s',
+                                          padding: '0 8px', height: '30px',
+                                          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px',
+                                          fontWeight: 700, fontSize: '12px', transition: 'all 0.12s',
                                         }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                          <span style={{ fontWeight: 800, fontSize: '13px' }}>{s.subLabel || s.name}</span>
-                                          <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: occupied ? '#fff' : info.color }} />
-                                        </div>
-                                        <span style={{ fontSize: '9.5px', fontWeight: 600, opacity: 0.9 }}>
-                                          {occupied ? info.label : `${s.capacity || 1} ${(s.capacity || 1) === 1 ? (t('tables.seat') || 'seat') : (t('tables.seats') || 'seats')}`}
-                                        </span>
+                                        <span>{s.subLabel || s.name}</span>
+                                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: occupied ? '#fff' : info.color, flexShrink: 0 }} />
                                       </button>
                                     );
                                   })}

@@ -18,6 +18,7 @@ import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { getBillPrintCSS, getKOTPrintCSS, getBillHeaderHTML, buildTokenSlipsDocumentHTML } from '../../../utils/printFontSizes';
 import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '../../../utils/printBridge';
+import { printKOTByStations } from '../../../utils/printKotStations';
 import { generateBillHTML } from '../../../utils/printHtmlGenerator';
 import dynamic from 'next/dynamic';
 const OrderSummary = dynamic(() => import('../../../components/OrderSummary'), { ssr: false });
@@ -1756,7 +1757,21 @@ const OrderHistory = () => {
   };
 
   // Print KOT using inline HTML (KOT format only used for explicit "Print KOT" action)
-  const browserPrintKOT = (order) => {
+  const browserPrintKOT = async (order) => {
+    // Multi-station (Electron): route each category's items to its station printer like the
+    // dashboard billing KOT. handled:false for single-printer/non-Electron → combined print below.
+    try {
+      const routed = await printKOTByStations({
+        restaurantId,
+        orderId: order.id,
+        printSettings: printSettings || {},
+        posSettings: restaurant?.posSettings || {},
+        t,
+        currencySymbol: getCurrencySymbol(),
+      });
+      if (routed?.handled) return;
+    } catch (_) { /* fall through to combined print */ }
+
     const restaurantName = restaurant?.name || 'Restaurant';
     const orderNum = order.dailyOrderId ?? order.orderNumber ?? order.id ?? '—';
     const tableNum = order.tableNumber || order.customerDisplay?.tableNumber || order.customerInfo?.tableNumber || null;

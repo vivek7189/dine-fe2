@@ -15,6 +15,7 @@ import { useCurrency } from '../contexts/CurrencyContext';
 import { buildTokenSlipsDocumentHTML, buildTokenSlipHTML } from '../utils/printFontSizes';
 import { generateBillHTML, generateKOTHTML } from '../utils/printHtmlGenerator';
 import { printHtmlInHiddenFrame, printDocument, supportsNativeAutoPrint } from '../utils/printBridge';
+import { printKOTByStations } from '../utils/printKotStations';
 import { seatLabel } from '../utils/orderItemKey';
 
 export default function DashboardTablesPanel({
@@ -444,6 +445,22 @@ export default function DashboardTablesPanel({
         return;
       }
       const order = response.orders[0];
+
+      // Multi-station (Electron): route by station like the dashboard billing KOT. Returns
+      // handled:false for single-printer/non-Electron → falls through to the combined print below.
+      const routed = await printKOTByStations({
+        restaurantId: selectedRestaurant.id,
+        orderId: order.id,
+        printSettings: printSettings || {},
+        posSettings,
+        t: translate,
+        currencySymbol: getCurrencySymbol(),
+      });
+      if (routed?.handled) {
+        printTimersRef.current.push(setTimeout(() => setPrintingTables(prev => ({ ...prev, [tableId]: false })), 1000));
+        return;
+      }
+
       // KOT Exclusion: filter out excluded items before printing
       const ps = printSettings || {};
       let kotItems = order.items || [];
@@ -841,6 +858,57 @@ export default function DashboardTablesPanel({
             gap: isMobileEmbed ? '8px' : '20px',
           }}>
             {(group.tables || []).map((t, tIdx) => {
+              // Split sub-tables render inside their parent's compact block (below), not standalone.
+              if (t.isSubTable) return null;
+              // Split parent → compact POS-style block (matches /tables): header + tight 2-col
+              // grid of tiny seat cells. One tap takes an order / opens the running order.
+              if (t.isSplit) {
+                const subs = (group.tables || []).filter(s => s.isSubTable && s.parentTableId === t.id)
+                  .sort((a, b) => (a.subLabel || '').localeCompare(b.subLabel || ''));
+                const subTap = (s) => {
+                  const st = s.status || 'available';
+                  if (st !== 'available' && s.currentOrderId) {
+                    if (sliderOpen) handleSliderClose();
+                    router.push(`/dashboard?orderId=${s.currentOrderId}&mode=edit&from=tables`);
+                  } else {
+                    handleTakeOrderGuarded(s, group.info?.name, group.info?.id);
+                  }
+                };
+                return (
+                  <div key={t.id || tIdx} style={{
+                    gridColumn: isMobileEmbed ? '1 / -1' : 'span 2',
+                    border: '1px solid #e5e7eb', background: '#fff', borderRadius: '10px',
+                    overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 3px rgba(15,23,42,0.06)', minWidth: 0,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 10px', background: '#f8fafc', borderBottom: '1px solid #eef2f6' }}>
+                      <span style={{ fontWeight: 800, color: '#111827', fontSize: '13px' }}>{t.name}</span>
+                      <span style={{ fontSize: '9px', fontWeight: 700, color: '#64748b', background: '#eef2f6', padding: '1px 6px', borderRadius: '5px' }}>{translate('tables.split') || 'Split'} · {subs.length}</span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '5px', padding: '6px' }}>
+                      {subs.map(s => {
+                        const st = s.status || 'available';
+                        const info = getTableStatusInfo(st);
+                        const occupied = st !== 'available';
+                        return (
+                          <button key={s.id} onClick={() => subTap(s)} title={`${s.name} · ${info.label}`}
+                            style={{
+                              cursor: 'pointer', borderRadius: '7px',
+                              border: `1px solid ${occupied ? info.color : info.border}`,
+                              background: occupied ? info.color : info.bg,
+                              color: occupied ? '#fff' : info.text,
+                              padding: '0 8px', height: '30px',
+                              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px',
+                              fontWeight: 700, fontSize: '12px', transition: 'all 0.12s',
+                            }}>
+                            <span>{s.subLabel || s.name}</span>
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: occupied ? '#fff' : info.color, flexShrink: 0 }} />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              }
               const isRecentlyUpdated = recentlyUpdatedTableId && t.id === recentlyUpdatedTableId;
               return (
                 <div
