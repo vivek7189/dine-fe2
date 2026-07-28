@@ -64,6 +64,9 @@ export default function TableCard({
   parties = [],
   onAddParty,
   onOpenParty,
+  // When provided, the ⋮ button opens a clean centered options modal (owned by the page)
+  // instead of the cramped inline dropdown. Falls back to the inline dropdown if absent.
+  onOpenActions,
 }) {
   const hasBookings = tblBookings.length > 0;
   const sInfo = getTableStatusInfo(tableStatus);
@@ -119,7 +122,7 @@ export default function TableCard({
           body a clean primary tap target (matches Toast/Square/Petpooja). */}
       {showManagementDropdown && isToday && (
         <button
-          onClick={(e) => { e.stopPropagation(); setActiveDropdown(isDropdownOpen ? null : table.id); }}
+          onClick={(e) => { e.stopPropagation(); if (onOpenActions) { onOpenActions(table); } else { setActiveDropdown(isDropdownOpen ? null : table.id); } }}
           title="Manage table"
           style={{
             position: 'absolute', top: '6px', right: '6px', zIndex: 4,
@@ -472,8 +475,9 @@ export default function TableCard({
         )}
       </div>
 
-      {/* Dropdown overlay on card top (today only) */}
-      {showManagementDropdown && isToday && isDropdownOpen && (
+      {/* Dropdown overlay on card top (today only) — legacy fallback when no modal handler.
+          When onOpenActions is provided the page renders a clean centered modal instead. */}
+      {!onOpenActions && showManagementDropdown && isToday && isDropdownOpen && (
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0,
           backgroundColor: 'white', borderRadius: '12px 12px 0 0',

@@ -13,6 +13,7 @@ import { getCachedData, setCachedData } from '../../../lib/offlineDb';
 import OfflineBanner from '../../../components/OfflineBanner';
 import TableFloorPlan from '../../../components/TableFloorPlan';
 import TableCard from '../../../components/TableCard';
+import TableActionsSheet from '../../../components/TableActionsSheet';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import {
   FaPlus, FaTrash, FaCog, FaUsers, FaClock, FaUtensils, FaCheck, FaBan, FaChair,
@@ -1198,6 +1199,8 @@ const TableManagement = () => {
   // occupied/available table; the backend creates the next sibling (Party B, C, …) and we
   // jump straight into Take Order for it. Base table stays Party A and bills independently.
   const [addingPartyFor, setAddingPartyFor] = useState(null);
+  // Clean centered "table options" modal (replaces the cramped inline card dropdown).
+  const [actionsSheetTable, setActionsSheetTable] = useState(null);
   const handleAddParty = async (table) => {
     if (!table || !selectedRestaurant?.id || addingPartyFor) return;
     setActiveDropdown(null);
@@ -1729,6 +1732,8 @@ const TableManagement = () => {
         @keyframes tblShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
         @keyframes tblFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes tblDropdown { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+        @keyframes tblFade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes tblSheet { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes dash { to { stroke-dashoffset: 0; } }
         @keyframes tblPulse { 0%,100% { opacity: 0.4; } 50% { opacity: 0.7; } }
@@ -2141,6 +2146,8 @@ const TableManagement = () => {
                             const pst = isToday ? (tableStatusesForDate[pt.id] || pt.status || 'available') : 'available';
                             handleTableAction(pst === 'available' ? 'take-order' : 'view-order', pt);
                           }}
+                          // ⋮ opens the clean centered options modal instead of an inline dropdown.
+                          onOpenActions={(tbl) => setActionsSheetTable(tbl)}
                         />
                       );
                     };
@@ -2167,14 +2174,24 @@ const TableManagement = () => {
                                 <span style={{ fontWeight: 800, color: '#111827', fontSize: '14px' }}>{table.name}</span>
                                 <span style={{ fontSize: '9px', fontWeight: 700, color: '#7c3aed', background: '#f3e8ff', padding: '1px 6px', borderRadius: '999px' }}>{t('tables.split') || 'Split'} · {subs.length}</span>
                               </div>
-                              {canEditTableConfig && (
-                                <button onClick={() => setUnsplitConfirm({ tableId: table.id, name: table.name })} title={t('tables.unsplit') || 'Un-split'} style={{
-                                  width: '22px', height: '22px', padding: 0, background: 'transparent', color: '#94a3b8', border: 'none',
-                                  borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                                }}>
-                                  <FaTimes size={11} />
-                                </button>
-                              )}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
+                                {isToday && (
+                                  <button onClick={() => setActionsSheetTable(table)} title={t('tables.manage') || 'Options'} style={{
+                                    width: '24px', height: '24px', padding: 0, background: '#f1f5f9', color: '#64748b', border: 'none',
+                                    borderRadius: '7px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  }}>
+                                    <FaEllipsisV size={11} />
+                                  </button>
+                                )}
+                                {canEditTableConfig && (
+                                  <button onClick={() => setUnsplitConfirm({ tableId: table.id, name: table.name })} title={t('tables.unsplit') || 'Un-split'} style={{
+                                    width: '22px', height: '22px', padding: 0, background: 'transparent', color: '#94a3b8', border: 'none',
+                                    borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  }}>
+                                    <FaTimes size={11} />
+                                  </button>
+                                )}
+                              </div>
                             </div>
                             {/* Square sub-table tiles */}
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', padding: '8px', flex: 1 }}>
@@ -3160,6 +3177,48 @@ const TableManagement = () => {
           </div>
         </div>
       )}
+
+      {/* Clean centered "table options" modal (replaces the cramped inline card dropdown) */}
+      {actionsSheetTable && (() => {
+        const tbl = actionsSheetTable;
+        const st = isToday ? (tableStatusesForDate[tbl.id] || tbl.status || 'available') : 'available';
+        const parties = tables.filter(x => x.isPartyTable && x.partyOfTableId === tbl.id).sort((a, b) => (a.partyLabel || '').localeCompare(b.partyLabel || ''));
+        return (
+          <TableActionsSheet
+            table={tbl}
+            status={st}
+            posSettings={posSettings}
+            canEditTable={canEditTable}
+            canEditTableConfig={canEditTableConfig}
+            waitersCount={waiters.length}
+            parties={parties}
+            t={t}
+            onClose={() => setActionsSheetTable(null)}
+            onTakeOrder={(x) => handleTableAction('take-order', x)}
+            onViewOrder={(x) => handleTableAction('view-order', x)}
+            onAddParty={(x) => handleAddParty(x)}
+            onOpenParty={(pt) => {
+              const pst = isToday ? (tableStatusesForDate[pt.id] || pt.status || 'available') : 'available';
+              handleTableAction(pst === 'available' ? 'take-order' : 'view-order', pt);
+            }}
+            onAssignServer={(x) => openAssignServer(x)}
+            onBook={(x) => {
+              setSelectedTable(x);
+              setBookingData(prev => ({ ...prev, bookingDate: selectedDate, partySize: Math.min(x.capacity, prev.partySize || 2) }));
+              setBookingFromHeader(false);
+              setShowBookingForm(true);
+            }}
+            onEdit={(x) => openEditTable(x)}
+            onSplit={(x) => openSplitTable(x)}
+            onUnmerge={(x) => setUnmergeConfirm({ primaryTableId: x.mergePrimary ? x.id : x.mergedInto, name: x.mergePrimary ? x.name : (x.mergedIntoName || x.name) })}
+            onMoveOrder={(x) => handleTableAction('move-order', x)}
+            onSetCleaning={(x) => handleTableAction('cleaning', x)}
+            onSetOutOfService={(x) => handleTableAction('out-of-service', x)}
+            onMakeAvailable={(x) => handleTableAction('make-available', x)}
+            onDelete={(x) => deleteTable(x.id)}
+          />
+        );
+      })()}
 
       {/* Assign Server picker */}
       {assignServerTable && (
