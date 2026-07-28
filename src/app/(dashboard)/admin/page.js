@@ -3514,6 +3514,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
     enableKOTAndPrint: false,
     enableSaveAndPrint: false,
     kotThenBill: false,
+    imagePrintEnabled: false,
     // Auto-print on button click (Tauri desktop)
     autoPrintOnPlaceOrder: false,
     autoPrintOnKOTAndPrint: true,
@@ -3663,6 +3664,13 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
       title: 'Update Order Without KOT',
       description: 'Allow saving order changes without sending to kitchen (for drinks, water etc.)',
       icon: <FaEdit size={18} />,
+      section: 'buttons'
+    },
+    {
+      key: 'imagePrintEnabled',
+      title: 'Image Receipts on Mobile App (beta)',
+      description: 'On the mobile POS app, print the bill/KOT as a designed image (same look as desktop) instead of plain text. Only for thermal printers that support image printing — falls back to text automatically. Leave OFF unless your printers support it.',
+      icon: <FaPrint size={18} />,
       section: 'buttons'
     },
     {
