@@ -2177,10 +2177,10 @@ const TableManagement = () => {
                               <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
                                 {isToday && (
                                   <button onClick={() => setActionsSheetTable(table)} title={t('tables.manage') || 'Options'} style={{
-                                    width: '24px', height: '24px', padding: 0, background: '#f1f5f9', color: '#64748b', border: 'none',
-                                    borderRadius: '7px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    width: '26px', height: '26px', padding: 0, background: '#ffffff', color: '#475569', border: '1px solid #e2e8f0',
+                                    borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.10)',
                                   }}>
-                                    <FaEllipsisV size={11} />
+                                    <FaCog size={12} />
                                   </button>
                                 )}
                                 {canEditTableConfig && (
@@ -3181,8 +3181,8 @@ const TableManagement = () => {
       {/* Clean centered "table options" modal (replaces the cramped inline card dropdown) */}
       {actionsSheetTable && (() => {
         const tbl = actionsSheetTable;
-        const st = isToday ? (tableStatusesForDate[tbl.id] || tbl.status || 'available') : 'available';
-        const parties = tables.filter(x => x.isPartyTable && x.partyOfTableId === tbl.id).sort((a, b) => (a.partyLabel || '').localeCompare(b.partyLabel || ''));
+        const st = isTodayDate ? (tableStatusesForDate[tbl.id] || tbl.status || 'available') : 'available';
+        const parties = allTables.filter(x => x.isPartyTable && x.partyOfTableId === tbl.id).sort((a, b) => (a.partyLabel || '').localeCompare(b.partyLabel || ''));
         return (
           <TableActionsSheet
             table={tbl}

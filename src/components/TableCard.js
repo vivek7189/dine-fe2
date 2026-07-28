@@ -3,7 +3,7 @@
 import {
   FaChair, FaUsers, FaLayerGroup, FaUser, FaEye, FaSpinner, FaCalendarAlt,
   FaEdit, FaTrash, FaBan, FaTools, FaCheck, FaReceipt, FaPrint, FaExchangeAlt,
-  FaUtensils, FaPlus, FaColumns, FaEllipsisV,
+  FaUtensils, FaPlus, FaColumns, FaEllipsisV, FaCog,
 } from 'react-icons/fa';
 
 /**
@@ -126,14 +126,15 @@ export default function TableCard({
           title="Manage table"
           style={{
             position: 'absolute', top: '6px', right: '6px', zIndex: 4,
-            width: '24px', height: '24px', borderRadius: '7px',
-            border: '1px solid ' + (isDropdownOpen ? '#cbd5e1' : 'transparent'),
-            background: isDropdownOpen ? '#f1f5f9' : 'rgba(255,255,255,0.55)',
+            width: '26px', height: '26px', borderRadius: '8px',
+            border: '1px solid #e2e8f0',
+            background: isDropdownOpen ? '#eef2ff' : '#ffffff',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.10)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', color: '#64748b', padding: 0,
+            cursor: 'pointer', color: isDropdownOpen ? '#4f46e5' : '#475569', padding: 0,
           }}
         >
-          <FaEllipsisV size={12} />
+          <FaCog size={13} />
         </button>
       )}
 

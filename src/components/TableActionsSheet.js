@@ -83,7 +83,7 @@ export default function TableActionsSheet({
 
   return (
     <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 1000,
+      position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(3px)', zIndex: 100000,
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
       animation: 'tblFade 0.12s ease-out',
     }}>
