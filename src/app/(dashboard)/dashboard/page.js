@@ -8410,7 +8410,22 @@ function RestaurantPOSContent() {
                   segs.push(<span key={`crumb-sep-${i}`} style={{ color: '#d1d5db', fontSize: '12px' }}>›</span>);
                   segs.push(<span key={`crumb-${id}`} onClick={() => { if (!isLast) setSelectedCategory(id); }} style={{ fontSize: '13px', fontWeight: isLast ? 700 : 600, color: isLast ? '#1f2937' : '#ef4444', cursor: isLast ? 'default' : 'pointer' }}>{capitalizeFirst(n.name)}</span>);
                 });
-                return <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 6px 4px', flexWrap: 'wrap' }}>{segs}</div>;
+                // Back goes UP one level: to the parent sub-category, or to the
+                // category home when already at a top-level category.
+                const upTarget = path.length >= 2 ? (path[path.length - 2].id || '').toLowerCase() : 'all-items';
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 6px 6px', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => setSelectedCategory(upTarget)}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 15px 7px 12px', borderRadius: '999px', border: '1.5px solid #fecaca', background: 'linear-gradient(135deg, #ffffff, #fef2f2)', color: '#ef4444', fontSize: '13px', fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 6px rgba(239,68,68,0.12)', transition: 'all 0.15s', flexShrink: 0 }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.transform = 'translateX(-2px)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, #ffffff, #fef2f2)'; e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = '#fecaca'; e.currentTarget.style.transform = 'none'; }}
+                    >
+                      <span style={{ fontSize: '18px', fontWeight: 800, lineHeight: 1 }}>‹</span> {t('dashboard.back') || 'Back'}
+                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>{segs}</div>
+                  </div>
+                );
               })()}
               {/* Group items by category when showing all items */}
               {selectedCategory === 'all-items' ? (
