@@ -75,6 +75,9 @@ export default function TableCard({
   const anyPartyRunning = isToday && (parties || []).some(p => !!p.currentOrderId || p.status === 'occupied' || p.status === 'serving');
   const displayStatus = (isToday && tableStatus === 'available' && anyPartyRunning) ? 'occupied' : tableStatus;
   const sInfo = getTableStatusInfo(displayStatus);
+  // Visual-only "occupied" look (yellow tint + animated border) — true when the table's own
+  // order is running OR any of its parties is. Does NOT change the base table's own actions.
+  const looksOccupied = isToday && (displayStatus === 'occupied' || displayStatus === 'serving');
   const StatusIcon = sInfo.icon;
   const isDropdownOpen = activeDropdown === table.id;
   const isOccupied = isToday && (tableStatus === 'occupied' || tableStatus === 'serving');
@@ -104,7 +107,7 @@ export default function TableCard({
     <div key={table.id} className="tbl-card table-dropdown" style={{
       background: sInfo.bg,
       borderRadius: isMobileEmbed ? '8px' : '12px',
-      border: isOccupied ? 'none' : `1px solid ${sInfo.border}`,
+      border: looksOccupied ? 'none' : `1px solid ${sInfo.border}`,
       boxShadow: highlighted
         ? '0 0 0 3px rgba(59,130,246,0.55), 0 1px 3px rgba(0,0,0,0.05)'
         : '0 1px 3px rgba(0,0,0,0.05)',
@@ -143,8 +146,8 @@ export default function TableCard({
         </button>
       )}
 
-      {/* Animated dotted border for occupied tables (today only) */}
-      {isOccupied && (
+      {/* Animated dotted border for occupied tables (today only) — also when a party runs */}
+      {looksOccupied && (
         <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }}>
           <rect x="1.5" y="1.5" width="calc(100% - 3px)" height="calc(100% - 3px)" rx={isMobileEmbed ? "6.5" : "10.5"} ry={isMobileEmbed ? "6.5" : "10.5"} fill="none" stroke={sInfo.color} strokeWidth={isMobileEmbed ? "1.5" : "2"} strokeDasharray={isMobileEmbed ? "4,4" : "6,6"} strokeDashoffset="100">
             <animate attributeName="stroke-dashoffset" from="100" to="0" dur="3s" repeatCount="indefinite" />

@@ -861,8 +861,10 @@ export default function DashboardTablesPanel({
             gap: isMobileEmbed ? '8px' : '20px',
           }}>
             {(group.tables || []).map((t, tIdx) => {
-              // Split sub-tables render inside their parent's compact block (below), not standalone.
-              if (t.isSubTable) return null;
+              // Split sub-tables render inside their parent's compact block (below), and
+              // party sub-tables (B/C/…) render as chips under their BASE card (like /tables) —
+              // neither should appear as a standalone card here.
+              if (t.isSubTable || t.isPartyTable) return null;
               // Split parent → compact POS-style block (matches /tables): header + tight 2-col
               // grid of tiny seat cells. One tap takes an order / opens the running order.
               if (t.isSplit) {
@@ -975,6 +977,25 @@ export default function DashboardTablesPanel({
                     onAssignServer={() => {}}
                     onUnmerge={() => {}}
                     onBookTable={() => {}}
+                    // Dynamic parties (Path A) — render B/C/… as chips under this base card and
+                    // let the base read "occupied" (yellow) when any party is running.
+                    parties={(group.tables || []).filter(s => s.isPartyTable && s.partyOfTableId === t.id).sort((a, b) => (a.partyLabel || '').localeCompare(b.partyLabel || ''))}
+                    onAddParty={async (tbl) => {
+                      try {
+                        const res = await apiClient.addTableParty(selectedRestaurant.id, tbl.id);
+                        if (onRefreshTables) await onRefreshTables();
+                        const party = res?.party || res?.table;
+                        if (party?.id) handleTakeOrderGuarded(party, group.info?.name, group.info?.id);
+                      } catch (err) { console.error('Add party failed:', err?.message); }
+                    }}
+                    onOpenParty={(p) => {
+                      if (p?.currentOrderId) {
+                        if (sliderOpen) handleSliderClose();
+                        router.push(`/dashboard?orderId=${p.currentOrderId}&mode=edit&from=tables`);
+                      } else {
+                        handleTakeOrderGuarded(p, group.info?.name, group.info?.id);
+                      }
+                    }}
                   />
                 </div>
               );
