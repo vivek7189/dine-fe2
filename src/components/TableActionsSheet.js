@@ -83,31 +83,36 @@ export default function TableActionsSheet({
 
   return (
     <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(3px)', zIndex: 100000,
+      // Opaque, blurred scrim so the whole app (incl. the left nav) is hidden behind the sheet.
+      position: 'fixed', inset: 0, background: 'rgba(9,13,26,0.82)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', zIndex: 2147483000,
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
-      animation: 'tblFade 0.12s ease-out',
+      animation: 'tblFade 0.14s ease-out',
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        background: '#fff', borderRadius: '18px', width: '100%', maxWidth: '380px',
-        maxHeight: '86vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.25)', animation: 'tblSheet 0.16s ease-out',
+        background: '#fff', borderRadius: '22px', width: '100%', maxWidth: '400px',
+        maxHeight: '88vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+        boxShadow: '0 30px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.06)', animation: 'tblSheet 0.18s cubic-bezier(0.34,1.3,0.64,1)',
       }}>
-        {/* Header: big table number + status + close */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px 16px 14px', borderBottom: '1px solid #f1f5f9' }}>
+        {/* Header: gradient band with big table number + status + close */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '13px', padding: '18px 16px 16px',
+          background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', position: 'relative',
+        }}>
           <div style={{
-            width: '46px', height: '46px', borderRadius: '12px', background: '#eef2ff',
+            width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(255,255,255,0.18)',
+            border: '1px solid rgba(255,255,255,0.25)', backdropFilter: 'blur(4px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            fontSize: '18px', fontWeight: 900, color: '#4f46e5',
+            fontSize: '19px', fontWeight: 900, color: '#fff',
           }}>
             {table.name}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>Table {table.name}</div>
-            <span style={{ display: 'inline-flex', marginTop: '3px', fontSize: '11px', fontWeight: 700, color: statusMeta.color, background: statusMeta.bg, padding: '2px 8px', borderRadius: '999px' }}>
+            <div style={{ fontSize: '16px', fontWeight: 800, color: '#fff' }}>Table {table.name}</div>
+            <span style={{ display: 'inline-flex', marginTop: '4px', fontSize: '11px', fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.2)', padding: '2px 9px', borderRadius: '999px' }}>
               {statusMeta.label}{table.capacity ? ` · ${table.capacity} seats` : ''}
             </span>
           </div>
-          <button onClick={onClose} style={{ width: '32px', height: '32px', borderRadius: '9px', border: 'none', background: '#f1f5f9', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <button onClick={onClose} style={{ width: '32px', height: '32px', borderRadius: '10px', border: 'none', background: 'rgba(255,255,255,0.18)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <FaTimes size={13} />
           </button>
         </div>
@@ -140,22 +145,33 @@ export default function TableActionsSheet({
                 label={`New Party (${nextPartyLabel})`}
                 sub="Start another independent check on this table"
                 onClick={() => run(onAddParty)} />
-              {parties.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '2px 16px 10px' }}>
-                  {parties.map((p) => {
-                    const pOcc = !!p.currentOrderId || p.status === 'occupied' || p.status === 'serving';
-                    return (
-                      <button key={p.id} onClick={() => { onClose?.(); onOpenParty?.(p); }} style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px', borderRadius: '9px',
-                        border: `1px solid ${pOcc ? '#fcd34d' : '#ddd6fe'}`, background: pOcc ? '#fef3c7' : '#f5f3ff',
-                        color: pOcc ? '#b45309' : '#7c3aed', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
-                      }}>
-                        Party {p.partyLabel} · {pOcc ? 'running' : 'empty'}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '2px 16px 10px' }}>
+                {/* Party A = the base table's own check — always shown so labels read A, B, C… */}
+                {(() => {
+                  const baseRunning = isOccupied || !!table.currentOrderId;
+                  return (
+                    <button key="base-A" onClick={() => run(baseRunning ? onViewOrder : onTakeOrder)} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px', borderRadius: '9px',
+                      border: `1px solid ${baseRunning ? '#fcd34d' : '#ddd6fe'}`, background: baseRunning ? '#fef3c7' : '#f5f3ff',
+                      color: baseRunning ? '#b45309' : '#7c3aed', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+                    }}>
+                      Party A · {baseRunning ? 'running' : 'empty'}
+                    </button>
+                  );
+                })()}
+                {parties.map((p) => {
+                  const pOcc = !!p.currentOrderId || p.status === 'occupied' || p.status === 'serving';
+                  return (
+                    <button key={p.id} onClick={() => { onClose?.(); onOpenParty?.(p); }} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px', borderRadius: '9px',
+                      border: `1px solid ${pOcc ? '#fcd34d' : '#ddd6fe'}`, background: pOcc ? '#fef3c7' : '#f5f3ff',
+                      color: pOcc ? '#b45309' : '#7c3aed', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+                    }}>
+                      Party {p.partyLabel} · {pOcc ? 'running' : 'empty'}
+                    </button>
+                  );
+                })}
+              </div>
             </>
           )}
 

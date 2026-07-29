@@ -69,7 +69,12 @@ export default function TableCard({
   onOpenActions,
 }) {
   const hasBookings = tblBookings.length > 0;
-  const sInfo = getTableStatusInfo(tableStatus);
+  // A base table with an idle main check but a RUNNING sibling party should still read as
+  // "occupied" at a glance (yellow badge + tint). We only recolour the status visual — the
+  // base table's own Take-Order action stays available (its main check is still free).
+  const anyPartyRunning = isToday && (parties || []).some(p => !!p.currentOrderId || p.status === 'occupied' || p.status === 'serving');
+  const displayStatus = (isToday && tableStatus === 'available' && anyPartyRunning) ? 'occupied' : tableStatus;
+  const sInfo = getTableStatusInfo(displayStatus);
   const StatusIcon = sInfo.icon;
   const isDropdownOpen = activeDropdown === table.id;
   const isOccupied = isToday && (tableStatus === 'occupied' || tableStatus === 'serving');
