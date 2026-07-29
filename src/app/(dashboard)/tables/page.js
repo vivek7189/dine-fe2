@@ -903,7 +903,10 @@ const TableManagement = () => {
     if (!isOnline) { showError('You are offline. Go online to make changes.'); return; }
     const allTables = floors.flatMap(f => f.tables || []);
     const occupiedCount = allTables.filter(t => t.status === 'occupied').length;
-    if (occupiedCount === 0) {
+    // Reset also tears down parties/splits (returns every table to its original form), so
+    // it's worth running even when nothing is "occupied" but sub-tables exist.
+    const hasSplitsOrParties = allTables.some(x => x.isPartyTable || x.isSubTable || x.isSplit || x.hasParties);
+    if (occupiedCount === 0 && !hasSplitsOrParties) {
       showWarning(t('tables.allTablesAvailable'));
       return;
     }
