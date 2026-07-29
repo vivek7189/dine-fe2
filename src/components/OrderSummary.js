@@ -233,6 +233,7 @@ const OrderSummary = ({
   // this ref tells the effect below to also print the bill (without settling/paying).
   const kotThenBillRef = useRef(false);
   const kotBillAmountRef = useRef(0); // grand total captured at KOT+Bill click, for the settle step
+  const kotBillMethodRef = useRef('cash'); // payment method already chosen on the billing UI, captured at click
   // After KOT+Bill prints, this holds the placed order so the cashier can record the tender.
   const [kotBillSettle, setKotBillSettle] = useState(null); // { orderId, amount } | null
   const [kotBillSettling, setKotBillSettling] = useState(false);
@@ -2296,20 +2297,23 @@ const OrderSummary = ({
     window.__autoPrintBill = true;
     // Small delay so the KOT print (its own effect + ~800ms) fires before the bill.
     const tid = setTimeout(() => { generateInvoice(oid); }, 900);
-    // After the bill prints, prompt the cashier to settle (record how the payment was tendered).
+    // After the bill prints, settle automatically using the payment method already selected on the
+    // billing UI — no confirmation popup (the tender was chosen before clicking KOT + Bill).
     const settleTid = setTimeout(() => {
-      setKotBillSettle({ orderId: oid, amount: kotBillAmountRef.current || 0 });
+      handleKotBillSettle(kotBillMethodRef.current || 'cash', {}, oid, kotBillAmountRef.current || 0);
     }, 1200);
     return () => { clearTimeout(tid); clearTimeout(settleTid); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderSuccess?.kotData?.orderId]);
 
   // Settle a KOT+Bill order: mark it paid/completed with the tendered method.
-  const handleKotBillSettle = async (method, extra = {}) => {
-    if (!kotBillSettle?.orderId || kotBillSettling) return;
+  // oidArg/amountArg let the auto-settle flow pass the order directly (no popup); the manual
+  // modal path (if ever shown) falls back to the kotBillSettle state.
+  const handleKotBillSettle = async (method, extra = {}, oidArg = null, amountArg = null) => {
+    const oid = oidArg || kotBillSettle?.orderId;
+    const amount = amountArg != null ? amountArg : (kotBillSettle?.amount || 0);
+    if (!oid || kotBillSettling) return;
     setKotBillSettling(true);
-    const oid = kotBillSettle.orderId;
-    const amount = kotBillSettle.amount || 0;
     try {
       await apiClient.updateOrder(oid, {
         status: 'completed',
@@ -6975,6 +6979,7 @@ const OrderSummary = ({
                 window.__autoPrintKOT = true;
                 kotThenBillRef.current = true; // arm the bill-after-KOT effect
                 kotBillAmountRef.current = grandTotal ?? getTotalAmount(); // capture total for the settle step
+                kotBillMethodRef.current = paymentMethod || 'cash'; // use the tender already selected on the billing UI
                 if (typeof onPlaceOrderAndPrint === 'function') {
                   onPlaceOrderAndPrint(buildTaxData());
                 } else if (typeof onPlaceOrder === 'function') {
@@ -8471,51 +8476,6 @@ const OrderSummary = ({
         </div>
       )}
 
-      {/* Settle prompt after KOT + Bill — record how the payment was tendered */}
-      {kotBillSettle && (() => {
-        const methods = (Array.isArray(posSettings?.paymentMethods) && posSettings.paymentMethods.length > 0
-          ? posSettings.paymentMethods.filter(m => m && (typeof m === 'string' || m.enabled !== false))
-              .map(m => (typeof m === 'string' ? { id: m, label: m } : { id: (m.id || m.value || m.method || m.name), label: (m.label || m.name || m.id) }))
-          : [
-              { id: 'cash', label: 'Cash' },
-              ...(posSettings?.hideUPI ? [] : [{ id: 'upi', label: 'UPI' }]),
-              ...(posSettings?.hideCard ? [] : [{ id: 'card', label: 'Card' }]),
-            ]).filter(m => m.id);
-        const methodColor = { cash: '#16a34a', upi: '#7c3aed', card: '#2563eb' };
-        return (
-          <div onClick={(e) => { if (e.target === e.currentTarget && !kotBillSettling) setKotBillSettle(null); }}
-            style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-            <div style={{ background: dm ? dm.card : '#fff', borderRadius: '16px', width: '100%', maxWidth: '400px', overflow: 'hidden', boxShadow: '0 24px 60px rgba(0,0,0,0.3)' }}>
-              <div style={{ padding: '18px', textAlign: 'center', borderBottom: dm ? '1px solid ' + dm.border : '1px solid #eef2f6' }}>
-                <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
-                  <FaPrint size={18} style={{ color: '#059669' }} />
-                </div>
-                <div style={{ fontSize: '15px', fontWeight: 700, color: dm ? dm.text : '#111827' }}>KOT & Bill printed</div>
-                <div style={{ fontSize: '13px', color: dm ? dm.textSec : '#6b7280', marginTop: '2px' }}>Settle payment — {formatCurrency(kotBillSettle.amount)}</div>
-              </div>
-              <div style={{ padding: '16px' }}>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: dm ? dm.textSec : '#6b7280', marginBottom: '10px' }}>How was it tendered?</div>
-                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(methods.length, 3)}, 1fr)`, gap: '8px' }}>
-                  {methods.map(m => {
-                    const c = methodColor[String(m.id).toLowerCase()] || '#0891b2';
-                    return (
-                      <button key={m.id} disabled={kotBillSettling}
-                        onClick={() => handleKotBillSettle(m.id)}
-                        style={{ padding: '14px 8px', borderRadius: '10px', border: `1.5px solid ${c}`, background: `${c}12`, color: c, fontSize: '14px', fontWeight: 700, cursor: kotBillSettling ? 'wait' : 'pointer' }}>
-                        {m.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <button onClick={() => { if (!kotBillSettling) setKotBillSettle(null); }}
-                  style={{ width: '100%', marginTop: '12px', padding: '10px', borderRadius: '10px', border: 'none', background: 'transparent', color: dm ? dm.textSec : '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
-                  Settle later (leave unpaid)
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
     </div>
   );
 };
