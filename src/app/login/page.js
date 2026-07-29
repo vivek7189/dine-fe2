@@ -26,6 +26,7 @@ import {
   onAuthStateChanged
 } from 'firebase/auth';
 import apiClient from '../../lib/api';
+import { getLocalServerUrl } from '../../lib/localServer';
 import { t } from '../../lib/i18n';
 import { redirectToSubdomain } from '../../utils/subdomain';
 import { prefetchDashboardInBackground } from '../../utils/dashboardCache';
@@ -291,6 +292,39 @@ const Login = () => {
   const [pairingCodeInput, setPairingCodeInput] = useState('');
   const [pairingError, setPairingError] = useState('');
   const [pairingLoading, setPairingLoading] = useState(false);
+
+  // Pre-login "Connect to Local Server" (offline on-prem server on the LAN)
+  const [showLocalServer, setShowLocalServer] = useState(false);
+  const [localServerIp, setLocalServerIp] = useState('');
+  const [lsConnecting, setLsConnecting] = useState(false);
+  const [lsError, setLsError] = useState('');
+  const [lsConnected, setLsConnected] = useState(false);
+  useEffect(() => {
+    try {
+      const cur = typeof window !== 'undefined' && getLocalServerUrl();
+      if (cur) { setLocalServerIp(cur.replace(/^https?:\/\//, '')); setLsConnected(true); }
+    } catch (_) {}
+  }, []);
+  const connectLocalServer = async () => {
+    let host = String(localServerIp || '').trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+    if (!host) { setLsError('Enter the server IP address'); return; }
+    const url = `http://${host.includes(':') ? host : host + ':3003'}`;
+    setLsConnecting(true); setLsError('');
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 6000);
+      const res = await fetch(`${url}/api/health`, { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error(`Server responded ${res.status}`);
+      apiClient.setLocalServer(url); // route API + real-time to the local server, then log in below
+      setLsConnected(true);
+      setShowLocalServer(false);
+    } catch (e) {
+      setLsError(e.name === 'AbortError' ? 'Could not reach the server — check the IP and that you are on the restaurant Wi-Fi.' : (e.message || 'Connection failed'));
+    } finally {
+      setLsConnecting(false);
+    }
+  };
 
   // Country selection state
   const [selectedCountry, setSelectedCountry] = useState(countries[0]); // Default to India
@@ -2088,7 +2122,39 @@ const Login = () => {
 {t('login.staffMember')}
           </button>
         </div>
-  
+
+        {/* Connect to Local Server (offline on-prem server on the LAN) */}
+        <div style={{ padding: '10px 0 0' }}>
+          {lsConnected ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#15803d', background: '#e7f6ec', border: '1px solid #cdeBD6', borderRadius: 9, padding: '8px 12px' }}>
+              <span>🖥️ Connected to local server{localServerIp ? ` · ${localServerIp}` : ''}. Log in below.</span>
+              <button onClick={() => { setLsConnected(false); setShowLocalServer(true); }} style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: '#0f766e', textDecoration: 'underline', cursor: 'pointer', fontSize: 12 }}>Change</button>
+            </div>
+          ) : !showLocalServer ? (
+            <button onClick={() => setShowLocalServer(true)} style={{ background: 'transparent', border: 'none', color: '#4f46e5', cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+              🖥️ Connect to Local Server (offline)
+            </button>
+          ) : (
+            <div style={{ background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: '#475569', marginBottom: 6 }}>SERVER IP ADDRESS</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  value={localServerIp}
+                  onChange={(e) => { setLocalServerIp(e.target.value); setLsError(''); }}
+                  placeholder="192.168.1.50:3003"
+                  spellCheck={false} autoCapitalize="off"
+                  style={{ flex: 1, padding: '9px 11px', border: '1px solid #d3dae6', borderRadius: 8, fontSize: 14, fontFamily: 'ui-monospace, monospace', outline: 'none' }}
+                />
+                <button onClick={connectLocalServer} disabled={lsConnecting} style={{ padding: '0 16px', borderRadius: 8, border: 'none', background: '#4f46e5', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  {lsConnecting ? 'Connecting…' : 'Connect'}
+                </button>
+              </div>
+              {lsError && <div style={{ color: '#b91c1c', fontSize: 12.5, marginTop: 6 }}>{lsError}</div>}
+              <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 6 }}>Enter the address shown in the DineOpen Server window, then log in with your staff ID.</div>
+            </div>
+          )}
+        </div>
+
         {/* Login Form */}
         <div style={{ padding: "16px 0" }}>
           {error && (
