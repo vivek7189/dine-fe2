@@ -2387,6 +2387,48 @@ function RestaurantPOSContent() {
     });
   }, [subCategoryFolders, filteredItems, selectedCategory, categoryIndex]);
 
+  // Top-level category "folder" cards for the HOME screen of a hierarchical store:
+  // show categories first (like Petpooja/Toast), click one to drill into its
+  // sub-categories / items. Empty for flat stores → they keep the classic list.
+  const topCategoryFolders = useMemo(() => {
+    if (!hasCategoryTree) return [];
+    return categoryIndex.roots
+      .map(r => { const id = (r.id || '').toLowerCase(); return { id, name: r.name, emoji: r.emoji, count: categoryItemCountMap.get(id) || 0 }; })
+      .filter(f => f.count > 0);
+  }, [hasCategoryTree, categoryIndex, categoryItemCountMap]);
+
+  // Shared folder-tile renderer — used for both the home (top-category) grid and
+  // the drill-down (sub-category) grid so the two levels look identical.
+  const renderCategoryFolder = (folder) => (
+    <div
+      key={`folder-${folder.id}`}
+      onClick={() => setSelectedCategory(folder.id)}
+      style={{
+        display: 'flex', flexDirection: 'column', gap: '10px',
+        minHeight: cardSize === 'large' ? '150px' : '130px',
+        padding: '16px', borderRadius: '16px', cursor: 'pointer',
+        background: 'linear-gradient(160deg, #ffffff 0%, #fff5f5 100%)',
+        border: '1px solid #fde0e0', transition: 'all 0.18s',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.05)', position: 'relative', overflow: 'hidden'
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 10px 24px rgba(239,68,68,0.20)'; e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = '#f87171'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.05)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = '#fde0e0'; }}
+    >
+      <span style={{ position: 'absolute', right: '-12px', bottom: '-16px', fontSize: '78px', opacity: 0.06, lineHeight: 1, pointerEvents: 'none' }}>📁</span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', boxShadow: '0 4px 10px rgba(239,68,68,0.35)' }}>{folder.emoji && folder.emoji !== '🍽️' ? folder.emoji : '📁'}</div>
+        <span style={{ fontSize: '10px', fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.6px', background: '#fef2f2', padding: '3px 8px', borderRadius: '999px' }}>Category</span>
+      </div>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+        <div style={{ fontSize: '16px', fontWeight: 700, color: '#111827', marginBottom: '6px', lineHeight: 1.2 }}>{capitalizeFirst(folder.name)}</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600 }}>{folder.count} {t('dashboard.items')}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '999px', background: '#fee2e2', color: '#ef4444', fontSize: '14px', fontWeight: 700 }}>›</span>
+        </div>
+      </div>
+    </div>
+  );
+
   const addToCart = (itemRaw) => {
     // Weight-based items: open weight popup instead of adding directly
     if (itemRaw?.soldByWeight && !itemRaw._weightConfirmed) {
@@ -7454,7 +7496,7 @@ function RestaurantPOSContent() {
         {/* Desktop Category Sidebar - Part of Menu Section */}
         {!isMobile && viewMode === 'orders' && categoryViewMode === 'sidebar' && (
           <div style={{
-            width: '130px',
+            width: '152px',
             height: '100%',
             paddingTop: '66px', // Header (56px) + gap (10px)
             backgroundColor: 'transparent',
@@ -7476,23 +7518,27 @@ function RestaurantPOSContent() {
                 // selected path — click a parent and its children appear right
                 // beneath it. Flat stores keep the original flat list.
                 if (hasCategoryTree) {
-                  const selPath = new Set(resolveCategoryPath({ category: selectedCategory }, categoryIndex).map(n => (n.id || '').toLowerCase()));
                   const ordered = [];
-                  categories.filter(c => c.id === 'all-items' || c.id === 'favorites').forEach(c => ordered.push({ ...c, _depth: 0, _hasChildren: false, _expanded: false }));
-                  const walk = (node, depth) => {
+                  // "All Categories" home (replaces the flat All Items list) + favorites
+                  categories.filter(c => c.id === 'all-items' || c.id === 'favorites').forEach(c => ordered.push({
+                    ...c,
+                    name: c.id === 'all-items' ? (t('dashboard.allCategories') || 'All Categories') : c.name,
+                    _depth: 0, _hasChildren: false, _expanded: false, _drill: false
+                  }));
+                  // TOP-LEVEL categories only — sub-categories are reached by clicking
+                  // into a category (folder grid in the main area). Keeps the narrow
+                  // rail clean instead of cramming truncated nested names.
+                  categoryIndex.roots.forEach(node => {
                     const id = (node.id || '').toLowerCase();
                     const kids = categoryIndex.childrenOf(node.id);
-                    const expanded = kids.length > 0 && selPath.has(id);
-                    ordered.push({ id, name: node.name, _depth: depth, _hasChildren: kids.length > 0, _expanded: expanded, count: categoryItemCountMap.get(id) || 0 });
-                    if (expanded) kids.forEach(k => walk(k, depth + 1));
-                  };
-                  categoryIndex.roots.forEach(r => walk(r, 0));
+                    ordered.push({ id, name: node.name, _depth: 0, _hasChildren: false, _drill: kids.length > 0, count: categoryItemCountMap.get(id) || 0 });
+                  });
                   // Orphans (item categories not in the tree)
                   effectiveMenuItems.forEach(item => {
                     const leaf = item.subCategory || item.category;
                     if (!leaf || categoryIndex.resolve(leaf)) return;
                     const id = leaf.toLowerCase();
-                    if (!ordered.find(o => o.id === id)) ordered.push({ id, name: leaf, _depth: 0, _hasChildren: false, _expanded: false, count: categoryItemCountMap.get(id) || 0 });
+                    if (!ordered.find(o => o.id === id)) ordered.push({ id, name: leaf, _depth: 0, _hasChildren: false, _expanded: false, _drill: false, count: categoryItemCountMap.get(id) || 0 });
                   });
                   return ordered;
                 }
@@ -7552,8 +7598,11 @@ function RestaurantPOSContent() {
                     }}>
                       {capitalizeFirst(category.name)}
                     </span>
-                    {category._hasChildren && category.count > 0 ? (
+                    {category.count > 0 && category.id !== 'all-items' && category.id !== 'favorites' ? (
                       <span style={{ fontSize: '10px', color: '#9ca3af', flexShrink: 0 }}>{category.count}</span>
+                    ) : null}
+                    {category._drill ? (
+                      <span style={{ fontSize: '11px', color: '#ef4444', flexShrink: 0, fontWeight: 700 }}>›</span>
                     ) : null}
                   </div>
                 );
@@ -8334,9 +8383,9 @@ function RestaurantPOSContent() {
                   back up. Drilling DOWN is done via the folder cards in the grid. */}
               {hasCategoryTree && selectedCategory !== 'all-items' && selectedCategory !== 'favorites' && (() => {
                 const path = resolveCategoryPath({ category: selectedCategory }, categoryIndex);
-                if (path.length <= 1) return null;
+                if (path.length < 1) return null;
                 const segs = [];
-                segs.push(<span key="crumb-all" onClick={() => setSelectedCategory('all-items')} style={{ fontSize: '12px', color: '#9ca3af', cursor: 'pointer' }}>{t('dashboard.allItems') || 'All'}</span>);
+                segs.push(<span key="crumb-all" onClick={() => setSelectedCategory('all-items')} style={{ fontSize: '12px', color: '#9ca3af', cursor: 'pointer' }}>{t('dashboard.allCategories') || 'All Categories'}</span>);
                 path.forEach((n, i) => {
                   const id = (n.id || '').toLowerCase();
                   const isLast = i === path.length - 1;
@@ -8349,6 +8398,21 @@ function RestaurantPOSContent() {
               {selectedCategory === 'all-items' ? (
                 // Get unique categories from filtered items and render grouped
                 (() => {
+                  // Hierarchical store home: show top-level category FOLDERS first
+                  // (drill in on click), like other POS. Only when a real nested
+                  // category tree exists — flat/single-level stores and active
+                  // search fall through to the classic grouped-item list below.
+                  if (hasCategoryTree && !debouncedSearchTerm.trim() && topCategoryFolders.length > 0) {
+                    return (
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(150px, 1fr))' : 'repeat(auto-fill, minmax(210px, 1fr))',
+                        gap: isMobile ? '14px' : '20px', justifyContent: 'start', padding: '4px'
+                      }}>
+                        {topCategoryFolders.map(renderCategoryFolder)}
+                      </div>
+                    );
+                  }
                   const categoryGroups = {};
                   filteredItems.forEach(item => {
                     const cat = item.category || 'Other';
@@ -8671,37 +8735,7 @@ function RestaurantPOSContent() {
                     justifyContent: 'start'
                   }}>
                     {/* Sub-category folder cards (click to open the sub-category) */}
-                    {subCategoryFolders.map((folder) => (
-                      <div
-                        key={`folder-${folder.id}`}
-                        onClick={() => setSelectedCategory(folder.id)}
-                        style={{
-                          display: 'flex', flexDirection: 'column', gap: '10px',
-                          minHeight: cardSize === 'large' ? '150px' : '130px',
-                          padding: '16px', borderRadius: '16px', cursor: 'pointer',
-                          background: 'linear-gradient(160deg, #ffffff 0%, #fff5f5 100%)',
-                          border: '1px solid #fde0e0', transition: 'all 0.18s',
-                          boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
-                          position: 'relative', overflow: 'hidden'
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 10px 24px rgba(239,68,68,0.20)'; e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = '#f87171'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.05)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = '#fde0e0'; }}
-                      >
-                        {/* faint folder watermark */}
-                        <span style={{ position: 'absolute', right: '-12px', bottom: '-16px', fontSize: '78px', opacity: 0.06, lineHeight: 1, pointerEvents: 'none' }}>📁</span>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', boxShadow: '0 4px 10px rgba(239,68,68,0.35)' }}>{folder.emoji && folder.emoji !== '🍽️' ? folder.emoji : '📁'}</div>
-                          <span style={{ fontSize: '10px', fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.6px', background: '#fef2f2', padding: '3px 8px', borderRadius: '999px' }}>Category</span>
-                        </div>
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-                          <div style={{ fontSize: '16px', fontWeight: 700, color: '#111827', marginBottom: '6px', lineHeight: 1.2 }}>{capitalizeFirst(folder.name)}</div>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600 }}>{folder.count} {t('dashboard.items')}</span>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '999px', background: '#fee2e2', color: '#ef4444', fontSize: '14px', fontWeight: 700 }}>›</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                    {subCategoryFolders.map(renderCategoryFolder)}
                     {gridItems.map((item) => {
                       const quantityInCart = getItemQuantityInCart(item.id);
 
