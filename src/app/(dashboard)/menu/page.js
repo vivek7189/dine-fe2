@@ -884,7 +884,11 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
               fontSize: '10px', fontWeight: '500', color: '#9ca3af',
               maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
             }}>
-              {capitalizeFirst(categoryMap.get(item.category)?.name) || ''}
+              {(() => {
+                const catName = capitalizeFirst(categoryMap.get(item.category)?.name || '');
+                const subName = item.subCategory ? capitalizeFirst(categoryMap.get(item.subCategory)?.name || '') : '';
+                return subName && subName !== catName ? `${catName} › ${subName}` : catName;
+              })()}
             </span>
           </div>
           {/* Price + actions */}
@@ -1155,7 +1159,11 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
               fontSize: '11px',
               fontWeight: '600'
             }}>
-              {capitalizeFirst(categoryMap.get(item.category)?.name) || t('menu.mainCourse')}
+              {(() => {
+                const catName = capitalizeFirst(categoryMap.get(item.category)?.name || '');
+                const subName = item.subCategory ? capitalizeFirst(categoryMap.get(item.subCategory)?.name || '') : '';
+                return (subName && subName !== catName ? `${catName} › ${subName}` : catName) || t('menu.mainCourse');
+              })()}
             </span>
             {(item.taxInclusive === true || (taxInclusiveGlobal && item.taxInclusive !== false)) && (
               <span style={{
