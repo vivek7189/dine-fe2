@@ -2883,6 +2883,89 @@ const MenuManagement = () => {
     });
   }, [menuItems, selectedCategory, selectedVegFilter, selectedWeightFilter, searchTerm, categories]);
 
+  // ─── Category drill-down (menu page) — ONLY when sub-categories exist ───────
+  // Mirrors the POS dashboard: home shows category folders → click → sub-category
+  // folders → items. Flat/single-level menus (no sub-categories) are untouched.
+  const _idOf = (x) => String(x || '').toLowerCase();
+  const menuHasSubcats = useMemo(() => categories.some(c => c.parentId), [categories]);
+  const menuCatCount = useMemo(() => {
+    const byId = new Map(categories.map(c => [_idOf(c.id), c]));
+    const m = new Map();
+    menuItems.forEach(it => {
+      const leafId = _idOf(it.subCategory || it.category);
+      let node = byId.get(leafId), g = 0;
+      if (node) { while (node && g < 12) { const k = _idOf(node.id); m.set(k, (m.get(k) || 0) + 1); node = node.parentId ? byId.get(_idOf(node.parentId)) : null; g++; } }
+      else if (leafId) m.set(leafId, (m.get(leafId) || 0) + 1);
+    });
+    return m;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menuItems, categories]);
+  const menuFolders = useMemo(() => {
+    if (!menuHasSubcats || searchTerm.trim() || selectedVegFilter !== 'all' || selectedWeightFilter !== 'all') return [];
+    const mk = (c) => ({ id: _idOf(c.id), name: c.name, emoji: c.emoji, count: menuCatCount.get(_idOf(c.id)) || 0 });
+    const list = selectedCategory === 'all'
+      ? categories.filter(c => !c.parentId).map(mk)
+      : categories.filter(c => _idOf(c.parentId) === _idOf(selectedCategory)).map(mk);
+    return list.filter(f => f.count > 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menuHasSubcats, searchTerm, selectedVegFilter, selectedWeightFilter, selectedCategory, categories, menuCatCount]);
+  // When folders are shown for a selected category, the grid shows only that
+  // category's DIRECT items (its sub-category items live behind their folders).
+  const menuDirectItems = useMemo(() => {
+    if (!menuFolders.length) return filteredItems;
+    const sel = _idOf(selectedCategory);
+    return filteredItems.filter(it => _idOf(it.subCategory || it.category) === sel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menuFolders, filteredItems, selectedCategory]);
+  const menuPath = useMemo(() => {
+    if (selectedCategory === 'all') return [];
+    const byId = new Map(categories.map(c => [_idOf(c.id), c]));
+    const path = []; let node = byId.get(_idOf(selectedCategory)), g = 0;
+    while (node && g < 12) { path.unshift(node); node = node.parentId ? byId.get(_idOf(node.parentId)) : null; g++; }
+    return path;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategory, categories]);
+
+  // Colourful category tile (same look as the POS dashboard drill-down)
+  const renderMenuFolder = (folder) => {
+    const PAL = [
+      { a: '#f97316', b: '#ea580c', soft: '#fff7ed', ring: '#fed7aa' },
+      { a: '#3b82f6', b: '#2563eb', soft: '#eff6ff', ring: '#bfdbfe' },
+      { a: '#10b981', b: '#059669', soft: '#ecfdf5', ring: '#a7f3d0' },
+      { a: '#8b5cf6', b: '#7c3aed', soft: '#f5f3ff', ring: '#ddd6fe' },
+      { a: '#ec4899', b: '#db2777', soft: '#fdf2f8', ring: '#fbcfe8' },
+      { a: '#14b8a6', b: '#0d9488', soft: '#f0fdfa', ring: '#99f6e4' },
+      { a: '#f59e0b', b: '#d97706', soft: '#fffbeb', ring: '#fde68a' },
+      { a: '#ef4444', b: '#dc2626', soft: '#fef2f2', ring: '#fecaca' },
+    ];
+    let h = 0; const s = String(folder.name || folder.id || '');
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    const c = PAL[h % PAL.length];
+    const emoji = (folder.emoji && folder.emoji !== '🍽️') ? folder.emoji : getCategoryEmoji(folder.name);
+    return (
+      <div key={`mfolder-${folder.id}`} onClick={() => setSelectedCategory(folder.id)}
+        style={{ display: 'flex', flexDirection: 'column', minHeight: '128px', borderRadius: '18px', cursor: 'pointer', overflow: 'hidden', background: '#fff', border: `1.5px solid ${c.ring}`, boxShadow: '0 2px 8px rgba(15,23,42,0.06)', transition: 'all 0.18s' }}
+        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 12px 26px ${c.a}33`; e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = c.a; }}
+        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(15,23,42,0.06)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = c.ring; }}
+      >
+        <div style={{ height: '7px', background: `linear-gradient(90deg, ${c.a}, ${c.b})` }} />
+        <div style={{ flex: 1, padding: '13px 15px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ width: '46px', height: '46px', borderRadius: '14px', background: `linear-gradient(135deg, ${c.soft}, #fff)`, border: `1px solid ${c.ring}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>{emoji}</div>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: c.b, background: c.soft, padding: '4px 10px', borderRadius: '999px' }}>{folder.count}</span>
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: '#111827', lineHeight: 1.2, marginBottom: '4px' }}>{capitalizeFirst(folder.name)}</div>
+            <div style={{ display: 'flex', alignItems: 'center', color: c.b, fontSize: '12px', fontWeight: 600 }}>
+              <span>{folder.count} {t('common.items')}</span>
+              <span style={{ marginLeft: 'auto', fontSize: '16px', fontWeight: 800 }}>›</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!isOnline && !editingItem) { setError('You are offline. Go online to add new items.'); return; }
@@ -4843,6 +4926,34 @@ const MenuManagement = () => {
                 <p style={{ color: '#374151', fontWeight: '600', fontSize: '16px' }}>{t('menu.processing')}</p>
               </div>
             )}
+            {/* Category drill-down: breadcrumb + Back (nested-category menus only) */}
+            {menuHasSubcats && selectedCategory !== 'all' && (() => {
+              const upTarget = menuPath.length >= 2 ? _idOf(menuPath[menuPath.length - 2].id) : 'all';
+              const segs = [<span key="mcrumb-all" onClick={() => setSelectedCategory('all')} style={{ fontSize: '12px', color: '#9ca3af', cursor: 'pointer' }}>{t('menu.allCategories') || 'All Categories'}</span>];
+              menuPath.forEach((n, i) => {
+                const isLast = i === menuPath.length - 1;
+                segs.push(<span key={`msep-${i}`} style={{ color: '#d1d5db', fontSize: '12px' }}>›</span>);
+                segs.push(<span key={`mc-${n.id}`} onClick={() => { if (!isLast) setSelectedCategory(_idOf(n.id)); }} style={{ fontSize: '13px', fontWeight: isLast ? 700 : 600, color: isLast ? '#1f2937' : '#ef4444', cursor: isLast ? 'default' : 'pointer' }}>{capitalizeFirst(n.name)}</span>);
+              });
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                  <button onClick={() => setSelectedCategory(upTarget)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 15px 7px 12px', borderRadius: '999px', border: '1.5px solid #fecaca', background: 'linear-gradient(135deg, #fff, #fef2f2)', color: '#ef4444', fontSize: '13px', fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 6px rgba(239,68,68,0.12)', flexShrink: 0 }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#ef4444'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, #fff, #fef2f2)'; e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = '#fecaca'; }}
+                  >
+                    <span style={{ fontSize: '18px', fontWeight: 800, lineHeight: 1 }}>‹</span> {t('common.back') || 'Back'}
+                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>{segs}</div>
+                </div>
+              );
+            })()}
+            {/* Category folder tiles (drill-down) */}
+            {menuFolders.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(150px, 1fr))' : 'repeat(auto-fill, minmax(200px, 1fr))', gap: isMobile ? '12px' : '16px', marginBottom: menuDirectItems.length ? '22px' : '0' }}>
+                {menuFolders.map(renderMenuFolder)}
+              </div>
+            )}
             {viewMode === 'grid' ? (
             <div style={{
               display: 'grid',
@@ -4850,7 +4961,7 @@ const MenuManagement = () => {
               gap: isMobile ? '10px' : '14px',
               padding: '0'
             }}>
-              {filteredItems.map((item) => (
+              {menuDirectItems.map((item) => (
                   <MenuItemCard
                   key={item.id}
                   item={item}
@@ -4902,7 +5013,7 @@ const MenuManagement = () => {
                 <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center' }}>{t('menu.actionsCol')}</span>
               </div>
               {/* Table Rows */}
-              {filteredItems.map((item, index) => {
+              {menuDirectItems.map((item, index) => {
                 const category = categoryMap.get(item.category);
                 return (
                   <div
