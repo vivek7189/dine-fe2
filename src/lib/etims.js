@@ -33,6 +33,20 @@ export async function initEtimsDevice(restaurantId) {
 }
 
 /**
+ * Manually store an ALREADY-initialised device's SDC ID / MRC No. Use this when
+ * the VSCU was initialised before (KRA won't re-issue the sdcId on a second init).
+ * Works from web too — it just saves the identifiers; the VSCU still signs sales
+ * locally with its own keys. @returns {Promise<{sdcId, mrcNo, lastInvcNo}>}
+ */
+export async function setEtimsDeviceManual(restaurantId, { sdcId, mrcNo, lastInvcNo }) {
+  const res = await apiClient.request(`/api/etims/${restaurantId}/set-device-manual`, {
+    method: 'POST',
+    body: { sdcId, mrcNo, lastInvcNo },
+  });
+  return res.device;
+}
+
+/**
  * Register all active menu items with KRA (saveItems). Relays each item to the
  * local VSCU one by one and reports how many succeeded/failed. Desktop only.
  * @returns {Promise<{ok:number, failed:number, total:number}>}

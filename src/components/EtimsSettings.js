@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import apiClient from '../lib/api';
-import { initEtimsDevice, isEtimsCapable, syncEtimsItems } from '../lib/etims';
+import { initEtimsDevice, isEtimsCapable, syncEtimsItems, setEtimsDeviceManual } from '../lib/etims';
 
 /**
  * Kenya KRA eTIMS configuration (admin). Self-contained; render it ONLY for
@@ -18,6 +18,9 @@ export default function EtimsSettings({ restaurantId }) {
   const [initing, setIniting] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [msg, setMsg] = useState(null);
+  const [showManual, setShowManual] = useState(false);
+  const [manual, setManual] = useState({ sdcId: '', mrcNo: '', lastInvcNo: '' });
+  const [savingManual, setSavingManual] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -51,6 +54,23 @@ export default function EtimsSettings({ restaurantId }) {
       await load();
     } catch (e) { setMsg({ type: 'error', text: e.message || 'Initialisation failed' }); }
     finally { setIniting(false); }
+  };
+
+  const saveManualDevice = async () => {
+    if (!manual.sdcId.trim()) { setMsg({ type: 'error', text: 'Enter the SDC ID from your already-initialised device.' }); return; }
+    setSavingManual(true); setMsg(null);
+    try {
+      await save();
+      const device = await setEtimsDeviceManual(restaurantId, {
+        sdcId: manual.sdcId.trim(),
+        mrcNo: manual.mrcNo.trim(),
+        lastInvcNo: manual.lastInvcNo === '' ? undefined : Number(manual.lastInvcNo),
+      });
+      setMsg({ type: 'success', text: `Device saved manually. SDC ID: ${device.sdcId}` });
+      setShowManual(false);
+      await load();
+    } catch (e) { setMsg({ type: 'error', text: e.message || 'Failed to save device details' }); }
+    finally { setSavingManual(false); }
   };
 
   const syncItems = async () => {
@@ -131,6 +151,43 @@ export default function EtimsSettings({ restaurantId }) {
           ℹ️ Open this page in the DineOpen desktop app to initialise the device and fiscalise sales.
         </div>
       )}
+
+      {/* Manual device entry — for a VSCU already initialised on this PC (KRA won't
+          re-issue the SDC ID on a second init). Works from web too. */}
+      <div style={{ marginTop: 16, borderTop: '1px dashed #e5e7eb', paddingTop: 12 }}>
+        <button onClick={() => setShowManual((s) => !s)} style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0 }}>
+          {showManual ? '▾' : '▸'} Device already initialised on this PC? Enter SDC ID manually
+        </button>
+        {showManual && (
+          <div style={{ marginTop: 10, background: '#f9fafb', border: '1px solid #eef2f6', borderRadius: 8, padding: 12 }}>
+            <p style={{ fontSize: 11.5, color: '#6b7280', margin: '0 0 10px' }}>
+              KRA returns the SDC ID + keys only on the <b>first</b> initialisation of a device. If this VSCU was
+              already initialised (so “Initialise device” fails), enter the existing details here. The VSCU keeps its
+              keys locally and still signs every sale.
+            </p>
+            <div style={{ marginBottom: 10 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>SDC ID <span style={{ color: '#b91c1c' }}>*</span></label>
+              <input value={manual.sdcId} onChange={(e) => setManual({ ...manual, sdcId: e.target.value })} placeholder="e.g. KRACU0100000001"
+                style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13 }} />
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>MRC No</label>
+              <input value={manual.mrcNo} onChange={(e) => setManual({ ...manual, mrcNo: e.target.value })} placeholder="e.g. WIS01006230"
+                style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13 }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Last invoice number</label>
+              <input value={manual.lastInvcNo} onChange={(e) => setManual({ ...manual, lastInvcNo: e.target.value.replace(/[^0-9]/g, '') })} placeholder="0"
+                style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13 }} />
+              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>The last KRA invoice number already issued by this device (leave 0 if unsure).</div>
+            </div>
+            <button onClick={saveManualDevice} disabled={savingManual}
+              style={{ padding: '9px 16px', background: '#065f46', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
+              {savingManual ? 'Saving…' : 'Save device details'}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
