@@ -95,12 +95,12 @@ export default function TableCard({
   // siblings, merged or split tables. Guarded by the onAddParty handler being passed.
   const partiesEnabled = !!onAddParty && !table.isSubTable && !table.isPartyTable && !table.isSplit && !table.mergeGroupId && !table.mergedInto;
   const pChipBase = {
-    fontSize: isMobileEmbed ? '8px' : '10px', fontWeight: 800, color: '#fff', background: '#7c3aed',
+    fontSize: isMobileEmbed ? '8px' : '10px', fontWeight: 800, color: '#fff', background: '#dc2626',
     width: isMobileEmbed ? '16px' : '20px', height: isMobileEmbed ? '16px' : '20px', borderRadius: '6px',
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, lineHeight: 1,
   };
-  const pChipSibling = { ...pChipBase, background: '#ede9fe', color: '#7c3aed', border: '1px solid #ddd6fe', cursor: 'pointer', padding: 0 };
-  const pChipAdd = { ...pChipBase, background: '#fff', color: '#7c3aed', border: '1px dashed #c4b5fd', cursor: 'pointer', padding: 0 };
+  const pChipSibling = { ...pChipBase, background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', cursor: 'pointer', padding: 0 };
+  const pChipAdd = { ...pChipBase, background: '#fff', color: '#dc2626', border: '1px dashed #fca5a5', cursor: 'pointer', padding: 0 };
   const nextPartyLabel = String.fromCharCode(66 + parties.length); // A=base, so next is B, C…
 
   return (
@@ -339,7 +339,7 @@ export default function TableCard({
       {isToday && partiesEnabled && parties.length > 0 && (
         <div style={{ padding: isMobileEmbed ? '0 6px 4px' : '0 8px 6px', position: 'relative', zIndex: 2 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '8px', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.3px', marginRight: '1px' }}>Parties</span>
+            <span style={{ fontSize: '8px', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.3px', marginRight: '1px' }}>Parties</span>
             <span title={table.partyName || 'Party A (this table)'} style={pChipBase}>A</span>
             {parties.map((p) => {
               const pOcc = !!p.currentOrderId || p.status === 'occupied' || p.status === 'serving';
@@ -353,6 +353,26 @@ export default function TableCard({
             })}
             <button onClick={(e) => { e.stopPropagation(); onAddParty?.(table); }} title={`Add Party ${nextPartyLabel}`} style={pChipAdd}>+</button>
           </div>
+          {/* Per-party totals — each running check's own price at a glance (multi-check tables). */}
+          {(() => {
+            const fmt = formatCurrency || ((v) => `₹${Math.round(v || 0)}`);
+            const checks = [];
+            const baseTotal = Number(table.currentOrderFinalAmount || table.currentOrderTotal || 0);
+            if (isOccupied || table.currentOrderId) checks.push({ l: 'A', v: baseTotal });
+            parties.forEach((p) => {
+              if (p.currentOrderId || p.status === 'occupied' || p.status === 'serving') {
+                checks.push({ l: p.partyLabel || '?', v: Number(p.currentOrderFinalAmount || p.currentOrderTotal || 0) });
+              }
+            });
+            if (checks.length === 0) return null;
+            return (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 8px', marginTop: '3px', fontSize: isMobileEmbed ? '8px' : '9.5px', fontWeight: 700, color: '#6b7280' }}>
+                {checks.map((c) => (
+                  <span key={c.l}><span style={{ color: '#b45309' }}>{c.l}</span> {fmt(c.v)}</span>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       )}
 
