@@ -2397,37 +2397,55 @@ function RestaurantPOSContent() {
       .filter(f => f.count > 0);
   }, [hasCategoryTree, categoryIndex, categoryItemCountMap]);
 
-  // Shared folder-tile renderer — used for both the home (top-category) grid and
-  // the drill-down (sub-category) grid so the two levels look identical.
-  const renderCategoryFolder = (folder) => (
-    <div
-      key={`folder-${folder.id}`}
-      onClick={() => setSelectedCategory(folder.id)}
-      style={{
-        display: 'flex', flexDirection: 'column', gap: '10px',
-        minHeight: cardSize === 'large' ? '150px' : '130px',
-        padding: '16px', borderRadius: '16px', cursor: 'pointer',
-        background: 'linear-gradient(160deg, #ffffff 0%, #fff5f5 100%)',
-        border: '1px solid #fde0e0', transition: 'all 0.18s',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.05)', position: 'relative', overflow: 'hidden'
-      }}
-      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 10px 24px rgba(239,68,68,0.20)'; e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = '#f87171'; }}
-      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.05)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = '#fde0e0'; }}
-    >
-      <span style={{ position: 'absolute', right: '-12px', bottom: '-16px', fontSize: '78px', opacity: 0.06, lineHeight: 1, pointerEvents: 'none' }}>📁</span>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', boxShadow: '0 4px 10px rgba(239,68,68,0.35)' }}>{folder.emoji && folder.emoji !== '🍽️' ? folder.emoji : '📁'}</div>
-        <span style={{ fontSize: '10px', fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.6px', background: '#fef2f2', padding: '3px 8px', borderRadius: '999px' }}>Category</span>
-      </div>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-        <div style={{ fontSize: '16px', fontWeight: 700, color: '#111827', marginBottom: '6px', lineHeight: 1.2 }}>{capitalizeFirst(folder.name)}</div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600 }}>{folder.count} {t('dashboard.items')}</span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '999px', background: '#fee2e2', color: '#ef4444', fontSize: '14px', fontWeight: 700 }}>›</span>
+  // Shared category-tile renderer — used for both the home (top-category) grid and
+  // the drill-down (sub-category) grid. Colourful menu-style tiles (not OS folders):
+  // a coloured header band, the category emoji in a soft badge, and an item count.
+  const renderCategoryFolder = (folder) => {
+    const PAL = [
+      { a: '#f97316', b: '#ea580c', soft: '#fff7ed', ring: '#fed7aa' },
+      { a: '#3b82f6', b: '#2563eb', soft: '#eff6ff', ring: '#bfdbfe' },
+      { a: '#10b981', b: '#059669', soft: '#ecfdf5', ring: '#a7f3d0' },
+      { a: '#8b5cf6', b: '#7c3aed', soft: '#f5f3ff', ring: '#ddd6fe' },
+      { a: '#ec4899', b: '#db2777', soft: '#fdf2f8', ring: '#fbcfe8' },
+      { a: '#14b8a6', b: '#0d9488', soft: '#f0fdfa', ring: '#99f6e4' },
+      { a: '#f59e0b', b: '#d97706', soft: '#fffbeb', ring: '#fde68a' },
+      { a: '#ef4444', b: '#dc2626', soft: '#fef2f2', ring: '#fecaca' },
+    ];
+    let h = 0; const s = String(folder.name || folder.id || '');
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    const c = PAL[h % PAL.length];
+    const emoji = (folder.emoji && folder.emoji !== '🍽️') ? folder.emoji : getCategoryEmoji(folder.name);
+    return (
+      <div
+        key={`folder-${folder.id}`}
+        onClick={() => setSelectedCategory(folder.id)}
+        style={{
+          display: 'flex', flexDirection: 'column',
+          minHeight: cardSize === 'large' ? '148px' : '132px',
+          borderRadius: '18px', cursor: 'pointer', overflow: 'hidden',
+          background: '#ffffff', border: `1.5px solid ${c.ring}`,
+          boxShadow: '0 2px 8px rgba(15,23,42,0.06)', transition: 'all 0.18s', position: 'relative'
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 12px 26px ${c.a}33`; e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = c.a; }}
+        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(15,23,42,0.06)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = c.ring; }}
+      >
+        <div style={{ height: '7px', background: `linear-gradient(90deg, ${c.a}, ${c.b})` }} />
+        <div style={{ flex: 1, padding: '13px 15px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: `linear-gradient(135deg, ${c.soft}, #ffffff)`, border: `1px solid ${c.ring}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px' }}>{emoji}</div>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: c.b, background: c.soft, padding: '4px 10px', borderRadius: '999px' }}>{folder.count}</span>
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+            <div style={{ fontSize: '15.5px', fontWeight: 700, color: '#111827', lineHeight: 1.2, marginBottom: '4px' }}>{capitalizeFirst(folder.name)}</div>
+            <div style={{ display: 'flex', alignItems: 'center', color: c.b, fontSize: '12px', fontWeight: 600 }}>
+              <span>{folder.count} {t('dashboard.items')}</span>
+              <span style={{ marginLeft: 'auto', fontSize: '16px', fontWeight: 800 }}>›</span>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const addToCart = (itemRaw) => {
     // Weight-based items: open weight popup instead of adding directly
