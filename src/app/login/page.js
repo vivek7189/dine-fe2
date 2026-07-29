@@ -295,7 +295,9 @@ const Login = () => {
 
   // Pre-login "Connect to Local Server" (offline on-prem server on the LAN)
   const [showLocalServer, setShowLocalServer] = useState(false);
-  const [localServerIp, setLocalServerIp] = useState('');
+  // Default to the server's fixed mDNS hostname so no IP is ever typed (resolves to the
+  // server's current IP on the LAN; Chromium/Electron resolves .local natively on mac/win).
+  const [localServerIp, setLocalServerIp] = useState('dineopen-server.local');
   const [lsConnecting, setLsConnecting] = useState(false);
   const [lsError, setLsError] = useState('');
   const [lsConnected, setLsConnected] = useState(false);
@@ -307,7 +309,7 @@ const Login = () => {
   }, []);
   const connectLocalServer = async () => {
     let host = String(localServerIp || '').trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '');
-    if (!host) { setLsError('Enter the server IP address'); return; }
+    if (!host) { setLsError('Enter the server address'); return; }
     const url = `http://${host.includes(':') ? host : host + ':3003'}`;
     setLsConnecting(true); setLsError('');
     try {
@@ -2136,13 +2138,14 @@ const Login = () => {
             </button>
           ) : (
             <div style={{ background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: '#475569', marginBottom: 6 }}>SERVER IP ADDRESS</div>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: '#475569', marginBottom: 6 }}>SERVER ADDRESS</div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input
                   value={localServerIp}
                   onChange={(e) => { setLocalServerIp(e.target.value); setLsError(''); }}
-                  placeholder="192.168.1.50:3003"
+                  placeholder="dineopen-server.local"
                   spellCheck={false} autoCapitalize="off"
+                  onKeyDown={(e) => { if (e.key === 'Enter') connectLocalServer(); }}
                   style={{ flex: 1, padding: '9px 11px', border: '1px solid #d3dae6', borderRadius: 8, fontSize: 14, fontFamily: 'ui-monospace, monospace', outline: 'none' }}
                 />
                 <button onClick={connectLocalServer} disabled={lsConnecting} style={{ padding: '0 16px', borderRadius: 8, border: 'none', background: '#4f46e5', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
@@ -2150,7 +2153,7 @@ const Login = () => {
                 </button>
               </div>
               {lsError && <div style={{ color: '#b91c1c', fontSize: 12.5, marginTop: 6 }}>{lsError}</div>}
-              <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 6 }}>Enter the address shown in the DineOpen Server window, then log in with your staff ID.</div>
+              <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 6 }}>Leave as <b>dineopen-server.local</b> — it finds your server automatically. Or type the IP shown in the DineOpen Server window.</div>
             </div>
           )}
         </div>
