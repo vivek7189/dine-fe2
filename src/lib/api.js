@@ -1,5 +1,6 @@
 import { reportNetworkFailure, reportNetworkSuccess } from '../hooks/useNetworkStatus';
 import { setCachedData, getCachedData } from './offlineDb';
+import { getLocalServerUrl, setLocalServerUrl } from './localServer';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -57,7 +58,9 @@ const withTimeout = (promise, timeoutMs, label) => {
 
 class ApiClient {
   constructor() {
-    this.baseURL = API_BASE_URL;
+    // Local-server (offline LAN) mode: when this terminal is pointed at the on-prem
+    // server machine, talk HTTP directly to it. Otherwise use the cloud API base.
+    this.baseURL = (typeof window !== 'undefined' && getLocalServerUrl()) || API_BASE_URL;
     this.isRefreshing = false;
     this.refreshQueue = [];
 
@@ -155,13 +158,28 @@ class ApiClient {
    * Call this on restaurant selection/switch and after login.
    */
   setRestaurantBaseURL(restaurant) {
+    // Local-server (offline LAN) mode always wins — never let a restaurant switch
+    // route us back to the cloud when we're pinned to the on-prem server.
+    const localSrv = getLocalServerUrl();
     const customUrl = restaurant?.pgBackendUrl;
-    const newBase = customUrl || API_BASE_URL;
+    const newBase = localSrv || customUrl || API_BASE_URL;
     if (this.baseURL !== newBase) {
-      console.log(`🔀 API routing: ${newBase}${customUrl ? ' (pgBackendUrl)' : ' (default)'}`);
+      console.log(`🔀 API routing: ${newBase}${localSrv ? ' (local server)' : customUrl ? ' (pgBackendUrl)' : ' (default)'}`);
       this.baseURL = newBase;
       this.clearAllCache(); // Clear cache when switching backends
     }
+  }
+
+  /**
+   * Point this terminal at the on-prem local server (or clear with null/'').
+   * Persists across restarts and switches API routing + LAN real-time immediately.
+   */
+  setLocalServer(url) {
+    const norm = setLocalServerUrl(url);
+    this.baseURL = norm || API_BASE_URL;
+    this.clearAllCache();
+    console.log(norm ? `🖥️  Local server set: ${norm}` : '☁️  Local server cleared — using cloud');
+    return norm;
   }
 
   // Process queued requests after token refresh
@@ -276,10 +294,12 @@ class ApiClient {
         return await withTimeout(this._tauriRequest(endpoint, config), timeoutForMethod(config.method), endpoint);
       }
 
-      // Electron desktop: route through Node.js main process for SQLite offline cache
-      // Skip IPC for FormData (file uploads) — FormData can't be serialized through IPC;
-      // send directly via fetch to the cloud API instead.
-      if (typeof window !== 'undefined' && window.electronAPI?.apiRequest && !(config.body instanceof FormData)) {
+      // Electron desktop: route through Node.js main process for SQLite offline cache.
+      // Skip IPC for FormData (file uploads) — FormData can't be serialized through IPC.
+      // ALSO skip IPC in local-server mode: there we talk HTTP straight to the on-prem
+      // dine-backend (real logic + local Postgres), not the legacy SQLite proxy.
+      if (typeof window !== 'undefined' && window.electronAPI?.apiRequest
+          && !(config.body instanceof FormData) && !getLocalServerUrl()) {
         return await withTimeout(this._electronRequest(endpoint, config), timeoutForMethod(config.method), endpoint);
       }
 

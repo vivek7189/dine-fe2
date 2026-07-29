@@ -3,6 +3,8 @@
 import { useEffect, useRef } from 'react';
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
 import { database } from '../../firebase';
+import { isLocalServerMode } from '../lib/localServer';
+import { subscribeLan } from '../lib/lanRealtime';
 
 /**
  * Hook to subscribe to Firebase Realtime Database events for a restaurant.
@@ -17,7 +19,18 @@ export function useFirebaseRealtime(restaurantId, category, onEvent, enabled = t
   onEventRef.current = onEvent;
 
   useEffect(() => {
-    if (!restaurantId || !database || !enabled) return;
+    if (!restaurantId || !enabled) return;
+
+    // ── Local-server (offline LAN) mode: receive events over socket.io instead of
+    // Firebase RTDB. Same payload shape, so the caller's handler is unchanged. ──
+    if (isLocalServerMode()) {
+      const unsub = subscribeLan(restaurantId, category, (data) => {
+        if (data) onEventRef.current(data);
+      });
+      return unsub;
+    }
+
+    if (!database) return;
 
     const eventsRef = ref(database, `events/${restaurantId}/${category}`);
     // Only listen for events created from now onwards (skip historical)
