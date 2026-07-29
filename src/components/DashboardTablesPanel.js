@@ -9,6 +9,7 @@ import OrderSummary from './OrderSummary';
 import TableCard from './TableCard';
 import TableFloorPlan from './TableFloorPlan';
 import TableBillingModal from './TableBillingModal';
+import TableChecksSheet from './TableChecksSheet';
 import MoveOrderModal from './MoveOrderModal';
 import { t as translate } from '../lib/i18n';
 import { useCurrency } from '../contexts/CurrencyContext';
@@ -111,6 +112,7 @@ export default function DashboardTablesPanel({
   // still reads/sets them, so we provide harmless local state.
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [hoveredTableId, setHoveredTableId] = useState(null);
+  const [checksSheet, setChecksSheet] = useState(null); // { table, floorInfo } for the per-party Checks panel
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'floorplan' (live floor map, view-only here)
 
   // Mobile grid columns: '2' or '3' (only used on isMobileEmbed)
@@ -996,6 +998,7 @@ export default function DashboardTablesPanel({
                         handleTakeOrderGuarded(p, group.info?.name, group.info?.id);
                       }
                     }}
+                    onOpenChecks={(tbl) => setChecksSheet({ table: tbl, floorInfo: group.info })}
                   />
                 </div>
               );
@@ -1113,6 +1116,40 @@ export default function DashboardTablesPanel({
         onRefreshTables={onRefreshTables}
         onOptimisticTableUpdate={onOptimisticTableUpdate}
       />
+
+      {/* Per-party "Checks" panel — Open / KOT / Bill for each check on the table */}
+      {checksSheet?.table && (() => {
+        const base = checksSheet.table;
+        const info = checksSheet.floorInfo;
+        const parties = (floors.flatMap(f => f.tables || [])).filter(x => x.isPartyTable && x.partyOfTableId === base.id).sort((a, b) => (a.partyLabel || '').localeCompare(b.partyLabel || ''));
+        const openCheck = (x) => {
+          setChecksSheet(null);
+          if (x?.currentOrderId) { if (sliderOpen) handleSliderClose(); router.push(`/dashboard?orderId=${x.currentOrderId}&mode=edit&from=tables`); }
+          else handleTakeOrderGuarded(x, info?.name, info?.id);
+        };
+        return (
+          <TableChecksSheet
+            table={base}
+            parties={parties}
+            currencySymbol={selectedRestaurant?.currencySymbol || '₹'}
+            nextPartyLabel={String.fromCharCode(66 + parties.length)}
+            onClose={() => setChecksSheet(null)}
+            onOpen={openCheck}
+            onKOT={(x) => handlePrintKOT(x)}
+            onBill={(x) => { setChecksSheet(null); openActionsModal(x); }}
+            onAddParty={async (x) => {
+              setChecksSheet(null);
+              try {
+                const res = await apiClient.addTableParty(selectedRestaurant.id, x.id);
+                if (onRefreshTables) await onRefreshTables();
+                const party = res?.party || res?.table;
+                if (party?.id) handleTakeOrderGuarded(party, info?.name, info?.id);
+              } catch (err) { console.error('Add party failed:', err?.message); }
+            }}
+            onPrintAllKOT={() => { [base, ...parties].forEach(x => { if (x.currentOrderId) handlePrintKOT(x); }); }}
+          />
+        );
+      })()}
 
       {/* Move Order Modal */}
       {moveModalTable && (

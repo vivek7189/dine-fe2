@@ -14,6 +14,7 @@ import OfflineBanner from '../../../components/OfflineBanner';
 import TableFloorPlan from '../../../components/TableFloorPlan';
 import TableCard from '../../../components/TableCard';
 import TableActionsSheet from '../../../components/TableActionsSheet';
+import TableChecksSheet from '../../../components/TableChecksSheet';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import {
   FaPlus, FaTrash, FaCog, FaUsers, FaClock, FaUtensils, FaCheck, FaBan, FaChair,
@@ -1204,6 +1205,7 @@ const TableManagement = () => {
   const [addingPartyFor, setAddingPartyFor] = useState(null);
   // Clean centered "table options" modal (replaces the cramped inline card dropdown).
   const [actionsSheetTable, setActionsSheetTable] = useState(null);
+  const [checksSheetTable, setChecksSheetTable] = useState(null);
   const handleAddParty = async (table) => {
     if (!table || !selectedRestaurant?.id || addingPartyFor) return;
     setActiveDropdown(null);
@@ -2151,6 +2153,8 @@ const TableManagement = () => {
                           }}
                           // ⋮ opens the clean centered options modal instead of an inline dropdown.
                           onOpenActions={(tbl) => setActionsSheetTable(tbl)}
+                          // "Checks" opens the per-party panel (Open/KOT/Bill per check).
+                          onOpenChecks={(tbl) => setChecksSheetTable(tbl)}
                         />
                       );
                     };
@@ -3219,6 +3223,31 @@ const TableManagement = () => {
             onSetOutOfService={(x) => handleTableAction('out-of-service', x)}
             onMakeAvailable={(x) => handleTableAction('make-available', x)}
             onDelete={(x) => deleteTable(x.id)}
+          />
+        );
+      })()}
+
+      {/* Per-party "Checks" panel — Open / KOT / Bill for each check on the table */}
+      {checksSheetTable && (() => {
+        const base = checksSheetTable;
+        const parties = allTables.filter(x => x.isPartyTable && x.partyOfTableId === base.id).sort((a, b) => (a.partyLabel || '').localeCompare(b.partyLabel || ''));
+        const statusOf = (x) => isTodayDate ? (tableStatusesForDate[x.id] || x.status || 'available') : 'available';
+        const openCheck = (x) => { setChecksSheetTable(null); handleTableAction(statusOf(x) === 'available' ? 'take-order' : 'view-order', x); };
+        const billCheck = (x) => { setChecksSheetTable(null); setBillingModalTable(x); setBillingModalOpen(true); };
+        return (
+          <TableChecksSheet
+            table={base}
+            parties={parties}
+            currencySymbol={selectedRestaurant?.currencySymbol || '₹'}
+            nextPartyLabel={String.fromCharCode(66 + parties.length)}
+            onClose={() => setChecksSheetTable(null)}
+            onOpen={openCheck}
+            onKOT={(x) => handlePrintKOT(x)}
+            onBill={billCheck}
+            onAddParty={(x) => { setChecksSheetTable(null); handleAddParty(x); }}
+            onPrintAllKOT={() => {
+              [base, ...parties].forEach(x => { if (x.currentOrderId) handlePrintKOT(x); });
+            }}
           />
         );
       })()}

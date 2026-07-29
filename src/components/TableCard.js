@@ -64,6 +64,7 @@ export default function TableCard({
   parties = [],
   onAddParty,
   onOpenParty,
+  onOpenChecks, // open the per-party "Checks" panel (Open/KOT/Bill per check)
   // When provided, the ⋮ button opens a clean centered options modal (owned by the page)
   // instead of the cramped inline dropdown. Falls back to the inline dropdown if absent.
   onOpenActions,
@@ -352,6 +353,12 @@ export default function TableCard({
               );
             })}
             <button onClick={(e) => { e.stopPropagation(); onAddParty?.(table); }} title={`Add Party ${nextPartyLabel}`} style={pChipAdd}>+</button>
+            {onOpenChecks && (
+              <button onClick={(e) => { e.stopPropagation(); onOpenChecks(table); }} title="Manage checks (Open / KOT / Bill per party)"
+                style={{ ...pChipBase, background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', cursor: 'pointer', padding: 0, width: 'auto', paddingInline: isMobileEmbed ? '4px' : '6px', gap: '3px' }}>
+                <FaReceipt size={isMobileEmbed ? 7 : 9} /> Checks
+              </button>
+            )}
           </div>
           {/* Per-party totals — each running check's own price at a glance (multi-check tables). */}
           {(() => {
