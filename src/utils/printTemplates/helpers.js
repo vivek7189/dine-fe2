@@ -58,7 +58,50 @@ export function getSublineHtml(item) {
     sub += '<br/><small style="color:#666;">+ ' + custs.map(c => esc(c.name || c)).join(', ') + '</small>';
   }
   if (item.notes) sub += `<br/><small style="font-style:italic;color:#888;">Note: ${esc(item.notes)}</small>`;
+  // Tax-inclusive per-item split (MRP + tax) — set by attachInclusiveSplits().
+  if (item.taxSplitLabel) sub += `<br/><small style="color:#888;">${esc(item.taxSplitLabel)}</small>`;
   return sub;
+}
+
+// Round to 2dp helper (kept private to avoid churning the export surface).
+function _round2(n) { return Math.round((Number(n) || 0) * 100) / 100; }
+
+// Line total for a bill/order item (matches buildBillItemRows' own calc).
+function _lineTotalOf(item) {
+  if (item.soldByWeight && item.itemWeight) {
+    return item.priceUnit === 'per_100g'
+      ? (item.price || 0) * (item.itemWeight / 100)
+      : (item.price || 0) * item.itemWeight;
+  }
+  const unit = item.price != null ? item.price : (item.total ? item.total / (item.quantity || 1) : 0);
+  return _round2((unit || 0) * (item.quantity || 1));
+}
+
+// Attach a per-item tax-INCLUSIVE split (base "MRP" + tax) to each invoice item so
+// the bill and order-history reprint show the same MRP + tax the cart shows. The
+// split is back-calculated from the item's line total: tax = line*rate/(100+rate).
+// Idempotent, and a no-op for exclusive-tax stores. Uses the invoice's own tax
+// breakdown so it works identically for a live bill and a reprinted history bill.
+export function attachInclusiveSplits(invoice) {
+  if (!invoice || !Array.isArray(invoice.items)) return invoice;
+  const tb = invoice.taxBreakdown || [];
+  const inclTaxes = tb.filter(t => t && t.inclusive);
+  const globalInclusive = invoice.taxInclusiveMode === 'inclusive' || inclTaxes.length > 0;
+  const inclusiveRate = inclTaxes.reduce((s, t) => s + (Number(t.rate) || 0), 0)
+    || (globalInclusive ? tb.reduce((s, t) => s + (Number(t.rate) || 0), 0) : 0);
+  if (!globalInclusive && !invoice.items.some(it => it && it.taxInclusive === true)) return invoice;
+  const cs = invoice.currencySymbol || '';
+  const taxName = inclTaxes.length === 1 ? (inclTaxes[0].name || 'Tax') : 'Tax';
+  invoice.items = invoice.items.map(it => {
+    if (!it || it.taxSplit) return it; // preserve an already-computed split
+    const isIncl = it.taxInclusive === true || (it.taxInclusive !== false && globalInclusive);
+    if (!isIncl || inclusiveRate <= 0) return it;
+    const line = _lineTotalOf(it);
+    const tax = _round2(line * inclusiveRate / (100 + inclusiveRate));
+    const base = _round2(line - tax);
+    return { ...it, taxSplit: { base, tax, rate: inclusiveRate }, taxSplitLabel: `MRP ${cs}${base.toFixed(2)} + ${taxName} ${inclusiveRate}% ${cs}${tax.toFixed(2)}` };
+  });
+  return invoice;
 }
 
 // Render a single KOT item row with qty, name, variant, customizations, notes.

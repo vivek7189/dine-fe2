@@ -8,6 +8,8 @@ import { useCurrency } from '../contexts/CurrencyContext';
 import useCustomerLookup, { getPhoneMinLength } from '../hooks/useCustomerLookup';
 import useOfferEngine, { calculateDiscountForOffer } from '../hooks/useOfferEngine';
 import { getKOTPrintCSS, buildTokenSlipHTML, buildTokenSlipsDocumentHTML } from '../utils/printFontSizes';
+import { inclusiveSplit, totalRate } from '../utils/inclusiveTax';
+import { attachInclusiveSplits } from '../utils/printTemplates/helpers';
 import { generateBillHTML, generateKOTHTML } from '../utils/printHtmlGenerator';
 import { buildSplitInvoice } from '../utils/printTemplates/helpers';
 import { seatLabel, sanitizeSeat, getOrderItemKey } from '../utils/orderItemKey';
@@ -1427,6 +1429,20 @@ const OrderSummary = ({
     return globalTaxes;
   }, []);
 
+  // Per-item tax-inclusive split (base "MRP" + tax) — used on the cart line, the
+  // bill and order history so all three show identical numbers. Returns null
+  // unless the item is tax-INCLUSIVE with a positive rate. base + tax === lineTotal.
+  const getItemTaxSplit = (cartItem) => {
+    if (!taxSettings?.enabled) return null;
+    if (!isItemTaxInclusive(cartItem, taxSettings)) return null;
+    const taxes = resolveTaxesForItem(cartItem, taxSettings, restaurantCategories);
+    const rate = totalRate(taxes);
+    if (rate <= 0) return null;
+    const lineTotal = getItemUnitPrice(cartItem) * (cartItem.quantity || 1);
+    const label = taxes.map(t => t.name).filter(Boolean).join(' + ') || 'Tax';
+    return { ...inclusiveSplit(lineTotal, rate), lineTotal, label };
+  };
+
   const calculateTax = useCallback(() => {
     // Tax calculation started
     if (cart.length === 0 || !restaurantId) {
@@ -2113,6 +2129,8 @@ const OrderSummary = ({
           const invoiceData = response.invoice || response.bill;
           const localTaxData = buildTaxData();
           applyLocalTaxOverrides(invoiceData, localTaxData);
+          if (!invoiceData.currencySymbol) invoiceData.currencySymbol = getCurrencySymbol();
+          attachInclusiveSplits(invoiceData); // per-item MRP + tax on inclusive bills
           setInvoice(invoiceData);
           setShowInvoicePermanently(true);
           apiClient.generateInvoice(orderId).catch((err) =>
@@ -2165,6 +2183,8 @@ const OrderSummary = ({
         _offlineGenerated: true,
       };
       applyLocalTaxOverrides(localInvoice, localTaxData);
+      if (!localInvoice.currencySymbol) localInvoice.currencySymbol = getCurrencySymbol();
+      attachInclusiveSplits(localInvoice); // per-item MRP + tax on inclusive bills
       setInvoice(localInvoice);
       setShowInvoicePermanently(true);
       return true;
@@ -4542,6 +4562,15 @@ const OrderSummary = ({
                           color: dm ? dm.textSec : '#6b7280'
                         }}>
                           Subtotal: {formatCurrency(getItemUnitPrice(item) * item.quantity)}
+                          {(() => {
+                            const s = getItemTaxSplit(item);
+                            if (!s) return null;
+                            return (
+                              <span style={{ display: 'block', fontSize: '10px', fontWeight: 500, color: dm ? dm.textSec : '#9ca3af', marginTop: '1px' }}>
+                                {(t('billing.mrp') || 'MRP')} {formatCurrency(s.base)} + {s.label} {s.rate}% {formatCurrency(s.tax)}
+                              </span>
+                            );
+                          })()}
                         </span>
                         {posSettings.allowPriceEdit && isRoleAllowed(billingSettings?.priceEditRoles) && editingPriceId === cartLineId(item) ? (
                           <input

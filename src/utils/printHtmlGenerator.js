@@ -3,13 +3,20 @@
 // Delegates to the template system for KOT and Bill rendering.
 
 import { renderKOT, renderBill } from './printTemplates/index';
+import { attachInclusiveSplits } from './printTemplates/helpers';
 import { getContentWidth } from './printFontSizes';
 
 /**
  * Generate complete bill/invoice HTML for thermal printing.
  * Delegates to the selected bill template via printSettings.billTemplate.
+ * Single choke point for ALL bill prints (live, order-history reprint, auto-print),
+ * so we attach the per-item tax-inclusive split here — every bill shows MRP + tax.
  */
 export function generateBillHTML(invoice, printSettings = {}, labels = {}) {
+  try {
+    if (invoice && !invoice.currencySymbol) invoice.currencySymbol = printSettings?.currencySymbol || labels?.currencySymbol || '';
+    attachInclusiveSplits(invoice);
+  } catch (_) { /* never block printing */ }
   return renderBill(invoice, printSettings, labels);
 }
 
