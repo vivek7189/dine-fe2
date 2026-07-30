@@ -3,7 +3,7 @@
 // Delegates to the template system for KOT and Bill rendering.
 
 import { renderKOT, renderBill } from './printTemplates/index';
-import { attachInclusiveSplits } from './printTemplates/helpers';
+import { attachInclusiveSplits, splitIndiaGst } from './printTemplates/helpers';
 import { getContentWidth } from './printFontSizes';
 
 /**
@@ -16,6 +16,7 @@ export function generateBillHTML(invoice, printSettings = {}, labels = {}) {
   try {
     if (invoice && !invoice.currencySymbol) invoice.currencySymbol = printSettings?.currencySymbol || labels?.currencySymbol || '';
     attachInclusiveSplits(invoice);
+    splitIndiaGst(invoice); // India: render GST as CGST + SGST (display only)
   } catch (_) { /* never block printing */ }
   return renderBill(invoice, printSettings, labels);
 }

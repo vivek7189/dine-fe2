@@ -77,6 +77,31 @@ function _lineTotalOf(item) {
   return _round2((unit || 0) * (item.quantity || 1));
 }
 
+// India GST invoice compliance: show a single "GST" tax line as CGST + SGST
+// (half each). DISPLAY ONLY — the total is unchanged (2.5% + 2.5% = 5%). Enabled
+// for India (invoice.countryCode==='IN' or ₹) unless invoice.gstSplit===false;
+// idempotent and skips taxes already named CGST/SGST/IGST. No effect elsewhere.
+export function splitIndiaGst(invoice) {
+  if (!invoice || !Array.isArray(invoice.taxBreakdown) || invoice.taxBreakdown.length === 0) return invoice;
+  const cc = String(invoice.countryCode || '').toUpperCase();
+  const isIndia = cc === 'IN' || (!cc && invoice.currencySymbol === '₹');
+  const enabled = invoice.gstSplit === true || (invoice.gstSplit == null && isIndia);
+  if (!enabled) return invoice;
+  invoice.taxBreakdown = invoice.taxBreakdown.flatMap(t => {
+    const name = String(t && t.name || '').trim();
+    if (!t || !/^gst$/i.test(name) || !(Number(t.rate) > 0)) return [t];
+    const halfRate = Number(t.rate) / 2;
+    const amt = Number(t.amount) || 0;
+    const cgst = _round2(amt / 2);
+    const sgst = _round2(amt - cgst); // rounding-safe: CGST + SGST === original
+    return [
+      { ...t, name: 'CGST', rate: halfRate, amount: cgst },
+      { ...t, name: 'SGST', rate: halfRate, amount: sgst },
+    ];
+  });
+  return invoice;
+}
+
 // Attach a per-item tax-INCLUSIVE split (base "MRP" + tax) to each invoice item so
 // the bill and order-history reprint show the same MRP + tax the cart shows. The
 // split is back-calculated from the item's line total: tax = line*rate/(100+rate).

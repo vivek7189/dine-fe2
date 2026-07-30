@@ -2130,6 +2130,7 @@ const OrderSummary = ({
           const localTaxData = buildTaxData();
           applyLocalTaxOverrides(invoiceData, localTaxData);
           if (!invoiceData.currencySymbol) invoiceData.currencySymbol = getCurrencySymbol();
+          if (!invoiceData.countryCode) invoiceData.countryCode = countryCode;
           attachInclusiveSplits(invoiceData); // per-item MRP + tax on inclusive bills
           setInvoice(invoiceData);
           setShowInvoicePermanently(true);
@@ -2184,6 +2185,7 @@ const OrderSummary = ({
       };
       applyLocalTaxOverrides(localInvoice, localTaxData);
       if (!localInvoice.currencySymbol) localInvoice.currencySymbol = getCurrencySymbol();
+      if (!localInvoice.countryCode) localInvoice.countryCode = countryCode;
       attachInclusiveSplits(localInvoice); // per-item MRP + tax on inclusive bills
       setInvoice(localInvoice);
       setShowInvoicePermanently(true);
