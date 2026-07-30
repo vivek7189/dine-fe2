@@ -22,6 +22,20 @@ const taxAppliesToOrderType = (tax, orderType) => {
   const cur = _canonOT(orderType);
   return list.some((x) => _canonOT(x) === cur);
 };
+
+// DISPLAY-ONLY India GST split for the on-screen summary/invoice preview, so what
+// the cashier sees matches the printed bill (CGST + SGST). Returns a COPY — never
+// mutates the stored taxBreakdown that goes onto the order. Mirrors splitIndiaGst.
+const splitGstForDisplay = (tb, countryCode) => {
+  if (String(countryCode || '').toUpperCase() !== 'IN' || !Array.isArray(tb)) return tb || [];
+  return tb.flatMap((t) => {
+    const nm = String((t && t.name) || '').trim();
+    if (!t || !/^gst$/i.test(nm) || !(Number(t.rate) > 0)) return [t];
+    const half = Number(t.rate) / 2, amt = Number(t.amount) || 0;
+    const cgst = Math.round((amt / 2) * 100) / 100, sgst = Math.round((amt - cgst) * 100) / 100;
+    return [{ ...t, name: 'CGST', rate: half, amount: cgst }, { ...t, name: 'SGST', rate: half, amount: sgst }];
+  });
+};
 import { generateBillHTML, generateKOTHTML } from '../utils/printHtmlGenerator';
 import { buildSplitInvoice } from '../utils/printTemplates/helpers';
 import { seatLabel, sanitizeSeat, getOrderItemKey } from '../utils/orderItemKey';
@@ -3870,7 +3884,7 @@ const OrderSummary = ({
                           <span>-{formatCurrency(invoice.couponDiscount)}</span>
                         </div>
                       )}
-                      {invoice?.taxBreakdown?.map((tax, idx) => (
+                      {splitGstForDisplay(invoice?.taxBreakdown, countryCode).map((tax, idx) => (
                         <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
                           <span>{tax.name} ({tax.rate}%){tax.inclusive ? ' (incl.)' : ''}</span>
                           <span>{formatCurrency(tax.amount || 0)}</span>
@@ -4992,7 +5006,7 @@ const OrderSummary = ({
                     {serviceChargeAmount > 0 && (
                       <span>{billingSettings.serviceChargeLabel || 'Service Charge'} ({serviceChargeRateOverride !== null ? serviceChargeRateOverride : billingSettings.serviceChargeRate}%): {formatCurrency(serviceChargeAmount)}</span>
                     )}
-                    {taxBreakdown.map((tax, index) => (
+                    {splitGstForDisplay(taxBreakdown, countryCode).map((tax, index) => (
                       <span key={index}>{tax.name} ({tax.rate}%){tax.inclusive ? ' (incl.)' : ''}: {formatCurrency(tax.amount || 0)}</span>
                     ))}
                     {tipAmount > 0 && (
@@ -7878,7 +7892,7 @@ const OrderSummary = ({
                     <span style={{ fontWeight: 600, color: '#7c3aed' }}>-{formatCurrency(getCouponDiscountAmount())}</span>
                   </div>
                 )}
-                {taxBreakdown.map((tax, idx) => (
+                {splitGstForDisplay(taxBreakdown, countryCode).map((tax, idx) => (
                   <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                     <span>{tax.name} ({tax.rate}%){tax.inclusive ? ' (incl.)' : ''}</span>
                     <span style={{ fontWeight: 500 }}>{formatCurrency(tax.amount || 0)}</span>
