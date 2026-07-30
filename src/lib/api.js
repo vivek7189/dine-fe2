@@ -956,7 +956,28 @@ class ApiClient {
     const user = this.getUser();
     if (!user) return '/login';
 
-    // All authenticated users land on home page (role-based dashboard)
+    // Role-based landing page (opt-in). Owner/admin configure a per-role default
+    // page in POS Settings (posSettings.roleLandingPages), e.g. cashier -> /dashboard,
+    // waiter -> /tables. Falls back to /home when unset for the role.
+    try {
+      const role = (user.role || '').toLowerCase();
+      // Config lives on the selected restaurant's posSettings; fall back to the user's.
+      let posSettings = null;
+      try {
+        const sr = localStorage.getItem('selectedRestaurant');
+        if (sr) posSettings = JSON.parse(sr)?.posSettings || null;
+      } catch {}
+      if (!posSettings) posSettings = user.restaurant?.posSettings || null;
+      const map = posSettings?.roleLandingEnabled ? (posSettings?.roleLandingPages || null) : null;
+      if (map && role && typeof map[role] === 'string') {
+        const dest = map[role];
+        // Only allow known internal dashboard paths (no external/open redirect).
+        const ALLOWED = ['/home', '/dashboard', '/tables', '/orders', '/menu', '/kot', '/customers', '/analytics', '/inventory', '/bookings'];
+        if (ALLOWED.includes(dest)) return dest;
+      }
+    } catch {}
+
+    // Default: role-based home dashboard
     return '/home';
   }
 

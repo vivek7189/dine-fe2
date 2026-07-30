@@ -12368,7 +12368,57 @@ const Admin = () => {
                       <span style={{ fontSize: '12px', color: '#9ca3af' }}>seconds</span>
                     </div>
                   )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button onClick={() => setPosSettings(prev => ({ ...prev, terminalLock: { ...(prev.terminalLock || {}), serverEnforced: !(prev.terminalLock && prev.terminalLock.serverEnforced) } }))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                      {posSettings.terminalLock?.serverEnforced ? <FaToggleOn size={22} color="#ef4444" /> : <FaToggleOff size={22} color="#d1d5db" />}
+                    </button>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontSize: '12px', color: '#374151', fontWeight: 600 }}>Enforce on server (strict)</span>
+                      <div style={{ fontSize: '10.5px', color: '#9ca3af' }}>Reject POS orders that weren&apos;t placed by an unlocked staff PIN — blocks bypassing the lock via dev tools.</div>
+                    </div>
+                  </div>
                   <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>Each staff gets a PIN when created (shown once). Change or disable PINs from the Staff section.</div>
+                </div>
+              )}
+            </div>
+
+            {/* Role Landing Pages */}
+            <div style={{ marginBottom: '16px', padding: '14px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button onClick={() => setPosSettings(prev => ({ ...prev, roleLandingEnabled: !prev.roleLandingEnabled }))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                  {posSettings.roleLandingEnabled ? <FaToggleOn size={28} color="#0ea5e9" /> : <FaToggleOff size={28} color="#d1d5db" />}
+                </button>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>🎯 Role Landing Page</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>Send each role to the page they work on right after login (e.g. cashier → Billing, waiter → Tables).</div>
+                </div>
+              </div>
+              {posSettings.roleLandingEnabled && (
+                <div style={{ marginLeft: '38px', marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {[
+                    { role: 'cashier', label: 'Cashier' },
+                    { role: 'waiter', label: 'Waiter' },
+                    { role: 'captain', label: 'Captain' },
+                    { role: 'manager', label: 'Manager' },
+                    { role: 'employee', label: 'Employee' },
+                  ].map(({ role, label }) => (
+                    <div key={role} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '12.5px', color: '#374151', fontWeight: 600, width: '84px' }}>{label}</span>
+                      <select
+                        value={posSettings.roleLandingPages?.[role] || ''}
+                        onChange={(e) => setPosSettings(prev => ({ ...prev, roleLandingPages: { ...(prev.roleLandingPages || {}), [role]: e.target.value } }))}
+                        style={{ flex: 1, maxWidth: '220px', padding: '7px 10px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', background: '#fff' }}>
+                        <option value="">Default (Home)</option>
+                        <option value="/dashboard">Billing / Dashboard</option>
+                        <option value="/tables">Tables</option>
+                        <option value="/orders">Orders</option>
+                        <option value="/kot">Kitchen (KOT)</option>
+                        <option value="/menu">Menu</option>
+                        <option value="/home">Home</option>
+                      </select>
+                    </div>
+                  ))}
+                  <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>Staff still need page access for their landing page; otherwise they fall back to Home.</div>
                 </div>
               )}
             </div>
