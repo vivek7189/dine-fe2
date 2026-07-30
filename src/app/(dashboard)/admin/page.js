@@ -5659,6 +5659,12 @@ const Admin = () => {
   const [resetLoading, setResetLoading] = useState(false);
   const [resetResult, setResetResult] = useState(null); // { temporaryPassword, loginId, username } after generate
   const [showResetTempPassword, setShowResetTempPassword] = useState(false);
+  // Terminal PIN management (shared-terminal lock)
+  const [pinStaff, setPinStaff] = useState(null); // member whose PIN is being managed
+  const [pinMode, setPinMode] = useState('set'); // 'set' | 'generate' | 'disable'
+  const [pinValue, setPinValue] = useState('');
+  const [pinBusy, setPinBusy] = useState(false);
+  const [pinResult, setPinResult] = useState(null); // { pin } after set/generate
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -6909,6 +6915,51 @@ const Admin = () => {
     setResetPasswordMode('generate');
   };
 
+  // ---- Terminal PIN management ----
+  const openPinModal = (member) => {
+    setPinStaff(member);
+    setPinMode('set');
+    setPinValue('');
+    setPinResult(null);
+    setPinBusy(false);
+  };
+  const closePinModal = () => {
+    setPinStaff(null);
+    setPinValue('');
+    setPinResult(null);
+    setPinBusy(false);
+  };
+  const savePin = async () => {
+    if (!pinStaff?.id || pinBusy) return;
+    try {
+      setPinBusy(true);
+      if (pinMode === 'disable') {
+        await apiClient.updateStaffPin(pinStaff.id, { enabled: false });
+        setStaff(prev => prev.map(m => m.id === pinStaff.id ? { ...m, pinEnabled: false } : m));
+        showSuccess(`Terminal PIN disabled for ${pinStaff.name || 'staff'}.`, 6000);
+        closePinModal();
+        return;
+      }
+      let pin = pinValue.trim();
+      if (pinMode === 'generate') {
+        pin = String(Math.floor(1000 + (Date.now() % 9000))); // 4-digit, deterministic-safe
+      }
+      if (!/^\d{4,8}$/.test(pin)) {
+        showError('PIN must be 4 to 8 digits.');
+        setPinBusy(false);
+        return;
+      }
+      await apiClient.updateStaffPin(pinStaff.id, { pin, enabled: true });
+      setStaff(prev => prev.map(m => m.id === pinStaff.id ? { ...m, pinEnabled: true } : m));
+      setPinResult({ pin });
+      showSuccess(`Terminal PIN set for ${pinStaff.name || 'staff'}: ${pin}. Share it securely.`, 12000);
+    } catch (error) {
+      showError(error?.message || 'Could not update PIN.');
+    } finally {
+      setPinBusy(false);
+    }
+  };
+
   const handleGenerateTempPassword = async () => {
     if (!staffForReset?.id) return;
     try {
@@ -7720,6 +7771,12 @@ const Admin = () => {
                                 title="Reset Password"
                               ><FaKey size={9} /></button>
                             )}
+                            {(currentUserRole === 'owner' || currentUserRole === 'admin') && canManageStaff(member.role) && (
+                              <button onClick={() => openPinModal(member)}
+                                style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: member.pinEnabled === false ? '#9ca3af' : '#7c3aed', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}
+                                title={member.pinEnabled === false ? 'Terminal PIN disabled — set one' : 'Manage Terminal PIN'}
+                              ><FaLock size={9} /></button>
+                            )}
                             {(currentUserRole === 'owner' || currentUserRole === 'admin') && (
                               <button onClick={() => deleteStaff(member.id, member.name)}
                                 style={{ background: 'none', border: 'none', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: '#dc2626', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}
@@ -8185,6 +8242,12 @@ const Admin = () => {
                         style={{ backgroundColor: 'transparent', color: '#6b7280', padding: '5px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', transition: 'all 0.15s' }}
                         title="Reset password"
                       ><FaKey size={10} /> Reset</button>
+                    )}
+                    {(currentUserRole === 'owner' || currentUserRole === 'admin') && canManageStaff(member.role) && (
+                      <button onClick={() => openPinModal(member)}
+                        style={{ backgroundColor: 'transparent', color: member.pinEnabled === false ? '#9ca3af' : '#7c3aed', padding: '5px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', transition: 'all 0.15s' }}
+                        title={member.pinEnabled === false ? 'Terminal PIN disabled — set one' : 'Manage Terminal PIN'}
+                      ><FaLock size={10} /> PIN</button>
                     )}
                     <div style={{ flex: 1 }}></div>
                     {(currentUserRole === 'owner' || currentUserRole === 'admin') && (
@@ -9557,6 +9620,78 @@ const Admin = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Terminal PIN Modal */}
+      {pinStaff && typeof document !== 'undefined' && createPortal(
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100001, padding: '16px' }}
+          onClick={closePinModal}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '400px', background: '#fff', borderRadius: '16px', padding: '22px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+              <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaLock color="#7c3aed" size={15} /></div>
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#111827' }}>Terminal PIN</div>
+                <div style={{ fontSize: '12px', color: '#6b7280' }}>{pinStaff.name || 'Staff'} · {getRoleInfo(pinStaff.role)?.label || pinStaff.role}</div>
+              </div>
+            </div>
+            <p style={{ fontSize: '12px', color: '#6b7280', margin: '10px 0 14px' }}>
+              This PIN unlocks the shared POS terminal so this staff&apos;s orders are attributed to them. 4–8 digits.
+            </p>
+
+            {pinResult ? (
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '14px', textAlign: 'center', marginBottom: '14px' }}>
+                <div style={{ fontSize: '12px', color: '#15803d', fontWeight: 600 }}>New PIN — share securely</div>
+                <div style={{ fontSize: '30px', fontWeight: 800, letterSpacing: '6px', color: '#065f46', margin: '6px 0' }}>{pinResult.pin}</div>
+                <button type="button" onClick={() => copyToClipboard(pinResult.pin, 'pin', pinStaff.id)}
+                  style={{ fontSize: '12px', fontWeight: 600, color: '#15803d', background: 'none', border: 'none', cursor: 'pointer' }}>Copy PIN</button>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                  {[{ k: 'set', l: 'Set PIN' }, { k: 'generate', l: 'Auto-generate' }, { k: 'disable', l: 'Disable' }].map(o => (
+                    <button key={o.k} type="button" onClick={() => { setPinMode(o.k); setPinValue(''); }}
+                      style={{ flex: 1, padding: '9px 4px', fontSize: '12px', fontWeight: 700, borderRadius: '9px', cursor: 'pointer',
+                        border: pinMode === o.k ? '2px solid #7c3aed' : '1px solid #e5e7eb',
+                        background: pinMode === o.k ? '#f5f3ff' : '#f9fafb',
+                        color: pinMode === o.k ? '#6d28d9' : '#6b7280' }}>{o.l}</button>
+                  ))}
+                </div>
+
+                {pinMode === 'set' && (
+                  <input type="text" inputMode="numeric" value={pinValue} maxLength={8}
+                    onChange={(e) => setPinValue(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                    placeholder="Enter 4–8 digit PIN" autoFocus
+                    style={{ width: '100%', padding: '12px', fontSize: '18px', letterSpacing: '4px', textAlign: 'center', borderRadius: '10px', border: '1px solid #d1d5db', marginBottom: '14px' }} />
+                )}
+                {pinMode === 'generate' && (
+                  <div style={{ fontSize: '12.5px', color: '#6b7280', background: '#f9fafb', border: '1px solid #eee', borderRadius: '10px', padding: '12px', marginBottom: '14px' }}>
+                    A random 4-digit PIN will be generated and shown once. Share it with the staff.
+                  </div>
+                )}
+                {pinMode === 'disable' && (
+                  <div style={{ fontSize: '12.5px', color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '12px', marginBottom: '14px' }}>
+                    This staff will no longer be able to unlock the terminal until a new PIN is set.
+                  </div>
+                )}
+              </>
+            )}
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button type="button" onClick={closePinModal}
+                style={{ flex: 1, padding: '11px', fontSize: '14px', fontWeight: 700, borderRadius: '10px', border: '1px solid #e5e7eb', background: '#fff', color: '#374151', cursor: 'pointer' }}>
+                {pinResult ? 'Done' : 'Cancel'}
+              </button>
+              {!pinResult && (
+                <button type="button" onClick={savePin} disabled={pinBusy || (pinMode === 'set' && pinValue.length < 4)}
+                  style={{ flex: 1, padding: '11px', fontSize: '14px', fontWeight: 800, borderRadius: '10px', border: 'none', cursor: pinBusy ? 'not-allowed' : 'pointer', color: '#fff',
+                    background: pinMode === 'disable' ? '#dc2626' : '#7c3aed', opacity: (pinBusy || (pinMode === 'set' && pinValue.length < 4)) ? 0.6 : 1 }}>
+                  {pinBusy ? 'Saving…' : pinMode === 'disable' ? 'Disable PIN' : pinMode === 'generate' ? 'Generate' : 'Save PIN'}
+                </button>
+              )}
+            </div>
           </div>
         </div>,
         document.body
