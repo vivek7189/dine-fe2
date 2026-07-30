@@ -204,6 +204,7 @@ export default function sitemap() {
     'inventory',
     'admin',
     'integrations',
+    'whatsapp',
   ].map((slug) => ({
     url: `${baseUrl}/products/${slug}`,
     lastModified: currentDate,

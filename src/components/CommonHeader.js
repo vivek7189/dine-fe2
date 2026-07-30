@@ -7,7 +7,7 @@ import {
   FaChevronDown, FaRobot, FaStore, FaBoxes, FaWarehouse, FaBuilding,
   FaUtensils, FaCoffee, FaCloudMeatball, FaBeer, FaBirthdayCake, FaTruck, FaHotel,
   FaQrcode, FaFileInvoice, FaClipboardList, FaChair, FaGift,
-  FaBars, FaTimes, FaShoppingCart, FaUsers, FaBook, FaTable, FaCog
+  FaBars, FaTimes, FaShoppingCart, FaUsers, FaBook, FaTable, FaCog, FaWhatsapp
 } from 'react-icons/fa';
 
 export default function CommonHeader() {
@@ -36,6 +36,7 @@ export default function CommonHeader() {
     { name: 'DineOpen Hotel', href: '/products/hotel', icon: FaBuilding, desc: 'Room & booking management', featured: true },
     { name: 'DineOpen Inventory', href: '/products/inventory', icon: FaBoxes, desc: 'Stock tracking & AI reorder', featured: true },
     { name: 'DineOpen Orders', href: '/products/orders', icon: FaShoppingCart, desc: 'Online & QR ordering', featured: true },
+    { name: 'DineOpen WhatsApp', href: '/products/whatsapp', icon: FaWhatsapp, desc: 'Ordering, updates & marketing', featured: true },
     { name: 'DineOpen Loyalty', href: '/products/loyalty', icon: FaUsers, desc: 'CRM & rewards' },
     { name: 'DineOpen Kitchen', href: '/products/kitchen', icon: FaClipboardList, desc: 'KDS & KOT management' },
     { name: 'DineOpen Tables', href: '/products/tables', icon: FaTable, desc: 'Reservations & floor plan' },
