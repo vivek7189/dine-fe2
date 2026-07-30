@@ -3,6 +3,16 @@
 
 export const blogPosts = [
   {
+    slug: 'whatsapp-for-restaurants-guide-2026',
+    title: 'WhatsApp for Restaurants: The Complete 2026 Guide (Ordering, Notifications & Marketing)',
+    excerpt: 'How restaurants use the official WhatsApp Business API to take orders, send order updates and digital bills, run 90%-open-rate broadcast campaigns, add an AI chatbot, and collect Google reviews — with setup steps, pricing, compliance and ROI.',
+    date: '2026-07-30',
+    category: 'Guide',
+    categoryColor: '#25D366',
+    readTime: '13 min read',
+    author: 'Vivek Sharma',
+  },
+  {
     slug: 'restaurant-labor-cost-guide-usa-2026',
     title: 'Restaurant Labor Cost Guide (US 2026): Percentages, Minimum Wage and Tip Credit by State',
     excerpt: 'How to calculate and control restaurant labor cost in 2026 — target percentages, minimum wage and tip-credit rules by state, and practical ways to cut labor cost without hurting service.',

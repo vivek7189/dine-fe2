@@ -143,6 +143,7 @@ const nextConfig = {
   // This fixes 144 broken URLs caused by internal links missing .html extension
   async rewrites() {
     const staticBlogSlugs = [
+      'whatsapp-for-restaurants-guide-2026',
       'best-billing-software-small-restaurant',
       'best-catering-management-software-india',
       'catering-retail-whatsapp-ordering-billing-guide',
