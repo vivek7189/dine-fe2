@@ -129,6 +129,7 @@ const ConfirmModal = ({ open, title, message, onConfirm, onCancel, confirmText =
 const OffersManagement = dynamic(() => import('../offers/page'), { ssr: false });
 const CustomerAppSettings = dynamic(() => import('../customer-app/page'), { ssr: false });
 import { getAllCountriesWithCurrency, getCurrencyByCountryCode } from '../../../lib/currencyData';
+import { getTaxRegime, TAX_FREE_PRESET } from '../../../config/taxRegimes';
 import EtimsSettings from '../../../components/EtimsSettings';
 import { FEATURE_OPS, OP_LABELS, ADMIN_TAB_LABELS, ADMIN_TAB_ID_TO_KEY, resolveFeaturePermissions } from '@/lib/permissions';
 import { PAGE_ACCESS_CONFIG } from '@/lib/pageAccessConfig';
@@ -315,6 +316,22 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
   const addTax = () => {
     setTaxSettings(prev => ({ ...prev, taxes: [...prev.taxes, { id: `tax_${Date.now()}`, name: 'New Tax', rate: 0, enabled: true, type: 'percentage' }] }));
   };
+  // Apply a country's suggested tax setup — REPLACES the taxes list + inclusive
+  // default. Only ever runs on an explicit button click (never on load), so a
+  // store's saved settings are untouched until the owner chooses this.
+  const applyTaxRegime = (regime) => {
+    if (!regime) return;
+    setTaxSettings(prev => ({
+      ...prev,
+      enabled: true,
+      taxInclusivePricing: !!regime.inclusiveDefault,
+      taxes: (regime.taxes || []).map((t, i) => ({ id: `tax_${Date.now()}_${i}`, name: t.name, rate: t.rate, enabled: true, type: 'percentage' })),
+    }));
+  };
+  // Quick-add a tax at a slab rate (ADDS — does not replace existing taxes).
+  const addTaxAtRate = (rate) => {
+    setTaxSettings(prev => ({ ...prev, enabled: true, taxes: [...(prev.taxes || []), { id: `tax_${Date.now()}`, name: taxLabel, rate, enabled: true, type: 'percentage' }] }));
+  };
   const updateTax = (index, field, value) => {
     setTaxSettings(prev => ({ ...prev, taxes: prev.taxes.map((tax, i) => i === index ? { ...tax, [field]: value } : tax) }));
   };
@@ -488,6 +505,43 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
 
                 {taxSettings.enabled && (
                   <div>
+                    {/* Country suggestion — fills the form only on an explicit click */}
+                    {(() => {
+                      const regime = getTaxRegime(countryCode);
+                      return (
+                        <div style={{ marginBottom: '16px', padding: '14px', backgroundColor: '#eff6ff', borderRadius: '10px', border: '1px solid #bfdbfe' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '15px' }}>🌍</span>
+                            <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e40af' }}>Suggested for {regime.country}</span>
+                          </div>
+                          <p style={{ fontSize: '11.5px', color: '#3730a3', margin: '0 0 10px', lineHeight: 1.4 }}>{regime.hint}</p>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                            {(regime.taxes && regime.taxes.length > 0) ? (
+                              <button type="button" onClick={() => applyTaxRegime(regime)}
+                                style={{ padding: '7px 13px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}>
+                                Use {regime.taxes.map(t => `${t.name} ${t.rate}%`).join(' + ')}
+                              </button>
+                            ) : null}
+                            <button type="button" onClick={() => applyTaxRegime(TAX_FREE_PRESET)}
+                              style={{ padding: '7px 13px', background: '#fff', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}>
+                              Tax-Free
+                            </button>
+                            {(regime.slabs && regime.slabs.length > 0) && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginLeft: '2px' }}>
+                                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Quick add:</span>
+                                {regime.slabs.filter(r => r > 0).map(r => (
+                                  <button key={r} type="button" onClick={() => addTaxAtRate(r)}
+                                    style={{ padding: '4px 9px', background: '#fff', color: '#1e40af', border: '1px solid #bfdbfe', borderRadius: '999px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}>
+                                    {r}%
+                                  </button>
+                                ))}
+                              </span>
+                            )}
+                          </div>
+                          <p style={{ fontSize: '10.5px', color: '#94a3b8', margin: '8px 0 0' }}>Suggestions only — confirm rates with your accountant. Nothing changes until you Save.</p>
+                        </div>
+                      );
+                    })()}
                     {/* GST Inclusive Pricing */}
                     <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#f0fdf4', borderRadius: '10px', border: '1px solid #bbf7d0' }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
