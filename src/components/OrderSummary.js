@@ -10,6 +10,7 @@ import useOfferEngine, { calculateDiscountForOffer } from '../hooks/useOfferEngi
 import { getKOTPrintCSS, buildTokenSlipHTML, buildTokenSlipsDocumentHTML } from '../utils/printFontSizes';
 import { inclusiveSplit, totalRate } from '../utils/inclusiveTax';
 import { attachInclusiveSplits } from '../utils/printTemplates/helpers';
+import { useTerminalLock } from '../contexts/TerminalLockContext';
 
 // Order-type tax gating (Phase 3). A tax with NO `orderTypes` (absent/empty)
 // applies to ALL order types — exactly today's behavior. When the list is set,
@@ -293,6 +294,7 @@ const OrderSummary = ({
   const isEditingSavedOrder = currentOrder && currentOrder.status === 'saved';
 
   const { formatCurrency, getCurrencySymbol } = useCurrency();
+  const { operator: terminalOperator, lockAfterOrder } = useTerminalLock();
   const [invoice, setInvoice] = useState(null);
   const [showInvoicePermanently, setShowInvoicePermanently] = useState(false);
   const [taxBreakdown, setTaxBreakdown] = useState([]);
@@ -2337,6 +2339,16 @@ const OrderSummary = ({
     return { method, guestCount: splits.length, splits };
   }, [splitBillMode, splitBillGuests, splitBillItemAssignments, splitBillAmounts, splitBillPaymentMethods, splitBillGuestNames, grandTotal, cart, totalTax, taxBreakdown, serviceChargeAmount, tipAmount, effectiveOfferDiscount]);
 
+  // Terminal PIN lock: after an order is placed (+ its print fires), re-lock the POS
+  // so the next staff must enter their PIN. No-op unless the lock is enabled with an
+  // 'after-order' mode. Small delay so the KOT/bill print goes out first.
+  useEffect(() => {
+    if (!orderSuccess?.kotData?.orderId) return;
+    const t = setTimeout(() => { try { lockAfterOrder(); } catch (_) {} }, 1500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderSuccess?.kotData?.orderId]);
+
   // One-click "KOT + Bill": once the placed order's KOT data (with orderId) arrives, also
   // render + print the bill — WITHOUT settling/paying (order stays open for later Complete
   // Billing). getBillRender works on an unpaid order. Only runs when the flag flow armed it.
@@ -2446,6 +2458,8 @@ const OrderSummary = ({
       walletCustomerId: useWallet && parseFloat(walletRedeemAmount) > 0 ? customerData?.id : null,
       splitBill: splitBillMode ? calculateSplitBillData() : null,
       covers: covers,
+      // Terminal-lock operator attribution (null when the lock feature is off)
+      ...(terminalOperator ? { operatorId: terminalOperator.id, operatorName: terminalOperator.name } : {}),
     };
   };
 

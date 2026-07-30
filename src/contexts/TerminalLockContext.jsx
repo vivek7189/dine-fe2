@@ -1,0 +1,135 @@
+'use client';
+
+// Terminal PIN lock (shared POS). Flag-gated by posSettings.terminalLock.enabled —
+// when off, this is a pass-through (no overlay, no behavior change). When on, the
+// POS is covered by a PIN pad; a staff enters their PIN to unlock and becomes the
+// "operator" that the next orders are attributed to. Auto-locks after each order
+// and/or after idle, per config. Operator session lives in sessionStorage so a
+// page refresh doesn't force a re-PIN mid-order.
+
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import apiClient from '../lib/api';
+
+const TerminalLockContext = createContext({
+  enabled: false, locked: false, operator: null, lock: () => {}, lockAfterOrder: () => {},
+});
+
+export const useTerminalLock = () => useContext(TerminalLockContext);
+
+const STORAGE_KEY = 'dineTerminalOperator';
+const readOperator = () => {
+  try { const v = sessionStorage.getItem(STORAGE_KEY); return v ? JSON.parse(v) : null; } catch { return null; }
+};
+
+export function TerminalLockProvider({ restaurantId, restaurantName, terminalLock, children }) {
+  const enabled = !!(terminalLock && terminalLock.enabled);
+  const mode = terminalLock?.mode || 'after-order'; // 'after-order' | 'idle' | 'both'
+  const idleSeconds = Math.max(15, Number(terminalLock?.idleSeconds) || 60);
+
+  const [operator, setOperator] = useState(null);
+  const [locked, setLocked] = useState(false);
+  const [pin, setPin] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const idleTimer = useRef(null);
+
+  // Initialise from the stored session (survives refresh); lock if none & enabled.
+  useEffect(() => {
+    if (!enabled) { setLocked(false); setOperator(null); return; }
+    const stored = readOperator();
+    if (stored && stored.id) { setOperator(stored); setLocked(false); }
+    else { setOperator(null); setLocked(true); }
+  }, [enabled]);
+
+  const lock = useCallback(() => {
+    if (!enabled) return;
+    try { sessionStorage.removeItem(STORAGE_KEY); } catch {}
+    setOperator(null); setPin(''); setError(''); setLocked(true);
+  }, [enabled]);
+
+  const lockAfterOrder = useCallback(() => {
+    if (enabled && (mode === 'after-order' || mode === 'both')) lock();
+  }, [enabled, mode, lock]);
+
+  // Idle auto-lock
+  useEffect(() => {
+    if (!enabled || locked || !(mode === 'idle' || mode === 'both')) return;
+    const reset = () => {
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+      idleTimer.current = setTimeout(() => lock(), idleSeconds * 1000);
+    };
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+    events.forEach(e => window.addEventListener(e, reset, { passive: true }));
+    reset();
+    return () => { events.forEach(e => window.removeEventListener(e, reset)); if (idleTimer.current) clearTimeout(idleTimer.current); };
+  }, [enabled, locked, mode, idleSeconds, lock]);
+
+  const submitPin = useCallback(async (value) => {
+    const p = String(value != null ? value : pin);
+    if (!/^\d{4,8}$/.test(p) || busy) { setError('Enter a 4–8 digit PIN'); return; }
+    setBusy(true); setError('');
+    try {
+      const res = await apiClient.verifyStaffPin(restaurantId, p);
+      if (res && res.valid && res.operator) {
+        const op = { ...res.operator, at: Date.now() };
+        try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(op)); } catch {}
+        setOperator(op); setLocked(false); setPin('');
+      } else { setError('Wrong PIN'); setPin(''); }
+    } catch (e) {
+      setError(e?.message === 'Wrong PIN' || e?.response?.status === 401 ? 'Wrong PIN' : (e?.message || 'Could not verify PIN')); setPin('');
+    } finally { setBusy(false); }
+  }, [pin, busy, restaurantId]);
+
+  const press = (d) => {
+    setError('');
+    setPin(prev => {
+      const next = (prev + d).slice(0, 8);
+      if (next.length >= 4 && d !== '') { /* allow manual submit; auto-submit at 4 optional */ }
+      return next;
+    });
+  };
+
+  const ctx = { enabled, locked, operator, lock, lockAfterOrder };
+
+  return (
+    <TerminalLockContext.Provider value={ctx}>
+      {children}
+      {enabled && locked && (
+        <div role="dialog" aria-modal="true" style={{ position: 'fixed', inset: 0, zIndex: 100000, background: 'linear-gradient(160deg,#0f172a,#1e293b)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ width: '100%', maxWidth: '360px', background: '#fff', borderRadius: '20px', padding: '26px 24px', boxShadow: '0 24px 70px rgba(0,0,0,0.4)', textAlign: 'center' }}>
+            <div style={{ width: '54px', height: '54px', borderRadius: '16px', background: 'linear-gradient(135deg,#ef4444,#dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: '24px' }}>🔒</div>
+            <div style={{ fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>{restaurantName || 'Terminal locked'}</div>
+            <div style={{ fontSize: '13px', color: '#64748b', margin: '2px 0 16px' }}>Enter your PIN to continue</div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '14px', minHeight: '20px' }}>
+              {Array.from({ length: Math.max(4, pin.length) }).map((_, i) => (
+                <span key={i} style={{ width: '12px', height: '12px', borderRadius: '50%', background: i < pin.length ? '#ef4444' : '#e2e8f0' }} />
+              ))}
+            </div>
+            {error && <div style={{ color: '#dc2626', fontSize: '12.5px', fontWeight: 600, marginBottom: '10px' }}>{error}</div>}
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+              {['1','2','3','4','5','6','7','8','9'].map(d => (
+                <button key={d} type="button" onClick={() => press(d)} disabled={busy}
+                  style={{ padding: '16px 0', fontSize: '20px', fontWeight: 700, borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#0f172a', cursor: 'pointer' }}>{d}</button>
+              ))}
+              <button type="button" onClick={() => { setPin(''); setError(''); }} disabled={busy}
+                style={{ padding: '16px 0', fontSize: '13px', fontWeight: 700, borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', cursor: 'pointer' }}>Clear</button>
+              <button type="button" onClick={() => press('0')} disabled={busy}
+                style={{ padding: '16px 0', fontSize: '20px', fontWeight: 700, borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#0f172a', cursor: 'pointer' }}>0</button>
+              <button type="button" onClick={() => setPin(p => p.slice(0, -1))} disabled={busy}
+                style={{ padding: '16px 0', fontSize: '18px', fontWeight: 700, borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', cursor: 'pointer' }}>⌫</button>
+            </div>
+
+            <button type="button" onClick={() => submitPin()} disabled={busy || pin.length < 4}
+              style={{ width: '100%', marginTop: '14px', padding: '13px', fontSize: '15px', fontWeight: 800, borderRadius: '12px', border: 'none', cursor: busy || pin.length < 4 ? 'not-allowed' : 'pointer', color: '#fff', background: busy || pin.length < 4 ? '#fca5a5' : 'linear-gradient(135deg,#ef4444,#dc2626)' }}>
+              {busy ? 'Checking…' : 'Unlock'}
+            </button>
+          </div>
+        </div>
+      )}
+    </TerminalLockContext.Provider>
+  );
+}
+
+export default TerminalLockContext;

@@ -1832,6 +1832,14 @@ class ApiClient {
     return this.request(`/api/staff/${restaurantId}`);
   }
 
+  // Terminal-lock PIN
+  async verifyStaffPin(restaurantId, pin) {
+    return this.request(`/api/staff/${restaurantId}/verify-pin`, { method: 'POST', body: { pin } });
+  }
+  async updateStaffPin(staffId, { pin, enabled } = {}) {
+    return this.request(`/api/staff/${staffId}/pin`, { method: 'PATCH', body: { pin, enabled } });
+  }
+
   async addStaff(restaurantId, staffData) {
     return this.request(`/api/staff/${restaurantId}`, {
       method: 'POST',

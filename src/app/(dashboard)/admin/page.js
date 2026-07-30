@@ -6501,6 +6501,8 @@ const Admin = () => {
         loginId: response.credentials.loginId,
         username: response.credentials.username || null,
         tempPassword: response.credentials.password, // Store temporarily for display
+        terminalPin: response.credentials.terminalPin || null, // one-time PIN display
+        pinEnabled: true,
         restaurantCount: 1 + (additionalRestaurantIds?.length || 0)
       };
       setStaff([...staff, newStaffMember]);
@@ -6533,6 +6535,7 @@ const Admin = () => {
       const credLines = ['User ID: ' + response.credentials.loginId];
       if (response.credentials.username) credLines.push('Username: ' + response.credentials.username);
       credLines.push('Password: ' + response.credentials.password);
+      if (response.credentials.terminalPin) credLines.push('Terminal PIN: ' + response.credentials.terminalPin);
       showSuccess(`Staff added! Credentials: ${credLines.join(' | ')}. Save these securely.`, 15000);
     } catch (error) {
       console.error('Error adding staff:', error);
@@ -12196,6 +12199,41 @@ const Admin = () => {
                   {posSettings.completedOrderEditPin && posSettings.completedOrderEditPin.length < 4 && (
                     <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px' }}>PIN must be at least 4 digits</div>
                   )}
+                </div>
+              )}
+            </div>
+
+            {/* Terminal PIN Lock */}
+            <div style={{ marginBottom: '16px', padding: '14px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button onClick={() => setPosSettings(prev => ({ ...prev, terminalLock: { ...(prev.terminalLock || {}), enabled: !(prev.terminalLock && prev.terminalLock.enabled) } }))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                  {posSettings.terminalLock?.enabled ? <FaToggleOn size={28} color="#ef4444" /> : <FaToggleOff size={28} color="#d1d5db" />}
+                </button>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>🔒 Terminal PIN Lock</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>Lock the POS between orders; each staff enters their PIN to unlock (orders get attributed to them).</div>
+                </div>
+              </div>
+              {posSettings.terminalLock?.enabled && (
+                <div style={{ marginLeft: '38px', marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '9px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600 }}>Lock:</span>
+                    {[{ v: 'after-order', l: 'After each order' }, { v: 'idle', l: 'After idle' }, { v: 'both', l: 'Both' }].map(o => {
+                      const on = (posSettings.terminalLock?.mode || 'after-order') === o.v;
+                      return <button key={o.v} onClick={() => setPosSettings(prev => ({ ...prev, terminalLock: { ...(prev.terminalLock || {}), mode: o.v } }))}
+                        style={{ padding: '4px 11px', borderRadius: '999px', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', border: on ? '1px solid #ef4444' : '1px solid #d1d5db', background: on ? '#fef2f2' : '#fff', color: on ? '#dc2626' : '#6b7280' }}>{o.l}</button>;
+                    })}
+                  </div>
+                  {(posSettings.terminalLock?.mode === 'idle' || posSettings.terminalLock?.mode === 'both') && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '12px', color: '#6b7280' }}>Idle timeout:</span>
+                      <input type="number" min="15" max="600" value={posSettings.terminalLock?.idleSeconds || 60}
+                        onChange={(e) => setPosSettings(prev => ({ ...prev, terminalLock: { ...(prev.terminalLock || {}), idleSeconds: Math.max(15, parseInt(e.target.value) || 60) } }))}
+                        style={{ width: '70px', padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '13px', textAlign: 'center' }} />
+                      <span style={{ fontSize: '12px', color: '#9ca3af' }}>seconds</span>
+                    </div>
+                  )}
+                  <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>Each staff gets a PIN when created (shown once). Change or disable PINs from the Staff section.</div>
                 </div>
               )}
             </div>

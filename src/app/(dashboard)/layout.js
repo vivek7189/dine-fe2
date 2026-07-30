@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Sidebar from '../../components/Sidebar';
 import { DineAIProvider } from '../../contexts/DineAIContext';
 import { CurrencyProvider } from '../../contexts/CurrencyContext';
+import { TerminalLockProvider } from '../../contexts/TerminalLockContext';
 import DineAIButton from '../../components/dineai/DineAIButton';
 import BulkMenuUpload from '../../components/BulkMenuUpload';
 import OrderNotificationBell from '../../components/OrderNotificationBell';
@@ -49,6 +50,15 @@ function DashboardLayoutContent({ children }) {
   const [isMobile, setIsMobile] = useState(false);
   const isMobileEmbed = isMobile && typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
   const [selectedRestaurantId, setSelectedRestaurantId] = useState(null);
+  // Selected restaurant (for the terminal-lock config + name). Read from the same
+  // localStorage the rest of the app uses; refresh on restaurant switch.
+  const [lockRestaurant, setLockRestaurant] = useState(null);
+  useEffect(() => {
+    const read = () => { try { setLockRestaurant(JSON.parse(localStorage.getItem('selectedRestaurant') || 'null')); } catch { setLockRestaurant(null); } };
+    read();
+    window.addEventListener('restaurantChanged', read);
+    return () => window.removeEventListener('restaurantChanged', read);
+  }, []);
   const [notificationOrderTypes, setNotificationOrderTypes] = useState(null);
   const [isClient, setIsClient] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -352,6 +362,7 @@ function DashboardLayoutContent({ children }) {
   }, []);
 
   return (
+    <TerminalLockProvider restaurantId={selectedRestaurantId} restaurantName={lockRestaurant?.name} terminalLock={lockRestaurant?.posSettings?.terminalLock}>
     <CurrencyProvider>
     <DineBotProvider>
       <DineAIProvider>
@@ -563,6 +574,7 @@ function DashboardLayoutContent({ children }) {
       </DineAIProvider>
     </DineBotProvider>
     </CurrencyProvider>
+    </TerminalLockProvider>
   );
 }
 
