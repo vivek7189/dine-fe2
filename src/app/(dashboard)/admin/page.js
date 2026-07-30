@@ -341,6 +341,23 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
   const toggleTaxEnabled = (index) => {
     setTaxSettings(prev => ({ ...prev, taxes: prev.taxes.map((tax, i) => i === index ? { ...tax, enabled: !tax.enabled } : tax) }));
   };
+  // Order-type gating: empty/absent orderTypes = applies to ALL (today's default).
+  const ALL_ORDER_TYPES = ['dine-in', 'takeaway', 'delivery'];
+  const toggleTaxOrderType = (index, type) => {
+    setTaxSettings(prev => ({
+      ...prev,
+      taxes: prev.taxes.map((tax, i) => {
+        if (i !== index) return tax;
+        const current = (Array.isArray(tax.orderTypes) && tax.orderTypes.length > 0) ? tax.orderTypes : [...ALL_ORDER_TYPES];
+        const has = current.includes(type);
+        let next;
+        if (has) { if (current.length <= 1) return tax; next = current.filter(t => t !== type); } // keep at least one
+        else next = [...current, type];
+        if (next.length === ALL_ORDER_TYPES.length) next = []; // all selected = store empty (= all)
+        return { ...tax, orderTypes: next };
+      }),
+    }));
+  };
   const addTaxGroup = () => {
     if (!newGroupName.trim()) return;
     const newGroup = { id: `tg_${Date.now()}`, name: newGroupName.trim(), taxes: newGroupTaxes.filter(t => t.name.trim() && t.rate > 0), alsoApplyGlobalTax: false };
@@ -637,8 +654,24 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
                                 <FaTrash size={10} />
                               </button>
                             </div>
-                            <div style={{ marginTop: '6px', paddingLeft: '24px' }}>
-                              <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 500 }}>Applied to all items</span>
+                            <div style={{ marginTop: '8px', paddingLeft: '24px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 500 }}>All items ·</span>
+                              <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 600 }}>Applies to:</span>
+                              {ALL_ORDER_TYPES.map(ot => {
+                                const on = !Array.isArray(tax.orderTypes) || tax.orderTypes.length === 0 || tax.orderTypes.includes(ot);
+                                const label = ot === 'dine-in' ? 'Dine-in' : ot === 'takeaway' ? 'Takeaway' : 'Delivery';
+                                return (
+                                  <button key={ot} type="button" onClick={() => toggleTaxOrderType(index, ot)}
+                                    style={{ padding: '3px 10px', borderRadius: '999px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                                      border: on ? '1px solid #10b981' : '1px solid #d1d5db',
+                                      background: on ? '#ecfdf5' : '#fff', color: on ? '#047857' : '#9ca3af', transition: 'all 0.15s' }}>
+                                    {on ? '✓ ' : ''}{label}
+                                  </button>
+                                );
+                              })}
+                              {(!Array.isArray(tax.orderTypes) || tax.orderTypes.length === 0)
+                                ? <span style={{ fontSize: '10px', color: '#9ca3af' }}>(all order types)</span>
+                                : null}
                             </div>
                           </div>
                         ))}

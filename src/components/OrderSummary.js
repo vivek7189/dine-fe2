@@ -10,6 +10,18 @@ import useOfferEngine, { calculateDiscountForOffer } from '../hooks/useOfferEngi
 import { getKOTPrintCSS, buildTokenSlipHTML, buildTokenSlipsDocumentHTML } from '../utils/printFontSizes';
 import { inclusiveSplit, totalRate } from '../utils/inclusiveTax';
 import { attachInclusiveSplits } from '../utils/printTemplates/helpers';
+
+// Order-type tax gating (Phase 3). A tax with NO `orderTypes` (absent/empty)
+// applies to ALL order types — exactly today's behavior. When the list is set,
+// the tax applies only to the listed order types. Normalizes dine_in/dine-in.
+// This exact rule is mirrored in dine-backend/index.js and dine-app.
+const _canonOT = (ot) => String(ot || '').toLowerCase().replace(/[_\s]+/g, '-');
+const taxAppliesToOrderType = (tax, orderType) => {
+  const list = tax && tax.orderTypes;
+  if (!Array.isArray(list) || list.length === 0) return true;
+  const cur = _canonOT(orderType);
+  return list.some((x) => _canonOT(x) === cur);
+};
 import { generateBillHTML, generateKOTHTML } from '../utils/printHtmlGenerator';
 import { buildSplitInvoice } from '../utils/printTemplates/helpers';
 import { seatLabel, sanitizeSeat, getOrderItemKey } from '../utils/orderItemKey';
@@ -1514,8 +1526,10 @@ const OrderSummary = ({
           ? (itemTaxable / postDiscSubtotal) * sc
           : (subtotal > 0 ? (itemTotal / subtotal) * sc : 0);
         const itemTaxableWithSC = itemTaxable + itemSCShare;
-        // Resolve taxes for this item
-        const itemTaxes = resolveTaxesForItem(cartItem, taxSettings, restaurantCategories);
+        // Resolve taxes for this item, then drop taxes that don't apply to this
+        // order type (order-type gating; unset = applies to all).
+        const itemTaxes = resolveTaxesForItem(cartItem, taxSettings, restaurantCategories)
+          .filter(tax => taxAppliesToOrderType(tax, orderType));
         const totalRate = itemTaxes.reduce((sum, t) => sum + (t.rate || 0), 0);
         for (const tax of itemTaxes) {
           // Inclusive: back-calculate tax from price. Exclusive: add on top.
@@ -1539,7 +1553,7 @@ const OrderSummary = ({
       const taxableAmount = discountedAmt + sc;
       const isGlobalInclusive = taxSettings.taxInclusivePricing === true;
       if (taxSettings.taxes && taxSettings.taxes.length > 0) {
-        const enabledTaxes = taxSettings.taxes.filter(tax => tax.enabled);
+        const enabledTaxes = taxSettings.taxes.filter(tax => tax.enabled && taxAppliesToOrderType(tax, orderType));
         const totalRate = enabledTaxes.reduce((sum, t) => sum + (t.rate || 0), 0);
         enabledTaxes.forEach(tax => {
             const taxAmount = isGlobalInclusive
@@ -1579,7 +1593,7 @@ const OrderSummary = ({
     setRoundOffAmount(ro);
     setGrandTotal(withTip + ro);
 
-  }, [cart, restaurantId, getTotalAmount, taxSettings, effectiveOfferDiscount, getManualDiscountAmount, getLoyaltyDiscountAmount, appliedCoupon, tipAmount, calcServiceCharge, calcRoundOff, resolveTaxesForItem, isItemTaxInclusive, restaurantCategories]);
+  }, [cart, restaurantId, getTotalAmount, taxSettings, orderType, effectiveOfferDiscount, getManualDiscountAmount, getLoyaltyDiscountAmount, appliedCoupon, tipAmount, calcServiceCharge, calcRoundOff, resolveTaxesForItem, isItemTaxInclusive, restaurantCategories]);
   
   // Flag that pre-fill is needed when entering edit mode (prevents amount flicker)
   // Must run BEFORE the tax calculation useLayoutEffect to prevent wrong totals
