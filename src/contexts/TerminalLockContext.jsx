@@ -8,6 +8,7 @@
 // page refresh doesn't force a re-PIN mid-order.
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import apiClient from '../lib/api';
 
 const TerminalLockContext = createContext({
@@ -25,6 +26,12 @@ export function TerminalLockProvider({ restaurantId, restaurantName, terminalLoc
   const enabled = !!(terminalLock && terminalLock.enabled);
   const mode = terminalLock?.mode || 'after-order'; // 'after-order' | 'idle' | 'both'
   const idleSeconds = Math.max(15, Number(terminalLock?.idleSeconds) || 60);
+
+  // Safety valve: never cover the admin settings page. This guarantees the owner can
+  // always reach settings to assign PINs or disable the lock — so enabling it before
+  // anyone has a PIN can't brick the terminal. No orders are placed on /admin.
+  const pathname = usePathname();
+  const overlaySuppressed = !!(pathname && pathname.startsWith('/admin'));
 
   const [operator, setOperator] = useState(null);
   const [locked, setLocked] = useState(false);
@@ -89,14 +96,28 @@ export function TerminalLockProvider({ restaurantId, restaurantName, terminalLoc
     });
   };
 
+  // Escape valve — sign out entirely so the terminal can never be locked forever
+  // (wrong account, or lock enabled before anyone had a PIN). Lands on /login; the
+  // owner can then log in / disable the lock. Same pattern as Toast/Square/Clover.
+  const signOut = useCallback(() => {
+    try { sessionStorage.removeItem(STORAGE_KEY); } catch {}
+    try { apiClient.forceLogout(); } catch {}
+    if (typeof window !== 'undefined') window.location.href = '/login';
+  }, []);
+
   const ctx = { enabled, locked, operator, lock, lockAfterOrder };
 
   return (
     <TerminalLockContext.Provider value={ctx}>
       {children}
-      {enabled && locked && (
+      {enabled && locked && !overlaySuppressed && (
         <div role="dialog" aria-modal="true" style={{ position: 'fixed', inset: 0, zIndex: 100000, background: 'linear-gradient(160deg,#0f172a,#1e293b)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div style={{ width: '100%', maxWidth: '360px', background: '#fff', borderRadius: '20px', padding: '26px 24px', boxShadow: '0 24px 70px rgba(0,0,0,0.4)', textAlign: 'center' }}>
+          <div style={{ position: 'relative', width: '100%', maxWidth: '360px', background: '#fff', borderRadius: '20px', padding: '26px 24px', boxShadow: '0 24px 70px rgba(0,0,0,0.4)', textAlign: 'center' }}>
+            <button type="button" onClick={signOut} title="Sign out"
+              style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', alignItems: 'center', gap: '4px', background: '#f1f5f9', border: 'none', borderRadius: '8px', padding: '6px 8px', cursor: 'pointer', color: '#64748b', fontSize: '11px', fontWeight: 700 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Sign out
+            </button>
             <div style={{ width: '54px', height: '54px', borderRadius: '16px', background: 'linear-gradient(135deg,#ef4444,#dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: '24px' }}>🔒</div>
             <div style={{ fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>{restaurantName || 'Terminal locked'}</div>
             <div style={{ fontSize: '13px', color: '#64748b', margin: '2px 0 16px' }}>Enter your PIN to continue</div>

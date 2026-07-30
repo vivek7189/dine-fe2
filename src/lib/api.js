@@ -1316,6 +1316,16 @@ class ApiClient {
 
   // Order endpoints
   async createOrder(orderData, extraOptions = {}) {
+    // Terminal-lock attribution: if a shared-terminal operator has unlocked the POS,
+    // stamp the order with who placed it (unless the caller already set it). No-op
+    // when the lock is off (no stored operator). Covers every order-creation path.
+    if (orderData && !orderData.operatorId && typeof window !== 'undefined') {
+      try {
+        const raw = sessionStorage.getItem('dineTerminalOperator');
+        const op = raw ? JSON.parse(raw) : null;
+        if (op && op.id) { orderData.operatorId = op.id; orderData.operatorName = op.name || null; }
+      } catch {}
+    }
     console.log('📤 API Client - Creating order with data:', orderData);
     return this.request('/api/orders', {
       method: 'POST',
