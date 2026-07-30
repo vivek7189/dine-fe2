@@ -342,7 +342,21 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
     setTaxSettings(prev => ({ ...prev, taxes: prev.taxes.map((tax, i) => i === index ? { ...tax, enabled: !tax.enabled } : tax) }));
   };
   // Order-type gating: empty/absent orderTypes = applies to ALL (today's default).
-  const ALL_ORDER_TYPES = ['dine-in', 'takeaway', 'delivery'];
+  // Use the store's ACTUAL order types (posSettings.orderTypes) so restricting a
+  // tax never silently drops it on a custom order type the owner can't see here.
+  const _otCanon = (x) => String(x || '').toLowerCase().replace(/[_\s]+/g, '-');
+  const ORDER_TYPE_LABELS = (() => {
+    const map = {};
+    (Array.isArray(selectedRestaurant?.posSettings?.orderTypes) ? selectedRestaurant.posSettings.orderTypes : [])
+      .forEach(t => { const id = _otCanon(t?.id); if (id) map[id] = t.label || t.id; });
+    return map;
+  })();
+  const ALL_ORDER_TYPES = (() => {
+    const ids = (Array.isArray(selectedRestaurant?.posSettings?.orderTypes) ? selectedRestaurant.posSettings.orderTypes : [])
+      .filter(t => t && t.enabled !== false).map(t => _otCanon(t?.id)).filter(Boolean);
+    return ids.length ? ids : ['dine-in', 'takeaway', 'delivery'];
+  })();
+  const otLabel = (id) => ORDER_TYPE_LABELS[id] || (id === 'dine-in' ? 'Dine-in' : id === 'takeaway' ? 'Takeaway' : id === 'delivery' ? 'Delivery' : id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()));
   const toggleTaxOrderType = (index, type) => {
     setTaxSettings(prev => ({
       ...prev,
@@ -659,7 +673,7 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
                               <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 600 }}>Applies to:</span>
                               {ALL_ORDER_TYPES.map(ot => {
                                 const on = !Array.isArray(tax.orderTypes) || tax.orderTypes.length === 0 || tax.orderTypes.includes(ot);
-                                const label = ot === 'dine-in' ? 'Dine-in' : ot === 'takeaway' ? 'Takeaway' : 'Delivery';
+                                const label = otLabel(ot);
                                 return (
                                   <button key={ot} type="button" onClick={() => toggleTaxOrderType(index, ot)}
                                     style={{ padding: '3px 10px', borderRadius: '999px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
