@@ -5710,9 +5710,16 @@ const MenuManagement = () => {
                     }}
                   >
                     <option value="default">Follow restaurant setting</option>
-                    <option value="inclusive">Price includes tax</option>
+                    <option value="inclusive">Price includes tax (back-calculated)</option>
                     <option value="exclusive">Add tax on top</option>
                   </select>
+                  <p style={{ fontSize: '11px', color: '#9ca3af', margin: '5px 0 0' }}>
+                    {formData.taxInclusive === true
+                      ? 'This item’s price already includes tax — the tax is split out of it (MRP + tax).'
+                      : formData.taxInclusive === false
+                        ? 'Tax is added on top of this item’s price.'
+                        : 'Uses the restaurant’s tax setting. To make an item tax-free, use a Tax-Exempt group in Admin → Tax.'}
+                  </p>
                 </div>
 
                 {/* Channel & Zone Prices — Tree Layout.
