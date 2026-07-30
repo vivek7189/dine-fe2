@@ -95,6 +95,14 @@ export default function TableCard({
   // parties (Party A = this table, B/C/… = siblings). Not offered for sub-tables, party
   // siblings, merged or split tables. Guarded by the onAddParty handler being passed.
   const partiesEnabled = !!onAddParty && !table.isSubTable && !table.isPartyTable && !table.isSplit && !table.mergeGroupId && !table.mergedInto;
+  // Multi-check table (Path A): render a CLEAN combined view (one total + a "View Checks"
+  // button → detail popup) instead of a cluttered chip cluster.
+  const hasChecks = isToday && partiesEnabled && parties.length > 0;
+  const isRunning = (x) => !!x?.currentOrderId || x?.status === 'occupied' || x?.status === 'serving';
+  const baseRunningTotal = (isOccupied || table.currentOrderId) ? Number(table.currentOrderFinalAmount || table.currentOrderTotal || 0) : 0;
+  const combinedChecksTotal = baseRunningTotal + parties.reduce((s, p) => s + (isRunning(p) ? Number(p.currentOrderFinalAmount || p.currentOrderTotal || 0) : 0), 0);
+  const checksCount = 1 + parties.length;
+  const runningChecksCount = ((isOccupied || table.currentOrderId) ? 1 : 0) + parties.filter(isRunning).length;
   const pChipBase = {
     fontSize: isMobileEmbed ? '8px' : '10px', fontWeight: 800, color: '#fff', background: '#dc2626',
     width: isMobileEmbed ? '16px' : '20px', height: isMobileEmbed ? '16px' : '20px', borderRadius: '6px',
@@ -236,7 +244,24 @@ export default function TableCard({
           {isToday ? (
             /* ── TODAY: show live data ── */
             <>
-              {isOccupied && (table.currentOrderFinalAmount || table.currentOrderTotal) ? (
+              {hasChecks ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  {!isMobileEmbed && <div style={{ fontSize: '9px', color: '#92400e', fontWeight: 500, marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    {runningChecksCount > 0 ? `${runningChecksCount}/${checksCount} checks` : `${checksCount} parties`}
+                  </div>}
+                  {runningChecksCount > 0 ? (
+                    <div style={{
+                      fontSize: isMobileEmbed ? '13px' : '18px', fontWeight: 800, color: '#b45309',
+                      background: 'linear-gradient(135deg, #fef3c7, #fde68a)', padding: isMobileEmbed ? '2px 6px' : '4px 12px',
+                      borderRadius: isMobileEmbed ? '5px' : '8px', border: '1px solid #fcd34d',
+                    }}>
+                      {formatCurrency(combinedChecksTotal)}
+                    </div>
+                  ) : (
+                    <FaUsers size={isMobileEmbed ? 16 : 22} color="#dc2626" style={{ opacity: 0.5 }} />
+                  )}
+                </div>
+              ) : isOccupied && (table.currentOrderFinalAmount || table.currentOrderTotal) ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                   {!isMobileEmbed && <div style={{ fontSize: '9px', color: '#92400e', fontWeight: 500, marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                     {t('tables.totalInclTax')} {table.currentOrderTax ? t('tables.inclTax') : ''}
@@ -335,57 +360,20 @@ export default function TableCard({
         </div>
       )}
 
-      {/* Party chips (Path A) — Party A is this base table; siblings B/C… open their own order.
-          Only rendered once at least one sibling party exists, so single-party tables stay clean. */}
-      {isToday && partiesEnabled && parties.length > 0 && (
-        <div style={{ padding: isMobileEmbed ? '0 6px 4px' : '0 8px 6px', position: 'relative', zIndex: 2 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '8px', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.3px', marginRight: '1px' }}>Parties</span>
-            <span title={table.partyName || 'Party A (this table)'} style={pChipBase}>A</span>
-            {parties.map((p) => {
-              const pOcc = !!p.currentOrderId || p.status === 'occupied' || p.status === 'serving';
-              return (
-                <button key={p.id} onClick={(e) => { e.stopPropagation(); onOpenParty?.(p); }}
-                  title={`${p.partyName || `Party ${p.partyLabel || ''}`}${pOcc ? ' · running' : ' · empty'}`}
-                  style={pOcc ? { ...pChipSibling, background: '#fef3c7', color: '#b45309', border: '1px solid #fcd34d' } : pChipSibling}>
-                  {p.partyLabel || '?'}
-                </button>
-              );
-            })}
-            <button onClick={(e) => { e.stopPropagation(); onAddParty?.(table); }} title={`Add Party ${nextPartyLabel}`} style={pChipAdd}>+</button>
-            {onOpenChecks && (
-              <button onClick={(e) => { e.stopPropagation(); onOpenChecks(table); }} title="Manage checks (Open / KOT / Bill per party)"
-                style={{ ...pChipBase, background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', cursor: 'pointer', padding: 0, width: 'auto', paddingInline: isMobileEmbed ? '4px' : '6px', gap: '3px' }}>
-                <FaReceipt size={isMobileEmbed ? 7 : 9} /> Checks
-              </button>
-            )}
-          </div>
-          {/* Per-party totals — each running check's own price at a glance (multi-check tables). */}
-          {(() => {
-            const fmt = formatCurrency || ((v) => `₹${Math.round(v || 0)}`);
-            const checks = [];
-            const baseTotal = Number(table.currentOrderFinalAmount || table.currentOrderTotal || 0);
-            if (isOccupied || table.currentOrderId) checks.push({ l: 'A', v: baseTotal });
-            parties.forEach((p) => {
-              if (p.currentOrderId || p.status === 'occupied' || p.status === 'serving') {
-                checks.push({ l: p.partyLabel || '?', v: Number(p.currentOrderFinalAmount || p.currentOrderTotal || 0) });
-              }
-            });
-            if (checks.length === 0) return null;
-            return (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 8px', marginTop: '3px', fontSize: isMobileEmbed ? '8px' : '9.5px', fontWeight: 700, color: '#6b7280' }}>
-                {checks.map((c) => (
-                  <span key={c.l}><span style={{ color: '#b45309' }}>{c.l}</span> {fmt(c.v)}</span>
-                ))}
-              </div>
-            );
-          })()}
-        </div>
-      )}
-
       {/* Action buttons at bottom */}
       <div style={{ padding: isMobileEmbed ? '0 6px 6px' : '0 8px 8px', position: 'relative', zIndex: 2 }}>
-        {isToday ? (
+        {isToday && hasChecks ? (
+          /* ── MULTI-CHECK: one clean "View Checks" button → detail popup (per-party
+             Open/KOT/Bill). Keeps the card uncluttered; billing/printing happen in the
+             popup via the same handlers (so print settings/stations are unchanged). ── */
+          <button className="tbl-action" onClick={(e) => { e.stopPropagation(); onOpenChecks?.(table); }} style={{
+            width: '100%', padding: isMobileEmbed ? '6px 4px' : '8px 12px', background: '#dc2626', color: '#fff', border: 'none',
+            borderRadius: isMobileEmbed ? '6px' : '8px', fontSize: isMobileEmbed ? '10px' : '11px', fontWeight: 700, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? '3px' : '6px', whiteSpace: 'nowrap',
+          }}>
+            <FaReceipt size={isMobileEmbed ? 8 : 10} /> {isMobileEmbed ? 'Checks' : `View Checks (${checksCount})`}
+          </button>
+        ) : isToday ? (
           /* ── TODAY: live action buttons ── */
           <>
             {isAvailable && (
@@ -523,7 +511,7 @@ export default function TableCard({
         }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0' }}>
             {partiesEnabled && (
-              <button className="tbl-action" onClick={(e) => { e.stopPropagation(); setActiveDropdown(null); onAddParty?.(table); }} style={{ flex: '1 1 100%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#7c3aed', display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '5px', borderBottom: '1px solid #f5f5f5' }}>
+              <button className="tbl-action" onClick={(e) => { e.stopPropagation(); setActiveDropdown(null); onAddParty?.(table); }} style={{ flex: '1 1 100%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#dc2626', display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '5px', borderBottom: '1px solid #f5f5f5' }}>
                 <FaUsers size={12} /> New Party ({nextPartyLabel})
               </button>
             )}
