@@ -2788,6 +2788,9 @@ function RestaurantPOSContent() {
       category: item.category || '',
       categoryId: item.categoryId || null,
       taxGroupId: item.taxGroupId || null,
+      // Carry per-item tax fields onto the order so the bill/reports have them
+      ...(item.taxInclusive != null ? { taxInclusive: item.taxInclusive } : {}),
+      ...(item.hsnCode ? { hsnCode: item.hsnCode } : {}),
       selectedVariant: item.selectedVariant || null,
       selectedCustomizations: Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [],
       basePrice: typeof item.basePrice === 'number' ? item.basePrice : item.price,

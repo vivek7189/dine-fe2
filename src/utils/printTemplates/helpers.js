@@ -60,6 +60,8 @@ export function getSublineHtml(item) {
   if (item.notes) sub += `<br/><small style="font-style:italic;color:#888;">Note: ${esc(item.notes)}</small>`;
   // Tax-inclusive per-item split (MRP + tax) — set by attachInclusiveSplits().
   if (item.taxSplitLabel) sub += `<br/><small style="color:#888;">${esc(item.taxSplitLabel)}</small>`;
+  // HSN/SAC code (India GST invoice) — shown only when the item carries one.
+  if (item.hsnCode) sub += `<br/><small style="color:#888;">HSN: ${esc(String(item.hsnCode))}</small>`;
   return sub;
 }
 

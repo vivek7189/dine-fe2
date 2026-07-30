@@ -2497,6 +2497,8 @@ const MenuManagement = () => {
     deliveryPrice: '',
     // Tax inclusive override (null = follow restaurant setting)
     taxInclusive: null,
+    // HSN/SAC code (India GST invoice) — optional
+    hsnCode: '',
     // Inventory direct deduction
     deductionQuantity: 1,
   });
@@ -3421,6 +3423,7 @@ const MenuManagement = () => {
       hideImage: item.hideImage || false,
       pricingRules: item.pricingRules || {},
       taxInclusive: item.taxInclusive != null ? item.taxInclusive : null,
+      hsnCode: item.hsnCode || '',
       // Pre-populate channel prices from pricing rules
       dineInPrice: (() => {
         const rule = activePricingRules.find(r => DINEIN_NAMES.includes((r.name || '').toLowerCase().trim()));
@@ -4009,6 +4012,7 @@ const MenuManagement = () => {
       kraTaxBand: '',
       isVeg: true,
       shortCode: '',
+      hsnCode: '',
       image: '',
       images: [],
       tempImages: [],
@@ -5584,7 +5588,25 @@ const MenuManagement = () => {
                   />
                 </div>
               </div>
-              
+
+              {/* HSN / SAC Code (India GST invoice) — optional, shown on bill + GST reports */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
+                  HSN / SAC Code <span style={{ color: '#9ca3af', fontWeight: 400 }}>(optional — for GST invoice)</span>
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={formData.hsnCode}
+                  onChange={(e) => setFormData({ ...formData, hsnCode: e.target.value.replace(/[^0-9]/g, '').slice(0, 8) })}
+                  style={{ width: '100%', padding: '12px 16px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '14px', outline: 'none', backgroundColor: 'white', transition: 'border-color 0.2s ease' }}
+                  placeholder="e.g. 996331 (restaurant service)"
+                  onFocus={(e) => e.target.style.borderColor = btype.accent}
+                  onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                />
+                <p style={{ fontSize: '11px', color: '#9ca3af', margin: '5px 0 0' }}>Shown on the bill &amp; in GST reports. Common: 996331 (restaurant service), or the product HSN for packaged goods.</p>
+              </div>
+
               {/* Description */}
               <div style={{ marginBottom: '16px' }}>
                 <label style={{
