@@ -3,6 +3,16 @@
 
 export const blogPosts = [
   {
+    slug: 'offline-pos-restaurants-global-guide-2026',
+    title: 'Offline POS for Restaurants: The Global Guide (Canada, Australia, Europe & More) 2026',
+    excerpt: 'A region-by-region guide to offline POS for restaurants worldwide — Canada, Australia, Europe, Singapore, the GCC, Africa and Latin America. Why connectivity and tax differ by market, and how one multi-currency, multi-tax, local-network system bills without internet everywhere.',
+    date: '2026-07-31',
+    category: 'Guide',
+    categoryColor: '#0d9488',
+    readTime: '13 min read',
+    author: 'Vivek Sharma',
+  },
+  {
     slug: 'offline-pos-restaurants-india-2026',
     title: 'Best Offline POS for Restaurants in India (2026): Bill Without Internet',
     excerpt: 'Bill with zero internet, run every terminal on your local Wi-Fi (LAN), let waiters take orders offline, and sync to the cloud when the connection returns — or stay fully offline. GST-ready, UPI-friendly and power-cut proof.',

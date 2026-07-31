@@ -143,6 +143,7 @@ const nextConfig = {
   // This fixes 144 broken URLs caused by internal links missing .html extension
   async rewrites() {
     const staticBlogSlugs = [
+      'offline-pos-restaurants-global-guide-2026',
       'offline-pos-restaurants-india-2026',
       'offline-pos-restaurants-usa-2026',
       'offline-pos-restaurants-uk-uae-2026',
