@@ -1567,7 +1567,10 @@ const Login = () => {
         }
       }
 
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      // Prefer the on-prem local server when one is configured (offline POS terminal),
+      // otherwise the cloud backend. Without this, staff login always hit the cloud and
+      // failed with no internet.
+      const backendUrl = getLocalServerUrl() || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
       const response = await fetch(`${backendUrl}/api/auth/staff/login`, {
         method: 'POST',
         headers: {

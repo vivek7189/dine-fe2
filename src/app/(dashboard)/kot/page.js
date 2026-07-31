@@ -4,6 +4,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 // import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
+import { subscribeRestaurantEvents } from '../../../lib/realtimeSubscribe';
+import { isLocalServerMode } from '../../../lib/localServer';
 import { database } from '../../../../firebase';
 import {
   FaPrint,
@@ -338,17 +340,17 @@ const KitchenOrderTicket = () => {
   });
 
   useEffect(() => {
-    if (!rtdbRestaurantId || !database || !firebaseAuthReady) return;
+    if (!rtdbRestaurantId) return;
+    // Cloud mode also needs Firebase ready; local-server (offline LAN) mode does not.
+    if (!isLocalServerMode() && (!database || !firebaseAuthReady)) return;
 
-    const now = Date.now();
     setIsPollingActive(true);
-
-    console.log(`📡 KOT RTDB: Subscribed to events/${rtdbRestaurantId}/orders`);
+    console.log(`📡 KOT live: Subscribed to ${rtdbRestaurantId}/orders`);
 
     // Debounce — if multiple events arrive within 1s, only fetch once
     let debounceTimer = null;
     const handleOrderEvent = (eventName, data) => {
-      console.log(`📡 KOT RTDB: Received '${eventName}'`, data);
+      console.log(`📡 KOT live: Received '${eventName}'`, data);
       setPollCount(prev => prev + 1);
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
@@ -359,9 +361,7 @@ const KitchenOrderTicket = () => {
       }
     };
 
-    const ordersRef = query(ref(database, `events/${rtdbRestaurantId}/orders`), orderByChild('ts'), startAt(now));
-    const handleSnapshot = (snapshot) => {
-      const data = snapshot.val();
+    const processEvent = (data) => {
       if (!data) return;
       if (data.type === 'order-voided') {
         handleOrderEvent('order-deleted', data);
@@ -378,15 +378,18 @@ const KitchenOrderTicket = () => {
         handleOrderEvent(data.type, data);
       }
     };
-    onChildAdded(ordersRef, handleSnapshot, (error) => {
-      console.error(`📡 KOT RTDB: Subscription error on events/${rtdbRestaurantId}/orders:`, error.message);
-      setIsPollingActive(false);
+
+    const unsub = subscribeRestaurantEvents(rtdbRestaurantId, 'orders', processEvent, {
+      onError: (error) => {
+        console.error('📡 KOT live: subscription error:', error.message);
+        setIsPollingActive(false);
+      },
     });
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
-      console.log(`📡 KOT RTDB: Unsubscribing`);
-      off(ordersRef, 'child_added', handleSnapshot);
+      console.log('📡 KOT live: Unsubscribing');
+      unsub();
       setIsPollingActive(false);
     };
   }, [rtdbRestaurantId, firebaseAuthReady]);

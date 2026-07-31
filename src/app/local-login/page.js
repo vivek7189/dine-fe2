@@ -12,6 +12,7 @@ import {
   FaSignInAlt
 } from 'react-icons/fa';
 import apiClient from '../../lib/api';
+import { getLocalServerUrl } from '../../lib/localServer';
 import { redirectToSubdomain } from '../../utils/subdomain';
 
 const LocalLogin = () => {
@@ -45,7 +46,7 @@ const LocalLogin = () => {
         return;
       }
 
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      const backendUrl = getLocalServerUrl() || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
       const response = await fetch(`${backendUrl}/api/auth/local-login`, {
         method: 'POST',
         headers: {
