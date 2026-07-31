@@ -3,6 +3,36 @@
 
 export const blogPosts = [
   {
+    slug: 'offline-pos-restaurants-india-2026',
+    title: 'Best Offline POS for Restaurants in India (2026): Bill Without Internet',
+    excerpt: 'Bill with zero internet, run every terminal on your local Wi-Fi (LAN), let waiters take orders offline, and sync to the cloud when the connection returns — or stay fully offline. GST-ready, UPI-friendly and power-cut proof.',
+    date: '2026-07-31',
+    category: 'Guide',
+    categoryColor: '#ef4444',
+    readTime: '12 min read',
+    author: 'Vivek Sharma',
+  },
+  {
+    slug: 'offline-pos-restaurants-usa-2026',
+    title: 'Best Offline POS for US Restaurants (2026): Keep Selling Through Any Outage',
+    excerpt: 'Keep ringing up orders, tips and tickets during an internet or ISP outage. Run every terminal on your local network, let servers order offline, and sync to the cloud when you are back online — reliable through outages, storms and rushes.',
+    date: '2026-07-31',
+    category: 'Guide',
+    categoryColor: '#1d4ed8',
+    readTime: '12 min read',
+    author: 'Vivek Sharma',
+  },
+  {
+    slug: 'offline-pos-restaurants-uk-uae-2026',
+    title: 'Best Offline POS / EPOS for Restaurants in UK, Dubai & UAE (2026)',
+    excerpt: 'Keep billing during broadband outages, run every till and waiter tablet on your local network, and sync to the cloud when back online — VAT-ready and FTA/ZATCA e-invoicing friendly across the UK, Dubai, UAE and GCC.',
+    date: '2026-07-31',
+    category: 'Guide',
+    categoryColor: '#b45309',
+    readTime: '12 min read',
+    author: 'Vivek Sharma',
+  },
+  {
     slug: 'whatsapp-for-restaurants-guide-2026',
     title: 'WhatsApp for Restaurants: The Complete 2026 Guide (Ordering, Notifications & Marketing)',
     excerpt: 'How restaurants use the official WhatsApp Business API to take orders, send order updates and digital bills, run 90%-open-rate broadcast campaigns, add an AI chatbot, and collect Google reviews — with setup steps, pricing, compliance and ROI.',
