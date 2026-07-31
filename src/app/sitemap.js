@@ -205,6 +205,7 @@ export default function sitemap() {
     'admin',
     'integrations',
     'whatsapp',
+    'offline-pos',
   ].map((slug) => ({
     url: `${baseUrl}/products/${slug}`,
     lastModified: currentDate,
