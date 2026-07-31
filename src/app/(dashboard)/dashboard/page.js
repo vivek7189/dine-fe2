@@ -7,6 +7,8 @@ import dynamic from 'next/dynamic';
 // import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
 import { database } from '../../../../firebase';
+import { subscribeRestaurantEvents } from '../../../lib/realtimeSubscribe';
+import { isLocalServerMode } from '../../../lib/localServer';
 import Onboarding from '../../../components/Onboarding';
 import EmptyMenuPrompt from '../../../components/EmptyMenuPrompt';
 import MenuItemCard from '../../../components/MenuItemCard';
@@ -2887,7 +2889,9 @@ function RestaurantPOSContent() {
 
   // Firebase RTDB subscription for real-time updates (replaces Pusher)
   useEffect(() => {
-    if (!selectedRestaurant?.id || !database || !firebaseAuthReady) return;
+    if (!selectedRestaurant?.id) return;
+    // Cloud mode also needs Firebase ready; local-server (offline LAN) mode does not.
+    if (!isLocalServerMode() && (!database || !firebaseAuthReady)) return;
 
     const restaurantId = selectedRestaurant.id;
     const now = Date.now();
@@ -2917,9 +2921,7 @@ function RestaurantPOSContent() {
     };
 
     // Subscribe to orders/ path
-    const ordersRef = query(ref(database, `events/${restaurantId}/orders`), orderByChild('ts'), startAt(now));
-    const handleOrderEvent = (snapshot) => {
-      const data = snapshot.val();
+    const handleOrderEvent = (data) => {
       if (!data) return;
 
       // Flood guard: after a Firebase reconnect, old events may fire in bulk.
@@ -2957,27 +2959,23 @@ function RestaurantPOSContent() {
     const handleRtdbError = (error) => {
       console.error(`📡 Dashboard RTDB: Subscription error for restaurant '${restaurantId}':`, error.message);
     };
-    onChildAdded(ordersRef, handleOrderEvent, handleRtdbError);
+    const unsubOrders = subscribeRestaurantEvents(restaurantId, 'orders', handleOrderEvent, { onError: handleRtdbError });
 
     // Subscribe to tables/ path
-    const tablesRef = query(ref(database, `events/${restaurantId}/tables`), orderByChild('ts'), startAt(now));
-    const handleTableEvent = (snapshot) => {
-      const data = snapshot.val();
+    const handleTableEvent = (data) => {
       if (!data) return;
       console.log(`📡 Dashboard: Received '${data.type}' event:`, data);
       debouncedTableRefresh();
     };
-    onChildAdded(tablesRef, handleTableEvent, handleRtdbError);
+    const unsubTables = subscribeRestaurantEvents(restaurantId, 'tables', handleTableEvent, { onError: handleRtdbError });
 
     // Subscribe to menu/ path
-    const menuRef = query(ref(database, `events/${restaurantId}/menu`), orderByChild('ts'), startAt(now));
-    const handleMenuEvent = (snapshot) => {
-      const data = snapshot.val();
+    const handleMenuEvent = (data) => {
       if (!data) return;
       console.log(`📡 Dashboard: Received '${data.type}' event:`, data);
       debouncedMenuRefresh();
     };
-    onChildAdded(menuRef, handleMenuEvent, handleRtdbError);
+    const unsubMenu = subscribeRestaurantEvents(restaurantId, 'menu', handleMenuEvent, { onError: handleRtdbError });
 
     // Periodic fallback: refresh menu and tables every 10 minutes.
     // Firebase RTDB events are the primary mechanism, but if the connection
@@ -2996,9 +2994,9 @@ function RestaurantPOSContent() {
       if (menuDebounce) clearTimeout(menuDebounce);
       clearInterval(periodicRefreshInterval);
       console.log(`📡 Dashboard: Unsubscribing from Firebase RTDB`);
-      off(ordersRef, 'child_added', handleOrderEvent);
-      off(tablesRef, 'child_added', handleTableEvent);
-      off(menuRef, 'child_added', handleMenuEvent);
+      unsubOrders();
+      unsubTables();
+      unsubMenu();
     };
   }, [selectedRestaurant?.id]); // Re-subscribe when restaurant changes
 

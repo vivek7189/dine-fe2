@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 // import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
 import { database } from '../../../../firebase';
+import { subscribeRestaurantEvents } from '../../../lib/realtimeSubscribe';
+import { isLocalServerMode } from '../../../lib/localServer';
 import apiClient from '../../../lib/api';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
 import { getCachedOrderHistoryData, setCachedOrderHistoryData } from '../../../utils/dashboardCache';
@@ -881,14 +883,9 @@ const OrderHistory = () => {
 
   // Firebase RTDB subscription for real-time order updates
   useEffect(() => {
-    if (!restaurantId || !database) return;
-
-    const now = Date.now();
-    const eventsRef = query(
-      ref(database, `events/${restaurantId}/orders`),
-      orderByChild('ts'),
-      startAt(now)
-    );
+    if (!restaurantId) return;
+    // Cloud mode needs Firebase; local-server (offline LAN) mode does not.
+    if (!isLocalServerMode() && !database) return;
 
     // Smart incremental sync — batch Firebase events, fetch only changed orders
     // Collects orderIds over 2s window, then fetches them individually and merges
@@ -941,8 +938,7 @@ const OrderHistory = () => {
       batchTimer = setTimeout(flushBatch, 2000);
     };
 
-    const handler = (snapshot) => {
-      const event = snapshot.val();
+    const handler = (event) => {
       if (!event) return;
 
       if (event.type === 'order-created') {
@@ -962,7 +958,7 @@ const OrderHistory = () => {
       }
     };
 
-    onChildAdded(eventsRef, handler);
+    const unsub = subscribeRestaurantEvents(restaurantId, 'orders', handler);
 
     console.log(`Firebase RTDB: Subscribed to events/${restaurantId}/orders`);
 
@@ -970,7 +966,7 @@ const OrderHistory = () => {
     return () => {
       if (batchTimer) clearTimeout(batchTimer);
       console.log(`Firebase RTDB: Unsubscribing from events/${restaurantId}/orders`);
-      off(eventsRef, 'child_added', handler);
+      unsub();
     };
   }, [restaurantId]); // Only re-subscribe when restaurant changes
 

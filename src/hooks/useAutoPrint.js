@@ -16,6 +16,8 @@ import { buildTokenSlipHTML } from '../utils/printFontSizes';
 import { isElectron, isReactNativeWebView } from '../utils/platform';
 import apiClient from '../lib/api';
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
+import { subscribeRestaurantEvents } from '../lib/realtimeSubscribe';
+import { isLocalServerMode } from '../lib/localServer';
 import { database } from '../../firebase';
 
 // const PUSHER_KEY = process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec';
@@ -362,20 +364,16 @@ export function useAutoPrint(restaurantId, printSettings) {
   //   - /events/{restaurantId}/kot     — kot-print-request events (published when usePusherForKOT is on)
   //   - /events/{restaurantId}/billing — billing-print-request events
   useEffect(() => {
-    if (!supportsNativeAutoPrint() || !restaurantId || !database) return;
+    if (!supportsNativeAutoPrint() || !restaurantId) return;
     if (isReactNativeWebView()) return; // OrderSummary handles WebView printing
     if (!printSettings?.autoPrintOnKOT && !printSettings?.autoPrintOnBilling) return;
+    // Cloud mode needs Firebase RTDB; local-server (offline LAN) mode uses the socket.
+    if (!isLocalServerMode() && !database) return;
 
-    const now = Date.now();
-    const ordersRef = query(ref(database, `events/${restaurantId}/orders`), orderByChild('ts'), startAt(now));
-    const kotRef = query(ref(database, `events/${restaurantId}/kot`), orderByChild('ts'), startAt(now));
-    const billingRef = query(ref(database, `events/${restaurantId}/billing`), orderByChild('ts'), startAt(now));
-
-    console.log(`🖨️ AutoPrint: Subscribed to Firebase RTDB events/${restaurantId}/orders, kot & billing`);
+    console.log(`🖨️ AutoPrint: Subscribed to ${restaurantId} orders, kot & billing`);
 
     // Handle order-created events from the /orders path — auto-print KOT
-    const handleOrderEvent = (snapshot) => {
-      const data = snapshot.val();
+    const processOrderEvent = (data) => {
       if (!data) return;
       const eventAge = data.ts ? Date.now() - data.ts : 0;
       if (eventAge > 2 * 60 * 1000) {
@@ -388,8 +386,7 @@ export function useAutoPrint(restaurantId, printSettings) {
     };
 
     // Handle kot-print-request events from the /kot path (for reprints, updates, station prints)
-    const handleKotEvent = (snapshot) => {
-      const data = snapshot.val();
+    const processKotEvent = (data) => {
       if (!data) return;
       const eventAge = data.ts ? Date.now() - data.ts : 0;
       if (eventAge > 2 * 60 * 1000) {
@@ -403,8 +400,7 @@ export function useAutoPrint(restaurantId, printSettings) {
       }
     };
 
-    const handleBillingEvent = (snapshot) => {
-      const data = snapshot.val();
+    const processBillingEvent = (data) => {
       console.log(`🖨️ AutoPrint: Billing event received:`, JSON.stringify(data));
       if (!data) return;
       const eventAge = data.ts ? Date.now() - data.ts : 0;
@@ -420,18 +416,18 @@ export function useAutoPrint(restaurantId, printSettings) {
     };
 
     const handleError = (err) => {
-      console.error(`🖨️ AutoPrint: Firebase RTDB error (may be auth issue):`, err?.message || err);
+      console.error(`🖨️ AutoPrint: real-time error (may be auth issue):`, err?.message || err);
     };
 
-    onChildAdded(ordersRef, handleOrderEvent, handleError);
-    onChildAdded(kotRef, handleKotEvent, handleError);
-    onChildAdded(billingRef, handleBillingEvent, handleError);
+    const unsubOrders = subscribeRestaurantEvents(restaurantId, 'orders', processOrderEvent, { onError: handleError });
+    const unsubKot = subscribeRestaurantEvents(restaurantId, 'kot', processKotEvent, { onError: handleError });
+    const unsubBilling = subscribeRestaurantEvents(restaurantId, 'billing', processBillingEvent, { onError: handleError });
 
     return () => {
-      console.log(`🖨️ AutoPrint: Unsubscribing from Firebase RTDB`);
-      off(ordersRef, 'child_added', handleOrderEvent);
-      off(kotRef, 'child_added', handleKotEvent);
-      off(billingRef, 'child_added', handleBillingEvent);
+      console.log(`🖨️ AutoPrint: Unsubscribing`);
+      unsubOrders();
+      unsubKot();
+      unsubBilling();
     };
   }, [restaurantId, printSettings, handleKotCreated, handleKotPrintRequest, handleBillingPrint]);
 

@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 // import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
+import { subscribeRestaurantEvents } from '../lib/realtimeSubscribe';
+import { isLocalServerMode } from '../lib/localServer';
 import { database } from '../../firebase';
 
 const STORAGE_KEY = 'orderNotifications';
@@ -162,20 +164,17 @@ export function useOrderNotifications(restaurantId, notificationOrderTypes = nul
     return () => clearTimeout(timer);
   }, [toasts]);
 
-  // ─── Firebase RTDB Subscription (replaces Pusher) ───
+  // ─── Real-time order events (LAN socket offline, Firebase RTDB in cloud) ───
   useEffect(() => {
-    if (!restaurantId || !database) return;
+    if (!restaurantId) return;
+    if (!isLocalServerMode() && !database) return;
 
-    const now = Date.now();
-    const ordersRef = query(ref(database, `events/${restaurantId}/orders`), orderByChild('ts'), startAt(now));
+    console.log(`🔔 OrderNotifications: Subscribed to ${restaurantId}/orders`);
 
-    console.log(`🔔 OrderNotifications: Subscribed to Firebase RTDB events/${restaurantId}/orders`);
-
-    const handleEvent = (snapshot) => {
-      const data = snapshot.val();
+    const processEvent = (data) => {
       if (data && data.type === 'order-created') {
         // Skip stale events (> 2 min old) to prevent notification floods
-        // after Firebase reconnects from a network drop.
+        // after a real-time reconnect from a network drop.
         const eventAge = data.ts ? Date.now() - data.ts : 0;
         if (eventAge > 2 * 60 * 1000) {
           console.log(`🔔 OrderNotifications: Skipping stale order event (${Math.round(eventAge / 1000)}s old)`);
@@ -185,11 +184,12 @@ export function useOrderNotifications(restaurantId, notificationOrderTypes = nul
         addNotification(data);
       }
     };
-    onChildAdded(ordersRef, handleEvent);
+
+    const unsub = subscribeRestaurantEvents(restaurantId, 'orders', processEvent);
 
     return () => {
-      console.log(`🔔 OrderNotifications: Unsubscribing from Firebase RTDB`);
-      off(ordersRef, 'child_added', handleEvent);
+      console.log(`🔔 OrderNotifications: Unsubscribing`);
+      unsub();
     };
   }, [restaurantId, addNotification]);
 

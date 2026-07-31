@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 // import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
+import { subscribeRestaurantEvents } from '../lib/realtimeSubscribe';
+import { isLocalServerMode } from '../lib/localServer';
 import { database } from '../../firebase';
 import apiClient from '../lib/api';
 
@@ -516,18 +518,11 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
 
   // Firebase RTDB: real-time offer sync — re-fetch when offers are created/updated/deleted
   useEffect(() => {
-    if (!restaurantId || !database) return;
-
-    const now = Date.now();
-    const eventsRef = query(
-      ref(database, `events/${restaurantId}/menu`),
-      orderByChild('ts'),
-      startAt(now)
-    );
+    if (!restaurantId) return;
+    if (!isLocalServerMode() && !database) return;
 
     let debounceTimer = null;
-    const handler = (snapshot) => {
-      const event = snapshot.val();
+    const handler = (event) => {
       if (!event) return;
       // Only react to offer-related events
       if (event.type !== 'offer-updated') return;
@@ -573,11 +568,11 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
       }, 1000);
     };
 
-    onChildAdded(eventsRef, handler);
+    const unsub = subscribeRestaurantEvents(restaurantId, 'menu', handler);
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
-      off(eventsRef, 'child_added', handler);
+      unsub();
     };
   }, [restaurantId]);
 

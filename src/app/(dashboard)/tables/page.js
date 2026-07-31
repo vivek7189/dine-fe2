@@ -34,6 +34,8 @@ const TableBillingModal = dynamic(() => import('../../../components/TableBilling
 const MoveOrderModal = dynamic(() => import('../../../components/MoveOrderModal'), { ssr: false });
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
 import { database } from '../../../../firebase';
+import { subscribeRestaurantEvents } from '../../../lib/realtimeSubscribe';
+import { isLocalServerMode } from '../../../lib/localServer';
 
 const DeliveryTakeawayPanel = dynamic(
   () => import('../../../components/DeliveryTakeawayPanel'),
@@ -642,12 +644,11 @@ const TableManagement = () => {
 
   useEffect(() => {
     const restaurantId = selectedRestaurant?.id;
-    if (!restaurantId || !database) return;
+    if (!restaurantId) return;
+    // Cloud mode needs Firebase; local-server (offline LAN) mode does not.
+    if (!isLocalServerMode() && !database) return;
 
     let debounceTimer = null;
-    const now = Date.now();
-    const ordersRef = query(ref(database, `events/${restaurantId}/orders`), orderByChild('ts'), startAt(now));
-    const tablesRef = query(ref(database, `events/${restaurantId}/tables`), orderByChild('ts'), startAt(now));
 
     console.log(`📡 Tables: Subscribed to Firebase RTDB events/${restaurantId}/orders & tables`);
 
@@ -656,8 +657,7 @@ const TableManagement = () => {
       debounceTimer = setTimeout(() => loadFloorsRef.current?.(restaurantId, true), 1000);
     };
 
-    const handleOrderEvent = (snapshot) => {
-      const data = snapshot.val();
+    const handleOrderEvent = (data) => {
       if (!data) return;
       // Skip stale events after Firebase reconnect (> 2 min old)
       const eventAge = data.ts ? Date.now() - data.ts : 0;
@@ -673,8 +673,7 @@ const TableManagement = () => {
       }
     };
 
-    const handleTableEvent = (snapshot) => {
-      const data = snapshot.val();
+    const handleTableEvent = (data) => {
       if (!data) return;
       // Skip stale events after Firebase reconnect (> 2 min old)
       const eventAge = data.ts ? Date.now() - data.ts : 0;
@@ -690,8 +689,8 @@ const TableManagement = () => {
       }
     };
 
-    onChildAdded(ordersRef, handleOrderEvent);
-    onChildAdded(tablesRef, handleTableEvent);
+    const unsubOrders = subscribeRestaurantEvents(restaurantId, 'orders', handleOrderEvent);
+    const unsubTables = subscribeRestaurantEvents(restaurantId, 'tables', handleTableEvent);
 
     // Periodic refresh fallback: if Firebase silently disconnects, tables still refresh
     const periodicRefreshInterval = setInterval(() => {
@@ -702,8 +701,8 @@ const TableManagement = () => {
       if (debounceTimer) clearTimeout(debounceTimer);
       clearInterval(periodicRefreshInterval);
       console.log(`📡 Tables: Unsubscribing from Firebase RTDB`);
-      off(ordersRef, 'child_added', handleOrderEvent);
-      off(tablesRef, 'child_added', handleTableEvent);
+      unsubOrders();
+      unsubTables();
     };
   }, [selectedRestaurant?.id]);
 
