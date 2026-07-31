@@ -6,6 +6,8 @@ import apiClient from '../../../lib/api';
 import * as attendanceApi from '../../../services/attendanceApi';
 // import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
+import { subscribeRestaurantEvents } from '../../../lib/realtimeSubscribe';
+import { isLocalServerMode } from '../../../lib/localServer';
 import { database } from '../../../../firebase';
 import {
   FaCalendarAlt, FaClock, FaUmbrellaBeach, FaCog, FaSpinner, FaStore,
@@ -473,19 +475,12 @@ export default function AttendancePage() {
     return () => clearInterval(liveRefreshRef.current);
   }, [activeTab, restaurantId]);
 
-  // Firebase RTDB real-time location updates
+  // Real-time staff-location updates (LAN socket offline, Firebase RTDB in cloud)
   useEffect(() => {
-    if (activeTab !== 'tracking' || !restaurantId || !database) return;
+    if (activeTab !== 'tracking' || !restaurantId) return;
+    if (!isLocalServerMode() && !database) return;
 
-    const now = Date.now();
-    const eventsRef = query(
-      ref(database, `events/${restaurantId}/tables`),
-      orderByChild('ts'),
-      startAt(now)
-    );
-
-    const handler = (snapshot) => {
-      const event = snapshot.val();
+    const handler = (event) => {
       if (!event) return;
       if (event.type !== 'staff-location-updated') return;
       const data = event;
@@ -509,11 +504,9 @@ export default function AttendancePage() {
       });
     };
 
-    onChildAdded(eventsRef, handler);
+    const unsub = subscribeRestaurantEvents(restaurantId, 'tables', handler);
 
-    return () => {
-      off(eventsRef, 'child_added', handler);
-    };
+    return () => { unsub(); };
   }, [activeTab, restaurantId]);
 
   // ── Tracking Handlers ────────────────────────────────────────────────────

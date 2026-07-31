@@ -1,4 +1,9 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
+import { getLocalServerUrl } from '../lib/localServer';
+
+// Resolve per-call (not at import): honor the on-prem local server when configured
+// (offline POS terminal), otherwise the cloud backend. Was hardcoded to the cloud, so
+// attendance clock-in/out and history failed offline.
+const getBaseUrl = () => (typeof window !== 'undefined' && getLocalServerUrl()) || process.env.NEXT_PUBLIC_API_URL || '';
 
 async function fetchWithAuth(url, options = {}) {
   const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
@@ -17,7 +22,7 @@ async function fetchWithAuth(url, options = {}) {
   return res.json();
 }
 
-const base = (restaurantId) => `${BASE_URL}/api/attendance/${restaurantId}`;
+const base = (restaurantId) => `${getBaseUrl()}/api/attendance/${restaurantId}`;
 
 // POST /clock-in
 export function clockIn(restaurantId, { staffId, staffName, location }) {
