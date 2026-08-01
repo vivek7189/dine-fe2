@@ -27,11 +27,20 @@ export function TerminalLockProvider({ restaurantId, restaurantName, terminalLoc
   const mode = terminalLock?.mode || 'after-order'; // 'after-order' | 'idle' | 'both'
   const idleSeconds = Math.max(15, Number(terminalLock?.idleSeconds) || 60);
 
-  // Safety valve: never cover the admin settings page. This guarantees the owner can
-  // always reach settings to assign PINs or disable the lock — so enabling it before
-  // anyone has a PIN can't brick the terminal. No orders are placed on /admin.
+  // Pages the lock never covers:
+  //  • /admin — ALWAYS (owner's escape hatch: reach settings to assign PINs / disable the
+  //    lock, so enabling it before anyone has a PIN can't brick the terminal).
+  //  • Any page the owner whitelisted as a passive display (e.g. the Kitchen Display /kot),
+  //    which must stay fully visible + usable. Default when unset: /kot.
+  // NOTE: pages NOT whitelisted are still locked — but the overlay is translucent, so the
+  // live view shows through and only ACTIONS require the PIN (e.g. Tables status is visible;
+  // opening a table to order asks for the PIN).
   const pathname = usePathname();
-  const overlaySuppressed = !!(pathname && pathname.startsWith('/admin'));
+  const unlockedPages = Array.isArray(terminalLock?.unlockedPages) ? terminalLock.unlockedPages : ['/kot'];
+  const overlaySuppressed = !!(pathname && (
+    pathname === '/admin' || pathname.startsWith('/admin/') ||
+    unlockedPages.some((p) => p && (pathname === p || pathname.startsWith(p + '/')))
+  ));
 
   const [operator, setOperator] = useState(null);
   const [locked, setLocked] = useState(false);

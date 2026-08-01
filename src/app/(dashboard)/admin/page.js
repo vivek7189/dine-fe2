@@ -12399,6 +12399,38 @@ const Admin = () => {
                       <div style={{ fontSize: '10.5px', color: '#9ca3af' }}>Reject POS orders that weren&apos;t placed by an unlocked staff PIN — blocks bypassing the lock via dev tools.</div>
                     </div>
                   </div>
+                  {/* Pages that stay FULLY unlocked (never covered) — for passive displays like KOT */}
+                  <div style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '10px' }}>
+                    <span style={{ fontSize: '12px', color: '#374151', fontWeight: 600 }}>Pages that stay unlocked (never covered):</span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                      {(() => {
+                        const current = Array.isArray(posSettings.terminalLock?.unlockedPages) ? posSettings.terminalLock.unlockedPages : ['/kot'];
+                        const PAGES = [
+                          { path: '/kot', label: 'Kitchen (KOT)' },
+                          { path: '/orders', label: 'Orders' },
+                          { path: '/tables', label: 'Tables' },
+                          { path: '/home', label: 'Home' },
+                          { path: '/analytics', label: 'Reports' },
+                          { path: '/inventory', label: 'Inventory' },
+                        ];
+                        const toggle = (path) => {
+                          const set = new Set(current);
+                          if (set.has(path)) set.delete(path); else set.add(path);
+                          setPosSettings(prev => ({ ...prev, terminalLock: { ...(prev.terminalLock || {}), unlockedPages: Array.from(set) } }));
+                        };
+                        return PAGES.map(({ path, label }) => {
+                          const on = current.includes(path);
+                          return (
+                            <button key={path} onClick={() => toggle(path)}
+                              style={{ padding: '4px 11px', borderRadius: '999px', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', border: on ? '1px solid #10b981' : '1px solid #d1d5db', background: on ? '#ecfdf5' : '#fff', color: on ? '#047857' : '#6b7280' }}>
+                              {on ? '✓ ' : ''}{label}
+                            </button>
+                          );
+                        });
+                      })()}
+                    </div>
+                    <div style={{ fontSize: '10.5px', color: '#9ca3af', marginTop: '5px' }}>Settings (Admin) is always reachable. Un-whitelisted pages still lock, but the screen is a see-through blur — the live view is visible; only actions need the PIN.</div>
+                  </div>
                   {/* Owner/admin's OWN unlock PIN — they aren't in the Staff list, so set it here */}
                   <div style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '10px', marginTop: '2px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
