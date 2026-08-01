@@ -918,6 +918,16 @@ const Customers = () => {
   const [customerDateTo, setCustomerDateTo] = useState('');
   const [isMobile, setIsMobile] = useState(false);
   const isMobileEmbed = typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
+  // Open a customer's profile. Installed apps (Electron/Capacitor) are a static export
+  // where the dynamic `/customers/[id]` route isn't pre-rendered, so they use the static
+  // alias `/customers/view/?id=<id>`. Web keeps the normal dynamic route.
+  const goToCustomer = (customer) => {
+    if (!customer || !customer.id) return;
+    if (isMobileEmbed) return router.push('/mobile/customers/' + customer.id);
+    const installed = typeof window !== 'undefined' && (window.electronAPI || window.Capacitor);
+    if (installed) return router.push('/customers/view/?id=' + customer.id);
+    return router.push('/customers/' + customer.id);
+  };
   const [currentLanguage, setCurrentLanguage] = useState('en');
   const [restaurantId, setRestaurantId] = useState(null);
   const [restaurant, setRestaurant] = useState(null);
@@ -2847,7 +2857,7 @@ const Customers = () => {
                       />
                       <div
                         style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
-                        onClick={() => router.push((isMobileEmbed ? '/mobile/customers/' : '/customers/') + customer.id)}
+                        onClick={() => goToCustomer(customer)}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <div style={{
@@ -2921,7 +2931,7 @@ const Customers = () => {
                       overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none'
                     }}>
                       <button
-                        onClick={() => router.push((isMobileEmbed ? '/mobile/customers/' : '/customers/') + customer.id)}
+                        onClick={() => goToCustomer(customer)}
                         style={{
                           padding: '5px 10px', backgroundColor: '#f1f5f9', border: 'none',
                           borderRadius: '6px', cursor: 'pointer', display: 'flex',
@@ -3101,7 +3111,7 @@ const Customers = () => {
                         overflow: 'hidden'
                       }}
                       onClick={() => {
-                        router.push((isMobileEmbed ? '/mobile/customers/' : '/customers/') + customer.id);
+                        goToCustomer(customer);
                       }}
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
