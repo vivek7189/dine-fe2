@@ -21,6 +21,7 @@ import { io } from 'socket.io-client';
 import { getLocalServerUrl } from './localServer';
 
 let socket = null;
+let socketUrl = null;          // the server URL the current socket was opened against
 let joinedRestaurant = null;
 // category -> Set<handler>
 const subscribers = new Map();
@@ -28,6 +29,15 @@ const subscribers = new Map();
 function ensureSocket(restaurantId) {
   const url = getLocalServerUrl();
   if (!url || !restaurantId) return null;
+
+  // If the server URL changed (e.g. a LAN-IP → 127.0.0.1 loopback upgrade for offline
+  // resilience), the old socket is pointed at a now-dead address and will never deliver
+  // events. Tear it down so it re-opens against the current URL below. Subscribers are
+  // kept (module-level map), so live subscriptions keep working after the reconnect.
+  if (socket && socketUrl !== url) {
+    try { socket.close(); } catch (_) {}
+    socket = null; joinedRestaurant = null; socketUrl = null;
+  }
 
   if (socket && joinedRestaurant === restaurantId) return socket;
 
@@ -46,6 +56,7 @@ function ensureSocket(restaurantId) {
     reconnectionDelayMax: 5000,
     timeout: 8000,
   });
+  socketUrl = url;
   joinedRestaurant = restaurantId;
 
   socket.on('connect', () => {
@@ -82,6 +93,19 @@ export function subscribeLan(restaurantId, category, handler) {
 /** True when a local server is configured (offline LAN mode). */
 export function isLanRealtimeActive() {
   return !!getLocalServerUrl();
+}
+
+/**
+ * Force the LAN socket to re-establish against the CURRENT getLocalServerUrl().
+ * Called after a server-URL change (e.g. LAN-IP → 127.0.0.1 loopback upgrade) so an
+ * already-open socket that was pointed at the old address reconnects. Keeps existing
+ * category subscribers, so live views keep updating without re-subscribing.
+ */
+export function reconnectLan() {
+  const rid = joinedRestaurant;
+  if (socket) { try { socket.close(); } catch (_) {} }
+  socket = null; socketUrl = null; joinedRestaurant = null;
+  if (rid) ensureSocket(rid); // re-open against the current URL + re-join the room
 }
 
 /** Tear down the socket (e.g. when switching back to cloud). */

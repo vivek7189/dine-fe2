@@ -19,6 +19,7 @@ import { isWeb, isTauri, isElectron } from '../../utils/platform';
 import { isAutoUpdateEnabled, checkForUpdates, restartApp } from '../../utils/autoUpdater';
 import apiClient from '../../lib/api';
 import { preferLoopbackIfLocal } from '../../lib/localServer';
+import { reconnectLan } from '../../lib/lanRealtime';
 import { initPrintDiagnostics } from '../../lib/printDiagnostics';
 import { ROUTE_TO_ACCESS_KEY, ALWAYS_ACCESSIBLE } from '../../lib/pageAccessConfig';
 import { FaCloudUploadAlt, FaArrowRight, FaUtensils, FaSyncAlt } from 'react-icons/fa';
@@ -66,9 +67,13 @@ function DashboardLayoutContent({ children }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      const before = apiClient.baseURL;
       const url = await preferLoopbackIfLocal();
-      if (!cancelled && url === 'http://127.0.0.1:3003' && apiClient.baseURL !== url) {
+      if (!cancelled && url === 'http://127.0.0.1:3003' && before !== url) {
         apiClient.setLocalServer(url);
+        // The LAN real-time socket may have already opened against the old LAN IP;
+        // force it to reconnect to loopback so live table/order events keep flowing.
+        reconnectLan();
       }
     })();
     return () => { cancelled = true; };
