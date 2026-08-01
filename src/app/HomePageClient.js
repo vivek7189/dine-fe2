@@ -13,7 +13,8 @@ import {
   FaRobot, FaStore, FaBoxes, FaWarehouse, FaBuilding, FaWhatsapp, FaQrcode, FaReceipt,
   FaMicrophone, FaStar, FaCamera, FaMagic, FaBolt, FaFilePdf, FaImage, FaSpinner, FaPaperPlane,
   FaBook, FaShoppingCart, FaClipboardList, FaFileInvoice, FaCog,
-  FaPhone, FaEnvelope, FaApple, FaWindows, FaAndroid, FaDownload, FaGooglePlay
+  FaPhone, FaEnvelope, FaApple, FaWindows, FaAndroid, FaDownload, FaGooglePlay,
+  FaWifi, FaServer, FaSync, FaFire, FaDesktop
 } from 'react-icons/fa';
 
 // --- Geo helpers: map the visitor's country (from the middleware `geo_country`
@@ -753,7 +754,7 @@ export default function LandingPage() {
              <span style={{ fontWeight: '600', color: '#111827' }}>POS • Orders • Inventory • Analytics • Growth</span>
             </p>
 
-            {/* Competitor frame — additive line under the hero (does not replace it) */}
+            {/* Value line under the hero (additive; does not replace the H1) */}
             <p style={{
               fontSize: isMobile ? '15px' : '18px',
               color: '#374151',
@@ -761,7 +762,7 @@ export default function LandingPage() {
               lineHeight: '1.6',
               marginBottom: '32px'
             }}>
-              The modern POS built to replace <span style={{ color: '#ef4444', fontWeight: '800' }}>Toast &amp; Square</span> — AI ordering, zero transaction fees, no hardware lock-in.
+              The all-in-one restaurant operating system — AI ordering, zero transaction fees, <span style={{ color: '#ef4444', fontWeight: '800' }}>works even offline</span>, and no hardware lock-in.
             </p>
 
             {/* Feature Highlights Grid - 6 Core Features */}
@@ -1370,6 +1371,74 @@ export default function LandingPage() {
                   <p style={{ fontSize: '14px', color: '#6b7280' }}>{f.desc}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 2.5 OFFLINE-FIRST SECTION */}
+      <section style={{ padding: isMobile ? '72px 20px' : '110px 40px', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ maxWidth: '1180px', margin: '0 auto', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', gap: isMobile ? '44px' : '64px' }}>
+          {/* Left: copy */}
+          <div style={{ flex: 1 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(239,68,68,0.15)', color: '#fca5a5', fontWeight: '800', fontSize: '13px', padding: '6px 14px', borderRadius: '999px', marginBottom: '20px' }}>
+              <FaWifi /> OFFLINE-FIRST
+            </span>
+            <h2 style={{ fontSize: isMobile ? '30px' : '44px', fontWeight: '900', color: '#fff', lineHeight: '1.12', letterSpacing: '-1px', margin: '0 0 18px' }}>
+              Works even when the<br />internet doesn&apos;t
+            </h2>
+            <p style={{ fontSize: isMobile ? '16px' : '18px', color: '#cbd5e1', lineHeight: '1.65', margin: '0 0 26px', maxWidth: '520px' }}>
+              A real server runs <strong style={{ color: '#fff' }}>inside your restaurant</strong>. Keep billing, printing kitchen tickets and taking waiter orders on your local Wi-Fi with <strong style={{ color: '#fff' }}>zero internet</strong> — then sync to the cloud when you&apos;re back online, or stay fully offline. No dropped connection ever stops a sale.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px', marginBottom: '30px' }}>
+              {[
+                [<FaReceipt key="r" />, 'Bill offline', 'Full GST/VAT billing with no internet'],
+                [<FaMobile key="m" />, 'Waiters order offline', 'Fire orders to the kitchen over the LAN'],
+                [<FaFire key="f" />, 'KOT printing offline', 'Single & multi-station, exactly as online'],
+                [<FaSync key="s" />, 'Sync later — or never', 'Mirror to cloud when online, or stay offline'],
+              ].map(([ic, t, d], i) => (
+                <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                  <span style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(239,68,68,0.18)', color: '#fca5a5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '15px' }}>{ic}</span>
+                  <div>
+                    <div style={{ color: '#fff', fontWeight: '800', fontSize: '15px' }}>{t}</div>
+                    <div style={{ color: '#94a3b8', fontSize: '13px', lineHeight: '1.5' }}>{d}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Link href="/products/offline-pos" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#ef4444', color: '#fff', fontWeight: '800', fontSize: '15.5px', padding: '13px 26px', borderRadius: '12px', textDecoration: 'none' }}>
+              Explore Offline POS <FaArrowRight size={13} />
+            </Link>
+          </div>
+
+          {/* Right: LAN network diagram */}
+          <div style={{ flex: isMobile ? 'unset' : '0 0 360px', width: isMobile ? '100%' : 'auto', display: 'flex', justifyContent: 'center' }}>
+            <div style={{ width: '340px', maxWidth: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '22px', padding: '22px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '4px' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'rgba(99,102,241,0.15)', border: '1.5px dashed rgba(129,140,248,0.5)', borderRadius: '12px', padding: '7px 13px', color: '#a5b4fc', fontWeight: '700', fontSize: '12px' }}>
+                  <FaCloud /> Cloud · syncs when online
+                </div>
+              </div>
+              <div style={{ height: '16px', borderLeft: '2px dashed rgba(129,140,248,0.5)', width: 0, margin: '0 auto' }} />
+              <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 6px' }}>
+                <div style={{ background: '#ef4444', color: '#fff', borderRadius: '16px', padding: '15px 18px', textAlign: 'center', minWidth: '190px', boxShadow: '0 10px 30px rgba(239,68,68,0.35)' }}>
+                  <FaServer size={20} />
+                  <div style={{ fontWeight: '800', fontSize: '14px', marginTop: '6px' }}>Local Server</div>
+                  <div style={{ fontSize: '10.5px', color: 'rgba(255,255,255,0.75)', marginTop: '2px' }}>dineopen-server.local</div>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', marginTop: '8px', background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '10px', fontWeight: '800', padding: '3px 8px', borderRadius: '999px' }}>
+                    <FaWifi size={9} /> LAN · no internet
+                  </div>
+                </div>
+              </div>
+              <div style={{ height: '14px', borderLeft: '2px solid rgba(255,255,255,0.25)', width: 0, margin: '0 auto' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                {[[<FaDesktop key="d" />, 'POS'], [<FaMobile key="m" />, 'Waiter'], [<FaFire key="f" />, 'Kitchen']].map(([ic, l], i) => (
+                  <div key={i} style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px 6px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '18px', color: '#cbd5e1' }}>{ic}</div>
+                    <div style={{ fontSize: '11.5px', fontWeight: '700', color: '#e2e8f0', marginTop: '4px' }}>{l}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
