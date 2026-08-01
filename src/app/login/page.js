@@ -318,24 +318,34 @@ const Login = () => {
     } catch { return false; }
   };
 
-  // Zero-config auto-connect (installed POS app only): try the same machine first
+  // Zero-config auto-connect (installed POS app only): prefer the SAME machine
   // (server + POS on one PC — the common small-restaurant case), then mDNS discovery
   // on the LAN. So the owner never has to type an IP. Falls back to the manual box.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const isInstalledApp = !!window.electronAPI || !!window.Capacitor;
     if (!isInstalledApp) return;                 // plain web (cloud) — don't auto-attach to a local server
-    if (getLocalServerUrl()) return;             // already configured
     let cancelled = false;
     (async () => {
-      // 1. Same machine (localhost) — one-terminal shop.
-      if (await probeServer('http://localhost:3003')) {
+      // 1. Same machine (loopback) — ALWAYS preferred when the server is co-located.
+      //    127.0.0.1 keeps working even with Wi-Fi/LAN OFF (fully offline), whereas a
+      //    stored LAN-IP or `dineopen-server.local` name vanishes the moment the network
+      //    interface goes down. If a stale LAN URL is already saved for a server that is
+      //    actually on THIS machine, upgrade it to loopback so offline orders never hang.
+      const LOOPBACK = 'http://127.0.0.1:3003';
+      if (await probeServer(LOOPBACK)) {
         if (cancelled) return;
-        apiClient.setLocalServer('http://localhost:3003');
-        setLocalServerIp('localhost:3003'); setLsConnected(true);
+        if (getLocalServerUrl() !== LOOPBACK) apiClient.setLocalServer(LOOPBACK);
+        setLocalServerIp('127.0.0.1:3003'); setLsConnected(true);
         return;
       }
-      // 2. mDNS auto-discovery on the LAN (Electron main browses _dineopen._tcp).
+      // 2. Server is on another machine — keep the configured URL if we have one…
+      const existing = getLocalServerUrl();
+      if (existing) {
+        setLocalServerIp(existing.replace(/^https?:\/\//, '')); setLsConnected(true);
+        return;
+      }
+      // 3. …otherwise mDNS auto-discovery on the LAN (Electron main browses _dineopen._tcp).
       if (window.electronAPI?.discoverLocalServer) {
         try {
           const found = await window.electronAPI.discoverLocalServer();

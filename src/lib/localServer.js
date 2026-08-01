@@ -52,3 +52,31 @@ export function setLocalServerUrl(url) {
 export function isLocalServerMode() {
   return !!getLocalServerUrl();
 }
+
+/**
+ * If the on-prem server answers on this machine's loopback (127.0.0.1:3003), then the
+ * server is CO-LOCATED with this POS — prefer loopback. Loopback keeps working even with
+ * Wi-Fi/LAN OFF (true offline), whereas a stored LAN-IP or `dineopen-server.local` name
+ * disappears the instant the network interface goes down, which makes offline orders hang.
+ *
+ * Safe on separate terminals: a machine with no local server fails the probe, so its
+ * configured LAN URL is left untouched. Returns the URL now in effect (or null).
+ * Only acts inside the installed app (Electron/Capacitor) — plain web is never touched.
+ */
+export async function preferLoopbackIfLocal(probeMs = 1500) {
+  if (typeof window === 'undefined') return getLocalServerUrl();
+  const isInstalledApp = !!window.electronAPI || !!window.Capacitor;
+  if (!isInstalledApp) return getLocalServerUrl();
+  const LOOPBACK = 'http://127.0.0.1:3003';
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), probeMs);
+    const res = await fetch(`${LOOPBACK}/api/health`, { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (res.ok) {
+      if (getLocalServerUrl() !== LOOPBACK) setLocalServerUrl(LOOPBACK);
+      return LOOPBACK;
+    }
+  } catch (_) { /* no local server on this machine — keep whatever is configured */ }
+  return getLocalServerUrl();
+}

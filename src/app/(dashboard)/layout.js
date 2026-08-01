@@ -18,6 +18,7 @@ import PrintEventToast from '../../components/PrintEventToast';
 import { isWeb, isTauri, isElectron } from '../../utils/platform';
 import { isAutoUpdateEnabled, checkForUpdates, restartApp } from '../../utils/autoUpdater';
 import apiClient from '../../lib/api';
+import { preferLoopbackIfLocal } from '../../lib/localServer';
 import { initPrintDiagnostics } from '../../lib/printDiagnostics';
 import { ROUTE_TO_ACCESS_KEY, ALWAYS_ACCESSIBLE } from '../../lib/pageAccessConfig';
 import { FaCloudUploadAlt, FaArrowRight, FaUtensils, FaSyncAlt } from 'react-icons/fa';
@@ -59,6 +60,20 @@ function DashboardLayoutContent({ children }) {
     window.addEventListener('restaurantChanged', read);
     return () => window.removeEventListener('restaurantChanged', read);
   }, []);
+  // Offline resilience: if the on-prem server is on THIS machine, force the API/base to
+  // loopback (127.0.0.1) so orders keep working with Wi-Fi/LAN OFF. This self-heals an
+  // already-logged-in session that had a stale LAN-IP / `.local` URL stored from before.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const url = await preferLoopbackIfLocal();
+      if (!cancelled && url === 'http://127.0.0.1:3003' && apiClient.baseURL !== url) {
+        apiClient.setLocalServer(url);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const [notificationOrderTypes, setNotificationOrderTypes] = useState(null);
   const [isClient, setIsClient] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
