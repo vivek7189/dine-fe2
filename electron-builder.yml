@@ -26,11 +26,17 @@ win:
 mac:
   icon: electron/icons/icon.icns
   target:
-    # Universal binary → a single .dmg/.zip that runs on BOTH Intel and Apple Silicon Macs.
+    # Two separate DMGs/zips (Apple Silicon + Intel) instead of a universal binary.
+    # The universal build merges both ASARs and trips @electron/universal's
+    # "pattern is too long" bug on deep node_modules paths — separate arches avoid it.
     - target: dmg
-      arch: universal
+      arch:
+        - arm64
+        - x64
     - target: zip
-      arch: universal
+      arch:
+        - arm64
+        - x64
   category: public.app-category.business
   identity: "Vivek Kumar (934QP9KSRD)"
   hardenedRuntime: true
