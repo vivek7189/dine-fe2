@@ -6969,10 +6969,10 @@ const Admin = () => {
   const saveMyTerminalPin = async () => {
     const pin = (myTerminalPin || '').trim();
     if (!/^\d{4,8}$/.test(pin)) { showError('PIN must be 4 to 8 digits.'); return; }
-    if (!currentUserId) { showError('Could not identify your account — reload and try again.'); return; }
     try {
       setSavingMyPin(true);
-      await apiClient.updateStaffPin(currentUserId, { pin, enabled: true });
+      // Server resolves the current user from the JWT — no need for a client-side id.
+      await apiClient.updateMyPin({ pin, enabled: true });
       showSuccess('Your terminal-unlock PIN is set. Use it to unlock the POS.', 8000);
       setMyTerminalPin('');
     } catch (error) {

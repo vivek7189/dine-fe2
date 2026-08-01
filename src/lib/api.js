@@ -1871,6 +1871,11 @@ class ApiClient {
     return this.request(`/api/staff/${staffId}/pin`, { method: 'PATCH', body: { pin, enabled } });
   }
 
+  // Set the CURRENT logged-in user's own terminal PIN (server resolves identity from the JWT).
+  async updateMyPin({ pin, enabled } = {}) {
+    return this.request('/api/staff/me/pin', { method: 'PATCH', body: { pin, enabled } });
+  }
+
   async addStaff(restaurantId, staffData) {
     return this.request(`/api/staff/${restaurantId}`, {
       method: 'POST',
