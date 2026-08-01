@@ -111,7 +111,9 @@ export function TerminalLockProvider({ restaurantId, restaurantName, terminalLoc
     <TerminalLockContext.Provider value={ctx}>
       {children}
       {enabled && locked && !overlaySuppressed && (
-        <div role="dialog" aria-modal="true" style={{ position: 'fixed', inset: 0, zIndex: 100000, background: 'linear-gradient(160deg,#0f172a,#1e293b)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+        // Translucent + blurred so staff can glance at the screen state behind the lock,
+        // while the overlay still captures every click (nothing is interactive until unlocked).
+        <div role="dialog" aria-modal="true" style={{ position: 'fixed', inset: 0, zIndex: 100000, background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
           <div style={{ position: 'relative', width: '100%', maxWidth: '360px', background: '#fff', borderRadius: '20px', padding: '26px 24px', boxShadow: '0 24px 70px rgba(0,0,0,0.4)', textAlign: 'center' }}>
             <button type="button" onClick={signOut} title="Sign out"
               style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', alignItems: 'center', gap: '4px', background: '#f1f5f9', border: 'none', borderRadius: '8px', padding: '6px 8px', cursor: 'pointer', color: '#64748b', fontSize: '11px', fontWeight: 700 }}>
