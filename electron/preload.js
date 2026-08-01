@@ -1,6 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  // Zero-config: auto-find the on-prem DineOpen server on the LAN (mDNS). Returns { url } or null.
+  discoverLocalServer: () => ipcRenderer.invoke('discover-local-server'),
   // Kenya KRA eTIMS — relay a request to the local VSCU (Kenya stores only)
   etimsRelay: (args) => ipcRenderer.invoke('etims:relay', args),
   // Printing

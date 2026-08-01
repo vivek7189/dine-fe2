@@ -307,6 +307,49 @@ const Login = () => {
       if (cur) { setLocalServerIp(cur.replace(/^https?:\/\//, '')); setLsConnected(true); }
     } catch (_) {}
   }, []);
+  // Probe a candidate server's /api/health quickly. Returns true if it's live.
+  const probeServer = async (url, ms = 2500) => {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), ms);
+      const res = await fetch(`${url}/api/health`, { signal: ctrl.signal });
+      clearTimeout(timer);
+      return res.ok;
+    } catch { return false; }
+  };
+
+  // Zero-config auto-connect (installed POS app only): try the same machine first
+  // (server + POS on one PC — the common small-restaurant case), then mDNS discovery
+  // on the LAN. So the owner never has to type an IP. Falls back to the manual box.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const isInstalledApp = !!window.electronAPI || !!window.Capacitor;
+    if (!isInstalledApp) return;                 // plain web (cloud) — don't auto-attach to a local server
+    if (getLocalServerUrl()) return;             // already configured
+    let cancelled = false;
+    (async () => {
+      // 1. Same machine (localhost) — one-terminal shop.
+      if (await probeServer('http://localhost:3003')) {
+        if (cancelled) return;
+        apiClient.setLocalServer('http://localhost:3003');
+        setLocalServerIp('localhost:3003'); setLsConnected(true);
+        return;
+      }
+      // 2. mDNS auto-discovery on the LAN (Electron main browses _dineopen._tcp).
+      if (window.electronAPI?.discoverLocalServer) {
+        try {
+          const found = await window.electronAPI.discoverLocalServer();
+          const url = found?.url;
+          if (url && !cancelled && await probeServer(url)) {
+            apiClient.setLocalServer(url);
+            setLocalServerIp(url.replace(/^https?:\/\//, '')); setLsConnected(true);
+          }
+        } catch (_) {}
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const connectLocalServer = async () => {
     let host = String(localServerIp || '').trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '');
     if (!host) { setLsError('Enter the server address'); return; }

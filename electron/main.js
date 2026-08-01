@@ -611,6 +611,36 @@ function probeTcpPort(host, port, timeoutMs = 800) {
 // ──── IPC: Kenya KRA eTIMS — VSCU local relay (self-contained; Kenya only) ────
 try { require('./etims/vscuRelay').register(ipcMain); } catch (e) { console.warn('eTIMS relay not registered:', e && e.message); }
 
+// ──── IPC: Local-server auto-discovery (zero-config LAN) ────
+// Browse mDNS for the on-prem DineOpen server (_dineopen._tcp) and return its current
+// URL (using the discovered IP, so it works even where `.local` resolution is flaky).
+// Graceful no-op if bonjour-service isn't bundled → renderer falls back to localhost/manual.
+ipcMain.handle('discover-local-server', async () => {
+  return new Promise((resolve) => {
+    let done = false;
+    let bonjour = null;
+    const finish = (val) => {
+      if (done) return;
+      done = true;
+      try { if (bonjour && bonjour.destroy) bonjour.destroy(); } catch (_) {}
+      resolve(val);
+    };
+    try {
+      const { Bonjour } = require('bonjour-service');
+      bonjour = new Bonjour();
+      const browser = bonjour.find({ type: 'dineopen' });
+      browser.on('up', (svc) => {
+        const ip = (svc.addresses || []).find((a) => /^\d+\.\d+\.\d+\.\d+$/.test(a)) || svc.host;
+        const port = svc.port || 3003;
+        if (ip) finish({ url: `http://${ip}:${port}`, host: svc.host, name: svc.name });
+      });
+      setTimeout(() => finish(null), 4000); // give up after 4s → manual entry
+    } catch (e) {
+      finish(null); // dep missing / mDNS unavailable
+    }
+  });
+});
+
 // ──── IPC: Printing ────
 
 ipcMain.handle('electron:print', async (event, { html, copies, type, printerWidth, stationId, printerOverride }) => {

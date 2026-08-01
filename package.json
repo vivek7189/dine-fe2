@@ -45,6 +45,7 @@
     "@vercel/analytics": "^1.5.0",
     "axios": "^1.12.2",
     "better-sqlite3": "^12.9.0",
+    "bonjour-service": "^1.4.4",
     "bwip-js": "^4.11.2",
     "electron-updater": "^6.0.0",
     "firebase": "^10.14.1",
