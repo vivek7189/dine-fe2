@@ -3718,6 +3718,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
       if (userData) {
         const user = JSON.parse(userData);
         setIsOwner(user.role === 'owner');
+        setCurrentUserId(user.id || user.userId || user._id || null);
       }
     } catch (_) {}
     let cancelled = false;
@@ -5665,6 +5666,10 @@ const Admin = () => {
   const [pinValue, setPinValue] = useState('');
   const [pinBusy, setPinBusy] = useState(false);
   const [pinResult, setPinResult] = useState(null); // { pin } after set/generate
+  // Owner/admin's OWN terminal-unlock PIN (they aren't in the staff list)
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [myTerminalPin, setMyTerminalPin] = useState('');
+  const [savingMyPin, setSavingMyPin] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -6957,6 +6962,23 @@ const Admin = () => {
       showError(error?.message || 'Could not update PIN.');
     } finally {
       setPinBusy(false);
+    }
+  };
+
+  // Owner/admin sets THEIR OWN terminal-unlock PIN (they don't appear in the staff list).
+  const saveMyTerminalPin = async () => {
+    const pin = (myTerminalPin || '').trim();
+    if (!/^\d{4,8}$/.test(pin)) { showError('PIN must be 4 to 8 digits.'); return; }
+    if (!currentUserId) { showError('Could not identify your account — reload and try again.'); return; }
+    try {
+      setSavingMyPin(true);
+      await apiClient.updateStaffPin(currentUserId, { pin, enabled: true });
+      showSuccess('Your terminal-unlock PIN is set. Use it to unlock the POS.', 8000);
+      setMyTerminalPin('');
+    } catch (error) {
+      showError(error?.message || 'Could not set your PIN.');
+    } finally {
+      setSavingMyPin(false);
     }
   };
 
@@ -12377,7 +12399,22 @@ const Admin = () => {
                       <div style={{ fontSize: '10.5px', color: '#9ca3af' }}>Reject POS orders that weren&apos;t placed by an unlocked staff PIN — blocks bypassing the lock via dev tools.</div>
                     </div>
                   </div>
-                  <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>Each staff gets a PIN when created (shown once). Change or disable PINs from the Staff section.</div>
+                  {/* Owner/admin's OWN unlock PIN — they aren't in the Staff list, so set it here */}
+                  <div style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '10px', marginTop: '2px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '12px', color: '#374151', fontWeight: 700 }}>🔑 Your unlock PIN:</span>
+                      <input type="text" inputMode="numeric" value={myTerminalPin} maxLength={8}
+                        onChange={(e) => setMyTerminalPin(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                        placeholder="4–8 digits"
+                        style={{ width: '120px', padding: '6px 10px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', letterSpacing: '3px', textAlign: 'center' }} />
+                      <button onClick={saveMyTerminalPin} disabled={savingMyPin || myTerminalPin.length < 4}
+                        style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: (savingMyPin || myTerminalPin.length < 4) ? 'not-allowed' : 'pointer', color: '#fff', background: (savingMyPin || myTerminalPin.length < 4) ? '#c4b5fd' : '#7c3aed', fontSize: '12.5px', fontWeight: 700 }}>
+                        {savingMyPin ? 'Saving…' : 'Set my PIN'}
+                      </button>
+                    </div>
+                    <div style={{ fontSize: '10.5px', color: '#9ca3af', marginTop: '4px' }}>You (owner/admin) need a PIN too — set it here so you can unlock the terminal. Set this before you rely on the lock.</div>
+                  </div>
+                  <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>Each staff gets a PIN when created (shown once). Change or disable PINs from the Staff section (🔒 button on each staff).</div>
                 </div>
               )}
             </div>
