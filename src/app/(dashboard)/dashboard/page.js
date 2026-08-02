@@ -2847,6 +2847,9 @@ function RestaurantPOSContent() {
   // Stable ref for prefetchTables so Pusher doesn't re-subscribe on every render
   const prefetchTablesRef = useRef(prefetchTables);
   useEffect(() => { prefetchTablesRef.current = prefetchTables; }, [prefetchTables]);
+  // Stable ref for optimisticTableStatus so the realtime handler applies table events directly
+  const optimisticTableStatusRef = useRef(optimisticTableStatus);
+  useEffect(() => { optimisticTableStatusRef.current = optimisticTableStatus; }, [optimisticTableStatus]);
 
   // Stable ref for menu refresh on real-time events
   const refreshMenuRef = useRef(null);
@@ -2965,6 +2968,17 @@ function RestaurantPOSContent() {
     const handleTableEvent = (data) => {
       if (!data) return;
       console.log(`📡 Dashboard: Received '${data.type}' event:`, data);
+      // Event-sourced (the POS-standard way): the event carries { tableId, status, orderId },
+      // so apply it straight to the tile — instant, no refetch, no HTTP cache in the way.
+      // optimisticTableStatus also sets a short override so an in-flight prefetch can't
+      // clobber it. Bulk resets have no per-table payload, so reconcile with a refetch.
+      if (data.type === 'table-status-updated' && data.tableId && data.status) {
+        optimisticTableStatusRef.current?.(
+          { id: data.tableId, name: data.tableNumber, floorId: data.floorId },
+          data.status, data.orderId ?? null, data.orderTotal ?? null
+        );
+        return;
+      }
       debouncedTableRefresh();
     };
     const unsubTables = subscribeRestaurantEvents(restaurantId, 'tables', handleTableEvent, { onError: handleRtdbError });

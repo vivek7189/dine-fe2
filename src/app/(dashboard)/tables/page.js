@@ -681,9 +681,26 @@ const TableManagement = () => {
         console.log(`📡 Tables: Skipping stale table event (${Math.round(eventAge / 1000)}s old)`);
         return;
       }
-      const tableEvents = ['table-status-updated', 'tables-reset'];
-      if (tableEvents.includes(data.type)) {
-        console.log(`📡 Tables: Received '${data.type}'`, data);
+      // Event-sourced update (how POS systems stay live): the event carries the exact
+      // change { tableId, status, orderId }, so apply it straight to the card — instant,
+      // no refetch, no HTTP cache in the way. Works identically on every terminal.
+      if (data.type === 'table-status-updated' && data.tableId && data.status) {
+        console.log(`📡 Tables: table-status-updated`, data);
+        setFloors(prev => prev.map(floor => ({
+          ...floor,
+          tables: (floor.tables || []).map(t =>
+            t.id === data.tableId
+              ? { ...t, status: data.status,
+                  currentOrderId: data.orderId ?? (data.status === 'available' ? null : t.currentOrderId) }
+              : t
+          ),
+        })));
+        setPusherRefreshSignal(prev => prev + 1);
+        return;
+      }
+      // Bulk change (reset all) — no per-table payload, so reconcile once (fresh: no-store).
+      if (data.type === 'tables-reset') {
+        console.log(`📡 Tables: tables-reset`, data);
         debouncedRefresh();
         setPusherRefreshSignal(prev => prev + 1);
       }
