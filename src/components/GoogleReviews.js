@@ -222,8 +222,9 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
   const connectGoogleAccount = async () => {
     try {
       const response = await apiClient.getGoogleAuthUrl(restaurantId);
-      if (response.success && response.url) {
-        window.location.href = response.url;
+      const authUrl = response.authUrl || response.url;
+      if (response.success && authUrl) {
+        window.location.href = authUrl;
       } else {
         alert('Failed to get Google auth URL. Please try again.');
       }
