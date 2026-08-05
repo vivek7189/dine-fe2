@@ -264,7 +264,7 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
       const response = await apiClient.generateGoogleReviewReply(restaurantId, {
         reviewText: review.text || review.comment || '',
         reviewerName: review.authorName || review.reviewer?.displayName || 'Customer',
-        rating: review.rating,
+        rating: review.starRating || review.rating,
         tone: replyTone,
         restaurantName: restaurant?.name || ''
       });
@@ -792,7 +792,7 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: '600', color: '#1f2937', fontSize: '15px' }}>{authorName}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-                        {renderStars(review.rating)}
+                        {renderStars(review.starRating || review.rating)}
                         <span style={{ fontSize: '12px', color: '#9ca3af' }}>
                           {getRelativeTime(review.createTime || review.time)}
                         </span>
