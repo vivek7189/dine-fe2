@@ -1,0 +1,204 @@
+name: Build Unified Server-POS App
+
+# Builds the ONE-app "POS + local server" desktop build: the POS UI bundled with the real
+# dine-backend (pg-full-migration) + embedded Postgres, for full offline operation.
+# Separate from build-electron.yml (the normal cloud POS) — distinct appId, its own tags.
+#
+# Trigger: a `server-v*` tag (e.g. server-v1.14.41) or a manual run.
+#
+# REQUIRED repo secret:
+#   BACKEND_REPO_TOKEN  – a GitHub PAT (read access to vivek7189/dine-be2) so CI can
+#                         check out the private backend repo.
+# Reused secrets (already set for the normal build): APPLE_CERTIFICATE,
+#   APPLE_CERTIFICATE_PASSWORD, APPLE_ID, APPLE_TEAM_ID, APPLE_APP_SPECIFIC_PASSWORD.
+
+on:
+  push:
+    tags:
+      - 'server-v*'
+  workflow_dispatch:
+
+env:
+  NEXT_PUBLIC_API_URL: https://dine-be2-phi.vercel.app
+  # Backend to bundle (POS UI still hits the local fork at runtime; this is build-time only).
+  BACKEND_REPO: vivek7189/dine-be2
+  BACKEND_REF: pg-full-migration
+
+jobs:
+  # ── Windows x64 installer (.exe) — primary deliverable ────────────────────────
+  build-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+        with:
+          path: frontend
+
+      - name: Checkout backend (pg-full-migration) as sibling
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.BACKEND_REPO }}
+          ref: ${{ env.BACKEND_REF }}
+          token: ${{ secrets.BACKEND_REPO_TOKEN }}
+          path: dine-backend
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#server-v}"
+          else
+            VERSION=$(node -p "require('./frontend/package.json').version")
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Version: $VERSION"
+
+      - name: Set frontend package.json version
+        working-directory: frontend
+        shell: bash
+        run: npm version ${{ steps.version.outputs.version }} --no-git-tag-version --allow-same-version
+
+      - name: Install backend deps (bundles embedded-postgres for Windows)
+        working-directory: dine-backend
+        run: npm ci
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Rebuild better-sqlite3 for Electron
+        working-directory: frontend
+        run: npx electron-rebuild -f -w better-sqlite3
+
+      - name: Build Next.js static export for Electron
+        working-directory: frontend
+        run: node scripts/build-electron.js
+
+      - name: Build Windows unified installer (x64)
+        working-directory: frontend
+        shell: bash
+        run: npx electron-builder --config electron-builder.unified.yml --win --x64
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: dineopen-server-windows-v${{ steps.version.outputs.version }}
+          path: |
+            frontend/dist-electron-unified/*.exe
+            frontend/dist-electron-unified/*.exe.blockmap
+          retention-days: 30
+
+  # ── macOS (signed + notarized) ───────────────────────────────────────────────
+  build-macos:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+        with:
+          path: frontend
+
+      - name: Checkout backend (pg-full-migration) as sibling
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.BACKEND_REPO }}
+          ref: ${{ env.BACKEND_REF }}
+          token: ${{ secrets.BACKEND_REPO_TOKEN }}
+          path: dine-backend
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Resolve version
+        id: version
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#server-v}"
+          else
+            VERSION=$(node -p "require('./frontend/package.json').version")
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Version: $VERSION"
+
+      - name: Set frontend package.json version
+        working-directory: frontend
+        run: npm version ${{ steps.version.outputs.version }} --no-git-tag-version --allow-same-version
+
+      - name: Import Apple signing certificate
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          CERT_PATH=$RUNNER_TEMP/certificate.p12
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$CERT_PATH"
+          security import "$CERT_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          rm "$CERT_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+
+      # macos-latest ships Python 3.12+ (no distutils); node-gyp needs 3.11 to rebuild
+      # native modules (@serialport/bindings-cpp).
+      - name: Setup Python 3.11 for node-gyp
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install backend deps (bundles embedded-postgres for macOS)
+        working-directory: dine-backend
+        run: npm ci
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Rebuild better-sqlite3 for Electron
+        working-directory: frontend
+        run: npx electron-rebuild -f -w better-sqlite3
+
+      - name: Build Next.js static export for Electron
+        working-directory: frontend
+        run: node scripts/build-electron.js
+
+      - name: Build macOS unified app (signed + notarized)
+        working-directory: frontend
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: npx electron-builder --config electron-builder.unified.yml --mac
+
+      - name: Upload macOS installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: dineopen-server-macos-v${{ steps.version.outputs.version }}
+          path: |
+            frontend/dist-electron-unified/*.dmg
+            frontend/dist-electron-unified/*.zip
+            frontend/dist-electron-unified/*.blockmap
+          retention-days: 30
+
+      - name: Cleanup keychain
+        if: always()
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          if [ -f "$KEYCHAIN_PATH" ]; then
+            security delete-keychain "$KEYCHAIN_PATH"
+          fi

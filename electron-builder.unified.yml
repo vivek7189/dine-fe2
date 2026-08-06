@@ -1,8 +1,12 @@
-# Unified "POS + server" TEST build: one app that boots embedded Postgres + the real
-# dine-backend and shows the POS UI. arm64-only + UNSIGNED (no notarize) for fast local
-# testing on this Mac. The production build still uses electron-builder.yml.
-appId: com.dineopen.desktop
-productName: DineOpen POS Unified
+# Unified "POS + local server" build: ONE app that boots embedded Postgres + the real
+# dine-backend (pg-full-migration) and shows the POS UI — full offline operation.
+#
+# Distinct appId/productName from the normal app (electron-builder.yml) so both can be
+# installed side by side and their auto-update feeds never collide. This config does NOT
+# auto-publish — CI uploads the installers as artifacts. (For auto-update later, add a
+# `publish:` block pointing at a SEPARATE repo, not dine-fe2.)
+appId: com.dineopen.server
+productName: DineOpen POS Server
 directories:
   output: dist-electron-unified
 files:
@@ -11,8 +15,14 @@ files:
   - package.json
 asarUnpack:
   - "node_modules/better-sqlite3/**/*"
-# Bundle the REAL backend (sibling repo, pg-full-migration) + its node_modules incl.
-# embedded-postgres binaries. Copied to Resources/backend; localServer.js forks it.
+extraMetadata:
+  main: electron/main.js
+
+# Bundle the REAL backend (sibling ../dine-backend checkout, pg-full-migration) + its
+# node_modules incl. the embedded-postgres binary. Copied to Resources/backend;
+# electron/localServer.js forks it. Each CI runner's `npm ci` in dine-backend installs
+# ONLY that OS's @embedded-postgres binary (os/cpu-gated optionalDependency), so no
+# platform-specific excludes are needed here.
 extraResources:
   - from: "../dine-backend"
     to: "backend"
@@ -26,22 +36,36 @@ extraResources:
       - "!.env"
       - "!.env.local"
       - "!.env.production"
-      - "!node_modules/@embedded-postgres/linux-*/**"
-      - "!node_modules/@embedded-postgres/windows-*/**"
-extraMetadata:
-  main: electron/main.js
+
+win:
+  icon: electron/icons/icon.ico
+  target:
+    # x64 only — embedded-postgres ships a Windows x64 binary (no ia32) and all POS
+    # hardware is 64-bit.
+    - target: nsis
+      arch:
+        - x64
+
 mac:
   icon: electron/icons/icon.icns
   target:
     - target: dmg
       arch:
         - arm64
+        - x64
+    - target: zip
+      arch:
+        - arm64
+        - x64
   category: public.app-category.business
-  # Unsigned test build — Gatekeeper will require right-click → Open on first launch.
-  identity: null
-  hardenedRuntime: false
+  identity: "Vivek Kumar (934QP9KSRD)"
+  hardenedRuntime: true
   gatekeeperAssess: false
+  entitlements: electron/entitlements.mac.plist
+  entitlementsInherit: electron/entitlements.mac.plist
   artifactName: "${productName}-${version}-${arch}.${ext}"
+afterSign: scripts/notarize.js
+
 dmg:
   contents:
     - x: 130
@@ -50,3 +74,8 @@ dmg:
       y: 220
       type: link
       path: /Applications
+
+nsis:
+  oneClick: false
+  perMachine: true
+  allowToChangeInstallationDirectory: true
