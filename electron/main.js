@@ -4,6 +4,7 @@ const fs = require('fs');
 const net = require('net');
 const os = require('os');
 const { initOfflineEngine, shutdownOfflineEngine } = require('./offline');
+const localServer = require('./localServer');
 
 let mainWindow;
 let printWindow;
@@ -315,18 +316,50 @@ app.whenReady().then(() => {
   // Start printer heartbeat monitoring
   startPrinterHeartbeat();
 
-  try {
-    initOfflineEngine(app);
-  } catch (err) {
-    console.error('[Offline] Failed to initialize offline engine:', err.message);
-    // Register fallback API proxy so the app works even without offline engine
-    registerFallbackApiProxy();
+  // ── Unified server mode ────────────────────────────────────────────────────
+  // If this install acts as the local server/hub, boot the embedded Postgres + real
+  // backend on 127.0.0.1:3003. The renderer's preferLoopbackIfLocal() then auto-routes
+  // the POS UI to it (once provisioned). One app = POS UI + server. The legacy SQLite
+  // offline engine is skipped here — api.js talks HTTP straight to the local backend.
+  if (localServer.isServerModeEnabled()) {
+    console.log('[LocalServer] Server mode ON — booting embedded Postgres + backend…');
+    // Register the API proxy → local backend NOW, so the very first renderer calls (the
+    // login screen, made before the local-server URL is adopted) reach it. Without this the
+    // renderer's electron:apiRequest has no handler → "No handler registered" on login.
+    registerFallbackApiProxy(`http://127.0.0.1:${localServer.BACKEND_PORT}`);
+    localServer
+      .startLocalServer({ onLog: (s) => console.log('[LocalServer]', String(s).replace(/\s+$/, '')) })
+      .then((info) => {
+        console.log('[LocalServer] Ready:', JSON.stringify(info));
+        // Nudge any open windows to re-probe loopback now that the backend is up.
+        for (const w of BrowserWindow.getAllWindows()) {
+          try { if (w.webContents && !w.webContents.isDestroyed()) w.webContents.send('local-server-ready', info); } catch (_) {}
+        }
+      })
+      .catch((err) => {
+        console.error('[LocalServer] Failed to start:', err && err.message);
+        // Local backend didn't come up → repoint the proxy at the cloud so the app still
+        // works online (remove the local-backend handler first, then re-register).
+        try { ipcMain.removeHandler('electron:apiRequest'); } catch (_) {}
+        try { initOfflineEngine(app); } catch (_) { registerFallbackApiProxy(); }
+      });
+  } else {
+    try {
+      initOfflineEngine(app);
+    } catch (err) {
+      console.error('[Offline] Failed to initialize offline engine:', err.message);
+      // Register fallback API proxy so the app works even without offline engine
+      registerFallbackApiProxy();
+    }
   }
 });
 
-// Fallback: direct cloud proxy when offline engine can't initialize
-function registerFallbackApiProxy() {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://dine-be2-phi.vercel.app';
+// API proxy for the renderer's electron:apiRequest path. Points at `baseUrl` (the LOCAL
+// backend in server mode, or the cloud as a fallback). This MUST be registered even in
+// server mode: the renderer only skips the IPC path once a local-server URL is adopted, so
+// pre-adoption calls (notably the login screen) route through here.
+function registerFallbackApiProxy(baseUrl) {
+  const API_URL = baseUrl || process.env.NEXT_PUBLIC_API_URL || 'https://dine-be2-phi.vercel.app';
 
   // Only register if not already registered by offline engine
   try {
@@ -364,6 +397,7 @@ function registerFallbackApiProxy() {
     'electron:startHub', 'electron:stopHub', 'electron:getHubInfo',
     'electron:getConnectedTerminals', 'electron:discoverHub', 'electron:getDiscoveredHub',
     'electron:getTerminalId', 'electron:getTerminalConfig', 'electron:isPaired',
+    'electron:getTerminalNumber', 'electron:setTerminalNumber',
     'electron:isHub', 'electron:pairWithHub', 'electron:unpair',
     'electron:getPairingCode', 'electron:regeneratePairingCode', 'electron:getHubQrData',
     'electron:localStaffLogin', 'electron:getImageUrl', 'electron:clearLocalData',
@@ -410,6 +444,8 @@ app.on('will-quit', () => {
   // Clean up offline engine when the app is fully quitting (Cmd+Q on Mac, or close on Windows/Linux)
   shutdownOfflineEngine();
   stopPrinterHeartbeat();
+  // Stop the embedded Postgres + backend cleanly so the ports/data are released.
+  try { localServer.stopLocalServer(); } catch (_) {}
 });
 
 // ──── TCP Printer Support (raw ESC/POS over network) ────

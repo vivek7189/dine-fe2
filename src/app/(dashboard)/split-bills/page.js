@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, Fragment } from 'react';
+import { orderDisplayNumber } from '../../../utils/orderNumber';
 import { useSearchParams, useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
@@ -272,7 +273,7 @@ export default function SplitBillsPage() {
     const sheetData = [
       ['Order #', 'Total Amount', 'Split Count', 'Split Details', 'Date'],
       ...orders.map(o => [
-        o.dailyOrderId || o.orderNumber || '-',
+        orderDisplayNumber(o),
         o.totalAmount || 0,
         o.splitCount || 0,
         (o.splitPayments || []).map(sp => `${capitalize(sp.method)}: ${sp.amount}`).join(', '),
@@ -499,7 +500,7 @@ export default function SplitBillsPage() {
                             >
                               <td className="px-4 py-3">
                                 <span className="font-medium text-gray-800 text-sm font-mono">
-                                  {order.dailyOrderId ? `#${order.dailyOrderId}` : order.orderNumber || '-'}
+                                  {`#${orderDisplayNumber(order)}`}
                                 </span>
                               </td>
                               <td className="px-4 py-3 text-right font-semibold text-gray-800 text-sm">

@@ -9333,6 +9333,35 @@ const Admin = () => {
                   textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '12px'
                 }}>Page Access Permissions</div>
 
+                {/* #5 Copy powers — clone another staff member's permissions into this one */}
+                {Array.isArray(staff) && staff.length > 0 && (
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '5px' }}>
+                      Copy permissions from another staff
+                    </label>
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        const src = staff.find(m => m.id === e.target.value);
+                        if (src) {
+                          const pa = JSON.parse(JSON.stringify(src.pageAccess || ROLE_DEFAULT_PAGE_ACCESS[src.role] || ROLE_DEFAULT_PAGE_ACCESS.employee));
+                          setNewStaff(prev => ({ ...prev, pageAccess: pa }));
+                        }
+                      }}
+                      style={{
+                        width: '100%', padding: '10px 12px', fontSize: '13px',
+                        border: '1.5px solid #e5e7eb', borderRadius: '10px', outline: 'none',
+                        backgroundColor: 'white', boxSizing: 'border-box',
+                      }}
+                    >
+                      <option value="">— Select a staff member to copy their access —</option>
+                      {staff.map(m => (
+                        <option key={m.id} value={m.id}>{(m.name || m.loginId || 'Staff')} ({m.role || 'staff'})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 {/* Search dropdown */}
                 <div ref={newPermDropdownRef} style={{ position: 'relative', marginBottom: '12px' }}>
                   <div style={{ position: 'relative' }}>
@@ -12604,6 +12633,22 @@ const Admin = () => {
                 />
               </div>
 
+              {/* Covers (number of guests) — #13 configurable customer window */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
+                <button type="button" onClick={() => setPosSettings(prev => ({ ...prev, showCovers: prev.showCovers === false ? true : false }))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}>
+                  {posSettings.showCovers === false ? <FaToggleOff size={28} color="#d1d5db" /> : <FaToggleOn size={28} color="#ef4444" />}
+                </button>
+                <span style={{ fontSize: '13px', color: '#374151' }}>Covers (number of guests)</span>
+              </div>
+
+              {/* Kitchen Notes / Special Instructions — #13 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
+                <button type="button" onClick={() => setPosSettings(prev => ({ ...prev, hideSpecialInstructions: !prev.hideSpecialInstructions }))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}>
+                  {posSettings.hideSpecialInstructions ? <FaToggleOff size={28} color="#d1d5db" /> : <FaToggleOn size={28} color="#ef4444" />}
+                </button>
+                <span style={{ fontSize: '13px', color: '#374151' }}>Kitchen Notes (special instructions)</span>
+              </div>
+
               {/* Move Order Between Tables */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
                 <button
@@ -13706,6 +13751,51 @@ const Admin = () => {
                           Restrict which roles can use the Bill & Print button. Requires Print Settings &gt; Save &amp; Print to be enabled.
                         </p>
                         {renderRoleChips('billAndPrintRoles')}
+                      </div>
+                    )
+                  },
+                  {
+                    key: 'reprintKotEnabled',
+                    name: 'KOT Re-print',
+                    desc: 'Control who can re-print a KOT',
+                    icon: FaPrint,
+                    alwaysOn: true,
+                    expandedContent: (
+                      <div style={{ marginTop: '8px' }}>
+                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 6px 0' }}>
+                          Restrict which roles can re-print a KOT from Order History. Empty = everyone.
+                        </p>
+                        {renderRoleChips('reprintKotRoles')}
+                      </div>
+                    )
+                  },
+                  {
+                    key: 'reprintBillEnabled',
+                    name: 'Bill Re-print',
+                    desc: 'Control who can re-print a bill / pre-bill',
+                    icon: FaPrint,
+                    alwaysOn: true,
+                    expandedContent: (
+                      <div style={{ marginTop: '8px' }}>
+                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 6px 0' }}>
+                          Restrict which roles can re-print a bill or pre-bill from Order History. Empty = everyone.
+                        </p>
+                        {renderRoleChips('reprintBillRoles')}
+                      </div>
+                    )
+                  },
+                  {
+                    key: 'saveKotEnabled',
+                    name: 'Save KOT / Place Order button',
+                    desc: 'Control who sees the Save KOT (Place Order) button',
+                    icon: FaPrint,
+                    alwaysOn: true,
+                    expandedContent: (
+                      <div style={{ marginTop: '8px' }}>
+                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 6px 0' }}>
+                          Choose which roles see the Place Order (KOT) / Save KOT button on the POS dashboard. Empty = everyone.
+                        </p>
+                        {renderRoleChips('saveKotRoles')}
                       </div>
                     )
                   },

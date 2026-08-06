@@ -10,6 +10,7 @@ import {
   BILL_LABELS_AR, getBillDualCSS, dualLabel, dualTitle,
   buildCashbackHtml,
 } from '../helpers';
+import { orderDisplayNumber } from '../../orderNumber';
 
 export const id = 'elegant';
 export const name = 'Elegant';
@@ -68,7 +69,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
     buildSplitBillHtml(invoice, L, cs) +
     `<div class="divider">════════════════════════════</div>` +
     `<div class="bill-info">` +
-      `<div><span>${dualLabel(L.billLabel, AR.billLabel, showAr)}#:</span><span><strong>${invoice.dailyOrderId || invoice.id || 'N/A'}</strong></span></div>` +
+      `<div><span>${dualLabel(L.billLabel, AR.billLabel, showAr)}#:</span><span><strong>${orderDisplayNumber(invoice)}</strong></span></div>` +
       `<div><span>${dualLabel(L.date, AR.date, showAr)}:</span><span>${dateStr}</span></div>` +
       (bl.showTable !== false && invoice.tableNumber ? `<div><span>${dualLabel(L.table, AR.table, showAr)}:</span><span>${invoice.tableNumber}${invoice.floorName ? ` - ${invoice.floorName}` : ''}</span></div>` : '') +
       (bl.showCovers !== false && invoice.covers && invoice.covers > 1 ? `<div><span>${showAr ? dualLabel('Covers', 'أغطية', showAr) : 'Covers'}:</span><span>${invoice.covers}</span></div>` : '') +
@@ -96,5 +97,5 @@ export function render(invoice, printSettings = {}, labels = {}) {
     buildOrderStatusSection(printSettings) +
     `<div class="bill-footer">${bl.showFooter !== false ? `<p>${showAr ? dualLabel(L.footer, AR.footer, showAr) : L.footer}</p>` : ''}${bl.showPoweredBy !== false ? `<p style="font-size:10px;margin-top:6px;">${showAr ? dualLabel(L.poweredBy, AR.poweredBy, showAr) : L.poweredBy}</p>` : ''}</div>`;
 
-  return wrapInDocument(`${L.billLabel} #${invoice.dailyOrderId || invoice.id || 'N/A'}`, finalCss, bodyHtml);
+  return wrapInDocument(`${L.billLabel} #${orderDisplayNumber(invoice)}`, finalCss, bodyHtml);
 }

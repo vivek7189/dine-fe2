@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import { orderDisplayNumber } from '../../utils/orderNumber';
 import { useSearchParams } from 'next/navigation';
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
 import { database } from '../../../firebase';
@@ -85,7 +86,7 @@ function TokenCard({ order, isNew, isReady, settings }) {
         : (isReady ? 'readyGlow 2.5s ease-in-out infinite' : 'none'),
       transition: 'all 0.3s ease',
     }}>
-      <TokenNumber number={order.dailyOrderId} isReady={isReady} />
+      <TokenNumber number={orderDisplayNumber(order)} isReady={isReady} />
 
       {settings.showCustomerName && order.customerName && (
         <div style={{

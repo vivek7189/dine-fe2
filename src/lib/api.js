@@ -1659,6 +1659,15 @@ class ApiClient {
     });
   }
 
+  // #1b — Merge several open orders/checks into ONE bill (the primary). The source orders
+  // become status 'merged' and all their tables point at the primary's combined bill.
+  async mergeOrders(restaurantId, primaryOrderId, sourceOrderIds) {
+    return this.request('/api/orders/merge', {
+      method: 'POST',
+      body: { restaurantId, primaryOrderId, sourceOrderIds },
+    });
+  }
+
   // Split one table into N sub-tables (e.g. 7 → 7A/7B/7C). Each becomes a real,
   // independently-billable table. count = 2..8.
   async splitTable(restaurantId, tableId, count) {

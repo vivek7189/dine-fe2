@@ -7,6 +7,7 @@ import {
   getPrintFontSizes, getPrintFontFamily, getContentWidth, wrapInDocument,
   KOT_LABELS_AR, getBillDualCSS, dualLabel, dualItemName,
 } from '../helpers';
+import { orderDisplayNumber } from '../../orderNumber';
 
 export const id = 'bold';
 export const name = 'Bold';
@@ -98,8 +99,8 @@ export function render(kotData, printSettings = {}, labels = {}) {
     `</div>` +
     `<div class="divider">................................</div>` +
     `<div class="info">` +
-      (kl.showTable !== false ? `<div>Table/Ref.No: ${k.tableNumber || k.roomNumber || k.dailyOrderId || k.orderId}</div>` : '') +
-      `<div style="display:flex;justify-content:space-between;">${kl.showOrderNumber !== false ? `<span>KOT No: <strong>${k.dailyOrderId || k.orderId}</strong></span>` : '<span></span>'}<span>${dualLabel(L.totalItems, AR.totalItems, showAr)}: ${totalItems}</span></div>` +
+      (kl.showTable !== false ? `<div>Table/Ref.No: ${k.tableNumber || k.roomNumber || orderDisplayNumber(k)}</div>` : '') +
+      `<div style="display:flex;justify-content:space-between;">${kl.showOrderNumber !== false ? `<span>KOT No: <strong>${orderDisplayNumber(k)}</strong></span>` : '<span></span>'}<span>${dualLabel(L.totalItems, AR.totalItems, showAr)}: ${totalItems}</span></div>` +
     `</div>` +
     `<div class="divider">................................</div>` +
     `<div class="info">` +
@@ -117,5 +118,5 @@ export function render(kotData, printSettings = {}, labels = {}) {
     (k.specialInstructions ? `<div class="divider">................................</div><div style="text-align:center;font-size:12px;padding:4px;border:1px dashed #000;"><strong>*** ${showAr ? dualLabel(L.specialInstructions, AR.specialInstructions, showAr) : L.specialInstructions} ***</strong><div style="text-align:left;">${esc(k.specialInstructions)}</div></div>` : '') +
     `<div class="divider">================================</div>`;
 
-  return wrapInDocument(`KOT - ${k.dailyOrderId || k.orderId}`, finalCss, bodyHtml);
+  return wrapInDocument(`KOT - ${orderDisplayNumber(k)}`, finalCss, bodyHtml);
 }

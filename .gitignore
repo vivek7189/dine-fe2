@@ -64,6 +64,9 @@ src-tauri/resources/SumatraPDF.exe
 
 # electron build artifacts
 dist-electron/
+dist-electron-unified/
+dist/
+/main.js
 out.bak/
 
 # misc docs

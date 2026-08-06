@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { orderDisplayNumber } from '../../../utils/orderNumber';
 import { useRouter } from 'next/navigation';
 // import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
@@ -34,6 +35,7 @@ import apiClient from '../../../lib/api';
 import Notification from '../../../components/Notification';
 import { getCachedKotData, setCachedKotData } from '../../../utils/dashboardCache';
 import { getCachedData, setCachedData, getPendingOrders } from '../../../lib/offlineDb';
+import { getOfflineEngineEnabled } from '../../../hooks/useSyncEngine';
 import OfflineBanner from '../../../components/OfflineBanner';
 import { t } from '../../../lib/i18n';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
@@ -107,6 +109,8 @@ const playSound = (type) => {
 // Merge pending offline orders into the KOT list so they show immediately
 async function mergeOfflineKotOrders(existingOrders, restaurantId) {
   try {
+    // Local-server mode: client offline engine is OFF; don't surface phantom IndexedDB orders.
+    if (!getOfflineEngineEnabled()) return existingOrders;
     // Timeout after 3s so a blocked IndexedDB can't hang the page forever
     const offlineOrders = await Promise.race([
       getPendingOrders(),
@@ -370,7 +374,7 @@ const KitchenOrderTicket = () => {
           if (user.role === 'owner' || user.role === 'admin') {
             setNotification({
               show: true, type: 'error',
-              message: `Order #${data.dailyOrderId || data.orderNumber || '?'} VOIDED by ${data.cancelledBy || 'Staff'}${data.reason ? ` — ${data.reason}` : ''}`
+              message: `Order #${orderDisplayNumber(data)} VOIDED by ${data.cancelledBy || 'Staff'}${data.reason ? ` — ${data.reason}` : ''}`
             });
           }
         } catch (e) { /* ignore */ }
@@ -1136,12 +1140,12 @@ const KitchenOrderTicket = () => {
                             cursor: 'pointer', letterSpacing: '-0.3px'
                           }}
                             onClick={() => {
-                              navigator.clipboard.writeText(kot.dailyOrderId?.toString() || kot.id);
+                              navigator.clipboard.writeText(orderDisplayNumber(kot));
                               setNotification({ show: true, type: 'success', message: t('kot.orderNumberCopied') });
                             }}
                             title={t('kot.clickToCopyOrderNumber')}
                           >
-                            #{kot.dailyOrderId || kot.orderNumber || kot.id.slice(-6).toUpperCase()}
+                            #{orderDisplayNumber(kot)}
                           </span>
                           <span style={{
                             fontSize: '9px', fontWeight: '500', color: '#9ca3af',
@@ -1692,7 +1696,7 @@ const KitchenOrderTicket = () => {
                   </div>
                   <div>
                     <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
-                      Order #{selectedKot.dailyOrderId || selectedKot.orderNumber || selectedKot.id.slice(-6).toUpperCase()}
+                      Order #{orderDisplayNumber(selectedKot)}
                     </h2>
                     <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
                       ID: {selectedKot.id.slice(-6).toUpperCase()} · {getOrderTypeInfo(selectedKot.orderType).label}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, Fragment } from 'react';
+import { orderDisplayNumber } from '../../../utils/orderNumber';
 import { useSearchParams, useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
@@ -298,7 +299,7 @@ export default function ReprintLogPage() {
           .map(entry => `${entry.reprintedByName || 'Unknown'} at ${formatDateTime(entry.reprintedAt)}`)
           .join('; ');
         return [
-          order.dailyOrderId || order.orderNumber || order.id,
+          orderDisplayNumber(order),
           order.totalAmount || 0,
           order.billReprintCount || 0,
           lastReprint ? formatDateTime(lastReprint.reprintedAt) : '-',
@@ -533,7 +534,7 @@ export default function ReprintLogPage() {
                               </td>
                               <td className="px-4 py-3">
                                 <span className="font-medium text-gray-800 text-sm font-mono">
-                                  {order.dailyOrderId ? `#${order.dailyOrderId}` : order.orderNumber || order.id}
+                                  {`#${orderDisplayNumber(order)}`}
                                 </span>
                               </td>
                               <td className="px-4 py-3 text-right font-semibold text-gray-800 text-sm">

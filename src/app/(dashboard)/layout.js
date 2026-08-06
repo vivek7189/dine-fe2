@@ -15,6 +15,7 @@ import { useIdlePrefetch } from '../../hooks/useIdlePrefetch';
 import { useAutoPrint } from '../../hooks/useAutoPrint';
 import { useOrderNotifications } from '../../hooks/useOrderNotifications';
 import PrintEventToast from '../../components/PrintEventToast';
+import SyncStatus from '../../components/SyncStatus';
 import { isWeb, isTauri, isElectron } from '../../utils/platform';
 import { isAutoUpdateEnabled, checkForUpdates, restartApp } from '../../utils/autoUpdater';
 import apiClient from '../../lib/api';
@@ -571,6 +572,9 @@ function DashboardLayoutContent({ children }) {
 
             {/* DineAI Floating Button */}
             <DineAIButton />
+
+            {/* Offline-first sync: first-run loader + status pill (self-gates to local-server mode) */}
+            <SyncStatus />
 
             {/* BulkMenuUpload modal — portal to body */}
             {typeof document !== 'undefined' && createPortal(

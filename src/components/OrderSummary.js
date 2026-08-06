@@ -38,6 +38,7 @@ const splitGstForDisplay = (tb, countryCode) => {
   });
 };
 import { generateBillHTML, generateKOTHTML } from '../utils/printHtmlGenerator';
+import { orderDisplayNumber } from '../utils/orderNumber';
 import { buildSplitInvoice } from '../utils/printTemplates/helpers';
 import { seatLabel, sanitizeSeat, getOrderItemKey } from '../utils/orderItemKey';
 import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '../utils/printBridge';
@@ -115,6 +116,9 @@ const OrderSummary = ({
   onChangeTable,
   onCustomerNameChange,
   onCustomerMobileChange,
+  customerTin,            // #20 walk-in KRA PIN (Kenya eTIMS)
+  onCustomerTinChange,
+  etimsEnabled,           // only show the KRA PIN field when eTIMS is on
   processing,
   placingOrder,
   savingOrder = false, // Separate loading state for save order button
@@ -295,6 +299,9 @@ const OrderSummary = ({
 
   const { formatCurrency, getCurrencySymbol } = useCurrency();
   const { operator: terminalOperator, lockAfterOrder } = useTerminalLock();
+  // Re-lock the terminal ~1.5s after ANY order action (place / update / save / complete /
+  // bill&print) — the delay lets the KOT/bill print fire first. No-op unless the lock is on.
+  const armLockAfterAction = () => { setTimeout(() => { try { lockAfterOrder(); } catch (_) {} }, 1500); };
   const [invoice, setInvoice] = useState(null);
   const [showInvoicePermanently, setShowInvoicePermanently] = useState(false);
   const [taxBreakdown, setTaxBreakdown] = useState([]);
@@ -1000,8 +1007,9 @@ const OrderSummary = ({
             tableNumber: k.tableNumber || k.tableName || '',
             floorName: k.floorName || '',
             roomNumber: k.roomNumber || '',
-            orderNumber: k.dailyOrderId || k.orderNumber || k.orderId?.slice?.(-6) || '',
+            orderNumber: orderDisplayNumber(k),
             dailyOrderId: k.dailyOrderId || k.orderNumber || '',
+            orderNumberDisplay: k.orderNumberDisplay || '',
             orderId: k.orderId,
             orderType: k.orderType || 'dine-in',
             waiterName: k.waiterName || '',
@@ -2509,13 +2517,13 @@ const OrderSummary = ({
     setShowDiscountApproval(false);
     setDiscountApproved(true);
     if (pendingDiscountAction === 'place') {
-      if (typeof onPlaceOrder === 'function') onPlaceOrder(buildTaxData());
+      if (typeof onPlaceOrder === 'function') { onPlaceOrder(buildTaxData()); armLockAfterAction(); }
       if (isMobile && onClose && !(typeof window !== 'undefined' && window.ReactNativeWebView)) setTimeout(() => onClose(), 500);
     } else if (pendingDiscountAction === 'complete') {
       handleProcessOrder();
     } else if (pendingDiscountAction === 'placeAndPrint') {
       window.__autoPrintKOT = true;
-      if (typeof onPlaceOrderAndPrint === 'function') onPlaceOrderAndPrint(buildTaxData());
+      if (typeof onPlaceOrderAndPrint === 'function') { onPlaceOrderAndPrint(buildTaxData()); armLockAfterAction(); }
     }
     setPendingDiscountAction(null);
   };
@@ -2587,6 +2595,10 @@ const OrderSummary = ({
               }
             } catch (e) { /* ignore drawer errors */ }
           }
+          // Terminal PIN lock: re-lock after Complete Billing / Bill & Print too (this path
+          // doesn't set orderSuccess.kotData, so the KOT-path lock effect never fires here).
+          // Small delay so the bill print goes out first. No-op unless the lock is enabled.
+          setTimeout(() => { try { lockAfterOrder(); } catch (_) {} }, 1500);
         }
       } catch (error) {
         console.error('Error in handleProcessOrder:', error);
@@ -3436,7 +3448,7 @@ const OrderSummary = ({
                     fontWeight: '600',
                     color: activeSavedOrderId === order.id ? '#ffffff' : (dm ? dm.orangeText : '#9a3412')
                   }}>
-                    {order.name || `#${order.dailyOrderId || order.id.slice(-4).toUpperCase()}`}
+                    {order.name || `#${orderDisplayNumber(order)}`}
                   </span>
                 )}
                 <button
@@ -3659,7 +3671,7 @@ const OrderSummary = ({
                 return (
                   <>
                     <div style={{ fontSize: '14px', color: dm ? dm.greenText : '#166534', marginBottom: '12px', fontWeight: '600' }}>
-                      {bLabels.billLabel} #{orderSuccess.dailyOrderId ?? orderSuccess.orderId ?? '—'} {isKitchenOrder ? t('invoice.sentToKitchen') : t('invoice.completed')}
+                      {bLabels.billLabel} #{orderDisplayNumber(orderSuccess)} {isKitchenOrder ? t('invoice.sentToKitchen') : t('invoice.completed')}
                     </div>
                     <div style={{ fontSize: '12px', color: dm ? dm.greenText : '#166534', marginBottom: '16px' }}>
                       {isKitchenOrder ? t('invoice.orderSentToKitchen') : t('invoice.paymentProcessed')}
@@ -3679,7 +3691,7 @@ const OrderSummary = ({
                     })()}
                     <div style={{ marginBottom: '6px', fontSize: '14px' }}>{orderSuccess.kotData.restaurantName || 'Restaurant'}</div>
                     <div style={{ textAlign: 'left', marginBottom: '8px', fontSize: '13px' }}>
-                      <div><strong>{t('invoice.orderHash')}:</strong> {orderSuccess.kotData.dailyOrderId ?? orderSuccess.kotData.orderId ?? '—'}</div>
+                      <div><strong>{t('invoice.orderHash')}:</strong> {orderDisplayNumber(orderSuccess.kotData)}</div>
                       {orderSuccess.kotData.orderId && <div><strong>{t('invoice.id')}:</strong> {String(orderSuccess.kotData.orderId).slice(-8).toUpperCase()}</div>}
                       <div><strong>{t('invoice.date')}:</strong> {new Date().toLocaleString()}</div>
                       {(orderSuccess.kotData.roomNumber || orderSuccess.kotData.tableNumber) && (
@@ -3826,7 +3838,7 @@ const OrderSummary = ({
                       <div style={{ fontSize: '11px', color: dm ? dm.greenText : '#166534', marginBottom: '1px' }}><strong>Reg#:</strong> {invoice.businessRegistrationNumber}</div>
                     )}
                     <div style={{ textAlign: 'left', marginBottom: '8px', fontSize: '13px', marginTop: '6px' }}>
-                      {invoice?.dailyOrderId != null && <div><strong>{bLabels.billLabel} #:</strong> {invoice.dailyOrderId}</div>}
+                      {invoice?.dailyOrderId != null && <div><strong>{bLabels.billLabel} #:</strong> {orderDisplayNumber(invoice)}</div>}
                       {invoice?.orderId && <div><strong>{t('invoice.id')}:</strong> {String(invoice.orderId).slice(-8).toUpperCase()}</div>}
                       <div><strong>{t('invoice.date')}:</strong> {invoice?.generatedAt ? new Date(invoice.generatedAt).toLocaleString() : (invoice?.invoiceDate ? new Date(invoice.invoiceDate).toLocaleString() : 'N/A')}</div>
                       {invoice?.tableNumber && <div><strong>{t('invoice.table')}:</strong> {invoice.tableNumber}{invoice?.floorName ? ` · ${invoice.floorName}` : ''}</div>}
@@ -5419,6 +5431,30 @@ const OrderSummary = ({
                       </div>
                     )}
 
+                    {/* #20 Walk-in KRA PIN (Kenya eTIMS) — tags the order (customerTin) for the
+                        fiscal receipt WITHOUT creating a CRM customer. Only shown when eTIMS is on. */}
+                    {etimsEnabled && (
+                    <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      placeholder="KRA PIN (optional)"
+                      value={customerTin || ''}
+                      onChange={(e) => onCustomerTinChange?.(String(e.target.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15))}
+                      style={{
+                        width: '100%',
+                        padding: isMobile ? '6px 8px' : '8px 10px',
+                        border: '1.5px solid #e5e7eb',
+                        borderRadius: isMobile ? '6px' : '8px',
+                        fontSize: isMobile ? '11px' : '12px',
+                        outline: 'none',
+                        backgroundColor: dm ? dm.inputBg : '#ffffff',
+                        boxSizing: 'border-box',
+                        letterSpacing: '0.03em',
+                      }}
+                    />
+                    </div>
+                    )}
+
                     {/* Customer Name — always visible, pre-filled when customer found */}
                     {!posSettings.hideCustomerName && (
                     <div style={{ position: 'relative' }}>
@@ -6849,6 +6885,7 @@ const OrderSummary = ({
                   onClick={() => {
                     if (typeof onUpdateWithoutKOT === 'function' && !orderBusy) {
                       onUpdateWithoutKOT(buildTaxData());
+                      armLockAfterAction();
                     }
                     if (isMobile && onClose && !orderBusy) {
                       setTimeout(() => onClose(), 500);
@@ -6913,6 +6950,7 @@ const OrderSummary = ({
                       managerPin: managerPin || null,
                     };
                     onSaveOrder(taxData);
+                    armLockAfterAction();
                   }
                   if (isMobile && onClose && !orderBusy) {
                     setTimeout(() => onClose(), 500);
@@ -6963,6 +7001,7 @@ const OrderSummary = ({
                   }
                   if (typeof onPlaceOrder === 'function') {
                     onPlaceOrder(buildTaxData());
+                    armLockAfterAction();
                   }
                   // Close cart modal on mobile — but NOT in WebView (dine-app) so KOT summary stays visible
                   if (isMobile && onClose && !(typeof window !== 'undefined' && window.ReactNativeWebView)) {
@@ -6981,7 +7020,9 @@ const OrderSummary = ({
                   fontWeight: '600',
                   border: 'none',
                   cursor: orderBusy || cart.length === 0 || completedBillingBlocked ? 'not-allowed' : 'pointer',
-                  display: 'flex',
+                  // #14 — hide the "Save KOT / Place Order" button for roles not in
+                  // billingSettings.saveKotRoles (empty array = everyone, so default is unchanged).
+                  display: isRoleAllowed(billingSettings?.saveKotRoles) ? 'flex' : 'none',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '5px',
@@ -7005,9 +7046,11 @@ const OrderSummary = ({
                     window.__autoPrintKOT = true;
                     if (typeof onPlaceOrderAndPrint === 'function' && !orderBusy) {
                       onPlaceOrderAndPrint(buildTaxData());
+                      armLockAfterAction();
                     } else if (typeof onPlaceOrder === 'function' && !orderBusy) {
                       // Fallback: use regular place order if onPlaceOrderAndPrint not provided
                       onPlaceOrder(buildTaxData());
+                      armLockAfterAction();
                     }
                     // Close cart modal on mobile — but NOT in WebView (dine-app) so KOT summary stays visible
                     if (isMobile && onClose && !(typeof window !== 'undefined' && window.ReactNativeWebView)) {
@@ -7854,8 +7897,8 @@ const OrderSummary = ({
                 </div>
               )}
 
-              {/* KITCHEN NOTES Section */}
-              <div style={{ marginBottom: '8px' }}>
+              {/* KITCHEN NOTES Section — hideable per #13 (posSettings.hideSpecialInstructions) */}
+              <div style={{ marginBottom: '8px', display: posSettings?.hideSpecialInstructions === true ? 'none' : 'block' }}>
                 <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <FaStickyNote size={9} /> Kitchen Notes
                 </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { orderDisplayNumber } from '../../../utils/orderNumber';
 import { useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
 import { printDocument } from '../../../utils/printBridge';
@@ -937,6 +938,7 @@ const Hotel = () => {
             status: order.status,
             paymentStatus: order.paymentStatus,
             dailyOrderId: order.dailyOrderId || order.orderNumber,
+            orderNumberDisplay: order.orderNumberDisplay || null,
             createdAt: order.createdAt
           };
         }) || [];
@@ -2855,7 +2857,7 @@ const Hotel = () => {
                       const fullOrderId = order.id || order.orderId;
                       const isPaid = foodOrdersPaidStatus[fullOrderId] || false;
                       // Display daily order number for readability, but use full ID for logic
-                      const displayOrderNumber = order.dailyOrderId || order.orderNumber || fullOrderId?.slice(-6);
+                      const displayOrderNumber = orderDisplayNumber(order);
 
                       return (
                         <div key={fullOrderId} className="flex items-center justify-between gap-2 p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors">
@@ -3206,7 +3208,7 @@ const Hotel = () => {
                   <div className="space-y-2">
                     {invoice.foodOrders.map((order, idx) => {
                       // Display daily order number for readability
-                      const displayOrderNumber = order.dailyOrderId || order.orderNumber || order.orderId?.slice(-6);
+                      const displayOrderNumber = orderDisplayNumber(order);
                       return (
                         <div key={order.orderId || idx} className={`p-3 rounded-lg border-2 ${order.isPaid ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
                           <div className="flex items-center justify-between">

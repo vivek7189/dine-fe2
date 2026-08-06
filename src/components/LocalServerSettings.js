@@ -16,6 +16,20 @@ export default function LocalServerSettings() {
   const [saved, setSaved] = useState('');
   const [testing, setTesting] = useState(false);
   const [result, setResult] = useState(null); // { ok, ms, name, error }
+  const [terminalNum, setTerminalNum] = useState('');
+  const [termSaved, setTermSaved] = useState(false);
+
+  useEffect(() => {
+    try { window.electronAPI?.terminal?.getNumber?.().then((n) => { if (n) setTerminalNum(String(n)); }).catch(() => {}); } catch (_) {}
+  }, []);
+
+  const saveTerminalNumber = useCallback(async () => {
+    const n = parseInt(terminalNum, 10);
+    try {
+      await window.electronAPI?.terminal?.setNumber?.(Number.isFinite(n) && n > 0 ? n : null);
+      setTermSaved(true); setTimeout(() => setTermSaved(false), 2500);
+    } catch (_) {}
+  }, [terminalNum]);
 
   useEffect(() => {
     const cur = getLocalServerUrl() || '';
@@ -118,6 +132,23 @@ export default function LocalServerSettings() {
           {result.ok ? `Reachable · ${result.ms} ms` : result.error}
         </div>
       )}
+
+      {/* Terminal number — multi-terminal order numbering (T1, T2, ...) */}
+      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#475569', margin: '18px 0 6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Terminal number</label>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <input
+          value={terminalNum}
+          onChange={(e) => setTerminalNum(e.target.value.replace(/[^0-9]/g, ''))}
+          placeholder="e.g. 1"
+          inputMode="numeric"
+          style={{ width: 90, padding: '11px 13px', border: '1px solid #d3dae6', borderRadius: 10, fontSize: 15, fontFamily: 'ui-monospace, Menlo, monospace', color: '#0f172a', outline: 'none', textAlign: 'center' }}
+        />
+        <button onClick={saveTerminalNumber} style={{ padding: '0 16px', height: 42, borderRadius: 10, border: '1px solid #d3dae6', background: '#fff', color: '#334155', fontSize: 14, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          {termSaved ? 'Saved ✓' : 'Save'}
+        </button>
+        {terminalNum && <span style={{ fontSize: 13, color: '#64748b' }}>Orders here print as <code style={{ fontWeight: 700, color: '#4f46e5' }}>T{terminalNum}-1, T{terminalNum}-2 …</code></span>}
+      </div>
+      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>Give each till a different number so order numbers never clash. Takes effect after restarting the app.</div>
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { orderDisplayNumber } from '../../../../utils/orderNumber';
 import { createPortal } from 'react-dom';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import * as XLSX from 'xlsx';
@@ -1224,7 +1225,7 @@ var CustomerDetail = function() {
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '5px' : '8px', flexWrap: 'wrap' }}>
                               <span style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: '600', color: '#1e293b' }}>
-                                {order.dailyOrderId ? '#' + order.dailyOrderId : order.orderNumber}
+                                {'#' + orderDisplayNumber(order)}
                               </span>
                               {statusBadge && (
                                 <span style={{

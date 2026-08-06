@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { orderDisplayNumber } from '../utils/orderNumber';
 import { usePathname } from 'next/navigation';
 // import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
@@ -93,6 +94,7 @@ export function useOrderNotifications(restaurantId, notificationOrderTypes = nul
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       orderId: orderData.id || orderData.orderId,
       dailyOrderId: orderData.dailyOrderId || orderData.orderNumber,
+      orderNumberDisplay: orderData.orderNumberDisplay || null,
       orderType,
       customerName: orderData.customerName || orderData.customer?.name || '',
       customerPhone: orderData.customerPhone || orderData.customer?.phone || '',

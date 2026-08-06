@@ -74,6 +74,25 @@ export async function preferLoopbackIfLocal(probeMs = 1500) {
     const res = await fetch(`${LOOPBACK}/api/health`, { signal: ctrl.signal });
     clearTimeout(timer);
     if (res.ok) {
+      // A co-located server is up — but only ADOPT it once it has data (provisioned).
+      // Before first provisioning the local DB is empty, so routing to it would break
+      // login/menu. Until then we stay on the cloud, so the app works online out of the
+      // box; once seeded, we switch to loopback (offline-capable). If /provision/status
+      // isn't available (not a local-server build), treat "up" as adopt (legacy behavior).
+      try {
+        const sc = new AbortController();
+        const st = setTimeout(() => sc.abort(), probeMs);
+        const pr = await fetch(`${LOOPBACK}/api/provision/status`, { signal: sc.signal });
+        clearTimeout(st);
+        if (pr.ok) {
+          const j = await pr.json().catch(() => ({}));
+          if (j && j.provisioned === false) {
+            // Server present but not seeded yet → keep using the cloud for now.
+            if (getLocalServerUrl() === LOOPBACK) setLocalServerUrl(null);
+            return getLocalServerUrl();
+          }
+        }
+      } catch (_) { /* status endpoint absent → fall through and adopt */ }
       if (getLocalServerUrl() !== LOOPBACK) setLocalServerUrl(LOOPBACK);
       return LOOPBACK;
     }

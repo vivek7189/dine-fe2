@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense, useCallback } from 'react';
+import { orderDisplayNumber } from '../../utils/orderNumber';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   FaSearch, FaShoppingCart, FaPlus, FaMinus, FaTrash, FaArrowLeft,
@@ -3980,7 +3981,7 @@ const CheckoutView = ({
                                 Order Number
                               </span>
                               <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
-                                #{order.dailyOrderId ?? order.orderNumber ?? (order.id && order.id.slice(-6)) ?? '—'}
+                                #{orderDisplayNumber(order)}
                               </span>
                               <span style={{
                                 fontSize: '10px',
@@ -4106,7 +4107,7 @@ const CheckoutView = ({
                             }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                                 <span style={{ fontWeight: '600', color: '#6b7280' }}>Order Number</span>
-                                <span style={{ fontFamily: 'monospace', fontWeight: '600' }}>#{order.dailyOrderId ?? order.orderNumber ?? (order.id && order.id.slice(-6)) ?? '—'}</span>
+                                <span style={{ fontFamily: 'monospace', fontWeight: '600' }}>#{orderDisplayNumber(order)}</span>
                               </div>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', wordBreak: 'break-all' }}>
                                 <span style={{ fontWeight: '600', color: '#6b7280', flexShrink: 0, marginRight: '8px' }}>Order ID</span>

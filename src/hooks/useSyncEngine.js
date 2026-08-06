@@ -19,6 +19,7 @@ import {
   isSyncEnginePaused,
 } from '../lib/syncEngine';
 import { getOfflineOrderCount } from '../lib/offlineDb';
+import { getLocalServerUrl } from '../lib/localServer';
 
 const OFFLINE_ENABLED_KEY = 'dine_offline_engine_enabled';
 
@@ -48,6 +49,12 @@ function stopPeriodicSync() {
 
 export function getOfflineEngineEnabled() {
   try {
+    // When this terminal is pointed at a co-located local server (the real dine-backend
+    // + a local Postgres, reachable on loopback even with Wi-Fi off), the browser's
+    // IndexedDB offline queue is BOTH redundant and harmful: it would create orders the
+    // backend never sees (→ "Order not found" at billing). The local Postgres IS the
+    // offline store now, so the client offline engine must be OFF in local-server mode.
+    if (getLocalServerUrl()) return false;
     const val = localStorage.getItem(OFFLINE_ENABLED_KEY);
     return val === null ? true : val === 'true';
   } catch { return true; }
@@ -78,6 +85,16 @@ export function useSyncEngine(apiClient) {
   const setOfflineEnabled = useCallback((enabled) => {
     _setOfflineEnabled(enabled);
     setOfflineEngineEnabled(enabled);
+  }, []);
+
+  // Loopback adoption (preferLoopbackIfLocal) is async, so at first mount the local
+  // server URL may not be set yet and offlineEnabled could initialize to true. Re-evaluate
+  // right after mount (and once more shortly after) so the client offline engine reliably
+  // turns OFF in local-server mode before any order is placed.
+  useEffect(() => {
+    _setOfflineEnabled(getOfflineEngineEnabled());
+    const t = setTimeout(() => _setOfflineEnabled(getOfflineEngineEnabled()), 2500);
+    return () => clearTimeout(t);
   }, []);
 
   // Refresh counts + failed list

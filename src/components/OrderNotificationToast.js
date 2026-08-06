@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { orderDisplayNumber } from '../utils/orderNumber';
 import { useRouter } from 'next/navigation';
 import { FaShoppingBag, FaUtensils, FaTruck, FaStore, FaTimes } from 'react-icons/fa';
 
@@ -67,7 +68,7 @@ function ToastItem({ notification, onDismiss, index }) {
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: '13px', fontWeight: '700', color: '#111', marginBottom: '2px' }}>
-            New {config.label} Order #{notification.dailyOrderId || '—'}
+            New {config.label} Order #{orderDisplayNumber(notification)}
           </div>
           <div style={{ fontSize: '11px', color: '#6b7280' }}>
             {notification.customerName && `${notification.customerName} • `}

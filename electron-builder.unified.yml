@@ -1,0 +1,52 @@
+# Unified "POS + server" TEST build: one app that boots embedded Postgres + the real
+# dine-backend and shows the POS UI. arm64-only + UNSIGNED (no notarize) for fast local
+# testing on this Mac. The production build still uses electron-builder.yml.
+appId: com.dineopen.desktop
+productName: DineOpen POS Unified
+directories:
+  output: dist-electron-unified
+files:
+  - out/**/*
+  - electron/**/*
+  - package.json
+asarUnpack:
+  - "node_modules/better-sqlite3/**/*"
+# Bundle the REAL backend (sibling repo, pg-full-migration) + its node_modules incl.
+# embedded-postgres binaries. Copied to Resources/backend; localServer.js forks it.
+extraResources:
+  - from: "../dine-backend"
+    to: "backend"
+    filter:
+      - "**/*"
+      - "!.git/**"
+      - "!desktop-server/**"
+      - "!**/*.map"
+      - "!**/*.test.js"
+      - "!**/__tests__/**"
+      - "!.env"
+      - "!.env.local"
+      - "!.env.production"
+      - "!node_modules/@embedded-postgres/linux-*/**"
+      - "!node_modules/@embedded-postgres/windows-*/**"
+extraMetadata:
+  main: electron/main.js
+mac:
+  icon: electron/icons/icon.icns
+  target:
+    - target: dmg
+      arch:
+        - arm64
+  category: public.app-category.business
+  # Unsigned test build — Gatekeeper will require right-click → Open on first launch.
+  identity: null
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  artifactName: "${productName}-${version}-${arch}.${ext}"
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications

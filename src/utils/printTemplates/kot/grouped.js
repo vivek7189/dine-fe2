@@ -7,6 +7,7 @@ import {
   getKOTPrintCSS, wrapInDocument,
   KOT_LABELS_AR, getBillDualCSS, dualLabel, dualTitle,
 } from '../helpers';
+import { orderDisplayNumber } from '../../orderNumber';
 
 export const id = 'grouped';
 export const name = 'Grouped';
@@ -111,7 +112,7 @@ export function render(kotData, printSettings = {}, labels = {}) {
     `<div class="kot-header">${kl.showRestaurantName !== false ? `<div class="restaurant-name">${esc(k.restaurantName || 'Restaurant')}</div>` : ''}${kl.showKotTitle !== false ? `<div class="kot-title">--- ${title} ---</div>` : ''}</div>` +
     `<div class="divider">--------------------------------</div>` +
     `<div class="kot-info">` +
-      `<div class="kot-info-row">${kl.showOrderNumber !== false ? `<span><strong>${dualLabel(L.orderHash, AR.orderHash, showAr)}:</strong> ${k.dailyOrderId || k.orderId}</span>` : ''}${kl.showTable !== false ? tableStr : ''}</div>` +
+      `<div class="kot-info-row">${kl.showOrderNumber !== false ? `<span><strong>${dualLabel(L.orderHash, AR.orderHash, showAr)}:</strong> ${orderDisplayNumber(k)}</span>` : ''}${kl.showTable !== false ? tableStr : ''}</div>` +
       `<div class="kot-info-row">${kl.showDate !== false ? `<span><strong>${dualLabel(L.date, AR.date, showAr)}:</strong> ${dateStr}</span>` : ''}<span><strong>${dualLabel(L.time, AR.time, showAr)}:</strong> ${timeStr}</span></div>` +
       ((kl.showOrderType !== false && k.orderType) || (kl.showWaiter !== false && k.waiterName) ? `<div class="kot-info-row">${kl.showOrderType !== false && k.orderType ? `<span><strong>${dualLabel(L.type, AR.type, showAr)}:</strong> ${k.orderType}</span>` : '<span></span>'}${kl.showWaiter !== false && k.waiterName ? `<span><strong>${dualLabel(L.waiter, AR.waiter, showAr)}:</strong> ${esc(k.waiterName)}</span>` : ''}</div>` : '') +
       (kl.showCustomer !== false && k.customerName ? `<div><strong>${dualLabel(L.customer, AR.customer, showAr)}:</strong> ${esc(k.customerName)}</div>` : '') +
@@ -123,5 +124,5 @@ export function render(kotData, printSettings = {}, labels = {}) {
     `<div class="kot-footer">${footerText}</div>` +
     specialInstructionsHtml;
 
-  return wrapInDocument(`KOT - ${k.dailyOrderId || k.orderId}`, finalCss, bodyHtml);
+  return wrapInDocument(`KOT - ${orderDisplayNumber(k)}`, finalCss, bodyHtml);
 }

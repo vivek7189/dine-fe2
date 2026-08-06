@@ -57,6 +57,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     forcePull: (restaurantId) => ipcRenderer.invoke('electron:forcePull', restaurantId),
   },
 
+  // Multi-terminal order numbering: this terminal's number (T1, T2, ...).
+  terminal: {
+    getNumber: () => ipcRenderer.invoke('electron:getTerminalNumber'),
+    setNumber: (n) => ipcRenderer.invoke('electron:setTerminalNumber', n),
+  },
+
   // LAN hub control + terminal identity + pairing
   lanHub: {
     // Hub control

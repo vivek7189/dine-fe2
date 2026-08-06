@@ -22,6 +22,7 @@ import { getBillPrintCSS, getKOTPrintCSS, getBillHeaderHTML, buildTokenSlipsDocu
 import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '../../../utils/printBridge';
 import { printKOTByStations } from '../../../utils/printKotStations';
 import { generateBillHTML } from '../../../utils/printHtmlGenerator';
+import { orderDisplayNumber } from '../../../utils/orderNumber';
 import dynamic from 'next/dynamic';
 const OrderSummary = dynamic(() => import('../../../components/OrderSummary'), { ssr: false });
 const OrderEditModal = dynamic(() => import('../../../components/OrderEditModal'), { ssr: false });
@@ -86,6 +87,10 @@ const BookingForm = dynamic(() => import('../../../components/bookings/BookingFo
 // Merge pending offline orders into the order list so they show immediately
 async function mergeOfflineOrderHistory(existingOrders, restaurantId) {
   try {
+    // In local-server mode the client offline engine is OFF (the local Postgres backend
+    // is the source of truth). Don't merge browser-IndexedDB orders — they'd be phantom
+    // rows the backend can't bill ("Order not found").
+    if (!getOfflineEngineEnabled()) return existingOrders;
     // Timeout after 3s so a blocked IndexedDB can't hang the page forever
     const offlineOrders = await Promise.race([
       getAllOfflineOrders(),
@@ -1636,6 +1641,7 @@ const OrderHistory = () => {
       id: order.id,
       orderId: order.id,
       dailyOrderId: order.dailyOrderId || order.orderNumber,
+      orderNumberDisplay: order.orderNumberDisplay || null,
       restaurantName: restaurant?.name || 'Restaurant',
       legalBusinessName: restaurant?.legalBusinessName || '',
       address: restaurant?.address || '',
@@ -1772,7 +1778,7 @@ const OrderHistory = () => {
     } catch (_) { /* fall through to combined print */ }
 
     const restaurantName = restaurant?.name || 'Restaurant';
-    const orderNum = order.dailyOrderId ?? order.orderNumber ?? order.id ?? '—';
+    const orderNum = orderDisplayNumber(order);
     const tableNum = order.tableNumber || order.customerDisplay?.tableNumber || order.customerInfo?.tableNumber || null;
     const roomNum = order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || null;
     const customerName = order.customerDisplay?.name || order.customerInfo?.name || null;
@@ -1806,8 +1812,30 @@ const OrderHistory = () => {
     }
   };
 
+  // Re-print permission gate (#3 KOT re-print, #4 bill re-print). Roles configured in
+  // Admin → Billing Settings (billingSettings.reprintKotRoles / reprintBillRoles). Empty
+  // array (default) = everyone allowed, so existing installs are unchanged. Owner/admin
+  // always allowed.
+  const canReprintKind = (kind) => {
+    try {
+      const rest = JSON.parse(localStorage.getItem('selectedRestaurant') || '{}');
+      const bs = rest.billingSettings || {};
+      const roles = kind === 'kot' ? bs.reprintKotRoles : bs.reprintBillRoles;
+      if (!Array.isArray(roles) || roles.length === 0) return true;
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const role = (user.role || '').toLowerCase();
+      if (role === 'owner' || role === 'admin') return true;
+      return roles.includes(role);
+    } catch { return true; }
+  };
+
   const handlePrintBill = (order) => {
     setPrintDropdownOrderId(null);
+    if (!canReprintKind('bill')) {
+      setPrintSuccess('You do not have permission to re-print bills.');
+      setTimeout(() => setPrintSuccess(null), 3000);
+      return;
+    }
     // On the Electron desktop POS, always print locally (silent) — same as the
     // dashboard billing screen. The Pusher/KOT-printer-app path below is only for
     // WEB terminals that offload printing to a separate networked KOT app; on
@@ -1822,7 +1850,7 @@ const OrderHistory = () => {
         .then((response) => {
           if (response?.success) {
             const label = order.status === 'completed' ? 'Bill' : 'Pre-Bill';
-            setPrintSuccess(`${label} sent to printer (#${order.dailyOrderId || order.id?.slice(-4)})`);
+            setPrintSuccess(`${label} sent to printer (#${orderDisplayNumber(order)})`);
             setTimeout(() => setPrintSuccess(null), 3000);
           }
         })
@@ -1835,6 +1863,11 @@ const OrderHistory = () => {
 
   const handlePrintKOT = (order) => {
     setPrintDropdownOrderId(null);
+    if (!canReprintKind('kot')) {
+      setPrintSuccess('You do not have permission to re-print KOTs.');
+      setTimeout(() => setPrintSuccess(null), 3000);
+      return;
+    }
     // Electron desktop POS → local silent print (routes to the configured KOT
     // printer, incl. IP printers). Pusher/KOT-app path is web-only. See handlePrintBill.
     const isElectronApp = typeof window !== 'undefined' && !!window.electronAPI;
@@ -1843,7 +1876,7 @@ const OrderHistory = () => {
       apiClient.requestManualPrint(order.id, 'kot')
         .then((response) => {
           if (response?.success) {
-            setPrintSuccess(`KOT sent to printer (#${order.dailyOrderId || order.id?.slice(-4)})`);
+            setPrintSuccess(`KOT sent to printer (#${orderDisplayNumber(order)})`);
             setTimeout(() => setPrintSuccess(null), 3000);
           }
         })
@@ -1866,7 +1899,7 @@ const OrderHistory = () => {
         const response = await apiClient.requestManualPrint(order.id);
         if (response?.success) {
           const printType = order.status === 'completed' ? 'Bill' : 'Pre-Bill';
-          setPrintSuccess(`${printType} sent to printer (#${order.dailyOrderId || order.id?.slice(-4)})`);
+          setPrintSuccess(`${printType} sent to printer (#${orderDisplayNumber(order)})`);
           setTimeout(() => setPrintSuccess(null), 3000);
         }
       } catch (error) {
@@ -2266,7 +2299,7 @@ const OrderHistory = () => {
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-gray-900 flex items-center justify-center">
-                <span className="text-white font-bold text-sm">#{order.dailyOrderId || order.orderNumber || order.id.slice(-4).toUpperCase()}</span>
+                <span className="text-white font-bold text-sm">#{orderDisplayNumber(order)}</span>
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -2906,7 +2939,7 @@ const OrderHistory = () => {
                     (orders || []).forEach(o => {
                       const d = o.createdAt ? new Date(o.createdAt) : null;
                       rows.push([
-                        o.dailyOrderId || o.orderNumber || o.id,
+                        orderDisplayNumber(o),
                         d ? d.toLocaleDateString('en-IN') : '',
                         d ? d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '',
                         o.orderType || 'dine_in',
@@ -3545,7 +3578,7 @@ const OrderHistory = () => {
                             {/* Order # */}
                             <td className="px-3 py-2.5">
                               <div className="flex items-center gap-1.5">
-                                <span className="font-bold text-gray-900 text-sm">#{order.dailyOrderId || order.orderNumber || order.id.slice(-4).toUpperCase()}</span>
+                                <span className="font-bold text-gray-900 text-sm">#{orderDisplayNumber(order)}</span>
                                 {order.syncSource === 'offline' && <FaCloudUploadAlt className="text-blue-400 text-[10px]" title={t('orderHistory.syncedFromOffline')} />}
                               </div>
                               <div className="text-[10px] text-gray-400 font-mono mt-0.5 truncate max-w-[80px]" title={order.id}>{order.id.slice(0, 8)}...</div>
@@ -3900,12 +3933,12 @@ const OrderHistory = () => {
                                     {/* Order IDs */}
                                     <div className="mt-2 space-y-1">
                                       <div
-                                        onClick={() => copyToClipboard(String(order.dailyOrderId ?? order.orderNumber ?? order.id))}
+                                        onClick={() => copyToClipboard(String(orderDisplayNumber(order)))}
                                         className="flex items-center gap-1.5 text-[10px] text-gray-400 cursor-pointer hover:text-gray-600 transition-colors"
                                         title={t('orderHistory.clickToCopyOrderNumber')}
                                       >
                                         <span>{t('orderHistory.orderNumberShort')}</span>
-                                        <span className="font-mono font-semibold text-gray-600">#{order.dailyOrderId ?? order.orderNumber ?? '—'}</span>
+                                        <span className="font-mono font-semibold text-gray-600">#{orderDisplayNumber(order)}</span>
                                         <FaCopy size={8} className="text-gray-300" />
                                       </div>
                                       <div
@@ -3953,7 +3986,7 @@ const OrderHistory = () => {
                         <div className={`flex items-center justify-between ${isMobile ? 'mb-1' : 'mb-1.5 sm:mb-2'}`}>
                           <div className={`flex items-center ${isMobile ? 'gap-1.5' : 'gap-2'} min-w-0 flex-wrap`}>
                             <h3 className={`${isMobile ? 'text-[13px]' : 'text-base'} font-bold text-gray-900 flex items-center gap-1`}>
-                              #{order.dailyOrderId || order.orderNumber || order.id.slice(-4).toUpperCase()}
+                              #{orderDisplayNumber(order)}
                               {order.syncSource === 'offline' && <FaCloudUploadAlt className="text-blue-400 text-xs" title={t('orderHistory.syncedFromOffline')} />}
                             </h3>
                             <span
@@ -4138,12 +4171,12 @@ const OrderHistory = () => {
                           {!isMobile && (
                           <div className="flex items-center gap-3 min-w-0">
                             <div
-                              onClick={() => copyToClipboard(String(order.dailyOrderId ?? order.orderNumber ?? order.id))}
+                              onClick={() => copyToClipboard(String(orderDisplayNumber(order)))}
                               className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 transition-colors"
                               title={t('orderHistory.clickToCopyOrderNumber')}
                             >
                               <span className="text-[11px] text-gray-400">{t('orderHistory.orderNumber')}</span>
-                              <span className="text-xs font-mono font-semibold text-gray-600">#{order.dailyOrderId ?? order.orderNumber ?? order.id?.slice(-4)?.toUpperCase() ?? '—'}</span>
+                              <span className="text-xs font-mono font-semibold text-gray-600">#{orderDisplayNumber(order)}</span>
                               <FaCopy className="text-gray-300 text-[10px]" />
                             </div>
                             <div
@@ -4470,7 +4503,7 @@ const OrderHistory = () => {
                       {t('orderHistory.completeBilling')}
                     </div>
                     <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)', marginTop: '1px' }}>
-                      {t('orderHistory.orderHash')}{billingModalOrder.dailyOrderId || billingModalOrder.id?.slice(-6) || 'N/A'}
+                      {t('orderHistory.orderHash')}{orderDisplayNumber(billingModalOrder)}
                       {billingTableNumber ? ` \u00B7 ${t('orderHistory.tablePrefix')} ${billingTableNumber}` : ''}
                       {billingCustomerName ? ` \u00B7 ${billingCustomerName}` : ''}
                     </div>
@@ -4779,7 +4812,7 @@ const OrderHistory = () => {
                   </div>
                   <div>
                     <h2 className="text-lg sm:text-xl font-bold text-gray-900">
-                      Refund Order #{refundModalOrder.dailyOrderId || refundModalOrder.orderNumber || ''}
+                      Refund Order #{orderDisplayNumber(refundModalOrder)}
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-500">
                       Order total: {formatCurrency(refundModalOrder.finalAmount || refundModalOrder.totalAmount || 0)}
@@ -5021,7 +5054,7 @@ const OrderHistory = () => {
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-gray-900">Edit Completed Order</h2>
-                    <p className="text-xs text-gray-500">#{editCompletedOrder.dailyOrderId || editCompletedOrder.orderNumber} &bull; {editCompletedOrder.id?.slice(0, 8)}...</p>
+                    <p className="text-xs text-gray-500">#{orderDisplayNumber(editCompletedOrder)} &bull; {editCompletedOrder.id?.slice(0, 8)}...</p>
                   </div>
                 </div>
                 <button
@@ -6447,7 +6480,9 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
   const loyaltyDiscountAmt = b?.loyaltyDiscount ?? order.loyaltyDiscount ?? 0;
   const couponDiscountAmt = order.couponDiscount ?? 0;
   const totalDiscount = b?.totalDiscount ?? (offerDiscount + manualDiscountAmt + loyaltyDiscountAmt + couponDiscountAmt);
-  const invoiceNumber = b?.dailyOrderId || order.dailyOrderId || order.orderNumber || (order.id ? order.id.slice(-4).toUpperCase() : 'N/A');
+  const invoiceNumber = (b && (b.orderNumberDisplay || b.dailyOrderId != null || b.orderNumber != null))
+    ? orderDisplayNumber(b)
+    : orderDisplayNumber(order);
   
   return (
     <>

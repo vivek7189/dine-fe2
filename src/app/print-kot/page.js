@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import { orderDisplayNumber } from '../../utils/orderNumber';
 import { useSearchParams } from 'next/navigation';
 // import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
@@ -64,7 +65,7 @@ const KOTReceipt = ({ order, restaurantName, onPrint, isPrinting, kotUpdatePrint
           <div className="info-grid">
             <div className="info-cell">
               <span>Order#:</span>
-              <span className="bold">{order.dailyOrderId || order.kotId}</span>
+              <span className="bold">{orderDisplayNumber(order)}</span>
             </div>
             {order.tableNumber && (
               <div className="info-cell">
@@ -258,6 +259,7 @@ const PrintKOTContent = () => {
       restaurantPhone: order.restaurantPhone || '',
       orderId: order.kotId || order.id,
       dailyOrderId: order.dailyOrderId || order.kotId,
+      orderNumberDisplay: order.orderNumberDisplay || null,
       tableNumber: order.tableNumber || '',
       roomNumber: order.roomNumber || '',
       floorName: order.floorName || '',

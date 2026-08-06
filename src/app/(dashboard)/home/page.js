@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { orderDisplayNumber } from '../../../utils/orderNumber';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
@@ -564,7 +565,7 @@ export default function HomePage() {
             ) : (
               <div style={{ padding: '8px 12px' }}>
                 {recentOrders.map((order, i) => {
-                  const orderNum = order.dailyOrderId || order.orderNumber || order.id?.slice(-4).toUpperCase();
+                  const orderNum = orderDisplayNumber(order);
                   const status = statusColors[order.status] || statusColors.pending;
                   const total = order.grandTotal || order.totalAmount || order.total || 0;
                   const rawType = (order.orderType?.replace('-', ' ') || 'dine in').toLowerCase();

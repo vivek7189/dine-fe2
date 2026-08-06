@@ -26,7 +26,8 @@ import {
   onAuthStateChanged
 } from 'firebase/auth';
 import apiClient from '../../lib/api';
-import { getLocalServerUrl } from '../../lib/localServer';
+import { getLocalServerUrl, isLocalServerMode } from '../../lib/localServer';
+import OfflineLogin from '../../components/OfflineLogin';
 import { t } from '../../lib/i18n';
 import { redirectToSubdomain } from '../../utils/subdomain';
 import { prefetchDashboardInBackground } from '../../utils/dashboardCache';
@@ -269,6 +270,9 @@ const Login = () => {
 
   // Auth check state - start with checking true to show loading first
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  // Offline-first login: on the local-server POS app, default to the PIN-pad screen; the
+  // owner can switch to the full OTP/Google login (for setup/admin) via "Owner login".
+  const [showOwnerLogin, setShowOwnerLogin] = useState(false);
 
   // Track if we've already redirected to prevent loops
   const [hasRedirected, setHasRedirected] = useState(false);
@@ -1833,6 +1837,14 @@ const Login = () => {
         `}</style>
       </div>
     );
+  }
+
+  // Offline-first PIN-pad login — ONLY on the local-server POS app (loopback adopted, i.e.
+  // provisioned). Web and the main Electron app have no local server, so isLocalServerMode()
+  // is false and this never renders — their login is completely unchanged. "Owner login"
+  // sets showOwnerLogin and falls through to the full OTP/Google UI below.
+  if (typeof window !== 'undefined' && isLocalServerMode() && !showOwnerLogin) {
+    return <OfflineLogin onOwnerLogin={() => setShowOwnerLogin(true)} />;
   }
 
   // Restaurant picker for multi-restaurant staff

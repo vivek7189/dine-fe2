@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { orderDisplayNumber } from '../utils/orderNumber';
 import { createPortal } from 'react-dom';
 import { FaReceipt, FaTimes, FaSpinner } from 'react-icons/fa';
 import apiClient from '../lib/api';
@@ -375,7 +376,7 @@ export default function TableBillingModal({
               </div>
               {order && (
                 <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.75)', marginTop: '1px' }}>
-                  #{order.dailyOrderId || order.id?.slice(-6) || '—'}
+                  #{orderDisplayNumber(order)}
                   {order.items?.length ? ` · ${order.items.length} item${order.items.length > 1 ? 's' : ''}` : ''}
                 </div>
               )}

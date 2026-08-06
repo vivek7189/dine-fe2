@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { orderDisplayNumber } from '../../../utils/orderNumber';
 import { useRouter } from 'next/navigation';
 import { useLoading } from '../../../contexts/LoadingContext';
 import { useCurrency } from '../../../contexts/CurrencyContext';
@@ -394,8 +395,14 @@ const TableManagement = () => {
   const [bulkTableData, setBulkTableData] = useState({ fromNumber: '', toNumber: '', capacity: 4, floorId: null });
   const [bookingData, setBookingData] = useState({
     customerName: '', customerPhone: '', partySize: 2,
-    bookingDate: '', bookingTime: '', mealType: 'lunch', notes: ''
+    bookingDate: '', bookingTime: '', bookingEndTime: '', mealType: 'lunch', notes: ''
   });
+  // #19 — multiple tables can be reserved in one booking. Seeded with the clicked table.
+  const [reserveTableIds, setReserveTableIds] = useState([]);
+  // #1b — Merge Bills: combine several occupied tables' orders into one settleable bill.
+  const [showMergeBillsModal, setShowMergeBillsModal] = useState(false);
+  const [selectedBillTableIds, setSelectedBillTableIds] = useState([]);
+  const [mergingBills, setMergingBills] = useState(false);
 
   // Time slots & availability
   const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
@@ -412,6 +419,7 @@ const TableManagement = () => {
   // Bookings for date
   const [bookingsForDate, setBookingsForDate] = useState([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
+  const [bookingScope, setBookingScope] = useState('day'); // 'day' (selected date) | 'upcoming' (next 60d)
 
   const scrollContainerRef = useRef(null);
   const userData = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
@@ -546,13 +554,59 @@ const TableManagement = () => {
   };
 
   // ── API: Fetch bookings for date ───────────────────────
+  // The backend stores reservations as { customer:{name,phone}, guestCount, eventTime,
+  // eventDate, tableIds, tables[], specialInstructions } — normalise to the flat shape the
+  // list renders so names/party-size/time/table show instead of "Guest / ? guests".
+  const normalizeBookings = (list) => (list || []).map(b => {
+    const ids = Array.isArray(b.tableIds) ? b.tableIds : (b.tableId ? [b.tableId] : []);
+    const names = (Array.isArray(b.tables) && b.tables.length)
+      ? b.tables.map(x => x.name || x.id)
+      : ids.map(id => allTables.find(tt => tt.id === id)?.name).filter(Boolean);
+    return {
+      ...b,
+      customerName: b.customerName || b.customer?.name || '',
+      customerPhone: b.customerPhone || b.customer?.phone || '',
+      partySize: (b.partySize ?? b.guestCount) || null,
+      bookingTime: b.bookingTime || b.eventTime || '',
+      bookingEndTime: b.bookingEndTime || b.eventEndTime || '',
+      bookingDate: (b.bookingDate || b.eventDate || '').slice(0, 10),
+      tableId: ids[0] || null,
+      tableIds: ids,
+      tableNames: names,
+      notes: b.notes || b.specialInstructions || '',
+      status: b.status || 'confirmed',
+    };
+  });
+
+  // "16:00" → "4:00 PM" for the reservations list.
+  const fmtBookingTime = (hhmm) => {
+    if (!hhmm) return '—';
+    const m = /^(\d{1,2}):(\d{2})/.exec(hhmm);
+    if (!m) return hhmm;
+    let h = parseInt(m[1], 10); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;
+    return `${h}:${m[2]} ${ap}`;
+  };
+
   const fetchBookingsForDate = async (date) => {
     if (!selectedRestaurant?.id || !date) return;
     try {
       setLoadingBookings(true);
-      const response = await apiClient.getBookings(selectedRestaurant.id, { date });
+      // "Upcoming" tab pulls today → +60d; the default "Day" tab pulls just the selected date.
+      // (getBookings filters by startDate/endDate — a bare { date } was ignored, so the panel
+      // used to show every booking regardless of the day.)
+      const todayStr = new Date().toISOString().split('T')[0];
+      let filters;
+      if (bookingScope === 'upcoming') {
+        const end = new Date(); end.setDate(end.getDate() + 60);
+        filters = { startDate: todayStr, endDate: end.toISOString().split('T')[0] };
+      } else {
+        filters = { startDate: date, endDate: date };
+      }
+      const response = await apiClient.getBookings(selectedRestaurant.id, filters);
       if (response.bookings) {
-        setBookingsForDate(response.bookings);
+        const norm = normalizeBookings(response.bookings)
+          .sort((a, b) => `${a.bookingDate} ${a.bookingTime}`.localeCompare(`${b.bookingDate} ${b.bookingTime}`));
+        setBookingsForDate(norm);
       }
     } catch (err) {
       console.error('Error fetching bookings:', err);
@@ -586,12 +640,23 @@ const TableManagement = () => {
     }
   }, [bookingData.bookingDate]);
 
+  // #19 — seed the multi-table selection with the clicked table whenever the reserve modal opens.
+  useEffect(() => {
+    if (showBookingForm) setReserveTableIds(selectedTable ? [selectedTable.id] : []);
+  }, [showBookingForm, selectedTable]);
+
   useEffect(() => {
     if (selectedDate) {
       fetchTableStatusesForDate(selectedDate);
       fetchBookingsForDate(selectedDate);
     }
   }, [selectedDate, selectedRestaurant?.id]);
+
+  // Re-pull the bookings list when the Day/Upcoming tab changes.
+  useEffect(() => {
+    if (selectedRestaurant?.id) fetchBookingsForDate(selectedDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookingScope]);
 
   useEffect(() => {
     // Electron is always a desktop POS terminal — never use mobile layout
@@ -1348,29 +1413,75 @@ const TableManagement = () => {
 
   const createBooking = async () => {
     if (!isOnline) { showError('You are offline. Go online to make changes.'); return; }
-    if (!selectedTable || !bookingData.customerName.trim() || !selectedRestaurant) return;
+    if (!bookingData.customerName.trim() || !selectedRestaurant) return;
+    // #19 — one or more tables (seeded with the clicked table).
+    const ids = (reserveTableIds && reserveTableIds.length) ? reserveTableIds : (selectedTable ? [selectedTable.id] : []);
+    if (!ids.length) { showError('Select at least one table for the reservation.'); return; }
     setBookingSubmitting(true);
     try {
-      await apiClient.createBooking(selectedRestaurant.id, {
-        tableId: selectedTable.id, customerName: bookingData.customerName.trim(),
-        customerPhone: bookingData.customerPhone.trim() || null,
-        partySize: parseInt(bookingData.partySize), bookingDate: bookingData.bookingDate,
-        bookingTime: bookingData.bookingTime, notes: bookingData.notes.trim() || null, status: 'confirmed'
+      const tablesPayload = ids.map(id => {
+        const tb = allTables.find(x => x.id === id) || {};
+        return { id, name: tb.name || tb.number || id };
       });
-      // Only update live table status if booking is for today
+      // End time is auto-derived from the restaurant's turn time (default 90 min) so the cashier
+      // never has to enter it — overlap detection (#18) still gets a real window.
+      const turnMins = Number(posSettings?.defaultTurnTimeMinutes) || 90;
+      const deriveEnd = (start) => {
+        const m = /^(\d{1,2}):(\d{2})/.exec(start || '');
+        if (!m) return null;
+        const total = (parseInt(m[1], 10) * 60 + parseInt(m[2], 10) + turnMins) % (24 * 60);
+        return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+      };
+      await apiClient.createBooking(selectedRestaurant.id, {
+        type: 'table',                       // first-class table reservation (was the routing bug)
+        tableIds: ids,
+        tables: tablesPayload,
+        customer: {
+          name: bookingData.customerName.trim(),
+          phone: bookingData.customerPhone.trim() || null,
+        },
+        eventDate: bookingData.bookingDate,
+        eventTime: bookingData.bookingTime || null,
+        eventEndTime: bookingData.bookingEndTime || deriveEnd(bookingData.bookingTime),   // #18 needs end time to detect overlap
+        guestCount: parseInt(bookingData.partySize) || 0,
+        specialInstructions: bookingData.notes.trim() || null,
+      });
+      // Only flip live table status if the booking is for today.
       const todayStr = new Date().toISOString().split('T')[0];
       if (bookingData.bookingDate === todayStr) {
-        await updateTableStatus(selectedTable.id, 'reserved', {
-          customerName: bookingData.customerName, reservationTime: bookingData.bookingTime
-        });
+        for (const id of ids) {
+          await updateTableStatus(id, 'reserved', {
+            customerName: bookingData.customerName, reservationTime: bookingData.bookingTime
+          });
+        }
       }
-      setBookingData({ customerName: '', customerPhone: '', partySize: 2, bookingDate: '', bookingTime: '', notes: '' });
+      setBookingData({ customerName: '', customerPhone: '', partySize: 2, bookingDate: '', bookingTime: '', bookingEndTime: '', mealType: 'lunch', notes: '' });
+      setReserveTableIds([]);
       setShowBookingForm(false); setSelectedTable(null); setBookingFromHeader(false); setBookingStep(1);
-      // Refresh bookings for whichever date was booked (might differ from selectedDate)
       fetchBookingsForDate(selectedDate);
       if (bookingData.bookingDate !== selectedDate) fetchBookingsForDate(bookingData.bookingDate);
       showSuccess(t('tables.bookingConfirmed'));
-    } catch (err) { showError(`Failed: ${err.message}`); } finally { setBookingSubmitting(false); }
+    } catch (err) {
+      // #18 — overlap is a 409 with a clear message; surface it so the cashier picks another slot.
+      showError(err?.message || 'Failed to create the reservation.');
+    } finally { setBookingSubmitting(false); }
+  };
+
+  // #1b — merge the selected occupied tables' orders into ONE bill (first selected = primary).
+  const handleMergeBills = async () => {
+    if (!isOnline) { showError('You are offline. Go online to merge bills.'); return; }
+    const chosen = allTables.filter(t => selectedBillTableIds.includes(t.id) && t.currentOrderId);
+    if (chosen.length < 2) { showError('Select at least two occupied tables to merge.'); return; }
+    const orderIds = chosen.map(t => t.currentOrderId);
+    setMergingBills(true);
+    try {
+      await apiClient.mergeOrders(selectedRestaurant.id, orderIds[0], orderIds.slice(1));
+      showSuccess(`Merged ${chosen.length} bills into one on Table ${chosen[0].name || chosen[0].number}.`);
+      setShowMergeBillsModal(false); setSelectedBillTableIds([]);
+      loadFloorsAndTables(selectedRestaurant.id, true);
+    } catch (err) {
+      showError(err?.message || 'Failed to merge bills.');
+    } finally { setMergingBills(false); }
   };
 
   // ── Print Functions ─────────────────────────────────────────
@@ -1419,7 +1530,7 @@ const TableManagement = () => {
         const _tpIdHtml = _tpIdLines.map(l => `<div style="font-size:11px;">${l}</div>`).join('');
         const _tpHeaderHtml = getBillHeaderHTML(restaurantName.replace(/</g, '&lt;'), _tpIdHtml, printSettings?.receiptLogo || null, '--- BILL / INVOICE ---');
 
-        const billContent = `<!DOCTYPE html><html><head><title>Bill</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily, printSettings?.printerWidth, printSettings)}</style></head><body>${_tpHeaderHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div>Bill #${order.dailyOrderId || order.id?.slice(-6) || 'N/A'}</div><div>Table: ${order.tableNumber || table?.name || '-'}</div></div><div class="divider">--------------------------------</div><table class="items-table"><tr><th style="text-align:left;width:55%;">Item</th><th style="text-align:center;width:15%;">Qty</th><th style="text-align:right;width:30%;">Amt</th></tr>${itemsHtml}</table><div class="divider">--------------------------------</div><div class="total-section"><div class="total-row"><span>Subtotal</span><span>${currencySymbol}${subtotal.toFixed(2)}</span></div>${taxBreakdown.map(tax => `<div class="total-row"><span>${tax.name} (${tax.rate}%)</span><span>${currencySymbol}${(tax.amount || 0).toFixed(2)}</span></div>`).join('')}<div class="total-row" style="font-weight:bold;font-size:16px;"><span>TOTAL</span><span>${currencySymbol}${total.toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer">Thank you!</div></body></html>`;
+        const billContent = `<!DOCTYPE html><html><head><title>Bill</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily, printSettings?.printerWidth, printSettings)}</style></head><body>${_tpHeaderHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div>Bill #${orderDisplayNumber(order)}</div><div>Table: ${order.tableNumber || table?.name || '-'}</div></div><div class="divider">--------------------------------</div><table class="items-table"><tr><th style="text-align:left;width:55%;">Item</th><th style="text-align:center;width:15%;">Qty</th><th style="text-align:right;width:30%;">Amt</th></tr>${itemsHtml}</table><div class="divider">--------------------------------</div><div class="total-section"><div class="total-row"><span>Subtotal</span><span>${currencySymbol}${subtotal.toFixed(2)}</span></div>${taxBreakdown.map(tax => `<div class="total-row"><span>${tax.name} (${tax.rate}%)</span><span>${currencySymbol}${(tax.amount || 0).toFixed(2)}</span></div>`).join('')}<div class="total-row" style="font-weight:bold;font-size:16px;"><span>TOTAL</span><span>${currencySymbol}${total.toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer">Thank you!</div></body></html>`;
 
         await printDocument({ html: billContent, type: 'bill', printSettings: printSettings || {} });
       } else {
@@ -1471,7 +1582,7 @@ const TableManagement = () => {
       const formattedDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
       const totalItems = items.reduce((sum, i) => sum + (i.quantity || 1), 0);
 
-      const kotHtml = `<!DOCTYPE html><html><head><title>KOT</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily, printSettings?.printerWidth, printSettings)}</style></head><body><div style="text-align:center;font-weight:bold;font-size:16px;">${restaurantName.replace(/</g, '&lt;')}</div><div style="text-align:center;font-weight:bold;margin:6px 0;">--- KITCHEN ORDER ---</div><div class="divider">--------------------------------</div><div class="bill-info"><div>Order# ${order.dailyOrderId || order.id?.slice(-6) || 'N/A'}</div>${order.tableNumber ? `<div>Table: ${order.tableNumber}${order.floorName ? ` · ${order.floorName}` : ''}</div>` : ''}${order.roomNumber ? `<div>Room: ${order.roomNumber}</div>` : ''}<div>Time: ${formattedTime}</div><div>Date: ${formattedDate}</div>${order.customerDisplay?.name || order.customerInfo?.name ? `<div>Customer: ${(order.customerDisplay?.name || order.customerInfo?.name).replace(/</g, '&lt;')}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${items.map(i => `<div style="margin:4px 0;"><span style="font-weight:bold;">${i.quantity || 1}x</span> ${(i.name || '').replace(/</g, '&lt;')}${i.selectedVariant?.name ? `<div style="padding-left:20px;font-size:11px;color:#666;">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div style="padding-left:20px;font-size:11px;color:#666;">+ ${(c.name || c || '').toString().replace(/</g, '&lt;')}</div>`).join('')}${i.notes ? `<div style="padding-left:20px;font-size:10px;font-style:italic;">Note: ${i.notes.replace(/</g, '&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div><div style="font-weight:bold;text-align:center;">Total Items: ${totalItems}</div><div class="divider">================================</div></body></html>`;
+      const kotHtml = `<!DOCTYPE html><html><head><title>KOT</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily, printSettings?.printerWidth, printSettings)}</style></head><body><div style="text-align:center;font-weight:bold;font-size:16px;">${restaurantName.replace(/</g, '&lt;')}</div><div style="text-align:center;font-weight:bold;margin:6px 0;">--- KITCHEN ORDER ---</div><div class="divider">--------------------------------</div><div class="bill-info"><div>Order# ${orderDisplayNumber(order)}</div>${order.tableNumber ? `<div>Table: ${order.tableNumber}${order.floorName ? ` · ${order.floorName}` : ''}</div>` : ''}${order.roomNumber ? `<div>Room: ${order.roomNumber}</div>` : ''}<div>Time: ${formattedTime}</div><div>Date: ${formattedDate}</div>${order.customerDisplay?.name || order.customerInfo?.name ? `<div>Customer: ${(order.customerDisplay?.name || order.customerInfo?.name).replace(/</g, '&lt;')}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${items.map(i => `<div style="margin:4px 0;"><span style="font-weight:bold;">${i.quantity || 1}x</span> ${(i.name || '').replace(/</g, '&lt;')}${i.selectedVariant?.name ? `<div style="padding-left:20px;font-size:11px;color:#666;">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div style="padding-left:20px;font-size:11px;color:#666;">+ ${(c.name || c || '').toString().replace(/</g, '&lt;')}</div>`).join('')}${i.notes ? `<div style="padding-left:20px;font-size:10px;font-style:italic;">Note: ${i.notes.replace(/</g, '&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div><div style="font-weight:bold;text-align:center;">Total Items: ${totalItems}</div><div class="divider">================================</div></body></html>`;
 
       if (supportsNativeAutoPrint()) {
         await printDocument({ html: kotHtml, type: 'kot', printSettings: printSettings || {} });
@@ -1508,7 +1619,7 @@ const TableManagement = () => {
     const _tpIdHtml = _tpIdLines.map(l => `<div style="font-size:11px;">${l}</div>`).join('');
     const _tpHeaderHtml = getBillHeaderHTML(restaurantName.replace(/</g, '&lt;'), _tpIdHtml, printSettings?.receiptLogo || null, '--- BILL / INVOICE ---');
 
-    const billContent = `<!DOCTYPE html><html><head><title>Bill #${order.dailyOrderId || order.id?.slice(-6) || 'N/A'}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily, printSettings?.printerWidth, printSettings)}</style></head><body>${_tpHeaderHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div><span>Bill#:</span><span><strong>${order.dailyOrderId || order.id?.slice(-6) || 'N/A'}</strong></span></div><div><span>Date:</span><span>${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span></div>${order.tableNumber || table?.name ? `<div><span>Table:</span><span>${order.tableNumber || table?.name}${order.floorName || table?.floor ? ` · ${order.floorName || table?.floor}` : ''}</span></div>` : ''}${order.customerInfo?.name ? `<div><span>Customer:</span><span>${(order.customerInfo.name || '').replace(/</g, '&lt;')}</span></div>` : ''}<div><span>Payment:</span><span>${(order.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;width:55%;">Item</th><th style="text-align:center;width:15%;">Qty</th><th style="text-align:right;width:30%;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>Subtotal:</span><span>${currencySymbol}${subtotal.toFixed(2)}</span></div></div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}<div class="total-row"><span>TOTAL:</span><span>${currencySymbol}${total.toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer"><p>Thank you for dining with us!</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
+    const billContent = `<!DOCTYPE html><html><head><title>Bill #${orderDisplayNumber(order)}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily, printSettings?.printerWidth, printSettings)}</style></head><body>${_tpHeaderHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div><span>Bill#:</span><span><strong>${orderDisplayNumber(order)}</strong></span></div><div><span>Date:</span><span>${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span></div>${order.tableNumber || table?.name ? `<div><span>Table:</span><span>${order.tableNumber || table?.name}${order.floorName || table?.floor ? ` · ${order.floorName || table?.floor}` : ''}</span></div>` : ''}${order.customerInfo?.name ? `<div><span>Customer:</span><span>${(order.customerInfo.name || '').replace(/</g, '&lt;')}</span></div>` : ''}<div><span>Payment:</span><span>${(order.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;width:55%;">Item</th><th style="text-align:center;width:15%;">Qty</th><th style="text-align:right;width:30%;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>Subtotal:</span><span>${currencySymbol}${subtotal.toFixed(2)}</span></div></div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}<div class="total-row"><span>TOTAL:</span><span>${currencySymbol}${total.toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer"><p>Thank you for dining with us!</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
 
     win.document.write(billContent);
     win.document.close();
@@ -1543,6 +1654,7 @@ const TableManagement = () => {
       }
       case 'book-table': {
         setBookingData(prev => ({ ...prev, bookingDate: selectedDate, partySize: Math.min(table.capacity, prev.partySize || 2) }));
+        setSelectedTable(table); setReserveTableIds([table.id]); // pre-select the tapped table
         setBookingFromHeader(false); setShowBookingForm(true);
         break;
       }
@@ -1808,7 +1920,7 @@ const TableManagement = () => {
             {/* Action buttons — icon-only on mobile embed */}
             {activeMainTab === 'tables' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: isMobileEmbed ? '4px' : '10px', marginLeft: isMobileEmbed ? 'auto' : undefined }}>
-                <button onClick={() => { setBookingFromHeader(true); setSelectedTable(null); setBookingData(prev => ({ ...prev, bookingDate: selectedDate })); setShowBookingForm(true); }} style={{
+                <button onClick={() => { setBookingFromHeader(true); setSelectedTable(null); setReserveTableIds([]); setBookingData(prev => ({ ...prev, bookingDate: selectedDate })); setShowBookingForm(true); }} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? 0 : '6px',
                   padding: isMobileEmbed ? '6px' : '8px 16px', borderRadius: isMobileEmbed ? '8px' : '10px',
                   background: 'linear-gradient(135deg, #22c55e, #16a34a)', border: 'none', color: 'white',
@@ -1816,6 +1928,16 @@ const TableManagement = () => {
                   width: isMobileEmbed ? '30px' : undefined, height: isMobileEmbed ? '30px' : undefined,
                 }} title={t('tables.book')}>
                   <FaCalendarAlt size={isMobileEmbed ? 11 : 12} /> {!isMobileEmbed && t('tables.book')}
+                </button>
+                {/* #1b Merge Bills — combine multiple occupied tables into one bill */}
+                <button onClick={() => { setSelectedBillTableIds([]); setShowMergeBillsModal(true); }} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? 0 : '6px',
+                  padding: isMobileEmbed ? '6px' : '8px 16px', borderRadius: isMobileEmbed ? '8px' : '10px',
+                  background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white',
+                  fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(99,102,241,0.3)',
+                  width: isMobileEmbed ? '30px' : undefined, height: isMobileEmbed ? '30px' : undefined,
+                }} title="Merge Bills">
+                  <FaLayerGroup size={isMobileEmbed ? 11 : 12} /> {!isMobileEmbed && 'Merge Bills'}
                 </button>
                 {canResetTables && (
                   <button onClick={handleResetAllTables} style={{
@@ -2156,6 +2278,7 @@ const TableManagement = () => {
                           onMoveOrder={(tbl) => handleTableAction('move-order', tbl)}
                           onBookTable={(tbl) => {
                             setSelectedTable(tbl);
+                            setReserveTableIds([tbl.id]); // pre-select the tapped table
                             setBookingData(prev => ({ ...prev, bookingDate: selectedDate, partySize: Math.min(tbl.capacity, prev.partySize || 2) }));
                             setBookingFromHeader(false);
                             setShowBookingForm(true);
@@ -2257,21 +2380,38 @@ const TableManagement = () => {
 
         {/* ─── BOOKINGS PANEL ─── */}
         <div style={{ backgroundColor: 'white', borderRadius: '16px', border: '1px solid #f1f5f9', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', overflow: 'hidden', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid #f1f5f9' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid #f1f5f9', gap: '12px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'linear-gradient(135deg, #eff6ff, #dbeafe)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <FaCalendarAlt size={13} color="#3b82f6" />
               </div>
-              <span style={{ fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>
-                {isToday ? t('tables.bookingsToday') : t('tables.bookingsFor') + ' ' + formatDate(selectedDate)}
-              </span>
+              <span style={{ fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>{t('tables.reservations') || 'Reservations'}</span>
               {bookingsForDate.length > 0 && (
                 <span style={{ fontSize: '12px', fontWeight: '700', backgroundColor: '#eff6ff', color: '#2563eb', padding: '3px 10px', borderRadius: '10px' }}>{bookingsForDate.length}</span>
               )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {/* Day / Upcoming segmented tab */}
+              <div style={{ display: 'inline-flex', background: '#f1f5f9', borderRadius: '10px', padding: '3px' }}>
+                {[
+                  { key: 'day', label: isToday ? (t('tables.today') || 'Today') : formatDate(selectedDate) },
+                  { key: 'upcoming', label: t('tables.upcoming') || 'Upcoming' },
+                ].map(tab => {
+                  const active = bookingScope === tab.key;
+                  return (
+                    <button key={tab.key} onClick={() => setBookingScope(tab.key)} style={{
+                      padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+                      fontSize: '12px', fontWeight: 700,
+                      background: active ? '#fff' : 'transparent',
+                      color: active ? '#2563eb' : '#64748b',
+                      boxShadow: active ? '0 1px 3px rgba(0,0,0,0.10)' : 'none',
+                      transition: 'all 0.15s',
+                    }}>{tab.label}</button>
+                  );
+                })}
+              </div>
               {loadingBookings && <div style={{ width: '16px', height: '16px', border: '2px solid #f3f4f6', borderTop: '2px solid #3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />}
-              <button onClick={() => { setBookingFromHeader(true); setSelectedTable(null); setBookingData(prev => ({ ...prev, bookingDate: selectedDate })); setShowBookingForm(true); }} style={{
+              <button onClick={() => { setBookingFromHeader(true); setSelectedTable(null); setReserveTableIds([]); setBookingData(prev => ({ ...prev, bookingDate: selectedDate })); setShowBookingForm(true); }} style={{
                 padding: '6px 14px', borderRadius: '8px', border: 'none',
                 background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white',
                 fontSize: '12px', fontWeight: 600, cursor: 'pointer',
@@ -2301,16 +2441,27 @@ const TableManagement = () => {
                   'no-show': { bg: '#fef2f2', text: '#991b1b', dot: '#ef4444', label: t('tables.noShow') },
                 };
                 const bc = bColors[bStatus] || bColors.confirmed;
-                const tableName = booking.tableId ? (allTables.find(t => t.id === booking.tableId)?.name || '?') : null;
+                const tableLabel = (booking.tableNames && booking.tableNames.length)
+                  ? booking.tableNames.join(', ')
+                  : (booking.tableId ? (allTables.find(t => t.id === booking.tableId)?.name || '?') : null);
+                // In the "Upcoming" tab, break the list into clean per-date sections.
+                const showDateHeader = bookingScope === 'upcoming' &&
+                  (i === 0 || bookingsForDate[i - 1].bookingDate !== booking.bookingDate);
                 return (
-                  <div key={booking.id || i} style={{
+                  <div key={booking.id || i}>
+                  {showDateHeader && (
+                    <div style={{ padding: '10px 20px 6px', fontSize: '11px', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#94a3b8', background: '#fafbfc', borderBottom: '1px solid #f1f5f9' }}>
+                      {formatDate(booking.bookingDate)}
+                    </div>
+                  )}
+                  <div style={{
                     padding: '16px 20px', borderBottom: i < bookingsForDate.length - 1 ? '1px solid #f8fafc' : 'none',
                     display: 'flex', gap: '14px', alignItems: 'flex-start',
                   }}>
                     {/* Time column */}
-                    <div style={{ minWidth: '56px', textAlign: 'center', flexShrink: 0 }}>
-                      <div style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937' }}>
-                        {booking.bookingTime || '—'}
+                    <div style={{ minWidth: '64px', textAlign: 'center', flexShrink: 0 }}>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: '#1f2937', whiteSpace: 'nowrap' }}>
+                        {fmtBookingTime(booking.bookingTime)}
                       </div>
                       <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: bc.dot, margin: '6px auto 0', boxShadow: `0 0 0 3px ${bc.dot}20` }} />
                     </div>
@@ -2325,9 +2476,9 @@ const TableManagement = () => {
                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <FaUsers size={10} /> {booking.partySize || '?'} {(booking.partySize || 0) !== 1 ? t('tables.guests') : t('tables.guest')}
                         </span>
-                        {tableName && (
+                        {tableLabel && (
                           <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <FaChair size={10} /> {t('tables.table')} {tableName}
+                            <FaChair size={10} /> {t('tables.table')} {tableLabel}
                           </span>
                         )}
                         {booking.customerPhone && (
@@ -2378,6 +2529,7 @@ const TableManagement = () => {
                         </button>
                       </div>
                     )}
+                  </div>
                   </div>
                 );
               })}
@@ -2663,25 +2815,24 @@ const TableManagement = () => {
         document.body
       )}
 
-      {/* ─── BOOKING MODAL (3-step wizard) ─── */}
+      {/* ─── BOOKING MODAL (2-step wizard: When & Table → Guest) ─── */}
       {showBookingForm && (() => {
-        // Build booking conflict map for the selected date+time
+        // Build booking conflict + day-booking maps (per table). A booking can hold several tables,
+        // so index by each of its tableIds.
         const bookingConflicts = {};
-        bookingsForDate.forEach(b => {
-          if (b.tableId && b.bookingTime === bookingData.bookingTime && b.status !== 'cancelled' && b.status !== 'no-show') {
-            if (!bookingConflicts[b.tableId]) bookingConflicts[b.tableId] = [];
-            bookingConflicts[b.tableId].push(b);
-          }
-        });
-        // Also get all bookings for the date (any time) per table
         const dayBookingsPerTable = {};
         bookingsForDate.forEach(b => {
-          if (b.tableId && b.status !== 'cancelled' && b.status !== 'no-show') {
-            if (!dayBookingsPerTable[b.tableId]) dayBookingsPerTable[b.tableId] = [];
-            dayBookingsPerTable[b.tableId].push(b);
-          }
+          if (b.status === 'cancelled' || b.status === 'no-show') return;
+          const ids = (b.tableIds && b.tableIds.length) ? b.tableIds : (b.tableId ? [b.tableId] : []);
+          ids.forEach(id => {
+            (dayBookingsPerTable[id] = dayBookingsPerTable[id] || []).push(b);
+            if (bookingData.bookingTime && b.bookingTime === bookingData.bookingTime) {
+              (bookingConflicts[id] = bookingConflicts[id] || []).push(b);
+            }
+          });
         });
-        const hasTimeConflict = selectedTable && bookingConflicts[selectedTable.id]?.length > 0;
+        // Any selected table already booked at this exact slot → soft warning (hard block is the server 409 toast).
+        const hasTimeConflict = reserveTableIds.some(id => (bookingConflicts[id]?.length > 0));
 
         return createPortal(
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(6px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => { setShowBookingForm(false); setBookingStep(1); }}>
@@ -2713,14 +2864,13 @@ const TableManagement = () => {
                   </p>
                 </div>
               </div>
-              {/* Step indicator */}
+              {/* Step indicator — max 2 steps: When & Table, then Guest */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 {[
-                  { n: 1, label: t('tables.when'), icon: FaClock },
-                  { n: 2, label: t('tables.who'), icon: FaUser },
-                  { n: 3, label: t('tables.where'), icon: FaChair },
+                  { n: 1, label: t('tables.whenAndTable') || 'When & Table', icon: FaCalendarAlt },
+                  { n: 2, label: t('tables.who') || 'Guest', icon: FaUser },
                 ].map(({ n, label, icon: Icon }) => (
-                  <div key={n} style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: n < 3 ? 1 : 'none' }}>
+                  <div key={n} style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: n < 2 ? 1 : 'none' }}>
                     <div style={{
                       width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: '10px', fontWeight: '700',
@@ -2728,7 +2878,7 @@ const TableManagement = () => {
                       color: bookingStep === n ? '#ef4444' : 'white',
                     }}>{bookingStep > n ? <FaCheck size={9} /> : <Icon size={9} />}</div>
                     <span style={{ fontSize: '11px', fontWeight: 600, opacity: bookingStep === n ? 1 : 0.6 }}>{label}</span>
-                    {n < 3 && <div style={{ flex: 1, height: '2px', backgroundColor: bookingStep > n ? 'rgba(34,197,94,0.6)' : 'rgba(255,255,255,0.2)', borderRadius: '1px' }} />}
+                    {n < 2 && <div style={{ flex: 1, height: '2px', backgroundColor: bookingStep > n ? 'rgba(34,197,94,0.6)' : 'rgba(255,255,255,0.2)', borderRadius: '1px' }} />}
                   </div>
                 ))}
               </div>
@@ -2764,6 +2914,53 @@ const TableManagement = () => {
                         }}>{slot.display}</button>
                       );
                     })}
+                  </div>
+
+                  {/* Tables — pick one or more, conflict-aware. End time is auto-set from the
+                      restaurant's turn time, so no separate end-time field is needed. */}
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', margin: '20px 0 10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <FaChair size={11} color="#ef4444" /> {t('tables.pickTable') || 'Tables'} ({reserveTableIds.length} {t('tables.selected') || 'selected'})
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', maxHeight: '250px', overflowY: 'auto', padding: '4px' }}>
+                    {allTables.map(table => {
+                      const sel = reserveTableIds.includes(table.id);
+                      const tblConflicts = bookingConflicts[table.id] || [];
+                      const tblDayBookings = dayBookingsPerTable[table.id] || [];
+                      const hasConflict = tblConflicts.length > 0;
+                      const hasDayBookings = tblDayBookings.length > 0;
+                      const cardBg = sel ? '#fef2f2' : hasConflict ? '#fffbeb' : hasDayBookings ? '#eff6ff' : '#f0fdf4';
+                      const cardBorder = sel ? '#ef4444' : hasConflict ? '#fbbf24' : hasDayBookings ? '#93c5fd' : '#86efac';
+                      return (
+                        <button key={table.id} type="button" onClick={() => setReserveTableIds(prev => sel ? prev.filter(x => x !== table.id) : [...prev, table.id])} style={{
+                          padding: '12px 8px 10px', borderRadius: '14px', textAlign: 'center', cursor: 'pointer', position: 'relative',
+                          border: `2px solid ${cardBorder}`, background: cardBg, transition: 'all 0.15s',
+                          boxShadow: sel ? '0 4px 14px rgba(239,68,68,0.18)' : '0 1px 3px rgba(0,0,0,0.04)',
+                        }}>
+                          {sel && (
+                            <div style={{ position: 'absolute', top: '-7px', left: '-7px', width: '22px', height: '22px', borderRadius: '50%', background: '#ef4444', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2.5px solid white', boxShadow: '0 2px 6px rgba(239,68,68,0.3)' }}>
+                              <FaCheck size={9} />
+                            </div>
+                          )}
+                          <div style={{ fontSize: '18px', fontWeight: 800, color: sel ? '#dc2626' : '#1f2937', lineHeight: 1 }}>{table.name || table.number}</div>
+                          <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                            <FaChair size={9} /> {table.capacity} {t('tables.seats').toLowerCase()}
+                          </div>
+                          {hasConflict ? (
+                            <div style={{ fontSize: '9px', color: '#d97706', fontWeight: 700, marginTop: '5px', background: '#fef3c7', padding: '2px 6px', borderRadius: '6px', display: 'inline-block' }}>{t('tables.sameTime', { count: tblConflicts.length })}</div>
+                          ) : hasDayBookings ? (
+                            <div style={{ fontSize: '9px', color: '#2563eb', fontWeight: 600, marginTop: '5px', background: '#dbeafe', padding: '2px 6px', borderRadius: '6px', display: 'inline-block' }}>{tblDayBookings.length} {t('tables.booked') || 'booked'}</div>
+                          ) : (
+                            <div style={{ fontSize: '9px', color: '#16a34a', fontWeight: 600, marginTop: '5px' }}>{t('tables.free') || 'Free'}</div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {/* Legend */}
+                  <div style={{ display: 'flex', gap: '14px', marginTop: '14px', padding: '10px 14px', backgroundColor: '#f8fafc', borderRadius: '12px', fontSize: '11px', color: '#6b7280', flexWrap: 'wrap' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: '#f0fdf4', border: '1.5px solid #86efac' }} /> {t('tables.free') || 'Free'}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: '#eff6ff', border: '1.5px solid #93c5fd' }} /> {t('tables.booked') || 'Booked'}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: '#fffbeb', border: '1.5px solid #fbbf24' }} /> {t('tables.timeConflictShort') || 'Time conflict'}</span>
                   </div>
                 </>
               )}
@@ -2814,120 +3011,6 @@ const TableManagement = () => {
                 </>
               )}
 
-              {bookingStep === 3 && (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                    <FaChair size={13} color="#ef4444" />
-                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{t('tables.pickTable')}</span>
-                    <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                      {t('tables.for')} {formatDate(bookingData.bookingDate)} {t('tables.at')} {bookingData.bookingTime}
-                    </span>
-                  </div>
-
-                  {/* Conflict warning banner */}
-                  {hasTimeConflict && (
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', marginBottom: '16px',
-                      backgroundColor: '#fef3c7', borderRadius: '12px', border: '1px solid #fde68a',
-                    }}>
-                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <FaClock size={12} color="white" />
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#92400e' }}>{t('tables.timeConflict', { name: selectedTable?.name })}</div>
-                        <div style={{ fontSize: '11px', color: '#a16207' }}>
-                          {t('tables.bookingAtSameTime', { count: bookingConflicts[selectedTable.id].length })}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
-                    {allTables.map(table => {
-                      const isSelected = selectedTable?.id === table.id;
-                      const tblConflicts = bookingConflicts[table.id] || [];
-                      const tblDayBookings = dayBookingsPerTable[table.id] || [];
-                      const hasConflict = tblConflicts.length > 0;
-                      const hasDayBookings = tblDayBookings.length > 0;
-                      const cardBg = isSelected ? '#fef2f2' : hasConflict ? '#fffbeb' : hasDayBookings ? '#eff6ff' : '#f0fdf4';
-                      const cardBorder = isSelected ? '#ef4444' : hasConflict ? '#fbbf24' : hasDayBookings ? '#93c5fd' : '#86efac';
-                      const nameColor = isSelected ? '#dc2626' : '#1f2937';
-
-                      return (
-                        <button key={table.id} onClick={() => setSelectedTable(table)} style={{
-                          padding: '14px 8px 12px', borderRadius: '16px', textAlign: 'center', cursor: 'pointer',
-                          border: `2px solid ${cardBorder}`,
-                          backgroundColor: cardBg,
-                          transition: 'all 0.15s', position: 'relative',
-                          boxShadow: isSelected ? '0 4px 16px rgba(239,68,68,0.2)' : '0 1px 3px rgba(0,0,0,0.04)',
-                          transform: isSelected ? 'scale(1.04)' : 'scale(1)',
-                        }}>
-                          {/* Booking count badge */}
-                          {hasDayBookings && (
-                            <div style={{
-                              position: 'absolute', top: '-7px', right: '-7px',
-                              minWidth: '22px', height: '22px', borderRadius: '11px', padding: '0 5px',
-                              backgroundColor: hasConflict ? '#f59e0b' : '#3b82f6',
-                              color: 'white', fontSize: '10px', fontWeight: 800,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              border: '2.5px solid white', boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-                            }}>
-                              {tblDayBookings.length}
-                            </div>
-                          )}
-                          {/* Selected checkmark */}
-                          {isSelected && (
-                            <div style={{
-                              position: 'absolute', top: '-7px', left: '-7px',
-                              width: '22px', height: '22px', borderRadius: '50%',
-                              backgroundColor: '#ef4444', color: 'white',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              border: '2.5px solid white', boxShadow: '0 2px 6px rgba(239,68,68,0.3)',
-                            }}>
-                              <FaCheck size={9} />
-                            </div>
-                          )}
-                          <div style={{ fontSize: '20px', fontWeight: '800', color: nameColor, lineHeight: 1 }}>{table.name}</div>
-                          <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
-                            <FaChair size={9} /> {table.capacity} {t('tables.seats').toLowerCase()}
-                          </div>
-                          {hasConflict && (
-                            <div style={{ fontSize: '9px', color: '#d97706', fontWeight: 700, marginTop: '5px', backgroundColor: '#fef3c7', padding: '2px 6px', borderRadius: '6px', display: 'inline-block' }}>
-                              {t('tables.sameTime', { count: tblConflicts.length })}
-                            </div>
-                          )}
-                          {!hasConflict && hasDayBookings && (
-                            <div style={{ fontSize: '9px', color: '#2563eb', fontWeight: 600, marginTop: '5px', backgroundColor: '#dbeafe', padding: '2px 6px', borderRadius: '6px', display: 'inline-block' }}>
-                              {tblDayBookings.length} booked
-                            </div>
-                          )}
-                          {!hasDayBookings && !isSelected && (
-                            <div style={{ fontSize: '9px', color: '#16a34a', fontWeight: 600, marginTop: '5px' }}>
-                              Free
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Legend */}
-                  <div style={{ display: 'flex', gap: '14px', marginTop: '16px', padding: '10px 14px', backgroundColor: '#f8fafc', borderRadius: '12px', fontSize: '11px', color: '#6b7280', flexWrap: 'wrap' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                      <div style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: '#fef2f2', border: '1.5px solid #ef4444' }} /> Selected
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                      <div style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: '#f0fdf4', border: '1.5px solid #86efac' }} /> Free
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                      <div style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: '#eff6ff', border: '1.5px solid #93c5fd' }} /> Booked
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                      <div style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: '#fffbeb', border: '1.5px solid #fbbf24' }} /> Time conflict
-                    </span>
-                  </div>
-                </>
-              )}
             </div>
 
             {/* Footer */}
@@ -2941,34 +3024,35 @@ const TableManagement = () => {
                   <FaChevronLeft size={10} /> Back
                 </button>
               ) : <div />}
-              {bookingStep < 3 ? (
-                <button onClick={() => setBookingStep(s => s + 1)} disabled={bookingStep === 1 && (!bookingData.bookingDate || !bookingData.bookingTime)} style={{
-                  padding: '11px 28px', borderRadius: '12px', border: 'none', fontSize: '14px', fontWeight: '600', cursor: 'pointer',
-                  background: (bookingStep === 1 && bookingData.bookingDate && bookingData.bookingTime) || bookingStep === 2
-                    ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#e2e8f0',
-                  color: (bookingStep === 1 && bookingData.bookingDate && bookingData.bookingTime) || bookingStep === 2 ? 'white' : '#9ca3af',
-                  display: 'flex', alignItems: 'center', gap: '6px',
-                  boxShadow: (bookingStep === 1 && bookingData.bookingDate && bookingData.bookingTime) || bookingStep === 2
-                    ? '0 4px 12px rgba(239,68,68,0.3)' : 'none',
-                }}>
-                  Next <FaChevronRight size={10} />
-                </button>
-              ) : (
-                <button onClick={createBooking} disabled={!selectedTable || !bookingData.customerName.trim() || bookingSubmitting} style={{
+              {bookingStep < 2 ? (() => {
+                const step1Ready = !!bookingData.bookingDate && !!bookingData.bookingTime && reserveTableIds.length > 0;
+                return (
+                  <button onClick={() => { if (step1Ready) setBookingStep(2); }} disabled={!step1Ready} style={{
+                    padding: '11px 28px', borderRadius: '12px', border: 'none', fontSize: '14px', fontWeight: '600', cursor: step1Ready ? 'pointer' : 'not-allowed',
+                    background: step1Ready ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#e2e8f0',
+                    color: step1Ready ? 'white' : '#9ca3af',
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    boxShadow: step1Ready ? '0 4px 12px rgba(239,68,68,0.3)' : 'none',
+                  }}>
+                    {t('tables.next') || 'Next'} <FaChevronRight size={10} />
+                  </button>
+                );
+              })() : (
+                <button onClick={createBooking} disabled={!reserveTableIds.length || !bookingData.customerName.trim() || bookingSubmitting} style={{
                   padding: '11px 28px', borderRadius: '12px', border: 'none', fontSize: '14px', fontWeight: '700', cursor: bookingSubmitting ? 'wait' : 'pointer',
-                  background: selectedTable && bookingData.customerName.trim()
+                  background: reserveTableIds.length && bookingData.customerName.trim()
                     ? (hasTimeConflict ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #22c55e, #16a34a)')
                     : '#e2e8f0',
-                  color: selectedTable && bookingData.customerName.trim() ? 'white' : '#9ca3af',
+                  color: reserveTableIds.length && bookingData.customerName.trim() ? 'white' : '#9ca3af',
                   display: 'flex', alignItems: 'center', gap: '6px',
-                  boxShadow: selectedTable && bookingData.customerName.trim()
+                  boxShadow: reserveTableIds.length && bookingData.customerName.trim()
                     ? (hasTimeConflict ? '0 4px 12px rgba(245,158,11,0.3)' : '0 4px 12px rgba(34,197,94,0.3)') : 'none',
                   opacity: bookingSubmitting ? 0.7 : 1,
                 }}>
                   {bookingSubmitting ? (
-                    <><div style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /> Reserving...</>
+                    <><div style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /> {t('tables.reserving') || 'Reserving...'}</>
                   ) : (
-                    <><FaCheck size={11} /> {hasTimeConflict ? 'Book Anyway' : 'Confirm Booking'}</>
+                    <><FaCheck size={11} /> {hasTimeConflict ? (t('tables.bookAnyway') || 'Book Anyway') : (t('tables.confirmBooking') || 'Confirm Booking')}</>
                   )}
                 </button>
               )}
@@ -3078,6 +3162,48 @@ const TableManagement = () => {
       })()}
 
       {/* Merge Tables modal */}
+      {showMergeBillsModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }} onClick={() => setShowMergeBillsModal(false)}>
+          <div style={{ background: 'white', borderRadius: 18, width: 'min(94vw, 460px)', maxHeight: '86vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: '18px 22px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#eef2ff', display: 'grid', placeItems: 'center' }}><FaLayerGroup color="#4f46e5" /></div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 16, color: '#111827' }}>Merge Bills</div>
+                <div style={{ fontSize: 12, color: '#6b7280' }}>Combine occupied tables into one bill. The first you pick is the primary.</div>
+              </div>
+            </div>
+            <div style={{ padding: '14px 22px', overflowY: 'auto', flex: 1 }}>
+              {(() => {
+                const occupied = allTables.filter(t => t.currentOrderId && (t.status === 'occupied' || t.status === 'serving'));
+                if (occupied.length < 2) return <div style={{ color: '#6b7280', fontSize: 13, textAlign: 'center', padding: '24px 0' }}>Need at least two occupied tables to merge their bills.</div>;
+                return occupied.map((tb) => {
+                  const sel = selectedBillTableIds.includes(tb.id);
+                  const order = selectedBillTableIds.indexOf(tb.id);
+                  return (
+                    <button key={tb.id} type="button" onClick={() => setSelectedBillTableIds(prev => sel ? prev.filter(x => x !== tb.id) : [...prev, tb.id])} style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', marginBottom: 8,
+                      borderRadius: 12, border: sel ? '2px solid #4f46e5' : '1.5px solid #e5e7eb', background: sel ? '#eef2ff' : 'white', cursor: 'pointer', textAlign: 'left',
+                    }}>
+                      <div style={{ width: 22, height: 22, borderRadius: 6, border: sel ? 'none' : '1.5px solid #cbd5e1', background: sel ? '#4f46e5' : 'white', color: 'white', display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 800 }}>{sel ? (order + 1) : ''}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>Table {tb.name || tb.number}</div>
+                        <div style={{ fontSize: 11.5, color: sel && order === 0 ? '#4f46e5' : '#6b7280', fontWeight: sel && order === 0 ? 700 : 400 }}>{sel && order === 0 ? 'Primary bill' : 'Occupied'}</div>
+                      </div>
+                    </button>
+                  );
+                });
+              })()}
+            </div>
+            <div style={{ padding: '14px 22px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: 10 }}>
+              <button onClick={() => setShowMergeBillsModal(false)} style={{ flex: 1, padding: '12px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: 'white', color: '#374151', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleMergeBills} disabled={selectedBillTableIds.length < 2 || mergingBills} style={{ flex: 2, padding: '12px', borderRadius: 10, border: 'none', background: selectedBillTableIds.length < 2 ? '#c7d2fe' : 'linear-gradient(135deg,#6366f1,#4f46e5)', color: 'white', fontWeight: 800, cursor: selectedBillTableIds.length < 2 ? 'not-allowed' : 'pointer' }}>
+                {mergingBills ? 'Merging…' : `Merge ${selectedBillTableIds.length || ''} bills`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showMergeModal && (() => {
         const allTbls = floors.flatMap(f => (f.tables || []).map(t => ({ ...t, _floorName: f.name })));
         return createPortal((
@@ -3227,6 +3353,7 @@ const TableManagement = () => {
             onAssignServer={(x) => openAssignServer(x)}
             onBook={(x) => {
               setSelectedTable(x);
+              setReserveTableIds([x.id]); // pre-select the tapped table
               setBookingData(prev => ({ ...prev, bookingDate: selectedDate, partySize: Math.min(x.capacity, prev.partySize || 2) }));
               setBookingFromHeader(false);
               setShowBookingForm(true);

@@ -193,6 +193,7 @@ async function printOfflineStationSplit({ restaurantId, order, categories, resta
     orderId: order.id,
     kotId: `KOT-${String(order.id || '').slice(-6).toUpperCase()}`,
     dailyOrderId: order.dailyOrderId || null,
+    orderNumberDisplay: order.orderNumberDisplay || null,
     orderNumber: order.orderNumber || null,
     tableNumber: order.tableNumber || '',
     floorName: order.floorName || '',

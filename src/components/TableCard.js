@@ -116,7 +116,8 @@ export default function TableCard({
     <div key={table.id} className="tbl-card table-dropdown" style={{
       background: sInfo.bg,
       borderRadius: isMobileEmbed ? '8px' : '12px',
-      border: looksOccupied ? 'none' : `1px solid ${sInfo.border}`,
+      // Clean, uniform solid border in the status colour (was a noisy animated dashed SVG).
+      border: looksOccupied ? `2px solid ${sInfo.color}` : `1px solid ${sInfo.border}`,
       boxShadow: highlighted
         ? '0 0 0 3px rgba(59,130,246,0.55), 0 1px 3px rgba(0,0,0,0.05)'
         : '0 1px 3px rgba(0,0,0,0.05)',
@@ -155,18 +156,10 @@ export default function TableCard({
         </button>
       )}
 
-      {/* Animated dotted border for occupied tables (today only) — also when a party runs */}
-      {looksOccupied && (
-        <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }}>
-          <rect x="1.5" y="1.5" width="calc(100% - 3px)" height="calc(100% - 3px)" rx={isMobileEmbed ? "6.5" : "10.5"} ry={isMobileEmbed ? "6.5" : "10.5"} fill="none" stroke={sInfo.color} strokeWidth={isMobileEmbed ? "1.5" : "2"} strokeDasharray={isMobileEmbed ? "4,4" : "6,6"} strokeDashoffset="100">
-            <animate attributeName="stroke-dashoffset" from="100" to="0" dur="3s" repeatCount="indefinite" />
-          </rect>
-        </svg>
-      )}
-
       <div style={{ padding: isMobileEmbed ? '6px 8px' : '12px', flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 2 }}>
-        {/* Header: name + status */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: isMobileEmbed ? '2px' : '8px' }}>
+        {/* Header: name + status. Reserve room on the right so the status badge never sits
+            under the ⋮ manage button (was clipping "OCCUPIED" → "OCCUPI"). */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: isMobileEmbed ? '2px' : '8px', paddingRight: (showManagementDropdown && isToday && !isMobileEmbed) ? '30px' : 0 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: isMobileEmbed ? '3px' : '6px' }}>
               <span style={{ fontSize: isMobileEmbed ? '12px' : '16px', fontWeight: 800, color: '#111827', lineHeight: 1.1 }}>

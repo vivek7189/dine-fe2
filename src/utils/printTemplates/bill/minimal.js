@@ -9,6 +9,7 @@ import {
   BILL_LABELS_AR, getBillDualCSS, dualLabel, dualTitle, dualItemName,
   buildCashbackHtml,
 } from '../helpers';
+import { orderDisplayNumber } from '../../orderNumber';
 
 export const id = 'minimal';
 export const name = 'Minimal';
@@ -102,7 +103,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
     `<div class="spacer"></div>` +
     // Meta info
     `<div class="meta">` +
-      `<div class="meta-row"><span>${dualLabel(L.billLabel, AR.billLabel, showAr)}# ${invoice.dailyOrderId || invoice.id || 'N/A'}</span><span>${dateStr}</span></div>` +
+      `<div class="meta-row"><span>${dualLabel(L.billLabel, AR.billLabel, showAr)}# ${orderDisplayNumber(invoice)}</span><span>${dateStr}</span></div>` +
       (bl.showTable !== false && invoice.tableNumber ? `<div class="meta-row"><span>${dualLabel(L.table, AR.table, showAr)} ${invoice.tableNumber}${invoice.floorName ? ` - ${invoice.floorName}` : ''}</span>${bl.showPayment !== false ? `<span>${(invoice.paymentMethodLabel || invoice.paymentMethod || 'CASH').toUpperCase()}</span>` : ''}</div>` : (bl.showPayment !== false ? `<div class="meta-row"><span>${dualLabel(L.payment, AR.payment, showAr)}: ${(invoice.paymentMethodLabel || invoice.paymentMethod || 'CASH').toUpperCase()}</span></div>` : '')) +
       (bl.showCovers !== false && invoice.covers && invoice.covers > 1 ? `<div class="meta-row"><span>${showAr ? dualLabel('Covers', 'أغطية', showAr) : 'Covers'}: ${invoice.covers}</span></div>` : '') +
       (bl.showWaiter !== false && (invoice.waiterName || invoice.cashierName) ? `<div class="meta-row"><span>Staff: ${esc(invoice.waiterName || invoice.cashierName)}</span></div>` : '') +
@@ -132,5 +133,5 @@ export function render(invoice, printSettings = {}, labels = {}) {
     // Footer
     `<div class="footer">${bl.showFooter !== false ? `<p>${showAr ? dualLabel(L.footer, AR.footer, showAr) : L.footer}</p>` : ''}${bl.showPoweredBy !== false ? `<p style="margin-top:4px;">${showAr ? dualLabel(L.poweredBy, AR.poweredBy, showAr) : L.poweredBy}</p>` : ''}</div>`;
 
-  return wrapInDocument(`${L.billLabel} #${invoice.dailyOrderId || invoice.id || 'N/A'}`, finalCss, bodyHtml);
+  return wrapInDocument(`${L.billLabel} #${orderDisplayNumber(invoice)}`, finalCss, bodyHtml);
 }

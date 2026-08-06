@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { orderDisplayNumber } from '../utils/orderNumber';
 import { createPortal } from 'react-dom';
 import { FaTimes, FaSearch, FaSpinner, FaUtensils } from 'react-icons/fa';
 import apiClient from '../lib/api';
@@ -593,7 +594,7 @@ const OrderEditModal = ({
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: '15px', fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>
-                Order #{order?.dailyOrderId || order?.id?.slice(-6) || orderNumber || '—'} — Edit
+                Order #{orderDisplayNumber(order) || orderNumber || '—'} — Edit
               </div>
               <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.75)', marginTop: '1px' }}>
                 {order?.tableNumber ? `Table ${order.tableNumber}` : (mode === 'completed' ? 'Completed order' : 'Active order')}

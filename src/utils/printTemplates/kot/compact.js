@@ -7,6 +7,7 @@ import {
   getPrintFontSizes, getPrintFontFamily, getContentWidth, wrapInDocument,
   KOT_LABELS_AR, getBillDualCSS, dualLabel, dualTitle,
 } from '../helpers';
+import { orderDisplayNumber } from '../../orderNumber';
 
 export const id = 'compact';
 export const name = 'Compact';
@@ -66,7 +67,7 @@ export function render(kotData, printSettings = {}, labels = {}) {
     `<div class="kot-header">${kl.showRestaurantName !== false ? `<div class="restaurant-name">${esc(k.restaurantName || 'Restaurant')}</div>` : ''}${kl.showKotTitle !== false ? `<div class="kot-title">--- ${title} ---</div>` : ''}</div>` +
     `<div class="divider">- - - - - - - - - - - - - - - -</div>` +
     `<div class="kot-info">` +
-      `<div>${kl.showOrderNumber !== false ? `<strong>#${k.dailyOrderId || k.orderId}</strong>` : ''}` +
+      `<div>${kl.showOrderNumber !== false ? `<strong>#${orderDisplayNumber(k)}</strong>` : ''}` +
       (kl.showTable !== false && k.tableNumber ? ` | ${dualLabel(L.table, AR.table, showAr)}: ${k.tableNumber}` : '') +
       (kl.showTable !== false && k.roomNumber ? ` | ${dualLabel(L.room, AR.room, showAr)}: ${k.roomNumber}` : '') +
       ` | ${timeStr}${kl.showDate !== false ? ` | ${dateStr}` : ''}</div>` +
@@ -82,5 +83,5 @@ export function render(kotData, printSettings = {}, labels = {}) {
     specialInstructionsHtml +
     `<div class="divider">================================</div>`;
 
-  return wrapInDocument(`KOT - ${k.dailyOrderId || k.orderId}`, finalCss, bodyHtml);
+  return wrapInDocument(`KOT - ${orderDisplayNumber(k)}`, finalCss, bodyHtml);
 }

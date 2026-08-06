@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { getLocalServerUrl } from '../../../../lib/localServer';
 import dynamic from 'next/dynamic';
 // import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
@@ -77,6 +78,7 @@ import { useLoading } from '../../../../contexts/LoadingContext';
 // IntelligentChatbot and RAGInitializer are dynamically imported above
 import { getCachedDashboardData, setCachedDashboardData, getCachedTablesData, setCachedTablesData } from '../../../../utils/dashboardCache';
 import { getOrderItemKey, getOrderItemBaseKey, sanitizeSeat, seatLabel } from '../../../../utils/orderItemKey';
+import { orderDisplayNumber } from '../../../../utils/orderNumber';
 import { buildCategoryIndex, resolveCategoryPath, isAncestorOrSelf } from '../../../../utils/categoryTree';
 import CategorySubRow from '../../../../components/CategorySubRow';
 import { useSyncEngine } from '../../../../hooks/useSyncEngine';
@@ -2745,7 +2747,7 @@ function RestaurantPOSContent() {
           if (user.role === 'owner' || user.role === 'admin') {
             setNotification({
               type: 'error',
-              title: `Order #${data.dailyOrderId || data.orderNumber || '?'} Voided`,
+              title: `Order #${orderDisplayNumber(data)} Voided`,
               message: `Cancelled by ${data.cancelledBy || 'Staff'}${data.reason ? ` — ${data.reason}` : ''}. Amount: ${data.totalAmount || 0}`,
               show: true
             });
@@ -3699,6 +3701,7 @@ function RestaurantPOSContent() {
             setOrderSuccess({
               orderId: currentOrder.id,
               dailyOrderId: currentOrder.dailyOrderId,
+              orderNumberDisplay: currentOrder.orderNumberDisplay,
               show: true,
               message: t('dashboard.billingCompleteEmoji')
             });
@@ -3763,7 +3766,7 @@ function RestaurantPOSContent() {
               await apiClient.redeemCustomerWallet(walletCustId, {
                 amount: walletRedeem,
                 orderId: currentOrder.id,
-                notes: `Redeemed during billing for order #${currentOrder.dailyOrderId || currentOrder.id.slice(-6)}`
+                notes: `Redeemed during billing for order #${orderDisplayNumber(currentOrder)}`
               });
               console.log('💰 Wallet redeemed:', walletRedeem);
             } catch (walletErr) {
@@ -3775,7 +3778,7 @@ function RestaurantPOSContent() {
           setNotification({
             type: 'success',
             title: t('dashboard.orderCompletedPaymentEmoji'),
-            message: t('dashboard.orderCompletedPaymentMsg', { id: currentOrder.dailyOrderId || currentOrder.id.slice(-6) }),
+            message: t('dashboard.orderCompletedPaymentMsg', { id: orderDisplayNumber(currentOrder) }),
             show: true
           });
 
@@ -3784,6 +3787,7 @@ function RestaurantPOSContent() {
           setOrderSuccess({
             orderId: completedOrderId,
             dailyOrderId: currentOrder.dailyOrderId,
+            orderNumberDisplay: currentOrder.orderNumberDisplay,
             show: true,
             message: t('dashboard.billingCompleteEmoji')
           });
@@ -4102,7 +4106,7 @@ function RestaurantPOSContent() {
             await apiClient.redeemCustomerWallet(walletCustId, {
               amount: walletRedeem,
               orderId: orderId,
-              notes: `Redeemed during billing for order #${orderResponse.order?.dailyOrderId || orderId.slice(-6)}`
+              notes: `Redeemed during billing for order #${orderDisplayNumber(orderResponse.order)}`
             });
             console.log('💰 Wallet redeemed:', walletRedeem);
           } catch (walletErr) {
@@ -4118,7 +4122,7 @@ function RestaurantPOSContent() {
       setNotification({
         type: 'success',
         title: t('dashboard.billingCompleteEmoji'),
-        message: t('dashboard.orderCompletedPaymentMsg', { id: orderResponse.order?.dailyOrderId || orderId.slice(-6) }),
+        message: t('dashboard.orderCompletedPaymentMsg', { id: orderDisplayNumber(orderResponse.order) }),
         show: true
       });
 
@@ -4126,6 +4130,7 @@ function RestaurantPOSContent() {
       const successData = {
         orderId,
         dailyOrderId: orderResponse.order?.dailyOrderId,
+        orderNumberDisplay: orderResponse.order?.orderNumberDisplay,
         show: true,
         message: t('dashboard.billingCompleteEmoji')
       };
@@ -4232,6 +4237,7 @@ function RestaurantPOSContent() {
           setOrderSuccess({
             orderId: currentOrder?.id || billingData.idempotencyKey,
             dailyOrderId: currentOrder?.dailyOrderId || null,
+            orderNumberDisplay: currentOrder?.orderNumberDisplay || null,
             show: true,
             message: t('dashboard.billingCompleteEmoji')
           });
@@ -4743,7 +4749,7 @@ function RestaurantPOSContent() {
         setNotification({
           type: 'success',
           title: '✅ Order Updated',
-          message: `Order #${currentOrder.dailyOrderId || currentOrder.id.slice(-6)} updated without KOT`,
+          message: `Order #${orderDisplayNumber(currentOrder)} updated without KOT`,
           show: true
         });
 
@@ -5002,7 +5008,7 @@ function RestaurantPOSContent() {
           setNotification({
             type: 'success',
             title: t('dashboard.orderUpdatedEmoji'),
-            message: t('dashboard.orderUpdatedKitchenMsg', { id: currentOrder.dailyOrderId || currentOrder.id.slice(-6) }),
+            message: t('dashboard.orderUpdatedKitchenMsg', { id: orderDisplayNumber(currentOrder) }),
             show: true
           });
 
@@ -5018,6 +5024,7 @@ function RestaurantPOSContent() {
           setOrderSuccess({
             orderId: currentOrder.id,
             dailyOrderId: currentOrder.dailyOrderId,
+            orderNumberDisplay: currentOrder.orderNumberDisplay,
             show: true,
             message: incrementalItems.length > 0
               ? `KOT Update: ${incrementalItems.length} new/changed item(s)`
@@ -5025,6 +5032,7 @@ function RestaurantPOSContent() {
             kotData: {
               orderId: currentOrder.id,
               dailyOrderId: currentOrder.dailyOrderId,
+              orderNumberDisplay: currentOrder.orderNumberDisplay,
               items: filterKotExcludedItems(incrementalItems.length > 0 ? incrementalItems : (seatOnlyUpdate ? [] : cart), printSettings).map(item => {
                 const isNew = newItems.includes(item);
                 const isUpdated = updatedItems.includes(item);
@@ -5076,7 +5084,8 @@ function RestaurantPOSContent() {
               orderData: {
                 restaurantName: selectedRestaurant?.name || 'Restaurant',
                 tableNumber: (roomForKot ? null : tableToUseForKot) || '',
-                orderNumber: currentOrder.dailyOrderId || currentOrder.id?.slice?.(-6) || '',
+                orderNumber: orderDisplayNumber(currentOrder),
+                orderNumberDisplay: currentOrder.orderNumberDisplay || null,
                 orderId: currentOrder.id,
                 orderType,
                 waiterName: '',
@@ -5391,7 +5400,7 @@ function RestaurantPOSContent() {
             setNotification({
               type: 'success',
               title: t('dashboard.orderSentToChefEmoji'),
-              message: t('dashboard.orderSentToChefSuccessMsg', { id: _dailyOrderId || (_orderId || '').slice?.(-6) || '' }),
+              message: t('dashboard.orderSentToChefSuccessMsg', { id: orderDisplayNumber(_orderObj) }),
               show: true
             });
 
@@ -5399,12 +5408,14 @@ function RestaurantPOSContent() {
             setOrderSuccess({
               orderId: _orderId,
               dailyOrderId: _dailyOrderId,
+              orderNumberDisplay: _orderObj?.orderNumberDisplay || null,
               show: true,
               processing: false,
               message: t('dashboard.orderPlacedToKitchen'),
               kotData: {
                 orderId: _orderId,
                 dailyOrderId: _dailyOrderId,
+                orderNumberDisplay: _orderObj?.orderNumberDisplay || null,
                 items: cartKotItems,
                 tableNumber: savedTableNumber,
                 roomNumber: savedRoomNumber,
@@ -5431,7 +5442,8 @@ function RestaurantPOSContent() {
                 orderData: {
                   restaurantName: savedRestaurantName,
                   tableNumber: savedTableNumber || '',
-                  orderNumber: _dailyOrderId || _orderId?.slice?.(-6) || '',
+                  orderNumber: orderDisplayNumber(_orderObj),
+                  orderNumberDisplay: _orderObj?.orderNumberDisplay || null,
                   orderId: _orderId,
                   orderType,
                   waiterName: '',
@@ -5457,7 +5469,7 @@ function RestaurantPOSContent() {
                 await apiClient.redeemCustomerWallet(walletCustId, {
                   amount: walletRedeem,
                   orderId: _orderId,
-                  notes: `Redeemed during billing for order #${_dailyOrderId || (_orderId || '').slice?.(-6) || ''}`
+                  notes: `Redeemed during billing for order #${orderDisplayNumber(_orderObj)}`
                 });
                 console.log('💰 Wallet redeemed:', walletRedeem);
               } catch (walletErr) {
@@ -5990,6 +6002,8 @@ function RestaurantPOSContent() {
   const _isElectronOfflineNotice = typeof window !== 'undefined' && !!window.electronAPI?.apiRequest;
   useEffect(() => {
     if (!networkTransition) return;
+    // Local-server mode: local backend always reachable on loopback → suppress offline/online notices.
+    if (typeof getLocalServerUrl === 'function' && getLocalServerUrl()) return;
     if (networkTransition === 'went_offline') {
       setNotification({
         type: _isElectronOfflineNotice ? 'info' : 'error',

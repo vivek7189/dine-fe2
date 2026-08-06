@@ -37,6 +37,7 @@ async function buildKraBlockHtml({ order, restaurant, etimsConfig }) {
       <div style="text-align:center;font-weight:bold;letter-spacing:1px;">KRA eTIMS · TAX INVOICE</div>
       <div style="border:1px solid #000;padding:5px;margin-top:4px;word-break:break-all;line-height:1.5;">
         <div>PIN: ${esc(cfg.tin)}</div>
+        ${order.customerTin ? `<div>Buyer PIN: ${esc(order.customerTin)}</div>` : ''}
         <div>SDC ID: ${esc(etims.sdcId)}</div>
         <div>MRC No: ${esc(etims.mrcNo)}</div>
         <div>Receipt No: ${esc(etims.rcptNo)}${etims.totRcptNo != null ? ` / ${esc(etims.totRcptNo)}` : ''}</div>

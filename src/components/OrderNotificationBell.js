@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { orderDisplayNumber } from '../utils/orderNumber';
 import { useRouter } from 'next/navigation';
 import { FaBell, FaVolumeUp, FaVolumeMute, FaCheck, FaTrash, FaShoppingBag, FaUtensils, FaTruck, FaStore } from 'react-icons/fa';
 
@@ -223,7 +224,7 @@ export default function OrderNotificationBell({
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: '13px', fontWeight: notif.read ? '500' : '600', color: '#111' }}>
-                        Order #{notif.dailyOrderId || '—'}
+                        Order #{orderDisplayNumber(notif)}
                         <span style={{
                           marginLeft: '6px', fontSize: '10px', fontWeight: '500',
                           color: config.color, background: `${config.color}15`,
