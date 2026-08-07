@@ -93,6 +93,37 @@ function stopAdvertising() {
   }
 }
 
+// ─── Advertise the on-prem BACKEND SERVER (embedded DB + API) ────────────────
+// Separate from the WebSocket hub above: this publishes type 'dineopen' at the
+// BACKEND port (3003) so phones/terminals auto-discover the host via the
+// `discover-local-server` browser (which looks for exactly type 'dineopen').
+// Additive — a no-op when bonjour isn't bundled; never throws to the caller.
+let publishedServer = null;
+function advertiseServer(port = 3003, meta = {}) {
+  const bonjour = getBonjourInstance();
+  if (!bonjour) return false;
+  if (publishedServer) return true;
+  try {
+    publishedServer = bonjour.publish({
+      name: 'DineOpen Server',
+      type: 'dineopen', // MUST match discover-local-server's browse type
+      port,
+      txt: { version: '1', restaurantId: meta.restaurantId || '', role: 'server' },
+    });
+    console.log(`[LanDiscovery] Advertising DineOpen server (type 'dineopen') on port ${port}`);
+    return true;
+  } catch (err) {
+    console.error('[LanDiscovery] Failed to advertise server:', err.message);
+    return false;
+  }
+}
+function stopAdvertisingServer() {
+  if (publishedServer) {
+    try { publishedServer.stop(() => console.log('[LanDiscovery] Stopped advertising server')); } catch { /* ignore */ }
+    publishedServer = null;
+  }
+}
+
 // ─── Discover Hub ───────────────────────────────────────────────────────────
 
 function discoverHub(onFound, onLost) {
@@ -187,6 +218,8 @@ function cleanup() {
 module.exports = {
   advertiseHub,
   stopAdvertising,
+  advertiseServer,
+  stopAdvertisingServer,
   discoverHub,
   stopDiscovery,
   getDiscoveredHub,

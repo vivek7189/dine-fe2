@@ -551,15 +551,9 @@ function registerIPC() {
     return getTerminalConfig();
   });
 
-  // Terminal number for multi-terminal order numbering (T1, T2, ...). Applied to order
-  // numbers on the NEXT app restart (passed to the backend as TERMINAL_PREFIX).
-  ipcMain.handle('electron:getTerminalNumber', async () => {
-    try { return require('./localServer').getTerminalNumber(); } catch (_) { return null; }
-  });
-  ipcMain.handle('electron:setTerminalNumber', async (_e, n) => {
-    try { require('./localServer').setTerminalNumber(n); return { ok: true, terminalNumber: require('./localServer').getTerminalNumber() }; }
-    catch (e) { return { ok: false, error: e.message }; }
-  });
+  // Terminal number IPC (electron:getTerminalNumber/setTerminalNumber) moved to main.js as
+  // always-registered handlers so they also work in SERVER mode (where this registerIPC is
+  // skipped). Do not re-register here — it would double-register and throw.
 
   ipcMain.handle('electron:isPaired', async () => {
     return isPaired();

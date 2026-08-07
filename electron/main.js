@@ -331,6 +331,9 @@ app.whenReady().then(() => {
       .startLocalServer({ onLog: (s) => console.log('[LocalServer]', String(s).replace(/\s+$/, '')) })
       .then((info) => {
         console.log('[LocalServer] Ready:', JSON.stringify(info));
+        // Advertise this host on the LAN (mDNS, type 'dineopen') at the backend port, so
+        // phones + other terminals auto-discover it with zero config. Best-effort.
+        try { require('./lanDiscovery').advertiseServer(localServer.BACKEND_PORT); } catch (_) {}
         // Nudge any open windows to re-probe loopback now that the backend is up.
         for (const w of BrowserWindow.getAllWindows()) {
           try { if (w.webContents && !w.webContents.isDestroyed()) w.webContents.send('local-server-ready', info); } catch (_) {}
@@ -397,7 +400,8 @@ function registerFallbackApiProxy(baseUrl) {
     'electron:startHub', 'electron:stopHub', 'electron:getHubInfo',
     'electron:getConnectedTerminals', 'electron:discoverHub', 'electron:getDiscoveredHub',
     'electron:getTerminalId', 'electron:getTerminalConfig', 'electron:isPaired',
-    'electron:getTerminalNumber', 'electron:setTerminalNumber',
+    // electron:getTerminalNumber / setTerminalNumber are now registered always-on (above),
+    // so they must NOT be stubbed here — the real handlers work in server mode too.
     'electron:isHub', 'electron:pairWithHub', 'electron:unpair',
     'electron:getPairingCode', 'electron:regeneratePairingCode', 'electron:getHubQrData',
     'electron:localStaffLogin', 'electron:getImageUrl', 'electron:clearLocalData',
@@ -657,6 +661,17 @@ ipcMain.handle('electron:getServerMode', async () => {
 });
 ipcMain.handle('electron:setServerMode', async (_e, on) => {
   try { localServer.setServerMode(!!on); return { ok: true, serverMode: !!on }; }
+  catch (e) { return { ok: false, error: e && e.message }; }
+});
+
+// Multi-terminal order numbering (T1, T2, …). Always-registered here so it also works in
+// SERVER mode (where offline.js's registerIPC — which used to own these — is skipped and they
+// were stubbed to null). Applied to order numbers on the next app restart.
+ipcMain.handle('electron:getTerminalNumber', async () => {
+  try { return localServer.getTerminalNumber(); } catch { return null; }
+});
+ipcMain.handle('electron:setTerminalNumber', async (_e, n) => {
+  try { localServer.setTerminalNumber(n); return { ok: true, terminalNumber: localServer.getTerminalNumber() }; }
   catch (e) { return { ok: false, error: e && e.message }; }
 });
 
