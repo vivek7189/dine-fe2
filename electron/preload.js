@@ -63,6 +63,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setNumber: (n) => ipcRenderer.invoke('electron:setTerminalNumber', n),
   },
 
+  // Host designation: is THIS device the restaurant server (runs the embedded DB + backend)?
+  // Exactly one device per restaurant should be the host; others connect to it.
+  server: {
+    getMode: () => ipcRenderer.invoke('electron:getServerMode'),
+    setMode: (on) => ipcRenderer.invoke('electron:setServerMode', on),
+  },
+
   // LAN hub control + terminal identity + pairing
   lanHub: {
     // Hub control

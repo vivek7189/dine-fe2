@@ -647,6 +647,19 @@ function probeTcpPort(host, port, timeoutMs = 800) {
 // ──── IPC: Kenya KRA eTIMS — VSCU local relay (self-contained; Kenya only) ────
 try { require('./etims/vscuRelay').register(ipcMain); } catch (e) { console.warn('eTIMS relay not registered:', e && e.message); }
 
+// ──── IPC: Host designation ("This device is the restaurant server") ────
+// Additive + always-registered (works in both server and client mode). Reads/writes the
+// `serverMode` flag in the local config; the embedded DB + backend only boot when it's ON
+// (see isServerModeEnabled() at startup). Takes effect on the next app restart. Designating
+// exactly ONE device as the server is how a multi-terminal restaurant picks its single host.
+ipcMain.handle('electron:getServerMode', async () => {
+  try { return !!localServer.isServerModeEnabled(); } catch { return false; }
+});
+ipcMain.handle('electron:setServerMode', async (_e, on) => {
+  try { localServer.setServerMode(!!on); return { ok: true, serverMode: !!on }; }
+  catch (e) { return { ok: false, error: e && e.message }; }
+});
+
 // ──── IPC: Local-server auto-discovery (zero-config LAN) ────
 // Browse mDNS for the on-prem DineOpen server (_dineopen._tcp) and return its current
 // URL (using the discovered IP, so it works even where `.local` resolution is flaky).

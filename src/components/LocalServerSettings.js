@@ -18,9 +18,27 @@ export default function LocalServerSettings() {
   const [result, setResult] = useState(null); // { ok, ms, name, error }
   const [terminalNum, setTerminalNum] = useState('');
   const [termSaved, setTermSaved] = useState(false);
+  const [serverMode, setServerMode] = useState(null); // null=unknown/not-electron, else bool
+  const [serverModeSaving, setServerModeSaving] = useState(false);
 
   useEffect(() => {
     try { window.electronAPI?.terminal?.getNumber?.().then((n) => { if (n) setTerminalNum(String(n)); }).catch(() => {}); } catch (_) {}
+    // Electron only: is THIS device the restaurant server (host)?
+    try { window.electronAPI?.server?.getMode?.().then((v) => setServerMode(!!v)).catch(() => {}); } catch (_) {}
+  }, []);
+
+  const toggleServerMode = useCallback(async (on) => {
+    if (!window.electronAPI?.server?.setMode) return;
+    setServerModeSaving(true);
+    try {
+      await window.electronAPI.server.setMode(on);
+      setServerMode(on);
+      if (typeof window !== 'undefined') {
+        window.alert(on
+          ? 'This device is now the RESTAURANT SERVER.\n\nRestart the app to start it. Make sure NO other device is also set as the server — there should be exactly one.'
+          : 'This device will now CONNECT to another server.\n\nRestart the app, then enter the server address below (or leave dineopen-server.local to auto-find it).');
+      }
+    } catch (_) {} finally { setServerModeSaving(false); }
   }, []);
 
   const saveTerminalNumber = useCallback(async () => {
@@ -106,6 +124,36 @@ export default function LocalServerSettings() {
       {isActive && (
         <div style={{ margin: '12px 0 4px', fontSize: 13, color: '#334155', background: '#f8fafc', border: '1px solid #eef2f7', borderRadius: 10, padding: '10px 12px' }}>
           Connected to <code style={{ fontWeight: 700 }}>{saved}</code>. This terminal reads &amp; writes to the local server and gets live orders/KOT over the LAN.
+        </div>
+      )}
+
+      {/* Host designation — Electron only. Exactly ONE device per restaurant should be the server. */}
+      {serverMode !== null && (
+        <div style={{ margin: '16px 0 4px', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 16px', background: serverMode ? '#eef2ff' : '#fafbfc' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a' }}>This device is the restaurant server</div>
+              <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 3, lineHeight: 1.45 }}>
+                Runs the on-prem database + backend that all other terminals and phones connect to. Keep exactly <b>one</b> server per restaurant. Takes effect after restarting the app.
+              </div>
+            </div>
+            <button
+              onClick={() => toggleServerMode(!serverMode)}
+              disabled={serverModeSaving}
+              aria-pressed={serverMode}
+              style={{
+                flexShrink: 0, width: 52, height: 30, borderRadius: 999, border: 'none', cursor: serverModeSaving ? 'wait' : 'pointer',
+                background: serverMode ? '#4f46e5' : '#cbd5e1', position: 'relative', transition: 'background 0.15s', padding: 0,
+              }}
+            >
+              <span style={{ position: 'absolute', top: 3, left: serverMode ? 25 : 3, width: 24, height: 24, borderRadius: '50%', background: '#fff', transition: 'left 0.15s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+            </button>
+          </div>
+          {serverMode && (
+            <div style={{ marginTop: 10, fontSize: 12, color: '#4338ca', background: '#e0e7ff', borderRadius: 8, padding: '8px 10px' }}>
+              Other terminals/phones should point at this machine (leave them on <code style={{ fontWeight: 700 }}>dineopen-server.local</code> or enter its IP).
+            </div>
+          )}
         </div>
       )}
 
