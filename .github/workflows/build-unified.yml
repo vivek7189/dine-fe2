@@ -86,7 +86,9 @@ jobs:
       - name: Build Windows unified installer (x64)
         working-directory: frontend
         shell: bash
-        run: npx electron-builder --config electron-builder.unified.yml --win --x64
+        # --publish never: we only want the artifact; electron-builder otherwise auto-derives
+        # a GitHub publish target on CI and fails asking for GH_TOKEN.
+        run: npx electron-builder --config electron-builder.unified.yml --win --x64 --publish never
 
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
@@ -183,7 +185,7 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-        run: npx electron-builder --config electron-builder.unified.yml --mac
+        run: npx electron-builder --config electron-builder.unified.yml --mac --publish never
 
       - name: Upload macOS installers
         uses: actions/upload-artifact@v4
