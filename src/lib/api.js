@@ -1349,6 +1349,14 @@ class ApiClient {
     return this.request(`/api/orders/single/${orderId}`);
   }
 
+  // All currently-open (unsettled) orders, any date, with age — for the Open Orders page/indicator.
+  async getOpenOrders(restaurantId, options = {}) {
+    const query = new URLSearchParams(
+      Object.fromEntries(Object.entries(options).filter(([, v]) => v !== undefined && v !== null && v !== ''))
+    ).toString();
+    return this.request(`/api/orders/${restaurantId}/open${query ? `?${query}` : ''}`);
+  }
+
   async updateOrderStatus(orderId, status, restaurantId = null) {
     const body = { status };
     if (restaurantId) {

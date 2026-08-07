@@ -225,6 +225,7 @@ export default function HomePage() {
   const [isBar, setIsBar] = useState(false);
   const [recentOrders, setRecentOrders] = useState([]);
   const [tables, setTables] = useState(null);
+  const [openSummary, setOpenSummary] = useState(null); // unsettled open orders indicator
   useEffect(() => {
     // Electron is always a desktop POS terminal — never use mobile layout
     if (typeof window !== 'undefined' && window.electronAPI) {
@@ -270,7 +271,27 @@ export default function HomePage() {
       loadRecentOrders(parsed);
       loadTables(parsed);
     }
+    loadOpenSummary(parsed);
   }, []);
+
+  const loadOpenSummary = async (userData) => {
+    try {
+      const rid = localStorage.getItem('selectedRestaurantId') || userData?.restaurantId;
+      if (!rid) return;
+      // Short 60s client cache just to dedupe rapid re-mounts; the server endpoint is Redis-cached
+      // with version-counter invalidation, so it stays fresh & cheap (no per-load Firestore scan).
+      const cacheKey = 'openSummary_' + rid;
+      try {
+        const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+        if (cached && Date.now() - cached.t < 60 * 1000) { setOpenSummary(cached.s); return; }
+      } catch (_) {}
+      const res = await apiClient.getOpenOrders(rid);
+      if (res?.summary) {
+        setOpenSummary(res.summary);
+        try { localStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), s: res.summary })); } catch (_) {}
+      }
+    } catch (_) { /* non-blocking */ }
+  };
 
   const loadRecentOrders = async (userData) => {
     try {
@@ -455,6 +476,20 @@ export default function HomePage() {
       `}</style>
 
       <OfflineBanner />
+
+      {/* Open (unsettled) orders indicator — tap to resolve on the Open Orders page */}
+      {openSummary && openSummary.count > 0 && (
+        <div onClick={() => navigateTo('/open-orders')} className="animate-in" style={{ cursor: 'pointer', marginBottom: '20px', borderRadius: '14px', border: '1px solid #fde68a', background: 'linear-gradient(135deg,#fffbeb,#fef3c7)', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+            <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '18px' }}>⚠️</div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '14px', fontWeight: 800, color: '#92400e' }}>{openSummary.count} open order{openSummary.count !== 1 ? 's' : ''} not settled · {currencySymbol}{Math.round(openSummary.amount || 0).toLocaleString()}</div>
+              <div style={{ fontSize: '12px', color: '#a16207' }}>{openSummary.agedCount > 0 ? `${openSummary.agedCount} carried over from earlier days (oldest ${openSummary.oldestDays}d) — ` : ''}Not counted in sales. Tap to settle or void.</div>
+            </div>
+          </div>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: '#b45309', whiteSpace: 'nowrap' }}>Review →</div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="animate-in" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>

@@ -401,6 +401,23 @@ export default function SalesSummaryPage() {
               </div>
             </div>
 
+            {/* Open / Unsettled orders — shown separately, NOT counted in the sales above */}
+            {summary.openOrders && summary.openOrders.count > 0 && (
+              <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-amber-500 text-lg">⚠️</span>
+                  <div className="min-w-0">
+                    <div className="text-sm font-bold text-amber-900">Open orders — not settled</div>
+                    <div className="text-[11.5px] text-amber-700 leading-snug">Not included in the sales figures above — these orders were placed but never paid/closed. Please settle or void them.</div>
+                  </div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <div className="text-lg font-extrabold text-amber-900">{formatCurrency(summary.openOrders.amount || 0)}</div>
+                  <div className="text-[11px] text-amber-700 font-semibold">{summary.openOrders.count} order{summary.openOrders.count !== 1 ? 's' : ''}</div>
+                </div>
+              </div>
+            )}
+
             {/* Sub-restaurant Breakdown (only when viewing all sections) */}
             {!selectedSubRestaurant && summary.subRestaurantBreakdown && summary.subRestaurantBreakdown.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">

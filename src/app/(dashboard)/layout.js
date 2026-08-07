@@ -178,7 +178,7 @@ function DashboardLayoutContent({ children }) {
   useEffect(() => {
     // Map URL segments to sidebar nav item IDs (for superAdminDisabledPages check)
     const ROUTE_TO_NAV_ID = {
-      'dashboard': 'pos', 'orderhistory': 'orders', 'kot': 'kot', 'tables': 'tables',
+      'dashboard': 'pos', 'orderhistory': 'orders', 'open-orders': 'orders', 'kot': 'kot', 'tables': 'tables',
       'menu': 'menu', 'inventory': 'inventory', 'customers': 'customers', 'billing': 'billing',
       'invoice': 'invoice', 'admin': 'admin', 'attendance': 'attendance', 'hotel': 'hotel',
       'dineai': 'dineai', 'analytics': 'analytics', 'parking': 'parking', 'bookings': 'bookings',
