@@ -51,6 +51,7 @@ export default function TableCard({
   onTableAction,
   onQuickView,
   onPrintBill,
+  onPrintPreBill,
   onPrintKOT,
   onEditTable,
   onDeleteTable,
@@ -429,6 +430,17 @@ export default function TableCard({
                         onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                         >
                           <FaExchangeAlt size={10} style={{ color: '#6366f1' }} /> Move Order
+                        </button>
+                      )}
+                      {onPrintPreBill && table.currentOrderId && (
+                        <button onClick={() => { onPrintPreBill(table); setPrintDropdownTable(null); }} style={{
+                          width: '100%', padding: '8px 12px', border: 'none', background: 'transparent', cursor: 'pointer',
+                          fontSize: '11px', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: '8px',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                        >
+                          <FaReceipt size={10} style={{ color: '#f59e0b' }} /> Print Pre-Bill
                         </button>
                       )}
                       <button onClick={() => { onPrintBill(table); setPrintDropdownTable(null); }} style={{

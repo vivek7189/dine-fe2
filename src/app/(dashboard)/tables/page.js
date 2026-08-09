@@ -29,6 +29,7 @@ import { createPortal } from 'react-dom';
 import QRCode from 'qrcode';
 import { getBillPrintCSS, getBillHeaderHTML } from '../../../utils/printFontSizes';
 import { printDocument, supportsNativeAutoPrint } from '../../../utils/printBridge';
+import { generateBillHTML } from '../../../utils/printHtmlGenerator';
 import { printKOTByStations } from '../../../utils/printKotStations';
 // Dynamic imports — loaded on first use
 const TableBillingModal = dynamic(() => import('../../../components/TableBillingModal'), { ssr: false });
@@ -1543,6 +1544,61 @@ const TableManagement = () => {
     }
   };
 
+  // Pre-bill: reuse the SAME shared renderer as Order History / the dashboard
+  // (generateBillHTML), which draws the "*** PRE-BILL ***" banner when isPreBill is set.
+  // No bill markup is re-implemented here — we only build the invoice and call the shared fn.
+  const buildInvoiceForBill = (order) => {
+    const currencySymbol = getCurrencySymbol();
+    const items = order.items || [];
+    const subtotal = order.totalAmount || order.subtotal || items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
+    return {
+      ...order,
+      currencySymbol,
+      subtotal,
+      grandTotal: order.finalAmount || order.grandTotal || subtotal,
+      restaurantName: selectedRestaurant?.name || 'Restaurant',
+      restaurantLegalName: selectedRestaurant?.legalBusinessName,
+      restaurantAddress: printSettings?.receiptAddress || selectedRestaurant?.address,
+      restaurantPhone: printSettings?.receiptPhone || selectedRestaurant?.phone,
+      gstin: selectedRestaurant?.gstin,
+      fssai: selectedRestaurant?.fssai,
+      vatNumber: selectedRestaurant?.vatNumber,
+      taxId: selectedRestaurant?.taxId,
+      businessRegistrationNumber: selectedRestaurant?.businessRegistrationNumber,
+      showGstOnInvoice: selectedRestaurant?.showGstOnInvoice,
+      showFssaiOnInvoice: selectedRestaurant?.showFssaiOnInvoice,
+      showTaxIdOnInvoice: selectedRestaurant?.showTaxIdOnInvoice,
+      countryCode: selectedRestaurant?.countryCode,
+      taxLabel: selectedRestaurant?.currencySettings?.taxLabel || '',
+      customerName: order.customerDisplay?.name || order.customerInfo?.name || order.customerName,
+    };
+  };
+
+  const handlePrintPreBill = async (table) => {
+    setPrintDropdownTable(null);
+    if (!table.currentOrderId || !selectedRestaurant?.id) return;
+    const tableId = table.id || table.currentOrderId;
+    setPrintingTables(prev => ({ ...prev, [tableId]: true }));
+    try {
+      const response = await apiClient.getOrderById(table.currentOrderId);
+      const order = response.orders?.[0];
+      if (!order) { setPrintingTables(prev => ({ ...prev, [tableId]: false })); return; }
+      const invoice = buildInvoiceForBill(order);
+      invoice.isPreBill = true;
+      const billContent = generateBillHTML(invoice, printSettings || {});
+      if (supportsNativeAutoPrint()) {
+        await printDocument({ html: billContent, type: 'bill', printSettings: printSettings || {} });
+      } else {
+        const win = window.open('', '_blank', 'width=400,height=600');
+        if (win) { win.document.write(billContent); win.document.close(); win.focus(); setTimeout(() => win.print(), 400); }
+      }
+    } catch (error) {
+      console.error('Error printing pre-bill:', error);
+    } finally {
+      setTimeout(() => setPrintingTables(prev => ({ ...prev, [tableId]: false })), 1000);
+    }
+  };
+
   const handlePrintKOT = async (table) => {
     setPrintDropdownTable(null);
     if (!table.currentOrderId || !selectedRestaurant?.id) return;
@@ -2261,6 +2317,7 @@ const TableManagement = () => {
                           onTableAction={handleTableAction}
                           onQuickView={handleQuickView}
                           onPrintBill={handlePrintBill}
+                          onPrintPreBill={handlePrintPreBill}
                           onPrintKOT={handlePrintKOT}
                           onEditTable={openEditTable}
                           onDeleteTable={(tbl) => deleteTable(tbl.id)}

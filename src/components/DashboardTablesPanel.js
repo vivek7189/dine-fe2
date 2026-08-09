@@ -405,7 +405,7 @@ export default function DashboardTablesPanel({
     };
   };
 
-  const handlePrintBill = async (table) => {
+  const handlePrintBill = async (table, { preBill = false } = {}) => {
     setPrintDropdownTable(null);
     if (!table.currentOrderId || !selectedRestaurant?.id) return;
     const tableId = table.id || table.currentOrderId;
@@ -419,6 +419,9 @@ export default function DashboardTablesPanel({
       }
       const order = response.orders[0];
       const invoice = buildInvoiceFromOrder(order);
+      // Pre-bill: reuse the exact same bill template; generateBillHTML renders the
+      // "*** PRE-BILL ***" banner when isPreBill is set. Final-bill path is unchanged.
+      if (preBill) invoice.isPreBill = true;
       const billContent = generateBillHTML(invoice, printSettings || {});
 
       if (supportsNativeAutoPrint()) {
@@ -433,6 +436,9 @@ export default function DashboardTablesPanel({
       printTimersRef.current.push(setTimeout(() => setPrintingTables(prev => ({ ...prev, [tableId]: false })), 1000));
     }
   };
+
+  // Pre-bill = same print path as the bill, with the PRE-BILL banner (unsettled order).
+  const handlePrintPreBill = (table) => handlePrintBill(table, { preBill: true });
 
   const handlePrintKOT = async (table) => {
     setPrintDropdownTable(null);
@@ -972,6 +978,7 @@ export default function DashboardTablesPanel({
                     }}
                     onQuickView={handleQuickView}
                     onPrintBill={handlePrintBill}
+                    onPrintPreBill={handlePrintPreBill}
                     onPrintKOT={handlePrintKOT}
                     onMoveOrder={(tbl) => setMoveModalTable({ ...tbl, floorId: group.info?.id, floorName: group.info?.name || group.name })}
                     onEditTable={() => {}}
