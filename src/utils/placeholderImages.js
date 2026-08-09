@@ -521,7 +521,7 @@ const _normalizeText = (s) => (s || '').toLowerCase()
 // Build flat lookup sorted by keyword length (longest first for specific matches).
 // Brand/liquor entries are merged in from liquorImages.js (real product photos).
 const _keywordIndex = [];
-for (const [keywords, filename] of [...KEYWORD_MAP, ...LIQUOR_KEYWORD_MAP]) {
+for (const [keywords, filename] of [...LIQUOR_KEYWORD_MAP, ...KEYWORD_MAP]) {
   if (!filename) continue;
   const kws = Array.isArray(keywords) ? keywords : [keywords];
   for (const kw of kws) {
