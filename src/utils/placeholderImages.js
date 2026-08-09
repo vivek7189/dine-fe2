@@ -510,6 +510,14 @@ const KEYWORD_MAP = [
   [['potato', 'aloo'], 'potato-dish.jpg'],
 ];
 
+// Normalize so punctuation in item names doesn't break matching, e.g. "Bailey's" and
+// "DH Red Claret (Dry)" should still match "baileys" / "dh red claret dry".
+const _normalizeText = (s) => (s || '').toLowerCase()
+  .replace(/[-–—]/g, ' ')
+  .replace(/[^a-z0-9 ]/g, '')
+  .replace(/\s+/g, ' ')
+  .trim();
+
 // Build flat lookup sorted by keyword length (longest first for specific matches).
 // Brand/liquor entries are merged in from liquorImages.js (real product photos).
 const _keywordIndex = [];
@@ -517,15 +525,16 @@ for (const [keywords, filename] of [...KEYWORD_MAP, ...LIQUOR_KEYWORD_MAP]) {
   if (!filename) continue;
   const kws = Array.isArray(keywords) ? keywords : [keywords];
   for (const kw of kws) {
-    _keywordIndex.push([kw.toLowerCase(), filename]);
+    _keywordIndex.push([_normalizeText(kw), filename]);
   }
 }
 _keywordIndex.sort((a, b) => b[0].length - a[0].length);
 
 function matchKeywords(text) {
-  if (!text) return null;
+  const t = _normalizeText(text);
+  if (!t) return null;
   for (const [kw, filename] of _keywordIndex) {
-    if (text.includes(kw)) return filename;
+    if (kw && t.includes(kw)) return filename;
   }
   return null;
 }
