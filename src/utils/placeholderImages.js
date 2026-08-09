@@ -11,6 +11,8 @@
  * 6. Generic fallback
  */
 
+import { LIQUOR_KEYWORD_MAP } from './liquorImages';
+
 // ─── Keyword → filename mapping ───
 // Each entry: [keywords[], filename]
 // More specific multi-word keywords should come before generic single-word ones.
@@ -508,9 +510,10 @@ const KEYWORD_MAP = [
   [['potato', 'aloo'], 'potato-dish.jpg'],
 ];
 
-// Build flat lookup sorted by keyword length (longest first for specific matches)
+// Build flat lookup sorted by keyword length (longest first for specific matches).
+// Brand/liquor entries are merged in from liquorImages.js (real product photos).
 const _keywordIndex = [];
-for (const [keywords, filename] of KEYWORD_MAP) {
+for (const [keywords, filename] of [...KEYWORD_MAP, ...LIQUOR_KEYWORD_MAP]) {
   if (!filename) continue;
   const kws = Array.isArray(keywords) ? keywords : [keywords];
   for (const kw of kws) {
