@@ -642,8 +642,11 @@ function RestaurantPOSContent() {
   }, []);
 
   // Prefetch tables/floors once restaurant is known
+  const prefetchSeqRef = useRef(0);
   const prefetchTables = useCallback(async (rid) => {
     if (!rid) return;
+    // Monotonic guard: a slow older prefetch (LAN latency) must not clobber a fresher result.
+    const seq = ++prefetchSeqRef.current;
     try {
       setTablesRefreshing(true);
 
@@ -661,6 +664,9 @@ function RestaurantPOSContent() {
 
       const floorsRes = await apiClient.getFloors(rid).catch(() => null);
 
+      // Superseded by a newer prefetch while our request was in flight — discard.
+      if (seq !== prefetchSeqRef.current) return;
+
       if (floorsRes) {
         const floorsData = floorsRes?.floors || floorsRes || [];
         setTablesData({ floors: applyOverrides(floorsData), tables: [] });
@@ -676,7 +682,7 @@ function RestaurantPOSContent() {
         }
       }
     } finally {
-      setTablesRefreshing(false);
+      if (seq === prefetchSeqRef.current) setTablesRefreshing(false);
     }
   }, []);
 

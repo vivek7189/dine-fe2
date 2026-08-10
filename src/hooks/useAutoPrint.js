@@ -376,7 +376,9 @@ export function useAutoPrint(restaurantId, printSettings) {
     const processOrderEvent = (data) => {
       if (!data) return;
       const eventAge = data.ts ? Date.now() - data.ts : 0;
-      if (eventAge > 2 * 60 * 1000) {
+      // Skip the reconnect-flood age guard in local-server mode: the LAN socket has no replay
+      // flood, and offline clock skew would otherwise drop live prints. Dedup handles repeats.
+      if (!isLocalServerMode() && eventAge > 2 * 60 * 1000) {
         console.log(`🖨️ AutoPrint: Skipping stale order event (${Math.round(eventAge / 1000)}s old)`);
         return;
       }
@@ -389,7 +391,9 @@ export function useAutoPrint(restaurantId, printSettings) {
     const processKotEvent = (data) => {
       if (!data) return;
       const eventAge = data.ts ? Date.now() - data.ts : 0;
-      if (eventAge > 2 * 60 * 1000) {
+      // Skip the reconnect-flood age guard in local-server mode: the LAN socket has no replay
+      // flood, and offline clock skew would otherwise drop live prints. Dedup handles repeats.
+      if (!isLocalServerMode() && eventAge > 2 * 60 * 1000) {
         console.log(`🖨️ AutoPrint: Skipping stale KOT event (${Math.round(eventAge / 1000)}s old)`);
         return;
       }
@@ -404,7 +408,9 @@ export function useAutoPrint(restaurantId, printSettings) {
       console.log(`🖨️ AutoPrint: Billing event received:`, JSON.stringify(data));
       if (!data) return;
       const eventAge = data.ts ? Date.now() - data.ts : 0;
-      if (eventAge > 2 * 60 * 1000) {
+      // Skip the reconnect-flood age guard in local-server mode: the LAN socket has no replay
+      // flood, and offline clock skew would otherwise drop live prints. Dedup handles repeats.
+      if (!isLocalServerMode() && eventAge > 2 * 60 * 1000) {
         console.log(`🖨️ AutoPrint: Skipping stale billing event (${Math.round(eventAge / 1000)}s old)`);
         return;
       }

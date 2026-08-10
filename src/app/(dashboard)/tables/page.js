@@ -729,10 +729,14 @@ const TableManagement = () => {
 
     const handleOrderEvent = (data) => {
       if (!data) return;
-      // Skip stale events after Firebase reconnect (> 2 min old)
+      // The age guard exists only to absorb RTDB reconnect-replay floods. The LAN socket has no
+      // such flood, and offline terminals have no NTP so their clock can skew minutes — which would
+      // falsely drop every live event. So skip the guard in local-server mode. In cloud mode, still
+      // reconcile via a refetch instead of silently dropping.
       const eventAge = data.ts ? Date.now() - data.ts : 0;
-      if (eventAge > 2 * 60 * 1000) {
-        console.log(`📡 Tables: Skipping stale order event (${Math.round(eventAge / 1000)}s old)`);
+      if (!isLocalServerMode() && eventAge > 2 * 60 * 1000) {
+        console.log(`📡 Tables: Stale order event (${Math.round(eventAge / 1000)}s old) — reconciling`);
+        debouncedRefresh();
         return;
       }
       const orderEvents = ['order-created', 'order-updated', 'order-status-updated', 'order-completed', 'order-deleted'];
@@ -745,10 +749,12 @@ const TableManagement = () => {
 
     const handleTableEvent = (data) => {
       if (!data) return;
-      // Skip stale events after Firebase reconnect (> 2 min old)
+      // See handleOrderEvent: skip the reconnect-flood age guard in local-server mode (LAN has no
+      // replay flood + clock skew would falsely drop live table updates); reconcile in cloud mode.
       const eventAge = data.ts ? Date.now() - data.ts : 0;
-      if (eventAge > 2 * 60 * 1000) {
-        console.log(`📡 Tables: Skipping stale table event (${Math.round(eventAge / 1000)}s old)`);
+      if (!isLocalServerMode() && eventAge > 2 * 60 * 1000) {
+        console.log(`📡 Tables: Stale table event (${Math.round(eventAge / 1000)}s old) — reconciling`);
+        debouncedRefresh();
         return;
       }
       // Event-sourced update (how POS systems stay live): the event carries the exact
