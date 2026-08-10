@@ -23,6 +23,9 @@ import { getLocalServerUrl } from './localServer';
 let socket = null;
 let socketUrl = null;          // the server URL the current socket was opened against
 let joinedRestaurant = null;
+// Highest event seq this client has seen. Passed back on (re)connect so the server can replay
+// anything we missed while the socket was briefly down (Wi-Fi blip) — matching RTDB's replay.
+let lastSeq = 0;
 // category -> Set<handler>
 const subscribers = new Map();
 
@@ -60,12 +63,23 @@ function ensureSocket(restaurantId) {
   joinedRestaurant = restaurantId;
 
   socket.on('connect', () => {
-    try { socket.emit('join', { restaurantId: joinedRestaurant }); } catch (_) {}
+    // On reconnect (lastSeq>0) ask the server to replay events we missed while the socket was
+    // down; on the first connect (lastSeq==0) don't — we don't want the pre-existing buffer.
+    try {
+      socket.emit('join', { restaurantId: joinedRestaurant, sinceSeq: lastSeq > 0 ? lastSeq : undefined });
+    } catch (_) {}
+  });
+
+  // Initialize our cursor to the server's current seq on the FIRST join so we never replay the
+  // whole pre-existing buffer; live events afterwards advance it.
+  socket.on('joined', (d) => {
+    if (d && Number.isFinite(d.seq) && lastSeq === 0) lastSeq = d.seq;
   });
 
   // Single listener → fan out to the right category's subscribers.
   socket.on('event', (evt) => {
     if (!evt || !evt.category) return;
+    if (Number.isFinite(evt.seq) && evt.seq > lastSeq) lastSeq = evt.seq;
     const set = subscribers.get(evt.category);
     if (!set || set.size === 0) return;
     // Deliver the RTDB-compatible payload: { type, ...payload, ts } (category kept too).
