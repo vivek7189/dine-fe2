@@ -370,6 +370,10 @@ const TableManagement = () => {
   const [actionLoading, setActionLoading] = useState(false); // loading for add/edit table, floor, reset, status change
   const actionLockRef = useRef(false); // prevent double-click on add/bulk actions
   const lastFloorFetchRef = useRef(0);
+  // Monotonic guard so a SLOW/older loadFloorsAndTables response can never overwrite a
+  // newer one (or an optimistic reset). Over the LAN (local-server mode) a refresh can
+  // resolve out of order and clobber fresh state — this makes the latest load always win.
+  const loadSeqRef = useRef(0);
   const [hoveredTableId, setHoveredTableId] = useState(null);
   const [floorModalTab, setFloorModalTab] = useState('details'); // 'details' | 'order'
   const [floorOrderList, setFloorOrderList] = useState([]); // for reordering
@@ -911,6 +915,10 @@ const TableManagement = () => {
   }, []);
 
   const loadFloorsAndTables = async (restaurantId, forceRefresh = false) => {
+    // Claim the latest sequence number for this load. If a newer load/optimistic update
+    // supersedes us while our fetch is in flight, we discard this (now stale) response.
+    const seq = ++loadSeqRef.current;
+    const isStale = () => seq !== loadSeqRef.current;
     try {
       if (forceRefresh) localStorage.removeItem(`floors_${restaurantId}`);
       const floorsResponse = await apiClient.getFloors(restaurantId);
@@ -921,6 +929,8 @@ const TableManagement = () => {
         const tablesResponse = await apiClient.getTables(restaurantId);
         floorsData = [{ id: 'default', name: 'Main Floor', description: 'Main dining area', tables: tablesResponse.tables || [], restaurantId }];
       }
+      // A newer load/reset already updated the UI — don't clobber it with our older data.
+      if (isStale()) return;
       setFloors(floorsData);
       const currentRestaurant = selectedRestaurant || { id: restaurantId };
       setCachedTablesData(restaurantId, { floors: floorsData, selectedRestaurant: currentRestaurant });
@@ -970,6 +980,9 @@ const TableManagement = () => {
           getCachedData(`tables_${restaurantId}`),
           new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
         ]);
+        // Never let the offline snapshot (which may be pre-reset/occupied) overwrite a
+        // newer live update.
+        if (isStale()) return;
         if (idbData?.floors) {
           setFloors(idbData.floors);
         } else {
@@ -997,14 +1010,18 @@ const TableManagement = () => {
     setActionLoading(true);
     try {
       await apiClient.resetAllTables(selectedRestaurant.id);
+      // Invalidate any in-flight loadFloorsAndTables so a slow/older refresh can't re-apply
+      // the pre-reset (occupied) snapshot over our optimistic update.
+      loadSeqRef.current++;
       setFloors(prev => prev.map(floor => ({
         ...floor,
         tables: floor.tables?.map(t =>
-          t.status === 'occupied' ? { ...t, status: 'available', currentOrderId: null } : t
+          (t.status === 'occupied' || t.status === 'serving' || t.currentOrderId)
+            ? { ...t, status: 'available', currentOrderId: null } : t
         ),
       })));
       showSuccess(t('tables.tablesResetSuccess', { count: occupiedCount }));
-      loadFloorsAndTables(selectedRestaurant.id, true);
+      await loadFloorsAndTables(selectedRestaurant.id, true);
     } catch (err) {
       showError(err.message || 'Failed to reset tables');
     } finally { setActionLoading(false); }
