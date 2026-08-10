@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { orderDisplayNumber } from '../../utils/orderNumber';
 import { useSearchParams } from 'next/navigation';
 // import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
-import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
 import { database } from '../../../firebase';
+import { subscribeRestaurantEvents } from '../../lib/realtimeSubscribe';
+import { isLocalServerMode } from '../../lib/localServer';
 import { printDocument } from '../../utils/printBridge';
 import { isWeb } from '../../utils/platform';
 import { renderKOT } from '../../utils/printTemplates/index';
@@ -422,50 +423,41 @@ const PrintKOTContent = () => {
     }
   }, [isPolling, fetchPendingOrders]);
 
-  // Firebase RTDB real-time subscription + 60s fallback poll
+  // Live KOT subscription (Firebase RTDB online, LAN socket in local-server mode) + fallback poll
   useEffect(() => {
-    if (!restaurantId || !database) return;
+    if (!restaurantId) return;
+    // Cloud mode needs Firebase; local-server (offline LAN) mode receives KOT events over the
+    // LAN socket via subscribeRestaurantEvents instead.
+    if (!isLocalServerMode() && !database) return;
 
     // Initial fetch
     fetchPendingOrders();
 
-    // Start 5-min fallback poll (safety net — Firebase RTDB is primary)
+    // Start 5-min fallback poll (safety net — live events are primary)
     pollingIntervalRef.current = setInterval(() => {
       if (typeof document !== 'undefined' && document.hidden) return;
       fetchPendingOrders();
     }, 300_000);
     setIsPolling(true);
 
-    // Subscribe to Firebase RTDB for real-time order notifications
-    const now = Date.now();
-    const eventsRef = query(
-      ref(database, `events/${restaurantId}/kot`),
-      orderByChild('ts'),
-      startAt(now)
-    );
-
-    const handleOrderEvent = () => {
-      fetchPendingOrders();
-    };
-
-    const handler = (snapshot) => {
-      const event = snapshot.val();
+    // Subscribe to live KOT events (LAN-aware).
+    const handler = (event) => {
       if (!event) return;
       // React to order-related KOT events
       if (['order-created', 'order-status-updated', 'order-updated'].includes(event.type)) {
-        handleOrderEvent();
+        fetchPendingOrders();
       }
     };
 
-    onChildAdded(eventsRef, handler);
+    const unsub = subscribeRestaurantEvents(restaurantId, 'kot', handler);
 
-    console.log(`Firebase RTDB: KOT Printer subscribed to events/${restaurantId}/kot`);
+    console.log(`KOT Printer subscribed to live kot events for restaurant '${restaurantId}'`);
 
     return () => {
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
       }
-      off(eventsRef, 'child_added', handler);
+      unsub();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantId]);

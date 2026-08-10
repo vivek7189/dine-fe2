@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { orderDisplayNumber } from '../../utils/orderNumber';
 import { useSearchParams } from 'next/navigation';
-import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
 import { database } from '../../../firebase';
+import { subscribeRestaurantEvents } from '../../lib/realtimeSubscribe';
+import { isLocalServerMode } from '../../lib/localServer';
 import { t } from '../../lib/i18n';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -310,23 +311,22 @@ function TokenDisplayContent() {
     });
   }, [orders, settings.autoClearSeconds]);
 
-  // ─── Firebase RTDB Subscription ───
+  // ─── Live order subscription (RTDB online, LAN socket in local-server mode) ───
   useEffect(() => {
-    if (screen !== 'display' || !restaurantId || !database) return;
-    const now = Date.now();
-    const ordersPath = query(ref(database, `events/${restaurantId}/orders`), orderByChild('ts'), startAt(now));
+    if (screen !== 'display' || !restaurantId) return;
+    if (!isLocalServerMode() && !database) return;
     let debounceTimer = null;
-    const handleSnapshot = (snapshot) => {
-      if (!snapshot.val()) return;
+    const handleData = (data) => {
+      if (!data) return;
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => fetchOrders(), 1000);
     };
-    onChildAdded(ordersPath, handleSnapshot, (error) => {
-      console.error('Token display RTDB error:', error.message);
+    const unsub = subscribeRestaurantEvents(restaurantId, 'orders', handleData, {
+      onError: (error) => console.error('Token display live error:', error.message),
     });
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
-      off(ordersPath, 'child_added', handleSnapshot);
+      unsub();
     };
   }, [screen, restaurantId, fetchOrders]);
 

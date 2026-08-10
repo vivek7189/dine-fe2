@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'rea
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 // import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
-import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
 import { database } from '../../../../../firebase';
+import { subscribeRestaurantEvents } from '../../../../lib/realtimeSubscribe';
+import { isLocalServerMode } from '../../../../lib/localServer';
 import apiClient from '../../../../lib/api';
 import { t } from '../../../../lib/i18n';
 import { useCurrency } from '../../../../contexts/CurrencyContext';
@@ -173,32 +174,25 @@ function BarPOSContent() {
     loadLoyaltyAndOffers(selectedRestaurant.id);
   }, [selectedRestaurant?.id]);
 
-  // Firebase RTDB: real-time offer sync
+  // Real-time offer sync (Firebase RTDB online, LAN socket in local-server mode)
   useEffect(() => {
-    if (!selectedRestaurant?.id || !database) return;
+    if (!selectedRestaurant?.id) return;
+    if (!isLocalServerMode() && !database) return;
     const rid = selectedRestaurant.id;
 
-    const now = Date.now();
-    const eventsRef = query(
-      ref(database, `events/${rid}/menu`),
-      orderByChild('ts'),
-      startAt(now)
-    );
-
     let debounceTimer = null;
-    const handler = (snapshot) => {
-      const event = snapshot.val();
+    const handler = (event) => {
       if (!event) return;
       if (event.type !== 'offer-updated') return;
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => loadLoyaltyAndOffers(rid), 1000);
     };
 
-    onChildAdded(eventsRef, handler);
+    const unsub = subscribeRestaurantEvents(rid, 'menu', handler);
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
-      off(eventsRef, 'child_added', handler);
+      unsub();
     };
   }, [selectedRestaurant?.id]);
 
