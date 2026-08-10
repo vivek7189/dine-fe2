@@ -651,7 +651,7 @@ function RestaurantPOSContent() {
 
       // Offline: load from cache immediately (web only — Electron always queries SQLite)
       const _isElectronPrefetch = typeof window !== 'undefined' && !!window.electronAPI?.apiRequest;
-      if (!navigator.onLine && !_isElectronPrefetch) {
+      if (!navigator.onLine && !isLocalServerMode() && !_isElectronPrefetch) {
         const cached = getCachedTablesData(rid);
         if (cached?.floors) {
           setTablesData({ floors: applyOverrides(cached.floors), tables: [] });
@@ -3669,7 +3669,7 @@ function RestaurantPOSContent() {
         // Check both isOnline state AND navigator.onLine for reliability (WebKit can be slow to fire offline events)
         // Electron: skip — apiClient routes through offline engine / local SQLite
         const _isElectronBilling = typeof window !== 'undefined' && !!window.electronAPI?.apiRequest;
-        if ((!isOnline || !navigator.onLine) && !_isElectronBilling) {
+        if ((!isOnline || !navigator.onLine) && !isLocalServerMode() && !_isElectronBilling) {
           if (!offlineEnabled) {
             setNotification({ type: 'error', title: t('dashboard.noInternet'), message: t('dashboard.offlineMsg'), show: true });
             setTimeout(() => setNotification(null), 4000);
@@ -3957,7 +3957,7 @@ function RestaurantPOSContent() {
         // OFFLINE PATH: Queue order + payment for later sync
         // Electron: skip — apiClient routes through offline engine / local SQLite
         const _isElectronNewBilling = typeof window !== 'undefined' && !!window.electronAPI?.apiRequest;
-        if ((!isOnline || !navigator.onLine) && !_isElectronNewBilling) {
+        if ((!isOnline || !navigator.onLine) && !isLocalServerMode() && !_isElectronNewBilling) {
           if (!offlineEnabled) {
             setNotification({ type: 'error', title: t('dashboard.noInternet'), message: t('dashboard.offlineMsg'), show: true });
             setTimeout(() => setNotification(null), 4000);
@@ -4524,7 +4524,7 @@ function RestaurantPOSContent() {
       };
 
       // OFFLINE PATH: Queue to IndexedDB
-      if (!isOnline || !navigator.onLine) {
+      if ((!isOnline || !navigator.onLine) && !isLocalServerMode()) {
         if (!offlineEnabled) {
           setNotification({ type: 'error', title: t('dashboard.noInternet'), message: t('dashboard.offlineMsg'), show: true });
           setTimeout(() => setNotification(null), 4000);
@@ -5267,7 +5267,7 @@ function RestaurantPOSContent() {
         // OFFLINE PATH: If offline, queue to IndexedDB (web) or let Electron handle via SQLite
         // Electron: skip this block — apiClient routes through offline engine / local SQLite
         const _isElectronApp = typeof window !== 'undefined' && !!window.electronAPI?.apiRequest;
-        if ((!isOnline || !navigator.onLine) && !_isElectronApp) {
+        if ((!isOnline || !navigator.onLine) && !isLocalServerMode() && !_isElectronApp) {
           if (!offlineEnabled) {
             setNotification({ type: 'error', title: t('dashboard.noInternet'), message: t('dashboard.offlineMsg'), show: true });
             setTimeout(() => setNotification(null), 4000);

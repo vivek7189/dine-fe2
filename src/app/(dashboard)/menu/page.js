@@ -19,6 +19,7 @@ import { getCachedData, setCachedData } from '../../../lib/offlineDb';
 import { queueOfflineOrder, generateIdempotencyKey } from '../../../lib/syncEngine';
 import { getOfflineEngineEnabled } from '../../../hooks/useSyncEngine';
 import { canPerform } from '../../../lib/permissions';
+import { isLocalServerMode } from '../../../lib/localServer';
 import OfflineBanner from '../../../components/OfflineBanner';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { 
@@ -185,7 +186,7 @@ const CategoryDropdown = ({
   };
 
   const handleAddNew = async () => {
-    if (!navigator.onLine && !(typeof window !== 'undefined' && window.electronAPI?.apiRequest)) { setCategoryNotice({ type: 'error', message: 'You are offline. Go online to make changes.' }); return; }
+    if (!navigator.onLine && !isLocalServerMode() && !(typeof window !== 'undefined' && window.electronAPI?.apiRequest)) { setCategoryNotice({ type: 'error', message: 'You are offline. Go online to make changes.' }); return; }
     if (!newCategory.name.trim()) return;
 
     try {
@@ -221,7 +222,7 @@ const CategoryDropdown = ({
   };
 
   const handleUpdate = async () => {
-    if (!navigator.onLine && !(typeof window !== 'undefined' && window.electronAPI?.apiRequest)) { setCategoryNotice({ type: 'error', message: 'You are offline. Go online to make changes.' }); return; }
+    if (!navigator.onLine && !isLocalServerMode() && !(typeof window !== 'undefined' && window.electronAPI?.apiRequest)) { setCategoryNotice({ type: 'error', message: 'You are offline. Go online to make changes.' }); return; }
     if (!editingCategory || !newCategory.name.trim()) return;
 
     try {
@@ -242,7 +243,7 @@ const CategoryDropdown = ({
   };
 
   const handleDelete = (category) => {
-    if (!navigator.onLine && !(typeof window !== 'undefined' && window.electronAPI?.apiRequest)) { setCategoryNotice({ type: 'error', message: 'You are offline. Go online to make changes.' }); return; }
+    if (!navigator.onLine && !isLocalServerMode() && !(typeof window !== 'undefined' && window.electronAPI?.apiRequest)) { setCategoryNotice({ type: 'error', message: 'You are offline. Go online to make changes.' }); return; }
     setDeletingCategory(category);
   };
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { isLocalServerMode, getLocalServerUrl } from '../lib/localServer';
 
 /**
  * Network status hook — no polling, no constant pinging.
@@ -16,8 +17,13 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
 
-// Global state so multiple hook instances share the same status
-let globalIsOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+// Global state so multiple hook instances share the same status.
+// In local-server (offline LAN) mode "online" means "the LAN backend is reachable", which is
+// unrelated to the OS internet flag — so we start optimistic (true) and let the first LAN
+// request result (reportNetworkFailure/Success) be the real source of truth.
+let globalIsOnline = isLocalServerMode()
+  ? true
+  : (typeof navigator !== 'undefined' ? navigator.onLine : true);
 let globalListeners = [];
 
 function notifyGlobalListeners() {
@@ -69,16 +75,21 @@ export function useNetworkStatus() {
 
     // Browser events
     const handleOffline = () => {
+      // In local-server mode the OS "offline" event (no internet) does NOT mean the LAN backend
+      // is unreachable — ignore it and let a real failed LAN request flip the flag instead.
+      if (isLocalServerMode()) return;
       globalIsOnline = false;
       updateStatus(false);
     };
 
     const handleOnline = async () => {
-      // Browser says online — verify with one ping before trusting
+      // Browser says online — verify with one ping before trusting. In local-server mode ping the
+      // LAN backend (the cloud host is unreachable offline and would falsely fail the check).
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 4000);
-        const resp = await fetch(`${API_BASE_URL}/api/health`, {
+        const pingBase = (isLocalServerMode() && getLocalServerUrl()) || API_BASE_URL;
+        const resp = await fetch(`${pingBase}/api/health`, {
           method: 'HEAD',
           cache: 'no-store',
           signal: controller.signal,
