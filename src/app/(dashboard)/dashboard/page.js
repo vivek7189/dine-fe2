@@ -12,6 +12,7 @@ import { isLocalServerMode } from '../../../lib/localServer';
 import Onboarding from '../../../components/Onboarding';
 import EmptyMenuPrompt from '../../../components/EmptyMenuPrompt';
 import MenuItemCard from '../../../components/MenuItemCard';
+import FastBillingBoard from '../../../components/FastBillingBoard';
 import CategoryButton from '../../../components/CategoryButton';
 import OrderSummary from '../../../components/OrderSummary';
 import Notification from '../../../components/Notification';
@@ -456,6 +457,15 @@ function RestaurantPOSContent() {
   const [cardSizeDropdownOpen, setCardSizeDropdownOpen] = useState(false);
   // Derived: backward compat for MenuItemCard (modern = standard or large)
   const useModernCards = cardSize !== 'compact';
+
+  // Fast Billing view — a clean color-coded category→sub-category→item board for quick waiter
+  // billing (opt-in, desktop/tablet). Reuses the same cart/addToCart/customization handlers, so
+  // it changes ONLY the menu presentation, never the billing logic. Persisted per device.
+  const [fastMode, setFastMode] = useState(false);
+  useEffect(() => { try { setFastMode(localStorage.getItem('dineFastBilling') === '1'); } catch (_) {} }, []);
+  const toggleFastMode = useCallback(() => {
+    setFastMode((v) => { const nv = !v; try { localStorage.setItem('dineFastBilling', nv ? '1' : '0'); } catch (_) {} return nv; });
+  }, []);
   const [categoryViewMode, setCategoryViewMode] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -7548,8 +7558,8 @@ function RestaurantPOSContent() {
           </div>
         )}
 
-        {/* Desktop Category Sidebar - Part of Menu Section */}
-        {!isMobile && viewMode === 'orders' && categoryViewMode === 'sidebar' && (
+        {/* Desktop Category Sidebar - Part of Menu Section (hidden in Fast Billing: it has its own category bar) */}
+        {!isMobile && viewMode === 'orders' && categoryViewMode === 'sidebar' && !fastMode && (
           <div style={{
             width: '152px',
             height: '100%',
@@ -7682,6 +7692,23 @@ function RestaurantPOSContent() {
           // Expand to full width when in tables view
           width: viewMode === 'tables' ? '100%' : undefined
         }}>
+          {/* Fast Billing view toggle (desktop/tablet, order mode, hierarchical menu) */}
+          {!isMobile && viewMode === 'orders' && hasCategoryTree && (
+            <button
+              onClick={toggleFastMode}
+              title="Toggle Fast Billing view"
+              style={{
+                position: 'absolute', top: '74px', right: `${orderPanelWidth + 18}px`, zIndex: 60,
+                height: '34px', padding: '0 14px', borderRadius: '999px',
+                border: `1.5px solid ${fastMode ? '#4f46e5' : '#e5e7eb'}`,
+                background: fastMode ? '#4f46e5' : '#ffffff', color: fastMode ? '#fff' : '#4b5563',
+                fontSize: '12.5px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px',
+                cursor: 'pointer', boxShadow: '0 2px 6px rgba(16,24,40,.08)'
+              }}
+            >
+              ⚡ {fastMode ? 'Fast Billing: ON' : 'Fast Billing'}
+            </button>
+          )}
           {/* Register Not Open Banner */}
           {posSettings.requireRegisterOpen && registerOpen === false && (
             <div style={{
@@ -8433,6 +8460,19 @@ function RestaurantPOSContent() {
             {/* Multi-Tier Pricing Rule Selector — moved to OrderSummary header */}
 
             {viewMode === 'orders' ? (
+            (fastMode && !isMobile && hasCategoryTree) ? (
+              <FastBillingBoard
+                categoryIndex={categoryIndex}
+                selectedCategory={selectedCategory}
+                setSelectedCategory={setSelectedCategory}
+                gridItems={filteredItems}
+                allItems={effectiveMenuItems}
+                searchTerm={debouncedSearchTerm}
+                getItemQuantityInCart={getItemQuantityInCart}
+                onAddToCart={addToCart}
+                onItemClick={handleItemCustomization}
+              />
+            ) : (
             <div>
               {/* Breadcrumb — shown when inside a sub-category, so you can jump
                   back up. Drilling DOWN is done via the folder cards in the grid. */}
@@ -8829,6 +8869,7 @@ function RestaurantPOSContent() {
                 </div>
               )}
             </div>
+            )
             ) : (
               <DashboardTablesPanel
                 floors={effectiveTablesData.floors}
