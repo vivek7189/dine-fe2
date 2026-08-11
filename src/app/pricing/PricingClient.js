@@ -262,7 +262,7 @@ export default function PricingClient() {
 
   // Competitor comparison row (India)
   const compare = [
-    { name: 'DineOpen Growth',     price: '₹749/mo',          ai: true,  txn: '0%',     setup: 'Free',    kds: true,  captainApp: true },
+    { name: 'DineOpen Growth',     price: isIndia ? 'Custom' : `${currentPrice.symbol}${currentPrice.growth.monthly}/mo`, ai: true,  txn: '0%',     setup: 'Free',    kds: true,  captainApp: true },
     { name: 'Petpooja (real cost)', price: '₹1,800-3,500/mo', ai: false, txn: '0%',     setup: '₹3,000+', kds: 'Paid', captainApp: 'Paid' },
     { name: 'Restroworks (POSist)', price: '₹2,000-4,000/mo', ai: false, txn: '0%',     setup: '₹5,000+', kds: 'Paid', captainApp: 'Paid' },
     { name: 'PosBytz Pro',          price: '₹1,499/mo',       ai: false, txn: '0%',     setup: 'Paid',    kds: 'Paid', captainApp: true },
@@ -555,7 +555,9 @@ export default function PricingClient() {
           </div>
         </div>
 
-        {/* Competitor comparison */}
+        {/* Competitor comparison — India-market table (₹ competitor rates); shown only in the
+            India (INR) context so the global USD/GBP view stays currency-clean. */}
+        {isIndia && (
         <div style={{ backgroundColor: 'white', padding: '60px 20px' }}>
           <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
             <h2 style={{ fontSize: '32px', fontWeight: '800', color: '#111827', textAlign: 'center', marginBottom: '12px' }}>
@@ -609,6 +611,7 @@ export default function PricingClient() {
             </p>
           </div>
         </div>
+        )}
 
         {/* Feature Comparison Grid */}
         <div style={{ padding: '60px 20px', backgroundColor: '#f9fafb' }}>
