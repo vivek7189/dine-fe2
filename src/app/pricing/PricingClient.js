@@ -4,11 +4,16 @@ import { useState } from 'react';
 import Link from 'next/link';
 import CommonHeader from '../../components/CommonHeader';
 import Footer from '../../components/Footer';
-import { FaCheck, FaTimes, FaCheckCircle, FaSpinner, FaPaperPlane, FaPhone, FaEnvelope, FaTabletAlt, FaPrint, FaWifi } from 'react-icons/fa';
+import { FaCheck, FaTimes, FaCheckCircle, FaSpinner, FaPaperPlane, FaPhone, FaEnvelope, FaTabletAlt, FaPrint, FaWifi, FaWhatsapp, FaTag } from 'react-icons/fa';
 import apiClient from '../../lib/api';
 
+// India-specific contact points (custom pricing is quoted 1:1, not shown publicly).
+const INDIA_WHATSAPP = '919004459951';
+const INDIA_EMAIL = 'info@dineopen.com';
+const INDIA_WA_LINK = `https://wa.me/${INDIA_WHATSAPP}?text=${encodeURIComponent("Hi DineOpen! I'd like custom pricing & offers for my restaurant in India.")}`;
+
 export default function PricingClient() {
-  const [currency, setCurrency] = useState('INR');
+  const [currency, setCurrency] = useState('USD');
   const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' | 'annual'
 
   // Demo Modal State
@@ -77,6 +82,8 @@ export default function PricingClient() {
 
   const currentPrice = prices[currency];
   const cycle = billingCycle; // 'monthly' or 'annual'
+  // India pricing is custom/quote-only — never shown publicly; INR selects a "contact us" panel.
+  const isIndia = currency === 'INR';
 
   // For INR annual: show yearly total directly (₹3000/year instead of ₹250/month)
   const showYearlyTotal = currency === 'INR' && cycle === 'annual';
@@ -291,13 +298,17 @@ export default function PricingClient() {
             Simple, transparent pricing.<br />No surprises, ever.
           </h1>
           <p style={{ fontSize: '20px', color: '#6b7280', maxWidth: '680px', margin: '0 auto 32px' }}>
-            Plans start from <strong style={{ color: '#ef4444' }}>{currentPrice.symbol}{showYearlyTotal ? currentPrice.starter.annualBilled : currentPrice.starter[cycle]}{getPriceSuffix()}</strong>. AI features included. Zero transaction fees. No hidden costs. Cancel anytime.
+            {isIndia ? (
+              <>🇮🇳 <strong style={{ color: '#ef4444' }}>Custom pricing & exclusive offers</strong> for restaurants in India. Talk to us for the best deal.</>
+            ) : (
+              <>Plans start from <strong style={{ color: '#ef4444' }}>{currentPrice.symbol}{showYearlyTotal ? currentPrice.starter.annualBilled : currentPrice.starter[cycle]}{getPriceSuffix()}</strong>. AI features included. Zero transaction fees. No hidden costs. Cancel anytime.</>
+            )}
           </p>
 
           {/* Currency + Billing Toggle */}
           <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: 'white', padding: '6px', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
-              {['INR', 'USD', 'GBP'].map((c) => (
+              {['USD', 'GBP', 'INR'].map((c) => (
                 <button
                   key={c}
                   onClick={() => setCurrency(c)}
@@ -318,7 +329,7 @@ export default function PricingClient() {
               ))}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: 'white', padding: '6px', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
+            <div style={{ display: isIndia ? 'none' : 'flex', alignItems: 'center', gap: '4px', backgroundColor: 'white', padding: '6px', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
               <button
                 onClick={() => setBillingCycle('monthly')}
                 style={{
@@ -357,8 +368,66 @@ export default function PricingClient() {
           </div>
         </div>
 
-        {/* Pricing Cards (3 main plans) */}
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px 32px' }}>
+        {/* Pricing Cards (3 main plans) — OR the India custom-pricing panel */}
+        <div style={{ maxWidth: isIndia ? '920px' : '1200px', margin: '0 auto', padding: '0 20px 32px' }}>
+          {isIndia ? (
+            <div style={{ borderRadius: '24px', overflow: 'hidden', boxShadow: '0 20px 60px rgba(17,24,39,0.18)', border: '1px solid #f3f4f6' }}>
+              {/* Tricolour accent bar */}
+              <div style={{ height: '5px', background: 'linear-gradient(90deg, #ff9933 0%, #ffffff 50%, #138808 100%)' }} />
+              <div style={{ background: 'linear-gradient(135deg, #111827 0%, #1f2937 100%)', color: 'white', padding: '48px 40px', textAlign: 'center' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', backgroundColor: 'rgba(239,68,68,0.18)', color: '#fca5a5', padding: '7px 16px', borderRadius: '999px', fontSize: '12px', fontWeight: '800', letterSpacing: '0.5px', marginBottom: '20px' }}>
+                  <FaTag size={11} /> SPECIAL INDIA PRICING
+                </div>
+                <h2 style={{ fontSize: '34px', fontWeight: '800', lineHeight: '1.15', marginBottom: '14px' }}>
+                  Let&apos;s build your perfect plan 🇮🇳
+                </h2>
+                <p style={{ fontSize: '17px', color: '#d1d5db', maxWidth: '560px', margin: '0 auto 32px', lineHeight: '1.6' }}>
+                  For restaurants in India we offer <strong style={{ color: 'white' }}>custom pricing and exclusive launch offers</strong> tailored to your outlet size — plus <strong style={{ color: 'white' }}>free migration</strong> from your old POS. Reach out and we&apos;ll get you the best deal.
+                </p>
+
+                {/* Contact CTAs */}
+                <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '28px' }}>
+                  <a href={INDIA_WA_LINK} target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '15px 26px', backgroundColor: '#25D366', color: 'white', borderRadius: '12px', fontWeight: '700', fontSize: '15px', textDecoration: 'none', boxShadow: '0 6px 20px rgba(37,211,102,0.35)' }}>
+                    <FaWhatsapp size={20} /> Chat on WhatsApp
+                  </a>
+                  <a href={`mailto:${INDIA_EMAIL}?subject=${encodeURIComponent('Custom India pricing request')}`}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '15px 26px', backgroundColor: 'transparent', color: 'white', border: '1.5px solid rgba(255,255,255,0.35)', borderRadius: '12px', fontWeight: '700', fontSize: '15px', textDecoration: 'none' }}>
+                    <FaEnvelope size={16} /> Email us
+                  </a>
+                  <button onClick={() => setShowDemoModal(true)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '15px 26px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '15px', cursor: 'pointer', boxShadow: '0 6px 20px rgba(239,68,68,0.4)' }}>
+                    📅 Book a Demo
+                  </button>
+                </div>
+
+                {/* Direct contact line */}
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap', justifyContent: 'center', fontSize: '13px', color: '#9ca3af' }}>
+                  <a href={INDIA_WA_LINK} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#86efac', textDecoration: 'none', fontWeight: '600' }}>
+                    <FaWhatsapp size={13} /> +91 90044 59951
+                  </a>
+                  <span style={{ opacity: 0.4 }}>•</span>
+                  <a href={`mailto:${INDIA_EMAIL}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#fca5a5', textDecoration: 'none', fontWeight: '600' }}>
+                    <FaEnvelope size={12} /> {INDIA_EMAIL}
+                  </a>
+                </div>
+              </div>
+
+              {/* Trust strip */}
+              <div style={{ background: 'white', padding: '22px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+                {[
+                  { icon: '💸', t: 'Custom pricing for your outlet' },
+                  { icon: '🎁', t: 'Exclusive India launch offers' },
+                  { icon: '🔁', t: 'Free migration from any POS' },
+                  { icon: '🤝', t: 'Local onboarding & support' },
+                ].map((x, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: '#374151', fontWeight: '600' }}>
+                    <span style={{ fontSize: '18px' }}>{x.icon}</span> {x.t}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
             {plans.map((plan) => {
               const price = getPrice(plan.key);
@@ -430,6 +499,7 @@ export default function PricingClient() {
               );
             })}
           </div>
+          )}
         </div>
 
         {/* Enterprise tier — book demo */}
@@ -554,9 +624,9 @@ export default function PricingClient() {
                 <thead>
                   <tr style={{ backgroundColor: '#111827' }}>
                     <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: '700', color: 'white', textTransform: 'uppercase', letterSpacing: '0.5px', minWidth: '240px' }}>Feature</th>
-                    <th style={{ padding: '16px 12px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: 'white', minWidth: '90px' }}>Starter<br /><span style={{ fontWeight: '400', fontSize: '11px', opacity: 0.7 }}>{currentPrice.symbol}{currentPrice.starter[cycle]}{getPriceSuffix()}</span></th>
-                    <th style={{ padding: '16px 12px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: '#fca5a5', minWidth: '90px', backgroundColor: '#1f2937' }}>Growth<br /><span style={{ fontWeight: '400', fontSize: '11px', opacity: 0.7 }}>{currentPrice.symbol}{currentPrice.growth[cycle]}{getPriceSuffix()}</span></th>
-                    <th style={{ padding: '16px 12px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: 'white', minWidth: '90px' }}>Pro<br /><span style={{ fontWeight: '400', fontSize: '11px', opacity: 0.7 }}>{currentPrice.symbol}{currentPrice.pro[cycle]}{getPriceSuffix()}</span></th>
+                    <th style={{ padding: '16px 12px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: 'white', minWidth: '90px' }}>Starter<br /><span style={{ fontWeight: '400', fontSize: '11px', opacity: 0.7 }}>{isIndia ? 'Custom' : `${currentPrice.symbol}${currentPrice.starter[cycle]}${getPriceSuffix()}`}</span></th>
+                    <th style={{ padding: '16px 12px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: '#fca5a5', minWidth: '90px', backgroundColor: '#1f2937' }}>Growth<br /><span style={{ fontWeight: '400', fontSize: '11px', opacity: 0.7 }}>{isIndia ? 'Custom' : `${currentPrice.symbol}${currentPrice.growth[cycle]}${getPriceSuffix()}`}</span></th>
+                    <th style={{ padding: '16px 12px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: 'white', minWidth: '90px' }}>Pro<br /><span style={{ fontWeight: '400', fontSize: '11px', opacity: 0.7 }}>{isIndia ? 'Custom' : `${currentPrice.symbol}${currentPrice.pro[cycle]}${getPriceSuffix()}`}</span></th>
                     <th style={{ padding: '16px 12px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: 'white', minWidth: '90px' }}>Enterprise<br /><span style={{ fontWeight: '400', fontSize: '11px', opacity: 0.7 }}>Custom</span></th>
                   </tr>
                 </thead>
