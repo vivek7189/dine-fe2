@@ -19,7 +19,7 @@ const LABELS = {
 const label = (t) => LABELS[t] || t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 const SHOWN_KEY = 'dineopen_first_sync_shown';
 
-export default function SyncStatus() {
+export default function SyncStatus({ inline = false, showPill = true, showOverlay = true } = {}) {
   const [prog, setProg] = useState(null);
   const [dismissed, setDismissed] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -53,7 +53,7 @@ export default function SyncStatus() {
   const showLoader = !firstSyncDone && !dismissed;
 
   // ── First-run loader overlay ──
-  if (showLoader) {
+  if (showLoader && showOverlay) {
     const cats = (prog.categories || []).filter((c) => c.rows > 0);
     return (
       <div style={S.overlay}>
@@ -85,11 +85,12 @@ export default function SyncStatus() {
   }
 
   // ── Persistent status pill ──
+  if (!showPill) return null; // e.g. the global layout instance shows only the first-run overlay
   const state = !prog.reachable ? 'offline' : prog.running ? 'syncing' : 'synced';
   const dot = { synced: '#16A34A', syncing: '#DC4A3D', offline: '#C98A2B' }[state];
   const text = { synced: 'Synced', syncing: 'Syncing…', offline: 'Offline' }[state];
   return (
-    <div style={S.pillWrap}>
+    <div style={inline ? S.pillWrapInline : S.pillWrap}>
       {expanded && (
         <div style={S.pop}>
           <div style={S.popHead}>Cloud sync</div>
@@ -127,6 +128,8 @@ const S = {
   bgBtn: { width: '100%', background: '#DC4A3D', color: '#fff', border: 'none', borderRadius: 12, padding: '13px 12px', fontWeight: 800, fontSize: 13.5, cursor: 'pointer', lineHeight: 1.3 },
   note: { fontSize: 11.5, color: '#8A7D74', marginTop: 10 },
   pillWrap: { position: 'fixed', top: 9, left: '50%', transform: 'translateX(-50%)', zIndex: 9998, fontFamily: 'ui-sans-serif,-apple-system,sans-serif' },
+  // Inline (in the dashboard header, next to the TABLES button): flows in the row, no fixed overlap.
+  pillWrapInline: { position: 'relative', display: 'inline-flex', flexShrink: 0, fontFamily: 'ui-sans-serif,-apple-system,sans-serif' },
   pill: { display: 'inline-flex', alignItems: 'center', gap: 7, background: '#fff', border: '1px solid #EAdfd0', borderRadius: 999, padding: '5px 12px', fontSize: 12, fontWeight: 700, color: '#2A211C', boxShadow: '0 2px 8px rgba(42,33,28,.10)', cursor: 'pointer' },
   pillDot: { width: 8, height: 8, borderRadius: '50%', display: 'inline-block' },
   pop: { position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: 40, width: 220, background: '#fff', border: '1px solid #EAdfd0', borderRadius: 14, padding: '12px 14px', boxShadow: '0 12px 34px rgba(42,33,28,.18)' },

@@ -13,6 +13,7 @@ import Onboarding from '../../../components/Onboarding';
 import EmptyMenuPrompt from '../../../components/EmptyMenuPrompt';
 import MenuItemCard from '../../../components/MenuItemCard';
 import FastBillingBoard from '../../../components/FastBillingBoard';
+import SyncStatus from '../../../components/SyncStatus';
 import CategoryButton from '../../../components/CategoryButton';
 import OrderSummary from '../../../components/OrderSummary';
 import Notification from '../../../components/Notification';
@@ -462,7 +463,16 @@ function RestaurantPOSContent() {
   // billing (opt-in, desktop/tablet). Reuses the same cart/addToCart/customization handlers, so
   // it changes ONLY the menu presentation, never the billing logic. Persisted per device.
   const [fastMode, setFastMode] = useState(false);
-  useEffect(() => { try { setFastMode(localStorage.getItem('dineFastBilling') === '1'); } catch (_) {} }, []);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('dineFastBilling');
+      // Default ON for the local-server (Electron POS) app; OFF for web/normal — unless the user
+      // has explicitly toggled it (persisted '1'/'0').
+      if (saved === '1') setFastMode(true);
+      else if (saved === '0') setFastMode(false);
+      else setFastMode(isLocalServerMode());
+    } catch (_) {}
+  }, []);
   const toggleFastMode = useCallback(() => {
     setFastMode((v) => { const nv = !v; try { localStorage.setItem('dineFastBilling', nv ? '1' : '0'); } catch (_) {} return nv; });
   }, []);
@@ -7299,6 +7309,11 @@ function RestaurantPOSContent() {
               {viewMode === 'orders' ? t('dashboard.tables') : t('dashboard.orders')}
             </button>
 
+            {/* Cloud-sync status pill (local-server app only) — inline in the header next to TABLES,
+                so it no longer floats over the top UI. Self-hides on web/normal (no local server).
+                Overlay disabled here (the global layout instance owns the first-run loader). */}
+            <SyncStatus inline showOverlay={false} />
+
             {/* Reset Tables (only in tables view, owner/admin only) */}
             {viewMode === 'tables' && ['owner', 'admin'].includes(JSON.parse(localStorage.getItem('user') || '{}').role) && (
               <button
@@ -7700,8 +7715,8 @@ function RestaurantPOSContent() {
               style={{
                 position: 'absolute', top: '74px', right: `${orderPanelWidth + 18}px`, zIndex: 60,
                 height: '34px', padding: '0 14px', borderRadius: '999px',
-                border: `1.5px solid ${fastMode ? '#4f46e5' : '#e5e7eb'}`,
-                background: fastMode ? '#4f46e5' : '#ffffff', color: fastMode ? '#fff' : '#4b5563',
+                border: `1.5px solid ${fastMode ? '#ef4444' : '#e5e7eb'}`,
+                background: fastMode ? '#ef4444' : '#ffffff', color: fastMode ? '#fff' : '#4b5563',
                 fontSize: '12.5px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px',
                 cursor: 'pointer', boxShadow: '0 2px 6px rgba(16,24,40,.08)'
               }}

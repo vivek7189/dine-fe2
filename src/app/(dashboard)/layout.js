@@ -573,8 +573,9 @@ function DashboardLayoutContent({ children }) {
             {/* DineAI Floating Button */}
             <DineAIButton />
 
-            {/* Offline-first sync: first-run loader + status pill (self-gates to local-server mode) */}
-            <SyncStatus />
+            {/* Offline-first sync: first-run loader ONLY here (self-gates to local-server mode).
+                The persistent status pill now lives inline in the dashboard header next to TABLES. */}
+            <SyncStatus showPill={false} />
 
             {/* BulkMenuUpload modal — portal to body */}
             {typeof document !== 'undefined' && createPortal(
