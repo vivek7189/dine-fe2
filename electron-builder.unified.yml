@@ -5,17 +5,17 @@
 # installed side by side.
 #
 # AUTO-UPDATE (same repo as the normal app, separate `server` channel — no collision):
-# electron-updater writes/reads the update manifest as `server.yml` / `server-mac.yml` (because of
-# `channel: server`), so it never overwrites the normal app's `latest.yml`. The two apps coexist in
-# ONE repo because the server RELEASES are marked as PRE-RELEASES (CI) with a semver-prerelease TAG
-# like `v1.14.48-server`:
+# The app VERSION carries a `-server` PRERELEASE suffix (e.g. 1.14.49-server). electron-builder
+# derives the update channel from that prerelease (appInfo.js), so it writes the manifest as
+# `server.yml` / `server-mac.yml` — never overwriting the normal app's `latest.yml`. The two apps
+# coexist in ONE repo because the server RELEASES are published as PRE-RELEASES (CI):
 #   • Normal app (allowPrerelease:false) resolves via GitHub "latest release", which EXCLUDES
 #     prereleases → it never sees server releases.
-#   • Server app (allowPrerelease:true, channel:server — set in electron/main.js for this productName)
-#     iterates the releases feed and matches the tag whose semver-prerelease === `server`.
-# The app VERSION stays clean (e.g. 1.14.48) so filenames + version comparison are clean; only the
-# git TAG carries the `-server` prerelease suffix.
-channel: server
+#   • Server app (allowPrerelease:true — set in electron/main.js for this productName) iterates the
+#     releases feed; its channel derives to `server` from its own prerelease version, matching the
+#     `-server` release tags.
+# NOTE: `channel` is NOT a valid top-level electron-builder option — the channel comes from the
+# version prerelease, which is why the version keeps the `-server` suffix (not stripped).
 publish:
   provider: github
   owner: vivek7189

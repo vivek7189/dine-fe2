@@ -4,26 +4,34 @@ name: Build Unified Server-POS App
 # dine-backend (pg-full-migration) + embedded Postgres, for full offline operation.
 # Separate from build-electron.yml (the normal cloud POS) — distinct appId, its own tags.
 #
-# Trigger: a `v*-server` semver-prerelease tag (e.g. v1.14.48-server) or a manual run.
-# The `-server` prerelease suffix is what lets auto-update work in the SAME repo as the normal app:
-# the release is published as a PRE-RELEASE (below), so the normal app's "latest release" lookup
-# skips it, while the server app (channel: server, allowPrerelease: true) matches it. The app VERSION
-# is the tag without `v` and without `-server` (clean, e.g. 1.14.48) for clean filenames.
+# ── HOW TO TRIGGER — the TAG chooses the platform (no dropdown needed) ─────────────────────────────
+#   push tag  v<ver>-server        → build BOTH  (.exe + .dmg)   e.g. v1.14.49-server
+#   push tag  v<ver>-server-win    → build WINDOWS only (.exe)   e.g. v1.14.49-server-win   ← usual
+#   push tag  v<ver>-server-mac    → build macOS only (.dmg)     e.g. v1.14.49-server-mac
+# (A manual "Run workflow" dropdown is also available as a fallback.)
+#
+# AUTO-UPDATE: the app version keeps a `-server` PRERELEASE suffix (1.14.49-server), so electron-builder
+# writes the manifest as server.yml / server-mac.yml (never collides with the normal app's latest.yml),
+# and the release is published as a PRE-RELEASE so the normal app's "latest release" lookup skips it.
+# win-only and mac-only pushes publish to the SAME release (v<ver>-server), so a later mac push just
+# adds the .dmg + server-mac.yml to the release the windows push already created.
 #
 # REQUIRED repo secret:
-#   BACKEND_REPO_TOKEN  – a GitHub PAT (read access to vivek7189/dine-be2) so CI can
-#                         check out the private backend repo.
-# Reused secrets (already set for the normal build): APPLE_CERTIFICATE,
-#   APPLE_CERTIFICATE_PASSWORD, APPLE_ID, APPLE_TEAM_ID, APPLE_APP_SPECIFIC_PASSWORD.
+#   BACKEND_REPO_TOKEN  – a GitHub PAT (read access to vivek7189/dine-be2) so CI can check out the
+#                         private backend repo.
+# Reused secrets (already set for the normal build): APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD,
+#   APPLE_ID, APPLE_TEAM_ID, APPLE_APP_SPECIFIC_PASSWORD.
 
 on:
   push:
     tags:
       - 'v*-server'
+      - 'v*-server-win'
+      - 'v*-server-mac'
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to build (e.g. 1.14.49) — becomes tag v<version>-server + release'
+        description: 'Version (e.g. 1.14.49) — becomes tag v<version>-server + release'
         required: true
         type: string
       platform:
@@ -43,10 +51,41 @@ env:
   BACKEND_REF: pg-full-migration
 
 jobs:
-  # ── Windows x64 installer (.exe) — primary deliverable ────────────────────────
-  # Runs on a tag push (full release builds both), or on manual dispatch when platform = windows/both.
+  # ── Parse the tag (or dispatch inputs) → platform + version. Gates the build jobs. ──
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      platform: ${{ steps.p.outputs.platform }}   # windows | macos | both
+      version: ${{ steps.p.outputs.version }}      # e.g. 1.14.49-server (prerelease → server channel)
+      tag: ${{ steps.p.outputs.tag }}              # e.g. v1.14.49-server (canonical release tag)
+    steps:
+      - name: Parse trigger
+        id: p
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            PLATFORM="${{ inputs.platform }}"
+            VER="${{ inputs.version }}"
+            [[ "$VER" == *-server ]] || VER="${VER}-server"
+          else
+            REF="${GITHUB_REF_NAME}"
+            if [[ "$REF" == *-server-win ]]; then
+              PLATFORM=windows; VER="${REF%-win}"
+            elif [[ "$REF" == *-server-mac ]]; then
+              PLATFORM=macos;   VER="${REF%-mac}"
+            else
+              PLATFORM=both;    VER="$REF"
+            fi
+            VER="${VER#v}"   # strip leading v → 1.14.49-server
+          fi
+          echo "platform=$PLATFORM" >> "$GITHUB_OUTPUT"
+          echo "version=$VER"       >> "$GITHUB_OUTPUT"
+          echo "tag=v$VER"          >> "$GITHUB_OUTPUT"
+          echo "→ platform=$PLATFORM  version=$VER  tag=v$VER"
+
+  # ── Windows x64 installer (.exe) — the usual deliverable ──────────────────────
   build-windows:
-    if: ${{ github.event_name == 'push' || inputs.platform == 'windows' || inputs.platform == 'both' }}
+    needs: setup
+    if: ${{ needs.setup.outputs.platform == 'windows' || needs.setup.outputs.platform == 'both' }}
     runs-on: windows-latest
     permissions:
       contents: write
@@ -70,24 +109,10 @@ jobs:
         with:
           node-version: 22
 
-      - name: Resolve version
-        id: version
-        shell: bash
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            VERSION="${{ inputs.version }}"
-          elif [[ "${{ github.ref_type }}" == "tag" ]]; then
-            VERSION="${GITHUB_REF_NAME#v}"; VERSION="${VERSION%-server}"
-          else
-            VERSION=$(node -p "require('./frontend/package.json').version")
-          fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Version: $VERSION"
-
       - name: Set frontend package.json version
         working-directory: frontend
         shell: bash
-        run: npm version ${{ steps.version.outputs.version }} --no-git-tag-version --allow-same-version
+        run: npm version ${{ needs.setup.outputs.version }} --no-git-tag-version --allow-same-version
 
       - name: Install backend deps (bundles embedded-postgres for Windows)
         working-directory: dine-backend
@@ -108,14 +133,14 @@ jobs:
       - name: Build Windows unified installer (x64)
         working-directory: frontend
         shell: bash
-        # --publish never: we only want the artifact; electron-builder otherwise auto-derives
-        # a GitHub publish target on CI and fails asking for GH_TOKEN.
+        # --publish never: we only want the artifact; electron-builder otherwise auto-derives a
+        # GitHub publish target on CI and fails asking for GH_TOKEN.
         run: npx electron-builder --config electron-builder.unified.yml --win --x64 --publish never
 
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
-          name: dineopen-server-windows-v${{ steps.version.outputs.version }}
+          name: dineopen-server-windows-v${{ needs.setup.outputs.version }}
           path: |
             frontend/dist-electron-unified/*.exe
             frontend/dist-electron-unified/*.exe.blockmap
@@ -123,9 +148,9 @@ jobs:
           retention-days: 30
 
   # ── macOS (signed + notarized) ───────────────────────────────────────────────
-  # Runs on a tag push (full release builds both), or on manual dispatch when platform = macos/both.
   build-macos:
-    if: ${{ github.event_name == 'push' || inputs.platform == 'macos' || inputs.platform == 'both' }}
+    needs: setup
+    if: ${{ needs.setup.outputs.platform == 'macos' || needs.setup.outputs.platform == 'both' }}
     runs-on: macos-latest
     permissions:
       contents: write
@@ -149,22 +174,9 @@ jobs:
         with:
           node-version: 22
 
-      - name: Resolve version
-        id: version
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            VERSION="${{ inputs.version }}"
-          elif [[ "${{ github.ref_type }}" == "tag" ]]; then
-            VERSION="${GITHUB_REF_NAME#v}"; VERSION="${VERSION%-server}"
-          else
-            VERSION=$(node -p "require('./frontend/package.json').version")
-          fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Version: $VERSION"
-
       - name: Set frontend package.json version
         working-directory: frontend
-        run: npm version ${{ steps.version.outputs.version }} --no-git-tag-version --allow-same-version
+        run: npm version ${{ needs.setup.outputs.version }} --no-git-tag-version --allow-same-version
 
       - name: Import Apple signing certificate
         env:
@@ -217,7 +229,7 @@ jobs:
       - name: Upload macOS installers
         uses: actions/upload-artifact@v4
         with:
-          name: dineopen-server-macos-v${{ steps.version.outputs.version }}
+          name: dineopen-server-macos-v${{ needs.setup.outputs.version }}
           path: |
             frontend/dist-electron-unified/*.dmg
             frontend/dist-electron-unified/*.zip
@@ -233,39 +245,27 @@ jobs:
             security delete-keychain "$KEYCHAIN_PATH"
           fi
 
-  # ── Publish a GitHub Release for the v*-server tag (installers + server.yml manifest on the release
-  #    page, like the normal app) — runs once, after both builds, from their uploaded artifacts. It is
-  #    marked as a PRE-RELEASE: this is what keeps the server channel separate in the same repo — the
-  #    normal app resolves via GitHub "latest release" (which excludes prereleases) so it never sees
-  #    these, while the server app (channel:server, allowPrerelease) matches them by the -server tag. ──
+  # ── Publish (or update) the PRE-RELEASE for v<ver>-server with the installers + server.yml manifest.
+  #    Runs if EITHER platform succeeded, so a windows-only push publishes, and a later mac-only push
+  #    for the same version just adds the .dmg to the same release. Prerelease keeps the server channel
+  #    out of the normal app's "latest release" lookup. ──
   publish-release:
-    needs: [build-windows, build-macos]
+    needs: [setup, build-windows, build-macos]
     runs-on: ubuntu-latest
-    # Run even if a platform job was skipped (windows-only / macos-only dispatch); only skip if BOTH
-    # were skipped/failed. On manual dispatch the tag is v<version>-server (created by the release step).
     if: ${{ always() && (needs.build-windows.result == 'success' || needs.build-macos.result == 'success') }}
     permissions:
       contents: write
     steps:
-      - name: Compute release tag
-        id: tag
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "tag=v${{ inputs.version }}-server" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Download built installers (whichever platforms ran)
         uses: actions/download-artifact@v4
         with:
           path: dist
 
-      - name: Publish GitHub PRE-Release (v*-server)
+      - name: Publish GitHub PRE-Release (v<ver>-server)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          name: ${{ steps.tag.outputs.tag }}
+          tag_name: ${{ needs.setup.outputs.tag }}
+          name: ${{ needs.setup.outputs.tag }}
           prerelease: true   # REQUIRED — keeps the server channel out of the normal app's "latest"
           files: dist/**/*
           fail_on_unmatched_files: false
