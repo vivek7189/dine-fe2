@@ -21,6 +21,20 @@ on:
     tags:
       - 'v*-server'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g. 1.14.49) — becomes tag v<version>-server + release'
+        required: true
+        type: string
+      platform:
+        description: 'Which installer(s) to build'
+        required: true
+        default: windows
+        type: choice
+        options:
+          - windows      # .exe only (fast — the usual choice)
+          - macos        # .dmg only (slow: signs + notarizes)
+          - both         # .exe + .dmg
 
 env:
   NEXT_PUBLIC_API_URL: https://dine-be2-phi.vercel.app
@@ -30,7 +44,9 @@ env:
 
 jobs:
   # ── Windows x64 installer (.exe) — primary deliverable ────────────────────────
+  # Runs on a tag push (full release builds both), or on manual dispatch when platform = windows/both.
   build-windows:
+    if: ${{ github.event_name == 'push' || inputs.platform == 'windows' || inputs.platform == 'both' }}
     runs-on: windows-latest
     permissions:
       contents: write
@@ -58,7 +74,9 @@ jobs:
         id: version
         shell: bash
         run: |
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ inputs.version }}"
+          elif [[ "${{ github.ref_type }}" == "tag" ]]; then
             VERSION="${GITHUB_REF_NAME#v}"; VERSION="${VERSION%-server}"
           else
             VERSION=$(node -p "require('./frontend/package.json').version")
@@ -105,7 +123,9 @@ jobs:
           retention-days: 30
 
   # ── macOS (signed + notarized) ───────────────────────────────────────────────
+  # Runs on a tag push (full release builds both), or on manual dispatch when platform = macos/both.
   build-macos:
+    if: ${{ github.event_name == 'push' || inputs.platform == 'macos' || inputs.platform == 'both' }}
     runs-on: macos-latest
     permissions:
       contents: write
@@ -132,7 +152,9 @@ jobs:
       - name: Resolve version
         id: version
         run: |
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ inputs.version }}"
+          elif [[ "${{ github.ref_type }}" == "tag" ]]; then
             VERSION="${GITHUB_REF_NAME#v}"; VERSION="${VERSION%-server}"
           else
             VERSION=$(node -p "require('./frontend/package.json').version")
@@ -219,20 +241,31 @@ jobs:
   publish-release:
     needs: [build-windows, build-macos]
     runs-on: ubuntu-latest
-    if: github.ref_type == 'tag'
+    # Run even if a platform job was skipped (windows-only / macos-only dispatch); only skip if BOTH
+    # were skipped/failed. On manual dispatch the tag is v<version>-server (created by the release step).
+    if: ${{ always() && (needs.build-windows.result == 'success' || needs.build-macos.result == 'success') }}
     permissions:
       contents: write
     steps:
-      - name: Download built installers (both platforms)
+      - name: Compute release tag
+        id: tag
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "tag=v${{ inputs.version }}-server" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download built installers (whichever platforms ran)
         uses: actions/download-artifact@v4
         with:
           path: dist
 
-      - name: Publish GitHub PRE-Release (v*-server tag)
+      - name: Publish GitHub PRE-Release (v*-server)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
           prerelease: true   # REQUIRED — keeps the server channel out of the normal app's "latest"
           files: dist/**/*
           fail_on_unmatched_files: false
