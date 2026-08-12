@@ -101,7 +101,19 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --config electron-builder.yml --win --x64 --ia32 --publish always
+        # Retry: electron-builder downloads its toolchain (Electron / NSIS / winCodeSign) from GitHub
+        # at build time and does NOT retry — a transient "EOF"/reset on any of those fails the whole
+        # build. Successful downloads are cached in the runner, so a retry only re-fetches the one that
+        # dropped. Up to 3 attempts.
+        run: |
+          n=0; max=3
+          while true; do
+            n=$((n+1))
+            npx electron-builder --config electron-builder.yml --win --x64 --ia32 --publish always && break
+            if [ $n -ge $max ]; then echo "electron-builder failed after $max attempts"; exit 1; fi
+            echo "::warning::electron-builder attempt $n failed (likely a transient GitHub download) — retrying in 20s"
+            sleep 20
+          done
 
       - name: Upload Windows release artifacts
         uses: actions/upload-artifact@v4
@@ -170,7 +182,17 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-        run: npx electron-builder --config electron-builder.yml --mac --publish always
+        # Retry transient GitHub toolchain-download failures (same as Windows). Note: notarization is
+        # network-bound too; 3 attempts covers a dropped download without masking real signing errors.
+        run: |
+          n=0; max=3
+          while true; do
+            n=$((n+1))
+            npx electron-builder --config electron-builder.yml --mac --publish always && break
+            if [ $n -ge $max ]; then echo "electron-builder failed after $max attempts"; exit 1; fi
+            echo "::warning::electron-builder attempt $n failed (likely a transient GitHub download) — retrying in 20s"
+            sleep 20
+          done
 
       - name: Upload macOS release artifacts
         uses: actions/upload-artifact@v4
