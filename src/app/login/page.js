@@ -274,8 +274,75 @@ const Login = () => {
   // owner can switch to the full OTP/Google login (for setup/admin) via "Owner login".
   const [showOwnerLogin, setShowOwnerLogin] = useState(false);
 
+  // Local-server activation state (owner setup wizard on the on-prem POS app).
+  const [activationPhase, setActivationPhase] = useState(null); // null | 'checking' | 'pulling' | 'cloud-only'
+  const [activationNote, setActivationNote] = useState('');
+
   // Track if we've already redirected to prevent loops
   const [hasRedirected, setHasRedirected] = useState(false);
+
+  const LOOPBACK_URL = 'http://127.0.0.1:3003';
+
+  // After an OWNER logs in (OTP/Google/email) on the local-server app, decide how this terminal
+  // should route — and, first time, pull the restaurant DOWN into the local DB (provisioning). The
+  // terminal is single-tenant: it can only ever hold ONE restaurant's data (the backend enforces
+  // this too). Returns true if it took over routing (caller should still redirect).
+  //   • No local server present      → do nothing (plain cloud login).
+  //   • Not provisioned yet          → POST /api/provision (pull menu/tables/staff/settings), bind,
+  //                                     then route to the local server (offline-capable).
+  //   • Provisioned & SAME restaurant→ route to the local server (this is their terminal).
+  //   • Provisioned & DIFFERENT rest → stay on the cloud (online-only); the local data stays private.
+  const activateLocalServer = async (token, user) => {
+    const rid = user?.restaurantId || user?.restaurant?.id;
+    if (!rid || !token) return false;
+    // Is a local server present on this machine? (short probe; absent on plain web/normal app)
+    let status = null;
+    try {
+      const ac = new AbortController();
+      const t = setTimeout(() => ac.abort(), 1500);
+      const r = await fetch(`${LOOPBACK_URL}/api/provision/status`, { signal: ac.signal });
+      clearTimeout(t);
+      if (r.ok) status = await r.json();
+    } catch (_) { /* no local server here */ }
+    if (!status || !status.configured) return false; // not a local-server terminal
+
+    // Already set up for a DIFFERENT restaurant → online-only, keep local data private.
+    if (status.provisioned && status.boundRestaurantId && String(status.boundRestaurantId) !== String(rid)) {
+      try { apiClient.setLocalServer(null); } catch (_) {}
+      setActivationPhase('cloud-only');
+      setActivationNote('This terminal is set up for another restaurant. You are signed in online — your data loads from the cloud and this terminal’s data stays private.');
+      return false; // stay cloud-routed; normal redirect follows
+    }
+
+    // First time on this terminal → pull the restaurant down into the local DB.
+    if (!status.provisioned) {
+      setActivationPhase('pulling');
+      setActivationNote('Setting up this terminal — copying your menu, tables, staff and settings so it works offline…');
+      try {
+        const pr = await fetch(`${LOOPBACK_URL}/api/provision`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ restaurantId: rid, token }),
+        });
+        const pj = await pr.json().catch(() => ({}));
+        if (!pr.ok) {
+          // 409 = terminal already bound to another restaurant → fall back to cloud-only.
+          try { apiClient.setLocalServer(null); } catch (_) {}
+          setActivationPhase('cloud-only');
+          setActivationNote(pj?.message || 'Could not set up this terminal. You are signed in online.');
+          return false;
+        }
+      } catch (e) {
+        try { apiClient.setLocalServer(null); } catch (_) {}
+        setActivationNote('Setup needs an internet connection the first time. You are signed in online for now.');
+        return false;
+      }
+    }
+
+    // Provisioned for THIS restaurant → route the terminal to its local server (offline-capable).
+    try { apiClient.setLocalServer(LOOPBACK_URL); } catch (_) {}
+    setActivationPhase(null);
+    return true;
+  };
 
   // Email/password state
   const [email, setEmail] = useState('');
@@ -1102,6 +1169,9 @@ const Login = () => {
             await prefetchCurrencySettings(otpRestaurantId, data.token);
           }
 
+          // Local-server app: provision this terminal (first time) or route bound→local / other→cloud.
+          try { await activateLocalServer(data.token, data.user); } catch (_) {}
+
           // Handle first-time user experience
           if (data.firstTimeUser) {
             console.log('🎉 First-time phone user detected!');
@@ -1495,7 +1565,10 @@ const Login = () => {
         console.log('Is new user:', googleData.isNewUser);
         console.log('First time user:', googleData.firstTimeUser);
         console.log('Has restaurants:', googleData.hasRestaurants);
-        
+
+        // Local-server app: provision this terminal (first time) or route bound→local / other→cloud.
+        try { await activateLocalServer(googleData.token, googleData.user); } catch (_) {}
+
         // Handle first-time user experience
         if (googleData.firstTimeUser) {
           console.log('🎉 First-time Google user detected!');
@@ -1835,6 +1908,21 @@ const Login = () => {
             50% { transform: scale(1.05); opacity: 0.8; }
           }
         `}</style>
+      </div>
+    );
+  }
+
+  // Local-server activation overlay — shown while first-run provisioning pulls the restaurant down.
+  if (activationPhase === 'pulling') {
+    return (
+      <div style={{ position: 'fixed', inset: 0, background: 'linear-gradient(135deg,#fff,#fef7f0)', display: 'grid', placeItems: 'center', zIndex: 9999, padding: 24 }}>
+        <div style={{ maxWidth: 400, textAlign: 'center' }}>
+          <div style={{ width: 56, height: 56, margin: '0 auto 18px', borderRadius: '50%', border: '4px solid #fee2e2', borderTopColor: '#ef4444', animation: 'spin 0.9s linear infinite' }} />
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: '#1a202c', margin: '0 0 8px', letterSpacing: '-0.02em' }}>Setting up your terminal</h2>
+          <p style={{ fontSize: 14, color: '#718096', lineHeight: 1.5, margin: 0 }}>{activationNote || 'Copying your menu, tables, staff and settings so this device works offline…'}</p>
+          <p style={{ fontSize: 12, color: '#a0aec0', marginTop: 16 }}>This happens once and needs internet. After this the terminal works offline.</p>
+        </div>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
     );
   }
