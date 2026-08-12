@@ -879,6 +879,21 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
   // job is handed to the spooler, or the NEXT job's loadURL() would clobber the shared window and
   // cancel this one. Multi-station KOT is exactly this case.
   await new Promise((resolve) => {
+  let settled = false;
+  const finish = () => { if (!settled) { settled = true; clearTimeout(killer); resolve(); } };
+  // SAFETY TIMEOUT — critical now that the queue is serialized: if the driver never calls back
+  // (printer unplugged / offline / driver hang), releasing the slot after 8s keeps ALL other
+  // tickets printing instead of the whole queue deadlocking until an app restart.
+  const killer = setTimeout(() => {
+    if (settled) return;
+    logPrintEvent({
+      type: type || 'unknown', method: 'os-driver', success: false, failureReason: 'callback-timeout',
+      configuredDeviceName: deviceName || '(system default)', deviceMatched, printerNames,
+      copies: copies || 1, printerWidth: printerWidth || 80, stationId: stationId || null,
+      hint: 'Print driver did not respond within 8s — printer may be offline or the driver is stuck. Released the queue so other tickets keep printing.',
+    });
+    finish();
+  }, 8000);
   printWindow.webContents.print(
     {
       silent: true,
@@ -920,7 +935,7 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
         printerWidth: printerWidth || 80, stationId: stationId || null,
         hint,
       });
-      resolve();
+      finish();
     }
   );
   });
