@@ -1,23 +1,78 @@
 name: Build Electron App
 
+# Normal cloud POS desktop app (talks to the cloud backend). Separate from the local-server "unified"
+# build (build-unified.yml, which owns v*-server tags).
+#
+# ── HOW TO TRIGGER — the TAG chooses the platform (no dropdown needed) ─────────────────────────────
+#   push tag  v<ver>        → build BOTH  (.exe + .dmg)   e.g. v1.14.47
+#   push tag  v<ver>-win    → build WINDOWS only (.exe)   e.g. v1.14.47-win   ← usual
+#   push tag  v<ver>-mac    → build macOS only (.dmg)     e.g. v1.14.47-mac
+# (A manual "Run workflow" dropdown is also available as a fallback.)
+# win-only and mac-only publish to the SAME release (v<ver>), so a later mac push adds the .dmg to it.
+
 on:
   push:
     tags:
       - 'v*'
-      - '!v*-server'      # the local-server (unified) app owns v*-server tags — don't double-build
+      - '!v*-server'        # the local-server (unified) app owns v*-server* tags — don't double-build
       - '!v*-server-win'
       - '!v*-server-mac'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g. 1.14.47) — becomes tag v<version> + release'
+        required: true
+        type: string
+      platform:
+        description: 'Which installer(s) to build'
+        required: true
+        default: windows
+        type: choice
+        options:
+          - windows      # .exe only (fast — the usual choice)
+          - macos        # .dmg only (slow: signs + notarizes)
+          - both         # .exe + .dmg
 
 env:
   NEXT_PUBLIC_API_URL: https://dine-be2-phi.vercel.app
 
 jobs:
+  # ── Parse the tag (or dispatch inputs) → platform + version. Gates the build jobs. ──
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      platform: ${{ steps.p.outputs.platform }}   # windows | macos | both
+      version: ${{ steps.p.outputs.version }}      # e.g. 1.14.47
+    steps:
+      - name: Parse trigger
+        id: p
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            PLATFORM="${{ inputs.platform }}"
+            VER="${{ inputs.version }}"
+          else
+            REF="${GITHUB_REF_NAME}"
+            if [[ "$REF" == *-win ]]; then
+              PLATFORM=windows; VER="${REF%-win}"
+            elif [[ "$REF" == *-mac ]]; then
+              PLATFORM=macos;   VER="${REF%-mac}"
+            else
+              PLATFORM=both;    VER="$REF"
+            fi
+            VER="${VER#v}"   # strip leading v → 1.14.47
+          fi
+          echo "platform=$PLATFORM" >> "$GITHUB_OUTPUT"
+          echo "version=$VER"       >> "$GITHUB_OUTPUT"
+          echo "→ platform=$PLATFORM  version=$VER"
+
+  # ── Windows installer (.exe) — x64 + ia32 (32-bit kept: it was working; the earlier failure was a
+  #    transient Electron-binary download hiccup on the runner, not an ia32 problem) ──
   build-windows:
+    needs: setup
+    if: ${{ needs.setup.outputs.platform == 'windows' || needs.setup.outputs.platform == 'both' }}
     runs-on: windows-latest
     permissions:
       contents: write
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -28,21 +83,9 @@ jobs:
           node-version: 22
           cache: 'npm'
 
-      - name: Extract version from tag
-        id: version
-        shell: bash
-        run: |
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            VERSION="${GITHUB_REF_NAME#v}"
-          else
-            VERSION=$(node -p "require('./package.json').version")
-          fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Version: $VERSION"
-
       - name: Set package.json version
         shell: bash
-        run: npm version ${{ steps.version.outputs.version }} --no-git-tag-version --allow-same-version
+        run: npm version ${{ needs.setup.outputs.version }} --no-git-tag-version --allow-same-version
 
       - name: Install dependencies
         run: npm ci
@@ -63,7 +106,7 @@ jobs:
       - name: Upload Windows release artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: windows-release-v${{ steps.version.outputs.version }}
+          name: windows-release-v${{ needs.setup.outputs.version }}
           path: |
             dist-electron/*Setup*.exe
             dist-electron/*.exe.blockmap
@@ -71,10 +114,11 @@ jobs:
           retention-days: 30
 
   build-macos:
+    needs: setup
+    if: ${{ needs.setup.outputs.platform == 'macos' || needs.setup.outputs.platform == 'both' }}
     runs-on: macos-latest
     permissions:
       contents: write
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -85,47 +129,27 @@ jobs:
           node-version: 22
           cache: 'npm'
 
-      - name: Extract version from tag
-        id: version
-        run: |
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            VERSION="${GITHUB_REF_NAME#v}"
-          else
-            VERSION=$(node -p "require('./package.json').version")
-          fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Version: $VERSION"
-
       - name: Set package.json version
-        run: npm version ${{ steps.version.outputs.version }} --no-git-tag-version --allow-same-version
+        run: npm version ${{ needs.setup.outputs.version }} --no-git-tag-version --allow-same-version
 
       - name: Import Apple signing certificate
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         run: |
-          # Create temporary keychain
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
-
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-
-          # Import certificate
           CERT_PATH=$RUNNER_TEMP/certificate.p12
           echo "$APPLE_CERTIFICATE" | base64 --decode > "$CERT_PATH"
           security import "$CERT_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
           rm "$CERT_PATH"
-
-          # Allow codesign to access the keychain
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-
-          # Add to search list
           security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
 
-      # macos-latest ships Python 3.12+, which removed distutils; node-gyp needs
-      # it to rebuild native modules (@serialport/bindings-cpp). Python 3.11 has it.
+      # macos-latest ships Python 3.12+ (no distutils); node-gyp needs 3.11 to rebuild native modules.
       - name: Setup Python 3.11 for node-gyp
         uses: actions/setup-python@v5
         with:
@@ -151,7 +175,7 @@ jobs:
       - name: Upload macOS release artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: macos-release-v${{ steps.version.outputs.version }}
+          name: macos-release-v${{ needs.setup.outputs.version }}
           path: |
             dist-electron/*.dmg
             dist-electron/*.zip
