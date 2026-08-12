@@ -4,7 +4,11 @@ name: Build Unified Server-POS App
 # dine-backend (pg-full-migration) + embedded Postgres, for full offline operation.
 # Separate from build-electron.yml (the normal cloud POS) — distinct appId, its own tags.
 #
-# Trigger: a `server-v*` tag (e.g. server-v1.14.41) or a manual run.
+# Trigger: a `v*-server` semver-prerelease tag (e.g. v1.14.48-server) or a manual run.
+# The `-server` prerelease suffix is what lets auto-update work in the SAME repo as the normal app:
+# the release is published as a PRE-RELEASE (below), so the normal app's "latest release" lookup
+# skips it, while the server app (channel: server, allowPrerelease: true) matches it. The app VERSION
+# is the tag without `v` and without `-server` (clean, e.g. 1.14.48) for clean filenames.
 #
 # REQUIRED repo secret:
 #   BACKEND_REPO_TOKEN  – a GitHub PAT (read access to vivek7189/dine-be2) so CI can
@@ -15,7 +19,7 @@ name: Build Unified Server-POS App
 on:
   push:
     tags:
-      - 'server-v*'
+      - 'v*-server'
   workflow_dispatch:
 
 env:
@@ -55,7 +59,7 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            VERSION="${GITHUB_REF_NAME#server-v}"
+            VERSION="${GITHUB_REF_NAME#v}"; VERSION="${VERSION%-server}"
           else
             VERSION=$(node -p "require('./frontend/package.json').version")
           fi
@@ -97,6 +101,7 @@ jobs:
           path: |
             frontend/dist-electron-unified/*.exe
             frontend/dist-electron-unified/*.exe.blockmap
+            frontend/dist-electron-unified/server.yml
           retention-days: 30
 
   # ── macOS (signed + notarized) ───────────────────────────────────────────────
@@ -128,7 +133,7 @@ jobs:
         id: version
         run: |
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            VERSION="${GITHUB_REF_NAME#server-v}"
+            VERSION="${GITHUB_REF_NAME#v}"; VERSION="${VERSION%-server}"
           else
             VERSION=$(node -p "require('./frontend/package.json').version")
           fi
@@ -195,6 +200,7 @@ jobs:
             frontend/dist-electron-unified/*.dmg
             frontend/dist-electron-unified/*.zip
             frontend/dist-electron-unified/*.blockmap
+            frontend/dist-electron-unified/server-mac.yml
           retention-days: 30
 
       - name: Cleanup keychain
@@ -205,8 +211,11 @@ jobs:
             security delete-keychain "$KEYCHAIN_PATH"
           fi
 
-  # ── Publish a GitHub Release for the server-v tag (so the .exe/.dmg show up on the release page,
-  #    exactly like the normal app) — runs once, after both builds, from their uploaded artifacts. ──
+  # ── Publish a GitHub Release for the v*-server tag (installers + server.yml manifest on the release
+  #    page, like the normal app) — runs once, after both builds, from their uploaded artifacts. It is
+  #    marked as a PRE-RELEASE: this is what keeps the server channel separate in the same repo — the
+  #    normal app resolves via GitHub "latest release" (which excludes prereleases) so it never sees
+  #    these, while the server app (channel:server, allowPrerelease) matches them by the -server tag. ──
   publish-release:
     needs: [build-windows, build-macos]
     runs-on: ubuntu-latest
@@ -219,11 +228,12 @@ jobs:
         with:
           path: dist
 
-      - name: Publish GitHub Release (server-v tag)
+      - name: Publish GitHub PRE-Release (v*-server tag)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
+          prerelease: true   # REQUIRED — keeps the server channel out of the normal app's "latest"
           files: dist/**/*
           fail_on_unmatched_files: false
         env:

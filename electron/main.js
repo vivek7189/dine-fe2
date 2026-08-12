@@ -1214,8 +1214,25 @@ try {
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = false; // We handle install manually
 
-  // Feed URL is auto-configured from electron-builder.yml (provider: github)
-  // No manual setFeedURL needed — electron-updater reads publish config at build time
+  // Feed URL is auto-configured from the build config (provider: github). The normal cloud app uses
+  // the default `latest` channel; the local-server app (productName "DineOpen POS Server") uses a
+  // separate `server` channel in the SAME repo. Its releases are semver-prerelease tags
+  // (v1.14.x-server), so it must allow prereleases for electron-updater to match its own channel —
+  // otherwise it would resolve GitHub's "latest release" (which excludes prereleases) and miss them.
+  // This does NOT let the normal app see server releases (they're excluded from "latest"), and does
+  // NOT make the server app pick up normal releases (channel/manifest filenames differ).
+  try {
+    // Detect the local-server build via the executable path (app.getName() returns the shared
+    // package.json name for BOTH builds, so it can't distinguish them; the exe path carries the
+    // productName "DineOpen POS Server" only for the unified build).
+    let exePath = '';
+    try { exePath = app.getPath('exe') || ''; } catch (_) {}
+    const isServerApp = /DineOpen POS Server/i.test(exePath);
+    if (isServerApp) {
+      autoUpdater.allowPrerelease = true; // required for the `server` prerelease channel matching
+      // channel ('server') is baked into app-update.yml from electron-builder.unified.yml
+    }
+  } catch (_) {}
 
   autoUpdater.on('error', (err) => {
     console.error('[AutoUpdater] Error:', err.message);

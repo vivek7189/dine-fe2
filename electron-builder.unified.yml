@@ -2,9 +2,24 @@
 # dine-backend (pg-full-migration) and shows the POS UI — full offline operation.
 #
 # Distinct appId/productName from the normal app (electron-builder.yml) so both can be
-# installed side by side and their auto-update feeds never collide. This config does NOT
-# auto-publish — CI uploads the installers as artifacts. (For auto-update later, add a
-# `publish:` block pointing at a SEPARATE repo, not dine-fe2.)
+# installed side by side.
+#
+# AUTO-UPDATE (same repo as the normal app, separate `server` channel — no collision):
+# electron-updater writes/reads the update manifest as `server.yml` / `server-mac.yml` (because of
+# `channel: server`), so it never overwrites the normal app's `latest.yml`. The two apps coexist in
+# ONE repo because the server RELEASES are marked as PRE-RELEASES (CI) with a semver-prerelease TAG
+# like `v1.14.48-server`:
+#   • Normal app (allowPrerelease:false) resolves via GitHub "latest release", which EXCLUDES
+#     prereleases → it never sees server releases.
+#   • Server app (allowPrerelease:true, channel:server — set in electron/main.js for this productName)
+#     iterates the releases feed and matches the tag whose semver-prerelease === `server`.
+# The app VERSION stays clean (e.g. 1.14.48) so filenames + version comparison are clean; only the
+# git TAG carries the `-server` prerelease suffix.
+channel: server
+publish:
+  provider: github
+  owner: vivek7189
+  repo: dine-fe2
 appId: com.dineopen.server
 productName: DineOpen POS Server
 directories:
