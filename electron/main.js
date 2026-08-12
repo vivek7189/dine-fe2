@@ -707,7 +707,20 @@ ipcMain.handle('discover-local-server', async () => {
 
 // ──── IPC: Printing ────
 
-ipcMain.handle('electron:print', async (event, { html, copies, type, printerWidth, stationId, printerOverride }) => {
+// Serialize ALL print jobs through one queue. The os-driver path reuses a SINGLE hidden BrowserWindow
+// (printWindow); two jobs at once — e.g. a multi-station KOT firing to JUICE and PARCEL within the
+// same second — would have the 2nd loadURL() overwrite the 1st ticket while it is still spooling, so
+// the driver cancels it ("cancelled with no reason"). Running them one-at-a-time fixes that. Test
+// prints and single-station orders were never affected (single job). Each job awaits its print
+// callback below, so the queue only advances once the current ticket has actually been handed off.
+let _printChain = Promise.resolve();
+ipcMain.handle('electron:print', (event, args) => {
+  const task = _printChain.then(() => _doPrintJob(event, args), () => _doPrintJob(event, args));
+  _printChain = task.catch(() => {}); // keep the queue alive even if a job throws
+  return task;
+});
+
+async function _doPrintJob(event, { html, copies, type, printerWidth, stationId, printerOverride }) {
   const settings = loadSettings();
   // Route to the correct printer based on job type and optional station
   let deviceName;
@@ -862,7 +875,10 @@ ipcMain.handle('electron:print', async (event, { html, copies, type, printerWidt
   const printerNames = printers.map((p) => p.name);
   const deviceMatched = deviceName ? printerNames.includes(deviceName) : true; // no name = system default
 
-  // Fire-and-forget: send to printer and return immediately (don't wait for spool)
+  // AWAIT the print callback (was fire-and-forget): the print queue must hold this slot until the
+  // job is handed to the spooler, or the NEXT job's loadURL() would clobber the shared window and
+  // cancel this one. Multi-station KOT is exactly this case.
+  await new Promise((resolve) => {
   printWindow.webContents.print(
     {
       silent: true,
@@ -904,11 +920,17 @@ ipcMain.handle('electron:print', async (event, { html, copies, type, printerWidt
         printerWidth: printerWidth || 80, stationId: stationId || null,
         hint,
       });
+      resolve();
     }
   );
+  });
+
+  // Small settle so the spooler fully takes the job before the queue loads the next ticket's HTML
+  // into the shared window. Cheap insurance against back-to-back multi-station KOT overwrites.
+  await new Promise((r) => setTimeout(r, 400));
 
   return { success: true };
-});
+}
 
 ipcMain.handle('electron:listPrinters', async () => {
   if (!mainWindow) return [];
