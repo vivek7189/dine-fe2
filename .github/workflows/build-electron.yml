@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - 'v*'
+      - '!v*-server'      # the local-server (unified) app owns v*-server tags — don't double-build
+      - '!v*-server-win'
+      - '!v*-server-mac'
   workflow_dispatch:
 
 env:
