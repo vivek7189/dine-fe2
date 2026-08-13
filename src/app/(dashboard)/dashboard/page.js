@@ -5151,7 +5151,8 @@ function RestaurantPOSContent() {
           floorName: selectedTable?.floor || null,
           tableId: selectedTable?.id || null,
           orderType,
-          paymentMethod: splitBillData ? 'split-bill' : paymentMethod,
+          paymentMethod: taxData.chargeToRoom ? 'room_charge' : (splitBillData ? 'split-bill' : paymentMethod),
+          ...(taxData.chargeToRoom ? { chargedToRoom: true, paymentStatus: 'pending' } : {}),
           // Tax information from OrderSummary
           totalAmount: subtotal || getTotalAmount(),
           taxBreakdown: taxBreakdown,
@@ -5467,7 +5468,12 @@ function RestaurantPOSContent() {
           customerId: customerData?.id || null,
           assignedStaff: assignedStaff || null,
           orderType,
-          paymentMethod: splitBillData ? 'split-bill' : paymentMethod,
+          // Hotel postpaid: "Charge to Room" fires the order to the kitchen but leaves it
+          // unpaid and tagged so it auto-links to the room folio and is billed at hotel
+          // checkout (never collected at the POS). Gated in OrderSummary on inRoomDiningEnabled
+          // + an active check-in match, so non-hotel restaurants never see it.
+          paymentMethod: taxData.chargeToRoom ? 'room_charge' : (splitBillData ? 'split-bill' : paymentMethod),
+          chargedToRoom: taxData.chargeToRoom === true,
           staffInfo: (() => {
             const u = JSON.parse(localStorage.getItem('user') || '{}');
             return {
@@ -5524,7 +5530,7 @@ function RestaurantPOSContent() {
           partialPayAmount: partialPay != null ? partialPay : null,
           paidAmount: partialPay != null ? Math.round(Number(partialPay) * 100) / 100 : null,
           outstandingAmount: partialPay != null ? Math.round(((finalAmount || (subtotal || getTotalAmount()) + totalTax) - Number(partialPay)) * 100) / 100 : null,
-          paymentStatus: isFullDue ? 'due' : (partialPay != null && partialPay > 0 && partialPay < (finalAmount || (subtotal || getTotalAmount()) + totalTax) ? 'partial' : null),
+          paymentStatus: taxData.chargeToRoom ? 'pending' : (isFullDue ? 'due' : (partialPay != null && partialPay > 0 && partialPay < (finalAmount || (subtotal || getTotalAmount()) + totalTax) ? 'partial' : null)),
           compItems: compData || null,
           voidItems: voidData || null,
           managerPin: mgrPin || null,

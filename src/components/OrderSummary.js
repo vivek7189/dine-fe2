@@ -7073,6 +7073,56 @@ const OrderSummary = ({
                 )}
               </button>
 
+              {/* Charge to Room (postpaid) — only for hotels (inRoomDiningEnabled) when the order is
+                  addressed to a room that has an ACTIVE check-in. Fires the KOT but defers payment
+                  to the room folio; the food is billed on the combined bill at hotel checkout.
+                  Non-hotel restaurants (or rooms with no check-in) never see this button. */}
+              {(() => {
+                if (!inRoomDiningEnabled || locationType !== 'room') return null;
+                const rn = String(manualRoomNumber || '').trim();
+                if (!rn) return null;
+                const match = (occupiedRooms || []).find((r) => String(r.roomNumber) === rn);
+                if (!match) return null;
+                return (
+                  <button
+                    onClick={() => {
+                      if (orderBusy || cart.length === 0) return;
+                      if (typeof onPlaceOrder === 'function') {
+                        onPlaceOrder({ ...buildTaxData(), chargeToRoom: true });
+                        armLockAfterAction();
+                      }
+                      if (isMobile && onClose && !(typeof window !== 'undefined' && window.ReactNativeWebView)) {
+                        setTimeout(() => onClose(), 500);
+                      }
+                    }}
+                    disabled={orderBusy || cart.length === 0 || completedBillingBlocked}
+                    title={`Charge to Room ${rn}${match.guestName ? ' — ' + match.guestName : ''}. Billed at checkout.`}
+                    style={{
+                      flex: 1,
+                      background: orderBusy || cart.length === 0 || completedBillingBlocked
+                        ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
+                        : 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+                      color: 'white',
+                      padding: isMobile ? '8px 6px' : '10px 8px',
+                      borderRadius: '8px',
+                      fontWeight: '600',
+                      border: 'none',
+                      cursor: orderBusy || cart.length === 0 || completedBillingBlocked ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '5px',
+                      fontSize: '11px',
+                      transition: 'all 0.2s',
+                      boxShadow: orderBusy || cart.length === 0 || completedBillingBlocked ? 'none' : '0 2px 8px rgba(124,58,237,0.3)',
+                      minWidth: 0,
+                    }}
+                  >
+                    🏨 Charge to Room {rn}
+                  </button>
+                );
+              })()}
+
               {/* KOT & Print - combined button */}
               {printSettings?.enableKOTAndPrint && (
                 <button

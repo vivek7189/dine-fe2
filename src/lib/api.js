@@ -1017,6 +1017,21 @@ class ApiClient {
     });
   }
 
+  // Forgot / reset password (email link). Response is intentionally generic (no email enumeration).
+  async forgotPassword(email) {
+    return this.request('/api/auth/forgot-password', {
+      method: 'POST',
+      body: { email },
+    });
+  }
+
+  async resetPassword(token, newPassword) {
+    return this.request('/api/auth/reset-password', {
+      method: 'POST',
+      body: { token, newPassword },
+    });
+  }
+
   async login(credentials) {
     const response = await this.request('/api/auth/login', {
       method: 'POST',
