@@ -32,6 +32,8 @@ import {
   FaCheck,
   FaTimes,
   FaListOl,
+  FaChartPie,
+  FaBook,
   FaSortAmountDown,
   FaSortAmountUp,
   FaSearch,
@@ -62,6 +64,8 @@ const REPORT_TYPES = {
   REVENUE_TRENDS: 'revenue-trends',
   WALLET_LOYALTY: 'wallet-loyalty',
   ITEM_SALES: 'item-sales',
+  PRODUCT_COST: 'product-cost',   // per-item sales vs recipe COGS + margin
+  RECIPE_COST: 'recipe-cost',     // recipes + ingredients with cost
 };
 
 const getDefaultStartDate = () => {
@@ -1963,12 +1967,100 @@ function getExcelSheetData(reportType, data, formatCurrency) {
       ]});
       break;
     }
+    case REPORT_TYPES.PRODUCT_COST: {
+      const items = data?.items || [];
+      sheets.push({ name: 'Product Cost & Margin', data: [
+        ['Item', 'Category', 'Qty Sold', 'Revenue', 'Cost', 'Margin', 'Margin %', 'Classification'],
+        ...items.map(it => [it.name, it.category, it.qtySold, it.revenue, it.totalCost, it.margin, `${(it.marginPercent || 0).toFixed(1)}%`, it.classification]),
+      ]});
+      break;
+    }
+    case REPORT_TYPES.RECIPE_COST: {
+      const recipes = data?.recipes || [];
+      sheets.push({ name: 'Recipe Summary', data: [
+        ['Recipe', 'Outlet', 'Category', 'Servings', 'Total Cost', 'Cost / Serving', 'Ingredients'],
+        ...recipes.map(r => [r.name, r.outlet || '', r.category || '', r.servings, r.totalCost, r.costPerServing, (r.ingredients || []).length]),
+      ]});
+      const detail = [];
+      recipes.forEach(r => (r.ingredients || []).forEach(l => detail.push([r.name, l.name, l.quantity, l.unit, l.costPerUnit, l.lineCost])));
+      if (detail.length) sheets.push({ name: 'Ingredients', data: [['Recipe', 'Ingredient', 'Quantity', 'Unit', 'Cost / Unit', 'Line Cost'], ...detail] });
+      break;
+    }
     default:
       sheets.push({ name: 'Data', data: [['Report data available. Use CSV export for detailed data.']] });
   }
 
   return sheets.length > 0 ? sheets : [{ name: 'Data', data: [['No data available']] }];
 }
+
+// ---- Product Cost & Margin View (sales vs recipe COGS) ----
+const ProductCostView = ({ data, formatCurrency }) => {
+  const items = data?.items || [];
+  const s = data?.summary || {};
+  if (!items.length) return <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>No sales in this period.</div>;
+  const th = (h, right) => <th key={h} style={{ padding: '10px 12px', textAlign: right ? 'right' : 'left', fontWeight: 700, color: '#475569', borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap' }}>{h}</th>;
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+        {[['Items', s.totalItems], ['⭐ Stars', s.stars], ['Plow Horses', s.plowHorses], ['Puzzles', s.puzzles], ['Dogs', s.dogs], ['Avg margin', `${data?.avgMarginPercent || 0}%`]].map(([l, v]) => (
+          <div key={l} style={{ background: '#f8fafc', border: '1px solid #f1f5f9', borderRadius: 12, padding: '10px 16px', minWidth: 90 }}>
+            <div style={{ fontSize: 11, color: '#64748b' }}>{l}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#1f2937' }}>{v}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <thead><tr style={{ background: '#f8fafc' }}>{th('Item')}{th('Category')}{th('Qty', true)}{th('Revenue', true)}{th('Cost', true)}{th('Margin', true)}{th('Margin %', true)}{th('Class')}</tr></thead>
+          <tbody>
+            {items.map((it, i) => (
+              <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                <td style={{ padding: '8px 12px', fontWeight: 600, color: '#1f2937' }}>{it.name}</td>
+                <td style={{ padding: '8px 12px', color: '#64748b' }}>{it.category}</td>
+                <td style={{ padding: '8px 12px', textAlign: 'right' }}>{it.qtySold}</td>
+                <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600 }}>{formatCurrency(it.revenue)}</td>
+                <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748b' }}>{formatCurrency(it.totalCost)}</td>
+                <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: '#059669' }}>{formatCurrency(it.margin)}</td>
+                <td style={{ padding: '8px 12px', textAlign: 'right' }}>{(it.marginPercent || 0).toFixed(1)}%</td>
+                <td style={{ padding: '8px 12px', color: '#475569' }}>{it.classification}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {(items.some(i => i.totalCost === 0)) && <div style={{ marginTop: 10, fontSize: 12, color: '#d97706' }}>Tip: items showing 0 cost have no recipe or no ingredient cost entered.</div>}
+    </div>
+  );
+};
+
+// ---- Recipe Cost Sheet View (recipes + ingredients with cost) ----
+const RecipeCostView = ({ data, formatCurrency }) => {
+  const recipes = data?.recipes || [];
+  const multi = data?.multi;
+  if (!recipes.length) return <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>No recipes found. Add recipes with ingredient costs.</div>;
+  const th = (h, right) => <th key={h} style={{ padding: '10px 12px', textAlign: right ? 'right' : 'left', fontWeight: 700, color: '#475569', borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap' }}>{h}</th>;
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <thead><tr style={{ background: '#f8fafc' }}>{th('Recipe')}{multi && th('Outlet')}{th('Category')}{th('Servings', true)}{th('Total Cost', true)}{th('Cost / Serving', true)}{th('Ingredients', true)}</tr></thead>
+        <tbody>
+          {recipes.map((r, i) => (
+            <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+              <td style={{ padding: '8px 12px', fontWeight: 600, color: '#1f2937' }}>{r.name}</td>
+              {multi && <td style={{ padding: '8px 12px', color: '#64748b' }}>{r.outlet}</td>}
+              <td style={{ padding: '8px 12px', color: '#64748b' }}>{r.category}</td>
+              <td style={{ padding: '8px 12px', textAlign: 'right' }}>{r.servings}</td>
+              <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600 }}>{formatCurrency(r.totalCost)}</td>
+              <td style={{ padding: '8px 12px', textAlign: 'right', color: '#059669', fontWeight: 600 }}>{formatCurrency(r.costPerServing)}</td>
+              <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748b' }}>{(r.ingredients || []).length}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div style={{ marginTop: 10, fontSize: 12, color: '#64748b' }}>Export (CSV/Excel) includes every ingredient with its quantity, cost/unit and line cost.</div>
+    </div>
+  );
+};
 
 // Keyframes for spinner animation
 const SpinnerKeyframes = () => (
@@ -2055,6 +2147,8 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
     { key: REPORT_TYPES.REVENUE_TRENDS, label: 'Revenue Trends', icon: FaChartArea, show: true },
     { key: REPORT_TYPES.WALLET_LOYALTY, label: 'Wallet & Loyalty', icon: FaWallet, show: true },
     { key: REPORT_TYPES.ITEM_SALES, label: 'Item-wise Sales', icon: FaListOl, show: true },
+    { key: REPORT_TYPES.PRODUCT_COST, label: 'Product Cost & Margin', icon: FaChartPie, show: true },
+    { key: REPORT_TYPES.RECIPE_COST, label: 'Recipe Cost Sheet', icon: FaBook, show: true },
   ].filter((c) => c.show);
 
   const getExportType = (reportKey) => {
@@ -2077,6 +2171,8 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
       [REPORT_TYPES.REVENUE_TRENDS]: 'revenue-trends',
       [REPORT_TYPES.WALLET_LOYALTY]: 'wallet-loyalty',
       [REPORT_TYPES.ITEM_SALES]: 'menu-performance',
+      [REPORT_TYPES.PRODUCT_COST]: 'product-cost-margin',
+      [REPORT_TYPES.RECIPE_COST]: 'recipe-cost-sheet',
     };
     return map[reportKey] || reportKey;
   };
@@ -2150,6 +2246,48 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
         case REPORT_TYPES.ITEM_SALES:
           result = await apiClient.getMenuPerformance(orgId, dateParams);
           break;
+        case REPORT_TYPES.PRODUCT_COST: {
+          // Reuse the per-restaurant menu-engineering endpoint across the selected outlet(s),
+          // then aggregate by item so the HQ tab shows one combined table.
+          const rids = (selectedRestaurants?.length ? selectedRestaurants : (allRestaurants || []).map(r => r.id)).filter(Boolean);
+          const per = await Promise.all(rids.map(rid => apiClient.getMenuEngineering(rid, { startDate, endDate }).catch(() => ({ items: [] }))));
+          const agg = {};
+          per.forEach(r => (r.items || []).forEach(it => {
+            const k = `${it.name || ''}||${it.category || ''}`;
+            const a = agg[k] || { name: it.name, category: it.category, qtySold: 0, revenue: 0, totalCost: 0 };
+            a.qtySold += it.qtySold || 0; a.revenue += it.revenue || 0; a.totalCost += it.totalCost || 0;
+            agg[k] = a;
+          }));
+          const items = Object.values(agg).map(a => {
+            const revenue = Math.round(a.revenue * 100) / 100;
+            const totalCost = Math.round(a.totalCost * 100) / 100;
+            const margin = Math.round((revenue - totalCost) * 100) / 100;
+            return { ...a, qtySold: Math.round(a.qtySold * 100) / 100, revenue, totalCost, margin, marginPercent: revenue > 0 ? Math.round((margin / revenue) * 1000) / 10 : 0 };
+          });
+          const n = items.length || 1;
+          const avgQty = items.reduce((s, r) => s + r.qtySold, 0) / n;
+          const avgM = items.reduce((s, r) => s + r.marginPercent, 0) / n;
+          const summary = { stars: 0, plowHorses: 0, puzzles: 0, dogs: 0, totalItems: items.length };
+          items.forEach(r => {
+            const pop = r.qtySold >= avgQty, hi = r.marginPercent >= avgM;
+            r.classification = pop && hi ? 'Star' : pop && !hi ? 'Plow Horse' : !pop && hi ? 'Puzzle' : 'Dog';
+            summary[r.classification === 'Star' ? 'stars' : r.classification === 'Plow Horse' ? 'plowHorses' : r.classification === 'Puzzle' ? 'puzzles' : 'dogs']++;
+          });
+          items.sort((x, y) => y.revenue - x.revenue);
+          result = { data: { items, summary, avgMarginPercent: Math.round(avgM * 10) / 10, outletCount: rids.length } };
+          break;
+        }
+        case REPORT_TYPES.RECIPE_COST: {
+          const rids = (selectedRestaurants?.length ? selectedRestaurants : (allRestaurants || []).map(r => r.id)).filter(Boolean);
+          const nameById = Object.fromEntries((allRestaurants || []).map(r => [r.id, r.name]));
+          const multi = rids.length > 1;
+          const per = await Promise.all(rids.map(rid => apiClient.getRecipeCostExport(rid).then(r => ({ rid, recipes: r.recipes || [] })).catch(() => ({ rid, recipes: [] }))));
+          const recipes = [];
+          per.forEach(({ rid, recipes: rs }) => rs.forEach(rec => recipes.push({ ...rec, outlet: multi ? (nameById[rid] || '') : '' })));
+          recipes.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+          result = { data: { recipes, multi, outletCount: rids.length } };
+          break;
+        }
         default:
           break;
       }
@@ -2161,7 +2299,7 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
     } finally {
       setLoading(false);
     }
-  }, [orgId, startDate, endDate, selectedRestaurants]);
+  }, [orgId, startDate, endDate, selectedRestaurants, allRestaurants]);
 
   // Load report summaries for card previews when on grid view
   useEffect(() => {
@@ -2219,16 +2357,18 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
     if (!orgId || !activeReport) return;
     setExporting(true);
     try {
-      // For item-sales, generate CSV client-side from loaded reportData
-      if (activeReport === REPORT_TYPES.ITEM_SALES && reportData) {
+      // These reports are computed client-side, so generate CSV from loaded reportData.
+      if ([REPORT_TYPES.ITEM_SALES, REPORT_TYPES.PRODUCT_COST, REPORT_TYPES.RECIPE_COST].includes(activeReport) && reportData) {
         const sheetData = getExcelSheetData(activeReport, reportData, formatCurrency);
         if (sheetData.length > 0) {
-          const csv = sheetData[0].data.map(r => r.map(c => { const s = String(c ?? ''); return s.includes(',') || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s; }).join(',')).join('\n');
+          // Use the last sheet for RECIPE_COST (the detailed Ingredients sheet); first otherwise.
+          const sheet = activeReport === REPORT_TYPES.RECIPE_COST && sheetData.length > 1 ? sheetData[sheetData.length - 1] : sheetData[0];
+          const csv = sheet.data.map(r => r.map(c => { const s = String(c ?? ''); return s.includes(',') || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s; }).join(',')).join('\n');
           const blob = new Blob([csv], { type: 'text/csv' });
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `item-wise-sales-${startDate}-to-${endDate}.csv`;
+          a.download = `${getExportType(activeReport)}-${startDate}-to-${endDate}.csv`;
           document.body.appendChild(a);
           a.click();
           a.remove();
@@ -2407,6 +2547,10 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
         return <WalletLoyaltyView data={reportData} formatCurrency={formatCurrency} />;
       case REPORT_TYPES.ITEM_SALES:
         return <ItemSalesView data={reportData} formatCurrency={formatCurrency} />;
+      case REPORT_TYPES.PRODUCT_COST:
+        return <ProductCostView data={reportData} formatCurrency={formatCurrency} />;
+      case REPORT_TYPES.RECIPE_COST:
+        return <RecipeCostView data={reportData} formatCurrency={formatCurrency} />;
       default:
         return <EmptyState message="Select a report to view." />;
     }

@@ -1254,7 +1254,84 @@ const REPORT_TITLES = {
   'revenue-trends': 'Revenue Trends Report',
   'wallet-loyalty': 'Wallet & Loyalty Report',
   'item-sales': 'Item-wise Sales Report',
+  'product-cost': 'Product Cost & Margin Report',
+  'recipe-cost': 'Recipe Cost Sheet',
 };
+
+// Product Cost & Margin — sales vs recipe COGS per item.
+function ProductCostPDF({ data }) {
+  const items = data?.items || [];
+  const sm = data?.summary || {};
+  return (
+    <View>
+      <Text style={s.sectionTitle}>Summary</Text>
+      <View style={s.statsRow}>
+        <StatBox label="Items" value={fmtNum(sm.totalItems || items.length)} color={C.primary} />
+        <StatBox label="Stars" value={fmtNum(sm.stars)} color={C.blue} />
+        <StatBox label="Avg Margin" value={`${data?.avgMarginPercent || 0}%`} color={C.purple} />
+        <StatBox label="Dogs" value={fmtNum(sm.dogs)} color={C.amber} />
+      </View>
+      {items.length > 0 && (
+        <View>
+          <Text style={s.subTitle}>Product Cost & Margin</Text>
+          <View style={s.table}>
+            <View style={s.tHead}>
+              <Text style={[s.th, { width: '26%' }]}>Item</Text>
+              <Text style={[s.th, { width: '16%' }]}>Category</Text>
+              <Text style={[s.th, { width: '9%', textAlign: 'right' }]}>Qty</Text>
+              <Text style={[s.th, { width: '15%', textAlign: 'right' }]}>Revenue</Text>
+              <Text style={[s.th, { width: '13%', textAlign: 'right' }]}>Cost</Text>
+              <Text style={[s.th, { width: '13%', textAlign: 'right' }]}>Margin</Text>
+              <Text style={[s.th, { width: '8%', textAlign: 'right' }]}>%</Text>
+            </View>
+            {items.map((it, i) => (
+              <View key={i} style={i % 2 ? s.tRowAlt : s.tRow}>
+                <Text style={[s.tdBold, { width: '26%' }]}>{it.name}</Text>
+                <Text style={[s.td, { width: '16%' }]}>{it.category}</Text>
+                <Text style={[s.tdRight, { width: '9%' }]}>{it.qtySold}</Text>
+                <Text style={[s.tdRight, { width: '15%' }]}>{fmtCurrency(it.revenue)}</Text>
+                <Text style={[s.tdRight, { width: '13%' }]}>{fmtCurrency(it.totalCost)}</Text>
+                <Text style={[s.tdGreen, { width: '13%', textAlign: 'right' }]}>{fmtCurrency(it.margin)}</Text>
+                <Text style={[s.tdRight, { width: '8%' }]}>{(it.marginPercent || 0).toFixed(1)}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+    </View>
+  );
+}
+
+// Recipe Cost Sheet — recipes with total cost and cost per serving.
+function RecipeCostPDF({ data }) {
+  const recipes = data?.recipes || [];
+  const multi = data?.multi;
+  return (
+    <View>
+      <Text style={s.subTitle}>Recipe Cost Sheet</Text>
+      <View style={s.table}>
+        <View style={s.tHead}>
+          <Text style={[s.th, { width: multi ? '28%' : '40%' }]}>Recipe</Text>
+          {multi && <Text style={[s.th, { width: '16%' }]}>Outlet</Text>}
+          <Text style={[s.th, { width: '18%' }]}>Category</Text>
+          <Text style={[s.th, { width: '10%', textAlign: 'right' }]}>Serv.</Text>
+          <Text style={[s.th, { width: '16%', textAlign: 'right' }]}>Total Cost</Text>
+          <Text style={[s.th, { width: '18%', textAlign: 'right' }]}>Cost/Serving</Text>
+        </View>
+        {recipes.map((r, i) => (
+          <View key={i} style={i % 2 ? s.tRowAlt : s.tRow}>
+            <Text style={[s.tdBold, { width: multi ? '28%' : '40%' }]}>{r.name}</Text>
+            {multi && <Text style={[s.td, { width: '16%' }]}>{r.outlet}</Text>}
+            <Text style={[s.td, { width: '18%' }]}>{r.category}</Text>
+            <Text style={[s.tdRight, { width: '10%' }]}>{r.servings}</Text>
+            <Text style={[s.tdRight, { width: '16%' }]}>{fmtCurrency(r.totalCost)}</Text>
+            <Text style={[s.tdGreen, { width: '18%', textAlign: 'right' }]}>{fmtCurrency(r.costPerServing)}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
 
 export function HQReportPDFDocument({ reportType, data, orgName, logoUrl, dateRange, currencySymbol }) {
   setCS(currencySymbol);
@@ -1283,6 +1360,8 @@ export function HQReportPDFDocument({ reportType, data, orgName, logoUrl, dateRa
         {reportType === 'revenue-trends' && <RevenueTrendsPDF data={data} />}
         {reportType === 'wallet-loyalty' && <WalletLoyaltyPDF data={data} />}
         {reportType === 'item-sales' && <MenuPerformancePDF data={data} />}
+        {reportType === 'product-cost' && <ProductCostPDF data={data} />}
+        {reportType === 'recipe-cost' && <RecipeCostPDF data={data} />}
 
         <ReportFooter />
       </Page>
