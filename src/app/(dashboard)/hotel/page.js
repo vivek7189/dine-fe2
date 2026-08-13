@@ -2940,6 +2940,23 @@ const Hotel = () => {
                     <span className="text-gray-600">Room Charges:</span>
                     <span className="font-semibold">{formatCurrency(selectedCheckIn.totalRoomCharges || 0)}</span>
                   </div>
+                  {/* Optional room tax (owner-configured) — informational so the cashier collects the
+                      right final payment. Backend applies it authoritatively at checkout. */}
+                  {(() => {
+                    let rate = 0, name = 'Room Tax';
+                    try { const r = JSON.parse(localStorage.getItem('selectedRestaurant') || 'null'); rate = Number(r?.posSettings?.roomTaxRate) || 0; if (r?.posSettings?.roomTaxName) name = r.posSettings.roomTaxName; } catch (_) {}
+                    if (!(rate > 0)) return null;
+                    const tariff = parseFloat(checkOutForm.roomTariff);
+                    const base = !isNaN(tariff) && tariff >= 0 ? tariff * (selectedCheckIn.stayDuration || 1) : (selectedCheckIn.totalRoomCharges || 0);
+                    const amt = Math.round((base * rate)) / 100;
+                    if (!(amt > 0)) return null;
+                    return (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">{name} ({rate}%):</span>
+                        <span className="font-semibold">{formatCurrency(Math.round(amt * 100) / 100)}</span>
+                      </div>
+                    );
+                  })()}
                   {selectedCheckIn.foodOrders && selectedCheckIn.foodOrders.length > 0 && (
                     <>
                     <div className="flex justify-between">
@@ -3298,6 +3315,12 @@ const Hotel = () => {
                         Food & Beverage Charges (Unpaid Only)
                       </span>
                       <span className="font-semibold text-gray-900">{formatCurrency(invoice.foodCharges)}</span>
+                    </div>
+                  )}
+                  {invoice.roomTaxAmount > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-700">{invoice.roomTaxName || 'Room Tax'}{invoice.roomTaxRate ? ` (${invoice.roomTaxRate}%)` : ''}</span>
+                      <span className="font-semibold text-gray-900">{formatCurrency(invoice.roomTaxAmount)}</span>
                     </div>
                   )}
                   {invoice.additionalCharges && invoice.additionalCharges.length > 0 && (
