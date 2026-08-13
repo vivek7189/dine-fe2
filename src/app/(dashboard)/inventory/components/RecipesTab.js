@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { FaPlus, FaTrash, FaClock, FaUtensils, FaUsers, FaSearch, FaEdit, FaEye, FaLeaf, FaCoffee, FaFlask, FaLink, FaFileUpload } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaClock, FaUtensils, FaUsers, FaSearch, FaEdit, FaEye, FaLeaf, FaCoffee, FaFlask, FaLink, FaFileUpload, FaFileExcel, FaFileCsv } from 'react-icons/fa';
 import dynamic from 'next/dynamic';
 import { convertUnits } from '../utils/unitConversion';
+import apiClient from '@/lib/api';
+import { exportRecipeCostExcel, exportRecipeCostCSV } from '../utils/inventoryExport';
 const InventoryDownloadPDFButton = dynamic(() => import('./pdf/InventoryDownloadPDFButton'), { ssr: false });
 
 const categoryColors = {
@@ -29,6 +31,26 @@ export default function RecipesTab({
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [exportingCost, setExportingCost] = useState(false);
+
+  // Recipe Cost Sheet export — pulls per-ingredient cost from the backend (same costing as the
+  // Product Cost & Margin report) and writes an Excel (Summary + Ingredients sheets) or CSV.
+  const handleCostExport = async (fmt) => {
+    if (!currentRestaurant?.id || exportingCost) return;
+    setExportingCost(true);
+    try {
+      const res = await apiClient.getRecipeCostExport(currentRestaurant.id);
+      const list = res?.recipes || [];
+      if (!list.length) { alert('No recipes to export.'); return; }
+      if (fmt === 'csv') exportRecipeCostCSV(list, currentRestaurant.name);
+      else await exportRecipeCostExcel(list, currentRestaurant.name);
+    } catch (e) {
+      console.error('Recipe cost export failed', e);
+      alert('Could not export recipe costs. Please try again.');
+    } finally {
+      setExportingCost(false);
+    }
+  };
 
   const recipeCategories = useMemo(() => {
     const cats = [...new Set(recipes.map(r => r.category).filter(Boolean))];
@@ -114,6 +136,22 @@ export default function RecipesTab({
             )}
           </div>
         )}
+        <button
+          onClick={() => handleCostExport('excel')}
+          disabled={exportingCost}
+          title="Export recipes + ingredients with cost (Excel)"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 14px', background: '#065f46', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: exportingCost ? 'default' : 'pointer', opacity: exportingCost ? 0.6 : 1 }}
+        >
+          <FaFileExcel size={13} /> {exportingCost ? 'Exporting…' : 'Cost Sheet (Excel)'}
+        </button>
+        <button
+          onClick={() => handleCostExport('csv')}
+          disabled={exportingCost}
+          title="Export recipes + ingredients with cost (CSV)"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 14px', background: '#fff', color: '#065f46', border: '1px solid #a7f3d0', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: exportingCost ? 'default' : 'pointer', opacity: exportingCost ? 0.6 : 1 }}
+        >
+          <FaFileCsv size={13} /> CSV
+        </button>
         <InventoryDownloadPDFButton
           reportType="recipes"
           data={{ recipes }}

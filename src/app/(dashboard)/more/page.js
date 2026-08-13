@@ -149,11 +149,19 @@ const features = [
   },
   {
     id: 'menu-engineering',
-    name: 'Menu Engineering',
-    description: 'BCG matrix analysis — identify Stars, Plow Horses, Puzzles, and Dogs',
+    name: 'Product Cost & Margin',
+    description: 'Sales vs recipe cost (COGS), margin & margin% per item — Stars, Plow Horses, Puzzles, Dogs',
     icon: FaChartPie,
     gradient: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
     href: '/menu-engineering',
+  },
+  {
+    id: 'recipe-cost-sheet',
+    name: 'Recipe Cost Sheet',
+    description: 'Export every recipe with its ingredients and cost (Excel / CSV) — cost per serving',
+    icon: FaBook,
+    gradient: 'linear-gradient(135deg, #059669, #10b981)',
+    href: '/inventory?tab=recipes',
   },
   {
     id: 'reprint-log',

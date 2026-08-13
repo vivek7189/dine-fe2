@@ -69,3 +69,63 @@ export async function exportInventoryExcel(items, restaurantName = 'inventory') 
   XLSX.utils.book_append_sheet(wb, ws, 'Inventory');
   XLSX.writeFile(wb, `${slug(restaurantName)}-inventory-${today()}.xlsx`);
 }
+
+// ── Recipe Cost Sheet export ──────────────────────────────────────────────────
+// `recipes` = the /api/recipes/:id/cost-export payload: each recipe with servings,
+// totalCost, costPerServing and an ingredients[] list (name, quantity, unit,
+// costPerUnit, lineCost). Summary rows = one per recipe; detail rows = one per ingredient.
+function recipeSummaryRows(recipes = []) {
+  return (recipes || []).map((r, i) => ({
+    '#': i + 1,
+    'Recipe': r.name || '',
+    'Category': r.category || '',
+    'Menu Item': r.menuItemName || '',
+    'Servings': r.servings ?? '',
+    'Total Cost': Number(r.totalCost) || 0,
+    'Cost / Serving': Number(r.costPerServing) || 0,
+    'Ingredients': (r.ingredients || []).length,
+  }));
+}
+function recipeIngredientRows(recipes = []) {
+  const out = [];
+  (recipes || []).forEach(r => {
+    (r.ingredients || []).forEach(ing => {
+      out.push({
+        'Recipe': r.name || '',
+        'Ingredient': ing.name || '',
+        'Quantity': Number(ing.quantity) || 0,
+        'Unit': ing.unit || '',
+        'Cost / Unit': Number(ing.costPerUnit) || 0,
+        'Line Cost': Number(ing.lineCost) || 0,
+        'Costed': ing.matched ? 'Yes' : 'No cost',
+      });
+    });
+  });
+  return out;
+}
+
+export function exportRecipeCostCSV(recipes, restaurantName = 'recipes') {
+  const rows = recipeIngredientRows(recipes);
+  if (rows.length === 0) return;
+  const headers = Object.keys(rows[0]);
+  const esc = (v) => { const s = String(v ?? ''); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const csv = [headers.join(','), ...rows.map(r => headers.map(h => esc(r[h])).join(','))].join('\n');
+  triggerDownload(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' }), `${slug(restaurantName)}-recipe-costs-${today()}.csv`);
+}
+
+export async function exportRecipeCostExcel(recipes, restaurantName = 'recipes') {
+  const summary = recipeSummaryRows(recipes);
+  const detail = recipeIngredientRows(recipes);
+  if (summary.length === 0) return;
+  const XLSX = await import('xlsx');
+  const wb = XLSX.utils.book_new();
+  const wsS = XLSX.utils.json_to_sheet(summary);
+  wsS['!cols'] = Object.keys(summary[0]).map(k => ({ wch: Math.max(k.length + 2, 12) }));
+  XLSX.utils.book_append_sheet(wb, wsS, 'Recipe Summary');
+  if (detail.length) {
+    const wsD = XLSX.utils.json_to_sheet(detail);
+    wsD['!cols'] = Object.keys(detail[0]).map(k => ({ wch: Math.max(k.length + 2, 12) }));
+    XLSX.utils.book_append_sheet(wb, wsD, 'Ingredients');
+  }
+  XLSX.writeFile(wb, `${slug(restaurantName)}-recipe-costs-${today()}.xlsx`);
+}

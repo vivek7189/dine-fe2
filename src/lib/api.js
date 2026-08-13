@@ -2546,6 +2546,11 @@ class ApiClient {
     return this.request(`/api/recipes/${restaurantId}${queryString}`);
   }
 
+  // Recipes with per-ingredient cost + total + cost-per-serving (Recipe Cost Sheet export).
+  async getRecipeCostExport(restaurantId) {
+    return this.request(`/api/recipes/${restaurantId}/cost-export`);
+  }
+
   async createRecipe(restaurantId, recipeData) {
     return this.request(`/api/recipes/${restaurantId}`, {
       method: 'POST',
