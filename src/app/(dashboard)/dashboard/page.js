@@ -1846,6 +1846,30 @@ function RestaurantPOSContent() {
     }
   }, [selectedRestaurant]);
 
+  // Occupied (currently checked-in) rooms — used to offer a validated room picker on the billing
+  // page when in-room-dining is on, instead of a blind free-text room number (which silently orphans
+  // a guest's food on a typo). ONLY fetched for hotel-enabled restaurants → zero effect otherwise.
+  const [occupiedRooms, setOccupiedRooms] = useState([]);
+  useEffect(() => {
+    const rid = selectedRestaurant?.id;
+    if (!inRoomDiningEnabled || !rid) { setOccupiedRooms([]); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiClient.getHotelCheckIns(rid, 'checked-in');
+        if (cancelled) return;
+        const list = (res?.checkIns || []).map((c) => ({
+          roomNumber: String(c.roomNumber ?? ''),
+          guestName: c.guestName || '',
+          balanceAmount: typeof c.balanceAmount === 'number' ? c.balanceAmount : null,
+          checkInId: c.id,
+        })).filter((c) => c.roomNumber);
+        setOccupiedRooms(list);
+      } catch (_) { if (!cancelled) setOccupiedRooms([]); }
+    })();
+    return () => { cancelled = true; };
+  }, [inRoomDiningEnabled, selectedRestaurant?.id, orderSuccess?.show]);
+
   const loadFloors = async (restaurantId) => {
     try {
       console.log('🏢 Loading floors and tables for restaurant:', restaurantId);
@@ -3787,7 +3811,7 @@ function RestaurantPOSContent() {
       // Determine if this is a room order
       const isRoomOrder = inRoomDiningEnabled && locationType === 'room' ? true : (selectedTable?.isRoom === true);
       const roomNumber = isRoomOrder 
-        ? (inRoomDiningEnabled && locationType === 'room' ? manualRoomNumber : (selectedTable?.name || tableNumber))
+        ? (inRoomDiningEnabled && locationType === 'room' ? (manualRoomNumber || (selectedTable?.isRoom ? selectedTable.name : '')) : (selectedTable?.name || tableNumber))
         : null;
       const tableToUse = !isRoomOrder ? (tableNumber || selectedTable?.number || selectedTable?.name) : null;
       let tableChanged = false;
@@ -4085,7 +4109,7 @@ function RestaurantPOSContent() {
         // Determine if this is a room order
         const isRoomOrder = inRoomDiningEnabled && locationType === 'room' ? true : (selectedTable?.isRoom === true);
         const roomNumber = isRoomOrder 
-          ? (inRoomDiningEnabled && locationType === 'room' ? manualRoomNumber : (selectedTable?.name || tableToUse))
+          ? (inRoomDiningEnabled && locationType === 'room' ? (manualRoomNumber || (selectedTable?.isRoom ? selectedTable.name : '')) : (selectedTable?.name || tableToUse))
           : null;
         const finalTableNumber = !isRoomOrder ? tableToUse : null;
 
@@ -4740,7 +4764,7 @@ function RestaurantPOSContent() {
 
       const isRoomOrder = inRoomDiningEnabled && locationType === 'room' ? true : (selectedTable?.isRoom === true);
       const roomNumber = isRoomOrder
-        ? (inRoomDiningEnabled && locationType === 'room' ? manualRoomNumber : (selectedTable?.name || tableNumber))
+        ? (inRoomDiningEnabled && locationType === 'room' ? (manualRoomNumber || (selectedTable?.isRoom ? selectedTable.name : '')) : (selectedTable?.name || tableNumber))
         : null;
       const finalTableNumber = !isRoomOrder ? (tableNumber || selectedTable?.number) : null;
 
@@ -5254,7 +5278,7 @@ function RestaurantPOSContent() {
           });
 
           const tableToUseForKot = tableToUse || currentOrder.tableNumber;
-          const roomForKot = inRoomDiningEnabled && locationType === 'room' ? manualRoomNumber : (currentOrder.roomNumber || null);
+          const roomForKot = inRoomDiningEnabled && locationType === 'room' ? (manualRoomNumber || (selectedTable?.isRoom ? selectedTable.name : '')) : (currentOrder.roomNumber || null);
           // WEB ONLY: this order was already KOT-printed on placement, so the
           // effect's dedup flags (set then) would skip the incremental UPDATE
           // KOT. On a pure web browser, useAutoPrint (the event-driven printer)
@@ -5408,7 +5432,7 @@ function RestaurantPOSContent() {
         // Determine if this is a room order
         const isRoomOrder = inRoomDiningEnabled && locationType === 'room' ? true : (selectedTable?.isRoom === true);
         const roomNumber = isRoomOrder
-          ? (inRoomDiningEnabled && locationType === 'room' ? manualRoomNumber : (selectedTable?.name || tableNumber))
+          ? (inRoomDiningEnabled && locationType === 'room' ? (manualRoomNumber || (selectedTable?.isRoom ? selectedTable.name : '')) : (selectedTable?.name || tableNumber))
           : null;
         const finalTableNumber = !isRoomOrder ? (tableNumber || selectedTable?.number) : null;
 
@@ -8918,6 +8942,7 @@ function RestaurantPOSContent() {
                 setLocationType={setLocationType}
                 manualRoomNumber={manualRoomNumber}
                 setManualRoomNumber={setManualRoomNumber}
+                occupiedRooms={occupiedRooms}
                 processing={processing}
                 placingOrder={placingOrder}
                 orderSuccess={orderSuccess}
@@ -9120,6 +9145,7 @@ function RestaurantPOSContent() {
             setLocationType={setLocationType}
             manualRoomNumber={manualRoomNumber}
             setManualRoomNumber={setManualRoomNumber}
+            occupiedRooms={occupiedRooms}
             processing={processing}
             placingOrder={placingOrder}
             savingOrder={savingOrder}
@@ -9226,6 +9252,7 @@ function RestaurantPOSContent() {
                     setLocationType={setLocationType}
                     manualRoomNumber={manualRoomNumber}
                     setManualRoomNumber={setManualRoomNumber}
+                    occupiedRooms={occupiedRooms}
                     processing={processing}
                     placingOrder={placingOrder}
                     savingOrder={savingOrder}

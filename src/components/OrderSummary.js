@@ -147,6 +147,8 @@ const OrderSummary = ({
   setLocationType,
   manualRoomNumber = '',
   setManualRoomNumber,
+  occupiedRooms = [], // [{roomNumber, guestName, balanceAmount, checkInId}] — currently checked-in rooms
+
   billingMode = false, // When true, hides Save/Place Order buttons, only shows Complete Billing
   allowCompletedEdit = false, // When true (order-history edit), the action button stays enabled for a COMPLETED order so edits can be saved
   onBillingComplete, // Callback when billing is completed in billingMode
@@ -5704,10 +5706,23 @@ const OrderSummary = ({
                               Room
                             </button>
                           </div>
-                          {/* Input Box - Shows Table or Room based on selection */}
+                          {/* Input Box - Shows Table or Room based on selection.
+                              For rooms, offer an autocomplete of currently CHECKED-IN rooms (with the
+                              guest name) so staff pick a valid, occupied room instead of typing blind
+                              — a wrong room silently orphans the food off the guest's folio. */}
+                          {locationType === 'room' && occupiedRooms && occupiedRooms.length > 0 && (
+                            <datalist id="dineopen-occupied-rooms">
+                              {occupiedRooms.map((r) => (
+                                <option key={r.checkInId || r.roomNumber} value={r.roomNumber}>
+                                  {`Room ${r.roomNumber}${r.guestName ? ' — ' + r.guestName : ''}`}
+                                </option>
+                              ))}
+                            </datalist>
+                          )}
                           <input
                             type="text"
                             placeholder={locationType === 'room' ? 'Room No' : 'Table No'}
+                            list={locationType === 'room' ? 'dineopen-occupied-rooms' : undefined}
                             value={locationType === 'room' ? (manualRoomNumber || '') : (tableNumber || '')}
                             style={{
                               flex: 1,
@@ -5745,6 +5760,25 @@ const OrderSummary = ({
                           />
                         </div>
                       ))}
+
+                      {/* Room→guest confirmation: reassure the cashier the food will land on the right
+                          folio, or warn that the typed room has no active check-in (would orphan it). */}
+                      {inRoomDiningEnabled && locationType === 'room' && String(manualRoomNumber || '').trim() && (() => {
+                        const match = (occupiedRooms || []).find((r) => String(r.roomNumber) === String(manualRoomNumber).trim());
+                        if (match) {
+                          return (
+                            <div style={{ marginTop: '5px', fontSize: '11px', color: '#16a34a', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                              <FaBed size={10} />
+                              <span>{match.guestName || 'Guest'}{typeof match.balanceAmount === 'number' ? ` · Balance ${formatCurrency ? formatCurrency(match.balanceAmount) : match.balanceAmount}` : ''}</span>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div style={{ marginTop: '5px', fontSize: '11px', color: '#b45309' }}>
+                            ⚠ No active check-in for Room {String(manualRoomNumber).trim()} — food won’t attach to a folio.
+                          </div>
+                        );
+                      })()}
 
                     </div>
                   );
