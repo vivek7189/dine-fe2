@@ -1838,7 +1838,15 @@ function RestaurantPOSContent() {
         // On any error, default to false (safe fallback)
         inRoomDiningEnabled = false;
       }
-      
+
+      // Single clean switch: the Admin "Hotel & In-Room Dining" toggle stores
+      // posSettings.inRoomDiningEnabled. Still OFF by default → the billing screen stays 100% normal
+      // restaurant until the owner turns Hotel on. (Legacy features.inRoomDiningEnabled still honored.)
+      if (selectedRestaurant?.posSettings?.inRoomDiningEnabled === true
+          || selectedRestaurant?.inRoomDiningEnabled === true) {
+        inRoomDiningEnabled = true;
+      }
+
       setInRoomDiningEnabled(inRoomDiningEnabled);
     } else {
       // Reset to false if no restaurant selected

@@ -12010,6 +12010,47 @@ const Admin = () => {
               )}
             </div>
 
+            {/* Hotel & In-Room Dining — single switch that turns on room bookings + room service on the
+                billing screen. OFF by default → the billing screen stays a normal restaurant. */}
+            <div style={{ marginBottom: '16px', padding: '14px', backgroundColor: '#eef2ff', borderRadius: '10px', border: '1px solid #c7d2fe' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: posSettings.inRoomDiningEnabled ? '12px' : '0' }}>
+                <button
+                  type="button"
+                  onClick={() => setPosSettings(prev => ({ ...prev, inRoomDiningEnabled: !prev.inRoomDiningEnabled }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {posSettings.inRoomDiningEnabled
+                    ? <FaToggleOn size={28} color="#6366f1" />
+                    : <FaToggleOff size={28} color="#d1d5db" />}
+                </button>
+                <div>
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#3730a3' }}>🏨 Hotel & In-Room Dining</span>
+                  <div style={{ fontSize: '11px', color: '#4f46e5' }}>Adds a Room option on the billing screen so staff can order food to a checked-in room. Turn on if this property has rooms.</div>
+                </div>
+              </div>
+              {posSettings.inRoomDiningEnabled && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', paddingTop: '4px' }}>
+                  <span style={{ fontSize: '12px', color: '#374151' }}>Room Tax (optional):</span>
+                  <input
+                    type="number" min="0" step="0.1"
+                    value={posSettings.roomTaxRate ?? ''}
+                    onChange={(e) => setPosSettings(prev => ({ ...prev, roomTaxRate: e.target.value === '' ? '' : Number(e.target.value) }))}
+                    placeholder="0"
+                    style={{ width: '70px', padding: '6px 8px', borderRadius: '8px', border: '1px solid #c7d2fe', fontSize: '12px', backgroundColor: 'white' }}
+                  />
+                  <span style={{ fontSize: '12px', color: '#374151' }}>% ·</span>
+                  <input
+                    type="text"
+                    value={posSettings.roomTaxName ?? ''}
+                    onChange={(e) => setPosSettings(prev => ({ ...prev, roomTaxName: e.target.value }))}
+                    placeholder="Tax name (e.g. GST, VAT)"
+                    style={{ width: '160px', padding: '6px 8px', borderRadius: '8px', border: '1px solid #c7d2fe', fontSize: '12px', backgroundColor: 'white' }}
+                  />
+                  <span style={{ fontSize: '11px', color: '#6b7280' }}>Applied to room charges on the checkout invoice. Leave 0 for no room tax.</span>
+                </div>
+              )}
+            </div>
+
             {/* Token Display System */}
             <div style={{ marginBottom: '16px', padding: '14px', backgroundColor: '#fefce8', borderRadius: '10px', border: '1px solid #fde68a' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
