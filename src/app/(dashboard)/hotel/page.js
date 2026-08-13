@@ -448,21 +448,7 @@ const Hotel = () => {
       // Always load all check-ins from backend to ensure we get everything
       const response = await apiClient.getHotelCheckIns(restaurantId, 'all');
       let allCheckIns = response.checkIns || [];
-      
-      // Debug: Check if room 106 check-in exists
-      const room106CheckIn = allCheckIns.find(ci => ci.roomNumber === '106' || ci.roomNumber === 106);
-      if (room106CheckIn) {
-        console.log('Room 106 check-in found:', {
-          id: room106CheckIn.id,
-          roomNumber: room106CheckIn.roomNumber,
-          status: room106CheckIn.status,
-          guestName: room106CheckIn.guestName
-        });
-      } else {
-        console.warn('Room 106 check-in NOT found. Total check-ins:', allCheckIns.length);
-        console.log('All check-ins:', allCheckIns.map(ci => ({ roomNumber: ci.roomNumber, status: ci.status })));
-      }
-      
+
       // Apply filter on client side
       if (checkInStatusFilter !== 'all') {
         if (checkInStatusFilter === 'active') {
@@ -851,29 +837,41 @@ const Hotel = () => {
     setError(null);
 
     try {
-      await apiClient.hotelCheckIn({
-        restaurantId,
-        guestInfo: {
-          name: checkInForm.guestName,
-          phone: checkInForm.guestPhone,
-          email: checkInForm.guestEmail || null
-        },
-        roomNumber: checkInForm.roomNumber,
-        checkInDate: checkInForm.checkInDate,
-        checkOutDate: checkInForm.checkOutDate,
-        numberOfGuests: parseInt(checkInForm.numberOfGuests),
-        roomTariff: parseFloat(checkInForm.roomTariff) || 0,
-        advancePayment: parseFloat(checkInForm.advancePayment) || 0,
-        paymentMode: checkInForm.paymentMode,
-        idProof: {
-          type: checkInForm.idProofType,
-          number: checkInForm.idProofNumber || null
-        },
-        gstInfo: checkInForm.gstNumber ? {
-          gstNumber: checkInForm.gstNumber,
-          companyName: checkInForm.gstCompanyName || null
-        } : null
-      });
+      const idProof = { type: checkInForm.idProofType, number: checkInForm.idProofNumber || null };
+      const gstInfo = checkInForm.gstNumber
+        ? { gstNumber: checkInForm.gstNumber, companyName: checkInForm.gstCompanyName || null }
+        : null;
+
+      if (selectedBooking?.id) {
+        // Check-in FROM a booking → convert it, so the booking transitions to 'checked-in' (instead
+        // of leaving an orphan 'confirmed' booking that keeps showing as active and blocks re-booking
+        // the room). The booking already holds room/guest/dates; we only pass the check-in extras.
+        await apiClient.convertBookingToCheckIn(selectedBooking.id, {
+          idProof,
+          gstInfo,
+          advancePayment: parseFloat(checkInForm.advancePayment) || 0,
+          paymentMode: checkInForm.paymentMode,
+        });
+      } else {
+        // Walk-in check-in (unchanged).
+        await apiClient.hotelCheckIn({
+          restaurantId,
+          guestInfo: {
+            name: checkInForm.guestName,
+            phone: checkInForm.guestPhone,
+            email: checkInForm.guestEmail || null
+          },
+          roomNumber: checkInForm.roomNumber,
+          checkInDate: checkInForm.checkInDate,
+          checkOutDate: checkInForm.checkOutDate,
+          numberOfGuests: parseInt(checkInForm.numberOfGuests),
+          roomTariff: parseFloat(checkInForm.roomTariff) || 0,
+          advancePayment: parseFloat(checkInForm.advancePayment) || 0,
+          paymentMode: checkInForm.paymentMode,
+          idProof,
+          gstInfo
+        });
+      }
 
       setSuccess('Checked in successfully');
       
@@ -917,6 +915,21 @@ const Hotel = () => {
 
   const handleCheckOut = async (e) => {
     e.preventDefault();
+
+    // Explicit validation — the Complete Checkout button lives in the modal footer OUTSIDE the
+    // <form>, so the fields' `required` attributes are never enforced by the browser. Guard here so
+    // checkout can't fire with a blank/negative tariff or final payment.
+    const tariff = parseFloat(checkOutForm.roomTariff);
+    const finalPay = parseFloat(checkOutForm.finalPayment);
+    if (checkOutForm.roomTariff === '' || isNaN(tariff) || tariff < 0) {
+      setError('Please enter a valid room tariff before checkout.');
+      return;
+    }
+    if (checkOutForm.finalPayment === '' || isNaN(finalPay) || finalPay < 0) {
+      setError('Please enter the final payment amount (0 is allowed if nothing is due).');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
