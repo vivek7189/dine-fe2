@@ -3210,9 +3210,9 @@ const Login = () => {
                 </div>
 
                 <div style={{ textAlign: "right", marginTop: "-8px", marginBottom: "8px" }}>
-                  <a href="/reset-password" style={{ fontSize: "13px", color: "#ef4444", fontWeight: 600, textDecoration: "none" }}>
+                  <Link href="/reset-password" style={{ fontSize: "13px", color: "#ef4444", fontWeight: 600, textDecoration: "none" }}>
                     Forgot password?
-                  </a>
+                  </Link>
                 </div>
 
                 <button

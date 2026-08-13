@@ -7,6 +7,7 @@
 
 import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import apiClient from '@/lib/api';
 
 const card = { width: '100%', maxWidth: 420, background: '#fff', borderRadius: 16, boxShadow: '0 10px 40px rgba(0,0,0,0.08)', padding: '32px 28px', boxSizing: 'border-box' };
@@ -68,7 +69,7 @@ function ResetInner() {
               <div style={{ fontSize: 40, marginBottom: 8 }}>✅</div>
               <h2 style={{ margin: '0 0 6px', color: '#1f2937' }}>Password reset</h2>
               <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 18 }}>You can now log in with your new password.</p>
-              <a href="/login" style={{ ...btn(false), display: 'inline-block', textDecoration: 'none', boxSizing: 'border-box' }}>Go to Login</a>
+              <Link href="/login" style={{ ...btn(false), display: 'inline-block', textDecoration: 'none', boxSizing: 'border-box' }}>Go to Login</Link>
             </div>
           ) : (
             <form onSubmit={submitReset}>
@@ -83,7 +84,7 @@ function ResetInner() {
                 <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Re-enter password" style={input} autoComplete="new-password" />
               </div>
               {error && <div style={{ color: '#dc2626', fontSize: 13, marginTop: 8 }}>{error}
-                {/expired|invalid|used/i.test(error) && <> · <a href="/reset-password" style={{ color: '#ef4444', fontWeight: 600 }}>Request a new link</a></>}
+                {/expired|invalid|used/i.test(error) && <> · <Link href="/reset-password" style={{ color: '#ef4444', fontWeight: 600 }}>Request a new link</Link></>}
               </div>}
               <button type="submit" disabled={busy || !pw || !confirm} style={btn(busy || !pw || !confirm)}>{busy ? 'Resetting…' : 'Reset Password'}</button>
             </form>
@@ -94,13 +95,13 @@ function ResetInner() {
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 40, marginBottom: 8 }}>📧</div>
               <h2 style={{ margin: '0 0 6px', color: '#1f2937' }}>Check your email</h2>
-              <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 18 }}>If an account exists for <b>{email}</b>, we've sent a link to reset your password. It expires in 30 minutes.</p>
-              <a href="/login" style={{ color: '#ef4444', fontWeight: 600, textDecoration: 'none', fontSize: 14 }}>← Back to Login</a>
+              <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 18 }}>If an account exists for <b>{email}</b>, we&apos;ve sent a link to reset your password. It expires in 30 minutes.</p>
+              <Link href="/login" style={{ color: '#ef4444', fontWeight: 600, textDecoration: 'none', fontSize: 14 }}>← Back to Login</Link>
             </div>
           ) : (
             <form onSubmit={requestLink}>
               <h2 style={{ margin: '0 0 4px', color: '#1f2937', textAlign: 'center' }}>Forgot password?</h2>
-              <p style={{ color: '#6b7280', fontSize: 13, textAlign: 'center', marginBottom: 18 }}>Enter your email and we'll send you a link to reset it.</p>
+              <p style={{ color: '#6b7280', fontSize: 13, textAlign: 'center', marginBottom: 18 }}>Enter your email and we&apos;ll send you a link to reset it.</p>
               <div style={{ marginBottom: 6 }}>
                 <label style={label}>Email</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" style={input} autoComplete="email" />
@@ -108,7 +109,7 @@ function ResetInner() {
               {error && <div style={{ color: '#dc2626', fontSize: 13, marginTop: 8 }}>{error}</div>}
               <button type="submit" disabled={busy || !email} style={btn(busy || !email)}>{busy ? 'Sending…' : 'Send reset link'}</button>
               <div style={{ textAlign: 'center', marginTop: 14 }}>
-                <a href="/login" style={{ color: '#6b7280', fontWeight: 600, textDecoration: 'none', fontSize: 14 }}>← Back to Login</a>
+                <Link href="/login" style={{ color: '#6b7280', fontWeight: 600, textDecoration: 'none', fontSize: 14 }}>← Back to Login</Link>
               </div>
             </form>
           )
