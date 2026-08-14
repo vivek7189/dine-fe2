@@ -1,50 +1,35 @@
 'use client';
 
 /**
- * Onboarding AI Setup Concierge.
+ * Onboarding AI Setup Concierge — INLINE (part of the page, not a floating window).
  *
- * A proactive assistant for brand-new owners that can actually DO setup for them —
- * not just answer questions. Its hero action builds a real, country-localized menu
- * in one tap (reusing the AI starter-menu endpoint); it also answers "how do I…"
- * questions and offers a human hand-off.
+ * A proactive assistant that can actually DO setup, not just answer questions. It
+ * renders as a normal card in the page flow (no fixed positioning, no pop-open
+ * overlay, no launcher bubble). Compact by default (intro + quick actions); it grows
+ * inline, bubble-style, only once you chat.
  *
- * SAFE BY DESIGN: fully self-contained, gated to onboarding (mounted only there),
- * every network call wrapped so it can never break the flow. It only reads/creates
- * via existing endpoints; it never touches billing or other users' data.
+ * Hero action: one-tap builds a real, country-localized menu (reuses the AI
+ * starter-menu endpoint). Also answers "how do I…" questions and offers a human
+ * hand-off. SAFE: self-contained, every call guarded — it can never break the flow.
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { FaRobot, FaPaperPlane, FaTimes, FaMagic, FaSpinner } from 'react-icons/fa';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { FaRobot, FaPaperPlane, FaSpinner } from 'react-icons/fa';
 import apiClient from '../lib/api';
 
 const WA = 'https://wa.me/919528632779';
 
 export default function OnboardingConcierge({ restaurantId, businessLabel = 'restaurant', countryName = '', onMenuBuilt }) {
-  const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
-  const [greeted, setGreeted] = useState(false);
   const endRef = useRef(null);
 
   const push = useCallback((type, content) => {
     setMessages((m) => [...m, { id: Date.now() + Math.random(), type, content }]);
   }, []);
 
-  // Gentle proactive greeting once, shortly after the page settles.
-  useEffect(() => {
-    if (!restaurantId) return;
-    const t = setTimeout(() => {
-      setOpen(true);
-      setGreeted((g) => {
-        if (!g) push('bot', `Hi! I'm your DineOpen setup assistant 👋 I can build your ${String(businessLabel).toLowerCase()} menu in seconds, or answer any question. What would you like?`);
-        return true;
-      });
-    }, 2600);
-    return () => clearTimeout(t);
-  }, [restaurantId, businessLabel, push]);
-
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, open]);
+  useEffect(() => { if (messages.length) endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, [messages, busy]);
 
   const buildMenu = async () => {
     if (busy || !restaurantId) return;
@@ -53,7 +38,7 @@ export default function OnboardingConcierge({ restaurantId, businessLabel = 'res
     try {
       const res = await apiClient.generateAiStarterMenu(restaurantId, {});
       if (res?.success && res.count > 0) {
-        push('bot', `Done! ✅ I created a ${countryName ? countryName + ' ' : ''}menu with ${res.count} local dishes, priced in your currency. Edit anything from the Menu page — or just start taking orders.`);
+        push('bot', `Done! ✅ I built a ${countryName ? countryName + ' ' : ''}menu with ${res.count} local dishes, priced in your currency. Edit anything from the Menu page — or just start taking orders.`);
         if (typeof onMenuBuilt === 'function') onMenuBuilt(res.count);
       } else {
         push('bot', "I couldn't build it just now — your sample menu is still ready. Try again in a moment, or upload a photo of your menu.");
@@ -73,7 +58,7 @@ export default function OnboardingConcierge({ restaurantId, businessLabel = 'res
     setBusy(true);
     try {
       const res = await apiClient.post('/api/chatbot/query', { query: q, restaurantId });
-      const answer = res?.response?.response || res?.answer || "I'm here to help you set up — try “Build my menu”, or ask me about taking your first order.";
+      const answer = res?.response?.response || res?.answer || "I'm here to help you set up — try “Build my menu”, or ask about taking your first order.";
       push('bot', answer);
     } catch {
       push('bot', "I'm here to help you get set up. Tap “Build my menu” to start, or open your POS to take your first order.");
@@ -92,88 +77,63 @@ export default function OnboardingConcierge({ restaurantId, businessLabel = 'res
   if (!restaurantId) return null;
 
   return (
-    <>
-      {/* Launcher bubble */}
-      {!open && (
-        <button
-          onClick={() => setOpen(true)}
-          aria-label="Open setup assistant"
-          style={{
-            position: 'fixed', right: '20px', bottom: '20px', zIndex: 1150,
-            width: '56px', height: '56px', borderRadius: '50%', border: 'none', cursor: 'pointer',
-            background: 'linear-gradient(135deg,#7c3aed,#db2777)', color: '#fff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 10px 30px rgba(124,58,237,0.4)',
-          }}
-        >
-          <FaRobot size={22} />
-        </button>
-      )}
+    <div className="ob-fadeIn-d2" style={{
+      borderRadius: '16px', border: '1px solid #ede9fe',
+      background: 'linear-gradient(135deg,#faf7ff,#ffffff)', overflow: 'hidden', marginBottom: '20px',
+    }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '13px 16px', borderBottom: messages.length ? '1px solid #f1eefb' : 'none' }}>
+        <div style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, background: 'linear-gradient(135deg,#7c3aed,#db2777)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <FaRobot size={15} color="#fff" />
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 800, fontSize: '14px', color: '#3b0764' }}>Setup Assistant
+            <span style={{ fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.06em', color: '#7c3aed', background: '#f3e8ff', padding: '1px 6px', borderRadius: '10px', marginLeft: '7px', verticalAlign: 'middle' }}>AI</span>
+          </div>
+          <div style={{ fontSize: '11.5px', color: '#8b5cf6' }}>I can build your {String(businessLabel).toLowerCase()} menu — or answer anything.</div>
+        </div>
+      </div>
 
-      {/* Panel */}
-      {open && (
-        <div style={{
-          position: 'fixed', right: '20px', bottom: '20px', zIndex: 1150,
-          width: 'min(360px, calc(100vw - 24px))', height: 'min(520px, calc(100vh - 40px))',
-          background: '#fff', borderRadius: '18px', overflow: 'hidden',
-          boxShadow: '0 18px 50px rgba(0,0,0,0.22)', border: '1px solid #ede9fe',
-          display: 'flex', flexDirection: 'column',
-        }}>
-          {/* Header */}
-          <div style={{ background: 'linear-gradient(135deg,#7c3aed,#db2777)', color: '#fff', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaRobot size={16} /></div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 800, fontSize: '14.5px' }}>Setup Assistant</div>
-              <div style={{ fontSize: '11.5px', opacity: 0.9 }}>AI · here to set you up</div>
+      {/* Inline conversation (only once there's something to show) */}
+      {messages.length > 0 && (
+        <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '9px', maxHeight: '260px', overflowY: 'auto' }}>
+          {messages.map((m) => (
+            <div key={m.id} style={{ alignSelf: m.type === 'user' ? 'flex-end' : 'flex-start', maxWidth: '88%' }}>
+              <div style={{
+                padding: '8px 12px', borderRadius: m.type === 'user' ? '13px 13px 4px 13px' : '13px 13px 13px 4px',
+                background: m.type === 'user' ? '#7c3aed' : '#fff', color: m.type === 'user' ? '#fff' : '#1f2937',
+                border: m.type === 'user' ? 'none' : '1px solid #eee', fontSize: '13px', lineHeight: 1.45,
+              }}>{m.content}</div>
             </div>
-            <button onClick={() => setOpen(false)} aria-label="Close" style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 4 }}><FaTimes size={16} /></button>
-          </div>
-
-          {/* Messages */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '14px', background: '#faf9fb', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {messages.map((m) => (
-              <div key={m.id} style={{ alignSelf: m.type === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
-                <div style={{
-                  padding: '9px 12px', borderRadius: m.type === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
-                  background: m.type === 'user' ? '#7c3aed' : '#fff', color: m.type === 'user' ? '#fff' : '#1f2937',
-                  border: m.type === 'user' ? 'none' : '1px solid #eee', fontSize: '13.5px', lineHeight: 1.45,
-                  boxShadow: m.type === 'user' ? 'none' : '0 1px 3px rgba(0,0,0,0.05)',
-                }}>{m.content}</div>
-              </div>
-            ))}
-            {busy && (
-              <div style={{ alignSelf: 'flex-start', color: '#7c3aed', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 6px' }}>
-                <FaSpinner size={12} style={{ animation: 'spin 0.8s linear infinite' }} /> thinking…
-              </div>
-            )}
-            <div ref={endRef} />
-          </div>
-
-          {/* Quick actions (shown until there's a real back-and-forth) */}
-          {messages.length <= 3 && (
-            <div style={{ padding: '8px 12px 0', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {chips.map((c) => (
-                <button key={c.label} onClick={c.on} disabled={busy}
-                  style={{ fontSize: '12px', fontWeight: 600, padding: '6px 10px', borderRadius: '20px', cursor: busy ? 'default' : 'pointer', border: '1px solid #ddd6fe', background: '#f5f3ff', color: '#6d28d9' }}>
-                  {c.label}
-                </button>
-              ))}
+          ))}
+          {busy && (
+            <div style={{ alignSelf: 'flex-start', color: '#7c3aed', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <FaSpinner size={11} style={{ animation: 'spin 0.8s linear infinite' }} /> thinking…
             </div>
           )}
-
-          {/* Input */}
-          <form onSubmit={(e) => { e.preventDefault(); ask(); }} style={{ padding: '10px 12px', display: 'flex', gap: '8px', borderTop: '1px solid #f1f0f4' }}>
-            <input
-              value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask anything about setup…"
-              style={{ flex: 1, padding: '9px 12px', borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '13.5px', outline: 'none' }}
-            />
-            <button type="submit" disabled={busy || !input.trim()} aria-label="Send"
-              style={{ width: 40, borderRadius: '10px', border: 'none', cursor: busy || !input.trim() ? 'default' : 'pointer', background: busy || !input.trim() ? '#e5e7eb' : '#7c3aed', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <FaPaperPlane size={13} />
-            </button>
-          </form>
+          <div ref={endRef} />
         </div>
       )}
-    </>
+
+      {/* Quick actions */}
+      <div style={{ padding: messages.length ? '2px 14px 12px' : '10px 14px 12px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+        {chips.map((c) => (
+          <button key={c.label} type="button" onClick={c.on} disabled={busy}
+            style={{ fontSize: '12px', fontWeight: 600, padding: '6px 11px', borderRadius: '20px', cursor: busy ? 'default' : 'pointer', border: '1px solid #ddd6fe', background: '#f5f3ff', color: '#6d28d9' }}>
+            {c.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Ask box */}
+      <form onSubmit={(e) => { e.preventDefault(); ask(); }} style={{ padding: '0 14px 14px', display: 'flex', gap: '8px' }}>
+        <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask anything about setup…"
+          style={{ flex: 1, padding: '9px 12px', borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '13px', outline: 'none', background: '#fff' }} />
+        <button type="submit" disabled={busy || !input.trim()} aria-label="Send"
+          style={{ width: 40, borderRadius: '10px', border: 'none', cursor: busy || !input.trim() ? 'default' : 'pointer', background: busy || !input.trim() ? '#e5e7eb' : '#7c3aed', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <FaPaperPlane size={12} />
+        </button>
+      </form>
+    </div>
   );
 }

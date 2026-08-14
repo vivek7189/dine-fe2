@@ -1971,6 +1971,14 @@ function OnboardingContent() {
                 </div>
               </div>
 
+              {/* AI Setup Concierge — inline, part of the page (not a floating window) */}
+              <OnboardingConcierge
+                restaurantId={restaurantId}
+                businessLabel={businessLabel}
+                countryName={selectedCountry?.name || ''}
+                onMenuBuilt={(n) => { setAiMenuCount(n); setUploadedCount(n); setMenuSeeded(true); }}
+              />
+
               {/* Navigation */}
               <div className="ob-fadeIn-d3" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <button onClick={goBack} style={btnSecondary}><FaArrowLeft size={12} /> {ob('back')}</button>
@@ -2421,15 +2429,6 @@ function OnboardingContent() {
         </div>
       )}
 
-      {/* ─── AI Setup Concierge — proactive assistant that can build the menu ─── */}
-      {step >= 2 && step <= 5 && restaurantId && (
-        <OnboardingConcierge
-          restaurantId={restaurantId}
-          businessLabel={businessLabel}
-          countryName={selectedCountry?.name || ''}
-          onMenuBuilt={(n) => { setAiMenuCount(n); setUploadedCount(n); setMenuSeeded(true); }}
-        />
-      )}
     </div>
   );
 }
