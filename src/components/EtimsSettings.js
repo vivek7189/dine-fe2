@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import apiClient from '../lib/api';
-import { initEtimsDevice, isEtimsCapable, syncEtimsItems, setEtimsDeviceManual } from '../lib/etims';
+import { initEtimsDevice, isEtimsCapable, syncEtimsItems, setEtimsDeviceManual, testEtimsConnection } from '../lib/etims';
 
 // Format a Firestore/ISO timestamp for the activity log (short, local).
 function fmtWhen(v) {
@@ -32,6 +32,7 @@ export default function EtimsSettings({ restaurantId }) {
   const [savingManual, setSavingManual] = useState(false);
   const [diags, setDiags] = useState([]);
   const [loadingDiags, setLoadingDiags] = useState(false);
+  const [testing, setTesting] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -106,6 +107,30 @@ export default function EtimsSettings({ restaurantId }) {
     finally { setSyncing(false); }
   };
 
+  // Safe connectivity test (pure read — never initialises or fiscalises). Shows the
+  // result on-screen AND records it to the diagnostics log (visible in the panel below
+  // and in the etimsDiagnostics collection).
+  const testConn = async () => {
+    setTesting(true); setMsg(null);
+    try {
+      // Save the current URL/PIN first so the test uses what's on screen.
+      try { await save(); } catch { /* the test will still use the stored config */ }
+      const res = await testEtimsConnection(restaurantId);
+      if (res.reachable && res.ok) {
+        setMsg({ type: 'success', text: `✅ VSCU reachable at ${form.vscuUrl} and responding OK.` });
+      } else if (res.reachable) {
+        setMsg({ type: 'error', text: `⚠️ VSCU is reachable but returned an error: ${res.resultMsg || 'no message'} (code ${res.resultCd || '?'}). The VSCU is running, but the device may not be initialised for this PIN/branch.` });
+      } else {
+        setMsg({ type: 'error', text: `❌ ${res.error || 'Could not reach the VSCU.'} Make sure the VSCU application is running on this machine and the VSCU URL is correct.` });
+      }
+    } catch (e) {
+      setMsg({ type: 'error', text: (e && e.message) || 'Connection test failed.' });
+    } finally {
+      setTesting(false);
+      loadDiags(); // refresh the activity panel so the just-logged test shows
+    }
+  };
+
   const field = (label, key, opts = {}) => (
     <div style={{ marginBottom: 12 }}>
       <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>{label}</label>
@@ -162,6 +187,9 @@ export default function EtimsSettings({ restaurantId }) {
         </button>
         <button onClick={initDevice} disabled={initing} style={{ padding: '9px 16px', background: '#b91c1c', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
           {initing ? 'Initialising…' : (cfg && cfg.initialised ? 'Re-initialise device' : 'Initialise device')}
+        </button>
+        <button onClick={testConn} disabled={testing} style={{ padding: '9px 16px', background: '#fff', color: '#1d4ed8', border: '1px solid #93c5fd', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
+          {testing ? 'Testing…' : 'Test VSCU connection'}
         </button>
         {cfg && cfg.initialised && (
           <button onClick={syncItems} disabled={syncing} style={{ padding: '9px 16px', background: '#065f46', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>

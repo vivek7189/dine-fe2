@@ -51,6 +51,48 @@ export async function initEtimsDevice(restaurantId) {
 }
 
 /**
+ * Test connectivity to the local VSCU with a PURE-READ probe (selectCodeList) —
+ * it never initialises the device or touches a sale, so it's safe to run anytime.
+ * Desktop only. ALWAYS records the outcome (reachable / VSCU error / unreachable)
+ * to the diagnostics collection so a connection problem is captured server-side
+ * too. Never throws.
+ * @returns {Promise<{reachable:boolean, ok:boolean, resultCd?:string|null, resultMsg?:string|null, error?:string|null}>}
+ */
+export async function testEtimsConnection(restaurantId) {
+  if (!isEtimsCapable()) {
+    return { reachable: false, ok: false, error: 'Connection test must be run from the DineOpen desktop app (the VSCU runs on this machine).' };
+  }
+  let prep;
+  try {
+    prep = await apiClient.request(`/api/etims/${restaurantId}/test-payload`);
+  } catch (e) {
+    return { reachable: false, ok: false, error: (e && e.message) || 'Could not prepare the connection test.' };
+  }
+  let relayRes;
+  try {
+    relayRes = await window.electronAPI.etimsRelay({ url: prep.vscuUrl, path: prep.path, body: prep.body });
+  } catch (e) {
+    relayRes = { ok: false, error: (e && e.message) || 'Relay error' };
+  }
+  const reachable = !!(relayRes && relayRes.ok);
+  const data = (relayRes && relayRes.data) || {};
+  const resultCd = data.resultCd || (data.data && data.data.resultCd) || null;
+  const resultMsg = data.resultMsg || (data.data && data.data.resultMsg) || null;
+  const ok = reachable && (resultCd == null || String(resultCd) === '000');
+  const error = reachable ? null : ((relayRes && relayRes.error) || `Could not reach the VSCU at ${prep.vscuUrl || 'the configured URL'}.`);
+  // Record the test result (success or failure) so it's diagnosable remotely too.
+  logEtimsDiagnostic(restaurantId, {
+    phase: 'test',
+    ok,
+    resultCd,
+    resultMsg,
+    errorMessage: ok ? null : (error || (resultMsg ? `${resultMsg} (code ${resultCd})` : `VSCU returned code ${resultCd}`)),
+    raw: relayRes,
+  });
+  return { reachable, ok, resultCd, resultMsg, error };
+}
+
+/**
  * Manually store an ALREADY-initialised device's SDC ID / MRC No. Use this when
  * the VSCU was initialised before (KRA won't re-issue the sdcId on a second init).
  * Works from web too — it just saves the identifiers; the VSCU still signs sales
