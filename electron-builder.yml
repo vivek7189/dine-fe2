@@ -15,6 +15,10 @@ publish:
   provider: github
   owner: vivek7189
   repo: dine-fe2
+  # Publish a real (non-draft) release so the installers are publicly downloadable and
+  # auto-update can see them. Default is `draft`, which hid the normal app's .exe/.dmg
+  # from the download page's latest-release lookup.
+  releaseType: release
 
 win:
   icon: electron/icons/icon.ico
