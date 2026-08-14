@@ -5205,58 +5205,45 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
   );
 };
 
-/** App Download Tab — simple Google Drive download links for Windows + Mac */
+/** App Download Tab — Online (cloud) + Offline (local-server) desktop apps, each with
+ *  Windows .exe + Mac .dmg. Links go to the backend resolver, which always redirects to
+ *  the LATEST installer for that app + platform (no GitHub page, no manual link edits). */
 function AppDownloadTab() {
-  // Desktop builds are published as GitHub Releases (public repo) by the
-  // build-electron workflow. We resolve the LATEST release's .exe / .dmg at
-  // runtime so these links never need manual updating on a new release.
-  const GITHUB_REPO = 'vivek7189/dine-fe2';
-  const RELEASES_PAGE = `https://github.com/${GITHUB_REPO}/releases/latest`;
-  const [release, setRelease] = useState(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const CACHE_KEY = 'dineopen_desktop_release_v1';
-    // Serve a cached result (1h) to stay well under GitHub's unauthenticated API limit.
-    try {
-      const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null');
-      if (cached && Date.now() - cached.t < 3600000) { setRelease(cached.data); return; }
-    } catch { /* ignore */ }
-    fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('release fetch failed'))))
-      .then((d) => {
-        const assets = Array.isArray(d.assets) ? d.assets : [];
-        const url = (test) => (assets.find((a) => test((a.name || '').toLowerCase())) || {}).browser_download_url || null;
-        const dmgs = assets.filter((a) => (a.name || '').toLowerCase().endsWith('.dmg'));
-        // Prefer a universal build, then Apple Silicon (arm64), then Intel (x64), then any dmg.
-        const dmg = dmgs.find((a) => /universal/i.test(a.name)) || dmgs.find((a) => /arm64/i.test(a.name)) || dmgs.find((a) => /x64|intel/i.test(a.name)) || dmgs[0];
-        const data = {
-          version: d.tag_name || null,
-          windowsUrl: url((n) => n.endsWith('.exe')),
-          macUrl: dmg ? dmg.browser_download_url : null,
-        };
-        if (!cancelled) setRelease(data);
-        try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), data })); } catch { /* ignore */ }
-      })
-      .catch(() => { if (!cancelled) setRelease({ version: null, windowsUrl: null, macUrl: null }); });
-    return () => { cancelled = true; };
-  }, []);
-
-  // Direct asset URL when resolved; otherwise fall back to the latest-release page (still downloads, one extra click).
-  const WINDOWS_DOWNLOAD_URL = release?.windowsUrl || RELEASES_PAGE;
-  const MAC_DOWNLOAD_URL = release?.macUrl || RELEASES_PAGE;
-  const versionLabel = release?.version || '';
+  const apiBase = (apiClient && apiClient.baseURL) || process.env.NEXT_PUBLIC_API_URL || '';
+  const dl = (app, platform) => `${apiBase}/api/download/desktop?app=${app}&platform=${platform}`;
 
   const btnStyle = (bg, shadow) => ({
     display: 'inline-flex', alignItems: 'center', gap: '8px',
-    padding: '12px 24px', background: bg, color: 'white',
-    borderRadius: '10px', fontWeight: '600', fontSize: '14px',
-    textDecoration: 'none', cursor: 'pointer',
-    boxShadow: shadow, transition: 'transform 0.15s',
+    padding: '11px 20px', background: bg, color: 'white',
+    borderRadius: '10px', fontWeight: '600', fontSize: '13.5px',
+    textDecoration: 'none', cursor: 'pointer', boxShadow: shadow, transition: 'transform 0.15s',
   });
+  const platformBtns = (app) => (
+    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+      <a href={dl(app, 'win')} target="_blank" rel="noopener noreferrer" style={btnStyle('linear-gradient(135deg, #0078d4, #005a9e)', '0 4px 14px rgba(0,120,212,0.3)')}>
+        <FaWindows size={14} /> Windows (.exe)
+      </a>
+      <a href={dl(app, 'mac')} target="_blank" rel="noopener noreferrer" style={btnStyle('linear-gradient(135deg, #333, #111)', '0 4px 14px rgba(0,0,0,0.2)')}>
+        <FaApple size={14} /> Mac (.dmg)
+      </a>
+    </div>
+  );
+  const appCard = ({ emoji, iconBg, title, subtitle, desc, app }) => (
+    <div style={{ flex: '1', minWidth: '300px', padding: '24px', borderRadius: '16px', border: '1px solid #e5e7eb', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+        <div style={{ width: '46px', height: '46px', borderRadius: '13px', background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>{emoji}</div>
+        <div>
+          <div style={{ fontWeight: '700', fontSize: '17px', color: '#111827' }}>{title}</div>
+          <div style={{ fontSize: '12px', color: '#9ca3af' }}>{subtitle}</div>
+        </div>
+      </div>
+      <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 18px 0', lineHeight: '1.5' }}>{desc}</p>
+      {platformBtns(app)}
+    </div>
+  );
 
   return (
-    <div style={{ maxWidth: '800px' }}>
+    <div style={{ maxWidth: '860px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
         <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <FaDownload size={22} color="white" />
@@ -5264,56 +5251,26 @@ function AppDownloadTab() {
         <div>
           <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: '#111827' }}>Download DineOpen POS</h2>
           <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
-            Install the DineOpen POS app on desktop or mobile for billing, orders, and more
-            {versionLabel && <span style={{ marginLeft: '8px', padding: '2px 8px', background: '#dbeafe', color: '#1d4ed8', borderRadius: '6px', fontSize: '12px', fontWeight: '600' }}>{versionLabel}</span>}
+            Two desktop apps — pick the one that fits your setup. You always get the latest version.
           </p>
         </div>
       </div>
 
       <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '24px' }}>
-        {/* Windows Card */}
-        <div style={{ flex: '1', minWidth: '280px', padding: '28px', borderRadius: '16px', border: '1px solid #e5e7eb', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <FaWindows size={24} style={{ color: '#0078d4' }} />
-            </div>
-            <div>
-              <div style={{ fontWeight: '700', fontSize: '17px', color: '#111827' }}>Windows</div>
-              <div style={{ fontSize: '12px', color: '#9ca3af' }}>Windows 10 or later</div>
-            </div>
-          </div>
-          <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 20px 0', lineHeight: '1.5' }}>
-            Download the app for Windows to install on desktop and start billing. Works offline with auto-print support.
-          </p>
-          <a href={WINDOWS_DOWNLOAD_URL} target="_blank" rel="noopener noreferrer" style={btnStyle('linear-gradient(135deg, #0078d4, #005a9e)', '0 4px 14px rgba(0,120,212,0.3)')}>
-            <FaDownload size={14} /> Download .exe
-          </a>
-        </div>
-
-        {/* Mac Card */}
-        <div style={{ flex: '1', minWidth: '280px', padding: '28px', borderRadius: '16px', border: '1px solid #e5e7eb', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <FaApple size={24} style={{ color: '#333' }} />
-            </div>
-            <div>
-              <div style={{ fontWeight: '700', fontSize: '17px', color: '#111827' }}>Mac</div>
-              <div style={{ fontSize: '12px', color: '#9ca3af' }}>macOS 11 or later</div>
-            </div>
-          </div>
-          <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 20px 0', lineHeight: '1.5' }}>
-            Desktop app for Mac with native printing and offline billing support.
-          </p>
-          {MAC_DOWNLOAD_URL ? (
-            <a href={MAC_DOWNLOAD_URL} target="_blank" rel="noopener noreferrer" style={btnStyle('linear-gradient(135deg, #333, #111)', '0 4px 14px rgba(0,0,0,0.2)')}>
-              <FaDownload size={14} /> Download for Mac
-            </a>
-          ) : (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 24px', background: '#e5e7eb', color: '#6b7280', borderRadius: '10px', fontWeight: '600', fontSize: '14px' }}>
-              Coming Soon
-            </span>
-          )}
-        </div>
+        {appCard({
+          emoji: '☁️', iconBg: '#eff6ff',
+          title: 'Online POS (Cloud)',
+          subtitle: 'Windows & Mac · always synced',
+          desc: 'Best with reliable internet — every sale, menu and report syncs to the cloud in real time. Recommended for most restaurants.',
+          app: 'online',
+        })}
+        {appCard({
+          emoji: '🖥️', iconBg: '#f0fdf4',
+          title: 'Offline POS (Local Server)',
+          subtitle: 'Windows & Mac · works without internet',
+          desc: 'Runs on your own machine and keeps billing even when the internet is down (your terminals connect over the local network). Ideal for busy or low-connectivity venues.',
+          app: 'server',
+        })}
       </div>
 
       {/* Mobile / Waiter App Section */}
