@@ -2781,7 +2781,17 @@ export function HeadquartersContent({ embedded = false }) {
         )}
         {activeTab === 'hq-reports' && (
           <HQReportsTab
-            orgData={orgData || (() => { try { const r = JSON.parse(localStorage.getItem('selectedRestaurant')); return r ? { id: r.id, name: r.name, settings: {} } : null; } catch { return null; } })()}
+            // Real organization (chain) → use it. Otherwise a plain multi-outlet owner with no org:
+            // pass ANY one of their own restaurant ids as the context — the backend detects "no org"
+            // and expands to ALL outlets owned by this owner (getReportOutlets), so reports work
+            // without forcing the owner to create an organization. Prefer the selected restaurant,
+            // then the first loaded outlet, so orgId is always present.
+            orgData={orgData || (() => {
+              let id = null, name = 'My Outlets';
+              try { const r = JSON.parse(localStorage.getItem('selectedRestaurant')); if (r?.id) { id = r.id; name = r.name || name; } } catch {}
+              if (!id && dashboardData?.restaurants?.length > 0) { id = dashboardData.restaurants[0].id; name = dashboardData.restaurants[0].name || name; }
+              return id ? { id, name, settings: {} } : null;
+            })()}
             outlets={orgData ? orgOutlets : { outlet: [], central_kitchen: [], warehouse: [] }}
             formatCurrency={formatCurrency}
             selectedRestaurants={selectedRestaurants}
