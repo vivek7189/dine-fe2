@@ -231,6 +231,9 @@ function OnboardingContent() {
   const [uploadProgressPct, setUploadProgressPct] = useState(0);
   const [uploadedCount, setUploadedCount] = useState(0);
   const [uploadError, setUploadError] = useState('');
+  const [aiMenuLoading, setAiMenuLoading] = useState(false);
+  const [aiMenuCount, setAiMenuCount] = useState(0);
+  const [aiMenuError, setAiMenuError] = useState('');
   const fileInputRef = useRef(null);
   const [previewTheme, setPreviewTheme] = useState('default');
   const [menuPreviewQr, setMenuPreviewQr] = useState('');
@@ -548,6 +551,37 @@ function OnboardingContent() {
     localStorage.setItem('navNotAllowedPages', JSON.stringify(notAllowed));
     window.dispatchEvent(new CustomEvent('featuresUpdated', { detail: { notAllowedPages: notAllowed } }));
     goNext();
+  };
+
+  // ─── Step 4: AI localized starter menu ─────────────────────
+  // Generate a real, country + cuisine specific menu (local dishes + local prices) so
+  // the store feels made for their market. Replaces the generic sample. Falls back
+  // gracefully to the sample on any error.
+  const handleGenerateAiMenu = async () => {
+    if (aiMenuLoading) return;
+    setAiMenuLoading(true); setAiMenuError('');
+    try {
+      const rid = restaurantId || localStorage.getItem('selectedRestaurantId');
+      if (!rid) { setAiMenuLoading(false); return; }
+      if (isTestMode) { setTimeout(() => { setAiMenuCount(18); setUploadedCount(18); setMenuSeeded(true); setAiMenuLoading(false); }, 900); return; }
+      const res = await apiClient.generateAiStarterMenu(rid, {
+        businessType,
+        countryCode: selectedCountry?.code,
+        countryName: selectedCountry?.name,
+        cuisine: (selectedCuisines && selectedCuisines.length ? selectedCuisines.join(', ') : (cuisineTypes || undefined)),
+      });
+      if (res?.success && res.count > 0) {
+        setAiMenuCount(res.count);
+        setUploadedCount(res.count); // flips the UI to "your menu is ready" (replaces the sample)
+        setMenuSeeded(true);
+      } else {
+        setAiMenuError(res?.error || 'Could not generate — the sample menu is still ready.');
+      }
+    } catch (e) {
+      setAiMenuError((e && e.message) || 'Could not generate — the sample menu is still ready.');
+    } finally {
+      setAiMenuLoading(false);
+    }
   };
 
   // ─── Step 4: Menu Actions ──────────────────────────────────
@@ -1782,6 +1816,38 @@ function OnboardingContent() {
                   </div>
                   {!uploading && <FaChevronRight size={12} color="#9ca3af" />}
                 </div>
+
+                {/* AI: generate a localized starter menu (real local dishes + prices). */}
+                {uploadedCount === 0 && (
+                  <button
+                    onClick={handleGenerateAiMenu}
+                    disabled={aiMenuLoading}
+                    style={{
+                      width: '100%', textAlign: 'left', padding: '16px 18px', borderRadius: '14px',
+                      cursor: aiMenuLoading ? 'default' : 'pointer',
+                      border: '1.5px solid #ddd6fe', background: 'linear-gradient(135deg,#f5f3ff,#faf5ff)',
+                      display: 'flex', alignItems: 'center', gap: '14px',
+                    }}
+                  >
+                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', flexShrink: 0, background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {aiMenuLoading
+                        ? <div style={{ width: '18px', height: '18px', border: '2.5px solid #ddd6fe', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                        : <FaMagic size={17} color="#7c3aed" />}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontWeight: 700, fontSize: '14.5px', color: '#4c1d95', margin: '0 0 2px' }}>
+                        {aiMenuLoading ? 'Creating your menu…' : `✨ Generate a ${businessLabel.toLowerCase()} menu for ${selectedCountry?.name || 'my country'}`}
+                      </p>
+                      <p style={{ fontSize: '12px', color: '#7c3aed', margin: 0 }}>
+                        {aiMenuLoading ? 'AI is picking local dishes & prices…' : 'AI builds a real local menu, priced in your currency — no typing'}
+                      </p>
+                    </div>
+                    {!aiMenuLoading && <FaChevronRight size={12} color="#a78bfa" />}
+                  </button>
+                )}
+                {aiMenuError && (
+                  <p style={{ fontSize: '12px', color: '#b45309', margin: '2px 2px 0' }}>{aiMenuError}</p>
+                )}
 
                 {/* Upload error with fallback options */}
                 {uploadError && (

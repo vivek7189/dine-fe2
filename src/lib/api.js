@@ -1901,6 +1901,17 @@ class ApiClient {
     return result;
   }
 
+  // AI localized starter menu — real local dishes + prices for the store's country/cuisine.
+  async generateAiStarterMenu(restaurantId, opts = {}) {
+    const result = await this.request(`/api/restaurants/${restaurantId}/ai-starter-menu`, {
+      method: 'POST',
+      body: opts, // { businessType, countryCode, countryName, cuisine } — all optional (server reads the restaurant)
+    });
+    this.invalidateCache('/api/restaurants');
+    this.invalidateCache(`/api/menus/${restaurantId}`);
+    return result;
+  }
+
   async seedOrders(restaurantId) {
     return this.request(`/api/seed-orders/${restaurantId}`, {
       method: 'POST',
