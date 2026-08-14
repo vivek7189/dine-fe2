@@ -16,6 +16,7 @@ import FastBillingBoard from '../../../components/FastBillingBoard';
 import SyncStatus from '../../../components/SyncStatus';
 import CategoryButton from '../../../components/CategoryButton';
 import OrderSummary from '../../../components/OrderSummary';
+import GuidedFirstSale from '../../../components/GuidedFirstSale';
 import Notification from '../../../components/Notification';
 
 // Dynamic imports — loaded on first use, not on initial page load
@@ -9945,6 +9946,10 @@ function RestaurantPOSContent() {
         onClose={() => setNotification(null)}
         duration={5000}
       />
+
+      {/* Guided First Sale — one-time aha coach for just-onboarded owners. Passive:
+          reads cart/order state only, self-gates, never touches billing. */}
+      <GuidedFirstSale cartCount={cart?.length || 0} orderPlaced={!!orderSuccess?.show} />
       
       {/* Fullscreen Mode Button */}
       <button
