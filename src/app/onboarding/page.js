@@ -692,19 +692,88 @@ function OnboardingContent() {
     }
   }, [step, businessType, menuSeeded]);
 
+  // ─── Finish onboarding (single source of truth) ───────────────
+  // ALWAYS marks setup complete AND seeds the home checklist, no matter which
+  // finish button is tapped. Previously the main "Start taking orders" hero was a
+  // bare router.push('/home') that set neither — so setupComplete stayed ~2% and
+  // the retention checklist never appeared for the majority path.
+  const completeOnboarding = (destination) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      const rid = restaurantId || localStorage.getItem('selectedRestaurantId');
+      if (rid && token) {
+        fetch(`${apiUrl}/api/restaurants/${rid}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ onboardingStep: 'complete' }) }).catch(() => {});
+      }
+      if (token) {
+        fetch(`${apiUrl}/api/user/preferences`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ setupComplete: true }) }).catch(() => {});
+      }
+      localStorage.setItem('onboarding_completed', 'true');
+      // Seed the home checklist so the retention widget always shows.
+      const menuItemCount = uploadedCount || (menuSeeded ? 36 : 0);
+      localStorage.setItem('onboardingChecklist', JSON.stringify({
+        businessType, restaurantName,
+        featuresConfigured: selectedFeatures.length > 1,
+        menuSetup: menuSeeded, menuItemCount, completedAt: Date.now(),
+      }));
+    } catch (_) { /* never block the finish */ }
+    router.push(destination || '/home');
+  };
+
   // ─── Receipt items based on business type ─────────────────────
+  // Localized sample receipt — the preview should feel like it's from the owner's
+  // OWN country, so we show region-appropriate items AND realistic price magnitudes
+  // (not ₹-scale numbers with a $/AED sign in front). Picked from the detected country.
   const getReceiptItems = () => {
-    const menus = {
-      restaurant: [{ name: 'Butter Chicken', qty: 1, price: 350 }, { name: 'Dal Makhani', qty: 1, price: 250 }, { name: 'Butter Naan', qty: 3, price: 120 }, { name: 'Cold Coffee', qty: 2, price: 240 }],
-      cafe: [{ name: 'Cappuccino', qty: 2, price: 320 }, { name: 'Club Sandwich', qty: 1, price: 220 }, { name: 'Blueberry Muffin', qty: 2, price: 200 }],
-      bar: [{ name: "Jack Daniel's", qty: 2, price: 700 }, { name: 'Kingfisher Beer', qty: 3, price: 540 }, { name: 'Chicken Wings', qty: 1, price: 320 }],
-      bakery: [{ name: 'Sourdough Loaf', qty: 1, price: 180 }, { name: 'Chocolate Truffle', qty: 1, price: 450 }, { name: 'Croissant', qty: 4, price: 360 }],
-      cloud_kitchen: [{ name: 'Chicken Biryani', qty: 2, price: 500 }, { name: 'Paneer Roll', qty: 1, price: 110 }, { name: 'Coca-Cola', qty: 2, price: 100 }],
-      qsr: [{ name: 'Chicken Burger', qty: 2, price: 300 }, { name: 'French Fries', qty: 2, price: 160 }, { name: 'Oreo Shake', qty: 1, price: 150 }],
-      ice_cream: [{ name: 'Belgian Chocolate', qty: 2, price: 180 }, { name: 'Hot Fudge Sundae', qty: 1, price: 220 }, { name: 'Mango Smoothie', qty: 1, price: 160 }],
-      hotel: [{ name: 'Continental Breakfast', qty: 1, price: 450 }, { name: 'Club Sandwich', qty: 1, price: 320 }, { name: 'Cappuccino', qty: 2, price: 360 }],
+    const REGION_MENUS = {
+      IN: {
+        restaurant: [{ name: 'Butter Chicken', qty: 1, price: 350 }, { name: 'Dal Makhani', qty: 1, price: 250 }, { name: 'Butter Naan', qty: 3, price: 120 }, { name: 'Cold Coffee', qty: 2, price: 240 }],
+        cafe: [{ name: 'Cappuccino', qty: 2, price: 320 }, { name: 'Club Sandwich', qty: 1, price: 220 }, { name: 'Blueberry Muffin', qty: 2, price: 200 }],
+        bar: [{ name: "Jack Daniel's", qty: 2, price: 700 }, { name: 'Kingfisher Beer', qty: 3, price: 540 }, { name: 'Chicken Wings', qty: 1, price: 320 }],
+        bakery: [{ name: 'Sourdough Loaf', qty: 1, price: 180 }, { name: 'Chocolate Truffle', qty: 1, price: 450 }, { name: 'Croissant', qty: 4, price: 360 }],
+        cloud_kitchen: [{ name: 'Chicken Biryani', qty: 2, price: 500 }, { name: 'Paneer Roll', qty: 1, price: 110 }, { name: 'Coca-Cola', qty: 2, price: 100 }],
+        qsr: [{ name: 'Chicken Burger', qty: 2, price: 300 }, { name: 'French Fries', qty: 2, price: 160 }, { name: 'Oreo Shake', qty: 1, price: 150 }],
+        ice_cream: [{ name: 'Belgian Chocolate', qty: 2, price: 180 }, { name: 'Hot Fudge Sundae', qty: 1, price: 220 }, { name: 'Mango Smoothie', qty: 1, price: 160 }],
+        hotel: [{ name: 'Continental Breakfast', qty: 1, price: 450 }, { name: 'Club Sandwich', qty: 1, price: 320 }, { name: 'Cappuccino', qty: 2, price: 360 }],
+      },
+      GCC: {
+        restaurant: [{ name: 'Chicken Shawarma', qty: 2, price: 22 }, { name: 'Hummus', qty: 1, price: 18 }, { name: 'Mixed Grill', qty: 1, price: 55 }, { name: 'Fresh Juice', qty: 2, price: 16 }],
+        cafe: [{ name: 'Karak Chai', qty: 2, price: 8 }, { name: 'Flat White', qty: 1, price: 16 }, { name: 'Cheese Manakish', qty: 2, price: 14 }],
+        bar: [{ name: 'Mocktail', qty: 2, price: 32 }, { name: 'Craft Soda', qty: 3, price: 18 }, { name: 'Chicken Wings', qty: 1, price: 38 }],
+        bakery: [{ name: 'Baklava (box)', qty: 1, price: 35 }, { name: 'Croissant', qty: 4, price: 12 }, { name: 'Date Cake', qty: 1, price: 28 }],
+        cloud_kitchen: [{ name: 'Chicken Biryani', qty: 2, price: 32 }, { name: 'Falafel Wrap', qty: 1, price: 15 }, { name: 'Soft Drink', qty: 2, price: 6 }],
+        qsr: [{ name: 'Zinger Burger', qty: 2, price: 24 }, { name: 'Fries', qty: 2, price: 12 }, { name: 'Milkshake', qty: 1, price: 16 }],
+        ice_cream: [{ name: 'Kunafa', qty: 2, price: 24 }, { name: 'Gelato Scoop', qty: 1, price: 18 }, { name: 'Mango Shake', qty: 1, price: 16 }],
+        hotel: [{ name: 'Arabic Breakfast', qty: 1, price: 45 }, { name: 'Club Sandwich', qty: 1, price: 38 }, { name: 'Cappuccino', qty: 2, price: 22 }],
+      },
+      AFRICA: {
+        restaurant: [{ name: 'Nyama Choma', qty: 1, price: 850 }, { name: 'Pilau', qty: 1, price: 450 }, { name: 'Chapati', qty: 3, price: 150 }, { name: 'Fresh Juice', qty: 2, price: 300 }],
+        cafe: [{ name: 'Kenyan Coffee', qty: 2, price: 300 }, { name: 'Samosa', qty: 3, price: 150 }, { name: 'Mandazi', qty: 4, price: 200 }],
+        bar: [{ name: 'Tusker', qty: 3, price: 350 }, { name: 'Soda', qty: 2, price: 120 }, { name: 'Grilled Wings', qty: 1, price: 550 }],
+        bakery: [{ name: 'White Loaf', qty: 2, price: 160 }, { name: 'Cake Slice', qty: 2, price: 350 }, { name: 'Doughnut', qty: 4, price: 200 }],
+        cloud_kitchen: [{ name: 'Chicken Biryani', qty: 2, price: 700 }, { name: 'Beef Wrap', qty: 1, price: 400 }, { name: 'Soda', qty: 2, price: 120 }],
+        qsr: [{ name: 'Chicken Burger', qty: 2, price: 550 }, { name: 'Chips', qty: 2, price: 250 }, { name: 'Milkshake', qty: 1, price: 350 }],
+        ice_cream: [{ name: 'Sundae', qty: 2, price: 350 }, { name: 'Cone', qty: 2, price: 200 }, { name: 'Smoothie', qty: 1, price: 400 }],
+        hotel: [{ name: 'Full Breakfast', qty: 1, price: 900 }, { name: 'Club Sandwich', qty: 1, price: 650 }, { name: 'Coffee', qty: 2, price: 300 }],
+      },
+      WEST: {
+        restaurant: [{ name: 'Grilled Salmon', qty: 1, price: 22 }, { name: 'Caesar Salad', qty: 1, price: 12 }, { name: 'Garlic Bread', qty: 1, price: 7 }, { name: 'Iced Tea', qty: 2, price: 8 }],
+        cafe: [{ name: 'Latte', qty: 2, price: 5 }, { name: 'Avocado Toast', qty: 1, price: 11 }, { name: 'Blueberry Muffin', qty: 2, price: 7 }],
+        bar: [{ name: 'Draft Beer', qty: 3, price: 7 }, { name: 'House Wine', qty: 2, price: 9 }, { name: 'Buffalo Wings', qty: 1, price: 13 }],
+        bakery: [{ name: 'Sourdough Loaf', qty: 1, price: 8 }, { name: 'Chocolate Cake', qty: 1, price: 6 }, { name: 'Croissant', qty: 4, price: 4 }],
+        cloud_kitchen: [{ name: 'Chicken Bowl', qty: 2, price: 13 }, { name: 'Veggie Wrap', qty: 1, price: 9 }, { name: 'Soda', qty: 2, price: 3 }],
+        qsr: [{ name: 'Cheeseburger', qty: 2, price: 9 }, { name: 'Fries', qty: 2, price: 4 }, { name: 'Milkshake', qty: 1, price: 5 }],
+        ice_cream: [{ name: 'Sundae', qty: 2, price: 6 }, { name: 'Waffle Cone', qty: 1, price: 5 }, { name: 'Smoothie', qty: 1, price: 6 }],
+        hotel: [{ name: 'American Breakfast', qty: 1, price: 18 }, { name: 'Club Sandwich', qty: 1, price: 14 }, { name: 'Cappuccino', qty: 2, price: 5 }],
+      },
     };
-    return menus[businessType] || menus.restaurant;
+    const code = selectedCountry?.code || (typeof localStorage !== 'undefined' && localStorage.getItem('selectedCountryCode')) || 'IN';
+    const GCC = ['AE', 'QA', 'SA', 'KW', 'BH', 'OM'];
+    const AFRICA = ['KE', 'NG', 'TZ', 'UG', 'GH', 'ZA', 'EG', 'RW', 'ET'];
+    const WEST = ['US', 'CA', 'GB', 'AU', 'IE', 'NZ', 'DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'CH', 'AT', 'SE', 'NO', 'DK', 'FI', 'PT'];
+    const region = GCC.includes(code) ? 'GCC' : AFRICA.includes(code) ? 'AFRICA' : WEST.includes(code) ? 'WEST' : 'IN';
+    const pack = REGION_MENUS[region];
+    return (pack && pack[businessType]) || pack.restaurant;
   };
 
   const receiptItems = getReceiptItems();
@@ -1949,7 +2018,7 @@ function OnboardingContent() {
             <div className="ob-fadeIn-d1" style={{ marginBottom: '28px' }}>
               <button
                 className="ob-btn"
-                onClick={() => router.push('/home')}
+                onClick={() => completeOnboarding(posPath)}
                 style={{
                   padding: '18px 48px', borderRadius: '16px', border: 'none',
                   background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white',
@@ -2206,27 +2275,7 @@ function OnboardingContent() {
 
             <button
               className="ob-btn"
-              onClick={() => {
-                const token = localStorage.getItem('authToken');
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
-                const rid = restaurantId || localStorage.getItem('selectedRestaurantId');
-                if (rid && token) {
-                  fetch(`${apiUrl}/api/restaurants/${rid}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                    body: JSON.stringify({ onboardingStep: 'complete' }),
-                  }).catch(() => {});
-                }
-                if (token) {
-                  fetch(`${apiUrl}/api/user/preferences`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                    body: JSON.stringify({ setupComplete: true }),
-                  }).catch(() => {});
-                }
-                localStorage.setItem('onboarding_completed', 'true');
-                router.push('/home');
-              }}
+              onClick={() => completeOnboarding('/home')}
               style={{
                 ...btnPrimary, fontSize: '18px', padding: '16px 48px',
                 margin: '0 auto', borderRadius: '16px',
@@ -2238,27 +2287,7 @@ function OnboardingContent() {
             </button>
 
             <button
-              onClick={() => {
-                const token = localStorage.getItem('authToken');
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
-                const rid = restaurantId || localStorage.getItem('selectedRestaurantId');
-                if (rid && token) {
-                  fetch(`${apiUrl}/api/restaurants/${rid}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                    body: JSON.stringify({ onboardingStep: 'complete' }),
-                  }).catch(() => {});
-                }
-                if (token) {
-                  fetch(`${apiUrl}/api/user/preferences`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                    body: JSON.stringify({ setupComplete: true }),
-                  }).catch(() => {});
-                }
-                localStorage.setItem('onboarding_completed', 'true');
-                router.push(posPath);
-              }}
+              onClick={() => completeOnboarding(posPath)}
               style={{
                 ...btnSecondary, fontSize: '14px', padding: '10px 24px',
                 margin: '12px auto 0', borderRadius: '12px',

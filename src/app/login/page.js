@@ -2531,7 +2531,7 @@ const Login = () => {
                     type="text"
                     value={pinIdentifier}
                     onChange={(e) => { setPinIdentifier(e.target.value); setError(''); }}
-                    placeholder="+91 9876543210 or your@email.com"
+                    placeholder="Phone number or email"
                     style={{
                       width: '100%',
                       padding: '14px 16px',
@@ -2988,7 +2988,7 @@ const Login = () => {
                   margin: 0,
                   fontSize: "14px"
                 }}>
-                  We have sent a {isFirebaseOTP ? '6' : '4'}-digit code to +91 {phoneNumber}
+                  We have sent a {isFirebaseOTP ? '6' : '4'}-digit code to {selectedCountry?.dialCode || ''} {phoneNumber}
                 </p>
               </div>
 
@@ -3004,7 +3004,7 @@ const Login = () => {
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <FaPhone style={{ color: "#6b7280" }} />
-                  <span style={{ fontWeight: "500", color: "#374151" }}>+91 {phoneNumber}</span>
+                  <span style={{ fontWeight: "500", color: "#374151" }}>{selectedCountry?.dialCode || ''} {phoneNumber}</span>
                 </div>
                 <button
                   type="button"
