@@ -501,13 +501,23 @@ export default function Sidebar({ isDashboardPage = false }) {
             )}
           </div>
 
-          {/* Restaurant Info (for staff) */}
-          {!isCollapsed && selectedRestaurant && (user?.role === 'waiter' || user?.role === 'manager' || user?.role === 'employee') && (
+          {/* Current restaurant — shown for staff, and for multi-restaurant owners/admins so the
+              active outlet (the one being viewed/edited across the app) is always clear. */}
+          {!isCollapsed && selectedRestaurant && (allRestaurants.length > 1 || user?.role === 'waiter' || user?.role === 'manager' || user?.role === 'employee') && (
             <div className="px-4 py-3 border-b border-gray-100">
               <div className="flex items-center gap-2">
-                <BiRestaurant size={14} color="#6b7280" />
+                {allRestaurants.length > 1 ? (
+                  <div style={{ width: 26, height: 26, borderRadius: 7, background: 'linear-gradient(135deg,#ef4444,#dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <BiRestaurant size={15} color="#ffffff" />
+                  </div>
+                ) : (
+                  <BiRestaurant size={14} color="#6b7280" />
+                )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-gray-700 truncate">{selectedRestaurant.name}</p>
+                  {allRestaurants.length > 1 && (
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 leading-none mb-0.5">Current outlet</p>
+                  )}
+                  <p className="text-xs font-semibold text-gray-800 truncate">{selectedRestaurant.name}</p>
                 </div>
               </div>
             </div>

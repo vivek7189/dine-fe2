@@ -7371,7 +7371,29 @@ const Admin = () => {
           </div>
         )}
 
-
+        {/* Which-restaurant indicator — for multi-restaurant accounts, make it unmistakable which
+            outlet the settings below apply to. Uses the same `selectedRestaurant` the editors save
+            against. Hidden for single-restaurant accounts and for the list tabs (Restaurants/Staff). */}
+        {restaurants.length > 1 && !['restaurants', 'staff'].includes(activeTab) && selectedRestaurant?.name && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '10px',
+            background: 'linear-gradient(135deg, #fff7ed, #ffedd5)',
+            border: '1px solid #fed7aa', borderRadius: '12px',
+            padding: '10px 14px', marginBottom: isClient && isMobile ? '12px' : '18px',
+            boxShadow: '0 1px 4px rgba(234,88,12,0.08)'
+          }}>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg,#f97316,#ea580c)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <FaStore color="white" size={13} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#c2410c' }}>Configuring</div>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#7c2d12', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedRestaurant.name}</div>
+            </div>
+            {!(isClient && isMobile) && (
+              <span style={{ marginLeft: 'auto', fontSize: '11px', color: '#9a3412', fontWeight: 500, whiteSpace: 'nowrap' }}>Settings below apply to this restaurant</span>
+            )}
+          </div>
+        )}
 
         {/* Search Bar — only on Restaurants / Staff tabs */}
         {(activeTab === 'restaurants' || activeTab === 'staff') && (
