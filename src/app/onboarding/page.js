@@ -9,6 +9,7 @@ import { getDefaultMenu, getDefaultCategories } from '../../lib/defaultMenus';
 import ChatbotInterface from '../../components/ChatbotInterface';
 import { getCurrencyByCountryCode } from '../../lib/currencyData';
 import { detectAndSetCountry, formatPriceWithCurrency } from '../../lib/detectCountry';
+import { getTaxRegime } from '../../config/taxRegimes';
 import { t, getCurrentLanguage, setLanguage, getAvailableLanguages } from '../../lib/i18n';
 
 // ─── Countries ───────────────────────────────────────────────
@@ -145,10 +146,10 @@ const FEATURE_DEFAULTS = {
   cafe: ['pos', 'tables', 'kot', 'menu'],
   bar: ['pos', 'tables', 'kot', 'menu'],
   bakery: ['pos', 'tables', 'kot', 'menu'],
-  cloud_kitchen: ['pos', 'tables', 'kot', 'menu'],
+  cloud_kitchen: ['pos', 'kot', 'menu'],
   qsr: ['pos', 'tables', 'kot', 'menu'],
   ice_cream: ['pos', 'tables', 'kot', 'menu'],
-  hotel: ['pos', 'tables', 'kot', 'menu'],
+  hotel: ['pos', 'tables', 'kot', 'menu', 'hotel'],
   other: ['pos', 'tables', 'kot', 'menu'],
 };
 
@@ -419,8 +420,13 @@ function OnboardingContent() {
     }, 300);
   };
 
-  const goNext = () => goTo(step + 1, 'forward');
-  const goBack = () => goTo(step - 1, 'back');
+  // Step 3 (the manual feature-toggle screen) is CUT from the journey — features are
+  // now inferred from the business type in handleCreateRestaurant. Navigation skips it
+  // in both directions. (The step-3 render is kept but unreachable, so a resumed
+  // mid-flow user who saved onboardingStep:3 still works and can move on.)
+  const SKIP_STEPS = new Set([3]);
+  const goNext = () => { let n = step + 1; while (SKIP_STEPS.has(n)) n++; goTo(n, 'forward'); };
+  const goBack = () => { let p = step - 1; while (SKIP_STEPS.has(p) && p > 1) p--; goTo(Math.max(1, p), 'back'); };
 
   // POS path based on business type
   const posPath = businessType === 'bar' ? '/dashboard/bar' : '/dashboard';
@@ -499,6 +505,31 @@ function OnboardingContent() {
       } catch {}
       // Auto-seed sample menu in background so the preview works immediately
       apiClient.seedDefaultMenu(rid, selectedCountry?.code || localStorage.getItem('selectedCountryCode') || 'IN').then(() => setMenuSeeded(true)).catch(() => {});
+
+      // ── Cut the manual "features" step — infer from business type + save silently.
+      try {
+        const inferred = FEATURE_DEFAULTS[businessType] || ['pos', 'tables', 'kot', 'menu'];
+        setSelectedFeatures(inferred);
+        const notAllowed = FEATURES.map(f => f.id).filter(id => !inferred.includes(id));
+        try { await apiClient.updateFeatures(notAllowed); } catch {}
+        localStorage.setItem('navNotAllowedPages', JSON.stringify(notAllowed));
+        window.dispatchEvent(new CustomEvent('featuresUpdated', { detail: { notAllowedPages: notAllowed } }));
+      } catch {}
+
+      // ── Silent per-country tax preset (UAE 5% VAT · Kenya 16% · India GST 5% · KSA 15% …).
+      //    Only applies when the country actually has a tax (Qatar/US default to none).
+      try {
+        const regime = getTaxRegime(countryCode);
+        if (regime && Array.isArray(regime.taxes) && regime.taxes.length > 0) {
+          const now = Date.now();
+          await apiClient.updateTaxSettings(rid, {
+            enabled: true,
+            taxInclusivePricing: !!regime.inclusiveDefault,
+            taxes: regime.taxes.map((tx, i) => ({ id: `tax_${now}_${i}`, name: tx.name, rate: tx.rate, enabled: true, type: 'percentage' })),
+          });
+        }
+      } catch {}
+
       goNext();
     } catch (err) {
       alert('Failed to create restaurant: ' + (err.message || 'Unknown error'));
@@ -815,7 +846,13 @@ function OnboardingContent() {
     marginTop: '16px',
   };
 
-  const progressPercent = ((step - 1) / 5) * 100;
+  // Progress over the VISIBLE steps only (step 3 is cut), so the bar + counter stay
+  // clean with no gap (1,2,4,5,6 → "1 of 5" … "5 of 5").
+  const VISIBLE_STEPS = [1, 2, 4, 5, 6];
+  const visibleIdx = VISIBLE_STEPS.indexOf(step);
+  const totalVisible = VISIBLE_STEPS.length;
+  const displayStepNo = visibleIdx >= 0 ? visibleIdx + 1 : step;
+  const progressPercent = visibleIdx >= 0 ? (visibleIdx / (totalVisible - 1)) * 100 : ((step - 1) / 5) * 100;
 
   const heading = (text) => (
     <h2 style={{ fontSize: isMobile ? '26px' : '34px', fontWeight: '800', color: '#111827', marginBottom: '8px', lineHeight: 1.2, letterSpacing: '-0.02em' }}>{text}</h2>
@@ -892,7 +929,7 @@ function OnboardingContent() {
             }} />
           </div>
           <div style={{ fontSize: '11px', color: '#9ca3af', textAlign: 'center', marginTop: '3px', fontWeight: '600' }}>
-            {step} {ob('of')} 6
+            {displayStepNo} {ob('of')} {totalVisible}
           </div>
         </div>
 
@@ -1689,16 +1726,26 @@ function OnboardingContent() {
                   onClick={() => !uploading && fileInputRef.current?.click()}
                   className={`ob-card${uploadedCount === 0 && !uploading ? ' ob-upload-nudge' : ''}`}
                   style={{
-                    padding: '14px 18px', borderRadius: '14px', cursor: uploading ? 'default' : 'pointer',
-                    border: uploadedCount > 0 ? '2px solid #16a34a' : uploading ? '2px solid #f59e0b' : '2px solid #ef4444',
-                    background: uploadedCount > 0 ? '#f0fdf4' : 'white',
-                    display: 'flex', alignItems: 'center', gap: '14px',
+                    padding: '20px 22px', borderRadius: '16px', cursor: uploading ? 'default' : 'pointer',
+                    border: uploadedCount > 0 ? '2px solid #16a34a' : uploading ? '2px solid #f59e0b' : '2px solid #7c3aed',
+                    background: uploadedCount > 0 ? '#f0fdf4' : uploading ? '#fffbeb' : 'linear-gradient(135deg,#faf5ff,#fdf2f8)',
+                    display: 'flex', alignItems: 'center', gap: '16px',
                     position: 'relative', overflow: 'hidden',
+                    boxShadow: uploadedCount > 0 || uploading ? 'none' : '0 6px 22px rgba(124,58,237,0.18)',
                   }}
                 >
                   <input ref={fileInputRef} type="file" accept="image/*,.pdf" multiple
                     onChange={handleMenuUpload} style={{ display: 'none' }}
                   />
+                  {/* AI badge — signals this is the fast, magic path */}
+                  {uploadedCount === 0 && !uploading && (
+                    <span style={{
+                      position: 'absolute', top: '10px', right: '12px',
+                      fontFamily: 'ui-monospace,Menlo,monospace', fontSize: '10px', fontWeight: 700,
+                      letterSpacing: '0.06em', color: '#7c3aed', background: '#f3e8ff',
+                      padding: '2px 8px', borderRadius: '20px',
+                    }}>✨ AI-POWERED</span>
+                  )}
                   {/* Progress bar overlay */}
                   {uploading && (
                     <div style={{
@@ -1710,16 +1757,17 @@ function OnboardingContent() {
                     }} />
                   )}
                   <div style={{
-                    width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
-                    background: uploadedCount > 0 ? '#dcfce7' : uploading ? '#fef3c7' : '#f1f5f9',
+                    width: '48px', height: '48px', borderRadius: '13px', flexShrink: 0,
+                    background: uploadedCount > 0 ? '#dcfce7' : uploading ? '#fef3c7' : 'linear-gradient(135deg,#7c3aed,#db2777)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: uploadedCount > 0 || uploading ? 'none' : '0 4px 12px rgba(124,58,237,0.35)',
                   }}>
                     {uploadedCount > 0 ? (
-                      <FaCheck size={18} color="#16a34a" />
+                      <FaCheck size={19} color="#16a34a" />
                     ) : uploading ? (
                       <div style={{ width: '20px', height: '20px', border: '2.5px solid #fde68a', borderTopColor: '#f59e0b', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                     ) : (
-                      <FaUpload size={18} color="#374151" />
+                      <FaMagic size={19} color="#ffffff" />
                     )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
