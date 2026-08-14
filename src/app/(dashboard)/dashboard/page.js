@@ -17,6 +17,7 @@ import SyncStatus from '../../../components/SyncStatus';
 import CategoryButton from '../../../components/CategoryButton';
 import OrderSummary from '../../../components/OrderSummary';
 import GuidedFirstSale from '../../../components/GuidedFirstSale';
+import UpdateIndicator from '../../../components/UpdateIndicator';
 import Notification from '../../../components/Notification';
 
 // Dynamic imports — loaded on first use, not on initial page load
@@ -7392,6 +7393,8 @@ function RestaurantPOSContent() {
 
             {/* Right Section - Navigation Icons (Bigger, Right Aligned) */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {/* App-update pill (desktop only; renders nothing when no update) */}
+              <UpdateIndicator />
               {/* Notification Bell — hidden when showSuccessNotifications is disabled */}
               {printSettings?.showSuccessNotifications !== false && (
               <div

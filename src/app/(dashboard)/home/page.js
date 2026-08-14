@@ -18,6 +18,7 @@ import apiClient from '../../../lib/api';
 import { t } from '../../../lib/i18n';
 import { setCachedData, getCachedData } from '../../../lib/offlineDb';
 import OfflineBanner from '../../../components/OfflineBanner';
+import UpdateBanner from '../../../components/UpdateBanner';
 import { useDineBot } from '../../../components/DineBotProvider';
 
 // Safe hooks that return no-ops when providers are missing (e.g. mobile embed)
@@ -522,6 +523,9 @@ export default function HomePage() {
       `}</style>
 
       <OfflineBanner />
+
+      {/* App-update banner (desktop only, dismissible) */}
+      <UpdateBanner />
 
       {/* Yesterday's-sales recap — retention reward when they come back */}
       <YesterdayRecap currencySymbol={currencySymbol} />
