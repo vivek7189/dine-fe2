@@ -20,6 +20,20 @@ export function isEtimsCapable() {
 }
 
 /**
+ * Best-effort: report an eTIMS failure to the backend diagnostics log (queryable
+ * by restaurantId in the `etimsDiagnostics` collection). Used for VSCU-unreachable
+ * / relay errors that fail on the renderer BEFORE ever reaching the sale routes, so
+ * they'd otherwise leave no server-side trace. Never throws — telemetry must never
+ * break the POS or fiscalisation.
+ */
+export async function logEtimsDiagnostic(restaurantId, rec) {
+  try {
+    if (!restaurantId) return;
+    await apiClient.request(`/api/etims/${restaurantId}/diagnostic`, { method: 'POST', body: rec || {} });
+  } catch { /* ignore */ }
+}
+
+/**
  * Initialise the KRA device via the local VSCU (one-off, from admin settings).
  * @returns {Promise<{sdcId, mrcNo, lastInvcNo}>}
  */
@@ -27,7 +41,11 @@ export async function initEtimsDevice(restaurantId) {
   if (!isEtimsCapable()) throw new Error('eTIMS device setup must be done from the DineOpen desktop app.');
   const prep = await apiClient.request(`/api/etims/${restaurantId}/init-payload`);
   const relayRes = await window.electronAPI.etimsRelay({ url: prep.vscuUrl, path: prep.path, body: prep.body });
-  if (!relayRes || !relayRes.ok) throw new Error((relayRes && relayRes.error) || 'Could not reach the VSCU.');
+  if (!relayRes || !relayRes.ok) {
+    const msg = (relayRes && relayRes.error) || 'Could not reach the VSCU.';
+    logEtimsDiagnostic(restaurantId, { phase: 'init', ok: false, errorMessage: msg, raw: relayRes });
+    throw new Error(msg);
+  }
   const conf = await apiClient.request(`/api/etims/${restaurantId}/init-result`, { method: 'POST', body: relayRes.data || relayRes });
   return conf.device;
 }
@@ -82,7 +100,11 @@ export async function fiscaliseOrder(restaurantId, orderId) {
   const prep = await apiClient.request(`/api/etims/${restaurantId}/prepare-sale`, { method: 'POST', body: { orderId } });
   if (prep.alreadyFiscalised) return { etims: prep.etims };
   const relayRes = await window.electronAPI.etimsRelay({ url: prep.vscuUrl, path: prep.path, body: prep.body });
-  if (!relayRes || !relayRes.ok) throw new Error((relayRes && relayRes.error) || 'Could not reach the VSCU.');
+  if (!relayRes || !relayRes.ok) {
+    const msg = (relayRes && relayRes.error) || 'Could not reach the VSCU.';
+    logEtimsDiagnostic(restaurantId, { phase: 'relay', ok: false, orderId, invcNo: prep.body && prep.body.invcNo, errorMessage: msg, raw: relayRes });
+    throw new Error(msg);
+  }
   const conf = await apiClient.request(`/api/etims/${restaurantId}/confirm-sale`, {
     method: 'POST',
     body: { orderId, invcNo: prep.body && prep.body.invcNo, vscuResponse: relayRes.data || relayRes },

@@ -4,6 +4,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import apiClient from '../lib/api';
 import { initEtimsDevice, isEtimsCapable, syncEtimsItems, setEtimsDeviceManual } from '../lib/etims';
 
+// Format a Firestore/ISO timestamp for the activity log (short, local).
+function fmtWhen(v) {
+  try {
+    const ms = v && v._seconds ? v._seconds * 1000 : (typeof v === 'string' ? Date.parse(v) : (v && v.toMillis ? v.toMillis() : 0));
+    if (!ms) return '';
+    return new Date(ms).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch { return ''; }
+}
+
 /**
  * Kenya KRA eTIMS configuration (admin). Self-contained; render it ONLY for
  * Kenya (KES) stores — the parent gates on countryCode === 'KE'. Lets the owner
@@ -21,6 +30,8 @@ export default function EtimsSettings({ restaurantId }) {
   const [showManual, setShowManual] = useState(false);
   const [manual, setManual] = useState({ sdcId: '', mrcNo: '', lastInvcNo: '' });
   const [savingManual, setSavingManual] = useState(false);
+  const [diags, setDiags] = useState([]);
+  const [loadingDiags, setLoadingDiags] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -32,7 +43,19 @@ export default function EtimsSettings({ restaurantId }) {
     finally { setLoading(false); }
   }, [restaurantId]);
 
-  useEffect(() => { load(); }, [load]);
+  // Recent eTIMS diagnostics (device init + sale fiscalisation attempts, newest first).
+  // Surfaces the real KRA/VSCU reason for any failure — visible to the owner AND to
+  // support, and it's the same data saved in the `etimsDiagnostics` collection.
+  const loadDiags = useCallback(async () => {
+    setLoadingDiags(true);
+    try {
+      const res = await apiClient.request(`/api/etims/${restaurantId}/diagnostics`);
+      setDiags(Array.isArray(res.items) ? res.items : []);
+    } catch { /* advisory only */ }
+    finally { setLoadingDiags(false); }
+  }, [restaurantId]);
+
+  useEffect(() => { load(); loadDiags(); }, [load, loadDiags]);
 
   const save = async () => {
     setSaving(true); setMsg(null);
@@ -185,6 +208,38 @@ export default function EtimsSettings({ restaurantId }) {
               style={{ padding: '9px 16px', background: '#065f46', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
               {savingManual ? 'Saving…' : 'Save device details'}
             </button>
+          </div>
+        )}
+      </div>
+
+      {/* Recent eTIMS activity — every device-init + sale-fiscalisation attempt (success
+          and failure), newest first, showing the REAL KRA/VSCU reason. Same data is saved
+          in the etimsDiagnostics collection so support can diagnose remotely by restaurant. */}
+      <div style={{ marginTop: 16, borderTop: '1px dashed #e5e7eb', paddingTop: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: '#374151' }}>Recent eTIMS activity</span>
+          <button onClick={loadDiags} disabled={loadingDiags} style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, color: '#6b7280', cursor: 'pointer' }}>
+            {loadingDiags ? 'Refreshing…' : '↻ Refresh'}
+          </button>
+        </div>
+        {diags.length === 0 ? (
+          <div style={{ fontSize: 11.5, color: '#9ca3af' }}>
+            No eTIMS activity logged yet. After a sale or “Initialise device”, each attempt — and the exact KRA/VSCU error reason for any failure — appears here and is saved for support to review.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {diags.map((d) => (
+              <div key={d.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 11.5, background: d.ok ? '#f0fdf4' : '#fef2f2', border: `1px solid ${d.ok ? '#bbf7d0' : '#fecaca'}`, borderRadius: 6, padding: '6px 8px' }}>
+                <span style={{ fontWeight: 700, color: d.ok ? '#166534' : '#b91c1c', whiteSpace: 'nowrap' }}>{d.ok ? '✓' : '✕'} {d.phase}</span>
+                <span style={{ flex: 1, color: '#374151', minWidth: 0, wordBreak: 'break-word' }}>
+                  {d.ok
+                    ? (d.orderId ? `order …${String(d.orderId).slice(-6)}${d.invcNo != null ? ` · inv #${d.invcNo}` : ''}` : 'success')
+                    : (d.errorMessage || d.resultMsg || `code ${d.resultCd || '?'}`)}
+                  {!d.ok && d.resultCd ? <span style={{ color: '#9ca3af' }}> · code {d.resultCd}</span> : null}
+                </span>
+                <span style={{ color: '#9ca3af', whiteSpace: 'nowrap' }}>{fmtWhen(d.createdAt)}</span>
+              </div>
+            ))}
           </div>
         )}
       </div>
