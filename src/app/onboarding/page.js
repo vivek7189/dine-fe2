@@ -6,7 +6,7 @@ import { FaUtensils, FaCoffee, FaBeer, FaBreadSlice, FaIceCream, FaHamburger, Fa
 import QRCode from 'qrcode';
 import apiClient from '../../lib/api';
 import { getDefaultMenu, getDefaultCategories } from '../../lib/defaultMenus';
-import ChatbotInterface from '../../components/ChatbotInterface';
+import OnboardingConcierge from '../../components/OnboardingConcierge';
 import { getCurrencyByCountryCode } from '../../lib/currencyData';
 import { detectAndSetCountry, formatPriceWithCurrency } from '../../lib/detectCountry';
 import { getTaxRegime } from '../../config/taxRegimes';
@@ -2421,11 +2421,13 @@ function OnboardingContent() {
         </div>
       )}
 
-      {/* ─── Smart AI Chat (reuses ChatbotInterface) ─────────── */}
+      {/* ─── AI Setup Concierge — proactive assistant that can build the menu ─── */}
       {step >= 2 && step <= 5 && restaurantId && (
-        <ChatbotInterface
+        <OnboardingConcierge
           restaurantId={restaurantId}
-          userId={null}
+          businessLabel={businessLabel}
+          countryName={selectedCountry?.name || ''}
+          onMenuBuilt={(n) => { setAiMenuCount(n); setUploadedCount(n); setMenuSeeded(true); }}
         />
       )}
     </div>
