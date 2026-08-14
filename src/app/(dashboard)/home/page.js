@@ -210,6 +210,52 @@ function formatTime(dateStr) {
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
+// Yesterday's-sales recap — the retention reward. When an owner comes back and
+// yesterday had sales, greet them with the RESULT ("Yesterday you made ₹X") — this
+// reinforces the habit loop that brings them back on day 2+. Read-only, self-gating
+// (only shows if yesterday actually had revenue), dismissible once per day.
+function YesterdayRecap({ currencySymbol = '₹' }) {
+  const [data, setData] = useState(null);
+  const [hidden, setHidden] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const rid = localStorage.getItem('selectedRestaurantId');
+        if (!rid) return;
+        const y = new Date(); y.setDate(y.getDate() - 1);
+        const ymd = `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, '0')}-${String(y.getDate()).padStart(2, '0')}`;
+        if (localStorage.getItem('yesterdayRecapDismissed') === ymd) return; // dismissed today already
+        const res = await apiClient.getDailySummary(rid, { period: 'yesterday' });
+        const s = res && res.summary;
+        const rev = s ? (s.totalRevenueWithTax || s.totalRevenue || 0) : 0;
+        if (!cancelled && s && rev > 0) {
+          const p = Array.isArray(s.popularItems) ? s.popularItems[0] : null;
+          setData({ rev, orders: s.totalOrders || 0, top: p ? (p.name || p.itemName || null) : null, ymd });
+        }
+      } catch { /* advisory only — never block Home */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  if (!data || hidden) return null;
+  const dismiss = () => { try { localStorage.setItem('yesterdayRecapDismissed', data.ymd); } catch {} setHidden(true); };
+  const money = `${currencySymbol}${Math.round(data.rev).toLocaleString()}`;
+  return (
+    <div className="animate-in" style={{ marginBottom: '20px', borderRadius: '14px', border: '1px solid #bbf7d0', background: 'linear-gradient(135deg,#f0fdf4,#dcfce7)', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+        <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '18px' }}>🎉</div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: '14px', fontWeight: 800, color: '#166534' }}>Yesterday you made {money} · {data.orders} order{data.orders !== 1 ? 's' : ''}</div>
+          <div style={{ fontSize: '12px', color: '#15803d' }}>{data.top ? `Top seller: ${data.top}. ` : ''}Keep it going — ring today’s first sale.</div>
+        </div>
+      </div>
+      <button onClick={dismiss} aria-label="Dismiss" style={{ background: 'none', border: 'none', color: '#16a34a', fontSize: '18px', cursor: 'pointer', padding: '4px', lineHeight: 1 }}>×</button>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const router = useRouter();
   const { startLoading } = useSafeLoading();
@@ -476,6 +522,9 @@ export default function HomePage() {
       `}</style>
 
       <OfflineBanner />
+
+      {/* Yesterday's-sales recap — retention reward when they come back */}
+      <YesterdayRecap currencySymbol={currencySymbol} />
 
       {/* Open (unsettled) orders indicator — tap to resolve on the Open Orders page */}
       {openSummary && openSummary.count > 0 && (
