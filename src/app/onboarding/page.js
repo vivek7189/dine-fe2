@@ -1761,11 +1761,11 @@ function OnboardingContent() {
                   className={`ob-card${uploadedCount === 0 && !uploading ? ' ob-upload-nudge' : ''}`}
                   style={{
                     padding: '20px 22px', borderRadius: '16px', cursor: uploading ? 'default' : 'pointer',
-                    border: uploadedCount > 0 ? '2px solid #16a34a' : uploading ? '2px solid #f59e0b' : '2px solid #7c3aed',
-                    background: uploadedCount > 0 ? '#f0fdf4' : uploading ? '#fffbeb' : 'linear-gradient(135deg,#faf5ff,#fdf2f8)',
+                    border: uploadedCount > 0 ? '2px solid #16a34a' : uploading ? '2px solid #f59e0b' : '2px solid #ea580c',
+                    background: uploadedCount > 0 ? '#f0fdf4' : uploading ? '#fffbeb' : 'linear-gradient(135deg,#fff7ed,#ffedd5)',
                     display: 'flex', alignItems: 'center', gap: '16px',
                     position: 'relative', overflow: 'hidden',
-                    boxShadow: uploadedCount > 0 || uploading ? 'none' : '0 6px 22px rgba(124,58,237,0.18)',
+                    boxShadow: uploadedCount > 0 || uploading ? 'none' : '0 6px 22px rgba(234,88,12,0.18)',
                   }}
                 >
                   <input ref={fileInputRef} type="file" accept="image/*,.pdf" multiple
@@ -1776,7 +1776,7 @@ function OnboardingContent() {
                     <span style={{
                       position: 'absolute', top: '10px', right: '12px',
                       fontFamily: 'ui-monospace,Menlo,monospace', fontSize: '10px', fontWeight: 700,
-                      letterSpacing: '0.06em', color: '#7c3aed', background: '#f3e8ff',
+                      letterSpacing: '0.06em', color: '#ea580c', background: '#ffedd5',
                       padding: '2px 8px', borderRadius: '20px',
                     }}>✨ AI-POWERED</span>
                   )}
@@ -1792,9 +1792,9 @@ function OnboardingContent() {
                   )}
                   <div style={{
                     width: '48px', height: '48px', borderRadius: '13px', flexShrink: 0,
-                    background: uploadedCount > 0 ? '#dcfce7' : uploading ? '#fef3c7' : 'linear-gradient(135deg,#7c3aed,#db2777)',
+                    background: uploadedCount > 0 ? '#dcfce7' : uploading ? '#fef3c7' : 'linear-gradient(135deg,#ea580c,#f97316)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: uploadedCount > 0 || uploading ? 'none' : '0 4px 12px rgba(124,58,237,0.35)',
+                    boxShadow: uploadedCount > 0 || uploading ? 'none' : '0 4px 12px rgba(234,88,12,0.35)',
                   }}>
                     {uploadedCount > 0 ? (
                       <FaCheck size={19} color="#16a34a" />
@@ -1825,24 +1825,24 @@ function OnboardingContent() {
                     style={{
                       width: '100%', textAlign: 'left', padding: '16px 18px', borderRadius: '14px',
                       cursor: aiMenuLoading ? 'default' : 'pointer',
-                      border: '1.5px solid #ddd6fe', background: 'linear-gradient(135deg,#f5f3ff,#faf5ff)',
+                      border: '1.5px solid #fed7aa', background: 'linear-gradient(135deg,#fff7ed,#fff7ed)',
                       display: 'flex', alignItems: 'center', gap: '14px',
                     }}
                   >
-                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', flexShrink: 0, background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', flexShrink: 0, background: '#ffedd5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {aiMenuLoading
-                        ? <div style={{ width: '18px', height: '18px', border: '2.5px solid #ddd6fe', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                        : <FaMagic size={17} color="#7c3aed" />}
+                        ? <div style={{ width: '18px', height: '18px', border: '2.5px solid #fed7aa', borderTopColor: '#ea580c', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                        : <FaMagic size={17} color="#ea580c" />}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontWeight: 700, fontSize: '14.5px', color: '#4c1d95', margin: '0 0 2px' }}>
+                      <p style={{ fontWeight: 700, fontSize: '14.5px', color: '#7c2d12', margin: '0 0 2px' }}>
                         {aiMenuLoading ? 'Creating your menu…' : `✨ Generate a ${businessLabel.toLowerCase()} menu for ${selectedCountry?.name || 'my country'}`}
                       </p>
-                      <p style={{ fontSize: '12px', color: '#7c3aed', margin: 0 }}>
+                      <p style={{ fontSize: '12px', color: '#ea580c', margin: 0 }}>
                         {aiMenuLoading ? 'AI is picking local dishes & prices…' : 'AI builds a real local menu, priced in your currency — no typing'}
                       </p>
                     </div>
-                    {!aiMenuLoading && <FaChevronRight size={12} color="#a78bfa" />}
+                    {!aiMenuLoading && <FaChevronRight size={12} color="#fdba74" />}
                   </button>
                 )}
                 {aiMenuError && (

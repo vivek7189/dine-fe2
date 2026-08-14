@@ -11,6 +11,7 @@
  * Hero action: one-tap builds a real, country-localized menu (reuses the AI
  * starter-menu endpoint). Also answers "how do I…" questions and offers a human
  * hand-off. SAFE: self-contained, every call guarded — it can never break the flow.
+ * Theme: warm orange/red (on brand) — no purple.
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -78,19 +79,19 @@ export default function OnboardingConcierge({ restaurantId, businessLabel = 'res
 
   return (
     <div className="ob-fadeIn-d2" style={{
-      borderRadius: '16px', border: '1px solid #ede9fe',
-      background: 'linear-gradient(135deg,#faf7ff,#ffffff)', overflow: 'hidden', marginBottom: '20px',
+      borderRadius: '16px', border: '1px solid #fde7cf',
+      background: 'linear-gradient(135deg,#fff7ed,#ffffff)', overflow: 'hidden', marginBottom: '20px',
     }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '13px 16px', borderBottom: messages.length ? '1px solid #f1eefb' : 'none' }}>
-        <div style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, background: 'linear-gradient(135deg,#7c3aed,#db2777)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '13px 16px', borderBottom: messages.length ? '1px solid #fbe4d0' : 'none' }}>
+        <div style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, background: 'linear-gradient(135deg,#ef4444,#f97316)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <FaRobot size={15} color="#fff" />
         </div>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: '14px', color: '#3b0764' }}>Setup Assistant
-            <span style={{ fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.06em', color: '#7c3aed', background: '#f3e8ff', padding: '1px 6px', borderRadius: '10px', marginLeft: '7px', verticalAlign: 'middle' }}>AI</span>
+          <div style={{ fontWeight: 800, fontSize: '14px', color: '#7c2d12' }}>Setup Assistant
+            <span style={{ fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.06em', color: '#ea580c', background: '#ffedd5', padding: '1px 6px', borderRadius: '10px', marginLeft: '7px', verticalAlign: 'middle' }}>AI</span>
           </div>
-          <div style={{ fontSize: '11.5px', color: '#8b5cf6' }}>I can build your {String(businessLabel).toLowerCase()} menu — or answer anything.</div>
+          <div style={{ fontSize: '11.5px', color: '#ea580c' }}>I can build your {String(businessLabel).toLowerCase()} menu — or answer anything.</div>
         </div>
       </div>
 
@@ -101,13 +102,13 @@ export default function OnboardingConcierge({ restaurantId, businessLabel = 'res
             <div key={m.id} style={{ alignSelf: m.type === 'user' ? 'flex-end' : 'flex-start', maxWidth: '88%' }}>
               <div style={{
                 padding: '8px 12px', borderRadius: m.type === 'user' ? '13px 13px 4px 13px' : '13px 13px 13px 4px',
-                background: m.type === 'user' ? '#7c3aed' : '#fff', color: m.type === 'user' ? '#fff' : '#1f2937',
+                background: m.type === 'user' ? '#ea580c' : '#fff', color: m.type === 'user' ? '#fff' : '#1f2937',
                 border: m.type === 'user' ? 'none' : '1px solid #eee', fontSize: '13px', lineHeight: 1.45,
               }}>{m.content}</div>
             </div>
           ))}
           {busy && (
-            <div style={{ alignSelf: 'flex-start', color: '#7c3aed', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ alignSelf: 'flex-start', color: '#ea580c', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <FaSpinner size={11} style={{ animation: 'spin 0.8s linear infinite' }} /> thinking…
             </div>
           )}
@@ -119,7 +120,7 @@ export default function OnboardingConcierge({ restaurantId, businessLabel = 'res
       <div style={{ padding: messages.length ? '2px 14px 12px' : '10px 14px 12px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
         {chips.map((c) => (
           <button key={c.label} type="button" onClick={c.on} disabled={busy}
-            style={{ fontSize: '12px', fontWeight: 600, padding: '6px 11px', borderRadius: '20px', cursor: busy ? 'default' : 'pointer', border: '1px solid #ddd6fe', background: '#f5f3ff', color: '#6d28d9' }}>
+            style={{ fontSize: '12px', fontWeight: 600, padding: '6px 11px', borderRadius: '20px', cursor: busy ? 'default' : 'pointer', border: '1px solid #fed7aa', background: '#fff7ed', color: '#c2410c' }}>
             {c.label}
           </button>
         ))}
@@ -130,7 +131,7 @@ export default function OnboardingConcierge({ restaurantId, businessLabel = 'res
         <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask anything about setup…"
           style={{ flex: 1, padding: '9px 12px', borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '13px', outline: 'none', background: '#fff' }} />
         <button type="submit" disabled={busy || !input.trim()} aria-label="Send"
-          style={{ width: 40, borderRadius: '10px', border: 'none', cursor: busy || !input.trim() ? 'default' : 'pointer', background: busy || !input.trim() ? '#e5e7eb' : '#7c3aed', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          style={{ width: 40, borderRadius: '10px', border: 'none', cursor: busy || !input.trim() ? 'default' : 'pointer', background: busy || !input.trim() ? '#e5e7eb' : '#ea580c', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <FaPaperPlane size={12} />
         </button>
       </form>
