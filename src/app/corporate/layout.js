@@ -12,6 +12,7 @@ import {
   FaChartBar, FaQrcode, FaUtensils, FaArrowLeft, FaSpinner, FaBars, FaTimes,
 } from 'react-icons/fa';
 import apiClient from '../../lib/api';
+import corporateApi from '../../lib/corporateApi';
 import { C } from '../../corporate/theme';
 import { ToastProvider } from '../../components/corporate/ui';
 
@@ -32,6 +33,14 @@ export default function CorporateLayout({ children }) {
   const [state, setState] = useState('checking'); // checking | ok | denied | unauth
   const [rest, setRest] = useState(null);
   const [mobileNav, setMobileNav] = useState(false);
+  const [enabling, setEnabling] = useState(false);
+  const role = String(apiClient.getUser?.()?.role || '').toLowerCase();
+
+  const enableModule = async () => {
+    setEnabling(true);
+    try { await corporateApi.setFlag(true); window.location.reload(); }
+    catch { setEnabling(false); }
+  };
 
   useEffect(() => {
     (async () => {
@@ -66,8 +75,13 @@ export default function CorporateLayout({ children }) {
             <FaUtensils size={22} color={C.primary} />
           </div>
           <h2 style={{ fontSize: 18, fontWeight: 800, color: C.ink, margin: '0 0 6px' }}>Corporate Meals is not enabled</h2>
-          <p style={{ fontSize: 13.5, color: C.muted, margin: '0 0 18px' }}>Ask an administrator to turn on Corporate Meal Management in Settings → Features.</p>
-          <button onClick={() => router.replace('/home')} style={{ padding: '10px 18px', borderRadius: 10, border: 'none', cursor: 'pointer', background: C.grad, color: '#fff', fontWeight: 700 }}>Back to POS</button>
+          <p style={{ fontSize: 13.5, color: C.muted, margin: '0 0 18px' }}>{['owner', 'admin'].includes(role) ? 'Turn it on to start managing employee meals for your corporate clients.' : 'Ask an owner or admin to enable Corporate Meal Management.'}</p>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+            {['owner', 'admin'].includes(role) && (
+              <button onClick={enableModule} disabled={enabling} style={{ padding: '10px 18px', borderRadius: 10, border: 'none', cursor: enabling ? 'default' : 'pointer', background: C.grad, color: '#fff', fontWeight: 700, opacity: enabling ? 0.7 : 1 }}>{enabling ? 'Enabling…' : 'Enable Corporate Meals'}</button>
+            )}
+            <button onClick={() => router.replace('/home')} style={{ padding: '10px 18px', borderRadius: 10, border: `1px solid ${C.border}`, cursor: 'pointer', background: '#fff', color: C.muted, fontWeight: 700 }}>Back to POS</button>
+          </div>
         </div>
       </div>
     );
@@ -114,7 +128,7 @@ export default function CorporateLayout({ children }) {
         <div style={{ height: 1, background: C.borderSoft, margin: '0 14px 6px' }} />
         <Nav />
         <div style={{ marginTop: 'auto', padding: 14 }}>
-          <button onClick={() => router.replace('/home')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface2, color: C.muted, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+          <button onClick={() => { try { sessionStorage.setItem('cm_pos_mode', '1'); } catch {} router.replace('/home'); }} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface2, color: C.muted, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
             <FaArrowLeft size={11} /> Exit to POS
           </button>
         </div>

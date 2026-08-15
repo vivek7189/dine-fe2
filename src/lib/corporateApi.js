@@ -9,6 +9,10 @@ const qs = (obj) => {
 };
 
 const corporateApi = {
+  // ── Enablement (ungated) ──
+  getFlag: () => req('/api/corporate-admin/flag'),
+  setFlag: (enabled) => req('/api/corporate-admin/flag', { method: 'POST', body: { enabled } }),
+
   // ── Clients ──
   listClients: () => req('/api/corporate/clients'),
   getClient: (id) => req(`/api/corporate/clients/${id}`),
