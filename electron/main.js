@@ -898,7 +898,24 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
   // Diagnostic context: does the configured printer actually exist in the OS list?
   // A name mismatch here is a very common silent-fail cause on Windows.
   const printerNames = printers.map((p) => p.name);
-  const deviceMatched = deviceName ? printerNames.includes(deviceName) : true; // no name = system default
+  // Resolve the configured printer to a REAL OS printer. The saved value may be the OS SYSTEM name
+  // ("DineOpen-Test-1") OR the human DISPLAY name ("DineOpen Test Printer 1") — the print settings
+  // UI stores the display name, but webContents.print() REQUIRES the system name, so a saved display
+  // name fails as "Invalid deviceName". Match on both (exact, then case/space-insensitive) and always
+  // print with the matched SYSTEM name. Fixes existing configs with no re-select, and survives an OS
+  // rescan that renames a queue. No match → leave deviceName as-is (old behavior + the diagnostic log).
+  let resolvedDeviceName = deviceName;
+  if (deviceName) {
+    const _n = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const t = _n(deviceName);
+    const match =
+      printers.find((p) => p.name === deviceName) ||
+      printers.find((p) => p.displayName === deviceName) ||
+      printers.find((p) => _n(p.name) === t) ||
+      printers.find((p) => _n(p.displayName) === t);
+    if (match && match.name) resolvedDeviceName = match.name;
+  }
+  const deviceMatched = deviceName ? printerNames.includes(resolvedDeviceName) : true; // no name = system default
 
   // AWAIT the print callback (was fire-and-forget): the print queue must hold this slot until the
   // job is handed to the spooler, or the NEXT job's loadURL() would clobber the shared window and
@@ -922,7 +939,7 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
   printWindow.webContents.print(
     {
       silent: true,
-      deviceName,
+      deviceName: resolvedDeviceName,
       copies: copies || 1,
       printBackground: true,
       // Thermal paper size in microns (58mm or 80mm width, long roll height)
@@ -956,6 +973,7 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
         type: type || 'unknown', method: 'os-driver', success,
         failureReason: failureReason || null,
         configuredDeviceName: deviceName || '(system default)',
+        resolvedDeviceName: resolvedDeviceName || null,
         deviceMatched, printerNames, copies: copies || 1,
         printerWidth: printerWidth || 80, stationId: stationId || null,
         hint,
