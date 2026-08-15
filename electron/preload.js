@@ -42,6 +42,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('electron:restartApp'),
   getVersion: () =>
     ipcRenderer.invoke('electron:getVersion'),
+  getVersionInfo: () =>
+    ipcRenderer.invoke('electron:getVersionInfo'),
 
   // Offline local-first proxy — ALL API calls route through this
   apiRequest: (request) =>

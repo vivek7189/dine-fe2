@@ -22,7 +22,7 @@ import {
   FaHome, FaEdit, FaEllipsisV, FaCalendarAlt, FaTools, FaTimes, FaPhoneAlt,
   FaUser, FaChevronDown, FaEye, FaChevronLeft, FaChevronRight, FaSearch,
   FaLayerGroup, FaConciergeBell, FaArrowRight, FaSpinner, FaArrowUp, FaArrowDown, FaSortAmountDown, FaQrcode,
-  FaPrint, FaReceipt, FaExchangeAlt, FaTruck, FaTh, FaThLarge, FaColumns
+  FaPrint, FaReceipt, FaExchangeAlt, FaTruck, FaTh, FaThLarge, FaColumns, FaGripVertical
 } from 'react-icons/fa';
 import dynamic from 'next/dynamic';
 import { createPortal } from 'react-dom';
@@ -378,6 +378,13 @@ const TableManagement = () => {
   const [floorModalTab, setFloorModalTab] = useState('details'); // 'details' | 'order'
   const [floorOrderList, setFloorOrderList] = useState([]); // for reordering
   const [savingFloorOrder, setSavingFloorOrder] = useState(false);
+
+  // Rearrange tables (drag-drop) — owner/admin/cashier only
+  const [showRearrange, setShowRearrange] = useState(false);
+  const [rearrangeFloorId, setRearrangeFloorId] = useState(null);
+  const [rearrangeList, setRearrangeList] = useState([]); // [{ id, name }] in display order
+  const [savingRearrange, setSavingRearrange] = useState(false);
+  const [dragIndex, setDragIndex] = useState(null);
 
   // Quick view modal
   const [quickViewOrder, setQuickViewOrder] = useState(null);
@@ -1119,6 +1126,56 @@ const TableManagement = () => {
     finally { setSavingFloorOrder(false); }
   };
 
+  // ── Rearrange tables within a floor (drag-drop) — owner/admin/cashier only ──
+  const canRearrangeTables = ['owner', 'admin', 'cashier'].includes((userData.role || '').toLowerCase());
+
+  const openRearrange = () => {
+    // Default to the currently-viewed floor, else the first floor.
+    const fid = (selectedFloorId && selectedFloorId !== 'all') ? selectedFloorId : (floors[0]?.id || null);
+    const floor = floors.find(f => f.id === fid) || floors[0];
+    if (!floor) { showError('No floor available to rearrange.'); return; }
+    setRearrangeFloorId(floor.id);
+    setRearrangeList(sortTables(floor.tables || []).map(t => ({ id: t.id, name: t.name || t.number || 'Table' })));
+    setDragIndex(null);
+    setShowRearrange(true);
+  };
+
+  const pickRearrangeFloor = (fid) => {
+    const floor = floors.find(f => f.id === fid);
+    setRearrangeFloorId(fid);
+    setRearrangeList(sortTables(floor?.tables || []).map(t => ({ id: t.id, name: t.name || t.number || 'Table' })));
+    setDragIndex(null);
+  };
+
+  const handleRearrangeDrop = (targetIndex) => {
+    setRearrangeList(prev => {
+      if (dragIndex == null || dragIndex === targetIndex || dragIndex < 0 || dragIndex >= prev.length) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(dragIndex, 1);
+      next.splice(targetIndex, 0, moved);
+      return next;
+    });
+    setDragIndex(null);
+  };
+
+  const saveRearrange = async () => {
+    if (!selectedRestaurant?.id || !rearrangeFloorId || rearrangeList.length === 0) return;
+    setSavingRearrange(true);
+    try {
+      const ids = rearrangeList.map(t => t.id);
+      await apiClient.reorderTables(selectedRestaurant.id, rearrangeFloorId, ids);
+      // Reflect the new order locally so the grid updates immediately (order index per table).
+      const orderMap = {};
+      ids.forEach((id, i) => { orderMap[id] = i; });
+      setFloors(prev => prev.map(f => f.id === rearrangeFloorId
+        ? { ...f, tables: (f.tables || []).map(t => (orderMap[t.id] != null ? { ...t, order: orderMap[t.id] } : t)) }
+        : f));
+      showSuccess('Table order updated');
+      setShowRearrange(false);
+    } catch (err) { showError(`Failed to save table order: ${err.message}`); }
+    finally { setSavingRearrange(false); }
+  };
+
   const addTable = async () => {
     if (actionLockRef.current) return;
     if (!isOnline) { showError('You are offline. Go online to make changes.'); return; }
@@ -1806,16 +1863,24 @@ const TableManagement = () => {
     other: 0,
   }, [isTodayDate, allTables, tableStatusesForDate, tableBookingsMap]);
 
-  // Sort tables: alphabetic names first (sorted A-Z), then numeric names (sorted 1,2,3...)
+  // Sort tables:
+  //  1) a saved manual `order` (from drag-drop rearrange) wins when present — same for all users.
+  //  2) otherwise natural sort: alphabetic names A-Z, then numeric names 1,2,3...
+  //     `numeric: true` makes "Banda 2" come before "Banda 10" (not 1,10,11,2 string order).
   const sortTables = (tablesArr) => {
+    const ord = (x) => (x != null && Number.isFinite(Number(x)) ? Number(x) : null);
     return [...tablesArr].sort((a, b) => {
+      const oa = ord(a.order), ob = ord(b.order);
+      if (oa != null && ob != null && oa !== ob) return oa - ob;
+      if (oa != null && ob == null) return -1;
+      if (oa == null && ob != null) return 1;
       const nameA = (a.name || a.number || '').toString().trim();
       const nameB = (b.name || b.number || '').toString().trim();
       const numA = Number(nameA);
       const numB = Number(nameB);
       const isNumA = nameA !== '' && !isNaN(numA);
       const isNumB = nameB !== '' && !isNaN(numB);
-      if (!isNumA && !isNumB) return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
+      if (!isNumA && !isNumB) return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
       if (!isNumA && isNumB) return -1;
       if (isNumA && !isNumB) return 1;
       return numA - numB;
@@ -2058,6 +2123,18 @@ const TableManagement = () => {
                     width: isMobileEmbed ? '30px' : undefined, height: isMobileEmbed ? '30px' : undefined,
                   }} title="Turn Times">
                     <FaClock size={isMobileEmbed ? 11 : 12} /> {!isMobileEmbed && 'Turn Times'}
+                  </button>
+                )}
+                {canRearrangeTables && floors.length > 0 && (
+                  <button onClick={openRearrange} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileEmbed ? 0 : '6px',
+                    padding: isMobileEmbed ? '6px' : '8px 16px', borderRadius: isMobileEmbed ? '8px' : '10px',
+                    background: 'linear-gradient(135deg, #f59e0b, #d97706)', border: 'none', color: 'white',
+                    fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(217,119,6,0.3)',
+                    width: isMobileEmbed ? '30px' : undefined, height: isMobileEmbed ? '30px' : undefined,
+                  }} title="Rearrange tables">
+                    <FaSortAmountDown size={isMobileEmbed ? 11 : 12} /> {!isMobileEmbed && 'Rearrange'}
+                    {/* amber theme (no purple) */}
                   </button>
                 )}
                 {canEditTableConfig && (
@@ -2889,6 +2966,64 @@ const TableManagement = () => {
                   opacity: savingFloorOrder ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                 }}>{savingFloorOrder ? <><FaSpinner size={14} className="animate-spin" /> {t('tables.saving')}</> : t('tables.saveOrder')}</button>
               </>)}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ─── REARRANGE TABLES MODAL (drag-drop, within one floor) ─── */}
+      {showRearrange && createPortal(
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => setShowRearrange(false)}>
+          <div style={{ backgroundColor: 'white', borderRadius: '20px', boxShadow: '0 24px 48px rgba(0,0,0,0.12)', width: '100%', maxWidth: '440px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: '24px 24px 12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>Rearrange Tables</h3>
+                <button onClick={() => setShowRearrange(false)} style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', backgroundColor: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaTimes size={14} color="#6b7280" /></button>
+              </div>
+              {floors.length > 1 && (
+                <select value={rearrangeFloorId || ''} onChange={e => pickRearrangeFloor(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '10px', outline: 'none' }}>
+                  {floors.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                </select>
+              )}
+              <p style={{ fontSize: '12.5px', color: '#6b7280', margin: '0 0 4px 0' }}>
+                Drag tables to set their order. This order is saved and shown the same way for everyone in this restaurant.
+              </p>
+            </div>
+            <div style={{ padding: '0 24px', overflowY: 'auto', flex: 1 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: '8px' }}>
+                {rearrangeList.length === 0 && (
+                  <div style={{ fontSize: '13px', color: '#9ca3af', textAlign: 'center', padding: '20px 0' }}>No tables on this floor.</div>
+                )}
+                {rearrangeList.map((tbl, index) => (
+                  <div
+                    key={tbl.id}
+                    draggable
+                    onDragStart={() => setDragIndex(index)}
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={() => handleRearrangeDrop(index)}
+                    onDragEnd={() => setDragIndex(null)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 12px',
+                      backgroundColor: dragIndex === index ? '#fef3c7' : '#f8fafc',
+                      border: dragIndex === index ? '1px solid #f59e0b' : '1px solid #e2e8f0',
+                      borderRadius: '10px', cursor: 'grab', userSelect: 'none',
+                    }}
+                  >
+                    <FaGripVertical size={13} color="#cbd5e1" />
+                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#9ca3af', minWidth: '20px' }}>{index + 1}</span>
+                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', flex: 1 }}>{tbl.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ padding: '12px 24px 24px' }}>
+              <button onClick={saveRearrange} disabled={savingRearrange || rearrangeList.length === 0} style={{
+                width: '100%', padding: '14px', borderRadius: '12px', border: 'none', fontWeight: '600', fontSize: '15px', cursor: (savingRearrange || rearrangeList.length === 0) ? 'default' : 'pointer',
+                background: (!savingRearrange && rearrangeList.length > 0) ? 'linear-gradient(135deg, #f59e0b, #d97706)' : '#e2e8f0',
+                color: (!savingRearrange && rearrangeList.length > 0) ? 'white' : '#9ca3af',
+                opacity: savingRearrange ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              }}>{savingRearrange ? <><FaSpinner size={14} className="animate-spin" /> Saving...</> : 'Save Order'}</button>
             </div>
           </div>
         </div>,

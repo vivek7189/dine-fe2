@@ -1,6 +1,6 @@
 {
   "name": "dine-frontend",
-  "version": "1.14.53",
+  "version": "1.14.54",
   "author": "",
   "private": true,
   "scripts": {
@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start -p 3002",
     "lint": "eslint",
+    "test:print": "npx --yes esbuild scripts/check-print-templates.mjs --bundle --platform=node --format=cjs --outfile=node_modules/.cache/print-check.cjs && node node_modules/.cache/print-check.cjs",
     "cap:sync": "npx cap sync android",
     "cap:open": "npx cap open android",
     "cap:run": "npx cap run android",

@@ -26,7 +26,7 @@ function getMinimalBillCSS(scaleOrPreset, fontId, printerWidth, printSettings) {
   // Force sans-serif for modern feel
   const ff = "Arial, Helvetica, sans-serif";
   const cw = getContentWidth(printerWidth, printSettings?.printContentWidth);
-  return `@page{size:${cw} auto;margin:0;}*{box-sizing:border-box;}body{font-family:${ff};margin:0;padding:3mm 3mm;font-size:${f.body};line-height:${f.lineHeight};width:${cw};max-width:${cw};overflow-wrap:break-word;word-wrap:break-word;} .header{text-align:center;margin-bottom:14px;} .restaurant-name{font-size:${f.restaurantName};font-weight:300;text-transform:uppercase;letter-spacing:2px;} .bill-title{font-size:${f.billTitle};font-weight:300;margin-top:4px;letter-spacing:1px;} .meta{margin:12px 0;font-size:${f.info};} .meta-row{display:flex;justify-content:space-between;flex-wrap:wrap;margin:4px 0;color:#555;} .items{margin:14px 0;} .item-row{display:flex;justify-content:space-between;flex-wrap:wrap;margin:6px 0;font-size:${f.td};} .item-name{flex:1;} .item-amount{text-align:right;flex-shrink:0;white-space:nowrap;margin-left:8px;} .item-sub{margin-left:0;font-size:${f.itemDetail};color:#888;margin:1px 0;} .spacer{height:10px;} .total-section{margin-top:12px;padding-top:8px;font-size:${f.totalSection};} .total-section .row{display:flex;justify-content:space-between;margin:3px 0;} .grand-total{display:flex;justify-content:space-between;font-weight:bold;font-size:${f.totalRow};margin:10px 0 6px;} .footer{margin-top:16px;text-align:center;font-size:${f.footer};color:#888;} .bill-info{font-size:${f.info};} .bill-info div{display:flex;justify-content:space-between;flex-wrap:wrap;margin:3px 0;gap:4px;} .bill-info div span:first-child{flex:0 1 auto;min-width:0;} .bill-info div span:last-child{text-align:right;flex:0 1 auto;min-width:0;}`;
+  return `@page{size:${cw} auto;margin:0;}*{box-sizing:border-box;}body{font-family:${ff};margin:0;padding:3mm 3mm;font-size:${f.body};line-height:${f.lineHeight};width:${cw};max-width:${cw};overflow-wrap:break-word;word-wrap:break-word;} .header{text-align:center;margin-bottom:14px;} .restaurant-name{font-size:${f.restaurantName};font-weight:300;text-transform:uppercase;letter-spacing:2px;} .bill-title{font-size:${f.billTitle};font-weight:300;margin-top:4px;letter-spacing:1px;} .meta{margin:12px 0;font-size:${f.info};} .meta-row{display:flex;justify-content:space-between;flex-wrap:wrap;margin:4px 0;color:#000;} .items{margin:14px 0;} .item-row{display:flex;justify-content:space-between;flex-wrap:wrap;margin:6px 0;font-size:${f.td};} .item-name{flex:1;} .item-amount{text-align:right;flex-shrink:0;white-space:nowrap;margin-left:8px;} .item-sub{margin-left:0;font-size:${f.itemDetail};color:#000;margin:1px 0;} .spacer{height:10px;} .total-section{margin-top:12px;padding-top:8px;font-size:${f.totalSection};} .total-section .row{display:flex;justify-content:space-between;margin:3px 0;} .grand-total{display:flex;justify-content:space-between;font-weight:bold;font-size:${f.totalRow};margin:10px 0 6px;} .footer{margin-top:16px;text-align:center;font-size:${f.footer};color:#000;} .bill-info{font-size:${f.info};} .bill-info div{display:flex;justify-content:space-between;flex-wrap:wrap;margin:3px 0;gap:4px;} .bill-info div span:first-child{flex:0 1 auto;min-width:0;} .bill-info div span:last-child{text-align:right;flex:0 1 auto;min-width:0;}`;
 }
 
 export function render(invoice, printSettings = {}, labels = {}) {
@@ -65,11 +65,11 @@ export function render(invoice, printSettings = {}, labels = {}) {
   const offerName = typeof invoice.appliedOffer === 'string' ? invoice.appliedOffer : (invoice.appliedOffer?.name || '');
   let discountRows = '';
   if ((invoice.discountAmount || 0) > 0)
-    discountRows += `<div class="row" style="display:flex;justify-content:space-between;margin:3px 0;color:#16a34a;"><span>${L.offer}${offerName ? ` (${offerName})` : ''}:</span><span>-${cs}${invoice.discountAmount.toFixed(2)}</span></div>`;
+    discountRows += `<div class="row" style="display:flex;justify-content:space-between;margin:3px 0;color:#000;"><span>${L.offer}${offerName ? ` (${offerName})` : ''}:</span><span>-${cs}${invoice.discountAmount.toFixed(2)}</span></div>`;
   if ((invoice.manualDiscount || 0) > 0)
-    discountRows += `<div class="row" style="display:flex;justify-content:space-between;margin:3px 0;color:#16a34a;"><span>${L.manualDiscount}:</span><span>-${cs}${invoice.manualDiscount.toFixed(2)}</span></div>`;
+    discountRows += `<div class="row" style="display:flex;justify-content:space-between;margin:3px 0;color:#000;"><span>${L.manualDiscount}:</span><span>-${cs}${invoice.manualDiscount.toFixed(2)}</span></div>`;
   if ((invoice.loyaltyDiscount || 0) > 0)
-    discountRows += `<div class="row" style="display:flex;justify-content:space-between;margin:3px 0;color:#b45309;"><span>${L.loyaltyRedeem}:</span><span>-${cs}${invoice.loyaltyDiscount.toFixed(2)}</span></div>`;
+    discountRows += `<div class="row" style="display:flex;justify-content:space-between;margin:3px 0;color:#000;"><span>${L.loyaltyRedeem}:</span><span>-${cs}${invoice.loyaltyDiscount.toFixed(2)}</span></div>`;
 
   // Tax
   const showIncl = invoice.showInclusiveTaxOnBill !== false;
@@ -88,7 +88,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
   const css = getMinimalBillCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily, printSettings.printerWidth, printSettings);
   const finalCss = showAr ? css + getBillDualCSS() : css;
 
-  const preBillBanner = invoice.isPreBill ? '<div style="text-align:center;font-weight:bold;font-size:16px;padding:6px 0;border:2px dashed #333;margin:6px 0;letter-spacing:2px;">*** PRE-BILL ***</div>' : '';
+  const preBillBanner = invoice.isPreBill ? '<div style="text-align:center;font-weight:bold;font-size:16px;padding:6px 0;border:2px dashed #000;margin:6px 0;letter-spacing:2px;">*** PRE-BILL ***</div>' : '';
 
   const bodyHtml =
     // Clean header - no logo for minimal
@@ -98,7 +98,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
       `<div class="bill-title">${showAr ? dualTitle(L.billTitle, AR.billTitle, showAr) : L.billTitle}</div>` +
     `</div>` +
     preBillBanner +
-    (((invoice.editCount || 0) + (invoice.updateCount || 0)) > 0 ? `<div style="text-align:center;font-weight:bold;font-size:14px;padding:4px 0;border:2px solid #333;margin:4px 0;">${showAr ? dualLabel(L.revisedBill, AR.revisedBill, showAr) : L.revisedBill}${invoice.editCount > 0 ? ` (Edit #${invoice.editCount})` : ''}${invoice.updateCount > 0 ? ` (Modified ${invoice.updateCount}x)` : ''}</div>` : '') +
+    (((invoice.editCount || 0) + (invoice.updateCount || 0)) > 0 ? `<div style="text-align:center;font-weight:bold;font-size:14px;padding:4px 0;border:2px solid #000;margin:4px 0;">${showAr ? dualLabel(L.revisedBill, AR.revisedBill, showAr) : L.revisedBill}${invoice.editCount > 0 ? ` (Edit #${invoice.editCount})` : ''}${invoice.updateCount > 0 ? ` (Modified ${invoice.updateCount}x)` : ''}</div>` : '') +
     buildSplitBillHtml(invoice, L, cs) +
     `<div class="spacer"></div>` +
     // Meta info

@@ -47,21 +47,26 @@ export function buildIdentityHtml(info, printSettings) {
 }
 
 // Get item subline HTML (variant + customizations + notes) for bill item rows.
-export function getSublineHtml(item) {
+// opts.showItemTaxBreakup: opt in to the per-item MRP+tax split line (default OFF).
+// NOTE: all sublines are pure black (#000). Thermal printers are 1-bit — any grey is
+// dithered into a faint garbled dot pattern, so grey text must never be used here.
+export function getSublineHtml(item, opts = {}) {
   let sub = '';
   const seat = seatTag(item);
   if (seat) sub += ` <small style="font-weight:bold;">[${seat}]</small>`;
   const variant = item.selectedVariant?.name || item.variant;
-  if (variant) sub += `<br/><small style="color:#666;">[${esc(variant)}]</small>`;
+  if (variant) sub += `<br/><small style="color:#000;">[${esc(variant)}]</small>`;
   const custs = item.selectedCustomizations || item.customizations || [];
   if (custs.length > 0) {
-    sub += '<br/><small style="color:#666;">+ ' + custs.map(c => esc(c.name || c)).join(', ') + '</small>';
+    sub += '<br/><small style="color:#000;">+ ' + custs.map(c => esc(c.name || c)).join(', ') + '</small>';
   }
-  if (item.notes) sub += `<br/><small style="font-style:italic;color:#888;">Note: ${esc(item.notes)}</small>`;
+  if (item.notes) sub += `<br/><small style="font-style:italic;color:#000;">Note: ${esc(item.notes)}</small>`;
   // Tax-inclusive per-item split (MRP + tax) — set by attachInclusiveSplits().
-  if (item.taxSplitLabel) sub += `<br/><small style="color:#888;">${esc(item.taxSplitLabel)}</small>`;
+  // Off by default: standard POS receipts summarise tax once in the totals, not per line.
+  // Opt in via billLayout.showItemTaxBreakup.
+  if (item.taxSplitLabel && opts.showItemTaxBreakup) sub += `<br/><small style="color:#000;">${esc(item.taxSplitLabel)}</small>`;
   // HSN/SAC code (India GST invoice) — shown only when the item carries one.
-  if (item.hsnCode) sub += `<br/><small style="color:#888;">HSN: ${esc(String(item.hsnCode))}</small>`;
+  if (item.hsnCode) sub += `<br/><small style="color:#000;">HSN: ${esc(String(item.hsnCode))}</small>`;
   return sub;
 }
 
@@ -139,8 +144,8 @@ export function renderKOTItemRow(item, opts = {}, labels = {}) {
     ? `${item.itemWeight}${item.weightUnit || 'kg'}`
     : `${qty}x`;
   const noteLabel = labels.note || 'Note';
-  const label = opts.isRemoved ? ' <span style="color:#666;">[CANCEL]</span>' : (opts.showDelta && item.quantityDelta > 0 ? ' <span>[+NEW]</span>' : '');
-  const strikeStyle = opts.isRemoved ? 'text-decoration:line-through;color:#999;' : '';
+  const label = opts.isRemoved ? ' <span style="color:#000;">[CANCEL]</span>' : (opts.showDelta && item.quantityDelta > 0 ? ' <span>[+NEW]</span>' : '');
+  const strikeStyle = opts.isRemoved ? 'text-decoration:line-through;color:#000;' : '';
   const price = item.price || (item.total ? item.total / (item.quantity || 1) : 0);
   const itemTotal = price * qty;
   const priceHtml = opts.showPrice && itemTotal > 0 && !opts.isRemoved
@@ -219,7 +224,7 @@ export function buildCashbackHtml(invoice, cs) {
 }
 
 // Build bill items table rows HTML
-export function buildBillItemRows(items, cs, showAr) {
+export function buildBillItemRows(items, cs, showAr, opts = {}) {
   return items.map(item => {
     // Weight-based items: show weight instead of quantity
     const qtyDisplay = item.soldByWeight && item.itemWeight
@@ -230,7 +235,7 @@ export function buildBillItemRows(items, cs, showAr) {
         ? (item.price || 0) * (item.itemWeight / 100)
         : (item.price || 0) * item.itemWeight)
       : (Math.round(((item.price || Math.round((item.total || 0) / (item.quantity || 1) * 100) / 100 || 0) * (item.quantity || 1)) * 100) / 100);
-    return `<tr><td style="text-align:left;">${showAr ? dualItemName(item, showAr) : esc(item.name)}${getSublineHtml(item)}</td>` +
+    return `<tr><td style="text-align:left;">${showAr ? dualItemName(item, showAr) : esc(item.name)}${getSublineHtml(item, opts)}</td>` +
       `<td style="text-align:center;">${qtyDisplay}</td>` +
       `<td style="text-align:right;">${cs}${lineTotal.toFixed(2)}</td></tr>`;
   }).join('');
@@ -256,10 +261,10 @@ export function buildFeedbackSection(printSettings = {}) {
   if (!printSettings.feedbackQREnabled || !printSettings.feedbackFormUrl) return '';
   const url = printSettings.feedbackFormUrl;
   const qrDataUrl = printSettings.feedbackQRDataUrl;
-  return `<div style="text-align:center;margin-top:8px;padding-top:8px;border-top:1px dashed #ccc;">` +
+  return `<div style="text-align:center;margin-top:8px;padding-top:8px;border-top:1px dashed #000;">` +
     `<div style="font-size:11px;font-weight:bold;margin-bottom:4px;">📝 Rate your experience</div>` +
     (qrDataUrl ? `<img src="${qrDataUrl}" style="width:80px;height:80px;margin:4px auto;display:block;" />` : '') +
-    `<div style="font-size:9px;color:#666;word-break:break-all;">${url}</div>` +
+    `<div style="font-size:9px;color:#000;word-break:break-all;">${url}</div>` +
     `</div>`;
 }
 
@@ -275,16 +280,16 @@ export function buildOrderStatusSection(printSettings = {}) {
 // The actual printed block, built once the QR data URL is ready.
 export function renderOrderStatusQRHtml(url, qrDataUrl) {
   if (!url || !qrDataUrl) return '';
-  return `<div style="text-align:center;margin-top:8px;padding-top:8px;border-top:1px dashed #ccc;">` +
+  return `<div style="text-align:center;margin-top:8px;padding-top:8px;border-top:1px dashed #000;">` +
     `<div style="font-size:11px;font-weight:bold;margin-bottom:4px;">📱 Track your order</div>` +
     `<img src="${qrDataUrl}" style="width:80px;height:80px;margin:4px auto;display:block;" />` +
-    `<div style="font-size:9px;color:#666;word-break:break-all;">${url}</div>` +
+    `<div style="font-size:9px;color:#000;word-break:break-all;">${url}</div>` +
     `</div>`;
 }
 
 export function buildInclusiveTaxNote(invoice) {
   if (invoice.taxInclusiveMode === 'inclusive' || invoice.taxInclusiveMode === 'mixed') {
-    return '<div style="text-align:center;font-size:9px;margin-top:4px;color:#6b7280;">* Prices are inclusive of applicable taxes</div>';
+    return '<div style="text-align:center;font-size:9px;margin-top:4px;color:#000;">* Prices are inclusive of applicable taxes</div>';
   }
   return '';
 }
@@ -293,11 +298,11 @@ export function buildInclusiveTaxNote(invoice) {
 export function buildDiscountHtml(invoice, L, cs) {
   const offerName = typeof invoice.appliedOffer === 'string' ? invoice.appliedOffer : (invoice.appliedOffer?.name || '');
   const offerDiscHtml = (invoice.discountAmount || 0) > 0
-    ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>${L.offer}${offerName ? ` (${offerName})` : ''}:</span><span>-${cs}${invoice.discountAmount.toFixed(2)}</span></div>` : '';
+    ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#000;"><span>${L.offer}${offerName ? ` (${offerName})` : ''}:</span><span>-${cs}${invoice.discountAmount.toFixed(2)}</span></div>` : '';
   const manualDiscHtml = (invoice.manualDiscount || 0) > 0
-    ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>${L.manualDiscount}:</span><span>-${cs}${invoice.manualDiscount.toFixed(2)}</span></div>` : '';
+    ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#000;"><span>${L.manualDiscount}:</span><span>-${cs}${invoice.manualDiscount.toFixed(2)}</span></div>` : '';
   const loyaltyDiscHtml = (invoice.loyaltyDiscount || 0) > 0
-    ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#b45309;"><span>${L.loyaltyRedeem}:</span><span>-${cs}${invoice.loyaltyDiscount.toFixed(2)}</span></div>` : '';
+    ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#000;"><span>${L.loyaltyRedeem}:</span><span>-${cs}${invoice.loyaltyDiscount.toFixed(2)}</span></div>` : '';
   return offerDiscHtml + manualDiscHtml + loyaltyDiscHtml;
 }
 
@@ -319,7 +324,7 @@ export function buildPaymentHtml(invoice, L, cs) {
   const cashReceivedHtml = (invoice.cashReceived > 0)
     ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.cashReceived}:</span><span>${cs}${invoice.cashReceived.toFixed(2)}</span></div>${(invoice.changeReturned > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.change}:</span><span>${cs}${invoice.changeReturned.toFixed(2)}</span></div>` : ''}</div>` : '';
   const partialPayHtml = (invoice.outstandingAmount > 0)
-    ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">${invoice.paidAmount === 0 ? (L.duePayment || 'Due (Udhar)') : L.partialPayment}:</div>${invoice.paidAmount > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.paid}:</span><span>${cs}${invoice.paidAmount.toFixed(2)}</span></div>` : ''}<div style="display:flex;justify-content:space-between;margin:2px 0;color:#dc2626;font-weight:bold;"><span>${L.outstanding || 'Outstanding'}:</span><span>${cs}${invoice.outstandingAmount.toFixed(2)}</span></div></div>` : '';
+    ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">${invoice.paidAmount === 0 ? (L.duePayment || 'Due (Udhar)') : L.partialPayment}:</div>${invoice.paidAmount > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.paid}:</span><span>${cs}${invoice.paidAmount.toFixed(2)}</span></div>` : ''}<div style="display:flex;justify-content:space-between;margin:2px 0;color:#000;font-weight:bold;"><span>${L.outstanding || 'Outstanding'}:</span><span>${cs}${invoice.outstandingAmount.toFixed(2)}</span></div></div>` : '';
   const walletPayHtml = (invoice.walletRedeemAmount || 0) > 0
     ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.walletApplied}:</span><span>-${cs}${invoice.walletRedeemAmount.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;margin:2px 0;font-weight:bold;"><span>${L.amountToPay}:</span><span>${cs}${(Math.round(Math.max(0, (invoice.grandTotal || 0) - invoice.walletRedeemAmount) * 100) / 100).toFixed(2)}</span></div></div>` : '';
   return splitPaymentHtml + cashReceivedHtml + partialPayHtml + walletPayHtml;
@@ -544,9 +549,9 @@ export function buildSplitBillHtml(invoice, L, cs) {
   const si = invoice.splitInfo;
   const methodLabel = si.method === 'equal' ? 'Equal Split' : si.method === 'by-item' ? 'Split by Item' : 'Split by Amount';
   const nameDisplay = si.guestName ? `${esc(si.guestName)} (${esc(si.guestLabel)})` : esc(si.guestLabel);
-  return `<div style="border:2px solid #0ea5e9;border-radius:6px;padding:6px 8px;margin:6px 0;text-align:center;background:#f0f9ff;">
-    <div style="font-weight:bold;font-size:13px;color:#0369a1;">SPLIT BILL &mdash; ${nameDisplay} of ${si.guestCount}</div>
-    <div style="font-size:10px;color:#64748b;">(${methodLabel})</div>
+  return `<div style="border:2px solid #000;border-radius:6px;padding:6px 8px;margin:6px 0;text-align:center;background:#fff;">
+    <div style="font-weight:bold;font-size:13px;color:#000;">SPLIT BILL - ${nameDisplay} of ${si.guestCount}</div>
+    <div style="font-size:10px;color:#000;">(${methodLabel})</div>
   </div>`;
 }
 

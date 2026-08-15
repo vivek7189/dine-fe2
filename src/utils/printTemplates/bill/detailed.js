@@ -27,7 +27,7 @@ function getDetailedBillCSS(scaleOrPreset, fontId, printerWidth, printSettings) 
   // Force monospace for receipt feel
   const ff = "'Courier New', Courier, monospace";
   const cw = getContentWidth(printerWidth, printSettings?.printContentWidth);
-  return `@page{size:${cw} auto;margin:0;}*{box-sizing:border-box;}body{font-family:${ff};margin:0;padding:2mm 2mm;font-size:${f.body};line-height:${f.lineHeight};width:${cw};max-width:${cw};overflow-wrap:break-word;word-wrap:break-word;} .bill-header{text-align:center;margin-bottom:6px;} .restaurant-name{font-size:${f.restaurantName};font-weight:bold;text-transform:uppercase;letter-spacing:1px;} .receipt-title{font-size:${f.totalRow};font-weight:bold;text-align:center;margin:6px 0;} .bill-title{font-size:${f.billTitle};font-weight:bold;margin-top:4px;} .bill-logo{height:auto;display:block;} .divider{text-align:center;margin:4px 0;overflow:hidden;letter-spacing:1px;} .info-line{display:flex;justify-content:space-between;flex-wrap:wrap;margin:2px 0;font-size:${f.info};} .item-row{display:flex;justify-content:space-between;flex-wrap:wrap;margin:3px 0;font-size:${f.td};} .item-row span:last-child{text-align:right;flex-shrink:0;white-space:nowrap;} .item-sub{margin-left:16px;font-size:${f.itemDetail};color:#333;margin:1px 0;} .total-section{margin-top:4px;font-size:${f.totalSection};} .total-section .row{display:flex;justify-content:space-between;margin:2px 0;} .grand-total{display:flex;justify-content:space-between;font-weight:bold;font-size:${f.totalRow};margin:6px 0;} .bill-footer{margin-top:8px;text-align:center;font-size:${f.footer};} .bill-info{margin:4px 0;font-size:${f.info};} .bill-info div{display:flex;justify-content:space-between;flex-wrap:wrap;margin:2px 0;gap:4px;} .bill-info div span:first-child{flex:0 1 auto;min-width:0;} .bill-info div span:last-child{text-align:right;flex:0 1 auto;min-width:0;}`;
+  return `@page{size:${cw} auto;margin:0;}*{box-sizing:border-box;}body{font-family:${ff};margin:0;padding:2mm 2mm;font-size:${f.body};line-height:${f.lineHeight};width:${cw};max-width:${cw};overflow-wrap:break-word;word-wrap:break-word;} .bill-header{text-align:center;margin-bottom:6px;} .restaurant-name{font-size:${f.restaurantName};font-weight:bold;text-transform:uppercase;letter-spacing:1px;} .receipt-title{font-size:${f.totalRow};font-weight:bold;text-align:center;margin:6px 0;} .bill-title{font-size:${f.billTitle};font-weight:bold;margin-top:4px;} .bill-logo{height:auto;display:block;} .divider{text-align:center;margin:4px 0;overflow:hidden;letter-spacing:1px;} .info-line{display:flex;justify-content:space-between;flex-wrap:wrap;margin:2px 0;font-size:${f.info};} .item-row{display:flex;justify-content:space-between;flex-wrap:wrap;margin:3px 0;font-size:${f.td};} .item-row span:last-child{text-align:right;flex-shrink:0;white-space:nowrap;} .item-sub{margin-left:16px;font-size:${f.itemDetail};color:#000;margin:1px 0;} .total-section{margin-top:4px;font-size:${f.totalSection};} .total-section .row{display:flex;justify-content:space-between;margin:2px 0;} .grand-total{display:flex;justify-content:space-between;font-weight:bold;font-size:${f.totalRow};margin:6px 0;} .bill-footer{margin-top:8px;text-align:center;font-size:${f.footer};} .bill-info{margin:4px 0;font-size:${f.info};} .bill-info div{display:flex;justify-content:space-between;flex-wrap:wrap;margin:2px 0;gap:4px;} .bill-info div span:first-child{flex:0 1 auto;min-width:0;} .bill-info div span:last-child{text-align:right;flex:0 1 auto;min-width:0;}`;
 }
 
 export function render(invoice, printSettings = {}, labels = {}) {
@@ -73,7 +73,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
     if (item.discountAmount && item.discountAmount > 0) {
       const discLabel = item.discountLabel || item.discountName || 'Discount';
       const discPct = item.discountPercent || item.discountRate || '';
-      html += `<div class="item-sub" style="color:#16a34a;">DISC. ${discPct ? discPct + '% ' : ''}(${esc(discLabel)}) @ ${cs}${(unitPrice * qty).toFixed(2)}</div>`;
+      html += `<div class="item-sub" style="color:#000;">DISC. ${discPct ? discPct + '% ' : ''}(${esc(discLabel)}) @ ${cs}${(unitPrice * qty).toFixed(2)}</div>`;
     }
     // Show notes
     if (item.notes) {
@@ -116,7 +116,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
   // Waiter/cashier info
   const waiterInfo = invoice.waiterName || invoice.cashierName || '';
 
-  const preBillBanner = invoice.isPreBill ? '<div style="text-align:center;font-weight:bold;font-size:16px;padding:6px 0;border:2px dashed #333;margin:6px 0;letter-spacing:2px;">*** PRE-BILL ***</div>' : '';
+  const preBillBanner = invoice.isPreBill ? '<div style="text-align:center;font-weight:bold;font-size:16px;padding:6px 0;border:2px dashed #000;margin:6px 0;letter-spacing:2px;">*** PRE-BILL ***</div>' : '';
 
   const bodyHtml =
     // Header with logo
@@ -124,7 +124,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
     `<div class="divider">- - - - - - - - - - - - - - - - -</div>` +
     `<div class="receipt-title">${showAr ? dualTitle('*** ' + L.billTitle + ' ***', '*** ' + AR.billTitle + ' ***', showAr) : '*** ' + L.billTitle + ' ***'}</div>` +
     preBillBanner +
-    (((invoice.editCount || 0) + (invoice.updateCount || 0)) > 0 ? `<div style="text-align:center;font-weight:bold;font-size:14px;padding:4px 0;border:2px solid #333;margin:4px 0;">${showAr ? dualLabel(L.revisedBill, AR.revisedBill, showAr) : L.revisedBill}${invoice.editCount > 0 ? ` (Edit #${invoice.editCount})` : ''}${invoice.updateCount > 0 ? ` (Modified ${invoice.updateCount}x)` : ''}</div>` : '') +
+    (((invoice.editCount || 0) + (invoice.updateCount || 0)) > 0 ? `<div style="text-align:center;font-weight:bold;font-size:14px;padding:4px 0;border:2px solid #000;margin:4px 0;">${showAr ? dualLabel(L.revisedBill, AR.revisedBill, showAr) : L.revisedBill}${invoice.editCount > 0 ? ` (Edit #${invoice.editCount})` : ''}${invoice.updateCount > 0 ? ` (Modified ${invoice.updateCount}x)` : ''}</div>` : '') +
     buildSplitBillHtml(invoice, L, cs) +
     // Cashier + date on one line
     `<div class="info-line">` +

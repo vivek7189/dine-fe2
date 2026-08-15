@@ -44,8 +44,8 @@ export function render(kotData, printSettings = {}, labels = {}) {
   const renderRow = (item, opts = {}) => {
     const qty = item.quantity || 1;
     const noteLabel = L.note || 'Note';
-    const label = opts.isRemoved ? ' <span style="color:#666;">[X]</span>' : (opts.showDelta && item.quantityDelta > 0 ? ' <span>[+]</span>' : '');
-    const strikeStyle = opts.isRemoved ? 'text-decoration:line-through;color:#999;' : '';
+    const label = opts.isRemoved ? ' <span style="color:#000;">[X]</span>' : (opts.showDelta && item.quantityDelta > 0 ? ' <span>[+]</span>' : '');
+    const strikeStyle = opts.isRemoved ? 'text-decoration:line-through;color:#000;' : '';
     const price = item.price || (item.total ? item.total / (item.quantity || 1) : 0);
     const itemTotal = price * qty;
     const priceHtml = showPrice && itemTotal > 0 && !opts.isRemoved ? `<span style="float:right;font-weight:bold;">${cs}${itemTotal.toFixed(2)}</span>` : '';

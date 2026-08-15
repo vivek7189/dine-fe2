@@ -42,16 +42,16 @@ function getProfessionalBillCSS(scaleOrPreset, printerWidth, printContentWidth, 
     ` .info-row{display:flex;justify-content:space-between;margin:2px 0;font-size:${f.info};}` +
     ` .info-row span:first-child{font-weight:bold;flex-shrink:0;}` +
     ` table{width:100%;border-collapse:collapse;margin:0;}` +
-    ` th{font-size:${f.th};font-weight:bold;text-align:left;padding:2px 1px;border-bottom:1px dashed #333;}` +
+    ` th{font-size:${f.th};font-weight:bold;text-align:left;padding:2px 1px;border-bottom:1px dashed #000;}` +
     ` td{font-size:${f.td};padding:2px 1px;vertical-align:top;}` +
     ` .sno{width:10%;text-align:center;}` +
     ` .item-name-col{width:48%;text-align:left;}` +
     ` .qty-col{width:12%;text-align:center;}` +
     ` .amt-col{width:30%;text-align:right;}` +
-    ` .item-sub{font-size:${f.itemDetail};color:#555;margin:1px 0 1px 0;padding:0;}` +
+    ` .item-sub{font-size:${f.itemDetail};color:#000;margin:1px 0 1px 0;padding:0;}` +
     ` .total-section{margin-top:4px;font-size:${f.totalSection};}` +
     ` .total-section .row{display:flex;justify-content:space-between;margin:2px 0;}` +
-    ` .grand-total{display:flex;justify-content:space-between;font-weight:bold;font-size:${f.totalRow};margin:4px 0;padding:4px 0;border-top:1px dashed #333;border-bottom:1px dashed #333;}` +
+    ` .grand-total{display:flex;justify-content:space-between;font-weight:bold;font-size:${f.totalRow};margin:4px 0;padding:4px 0;border-top:1px dashed #000;border-bottom:1px dashed #000;}` +
     ` .bill-footer{margin-top:8px;text-align:center;font-size:${f.footer};}` +
     ` .bill-info{margin:4px 0;font-size:${f.info};}` +
     ` .bill-info div{display:flex;justify-content:space-between;margin:2px 0;gap:4px;}` +
@@ -84,7 +84,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
 
     let html = `<tr>` +
       `<td class="sno">${idx + 1}</td>` +
-      `<td class="item-name-col">${showAr ? dualItemName(item, showAr) : esc(item.name)}${getSublineHtml(item)}</td>` +
+      `<td class="item-name-col">${showAr ? dualItemName(item, showAr) : esc(item.name)}${getSublineHtml(item, { showItemTaxBreakup: bl.showItemTaxBreakup === true })}</td>` +
       `<td class="qty-col">${qtyDisplay}</td>` +
       `<td class="amt-col">${cs}${lineTotal.toFixed(2)}</td>` +
       `</tr>`;
@@ -132,9 +132,9 @@ export function render(invoice, printSettings = {}, labels = {}) {
 
   const totalModifications = (invoice.editCount || 0) + (invoice.updateCount || 0);
   const revisedBanner = totalModifications > 0
-    ? `<div style="text-align:center;font-weight:bold;font-size:14px;padding:4px 0;border:2px solid #333;margin:4px 0;">${showAr ? dualLabel(L.revisedBill, AR.revisedBill, showAr) : L.revisedBill}${invoice.editCount > 0 ? ` (Edit #${invoice.editCount})` : ''}${invoice.updateCount > 0 ? ` (Modified ${invoice.updateCount}x)` : ''}</div>`
+    ? `<div style="text-align:center;font-weight:bold;font-size:14px;padding:4px 0;border:2px solid #000;margin:4px 0;">${showAr ? dualLabel(L.revisedBill, AR.revisedBill, showAr) : L.revisedBill}${invoice.editCount > 0 ? ` (Edit #${invoice.editCount})` : ''}${invoice.updateCount > 0 ? ` (Modified ${invoice.updateCount}x)` : ''}</div>`
     : '';
-  const preBillBanner = invoice.isPreBill ? '<div style="text-align:center;font-weight:bold;font-size:16px;padding:6px 0;border:2px dashed #333;margin:6px 0;letter-spacing:2px;">*** PRE-BILL ***</div>' : '';
+  const preBillBanner = invoice.isPreBill ? '<div style="text-align:center;font-weight:bold;font-size:16px;padding:6px 0;border:2px dashed #000;margin:6px 0;letter-spacing:2px;">*** PRE-BILL ***</div>' : '';
 
   const bodyHtml =
     headerHtml +

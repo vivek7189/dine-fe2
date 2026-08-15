@@ -1824,6 +1824,16 @@ class ApiClient {
     return result;
   }
 
+  async reorderTables(restaurantId, floorId, tableOrder) {
+    const result = await this.request(`/api/tables/reorder/${restaurantId}`, {
+      method: 'PATCH',
+      body: { floorId, tableOrder },
+    });
+    this.invalidateCache('/api/floors/');
+    this.invalidateCache('/api/tables/');
+    return result;
+  }
+
   async deleteFloor(floorId, restaurantId) {
     const result = await this.request(`/api/floors/${floorId}?restaurantId=${restaurantId}`, {
       method: 'DELETE',

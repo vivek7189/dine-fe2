@@ -4285,6 +4285,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                     { key: 'showDelivery', label: 'Delivery' },
                     { key: 'showSubtotal', label: 'Subtotal' },
                     { key: 'showTaxBreakdown', label: 'Tax Lines' },
+                    { key: 'showItemTaxBreakup', label: 'Item Tax Split' },
                     { key: 'showCovers', label: 'Covers' },
                     { key: 'showFooter', label: 'Footer' },
                     { key: 'showPoweredBy', label: 'Powered By' },
@@ -4353,7 +4354,8 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                         {billExpanded && (
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e5e7eb' }}>
                             {billFields.map(({ key, label }) => {
-                              const defaultOn = key === 'showCustomerPhone' ? false : true;
+                              // Item Tax Split & Customer Phone are opt-in (default OFF).
+                              const defaultOn = (key === 'showCustomerPhone' || key === 'showItemTaxBreakup') ? false : true;
                               const isOn = printSettings.billLayout?.[key] ?? defaultOn;
                               return toggleChip(label, isOn, () => setPrintSettings(prev => ({
                                 ...prev,
@@ -5212,6 +5214,25 @@ function AppDownloadTab() {
   const apiBase = (apiClient && apiClient.baseURL) || process.env.NEXT_PUBLIC_API_URL || '';
   const dl = (app, platform) => `${apiBase}/api/download/desktop?app=${app}&platform=${platform}`;
 
+  // Desktop-only: the version this app ran before the current one, for one-step rollback.
+  const [verInfo, setVerInfo] = useState(null);   // { current, previous, appKind, platform }
+  const [confirmRevert, setConfirmRevert] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        if (typeof window !== 'undefined' && window.electronAPI?.getVersionInfo) {
+          const info = await window.electronAPI.getVersionInfo();
+          if (alive) setVerInfo(info || null);
+        }
+      } catch { /* web build or older app: no revert UI */ }
+    })();
+    return () => { alive = false; };
+  }, []);
+  const revertUrl = verInfo?.previous
+    ? `${apiBase}/api/download/desktop?app=${verInfo.appKind || 'online'}&platform=${verInfo.platform || 'win'}&version=${verInfo.previous}`
+    : '';
+
   const btnStyle = (bg, shadow) => ({
     display: 'inline-flex', alignItems: 'center', gap: '8px',
     padding: '11px 20px', background: bg, color: 'white',
@@ -5272,6 +5293,53 @@ function AppDownloadTab() {
           app: 'server',
         })}
       </div>
+
+      {/* Revert to previous version — desktop app only, shown when a prior version is known */}
+      {verInfo?.previous && (
+        <div style={{ marginTop: '24px', padding: '18px 20px', borderRadius: '14px', border: '1px solid #fde68a', background: '#fffbeb' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+            <span style={{ fontSize: '18px' }}>↩️</span>
+            <div style={{ fontWeight: '700', fontSize: '15px', color: '#92400e' }}>Roll back to the previous version</div>
+          </div>
+          <p style={{ fontSize: '13px', color: '#92400e', margin: '0 0 6px 0', lineHeight: '1.5' }}>
+            You&apos;re running <b>v{verInfo.current}</b>. If this version is causing problems, you can go back to the
+            version you had before — <b>v{verInfo.previous}</b>. Download it below and run the installer; it replaces the
+            current version.
+          </p>
+          {verInfo.appKind === 'server' && (
+            <p style={{ fontSize: '12px', color: '#b45309', margin: '0 0 12px 0', lineHeight: '1.45' }}>
+              ⚠️ This is the Local Server app. If a recent update changed how data is stored, going back may require a
+              re-sync. Take a backup first if you&apos;re unsure.
+            </p>
+          )}
+          {!confirmRevert ? (
+            <button
+              onClick={() => setConfirmRevert(true)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', background: '#d97706', color: 'white', border: 'none', borderRadius: '10px', fontWeight: '600', fontSize: '13.5px', cursor: 'pointer' }}
+            >
+              ↩️ Revert to v{verInfo.previous}
+            </button>
+          ) : (
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <a
+                href={revertUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setConfirmRevert(false)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', background: '#d97706', color: 'white', borderRadius: '10px', fontWeight: '600', fontSize: '13.5px', textDecoration: 'none', cursor: 'pointer' }}
+              >
+                <FaDownload size={13} /> Download v{verInfo.previous} installer
+              </a>
+              <button
+                onClick={() => setConfirmRevert(false)}
+                style={{ padding: '10px 16px', background: '#fff', color: '#92400e', border: '1px solid #fcd34d', borderRadius: '10px', fontWeight: '600', fontSize: '13px', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Mobile / Waiter App Section */}
       <div style={{ marginTop: '28px' }}>

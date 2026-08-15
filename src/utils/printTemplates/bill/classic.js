@@ -26,7 +26,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
   const lang = printSettings.printLanguage || 'en';
   const showAr = lang === 'dual' || lang === 'ar';
 
-  const itemsHtml = buildBillItemRows(items, cs, showAr);
+  const itemsHtml = buildBillItemRows(items, cs, showAr, { showItemTaxBreakup: bl.showItemTaxBreakup === true });
   const taxHtml = buildTaxHtml(invoice.taxBreakdown, cs, { showInclusiveTax: invoice.showInclusiveTaxOnBill !== false }, printSettings);
   const inclusiveNote = buildInclusiveTaxNote(invoice);
   const discountHtml = buildDiscountHtml(invoice, L, cs);
@@ -46,8 +46,8 @@ export function render(invoice, printSettings = {}, labels = {}) {
   const css = showAr ? baseCss + getBillDualCSS() : baseCss;
 
   const totalModifications = (invoice.editCount || 0) + (invoice.updateCount || 0);
-  const revisedBanner = totalModifications > 0 ? `<div style="text-align:center;font-weight:bold;font-size:14px;padding:4px 0;border:2px solid #333;margin:4px 0;">${showAr ? dualLabel(L.revisedBill, AR.revisedBill, showAr) : L.revisedBill}${invoice.editCount > 0 ? ` (Edit #${invoice.editCount})` : ''}${invoice.updateCount > 0 ? ` (Modified ${invoice.updateCount}x)` : ''}</div>` : '';
-  const preBillBanner = invoice.isPreBill ? `<div style="text-align:center;font-weight:bold;font-size:16px;padding:6px 0;border:2px dashed #333;margin:6px 0;letter-spacing:2px;">*** PRE-BILL ***</div>` : '';
+  const revisedBanner = totalModifications > 0 ? `<div style="text-align:center;font-weight:bold;font-size:14px;padding:4px 0;border:2px solid #000;margin:4px 0;">${showAr ? dualLabel(L.revisedBill, AR.revisedBill, showAr) : L.revisedBill}${invoice.editCount > 0 ? ` (Edit #${invoice.editCount})` : ''}${invoice.updateCount > 0 ? ` (Modified ${invoice.updateCount}x)` : ''}</div>` : '';
+  const preBillBanner = invoice.isPreBill ? `<div style="text-align:center;font-weight:bold;font-size:16px;padding:6px 0;border:2px dashed #000;margin:6px 0;letter-spacing:2px;">*** PRE-BILL ***</div>` : '';
 
   const bodyHtml =
     headerHtml +

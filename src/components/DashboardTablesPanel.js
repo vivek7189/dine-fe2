@@ -158,9 +158,15 @@ export default function DashboardTablesPanel({
     }
   }, [recentlyUpdatedTableId, onClearRecentlyUpdated]);
 
-  // Sort tables: alphabetic names first (sorted A-Z), then numeric names (sorted 1,2,3...)
+  // Sort tables: saved manual `order` (drag-drop rearrange) wins; else natural sort
+  // (alphabetic A-Z, then numeric). `numeric: true` keeps "Banda 2" before "Banda 10".
   const sortTables = (tablesArr) => {
+    const ord = (x) => (x != null && Number.isFinite(Number(x)) ? Number(x) : null);
     return [...tablesArr].sort((a, b) => {
+      const oa = ord(a.order), ob = ord(b.order);
+      if (oa != null && ob != null && oa !== ob) return oa - ob;
+      if (oa != null && ob == null) return -1;
+      if (oa == null && ob != null) return 1;
       const nameA = (a.name || a.number || '').toString().trim();
       const nameB = (b.name || b.number || '').toString().trim();
       const numA = Number(nameA);
@@ -168,7 +174,7 @@ export default function DashboardTablesPanel({
       const isNumA = nameA !== '' && !isNaN(numA);
       const isNumB = nameB !== '' && !isNaN(numB);
       // Alphabetic names come before numeric names
-      if (!isNumA && !isNumB) return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
+      if (!isNumA && !isNumB) return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
       if (!isNumA && isNumB) return -1;
       if (isNumA && !isNumB) return 1;
       return numA - numB;

@@ -52,6 +52,27 @@ function saveSettings(settings) {
   } catch { /* ignore */ }
 }
 
+// True only for the local-server ("DineOpen POS Server") build — the exe path carries the
+// productName, whereas app.getName() is the shared package.json name for both builds.
+function isServerBuild() {
+  try { return /DineOpen POS Server/i.test(app.getPath('exe') || ''); } catch { return false; }
+}
+
+// Remember the version the app ran BEFORE the current one, so the user can revert to it from
+// Admin → Download. Runs once per launch; purely local file bookkeeping, fully guarded so it
+// can never affect startup. On the very first install there is no previous version (no revert).
+function trackVersionHistory() {
+  try {
+    const s = loadSettings();
+    const running = app.getVersion();
+    if (s.lastSeenVersion && s.lastSeenVersion !== running) {
+      s.previousVersion = s.lastSeenVersion; // moved (updated or reverted) FROM this version
+    }
+    s.lastSeenVersion = running;
+    saveSettings(s);
+  } catch { /* never let version bookkeeping break boot */ }
+}
+
 // ──── Window creation ────
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -261,6 +282,10 @@ function logPrintEvent(entry) {
 }
 
 app.whenReady().then(() => {
+  // Record the previously-run version for the Admin → Download rollback control.
+  // Runs here (not at module load) so the userData dir is guaranteed to exist.
+  trackVersionHistory();
+
   // Register app:// protocol to serve Next.js static export from /out
   protocol.handle('app', (request) => {
     const url = new URL(request.url);
@@ -1388,6 +1413,20 @@ ipcMain.handle('electron:restartApp', async () => {
 
 ipcMain.handle('electron:getVersion', async () => {
   return app.getVersion();
+});
+
+// Version info for the "Revert to previous version" control in Admin → Download.
+// `previous` is null on a first install (nothing to revert to). appKind/platform let the
+// renderer build the correct download URL for the running build without guessing.
+ipcMain.handle('electron:getVersionInfo', async () => {
+  let previous = null;
+  try { previous = loadSettings().previousVersion || null; } catch { /* ignore */ }
+  return {
+    current: app.getVersion(),
+    previous,
+    appKind: isServerBuild() ? 'server' : 'online',
+    platform: process.platform === 'darwin' ? 'mac' : 'win',
+  };
 });
 
 // ──── IPC: Refocus window (Windows alert/confirm focus fix) ────
