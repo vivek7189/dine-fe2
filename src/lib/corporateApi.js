@@ -51,6 +51,16 @@ const corporateApi = {
 
   // ── Live counts ──
   counts: (params) => req(`/api/corporate/counts${qs(params)}`),
+
+  // ── Employee self-service (resolved by the caller's phone) ──
+  employee: {
+    me: () => req('/api/corporate-employee/me'),
+    menu: () => req('/api/corporate-employee/menu'),
+    bookings: (params) => req(`/api/corporate-employee/bookings${qs(params)}`),
+    book: (body) => req('/api/corporate-employee/book', { method: 'POST', body }),
+    cancel: (id) => req(`/api/corporate-employee/book/${id}`, { method: 'DELETE' }),
+    wallet: () => req('/api/corporate-employee/wallet'),
+  },
 };
 
 export default corporateApi;
