@@ -144,6 +144,10 @@ function DashboardLayoutContent({ children }) {
     apiClient.getPrintSettings(selectedRestaurantId)
       .then(res => setNativePrintSettings(res?.printSettings || res))
       .catch(() => {});
+    // Restore KOT station→printer bindings from the server for any station this terminal has no
+    // local binding for (fresh install / new machine). Fills ONLY empties, so a configured
+    // terminal is untouched. Prevents multi-station KOT silently collapsing to one printer.
+    import('../../utils/stationPrinterSync').then(({ hydrateStationPrinters }) => hydrateStationPrinters(selectedRestaurantId)).catch(() => {});
   }, [selectedRestaurantId]);
 
   // Auto-print on native platforms (Capacitor/Tauri) — no-op on web

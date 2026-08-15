@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { isWeb, isCapacitor, isTauri, isElectron } from '../utils/platform';
 import { printDocument } from '../utils/printBridge';
+import { saveStationPrinterToServer } from '../utils/stationPrinterSync';
 import apiClient from '../lib/api';
 import { FaBluetooth, FaPrint, FaSync, FaCheckCircle, FaTimesCircle, FaUsb, FaWifi, FaStethoscope, FaMicrochip } from 'react-icons/fa';
 
@@ -431,7 +432,10 @@ export default function NativePrinterSettings({ restaurantId }) {
     } catch (err) {
       console.error('Failed to save station printer:', err);
     }
-  }, [stationPrinters, isElectronPlatform]);
+    // Durable backup: also record on the server so any terminal can restore this mapping.
+    // Best-effort and independent of the local save above (which stays the source of truth).
+    saveStationPrinterToServer(restaurantId, stationId, printerName);
+  }, [stationPrinters, isElectronPlatform, restaurantId]);
 
   // Add a network printer by IP address
   const addNetworkPrinter = useCallback(async (ipInput) => {
