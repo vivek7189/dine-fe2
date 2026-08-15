@@ -2410,7 +2410,25 @@ const OrderSummary = ({
   const buildTaxData = () => {
     const cashReceivedNum = parseFloat(cashReceived) || 0;
     const changeReturned = cashReceivedNum > 0 ? Math.max(0, cashReceivedNum - (grandTotal ?? 0)) : 0;
-    const splitAmounts = splitPayments.map(sp => ({ method: sp.method, amount: Number(sp.amount) }));
+    // Resolve each split's DISPLAY label from the restaurant's configured methods so the
+    // printed split-payment block shows the real name (e.g. "M-Paisa") instead of the raw
+    // id ("UPI"). Settlement methods drive the split picker; posSettings is the fallback.
+    // No configured label → no label attached → template falls back to the raw method
+    // exactly as before (zero change for restaurants that didn't rename a method).
+    const resolveSplitLabel = (method) => {
+      const sm = Array.isArray(billingSettings?.settlementMethods) ? billingSettings.settlementMethods : null;
+      const fromSettle = sm?.find(m => m?.id === method)?.label;
+      if (fromSettle) return fromSettle;
+      const fromPos = Array.isArray(posSettings?.paymentMethods)
+        ? posSettings.paymentMethods.find(m => m?.id === method)?.label : null;
+      return fromPos || null;
+    };
+    const splitAmounts = splitPayments.map(sp => {
+      const label = resolveSplitLabel(sp.method);
+      return label
+        ? { method: sp.method, amount: Number(sp.amount), label }
+        : { method: sp.method, amount: Number(sp.amount) };
+    });
     const splitSum = splitAmounts.reduce((s, sp) => s + sp.amount, 0);
     const splitBalanced = Math.abs(splitSum - (grandTotal ?? 0)) < 0.01;
     const validSplitPayments = billingSettings.splitPaymentEnabled && splitPayments.length >= 2 && splitPayments.every(sp => sp.amount > 0) && splitBalanced
@@ -3957,7 +3975,7 @@ const OrderSummary = ({
                           <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '2px' }}>{t('invoice.splitPayment')}:</div>
                           {invoice.splitPayments.map((sp, idx) => (
                             <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
-                              <span>{(sp.method || 'Cash').toUpperCase()}:</span>
+                              <span>{(sp.label || sp.method || 'Cash').toUpperCase()}:</span>
                               <span>{formatCurrency(sp.amount)}</span>
                             </div>
                           ))}
@@ -4381,9 +4399,14 @@ const OrderSummary = ({
                       flexWrap: 'wrap',
                     }}>
                       {item.name}
-                      {/* Show indicator for items from original order */}
+                      {/* Show indicator for items from original order.
+                          Match on the canonical composite key (id/variant/customizations/seat)
+                          — the SAME key the KOT/update diff uses — so an already-sent line is
+                          reliably recognised (a plain menuItemId===id match missed variants,
+                          seats, and orders whose saved items lack menuItemId). Display only. */}
                       {currentOrder && currentOrder.items && (() => {
-                        const origItem = currentOrder.items.find(o => o.menuItemId === item.id);
+                        const itemKey = getOrderItemKey(item);
+                        const origItem = currentOrder.items.find(o => getOrderItemKey(o) === itemKey);
                         if (!origItem) return null;
                         const qtyDelta = item.quantity - (origItem.quantity || 0);
                         return (
@@ -4434,8 +4457,8 @@ const OrderSummary = ({
                           </>
                         );
                       })()}
-                      {/* Show indicator for newly added items */}
-                      {currentOrder && (!currentOrder.items || !currentOrder.items.some(origItem => origItem.menuItemId === item.id)) && (
+                      {/* Show indicator for newly added items — same canonical-key match as above */}
+                      {currentOrder && (!currentOrder.items || !currentOrder.items.some(origItem => getOrderItemKey(origItem) === getOrderItemKey(item))) && (
                         <span style={{
                           fontSize: isMobile ? '7px' : '8px',
                           fontWeight: 'bold',

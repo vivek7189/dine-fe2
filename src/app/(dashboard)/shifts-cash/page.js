@@ -25,7 +25,10 @@ import {
   LuCircleAlert,
   LuChevronDown,
   LuChevronUp,
+  LuPrinter,
 } from 'react-icons/lu';
+import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '@/utils/printBridge';
+import { buildShiftSummaryHtml } from '@/utils/printTemplates/shift/summary';
 
 // ── Styles ──────────────────────────────────────────────────────────────────
 
@@ -142,6 +145,7 @@ export default function ShiftsCashPage() {
   const [cashTips, setCashTips] = useState('');
   const [closeNotes, setCloseNotes] = useState('');
   const [closeSummary, setCloseSummary] = useState(null);
+  const [printingShift, setPrintingShift] = useState(false);
 
   // Duration timer
   const [elapsed, setElapsed] = useState(0);
@@ -388,6 +392,48 @@ export default function ShiftsCashPage() {
     setCloseNotes('');
     setSuccess('Shift closed successfully');
     await loadData();
+  };
+
+  // Print the end-of-shift summary to the thermal printer (Electron/Capacitor) or via a
+  // hidden print frame on web. Best-effort — never blocks closing the shift.
+  const handlePrintShiftSummary = async () => {
+    if (!closeSummary || printingShift) return;
+    setPrintingShift(true);
+    try {
+      // Print settings drive thermal width / font / receipt header (optional).
+      let printSettings = {};
+      try {
+        const psRes = await apiClient.getPrintSettings(restaurantId);
+        printSettings = psRes?.printSettings || {};
+      } catch { /* fall back to defaults */ }
+
+      const s = closeSummary;
+      const html = buildShiftSummaryHtml({
+        restaurantName: printSettings.receiptName || user.restaurantName || user.restaurant?.name || 'Restaurant',
+        restaurantAddress: printSettings.receiptAddress || '',
+        restaurantPhone: printSettings.receiptPhone || '',
+        cashierName: shift?.cashierName || shift?.userName || user.name || user.loginId || '',
+        shiftId: shift?.id || s.shiftId,
+        openedAt: shift?.openedAt,
+        closedAt: s.closedAt || Date.now(),
+        openingCash: s.openingCash, cashSales: s.cashSales, cardSales: s.cardSales, upiSales: s.upiSales,
+        totalSales: s.totalSales, cashIn: s.cashIn, cashOut: s.cashOut, cashTips: s.cashTips,
+        expectedCash: s.expectedCash, closingCash: s.closingCash, cashDifference: s.cashDifference,
+        orderCount: s.orderCount,
+        currencySymbol: getCurrencySymbol ? getCurrencySymbol() : '',
+        notes: closeNotes?.trim() || undefined,
+      }, printSettings);
+
+      if (supportsNativeAutoPrint()) {
+        await printDocument({ html, type: 'bill', printSettings });
+      } else {
+        await printHtmlInHiddenFrame(html);
+      }
+    } catch (err) {
+      setError('Could not print shift report: ' + (err?.message || 'unknown error'));
+    } finally {
+      setPrintingShift(false);
+    }
   };
 
   // ── Computed values ───────────────────────────────────────────────────
@@ -882,6 +928,8 @@ export default function ShiftsCashPage() {
               handleCloseShift={handleCloseShift}
               handleCloseModalDone={handleCloseModalDone}
               onCancel={() => { setShowCloseModal(false); setCloseSummary(null); setClosingCash(''); setCashTips(''); setCloseNotes(''); }}
+              onPrint={handlePrintShiftSummary}
+              printingShift={printingShift}
               formatCurrency={formatCurrency}
               getCurrencySymbol={getCurrencySymbol}
               currencyCode={currencyCode}
@@ -1405,6 +1453,7 @@ function CloseShiftModal({
   closeNotes, setCloseNotes,
   closeSummary, actionLoading, expectedCash,
   handleCloseShift, handleCloseModalDone, onCancel,
+  onPrint, printingShift,
   formatCurrency, getCurrencySymbol, currencyCode,
 }) {
   const currSymbol = getCurrencySymbol ? getCurrencySymbol() : '\u20B9';
@@ -1466,20 +1515,43 @@ function CloseShiftModal({
             <SummaryRow label="Total Orders" value={summary.orderCount ?? '-'} />
           </div>
 
-          <button
-            onClick={handleCloseModalDone}
-            style={{
-              ...btnBase,
-              background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-              color: 'white',
-              width: '100%',
-              justifyContent: 'center',
-              padding: '14px',
-              fontSize: '15px',
-            }}
-          >
-            Done
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            {onPrint && (
+              <button
+                onClick={onPrint}
+                disabled={printingShift}
+                style={{
+                  ...btnBase,
+                  background: '#fff',
+                  color: '#2563eb',
+                  border: '1.5px solid #2563eb',
+                  flex: '0 0 auto',
+                  justifyContent: 'center',
+                  padding: '14px 18px',
+                  fontSize: '15px',
+                  opacity: printingShift ? 0.6 : 1,
+                  cursor: printingShift ? 'default' : 'pointer',
+                }}
+              >
+                {printingShift ? <LuLoaderCircle size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <LuPrinter size={18} />}
+                {printingShift ? 'Printing...' : 'Print'}
+              </button>
+            )}
+            <button
+              onClick={handleCloseModalDone}
+              style={{
+                ...btnBase,
+                background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                color: 'white',
+                flex: 1,
+                justifyContent: 'center',
+                padding: '14px',
+                fontSize: '15px',
+              }}
+            >
+              Done
+            </button>
+          </div>
         </div>
       </ModalOverlay>
     );
