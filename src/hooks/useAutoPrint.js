@@ -111,6 +111,23 @@ export function useAutoPrint(restaurantId, printSettings) {
   const isPrintingRef = useRef(false);
   const pusherRef = useRef(null);
 
+  // ── Multi-terminal print designation ──
+  // When several Electron terminals are online for the same restaurant, EVERY terminal receives
+  // the same realtime KOT/Bill events. Without a designated printer, each one prints → duplicate
+  // tickets. If the owner designates a print terminal (printSettings.printTerminalId), ONLY that
+  // terminal auto-prints incoming events. UNSET (the default) → every terminal prints, exactly as
+  // before — so single-terminal setups and all existing installs are 100% unchanged.
+  // Each handler inlines the guard:
+  //   if (printSettings?.printTerminalId && myTerminalIdRef.current && printSettings.printTerminalId !== myTerminalIdRef.current) return;
+  // Skips auto-print ONLY when a terminal is designated AND this isn't it. Fail-open: if this
+  // terminal's id can't be read, it still prints (better a duplicate than a missing kitchen ticket).
+  const myTerminalIdRef = useRef(null);
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.electronAPI?.getTerminalId) {
+      window.electronAPI.getTerminalId().then((id) => { myTerminalIdRef.current = id || null; }).catch(() => {});
+    }
+  }, []);
+
   const processQueue = useCallback(async () => {
     if (isPrintingRef.current) return;
     isPrintingRef.current = true;
@@ -181,6 +198,7 @@ export function useAutoPrint(restaurantId, printSettings) {
   // ── Shared handlers used by both Pusher and LAN hub ──
   const handleKotCreated = useCallback(async (data) => {
     if (!printSettings?.autoPrintOnKOT) return;
+    if (printSettings?.printTerminalId && myTerminalIdRef.current && printSettings.printTerminalId !== myTerminalIdRef.current) return; // not the designated print terminal
     const orderId = data.orderId || data.id;
     if (!orderId || wasPrinted(orderId, 'kot')) return;
 
@@ -270,6 +288,7 @@ export function useAutoPrint(restaurantId, printSettings) {
 
   const handleKotPrintRequest = useCallback(async (data) => {
     if (!printSettings?.autoPrintOnKOT) return;
+    if (printSettings?.printTerminalId && myTerminalIdRef.current && printSettings.printTerminalId !== myTerminalIdRef.current) return; // not the designated print terminal
     const orderId = data.orderId || data.id;
     if (!orderId) return;
 
@@ -309,6 +328,7 @@ export function useAutoPrint(restaurantId, printSettings) {
   const handleBillingPrint = useCallback(async (data) => {
     const isPreBill = data.isPreBill === true;
     console.log(`🖨️ AutoPrint: handleBillingPrint called, isPreBill=${isPreBill}, orderId=${data.orderId || data.id}`);
+    if (printSettings?.printTerminalId && myTerminalIdRef.current && printSettings.printTerminalId !== myTerminalIdRef.current) return; // not the designated print terminal
     // Kenya KRA eTIMS: when live, the eTIMS flow prints the combined fiscal
     // receipt. Skip the normal final-bill print here (a pre-bill still prints).
     if (!isPreBill && typeof window !== 'undefined' && window.__etimsFiscalActive) {
