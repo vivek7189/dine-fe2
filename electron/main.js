@@ -916,6 +916,9 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
     if (match && match.name) resolvedDeviceName = match.name;
   }
   const deviceMatched = deviceName ? printerNames.includes(resolvedDeviceName) : true; // no name = system default
+  // Capture the REAL os-driver outcome for the diagnostic return. success stays true for the app
+  // (unchanged behavior); realSuccess/failureReason/hint carry the truth to the server diagnostics.
+  let osRealSuccess = null, osFailureReason = null, osHint = null;
 
   // AWAIT the print callback (was fire-and-forget): the print queue must hold this slot until the
   // job is handed to the spooler, or the NEXT job's loadURL() would clobber the shared window and
@@ -928,6 +931,8 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
   // tickets printing instead of the whole queue deadlocking until an app restart.
   const killer = setTimeout(() => {
     if (settled) return;
+    osRealSuccess = false; osFailureReason = 'callback-timeout';
+    osHint = 'Print driver did not respond within 8s — printer may be offline or the driver is stuck.';
     logPrintEvent({
       type: type || 'unknown', method: 'os-driver', success: false, failureReason: 'callback-timeout',
       configuredDeviceName: deviceName || '(system default)', deviceMatched, printerNames,
@@ -969,6 +974,7 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
           hint = `Print driver reported: ${failureReason}`;
         }
       }
+      osRealSuccess = success; osFailureReason = failureReason || null; osHint = hint;
       logPrintEvent({
         type: type || 'unknown', method: 'os-driver', success,
         failureReason: failureReason || null,
@@ -987,7 +993,14 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
   // into the shared window. Cheap insurance against back-to-back multi-station KOT overwrites.
   await new Promise((r) => setTimeout(r, 400));
 
-  return { success: true };
+  // success stays true (app behavior unchanged); the extra fields feed the server diagnostics.
+  return {
+    success: true, method: 'os-driver',
+    realSuccess: osRealSuccess, failureReason: osFailureReason, hint: osHint,
+    configuredDeviceName: deviceName || '(system default)',
+    resolvedDeviceName: resolvedDeviceName || null,
+    deviceMatched, printerNames,
+  };
 }
 
 ipcMain.handle('electron:listPrinters', async () => {

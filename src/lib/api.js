@@ -2935,7 +2935,20 @@ class ApiClient {
 
   // Print Settings endpoints
   async getPrintSettings(restaurantId) {
-    return this.cachedGet(`/api/admin/print-settings/${restaurantId}`, 30 * 60 * 1000); // 30 min
+    // LIVE — no client cache. Print settings (remote/desktop print, auto-print, station config)
+    // must take effect across terminals immediately, so hit the server each time. The backend
+    // read is Redis-cached (getCachedRestDoc), so this is cheap — no 30-minute staleness trap.
+    return this.request(`/api/admin/print-settings/${restaurantId}`);
+  }
+
+  // Fire-and-forget: report a remote-print diagnostic event to the server so support can
+  // see, per-restaurant, exactly what happened on a desktop terminal. Never throws.
+  logPrintDiagnostic(restaurantId, event) {
+    if (!restaurantId || !event) return;
+    try {
+      this.request(`/api/print-diagnostics/${restaurantId}`, { method: 'POST', body: { event } })
+        .catch(() => {});
+    } catch (_) { /* diagnostics must never affect printing */ }
   }
 
   async updatePrintSettings(restaurantId, printSettings) {

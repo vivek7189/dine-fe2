@@ -712,7 +712,6 @@ export default function NativePrinterSettings({ restaurantId }) {
       {isElectronPlatform && myTerminalId && (() => {
         const isThis = printTerminalId && printTerminalId === myTerminalId;
         const someoneElse = printTerminalId && printTerminalId !== myTerminalId;
-        const isAdminOwner = ['owner', 'admin'].includes(String(apiClient.getUser?.()?.role || '').toLowerCase());
         return (
           <div style={{ marginBottom: '12px', padding: '10px 12px', borderRadius: '8px', background: isThis ? '#eff6ff' : '#fff', border: `1px solid ${isThis ? '#bfdbfe' : '#e5e7eb'}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -725,15 +724,14 @@ export default function NativePrinterSettings({ restaurantId }) {
                 </div>
               </div>
               <button
-                onClick={isAdminOwner ? togglePrintTerminal : undefined}
-                disabled={!isAdminOwner || savingPrintTerminal}
-                title={isAdminOwner ? 'Designate this terminal as the printer' : 'Only an owner/admin can change this'}
-                style={{ width: '42px', height: '24px', borderRadius: '12px', border: 'none', flexShrink: 0, position: 'relative', background: isThis ? '#2563eb' : '#cbd5e1', cursor: (isAdminOwner && !savingPrintTerminal) ? 'pointer' : 'not-allowed', opacity: isAdminOwner ? 1 : 0.6 }}
+                onClick={togglePrintTerminal}
+                disabled={savingPrintTerminal}
+                title="Designate this terminal as the printer"
+                style={{ width: '42px', height: '24px', borderRadius: '12px', border: 'none', flexShrink: 0, position: 'relative', background: isThis ? '#2563eb' : '#cbd5e1', cursor: savingPrintTerminal ? 'not-allowed' : 'pointer', opacity: 1 }}
               >
                 <span style={{ position: 'absolute', top: '2px', left: isThis ? '20px' : '2px', width: '20px', height: '20px', borderRadius: '50%', background: '#fff', transition: 'left .15s' }} />
               </button>
             </div>
-            {!isAdminOwner && <div style={{ fontSize: '10.5px', color: '#9ca3af', marginTop: '4px' }}>Only an owner/admin can change this.</div>}
           </div>
         );
       })()}
