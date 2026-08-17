@@ -147,6 +147,12 @@ export function useAutoPrint(restaurantId, printSettings) {
     } catch (_) { /* diagnostics must never affect printing */ }
   }, [restaurantId, printSettings]);
 
+  // Latest-handler refs so the polling-fallback timer (below) doesn't tear down and restart every
+  // time printSettings is live-refreshed — it depends only on the polling config, and calls the
+  // freshest handler through these refs.
+  const handleKotCreatedRef = useRef(null);
+  const logDiagRef = useRef(null);
+
   const processQueue = useCallback(async () => {
     if (isPrintingRef.current) return;
     isPrintingRef.current = true;
@@ -431,6 +437,11 @@ export function useAutoPrint(restaurantId, printSettings) {
     }
   }, [restaurantId, printSettings, processQueue, printTokensForOrder, logDiag]);
 
+  // Keep the polling-fallback timer pointed at the freshest handlers without re-arming on every
+  // printSettings refresh.
+  handleKotCreatedRef.current = handleKotCreated;
+  logDiagRef.current = logDiag;
+
   // ──── Firebase RTDB events (online) — replaces Pusher ────
   // Skip in React Native WebView — OrderSummary handles print with embedded data directly.
   // This hook generates HTML which can't be used by thermal printers in WebView mode.
@@ -536,4 +547,90 @@ export function useAutoPrint(restaurantId, printSettings) {
       if (typeof unsubscribe === 'function') unsubscribe();
     };
   }, [restaurantId, printSettings, handleKotCreated, handleKotPrintRequest, handleBillingPrint]);
+
+  // ──── Server-controlled KOT polling fallback (default OFF) ────
+  // Safety net for when the realtime (RTDB) socket silently drops on a long-running desktop
+  // terminal (esp. Windows Electron) — auto-print "stops working" until a page refresh. This does
+  // NOTHING unless the operator turns it ON for THIS restaurant from dine-admin
+  // (printSettings.kotPollingEnabled). When on, the desktop periodically asks the backend for
+  // recent still-'confirmed' orders and prints any KOT it hasn't already printed — reusing the
+  // exact same render + dedup + print path as the realtime handler, so no double prints.
+  //
+  // Depends only on the polling CONFIG (not the whole printSettings object), so live settings
+  // refreshes don't constantly re-arm the timer. Handlers are reached via refs (freshest closure).
+  const pollEnabled = printSettings?.kotPollingEnabled === true;
+  const pollAutoKot = printSettings?.autoPrintOnKOT === true;
+  const pollIntervalSec = printSettings?.kotPollingIntervalSec;
+  const pollTerminalId = printSettings?.printTerminalId || null;
+  useEffect(() => {
+    if (!supportsNativeAutoPrint() || !restaurantId) return;
+    if (isReactNativeWebView()) return;         // WebView prints via OrderSummary, not this hook
+    if (!pollAutoKot || !pollEnabled) return;   // KOT auto-print must be on AND polling switched on
+    // Designated-terminal setups: only the print terminal polls+prints (fail-open if id unknown).
+    if (pollTerminalId && myTerminalIdRef.current && pollTerminalId !== myTerminalIdRef.current) return;
+
+    let stopped = false;
+    let timer = null;
+    // Only print orders that arrive AFTER polling starts here — switching the feature on must never
+    // re-print history. Small grace covers an order created moments before this effect mounted.
+    const pollStartTs = Date.now() - 15000;
+    const intervalMs = Math.max(8, Math.min(parseInt(pollIntervalSec) || 20, 120)) * 1000;
+    const lookbackSec = Math.min(900, Math.max(300, Math.round(intervalMs / 1000) * 4));
+
+    // Persist orders THIS fallback already printed so an app restart doesn't re-print them.
+    const PERSIST_KEY = 'dineopen_poll_printed_kot';
+    const PERSIST_TTL_MS = 60 * 60 * 1000; // 1h
+    const loadPersisted = () => {
+      try { return JSON.parse(window.localStorage.getItem(PERSIST_KEY) || '{}'); } catch { return {}; }
+    };
+    const savePersisted = (map) => {
+      try {
+        const now = Date.now();
+        const pruned = {};
+        for (const [k, ts] of Object.entries(map)) if (now - ts < PERSIST_TTL_MS) pruned[k] = ts;
+        window.localStorage.setItem(PERSIST_KEY, JSON.stringify(pruned));
+      } catch { /* best-effort */ }
+    };
+
+    const tick = async () => {
+      if (stopped) return;
+      try {
+        const res = await apiClient.getPrintPoll(restaurantId, lookbackSec);
+        if (stopped) return;
+        // Admin turned it off server-side → stop immediately (single source of truth).
+        if (res && res.enabled === false) { stopped = true; if (timer) clearInterval(timer); return; }
+        const orders = (res && res.orders) || [];
+        if (!orders.length) return;
+        const persisted = loadPersisted();
+        let printedAny = false;
+        for (const o of orders) {
+          const orderId = o.id;
+          if (!orderId) continue;
+          const createdMs = o.createdAt ? new Date(o.createdAt).getTime() : 0;
+          if (createdMs && createdMs < pollStartTs) continue;   // don't reach into history
+          if (persisted[orderId]) continue;                     // printed by an earlier poll
+          if (wasPrinted(orderId, 'kot')) continue;             // printed this session (realtime or poll)
+          persisted[orderId] = Date.now();
+          printedAny = true;
+          logDiagRef.current?.({ phase: 'poll-print', kind: 'kot', orderId, reason: 'missed-by-realtime' });
+          // Reuse the realtime KOT path — it re-checks dedup, handles stations, render & printing.
+          handleKotCreatedRef.current?.({ orderId, status: 'confirmed', type: 'order-created' });
+        }
+        if (printedAny) savePersisted(persisted);
+      } catch (err) {
+        // A network hiccup just means we retry next tick — never throw from a timer.
+        console.warn('KOT poll fallback tick failed:', err?.message || err);
+      }
+    };
+
+    // Delay the first tick so it doesn't race the initial realtime subscribe, then poll on interval.
+    const kickoff = setTimeout(() => { tick(); timer = setInterval(tick, intervalMs); }, 3000);
+    console.log(`🖨️ AutoPrint: KOT polling fallback ARMED (every ${intervalMs / 1000}s, lookback ${lookbackSec}s)`);
+
+    return () => {
+      stopped = true;
+      clearTimeout(kickoff);
+      if (timer) clearInterval(timer);
+    };
+  }, [restaurantId, pollEnabled, pollAutoKot, pollIntervalSec, pollTerminalId]);
 }

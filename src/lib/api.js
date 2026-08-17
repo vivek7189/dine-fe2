@@ -3041,6 +3041,13 @@ class ApiClient {
     return this.request(`/api/token/render/${restaurantId}/${orderId}`);
   }
 
+  // Server-controlled KOT polling fallback. Returns { enabled, intervalSec, orders:[{id,status,createdAt}] }.
+  // Only returns orders when the restaurant has kotPollingEnabled ON (server-side gate). Always
+  // network-fresh (cache-buster) — a stale poll would miss or re-fire prints.
+  async getPrintPoll(restaurantId, sinceSec = 300) {
+    return this.request(`/api/print-poll/${restaurantId}?sinceSec=${sinceSec}&_t=${Date.now()}`);
+  }
+
   async getInvoice(invoiceId) {
     return this.request(`/api/invoice/${invoiceId}`);
   }
