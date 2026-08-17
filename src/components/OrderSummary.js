@@ -2850,7 +2850,7 @@ const OrderSummary = ({
             {/* Order Type Selector - Dynamic */}
             {(() => {
               const hasTable = !!(tableNumber || selectedTable?.name);
-              const enabledTypes = (Array.isArray(posSettings.orderTypes)
+              const baseTypes = (Array.isArray(posSettings.orderTypes)
                 ? posSettings.orderTypes
                 : [
                     { id: 'dine-in', label: 'Dine-in', enabled: true, builtIn: true },
@@ -2858,6 +2858,16 @@ const OrderSummary = ({
                     { id: 'delivery', label: 'Delivery', enabled: true, builtIn: true },
                   ]
               ).filter(ot => ot.enabled);
+              // Unified channels: an active pricing channel with NO floor mapping is a sellable
+              // channel (Talabat, Delivery…) and shows as its own billing button. Floor-mapped
+              // channels (AC/Non-AC dine-in zones) are auto-picked by table, not buttons. Dedupe
+              // against the order types already listed (by id or name).
+              const _seen = new Set(baseTypes.flatMap(o => [String(o.id).toLowerCase(), String(o.label || '').toLowerCase().replace(/[\s_-]+/g, '')]));
+              const channelTypes = (Array.isArray(pricingRules) ? pricingRules : [])
+                .filter(r => r.isActive && !(Array.isArray(r.tableMappings) && r.tableMappings.length))
+                .filter(r => !_seen.has(String(r.id).toLowerCase()) && !_seen.has(String(r.name || '').toLowerCase().replace(/[\s_-]+/g, '')))
+                .map(r => ({ id: r.id, label: r.name, enabled: true, fromChannel: true }));
+              const enabledTypes = [...baseTypes, ...channelTypes];
               const i18nMap = { 'dine-in': t('dashboard.dineIn'), 'takeaway': t('dashboard.takeaway') };
               return (
             <div style={{ display: 'flex', gap: isMobile ? '3px' : '4px', flexWrap: 'wrap' }}>

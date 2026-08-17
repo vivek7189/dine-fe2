@@ -1613,6 +1613,15 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
   const takeawayRule = allRules.find(r => TAKEAWAY_NAMES.includes((r.name || '').toLowerCase().trim()));
   const deliveryRule = allRules.find(r => DELIVERY_NAMES.includes((r.name || '').toLowerCase().trim()));
   const getRuleIndex = (ruleId) => allRules.findIndex(r => r.id === ruleId);
+  // Unified list of ALL price channels (dine-in zones, takeaway, delivery, aggregators…), in order.
+  const channelRules = [...allRules].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const channelIcon = (name) => {
+    const n = (name || '').toLowerCase().trim();
+    if (DINEIN_NAMES.includes(n)) return '🍽️';
+    if (TAKEAWAY_NAMES.includes(n)) return '🥡';
+    if (DELIVERY_NAMES.includes(n)) return '🛵';
+    return '🏷️';
+  };
 
   // Enable/create a channel rule (takeaway or delivery) when toggled on
   const enableChannelRule = (channelNames, defaultName, defaultId) => {
@@ -2002,7 +2011,7 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
                 Enable Multi-Tier Pricing
               </label>
               <p style={{ color: '#6b7280', fontSize: '13px', margin: 0 }}>
-                Set different prices for dine-in zones (AC, Non-AC, etc.), takeaway, and delivery. Prices auto-apply based on table/floor mapping.
+                Name the ways you sell — Dine-in, AC / Non-AC, Takeaway, Delivery, or an aggregator like Talabat. A channel applies automatically when a matching order type is picked (or a mapped floor for dine-in). You set each channel&apos;s prices on the <b>Menu</b> page.
               </p>
             </div>
 
@@ -2016,19 +2025,19 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '18px' }}>🍽️</span>
+                      <span style={{ fontSize: '18px' }}>🏷️</span>
                       <div>
                         <div style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937' }}>
-                          Dine-In Zones
+                          Price Channels
                           <span style={{
                             fontSize: '11px', fontWeight: 500, color: '#6b7280', marginLeft: '8px',
                             backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '10px'
                           }}>
-                            {dineInZoneRules.filter(r => r.isActive).length} active
+                            {channelRules.filter(r => r.isActive).length} active
                           </span>
                         </div>
                         <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '1px' }}>
-                          Per-item prices by area. Set prices on Menu page.
+                          Turn on the channels you sell through. Prices are set on the Menu page.
                         </div>
                       </div>
                     </div>
@@ -2037,7 +2046,7 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
                   <div style={{ padding: '0 16px 14px' }}>
                     {/* Zone rows */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
-                      {dineInZoneRules.map((rule) => {
+                      {channelRules.map((rule) => {
                         const index = getRuleIndex(rule.id);
                         const selectedFloors = (rule.tableMappings || []);
                         const availableFloors = floors.filter(f => {
@@ -2047,85 +2056,70 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
                         });
                         return (
                         <div key={rule.id} style={{
-                          display: 'flex', alignItems: 'center', gap: '8px',
-                          padding: '6px 10px', backgroundColor: rule.isActive ? '#fff' : '#fafafa',
-                          border: '1px solid #e2e8f0', borderRadius: '8px',
-                          opacity: rule.isActive ? 1 : 0.5
+                          padding: '10px 12px', backgroundColor: rule.isActive ? '#fff' : '#fafafa',
+                          border: '1px solid #e2e8f0', borderRadius: '10px',
+                          opacity: rule.isActive ? 1 : 0.6
                         }}>
-                          <input
-                            type="checkbox"
-                            checked={rule.isActive}
-                            onChange={() => updateRule(index, 'isActive', !rule.isActive)}
-                            style={{ width: '15px', height: '15px', flexShrink: 0 }}
-                          />
-                          {rule.type === 'dynamic' ? (
+                          {/* Main row: active · name · delete */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <input
+                              type="checkbox"
+                              checked={rule.isActive}
+                              onChange={() => updateRule(index, 'isActive', !rule.isActive)}
+                              title={rule.isActive ? 'Active' : 'Inactive'}
+                              style={{ width: '15px', height: '15px', flexShrink: 0 }}
+                            />
+                            <span style={{ fontSize: '15px', flexShrink: 0 }}>{channelIcon(rule.name)}</span>
                             <input
                               type="text"
                               value={rule.name}
                               onChange={(e) => updateRule(index, 'name', e.target.value)}
-                              placeholder="Zone name"
+                              placeholder="Channel name (e.g. Talabat)"
                               style={{
-                                padding: '4px 8px', borderRadius: '5px', border: '1px solid #e2e8f0',
-                                fontSize: '13px', fontWeight: 600, color: '#1f2937', background: 'white',
-                                width: '120px', flexShrink: 0, boxSizing: 'border-box'
+                                flex: 1, minWidth: 0, padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0',
+                                fontSize: '13.5px', fontWeight: 600, color: '#1f2937', background: 'white', boxSizing: 'border-box'
                               }}
                             />
-                          ) : (
-                            <span style={{ fontSize: '13px', fontWeight: 600, color: rule.isActive ? '#1f2937' : '#9ca3af', width: '120px', flexShrink: 0 }}>
-                              {rule.name}
-                            </span>
-                          )}
-                          {/* Selected floor chips + dropdown */}
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center', flex: 1 }}>
-                            {selectedFloors.map(floorName => (
-                              <span key={floorName} style={{
-                                display: 'inline-flex', alignItems: 'center', gap: '2px', fontSize: '11px',
-                                padding: '2px 5px 2px 8px', borderRadius: '10px',
-                                backgroundColor: '#f5f3ff', border: '1px solid #8b5cf6',
-                                color: '#7c3aed', fontWeight: 600
-                              }}>
-                                {floorName}
-                                <button
-                                  onClick={() => {
-                                    const updated = selectedFloors.filter(m => m !== floorName);
-                                    updateRule(index, 'tableMappings', updated);
-                                  }}
-                                  style={{ background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer', padding: '0 1px', fontSize: '13px', lineHeight: 1 }}
-                                >&times;</button>
-                              </span>
-                            ))}
-                            {availableFloors.length > 0 && (
-                              <select
-                                value=""
-                                onChange={(e) => {
-                                  if (e.target.value) {
-                                    const updated = [...selectedFloors, e.target.value];
-                                    updateRule(index, 'tableMappings', updated);
-                                  }
-                                }}
-                                style={{
-                                  padding: '2px 4px', borderRadius: '5px', border: '1px solid #e2e8f0',
-                                  fontSize: '11px', color: '#6b7280', background: '#f9fafb', cursor: 'pointer'
-                                }}
-                              >
-                                <option value="">+ Floor</option>
-                                {availableFloors.map(f => (
-                                  <option key={f.id || f.name} value={f.name}>{f.name}</option>
-                                ))}
-                              </select>
-                            )}
-                            {floors.length === 0 && (
-                              <span style={{ fontSize: '11px', color: '#9ca3af' }}>No floors configured</span>
-                            )}
-                          </div>
-                          {rule.type === 'dynamic' ? (
                             <button
                               onClick={() => removeRule(index)}
-                              style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px', flexShrink: 0 }}
+                              title="Remove channel"
+                              style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', flexShrink: 0 }}
                             >
-                              <FaTrash size={11} />
+                              <FaTrash size={12} />
                             </button>
-                          ) : <span style={{ width: '15px', flexShrink: 0 }} />}
+                          </div>
+                          {/* Sub row: optional dine-in floor auto-apply — only meaningful when there
+                              are multiple floors to differentiate (e.g. AC upstairs vs Non-AC ground). */}
+                          {(floors.length >= 2 || selectedFloors.length > 0) && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center', marginTop: '7px', paddingLeft: '38px' }}>
+                              <span style={{ fontSize: '11px', color: '#9ca3af', marginRight: '2px' }}>Dine-in floors:</span>
+                              {selectedFloors.map(floorName => (
+                                <span key={floorName} style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: '2px', fontSize: '11px',
+                                  padding: '2px 5px 2px 8px', borderRadius: '10px',
+                                  backgroundColor: '#f5f3ff', border: '1px solid #8b5cf6', color: '#7c3aed', fontWeight: 600
+                                }}>
+                                  {floorName}
+                                  <button
+                                    onClick={() => updateRule(index, 'tableMappings', selectedFloors.filter(m => m !== floorName))}
+                                    style={{ background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer', padding: '0 1px', fontSize: '13px', lineHeight: 1 }}
+                                  >&times;</button>
+                                </span>
+                              ))}
+                              {availableFloors.length > 0 && (
+                                <select
+                                  value=""
+                                  onChange={(e) => { if (e.target.value) updateRule(index, 'tableMappings', [...selectedFloors, e.target.value]); }}
+                                  style={{ padding: '2px 4px', borderRadius: '5px', border: '1px solid #e2e8f0', fontSize: '11px', color: '#6b7280', background: '#f9fafb', cursor: 'pointer' }}
+                                >
+                                  <option value="">+ Floor</option>
+                                  {availableFloors.map(f => (
+                                    <option key={f.id || f.name} value={f.name}>{f.name}</option>
+                                  ))}
+                                </select>
+                              )}
+                            </div>
+                          )}
                         </div>
                         );
                       })}
@@ -2134,13 +2128,13 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
                     <button
                       onClick={addCustomRule}
                       style={{
-                        backgroundColor: '#f1f5f9', color: '#475569', padding: '5px 12px', borderRadius: '6px',
-                        fontWeight: '600', fontSize: '12px', border: '1px dashed #cbd5e1', cursor: 'pointer',
-                        display: 'inline-flex', alignItems: 'center', gap: '5px'
+                        backgroundColor: '#eef2ff', color: '#4338ca', padding: '7px 14px', borderRadius: '8px',
+                        fontWeight: '600', fontSize: '12.5px', border: '1px dashed #a5b4fc', cursor: 'pointer',
+                        display: 'inline-flex', alignItems: 'center', gap: '6px'
                       }}
                     >
-                      <FaPlus size={9} />
-                      Add Zone
+                      <FaPlus size={10} />
+                      Add price channel
                     </button>
 
                     {/* Simple Surcharge Toggle */}
@@ -2211,157 +2205,9 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
                     </div>
 
                     <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '12px', marginBottom: 0 }}>
-                      Set per-item zone prices on the Menu page. Items without a custom price use the base price.
+                      Set each channel&apos;s prices on the Menu page. Items without a channel price use the base price.
                     </p>
                   </div>
-                </div>
-
-                {/* ━━━ SECTION 2: TAKEAWAY ━━━ */}
-                <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
-                  <div style={{
-                    padding: '12px 16px', background: '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '18px' }}>🥡</span>
-                      <div>
-                        <div style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937' }}>Takeaway</div>
-                        <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '1px' }}>
-                          {takeawayRule?.isActive ? 'Custom pricing enabled' : 'Uses base price'}
-                        </div>
-                      </div>
-                    </div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 500, color: '#6b7280' }}>Different prices</span>
-                      <div
-                        onClick={() => {
-                          if (takeawayRule?.isActive) {
-                            disableChannelRule(TAKEAWAY_NAMES);
-                          } else {
-                            enableChannelRule(TAKEAWAY_NAMES, 'Takeaway', 'rule_takeaway');
-                          }
-                        }}
-                        style={{
-                          width: '36px', height: '20px', borderRadius: '10px', cursor: 'pointer',
-                          backgroundColor: takeawayRule?.isActive ? '#10b981' : '#d1d5db',
-                          position: 'relative', transition: 'background-color 0.2s'
-                        }}
-                      >
-                        <div style={{
-                          width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'white',
-                          position: 'absolute', top: '2px',
-                          left: takeawayRule?.isActive ? '18px' : '2px',
-                          transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)'
-                        }} />
-                      </div>
-                    </label>
-                  </div>
-
-                  {takeawayRule?.isActive && (() => {
-                    const tIdx = getRuleIndex(takeawayRule.id);
-                    return (
-                      <div style={{ padding: '0 16px 14px', borderTop: '1px solid #f1f5f9' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
-                          <label style={{ fontSize: '12px', fontWeight: '500', color: '#374151' }}>Default Markup</label>
-                          <select
-                            value={takeawayRule.defaultMarkupType}
-                            onChange={(e) => updateRule(tIdx, 'defaultMarkupType', e.target.value)}
-                            style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '12px' }}
-                          >
-                            <option value="none">None (per-item only)</option>
-                            <option value="percentage">% markup on base</option>
-                            <option value="flat">Flat amount added</option>
-                          </select>
-                          {takeawayRule.defaultMarkupType !== 'none' && (
-                            <input
-                              type="number"
-                              value={takeawayRule.defaultMarkupValue}
-                              onChange={(e) => updateRule(tIdx, 'defaultMarkupValue', parseFloat(e.target.value) || 0)}
-                              style={{ width: '70px', padding: '5px 8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '12px' }}
-                              placeholder="0"
-                            />
-                          )}
-                        </div>
-                        <p style={{ fontSize: '11px', color: '#94a3b8', margin: '6px 0 0' }}>
-                          Set per-item takeaway prices on the Menu page. Uses base price if not set.
-                        </p>
-                      </div>
-                    );
-                  })()}
-                </div>
-
-                {/* ━━━ SECTION 3: DELIVERY ━━━ */}
-                <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
-                  <div style={{
-                    padding: '12px 16px', background: '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '18px' }}>🛵</span>
-                      <div>
-                        <div style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937' }}>Delivery</div>
-                        <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '1px' }}>
-                          {deliveryRule?.isActive ? 'Custom pricing enabled' : 'Uses base price'}
-                        </div>
-                      </div>
-                    </div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 500, color: '#6b7280' }}>Different prices</span>
-                      <div
-                        onClick={() => {
-                          if (deliveryRule?.isActive) {
-                            disableChannelRule(DELIVERY_NAMES);
-                          } else {
-                            enableChannelRule(DELIVERY_NAMES, 'Delivery', 'rule_delivery');
-                          }
-                        }}
-                        style={{
-                          width: '36px', height: '20px', borderRadius: '10px', cursor: 'pointer',
-                          backgroundColor: deliveryRule?.isActive ? '#10b981' : '#d1d5db',
-                          position: 'relative', transition: 'background-color 0.2s'
-                        }}
-                      >
-                        <div style={{
-                          width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'white',
-                          position: 'absolute', top: '2px',
-                          left: deliveryRule?.isActive ? '18px' : '2px',
-                          transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)'
-                        }} />
-                      </div>
-                    </label>
-                  </div>
-
-                  {deliveryRule?.isActive && (() => {
-                    const dIdx = getRuleIndex(deliveryRule.id);
-                    return (
-                      <div style={{ padding: '0 16px 14px', borderTop: '1px solid #f1f5f9' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
-                          <label style={{ fontSize: '12px', fontWeight: '500', color: '#374151' }}>Default Markup</label>
-                          <select
-                            value={deliveryRule.defaultMarkupType}
-                            onChange={(e) => updateRule(dIdx, 'defaultMarkupType', e.target.value)}
-                            style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '12px' }}
-                          >
-                            <option value="none">None (per-item only)</option>
-                            <option value="percentage">% markup on base</option>
-                            <option value="flat">Flat amount added</option>
-                          </select>
-                          {deliveryRule.defaultMarkupType !== 'none' && (
-                            <input
-                              type="number"
-                              value={deliveryRule.defaultMarkupValue}
-                              onChange={(e) => updateRule(dIdx, 'defaultMarkupValue', parseFloat(e.target.value) || 0)}
-                              style={{ width: '70px', padding: '5px 8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '12px' }}
-                              placeholder="0"
-                            />
-                          )}
-                        </div>
-                        <p style={{ fontSize: '11px', color: '#94a3b8', margin: '6px 0 0' }}>
-                          Set per-item delivery prices on the Menu page. Uses base price if not set.
-                        </p>
-                      </div>
-                    );
-                  })()}
                 </div>
 
               </div>
