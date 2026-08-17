@@ -2351,9 +2351,25 @@ const OrderHistory = () => {
                 </div>
               </div>
               <div className="px-4 py-3">
-                <div className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">{t('common.category')}</div>
-                <div className="text-sm font-semibold text-gray-900 capitalize">{order.orderType?.replace('-', ' ') || t('orderHistory.type.dineIn')}</div>
-                <div className="text-xs text-gray-400 capitalize">{order.paymentMethod || t('orderHistory.unpaid')}</div>
+                <div className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">Order Type</div>
+                {(() => {
+                  const norm = (s) => (s || '').toLowerCase().replace(/[\s_-]+/g, '');
+                  const otRaw = (order.orderType || 'dine-in').toString();
+                  const tier = order.pricingRuleName || '';
+                  // When the order type IS the channel, show the channel's proper name; when a
+                  // different price tier was applied (e.g. AC Dining zone on a dine-in order), badge it.
+                  const displayType = tier && norm(tier) === norm(otRaw) ? tier : otRaw.replace(/[-_]/g, ' ');
+                  const showTier = tier && norm(tier) !== norm(otRaw);
+                  return (
+                    <>
+                      <div className="text-sm font-semibold text-gray-900 capitalize">{displayType}</div>
+                      {showTier && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 3, background: '#eef2ff', color: '#4338ca', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999 }}>🏷 {tier}</span>
+                      )}
+                      <div className="text-xs text-gray-400 capitalize mt-1">{order.paymentMethod || t('orderHistory.unpaid')}</div>
+                    </>
+                  );
+                })()}
               </div>
               <div className="px-4 py-3" style={{ position: 'relative' }}>
                 <div className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">Assigned Staff</div>

@@ -2374,6 +2374,243 @@ const ItemDetailModal = ({ item, categoryMap, isOpen, onClose, onEdit, onDelete,
   );
 };
 
+// ── Menu pricing table (Phase 2) ───────────────────────────────────────────────
+// POS-style grid: one row per item, one column per active price channel. Prices edit
+// inline (blank = inherit base). A bulk bar prices a whole channel at once (base / +% /
+// +flat) via the channel markup. Backward-compatible: reads/writes item.price and
+// item.pricingRules[ruleId] exactly like the rest of the app.
+const mtpRound2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+const mtpChannelIcon = (name) => {
+  const n = (name || '').toLowerCase().trim();
+  if (['dine-in', 'dine in', 'dinein'].includes(n)) return '🍽️';
+  if (['takeaway', 'take away', 'take-away'].includes(n)) return '🥡';
+  if (n === 'delivery') return '🛵';
+  return '🏷️';
+};
+// Deliberate pastel palette for category chips — a color is picked deterministically per category
+// name so the same category is always the same hue. Warm + varied, never flat grey.
+const MTP_CAT_COLORS = [
+  { bg: '#eef2ff', fg: '#4338ca', dot: '#6366f1' }, // indigo
+  { bg: '#ecfdf5', fg: '#047857', dot: '#10b981' }, // emerald
+  { bg: '#fff1f2', fg: '#be123c', dot: '#f43f5e' }, // rose
+  { bg: '#fff7ed', fg: '#c2410c', dot: '#f97316' }, // orange
+  { bg: '#f0f9ff', fg: '#0369a1', dot: '#0ea5e9' }, // sky
+  { bg: '#fdf4ff', fg: '#a21caf', dot: '#d946ef' }, // fuchsia
+  { bg: '#fefce8', fg: '#a16207', dot: '#eab308' }, // amber
+  { bg: '#f0fdfa', fg: '#0f766e', dot: '#14b8a6' }, // teal
+];
+const mtpCatColor = (name) => {
+  const s = String(name || '');
+  let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return MTP_CAT_COLORS[h % MTP_CAT_COLORS.length];
+};
+
+function MenuPricingTable({ items, categoryMap, categoryPathById, channels, currencySymbol, onItemClick, onToggleAvailability, onSaveItemPrices, onSetChannelMarkup, canMarkOutOfStock, t }) {
+  const [drafts, setDrafts] = useState({});
+  const [editingCell, setEditingCell] = useState(null); // `${itemId}:${field}` currently in edit mode
+  const [bulkRuleId, setBulkRuleId] = useState(channels[0]?.id || '');
+  const [bulkMode, setBulkMode] = useState('percentage');
+  const [bulkValue, setBulkValue] = useState('');
+  const [applying, setApplying] = useState(false);
+  const cur = currencySymbol || '';
+  const hStyle = { fontSize: '11px', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' };
+
+  const setDraft = (k, v) => setDrafts(d => ({ ...d, [k]: v }));
+  const clearDraft = (k) => setDrafts(d => { const n = { ...d }; delete n[k]; return n; });
+
+  // Channel price: explicit per-item override wins; else the channel markup off base; else base.
+  const chanPrice = (item, rule) => {
+    const pr = item.pricingRules || {};
+    if (typeof pr[rule.id] === 'number') return { value: pr[rule.id], explicit: true };
+    const base = Number(item.price) || 0;
+    if (rule.defaultMarkupType === 'percentage' && rule.defaultMarkupValue) return { value: mtpRound2(base * (1 + rule.defaultMarkupValue / 100)), explicit: false };
+    if (rule.defaultMarkupType === 'flat' && rule.defaultMarkupValue) return { value: mtpRound2(base + rule.defaultMarkupValue), explicit: false };
+    return { value: base, explicit: false };
+  };
+
+  const commitBase = (item) => {
+    const k = `${item.id}:base`;
+    if (drafts[k] === undefined) return;
+    const raw = drafts[k]; clearDraft(k);
+    const v = parseFloat(raw);
+    if (!isNaN(v) && v >= 0 && v !== Number(item.price)) onSaveItemPrices(item.id, { price: mtpRound2(v) });
+  };
+  const commitChannel = (item, rule) => {
+    const k = `${item.id}:${rule.id}`;
+    if (drafts[k] === undefined) return;
+    const raw = drafts[k]; clearDraft(k);
+    const prev = item.pricingRules || {};
+    const next = { ...prev };
+    const v = parseFloat(raw);
+    if (raw === '' || isNaN(v) || v < 0) delete next[rule.id]; // blank → inherit base / markup
+    else next[rule.id] = mtpRound2(v);
+    if ((prev[rule.id] ?? null) !== (next[rule.id] ?? null)) onSaveItemPrices(item.id, { pricingRules: next });
+  };
+
+  const applyBulk = async () => {
+    if (!channels.find(c => c.id === bulkRuleId)) return;
+    const val = bulkMode === 'none' ? 0 : (parseFloat(bulkValue) || 0);
+    setApplying(true);
+    try { await onSetChannelMarkup(bulkRuleId, bulkMode, val); } finally { setApplying(false); }
+  };
+
+  // Price cell = a soft pill with a currency prefix; explicit overrides are emerald, inherited are
+  // neutral with a faded placeholder. Focus lifts an indigo ring.
+  const cellInput = (explicit) => ({ width: '100%', padding: '6px 8px 6px 19px', borderRadius: '9px', border: `1.5px solid ${explicit ? '#a7f3d0' : '#e8ebf1'}`, fontSize: '12.5px', textAlign: 'right', background: explicit ? '#f0fdf4' : '#fbfbfd', color: explicit ? '#065f46' : '#334155', fontWeight: explicit ? 700 : 500, boxSizing: 'border-box', outline: 'none', transition: 'border-color .15s, box-shadow .15s' });
+  const focusCell = (e) => { e.target.style.borderColor = '#6366f1'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.14)'; e.target.style.background = '#fff'; };
+  const blurCell = (explicit) => (e) => { e.target.style.borderColor = explicit ? '#a7f3d0' : '#e8ebf1'; e.target.style.boxShadow = 'none'; e.target.style.background = explicit ? '#f0fdf4' : '#fbfbfd'; };
+  const headStyle = { fontSize: '10.5px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' };
+  // Read-only price chip (default state). Click turns it into the input above. Explicit prices are
+  // emerald; inherited (base/markup) are muted with a dashed hint so it's clear they're not set.
+  const priceChip = (explicit) => ({ width: '100%', padding: '6px 9px', borderRadius: '9px', border: `1px ${explicit ? 'solid' : 'dashed'} ${explicit ? '#d1fae5' : '#e5e8ee'}`, background: explicit ? '#f0fdf4' : 'transparent', fontSize: '12.5px', textAlign: 'right', color: explicit ? '#065f46' : '#9aa5b4', fontWeight: explicit ? 700 : 500, cursor: 'pointer', boxSizing: 'border-box', transition: 'background .12s, border-color .12s', fontVariantNumeric: 'tabular-nums' });
+  const startEdit = (key, seed) => { setDraft(key, seed); setEditingCell(key); };
+  const curPrefix = (explicit) => ({ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', fontSize: 10.5, color: explicit ? '#34d399' : '#cbd5e1', pointerEvents: 'none' });
+  const gridCols = `36px minmax(160px,1.3fr) minmax(140px,1fr) 92px ${channels.map(() => '96px').join(' ')} 72px`;
+  const minW = 420 + channels.length * 104;
+
+  return (
+    <div>
+      {/* Bulk pricing bar — set a whole channel at once */}
+      {channels.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '9px', flexWrap: 'wrap', padding: '11px 15px', background: 'linear-gradient(135deg,#f5f7ff,#eef2ff)', border: '1px solid #e0e7ff', borderRadius: '14px', marginBottom: '12px' }}>
+          <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#4338ca', display: 'flex', alignItems: 'center', gap: 5 }}>⚡ Bulk price</span>
+          <select value={bulkRuleId} onChange={(e) => setBulkRuleId(e.target.value)} style={{ padding: '7px 10px', borderRadius: '9px', border: '1px solid #c7d2fe', fontSize: '12.5px', background: '#fff', color: '#3730a3', fontWeight: 600 }}>
+            {channels.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <select value={bulkMode} onChange={(e) => setBulkMode(e.target.value)} style={{ padding: '7px 10px', borderRadius: '9px', border: '1px solid #c7d2fe', fontSize: '12.5px', background: '#fff', color: '#3730a3', fontWeight: 600 }}>
+            <option value="none">= Base price</option>
+            <option value="percentage">+ % on base</option>
+            <option value="flat">+ Flat amount</option>
+          </select>
+          {bulkMode !== 'none' && (
+            <input type="number" value={bulkValue} onChange={(e) => setBulkValue(e.target.value)} placeholder={bulkMode === 'percentage' ? '20' : '5'} min="0" style={{ width: '74px', padding: '7px 10px', borderRadius: '9px', border: '1px solid #c7d2fe', fontSize: '12.5px', textAlign: 'right' }} />
+          )}
+          <button onClick={applyBulk} disabled={applying} style={{ padding: '7px 16px', borderRadius: '9px', border: 'none', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', fontWeight: 700, fontSize: '12.5px', cursor: applying ? 'wait' : 'pointer', opacity: applying ? 0.7 : 1, boxShadow: '0 2px 8px rgba(79,70,229,0.3)' }}>{applying ? 'Applying…' : 'Apply to all'}</button>
+          <span style={{ fontSize: '11px', color: '#818cf8', fontWeight: 500 }}>Prices every item for this channel — override any single one below.</span>
+        </div>
+      )}
+
+      {/* Table */}
+      <div style={{ background: '#fff', borderRadius: '18px', border: '1px solid #eef0f4', overflow: 'hidden', boxShadow: '0 6px 24px rgba(15,23,42,0.06)' }}>
+        <div style={{ overflowX: 'auto' }}>
+          <div style={{ minWidth: `${minW}px` }}>
+            {/* Header */}
+            <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '10px', padding: '13px 18px', background: 'linear-gradient(180deg,#fbfcfe,#f4f6fb)', borderBottom: '1px solid #eceef3', alignItems: 'center' }}>
+              <span style={headStyle} />
+              <span style={headStyle}>{t('menu.itemCol') || 'Item'}</span>
+              <span style={headStyle}>{t('menu.categoryCol') || 'Category'}</span>
+              <span style={{ ...headStyle, textAlign: 'right' }}>Base</span>
+              {channels.map(c => (
+                <span key={c.id} style={{ ...headStyle, textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.25 }} title={c.name}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '92px', color: '#334155' }}>{mtpChannelIcon(c.name)} {c.name}</span>
+                  {c.defaultMarkupType === 'percentage' && !!c.defaultMarkupValue && <span style={{ fontSize: '9px', color: '#4f46e5', fontWeight: 800, background: '#eef2ff', padding: '0 5px', borderRadius: 6, marginTop: 2 }}>+{c.defaultMarkupValue}%</span>}
+                  {c.defaultMarkupType === 'flat' && !!c.defaultMarkupValue && <span style={{ fontSize: '9px', color: '#4f46e5', fontWeight: 800, background: '#eef2ff', padding: '0 5px', borderRadius: 6, marginTop: 2 }}>+{cur}{c.defaultMarkupValue}</span>}
+                </span>
+              ))}
+              <span style={{ ...headStyle, textAlign: 'center' }}>Status</span>
+            </div>
+            {/* Rows */}
+            {items.map((item, index) => {
+              const baseKey = `${item.id}:base`;
+              return (
+                <div key={item.id}
+                  onMouseEnter={(e) => { if (item.isAvailable) e.currentTarget.style.background = '#f7f9ff'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = item.isAvailable ? '#fff' : '#fffafa'; }}
+                  style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '10px', padding: '11px 18px', alignItems: 'center', borderBottom: '1px solid #f4f5f8', background: item.isAvailable ? '#fff' : '#fffafa', transition: 'background .12s' }}>
+                  {/* veg dot */}
+                  <div style={{ width: '15px', height: '15px', borderRadius: '4px', border: `2px solid ${item.isVeg ? '#16a34a' : '#dc2626'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div style={{ width: '7px', height: '7px', background: item.isVeg ? '#16a34a' : '#dc2626', borderRadius: item.isVeg ? '2px' : '50%' }} />
+                  </div>
+                  {/* name */}
+                  <div style={{ minWidth: 0, cursor: 'pointer' }} onClick={() => onItemClick(item)} title="Open item">
+                    <div style={{ fontSize: '13.5px', fontWeight: 700, color: item.isAvailable ? '#0f172a' : '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {item.name}
+                      {item.shortCode && <span style={{ marginLeft: 7, background: '#eef2ff', color: '#4338ca', padding: '1px 7px', borderRadius: 6, fontSize: 10, fontWeight: 700, letterSpacing: '0.02em' }}>{item.shortCode}</span>}
+                      {!item.isAvailable && <span style={{ marginLeft: 7, background: '#fff1f2', color: '#e11d48', padding: '1px 7px', borderRadius: 6, fontSize: 10, fontWeight: 800 }}>{t('menu.out') || '86'}</span>}
+                    </div>
+                  </div>
+                  {/* category — colored leaf chip with muted ancestors */}
+                  {(() => {
+                    const leafId = String(item.subCategory || item.category || '').toLowerCase();
+                    const path = (categoryPathById && categoryPathById[leafId]) || [categoryMap.get(item.category)?.name || item.category].filter(Boolean);
+                    const full = path.join(' › ');
+                    const leaf = path[path.length - 1] || '—';
+                    const parents = path.slice(0, -1);
+                    const col = mtpCatColor(leaf);
+                    return (
+                      <div title={full} style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 5, overflow: 'hidden' }}>
+                        {parents.length > 0 && <span style={{ fontSize: 11, color: '#a3adbe', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>{parents.join(' › ')} ›</span>}
+                        <span style={{ flexShrink: 0, background: col.bg, color: col.fg, padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: col.dot }} />{leaf}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                  {/* base price — click to edit */}
+                  {editingCell === baseKey ? (
+                    <div style={{ position: 'relative' }}>
+                      <span style={curPrefix(true)}>{cur}</span>
+                      <input autoFocus type="text" inputMode="decimal"
+                        value={drafts[baseKey] !== undefined ? drafts[baseKey] : (item.price ?? '')}
+                        onChange={(e) => setDraft(baseKey, e.target.value.replace(/[^0-9.]/g, ''))}
+                        onFocus={focusCell}
+                        onBlur={(e) => { commitBase(item); blurCell(true)(e); setEditingCell(null); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { clearDraft(baseKey); setEditingCell(null); } }}
+                        style={cellInput(true)} />
+                    </div>
+                  ) : (
+                    <button onClick={() => startEdit(baseKey, String(item.price ?? ''))} title="Click to edit base price"
+                      onMouseEnter={(e) => { e.currentTarget.style.background = '#e7fbf1'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = '#f0fdf4'; }}
+                      style={priceChip(true)}>{cur}{mtpRound2(item.price)}</button>
+                  )}
+                  {/* channel prices — click to edit; muted when inherited */}
+                  {channels.map(c => {
+                    const k = `${item.id}:${c.id}`;
+                    const cp = chanPrice(item, c);
+                    return editingCell === k ? (
+                      <div key={c.id} style={{ position: 'relative' }}>
+                        <span style={curPrefix(cp.explicit)}>{cur}</span>
+                        <input autoFocus type="text" inputMode="decimal"
+                          value={drafts[k] !== undefined ? drafts[k] : (cp.explicit ? cp.value : '')}
+                          placeholder={`${cp.value}`}
+                          onChange={(e) => setDraft(k, e.target.value.replace(/[^0-9.]/g, ''))}
+                          onFocus={focusCell}
+                          onBlur={(e) => { commitChannel(item, c); blurCell(cp.explicit)(e); setEditingCell(null); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { clearDraft(k); setEditingCell(null); } }}
+                          style={cellInput(cp.explicit)} />
+                      </div>
+                    ) : (
+                      <button key={c.id} onClick={() => startEdit(k, cp.explicit ? String(cp.value) : '')}
+                        title={cp.explicit ? 'Custom price — click to edit' : `Inherits ${cur}${cp.value} — click to set a custom price`}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = cp.explicit ? '#e7fbf1' : '#f6f7fa'; e.currentTarget.style.borderColor = '#c7d2fe'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = cp.explicit ? '#f0fdf4' : 'transparent'; e.currentTarget.style.borderColor = cp.explicit ? '#d1fae5' : '#e5e8ee'; }}
+                        style={priceChip(cp.explicit)}>{cur}{cp.value}</button>
+                    );
+                  })}
+                  {/* status toggle */}
+                  <div style={{ textAlign: 'center' }}>
+                    {canMarkOutOfStock ? (
+                      <button onClick={() => onToggleAvailability(item.id, item.isAvailable)} title={item.isAvailable ? 'Mark out of stock' : 'Mark available'} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 11px', borderRadius: 999, border: `1px solid ${item.isAvailable ? '#a7f3d0' : '#fecdd3'}`, background: item.isAvailable ? '#ecfdf5' : '#fff1f2', color: item.isAvailable ? '#059669' : '#e11d48', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: item.isAvailable ? '#10b981' : '#f43f5e' }} />{item.isAvailable ? 'On' : 'Off'}
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: 11, color: item.isAvailable ? '#059669' : '#e11d48', fontWeight: 800 }}>{item.isAvailable ? 'On' : 'Off'}</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            <div style={{ padding: '11px 18px', background: 'linear-gradient(180deg,#fbfcfe,#f4f6fb)', borderTop: '1px solid #eceef3', fontSize: '12px', color: '#64748b', fontWeight: 600 }}>
+              {items.length} {items.length === 1 ? (t('menu.itemSingular') || 'item') : (t('menu.itemPlural') || 'items')}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const MenuManagement = () => {
   const { isLoading } = useLoading();
   const router = useRouter();
@@ -2490,12 +2727,8 @@ const MenuManagement = () => {
     // Ice cream-specific fields
     servingSize: '',
     scoopOptions: '',
-    // Multi-tier pricing
+    // Multi-tier pricing — per-rule price overrides { ruleId: price } (blank = inherit base)
     pricingRules: {},
-    // Channel prices (always visible)
-    dineInPrice: '',
-    takeawayPrice: '',
-    deliveryPrice: '',
     // Tax inclusive override (null = follow restaurant setting)
     taxInclusive: null,
     // HSN/SAC code (India GST invoice) — optional
@@ -2864,6 +3097,19 @@ const MenuManagement = () => {
     return map;
   }, [categories]);
 
+  // Full category breadcrumb per category id, e.g. "Food › Indian › Curries" — so the flat
+  // table can show any nesting depth (3–4 levels) in one Category column.
+  const categoryPathById = useMemo(() => {
+    const byId = new Map(categories.map(c => [String(c.id).toLowerCase(), c]));
+    const out = {};
+    categories.forEach(c => {
+      const parts = []; let node = c, g = 0;
+      while (node && g < 12) { parts.unshift(node.name); node = node.parentId ? byId.get(String(node.parentId).toLowerCase()) : null; g++; }
+      out[String(c.id).toLowerCase()] = parts;
+    });
+    return out;
+  }, [categories]);
+
   // Check if any item is sold by weight (to show/hide the weight filter)
   const hasWeightItems = useMemo(() => menuItems.some(item => item.soldByWeight), [menuItems]);
 
@@ -3027,61 +3273,16 @@ const MenuManagement = () => {
           }));
 
       // Check if any channel prices are set
-      const dineInVal = parseFloat(formData.dineInPrice);
-      const takeawayVal = parseFloat(formData.takeawayPrice);
-      const deliveryVal = parseFloat(formData.deliveryPrice);
-      const hasChannelPrice = (!isNaN(dineInVal) && dineInVal >= 0) || (!isNaN(takeawayVal) && takeawayVal >= 0) || (!isNaN(deliveryVal) && deliveryVal >= 0);
-
-      // Auto-enable multi-pricing if channel prices are set but not enabled
-      let currentRules = [...activePricingRules];
-      if (hasChannelPrice && !multiPricingEnabled) {
-        try {
-          const pricingRes = await apiClient.getPricingSettings(currentRestaurant.id);
-          const existing = pricingRes?.settings?.multiPricing;
-          currentRules = existing?.rules || [];
-
-          // Create default channel rules if missing
-          const DEFAULT_CHANNEL_RULES = [
-            { id: 'rule_dine_in', name: 'Dine-In', type: 'fixed', defaultMarkupType: 'none', defaultMarkupValue: 0, tableMappings: [], isActive: true, order: 0 },
-            { id: 'rule_takeaway', name: 'Takeaway', type: 'fixed', defaultMarkupType: 'none', defaultMarkupValue: 0, tableMappings: [], isActive: true, order: 1 },
-            { id: 'rule_delivery', name: 'Delivery', type: 'fixed', defaultMarkupType: 'none', defaultMarkupValue: 0, tableMappings: [], isActive: true, order: 2 },
-          ];
-          for (const def of DEFAULT_CHANNEL_RULES) {
-            const names = def.name === 'Dine-In' ? DINEIN_NAMES : def.name === 'Takeaway' ? TAKEAWAY_NAMES : DELIVERY_NAMES;
-            const exists = currentRules.some(r => names.includes((r.name || '').toLowerCase().trim()));
-            if (!exists) currentRules.push(def);
-          }
-
-          await apiClient.updatePricingSettings(currentRestaurant.id, {
-            multiPricing: { enabled: true, rules: currentRules }
-          });
-          setMultiPricingEnabled(true);
-          setActivePricingRules(currentRules);
-        } catch (pricingError) {
-          console.error('Failed to auto-enable multi-pricing:', pricingError);
-        }
-      }
-
-      // Clean up pricing rules — only keep numeric values
+      // Multi-tier prices: keep only numeric ≥ 0 from the per-rule map (blank = inherit base price).
+      // Prices are keyed by pricing-rule id and edited directly in the dynamic tier list — no
+      // hard-coded channel fields. The tiers themselves come from Admin → Multi-Tier Pricing.
       const cleanedPricingRules = {};
-      // Merge extra zone rules (AC, Non-AC, etc.)
       if (formData.pricingRules) {
         for (const [ruleId, val] of Object.entries(formData.pricingRules)) {
           const parsed = parseFloat(val);
-          if (!isNaN(parsed) && parsed >= 0) {
-            cleanedPricingRules[ruleId] = parsed;
-          }
+          if (!isNaN(parsed) && parsed >= 0) cleanedPricingRules[ruleId] = parsed;
         }
       }
-
-      // Map channel prices to rule IDs
-      const rulesToSearch = currentRules.length > 0 ? currentRules : activePricingRules;
-      const dineInRule = rulesToSearch.find(r => DINEIN_NAMES.includes((r.name || '').toLowerCase().trim()));
-      const takeawayRule = rulesToSearch.find(r => TAKEAWAY_NAMES.includes((r.name || '').toLowerCase().trim()));
-      const deliveryRule = rulesToSearch.find(r => DELIVERY_NAMES.includes((r.name || '').toLowerCase().trim()));
-      if (dineInRule && !isNaN(dineInVal) && dineInVal >= 0) cleanedPricingRules[dineInRule.id] = dineInVal;
-      if (takeawayRule && !isNaN(takeawayVal) && takeawayVal >= 0) cleanedPricingRules[takeawayRule.id] = takeawayVal;
-      if (deliveryRule && !isNaN(deliveryVal) && deliveryVal >= 0) cleanedPricingRules[deliveryRule.id] = deliveryVal;
 
       // When variants exist, auto-set base price to lowest variant price (Square-style)
       const effectivePrice = cleanedVariants.length > 0
@@ -3422,22 +3623,10 @@ const MenuManagement = () => {
       servingSize: item.servingSize || '',
       scoopOptions: item.scoopOptions?.toString() || '',
       hideImage: item.hideImage || false,
+      // Per-rule tier prices load directly from the item's pricingRules map (keyed by rule id).
       pricingRules: item.pricingRules || {},
       taxInclusive: item.taxInclusive != null ? item.taxInclusive : null,
       hsnCode: item.hsnCode || '',
-      // Pre-populate channel prices from pricing rules
-      dineInPrice: (() => {
-        const rule = activePricingRules.find(r => DINEIN_NAMES.includes((r.name || '').toLowerCase().trim()));
-        return rule && item.pricingRules?.[rule.id] != null ? String(item.pricingRules[rule.id]) : '';
-      })(),
-      takeawayPrice: (() => {
-        const rule = activePricingRules.find(r => TAKEAWAY_NAMES.includes((r.name || '').toLowerCase().trim()));
-        return rule && item.pricingRules?.[rule.id] != null ? String(item.pricingRules[rule.id]) : '';
-      })(),
-      deliveryPrice: (() => {
-        const rule = activePricingRules.find(r => DELIVERY_NAMES.includes((r.name || '').toLowerCase().trim()));
-        return rule && item.pricingRules?.[rule.id] != null ? String(item.pricingRules[rule.id]) : '';
-      })(),
     });
     setEditingItem(item);
     setShowAddForm(true);
@@ -3748,6 +3937,72 @@ const MenuManagement = () => {
     }
   }, [isOnline, currentRestaurant?.id]);
 
+  // Inline price edit from the pricing table — patch = { price?, pricingRules? }.
+  // Optimistic local + cache update, then persist via the same updateMenuItem endpoint.
+  const handleSaveItemPrices = useCallback(async (itemId, patch) => {
+    setMenuItems(items => items.map(it => (it.id === itemId ? { ...it, ...patch } : it)));
+    updateMenuItemInAllCaches(currentRestaurant?.id, itemId, patch).catch(() => {});
+    try {
+      await apiClient.updateMenuItem(itemId, patch, currentRestaurant?.id);
+    } catch (e) {
+      console.error('Failed to save price:', e);
+      setError(t('menu.failedToSave') || 'Failed to save price. Please retry.');
+    }
+  }, [currentRestaurant?.id]);
+
+  // Bulk-price a whole channel by setting its markup (base / +% / +flat). One settings write;
+  // the engine applies it to every item (both display and the actual charged price).
+  const handleSetChannelMarkup = useCallback(async (ruleId, markupType, markupValue) => {
+    const rules = (activePricingRules || []).map(r =>
+      r.id === ruleId ? { ...r, defaultMarkupType: markupType, defaultMarkupValue: Number(markupValue) || 0 } : r
+    );
+    setActivePricingRules(rules);
+    try {
+      await apiClient.updatePricingSettings(currentRestaurant.id, { multiPricing: { enabled: true, rules } });
+    } catch (e) {
+      console.error('Failed to set channel markup:', e);
+      setError(t('menu.failedToSave') || 'Failed to apply channel pricing. Please retry.');
+    }
+  }, [activePricingRules, currentRestaurant?.id]);
+
+  // Create a new price channel from inside the item modal (self-sufficient — no Admin trip).
+  // Adds an active rule + enables multi-pricing, so it immediately shows as a priceable row.
+  const [newChannelName, setNewChannelName] = useState('');
+  const [addingChannel, setAddingChannel] = useState(false);
+  // Adding a channel creates ONE unified thing: a price list (pricing rule) AND a billing button
+  // (order type), sharing the same stable slug id. The id is what the backend matches on; the label
+  // is whatever the user typed (shown everywhere). So "Talabat" → appears on billing + prices items.
+  const handleAddChannel = useCallback(async () => {
+    const name = (newChannelName || '').trim();
+    if (!name) return;
+    if ((activePricingRules || []).some(r => (r.name || '').toLowerCase().trim() === name.toLowerCase())) {
+      setError('A channel with that name already exists.');
+      return;
+    }
+    setAddingChannel(true);
+    // Stable slug id, shared by the pricing rule AND the order type.
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || `ch-${Date.now().toString(36)}`;
+    const usedIds = new Set((activePricingRules || []).map(r => r.id));
+    const sharedId = usedIds.has(slug) ? `${slug}-${Date.now().toString(36).slice(-4)}` : slug;
+
+    // The channel's id is the shared id; the billing screen auto-derives a matching order-type
+    // button from it (see OrderSummary), so there's no separate order-type record to keep in sync.
+    const newRule = { id: sharedId, name, type: 'dynamic', defaultMarkupType: 'none', defaultMarkupValue: 0, tableMappings: [], isActive: true, order: (activePricingRules || []).length };
+    const rules = [...(activePricingRules || []), newRule];
+
+    setActivePricingRules(rules);
+    setMultiPricingEnabled(true);
+    setNewChannelName('');
+    try {
+      await apiClient.updatePricingSettings(currentRestaurant.id, { multiPricing: { enabled: true, rules } });
+    } catch (e) {
+      console.error('Failed to add channel:', e);
+      setError(t('menu.failedToSave') || 'Failed to add channel. Please retry.');
+    } finally {
+      setAddingChannel(false);
+    }
+  }, [newChannelName, activePricingRules, currentRestaurant?.id]);
+
   // ─── Recipe Modal State & Handlers (reuses RecipeFormBody from Inventory) ───
   const [showMenuRecipeModal, setShowMenuRecipeModal] = useState(false);
   const [menuRecipeItem, setMenuRecipeItem] = useState(null); // the menu item this recipe is for
@@ -4041,10 +4296,7 @@ const MenuManagement = () => {
       expiryDate: '',
       servingSize: '',
       scoopOptions: '',
-      pricingRules: {},
-      dineInPrice: '',
-      takeawayPrice: '',
-      deliveryPrice: ''
+      pricingRules: {}
     });
     setEditingItem(null);
     setShowAddForm(false);
@@ -4948,8 +5200,8 @@ const MenuManagement = () => {
                 </div>
               );
             })()}
-            {/* Category folder tiles (drill-down) */}
-            {menuFolders.length > 0 && (
+            {/* Category folder tiles (drill-down) — grid view only; the table shows all items flat */}
+            {menuFolders.length > 0 && viewMode !== 'list' && (
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(150px, 1fr))' : 'repeat(auto-fill, minmax(200px, 1fr))', gap: isMobile ? '12px' : '16px', marginBottom: menuDirectItems.length ? '22px' : '0' }}>
                 {menuFolders.map(renderMenuFolder)}
               </div>
@@ -4988,6 +5240,20 @@ const MenuManagement = () => {
                 />
               ))}
             </div>
+          ) : viewMode === 'list' ? (
+            <MenuPricingTable
+              items={filteredItems}
+              categoryMap={categoryMap}
+              categoryPathById={categoryPathById}
+              channels={multiPricingEnabled ? (activePricingRules || []).filter(r => r.isActive).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : []}
+              currencySymbol={getCurrencySymbol()}
+              onItemClick={handleItemClick}
+              onToggleAvailability={handleToggleAvailability}
+              onSaveItemPrices={handleSaveItemPrices}
+              onSetChannelMarkup={handleSetChannelMarkup}
+              canMarkOutOfStock={canMarkOutOfStock}
+              t={t}
+            />
           ) : (
             <div style={{
               backgroundColor: '#ffffff',
@@ -5764,141 +6030,74 @@ const MenuManagement = () => {
                     {t('menu.channelPricesOptional')} <span style={{ fontWeight: '400', color: '#9ca3af', fontSize: '12px' }}>{t('menu.optional')}</span>
                   </label>
 
-                  {/* Dine-In */}
-                  {(() => {
-                    const hasDineIn = formData.dineInPrice !== '' && formData.dineInPrice !== undefined;
-                    return (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '14px', width: '22px', textAlign: 'center' }}>🍽️</span>
-                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#334155', width: '70px' }}>{t('menu.dineIn')}</span>
-                        <input
-                          type="number"
-                          placeholder={formData.price ? `${getCurrencySymbol()}${formData.price}` : `${getCurrencySymbol()}0`}
-                          value={formData.dineInPrice}
-                          onChange={(e) => setFormData(prev => ({ ...prev, dineInPrice: e.target.value }))}
-                          min="0" step="0.01"
-                          style={{
-                            flex: 1, maxWidth: '140px', padding: '7px 10px', borderRadius: '6px',
-                            border: hasDineIn ? '1.5px solid #10b981' : '1px solid #e2e8f0',
-                            fontSize: '13px', boxSizing: 'border-box',
-                            backgroundColor: hasDineIn ? '#f0fdf4' : 'white',
-                            fontWeight: hasDineIn ? '600' : '400',
-                            color: hasDineIn ? '#166534' : '#374151'
-                          }}
-                          onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.boxShadow = '0 0 0 2px rgba(239,68,68,0.1)'; }}
-                          onBlur={(e) => { e.target.style.borderColor = hasDineIn ? '#10b981' : '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
-                        />
-                      </div>
-                    );
-                  })()}
-
-                  {/* Zone children — indented tree under Dine-In */}
-                  {multiPricingEnabled && activePricingRules.length > 0 && (() => {
-                    const extraRules = activePricingRules.filter(r => {
-                      const name = (r.name || '').toLowerCase().trim();
-                      return r.isActive && !TAKEAWAY_NAMES.includes(name) && !DELIVERY_NAMES.includes(name) && !DINEIN_NAMES.includes(name);
-                    });
-                    if (extraRules.length === 0) return null;
-                    const inheritedPrice = formData.dineInPrice || formData.price || '';
-                    return (
-                      <div style={{ marginLeft: '30px', borderLeft: '2px solid #e2e8f0', paddingLeft: '14px', marginBottom: '6px', paddingTop: '2px' }}>
-                        {extraRules.map((rule, idx) => {
-                          const savedPrice = formData.pricingRules[rule.id];
-                          const hasCustom = savedPrice !== undefined && savedPrice !== '' && savedPrice !== null;
-                          const isLast = idx === extraRules.length - 1;
-                          return (
-                            <div key={rule.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: isLast ? '0' : '4px', position: 'relative' }}>
-                              <span style={{ position: 'absolute', left: '-15px', top: '50%', width: '12px', height: '1px', backgroundColor: '#e2e8f0' }} />
-                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: hasCustom ? '#10b981' : '#cbd5e1', flexShrink: 0 }} />
-                              <span style={{ fontSize: '11px', fontWeight: '500', color: '#64748b', width: '80px', flexShrink: 0 }}>{rule.name}</span>
+                  {/* Tier prices — ONE row per active pricing rule, driven entirely by
+                      Admin → Multi-Tier Pricing (Dine-In, AC Dining, Takeaway, Delivery, Talabat,
+                      Rafeeq… whatever the restaurant configured). Blank = inherit the base price.
+                      Fully dynamic — no hard-coded channels. Stored in formData.pricingRules[rule.id]. */}
+                  {(multiPricingEnabled && activePricingRules.some(r => r.isActive)) ? (
+                    activePricingRules
+                      .filter(r => r.isActive)
+                      .slice()
+                      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+                      .map(rule => {
+                        const saved = formData.pricingRules[rule.id];
+                        const has = saved !== undefined && saved !== '' && saved !== null;
+                        const dot = mtpCatColor(rule.name).dot;
+                        return (
+                          <div key={rule.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: dot, flexShrink: 0, margin: '0 5px' }} />
+                            <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rule.name}</span>
+                            <div style={{ position: 'relative', width: '150px', flexShrink: 0 }}>
+                              <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: has ? '#34d399' : '#a0aec0', pointerEvents: 'none' }}>{getCurrencySymbol()}</span>
                               <input
-                                type="number"
-                                placeholder={inheritedPrice ? `${getCurrencySymbol()}${inheritedPrice}` : `${getCurrencySymbol()}0`}
-                                value={hasCustom ? savedPrice : ''}
+                                type="text"
+                                inputMode="decimal"
+                                placeholder={formData.price ? `${formData.price} (base)` : '0'}
+                                value={has ? saved : ''}
                                 onChange={(e) => {
-                                  const val = e.target.value;
+                                  let val = e.target.value.replace(/[^0-9.]/g, '');
+                                  const parts = val.split('.'); if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
                                   setFormData(prev => ({ ...prev, pricingRules: { ...prev.pricingRules, [rule.id]: val === '' ? undefined : val } }));
                                 }}
-                                min="0" step="0.01"
+                                title={has ? `Custom ${rule.name} price` : `Blank = base price (${getCurrencySymbol()}${formData.price || 0})`}
                                 style={{
-                                  flex: 1, maxWidth: '120px', padding: '5px 8px', borderRadius: '5px',
-                                  border: hasCustom ? '1.5px solid #10b981' : '1px dashed #d1d5db',
-                                  fontSize: '12px', boxSizing: 'border-box',
-                                  backgroundColor: hasCustom ? '#f0fdf4' : '#fafafa',
-                                  fontWeight: hasCustom ? '600' : '400',
-                                  fontStyle: hasCustom ? 'normal' : 'italic',
-                                  color: hasCustom ? '#166534' : '#94a3b8'
+                                  width: '100%', padding: '8px 10px 8px 24px', borderRadius: '9px',
+                                  border: has ? '1.5px solid #a7f3d0' : '1px solid #e5e8ee',
+                                  fontSize: '13px', boxSizing: 'border-box', textAlign: 'right',
+                                  backgroundColor: has ? '#f0fdf4' : '#fbfbfd',
+                                  fontWeight: has ? '700' : '500',
+                                  color: has ? '#065f46' : '#334155', outline: 'none', transition: 'border-color .15s, box-shadow .15s'
                                 }}
-                                onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.boxShadow = '0 0 0 2px rgba(239,68,68,0.1)'; e.target.style.fontStyle = 'normal'; }}
-                                onBlur={(e) => { e.target.style.borderColor = hasCustom ? '#10b981' : '#d1d5db'; e.target.style.boxShadow = 'none'; if (!hasCustom) e.target.style.fontStyle = 'italic'; }}
+                                onFocus={(e) => { e.target.style.borderColor = '#6366f1'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.14)'; e.target.style.background = '#fff'; }}
+                                onBlur={(e) => { e.target.style.borderColor = has ? '#a7f3d0' : '#e5e8ee'; e.target.style.boxShadow = 'none'; e.target.style.background = has ? '#f0fdf4' : '#fbfbfd'; }}
                               />
-                              {!hasCustom && <span style={{ fontSize: '10px', color: '#94a3b8', fontStyle: 'italic' }}>{t('menu.inherited')}</span>}
                             </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })()}
+                          </div>
+                        );
+                      })
+                  ) : (
+                    <div style={{ padding: '8px 12px', backgroundColor: '#f9fafb', border: '1px dashed #e5e7eb', borderRadius: '8px', fontSize: '11.5px', color: '#94a3b8' }}>
+                      Add a channel below to set a different price for it. Blank uses the base price.
+                    </div>
+                  )}
 
-                  {/* Takeaway */}
-                  {(() => {
-                    const hasTakeaway = formData.takeawayPrice !== '' && formData.takeawayPrice !== undefined;
-                    return (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', marginTop: '6px' }}>
-                        <span style={{ fontSize: '14px', width: '22px', textAlign: 'center' }}>🥡</span>
-                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#334155', width: '70px' }}>{t('menu.takeaway')}</span>
-                        <input
-                          type="number"
-                          placeholder={formData.price ? `${getCurrencySymbol()}${formData.price}` : `${getCurrencySymbol()}0`}
-                          value={formData.takeawayPrice}
-                          onChange={(e) => setFormData(prev => ({ ...prev, takeawayPrice: e.target.value }))}
-                          min="0" step="0.01"
-                          style={{
-                            flex: 1, maxWidth: '140px', padding: '7px 10px', borderRadius: '6px',
-                            border: hasTakeaway ? '1.5px solid #10b981' : '1px solid #e2e8f0',
-                            fontSize: '13px', boxSizing: 'border-box',
-                            backgroundColor: hasTakeaway ? '#f0fdf4' : 'white',
-                            fontWeight: hasTakeaway ? '600' : '400',
-                            color: hasTakeaway ? '#166534' : '#374151'
-                          }}
-                          onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.boxShadow = '0 0 0 2px rgba(239,68,68,0.1)'; }}
-                          onBlur={(e) => { e.target.style.borderColor = hasTakeaway ? '#10b981' : '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
-                        />
-                      </div>
-                    );
-                  })()}
-
-                  {/* Delivery */}
-                  {(() => {
-                    const hasDelivery = formData.deliveryPrice !== '' && formData.deliveryPrice !== undefined;
-                    return (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '14px', width: '22px', textAlign: 'center' }}>🛵</span>
-                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#334155', width: '70px' }}>{t('menu.delivery')}</span>
-                        <input
-                          type="number"
-                          placeholder={formData.price ? `${getCurrencySymbol()}${formData.price}` : `${getCurrencySymbol()}0`}
-                          value={formData.deliveryPrice}
-                          onChange={(e) => setFormData(prev => ({ ...prev, deliveryPrice: e.target.value }))}
-                          min="0" step="0.01"
-                          style={{
-                            flex: 1, maxWidth: '140px', padding: '7px 10px', borderRadius: '6px',
-                            border: hasDelivery ? '1.5px solid #10b981' : '1px solid #e2e8f0',
-                            fontSize: '13px', boxSizing: 'border-box',
-                            backgroundColor: hasDelivery ? '#f0fdf4' : 'white',
-                            fontWeight: hasDelivery ? '600' : '400',
-                            color: hasDelivery ? '#166534' : '#374151'
-                          }}
-                          onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.boxShadow = '0 0 0 2px rgba(239,68,68,0.1)'; }}
-                          onBlur={(e) => { e.target.style.borderColor = hasDelivery ? '#10b981' : '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
-                        />
-                      </div>
-                    );
-                  })()}
-
+                  {/* Add a channel right here — self-sufficient, no trip to Admin */}
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '10px', alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      value={newChannelName}
+                      onChange={(e) => setNewChannelName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddChannel(); } }}
+                      placeholder="New channel name…"
+                      style={{ flex: 1, padding: '9px 12px', borderRadius: '9px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                    <button type="button" onClick={handleAddChannel} disabled={addingChannel || !newChannelName.trim()}
+                      style={{ padding: '9px 16px', borderRadius: '9px', border: 'none', background: newChannelName.trim() ? 'linear-gradient(135deg,#6366f1,#4f46e5)' : '#eef0f4', color: newChannelName.trim() ? '#fff' : '#9ca3af', fontWeight: 700, fontSize: '13px', cursor: (addingChannel || !newChannelName.trim()) ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>
+                      {addingChannel ? 'Adding…' : '+ Add channel'}
+                    </button>
+                  </div>
                   <p style={{ fontSize: '11px', color: '#94a3b8', margin: '8px 0 0' }}>
-                    {t('menu.emptyZonesInfo')}{' '}
-                    <span onClick={() => router.push(isMobileEmbed ? '/mobile/admin' : '/admin')} style={{ color: '#ef4444', cursor: 'pointer', fontWeight: '600' }}>{t('menu.adminPricingRules')}</span>
+                    Once added, the channel appears as a row above — type this item&apos;s price for it there (blank = base price).
                   </p>
                 </div>
                 )}

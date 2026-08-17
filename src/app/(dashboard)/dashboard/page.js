@@ -2137,7 +2137,8 @@ function RestaurantPOSContent() {
     const candidates = new Set([norm(orderType), norm(otObj?.label)].filter(Boolean));
 
     // 1) A pricing rule whose name matches this order type (by label or id) wins.
-    const matched = pricingRules.find((r) => candidates.has(norm(r.name)));
+    // Prefer a shared-id match (order type id === pricing rule id, the unified channel), then name.
+    const matched = pricingRules.find((r) => r.id === orderType) || pricingRules.find((r) => candidates.has(norm(r.name)));
     if (matched) {
       setActivePricingRuleId(matched.id);
       setAutoSelectedRule(true);

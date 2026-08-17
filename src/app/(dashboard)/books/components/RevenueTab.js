@@ -66,8 +66,10 @@ export default function RevenueTab({ revenueData, loadingRevenue, isMobile, form
 
   const { totalRevenue, totalTax, totalDiscounts, refunds, orderCount, avgOrderValue, byPaymentMethod, byOrderType, dailyBreakdown, changePercent } = revenueData;
 
+  // Friendly label for an order type / channel key (e.g. "ac-dining" → "Ac Dining", "talabat" → "Talabat").
+  const prettyType = (k) => String(k || '').replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   const paymentData = Object.entries(byPaymentMethod || {}).map(([key, val]) => ({ name: key, value: val })).sort((a, b) => b.value - a.value);
-  const orderTypeData = Object.entries(byOrderType || {}).map(([key, val]) => ({ name: key, value: val })).sort((a, b) => b.value - a.value);
+  const orderTypeData = Object.entries(byOrderType || {}).map(([key, val]) => ({ name: prettyType(key), value: val })).sort((a, b) => b.value - a.value);
   const maxPayment = paymentData.length ? Math.max(...paymentData.map(d => d.value)) : 0;
   const maxOrderType = orderTypeData.length ? Math.max(...orderTypeData.map(d => d.value)) : 0;
 
