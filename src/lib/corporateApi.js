@@ -52,6 +52,21 @@ const corporateApi = {
   // ── Live counts ──
   counts: (params) => req(`/api/corporate/counts${qs(params)}`),
 
+  // ── Billing (Phase 4) — monthly client invoices ──
+  billing: {
+    generateInvoice: (clientId, month) => req(`/api/corporate/billing/clients/${clientId}/invoices/generate`, { method: 'POST', body: { month } }),
+    listInvoices: (clientId) => req(`/api/corporate/billing/clients/${clientId}/invoices`),
+    getInvoice: (id) => req(`/api/corporate/billing/invoices/${id}`),
+    reconcileInvoice: (id, body) => req(`/api/corporate/billing/invoices/${id}/reconcile`, { method: 'POST', body }),
+  },
+
+  // ── Reports (Phase 6) — MIS ──
+  reports: {
+    summary: (params) => req(`/api/corporate/reports/summary${qs(params)}`),
+    consumption: (params) => req(`/api/corporate/reports/consumption${qs(params)}`),
+    subsidy: (params) => req(`/api/corporate/reports/subsidy${qs(params)}`),
+  },
+
   // ── Employee self-service (resolved by the caller's phone) ──
   employee: {
     me: () => req('/api/corporate-employee/me'),

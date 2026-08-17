@@ -10,6 +10,7 @@ import Link from 'next/link';
 import {
   FaTh, FaBuilding, FaMapMarkerAlt, FaUsers, FaClock, FaCalendarCheck,
   FaChartBar, FaQrcode, FaUtensils, FaArrowLeft, FaSpinner, FaBars, FaTimes,
+  FaFileInvoiceDollar, FaChartLine,
 } from 'react-icons/fa';
 import apiClient from '../../lib/api';
 import corporateApi from '../../lib/corporateApi';
@@ -25,6 +26,8 @@ const NAV = [
   { href: '/corporate/bookings', label: 'Bookings', icon: FaCalendarCheck },
   { href: '/corporate/counts', label: 'Live Counts', icon: FaChartBar },
   { href: '/corporate/counter', label: 'Counter', icon: FaQrcode },
+  { href: '/corporate/billing', label: 'Billing', icon: FaFileInvoiceDollar },
+  { href: '/corporate/reports', label: 'Reports', icon: FaChartLine },
 ];
 
 export default function CorporateLayout({ children }) {
