@@ -249,8 +249,10 @@ async function printViaElectron({ html, type, stationId, printSettings }) {
       // Throw so callers (testPrint, etc.) can catch and show error status
       const printErr = new Error(errMsg);
       printErr._printFailure = true;
+      printErr._result = result; // carry the full print-job result for diagnostics
       throw printErr;
     }
+    return result; // success → return the electron result (method / deviceMatched / etc. for diagnostics)
   } catch (err) {
     // If this is a known print failure (thrown from the success===false check above),
     // propagate it to the caller so testPrint() etc. can show proper error status.

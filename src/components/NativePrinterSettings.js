@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { isWeb, isCapacitor, isTauri, isElectron } from '../utils/platform';
 import { printDocument } from '../utils/printBridge';
+import { saveStationPrinterToServer } from '../utils/stationPrinterSync';
 import apiClient from '../lib/api';
 import { FaBluetooth, FaPrint, FaSync, FaCheckCircle, FaTimesCircle, FaUsb, FaWifi, FaStethoscope, FaMicrochip } from 'react-icons/fa';
 
@@ -37,6 +38,10 @@ export default function NativePrinterSettings({ restaurantId }) {
   const [diagReport, setDiagReport] = useState(null);
   const [isDiagnosing, setIsDiagnosing] = useState(false);
   const [appVersion, setAppVersion] = useState(null);
+  // Designated print terminal (multi-terminal): which ONE terminal auto-prints incoming KOTs.
+  const [myTerminalId, setMyTerminalId] = useState(null);
+  const [printTerminalId, setPrintTerminalId] = useState(null); // restaurant's designated terminal (null = all print)
+  const [savingPrintTerminal, setSavingPrintTerminal] = useState(false);
   const [printStations, setPrintStations] = useState([]);
   const [stationPrinters, setStationPrinters] = useState({});
   const [stationTestStatus, setStationTestStatus] = useState({});
@@ -431,7 +436,38 @@ export default function NativePrinterSettings({ restaurantId }) {
     } catch (err) {
       console.error('Failed to save station printer:', err);
     }
-  }, [stationPrinters, isElectronPlatform]);
+    // Durable backup: also record on the server so any terminal can restore this mapping.
+    // Best-effort and independent of the local save above (which stays the source of truth).
+    saveStationPrinterToServer(restaurantId, stationId, printerName);
+  }, [stationPrinters, isElectronPlatform, restaurantId]);
+
+  // ── Designated print terminal (multi-terminal duplicate prevention) ──
+  // Load this terminal's id + the restaurant's currently-designated print terminal.
+  useEffect(() => {
+    if (!isElectronPlatform) return;
+    window.electronAPI?.getTerminalId?.().then((id) => setMyTerminalId(id || null)).catch(() => {});
+    if (restaurantId) {
+      apiClient.getPrintSettings(restaurantId)
+        .then((res) => { const ps = res?.printSettings || res || {}; setPrintTerminalId(ps.printTerminalId || null); })
+        .catch(() => {});
+    }
+  }, [restaurantId, isElectronPlatform]);
+
+  // Toggle THIS terminal as the designated printer. Single value on the restaurant → turning it on
+  // here automatically clears it everywhere else. Off → back to "all terminals print".
+  const togglePrintTerminal = useCallback(async () => {
+    if (!restaurantId || !myTerminalId || savingPrintTerminal) return;
+    const enabling = printTerminalId !== myTerminalId;
+    setSavingPrintTerminal(true);
+    try {
+      await apiClient.updatePrintSettings(restaurantId, { printTerminalId: enabling ? myTerminalId : null });
+      setPrintTerminalId(enabling ? myTerminalId : null);
+    } catch (err) {
+      console.error('Failed to update print terminal:', err);
+    } finally {
+      setSavingPrintTerminal(false);
+    }
+  }, [restaurantId, myTerminalId, printTerminalId, savingPrintTerminal]);
 
   // Add a network printer by IP address
   const addNetworkPrinter = useCallback(async (ipInput) => {
@@ -671,6 +707,34 @@ export default function NativePrinterSettings({ restaurantId }) {
           );
         })()}
       </div>
+
+      {/* ── Designated print terminal (multi-terminal) ── */}
+      {isElectronPlatform && myTerminalId && (() => {
+        const isThis = printTerminalId && printTerminalId === myTerminalId;
+        const someoneElse = printTerminalId && printTerminalId !== myTerminalId;
+        return (
+          <div style={{ marginBottom: '12px', padding: '10px 12px', borderRadius: '8px', background: isThis ? '#eff6ff' : '#fff', border: `1px solid ${isThis ? '#bfdbfe' : '#e5e7eb'}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#374151' }}>This terminal prints incoming orders</div>
+                <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>
+                  {isThis ? '✓ Incoming (waiter/app) KOTs auto-print on THIS terminal only.'
+                    : someoneElse ? 'Another terminal is the designated printer — this one won’t auto-print. Turn on to take over.'
+                      : 'Off = every open terminal prints (can duplicate KOTs when multiple terminals are open).'}
+                </div>
+              </div>
+              <button
+                onClick={togglePrintTerminal}
+                disabled={savingPrintTerminal}
+                title="Designate this terminal as the printer"
+                style={{ width: '42px', height: '24px', borderRadius: '12px', border: 'none', flexShrink: 0, position: 'relative', background: isThis ? '#2563eb' : '#cbd5e1', cursor: savingPrintTerminal ? 'not-allowed' : 'pointer', opacity: 1 }}
+              >
+                <span style={{ position: 'absolute', top: '2px', left: isThis ? '20px' : '2px', width: '20px', height: '20px', borderRadius: '50%', background: '#fff', transition: 'left .15s' }} />
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Discover Printers ── */}
       <div style={{ display: 'flex', gap: '6px', marginBottom: '4px', alignItems: 'center' }}>

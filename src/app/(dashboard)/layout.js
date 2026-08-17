@@ -155,12 +155,43 @@ function DashboardLayoutContent({ children }) {
     initPrintDiagnostics();
   }, []);
 
-  // Fetch print settings for native auto-print (no-op on web)
+  // Fetch print settings for native auto-print (no-op on web). Kept LIVE — re-fetched on window
+  // focus + a short poll — so enabling remote/desktop print or changing printers on ANY device
+  // takes effect on this terminal within seconds, with no manual refresh (the old 30-min cache
+  // meant changes could take up to half an hour to apply). We only update state when the settings
+  // actually changed, so the auto-print realtime subscription doesn't churn every poll.
   useEffect(() => {
     if (isWeb() || !selectedRestaurantId) return;
-    apiClient.getPrintSettings(selectedRestaurantId)
-      .then(res => setNativePrintSettings(res?.printSettings || res))
-      .catch(() => {});
+    let cancelled = false;
+    const refresh = () => {
+      apiClient.getPrintSettings(selectedRestaurantId)
+        .then(res => {
+          if (cancelled) return;
+          const next = (res && res.printSettings) || res || null;
+          setNativePrintSettings(prev => {
+            try { if (JSON.stringify(prev) === JSON.stringify(next)) return prev; } catch (_) { /* fall through */ }
+            return next;
+          });
+        })
+        .catch(() => {});
+    };
+    refresh();
+    // Restore KOT station→printer bindings from the server for any station this terminal has no
+    // local binding for (fresh install / new machine). Fills ONLY empties, so a configured
+    // terminal is untouched. Prevents multi-station KOT silently collapsing to one printer.
+    import('../../utils/stationPrinterSync').then(({ hydrateStationPrinters }) => hydrateStationPrinters(selectedRestaurantId)).catch(() => {});
+
+    const onFocus = () => refresh();
+    const onVisible = () => { if (typeof document !== 'undefined' && document.visibilityState === 'visible') refresh(); };
+    if (typeof window !== 'undefined') window.addEventListener('focus', onFocus);
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVisible);
+    const poll = setInterval(refresh, 20000); // keep settings live across terminals (~20s max staleness)
+    return () => {
+      cancelled = true;
+      if (typeof window !== 'undefined') window.removeEventListener('focus', onFocus);
+      if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVisible);
+      clearInterval(poll);
+    };
   }, [selectedRestaurantId]);
 
   // Auto-print on native platforms (Capacitor/Tauri) — no-op on web

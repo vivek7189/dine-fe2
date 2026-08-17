@@ -111,6 +111,42 @@ export function useAutoPrint(restaurantId, printSettings) {
   const isPrintingRef = useRef(false);
   const pusherRef = useRef(null);
 
+  // ── Multi-terminal print designation ──
+  // When several Electron terminals are online for the same restaurant, EVERY terminal receives
+  // the same realtime KOT/Bill events. Without a designated printer, each one prints → duplicate
+  // tickets. If the owner designates a print terminal (printSettings.printTerminalId), ONLY that
+  // terminal auto-prints incoming events. UNSET (the default) → every terminal prints, exactly as
+  // before — so single-terminal setups and all existing installs are 100% unchanged.
+  // Each handler inlines the guard:
+  //   if (printSettings?.printTerminalId && myTerminalIdRef.current && printSettings.printTerminalId !== myTerminalIdRef.current) return;
+  // Skips auto-print ONLY when a terminal is designated AND this isn't it. Fail-open: if this
+  // terminal's id can't be read, it still prints (better a duplicate than a missing kitchen ticket).
+  const myTerminalIdRef = useRef(null);
+  const appVersionRef = useRef(null);
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.electronAPI?.getTerminalId) {
+      window.electronAPI.getTerminalId().then((id) => { myTerminalIdRef.current = id || null; }).catch(() => {});
+    }
+    if (typeof window !== 'undefined' && window.electronAPI?.getVersion) {
+      window.electronAPI.getVersion().then((v) => { appVersionRef.current = v || null; }).catch(() => {});
+    }
+  }, []);
+
+  // Report a remote-print diagnostic to the server (fire-and-forget). Only sends when the
+  // restaurant has opted in (printSettings.printDiagnostics) OR the event is a failure — so
+  // we can debug a specific terminal remotely without write-amplifying every print.
+  const logDiag = useCallback((event) => {
+    try {
+      const verbose = printSettings?.printDiagnostics === true;
+      if (!verbose && event?.success !== false) return; // successes only when verbose; always log failures
+      apiClient.logPrintDiagnostic(restaurantId, {
+        terminalId: myTerminalIdRef.current,
+        appVersion: appVersionRef.current,
+        ...event,
+      });
+    } catch (_) { /* diagnostics must never affect printing */ }
+  }, [restaurantId, printSettings]);
+
   const processQueue = useCallback(async () => {
     if (isPrintingRef.current) return;
     isPrintingRef.current = true;
@@ -118,7 +154,7 @@ export function useAutoPrint(restaurantId, printSettings) {
     while (printQueueRef.current.length > 0) {
       const job = printQueueRef.current.shift();
       try {
-        await printDocument({
+        const result = await printDocument({
           html: job.html,
           type: job.type,
           orderId: job.orderId,
@@ -128,9 +164,34 @@ export function useAutoPrint(restaurantId, printSettings) {
         });
         markPrinted(job.orderId, job.type);
         emitPrintEvent(job.type, job.orderId, 'printed');
+        // Report the REAL outcome. The os-driver path returns success:true to the app but may
+        // carry realSuccess:false (driver rejected / printer offline / name mismatch) — surface it.
+        const realFailed = result && result.realSuccess === false;
+        logDiag({
+          phase: 'printed', kind: job.type, orderId: job.orderId, stationId: job.stationId || null,
+          success: !realFailed,
+          method: result?.method || null,
+          configuredDeviceName: result?.configuredDeviceName || result?.printer || null,
+          resolvedDeviceName: result?.resolvedDeviceName || null,
+          deviceMatched: typeof result?.deviceMatched === 'boolean' ? result.deviceMatched : null,
+          availablePrinters: result?.printerNames || null,
+          reason: result?.hint || null,
+          error: realFailed ? (result?.failureReason || 'driver reported failure') : null,
+        });
       } catch (err) {
         console.error('Auto-print failed:', err);
         emitPrintEvent(job.type, job.orderId, 'failed');
+        const r = (err && err._result) || {};
+        logDiag({
+          phase: 'printed', kind: job.type, orderId: job.orderId, stationId: job.stationId || null,
+          success: false, error: err?.message || 'print failed',
+          method: r.method || null,
+          configuredDeviceName: r.configuredDeviceName || r.printer || null,
+          resolvedDeviceName: r.resolvedDeviceName || null,
+          deviceMatched: typeof r.deviceMatched === 'boolean' ? r.deviceMatched : null,
+          availablePrinters: r.printerNames || null,
+          reason: r.hint || null,
+        });
       }
       // Brief pause between prints to avoid overwhelming the printer buffer.
       // 300ms is sufficient for thermal printers while keeping multi-receipt
@@ -139,7 +200,7 @@ export function useAutoPrint(restaurantId, printSettings) {
     }
 
     isPrintingRef.current = false;
-  }, [printSettings]);
+  }, [printSettings, restaurantId, logDiag]);
 
   // Print food court token slips after bill
   const printTokensForOrder = useCallback(async (orderId, ps) => {
@@ -182,6 +243,11 @@ export function useAutoPrint(restaurantId, printSettings) {
   const handleKotCreated = useCallback(async (data) => {
     if (!printSettings?.autoPrintOnKOT) return;
     const orderId = data.orderId || data.id;
+    // Designated-terminal gate: if a print terminal is chosen and this isn't it, skip (log why).
+    if (printSettings?.printTerminalId && myTerminalIdRef.current && printSettings.printTerminalId !== myTerminalIdRef.current) {
+      logDiag({ phase: 'skipped', kind: 'kot', orderId, reason: 'not-designated-print-terminal' });
+      return;
+    }
     if (!orderId || wasPrinted(orderId, 'kot')) return;
 
     // Mark IMMEDIATELY (before any async work) so that concurrent
@@ -198,6 +264,8 @@ export function useAutoPrint(restaurantId, printSettings) {
     }
 
     const { stations, mode, loaded } = printStationsRef.current;
+    // The order reached this desktop — record it so we can confirm delivery even if printing fails.
+    logDiag({ phase: 'received', kind: 'kot', orderId, multiStation: mode === 'multi', stationCount: stations.length });
     console.log('[AutoPrint] handleKotCreated:', { orderId, stationsCount: stations.length, stationsLoaded: loaded, mode });
 
     // If any stations configured: print per-station KOTs (routes each station to its assigned printer)
@@ -266,10 +334,14 @@ export function useAutoPrint(restaurantId, printSettings) {
     } catch (err) {
       console.warn('Auto-print KOT skipped:', err.message);
     }
-  }, [restaurantId, printSettings, processQueue]);
+  }, [restaurantId, printSettings, processQueue, logDiag]);
 
   const handleKotPrintRequest = useCallback(async (data) => {
     if (!printSettings?.autoPrintOnKOT) return;
+    if (printSettings?.printTerminalId && myTerminalIdRef.current && printSettings.printTerminalId !== myTerminalIdRef.current) {
+      logDiag({ phase: 'skipped', kind: 'kot-request', orderId: data.orderId || data.id, reason: 'not-designated-print-terminal' });
+      return;
+    }
     const orderId = data.orderId || data.id;
     if (!orderId) return;
 
@@ -304,11 +376,15 @@ export function useAutoPrint(restaurantId, printSettings) {
     } catch (err) {
       console.warn('Auto-print KOT (update) skipped:', err.message);
     }
-  }, [restaurantId, printSettings, processQueue]);
+  }, [restaurantId, printSettings, processQueue, logDiag]);
 
   const handleBillingPrint = useCallback(async (data) => {
     const isPreBill = data.isPreBill === true;
     console.log(`🖨️ AutoPrint: handleBillingPrint called, isPreBill=${isPreBill}, orderId=${data.orderId || data.id}`);
+    if (printSettings?.printTerminalId && myTerminalIdRef.current && printSettings.printTerminalId !== myTerminalIdRef.current) {
+      logDiag({ phase: 'skipped', kind: 'billing', orderId: data.orderId || data.id, reason: 'not-designated-print-terminal' });
+      return;
+    }
     // Kenya KRA eTIMS: when live, the eTIMS flow prints the combined fiscal
     // receipt. Skip the normal final-bill print here (a pre-bill still prints).
     if (!isPreBill && typeof window !== 'undefined' && window.__etimsFiscalActive) {
@@ -353,7 +429,7 @@ export function useAutoPrint(restaurantId, printSettings) {
     } catch (err) {
       console.warn(`Auto-print ${isPreBill ? 'pre-bill' : 'bill'} skipped:`, err.message);
     }
-  }, [restaurantId, printSettings, processQueue, printTokensForOrder]);
+  }, [restaurantId, printSettings, processQueue, printTokensForOrder, logDiag]);
 
   // ──── Firebase RTDB events (online) — replaces Pusher ────
   // Skip in React Native WebView — OrderSummary handles print with embedded data directly.

@@ -349,6 +349,80 @@ const OrderSummary = ({
   // the seat or note/price/seat editors would target BOTH lines.
   const cartLineId = (it) => it.cartId || `${it.id}|s${sanitizeSeat(it?.seat) ?? ''}`;
 
+  // ── Void-on-remove (removing an already-sent item from a running order) ──────
+  // Editing a KOT'd order? ('saved'/parked orders were never sent to the kitchen,
+  // so removing from them is a plain edit — no void needed.)
+  const isEditingSentOrder = !!(currentOrder && Array.isArray(currentOrder.items) && currentOrder.items.length > 0 && currentOrder.status !== 'saved');
+  // How many units of this cart line were already sent to the kitchen (canonical key).
+  const sentQtyFor = (item) => {
+    if (!isEditingSentOrder) return 0;
+    const key = getOrderItemKey(item);
+    const orig = currentOrder.items.find((o) => getOrderItemKey(o) === key);
+    return orig ? (orig.quantity || 0) : 0;
+  };
+  // "−" on a line: removing a not-yet-fired (new) unit is a plain decrement; removing an
+  // already-sent unit routes through the void prompt (reason + optional manager PIN).
+  const handleQtyMinus = (item) => {
+    const sq = sentQtyFor(item);
+    if (isEditingSentOrder && sq > 0 && (item.quantity || 0) <= sq) {
+      setVoidPromptReason('');
+      setVoidPromptPin('');
+      setVoidPromptError('');
+      setVoidPrompt({ item });
+    } else {
+      onRemoveFromCart(item.cartId || item.id);
+    }
+  };
+  // Confirm a void: (verify manager PIN if required) → record it for the audit/report →
+  // remove the unit from the cart (which recomputes the total + fires the cancellation KOT).
+  const confirmVoidRemove = async () => {
+    if (!voidPrompt?.item || voidPromptBusy) return;
+    const item = voidPrompt.item;
+    const reason = (voidPromptReason || '').trim();
+    if (!reason) { setVoidPromptError('Please choose or enter a reason.'); return; }
+    setVoidPromptBusy(true);
+    setVoidPromptError('');
+    try {
+      if (billingSettings?.compVoidRequiresPin) {
+        const pin = (voidPromptPin || '').trim();
+        if (!pin) { setVoidPromptError('Manager PIN required.'); setVoidPromptBusy(false); return; }
+        const check = await apiClient.validateManagerPin(restaurantId, pin);
+        if (!check?.valid) { setVoidPromptError('Invalid manager PIN.'); setVoidPromptBusy(false); return; }
+      }
+      let staffName = '';
+      try { staffName = JSON.parse(localStorage.getItem('user') || '{}')?.name || ''; } catch { /* ignore */ }
+      setRemovedVoidItems((prev) => [...prev, {
+        type: 'void',
+        name: item.name,
+        quantity: 1,
+        amount: Math.round((item.price || 0) * 100) / 100,
+        reason,
+        authorizedBy: staffName || null,
+        authorizedAt: new Date().toISOString(),
+      }]);
+      onRemoveFromCart(item.cartId || item.id); // decrement one unit
+      setVoidPrompt(null);
+      setVoidPromptReason('');
+      setVoidPromptPin('');
+    } catch (e) {
+      setVoidPromptError(e?.message || 'Could not void the item. Try again.');
+    } finally {
+      setVoidPromptBusy(false);
+    }
+  };
+  // voidItems payload = comp/void PANEL voids + the remove-flow voids (audit → Order History).
+  const buildVoidItemsPayload = () => {
+    const panelVoids = compVoidItems.filter((cv) => cv.type === 'void');
+    const all = [...panelVoids, ...removedVoidItems];
+    return all.length > 0 ? all : null;
+  };
+  const VOID_REASONS = ['Out of stock', 'Wrong item', 'Customer changed mind', 'Wastage', 'Other'];
+  // Units that will actually fire on the next KOT (new items + increased quantities) —
+  // shown on the Update & KOT button so the waiter sees exactly what will print.
+  const newKotCount = isEditingSentOrder
+    ? cart.reduce((n, it) => n + Math.max(0, (it.quantity || 0) - sentQtyFor(it)), 0)
+    : 0;
+
   // Staff assignment state
   const [staffList, setStaffList] = useState([]);
   const [staffQuery, setStaffQuery] = useState('');
@@ -560,6 +634,16 @@ const OrderSummary = ({
   const [compVoidType, setCompVoidType] = useState('comp');
   const [compVoidReason, setCompVoidReason] = useState('');
   const [managerPin, setManagerPin] = useState('');
+  // Void-on-remove (edit mode): removing an ALREADY-SENT unit requires a reason (+ manager
+  // PIN when billingSettings.compVoidRequiresPin). These voids are recorded in the order's
+  // voidItems for the audit / Order-History report; the cart removal itself still recomputes
+  // the total and fires the cancellation KOT via the existing delta engine.
+  const [removedVoidItems, setRemovedVoidItems] = useState([]);
+  const [voidPrompt, setVoidPrompt] = useState(null); // { item } | null
+  const [voidPromptReason, setVoidPromptReason] = useState('');
+  const [voidPromptPin, setVoidPromptPin] = useState('');
+  const [voidPromptBusy, setVoidPromptBusy] = useState(false);
+  const [voidPromptError, setVoidPromptError] = useState('');
   const [partialPayAmount, setPartialPayAmount] = useState('');
   const [fullDueMode, setFullDueMode] = useState(false);
 
@@ -783,6 +867,8 @@ const OrderSummary = ({
       setCompVoidItems([]);
       setCompVoidReason('');
       setManagerPin('');
+      setRemovedVoidItems([]);
+      setVoidPrompt(null);
       setPartialPayAmount('');
       setFullDueMode(false);
       // Reset split bill state
@@ -836,6 +922,8 @@ const OrderSummary = ({
       setCompVoidItems([]);
       setCompVoidReason('');
       setManagerPin('');
+      setRemovedVoidItems([]);
+      setVoidPrompt(null);
       setPartialPayAmount('');
       setFullDueMode(false);
       setWaSent(false);
@@ -2410,7 +2498,25 @@ const OrderSummary = ({
   const buildTaxData = () => {
     const cashReceivedNum = parseFloat(cashReceived) || 0;
     const changeReturned = cashReceivedNum > 0 ? Math.max(0, cashReceivedNum - (grandTotal ?? 0)) : 0;
-    const splitAmounts = splitPayments.map(sp => ({ method: sp.method, amount: Number(sp.amount) }));
+    // Resolve each split's DISPLAY label from the restaurant's configured methods so the
+    // printed split-payment block shows the real name (e.g. "M-Paisa") instead of the raw
+    // id ("UPI"). Settlement methods drive the split picker; posSettings is the fallback.
+    // No configured label → no label attached → template falls back to the raw method
+    // exactly as before (zero change for restaurants that didn't rename a method).
+    const resolveSplitLabel = (method) => {
+      const sm = Array.isArray(billingSettings?.settlementMethods) ? billingSettings.settlementMethods : null;
+      const fromSettle = sm?.find(m => m?.id === method)?.label;
+      if (fromSettle) return fromSettle;
+      const fromPos = Array.isArray(posSettings?.paymentMethods)
+        ? posSettings.paymentMethods.find(m => m?.id === method)?.label : null;
+      return fromPos || null;
+    };
+    const splitAmounts = splitPayments.map(sp => {
+      const label = resolveSplitLabel(sp.method);
+      return label
+        ? { method: sp.method, amount: Number(sp.amount), label }
+        : { method: sp.method, amount: Number(sp.amount) };
+    });
     const splitSum = splitAmounts.reduce((s, sp) => s + sp.amount, 0);
     const splitBalanced = Math.abs(splitSum - (grandTotal ?? 0)) < 0.01;
     const validSplitPayments = billingSettings.splitPaymentEnabled && splitPayments.length >= 2 && splitPayments.every(sp => sp.amount > 0) && splitBalanced
@@ -2454,7 +2560,7 @@ const OrderSummary = ({
       splitPayments: validSplitPayments,
       roundOffAmount: roundOffAmount !== 0 ? roundOffAmount : null,
       compItems: compVoidItems.filter(cv => cv.type === 'comp').length > 0 ? compVoidItems.filter(cv => cv.type === 'comp') : null,
-      voidItems: compVoidItems.filter(cv => cv.type === 'void').length > 0 ? compVoidItems.filter(cv => cv.type === 'void') : null,
+      voidItems: buildVoidItemsPayload(),
       partialPayAmount: fullDueMode ? 0 : (parseFloat(partialPayAmount) > 0 ? parseFloat(partialPayAmount) : null),
       fullDue: fullDueMode || undefined,
       managerPin: managerPin || null,
@@ -3957,7 +4063,7 @@ const OrderSummary = ({
                           <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '2px' }}>{t('invoice.splitPayment')}:</div>
                           {invoice.splitPayments.map((sp, idx) => (
                             <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
-                              <span>{(sp.method || 'Cash').toUpperCase()}:</span>
+                              <span>{(sp.label || sp.method || 'Cash').toUpperCase()}:</span>
                               <span>{formatCurrency(sp.amount)}</span>
                             </div>
                           ))}
@@ -4357,13 +4463,16 @@ const OrderSummary = ({
               </div>
             )}
             {cart.map((item) => (
-              <div 
-                key={cartLineId(item)} 
-                style={{ 
+              <div
+                key={cartLineId(item)}
+                style={{
                   backgroundColor: dm ? dm.card : '#f8fafc',
                   borderRadius: '8px',
                   padding: '8px',
+                  // Already-sent lines get a subtle amber left rail (matches the ORIGINAL
+                  // badge) so it's obvious which items are locked-in / need a void to remove.
                   border: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0',
+                  borderLeft: sentQtyFor(item) > 0 ? '3px solid #f59e0b' : (dm ? '1px solid ' + dm.border : '1px solid #e2e8f0'),
                   boxShadow: dm ? '0 1px 3px rgba(0, 0, 0, 0.2)' : '0 1px 3px rgba(0, 0, 0, 0.04)'
                 }}
               >
@@ -4381,9 +4490,14 @@ const OrderSummary = ({
                       flexWrap: 'wrap',
                     }}>
                       {item.name}
-                      {/* Show indicator for items from original order */}
+                      {/* Show indicator for items from original order.
+                          Match on the canonical composite key (id/variant/customizations/seat)
+                          — the SAME key the KOT/update diff uses — so an already-sent line is
+                          reliably recognised (a plain menuItemId===id match missed variants,
+                          seats, and orders whose saved items lack menuItemId). Display only. */}
                       {currentOrder && currentOrder.items && (() => {
-                        const origItem = currentOrder.items.find(o => o.menuItemId === item.id);
+                        const itemKey = getOrderItemKey(item);
+                        const origItem = currentOrder.items.find(o => getOrderItemKey(o) === itemKey);
                         if (!origItem) return null;
                         const qtyDelta = item.quantity - (origItem.quantity || 0);
                         return (
@@ -4434,8 +4548,8 @@ const OrderSummary = ({
                           </>
                         );
                       })()}
-                      {/* Show indicator for newly added items */}
-                      {currentOrder && (!currentOrder.items || !currentOrder.items.some(origItem => origItem.menuItemId === item.id)) && (
+                      {/* Show indicator for newly added items — same canonical-key match as above */}
+                      {currentOrder && (!currentOrder.items || !currentOrder.items.some(origItem => getOrderItemKey(origItem) === getOrderItemKey(item))) && (
                         <span style={{
                           fontSize: isMobile ? '7px' : '8px',
                           fontWeight: 'bold',
@@ -4804,7 +4918,7 @@ const OrderSummary = ({
                       gap: '2px'
                     }}>
                       <button
-                        onClick={() => onRemoveFromCart(item.cartId || item.id)}
+                        onClick={() => handleQtyMinus(item)}
                         style={{
                           width: '22px',
                           height: '22px',
@@ -4831,7 +4945,11 @@ const OrderSummary = ({
                         type="text"
                         value={item.quantity}
                         onChange={(e) => {
-                          const newQuantity = parseInt(e.target.value) || 1;
+                          let newQuantity = parseInt(e.target.value) || 1;
+                          // Can't type below the already-sent quantity — those units must
+                          // be voided one at a time via "−" (reason + PIN). New units are free.
+                          const sq = sentQtyFor(item);
+                          if (sq > 0 && newQuantity < sq) newQuantity = sq;
                           if (newQuantity > 0 && onUpdateCartItemQuantity) {
                             onUpdateCartItemQuantity(item.cartId || item.id, newQuantity);
                           }
@@ -6978,7 +7096,7 @@ const OrderSummary = ({
                       tipPercentage: tipPercentage || null,
                       roundOffAmount: roundOffAmount !== 0 ? roundOffAmount : null,
                       compItems: compVoidItems.filter(cv => cv.type === 'comp').length > 0 ? compVoidItems.filter(cv => cv.type === 'comp') : null,
-                      voidItems: compVoidItems.filter(cv => cv.type === 'void').length > 0 ? compVoidItems.filter(cv => cv.type === 'void') : null,
+                      voidItems: buildVoidItemsPayload(),
                       partialPayAmount: fullDueMode ? 0 : (parseFloat(partialPayAmount) > 0 ? parseFloat(partialPayAmount) : null),
       fullDue: fullDueMode || undefined,
                       managerPin: managerPin || null,
@@ -7069,7 +7187,7 @@ const OrderSummary = ({
                 {placingOrder ? (
                   <><FaSpinner size={11} style={{ animation: 'spin 1s linear infinite' }} /> {t('dashboard.orderProcessing')}</>
                 ) : (
-                  <><FaUtensils size={11} /> {currentOrder && currentOrder.status !== 'saved' ? 'Update & KOT' : (posSettings.placeOrderLabel || 'Place Order (KOT)')}</>
+                  <><FaUtensils size={11} /> {currentOrder && currentOrder.status !== 'saved' ? `Update & KOT${newKotCount > 0 ? ` (${newKotCount} new)` : ''}` : (posSettings.placeOrderLabel || 'Place Order (KOT)')}</>
                 )}
               </button>
 
@@ -8670,6 +8788,69 @@ const OrderSummary = ({
               <button onClick={() => setShowSplitBillPopup(false)}
                 style={{ flex: 1, padding: '11px 24px', borderRadius: '10px', border: 'none', background: '#dc2626', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
                 Apply Split
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Void-on-remove prompt — removing an already-sent item needs a reason (+ manager
+          PIN when enabled). Confirm records it (voidItems → Order History) and removes the
+          unit, which fires the cancellation KOT via the existing delta. */}
+      {voidPrompt && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget && !voidPromptBusy) setVoidPrompt(null); }}
+          style={{ position: 'fixed', inset: 0, zIndex: 12000, background: 'rgba(15,23,42,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+        >
+          <div style={{ background: '#fff', borderRadius: '16px', width: '100%', maxWidth: '380px', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}>
+            <div style={{ padding: '16px 18px', borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ fontSize: '15px', fontWeight: 800, color: '#b91c1c' }}>Remove sent item?</div>
+              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '3px' }}>
+                <strong style={{ color: '#0f172a' }}>{voidPrompt.item?.name}</strong> was already sent to the kitchen. Removing it fires a cancellation ticket and is recorded.
+              </div>
+            </div>
+            <div style={{ padding: '16px 18px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>Reason</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                {VOID_REASONS.map((r) => {
+                  const active = voidPromptReason === r;
+                  return (
+                    <button key={r} type="button"
+                      onClick={() => { setVoidPromptReason(r === 'Other' ? '' : r); setVoidPromptError(''); }}
+                      style={{ fontSize: '11px', fontWeight: 600, padding: '6px 10px', borderRadius: '8px', cursor: 'pointer',
+                        border: active ? '1.5px solid #dc2626' : '1px solid #e2e8f0',
+                        background: active ? '#fef2f2' : '#fff', color: active ? '#b91c1c' : '#334155' }}>
+                      {r}
+                    </button>
+                  );
+                })}
+              </div>
+              <input type="text" placeholder="Reason (or type your own)"
+                value={voidPromptReason}
+                onChange={(e) => { setVoidPromptReason(e.target.value); setVoidPromptError(''); }}
+                style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '12px', outline: 'none', boxSizing: 'border-box', marginBottom: billingSettings?.compVoidRequiresPin ? '8px' : '0' }}
+              />
+              {billingSettings?.compVoidRequiresPin && (
+                <input type="password" placeholder="Manager PIN" inputMode="numeric"
+                  value={voidPromptPin}
+                  onChange={(e) => { setVoidPromptPin(e.target.value); setVoidPromptError(''); }}
+                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '12px', outline: 'none', boxSizing: 'border-box' }}
+                />
+              )}
+              {voidPromptError && (
+                <div style={{ fontSize: '11px', color: '#dc2626', fontWeight: 600, marginTop: '8px' }}>{voidPromptError}</div>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '10px', padding: '0 18px 18px' }}>
+              <button type="button" disabled={voidPromptBusy}
+                onClick={() => setVoidPrompt(null)}
+                style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#fff', color: '#334155', fontSize: '13px', fontWeight: 700, cursor: voidPromptBusy ? 'default' : 'pointer' }}>
+                Cancel
+              </button>
+              <button type="button" disabled={voidPromptBusy}
+                onClick={confirmVoidRemove}
+                style={{ flex: 1, padding: '11px', borderRadius: '10px', border: 'none', background: '#dc2626', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: voidPromptBusy ? 'default' : 'pointer', opacity: voidPromptBusy ? 0.7 : 1 }}>
+                {voidPromptBusy ? 'Voiding…' : 'Void & Remove'}
               </button>
             </div>
           </div>
