@@ -34,6 +34,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('print-diag', handler);
     return () => ipcRenderer.removeListener('print-diag', handler);
   },
+  // Fired by the main process on wake-from-sleep so the renderer can re-establish realtime at once.
+  onResume: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('electron:resume', handler);
+    return () => ipcRenderer.removeListener('electron:resume', handler);
+  },
 
   // Auto-update
   checkForUpdates: () =>

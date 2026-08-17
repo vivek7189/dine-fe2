@@ -13,6 +13,7 @@ import OrderNotificationBell from '../../components/OrderNotificationBell';
 import OrderNotificationToast from '../../components/OrderNotificationToast';
 import { useIdlePrefetch } from '../../hooks/useIdlePrefetch';
 import { useAutoPrint } from '../../hooks/useAutoPrint';
+import useRealtimeConnection from '../../hooks/useRealtimeConnection';
 import { useOrderNotifications } from '../../hooks/useOrderNotifications';
 import PrintEventToast from '../../components/PrintEventToast';
 import SyncStatus from '../../components/SyncStatus';
@@ -179,6 +180,10 @@ function DashboardLayoutContent({ children }) {
 
   // Auto-print on native platforms (Capacitor/Tauri) — no-op on web
   useAutoPrint(selectedRestaurantId, nativePrintSettings);
+
+  // Keep the Firebase realtime socket alive + auto-reconnect if it drops (the pipeline that
+  // feeds auto-print). Critical on long-running Electron/Windows POS terminals.
+  useRealtimeConnection(selectedRestaurantId);
 
   // Auto-update check on Tauri desktop — runs once on mount after 5s delay
   const [updateReady, setUpdateReady] = useState(null);

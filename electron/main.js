@@ -1,10 +1,20 @@
-const { app, BrowserWindow, ipcMain, protocol, Menu, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol, Menu, screen, powerSaveBlocker, powerMonitor } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const net = require('net');
 const os = require('os');
 const { initOfflineEngine, shutdownOfflineEngine } = require('./offline');
 const localServer = require('./localServer');
+
+// ── Realtime resilience (Windows POS) ─────────────────────────────────────────
+// A long-running POS window is usually minimized / on a second screen. Chromium then throttles
+// timers and BACKGROUNDS network connections — which silently kills the Firebase realtime socket,
+// so KOT auto-print + live order updates stop until someone refreshes. These switches (set before
+// app-ready) keep timers + the socket alive even when the window isn't focused.
+app.commandLine.appendSwitch('disable-background-timer-throttling');
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+let powerSaveBlockerId = null;
 
 let mainWindow;
 let printWindow;
@@ -87,6 +97,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       webSecurity: false, // Allow app:// protocol to call external APIs (CORS)
+      backgroundThrottling: false, // never throttle the realtime socket when minimized/backgrounded
     },
   });
 
@@ -104,6 +115,27 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+
+  // Prevent the OS suspending the app/network on idle — otherwise the machine sleeps its network
+  // adapter and the realtime socket dies. Keeps KOT auto-print alive on an idle POS terminal.
+  try {
+    if (powerSaveBlockerId === null || !powerSaveBlocker.isStarted(powerSaveBlockerId)) {
+      powerSaveBlockerId = powerSaveBlocker.start('prevent-app-suspension');
+    }
+  } catch (e) { console.error('powerSaveBlocker start failed:', e.message); }
+
+  // On wake-from-sleep, re-arm the blocker and nudge the renderer to re-establish realtime at once.
+  if (!global.__resumeHandlerRegistered) {
+    global.__resumeHandlerRegistered = true;
+    powerMonitor.on('resume', () => {
+      try {
+        if (powerSaveBlockerId === null || !powerSaveBlocker.isStarted(powerSaveBlockerId)) {
+          powerSaveBlockerId = powerSaveBlocker.start('prevent-app-suspension');
+        }
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('electron:resume');
+      } catch (e) { console.error('resume handler failed:', e.message); }
+    });
+  }
 
   // ──── Right-click context menu with Refresh Page ────
   mainWindow.webContents.on('context-menu', (e, params) => {
