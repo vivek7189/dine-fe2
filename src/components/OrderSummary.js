@@ -269,6 +269,8 @@ const OrderSummary = ({
   const kotThenBillRef = useRef(false);
   const kotBillAmountRef = useRef(0); // grand total captured at KOT+Bill click, for the settle step
   const kotBillMethodRef = useRef('cash'); // payment method already chosen on the billing UI, captured at click
+  const kotBillTaxRef = useRef(null); // FULL tax/discount snapshot captured at click (cart still intact),
+  // so the bill printed ~900ms later reflects the real discount/total instead of a re-computed empty cart.
   // After KOT+Bill prints, this holds the placed order so the cashier can record the tender.
   const [kotBillSettle, setKotBillSettle] = useState(null); // { orderId, amount } | null
   const [kotBillSettling, setKotBillSettling] = useState(false);
@@ -2246,7 +2248,11 @@ const OrderSummary = ({
     return invoiceData;
   };
 
-  const generateInvoice = async (orderId) => {
+  // taxSnapshot (optional): a buildTaxData() result captured earlier while the cart was still
+  // intact. The KOT+Bill flow prints the bill ~900ms after the order is placed — by then the cart
+  // and discount state are cleared, so calling buildTaxData() fresh would return zeros and wipe the
+  // discount/total off the bill. Passing the click-time snapshot keeps the bill accurate.
+  const generateInvoice = async (orderId, taxSnapshot = null) => {
     // Try API first (gets formatted invoice with restaurant details)
     // Electron: always try API — localRouter handles bill render from SQLite even when offline
     const _isElectronInvoice = typeof window !== 'undefined' && !!window.electronAPI?.apiRequest;
@@ -2255,7 +2261,7 @@ const OrderSummary = ({
         const response = await apiClient.getBillRender(restaurantId, orderId);
         if (response?.success) {
           const invoiceData = response.invoice || response.bill;
-          const localTaxData = buildTaxData();
+          const localTaxData = taxSnapshot || buildTaxData();
           applyLocalTaxOverrides(invoiceData, localTaxData);
           if (!invoiceData.currencySymbol) invoiceData.currencySymbol = getCurrencySymbol();
           if (!invoiceData.countryCode) invoiceData.countryCode = countryCode;
@@ -2274,7 +2280,7 @@ const OrderSummary = ({
 
     // Offline fallback: build invoice from local cart + tax data
     try {
-      const localTaxData = buildTaxData();
+      const localTaxData = taxSnapshot || buildTaxData();
       const localInvoice = {
         orderId,
         orderNumber: orderId?.slice(-4)?.toUpperCase() || '',
@@ -2456,7 +2462,10 @@ const OrderSummary = ({
     kotThenBillRef.current = false;
     window.__autoPrintBill = true;
     // Small delay so the KOT print (its own effect + ~800ms) fires before the bill.
-    const tid = setTimeout(() => { generateInvoice(oid); }, 900);
+    // Use the click-time tax snapshot — by now the cart is cleared, so re-computing would zero out
+    // the discount/total. Snapshot keeps the printed bill accurate (fixes "discount not on bill").
+    const billTax = kotBillTaxRef.current;
+    const tid = setTimeout(() => { generateInvoice(oid, billTax); }, 900);
     // After the bill prints, settle automatically using the payment method already selected on the
     // billing UI — no confirmation popup (the tender was chosen before clicking KOT + Bill).
     const settleTid = setTimeout(() => {
@@ -7298,6 +7307,7 @@ const OrderSummary = ({
                 kotThenBillRef.current = true; // arm the bill-after-KOT effect
                 kotBillAmountRef.current = grandTotal ?? getTotalAmount(); // capture total for the settle step
                 kotBillMethodRef.current = paymentMethod || 'cash'; // use the tender already selected on the billing UI
+                kotBillTaxRef.current = buildTaxData(); // snapshot discount/tax/totals NOW (cart intact) for the bill
                 if (typeof onPlaceOrderAndPrint === 'function') {
                   onPlaceOrderAndPrint(buildTaxData());
                 } else if (typeof onPlaceOrder === 'function') {
