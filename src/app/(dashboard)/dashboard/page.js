@@ -2118,49 +2118,54 @@ function RestaurantPOSContent() {
     }
   }, [selectedTable, multiPricingEnabled, pricingRules]);
 
-  // Auto-select pricing rule when order type changes (takeaway/delivery → match rule by name)
+  // Auto-select the pricing rule when the order type changes.
+  // Generic: match the selected order type (by its label OR id) to a pricing rule of the same name,
+  // so ANY order type drives its own tier — the built-in dine-in/takeaway/delivery AND custom ones
+  // the restaurant adds (e.g. Talabat, Rafeeq, Snoonu, Keeta). Backward-compatible: the built-ins
+  // resolve exactly as before.
   useEffect(() => {
     if (!multiPricingEnabled || pricingRules.length === 0) return;
-    if (orderType === 'takeaway') {
-      const takeawayRule = pricingRules.find(r =>
-        ['takeaway', 'take away', 'take-away'].includes((r.name || '').toLowerCase().trim())
-      );
-      if (takeawayRule) {
-        setActivePricingRuleId(takeawayRule.id);
-        setAutoSelectedRule(true);
-      } else {
-        // No takeaway rule defined — use base price
-        setActivePricingRuleId(null);
-        setAutoSelectedRule(false);
-      }
-    } else if (orderType === 'delivery') {
-      const deliveryRule = pricingRules.find(r =>
-        (r.name || '').toLowerCase().trim() === 'delivery'
-      );
-      if (deliveryRule) {
-        setActivePricingRuleId(deliveryRule.id);
-        setAutoSelectedRule(true);
-      } else {
-        setActivePricingRuleId(null);
-        setAutoSelectedRule(false);
-      }
-    } else if (orderType === 'dine-in') {
-      // Auto-select first area rule when switching to dine-in (if no table mapping)
-      if (!selectedTable?.floor) {
-        setAutoSelectedRule(false);
-        const skipNames = ['dine-in', 'dinein', 'dine in', 'takeaway', 'take away', 'delivery'];
-        const areaRules = pricingRules.filter(r =>
-          !skipNames.includes((r.name || '').toLowerCase().trim())
-        );
-        if (areaRules.length > 0) {
-          setActivePricingRuleId(areaRules[0].id);
-        } else {
-          setActivePricingRuleId(null);
-        }
-      }
+    // When a table is chosen, the floor-mapping effect above owns the pricing rule — don't fight it.
+    if (selectedTable?.floor) return;
+
+    const norm = (s) => (s || '').toLowerCase().trim();
+    const orderTypesList = Array.isArray(posSettings?.orderTypes) ? posSettings.orderTypes : [];
+    const otObj = orderTypesList.find((o) => o.id === orderType);
+    // Built-in ids still match their conventional rule names.
+    const aliases = {
+      takeaway: ['takeaway', 'take away', 'take-away'],
+      delivery: ['delivery'],
+      'dine-in': ['dine-in', 'dinein', 'dine in'],
+    };
+    const candidates = new Set([norm(orderType), norm(otObj?.label || orderType), ...((aliases[norm(orderType)]) || [])]);
+
+    // 1) A pricing rule whose name matches this order type (label / id / alias) wins.
+    const matched = pricingRules.find((r) => candidates.has(norm(r.name)));
+    if (matched) {
+      setActivePricingRuleId(matched.id);
+      setAutoSelectedRule(true);
+      return;
     }
+
+    // 2) Dine-in with no table and no dedicated dine-in rule → fall back to the first dining-AREA
+    //    rule (AC/Non-AC). Exclude any rule that maps to a defined order type (e.g. Talabat) so a
+    //    walk-in dine-in can never accidentally inherit aggregator pricing.
+    if (candidates.has('dine-in')) {
+      const reserved = new Set([
+        'dine-in', 'dinein', 'dine in', 'takeaway', 'take away', 'take-away', 'delivery',
+        ...orderTypesList.map((o) => norm(o.label)),
+      ]);
+      const areaRules = pricingRules.filter((r) => !reserved.has(norm(r.name)));
+      setActivePricingRuleId(areaRules.length > 0 ? areaRules[0].id : null);
+      setAutoSelectedRule(false);
+      return;
+    }
+
+    // 3) No rule for this order type → base price.
+    setActivePricingRuleId(null);
+    setAutoSelectedRule(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orderType, multiPricingEnabled, pricingRules]);
+  }, [orderType, multiPricingEnabled, pricingRules, selectedTable, posSettings]);
 
   // Handle view parameter from URL (for view state persistence)
   useEffect(() => {
