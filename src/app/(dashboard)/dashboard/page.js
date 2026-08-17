@@ -2128,18 +2128,15 @@ function RestaurantPOSContent() {
     // When a table is chosen, the floor-mapping effect above owns the pricing rule — don't fight it.
     if (selectedTable?.floor) return;
 
-    const norm = (s) => (s || '').toLowerCase().trim();
+    // Normalize aggressively: lowercase + strip spaces/underscores/hyphens, so "Take Away",
+    // "take-away", "take_away", "takeaway" — and ANY custom multi-word name vs its rule — all match.
+    // No hard-coded alias table needed: matching is purely order-type label/id ⇄ rule name.
+    const norm = (s) => (s || '').toLowerCase().replace(/[\s_-]+/g, '');
     const orderTypesList = Array.isArray(posSettings?.orderTypes) ? posSettings.orderTypes : [];
     const otObj = orderTypesList.find((o) => o.id === orderType);
-    // Built-in ids still match their conventional rule names.
-    const aliases = {
-      takeaway: ['takeaway', 'take away', 'take-away'],
-      delivery: ['delivery'],
-      'dine-in': ['dine-in', 'dinein', 'dine in'],
-    };
-    const candidates = new Set([norm(orderType), norm(otObj?.label || orderType), ...((aliases[norm(orderType)]) || [])]);
+    const candidates = new Set([norm(orderType), norm(otObj?.label)].filter(Boolean));
 
-    // 1) A pricing rule whose name matches this order type (label / id / alias) wins.
+    // 1) A pricing rule whose name matches this order type (by label or id) wins.
     const matched = pricingRules.find((r) => candidates.has(norm(r.name)));
     if (matched) {
       setActivePricingRuleId(matched.id);
@@ -2150,9 +2147,9 @@ function RestaurantPOSContent() {
     // 2) Dine-in with no table and no dedicated dine-in rule → fall back to the first dining-AREA
     //    rule (AC/Non-AC). Exclude any rule that maps to a defined order type (e.g. Talabat) so a
     //    walk-in dine-in can never accidentally inherit aggregator pricing.
-    if (candidates.has('dine-in')) {
+    if (candidates.has('dinein')) {
       const reserved = new Set([
-        'dine-in', 'dinein', 'dine in', 'takeaway', 'take away', 'take-away', 'delivery',
+        'dinein', 'takeaway', 'delivery',
         ...orderTypesList.map((o) => norm(o.label)),
       ]);
       const areaRules = pricingRules.filter((r) => !reserved.has(norm(r.name)));
