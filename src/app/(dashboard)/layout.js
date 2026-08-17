@@ -88,6 +88,23 @@ function DashboardLayoutContent({ children }) {
   const pathname = usePathname();
   const router = useRouter();
 
+  // ─── Corporate Meal takeover ───
+  // If this restaurant runs the Corporate Meal product (settings.features.corporateMeal), the POS
+  // dashboard hands off to the dedicated /corporate app. Fully no-op for every normal restaurant
+  // (the flag check returns false → nothing happens). The corporate shell's "Exit to POS" sets
+  // sessionStorage cm_pos_mode=1 to opt out for the session and avoid a redirect loop.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !selectedRestaurantId) return;
+    if (sessionStorage.getItem('cm_pos_mode') === '1') return;
+    const key = 'cm_flag_' + selectedRestaurantId;
+    const cached = sessionStorage.getItem(key);
+    if (cached === '0') return;
+    if (cached === '1') { router.replace('/corporate'); return; }
+    import('@/lib/corporateApi').then(({ default: cApi }) => cApi.getFlag())
+      .then((r) => { sessionStorage.setItem(key, r?.enabled ? '1' : '0'); if (r?.enabled) router.replace('/corporate'); })
+      .catch(() => {});
+  }, [selectedRestaurantId, router]);
+
   const [nativePrintSettings, setNativePrintSettings] = useState(null);
   const [hasDefaultMenu, setHasDefaultMenu] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
