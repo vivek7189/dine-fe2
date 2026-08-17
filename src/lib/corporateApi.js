@@ -8,6 +8,20 @@ const qs = (obj) => {
   return p.length ? `?${p.join('&')}` : '';
 };
 
+// Authenticated binary download (PDF). apiClient.request() JSON-parses responses, so hit fetch
+// directly, reusing the same base URL + bearer token, then save the blob.
+async function downloadBlob(endpoint, filename) {
+  const token = apiClient.getToken?.();
+  const res = await fetch(`${apiClient.baseURL}${endpoint}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!res.ok) { let msg = 'Download failed'; try { msg = (await res.json()).error || msg; } catch { /* non-json */ } throw new Error(msg); }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
 const corporateApi = {
   // ── Enablement (ungated) ──
   getFlag: () => req('/api/corporate-admin/flag'),
@@ -58,7 +72,14 @@ const corporateApi = {
     listInvoices: (clientId) => req(`/api/corporate/billing/clients/${clientId}/invoices`),
     getInvoice: (id) => req(`/api/corporate/billing/invoices/${id}`),
     reconcileInvoice: (id, body) => req(`/api/corporate/billing/invoices/${id}/reconcile`, { method: 'POST', body }),
+    emailInvoice: (id, to) => req(`/api/corporate/billing/invoices/${id}/email`, { method: 'POST', body: { to } }),
+    // PDF is a binary stream — fetch as a blob (with auth) and trigger a browser download.
+    downloadInvoicePdf: (id, filename) => downloadBlob(`/api/corporate/billing/invoices/${id}/pdf`, filename || `invoice_${id}.pdf`),
   },
+
+  // ── Client portal access (Phase 5) — operator side ──
+  setClientPortal: (clientId, enabled) => req(`/api/corporate/clients/${clientId}/portal`, { method: 'POST', body: { enabled } }),
+  rotateClientPortal: (clientId) => req(`/api/corporate/clients/${clientId}/portal/rotate`, { method: 'POST' }),
 
   // ── Reports (Phase 6) — MIS ──
   reports: {
