@@ -139,7 +139,12 @@ export function useAutoPrint(restaurantId, printSettings) {
     try {
       const verbose = printSettings?.printDiagnostics === true;
       if (!verbose && event?.success !== false) return; // successes only when verbose; always log failures
+      const os = (typeof navigator !== 'undefined' && navigator.platform)
+        ? (/win/i.test(navigator.platform) ? 'windows' : /mac/i.test(navigator.platform) ? 'mac' : /linux/i.test(navigator.platform) ? 'linux' : undefined)
+        : undefined;
       apiClient.logPrintDiagnostic(restaurantId, {
+        platform: isElectron() ? 'electron' : 'web',
+        os,
         terminalId: myTerminalIdRef.current,
         appVersion: appVersionRef.current,
         ...event,

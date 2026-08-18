@@ -18,10 +18,19 @@ const LABELS = {
 };
 const label = (t) => LABELS[t] || t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 const SHOWN_KEY = 'dineopen_first_sync_shown';
+// "Continue in background" must persist across page navigation (SyncStatus remounts per page),
+// otherwise the first-run overlay pops back on every page change. sessionStorage → sticks for the
+// app session, resets on a fresh launch (so a genuinely new first-run still shows once).
+const DISMISS_KEY = 'dineopen_first_sync_dismissed';
+const readDismissed = () => { try { return typeof window !== 'undefined' && sessionStorage.getItem(DISMISS_KEY) === '1'; } catch (_) { return false; } };
 
 export default function SyncStatus({ inline = false, showPill = true, showOverlay = true } = {}) {
   const [prog, setProg] = useState(null);
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(readDismissed);
+  const dismiss = useCallback(() => {
+    setDismissed(true);
+    try { sessionStorage.setItem(DISMISS_KEY, '1'); } catch (_) {}
+  }, []);
   const [expanded, setExpanded] = useState(false);
   const shownRef = useRef(typeof window !== 'undefined' && localStorage.getItem(SHOWN_KEY) === '1');
 
@@ -76,7 +85,7 @@ export default function SyncStatus({ inline = false, showPill = true, showOverla
           <div style={S.totalRow}>
             <b>{prog.totalSynced || 0}</b>&nbsp;records synced{prog.running ? '…' : ''}
           </div>
-          <button style={S.bgBtn} onClick={() => setDismissed(true)}>Continue to POS — keep syncing in background →</button>
+          <button style={S.bgBtn} onClick={dismiss}>Continue to POS — keep syncing in background →</button>
           <div style={S.note}>Your data keeps syncing while you work.</div>
         </div>
         <style>{`@keyframes dspin{to{transform:rotate(360deg)}}`}</style>
