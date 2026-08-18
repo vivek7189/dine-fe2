@@ -2965,10 +2965,14 @@ class ApiClient {
     return this.cachedGet(`/api/admin/print-stations/${restaurantId}`, 10 * 60 * 1000);
   }
 
-  async updatePrintStations(restaurantId, printStations, kotPrintingMode) {
+  async updatePrintStations(restaurantId, printStations, kotPrintingMode, defaultPrinterConfig) {
+    const body = { printStations, kotPrintingMode };
+    // Only include when explicitly provided so we never clobber the server's single-printer
+    // config on a stations-only save (BE treats undefined as "leave unchanged").
+    if (defaultPrinterConfig !== undefined) body.defaultPrinterConfig = defaultPrinterConfig;
     const result = await this.request(`/api/admin/print-stations/${restaurantId}`, {
       method: 'PUT',
-      body: { printStations, kotPrintingMode },
+      body,
     });
     this.invalidateCache(`/api/admin/print-stations/${restaurantId}`);
     return result;

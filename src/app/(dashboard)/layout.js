@@ -163,7 +163,10 @@ function DashboardLayoutContent({ children }) {
     // Restore KOT station→printer bindings from the server for any station this terminal has no
     // local binding for (fresh install / new machine). Fills ONLY empties, so a configured
     // terminal is untouched. Prevents multi-station KOT silently collapsing to one printer.
-    import('../../utils/stationPrinterSync').then(({ hydrateStationPrinters }) => hydrateStationPrinters(selectedRestaurantId)).catch(() => {});
+    import('../../utils/stationPrinterSync').then(({ hydrateStationPrinters, hydrateDefaultPrinter }) => {
+      hydrateStationPrinters(selectedRestaurantId);
+      hydrateDefaultPrinter(selectedRestaurantId); // same fill-empty-only restore for the single KOT printer
+    }).catch(() => {});
 
     const onFocus = () => refresh();
     const onVisible = () => { if (typeof document !== 'undefined' && document.visibilityState === 'visible') refresh(); };

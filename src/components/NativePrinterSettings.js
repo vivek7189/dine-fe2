@@ -7,7 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { isWeb, isCapacitor, isTauri, isElectron } from '../utils/platform';
 import { printDocument } from '../utils/printBridge';
-import { saveStationPrinterToServer } from '../utils/stationPrinterSync';
+import { saveStationPrinterToServer, saveDefaultPrinterToServer } from '../utils/stationPrinterSync';
 import apiClient from '../lib/api';
 import { FaBluetooth, FaPrint, FaSync, FaCheckCircle, FaTimesCircle, FaUsb, FaWifi, FaStethoscope, FaMicrochip } from 'react-icons/fa';
 
@@ -209,7 +209,13 @@ export default function NativePrinterSettings({ restaurantId }) {
     } catch (err) {
       console.error('Failed to save printer config:', err);
     }
-  }, [isElectronPlatform, isCapacitorPlatform]);
+    // Durable server backup of the single KOT printer, so other devices (dine-app / other
+    // terminals) can fetch the same one. Best-effort; the local save above is the source of truth.
+    if (role === 'kot' && restaurantId) {
+      const id = printer ? (printer.type === 'network' ? printer.address : printer.name) : null;
+      saveDefaultPrinterToServer(restaurantId, id);
+    }
+  }, [isElectronPlatform, isCapacitorPlatform, restaurantId]);
 
   const makeTestHtml = (label) => `
     <!DOCTYPE html><html><head>
