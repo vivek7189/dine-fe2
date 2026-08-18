@@ -384,12 +384,18 @@ export function useAutoPrint(restaurantId, printSettings) {
       markPrinted(dedupKey, 'kot');
       const renderData = await apiClient.getKOTRender(
         restaurantId, orderId,
-        { newOnly: data.isIncremental || false, stationId }
+        { newOnly: data.isIncremental || false, stationId, eventKey: data._eventKey || data.key || null }
       );
       const html = kotRenderToHtml(renderData);
       if (html) {
         printQueueRef.current.push({ html, type: 'kot', orderId: dedupKey, stationId });
         processQueue();
+        return true;
+      }
+      if (renderData?.empty) {
+        // An event with no printable items is a valid no-op (for example a station that only
+        // received a removal routed elsewhere). Mark it handled so polling cannot retry forever.
+        logDiag({ phase: 'skipped', kind: 'kot-request', orderId, stationId, reason: renderData.reason || 'empty-kot-event' });
         return true;
       }
       unmarkPrinted(dedupKey, 'kot');

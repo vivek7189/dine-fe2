@@ -3029,10 +3029,11 @@ class ApiClient {
     return this.request(`/api/menus/${restaurantId}/generate-arabic-names`, { method: 'POST' });
   }
 
-  async getKOTRender(restaurantId, orderId, { newOnly = false, stationId = null } = {}) {
+  async getKOTRender(restaurantId, orderId, { newOnly = false, stationId = null, eventKey = null } = {}) {
     const params = new URLSearchParams();
     if (newOnly) params.set('newOnly', 'true');
     if (stationId) params.set('stationId', stationId);
+    if (eventKey) params.set('eventKey', eventKey);
     const qs = params.toString();
     return this.request(`/api/kot/render/${restaurantId}/${orderId}${qs ? '?' + qs : ''}`);
   }

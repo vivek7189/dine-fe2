@@ -38,7 +38,7 @@ export function subscribeRestaurantEvents(restaurantId, category, onData, opts =
   let serverOffset = 0;
   const handler = (snapshot) => {
     const data = snapshot.val();
-    if (data) onData({ ...data, _serverNow: Date.now() + serverOffset });
+    if (data) onData({ ...data, _eventKey: snapshot.key, _serverNow: Date.now() + serverOffset });
   };
 
   // RTDB event timestamps are written by the backend. Starting a query at the Windows machine's
