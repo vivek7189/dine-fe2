@@ -39,6 +39,9 @@ function markPrinted(orderId, type) {
     recentlyPrinted.delete(firstKey);
   }
 }
+function unmarkPrinted(orderId, type) {
+  recentlyPrinted.delete(`${type}:${orderId}`);
+}
 function wasPrinted(orderId, type) {
   const key = `${type}:${orderId}`;
   const ts = recentlyPrinted.get(key);
@@ -151,6 +154,7 @@ export function useAutoPrint(restaurantId, printSettings) {
   // time printSettings is live-refreshed — it depends only on the polling config, and calls the
   // freshest handler through these refs.
   const handleKotCreatedRef = useRef(null);
+  const handleKotPrintRequestRef = useRef(null);
   const logDiagRef = useRef(null);
 
   const processQueue = useCallback(async () => {
@@ -343,13 +347,14 @@ export function useAutoPrint(restaurantId, printSettings) {
   }, [restaurantId, printSettings, processQueue, logDiag]);
 
   const handleKotPrintRequest = useCallback(async (data) => {
-    if (!printSettings?.autoPrintOnKOT) return;
+    if (!printSettings?.autoPrintOnKOT) return true;
     if (printSettings?.printTerminalId && myTerminalIdRef.current && printSettings.printTerminalId !== myTerminalIdRef.current) {
       logDiag({ phase: 'skipped', kind: 'kot-request', orderId: data.orderId || data.id, reason: 'not-designated-print-terminal' });
-      return;
+      return true;
     }
     const orderId = data.orderId || data.id;
-    if (!orderId) return;
+    if (!orderId) return true;
+    const stationId = data.printStationId || null;
 
     // For the initial KOT (not incremental/reprint/force), check if the base
     // orderId was already printed by handleKotCreated (via the /orders path).
@@ -357,19 +362,26 @@ export function useAutoPrint(restaurantId, printSettings) {
     // kot-print-request events fire for the same order (common for orders
     // placed from the mobile app).
     const isUpdate = data.isIncremental || data.isReprint || data.forcePrint;
+    // The order-created and KOT paths are published almost together. Give the primary order path
+    // one short turn to claim the base ID; this prevents a station event racing it and printing a
+    // duplicate. Poll-recovered events arrive seconds later, so this delay has no functional cost.
+    if (!isUpdate) await new Promise(resolve => setTimeout(resolve, 150));
     if (!isUpdate && wasPrinted(orderId, 'kot')) {
       console.log(`🖨️ AutoPrint: KOT print-request skipped (already printed by order-created): ${orderId}`);
-      return;
+      return true;
     }
 
-    // For incremental/reprint KOTs, use a unique dedup key (timestamp-based)
-    // so updates aren't blocked by the initial KOT's dedup entry.
-    const dedupKey = isUpdate ? `${orderId}-upd-${data.ts || Date.now()}` : orderId;
-    if (isUpdate && wasPrinted(dedupKey, 'kot')) return;
+    // Every station and every revision needs its own identity. The old order-only key caused a
+    // recovered first KOT to suppress all future updates, and a timestamp-only update key could
+    // collapse two station events created in the same millisecond.
+    const stationKey = stationId || 'all';
+    const dedupKey = isUpdate
+      ? `${orderId}-upd-${data.ts || Date.now()}-${stationKey}`
+      : (stationId ? `${orderId}-station-${stationId}` : orderId);
+    if (wasPrinted(dedupKey, 'kot')) return true;
 
     try {
       markPrinted(dedupKey, 'kot');
-      const stationId = data.printStationId || null;
       const renderData = await apiClient.getKOTRender(
         restaurantId, orderId,
         { newOnly: data.isIncremental || false, stationId }
@@ -378,9 +390,14 @@ export function useAutoPrint(restaurantId, printSettings) {
       if (html) {
         printQueueRef.current.push({ html, type: 'kot', orderId: dedupKey, stationId });
         processQueue();
+        return true;
       }
+      unmarkPrinted(dedupKey, 'kot');
+      return false;
     } catch (err) {
+      unmarkPrinted(dedupKey, 'kot');
       console.warn('Auto-print KOT (update) skipped:', err.message);
+      return false;
     }
   }, [restaurantId, printSettings, processQueue, logDiag]);
 
@@ -440,6 +457,7 @@ export function useAutoPrint(restaurantId, printSettings) {
   // Keep the polling-fallback timer pointed at the freshest handlers without re-arming on every
   // printSettings refresh.
   handleKotCreatedRef.current = handleKotCreated;
+  handleKotPrintRequestRef.current = handleKotPrintRequest;
   logDiagRef.current = logDiag;
 
   // ──── Firebase RTDB events (online) — replaces Pusher ────
@@ -462,7 +480,7 @@ export function useAutoPrint(restaurantId, printSettings) {
     // Handle order-created events from the /orders path — auto-print KOT
     const processOrderEvent = (data) => {
       if (!data) return;
-      const eventAge = data.ts ? Date.now() - data.ts : 0;
+      const eventAge = data.ts ? (data._serverNow || Date.now()) - data.ts : 0;
       // Skip the reconnect-flood age guard in local-server mode: the LAN socket has no replay
       // flood, and offline clock skew would otherwise drop live prints. Dedup handles repeats.
       if (!isLocalServerMode() && eventAge > 2 * 60 * 1000) {
@@ -477,7 +495,7 @@ export function useAutoPrint(restaurantId, printSettings) {
     // Handle kot-print-request events from the /kot path (for reprints, updates, station prints)
     const processKotEvent = (data) => {
       if (!data) return;
-      const eventAge = data.ts ? Date.now() - data.ts : 0;
+      const eventAge = data.ts ? (data._serverNow || Date.now()) - data.ts : 0;
       // Skip the reconnect-flood age guard in local-server mode: the LAN socket has no replay
       // flood, and offline clock skew would otherwise drop live prints. Dedup handles repeats.
       if (!isLocalServerMode() && eventAge > 2 * 60 * 1000) {
@@ -494,7 +512,7 @@ export function useAutoPrint(restaurantId, printSettings) {
     const processBillingEvent = (data) => {
       console.log(`🖨️ AutoPrint: Billing event received:`, JSON.stringify(data));
       if (!data) return;
-      const eventAge = data.ts ? Date.now() - data.ts : 0;
+      const eventAge = data.ts ? (data._serverNow || Date.now()) - data.ts : 0;
       // Skip the reconnect-flood age guard in local-server mode: the LAN socket has no replay
       // flood, and offline clock skew would otherwise drop live prints. Dedup handles repeats.
       if (!isLocalServerMode() && eventAge > 2 * 60 * 1000) {
@@ -548,13 +566,11 @@ export function useAutoPrint(restaurantId, printSettings) {
     };
   }, [restaurantId, printSettings, handleKotCreated, handleKotPrintRequest, handleBillingPrint]);
 
-  // ──── Server-controlled KOT polling fallback (default OFF) ────
-  // Safety net for when the realtime (RTDB) socket silently drops on a long-running desktop
-  // terminal (esp. Windows Electron) — auto-print "stops working" until a page refresh. This does
-  // NOTHING unless the operator turns it ON for THIS restaurant from dine-admin
-  // (printSettings.kotPollingEnabled). When on, the desktop periodically asks the backend for
-  // recent still-'confirmed' orders and prints any KOT it hasn't already printed — reusing the
-  // exact same render + dedup + print path as the realtime handler, so no double prints.
+  // ──── Server-controlled KOT event polling fallback (default OFF) ────
+  // Independent HTTPS safety net for a stale RTDB socket on a long-running Windows terminal.
+  // It follows the SAME RTDB KOT stream by push-key cursor, preserving initial/update/reprint and
+  // station routing. This is deliberately event/revision-aware: an earlier KOT for an order must
+  // never suppress a later update to that same order.
   //
   // Depends only on the polling CONFIG (not the whole printSettings object), so live settings
   // refreshes don't constantly re-arm the timer. Handlers are reached via refs (freshest closure).
@@ -571,61 +587,111 @@ export function useAutoPrint(restaurantId, printSettings) {
 
     let stopped = false;
     let timer = null;
-    // Only print orders that arrive AFTER polling starts here — switching the feature on must never
-    // re-print history. Small grace covers an order created moments before this effect mounted.
-    const pollStartTs = Date.now() - 15000;
+    let tickRunning = false;
+    // Keep the last server event key across Electron restarts. Without this, a terminal that was
+    // closed for longer than the bootstrap window could not recover jobs created while it was
+    // offline. A brand-new terminal still starts from the server's safe short bootstrap window.
+    const CURSOR_KEY = `dineopen_poll_kot_cursor_${restaurantId}`;
+    let eventCursor = null;
+    try { eventCursor = window.localStorage.getItem(CURSOR_KEY) || null; } catch {}
+    const legacyPollStartTs = Date.now() - 15000;
     const intervalMs = Math.max(8, Math.min(parseInt(pollIntervalSec) || 20, 120)) * 1000;
     const lookbackSec = Math.min(900, Math.max(300, Math.round(intervalMs / 1000) * 4));
 
-    // Persist orders THIS fallback already printed so an app restart doesn't re-print them.
-    const PERSIST_KEY = 'dineopen_poll_printed_kot';
-    const PERSIST_TTL_MS = 60 * 60 * 1000; // 1h
-    const loadPersisted = () => {
+    // Persist unique RTDB event keys (not order IDs). This prevents a restart within the server's
+    // short bootstrap window from duplicating a ticket while still allowing unlimited revisions.
+    const PERSIST_KEY = `dineopen_poll_seen_kot_events_${restaurantId}`;
+    const loadSeen = () => {
       try { return JSON.parse(window.localStorage.getItem(PERSIST_KEY) || '{}'); } catch { return {}; }
     };
-    const savePersisted = (map) => {
+    const saveSeen = (map) => {
       try {
-        const now = Date.now();
-        const pruned = {};
-        for (const [k, ts] of Object.entries(map)) if (now - ts < PERSIST_TTL_MS) pruned[k] = ts;
+        const pruned = Object.fromEntries(
+          Object.entries(map)
+            .sort((a, b) => Number(a[1] || 0) - Number(b[1] || 0))
+            .slice(-500)
+        );
         window.localStorage.setItem(PERSIST_KEY, JSON.stringify(pruned));
       } catch { /* best-effort */ }
     };
 
     const tick = async () => {
-      if (stopped) return;
+      if (stopped || tickRunning) return;
+      tickRunning = true;
       try {
-        const res = await apiClient.getPrintPoll(restaurantId, lookbackSec);
-        if (stopped) return;
-        // Admin turned it off server-side → stop immediately (single source of truth).
-        if (res && res.enabled === false) { stopped = true; if (timer) clearInterval(timer); return; }
-        const orders = (res && res.orders) || [];
-        if (!orders.length) return;
-        const persisted = loadPersisted();
-        let printedAny = false;
-        for (const o of orders) {
-          const orderId = o.id;
-          if (!orderId) continue;
-          const createdMs = o.createdAt ? new Date(o.createdAt).getTime() : 0;
-          if (createdMs && createdMs < pollStartTs) continue;   // don't reach into history
-          if (persisted[orderId]) continue;                     // printed by an earlier poll
-          if (wasPrinted(orderId, 'kot')) continue;             // printed this session (realtime or poll)
-          persisted[orderId] = Date.now();
-          printedAny = true;
-          logDiagRef.current?.({ phase: 'poll-print', kind: 'kot', orderId, reason: 'missed-by-realtime' });
-          // Reuse the realtime KOT path — it re-checks dedup, handles stations, render & printing.
-          handleKotCreatedRef.current?.({ orderId, status: 'confirmed', type: 'order-created' });
-        }
-        if (printedAny) savePersisted(persisted);
+        const seen = loadSeen();
+        let pages = 0;
+        let hasMore = false;
+        do {
+          const requestCursor = eventCursor;
+          const res = await apiClient.getPrintPoll(restaurantId, lookbackSec, requestCursor);
+          if (stopped) return;
+          // Admin turned it off server-side → stop immediately (single source of truth).
+          if (res && res.enabled === false) { stopped = true; if (timer) clearInterval(timer); return; }
+
+          // Rolling deployment compatibility: a new desktop may briefly talk to the previous
+          // backend, which returns only `orders`. Preserve the old initial-KOT fallback until the
+          // event-cursor backend is live; updates become revision-safe as soon as `events` appears.
+          if (!Array.isArray(res?.events)) {
+            const legacyKey = 'dineopen_poll_printed_kot';
+            let legacySeen = {};
+            try { legacySeen = JSON.parse(window.localStorage.getItem(legacyKey) || '{}'); } catch {}
+            for (const order of (res?.orders || [])) {
+              const orderId = order?.id;
+              const createdMs = order?.createdAt ? new Date(order.createdAt).getTime() : 0;
+              if (!orderId || (createdMs && createdMs < legacyPollStartTs)) continue;
+              if (legacySeen[orderId] || wasPrinted(orderId, 'kot')) continue;
+              legacySeen[orderId] = Date.now();
+              logDiagRef.current?.({ phase: 'poll-print', kind: 'kot', orderId, reason: 'legacy-backend-missed-by-realtime' });
+              await handleKotCreatedRef.current?.({ orderId, status: 'confirmed', type: 'order-created' });
+            }
+            try { window.localStorage.setItem(legacyKey, JSON.stringify(legacySeen)); } catch {}
+            break;
+          }
+
+          const events = res.events;
+          let pageHandled = true;
+          for (const event of events) {
+            const eventKey = event?.key;
+            if (!eventKey || seen[eventKey]) continue;
+            const orderId = event.orderId || event.id;
+            logDiagRef.current?.({
+              phase: 'poll-print', kind: 'kot-request', orderId,
+              stationId: event.printStationId || null,
+              reason: event.isIncremental || event.isReprint
+                ? 'missed-update-by-realtime'
+                : 'missed-by-realtime',
+            });
+            const handled = await handleKotPrintRequestRef.current?.(event);
+            if (!handled) {
+              // Do not advance beyond a failed event. Already-handled keys on this page are
+              // persisted, so the next tick retries only the failed remainder without duplicates.
+              pageHandled = false;
+              break;
+            }
+            seen[eventKey] = Number(event.ts || res?.serverTime || Date.now());
+          }
+          saveSeen(seen);
+
+          if (!pageHandled) break;
+          if (res?.cursor) {
+            eventCursor = res.cursor;
+            try { window.localStorage.setItem(CURSOR_KEY, eventCursor); } catch {}
+          }
+          hasMore = res?.hasMore === true && eventCursor !== requestCursor;
+          pages += 1;
+        } while (hasMore && pages < 5 && !stopped);
       } catch (err) {
         // A network hiccup just means we retry next tick — never throw from a timer.
         console.warn('KOT poll fallback tick failed:', err?.message || err);
+      } finally {
+        tickRunning = false;
       }
     };
 
     // Delay the first tick so it doesn't race the initial realtime subscribe, then poll on interval.
     const kickoff = setTimeout(() => { tick(); timer = setInterval(tick, intervalMs); }, 3000);
-    console.log(`🖨️ AutoPrint: KOT polling fallback ARMED (every ${intervalMs / 1000}s, lookback ${lookbackSec}s)`);
+    console.log(`🖨️ AutoPrint: KOT event polling fallback ARMED (every ${intervalMs / 1000}s)`);
 
     return () => {
       stopped = true;

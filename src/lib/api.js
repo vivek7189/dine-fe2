@@ -3041,11 +3041,18 @@ class ApiClient {
     return this.request(`/api/token/render/${restaurantId}/${orderId}`);
   }
 
-  // Server-controlled KOT polling fallback. Returns { enabled, intervalSec, orders:[{id,status,createdAt}] }.
-  // Only returns orders when the restaurant has kotPollingEnabled ON (server-side gate). Always
-  // network-fresh (cache-buster) — a stale poll would miss or re-fire prints.
-  async getPrintPoll(restaurantId, sinceSec = 300) {
-    return this.request(`/api/print-poll/${restaurantId}?sinceSec=${sinceSec}&_t=${Date.now()}`);
+  // Server-controlled KOT polling fallback. New Electron builds request the RTDB event stream by
+  // push-key cursor, so every revision/station event is recoverable independently. `afterKey` is
+  // omitted on the bootstrap request; the server then returns only a short, server-clock window.
+  // Older callers remain compatible with the legacy recent-orders response.
+  async getPrintPoll(restaurantId, sinceSec = 300, afterKey = null) {
+    const params = new URLSearchParams({
+      sinceSec: String(sinceSec),
+      includeEvents: 'true',
+      _t: String(Date.now()),
+    });
+    if (afterKey) params.set('afterKey', afterKey);
+    return this.request(`/api/print-poll/${restaurantId}?${params.toString()}`);
   }
 
   async getInvoice(invoiceId) {

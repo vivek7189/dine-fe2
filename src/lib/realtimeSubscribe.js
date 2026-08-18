@@ -8,7 +8,7 @@
 // Use this instead of subscribing to `ref(database, 'events/...')` directly, so live
 // KOT / order / table updates and auto-print keep working with no internet.
 
-import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
+import { ref, get, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
 import { database } from '../../firebase';
 import { isLocalServerMode } from './localServer';
 import { subscribeLan } from './lanRealtime';
@@ -33,8 +33,37 @@ export function subscribeRestaurantEvents(restaurantId, category, onData, opts =
   // Cloud mode: Firebase RTDB.
   if (!database) return () => {};
   const base = ref(database, `events/${restaurantId}/${category}`);
-  const q = sinceNow ? query(base, orderByChild('ts'), startAt(Date.now())) : base;
-  const handler = (snapshot) => { const data = snapshot.val(); if (data) onData(data); };
-  onChildAdded(q, handler, (err) => { if (onError) onError(err); });
-  return () => { off(q, 'child_added', handler); };
+  let activeQuery = null;
+  let cancelled = false;
+  let serverOffset = 0;
+  const handler = (snapshot) => {
+    const data = snapshot.val();
+    if (data) onData({ ...data, _serverNow: Date.now() + serverOffset });
+  };
+
+  // RTDB event timestamps are written by the backend. Starting a query at the Windows machine's
+  // Date.now() silently loses every live event when that clock runs ahead. Resolve Firebase's
+  // server offset first and include a small overlap; downstream KOT dedup makes the overlap safe.
+  // The async setup is cancellation-safe so navigating/unmounting cannot leave a listener behind.
+  (async () => {
+    if (sinceNow) {
+      try {
+        const offsetSnap = await Promise.race([
+          get(ref(database, '.info/serverTimeOffset')),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('server-time timeout')), 2000)),
+        ]);
+        const value = Number(offsetSnap.val());
+        if (Number.isFinite(value)) serverOffset = value;
+      } catch (_) { /* use local time; HTTPS event polling remains the independent fallback */ }
+    }
+    if (cancelled) return;
+    const startTs = Date.now() + serverOffset - 5000;
+    activeQuery = sinceNow ? query(base, orderByChild('ts'), startAt(startTs)) : base;
+    onChildAdded(activeQuery, handler, (err) => { if (onError) onError(err); });
+  })();
+
+  return () => {
+    cancelled = true;
+    if (activeQuery) off(activeQuery, 'child_added', handler);
+  };
 }
