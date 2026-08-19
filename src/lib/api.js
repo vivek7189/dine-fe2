@@ -187,6 +187,29 @@ class ApiClient {
   }
 
   /**
+   * Point this terminal's ONLINE (cloud) calls at a specific backend — e.g. the GCP
+   * Cloud Run URL chosen on the setup screen's "Online" toggle. Persists to the same
+   * key the dine-admin pgBackendUrl switch uses, so a reload/restart keeps routing there
+   * on the FIRST call. Never overrides local-server mode (that is pinned separately and wins).
+   * Pass null/'' to clear back to the default cloud API base.
+   */
+  setCloudBackend(url) {
+    const norm = String(url || '').trim().replace(/\/+$/, '');
+    try {
+      if (typeof window !== 'undefined') {
+        if (norm) window.localStorage.setItem(BACKEND_URL_KEY, norm);
+        else window.localStorage.removeItem(BACKEND_URL_KEY);
+      }
+    } catch (_) {}
+    // Cloud choice only takes effect when NOT pinned to a local server (local always wins).
+    if (!getLocalServerUrl()) {
+      const newBase = norm || API_BASE_URL;
+      if (this.baseURL !== newBase) { this.baseURL = newBase; this.clearAllCache(); }
+    }
+    return norm || API_BASE_URL;
+  }
+
+  /**
    * Point this terminal at the on-prem local server (or clear with null/'').
    * Persists across restarts and switches API routing + LAN real-time immediately.
    */

@@ -282,6 +282,10 @@ const Login = () => {
   const [hasRedirected, setHasRedirected] = useState(false);
 
   const LOOPBACK_URL = 'http://127.0.0.1:3003';
+  // Default cloud target for the "Online" setup toggle — GCP Cloud Run (Postgres backend),
+  // so a fresh offline customer's first-time setup (OTP / email / MPIN) authenticates and
+  // provisions end-to-end on GCP, matching the local Postgres the server mode runs on.
+  const GCP_CLOUD_URL = 'https://dine-backend-1087929121342.asia-south1.run.app';
 
   // After an OWNER logs in (OTP/Google/email) on the local-server app, decide how this terminal
   // should route — and, first time, pull the restaurant DOWN into the local DB (provisioning). The
@@ -364,6 +368,20 @@ const Login = () => {
   const [pairingError, setPairingError] = useState('');
   const [pairingLoading, setPairingLoading] = useState(false);
 
+  // Setup connectivity mode — the visible Online/Offline toggle on the login screen.
+  //   'online'  → authenticate + (first time) provision against the cloud (default = GCP).
+  //   'offline' → route to the on-prem local server on the LAN (PIN/offline use).
+  // Defaults to ONLINE so first-time setup always reaches the cloud; an already-provisioned
+  // local terminal flips itself to 'offline' in the auto-connect effect below.
+  const [connMode, setConnMode] = useState('online');
+  const [cloudUrl, setCloudUrl] = useState(GCP_CLOUD_URL);
+  const [isOnline, setIsOnline] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  const [showCloudEdit, setShowCloudEdit] = useState(false);
+  // True only when THIS machine is running a local server (embedded Postgres / on-prem).
+  // We only ever re-point the cloud backend to GCP in that offline context — a normal
+  // desktop/web app keeps its default backend so we never reroute regular users.
+  const [hasLocalServer, setHasLocalServer] = useState(false);
   // Pre-login "Connect to Local Server" (offline on-prem server on the LAN)
   const [showLocalServer, setShowLocalServer] = useState(false);
   // Default to the server's fixed mDNS hostname so no IP is ever typed (resolves to the
@@ -397,23 +415,42 @@ const Login = () => {
     const isInstalledApp = !!window.electronAPI || !!window.Capacitor;
     if (!isInstalledApp) return;                 // plain web (cloud) — don't auto-attach to a local server
     let cancelled = false;
+    // A local server only takes over the login screen once it is PROVISIONED (bound to a
+    // restaurant). A brand-new server (or the dev backend) reports provisioned:false — for
+    // that case we STAY in Online mode so first-time setup authenticates against the cloud
+    // and pulls the restaurant down. This is what keeps setup on GCP instead of hitting an
+    // empty local DB.
+    const probeProvisioned = async (url, ms = 1500) => {
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), ms);
+        const r = await fetch(`${url}/api/provision/status`, { signal: ctrl.signal });
+        clearTimeout(timer);
+        if (!r.ok) return false;
+        const j = await r.json().catch(() => ({}));
+        return !!(j && (j.provisioned === true));
+      } catch { return false; }
+    };
+    const attachLocal = (url, label) => {
+      if (getLocalServerUrl() !== url) apiClient.setLocalServer(url);
+      setLocalServerIp(label); setLsConnected(true); setConnMode('offline');
+    };
     (async () => {
-      // 1. Same machine (loopback) — ALWAYS preferred when the server is co-located.
-      //    127.0.0.1 keeps working even with Wi-Fi/LAN OFF (fully offline), whereas a
-      //    stored LAN-IP or `dineopen-server.local` name vanishes the moment the network
-      //    interface goes down. If a stale LAN URL is already saved for a server that is
-      //    actually on THIS machine, upgrade it to loopback so offline orders never hang.
+      // 1. Same machine (loopback) — preferred when the server is co-located, but ONLY if it
+      //    is already provisioned. 127.0.0.1 keeps working even with Wi-Fi/LAN OFF.
       const LOOPBACK = 'http://127.0.0.1:3003';
       if (await probeServer(LOOPBACK)) {
         if (cancelled) return;
-        if (getLocalServerUrl() !== LOOPBACK) apiClient.setLocalServer(LOOPBACK);
-        setLocalServerIp('127.0.0.1:3003'); setLsConnected(true);
-        return;
+        setHasLocalServer(true); // this machine is an on-prem server → GCP is the right cloud
+        if (await probeProvisioned(LOOPBACK)) { attachLocal(LOOPBACK, '127.0.0.1:3003'); return; }
+        // Server present but not set up yet → leave the screen in Online mode for setup.
       }
-      // 2. Server is on another machine — keep the configured URL if we have one…
+      // 2. Server is on another machine — keep the configured URL if we already have one
+      //    (the owner explicitly connected before → treat as their offline terminal).
       const existing = getLocalServerUrl();
       if (existing) {
-        setLocalServerIp(existing.replace(/^https?:\/\//, '')); setLsConnected(true);
+        setHasLocalServer(true);
+        setLocalServerIp(existing.replace(/^https?:\/\//, '')); setLsConnected(true); setConnMode('offline');
         return;
       }
       // 3. …otherwise mDNS auto-discovery on the LAN (Electron main browses _dineopen._tcp).
@@ -422,14 +459,39 @@ const Login = () => {
           const found = await window.electronAPI.discoverLocalServer();
           const url = found?.url;
           if (url && !cancelled && await probeServer(url)) {
-            apiClient.setLocalServer(url);
-            setLocalServerIp(url.replace(/^https?:\/\//, '')); setLsConnected(true);
+            setHasLocalServer(true);
+            if (await probeProvisioned(url)) attachLocal(url, url.replace(/^https?:\/\//, ''));
           }
         } catch (_) {}
       }
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Track real connectivity (used to block Online login with a clear "no internet" error),
+  // and keep the cloud target (GCP by default) applied whenever we're in Online mode.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setMounted(true);
+    const sync = () => setIsOnline(typeof navigator === 'undefined' ? true : navigator.onLine !== false);
+    sync();
+    window.addEventListener('online', sync);
+    window.addEventListener('offline', sync);
+    return () => { window.removeEventListener('online', sync); window.removeEventListener('offline', sync); };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    // Only ever re-point the cloud backend on an on-prem server machine. Normal desktop/web
+    // apps keep their default backend — we never reroute regular users to GCP.
+    if (!hasLocalServer) return;
+    if (connMode === 'online') {
+      // Point cloud calls at the chosen backend (GCP) and drop any local-server pin so the
+      // owner login authenticates + provisions on the cloud.
+      try { if (getLocalServerUrl()) apiClient.setLocalServer(null); } catch (_) {}
+      try { apiClient.setCloudBackend((cloudUrl || '').trim() || GCP_CLOUD_URL); } catch (_) {}
+    }
+  }, [connMode, cloudUrl, hasLocalServer]);
 
   const connectLocalServer = async () => {
     let host = String(localServerIp || '').trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '');
@@ -980,10 +1042,21 @@ const Login = () => {
     return null;
   };
 
+  // Block cloud login when the Online toggle is selected but there is no internet.
+  // (Offline mode is exempt — it talks to the local server on the LAN.)
+  const requireOnline = () => {
+    if (connMode === 'online' && !isOnline) {
+      setError('No internet connection. Connect to Wi-Fi to log in online, or switch to Offline mode.');
+      return false;
+    }
+    return true;
+  };
+
   const handlePhoneSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
+    if (!requireOnline()) return;
+
     // Validate phone number
     const phoneError = validatePhoneNumber(phoneNumber);
     if (phoneError) {
@@ -1232,6 +1305,7 @@ const Login = () => {
   const handleEmailRegister = async (e) => {
     e.preventDefault();
     setError('');
+    if (!requireOnline()) return;
     setLoading(true);
 
     try {
@@ -1365,6 +1439,7 @@ const Login = () => {
   const handleEmailLogin = async (e) => {
     e.preventDefault();
     setError('');
+    if (!requireOnline()) return;
     setLoading(true);
 
     try {
@@ -1450,6 +1525,7 @@ const Login = () => {
 
   const handlePinLogin = async (e) => {
     e.preventDefault();
+    if (!requireOnline()) return;
     if (!pinIdentifier || !pinCode) {
       setError('Please enter your phone/email and PIN');
       return;
@@ -1491,6 +1567,7 @@ const Login = () => {
   };
 
   const handleGoogleLogin = async () => {
+    if (!requireOnline()) return;
     try {
       setGoogleLoading(true);
       setError('');
@@ -2281,38 +2358,95 @@ const Login = () => {
           </button>
         </div>
 
-        {/* Connect to Local Server (offline on-prem server on the LAN) */}
+        {/* Online / Offline connectivity toggle — installed app (Electron/Capacitor) only.
+            Online = authenticate + first-time-provision on the cloud (GCP by default).
+            Offline = route to the on-prem local server on the LAN. */}
+        {mounted && (typeof window !== 'undefined') && (!!window.electronAPI || !!window.Capacitor) && (
         <div style={{ padding: '10px 0 0' }}>
-          {lsConnected ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#15803d', background: '#e7f6ec', border: '1px solid #cdeBD6', borderRadius: 9, padding: '8px 12px' }}>
-              <span>🖥️ Connected to local server{localServerIp ? ` · ${localServerIp}` : ''}. Log in below.</span>
-              <button onClick={() => { setLsConnected(false); setShowLocalServer(true); }} style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: '#0f766e', textDecoration: 'underline', cursor: 'pointer', fontSize: 12 }}>Change</button>
-            </div>
-          ) : !showLocalServer ? (
-            <button onClick={() => setShowLocalServer(true)} style={{ background: 'transparent', border: 'none', color: '#4f46e5', cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-              🖥️ Connect to Local Server (offline)
+          <div style={{ display: 'flex', gap: 6, border: '1px solid #e5e7eb', borderRadius: 12, padding: 4, background: '#f9fafb' }}>
+            <button
+              type="button"
+              onClick={() => { setConnMode('online'); setLsError(''); }}
+              style={{ flex: 1, padding: '10px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 13.5, fontWeight: 700,
+                backgroundColor: connMode === 'online' ? '#4f46e5' : 'transparent', color: connMode === 'online' ? '#fff' : '#6b7280',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
+            >
+              🌐 Online
             </button>
-          ) : (
-            <div style={{ background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: '#475569', marginBottom: 6 }}>SERVER ADDRESS</div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  value={localServerIp}
-                  onChange={(e) => { setLocalServerIp(e.target.value); setLsError(''); }}
-                  placeholder="dineopen-server.local"
-                  spellCheck={false} autoCapitalize="off"
-                  onKeyDown={(e) => { if (e.key === 'Enter') connectLocalServer(); }}
-                  style={{ flex: 1, padding: '9px 11px', border: '1px solid #d3dae6', borderRadius: 8, fontSize: 14, fontFamily: 'ui-monospace, monospace', outline: 'none' }}
-                />
-                <button onClick={connectLocalServer} disabled={lsConnecting} style={{ padding: '0 16px', borderRadius: 8, border: 'none', background: '#4f46e5', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                  {lsConnecting ? 'Connecting…' : 'Connect'}
-                </button>
-              </div>
-              {lsError && <div style={{ color: '#b91c1c', fontSize: 12.5, marginTop: 6 }}>{lsError}</div>}
-              <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 6 }}>Leave as <b>dineopen-server.local</b> — it finds your server automatically. Or type the IP shown in the DineOpen Server window.</div>
+            <button
+              type="button"
+              onClick={() => { setConnMode('offline'); setError(''); }}
+              style={{ flex: 1, padding: '10px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 13.5, fontWeight: 700,
+                backgroundColor: connMode === 'offline' ? '#4f46e5' : 'transparent', color: connMode === 'offline' ? '#fff' : '#6b7280',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
+            >
+              🖥️ Offline
+            </button>
+          </div>
+
+          {/* ── ONLINE panel ── */}
+          {connMode === 'online' && (
+            <div style={{ marginTop: 10 }}>
+              {!isOnline ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 9, padding: '9px 12px' }}>
+                  ⚠️ No internet connection. Connect to Wi-Fi to log in online, or switch to <b>Offline</b>.
+                </div>
+              ) : (
+                <div style={{ fontSize: 12.5, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <span>☁️ First-time setup runs on the cloud, then this device works offline.</span>
+                  <button type="button" onClick={() => setShowCloudEdit((v) => !v)} style={{ background: 'transparent', border: 'none', color: '#4f46e5', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, textDecoration: 'underline' }}>
+                    {showCloudEdit ? 'Hide' : 'Change server'}
+                  </button>
+                </div>
+              )}
+              {showCloudEdit && (
+                <div style={{ marginTop: 8, background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>CLOUD SERVER</div>
+                  <input
+                    value={cloudUrl}
+                    onChange={(e) => setCloudUrl(e.target.value)}
+                    placeholder={GCP_CLOUD_URL}
+                    spellCheck={false} autoCapitalize="off" autoCorrect="off"
+                    style={{ width: '100%', padding: '9px 11px', border: '1px solid #d3dae6', borderRadius: 8, fontSize: 13, fontFamily: 'ui-monospace, monospace', outline: 'none' }}
+                  />
+                  <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 6 }}>Leave as the default (GCP) unless told otherwise. Login + setup happen here.</div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── OFFLINE panel (on-prem local server on the LAN) ── */}
+          {connMode === 'offline' && (
+            <div style={{ marginTop: 10 }}>
+              {lsConnected ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#15803d', background: '#e7f6ec', border: '1px solid #cdeBD6', borderRadius: 9, padding: '8px 12px' }}>
+                  <span>🖥️ Connected to local server{localServerIp ? ` · ${localServerIp}` : ''}. Log in below.</span>
+                  <button onClick={() => { setLsConnected(false); setShowLocalServer(true); }} style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: '#0f766e', textDecoration: 'underline', cursor: 'pointer', fontSize: 12 }}>Change</button>
+                </div>
+              ) : (
+                <div style={{ background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: '#475569', marginBottom: 6 }}>SERVER ADDRESS</div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      value={localServerIp}
+                      onChange={(e) => { setLocalServerIp(e.target.value); setLsError(''); }}
+                      placeholder="dineopen-server.local"
+                      spellCheck={false} autoCapitalize="off"
+                      onKeyDown={(e) => { if (e.key === 'Enter') connectLocalServer(); }}
+                      style={{ flex: 1, padding: '9px 11px', border: '1px solid #d3dae6', borderRadius: 8, fontSize: 14, fontFamily: 'ui-monospace, monospace', outline: 'none' }}
+                    />
+                    <button onClick={connectLocalServer} disabled={lsConnecting} style={{ padding: '0 16px', borderRadius: 8, border: 'none', background: '#4f46e5', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                      {lsConnecting ? 'Connecting…' : 'Connect'}
+                    </button>
+                  </div>
+                  {lsError && <div style={{ color: '#b91c1c', fontSize: 12.5, marginTop: 6 }}>{lsError}</div>}
+                  <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 6 }}>Leave as <b>dineopen-server.local</b> — it finds your server automatically. Or type the IP shown in the DineOpen Server window.</div>
+                </div>
+              )}
             </div>
           )}
         </div>
+        )}
 
         {/* Login Form */}
         <div style={{ padding: "16px 0" }}>
