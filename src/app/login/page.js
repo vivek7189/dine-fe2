@@ -2409,8 +2409,12 @@ const Login = () => {
           </div>
         )}
 
-        {/* Login Form */}
-        <div style={{ padding: "16px 0" }}>
+        {/* Login Form — blurred + disabled when the installed app has no internet, so it's
+            obvious this cloud login is unavailable offline (the red banner above says to use PIN). */}
+        <div style={{ padding: "16px 0",
+          ...(mounted && (typeof window !== 'undefined') && (!!window.electronAPI || !!window.Capacitor) && !isOnline
+            ? { filter: 'blur(2.5px)', opacity: 0.5, pointerEvents: 'none', userSelect: 'none', transition: 'filter .2s, opacity .2s' }
+            : { transition: 'filter .2s, opacity .2s' }) }}>
           {error && (
             <div style={{
               backgroundColor: "#fee2e2",
