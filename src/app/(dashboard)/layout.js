@@ -18,6 +18,7 @@ import { useOrderNotifications } from '../../hooks/useOrderNotifications';
 import PrintEventToast from '../../components/PrintEventToast';
 import SyncStatus from '../../components/SyncStatus';
 import ModePill from '../../components/ModePill';
+import HeaderModeToggle from '../../components/HeaderModeToggle';
 import OfflineFallback from '../../components/OfflineFallback';
 import { isWeb, isTauri, isElectron } from '../../utils/platform';
 import { isAutoUpdateEnabled, checkForUpdates, restartApp } from '../../utils/autoUpdater';
@@ -608,7 +609,9 @@ function DashboardLayoutContent({ children }) {
               </button>
             )}
 
-            {/* Header mode indicator: Local server (LAN) vs Cloud + internet dot */}
+            {/* Top-right GLOBAL Online⇄LAN switch — owner/admin (+ allowed roles) only */}
+            <HeaderModeToggle />
+            {/* Bottom-right read-only mode/status pill — for everyone else (hides for switchers) */}
             <ModePill />
             {/* LAN-first resilience: if on Internet mode and it drops, fall back to local server */}
             <OfflineFallback />

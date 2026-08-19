@@ -40,6 +40,14 @@ export default function ModePill() {
   if (!mounted) return null;
   const isInstalledApp = typeof window !== 'undefined' && (!!window.electronAPI || !!window.Capacitor);
   if (!isInstalledApp) return null; // plain web never shows a mode pill
+  // Owner/admin (and any admin-allowed roles) get the interactive top-right toggle instead —
+  // don't also show this read-only pill for them.
+  try {
+    const u = JSON.parse(localStorage.getItem('userData') || 'null');
+    const rest = JSON.parse(localStorage.getItem('selectedRestaurant') || 'null');
+    const allowed = rest?.posSettings?.modeToggleRoles || rest?.settings?.modeToggleRoles || [];
+    if (['owner', 'admin'].includes(u?.role) || (Array.isArray(allowed) && allowed.includes(u?.role))) return null;
+  } catch (_) {}
 
   const onLocal = !!local;
   const isLan = onLocal && !/(127\.0\.0\.1|localhost)/.test(local);
