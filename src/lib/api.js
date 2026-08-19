@@ -288,7 +288,7 @@ class ApiClient {
       const sep = endpoint.includes('?') ? '&' : '?';
       endpoint = `${endpoint}${sep}dayStart=${this._businessDayStartHour}`;
     }
-    const url = `${this.baseURL}${endpoint}`;
+    const url = `${options.baseOverride || this.baseURL}${endpoint}`;
     const token = this.getToken();
     
     // SECURITY: Commented out to prevent exposing sensitive token data in console logs
@@ -684,7 +684,7 @@ class ApiClient {
 
   // File upload with FormData (supports progress tracking)
   async upload(endpoint, formData, options = {}) {
-    const url = `${this.baseURL}${endpoint}`;
+    const url = `${options.baseOverride || this.baseURL}${endpoint}`;
     const token = this.getToken();
 
     return new Promise((resolve, reject) => {
@@ -1273,7 +1273,8 @@ class ApiClient {
 
   // Bulk menu upload endpoints
   async bulkUploadMenu(restaurantId, formData) {
-    const url = `${this.baseURL}/api/menus/bulk-upload/${restaurantId}`;
+    // AI extraction runs in the cloud (OpenAI + Cloud Storage), never the offline local server.
+    const url = `${this.cloudBase()}/api/menus/bulk-upload/${restaurantId}`;
     const token = this.getToken();
 
     const config = {
@@ -1300,11 +1301,23 @@ class ApiClient {
     }
   }
 
-  // ─── Signed-URL bulk upload (large files) ─────────────────────────────────
+  // Cloud backend for cloud-only features. AI menu extraction needs OpenAI + Cloud Storage,
+  // which the OFFLINE local server does not have — so those calls must hit the cloud (GCP),
+  // never the local server. The extracted items are then saved to whatever backend is active
+  // (local or cloud) via bulk-save. Returns the persisted cloud choice, else the default base.
+  cloudBase() {
+    try {
+      const persisted = typeof window !== 'undefined' ? window.localStorage.getItem(BACKEND_URL_KEY) : null;
+      return persisted || API_BASE_URL;
+    } catch (_) { return API_BASE_URL; }
+  }
+
+  // ─── Signed-URL bulk upload (large files) — AI extraction runs in the CLOUD ─────────────
   async getMenuUploadUrl(restaurantId, { fileName, fileType, fileSize }) {
     return this.request(`/api/menus/upload-url/${restaurantId}`, {
       method: 'POST',
       body: { fileName, fileType, fileSize },
+      baseOverride: this.cloudBase(),
     });
   }
 
@@ -1312,11 +1325,12 @@ class ApiClient {
     return this.request(`/api/menus/process-upload/${restaurantId}`, {
       method: 'POST',
       body: { jobId, gcsPath, fileName, fileType },
+      baseOverride: this.cloudBase(),
     });
   }
 
   async getMenuUploadResult(restaurantId, jobId) {
-    return this.request(`/api/menus/upload-result/${restaurantId}/${jobId}`);
+    return this.request(`/api/menus/upload-result/${restaurantId}/${jobId}`, { baseOverride: this.cloudBase() });
   }
 
   async bulkSaveMenuItems(restaurantId, menuItems, categories = null) {

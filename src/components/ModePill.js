@@ -57,18 +57,16 @@ export default function ModePill() {
       onClick={() => router.push('/settings/local-server')}
       title={title}
       style={{
-        display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 10px', borderRadius: 999,
-        background: '#fff', border: '1px solid #E5E7EB', fontSize: 12, fontWeight: 700, color: '#111827',
-        cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.04)', whiteSpace: 'nowrap',
+        position: 'fixed', bottom: 14, right: 14, zIndex: 9996,
+        display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 9px', borderRadius: 999,
+        background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', border: '1px solid #E5E7EB',
+        fontSize: 11, fontWeight: 700, color: '#374151', cursor: 'pointer',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.10)', whiteSpace: 'nowrap',
       }}
     >
-      <span style={{ width: 8, height: 8, borderRadius: '50%', background: modeDot, flexShrink: 0 }} />
+      <span style={{ width: 7, height: 7, borderRadius: '50%', background: modeDot, flexShrink: 0 }} />
       {modeLabel}
-      <span style={{ opacity: 0.35 }}>·</span>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: online ? '#15803D' : '#B45309', fontWeight: 600 }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: netDot, flexShrink: 0 }} />
-        {netText}
-      </span>
+      <span style={{ width: 5, height: 5, borderRadius: '50%', background: netDot, flexShrink: 0, marginLeft: 1 }} title={`Internet: ${netText}`} />
     </button>
   );
 }

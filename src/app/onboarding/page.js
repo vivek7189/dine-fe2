@@ -188,6 +188,10 @@ function OnboardingContent() {
 
   useEffect(() => {
     setCurrentLang(getCurrentLanguage());
+    // Onboarding creates a NEW restaurant in the CLOUD (GCP) — never run it against the offline
+    // local server (which has no cloud creds and can't create a cloud restaurant). Drop any
+    // local-server pin so all onboarding calls hit the cloud backend.
+    try { apiClient.setLocalServer(null); } catch (_) {}
   }, []);
 
   useEffect(() => {
