@@ -1078,11 +1078,12 @@ const Login = () => {
     return null;
   };
 
-  // Block cloud login when the Online toggle is selected but there is no internet.
-  // (Offline mode is exempt — it talks to the local server on the LAN.)
+  // Owner/Staff login here is cloud auth (OTP/email) — it needs internet and can't work over the
+  // LAN. Block it when there's no connection and point the user to the offline PIN pad instead.
   const requireOnline = () => {
-    if (connMode === 'online' && !isOnline) {
-      setError('No internet connection. Connect to Wi-Fi to log in online, or switch to Offline mode.');
+    const isInstalledApp = typeof window !== 'undefined' && (!!window.electronAPI || !!window.Capacitor);
+    if (isInstalledApp && !isOnline) {
+      setError('No internet. This login needs a connection — for offline, log in with your PIN instead.');
       return false;
     }
     return true;
@@ -2394,33 +2395,17 @@ const Login = () => {
           </button>
         </div>
 
-        {/* Connection mode — installed app only. Default is Local (LAN): the till talks to the
-            on-prem server over your restaurant's network and works with the internet OFF. Pick
-            Internet only for first-time cloud setup or to run against the cloud directly. */}
+        {/* Owner/Staff login here is cloud auth (OTP/email) and NEEDS internet — it cannot work
+            over the LAN. The offline/LAN path is the PIN pad, not this screen. So no Local/Internet
+            toggle here: just tell the user internet is required, and block login when it's down. */}
         {mounted && (typeof window !== 'undefined') && (!!window.electronAPI || !!window.Capacitor) && (
-          <div style={{ margin: '10px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 11.5, color: '#8a7d74', flex: 1, minWidth: 150 }}>
-              {connMode === 'offline'
-                ? '🖥️ Local (LAN) — works on your network, no internet needed.'
-                : '🌐 Internet — connects to the cloud (needs internet).'}
-            </span>
-            <div style={{ display: 'inline-flex', gap: 3, border: '1px solid #f0dcd3', borderRadius: 999, padding: 3, background: '#faf3ee', flexShrink: 0 }}>
-              <button type="button" onClick={() => { setModeChosen(true); setConnMode('offline'); setError(''); }}
-                style={{ padding: '4px 12px', borderRadius: 999, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700,
-                  backgroundColor: connMode === 'offline' ? '#e53e3e' : 'transparent', color: connMode === 'offline' ? '#fff' : '#8a7d74' }}>
-                Local
-              </button>
-              <button type="button" onClick={() => { setModeChosen(true); setConnMode('online'); setLsError(''); }}
-                style={{ padding: '4px 12px', borderRadius: 999, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700,
-                  backgroundColor: connMode === 'online' ? '#e53e3e' : 'transparent', color: connMode === 'online' ? '#fff' : '#8a7d74' }}>
-                Internet
-              </button>
-            </div>
-          </div>
-        )}
-        {mounted && connMode === 'online' && !isOnline && (typeof window !== 'undefined') && (!!window.electronAPI || !!window.Capacitor) && (
-          <div style={{ margin: '8px 0 0', fontSize: 12, color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 9, padding: '8px 11px' }}>
-            ⚠️ No internet. Switch to <b>Local</b> to keep working on your network.
+          <div style={{ margin: '10px 0 0', display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, borderRadius: 9, padding: '9px 12px',
+            ...(isOnline
+              ? { color: '#8a7d74', background: '#faf6ef', border: '1px solid #eee3d2' }
+              : { color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca' }) }}>
+            {isOnline
+              ? <span>🌐 This login needs internet. Working offline? Log in with your <b>PIN</b> on this device.</span>
+              : <span>⚠️ No internet — this login needs a connection. For offline, use your <b>PIN</b> instead.</span>}
           </div>
         )}
 
