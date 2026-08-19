@@ -390,7 +390,13 @@ app.whenReady().then(() => {
         console.log('[LocalServer] Ready:', JSON.stringify(info));
         // Advertise this host on the LAN (mDNS, type 'dineopen') at the backend port, so
         // phones + other terminals auto-discover it with zero config. Best-effort.
-        try { require('./lanDiscovery').advertiseServer(localServer.BACKEND_PORT); } catch (_) {}
+        try {
+          require('./lanDiscovery').advertiseServer(localServer.BACKEND_PORT, {
+            restaurantId: localServer.getBoundRestaurantId(),
+            // Self-heal: if this hub isn't provisioned yet, re-publish once the restaurant binds.
+            resolveRestaurantId: () => localServer.getBoundRestaurantId(),
+          });
+        } catch (_) {}
         // Nudge any open windows to re-probe loopback now that the backend is up.
         for (const w of BrowserWindow.getAllWindows()) {
           try { if (w.webContents && !w.webContents.isDestroyed()) w.webContents.send('local-server-ready', info); } catch (_) {}

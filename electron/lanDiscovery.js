@@ -99,25 +99,54 @@ function stopAdvertising() {
 // `discover-local-server` browser (which looks for exactly type 'dineopen').
 // Additive — a no-op when bonjour isn't bundled; never throws to the caller.
 let publishedServer = null;
-function advertiseServer(port = 3003, meta = {}) {
+let _serverAdvertHeal = null;
+// Publish (or re-publish) the server advert with the given restaurantId. Republishing is how we
+// stamp the bound restaurant into the TXT record once it's known (mDNS TXT is fixed at publish
+// time), so a client can read WHICH restaurant this hub serves straight from discovery.
+function _publishServer(port, restaurantId) {
   const bonjour = getBonjourInstance();
   if (!bonjour) return false;
-  if (publishedServer) return true;
   try {
+    if (publishedServer) { try { publishedServer.stop(); } catch (_) {} publishedServer = null; }
     publishedServer = bonjour.publish({
       name: 'DineOpen Server',
       type: 'dineopen', // MUST match discover-local-server's browse type
       port,
-      txt: { version: '1', restaurantId: meta.restaurantId || '', role: 'server' },
+      txt: { version: '1', restaurantId: restaurantId || '', role: 'server' },
     });
-    console.log(`[LanDiscovery] Advertising DineOpen server (type 'dineopen') on port ${port}`);
+    console.log(`[LanDiscovery] Advertising DineOpen server (type 'dineopen') on port ${port}${restaurantId ? ` for restaurant ${restaurantId}` : ' (restaurant not bound yet)'}`);
     return true;
   } catch (err) {
     console.error('[LanDiscovery] Failed to advertise server:', err.message);
     return false;
   }
 }
+function advertiseServer(port = 3003, meta = {}) {
+  const bonjour = getBonjourInstance();
+  if (!bonjour) return false;
+  const rid = meta.restaurantId || '';
+  const ok = publishedServer ? true : _publishServer(port, rid);
+  // If the restaurant isn't bound yet (fresh, un-provisioned hub) but the caller gave us a way to
+  // resolve it later, poll briefly and re-publish once provisioning writes the id — so the TXT
+  // self-heals to carry the restaurantId without needing an app restart.
+  if (!rid && typeof meta.resolveRestaurantId === 'function' && !_serverAdvertHeal) {
+    let tries = 0;
+    _serverAdvertHeal = setInterval(() => {
+      let resolved = '';
+      try { resolved = meta.resolveRestaurantId() || ''; } catch (_) {}
+      if (resolved) {
+        _publishServer(port, resolved);
+        clearInterval(_serverAdvertHeal); _serverAdvertHeal = null;
+      } else if (++tries >= 30) { // ~5 min at 10s — give up quietly
+        clearInterval(_serverAdvertHeal); _serverAdvertHeal = null;
+      }
+    }, 10000);
+    if (_serverAdvertHeal.unref) _serverAdvertHeal.unref();
+  }
+  return ok;
+}
 function stopAdvertisingServer() {
+  if (_serverAdvertHeal) { try { clearInterval(_serverAdvertHeal); } catch (_) {} _serverAdvertHeal = null; }
   if (publishedServer) {
     try { publishedServer.stop(() => console.log('[LanDiscovery] Stopped advertising server')); } catch { /* ignore */ }
     publishedServer = null;

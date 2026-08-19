@@ -262,6 +262,11 @@ async function stopLocalServer() {
   log('🛑 Local server stopped.');
 }
 
+function getBoundRestaurantId() {
+  const c = readConfig();
+  return c.boundRestaurantId || c.restaurantId || '';
+}
+
 module.exports = {
   startLocalServer,
   stopLocalServer,
@@ -271,5 +276,6 @@ module.exports = {
   setTerminalNumber,
   pingHealth,
   lanIPs,
+  getBoundRestaurantId,
   BACKEND_PORT,
 };
