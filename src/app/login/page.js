@@ -282,10 +282,11 @@ const Login = () => {
   const [hasRedirected, setHasRedirected] = useState(false);
 
   const LOOPBACK_URL = 'http://127.0.0.1:3003';
-  // Default cloud target for the "Online" setup toggle — GCP Cloud Run (Postgres backend),
-  // so a fresh offline customer's first-time setup (OTP / email / MPIN) authenticates and
-  // provisions end-to-end on GCP, matching the local Postgres the server mode runs on.
-  const GCP_CLOUD_URL = 'https://dine-backend-1087929121342.asia-south1.run.app';
+  // Default cloud target for the "Online" setup toggle — the always-on GCP VM (Postgres
+  // backend, same Cloud SQL as Cloud Run but no cold starts), so a fresh offline customer's
+  // first-time setup (OTP / email / MPIN) authenticates and provisions end-to-end on GCP,
+  // matching the local Postgres the server mode runs on.
+  const GCP_CLOUD_URL = 'https://34-93-129-104.sslip.io';
 
   // After an OWNER logs in (OTP/Google/email) on the local-server app, decide how this terminal
   // should route — and, first time, pull the restaurant DOWN into the local DB (provisioning). The
