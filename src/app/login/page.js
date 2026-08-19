@@ -2399,13 +2399,26 @@ const Login = () => {
             over the LAN. The offline/LAN path is the PIN pad, not this screen. So no Local/Internet
             toggle here: just tell the user internet is required, and block login when it's down. */}
         {mounted && (typeof window !== 'undefined') && (!!window.electronAPI || !!window.Capacitor) && (
-          <div style={{ margin: '10px 0 0', display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, borderRadius: 9, padding: '9px 12px',
-            ...(isOnline
-              ? { color: '#8a7d74', background: '#faf6ef', border: '1px solid #eee3d2' }
-              : { color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca' }) }}>
-            {isOnline
-              ? <span>🌐 This login needs internet. Working offline? Log in with your <b>PIN</b> on this device.</span>
-              : <span>⚠️ No internet — this login needs a connection. For offline, use your <b>PIN</b> instead.</span>}
+          <div style={{ margin: '10px 0 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 600, borderRadius: 10, padding: '11px 13px',
+              ...(isOnline
+                ? { color: '#9a3412', background: '#fff7ed', border: '1.5px solid #fdba74' }
+                : { color: '#b91c1c', background: '#fef2f2', border: '1.5px solid #f87171', boxShadow: '0 0 0 3px rgba(248,113,113,0.15)' }) }}>
+              {isOnline
+                ? <span>🌐 <b>This login needs internet.</b> Working offline? Use your <b>PIN keypad</b>.</span>
+                : <span>⚠️ <b>No internet.</b> This login needs a connection — use your <b>PIN keypad</b> instead.</span>}
+            </div>
+            {isLocalServerMode() && (
+              <button
+                type="button"
+                onClick={() => { setShowOwnerLogin(false); setError(''); }}
+                style={{ marginTop: 8, width: '100%', padding: '12px', borderRadius: 12, border: '1.5px solid #DC4A3D',
+                  background: '#fff', color: '#DC4A3D', fontSize: 14, fontWeight: 800, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+              >
+                🔢 Go to PIN keypad (works offline)
+              </button>
+            )}
           </div>
         )}
 
