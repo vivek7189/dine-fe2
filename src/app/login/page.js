@@ -389,6 +389,7 @@ const Login = () => {
   const [cloudUrl, setCloudUrl] = useState(GCP_CLOUD_URL);
   const [isOnline, setIsOnline] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [isWide, setIsWide] = useState(false); // desktop-width → two-column login (server app only)
   const [showCloudEdit, setShowCloudEdit] = useState(false);
   const [modeChosen, setModeChosen] = useState(false); // true once the user taps the Local/Internet toggle
   // True only when THIS machine is running a local server (embedded Postgres / on-prem).
@@ -493,10 +494,12 @@ const Login = () => {
     if (typeof window === 'undefined') return;
     setMounted(true);
     const sync = () => setIsOnline(typeof navigator === 'undefined' ? true : navigator.onLine !== false);
-    sync();
+    const measure = () => setIsWide(window.innerWidth >= 1024);
+    sync(); measure();
     window.addEventListener('online', sync);
     window.addEventListener('offline', sync);
-    return () => { window.removeEventListener('online', sync); window.removeEventListener('offline', sync); };
+    window.addEventListener('resize', measure);
+    return () => { window.removeEventListener('online', sync); window.removeEventListener('offline', sync); window.removeEventListener('resize', measure); };
   }, []);
 
   useEffect(() => {
@@ -2171,9 +2174,41 @@ const Login = () => {
       alignItems: "center",
       // justifyContent: "center", // Removed to allow custom spacing
       padding: "0", // Reset padding to handle header
-      position: "relative"
+      position: "relative",
+      // Server app on a desktop-width screen: reserve the left 44% for a branding panel so the
+      // login form sits in the right column (shorter, not stacked). Never on cloud app / mobile.
+      ...(mounted && isServerApp() && isWide ? { paddingLeft: '44%' } : {}),
     }}
     >
+      {/* Two-column branding panel — server app + wide screen only */}
+      {mounted && isServerApp() && isWide && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, bottom: 0, width: '44%', zIndex: 1,
+          background: 'linear-gradient(160deg,#DC4A3D 0%,#B23A2F 100%)', color: '#fff',
+          display: 'flex', flexDirection: 'column', justifyContent: 'center',
+          padding: '0 clamp(36px,5vw,72px)', fontFamily: 'ui-sans-serif,-apple-system,sans-serif',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 30 }}>
+            <div style={{ width: 52, height: 52, borderRadius: 14, background: 'rgba(255,255,255,0.16)', display: 'grid', placeItems: 'center', fontSize: 26 }}>🍽️</div>
+            <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-.02em' }}>DineOpen</div>
+          </div>
+          <div style={{ fontSize: 'clamp(26px,2.6vw,38px)', fontWeight: 800, lineHeight: 1.15, letterSpacing: '-.02em', marginBottom: 14 }}>
+            Your restaurant,<br />online or off.
+          </div>
+          <div style={{ fontSize: 15, opacity: 0.92, lineHeight: 1.6, marginBottom: 30, maxWidth: 440 }}>
+            Take orders, print bills and run your whole floor on your local network — even with the internet down. It all syncs to the cloud when you&apos;re back online.
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {[['🖥️', 'Works on your Wi-Fi (LAN) — no internet needed'], ['⚡', 'Every till connects to one hub, instantly'], ['☁️', 'Auto-syncs to the cloud when online'], ['🔒', 'Your data stays on your machine']].map(([ic, tx]) => (
+              <div key={tx} style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14.5, fontWeight: 600 }}>
+                <span style={{ width: 32, height: 32, borderRadius: 9, background: 'rgba(255,255,255,0.16)', display: 'grid', placeItems: 'center', fontSize: 16, flexShrink: 0 }}>{ic}</span>
+                {tx}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* LAN Hub Pairing Overlay (Electron only) */}
       {showPairingOverlay && discoveredHub && (
         <div style={{
