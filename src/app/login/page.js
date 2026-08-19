@@ -343,6 +343,17 @@ const Login = () => {
       }
     }
 
+    // Enable API-based cloud sync on this hub: hand the local server the owner's token so it can
+    // fetch a restaurant-scoped sync token from the cloud + store it. Best-effort, non-blocking —
+    // the hub still works offline if this fails; it retries on the next owner login.
+    try {
+      await fetch(`${LOOPBACK_URL}/api/local-server/enable-sync`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ restaurantId: rid }),
+      });
+    } catch (_) {}
+
     // Provisioned for THIS restaurant → route the terminal to its local server (offline-capable).
     try { apiClient.setLocalServer(LOOPBACK_URL); } catch (_) {}
     setActivationPhase(null);
