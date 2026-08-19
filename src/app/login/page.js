@@ -384,6 +384,10 @@ const Login = () => {
   // We only ever re-point the cloud backend to GCP in that offline context — a normal
   // desktop/web app keeps its default backend so we never reroute regular users.
   const [hasLocalServer, setHasLocalServer] = useState(false);
+  // Multi-terminal hub discovery: 'searching' → looking for a LAN hub; 'joined' → found/attached;
+  // 'none' → no hub on this network (this machine can become the hub, or connect manually).
+  const [hubSearch, setHubSearch] = useState('searching');
+  const [makingHub, setMakingHub] = useState(false);
   // Pre-login "Connect to Local Server" (offline on-prem server on the LAN)
   const [showLocalServer, setShowLocalServer] = useState(false);
   // Default to the server's fixed mDNS hostname so no IP is ever typed (resolves to the
@@ -435,7 +439,7 @@ const Login = () => {
     };
     const attachLocal = (url, label) => {
       if (getLocalServerUrl() !== url) apiClient.setLocalServer(url);
-      setLocalServerIp(label); setLsConnected(true); setConnMode('offline');
+      setLocalServerIp(label); setLsConnected(true); setConnMode('offline'); setHubSearch('joined');
     };
     (async () => {
       // 1. Same machine (loopback) — preferred when the server is co-located, but ONLY if it
@@ -452,7 +456,7 @@ const Login = () => {
       const existing = getLocalServerUrl();
       if (existing) {
         setHasLocalServer(true);
-        setLocalServerIp(existing.replace(/^https?:\/\//, '')); setLsConnected(true); setConnMode('offline');
+        setLocalServerIp(existing.replace(/^https?:\/\//, '')); setLsConnected(true); setConnMode('offline'); setHubSearch('joined');
         return;
       }
       // 3. …otherwise mDNS auto-discovery on the LAN (Electron main browses _dineopen._tcp).
@@ -462,10 +466,12 @@ const Login = () => {
           const url = found?.url;
           if (url && !cancelled && await probeServer(url)) {
             setHasLocalServer(true);
-            if (await probeProvisioned(url)) attachLocal(url, url.replace(/^https?:\/\//, ''));
+            if (await probeProvisioned(url)) { attachLocal(url, url.replace(/^https?:\/\//, '')); return; }
           }
         } catch (_) {}
       }
+      // Nothing found on the LAN → this machine can become the hub, or connect manually.
+      if (!cancelled) setHubSearch('none');
     })();
     return () => { cancelled = true; };
   }, []);
@@ -524,6 +530,16 @@ const Login = () => {
     } finally {
       setLsConnecting(false);
     }
+  };
+
+  // Designate THIS machine as the restaurant hub (runs the on-prem server). Others auto-join it.
+  const makeThisHub = async () => {
+    if (!window.electronAPI?.server?.setMode) { window.alert('This build cannot run as a server.'); return; }
+    setMakingHub(true);
+    try {
+      await window.electronAPI.server.setMode(true);
+      window.alert('This device is now the restaurant HUB.\n\nRestart the app to start the server. Every other till and phone on this Wi-Fi will find it automatically.');
+    } catch (_) {} finally { setMakingHub(false); }
   };
 
   // Country selection state
@@ -2419,6 +2435,40 @@ const Login = () => {
                 🔢 Go to PIN keypad (works offline)
               </button>
             )}
+          </div>
+        )}
+
+        {/* Multi-terminal hub setup — installed app, no hub auto-found on the LAN. This machine
+            can become the hub, or connect to one already running (mDNS auto-join happens first;
+            this only shows when nothing was found). */}
+        {mounted && (typeof window !== 'undefined') && (!!window.electronAPI || !!window.Capacitor) && hubSearch === 'none' && !showLocalServer && (
+          <div style={{ margin: '12px 0 0', background: '#F7F1E7', border: '1px solid #EEE3D2', borderRadius: 14, padding: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#2A211C', marginBottom: 3 }}>No restaurant server found on this network</div>
+            <div style={{ fontSize: 12, color: '#8A7D74', marginBottom: 12 }}>Make this the hub, or connect to one that&apos;s already running. Other tills &amp; phones auto-join the hub.</div>
+            <button type="button" onClick={makeThisHub} disabled={makingHub}
+              style={{ width: '100%', padding: '12px', borderRadius: 11, border: 'none', background: '#DC4A3D', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              🖥️ {makingHub ? 'Setting up…' : 'Make this the main hub'}
+            </button>
+            <button type="button" onClick={() => setShowLocalServer(true)}
+              style={{ width: '100%', padding: '11px', borderRadius: 11, border: '1px solid #E6D9CF', background: '#fff', color: '#5A4F47', fontSize: 13.5, fontWeight: 700, cursor: 'pointer' }}>
+              🔗 Connect to a server manually
+            </button>
+          </div>
+        )}
+        {/* Manual "connect to the hub by IP" — fallback for Wi-Fi that blocks mDNS auto-discovery. */}
+        {mounted && showLocalServer && (typeof window !== 'undefined') && (!!window.electronAPI || !!window.Capacitor) && (
+          <div style={{ margin: '10px 0 0', background: '#F8FAFC', border: '1px solid #E5E7EB', borderRadius: 12, padding: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>HUB / SERVER ADDRESS</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input value={localServerIp} onChange={(e) => { setLocalServerIp(e.target.value); setLsError(''); }} placeholder="dineopen-server.local"
+                spellCheck={false} autoCapitalize="off" onKeyDown={(e) => { if (e.key === 'Enter') connectLocalServer(); }}
+                style={{ flex: 1, padding: '9px 11px', border: '1px solid #d3dae6', borderRadius: 8, fontSize: 14, fontFamily: 'ui-monospace,monospace', outline: 'none' }} />
+              <button onClick={connectLocalServer} disabled={lsConnecting} style={{ padding: '0 16px', borderRadius: 8, border: 'none', background: '#DC4A3D', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                {lsConnecting ? 'Connecting…' : 'Connect'}
+              </button>
+            </div>
+            {lsError && <div style={{ color: '#b91c1c', fontSize: 12.5, marginTop: 6 }}>{lsError}</div>}
+            <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 6 }}>Enter the hub&apos;s IP (shown in the DineOpen Server window), or leave <b>dineopen-server.local</b> to auto-find.</div>
           </div>
         )}
 
