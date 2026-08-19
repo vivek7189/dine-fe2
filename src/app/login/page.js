@@ -2359,94 +2359,13 @@ const Login = () => {
           </button>
         </div>
 
-        {/* Online / Offline connectivity toggle — installed app (Electron/Capacitor) only.
-            Online = authenticate + first-time-provision on the cloud (GCP by default).
-            Offline = route to the on-prem local server on the LAN. */}
-        {mounted && (typeof window !== 'undefined') && (!!window.electronAPI || !!window.Capacitor) && (
-        <div style={{ padding: '10px 0 0' }}>
-          <div style={{ display: 'flex', gap: 6, border: '1px solid #e5e7eb', borderRadius: 12, padding: 4, background: '#f9fafb' }}>
-            <button
-              type="button"
-              onClick={() => { setConnMode('online'); setLsError(''); }}
-              style={{ flex: 1, padding: '10px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 13.5, fontWeight: 700,
-                backgroundColor: connMode === 'online' ? '#4f46e5' : 'transparent', color: connMode === 'online' ? '#fff' : '#6b7280',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
-            >
-              🌐 Online
-            </button>
-            <button
-              type="button"
-              onClick={() => { setConnMode('offline'); setError(''); }}
-              style={{ flex: 1, padding: '10px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 13.5, fontWeight: 700,
-                backgroundColor: connMode === 'offline' ? '#4f46e5' : 'transparent', color: connMode === 'offline' ? '#fff' : '#6b7280',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
-            >
-              🖥️ Offline
-            </button>
+        {/* No connectivity toggle: the server app defaults to GCP (baked at build time), extra
+            tills talk to GCP directly, and a provisioned machine shows the PIN pad before this
+            form ever renders. A no-internet hint during first-time setup is all that's needed. */}
+        {mounted && (typeof window !== 'undefined') && (!!window.electronAPI || !!window.Capacitor) && hasLocalServer && !isOnline && (
+          <div style={{ margin: '8px 0 0', display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 9, padding: '8px 11px' }}>
+            ⚠️ No internet — connect to Wi-Fi to finish first-time setup.
           </div>
-
-          {/* ── ONLINE panel ── */}
-          {connMode === 'online' && (
-            <div style={{ marginTop: 10 }}>
-              {!isOnline ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 9, padding: '9px 12px' }}>
-                  ⚠️ No internet connection. Connect to Wi-Fi to log in online, or switch to <b>Offline</b>.
-                </div>
-              ) : (
-                <div style={{ fontSize: 12.5, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  <span>☁️ First-time setup runs on the cloud, then this device works offline.</span>
-                  <button type="button" onClick={() => setShowCloudEdit((v) => !v)} style={{ background: 'transparent', border: 'none', color: '#4f46e5', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, textDecoration: 'underline' }}>
-                    {showCloudEdit ? 'Hide' : 'Change server'}
-                  </button>
-                </div>
-              )}
-              {showCloudEdit && (
-                <div style={{ marginTop: 8, background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>CLOUD SERVER</div>
-                  <input
-                    value={cloudUrl}
-                    onChange={(e) => setCloudUrl(e.target.value)}
-                    placeholder={GCP_CLOUD_URL}
-                    spellCheck={false} autoCapitalize="off" autoCorrect="off"
-                    style={{ width: '100%', padding: '9px 11px', border: '1px solid #d3dae6', borderRadius: 8, fontSize: 13, fontFamily: 'ui-monospace, monospace', outline: 'none' }}
-                  />
-                  <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 6 }}>Leave as the default (GCP) unless told otherwise. Login + setup happen here.</div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── OFFLINE panel (on-prem local server on the LAN) ── */}
-          {connMode === 'offline' && (
-            <div style={{ marginTop: 10 }}>
-              {lsConnected ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#15803d', background: '#e7f6ec', border: '1px solid #cdeBD6', borderRadius: 9, padding: '8px 12px' }}>
-                  <span>🖥️ Connected to local server{localServerIp ? ` · ${localServerIp}` : ''}. Log in below.</span>
-                  <button onClick={() => { setLsConnected(false); setShowLocalServer(true); }} style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: '#0f766e', textDecoration: 'underline', cursor: 'pointer', fontSize: 12 }}>Change</button>
-                </div>
-              ) : (
-                <div style={{ background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: '#475569', marginBottom: 6 }}>SERVER ADDRESS</div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <input
-                      value={localServerIp}
-                      onChange={(e) => { setLocalServerIp(e.target.value); setLsError(''); }}
-                      placeholder="dineopen-server.local"
-                      spellCheck={false} autoCapitalize="off"
-                      onKeyDown={(e) => { if (e.key === 'Enter') connectLocalServer(); }}
-                      style={{ flex: 1, padding: '9px 11px', border: '1px solid #d3dae6', borderRadius: 8, fontSize: 14, fontFamily: 'ui-monospace, monospace', outline: 'none' }}
-                    />
-                    <button onClick={connectLocalServer} disabled={lsConnecting} style={{ padding: '0 16px', borderRadius: 8, border: 'none', background: '#4f46e5', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                      {lsConnecting ? 'Connecting…' : 'Connect'}
-                    </button>
-                  </div>
-                  {lsError && <div style={{ color: '#b91c1c', fontSize: 12.5, marginTop: 6 }}>{lsError}</div>}
-                  <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 6 }}>Leave as <b>dineopen-server.local</b> — it finds your server automatically. Or type the IP shown in the DineOpen Server window.</div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
         )}
 
         {/* Login Form */}

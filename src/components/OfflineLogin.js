@@ -26,6 +26,26 @@ export default function OfflineLogin({ onOwnerLogin }) {
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [online, setOnline] = useState(true);
+
+  // Track connectivity so we can steer the owner to their PIN (which works offline) when
+  // there's no internet — online owner login / first-time setup needs a connection.
+  useEffect(() => {
+    const sync = () => setOnline(typeof navigator === 'undefined' ? true : navigator.onLine !== false);
+    sync();
+    window.addEventListener('online', sync);
+    window.addEventListener('offline', sync);
+    return () => { window.removeEventListener('online', sync); window.removeEventListener('offline', sync); };
+  }, []);
+
+  // "Owner login / Set up" needs the cloud. Offline → keep them on the PIN pad (MPIN works offline).
+  const handleOwnerLogin = useCallback(() => {
+    if (!online) {
+      setError('No internet — online owner login isn’t available here. Log in with your PIN below (it works offline).');
+      return;
+    }
+    onOwnerLogin?.();
+  }, [online, onOwnerLogin]);
 
   useEffect(() => {
     let alive = true;
@@ -85,7 +105,7 @@ export default function OfflineLogin({ onOwnerLogin }) {
             <div style={S.brand}>DineOpen</div>
             <div style={S.restName}>{restaurant?.name || 'Restaurant'}</div>
           </div>
-          <div style={S.offlinePill}>● Offline ready</div>
+          <div style={{ ...S.offlinePill, ...(online ? {} : { color: '#B45309', background: '#FEF3E2' }) }}>{online ? '● Online' : '● Offline'}</div>
         </div>
 
         {!pinView && (
@@ -114,7 +134,7 @@ export default function OfflineLogin({ onOwnerLogin }) {
                 ))}
               </div>
             )}
-            <button style={S.linkBtn} onClick={onOwnerLogin}>Owner login / Set up →</button>
+            <button style={S.linkBtn} onClick={handleOwnerLogin}>Owner login / Set up →</button>
           </div>
         )}
 
@@ -133,7 +153,7 @@ export default function OfflineLogin({ onOwnerLogin }) {
               <div style={S.emptyBox}>
                 <div style={{ fontWeight: 700, marginBottom: 4 }}>No PIN set for {selected.name}</div>
                 <div style={S.muted}>The owner can set a PIN from Admin → Staff (online), then this tile works offline.</div>
-                <button style={{ ...S.linkBtn, marginTop: 10 }} onClick={onOwnerLogin}>Owner login →</button>
+                <button style={{ ...S.linkBtn, marginTop: 10 }} onClick={handleOwnerLogin}>Owner login →</button>
               </div>
             ) : (
               <>

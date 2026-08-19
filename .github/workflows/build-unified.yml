@@ -45,7 +45,10 @@ on:
           - both         # .exe + .dmg
 
 env:
-  NEXT_PUBLIC_API_URL: https://dine-be2-phi.vercel.app
+  # The local-server app defaults its cloud to the always-on GCP VM (same Cloud SQL Postgres
+  # as Cloud Run, no cold starts). Baked at build time so first-time setup + extra tills hit
+  # GCP directly, before any local server is running.
+  NEXT_PUBLIC_API_URL: https://34-93-129-104.sslip.io
   # Backend to bundle (POS UI still hits the local fork at runtime; this is build-time only).
   BACKEND_REPO: vivek7189/dine-be2
   BACKEND_REF: pg-full-migration
