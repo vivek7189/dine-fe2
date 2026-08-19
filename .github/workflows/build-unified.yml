@@ -131,7 +131,11 @@ jobs:
 
       - name: Build Next.js static export for Electron
         working-directory: frontend
-        run: node scripts/build-electron.js
+        # Write .env.production.local (higher Next.js precedence than the tracked .env.production,
+        # which otherwise wins) so the server app bakes the GCP backend from the workflow env.
+        run: |
+          printf 'NEXT_PUBLIC_API_URL=%s\nNEXT_PUBLIC_API_URL2=%s\n' "$NEXT_PUBLIC_API_URL" "$NEXT_PUBLIC_API_URL" > .env.production.local
+          node scripts/build-electron.js
 
       - name: Build Windows unified installer (x64)
         working-directory: frontend
@@ -219,7 +223,11 @@ jobs:
 
       - name: Build Next.js static export for Electron
         working-directory: frontend
-        run: node scripts/build-electron.js
+        # Write .env.production.local (higher Next.js precedence than the tracked .env.production,
+        # which otherwise wins) so the server app bakes the GCP backend from the workflow env.
+        run: |
+          printf 'NEXT_PUBLIC_API_URL=%s\nNEXT_PUBLIC_API_URL2=%s\n' "$NEXT_PUBLIC_API_URL" "$NEXT_PUBLIC_API_URL" > .env.production.local
+          node scripts/build-electron.js
 
       - name: Build macOS unified app (signed + notarized)
         working-directory: frontend
