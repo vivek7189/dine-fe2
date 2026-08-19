@@ -14,7 +14,7 @@
  */
 import { useEffect, useRef } from 'react';
 import apiClient from '../lib/api';
-import { getLocalServerUrl } from '../lib/localServer';
+import { getLocalServerUrl, isServerApp } from '../lib/localServer';
 
 const LOOPBACK = 'http://127.0.0.1:3003';
 
@@ -34,7 +34,7 @@ export default function OfflineFallback() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const isInstalledApp = !!window.electronAPI || !!window.Capacitor;
-    if (!isInstalledApp) return;
+    if (!isInstalledApp || !isServerApp()) return;
 
     const onOffline = async () => {
       if (switching.current) return;

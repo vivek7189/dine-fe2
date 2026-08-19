@@ -54,6 +54,15 @@ export function isLocalServerMode() {
 }
 
 /**
+ * True ONLY in the offline/LAN "server" Electron app (build-unified.yml bakes
+ * NEXT_PUBLIC_APP_KIND=server). The cloud Electron app + web leave it unset. All LAN / hub /
+ * Online-LAN-toggle / offline-sync UI is gated on this so it never appears in the cloud build.
+ */
+export function isServerApp() {
+  return process.env.NEXT_PUBLIC_APP_KIND === 'server';
+}
+
+/**
  * If the on-prem server answers on this machine's loopback (127.0.0.1:3003), then the
  * server is CO-LOCATED with this POS — prefer loopback. Loopback keeps working even with
  * Wi-Fi/LAN OFF (true offline), whereas a stored LAN-IP or `dineopen-server.local` name

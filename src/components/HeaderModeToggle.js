@@ -13,7 +13,7 @@
  */
 import { useEffect, useState, useCallback } from 'react';
 import apiClient from '../lib/api';
-import { getLocalServerUrl } from '../lib/localServer';
+import { getLocalServerUrl, isServerApp } from '../lib/localServer';
 
 const LOOPBACK = 'http://127.0.0.1:3003';
 // Cloud target — matches the baked default; falls back to whatever cloud the app already uses.
@@ -69,7 +69,7 @@ export default function HeaderModeToggle() {
 
   const isInstalledApp = typeof window !== 'undefined' && (!!window.electronAPI || !!window.Capacitor);
   const canSwitch = ['owner', 'admin'].includes(role) || allowed.includes(role);
-  if (!mounted || !isInstalledApp || !canSwitch) return null;
+  if (!mounted || !isInstalledApp || !isServerApp() || !canSwitch) return null;
 
   const mode = onLocal ? 'local' : 'online';
 

@@ -14,7 +14,7 @@
  */
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getLocalServerUrl } from '../lib/localServer';
+import { getLocalServerUrl, isServerApp } from '../lib/localServer';
 
 export default function ModePill() {
   const router = useRouter();
@@ -39,7 +39,7 @@ export default function ModePill() {
 
   if (!mounted) return null;
   const isInstalledApp = typeof window !== 'undefined' && (!!window.electronAPI || !!window.Capacitor);
-  if (!isInstalledApp) return null; // plain web never shows a mode pill
+  if (!isInstalledApp || !isServerApp()) return null; // only the offline/LAN server app
   // Owner/admin (and any admin-allowed roles) get the interactive top-right toggle instead —
   // don't also show this read-only pill for them.
   try {

@@ -49,6 +49,9 @@ env:
   # as Cloud Run, no cold starts). Baked at build time so first-time setup + extra tills hit
   # GCP directly, before any local server is running.
   NEXT_PUBLIC_API_URL: https://34-93-129-104.sslip.io
+  # Marks this as the OFFLINE/LAN "server" app (vs the cloud Electron app). LAN/hub/mode-toggle
+  # and sync UI are gated on this so they never show in the cloud build.
+  NEXT_PUBLIC_APP_KIND: server
   # Backend to bundle (POS UI still hits the local fork at runtime; this is build-time only).
   BACKEND_REPO: vivek7189/dine-be2
   BACKEND_REF: pg-full-migration
@@ -134,7 +137,7 @@ jobs:
         # Write .env.production.local (higher Next.js precedence than the tracked .env.production,
         # which otherwise wins) so the server app bakes the GCP backend from the workflow env.
         run: |
-          printf 'NEXT_PUBLIC_API_URL=%s\nNEXT_PUBLIC_API_URL2=%s\n' "$NEXT_PUBLIC_API_URL" "$NEXT_PUBLIC_API_URL" > .env.production.local
+          printf 'NEXT_PUBLIC_API_URL=%s\nNEXT_PUBLIC_API_URL2=%s\nNEXT_PUBLIC_APP_KIND=%s\n' "$NEXT_PUBLIC_API_URL" "$NEXT_PUBLIC_API_URL" "$NEXT_PUBLIC_APP_KIND" > .env.production.local
           node scripts/build-electron.js
 
       - name: Build Windows unified installer (x64)
@@ -226,7 +229,7 @@ jobs:
         # Write .env.production.local (higher Next.js precedence than the tracked .env.production,
         # which otherwise wins) so the server app bakes the GCP backend from the workflow env.
         run: |
-          printf 'NEXT_PUBLIC_API_URL=%s\nNEXT_PUBLIC_API_URL2=%s\n' "$NEXT_PUBLIC_API_URL" "$NEXT_PUBLIC_API_URL" > .env.production.local
+          printf 'NEXT_PUBLIC_API_URL=%s\nNEXT_PUBLIC_API_URL2=%s\nNEXT_PUBLIC_APP_KIND=%s\n' "$NEXT_PUBLIC_API_URL" "$NEXT_PUBLIC_API_URL" "$NEXT_PUBLIC_APP_KIND" > .env.production.local
           node scripts/build-electron.js
 
       - name: Build macOS unified app (signed + notarized)
