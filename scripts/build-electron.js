@@ -9,7 +9,7 @@ const ELECTRON_CONFIG = path.join(ROOT, 'next.config.electron.mjs');
 const BACKUP_CONFIG = path.join(ROOT, 'next.config.mjs.backup');
 const TEMP_DIR = path.join(ROOT, '.electron-temp');
 
-const KEEP_ROUTES = new Set(['(dashboard)', 'login', 'local-login']);
+const KEEP_ROUTES = new Set(['(dashboard)', 'login', 'local-login', 'onboarding']);
 const ROOT_FILES = new Set(['layout.js', 'globals.css', 'not-found.js', 'favicon.ico', 'page.js', 'HomePageClient.js', 'page-metadata.js']);
 
 // Electron redirect page — replaces the website homepage so Electron opens /login

@@ -17,6 +17,8 @@ import useRealtimeConnection from '../../hooks/useRealtimeConnection';
 import { useOrderNotifications } from '../../hooks/useOrderNotifications';
 import PrintEventToast from '../../components/PrintEventToast';
 import SyncStatus from '../../components/SyncStatus';
+import ModePill from '../../components/ModePill';
+import OfflineFallback from '../../components/OfflineFallback';
 import { isWeb, isTauri, isElectron } from '../../utils/platform';
 import { isAutoUpdateEnabled, checkForUpdates, restartApp } from '../../utils/autoUpdater';
 import apiClient from '../../lib/api';
@@ -605,6 +607,11 @@ function DashboardLayoutContent({ children }) {
                 <FaSyncAlt size={13} />
               </button>
             )}
+
+            {/* Header mode indicator: Local server (LAN) vs Cloud + internet dot */}
+            <ModePill />
+            {/* LAN-first resilience: if on Internet mode and it drops, fall back to local server */}
+            <OfflineFallback />
 
             {/* DineAI Floating Button */}
             <DineAIButton />

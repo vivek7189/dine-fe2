@@ -379,6 +379,7 @@ const Login = () => {
   const [isOnline, setIsOnline] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [showCloudEdit, setShowCloudEdit] = useState(false);
+  const [modeChosen, setModeChosen] = useState(false); // true once the user taps the Local/Internet toggle
   // True only when THIS machine is running a local server (embedded Postgres / on-prem).
   // We only ever re-point the cloud backend to GCP in that offline context — a normal
   // desktop/web app keeps its default backend so we never reroute regular users.
@@ -483,16 +484,26 @@ const Login = () => {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    // Only ever re-point the cloud backend on an on-prem server machine. Normal desktop/web
-    // apps keep their default backend — we never reroute regular users to GCP.
-    if (!hasLocalServer) return;
+    // Apply routing ONLY when the user explicitly picks a mode on the toggle (modeChosen) —
+    // never on mount, so normal desktop/web apps keep their default backend untouched.
+    if (!modeChosen) return;
     if (connMode === 'online') {
-      // Point cloud calls at the chosen backend (GCP) and drop any local-server pin so the
-      // owner login authenticates + provisions on the cloud.
+      // Internet → route cloud calls at GCP; drop any local-server pin.
       try { if (getLocalServerUrl()) apiClient.setLocalServer(null); } catch (_) {}
       try { apiClient.setCloudBackend((cloudUrl || '').trim() || GCP_CLOUD_URL); } catch (_) {}
+    } else {
+      // Local (LAN) → pin the co-located server if it's up (auto-connect handles LAN discovery).
+      (async () => {
+        try {
+          if (getLocalServerUrl()) return; // already on a local server
+          const LB = 'http://127.0.0.1:3003';
+          const ac = new AbortController(); const t = setTimeout(() => ac.abort(), 2000);
+          const r = await fetch(`${LB}/api/health`, { signal: ac.signal }); clearTimeout(t);
+          if (r.ok) apiClient.setLocalServer(LB);
+        } catch (_) {}
+      })();
     }
-  }, [connMode, cloudUrl, hasLocalServer]);
+  }, [connMode, cloudUrl, modeChosen]);
 
   const connectLocalServer = async () => {
     let host = String(localServerIp || '').trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '');
@@ -651,6 +662,11 @@ const Login = () => {
 
             apiClient.setToken(data.token);
             if (data.user) apiClient.setUser(data.user);
+            // Apply local-server vs cloud routing (same as the direct OTP/Google paths). On a
+            // provisioned local-server terminal, this routes the owner of the bound restaurant to
+            // the local DB, and any OTHER owner to the cloud — so they see their own restaurant
+            // instead of the local server's "No restaurant found".
+            try { await activateLocalServer(data.token, data.user); } catch (_) {}
             triggerDashboardPrefetch();
 
             // Fetch restaurants for the user
@@ -787,6 +803,25 @@ const Login = () => {
           }
           return;
         }
+
+        // Local-server app: a PROVISIONED terminal always lands on the PIN pad (staff rotate;
+        // no stale-session auto-login — this is what prevents a wrong-restaurant owner session
+        // from silently reopening). Pin to the local server and let OfflineLogin render.
+        try {
+          const isInstalledApp = !!window.electronAPI || !!window.Capacitor;
+          if (isInstalledApp) {
+            const ac = new AbortController();
+            const tt = setTimeout(() => ac.abort(), 1500);
+            const pr = await fetch('http://127.0.0.1:3003/api/provision/status', { signal: ac.signal });
+            clearTimeout(tt);
+            const pj = pr.ok ? await pr.json() : null;
+            if (pj?.provisioned) {
+              try { if (getLocalServerUrl() !== 'http://127.0.0.1:3003') apiClient.setLocalServer('http://127.0.0.1:3003'); } catch (_) {}
+              if (isMounted) setIsCheckingAuth(false);
+              return; // show the PIN pad, don't auto-redirect
+            }
+          }
+        } catch (_) { /* not a local-server terminal — fall through to normal flow */ }
 
         // We have local auth - validate token with backend
         console.log('🔍 Validating token with backend...');
@@ -2359,12 +2394,33 @@ const Login = () => {
           </button>
         </div>
 
-        {/* No connectivity toggle: the server app defaults to GCP (baked at build time), extra
-            tills talk to GCP directly, and a provisioned machine shows the PIN pad before this
-            form ever renders. A no-internet hint during first-time setup is all that's needed. */}
-        {mounted && (typeof window !== 'undefined') && (!!window.electronAPI || !!window.Capacitor) && hasLocalServer && !isOnline && (
-          <div style={{ margin: '8px 0 0', display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 9, padding: '8px 11px' }}>
-            ⚠️ No internet — connect to Wi-Fi to finish first-time setup.
+        {/* Connection mode — installed app only. Default is Local (LAN): the till talks to the
+            on-prem server over your restaurant's network and works with the internet OFF. Pick
+            Internet only for first-time cloud setup or to run against the cloud directly. */}
+        {mounted && (typeof window !== 'undefined') && (!!window.electronAPI || !!window.Capacitor) && (
+          <div style={{ margin: '10px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 11.5, color: '#8a7d74', flex: 1, minWidth: 150 }}>
+              {connMode === 'offline'
+                ? '🖥️ Local (LAN) — works on your network, no internet needed.'
+                : '🌐 Internet — connects to the cloud (needs internet).'}
+            </span>
+            <div style={{ display: 'inline-flex', gap: 3, border: '1px solid #f0dcd3', borderRadius: 999, padding: 3, background: '#faf3ee', flexShrink: 0 }}>
+              <button type="button" onClick={() => { setModeChosen(true); setConnMode('offline'); setError(''); }}
+                style={{ padding: '4px 12px', borderRadius: 999, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700,
+                  backgroundColor: connMode === 'offline' ? '#e53e3e' : 'transparent', color: connMode === 'offline' ? '#fff' : '#8a7d74' }}>
+                Local
+              </button>
+              <button type="button" onClick={() => { setModeChosen(true); setConnMode('online'); setLsError(''); }}
+                style={{ padding: '4px 12px', borderRadius: 999, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700,
+                  backgroundColor: connMode === 'online' ? '#e53e3e' : 'transparent', color: connMode === 'online' ? '#fff' : '#8a7d74' }}>
+                Internet
+              </button>
+            </div>
+          </div>
+        )}
+        {mounted && connMode === 'online' && !isOnline && (typeof window !== 'undefined') && (!!window.electronAPI || !!window.Capacitor) && (
+          <div style={{ margin: '8px 0 0', fontSize: 12, color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 9, padding: '8px 11px' }}>
+            ⚠️ No internet. Switch to <b>Local</b> to keep working on your network.
           </div>
         )}
 
