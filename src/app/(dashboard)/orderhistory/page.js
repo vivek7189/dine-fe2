@@ -345,6 +345,7 @@ const OrderHistory = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalOrders, setTotalOrders] = useState(0);
   const [limit] = useState(isCompactView ? 20 : 10);
+  const [exporting, setExporting] = useState(false);
 
   const toggleOrderExpansion = (orderId) => {
     const newExpanded = new Set(expandedOrders);
@@ -2932,12 +2933,50 @@ const OrderHistory = () => {
                 <span className="text-gray-400">{t('orderHistory.orders')}</span>
               </div>
               <button
+                disabled={exporting}
                 onClick={async () => {
+                  if (exporting) return;
+                  setExporting(true);
                   try {
                     const XLSX = await import('xlsx');
+                    // The on-screen `orders` is only the current page (limit 10/20). For the export
+                    // we re-fetch ALL orders that match the active filters/date range so the Excel
+                    // contains every order in the report — not just the visible page.
+                    let exportOrders = [];
+                    try {
+                      const dateRange = getDateRange();
+                      const exportFilters = {
+                        page: 1,
+                        limit: 100000,
+                        status: selectedStatus !== 'all' ? selectedStatus : undefined,
+                        orderType: selectedOrderType !== 'all' && selectedOrderType !== 'scheduled' ? selectedOrderType : undefined,
+                        ...(selectedOrderType === 'scheduled' ? { isScheduled: 'true' } : {}),
+                        paymentMethod: selectedPaymentMethod !== 'all' ? selectedPaymentMethod : undefined,
+                        paymentStatus: selectedPaymentStatus !== 'all' ? selectedPaymentStatus : undefined,
+                        myOrdersOnly: myOrdersOnly ? user?.id : undefined,
+                        search: searchTerm.trim() || undefined,
+                        ...dateRange
+                      };
+                      const resp = await apiClient.getOrders(restaurantId, exportFilters);
+                      exportOrders = resp?.orders || [];
+                    } catch (fetchErr) {
+                      console.error('Export: full fetch failed, falling back to loaded page:', fetchErr);
+                      exportOrders = orders || [];
+                    }
+                    // Newest first, robust to the various createdAt shapes.
+                    const toDate = (o) => {
+                      const ca = o?.createdAt ?? o?.date;
+                      if (!ca) return null;
+                      const d = ca.toDate ? ca.toDate() : (ca._seconds != null ? new Date(ca._seconds * 1000) : new Date(ca));
+                      return (d && !isNaN(d.getTime())) ? d : null;
+                    };
+                    exportOrders = [...exportOrders].sort((a, b) => (toDate(b)?.getTime() || 0) - (toDate(a)?.getTime() || 0));
                     const rows = [['Order #', 'Date', 'Time', 'Type', 'Table', 'Customer', 'Items', 'Subtotal', 'Tax', 'Discount', 'Total', 'Payment', 'Status']];
-                    (orders || []).forEach(o => {
-                      const d = o.createdAt ? new Date(o.createdAt) : null;
+                    exportOrders.forEach(o => {
+                      // createdAt may be a Firestore Timestamp ({_seconds}/.toDate()), an ISO string,
+                      // or a number — new Date() on the Timestamp object gives "Invalid Date". Parse
+                      // robustly (same as the sort logic above) and never emit "Invalid Date".
+                      const d = toDate(o);
                       rows.push([
                         orderDisplayNumber(o),
                         d ? d.toLocaleDateString('en-IN') : '',
@@ -2959,11 +2998,12 @@ const OrderHistory = () => {
                     XLSX.utils.book_append_sheet(wb, ws, 'Orders');
                     XLSX.writeFile(wb, `order-history-${new Date().toISOString().split('T')[0]}.xlsx`);
                   } catch (err) { console.error('Order export failed:', err); }
+                  finally { setExporting(false); }
                 }}
-                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-green-50 hover:text-green-700 hover:border-green-300 transition-all"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-green-50 hover:text-green-700 hover:border-green-300 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 title="Export orders to Excel"
               >
-                <FaFileExcel className="text-green-600" /> Export
+                <FaFileExcel className="text-green-600" /> {exporting ? 'Exporting…' : 'Export'}
               </button>
               <div className="flex bg-white border border-gray-200 p-0.5 sm:p-1 rounded-lg shadow-sm" title={isCompactView ? t('orderHistory.compactView') : t('orderHistory.detailedView')}>
                 <button

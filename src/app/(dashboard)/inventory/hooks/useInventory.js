@@ -273,7 +273,10 @@ export default function useInventory() {
       setError(null);
       const filters = {};
       if (searchTerm) filters.search = searchTerm;
-      if (selectedCategory !== 'all') filters.category = selectedCategory;
+      // NOTE: category is filtered CLIENT-SIDE (see filteredItems below), not sent to the server.
+      // The server's exact-match `where('category','==',…)` could return nothing on a case/encoding/
+      // collation mismatch — producing "No items found" even when matching items exist. Filtering on
+      // the client (case-insensitive) is robust and inventory lists are small, so this is safe.
       filters.wasteDays = 0; // today's waste only
 
       const results = await Promise.allSettled([
@@ -410,7 +413,8 @@ export default function useInventory() {
     const matchesSearch = item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.supplier?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+    const _normCat = (c) => (c || '').toString().trim().toLowerCase();
+    const matchesCategory = selectedCategory === 'all' || _normCat(item.category) === _normCat(selectedCategory);
     return matchesSearch && matchesCategory;
   });
 
