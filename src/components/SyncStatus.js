@@ -19,7 +19,7 @@ const LABELS = {
 const label = (t) => LABELS[t] || t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 const SHOWN_KEY = 'dineopen_first_sync_shown';
 
-export default function SyncStatus({ inline = false, showPill = true, showOverlay = true } = {}) {
+export default function SyncStatus({ inline = false, showPill = true, showOverlay = true, panel = false } = {}) {
   const [prog, setProg] = useState(null);
   const [dismissed, setDismissed] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -47,7 +47,36 @@ export default function SyncStatus({ inline = false, showPill = true, showOverla
     return () => clearInterval(id);
   }, [poll]);
 
-  if (typeof window === 'undefined' || !isLocalServerMode() || !prog) return null;
+  if (typeof window === 'undefined' || !isLocalServerMode()) return null;
+
+  // ── Embedded panel (for the Local Server page): the full, always-open sync detail in ONE place.
+  if (panel) {
+    const state = !prog ? 'connecting' : !prog.reachable ? 'offline' : prog.running ? 'syncing' : 'synced';
+    const dot = { synced: '#16A34A', syncing: '#DC4A3D', offline: '#C98A2B', connecting: '#9CA3AF' }[state];
+    const text = { synced: 'Synced', syncing: 'Syncing…', offline: 'Offline — will sync when online', connecting: 'Connecting…' }[state];
+    const cats = ((prog && prog.categories) || []).filter((c) => c.rows > 0);
+    return (
+      <div style={S.panel}>
+        <div style={S.panelHead}>
+          <span style={{ ...S.pillDot, background: dot, ...(state === 'syncing' ? { animation: 'dspin 1s linear infinite' } : {}) }} />
+          <span style={S.panelTitle}>Cloud sync</span>
+          <span style={S.panelState}>{text}</span>
+        </div>
+        {cats.length > 0 ? (
+          <div style={S.panelGrid}>
+            {cats.map((c) => (
+              <div key={c.table} style={S.panelCard}><span style={S.panelCardName}>{label(c.table)}</span><b style={S.panelCardNum}>{c.rows}</b></div>
+            ))}
+          </div>
+        ) : <div style={S.catMuted}>{prog ? 'No records yet.' : 'Reading local server…'}</div>}
+        <div style={S.panelTotal}><span>Total records synced</span><b>{(prog && prog.totalSynced) || 0}</b></div>
+        <div style={S.panelNote}>{prog && prog.reachable ? 'Two-way sync active — this hub pushes local changes up and pulls cloud updates down automatically.' : 'Offline — changes are saved locally and will sync when the internet is back.'}</div>
+        <style>{`@keyframes dspin{to{transform:rotate(360deg)}}`}</style>
+      </div>
+    );
+  }
+
+  if (!prog) return null;
 
   const firstSyncDone = prog.firstSyncDone || shownRef.current;
   const showLoader = !firstSyncDone && !dismissed;
@@ -136,4 +165,15 @@ const S = {
   popHead: { fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.06em', color: '#8A7D74', marginBottom: 8 },
   popRow: { display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#2A211C', padding: '3px 0' },
   popNote: { fontSize: 11, color: '#8A7D74', marginTop: 8 },
+  // Embedded panel (Local Server page)
+  panel: { background: '#fff', border: '1px solid #EEE3D2', borderRadius: 16, padding: '16px 18px', fontFamily: 'ui-sans-serif,-apple-system,sans-serif' },
+  panelHead: { display: 'flex', alignItems: 'center', gap: 9, marginBottom: 14 },
+  panelTitle: { fontSize: 15, fontWeight: 800, color: '#2A211C', letterSpacing: '-.01em' },
+  panelState: { marginLeft: 'auto', fontSize: 12.5, fontWeight: 700, color: '#8A7D74' },
+  panelGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))', gap: 8 },
+  panelCard: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: '#F7F1E7', border: '1px solid #EEE3D2', borderRadius: 10, padding: '9px 12px' },
+  panelCardName: { fontSize: 13, fontWeight: 600, color: '#2A211C' },
+  panelCardNum: { fontSize: 13, fontWeight: 800, color: '#5A4F47', fontVariantNumeric: 'tabular-nums' },
+  panelTotal: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 14, fontWeight: 700, color: '#2A211C', borderTop: '1px solid #EEE3D2', marginTop: 12, paddingTop: 12 },
+  panelNote: { fontSize: 12, color: '#8A7D74', marginTop: 8, lineHeight: 1.5 },
 };

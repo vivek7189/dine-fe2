@@ -17,8 +17,7 @@ import useRealtimeConnection from '../../hooks/useRealtimeConnection';
 import { useOrderNotifications } from '../../hooks/useOrderNotifications';
 import PrintEventToast from '../../components/PrintEventToast';
 import SyncStatus from '../../components/SyncStatus';
-import ModePill from '../../components/ModePill';
-import HeaderModeToggle from '../../components/HeaderModeToggle';
+// ModePill (bottom-right) removed; HeaderModeToggle now mounts inline in the dashboard header.
 import OfflineFallback from '../../components/OfflineFallback';
 import { isWeb, isTauri, isElectron } from '../../utils/platform';
 import { isAutoUpdateEnabled, checkForUpdates, restartApp } from '../../utils/autoUpdater';
@@ -609,10 +608,9 @@ function DashboardLayoutContent({ children }) {
               </button>
             )}
 
-            {/* Top-right GLOBAL Online⇄LAN switch — owner/admin (+ allowed roles) only */}
-            <HeaderModeToggle />
-            {/* Bottom-right read-only mode/status pill — for everyone else (hides for switchers) */}
-            <ModePill />
+            {/* The Internet⇄LAN switch now lives INLINE in the dashboard header (next to TABLES),
+                and the detailed sync status lives on the Local Server page — so no floating
+                top-right toggle and no bottom-right pill cluttering the POS screen. */}
             {/* LAN-first resilience: if on Internet mode and it drops, fall back to local server */}
             <OfflineFallback />
 

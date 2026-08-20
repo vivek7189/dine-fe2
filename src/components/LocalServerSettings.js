@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { FaServer, FaWifi, FaCheckCircle, FaTimesCircle, FaSpinner, FaCloud, FaPlug } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import { getLocalServerUrl } from '../lib/localServer';
+import SyncStatus from './SyncStatus';
 
 /**
  * Per-terminal setting: point this device at the on-prem "local server" (the machine
@@ -106,7 +107,8 @@ export default function LocalServerSettings() {
   const isActive = !!saved;
 
   return (
-    <div style={{ maxWidth: 560, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+    <div style={{ maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
       {/* Header + mode badge */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
         <div style={{ width: 40, height: 40, borderRadius: 11, background: isActive ? '#eef2ff' : '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isActive ? '#4f46e5' : '#64748b' }}>
@@ -209,6 +211,10 @@ export default function LocalServerSettings() {
           </button>
         )}
       </div>
+    </div>
+
+      {/* All sync info in ONE place: the live cloud-sync detail for this hub (local-server app). */}
+      <SyncStatus panel />
     </div>
   );
 }

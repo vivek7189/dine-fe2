@@ -19,7 +19,7 @@ const LOOPBACK = 'http://127.0.0.1:3003';
 // Cloud target — matches the baked default; falls back to whatever cloud the app already uses.
 const CLOUD = process.env.NEXT_PUBLIC_API_URL || 'https://34-93-129-104.sslip.io';
 
-export default function HeaderModeToggle() {
+export default function HeaderModeToggle({ inline = false } = {}) {
   const [mounted, setMounted] = useState(false);
   const [role, setRole] = useState('');
   const [allowed, setAllowed] = useState([]);
@@ -75,18 +75,19 @@ export default function HeaderModeToggle() {
 
   return (
     <>
-      <div style={S.wrap}>
-        <span style={S.label}>Mode</span>
+      <div style={inline ? S.wrapInline : S.wrap}>
         <div style={S.seg}>
           <button
             type="button"
             onClick={() => { if (mode !== 'online') setConfirmTo('online'); }}
             style={{ ...S.segBtn, ...(mode === 'online' ? S.segOn : {}) }}
-          >🌐 Online</button>
+            title="Run on the cloud (needs internet)"
+          >🌐 Internet</button>
           <button
             type="button"
             onClick={() => { if (mode !== 'local') setConfirmTo('local'); }}
-            style={{ ...S.segBtn, ...(mode === 'local' ? S.segOn : {}) }}
+            style={{ ...S.segBtn, ...(mode === 'local' ? { ...S.segOn, background: '#16A34A' } : {}) }}
+            title="Run on the on-prem local server (works without internet)"
           >🖥️ LAN</button>
         </div>
         <span style={{ ...S.dot, background: online ? '#16A34A' : '#C98A2B' }} title={`Internet: ${online ? 'online' : 'offline'}`} />
@@ -119,6 +120,8 @@ const S = {
   wrap: { position: 'fixed', top: 10, right: 14, zIndex: 9998, display: 'inline-flex', alignItems: 'center', gap: 8,
     background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(8px)', border: '1px solid #E5E7EB', borderRadius: 999,
     padding: '4px 8px 4px 12px', boxShadow: '0 2px 8px rgba(0,0,0,0.10)', fontFamily: 'ui-sans-serif,-apple-system,sans-serif' },
+  // Inline: flows inside the dashboard header row (no fixed positioning, no title-bar collision).
+  wrapInline: { position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0, fontFamily: 'ui-sans-serif,-apple-system,sans-serif' },
   label: { fontSize: 11, fontWeight: 700, color: '#8A7D74', textTransform: 'uppercase', letterSpacing: '.04em' },
   seg: { display: 'inline-flex', gap: 2, background: '#F1E9DC', borderRadius: 999, padding: 2 },
   segBtn: { padding: '4px 11px', borderRadius: 999, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#8A7D74', background: 'transparent', whiteSpace: 'nowrap' },

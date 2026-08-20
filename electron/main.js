@@ -313,7 +313,22 @@ function logPrintEvent(entry) {
   } catch { /* ignore */ }
 }
 
+// ── Single-instance lock ─────────────────────────────────────────────────────
+// Critical for the local-server build: a second launch (or a relaunch after an unclean quit)
+// must NOT spin up a second embedded Postgres / backend on the same ports (5433/3003) — that
+// deadlocks on EADDRINUSE and never serves. Hold one instance; focus the existing window instead.
+const _gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!_gotSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    const [w] = BrowserWindow.getAllWindows();
+    if (w) { try { if (w.isMinimized()) w.restore(); w.show(); w.focus(); } catch (_) {} }
+  });
+}
+
 app.whenReady().then(() => {
+  if (!_gotSingleInstanceLock) return; // a duplicate instance is already quitting
   // Record the previously-run version for the Admin → Download rollback control.
   // Runs here (not at module load) so the userData dir is guaranteed to exist.
   trackVersionHistory();

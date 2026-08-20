@@ -14,6 +14,7 @@ import EmptyMenuPrompt from '../../../components/EmptyMenuPrompt';
 import MenuItemCard from '../../../components/MenuItemCard';
 import FastBillingBoard from '../../../components/FastBillingBoard';
 import SyncStatus from '../../../components/SyncStatus';
+import HeaderModeToggle from '../../../components/HeaderModeToggle';
 import CategoryButton from '../../../components/CategoryButton';
 import OrderSummary from '../../../components/OrderSummary';
 import GuidedFirstSale from '../../../components/GuidedFirstSale';
@@ -7351,10 +7352,10 @@ function RestaurantPOSContent() {
               {viewMode === 'orders' ? t('dashboard.tables') : t('dashboard.orders')}
             </button>
 
-            {/* Cloud-sync status pill (local-server app only) — inline in the header next to TABLES,
-                so it no longer floats over the top UI. Self-hides on web/normal (no local server).
-                Overlay disabled here (the global layout instance owns the first-run loader). */}
-            <SyncStatus inline showOverlay={false} />
+            {/* Clean Internet ⇄ LAN mode toggle (owner/admin, local-server app only). Replaces the
+                old cloud-sync counts chip — the detailed sync status now lives on the one Local
+                Server page (Settings → Local Server). Self-hides on web / for non-switch roles. */}
+            <HeaderModeToggle inline />
 
             {/* Reset Tables (only in tables view, owner/admin only) */}
             {viewMode === 'tables' && ['owner', 'admin'].includes(JSON.parse(localStorage.getItem('user') || '{}').role) && (
