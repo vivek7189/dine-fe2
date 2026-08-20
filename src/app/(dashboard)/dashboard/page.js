@@ -2719,9 +2719,16 @@ function RestaurantPOSContent() {
 
   // Handler to open customization modal
   const handleItemCustomization = (item) => {
-    // Check if this item is already in the cart with a variant/customization
-    // If so, pre-select those values in the modal
-    const existingCartItem = cart.find(ci => ci.id === item.id && ci.selectedVariant);
+    // Check if this item is already in the cart with a variant/customization.
+    // If so, pre-select those values in the modal (critical for EDIT: reopening an
+    // already-ordered item must re-check its add-ons/variant, else saving silently
+    // drops them → undercharge + wrong KOT). Match a line that has EITHER a variant
+    // OR customizations — add-on-only items have no selectedVariant.
+    const hasSelections = (ci) =>
+      ci.selectedVariant ||
+      (Array.isArray(ci.selectedCustomizations) && ci.selectedCustomizations.length > 0);
+    const existingCartItem =
+      cart.find(ci => ci.id === item.id && hasSelections(ci));
     if (existingCartItem) {
       setCustomizationInitial({
         variant: existingCartItem.selectedVariant || null,

@@ -127,9 +127,14 @@ const ItemCustomizationModal = ({
   // Handle customization toggle
   const handleCustomizationToggle = (customization) => {
     setSelectedCustomizations(prev => {
-      const exists = prev.find(c => c.id === customization.id);
+      // Match by id, falling back to name (kept in sync with the checkbox's
+      // isSelected check) so a pre-selected add-on that lost its id still toggles off.
+      const exists = prev.find(c =>
+        (c.id != null && customization.id != null && c.id === customization.id) ||
+        (c.name != null && c.name === customization.name)
+      );
       if (exists) {
-        return prev.filter(c => c.id !== customization.id);
+        return prev.filter(c => c !== exists);
       }
       return [...prev, customization];
     });
@@ -634,7 +639,12 @@ const ItemCustomizationModal = ({
                 </label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {item.customizations.map((customization, index) => {
-                    const isSelected = selectedCustomizations.some(c => c.id === customization.id);
+                    // Match by id, falling back to name — a reloaded order's stored
+                    // customization may have lost its id, and must still pre-check.
+                    const isSelected = selectedCustomizations.some(c =>
+                      (c.id != null && customization.id != null && c.id === customization.id) ||
+                      (c.name != null && c.name === customization.name)
+                    );
                     return (
                       <button
                         key={customization.id || index}
