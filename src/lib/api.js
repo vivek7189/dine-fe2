@@ -1987,6 +1987,12 @@ class ApiClient {
     return this.request('/api/staff/me/pin', { method: 'PATCH', body: { pin, enabled } });
   }
 
+  // Whether the current user has an APPROVAL PIN set (unlock terminal + approve completed-order
+  // edits) — distinct from getPinStatus(), which reports the LOGIN PIN.
+  async getApprovalPinStatus() {
+    return this.request('/api/staff/me/pin/status');
+  }
+
   async addStaff(restaurantId, staffData) {
     return this.request(`/api/staff/${restaurantId}`, {
       method: 'POST',

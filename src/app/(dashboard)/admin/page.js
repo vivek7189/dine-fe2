@@ -5725,7 +5725,8 @@ const Admin = () => {
   const [bookingSettingsSaving, setBookingSettingsSaving] = useState(false);
 
   // PIN settings state
-  const [pinStatus, setPinStatus] = useState({ pinEnabled: false, pinUpdatedAt: null });
+  const [pinStatus, setPinStatus] = useState({ pinEnabled: false, pinUpdatedAt: null }); // LOGIN PIN
+  const [approvalPinStatus, setApprovalPinStatus] = useState({ pinEnabled: false }); // APPROVAL PIN (unlock + edits)
   const [pinFormMode, setPinFormMode] = useState('idle'); // 'idle', 'set', 'change', 'disable'
   const [pinFormData, setPinFormData] = useState({ currentPin: '', newPin: '', confirmPin: '' });
   const [pinSaving, setPinSaving] = useState(false);
@@ -5738,6 +5739,10 @@ const Admin = () => {
     } catch (err) {
       console.error('Failed to load PIN status:', err);
     }
+    try {
+      const ap = await apiClient.getApprovalPinStatus();
+      setApprovalPinStatus({ pinEnabled: !!ap.pinEnabled });
+    } catch (err) { /* approval-pin status is best-effort */ }
   };
 
   useEffect(() => {
@@ -12450,30 +12455,31 @@ const Admin = () => {
                 </div>
               </div>
 
-              {/* PIN Input (shown when PIN requirement is enabled) */}
+              {/* PIN Input (shown when PIN requirement is enabled). The shared PIN is stored HASHED,
+                  so we can't show the current value — show a "set" chip + let them enter a new one.
+                  Note: any owner/admin/manager can also approve with their own Approval PIN. */}
               {posSettings.requirePinForCompletedOrderEdit && (
                 <div style={{ marginLeft: '38px', marginBottom: '12px' }}>
-                  <input
-                    type="text"
-                    placeholder="Enter 4-6 digit PIN"
-                    value={posSettings.completedOrderEditPin || ''}
-                    onChange={(e) => setPosSettings(prev => ({ ...prev, completedOrderEditPin: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
-                    maxLength={6}
-                    style={{
-                      width: '180px',
-                      padding: '8px 12px',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '16px',
-                      fontFamily: 'monospace',
-                      letterSpacing: '4px',
-                      textAlign: 'center',
-                      backgroundColor: '#fafafa'
-                    }}
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    {(posSettings.completedOrderEditPinHash || posSettings.completedOrderEditPin) && (
+                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #bbf7d0', borderRadius: '999px', padding: '3px 10px' }}>✓ Shared PIN set</span>
+                    )}
+                    <input
+                      type="text"
+                      placeholder={(posSettings.completedOrderEditPinHash || posSettings.completedOrderEditPin) ? 'New PIN (blank = keep)' : 'Enter 4-6 digit PIN'}
+                      value={posSettings.completedOrderEditPin || ''}
+                      onChange={(e) => setPosSettings(prev => ({ ...prev, completedOrderEditPin: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+                      maxLength={6}
+                      style={{
+                        width: '190px', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: '8px',
+                        fontSize: '16px', fontFamily: 'monospace', letterSpacing: '4px', textAlign: 'center', backgroundColor: '#fafafa'
+                      }}
+                    />
+                  </div>
                   {posSettings.completedOrderEditPin && posSettings.completedOrderEditPin.length < 4 && (
                     <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px' }}>PIN must be at least 4 digits</div>
                   )}
+                  <div style={{ fontSize: '10.5px', color: '#9ca3af', marginTop: '4px' }}>Shared PIN for completed-order edits (stored encrypted). An owner/admin/manager can also approve with their own Approval PIN.</div>
                 </div>
               )}
             </div>
@@ -12549,26 +12555,28 @@ const Admin = () => {
                     </div>
                     <div style={{ fontSize: '10.5px', color: '#9ca3af', marginTop: '5px' }}>Settings (Admin) is always reachable. Un-whitelisted pages still lock, but the screen is a see-through blur — the live view is visible; only actions need the PIN.</div>
                   </div>
-                  {/* Owner/admin's OWN unlock PIN — they aren't in the Staff list, so set it here */}
+                  {/* Owner/admin's OWN Approval PIN — they aren't in the Staff list, so set it here.
+                      This is the APPROVAL PIN (unlock terminal + authorize completed-order edits),
+                      separate from the Login PIN (below) used to log into the app without OTP. */}
                   <div style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '10px', marginTop: '2px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '12px', color: '#374151', fontWeight: 700 }}>🔑 Your unlock PIN:</span>
-                      {pinStatus.pinEnabled && (
+                      <span style={{ fontSize: '12px', color: '#374151', fontWeight: 700 }}>🔒 Your Approval PIN:</span>
+                      {approvalPinStatus.pinEnabled && (
                         <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #bbf7d0', borderRadius: '999px', padding: '3px 10px' }}>✓ PIN set</span>
                       )}
                       <input type="text" inputMode="numeric" value={myTerminalPin} maxLength={8}
                         onChange={(e) => setMyTerminalPin(e.target.value.replace(/\D/g, '').slice(0, 8))}
-                        placeholder={pinStatus.pinEnabled ? 'New PIN' : '4–8 digits'}
+                        placeholder={approvalPinStatus.pinEnabled ? 'New PIN' : '4–8 digits'}
                         style={{ width: '120px', padding: '6px 10px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', letterSpacing: '3px', textAlign: 'center' }} />
                       <button onClick={saveMyTerminalPin} disabled={savingMyPin || myTerminalPin.length < 4}
                         style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: (savingMyPin || myTerminalPin.length < 4) ? 'not-allowed' : 'pointer', color: '#fff', background: (savingMyPin || myTerminalPin.length < 4) ? '#c4b5fd' : '#7c3aed', fontSize: '12.5px', fontWeight: 700 }}>
-                        {savingMyPin ? 'Saving…' : (pinStatus.pinEnabled ? 'Update PIN' : 'Set my PIN')}
+                        {savingMyPin ? 'Saving…' : (approvalPinStatus.pinEnabled ? 'Update PIN' : 'Set Approval PIN')}
                       </button>
                     </div>
                     <div style={{ fontSize: '10.5px', color: '#9ca3af', marginTop: '4px' }}>
-                      {pinStatus.pinEnabled
-                        ? 'Your unlock PIN is set. To change it, type a new one above and press Update PIN. (This is your personal PIN — each owner/admin/staff has their own.)'
-                        : 'You (owner/admin) need a PIN too — set it here so you can unlock the terminal and authorize completed-order edits. Set this before you rely on the lock.'}
+                      {approvalPinStatus.pinEnabled
+                        ? 'Your Approval PIN is set — use it to unlock the terminal and authorize completed-order edits. Type a new one above and press Update PIN to change it. (Separate from your Login PIN.)'
+                        : 'This is your Approval PIN — used to unlock the terminal and authorize completed-order edits (not for logging in). Each owner/admin/staff has their own. Set it before you rely on the lock.'}
                     </div>
                   </div>
                   <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>Each staff gets a PIN when created (shown once). Change or disable PINs from the Staff section (🔒 button on each staff).</div>
@@ -13086,7 +13094,7 @@ const Admin = () => {
             {!pinStatus.pinEnabled && pinFormMode === 'idle' && (
               <div>
                 <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px 0', lineHeight: '1.5' }}>
-                  Set a 5-10 digit PIN as a backup login method. When OTP doesn&apos;t arrive, you can log in using your phone number or email along with this PIN.
+                  Set a 5-10 digit PIN as a backup login method. When OTP doesn&apos;t arrive, you can log in using your phone number or email along with this PIN. <b>This is separate from your Approval PIN</b> (in POS Settings), which unlocks the terminal and authorizes completed-order edits.
                 </p>
                 <button
                   onClick={() => { setPinFormMode('set'); setPinMessage({ type: '', text: '' }); setPinFormData({ currentPin: '', newPin: '', confirmPin: '' }); }}
