@@ -2245,6 +2245,26 @@ const OrderSummary = ({
         invoiceData.cashbackOfferName = cb.offerName;
       }
     } catch (_) { /* display-only — never block billing */ }
+
+    // MONEY SAFETY NET: the printed bill's subtotal/total must never fall BELOW the sum of the
+    // printed line items. Each line's `total` (or price*qty) already includes its variant +
+    // customization/add-on price exactly once. A stale/base-only aggregate (e.g. getTotalAmount()
+    // that dropped a customization from the cart at print time) could carry a lower subtotal here
+    // and under-print an add-on (line shows 15, subtotal used base 12). Reconcile UPWARD to the
+    // line items only — never inflate a correct or legitimately-discounted bill (a discount reduces
+    // the grand total, not this pre-discount subtotal, so lineSub == subtotal → no change). Uses
+    // item.total, so it never re-adds selectedCustomizations (no double-count).
+    try {
+      const lineSub = Math.round((invoiceData.items || []).reduce(
+        (s, it) => s + (Number(it.total) || (Number(it.price) || 0) * (Number(it.quantity) || 1)), 0) * 100) / 100;
+      const curSub = Number(invoiceData.subtotal) || 0;
+      if (lineSub > curSub + 0.01) {
+        const delta = Math.round((lineSub - curSub) * 100) / 100;
+        console.warn(`⚠️ Bill subtotal (${curSub}) < line items (${lineSub}) — dropped add-on; reconciled +${delta}`);
+        invoiceData.subtotal = lineSub;
+        if (invoiceData.grandTotal != null) invoiceData.grandTotal = Math.round(((Number(invoiceData.grandTotal) || 0) + delta) * 100) / 100;
+      }
+    } catch (_) { /* never block billing */ }
     return invoiceData;
   };
 
@@ -2285,14 +2305,20 @@ const OrderSummary = ({
         orderId,
         orderNumber: orderId?.slice(-4)?.toUpperCase() || '',
         restaurantName: restaurantName || '',
-        items: (cart || []).map(item => ({
-          name: item.name,
-          quantity: item.quantity || 1,
-          price: item.price || 0,
-          total: (item.price || 0) * (item.quantity || 1),
-          variant: item.selectedVariant?.name,
-          customizations: item.selectedCustomizations,
-        })),
+        items: (cart || []).map(item => {
+          // Effective unit price = base + selectedCustomizations, added exactly once by
+          // getItemUnitPrice. item.price alone is the BASE menu price, so using it here would
+          // drop the add-on from the OFFLINE bill line + subtotal (line 15 vs base 12).
+          const unit = getItemUnitPrice(item);
+          return {
+            name: item.name,
+            quantity: item.quantity || 1,
+            price: unit,
+            total: Math.round(unit * (item.quantity || 1) * 100) / 100,
+            variant: item.selectedVariant?.name,
+            customizations: item.selectedCustomizations,
+          };
+        }),
         tableNumber: tableNumber || selectedTable?.name || selectedTable?.number || '',
         covers: covers,
         floorName: selectedTable?.floor || '',
