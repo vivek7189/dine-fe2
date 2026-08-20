@@ -49,12 +49,15 @@ export function TerminalLockProvider({ restaurantId, restaurantName, terminalLoc
   const [error, setError] = useState('');
   const idleTimer = useRef(null);
 
-  // Initialise from the stored session (survives refresh); lock if none & enabled.
+  // On EVERY fresh page load (web refresh or Electron reopen), if the lock is enabled we ALWAYS
+  // start locked and require the PIN again — a refresh/restart must never leave Fast Billing/KOT
+  // open. The stored operator is kept only to pre-fill / attribute the next unlock, never to
+  // auto-unlock. (Config `enabled` comes from localStorage selectedRestaurant, so it persists.)
   useEffect(() => {
     if (!enabled) { setLocked(false); setOperator(null); return; }
     const stored = readOperator();
-    if (stored && stored.id) { setOperator(stored); setLocked(false); }
-    else { setOperator(null); setLocked(true); }
+    if (stored && stored.id) setOperator(stored); // remember who last unlocked, for prefill/attribution
+    setLocked(true);                              // always re-lock on a fresh load when enabled
   }, [enabled]);
 
   const lock = useCallback(() => {
