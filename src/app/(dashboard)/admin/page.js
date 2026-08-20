@@ -7000,6 +7000,7 @@ const Admin = () => {
       await apiClient.updateMyPin({ pin, enabled: true });
       showSuccess('Your terminal-unlock PIN is set. Use it to unlock the POS.', 8000);
       setMyTerminalPin('');
+      try { await loadPinStatus(); } catch (_) { /* refresh the "PIN set ✓" indicator */ }
     } catch (error) {
       showError(error?.message || 'Could not set your PIN.');
     } finally {
@@ -12552,16 +12553,23 @@ const Admin = () => {
                   <div style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '10px', marginTop: '2px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '12px', color: '#374151', fontWeight: 700 }}>🔑 Your unlock PIN:</span>
+                      {pinStatus.pinEnabled && (
+                        <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #bbf7d0', borderRadius: '999px', padding: '3px 10px' }}>✓ PIN set</span>
+                      )}
                       <input type="text" inputMode="numeric" value={myTerminalPin} maxLength={8}
                         onChange={(e) => setMyTerminalPin(e.target.value.replace(/\D/g, '').slice(0, 8))}
-                        placeholder="4–8 digits"
+                        placeholder={pinStatus.pinEnabled ? 'New PIN' : '4–8 digits'}
                         style={{ width: '120px', padding: '6px 10px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', letterSpacing: '3px', textAlign: 'center' }} />
                       <button onClick={saveMyTerminalPin} disabled={savingMyPin || myTerminalPin.length < 4}
                         style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: (savingMyPin || myTerminalPin.length < 4) ? 'not-allowed' : 'pointer', color: '#fff', background: (savingMyPin || myTerminalPin.length < 4) ? '#c4b5fd' : '#7c3aed', fontSize: '12.5px', fontWeight: 700 }}>
-                        {savingMyPin ? 'Saving…' : 'Set my PIN'}
+                        {savingMyPin ? 'Saving…' : (pinStatus.pinEnabled ? 'Update PIN' : 'Set my PIN')}
                       </button>
                     </div>
-                    <div style={{ fontSize: '10.5px', color: '#9ca3af', marginTop: '4px' }}>You (owner/admin) need a PIN too — set it here so you can unlock the terminal. Set this before you rely on the lock.</div>
+                    <div style={{ fontSize: '10.5px', color: '#9ca3af', marginTop: '4px' }}>
+                      {pinStatus.pinEnabled
+                        ? 'Your unlock PIN is set. To change it, type a new one above and press Update PIN. (This is your personal PIN — each owner/admin/staff has their own.)'
+                        : 'You (owner/admin) need a PIN too — set it here so you can unlock the terminal and authorize completed-order edits. Set this before you rely on the lock.'}
+                    </div>
                   </div>
                   <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>Each staff gets a PIN when created (shown once). Change or disable PINs from the Staff section (🔒 button on each staff).</div>
                 </div>

@@ -62,6 +62,37 @@ function getRefRedirectPath() {
   return '/home';
 }
 
+// Role-landing (opt-in): after a fresh login, send the role to the page it works on (e.g. waiter →
+// Tables). apiClient.getRedirectPath() reads posSettings.roleLandingPages, so we first make sure the
+// restaurant's posSettings is loaded (the login response doesn't include it) by persisting
+// selectedRestaurant if needed. Returns the role's configured path, or '' when role-landing is
+// off/unset so the caller keeps its normal /home redirect. Best-effort; never throws.
+async function resolveRoleLanding(user) {
+  if (typeof window === 'undefined') return '';
+  try {
+    let sr = null;
+    try { sr = JSON.parse(localStorage.getItem('selectedRestaurant') || 'null'); } catch {}
+    if (!sr || !sr.posSettings) {
+      try {
+        const data = await apiClient.getRestaurants();
+        const list = (data && (data.restaurants || data)) || [];
+        if (Array.isArray(list) && list.length) {
+          const rid = user?.restaurantId || user?.defaultRestaurantId || localStorage.getItem('selectedRestaurantId');
+          const chosen = (rid && list.find((r) => r.id === rid))
+            || (user?.defaultRestaurantId && list.find((r) => r.id === user.defaultRestaurantId))
+            || list[0];
+          if (chosen) {
+            localStorage.setItem('selectedRestaurant', JSON.stringify(chosen));
+            localStorage.setItem('selectedRestaurantId', chosen.id);
+          }
+        }
+      } catch (_) { /* fetch is best-effort */ }
+    }
+    const dest = apiClient.getRedirectPath();
+    return (dest && dest !== '/home') ? dest : '';
+  } catch { return ''; }
+}
+
 // Trigger background prefetch of dashboard data after login (non-blocking)
 function triggerDashboardPrefetch() {
   // Use setTimeout to avoid blocking the redirect
@@ -1580,7 +1611,10 @@ const Login = () => {
         } else if (loginData.subdomainUrl) {
           redirectToSubdomain(loginData.subdomainUrl, loginData.token, loginData.user);
         } else {
-          router.replace(loginData.redirectTo || getRefRedirectPath());
+          // Role landing: only override the generic /home redirect (keep onboarding/subdomain/admin).
+          const roleDest = await resolveRoleLanding(loginData.user);
+          const generic = !loginData.redirectTo || loginData.redirectTo === '/home';
+          router.replace((generic && roleDest) || loginData.redirectTo || getRefRedirectPath());
         }
       }
     } catch (err) {
@@ -1619,10 +1653,11 @@ const Login = () => {
           router.replace('/onboarding');
         } else if (data.subdomainUrl) {
           redirectToSubdomain(data.subdomainUrl, data.token, data.user);
-        } else if (data.redirectTo) {
-          router.replace(data.redirectTo);
         } else {
-          router.replace(getRefRedirectPath());
+          // Role landing: send the staff role to its configured page; keep an explicit non-home redirect.
+          const roleDest = await resolveRoleLanding(data.user);
+          const generic = !data.redirectTo || data.redirectTo === '/home';
+          router.replace((generic && roleDest) || data.redirectTo || getRefRedirectPath());
         }
       }
     } catch (err) {
@@ -1752,10 +1787,11 @@ const Login = () => {
           if (googleData.subdomainUrl) {
             // Redirect to subdomain with token
             redirectToSubdomain(googleData.subdomainUrl, googleData.token, googleData.user);
-          } else if (googleData.redirectTo) {
-            router.replace(googleData.redirectTo);
           } else {
-            router.replace(getRefRedirectPath());
+            // Role landing: override only the generic /home redirect.
+            const roleDest = await resolveRoleLanding(googleData.user);
+            const generic = !googleData.redirectTo || googleData.redirectTo === '/home';
+            router.replace((generic && roleDest) || googleData.redirectTo || getRefRedirectPath());
           }
         }
       } else {
