@@ -614,7 +614,7 @@ export default function LandingPage() {
                 <a href="https://apps.apple.com/in/app/dineopen-restaurant-billing/id6761518444" target="_blank" rel="noopener noreferrer" title="Download on App Store" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '8px', color: '#6b7280', transition: 'all 0.2s', textDecoration: 'none' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f3f4f6'; e.currentTarget.style.color = '#111827'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#6b7280'; }}>
                   <FaApple size={16} />
                 </a>
-                <a href="https://play.google.com/store/apps/details?id=com.dineopen.pos" target="_blank" rel="noopener noreferrer" title="Get it on Google Play" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '8px', color: '#6b7280', transition: 'all 0.2s', textDecoration: 'none' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f3f4f6'; e.currentTarget.style.color = '#111827'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#6b7280'; }}>
+                <a href="https://github.com/vivek7189/dine-app2/releases/download/android-latest/DineOpen-Waiter.apk" target="_blank" rel="noopener noreferrer" title="Download Android APK" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '8px', color: '#6b7280', transition: 'all 0.2s', textDecoration: 'none' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f3f4f6'; e.currentTarget.style.color = '#111827'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#6b7280'; }}>
                   <FaGooglePlay size={14} />
                 </a>
                 <div style={{ width: '1px', height: '20px', backgroundColor: '#e5e7eb', margin: '0 4px' }} />
@@ -2659,9 +2659,9 @@ export default function LandingPage() {
               <div style={{ fontSize: '11px', color: '#64748b' }}>iOS 15+</div>
             </a>
 
-            {/* Android */}
+            {/* Android — auto-latest APK from GitHub release (same as Admin → App Download) */}
             <a
-              href="https://play.google.com/store/apps/details?id=com.dineopen.pos"
+              href="https://github.com/vivek7189/dine-app2/releases/download/android-latest/DineOpen-Waiter.apk"
               target="_blank" rel="noopener noreferrer"
               style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
@@ -2683,9 +2683,9 @@ export default function LandingPage() {
               <div style={{ fontSize: '11px', color: '#64748b' }}>Android 8+</div>
             </a>
 
-            {/* Windows */}
+            {/* Windows — auto-latest installer via backend resolver (same as Admin → App Download) */}
             <a
-              href="https://drive.google.com/file/d/1Vgu3gmYWQr0UJVdXPmU6sksf4da1fzej/view?usp=sharing"
+              href={`${process.env.NEXT_PUBLIC_API_URL || 'https://dine-backend-lake.vercel.app'}/api/download/desktop?app=online&platform=win`}
               target="_blank" rel="noopener noreferrer"
               style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
@@ -2707,9 +2707,9 @@ export default function LandingPage() {
               <div style={{ fontSize: '11px', color: '#64748b' }}>Windows 10+</div>
             </a>
 
-            {/* Mac */}
+            {/* Mac — auto-latest installer via backend resolver (same as Admin → App Download) */}
             <a
-              href="https://drive.google.com/file/d/11CEOnivkenTAU2Bdhkmtk5y7gWGiqnw1/view?usp=sharing"
+              href={`${process.env.NEXT_PUBLIC_API_URL || 'https://dine-backend-lake.vercel.app'}/api/download/desktop?app=online&platform=mac`}
               target="_blank" rel="noopener noreferrer"
               style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
