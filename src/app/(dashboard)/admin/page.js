@@ -5893,6 +5893,8 @@ const Admin = () => {
     partialPaymentEnabled: false,
     compVoidEnabled: false,
     compVoidRequiresPin: true,
+    // Independent, default-OFF gate for the "Remove sent item?" (KOT-fired) void prompt.
+    voidRemoveRequiresPin: false,
     managerPin: '',
     refundsEnabled: false,
     refundsRequireApproval: true,
@@ -13793,6 +13795,29 @@ const Admin = () => {
                           </div>
                         )}
                         {renderRoleChips('compVoidRoles')}
+                      </div>
+                    )
+                  },
+                  {
+                    // Independent, always-reachable toggle (default OFF). Gates ONLY the
+                    // "Remove sent item?" void prompt when editing a KOT-fired order — kept
+                    // separate from Comp/Void so it can be turned on/off on its own.
+                    key: 'voidRemoveRequiresPin',
+                    name: 'Manager PIN to Remove Sent Items',
+                    desc: 'Ask for a PIN when deleting a KOT-fired item',
+                    icon: FaLock,
+                    expandedContent: (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <FaLock size={9} style={{ color: '#94a3b8' }} />
+                          <input type="password" value={billingSettings.managerPin}
+                            onChange={(e) => updateBillingSetting('managerPin', e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            placeholder="4-6 digit PIN" maxLength={6}
+                            style={{ width: '120px', padding: '4px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px', outline: 'none', letterSpacing: '3px' }}
+                          />
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>Uses the same PIN as Comp / Void.</div>
                       </div>
                     )
                   },

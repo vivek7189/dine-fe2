@@ -385,7 +385,10 @@ const OrderSummary = ({
     setVoidPromptBusy(true);
     setVoidPromptError('');
     try {
-      if (billingSettings?.compVoidRequiresPin) {
+      // Removing a KOT-fired item is PIN-gated only when the owner explicitly opts in via
+      // `voidRemoveRequiresPin` (default OFF for everyone — decoupled from the Comp/Void
+      // billing toggle, which used to bury this setting and default it ON).
+      if (billingSettings?.voidRemoveRequiresPin) {
         const pin = (voidPromptPin || '').trim();
         if (!pin) { setVoidPromptError('Manager PIN required.'); setVoidPromptBusy(false); return; }
         const check = await apiClient.validateManagerPin(restaurantId, pin);
@@ -8864,9 +8867,9 @@ const OrderSummary = ({
               <input type="text" placeholder="Reason (or type your own)"
                 value={voidPromptReason}
                 onChange={(e) => { setVoidPromptReason(e.target.value); setVoidPromptError(''); }}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '12px', outline: 'none', boxSizing: 'border-box', marginBottom: billingSettings?.compVoidRequiresPin ? '8px' : '0' }}
+                style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '12px', outline: 'none', boxSizing: 'border-box', marginBottom: billingSettings?.voidRemoveRequiresPin ? '8px' : '0' }}
               />
-              {billingSettings?.compVoidRequiresPin && (
+              {billingSettings?.voidRemoveRequiresPin && (
                 <input type="password" placeholder="Manager PIN" inputMode="numeric"
                   value={voidPromptPin}
                   onChange={(e) => { setVoidPromptPin(e.target.value); setVoidPromptError(''); }}
