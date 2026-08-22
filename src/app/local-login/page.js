@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { getApiBase } from '@/lib/apiBase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -46,7 +47,7 @@ const LocalLogin = () => {
         return;
       }
 
-      const backendUrl = getLocalServerUrl() || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      const backendUrl = getLocalServerUrl() || getApiBase();
       const response = await fetch(`${backendUrl}/api/auth/local-login`, {
         method: 'POST',
         headers: {

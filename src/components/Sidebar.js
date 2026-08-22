@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getApiBase } from '@/lib/apiBase';
 import {
   FaHome,
   FaUtensils,
@@ -200,7 +201,7 @@ export default function Sidebar({ isDashboardPage = false }) {
           // Owner, customer, and admin staff: fetch from API (admin can have multiple restaurants)
           try {
             const token = localStorage.getItem('authToken');
-            const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+            const backendUrl = getApiBase();
             const response = await fetch(`${backendUrl}/api/restaurants`, {
               headers: {
                 'Authorization': `Bearer ${token}`,

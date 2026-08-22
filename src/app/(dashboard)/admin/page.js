@@ -1,6 +1,7 @@
 'use client';
 // Dynamic tax labels + waiter app granular controls v2
 import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
+import { getApiBase } from '@/lib/apiBase';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -5211,7 +5212,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
  *  Windows .exe + Mac .dmg. Links go to the backend resolver, which always redirects to
  *  the LATEST installer for that app + platform (no GitHub page, no manual link edits). */
 function AppDownloadTab() {
-  const apiBase = (apiClient && apiClient.baseURL) || process.env.NEXT_PUBLIC_API_URL || '';
+  const apiBase = (apiClient && apiClient.baseURL) || getApiBase();
   const dl = (app, platform) => `${apiBase}/api/download/desktop?app=${app}&platform=${platform}`;
 
   // Desktop-only: the version this app ran before the current one, for one-step rollback.

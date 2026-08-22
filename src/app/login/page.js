@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getApiBase } from '@/lib/apiBase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -105,7 +106,7 @@ function triggerDashboardPrefetch() {
 // Called BEFORE redirect so localStorage has the value when dashboard mounts
 async function prefetchCurrencySettings(restaurantId, token) {
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+    const backendUrl = getApiBase();
     const res = await fetch(`${backendUrl}/api/admin/currency/${restaurantId}`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
@@ -704,8 +705,11 @@ const Login = () => {
   useEffect(() => {
     if (!desktopAuthPolling || !desktopSessionId) return;
 
-    // Always poll production backend — desktop-auth page runs on dineopen.com and stores session there
-    const backendUrl = (isTauriApp || isElectronApp) ? 'https://dine-be2-phi.vercel.app' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003');
+    // Always poll production backend — desktop-auth page runs on dineopen.com and stores session there.
+    // The local-server app is Postgres-only (never Vercel), so it uses its own backend (getApiBase→GCP).
+    const backendUrl = isServerApp()
+      ? getApiBase()
+      : ((isTauriApp || isElectronApp) ? 'https://dine-be2-phi.vercel.app' : getApiBase());
     let cancelled = false;
 
     const poll = async () => {
@@ -1168,7 +1172,7 @@ const Login = () => {
       // Check if it's a dummy account OR Tauri desktop app — use backend OTP (bypasses Firebase reCAPTCHA)
       if ((selectedCountry.code === 'IN' && isDummyAccount(phoneNumber)) || isTauriApp) {
         // Use backend OTP (bypasses Firebase reCAPTCHA)
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+        const backendUrl = getApiBase();
         const response = await fetch(`${backendUrl}/api/auth/phone/send-otp`, {
           method: 'POST',
           headers: {
@@ -1251,7 +1255,7 @@ const Login = () => {
         const result = await verificationId.confirm(otp);
         
         // Call backend to get JWT token
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+        const backendUrl = getApiBase();
         const firebaseResponse = await fetch(`${backendUrl}/api/auth/firebase/verify`, {
           method: 'POST',
           headers: {
@@ -1301,7 +1305,7 @@ const Login = () => {
         }
       } else {
         // Verify backend OTP (for dummy account)
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+        const backendUrl = getApiBase();
         
         // Ensure we have the correct phone number for demo mode
         const actualPhoneNumber = phoneNumber || '9000000000';
@@ -1425,7 +1429,7 @@ const Login = () => {
         return;
       }
 
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      const backendUrl = getApiBase();
       const otpResponse = await fetch(`${backendUrl}/api/auth/email/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1474,7 +1478,7 @@ const Login = () => {
         return;
       }
 
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      const backendUrl = getApiBase();
       const registerResponse = await fetch(`${backendUrl}/api/auth/email/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1547,7 +1551,7 @@ const Login = () => {
         return;
       }
 
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      const backendUrl = getApiBase();
       const loginResponse = await fetch(`${backendUrl}/api/auth/email/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1706,7 +1710,7 @@ const Login = () => {
       console.log('Google login result:', result.user);
 
       // Send user data to backend (Firebase already verified the user)
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      const backendUrl = getApiBase();
 
       let googleResponse;
       let googleData;
@@ -1880,7 +1884,7 @@ const Login = () => {
       // Prefer the on-prem local server when one is configured (offline POS terminal),
       // otherwise the cloud backend. Without this, staff login always hit the cloud and
       // failed with no internet.
-      const backendUrl = getLocalServerUrl() || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      const backendUrl = getLocalServerUrl() || getApiBase();
       const response = await fetch(`${backendUrl}/api/auth/staff/login`, {
         method: 'POST',
         headers: {
@@ -3834,7 +3838,7 @@ const Login = () => {
                   onClick={async () => {
                     setLoading(true);
                     try {
-                      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+                      const backendUrl = getApiBase();
                       await fetch(`${backendUrl}/api/auth/email/send-otp`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },

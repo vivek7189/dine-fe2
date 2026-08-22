@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
+import { getApiBase } from '@/lib/apiBase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   FaCreditCard,
@@ -40,7 +41,7 @@ function BillingContent() {
   const [showHistory, setShowHistory] = useState(false);
   const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' or 'yearly'
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+  const API_BASE_URL = getApiBase();
   const RAZORPAY_KEY = process.env.NEXT_PUBLIC_RAZORPAY_KEY || 'rzp_live_lMZVjvewP7tKIL';
 
   // Calculate trial days remaining

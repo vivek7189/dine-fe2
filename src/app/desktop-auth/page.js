@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { getApiBase } from '@/lib/apiBase';
 import { auth } from '../../../firebase';
 import {
   signInWithPhoneNumber,
@@ -48,7 +49,7 @@ export default function DesktopAuthPage() {
   const [isPrefilledPhone, setIsPrefilledPhone] = useState(false);
   const autoSendRef = useRef(false);
 
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+  const backendUrl = getApiBase();
 
   useEffect(() => {
     // Get session ID and optional phone params from URL

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { getApiBase } from '@/lib/apiBase';
 import { useRouter } from 'next/navigation';
 import { 
   FaPhone, 
@@ -53,7 +54,7 @@ const Setup = () => {
         return;
       }
 
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      const backendUrl = getApiBase();
       const response = await fetch(`${backendUrl}/api/admin/setup-client`, {
         method: 'POST',
         headers: {

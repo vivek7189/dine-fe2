@@ -12,6 +12,7 @@
 // to the app regardless, so this introduces no new user-facing "failed" toasts.
 
 import apiClient from './api';
+import { getApiBase } from '@/lib/apiBase';
 
 const TERMINAL_ID_KEY = 'dinePrintTerminalId';
 let _initialized = false;
@@ -48,7 +49,7 @@ async function sendDiag(rec) {
     if (!rec || rec.success !== false) return;
     const restaurantId = getRestaurantId();
     if (!restaurantId) return; // nothing to key on
-    const base = apiClient?.baseURL || process.env.NEXT_PUBLIC_API_URL;
+    const base = apiClient?.baseURL || getApiBase();
     if (!base) return;
 
     // Fire-and-forget; short timeout so a slow/offline network can't pile up.

@@ -1,12 +1,12 @@
 import { reportNetworkFailure, reportNetworkSuccess } from '../hooks/useNetworkStatus';
 import { setCachedData, getCachedData } from './offlineDb';
 import { getLocalServerUrl, setLocalServerUrl } from './localServer';
+import { getApiBase, setApiBase, clearApiBase, refreshRemoteBackend, DEFAULT_API_BASE, BACKEND_URL_KEY } from './apiBase';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-
-// localStorage key for the restaurant's chosen cloud backend (dine-admin "pgBackendUrl" switch).
-// Persisted so a page reload / Electron restart routes to the right backend on the first call.
-const BACKEND_URL_KEY = 'dineopen_backend_url';
+// Default cloud backend + the persisted-backend key both come from the SINGLE source
+// of truth (lib/apiBase.js). Never hardcode a backend URL or read the env directly
+// anywhere else — call getApiBase().
+const API_BASE_URL = DEFAULT_API_BASE;
 
 // ---------------------------------------------------------------------------
 // Request timeout budgets (client-side safety net so a request can NEVER hang
@@ -66,9 +66,10 @@ class ApiClient {
     // server machine, talk HTTP directly to it. Otherwise use the restaurant's chosen cloud
     // backend (dine-admin "pgBackendUrl" switch, persisted so a page reload routes there on the
     // FIRST call — before the dashboard re-applies it), else the default cloud API base.
-    const persistedBackend = (typeof window !== 'undefined' && !getLocalServerUrl())
-      ? (window.localStorage.getItem(BACKEND_URL_KEY) || null) : null;
-    this.baseURL = (typeof window !== 'undefined' && getLocalServerUrl()) || persistedBackend || API_BASE_URL;
+    this.baseURL = getApiBase();
+    // Refresh the remote backend config (cutover switch) in the background; applies on
+    // the next getApiBase() read. Fire-and-forget — never blocks or breaks startup.
+    try { refreshRemoteBackend(); } catch (_) {}
     this.isRefreshing = false;
     this.refreshQueue = [];
 
@@ -173,12 +174,7 @@ class ApiClient {
     const newBase = localSrv || customUrl || API_BASE_URL;
     // Persist the cloud choice so a page reload routes to the right backend on the first call
     // (local-server mode is persisted separately and wins, so only persist the cloud choice).
-    try {
-      if (typeof window !== 'undefined') {
-        if (customUrl) window.localStorage.setItem(BACKEND_URL_KEY, customUrl);
-        else window.localStorage.removeItem(BACKEND_URL_KEY);
-      }
-    } catch (_) {}
+    if (customUrl) setApiBase(customUrl); else clearApiBase();
     if (this.baseURL !== newBase) {
       console.log(`🔀 API routing: ${newBase}${localSrv ? ' (local server)' : customUrl ? ' (pgBackendUrl)' : ' (default)'}`);
       this.baseURL = newBase;
@@ -195,12 +191,7 @@ class ApiClient {
    */
   setCloudBackend(url) {
     const norm = String(url || '').trim().replace(/\/+$/, '');
-    try {
-      if (typeof window !== 'undefined') {
-        if (norm) window.localStorage.setItem(BACKEND_URL_KEY, norm);
-        else window.localStorage.removeItem(BACKEND_URL_KEY);
-      }
-    } catch (_) {}
+    if (norm) setApiBase(norm); else clearApiBase();
     // Cloud choice only takes effect when NOT pinned to a local server (local always wins).
     if (!getLocalServerUrl()) {
       const newBase = norm || API_BASE_URL;
@@ -927,7 +918,8 @@ class ApiClient {
 
     // Reset backend routing to default (localStorage.clear() above already dropped the persisted
     // pgBackendUrl) so the next login on this device authenticates against the default backend.
-    // Local-server mode has its own key that survives its own flow; respect it if still set.
+    // Also drop the cookie mirror. Local-server mode has its own key that survives; respect it.
+    clearApiBase();
     this.baseURL = getLocalServerUrl() || API_BASE_URL;
 
     // Clear API cache
