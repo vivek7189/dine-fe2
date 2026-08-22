@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getApiBase } from '@/lib/apiBase';
+import { getApiBase, DEFAULT_API_BASE } from '@/lib/apiBase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -1181,8 +1181,26 @@ const Login = () => {
     }
 
     setLoading(true);
-    
+
     try {
+      // Per-owner backend routing: BEFORE sending/verifying OTP, ask the FIXED default
+      // directory which backend THIS phone (owner account) belongs to — if a super-admin
+      // switched this owner to GCP in dine-admin, pin the whole auth round-trip there.
+      // Must query DEFAULT_API_BASE (never getApiBase(), or a device already pinned to GCP
+      // would ask the wrong server). Best-effort; never blocks login. setCloudBackend('')
+      // reverts to Vercel, so toggling the owner back also takes effect on next login.
+      if (!isServerApp() && !getLocalServerUrl()) {
+        try {
+          const fullPhone = `${selectedCountry.dialCode}${phoneNumber}`;
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), 5000);
+          const rb = await fetch(`${DEFAULT_API_BASE}/api/auth/resolve-backend?phone=${encodeURIComponent(fullPhone)}`, { signal: ctrl.signal })
+            .then(r => (r.ok ? r.json() : null)).catch(() => null);
+          clearTimeout(t);
+          apiClient.setCloudBackend(rb?.backendUrl || ''); // GCP url pins; '' → default (Vercel)
+        } catch (_) { /* resolver must never block login */ }
+      }
+
       // Check if it's a dummy account OR Tauri desktop app — use backend OTP (bypasses Firebase reCAPTCHA)
       if ((selectedCountry.code === 'IN' && isDummyAccount(phoneNumber)) || isTauriApp) {
         // Use backend OTP (bypasses Firebase reCAPTCHA)
