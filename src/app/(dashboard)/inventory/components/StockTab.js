@@ -294,7 +294,7 @@ export default function StockTab({
         </div>
       ) : (
         /* Desktop Table */
-        <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+        <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
@@ -307,7 +307,7 @@ export default function StockTab({
                 <th style={thStyle}>Today&apos;s Waste</th>
                 <th style={thStyle}>Cost</th>
                 <th style={{ ...thStyle, textAlign: 'left' }}>Supplier</th>
-                <th style={{ ...thStyle, width: 120 }}>Actions</th>
+                <th style={{ ...thStyle, width: 120, position: 'sticky', right: 0, background: '#f9fafb', zIndex: 2, borderLeft: '1px solid #e5e7eb' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -421,7 +421,7 @@ export default function StockTab({
                     <td style={{ ...tdStyle, color: '#6b7280', fontSize: 13 }}>
                       {item.supplier || '\u2014'}
                     </td>
-                    <td style={{ ...tdStyle, textAlign: 'center' }}>
+                    <td style={{ ...tdStyle, textAlign: 'center', position: 'sticky', right: 0, background: '#fff', zIndex: 1, borderLeft: '1px solid #f3f4f6' }}>
                       <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
                         <button onClick={() => onViewHistory?.(item)}
                           style={{ ...actionBtnStyle, borderColor: '#dbeafe' }} title="History"
