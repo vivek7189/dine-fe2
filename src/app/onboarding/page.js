@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
+import { getApiBase } from '@/lib/apiBase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FaUtensils, FaCoffee, FaBeer, FaBreadSlice, FaIceCream, FaHamburger, FaHotel, FaFire, FaArrowRight, FaArrowLeft, FaCheck, FaWhatsapp, FaChair, FaBoxes, FaUsers, FaCalendarAlt, FaQrcode, FaFileInvoice, FaCashRegister, FaClipboardList, FaRocket, FaUpload, FaGift, FaPercent, FaCrown, FaSearch, FaChevronDown, FaTimes, FaDownload, FaLink, FaMagic, FaGlobe, FaMobileAlt, FaClock, FaMapMarkerAlt, FaPhone, FaEnvelope, FaChevronRight, FaWifi, FaPrint, FaChartLine, FaBolt, FaStar, FaRobot, FaGoogle } from 'react-icons/fa';
 import QRCode from 'qrcode';
@@ -308,7 +309,7 @@ function OnboardingContent() {
     // Try to restore onboarding progress from DB
     const savedRid = localStorage.getItem('selectedRestaurantId');
     if (savedRid) {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      const apiUrl = getApiBase();
       fetch(`${apiUrl}/api/restaurants/${savedRid}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -416,7 +417,7 @@ function OnboardingContent() {
       if (rid) {
         const token = localStorage.getItem('authToken');
         if (token) {
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+          const apiUrl = getApiBase();
           fetch(`${apiUrl}/api/restaurants/${rid}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -769,7 +770,7 @@ function OnboardingContent() {
   const completeOnboarding = (destination) => {
     try {
       const token = localStorage.getItem('authToken');
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      const apiUrl = getApiBase();
       const rid = restaurantId || localStorage.getItem('selectedRestaurantId');
       if (rid && token) {
         fetch(`${apiUrl}/api/restaurants/${rid}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ onboardingStep: 'complete' }) }).catch(() => {});

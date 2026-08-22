@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { getApiBase } from '@/lib/apiBase';
 import { useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
 import {
@@ -30,7 +31,7 @@ import {
   FaClipboardList
 } from 'react-icons/fa';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://dine-backend.vercel.app';
+const BACKEND_URL = getApiBase();
 
 export default function WhatsAppOrderingPage() {
   const router = useRouter();

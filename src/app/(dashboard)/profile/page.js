@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { getApiBase } from '@/lib/apiBase';
 import { useRouter } from 'next/navigation';
 import {
   FaUser,
@@ -241,7 +242,7 @@ const Profile = () => {
     setLinkLoading(true);
     setLinkError('');
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      const backendUrl = getApiBase();
       const response = await fetch(`${backendUrl}/api/auth/email/send-otp`, {
         method: 'POST',
         headers: {
@@ -283,7 +284,7 @@ const Profile = () => {
     setLinkLoading(true);
     setLinkError('');
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      const backendUrl = getApiBase();
       const response = await fetch(`${backendUrl}/api/user/link-email`, {
         method: 'POST',
         headers: {
@@ -352,7 +353,7 @@ const Profile = () => {
     try {
       // Check if it's a dummy/test number - use backend OTP
       if (isDummyPhoneNumber(normalizedPhone)) {
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+        const backendUrl = getApiBase();
         const response = await fetch(`${backendUrl}/api/auth/phone/send-otp`, {
           method: 'POST',
           headers: {
@@ -449,7 +450,7 @@ const Profile = () => {
       }
 
       // Call backend to link phone
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      const backendUrl = getApiBase();
       const response = await fetch(`${backendUrl}/api/user/link-phone`, {
         method: 'POST',
         headers: {

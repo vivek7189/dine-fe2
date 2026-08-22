@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { getApiBase } from '@/lib/apiBase';
 import { createPortal } from 'react-dom';
 import { FaMagic, FaTrash, FaCheck, FaTimes, FaArrowLeft, FaChevronDown, FaChevronUp, FaExclamationTriangle, FaLeaf, FaDrumstickBite, FaFileImage, FaCloudUploadAlt, FaPaste, FaKeyboard, FaCamera, FaTruck, FaFileExcel } from 'react-icons/fa';
 import apiClient from '../../../../lib/api';
@@ -916,7 +917,7 @@ export default function SmartImportModal({ isOpen, onClose, restaurantId, onSucc
       formData.append('mode', 'invoice');
 
       const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      const baseUrl = getApiBase();
       const response = await fetch(`${baseUrl}/api/inventory/${restaurantId}/smart-import/parse`, {
         method: 'POST',
         headers: {
@@ -951,7 +952,7 @@ export default function SmartImportModal({ isOpen, onClose, restaurantId, onSucc
       formData.append('mode', 'file');
 
       const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      const baseUrl = getApiBase();
       const response = await fetch(`${baseUrl}/api/inventory/${restaurantId}/smart-import/parse`, {
         method: 'POST',
         headers: {

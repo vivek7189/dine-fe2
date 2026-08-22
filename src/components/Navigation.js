@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
+import { getApiBase } from '@/lib/apiBase';
 import { 
   FaHome, 
   FaUtensils, 
@@ -288,7 +289,7 @@ function NavigationContent({ isHidden = false }) {
             // Fallback: fetch restaurant data from API
             try {
               const token = localStorage.getItem('authToken');
-              const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+              const backendUrl = getApiBase();
               const response = await fetch(`${backendUrl}/api/restaurants`, {
                 headers: {
                   'Authorization': `Bearer ${token}`,
@@ -322,7 +323,7 @@ function NavigationContent({ isHidden = false }) {
           // For owners, get all their restaurants
           try {
             const token = localStorage.getItem('authToken');
-            const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+            const backendUrl = getApiBase();
             const response = await fetch(`${backendUrl}/api/restaurants`, {
               headers: {
                 'Authorization': `Bearer ${token}`,

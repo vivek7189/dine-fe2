@@ -1,9 +1,10 @@
 import { getLocalServerUrl } from '../lib/localServer';
+import { getApiBase } from '@/lib/apiBase';
 
 // Resolve per-call (not at import): honor the on-prem local server when configured
 // (offline POS terminal), otherwise the cloud backend. Was hardcoded to the cloud, so
 // attendance clock-in/out and history failed offline.
-const getBaseUrl = () => (typeof window !== 'undefined' && getLocalServerUrl()) || process.env.NEXT_PUBLIC_API_URL || '';
+const getBaseUrl = () => (typeof window !== 'undefined' && getLocalServerUrl()) || getApiBase();
 
 async function fetchWithAuth(url, options = {}) {
   const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;

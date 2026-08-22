@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { getApiBase } from '@/lib/apiBase';
 import { isLocalServerMode, getLocalServerUrl } from '../lib/localServer';
 
 /**
@@ -15,7 +16,7 @@ import { isLocalServerMode, getLocalServerUrl } from '../lib/localServer';
  * This avoids constant /health polling while still detecting offline correctly.
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+const API_BASE_URL = getApiBase();
 
 // Global state so multiple hook instances share the same status.
 // In local-server (offline LAN) mode "online" means "the LAN backend is reachable", which is

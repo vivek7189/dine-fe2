@@ -2,6 +2,7 @@
 // Handles permission request, token registration, and foreground message handling.
 
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import { getApiBase } from '@/lib/apiBase';
 import { app as firebaseApp } from '../../firebase';
 import apiClient from './api';
 
@@ -107,7 +108,7 @@ export async function initFCM(restaurantId) {
  */
 async function registerTokenWithBackend(restaurantId, deviceId, token) {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/web/register-fcm-token`, {
+    const response = await fetch(`${getApiBase()}/api/web/register-fcm-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
