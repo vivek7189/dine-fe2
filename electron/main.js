@@ -558,6 +558,78 @@ function parseIpPrinter(address) {
   };
 }
 
+// ──── Complex-script (Tamil/Hindi/Arabic/CJK…) support for ESC/POS thermal printers ────
+// A raw ESC/POS thermal printer only has single-byte codepages — it cannot render multi-byte
+// UTF-8 for non-Latin scripts. Sending Tamil text as UTF-8 bytes prints garbage (e.g. "இட்லி"
+// → "a«ça«fa»i…"). The fix (what commercial POS do): render the receipt HTML to a monochrome
+// bitmap and send it as an ESC/POS raster (GS v 0). Used ONLY when the content actually contains
+// a complex script — plain ASCII/Latin receipts keep the fast, proven text path (no regression).
+function hasComplexScript(html) {
+  const text = String(html || '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<[^>]+>/g, '');
+  // Devanagari→Malayalam (incl. Tamil U+0B80–0BFF), Arabic/Syriac, Thai/Lao, Hangul Jamo,
+  // Hiragana/Katakana, CJK, Hangul syllables, and CJK fullwidth forms.
+  return /[ऀ-෿؀-߿฀-໿ᄀ-ᇿ぀-ヿ㐀-鿿가-힯＀-￯]/.test(text);
+}
+
+// Pack a BGRA bitmap into ESC/POS GS v 0 raster commands (1-bit, in horizontal bands).
+function bitmapToEscPosRaster(bgra, width, height, maxDots) {
+  const chunks = [Buffer.from([0x1B, 0x40])]; // ESC @ — init
+  const w = Math.min(width, maxDots);
+  const widthBytes = Math.ceil(w / 8);
+  const BAND = 128; // rows per GS v 0 chunk — keeps each raster command small/safe for all printers
+  for (let y0 = 0; y0 < height; y0 += BAND) {
+    const rows = Math.min(BAND, height - y0);
+    const raster = Buffer.alloc(widthBytes * rows, 0);
+    for (let y = 0; y < rows; y++) {
+      const srcRow = (y0 + y) * width;
+      const dstRow = y * widthBytes;
+      for (let x = 0; x < w; x++) {
+        const i = (srcRow + x) * 4;
+        const b = bgra[i], g = bgra[i + 1], r = bgra[i + 2], a = bgra[i + 3];
+        const lum = r * 0.299 + g * 0.587 + b * 0.114;
+        if (a > 128 && lum < 160) raster[dstRow + (x >> 3)] |= (0x80 >> (x & 7)); // dark pixel → black dot
+      }
+    }
+    // GS v 0 m xL xH yL yH  (m=0 normal)
+    chunks.push(Buffer.from([0x1D, 0x76, 0x30, 0x00, widthBytes & 0xff, (widthBytes >> 8) & 0xff, rows & 0xff, (rows >> 8) & 0xff]));
+    chunks.push(raster);
+  }
+  chunks.push(Buffer.from('\n\n\n', 'utf8')); // feed to tear-off
+  return Buffer.concat(chunks);
+}
+
+// Render receipt HTML to a monochrome ESC/POS raster via an offscreen window.
+async function htmlToEscPosRaster(html, printerWidth) {
+  const dots = printerWidth === 58 ? 384 : 576; // ~203dpi: 58mm≈384 dots, 80mm≈576 dots
+  const win = new BrowserWindow({
+    show: false,
+    width: dots,
+    height: 1200,
+    webPreferences: { backgroundThrottling: false, contextIsolation: true, nodeIntegration: false },
+  });
+  try {
+    // Force paper pixel-width + pure black-on-white so the 1-bit raster is crisp.
+    const styled = `<style>html,body{width:${dots}px!important;margin:0!important;padding:0!important;background:#fff!important;color:#000!important;}*{color:#000!important;}</style>`;
+    const doc = html.includes('</head>') ? html.replace('</head>', styled + '</head>') : styled + html;
+    await win.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(doc));
+    await new Promise(r => setTimeout(r, 400)); // let layout + fonts paint
+    let contentHeight = 1200;
+    try { contentHeight = await win.webContents.executeJavaScript('Math.ceil(document.body.scrollHeight)'); } catch (_) {}
+    const h = Math.max(1, Math.min(contentHeight || 1200, 20000));
+    win.setContentSize(dots, h);
+    await new Promise(r => setTimeout(r, 150));
+    const image = await win.webContents.capturePage();
+    const size = image.getSize();
+    if (!size.width || !size.height) throw new Error('empty raster capture');
+    return bitmapToEscPosRaster(image.toBitmap(), size.width, size.height, dots);
+  } finally {
+    if (win && !win.isDestroyed()) win.destroy();
+  }
+}
+
 /**
  * Convert HTML receipt to ESC/POS byte commands for thermal printers.
  * Ported from DinePrinterPlugin.java (Capacitor plugin) — same proven approach.
@@ -862,7 +934,21 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
       console.warn('[Print] TCP printer not reachable at', host + ':' + port, '— will still attempt print with retries');
     }
 
-    const escPosData = htmlToEscPos(html);
+    // Complex scripts (Tamil/Hindi/Arabic/CJK…) can't be sent as ESC/POS text — render them as a
+    // raster image instead. Plain Latin receipts keep the fast text path. Falls back to text if the
+    // raster render fails, so a print never silently drops.
+    let escPosData;
+    if (hasComplexScript(html)) {
+      try {
+        escPosData = await htmlToEscPosRaster(html, printerWidth);
+        console.log('[Print] TCP: complex script detected → raster image mode');
+      } catch (rErr) {
+        console.warn('[Print] raster render failed, falling back to text (may garble non-Latin):', rErr.message);
+        escPosData = htmlToEscPos(html);
+      }
+    } else {
+      escPosData = htmlToEscPos(html);
+    }
     const totalCopies = copies || 1;
 
     // Retry loop (matches dine-app: 3 attempts with 800ms/1500ms backoff)
@@ -1774,7 +1860,7 @@ const DRAWER_KICK_CMD = Buffer.from([0x1B, 0x70, 0x00, 0x19, 0x19]); // ESC p 0 
 // Some drawers need pin 1 instead — try both if pin 0 doesn't work
 const DRAWER_KICK_CMD_PIN1 = Buffer.from([0x1B, 0x70, 0x01, 0x19, 0x19]); // ESC p 1 25 25
 
-ipcMain.handle('electron:openCashDrawer', async () => {
+async function runOpenCashDrawer() {
   const settings = loadSettings();
   const mode = settings.cashDrawerMode || 'printer'; // 'printer' | 'usb'
   const platform = require('os').platform();
@@ -1953,6 +2039,51 @@ ipcMain.handle('electron:openCashDrawer', async () => {
     diagnostics.fatalError = err.message;
     return { success: false, error: err.message, diagnostics };
   }
+}
+
+// Human-readable hint for the most common drawer failures — shown to support in
+// the printDiagnostics collection so the cause is obvious without a site visit.
+function cashDrawerHint(result) {
+  const d = result && result.diagnostics ? result.diagnostics : {};
+  const err = (result && result.error ? String(result.error) : '').toLowerCase();
+  if (err.includes('no bill printer') || err.includes('no usb drawer')) {
+    return 'Assign a bill printer in Native Printer Settings on this terminal (the drawer fires through the printer DK/RJ11 port).';
+  }
+  if (err.includes('port open failed') || err.includes('usb write failed')) {
+    return 'USB drawer port is wrong or in use. Verify the COM/serial port in Cash Drawer settings.';
+  }
+  if (d.method === 'print-spooler') {
+    return 'Kick sent via the print spooler — some drivers drop raw ESC/POS bytes here. If the drawer still does not open, the printer driver may be filtering the pulse.';
+  }
+  if (err.includes('could not send') || err.includes('lpr failed')) {
+    return 'Printer is offline/disconnected, or the OS blocked raw output. Check the printer is on and reachable, then reprint a test.';
+  }
+  return 'Kick command was sent to the printer but the drawer did not open — check the RJ11 cable in the printer DK port and that the drawer voltage matches the printer (12V/24V).';
+}
+
+// Route every cash-drawer attempt through the SAME telemetry pipe as printing
+// (logPrintEvent → print-diag channel → printDiagnostics.js → /api/print-diagnostics),
+// tagged type:'cash-drawer', so failures land in the printDiagnostics collection by
+// restaurantId. Best-effort; must never affect the drawer flow.
+ipcMain.handle('electron:openCashDrawer', async () => {
+  const result = await runOpenCashDrawer();
+  try {
+    const d = (result && result.diagnostics) || {};
+    logPrintEvent({
+      type: 'cash-drawer',
+      success: result && result.success === true,
+      mode: d.mode || null,
+      method: d.method || (result && result.mode) || null,
+      deviceName: d.printerName || d.printerPort || (result && result.printer) || (result && result.port) || null,
+      configuredDeviceName: d.billPrinter || d.printerName || null,
+      failureReason: (result && result.success) ? null : ((result && result.error) || 'unknown'),
+      hint: (result && result.success) ? null : cashDrawerHint(result),
+      printerPort: d.printerPort || null,
+      drawerErrors: Array.isArray(d.errors) ? d.errors : undefined,
+      fatalError: d.fatalError || undefined,
+    });
+  } catch { /* telemetry must never break the drawer */ }
+  return result;
 });
 
 // ──── IPC: Customer Display (Secondary Screen) ────
