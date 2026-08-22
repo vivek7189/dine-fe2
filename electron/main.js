@@ -814,6 +814,21 @@ ipcMain.handle('electron:setServerMode', async (_e, on) => {
   catch (e) { return { ok: false, error: e && e.message }; }
 });
 
+// On-demand server address for the LOCAL-SERVER build — so the login screen can SHOW staff the
+// exact URL to type into their phones (dineopen-server.local:3003, or the LAN IP if .local is
+// flaky). Returns { serverMode:false } on every other build so the UI shows nothing there.
+ipcMain.handle('electron:getLocalServerInfo', async () => {
+  try {
+    if (!localServer.isServerModeEnabled()) return { serverMode: false };
+    return {
+      serverMode: true,
+      port: localServer.BACKEND_PORT,
+      ips: (localServer.lanIPs && localServer.lanIPs()) || [],
+      hostname: 'dineopen-server.local',
+    };
+  } catch { return { serverMode: false }; }
+});
+
 // Multi-terminal order numbering (T1, T2, …). Always-registered here so it also works in
 // SERVER mode (where offline.js's registerIPC — which used to own these — is skipped and they
 // were stubbed to null). Applied to order numbers on the next app restart.

@@ -76,6 +76,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   server: {
     getMode: () => ipcRenderer.invoke('electron:getServerMode'),
     setMode: (on) => ipcRenderer.invoke('electron:setServerMode', on),
+    // Address to show staff for connecting phones/terminals (local-server build only).
+    getInfo: () => ipcRenderer.invoke('electron:getLocalServerInfo'),
   },
 
   // LAN hub control + terminal identity + pairing

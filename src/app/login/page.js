@@ -305,6 +305,20 @@ const Login = () => {
   // owner can switch to the full OTP/Google login (for setup/admin) via "Owner login".
   const [showOwnerLogin, setShowOwnerLogin] = useState(false);
 
+  // Local-server build ONLY: the address other devices (phones/terminals) type to connect to
+  // THIS machine. Shown compactly on the login screen so staff don't have to hunt for the IP.
+  // Stays null on web/regular-electron (serverMode false), so nothing renders there.
+  const [srvInfo, setSrvInfo] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    try {
+      window.electronAPI?.server?.getInfo?.().then((info) => {
+        if (alive && info?.serverMode) setSrvInfo(info);
+      }).catch(() => {});
+    } catch (_) {}
+    return () => { alive = false; };
+  }, []);
+
   // Local-server activation state (owner setup wizard on the on-prem POS app).
   const [activationPhase, setActivationPhase] = useState(null); // null | 'checking' | 'pulling' | 'cloud-only'
   const [activationNote, setActivationNote] = useState('');
@@ -2201,6 +2215,11 @@ const Login = () => {
     );
   }
 
+  // Two-column layout for the SERVER desktop app on a wide screen — so the login form sits in the
+  // right column (short, no scroll) with branding + the connect address on the left. Triggers on
+  // either the build-time app kind OR the runtime server-mode flag (robust even if the build env
+  // wasn't set). Never on the cloud app / phone.
+  const twoColServer = mounted && (isServerApp() || !!srvInfo?.serverMode) && isWide;
   return (
     <div style={{
       height: "100vh",
@@ -2211,13 +2230,11 @@ const Login = () => {
       // justifyContent: "center", // Removed to allow custom spacing
       padding: "0", // Reset padding to handle header
       position: "relative",
-      // Server app on a desktop-width screen: reserve the left 44% for a branding panel so the
-      // login form sits in the right column (shorter, not stacked). Never on cloud app / mobile.
-      ...(mounted && isServerApp() && isWide ? { paddingLeft: '44%' } : {}),
+      ...(twoColServer ? { paddingLeft: '44%' } : {}),
     }}
     >
       {/* Two-column branding panel — server app + wide screen only */}
-      {mounted && isServerApp() && isWide && (
+      {twoColServer && (
         <div style={{
           position: 'fixed', top: 0, left: 0, bottom: 0, width: '44%', zIndex: 1,
           background: 'linear-gradient(160deg,#DC4A3D 0%,#B23A2F 100%)', color: '#fff',
@@ -2242,6 +2259,20 @@ const Login = () => {
               </div>
             ))}
           </div>
+          {/* Connect address — shown here (left column) so it's not stacked above the login form. */}
+          {srvInfo?.serverMode && (
+            <div style={{ marginTop: 30, padding: '14px 16px', background: 'rgba(255,255,255,0.12)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.22)' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.9, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 }}>
+                📡 Connect your phones &amp; tills to
+              </div>
+              <div style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: 18 }}>{srvInfo.hostname}:{srvInfo.port}</div>
+              {Array.isArray(srvInfo.ips) && srvInfo.ips.length > 0 && (
+                <div style={{ fontFamily: 'monospace', fontSize: 13, opacity: 0.85, marginTop: 4 }}>
+                  or {srvInfo.ips.map((ip) => `${ip}:${srvInfo.port}`).join('   •   ')}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -2444,6 +2475,27 @@ const Login = () => {
             {t('login.subtitle')}
           </p>
         </div>
+
+        {/* Local-server build only: the address other devices type to connect to THIS machine.
+            In two-column mode it lives in the left panel, so only show it inside the card here. */}
+        {srvInfo?.serverMode && !twoColServer && (
+          <div style={{ margin: '0 0 14px', padding: '10px 12px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#047857', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 4 }}>
+              📡 This device is the DineOpen Server
+            </div>
+            <div style={{ fontSize: 13, color: '#065f46' }}>
+              Connect phones &amp; terminals to:
+              <div style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 14, marginTop: 3 }}>
+                {srvInfo.hostname}:{srvInfo.port}
+              </div>
+              {Array.isArray(srvInfo.ips) && srvInfo.ips.length > 0 && (
+                <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#047857', marginTop: 2 }}>
+                  or {srvInfo.ips.map((ip) => `${ip}:${srvInfo.port}`).join('   •   ')}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Login Type Tabs */}
         <div style={{ display: 'flex', borderBottom: '2px solid #f1f5f9' }}>
