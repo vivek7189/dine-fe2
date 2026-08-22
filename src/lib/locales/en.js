@@ -108,7 +108,7 @@ const en = {
     // Invoice / Bill / KOT (bilingual for GCC)
     invoice: {
       // Bill titles by business type
-      billInvoice: 'BILL / INVOICE',
+      billInvoice: 'BILL',
       barTab: 'BAR TAB',
       receipt: 'RECEIPT',
       orderReceipt: 'ORDER RECEIPT',

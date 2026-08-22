@@ -107,7 +107,7 @@ const ar = {
   // Invoice / Bill / KOT (bilingual for GCC)
   invoice: {
     // Bill titles by business type
-    billInvoice: 'فاتورة / BILL',
+    billInvoice: 'فاتورة',
     barTab: 'حساب البار / BAR TAB',
     receipt: 'إيصال / RECEIPT',
     orderReceipt: 'إيصال الطلب / ORDER RECEIPT',
