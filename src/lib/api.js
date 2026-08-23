@@ -694,6 +694,12 @@ class ApiClient {
 
   // File upload with FormData (supports progress tracking)
   async upload(endpoint, formData, options = {}) {
+    // Same resync as request(): never let a stale cached base split a file upload
+    // (e.g. a GCP-native user's menu image) onto the wrong backend.
+    if (!options.baseOverride) {
+      const home = getApiBase();
+      if (home && this.baseURL !== home) this.baseURL = home;
+    }
     const url = `${options.baseOverride || this.baseURL}${endpoint}`;
     const token = this.getToken();
 
