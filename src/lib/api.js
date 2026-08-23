@@ -241,7 +241,7 @@ class ApiClient {
     }
 
     try {
-      const response = await fetch(`${this.baseURL}/api/auth/refresh`, {
+      const response = await fetch(`${getApiBase()}/api/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -272,6 +272,16 @@ class ApiClient {
   }
 
   async request(endpoint, options = {}, isRetry = false) {
+    // Keep the cached base in sync with the session's resolved home. getApiBase() is the
+    // single source of truth (local-server → override → per-user/session pin → default);
+    // the localStorage pin can change AFTER this singleton was constructed (e.g. the login
+    // resolver pins a new user to GCP) without going through setCloudBackend, which would
+    // otherwise leave this.baseURL stale and split-brain the routing (create→Vercel while
+    // reads→GCP). Resyncing here makes every request follow the current home.
+    if (!options.baseOverride) {
+      const home = getApiBase();
+      if (home && this.baseURL !== home) this.baseURL = home;
+    }
     // Auto-inject client timezone offset into every API call so the backend
     // can compute correct date boundaries regardless of server timezone.
     // Uses restaurant's stored timezone when available, falls back to browser OS timezone.
@@ -869,7 +879,7 @@ class ApiClient {
     try {
       // Use getUserPageAccess as a lightweight endpoint to verify token
       // This endpoint requires auth and will return 401 if token is invalid
-      const response = await fetch(`${this.baseURL}/api/user/page-access`, {
+      const response = await fetch(`${getApiBase()}/api/user/page-access`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -2037,7 +2047,7 @@ class ApiClient {
 
   // Bulk staff upload
   async bulkUploadStaff(restaurantId, formData) {
-    const url = `${this.baseURL}/api/bulk-staff/${restaurantId}/extract`;
+    const url = `${getApiBase()}/api/bulk-staff/${restaurantId}/extract`;
     const token = this.getToken();
     const response = await fetch(url, {
       method: 'POST',
@@ -3302,7 +3312,7 @@ class ApiClient {
 
   // Generic image upload
   async uploadImage(formData) {
-    const url = `${this.baseURL}/api/upload/image`;
+    const url = `${getApiBase()}/api/upload/image`;
     const token = this.getToken();
 
     const config = {
@@ -3581,7 +3591,7 @@ class ApiClient {
   // Demo request endpoint - public, no auth required
   async submitDemoRequest(contactType, phone, email, comment) {
     // Create a request without auth token
-    const url = `${this.baseURL}/api/demo-request`;
+    const url = `${getApiBase()}/api/demo-request`;
     const config = {
       method: 'POST',
       headers: {
@@ -4554,7 +4564,7 @@ class ApiClient {
     const ext = extMap[format] || '.csv';
 
     const token = this.getToken();
-    const response = await fetch(`${this.baseURL}/api/parking/reports/${restaurantId}/download?${params.toString()}`, {
+    const response = await fetch(`${getApiBase()}/api/parking/reports/${restaurantId}/download?${params.toString()}`, {
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
     });
     if (!response.ok) {
