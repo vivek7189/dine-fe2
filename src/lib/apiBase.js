@@ -23,6 +23,13 @@ import { getLocalServerUrl, isServerApp } from './localServer';
 export const BACKEND_URL_KEY = 'dineopen_backend_url';
 const COOKIE_KEY = 'dineopen_backend';
 
+// SESSION BACKEND OVERRIDE (Local Admin test only). When set, it FORCES every API
+// call in this browser session to a chosen backend — above the per-user pin — so a
+// super-admin can impersonate a user against GCP or Vercel to verify data/behaviour,
+// WITHOUT changing that user's real routing (which stays driven by pgBackendUrl).
+// Set from /local-login, cleared on logout. Never set during a normal login.
+export const BACKEND_OVERRIDE_KEY = 'dineopen_backend_override';
+
 // Default cloud backend (existing users / fallback). Built at deploy time.
 export const DEFAULT_API_BASE =
   process.env.NEXT_PUBLIC_API_URL || 'https://dine-be2.vercel.app';
@@ -62,6 +69,11 @@ export function getApiBase() {
   if (local) return norm(local);
   // Local-server app: never Vercel — always its baked native GCP/PG backend.
   if (isServerApp()) return norm(DEFAULT_API_BASE);
+  // Session override (Local Admin test) — highest web priority, above the per-user pin.
+  // Reads localStorage first, then a domain-wide cookie (so it survives cross-subdomain
+  // redirects to restaurant.dineopen.com where localStorage is a different origin).
+  const override = getBackendOverride();
+  if (override) return norm(override);
   try {
     // per-user / pgBackendUrl pin wins over the remote default
     const persisted = window.localStorage.getItem(BACKEND_URL_KEY);
@@ -118,4 +130,47 @@ export function clearApiBase() {
 /** True when the browser is currently pinned to the Postgres/GCP backend. */
 export function isOnPgBackend() {
   return norm(getApiBase()) === norm(PG_API_BASE);
+}
+
+// ── Session backend override (Local Admin test) ──────────────────────────────
+// Stored in localStorage (fast, same-origin) AND a domain-wide cookie (so it carries
+// across a subdomain redirect). 24h max-age is a safety cap; normally cleared on logout.
+const OVERRIDE_COOKIE = 'dineopen_be_override';
+function _baseDomain() {
+  try {
+    const h = window.location.hostname;
+    if (!h || !h.includes('.') || /^(localhost|127\.|10\.|192\.168\.|172\.)/.test(h)) return null; // host-only (dev/IP)
+    return '.' + h.split('.').slice(-2).join('.'); // e.g. .dineopen.com
+  } catch (_) { return null; }
+}
+function _readCookie(name) {
+  try {
+    const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : null;
+  } catch (_) { return null; }
+}
+/** Current session override URL, or null (localStorage → domain cookie fallback). */
+export function getBackendOverride() {
+  if (typeof window === 'undefined') return null;
+  try { const ls = window.localStorage.getItem(BACKEND_OVERRIDE_KEY); if (ls) return ls; } catch (_) {}
+  return _readCookie(OVERRIDE_COOKIE);
+}
+/** Force this session onto a specific backend (pass a full URL). Pass null/'' to clear. */
+export function setBackendOverride(url) {
+  if (typeof window === 'undefined') return;
+  const u = url ? norm(url) : '';
+  try { if (u) window.localStorage.setItem(BACKEND_OVERRIDE_KEY, u); else window.localStorage.removeItem(BACKEND_OVERRIDE_KEY); } catch (_) {}
+  const dom = _baseDomain();
+  try {
+    document.cookie = u
+      ? `${OVERRIDE_COOKIE}=${encodeURIComponent(u)};path=/;max-age=86400;SameSite=Lax${dom ? ';domain=' + dom : ''}`
+      : `${OVERRIDE_COOKIE}=;path=/;max-age=0${dom ? ';domain=' + dom : ''}`;
+  } catch (_) {}
+}
+/** Clear the session override (call on logout). */
+export function clearBackendOverride() {
+  if (typeof window === 'undefined') return;
+  try { window.localStorage.removeItem(BACKEND_OVERRIDE_KEY); } catch (_) {}
+  const dom = _baseDomain();
+  try { document.cookie = `${OVERRIDE_COOKIE}=;path=/;max-age=0${dom ? ';domain=' + dom : ''}`; } catch (_) {}
 }

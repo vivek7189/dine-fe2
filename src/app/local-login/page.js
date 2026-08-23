@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { getApiBase } from '@/lib/apiBase';
+import { getApiBase, setBackendOverride, clearBackendOverride, DEFAULT_API_BASE, PG_API_BASE } from '@/lib/apiBase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -26,6 +26,9 @@ const LocalLogin = () => {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // Session backend for THIS test login only: 'auto' = user's normal routing,
+  // 'gcp'/'vercel' = force that backend for the whole session (impersonation test).
+  const [backendChoice, setBackendChoice] = useState('auto');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -45,6 +48,20 @@ const LocalLogin = () => {
         setError('Password is required');
         setLoading(false);
         return;
+      }
+
+      // Apply the SESSION backend override (test-only) BEFORE the login request so the
+      // whole session — this request + every page after — talks to the chosen backend,
+      // without changing the impersonated user's real routing.
+      if (backendChoice === 'gcp') {
+        setBackendOverride(PG_API_BASE);
+        apiClient.setCloudBackend(PG_API_BASE); // update the live client now (override makes it stick)
+      } else if (backendChoice === 'vercel') {
+        setBackendOverride(DEFAULT_API_BASE);
+        apiClient.setCloudBackend(DEFAULT_API_BASE);
+      } else {
+        clearBackendOverride();
+        apiClient.setCloudBackend(''); // reset to default/normal resolution
       }
 
       const backendUrl = getLocalServerUrl() || getApiBase();
@@ -217,6 +234,38 @@ const LocalLogin = () => {
             </div>
             <p className="mt-1 text-xs text-gray-500">
               Use the fixed admin password
+            </p>
+          </div>
+
+          {/* Session backend selector (test-only override) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Test against backend
+            </label>
+            <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
+              {[
+                { key: 'auto', label: 'Auto (user\'s)' },
+                { key: 'vercel', label: 'Vercel' },
+                { key: 'gcp', label: 'GCP' },
+              ].map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => setBackendChoice(opt.key)}
+                  className={`flex-1 py-2 px-3 rounded-md font-medium text-sm transition-colors ${
+                    backendChoice === opt.key
+                      ? 'bg-white text-red-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              {backendChoice === 'auto'
+                ? 'Uses the account\'s normal backend routing.'
+                : `Forces THIS session to ${backendChoice === 'gcp' ? 'GCP' : 'Vercel'} for all pages — does NOT change the user\'s real routing. Ends on logout.`}
             </p>
           </div>
 

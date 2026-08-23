@@ -1,7 +1,7 @@
 import { reportNetworkFailure, reportNetworkSuccess } from '../hooks/useNetworkStatus';
 import { setCachedData, getCachedData } from './offlineDb';
 import { getLocalServerUrl, setLocalServerUrl } from './localServer';
-import { getApiBase, setApiBase, clearApiBase, refreshRemoteBackend, DEFAULT_API_BASE, BACKEND_URL_KEY } from './apiBase';
+import { getApiBase, setApiBase, clearApiBase, refreshRemoteBackend, DEFAULT_API_BASE, BACKEND_URL_KEY, getBackendOverride, clearBackendOverride } from './apiBase';
 
 // Default cloud backend + the persisted-backend key both come from the SINGLE source
 // of truth (lib/apiBase.js). Never hardcode a backend URL or read the env directly
@@ -171,7 +171,10 @@ class ApiClient {
     // route us back to the cloud when we're pinned to the on-prem server.
     const localSrv = getLocalServerUrl();
     const customUrl = restaurant?.pgBackendUrl;
-    const newBase = localSrv || customUrl || API_BASE_URL;
+    // A session backend override (Local Admin test) wins over the restaurant's pgBackendUrl,
+    // so an impersonation session stays on the chosen backend across restaurant switches.
+    const override = getBackendOverride();
+    const newBase = localSrv || override || customUrl || API_BASE_URL;
     // Persist the cloud choice so a page reload routes to the right backend on the first call
     // (local-server mode is persisted separately and wins, so only persist the cloud choice).
     if (customUrl) setApiBase(customUrl); else clearApiBase();
@@ -192,9 +195,10 @@ class ApiClient {
   setCloudBackend(url) {
     const norm = String(url || '').trim().replace(/\/+$/, '');
     if (norm) setApiBase(norm); else clearApiBase();
-    // Cloud choice only takes effect when NOT pinned to a local server (local always wins).
+    // Cloud choice only takes effect when NOT pinned to a local server or a session
+    // override (both win over the per-user pin).
     if (!getLocalServerUrl()) {
-      const newBase = norm || API_BASE_URL;
+      const newBase = getBackendOverride() || norm || API_BASE_URL;
       if (this.baseURL !== newBase) { this.baseURL = newBase; this.clearAllCache(); }
     }
     return norm || API_BASE_URL;
@@ -905,6 +909,9 @@ class ApiClient {
     // Clear cookies
     this.deleteCookie('dine_auth_token');
     this.deleteCookie('dine_user_data');
+
+    // Clear any Local-Admin session backend override so it never leaks to the next login.
+    clearBackendOverride();
 
     // Clear localStorage completely
     localStorage.clear();
