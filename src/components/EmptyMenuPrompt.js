@@ -15,6 +15,7 @@ import {
   FaEye
 } from 'react-icons/fa';
 import apiClient from '../lib/api';
+import { getApiBase } from '../lib/apiBase';
 
 const EmptyMenuPrompt = ({ restaurantName, selectedRestaurant, onAddMenu, onMenuItemsAdded, onPreviewDemo }) => {
   const router = useRouter();
@@ -33,7 +34,7 @@ const EmptyMenuPrompt = ({ restaurantName, selectedRestaurant, onAddMenu, onMenu
   const handlePreviewDemo = async () => {
     setLoadingDemo(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.dineopen.com'}/api/demo-menu`);
+      const response = await fetch(`${getApiBase()}/api/demo-menu`);
       const data = await response.json();
 
       if (!response.ok || !data.success) {
