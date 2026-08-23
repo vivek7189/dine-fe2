@@ -174,12 +174,17 @@ class ApiClient {
     // A session backend override (Local Admin test) wins over the restaurant's pgBackendUrl,
     // so an impersonation session stays on the chosen backend across restaurant switches.
     const override = getBackendOverride();
-    const newBase = localSrv || override || customUrl || API_BASE_URL;
-    // Persist the cloud choice so a page reload routes to the right backend on the first call
-    // (local-server mode is persisted separately and wins, so only persist the cloud choice).
-    if (customUrl) setApiBase(customUrl); else clearApiBase();
+    // Fall back to the SESSION's resolved home (getApiBase → login resolver / per-user pin),
+    // NOT the baked Vercel default. A GCP-native restaurant has no pgBackendUrl (it's *native*,
+    // not *toggled*), so `|| API_BASE_URL` used to slam the session back to Vercel and split-brain
+    // the routing (page-access→Vercel 404 while restaurants→GCP). Absence of pgBackendUrl means
+    // "use the user's home", never "force Vercel".
+    const newBase = localSrv || override || customUrl || getApiBase();
+    // Only persist an explicit per-restaurant pin. Do NOT clearApiBase() when customUrl is empty —
+    // that would wipe the session home the login resolver set for a native user.
+    if (customUrl) setApiBase(customUrl);
     if (this.baseURL !== newBase) {
-      console.log(`🔀 API routing: ${newBase}${localSrv ? ' (local server)' : customUrl ? ' (pgBackendUrl)' : ' (default)'}`);
+      console.log(`🔀 API routing: ${newBase}${localSrv ? ' (local server)' : override ? ' (override)' : customUrl ? ' (pgBackendUrl)' : ' (session home)'}`);
       this.baseURL = newBase;
       this.clearAllCache(); // Clear cache when switching backends
     }
