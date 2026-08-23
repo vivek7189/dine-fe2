@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { getApiBase } from '@/lib/apiBase';
+import { DEFAULT_API_BASE } from '@/lib/apiBase';
 import { auth } from '../../../firebase';
 import {
   signInWithPhoneNumber,
@@ -49,7 +49,23 @@ export default function DesktopAuthPage() {
   const [isPrefilledPhone, setIsPrefilledPhone] = useState(false);
   const autoSendRef = useRef(false);
 
-  const backendUrl = getApiBase();
+  // Resolve WHICH backend this identity belongs to (born-native GCP vs Vercel home),
+  // queried against the FIXED directory (never getApiBase(), which on a fresh browser is
+  // just the default). Returns the resolved backend URL, or '' meaning the Vercel default.
+  // The desktop app must then pin THIS backend after polling, or a GCP-native user would
+  // get a GCP token but route to Vercel (split-brain).
+  const resolveBackend = async ({ phone, email } = {}) => {
+    if (!phone && !email) return '';
+    try {
+      const qs = phone ? `phone=${encodeURIComponent(phone)}` : `email=${encodeURIComponent(email)}`;
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 5000);
+      const rb = await fetch(`${DEFAULT_API_BASE}/api/auth/resolve-backend?${qs}`, { signal: ctrl.signal })
+        .then(r => (r.ok ? r.json() : null)).catch(() => null);
+      clearTimeout(t);
+      return (rb && rb.backendUrl) ? rb.backendUrl : '';
+    } catch (_) { return ''; }
+  };
 
   useEffect(() => {
     // Get session ID and optional phone params from URL
@@ -128,13 +144,15 @@ export default function DesktopAuthPage() {
     }
   };
 
-  // Store auth result in backend session
-  const storeSession = async (token, user) => {
+  // Store auth result in backend session on the FIXED rendezvous (DEFAULT_API_BASE), so the
+  // desktop app always knows where to poll regardless of the user's home backend. Carry the
+  // resolved backend so the app can pin token + routing to the same place.
+  const storeSession = async (token, user, resolvedBackend) => {
     try {
-      await fetch(`${backendUrl}/api/auth/desktop/session`, {
+      await fetch(`${DEFAULT_API_BASE}/api/auth/desktop/session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, token, user }),
+        body: JSON.stringify({ sessionId, token, user, backendUrl: resolvedBackend || '' }),
       });
       setSuccess(true);
       setStep('success');
@@ -180,8 +198,12 @@ export default function DesktopAuthPage() {
     setLoading(true);
     try {
       const result = await verificationId.confirm(otp);
+      // Resolve which backend this phone belongs to, then verify against it (born-native → GCP)
+      const fullPhone = result.user.phoneNumber || `${selectedCountry.dialCode}${phoneNumber}`;
+      const resolved = await resolveBackend({ phone: fullPhone });
+      const authBase = resolved || DEFAULT_API_BASE;
       // Exchange Firebase user for our JWT
-      const response = await fetch(`${backendUrl}/api/auth/firebase/verify`, {
+      const response = await fetch(`${authBase}/api/auth/firebase/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -194,7 +216,7 @@ export default function DesktopAuthPage() {
       });
       const data = await response.json();
       if (response.ok) {
-        await storeSession(data.token, data.user);
+        await storeSession(data.token, data.user, resolved);
       } else {
         setError(data.message || 'Verification failed');
       }
@@ -216,8 +238,11 @@ export default function DesktopAuthPage() {
       provider.addScope('profile');
       provider.setCustomParameters({ prompt: 'select_account' });
       const result = await signInWithPopup(auth, provider);
+      // Resolve which backend this Google email belongs to, then exchange against it
+      const resolved = await resolveBackend({ email: result.user.email });
+      const authBase = resolved || DEFAULT_API_BASE;
       // Exchange for JWT
-      const response = await fetch(`${backendUrl}/api/auth/google`, {
+      const response = await fetch(`${authBase}/api/auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -229,7 +254,7 @@ export default function DesktopAuthPage() {
       });
       const data = await response.json();
       if (response.ok) {
-        await storeSession(data.token, data.user);
+        await storeSession(data.token, data.user, resolved);
       } else {
         setError(data.error || 'Google login failed');
       }
@@ -253,14 +278,17 @@ export default function DesktopAuthPage() {
     }
     setLoading(true);
     try {
-      const response = await fetch(`${backendUrl}/api/auth/email/login`, {
+      // Resolve which backend this email belongs to, then log in against it
+      const resolved = await resolveBackend({ email: (email || '').trim().toLowerCase() });
+      const authBase = resolved || DEFAULT_API_BASE;
+      const response = await fetch(`${authBase}/api/auth/email/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
       const data = await response.json();
       if (response.ok) {
-        await storeSession(data.token, data.user);
+        await storeSession(data.token, data.user, resolved);
       } else {
         setError(data.message || data.error || 'Login failed');
       }

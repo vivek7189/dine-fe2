@@ -719,17 +719,16 @@ const Login = () => {
   useEffect(() => {
     if (!desktopAuthPolling || !desktopSessionId) return;
 
-    // Always poll production backend — desktop-auth page runs on dineopen.com and stores session there.
-    // The local-server app is Postgres-only (never Vercel), so it uses its own backend (getApiBase→GCP).
-    const backendUrl = isServerApp()
-      ? getApiBase()
-      : ((isTauriApp || isElectronApp) ? 'https://dine-be2-phi.vercel.app' : getApiBase());
+    // The desktop-auth page stores the session on the FIXED rendezvous (DEFAULT_API_BASE), so poll
+    // THERE regardless of the user's home backend — then pin the backend the token actually came
+    // from (session.backendUrl) below. The local-server app is Postgres-only, so it uses getApiBase→GCP.
+    const pollBase = isServerApp() ? getApiBase() : DEFAULT_API_BASE;
     let cancelled = false;
 
     const poll = async () => {
       while (!cancelled) {
         try {
-          const res = await fetch(`${backendUrl}/api/auth/desktop/session/${desktopSessionId}`);
+          const res = await fetch(`${pollBase}/api/auth/desktop/session/${desktopSessionId}`);
           const data = await res.json();
 
           if (!data.pending && data.token) {
@@ -741,6 +740,10 @@ const Login = () => {
 
             apiClient.setToken(data.token);
             if (data.user) apiClient.setUser(data.user);
+            // Pin the backend the token was actually issued by (resolved per-user on the
+            // desktop-auth page), so token + routing agree — a GCP-native user stays on GCP
+            // instead of splitting to Vercel. Old sessions omit backendUrl → '' → Vercel default.
+            try { if (!isServerApp() && !getLocalServerUrl()) apiClient.setCloudBackend(data.backendUrl || ''); } catch (_) {}
             // Apply local-server vs cloud routing (same as the direct OTP/Google paths). On a
             // provisioned local-server terminal, this routes the owner of the bound restaurant to
             // the local DB, and any OTHER owner to the cloud — so they see their own restaurant
@@ -748,9 +751,11 @@ const Login = () => {
             try { await activateLocalServer(data.token, data.user); } catch (_) {}
             triggerDashboardPrefetch();
 
-            // Fetch restaurants for the user
+            // Fetch restaurants from the backend the token belongs to (getApiBase now reflects
+            // the pin set just above; local-server wins via getApiBase).
+            const dataBase = getApiBase();
             try {
-              const restaurantsRes = await fetch(`${backendUrl}/api/restaurants`, {
+              const restaurantsRes = await fetch(`${dataBase}/api/restaurants`, {
                 headers: { 'Authorization': `Bearer ${data.token}`, 'Content-Type': 'application/json' },
               });
               if (restaurantsRes.ok) {
