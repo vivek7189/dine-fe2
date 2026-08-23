@@ -1168,6 +1168,26 @@ const Login = () => {
     return true;
   };
 
+  // Resolve which backend an identifier belongs to and pin the session BEFORE auth:
+  //   existing user → their home (Vercel, or GCP if a super-admin switched them)
+  //   NEW user (not on Vercel) → GCP, so the account is created born-native on Postgres
+  // Queried against the FIXED default directory (never getApiBase(), or a device already pinned
+  // to GCP would ask the wrong server). Best-effort: on any failure it pins '' → Vercel default,
+  // so login never blocks and a new account is never accidentally duplicated onto GCP.
+  const resolveAndPinBackend = async ({ phone, email } = {}) => {
+    if (isServerApp() || getLocalServerUrl()) return; // local-server app is hard-pinned, never repin
+    if (!phone && !email) return;
+    try {
+      const qs = phone ? `phone=${encodeURIComponent(phone)}` : `email=${encodeURIComponent(email)}`;
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 5000);
+      const rb = await fetch(`${DEFAULT_API_BASE}/api/auth/resolve-backend?${qs}`, { signal: ctrl.signal })
+        .then(r => (r.ok ? r.json() : null)).catch(() => null);
+      clearTimeout(t);
+      apiClient.setCloudBackend(rb?.backendUrl || ''); // GCP(new)/toggled-home, or '' → Vercel default
+    } catch (_) { /* resolver must never block login */ }
+  };
+
   const handlePhoneSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -1183,23 +1203,8 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // Per-owner backend routing: BEFORE sending/verifying OTP, ask the FIXED default
-      // directory which backend THIS phone (owner account) belongs to — if a super-admin
-      // switched this owner to GCP in dine-admin, pin the whole auth round-trip there.
-      // Must query DEFAULT_API_BASE (never getApiBase(), or a device already pinned to GCP
-      // would ask the wrong server). Best-effort; never blocks login. setCloudBackend('')
-      // reverts to Vercel, so toggling the owner back also takes effect on next login.
-      if (!isServerApp() && !getLocalServerUrl()) {
-        try {
-          const fullPhone = `${selectedCountry.dialCode}${phoneNumber}`;
-          const ctrl = new AbortController();
-          const t = setTimeout(() => ctrl.abort(), 5000);
-          const rb = await fetch(`${DEFAULT_API_BASE}/api/auth/resolve-backend?phone=${encodeURIComponent(fullPhone)}`, { signal: ctrl.signal })
-            .then(r => (r.ok ? r.json() : null)).catch(() => null);
-          clearTimeout(t);
-          apiClient.setCloudBackend(rb?.backendUrl || ''); // GCP url pins; '' → default (Vercel)
-        } catch (_) { /* resolver must never block login */ }
-      }
+      // Route to the right backend BEFORE OTP: existing→home, NEW→GCP (born-native).
+      await resolveAndPinBackend({ phone: `${selectedCountry.dialCode}${phoneNumber}` });
 
       // Check if it's a dummy account OR Tauri desktop app — use backend OTP (bypasses Firebase reCAPTCHA)
       if ((selectedCountry.code === 'IN' && isDummyAccount(phoneNumber)) || isTauriApp) {
@@ -1461,6 +1466,8 @@ const Login = () => {
         return;
       }
 
+      // Route to the right backend BEFORE OTP: existing→home, NEW→GCP (born-native).
+      await resolveAndPinBackend({ email: (email || '').trim().toLowerCase() });
       const backendUrl = getApiBase();
       const otpResponse = await fetch(`${backendUrl}/api/auth/email/send-otp`, {
         method: 'POST',
@@ -1583,6 +1590,8 @@ const Login = () => {
         return;
       }
 
+      // Existing users → their home backend (resolver finds them; new-user case is register above).
+      await resolveAndPinBackend({ email: (email || '').trim().toLowerCase() });
       const backendUrl = getApiBase();
       const loginResponse = await fetch(`${backendUrl}/api/auth/email/login`, {
         method: 'POST',
@@ -1740,6 +1749,10 @@ const Login = () => {
       const result = await signInWithPopup(auth, provider);
 
       console.log('Google login result:', result.user);
+
+      // Route to the right backend BEFORE the backend call: existing Google user → home,
+      // NEW → GCP (born-native).
+      await resolveAndPinBackend({ email: (result.user.email || '').trim().toLowerCase() });
 
       // Send user data to backend (Firebase already verified the user)
       const backendUrl = getApiBase();
