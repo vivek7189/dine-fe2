@@ -15,8 +15,10 @@ export default function DashboardTab({
   permissions = { read: true, add: true, update: true, delete: true },
 }) {
   const [showAlertModal, setShowAlertModal] = useState(false);
+  // Only "low" when a real threshold (>0) is set — an item with no threshold (min 0/undefined)
+  // is "out of stock" when 0, not "low". Keeps GCP (min=0) and Vercel (min undefined) consistent.
   const lowStockItems = inventoryItems.filter(
-    item => item.currentStock <= item.minStock
+    item => item.minStock > 0 && item.currentStock <= item.minStock
   );
 
   const expiringItems = inventoryItems.filter(item => {

@@ -38,7 +38,7 @@ export default function StockTab({
     return todayUsageMap[item._id] || todayUsageMap[item.id] || todayUsageMap[item.name] || null;
   };
 
-  const lowStockCount = dashboardStats?.lowStockItems ?? inventoryItems?.filter(i => i.currentStock <= i.minStock).length ?? 0;
+  const lowStockCount = dashboardStats?.lowStockItems ?? inventoryItems?.filter(i => i.minStock > 0 && i.currentStock <= i.minStock).length ?? 0;
   const totalValue = dashboardStats?.totalValue ?? 0;
   const totalItems = dashboardStats?.totalItems ?? inventoryItems?.length ?? 0;
   const categoryCount = dashboardStats?.categories ?? categories?.length ?? 0;

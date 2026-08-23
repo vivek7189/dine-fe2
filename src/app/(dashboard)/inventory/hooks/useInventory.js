@@ -1082,7 +1082,7 @@ export default function useInventory() {
     let reportTitle = '';
     switch (type) {
       case 'low-stock':
-        const lowStockItems = inventoryItems.filter(item => item.currentStock <= item.minStock);
+        const lowStockItems = inventoryItems.filter(item => item.minStock > 0 && item.currentStock <= item.minStock);
         reportTitle = 'Low Stock Report';
         reportContent = `Low Stock Items (${lowStockItems.length} items):\n\n`;
         lowStockItems.forEach(item => { reportContent += `• ${item.name}: ${item.currentStock} ${item.unit} (Min: ${item.minStock})\n`; });

@@ -159,7 +159,7 @@ function StockReport({ data }) {
             <Text style={[styles.headerText, stockCols.status]}>Status</Text>
           </View>
           {items.map((item, idx) => {
-            const isLow = item.status === 'Low' || item.status === 'low' || (item.currentStock != null && item.minStock != null && item.currentStock <= item.minStock);
+            const isLow = item.status === 'Low' || item.status === 'low' || (item.currentStock != null && item.minStock > 0 && item.currentStock <= item.minStock);
             return (
               <View key={idx} style={styles.tableRow}>
                 <Text style={[styles.cellText, stockCols.num]}>{idx + 1}</Text>
