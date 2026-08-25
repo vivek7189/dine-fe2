@@ -1,7 +1,7 @@
 import { reportNetworkFailure, reportNetworkSuccess } from '../hooks/useNetworkStatus';
 import { setCachedData, getCachedData } from './offlineDb';
-import { getLocalServerUrl, setLocalServerUrl } from './localServer';
-import { getApiBase, setApiBase, clearApiBase, refreshRemoteBackend, DEFAULT_API_BASE, BACKEND_URL_KEY, getBackendOverride, clearBackendOverride } from './apiBase';
+import { getLocalServerUrl, setLocalServerUrl, isServerApp } from './localServer';
+import { getApiBase, setApiBase, clearApiBase, refreshRemoteBackend, DEFAULT_API_BASE, PG_API_BASE, BACKEND_URL_KEY, getBackendOverride, clearBackendOverride } from './apiBase';
 
 // Default cloud backend + the persisted-backend key both come from the SINGLE source
 // of truth (lib/apiBase.js). Never hardcode a backend URL or read the env directly
@@ -343,12 +343,15 @@ class ApiClient {
         return await withTimeout(this._tauriRequest(endpoint, config), timeoutForMethod(config.method), endpoint);
       }
 
-      // Electron desktop: route through Node.js main process for SQLite offline cache.
-      // Skip IPC for FormData (file uploads) — FormData can't be serialized through IPC.
-      // ALSO skip IPC in local-server mode: there we talk HTTP straight to the on-prem
-      // dine-backend (real logic + local Postgres), not the legacy SQLite proxy.
+      // Electron desktop (CLOUD app only): route through Node.js main process for the legacy
+      // SQLite offline cache. Skip IPC for FormData (file uploads) — can't serialize through IPC.
+      // ALSO skip IPC for the LOCAL-SERVER app (isServerApp) entirely: it must talk HTTP straight to
+      // its resolved backend — the CLOUD (getApiBase → cloud) when online, or the on-prem
+      // dine-backend on loopback when offline. Routing it through the legacy SQLite proxy served
+      // stale single-tenant local data (e.g. "1 restaurant") and ignored baseURL — the root cause
+      // of the account/overview showing 1 instead of the whole cloud account.
       if (typeof window !== 'undefined' && window.electronAPI?.apiRequest
-          && !(config.body instanceof FormData) && !getLocalServerUrl()) {
+          && !(config.body instanceof FormData) && !getLocalServerUrl() && !isServerApp()) {
         return await withTimeout(this._electronRequest(endpoint, config), timeoutForMethod(config.method), endpoint);
       }
 
@@ -1123,6 +1126,10 @@ class ApiClient {
 
   // Restaurant endpoints
   async getRestaurants() {
+    // Server app: the restaurant list/switcher is account-level → always from the cloud (the local
+    // server holds only ONE). Fresh (no cache) so it can't get stuck on a stale 1-restaurant list.
+    const base = this.accountScopeBase();
+    if (base) return this.request('/api/restaurants', { baseOverride: base });
     return this.cachedGet('/api/restaurants', 10 * 60 * 1000); // 10 min — rarely changes
   }
 
@@ -1330,6 +1337,27 @@ class ApiClient {
       const persisted = typeof window !== 'undefined' ? window.localStorage.getItem(BACKEND_URL_KEY) : null;
       return persisted || API_BASE_URL;
     } catch (_) { return API_BASE_URL; }
+  }
+
+  // Account/owner-level scope: the multi-outlet owner dashboard ("all my restaurants", revenue
+  // across outlets) must ALWAYS come from the CLOUD — the local server only holds this ONE bound
+  // restaurant, so asking it about the whole account would only ever answer "1". On a local-first
+  // terminal this returns the cloud base (used as baseOverride); on web / the cloud app there is
+  // no local server so it returns undefined and routing is unchanged. Needs internet by design —
+  // it is the ONLINE overview, distinct from the offline-capable POS.
+  accountScopeBase() {
+    // When this terminal is pinned to a LOCAL server, account/owner-level reads (all restaurants,
+    // owner dashboard) must still come from the CLOUD — the local server is single-tenant (holds
+    // ONE restaurant), so it would only ever answer "1". Gate on the LOCAL PIN being active (not on
+    // isServerApp, which the earlier working build proved is the right, reliable condition). Return
+    // the per-user pin when it's a real cloud URL, else the GCP/PG default; NEVER a loopback/LAN URL.
+    // No local pin (already cloud) or web/cloud app → undefined (normal routing).
+    try {
+      if (typeof window === 'undefined' || !getLocalServerUrl()) return undefined;
+      const pin = window.localStorage.getItem(BACKEND_URL_KEY);
+      if (pin && !/127\.0\.0\.1|localhost|\.local|:3003/.test(pin)) return pin.replace(/\/+$/, '');
+      return PG_API_BASE;
+    } catch (_) { return undefined; }
   }
 
   // ─── Signed-URL bulk upload (large files) — AI extraction runs in the CLOUD ─────────────
@@ -4066,7 +4094,7 @@ class ApiClient {
     if (params.startDate) query.append('startDate', params.startDate);
     if (params.endDate) query.append('endDate', params.endDate);
     const queryString = query.toString();
-    return this.request(`/api/owner/dashboard${queryString ? `?${queryString}` : ''}`);
+    return this.request(`/api/owner/dashboard${queryString ? `?${queryString}` : ''}`, { baseOverride: this.accountScopeBase() });
   }
 
   // Get cross-restaurant analytics
@@ -4079,7 +4107,7 @@ class ApiClient {
       params.restaurantIds.forEach(id => queryParams.append('restaurantIds[]', id));
     }
     const query = queryParams.toString();
-    return this.request(`/api/owner/analytics${query ? `?${query}` : ''}`);
+    return this.request(`/api/owner/analytics${query ? `?${query}` : ''}`, { baseOverride: this.accountScopeBase() });
   }
 
   // Get all staff across owner's restaurants
@@ -4094,7 +4122,7 @@ class ApiClient {
       params.restaurantIds.forEach(id => queryParams.append('restaurantIds[]', id));
     }
     const query = queryParams.toString();
-    return this.request(`/api/owner/staff${query ? `?${query}` : ''}`);
+    return this.request(`/api/owner/staff${query ? `?${query}` : ''}`, { baseOverride: this.accountScopeBase() });
   }
 
   // Get menu items across owner's restaurants
@@ -4108,7 +4136,7 @@ class ApiClient {
       params.restaurantIds.forEach(id => queryParams.append('restaurantIds[]', id));
     }
     const query = queryParams.toString();
-    return this.request(`/api/owner/menu-items${query ? `?${query}` : ''}`);
+    return this.request(`/api/owner/menu-items${query ? `?${query}` : ''}`, { baseOverride: this.accountScopeBase() });
   }
 
   // Get inventory across owner's restaurants
@@ -4123,14 +4151,15 @@ class ApiClient {
       params.restaurantIds.forEach(id => queryParams.append('restaurantIds[]', id));
     }
     const query = queryParams.toString();
-    return this.request(`/api/owner/inventory${query ? `?${query}` : ''}`);
+    return this.request(`/api/owner/inventory${query ? `?${query}` : ''}`, { baseOverride: this.accountScopeBase() });
   }
 
   // Update staff status (activate/deactivate)
   async updateOwnerStaffStatus(staffId, status) {
     return this.request(`/api/owner/staff/${staffId}/status`, {
       method: 'PATCH',
-      body: { status }
+      body: { status },
+      baseOverride: this.accountScopeBase()
     });
   }
 
@@ -4144,19 +4173,20 @@ class ApiClient {
       params.restaurantIds.forEach(id => queryParams.append('restaurantIds[]', id));
     }
     const query = queryParams.toString();
-    return this.request(`/api/ai/insights${query ? `?${query}` : ''}`);
+    return this.request(`/api/ai/insights${query ? `?${query}` : ''}`, { baseOverride: this.accountScopeBase() });
   }
 
   // Get email report preferences
   async getEmailPreferences() {
-    return this.request('/api/ai/email-preferences');
+    return this.request('/api/ai/email-preferences', { baseOverride: this.accountScopeBase() });
   }
 
   // Update email report preferences
   async updateEmailPreferences(preferences) {
     return this.request('/api/ai/email-preferences', {
       method: 'POST',
-      body: preferences
+      body: preferences,
+      baseOverride: this.accountScopeBase()
     });
   }
 
@@ -4170,13 +4200,14 @@ class ApiClient {
     if (reportType) body.reportType = reportType;
     return this.request('/api/ai/send-test-report', {
       method: 'POST',
-      body
+      body,
+      baseOverride: this.accountScopeBase()
     });
   }
 
   // Get AI insights usage (remaining count)
   async getAIUsage() {
-    return this.request('/api/ai/usage');
+    return this.request('/api/ai/usage', { baseOverride: this.accountScopeBase() });
   }
 
   // ─── Books (Accounting) ──────────────────────────────────────────────────
@@ -4355,13 +4386,13 @@ class ApiClient {
 
   // --- Organization Management ---
   createOrganization(data) { return this.request('/api/organizations', { method: 'POST', body: data }); }
-  getOrganizations() { return this.request('/api/organizations'); }
-  getOrganization(orgId) { return this.request(`/api/organizations/${orgId}`); }
-  updateOrganization(orgId, data) { return this.request(`/api/organizations/${orgId}`, { method: 'PATCH', body: data }); }
-  addOutletToOrg(orgId, data) { return this.request(`/api/organizations/${orgId}/outlets`, { method: 'POST', body: data }); }
-  removeOutletFromOrg(orgId, restaurantId) { return this.request(`/api/organizations/${orgId}/outlets/${restaurantId}`, { method: 'DELETE' }); }
-  changeOutletType(orgId, restaurantId, data) { return this.request(`/api/organizations/${orgId}/outlets/${restaurantId}/type`, { method: 'PATCH', body: data }); }
-  getOrgOutlets(orgId) { return this.request(`/api/organizations/${orgId}/outlets`); }
+  getOrganizations() { return this.request('/api/organizations', { baseOverride: this.accountScopeBase() }); }
+  getOrganization(orgId) { return this.request(`/api/organizations/${orgId}`, { baseOverride: this.accountScopeBase() }); }
+  updateOrganization(orgId, data) { return this.request(`/api/organizations/${orgId}`, { method: 'PATCH', body: data, baseOverride: this.accountScopeBase() }); }
+  addOutletToOrg(orgId, data) { return this.request(`/api/organizations/${orgId}/outlets`, { method: 'POST', body: data, baseOverride: this.accountScopeBase() }); }
+  removeOutletFromOrg(orgId, restaurantId) { return this.request(`/api/organizations/${orgId}/outlets/${restaurantId}`, { method: 'DELETE', baseOverride: this.accountScopeBase() }); }
+  changeOutletType(orgId, restaurantId, data) { return this.request(`/api/organizations/${orgId}/outlets/${restaurantId}/type`, { method: 'PATCH', body: data, baseOverride: this.accountScopeBase() }); }
+  getOrgOutlets(orgId) { return this.request(`/api/organizations/${orgId}/outlets`, { baseOverride: this.accountScopeBase() }); }
 
   // --- Central Menu Management ---
   createMenuTemplate(orgId, data) { return this.request(`/api/org-menu/${orgId}/templates`, { method: 'POST', body: data }); }

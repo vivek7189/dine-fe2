@@ -17,7 +17,8 @@ import useRealtimeConnection from '../../hooks/useRealtimeConnection';
 import { useOrderNotifications } from '../../hooks/useOrderNotifications';
 import PrintEventToast from '../../components/PrintEventToast';
 import SyncStatus from '../../components/SyncStatus';
-// ModePill (bottom-right) removed; HeaderModeToggle now mounts inline in the dashboard header.
+import SyncStatusDot from '../../components/SyncStatusDot';
+// Local-first: no online/offline routing switch. A read-only SyncStatusDot floats top-right.
 import OfflineFallback from '../../components/OfflineFallback';
 import { isWeb, isTauri, isElectron } from '../../utils/platform';
 import { isAutoUpdateEnabled, checkForUpdates, restartApp } from '../../utils/autoUpdater';
@@ -65,23 +66,8 @@ function DashboardLayoutContent({ children }) {
     window.addEventListener('restaurantChanged', read);
     return () => window.removeEventListener('restaurantChanged', read);
   }, []);
-  // Offline resilience: if the on-prem server is on THIS machine, force the API/base to
-  // loopback (127.0.0.1) so orders keep working with Wi-Fi/LAN OFF. This self-heals an
-  // already-logged-in session that had a stale LAN-IP / `.local` URL stored from before.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const before = apiClient.baseURL;
-      const url = await preferLoopbackIfLocal();
-      if (!cancelled && url === 'http://127.0.0.1:3003' && before !== url) {
-        apiClient.setLocalServer(url);
-        // The LAN real-time socket may have already opened against the old LAN IP;
-        // force it to reconnect to loopback so live table/order events keep flowing.
-        reconnectLan();
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+  // Connectivity-based routing (online → cloud, offline → local server) is handled by the
+  // <OfflineFallback/> reconciler below — it probes the real cloud and pins/unpins accordingly.
 
   const [notificationOrderTypes, setNotificationOrderTypes] = useState(null);
   const [isClient, setIsClient] = useState(false);
@@ -616,6 +602,11 @@ function DashboardLayoutContent({ children }) {
 
             {/* DineAI Floating Button */}
             <DineAIButton />
+
+            {/* Always-visible sync status dot (local-server app only). Toast-style: the till is
+                local-first, so this is an honest status indicator — 🟢 Synced / 🔵 Syncing / 🟡 Offline —
+                NOT a routing switch. Floats top-right on every dashboard page. */}
+            <SyncStatusDot />
 
             {/* Offline-first sync: first-run loader ONLY here (self-gates to local-server mode).
                 The persistent status pill now lives inline in the dashboard header next to TABLES. */}

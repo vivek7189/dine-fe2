@@ -35,6 +35,10 @@ function getBonjourInstance() {
   }
   if (!bonjourInstance) {
     bonjourInstance = new Bonjour();
+    // The underlying multicast-dns socket emits async 'error' when the network interface disappears
+    // (Wi-Fi off → EADDRNOTAVAIL on 224.0.0.251:5353). With no listener that becomes an uncaught
+    // exception and crashes the Electron main process. Swallow these benign network errors.
+    try { bonjourInstance.server?.mdns?.on('error', (e) => console.warn('[LanDiscovery] mdns error (ignored):', e && (e.code || e.message))); } catch (_) {}
   }
   return bonjourInstance;
 }

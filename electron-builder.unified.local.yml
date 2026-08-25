@@ -1,0 +1,95 @@
+# Unified "POS + local server" build: ONE app that boots embedded Postgres + the real
+# dine-backend (pg-full-migration) and shows the POS UI — full offline operation.
+#
+# Distinct appId/productName from the normal app (electron-builder.yml) so both can be
+# installed side by side.
+#
+# AUTO-UPDATE (same repo as the normal app, separate `server` channel — no collision):
+# The app VERSION carries a `-server` PRERELEASE suffix (e.g. 1.14.49-server). electron-builder
+# derives the update channel from that prerelease (appInfo.js), so it writes the manifest as
+# `server.yml` / `server-mac.yml` — never overwriting the normal app's `latest.yml`. The two apps
+# coexist in ONE repo because the server RELEASES are published as PRE-RELEASES (CI):
+#   • Normal app (allowPrerelease:false) resolves via GitHub "latest release", which EXCLUDES
+#     prereleases → it never sees server releases.
+#   • Server app (allowPrerelease:true — set in electron/main.js for this productName) iterates the
+#     releases feed; its channel derives to `server` from its own prerelease version, matching the
+#     `-server` release tags.
+# NOTE: `channel` is NOT a valid top-level electron-builder option — the channel comes from the
+# version prerelease, which is why the version keeps the `-server` suffix (not stripped).
+publish:
+  provider: github
+  owner: vivek7189
+  repo: dine-fe2
+appId: com.dineopen.server
+productName: DineOpen POS Server
+directories:
+  output: dist-electron-unified
+files:
+  - out/**/*
+  - electron/**/*
+  - package.json
+asarUnpack:
+  - "node_modules/better-sqlite3/**/*"
+extraMetadata:
+  main: electron/main.js
+
+# Bundle the REAL backend (sibling ../dine-backend checkout, pg-full-migration) + its
+# node_modules incl. the embedded-postgres binary. Copied to Resources/backend;
+# electron/localServer.js forks it. Each CI runner's `npm ci` in dine-backend installs
+# ONLY that OS's @embedded-postgres binary (os/cpu-gated optionalDependency), so no
+# platform-specific excludes are needed here.
+extraResources:
+  - from: "../dine-backend"
+    to: "backend"
+    filter:
+      - "**/*"
+      - "!.git/**"
+      - "!desktop-server/**"
+      - "!**/*.map"
+      - "!**/*.test.js"
+      - "!**/__tests__/**"
+      - "!.env"
+      - "!.env.local"
+      - "!.env.production"
+
+win:
+  icon: electron/icons/icon.ico
+  target:
+    # x64 only — embedded-postgres ships a Windows x64 binary (no ia32) and all POS
+    # hardware is 64-bit.
+    - target: nsis
+      arch:
+        - x64
+
+mac:
+  icon: electron/icons/icon.icns
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+    - target: zip
+      arch:
+        - arm64
+        - x64
+  category: public.app-category.business
+  identity: null
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  entitlements: electron/entitlements.mac.plist
+  entitlementsInherit: electron/entitlements.mac.plist
+  artifactName: "${productName}-${version}-${arch}.${ext}"
+
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+nsis:
+  oneClick: false
+  perMachine: true
+  allowToChangeInstallationDirectory: true

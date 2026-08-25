@@ -18,10 +18,11 @@ const LABELS = {
 };
 const label = (t) => LABELS[t] || t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 const SHOWN_KEY = 'dineopen_first_sync_shown';
+const DISMISS_KEY = 'dineopen_first_sync_dismissed'; // "Continue in background" — persist so the loader doesn't re-open on every navigation
 
 export default function SyncStatus({ inline = false, showPill = true, showOverlay = true, panel = false } = {}) {
   const [prog, setProg] = useState(null);
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(() => typeof window !== 'undefined' && localStorage.getItem(DISMISS_KEY) === '1');
   const [expanded, setExpanded] = useState(false);
   const shownRef = useRef(typeof window !== 'undefined' && localStorage.getItem(SHOWN_KEY) === '1');
 
@@ -79,7 +80,11 @@ export default function SyncStatus({ inline = false, showPill = true, showOverla
   if (!prog) return null;
 
   const firstSyncDone = prog.firstSyncDone || shownRef.current;
-  const showLoader = !firstSyncDone && !dismissed;
+  // Don't block on the first-run loader when cloud sync is OFF (not configured/enabled on this hub) —
+  // it would never complete and would re-open on every navigation. Only show it when sync is actually
+  // running/enabled. Also respect the persisted "continue in background" dismissal.
+  const syncActive = prog.mode && prog.mode !== 'off';
+  const showLoader = !firstSyncDone && !dismissed && syncActive;
 
   // ── First-run loader overlay ──
   if (showLoader && showOverlay) {
@@ -105,7 +110,7 @@ export default function SyncStatus({ inline = false, showPill = true, showOverla
           <div style={S.totalRow}>
             <b>{prog.totalSynced || 0}</b>&nbsp;records synced{prog.running ? '…' : ''}
           </div>
-          <button style={S.bgBtn} onClick={() => setDismissed(true)}>Continue to POS — keep syncing in background →</button>
+          <button style={S.bgBtn} onClick={() => { setDismissed(true); try { localStorage.setItem(DISMISS_KEY, '1'); } catch (_) {} }}>Continue to POS — keep syncing in background →</button>
           <div style={S.note}>Your data keeps syncing while you work.</div>
         </div>
         <style>{`@keyframes dspin{to{transform:rotate(360deg)}}`}</style>

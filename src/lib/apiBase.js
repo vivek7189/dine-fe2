@@ -65,10 +65,14 @@ const norm = (u) => (u ? String(u).replace(/\/+$/, '') : u); // strip trailing s
  */
 export function getApiBase() {
   if (typeof window === 'undefined') return norm(DEFAULT_API_BASE); // SSR
+  // Routing is governed by a single "offline pin". OfflineFallback probes the CLOUD and pins this
+  // terminal to its local server ONLY when the cloud is truly unreachable. So:
+  //   • no pin  → ONLINE  → cloud (the whole account, all restaurants — exactly like the web)
+  //   • pinned  → OFFLINE → the co-located local server (bound restaurant keeps working)
+  // navigator.onLine is deliberately NOT used — inside Electron it lies (often reports offline
+  // while the internet is perfectly fine), which routed the whole app to the empty local DB.
   const local = getLocalServerUrl();
   if (local) return norm(local);
-  // Local-server app: never Vercel — always its baked native GCP/PG backend.
-  if (isServerApp()) return norm(DEFAULT_API_BASE);
   // Session override (Local Admin test) — highest web priority, above the per-user pin.
   // Reads localStorage first, then a domain-wide cookie (so it survives cross-subdomain
   // redirects to restaurant.dineopen.com where localStorage is a different origin).
@@ -83,6 +87,10 @@ export function getApiBase() {
     const remote = window.localStorage.getItem(REMOTE_DEFAULT_KEY);
     if (remote && !/localhost|127\.0\.0\.1/.test(DEFAULT_API_BASE)) return norm(remote);
   } catch (_) { /* private mode / storage disabled */ }
+  // Local-server (offline-first) POS app defaults to the Postgres/GCP backend — it runs a local
+  // Postgres, its accounts live on GCP, and it must NEVER fall back to Vercel. The per-user pin
+  // above still wins when set (that's the account's real backend). Web/cloud app keeps Vercel.
+  if (isServerApp()) return norm(PG_API_BASE);
   return norm(DEFAULT_API_BASE);
 }
 

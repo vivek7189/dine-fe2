@@ -105,7 +105,7 @@ export default function OfflineLogin({ onOwnerLogin }) {
             <div style={S.brand}>DineOpen</div>
             <div style={S.restName}>{restaurant?.name || 'Restaurant'}</div>
           </div>
-          <div style={{ ...S.offlinePill, ...(online ? {} : { color: '#B45309', background: '#FEF3E2' }) }}>{online ? '● Online' : '● Offline'}</div>
+          <div style={{ ...S.offlinePill, ...(online ? {} : { color: '#B45309', background: '#FEF3E2' }) }}>{online ? '● Online' : '● No internet'}</div>
         </div>
 
         {!pinView && (

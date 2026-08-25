@@ -6,6 +6,25 @@ const os = require('os');
 const { initOfflineEngine, shutdownOfflineEngine } = require('./offline');
 const localServer = require('./localServer');
 
+// ── Crash guard: a POS must NEVER hard-crash from a transient network error ────────────────────
+// When the machine goes offline (Wi-Fi off), the mDNS/Bonjour multicast socket tries to send an
+// announcement on 224.0.0.251:5353, the interface is gone → async `send EADDRNOTAVAIL` with no
+// 'error' listener → uncaught exception → Electron's "A JavaScript error occurred in the main
+// process" dialog kills the app mid-service. Swallow these benign network-gone errors; log anything
+// else but keep the app alive (a till going down during a rush is far worse than a logged error).
+const BENIGN_NET_CODES = new Set(['EADDRNOTAVAIL', 'ENETUNREACH', 'ENETDOWN', 'EHOSTUNREACH', 'EADDRINUSE', 'EPERM', 'ENODEV']);
+process.on('uncaughtException', (err) => {
+  const code = err && err.code;
+  if (BENIGN_NET_CODES.has(code)) {
+    console.warn('[main] ignored benign network error (offline?):', code, err && err.message);
+    return;
+  }
+  console.error('[main] uncaughtException (kept alive):', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[main] unhandledRejection (kept alive):', reason);
+});
+
 // ── Realtime resilience (Windows POS) ─────────────────────────────────────────
 // A long-running POS window is usually minimized / on a second screen. Chromium then throttles
 // timers and BACKGROUNDS network connections — which silently kills the Firebase realtime socket,
@@ -857,6 +876,7 @@ ipcMain.handle('discover-local-server', async () => {
     try {
       const { Bonjour } = require('bonjour-service');
       bonjour = new Bonjour();
+      try { bonjour.server?.mdns?.on('error', (e) => console.warn('[discover] mdns error (ignored):', e && (e.code || e.message))); } catch (_) {}
       const browser = bonjour.find({ type: 'dineopen' });
       browser.on('up', (svc) => {
         const ip = (svc.addresses || []).find((a) => /^\d+\.\d+\.\d+\.\d+$/.test(a)) || svc.host;

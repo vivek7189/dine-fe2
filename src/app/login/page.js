@@ -400,8 +400,11 @@ const Login = () => {
       });
     } catch (_) {}
 
-    // Provisioned for THIS restaurant → route the terminal to its local server (offline-capable).
-    try { apiClient.setLocalServer(LOOPBACK_URL); } catch (_) {}
+    // Provisioned for THIS restaurant. Routing is CONNECTIVITY-BASED — online we behave like the
+    // web (cloud: the whole account), offline we fall back to this local server. An owner OTP/email
+    // login only succeeds ONLINE, so clear any offline pin now → the dashboard loads from the cloud
+    // (all restaurants) with no flash of local data. OfflineFallback maintains it from here.
+    try { apiClient.setLocalServer(null); } catch (_) {}
     setActivationPhase(null);
     return true;
   };
@@ -2585,18 +2588,18 @@ const Login = () => {
           </button>
         </div>
 
-        {/* Owner/Staff login here is cloud auth (OTP/email) and NEEDS internet — it cannot work
-            over the LAN. The offline/LAN path is the PIN pad, not this screen. So no Local/Internet
-            toggle here: just tell the user internet is required, and block login when it's down. */}
+        {/* Owner login is a one-time cloud setup (OTP/email) — it needs internet the first time to
+            pull this restaurant down. After that the till runs local-first and daily staff sign-in
+            is the fast PIN keypad. So: tell the user setup needs internet, and offer the PIN pad. */}
         {mounted && (typeof window !== 'undefined') && (!!window.electronAPI || !!window.Capacitor) && isServerApp() && (
           <div style={{ margin: '10px 0 0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 600, borderRadius: 10, padding: '11px 13px',
               ...(isOnline
-                ? { color: '#9a3412', background: '#fff7ed', border: '1.5px solid #fdba74' }
+                ? { color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0' }
                 : { color: '#b91c1c', background: '#fef2f2', border: '1.5px solid #f87171', boxShadow: '0 0 0 3px rgba(248,113,113,0.15)' }) }}>
               {isOnline
-                ? <span>🌐 <b>This login needs internet.</b> Working offline? Use your <b>PIN keypad</b>.</span>
-                : <span>⚠️ <b>No internet.</b> This login needs a connection — use your <b>PIN keypad</b> instead.</span>}
+                ? <span>🟢 <b>Online.</b> Owner sign-in sets up this till once; after that it runs offline.</span>
+                : <span>⚠️ <b>No internet.</b> Owner setup needs a connection — daily staff sign-in is the <b>PIN keypad</b>.</span>}
             </div>
             {isLocalServerMode() && (
               <button
@@ -2606,7 +2609,7 @@ const Login = () => {
                   background: '#fff', color: '#DC4A3D', fontSize: 14, fontWeight: 800, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
               >
-                🔢 Go to PIN keypad (works offline)
+                🔢 Staff PIN keypad
               </button>
             )}
           </div>

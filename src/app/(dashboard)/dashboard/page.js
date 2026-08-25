@@ -14,7 +14,6 @@ import EmptyMenuPrompt from '../../../components/EmptyMenuPrompt';
 import MenuItemCard from '../../../components/MenuItemCard';
 import FastBillingBoard from '../../../components/FastBillingBoard';
 import SyncStatus from '../../../components/SyncStatus';
-import HeaderModeToggle from '../../../components/HeaderModeToggle';
 import CategoryButton from '../../../components/CategoryButton';
 import OrderSummary from '../../../components/OrderSummary';
 import GuidedFirstSale from '../../../components/GuidedFirstSale';
@@ -7359,10 +7358,8 @@ function RestaurantPOSContent() {
               {viewMode === 'orders' ? t('dashboard.tables') : t('dashboard.orders')}
             </button>
 
-            {/* Clean Internet ⇄ LAN mode toggle (owner/admin, local-server app only). Replaces the
-                old cloud-sync counts chip — the detailed sync status now lives on the one Local
-                Server page (Settings → Local Server). Self-hides on web / for non-switch roles. */}
-            <HeaderModeToggle inline />
+            {/* Mode switch moved to an always-visible floating switch in the dashboard layout
+                (top-right on every page), so it's no longer inline here. */}
 
             {/* Reset Tables (only in tables view, owner/admin only) */}
             {viewMode === 'tables' && ['owner', 'admin'].includes(JSON.parse(localStorage.getItem('user') || '{}').role) && (

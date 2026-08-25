@@ -72,39 +72,43 @@ export function isServerApp() {
  * configured LAN URL is left untouched. Returns the URL now in effect (or null).
  * Only acts inside the installed app (Electron/Capacitor) — plain web is never touched.
  */
-export async function preferLoopbackIfLocal(probeMs = 1500) {
-  if (typeof window === 'undefined') return getLocalServerUrl();
-  const isInstalledApp = !!window.electronAPI || !!window.Capacitor;
-  if (!isInstalledApp) return getLocalServerUrl();
-  const LOOPBACK = 'http://127.0.0.1:3003';
+const LOOPBACK_URL = 'http://127.0.0.1:3003';
+// The cloud backend to probe = the SAME one getApiBase() uses online: the per-user pin
+// (dineopen_backend_url — this account's real backend, e.g. GCP/Postgres) if set, else the baked
+// Postgres/GCP default. NEVER Vercel for the local-server app. Read from localStorage/env directly
+// so this module never imports apiBase (which imports us — would be circular).
+const PG_DEFAULT_URL = (process.env.NEXT_PUBLIC_PG_API_URL || 'https://34-93-129-104.sslip.io').replace(/\/+$/, '');
+function cloudTarget() {
+  try {
+    const pin = window.localStorage.getItem('dineopen_backend_url');
+    if (pin) return pin.replace(/\/+$/, '');
+  } catch (_) {}
+  return PG_DEFAULT_URL;
+}
+
+async function probeHealth(url, ms) {
   try {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), probeMs);
-    const res = await fetch(`${LOOPBACK}/api/health`, { signal: ctrl.signal });
+    const timer = setTimeout(() => ctrl.abort(), ms);
+    const res = await fetch(`${url}/api/health`, { signal: ctrl.signal, cache: 'no-store' });
     clearTimeout(timer);
-    if (res.ok) {
-      // A co-located server is up — but only ADOPT it once it has data (provisioned).
-      // Before first provisioning the local DB is empty, so routing to it would break
-      // login/menu. Until then we stay on the cloud, so the app works online out of the
-      // box; once seeded, we switch to loopback (offline-capable). If /provision/status
-      // isn't available (not a local-server build), treat "up" as adopt (legacy behavior).
-      try {
-        const sc = new AbortController();
-        const st = setTimeout(() => sc.abort(), probeMs);
-        const pr = await fetch(`${LOOPBACK}/api/provision/status`, { signal: sc.signal });
-        clearTimeout(st);
-        if (pr.ok) {
-          const j = await pr.json().catch(() => ({}));
-          if (j && j.provisioned === false) {
-            // Server present but not seeded yet → keep using the cloud for now.
-            if (getLocalServerUrl() === LOOPBACK) setLocalServerUrl(null);
-            return getLocalServerUrl();
-          }
-        }
-      } catch (_) { /* status endpoint absent → fall through and adopt */ }
-      if (getLocalServerUrl() !== LOOPBACK) setLocalServerUrl(LOOPBACK);
-      return LOOPBACK;
-    }
-  } catch (_) { /* no local server on this machine — keep whatever is configured */ }
+    return res.ok;
+  } catch (_) { return false; }
+}
+
+/**
+ * Reconcile routing to REAL connectivity by probing the cloud (NOT navigator.onLine, which lies
+ * inside Electron). Sets/clears the "offline pin" (localStorage) so getApiBase() routes correctly:
+ *   • cloud reachable   → clear the pin  → ONLINE  → cloud (whole account, like the web)
+ *   • cloud unreachable → pin loopback   → OFFLINE → the co-located local server (bound restaurant)
+ * Returns the effective local URL (loopback when offline) or null (when online/cloud).
+ */
+export async function preferLoopbackIfLocal() {
+  // NO pre-emptive cloud probing. Probing a slow cloud VM (3s timeout) intermittently timed out and
+  // then falsely pinned the terminal to the single-restaurant local server (routing the whole app
+  // to local → "1 restaurant"). Routing state (the loopback pin) is now managed explicitly:
+  //   • cleared on owner login (online) — see activateLocalServer
+  //   • set on the OS 'offline' event, cleared on the 'online' event — see OfflineFallback
+  // Account-level reads always go to the cloud regardless (apiClient.accountScopeBase()).
   return getLocalServerUrl();
 }
