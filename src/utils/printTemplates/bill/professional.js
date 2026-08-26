@@ -44,10 +44,13 @@ function getProfessionalBillCSS(scaleOrPreset, printerWidth, printContentWidth, 
     ` table{width:100%;border-collapse:collapse;margin:0;}` +
     ` th{font-size:${f.th};font-weight:bold;text-align:left;padding:2px 1px;border-bottom:1px dashed #000;}` +
     ` td{font-size:${f.td};padding:2px 1px;vertical-align:top;}` +
-    ` .sno{width:10%;text-align:center;}` +
-    ` .item-name-col{width:48%;text-align:left;}` +
-    ` .qty-col{width:12%;text-align:center;}` +
-    ` .amt-col{width:30%;text-align:right;}` +
+    ` .sno{width:10%;text-align:center;vertical-align:top;}` +
+    ` .item-name-col{width:48%;text-align:left;vertical-align:top;}` +
+    // white-space:nowrap stops a 2+ digit qty/amount breaking across the lines of a wrapped
+    // (e.g. bilingual) item name — was printing "20" as "2"/"0". vertical-align:top keeps them
+    // aligned to the first name line. No effect on normal single-line rows.
+    ` .qty-col{width:12%;text-align:center;white-space:nowrap;vertical-align:top;}` +
+    ` .amt-col{width:30%;text-align:right;white-space:nowrap;vertical-align:top;}` +
     ` .item-sub{font-size:${f.itemDetail};color:#000;margin:1px 0 1px 0;padding:0;}` +
     ` .total-section{margin-top:4px;font-size:${f.totalSection};}` +
     ` .total-section .row{display:flex;justify-content:space-between;margin:2px 0;}` +

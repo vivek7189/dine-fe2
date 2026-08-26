@@ -235,9 +235,12 @@ export function buildBillItemRows(items, cs, showAr, opts = {}) {
         ? (item.price || 0) * (item.itemWeight / 100)
         : (item.price || 0) * item.itemWeight)
       : (Math.round(((item.price || Math.round((item.total || 0) / (item.quantity || 1) * 100) / 100 || 0) * (item.quantity || 1)) * 100) / 100);
-    return `<tr><td style="text-align:left;">${showAr ? dualItemName(item, showAr) : esc(item.name)}${getSublineHtml(item, opts)}</td>` +
-      `<td style="text-align:center;">${qtyDisplay}</td>` +
-      `<td style="text-align:right;">${cs}${lineTotal.toFixed(2)}</td></tr>`;
+    // vertical-align:top keeps qty/amount aligned to the FIRST line of a wrapped (e.g. bilingual)
+    // item name; white-space:nowrap stops a 2+ digit quantity/amount from breaking across those
+    // lines (fixes "20" printing as "2" then "0"). No effect on normal single-line rows.
+    return `<tr><td style="text-align:left;vertical-align:top;">${showAr ? dualItemName(item, showAr) : esc(item.name)}${getSublineHtml(item, opts)}</td>` +
+      `<td style="text-align:center;white-space:nowrap;vertical-align:top;">${qtyDisplay}</td>` +
+      `<td style="text-align:right;white-space:nowrap;vertical-align:top;">${cs}${lineTotal.toFixed(2)}</td></tr>`;
   }).join('');
 }
 
