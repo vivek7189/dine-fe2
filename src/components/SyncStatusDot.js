@@ -17,8 +17,8 @@ export default function SyncStatusDot() {
   const [mounted, setMounted] = useState(false);
   // Connectivity state published by OfflineFallback: { mode:'online'|'offline', cloudUp, pending }.
   const [conn, setConn] = useState({ mode: 'online', cloudUp: true, pending: null });
-  // API-sync worker status (Phase 1.4/1.5): { pendingUp, running, enabled, deadLetter } from local.
-  const [sync, setSync] = useState({ pendingUp: 0, running: false, enabled: false, deadLetter: 0 });
+  // API-sync worker status (Phase 1.4/1.5/6): { pendingUp, running, enabled, deadLetter, authExpired, diskCritical } from local.
+  const [sync, setSync] = useState({ pendingUp: 0, running: false, enabled: false, deadLetter: 0, authExpired: false, diskCritical: false, diskFreeMb: null });
   const [checking, setChecking] = useState(false);
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export default function SyncStatusDot() {
     const pollSync = async () => {
       try {
         const r = await fetch('http://127.0.0.1:3003/api/local-server/api-sync-status', { cache: 'no-store' });
-        if (r.ok && alive) { const j = await r.json(); setSync({ pendingUp: j.pendingUp || 0, running: !!j.running, enabled: !!j.enabled, deadLetter: j.deadLetter || 0 }); }
+        if (r.ok && alive) { const j = await r.json(); setSync({ pendingUp: j.pendingUp || 0, running: !!j.running, enabled: !!j.enabled, deadLetter: j.deadLetter || 0, authExpired: !!j.authExpired, diskCritical: !!j.diskCritical, diskFreeMb: (j.diskFreeMb == null ? null : j.diskFreeMb) }); }
       } catch (_) { /* local server momentarily busy — keep last */ }
     };
     pollSync();
@@ -62,14 +62,19 @@ export default function SyncStatusDot() {
   const isInstalledApp = typeof window !== 'undefined' && (!!window.electronAPI || !!window.Capacitor);
   if (!mounted || !isInstalledApp || !isServerApp()) return null;
 
-  // Priority: manual check → connection changing → actively draining up → dead-letter warning → offline → online.
-  const state = checking ? 'checking'
+  // Priority (Phase 6): storage-full → manual check → sign-in needed → connection changing → draining →
+  // dead-letter warning → offline → online. Disk-critical outranks all — it blocks new orders locally.
+  const state = sync.diskCritical ? 'diskfull'
+    : checking ? 'checking'
+    : (conn.mode === 'online' && sync.authExpired) ? 'authexpired'
     : (conn.pending && conn.pending !== conn.mode) ? 'reconnecting'
     : (conn.mode === 'online' && sync.pendingUp > 0) ? 'syncing'
     : (conn.mode === 'online' && sync.deadLetter > 0) ? 'warn'
     : conn.mode === 'offline' ? 'offline' : 'online';
   const conf = {
+    diskfull:     { dot: '#DC2626', label: '⚠ Storage full' },
     checking:     { dot: '#2563EB', label: 'Checking…' },
+    authexpired:  { dot: '#DC2626', label: '⚠ Sign-in needed' },
     reconnecting: { dot: '#2563EB', label: 'Reconnecting…' },
     syncing:      { dot: '#2563EB', label: `Syncing ${sync.pendingUp}…` },
     warn:         { dot: '#DC2626', label: `⚠ ${sync.deadLetter} unsynced` },
@@ -81,7 +86,9 @@ export default function SyncStatusDot() {
     <button
       type="button"
       onClick={recheck}
-      title={state === 'offline' ? 'Working on the local server — your orders are saved and will sync when the internet is back. Tap to re-check.'
+      title={state === 'diskfull' ? `Storage almost full${sync.diskFreeMb != null ? ` (${sync.diskFreeMb} MB left)` : ''} — free up disk space soon or new orders may fail to save.`
+        : state === 'authexpired' ? 'This terminal needs to reconnect to your account to keep syncing. Tap to re-connect / sign in again.'
+        : state === 'offline' ? 'Working on the local server — your orders are saved and will sync when the internet is back. Tap to re-check.'
         : state === 'syncing' ? `Syncing ${sync.pendingUp} order(s) to the cloud…`
         : state === 'warn' ? `${sync.deadLetter} record(s) couldn’t sync to the cloud yet — retrying automatically. Tap to re-check.`
         : state === 'reconnecting' ? 'Connection is changing — will switch once it stays stable. Tap to force now.'
