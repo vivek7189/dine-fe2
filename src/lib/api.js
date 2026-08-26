@@ -2,6 +2,7 @@ import { reportNetworkFailure, reportNetworkSuccess } from '../hooks/useNetworkS
 import { setCachedData, getCachedData } from './offlineDb';
 import { getLocalServerUrl, setLocalServerUrl, isServerApp } from './localServer';
 import { getApiBase, setApiBase, clearApiBase, refreshRemoteBackend, DEFAULT_API_BASE, PG_API_BASE, BACKEND_URL_KEY, getBackendOverride, clearBackendOverride } from './apiBase';
+import { detectMultiTerminal } from '../utils/orderNumber';
 
 // Default cloud backend + the persisted-backend key both come from the SINGLE source
 // of truth (lib/apiBase.js). Never hardcode a backend URL or read the env directly
@@ -1463,7 +1464,11 @@ class ApiClient {
     const query = new URLSearchParams(cleanFilters).toString();
     const queryString = query ? `?${query}` : '';
     console.log('📤 API Client - getOrders filters:', cleanFilters);
-    return this.request(`/api/orders/${restaurantId}${queryString}`);
+    const res = await this.request(`/api/orders/${restaurantId}${queryString}`);
+    // Central multi-terminal detection: if these orders carry ≥2 distinct terminal tags, remember it
+    // so orderDisplayNumber() shows the "T2-45" prefix everywhere. Best-effort, never affects the result.
+    try { detectMultiTerminal(Array.isArray(res) ? res : (res && res.orders)); } catch (_) {}
+    return res;
   }
 
   async getOrderById(orderId) {

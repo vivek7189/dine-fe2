@@ -9,6 +9,7 @@ import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t, getCurrentLanguage, setLanguage, getAvailableLanguages } from '../../../lib/i18n';
 import NativePrinterSettings from '../../../components/NativePrinterSettings';
+import TerminalNumberSetting from '../../../components/TerminalNumberSetting';
 import { isWeb, isTauri, isElectron } from '../../../utils/platform';
 import { isAutoUpdateEnabled, setAutoUpdateEnabled, checkForUpdates, getAppVersion, restartApp } from '../../../utils/autoUpdater';
 import { 
@@ -5341,6 +5342,9 @@ function AppDownloadTab() {
           )}
         </div>
       )}
+
+      {/* Phase 5 — assign this till its terminal number (multi-terminal only; self-hides off the local-server app) */}
+      <TerminalNumberSetting />
 
       {/* Mobile / Waiter App Section */}
       <div style={{ marginTop: '28px' }}>
