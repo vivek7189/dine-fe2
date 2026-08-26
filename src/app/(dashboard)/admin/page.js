@@ -2983,6 +2983,68 @@ const CurrencyManagement = ({ restaurants, selectedRestaurant, setSelectedRestau
   );
 };
 
+// Shared / Single Inventory across outlets — point this outlet's stock deduction at another
+// outlet you own (e.g. a stall that sells from the main outlet's single stock). Opt-in: only
+// shows for owners with more than one outlet; default = this outlet's own stock (no change).
+const SharedInventorySettings = ({ restaurantId }) => {
+  const [outlets, setOutlets] = useState([]);
+  const [sourceId, setSourceId] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  useEffect(() => {
+    if (!restaurantId) return;
+    (async () => {
+      try {
+        const res = await apiClient.getRestaurants();
+        const list = res?.restaurants || [];
+        setOutlets(list);
+        const self = list.find(r => r.id === restaurantId);
+        setSourceId(self?.inventorySourceRestaurantId || '');
+      } catch (_) {}
+      setLoading(false);
+    })();
+  }, [restaurantId]);
+
+  const others = outlets.filter(r => r.id !== restaurantId);
+  if (loading || others.length === 0) return null; // single-outlet accounts: feature not relevant
+
+  const save = async (val) => {
+    setSaving(true); setMsg('');
+    try {
+      await apiClient.updateRestaurant(restaurantId, { inventorySourceRestaurantId: val || '' });
+      setSourceId(val);
+      setMsg(val ? '✓ Sales here will now deduct from the selected outlet’s stock.' : '✓ Reverted to this outlet’s own stock.');
+    } catch (e) {
+      setMsg(e?.message || 'Failed to save');
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div style={{ marginTop: '24px', padding: '16px', border: '1px solid #e5e7eb', borderRadius: '10px', background: '#f9fafb' }}>
+      <h4 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: 0, marginBottom: '6px' }}>Shared Inventory (multi-outlet)</h4>
+      <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px' }}>
+        For a stall / satellite outlet that sells from another outlet’s stock. Sales here will deduct ingredients from the chosen outlet, so you keep a single stock. The recipes must exist in that outlet.
+      </p>
+      <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '6px' }}>Deduct stock from</label>
+      <select
+        value={sourceId}
+        onChange={(e) => save(e.target.value)}
+        disabled={saving}
+        style={{ width: '100%', maxWidth: '360px', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', background: '#fff' }}
+      >
+        <option value="">This outlet’s own stock (default)</option>
+        {others.map(r => (
+          <option key={r.id} value={r.id}>{r.name}</option>
+        ))}
+      </select>
+      {msg && <p style={{ fontSize: '12px', color: msg.startsWith('✓') ? '#059669' : '#dc2626', marginTop: '8px' }}>{msg}</p>}
+    </div>
+  );
+};
+
 // Bar Inventory Settings Component
 const BarInventorySettings = ({ restaurantId }) => {
   const [settings, setSettings] = useState({
@@ -14208,6 +14270,7 @@ const Admin = () => {
           <div style={{ marginTop: '32px', borderTop: '1px solid #e5e7eb', paddingTop: '24px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', marginBottom: '16px' }}>Advanced Feature Settings</h3>
             <BarInventorySettings restaurantId={selectedRestaurant?.id} />
+            <SharedInventorySettings restaurantId={selectedRestaurant?.id} />
             <DiscountApprovalSettings restaurantId={selectedRestaurant?.id} />
           </div>
         </div>
