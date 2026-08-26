@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import apiClient from '@/lib/api';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import ProvisionalSyncBanner from '@/components/ProvisionalSyncBanner';
 import { getDenominationLabels, buildDenomState, getQuickPresets, computeDenomTotal } from '@/lib/denominationData';
 import { FaEnvelope, FaSpinner, FaClock as FaClockIcon } from 'react-icons/fa';
 import {
@@ -467,6 +468,9 @@ export default function ShiftsCashPage() {
           Manage your cash drawer and track per-staff shift activity
         </p>
       </div>
+
+      {/* Phase 4.2 — shift/cash totals are provisional while offline orders await sync */}
+      <ProvisionalSyncBanner />
 
       {/* Email Report Buttons */}
       {isOwnerAdmin && (

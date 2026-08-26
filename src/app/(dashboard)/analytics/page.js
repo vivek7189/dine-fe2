@@ -17,6 +17,7 @@ import { FiTrendingUp } from "react-icons/fi";
 import apiClient from '../../../lib/api';
 import { getCachedAnalyticsData, setCachedAnalyticsData } from '../../../utils/dashboardCache';
 import { useCurrency } from '../../../contexts/CurrencyContext';
+import ProvisionalSyncBanner from '../../../components/ProvisionalSyncBanner';
 
 const Analytics = () => {
   const { formatCurrency } = useCurrency();
@@ -348,6 +349,9 @@ const Analytics = () => {
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-1 md:mb-2">Analytics Dashboard</h1>
           <p className="text-sm md:text-base text-gray-600">Real-time insights into your restaurant performance</p>
         </div>
+
+        {/* Phase 4.2 — warn when these totals are computed before offline orders reached the cloud */}
+        <ProvisionalSyncBanner />
 
         {/* Date Filter Tabs */}
         <div className="mb-4 md:mb-6">

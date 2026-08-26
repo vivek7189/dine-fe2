@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom';
 import apiClient from '@/lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
+import ProvisionalSyncBanner from '@/components/ProvisionalSyncBanner';
 import { getDenominationLabels, buildDenomState, getQuickPresets, computeDenomTotal } from '@/lib/denominationData';
 import {
   LuBanknote,
@@ -489,6 +490,9 @@ ${s.closingCash !== undefined ? `<div class="row bold"><span>Difference</span><s
           Manage your cash drawer, track shifts, and reconcile at end of day
         </p>
       </div>
+
+      {/* Phase 4.2 — EOD/cash-up totals are provisional while offline orders await sync */}
+      <ProvisionalSyncBanner />
 
       {/* Messages */}
       {error && (
