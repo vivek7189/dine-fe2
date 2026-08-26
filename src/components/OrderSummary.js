@@ -2532,6 +2532,25 @@ const OrderSummary = ({
     }
   };
 
+  // The billable total, guarded against a STALE grandTotal state. calculateTax sets grandTotal in
+  // a layout-effect; if a discount was applied moments before the order is placed/settled, grandTotal
+  // can still hold the pre-discount value → the sent/displayed total would ignore the discount and
+  // overcharge (this is the root of the "discount not reducing total" bug; the backend guard also
+  // catches it). Here we recompute the discount-adjusted ceiling from FRESH getters and never let a
+  // too-high grandTotal through — only corrects the overcharge direction, so a correct total passes
+  // untouched. Mirrors the backend overcharge guard.
+  const settleFinalAmount = () => {
+    const gt = (grandTotal != null) ? grandTotal : getTotalAmount();
+    try {
+      const sub = getTotalAmount();
+      const disc = (effectiveOfferDiscount || 0) + getManualDiscountAmount() + getLoyaltyDiscountAmount() + getCouponDiscountAmount();
+      if (disc <= 0) return gt;
+      const exclTax = Array.isArray(taxBreakdown) ? taxBreakdown.filter(t => !t.inclusive).reduce((s, t) => s + (t.amount || 0), 0) : 0;
+      const ceiling = Math.max(0, Math.round((Math.max(0, sub - disc) + (serviceChargeAmount || 0) + exclTax + (tipAmount || 0) + (roundOffAmount || 0)) * 100) / 100);
+      return (gt > ceiling + 0.5) ? ceiling : gt;
+    } catch (_) { return gt; }
+  };
+
   // Build tax data helper (shared by Place Order, Complete Billing, and UPI confirm)
   const buildTaxData = () => {
     const cashReceivedNum = parseFloat(cashReceived) || 0;
@@ -2572,7 +2591,7 @@ const OrderSummary = ({
       totalTax,
       taxInclusiveMode,
       showInclusiveTaxOnBill: taxSettings?.showInclusiveTaxOnBill !== false,
-      finalAmount: grandTotal ?? getTotalAmount(),
+      finalAmount: settleFinalAmount(),
       subtotal: getTotalAmount(),
       specialInstructions: specialInstructions.trim() || null,
       offerIds: allOfferIds,
@@ -5201,7 +5220,7 @@ const OrderSummary = ({
                     )}
                   </div>
                 </div>
-                <span style={{ fontSize: isMobile ? '18px' : '22px', fontWeight: 'bold' }}>{formatCurrency(editPreFillPending && currentOrder?.finalAmount != null ? currentOrder.finalAmount : (grandTotal !== null ? grandTotal : Math.max(0, getTotalAmount() - totalDiscountAmount + totalTax + serviceChargeAmount + tipAmount + roundOffAmount)))}</span>
+                <span style={{ fontSize: isMobile ? '18px' : '22px', fontWeight: 'bold' }}>{formatCurrency(editPreFillPending && currentOrder?.finalAmount != null ? currentOrder.finalAmount : (settleFinalAmount()))}</span>
               </div>
               {useWallet && parseFloat(walletRedeemAmount) > 0 && (
                 <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.25)' }}>
@@ -7118,7 +7137,7 @@ const OrderSummary = ({
                     const saveOfferIds = offerSettings?.allowMultipleOffers && selectedOfferIds.length > 0
                       ? selectedOfferIds : (selectedOfferId ? [selectedOfferId] : []);
                     const taxData = {
-                      taxBreakdown, totalTax, finalAmount: grandTotal ?? getTotalAmount(), subtotal: getTotalAmount(),
+                      taxBreakdown, totalTax, finalAmount: settleFinalAmount(), subtotal: getTotalAmount(),
                       specialInstructions: specialInstructions.trim() || null,
                       offerIds: saveOfferIds,
                       manualDiscount: getManualDiscountAmount(),
@@ -7334,7 +7353,7 @@ const OrderSummary = ({
                 if (orderBusy || cart.length === 0) return;
                 window.__autoPrintKOT = true;
                 kotThenBillRef.current = true; // arm the bill-after-KOT effect
-                kotBillAmountRef.current = grandTotal ?? getTotalAmount(); // capture total for the settle step
+                kotBillAmountRef.current = settleFinalAmount(); // capture total for the settle step (discount-guarded)
                 kotBillMethodRef.current = paymentMethod || 'cash'; // use the tender already selected on the billing UI
                 kotBillTaxRef.current = buildTaxData(); // snapshot discount/tax/totals NOW (cart intact) for the bill
                 if (typeof onPlaceOrderAndPrint === 'function') {
@@ -7750,7 +7769,7 @@ const OrderSummary = ({
                                 const next = !useWallet;
                                 setUseWallet(next);
                                 if (next) {
-                                  const billAmount = grandTotal !== null ? grandTotal : Math.max(0, getTotalAmount() - totalDiscountAmount + totalTax + serviceChargeAmount + tipAmount + roundOffAmount);
+                                  const billAmount = settleFinalAmount();
                                   setWalletRedeemAmount(String(Math.round(Math.min(walletBalance, Math.max(0, billAmount)) * 100) / 100));
                                 } else {
                                   setWalletRedeemAmount('');
@@ -7790,7 +7809,7 @@ const OrderSummary = ({
                             />
                             <button
                               onClick={() => {
-                                const billAmount = grandTotal !== null ? grandTotal : Math.max(0, getTotalAmount() - totalDiscountAmount + totalTax + serviceChargeAmount + tipAmount + roundOffAmount);
+                                const billAmount = settleFinalAmount();
                                 setWalletRedeemAmount(String(Math.round(Math.min(walletBalance, Math.max(0, billAmount)) * 100) / 100));
                               }}
                               style={{
