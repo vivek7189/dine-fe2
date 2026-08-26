@@ -23,6 +23,10 @@ export default function SyncStatusDot() {
 
   useEffect(() => {
     setMounted(true);
+    // Local-server app ONLY: on plain web / the cloud app there is no co-located local server, so we
+    // must NOT poll 127.0.0.1:3003 (it just produces failed requests). Gate the effect, not only render.
+    const installedApp = typeof window !== 'undefined' && (!!window.electronAPI || !!window.Capacitor);
+    if (!installedApp || !isServerApp()) return;
     const read = () => {
       const s = (typeof window !== 'undefined' && window.__dineConnState) || null;
       if (s) setConn(s);

@@ -17,6 +17,10 @@ export default function ProvisionalSyncBanner() {
 
   useEffect(() => {
     setMounted(true);
+    // Local-server app ONLY: don't poll 127.0.0.1:3003 on plain web / the cloud app (no local server
+    // there → failed requests). Gate the effect itself, not just the render.
+    const installedApp = typeof window !== 'undefined' && (!!window.electronAPI || !!window.Capacitor);
+    if (!installedApp || !isServerApp()) return;
     let alive = true;
     const poll = async () => {
       try {
