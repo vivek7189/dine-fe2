@@ -141,15 +141,42 @@ export async function fiscaliseOrder(restaurantId, orderId) {
   if (!isEtimsCapable()) return { skipped: 'not-desktop' };
   const prep = await apiClient.request(`/api/etims/${restaurantId}/prepare-sale`, { method: 'POST', body: { orderId } });
   if (prep.alreadyFiscalised) return { etims: prep.etims };
-  const relayRes = await window.electronAPI.etimsRelay({ url: prep.vscuUrl, path: prep.path, body: prep.body });
-  if (!relayRes || !relayRes.ok) {
-    const msg = (relayRes && relayRes.error) || 'Could not reach the VSCU.';
-    logEtimsDiagnostic(restaurantId, { phase: 'relay', ok: false, orderId, invcNo: prep.body && prep.body.invcNo, errorMessage: msg, raw: relayRes });
+  const invcNo = prep.body && prep.body.invcNo;
+  let relayRes;
+  try {
+    relayRes = await window.electronAPI.etimsRelay({ url: prep.vscuUrl, path: prep.path, body: prep.body });
+  } catch (e) {
+    // The relay bridge itself threw (should resolve, not reject — but be safe). Log it so a
+    // "prepared but never signed" order (order.etims has pendingInvcNo only) is never invisible.
+    const msg = (e && e.message) || 'Relay bridge error';
+    await logEtimsDiagnostic(restaurantId, { phase: 'relay', ok: false, orderId, invcNo, errorMessage: msg });
     throw new Error(msg);
   }
-  const conf = await apiClient.request(`/api/etims/${restaurantId}/confirm-sale`, {
-    method: 'POST',
-    body: { orderId, invcNo: prep.body && prep.body.invcNo, vscuResponse: relayRes.data || relayRes },
-  });
+  if (!relayRes || !relayRes.ok) {
+    const msg = (relayRes && relayRes.error) || 'Could not reach the VSCU.';
+    // AWAIT (was fire-and-forget) so the trace survives even if the POS moves on right after.
+    await logEtimsDiagnostic(restaurantId, { phase: 'relay', ok: false, orderId, invcNo, errorMessage: msg, raw: relayRes });
+    throw new Error(msg);
+  }
+  // Relay reached the VSCU. confirm-sale (backend) stores the signature + logs the KRA resultCd. If
+  // that HTTP call itself fails (network / backend error), the order is left "prepared but unsigned"
+  // (order.etims = {pendingInvcNo}) with NO signature to print — the exact state seen in the field.
+  // Log it here too so the failure is captured server-side instead of vanishing silently.
+  let conf;
+  try {
+    conf = await apiClient.request(`/api/etims/${restaurantId}/confirm-sale`, {
+      method: 'POST',
+      body: { orderId, invcNo, vscuResponse: relayRes.data || relayRes },
+    });
+  } catch (e) {
+    const vscu = (relayRes && relayRes.data) || {};
+    const rc = vscu.resultCd || (vscu.data && vscu.data.resultCd) || null;
+    await logEtimsDiagnostic(restaurantId, {
+      phase: 'confirm', ok: false, orderId, invcNo, resultCd: rc,
+      resultMsg: vscu.resultMsg || (vscu.data && vscu.data.resultMsg) || null,
+      errorMessage: `confirm-sale failed: ${(e && e.message) || 'unknown'}`, raw: relayRes.data || relayRes,
+    });
+    throw e;
+  }
   return { etims: conf.etims };
 }
