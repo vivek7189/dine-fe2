@@ -21,10 +21,11 @@ function fmtWhen(v) {
  */
 export default function EtimsSettings({ restaurantId }) {
   const [cfg, setCfg] = useState(null);
-  const [form, setForm] = useState({ enabled: false, tin: '', bhfId: '00', dvcSrlNo: '', vscuUrl: 'http://localhost:8088', defaultItemClassCode: '', receiptBottomMsg: '' });
+  const [form, setForm] = useState({ enabled: false, askPerBill: false, tin: '', bhfId: '00', dvcSrlNo: '', vscuUrl: 'http://localhost:8088', defaultItemClassCode: '', receiptBottomMsg: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [togglingEnabled, setTogglingEnabled] = useState(false);
+  const [togglingAsk, setTogglingAsk] = useState(false);
   const [initing, setIniting] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [msg, setMsg] = useState(null);
@@ -40,7 +41,7 @@ export default function EtimsSettings({ restaurantId }) {
       const res = await apiClient.request(`/api/etims/${restaurantId}/config`);
       const c = res.config || {};
       setCfg(c);
-      setForm((f) => ({ ...f, enabled: c.enabled, tin: c.tin || '', bhfId: c.bhfId || '00', dvcSrlNo: c.dvcSrlNo || '', vscuUrl: c.vscuUrl || 'http://localhost:8088', defaultItemClassCode: c.defaultItemClassCode || '', receiptBottomMsg: c.receiptBottomMsg || '' }));
+      setForm((f) => ({ ...f, enabled: c.enabled, askPerBill: !!c.askPerBill, tin: c.tin || '', bhfId: c.bhfId || '00', dvcSrlNo: c.dvcSrlNo || '', vscuUrl: c.vscuUrl || 'http://localhost:8088', defaultItemClassCode: c.defaultItemClassCode || '', receiptBottomMsg: c.receiptBottomMsg || '' }));
     } catch (e) { setMsg({ type: 'error', text: e.message || 'Failed to load' }); }
     finally { setLoading(false); }
   }, [restaurantId]);
@@ -84,6 +85,23 @@ export default function EtimsSettings({ restaurantId }) {
       setForm((f) => ({ ...f, enabled: !next })); // revert on failure
       setMsg({ type: 'error', text: e.message || 'Could not update the eTIMS setting' });
     } finally { setTogglingEnabled(false); }
+  };
+
+  // "Ask 'Send to KRA?' on each bill" — persists immediately (same save-on-toggle
+  // pattern as Enable). When ON, the POS asks Yes/No on every Complete Billing /
+  // Bill & Print; "No" prints a plain bill and skips KRA for that sale.
+  const toggleAskPerBill = async () => {
+    if (togglingAsk) return;
+    const next = !form.askPerBill;
+    setForm((f) => ({ ...f, askPerBill: next }));
+    setTogglingAsk(true); setMsg(null);
+    try {
+      const res = await apiClient.request(`/api/etims/${restaurantId}/config`, { method: 'PUT', body: { ...form, askPerBill: next } });
+      setCfg(res.config);
+    } catch (e) {
+      setForm((f) => ({ ...f, askPerBill: !next })); // revert on failure
+      setMsg({ type: 'error', text: e.message || 'Could not update the setting' });
+    } finally { setTogglingAsk(false); }
   };
 
   const initDevice = async () => {
@@ -192,6 +210,21 @@ export default function EtimsSettings({ restaurantId }) {
       )}
 
       {form.enabled && (<>
+      {/* Per-bill KRA prompt (optional). When ON, the POS asks "Send this bill to KRA?"
+          on every Complete Billing / Bill & Print — Yes = full fiscal flow, No = plain
+          bill, nothing sent to KRA. OFF (default) = every bill auto-reports as normal. */}
+      <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button type="button" role="switch" aria-checked={!!form.askPerBill} onClick={toggleAskPerBill} disabled={togglingAsk}
+            style={{ width: 42, height: 24, borderRadius: 999, border: 'none', cursor: togglingAsk ? 'default' : 'pointer', padding: 2, background: form.askPerBill ? '#d97706' : '#d1d5db', flexShrink: 0, opacity: togglingAsk ? 0.6 : 1 }}>
+            <span style={{ display: 'block', width: 20, height: 20, borderRadius: '50%', background: '#fff', transform: form.askPerBill ? 'translateX(18px)' : 'translateX(0)', transition: 'transform .15s' }} />
+          </button>
+          <label onClick={toggleAskPerBill} style={{ fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#92400e' }}>Ask “Send to KRA?” on each bill</label>
+        </div>
+        <p style={{ fontSize: 11.5, color: '#b45309', margin: '8px 0 0', lineHeight: 1.5 }}>
+          When on, the cashier is asked Yes/No before each bill. <b>Yes</b> reports the sale to KRA and prints the fiscal receipt; <b>No</b> prints a normal bill only. Leave <b>off</b> to auto-report every sale (recommended for full compliance).
+        </p>
+      </div>
       {field('KRA PIN (TIN)', 'tin', { placeholder: 'P000000000X', hint: '11 characters' })}
       {field('Branch ID (bhfId)', 'bhfId', { placeholder: '00' })}
       {field('Device Serial No. (dvcSrlNo)', 'dvcSrlNo', { placeholder: 'The serial registered on the eTIMS portal' })}

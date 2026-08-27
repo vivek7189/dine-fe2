@@ -12,7 +12,7 @@
  * the sale can be re-fiscalised later. It never throws.
  */
 
-import { fiscaliseOrder, isEtimsCapable } from './etims';
+import { fiscaliseOrder, isEtimsCapable, logEtimsDiagnostic } from './etims';
 import { buildKenyaFiscalReceipt } from '../utils/printTemplates/kenyaFiscalReceipt';
 import { printDocument } from '../utils/printBridge';
 
@@ -42,7 +42,7 @@ async function printPlainBill(fullOrder, restaurantId, printSettings, labels) {
   } catch { return false; }
 }
 
-export async function fiscaliseAndPrint({ restaurantId, order, restaurant, printSettings = {}, labels = {} }) {
+export async function fiscaliseAndPrint({ restaurantId, order, restaurant, printSettings = {}, labels = {}, sendToKra = true }) {
   if (!isEtimsCapable()) return { skipped: 'not-desktop' };
   const cc = restaurant && restaurant.currencySettings && restaurant.currencySettings.countryCode;
   const ccode = restaurant && restaurant.currencySettings && restaurant.currencySettings.currencyCode;
@@ -50,6 +50,15 @@ export async function fiscaliseAndPrint({ restaurantId, order, restaurant, print
 
   // Load the full order once — needed for the fiscal receipt AND the fallback.
   const fullOrder = await loadFullOrder(order, restaurant);
+
+  // Per-bill opt-out (only when the store enabled the "Ask 'Send to KRA?' on each bill"
+  // setting and the cashier chose "No"): skip KRA entirely and print a plain, non-fiscal
+  // bill so the customer still gets a receipt. Logged for the owner's audit trail.
+  if (sendToKra === false) {
+    const plainPrinted = await printPlainBill(fullOrder, restaurantId, printSettings, labels);
+    try { logEtimsDiagnostic(restaurantId, { phase: 'kra-skipped', ok: true, orderId: order.id, errorMessage: 'Cashier chose NOT to send this bill to KRA (per-bill prompt).' }); } catch { /* advisory */ }
+    return { skippedKra: true, plainPrinted };
+  }
 
   let result;
   try {

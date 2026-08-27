@@ -10,6 +10,7 @@ import { database } from '../../../../firebase';
 import { subscribeRestaurantEvents } from '../../../lib/realtimeSubscribe';
 import { isLocalServerMode } from '../../../lib/localServer';
 import Onboarding from '../../../components/Onboarding';
+import EtimsBillingGate from '../../../components/EtimsBillingGate';
 import EmptyMenuPrompt from '../../../components/EmptyMenuPrompt';
 import MenuItemCard from '../../../components/MenuItemCard';
 import FastBillingBoard from '../../../components/FastBillingBoard';
@@ -5989,30 +5990,11 @@ function RestaurantPOSContent() {
     && selectedRestaurant?.etimsConfig?.device?.sdcId
     && typeof window !== 'undefined' && window.electronAPI?.etimsRelay
   );
-  // Tell OrderSummary to SKIP the normal bill auto-print when eTIMS is live —
-  // the eTIMS flow prints ONE combined receipt (bill + KRA block) instead.
-  // Cleared on unmount so it can never strand a non-Kenya store's bill print.
-  useEffect(() => {
-    if (typeof window !== 'undefined') window.__etimsFiscalActive = etimsActive;
-    return () => { if (typeof window !== 'undefined') window.__etimsFiscalActive = false; };
-  }, [etimsActive]);
-
-  // When a bill completes and eTIMS is live: fiscalise against the local VSCU,
-  // then print ONE receipt = the normal bill + KRA fiscal block/QR (silent).
-  useEffect(() => {
-    if (!etimsActive || !orderSuccess?.show || !orderSuccess?.orderId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const { fiscaliseAndPrint } = await import('../../../lib/etimsPrint');
-        const res = await fiscaliseAndPrint({ restaurantId: selectedRestaurant.id, order: { id: orderSuccess.orderId }, restaurant: selectedRestaurant, printSettings });
-        if (!cancelled && res && res.error) {
-          setNotification({ type: 'error', title: 'KRA eTIMS', message: `Fiscalisation failed: ${res.error}.${res.fallbackPrinted ? ' A standard receipt was printed — please re-fiscalise once the VSCU is available.' : ''}`, show: true });
-        }
-      } catch { /* never block the POS on fiscalisation */ }
-    })();
-    return () => { cancelled = true; };
-  }, [etimsActive, orderSuccess?.orderId, orderSuccess?.show, selectedRestaurant?.id]);
+  // Opt-in per store: ask "Send this bill to KRA?" on every bill (both Complete
+  // Billing and Bill & Print) instead of auto-sending. Off by default → no prompt,
+  // auto-fiscalise as before. The suppress-normal-print flag + the fiscalise/prompt
+  // flow are owned by <EtimsBillingGate/> (rendered below).
+  const etimsAskPerBill = !!selectedRestaurant?.etimsConfig?.askPerBill;
 
   const clearCart = (opts = {}) => {
     const { keepOrderSuccess = false, preserveUrl = false, keepTable = false } = opts;
@@ -9946,6 +9928,17 @@ function RestaurantPOSContent() {
           </div>
         );
       })()}
+
+      {/* Kenya KRA eTIMS: suppress-normal-print flag + fiscalise-on-bill flow (+ the
+          optional per-bill "Send to KRA?" prompt). Inert for non-Kenya / eTIMS-off. */}
+      <EtimsBillingGate
+        etimsActive={etimsActive}
+        askPerBill={etimsAskPerBill}
+        orderSuccess={orderSuccess}
+        restaurant={selectedRestaurant}
+        printSettings={printSettings}
+        onError={(res) => setNotification({ type: 'error', title: 'KRA eTIMS', message: `Fiscalisation failed: ${res.error}.${res.fallbackPrinted ? ' A standard receipt was printed — please re-fiscalise once the VSCU is available.' : ''}`, show: true })}
+      />
 
       {/* Notification Component */}
       <Notification
