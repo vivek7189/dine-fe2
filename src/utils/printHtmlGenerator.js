@@ -18,7 +18,41 @@ export function generateBillHTML(invoice, printSettings = {}, labels = {}) {
     attachInclusiveSplits(invoice);
     splitIndiaGst(invoice); // India: render GST as CGST + SGST (display only)
   } catch (_) { /* never block printing */ }
-  return renderBill(invoice, printSettings, labels);
+  let html = renderBill(invoice, printSettings, labels);
+  // Kenya KRA eTIMS: once an order is fiscalised (order.etims.rcptSign present) the KRA fiscal block
+  // must appear on EVERY receipt — first print, reprint, preview. Because THIS is the single choke
+  // point for all bill prints, appending here covers them all (the QR is included when a data-URI was
+  // pre-rendered onto invoice.etims.qrDataUrl; otherwise the compliant text block still prints).
+  try {
+    if (invoice && invoice.etims && invoice.etims.rcptSign) {
+      const block = kraFiscalBlockHtml(invoice);
+      html = html.includes('</body>') ? html.replace('</body>', `${block}</body>`) : (html + block);
+    }
+  } catch (_) { /* never block printing */ }
+  return html;
+}
+
+// Sync KRA eTIMS fiscal block (all fields live on order.etims after confirm-sale). The QR is optional
+// here (rendered from a pre-computed data-URI) so this stays synchronous and safe for every print path.
+function kraFiscalBlockHtml(inv) {
+  const e = inv.etims || {};
+  const q = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const row = (label, val) => (val == null || val === '') ? '' : `<div style="display:flex;justify-content:space-between;gap:8px;"><span>${label}</span><span style="text-align:right;word-break:break-all;">${q(val)}</span></div>`;
+  const rcpt = e.rcptNo != null ? (e.totRcptNo != null ? `${e.rcptNo} / ${e.totRcptNo}` : String(e.rcptNo)) : null;
+  const qr = e.qrDataUrl ? `<div style="text-align:center;margin-top:6px;"><img src="${e.qrDataUrl}" style="width:120px;height:120px;" alt="KRA QR"/></div>` : '';
+  return `
+    <div style="border-top:1px dashed #000;margin-top:6px;padding-top:6px;font-family:'Courier New',monospace;font-size:11px;line-height:1.5;">
+      <div style="text-align:center;font-weight:bold;letter-spacing:1px;margin-bottom:3px;">KRA eTIMS · FISCAL RECEIPT</div>
+      ${row('Invoice No', e.invcNo)}
+      ${row('SDC ID', e.sdcId)}
+      ${row('MRC No', e.mrcNo)}
+      ${row('Receipt No', rcpt)}
+      ${row('Internal Data', e.intrlData)}
+      ${row('Receipt Sign', e.rcptSign)}
+      ${row('VSCU Date', e.vsdcRcptPbctDate)}
+      ${qr}
+      <div style="text-align:center;font-size:9px;margin-top:3px;">Scan to verify on the KRA eTIMS portal</div>
+    </div>`;
 }
 
 /**
