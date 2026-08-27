@@ -24,6 +24,7 @@ export default function EtimsSettings({ restaurantId }) {
   const [form, setForm] = useState({ enabled: false, tin: '', bhfId: '00', dvcSrlNo: '', vscuUrl: 'http://localhost:8088', defaultItemClassCode: '', receiptBottomMsg: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [togglingEnabled, setTogglingEnabled] = useState(false);
   const [initing, setIniting] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [msg, setMsg] = useState(null);
@@ -66,6 +67,23 @@ export default function EtimsSettings({ restaurantId }) {
       setMsg({ type: 'success', text: 'Saved.' });
     } catch (e) { setMsg({ type: 'error', text: e.message || 'Save failed' }); }
     finally { setSaving(false); }
+  };
+
+  // The enable toggle persists to the DB IMMEDIATELY (not only via "Save settings"), so on/off — and
+  // especially "off" (whose Save button is hidden) — always survives a reload. Optimistic; reverts if
+  // the save fails. The PUT merges server-side, so it never wipes the device/other config.
+  const toggleEnabled = async () => {
+    if (togglingEnabled) return;
+    const next = !form.enabled;
+    setForm((f) => ({ ...f, enabled: next }));
+    setTogglingEnabled(true); setMsg(null);
+    try {
+      const res = await apiClient.request(`/api/etims/${restaurantId}/config`, { method: 'PUT', body: { ...form, enabled: next } });
+      setCfg(res.config);
+    } catch (e) {
+      setForm((f) => ({ ...f, enabled: !next })); // revert on failure
+      setMsg({ type: 'error', text: e.message || 'Could not update the eTIMS setting' });
+    } finally { setTogglingEnabled(false); }
   };
 
   const initDevice = async () => {
@@ -160,12 +178,11 @@ export default function EtimsSettings({ restaurantId }) {
       {/* Toggle gates ALL setup below. Because you must turn it ON to reveal the fields, eTIMS can never
           be left "configured but not enabled" — the forgot-to-tick failure mode can't happen. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-        <button type="button" role="switch" aria-checked={!!form.enabled}
-          onClick={() => setForm({ ...form, enabled: !form.enabled })}
-          style={{ width: 42, height: 24, borderRadius: 999, border: 'none', cursor: 'pointer', padding: 2, background: form.enabled ? '#16a34a' : '#d1d5db', flexShrink: 0 }}>
+        <button type="button" role="switch" aria-checked={!!form.enabled} onClick={toggleEnabled} disabled={togglingEnabled}
+          style={{ width: 42, height: 24, borderRadius: 999, border: 'none', cursor: togglingEnabled ? 'default' : 'pointer', padding: 2, background: form.enabled ? '#16a34a' : '#d1d5db', flexShrink: 0, opacity: togglingEnabled ? 0.6 : 1 }}>
           <span style={{ display: 'block', width: 20, height: 20, borderRadius: '50%', background: '#fff', transform: form.enabled ? 'translateX(18px)' : 'translateX(0)', transition: 'transform .15s' }} />
         </button>
-        <label onClick={() => setForm({ ...form, enabled: !form.enabled })} style={{ fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Enable eTIMS for this store</label>
+        <label onClick={toggleEnabled} style={{ fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Enable eTIMS for this store</label>
       </div>
 
       {!form.enabled && (
