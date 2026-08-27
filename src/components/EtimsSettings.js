@@ -157,11 +157,24 @@ export default function EtimsSettings({ restaurantId }) {
         DineOpen <b>desktop app</b> (the VSCU runs on this machine).
       </p>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-        <input type="checkbox" checked={!!form.enabled} onChange={(e) => setForm({ ...form, enabled: e.target.checked })} id="etims-en" />
-        <label htmlFor="etims-en" style={{ fontSize: 13, fontWeight: 600 }}>Enable eTIMS for this store</label>
+      {/* Toggle gates ALL setup below. Because you must turn it ON to reveal the fields, eTIMS can never
+          be left "configured but not enabled" — the forgot-to-tick failure mode can't happen. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+        <button type="button" role="switch" aria-checked={!!form.enabled}
+          onClick={() => setForm({ ...form, enabled: !form.enabled })}
+          style={{ width: 42, height: 24, borderRadius: 999, border: 'none', cursor: 'pointer', padding: 2, background: form.enabled ? '#16a34a' : '#d1d5db', flexShrink: 0 }}>
+          <span style={{ display: 'block', width: 20, height: 20, borderRadius: '50%', background: '#fff', transform: form.enabled ? 'translateX(18px)' : 'translateX(0)', transition: 'transform .15s' }} />
+        </button>
+        <label onClick={() => setForm({ ...form, enabled: !form.enabled })} style={{ fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Enable eTIMS for this store</label>
       </div>
 
+      {!form.enabled && (
+        <p style={{ fontSize: 12, color: '#9ca3af', margin: '0 0 4px', lineHeight: 1.5 }}>
+          Turn on to set up KRA eTIMS — required for Kenya stores. When on, every sale is reported to KRA and the fiscal receipt (SDC ID, signature &amp; QR) prints on the bill.
+        </p>
+      )}
+
+      {form.enabled && (<>
       {field('KRA PIN (TIN)', 'tin', { placeholder: 'P000000000X', hint: '11 characters' })}
       {field('Branch ID (bhfId)', 'bhfId', { placeholder: '00' })}
       {field('Device Serial No. (dvcSrlNo)', 'dvcSrlNo', { placeholder: 'The serial registered on the eTIMS portal' })}
@@ -271,6 +284,7 @@ export default function EtimsSettings({ restaurantId }) {
           </div>
         )}
       </div>
+      </>)}
     </div>
   );
 }
