@@ -351,8 +351,13 @@ class ApiClient {
       // dine-backend on loopback when offline. Routing it through the legacy SQLite proxy served
       // stale single-tenant local data (e.g. "1 restaurant") and ignored baseURL — the root cause
       // of the account/overview showing 1 instead of the whole cloud account.
+      // Kenya KRA eTIMS calls (device init, prepare/confirm-sale, diagnostics) are REAL-TIME
+      // fiscalisation — they must reach the backend synchronously and can NEVER be served from the
+      // SQLite cache or queued offline. A queued prepare/confirm-sale = a sale that never gets its
+      // KRA signature (the "prepared but never signed" failure). Route eTIMS straight over HTTP.
+      const isEtimsCall = typeof endpoint === 'string' && endpoint.includes('/api/etims/');
       if (typeof window !== 'undefined' && window.electronAPI?.apiRequest
-          && !(config.body instanceof FormData) && !getLocalServerUrl() && !isServerApp()) {
+          && !(config.body instanceof FormData) && !getLocalServerUrl() && !isServerApp() && !isEtimsCall) {
         return await withTimeout(this._electronRequest(endpoint, config), timeoutForMethod(config.method), endpoint);
       }
 
