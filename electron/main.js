@@ -923,8 +923,12 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
     deviceName = settings.defaultPrinter || undefined;
   }
 
-  // Paper width in microns (58mm or 80mm, default 80mm)
+  // Paper width in microns (58mm or 80mm, default 80mm) — for webContents.print() (real print driver).
   const widthMicrons = printerWidth === 58 ? 58000 : 80000;
+  // Electron's printToPDF() takes pageSize in INCHES (unlike webContents.print(), which uses microns).
+  // Passing microns made the debug/fallback PDF page ~72x too large (a ~2km page) so the receipt looked
+  // blank. Convert to inches for printToPDF ONLY. (80mm→3.15in, 297mm→11.69in.)
+  const pdfPageSize = { width: widthMicrons / 25400, height: 297000 / 25400 };
 
   console.log('[Print] type:', type || 'unknown', 'copies:', copies || 1,
     'printer:', deviceName || '(system default)', 'paper:', (printerWidth || 80) + 'mm',
@@ -948,7 +952,7 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
       await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
       const pdfData = await printWindow.webContents.printToPDF({
         printBackground: true,
-        pageSize: { width: widthMicrons, height: 297000 },
+        pageSize: pdfPageSize,
       });
       fs.writeFileSync(pdfPath, pdfData);
       console.log('[Print] Debug PDF saved:', pdfPath);
@@ -1057,7 +1061,7 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
     const pdfPath = path.join(app.getPath('desktop'), `DineOpen-print-${Date.now()}.pdf`);
     const pdfData = await printWindow.webContents.printToPDF({
       printBackground: true,
-      pageSize: { width: widthMicrons, height: 297000 },
+      pageSize: pdfPageSize,
     });
     fs.writeFileSync(pdfPath, pdfData);
     logPrintEvent({
