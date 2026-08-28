@@ -224,6 +224,7 @@ export default function TableBillingModal({
           name: modalCustomerName || order.customerInfo?.name || '',
           phone: modalCustomerMobile || order.customerInfo?.phone || null,
           tableNumber: order.tableNumber || table?.name || null,
+          chairNumber: order.chairNumber || null, // optional per-seat QR — shown next to table on bill
         },
         lastUpdatedBy: {
           name: currentUser.name || 'Staff',
@@ -427,6 +428,7 @@ export default function TableBillingModal({
             minHeight: 0,
           }}>
             <OrderSummary
+              restaurant={selectedRestaurant}
               cart={modalCart}
               setCart={setModalCart}
               orderType={order.orderType || 'dine-in'}

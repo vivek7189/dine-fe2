@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import apiClient from '../lib/api';
+import { etimsActiveFor, etimsAskPerBillFor } from '../lib/etimsDecision';
 import { t } from '../lib/i18n';
 import { useCurrency } from '../contexts/CurrencyContext';
 import useCustomerLookup, { getPhoneMinLength } from '../hooks/useCustomerLookup';
@@ -119,6 +121,8 @@ const OrderSummary = ({
   customerTin,            // #20 walk-in KRA PIN (Kenya eTIMS)
   onCustomerTinChange,
   etimsEnabled,           // only show the KRA PIN field when eTIMS is on
+  restaurant,             // full restaurant object — drives the Kenya eTIMS fiscalise decision
+  onEtimsError,           // optional: surface a KRA fiscalisation error (dashboards pass a notifier)
   processing,
   placingOrder,
   savingOrder = false, // Separate loading state for save order button
@@ -302,10 +306,61 @@ const OrderSummary = ({
   const isEditingSavedOrder = currentOrder && currentOrder.status === 'saved';
 
   const { formatCurrency, getCurrencySymbol } = useCurrency();
-  const { operator: terminalOperator, lockAfterOrder } = useTerminalLock();
+  const { operator: terminalOperator, lockAfterOrder: _lockAfterOrder } = useTerminalLock();
+  // Terminal re-lock, KRA-aware: if a Kenya "Send to KRA?" prompt is open (__etimsPromptPending),
+  // do NOT lock over it — wait until the cashier answers Yes/No, then lock. Otherwise lock now.
+  // Wrapping here means every existing lockAfterOrder() call site defers automatically.
+  const lockAfterOrder = useCallback(() => {
+    if (typeof window !== 'undefined' && window.__etimsPromptPending) {
+      const onResolved = () => {
+        try { window.removeEventListener('etims:prompt-resolved', onResolved); } catch (_) {}
+        try { _lockAfterOrder(); } catch (_) {}
+      };
+      window.addEventListener('etims:prompt-resolved', onResolved);
+      return;
+    }
+    try { _lockAfterOrder(); } catch (_) {}
+  }, [_lockAfterOrder]);
   // Re-lock the terminal ~1.5s after ANY order action (place / update / save / complete /
   // bill&print) — the delay lets the KOT/bill print fire first. No-op unless the lock is on.
   const armLockAfterAction = () => { setTimeout(() => { try { lockAfterOrder(); } catch (_) {} }, 1500); };
+
+  // ── Kenya KRA eTIMS — the SINGLE decision point for every billing screen that renders
+  // OrderSummary (dashboard, tables "Bill" modal, order-history "Complete", tables panel, mobile).
+  const etimsActive = etimsActiveFor(restaurant);
+  const etimsAskPerBill = etimsAskPerBillFor(restaurant);
+  const [kraPrompt, setKraPrompt] = useState(null); // { orderId } while awaiting the Yes/No answer
+  const etimsHandledRef = useRef(null);             // last orderId fiscalised — act once per bill
+
+  // Tell useAutoPrint (dedicated print terminals) to skip the plain bill on eTIMS-active devices —
+  // the fiscal receipt handles printing. (Formerly set by EtimsBillingGate on the dashboard.)
+  useEffect(() => {
+    if (typeof window !== 'undefined') window.__etimsFiscalActive = etimsActive;
+  }, [etimsActive]);
+
+  // Fiscalise a completed order against the local VSCU and print the combined bill+KRA receipt.
+  // sendToKra=false → skip KRA, print a plain bill (per-bill opt-out). Never blocks the POS.
+  const runEtims = useCallback(async (orderId, sendToKra) => {
+    if (!orderId) return;
+    try {
+      if (typeof window !== 'undefined') window.__lastLocalPrintedBill = orderId; // dedup vs useAutoPrint
+      const { fiscaliseAndPrint } = await import('../lib/etimsPrint');
+      const res = await fiscaliseAndPrint({ restaurantId, order: { id: orderId }, restaurant, printSettings: printSettings || {}, sendToKra });
+      if (res && res.error && typeof onEtimsError === 'function') onEtimsError(res);
+    } catch (_) { /* never block the POS on fiscalisation */ }
+  }, [restaurantId, restaurant, printSettings, onEtimsError]);
+
+  // Cashier answered the "Send to KRA?" prompt → clear the pending flag (releases a deferred lock)
+  // and run the fiscal or plain print per their choice.
+  const chooseKra = useCallback((sendToKra) => {
+    const oid = kraPrompt && kraPrompt.orderId;
+    setKraPrompt(null);
+    if (typeof window !== 'undefined') {
+      window.__etimsPromptPending = false;
+      try { window.dispatchEvent(new Event('etims:prompt-resolved')); } catch (_) {}
+    }
+    if (oid) runEtims(oid, sendToKra);
+  }, [kraPrompt, runEtims]);
   const [invoice, setInvoice] = useState(null);
   const [showInvoicePermanently, setShowInvoicePermanently] = useState(false);
   const [taxBreakdown, setTaxBreakdown] = useState([]);
@@ -1100,6 +1155,7 @@ const OrderSummary = ({
           orderData: {
             restaurantName: k.restaurantName || '',
             tableNumber: k.tableNumber || k.tableName || '',
+            chairNumber: k.chairNumber || null, // optional per-seat QR — shown next to table on KOT
             floorName: k.floorName || '',
             roomNumber: k.roomNumber || '',
             orderNumber: orderDisplayNumber(k),
@@ -1159,12 +1215,27 @@ const OrderSummary = ({
 
     console.log('[OrderSummary] Bill print effect fired:', { isNative, buttonPrintRequested, autoPrintEnabled, billAndPrintAllowed, invoiceId: invoice?.id });
 
-    // Kenya KRA eTIMS: when live, the eTIMS flow prints ONE combined receipt
-    // (bill + KRA fiscal block/QR) after fiscalisation. Skip the normal bill
-    // auto-print here so the customer never gets two receipts.
-    if (typeof window !== 'undefined' && window.__etimsFiscalActive) {
-      window.__autoPrintBill = false;
-      return;
+    // Kenya KRA eTIMS: when live, fiscalise this completed bill against the local VSCU and print
+    // ONE combined receipt (bill + KRA block/QR) instead of the plain bill below. This is the
+    // single chokepoint — it fires the same on every screen that renders OrderSummary. If the
+    // store opted into the per-bill prompt, ask "Send to KRA?" first; else auto-send. Guarded to
+    // fiscalise once per order. Non-Kenya / web (no VSCU) → etimsActive false → normal print.
+    if (etimsActive) {
+      const etimsOrderId = invoice?.orderId || invoice?.id;
+      if (etimsOrderId) {
+        window.__autoPrintBill = false;
+        if (etimsHandledRef.current !== etimsOrderId) {
+          etimsHandledRef.current = etimsOrderId;
+          if (etimsAskPerBill) {
+            if (typeof window !== 'undefined') window.__etimsPromptPending = true; // lock waits for the answer
+            setKraPrompt({ orderId: etimsOrderId });
+          } else {
+            runEtims(etimsOrderId, true);
+          }
+        }
+        return; // eTIMS owns the print for this bill
+      }
+      // etimsActive but no order id (unexpected) → fall through to the normal bill print as a safety net.
     }
 
     if (!shouldPrint) {
@@ -2286,6 +2357,7 @@ const OrderSummary = ({
           const invoiceData = response.invoice || response.bill;
           const localTaxData = taxSnapshot || buildTaxData();
           applyLocalTaxOverrides(invoiceData, localTaxData);
+          if (!invoiceData.orderId) invoiceData.orderId = orderId; // guarantee the DB id for eTIMS fiscalise
           if (!invoiceData.currencySymbol) invoiceData.currencySymbol = getCurrencySymbol();
           if (!invoiceData.countryCode) invoiceData.countryCode = countryCode;
           attachInclusiveSplits(invoiceData); // per-item MRP + tax on inclusive bills
@@ -2323,6 +2395,7 @@ const OrderSummary = ({
           };
         }),
         tableNumber: tableNumber || selectedTable?.name || selectedTable?.number || '',
+        chairNumber: currentOrder?.chairNumber || null, // optional per-seat QR — shown next to table on bill
         covers: covers,
         floorName: selectedTable?.floor || '',
         customerName: customerName || 'Walk-in',
@@ -3603,7 +3676,7 @@ const OrderSummary = ({
                     if (onLoadSavedOrder) onLoadSavedOrder(order.id);
                   }
                 }}
-                title={`Load: ${order.name || order.id.slice(-4).toUpperCase()}${order.tableNumber ? ` - Table ${order.tableNumber}` : ''}`}
+                title={`Load: ${order.name || order.id.slice(-4).toUpperCase()}${order.tableNumber ? ` - Table ${order.tableNumber}${order.chairNumber ? ` · Seat ${order.chairNumber}` : ''}` : ''}`}
               >
                 {loadingSavedOrderId === order.id ? (
                   <FaSpinner size={8} style={{ animation: 'spin 1s linear infinite', color: '#ea580c' }} />
@@ -8915,6 +8988,33 @@ const OrderSummary = ({
         </div>
       )}
 
+      {/* Kenya KRA "Send to KRA?" prompt — portaled to <body> so it always renders ABOVE the
+          terminal-lock overlay and any modal, and stays clickable. Only shows when the store opted
+          into the per-bill prompt on an eTIMS-active desktop; otherwise bills auto-send. */}
+      {kraPrompt && typeof document !== 'undefined' && createPortal(
+        <div role="dialog" aria-modal="true"
+          style={{ position: 'fixed', inset: 0, zIndex: 2147483000, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ width: '100%', maxWidth: 380, background: '#fff', borderRadius: 18, padding: '26px 24px', boxShadow: '0 24px 70px rgba(0,0,0,0.4)', textAlign: 'center' }}>
+            <div style={{ fontSize: 32, marginBottom: 6 }}>🇰🇪</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>Send this bill to KRA?</div>
+            <div style={{ fontSize: 13, color: '#64748b', margin: '8px 0 20px', lineHeight: 1.55 }}>
+              <b>Yes</b> — report to KRA eTIMS and print the fiscal receipt (SDC ID, signature &amp; QR).<br />
+              <b>No</b> — print a normal bill only; nothing is sent to KRA.
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button type="button" onClick={() => chooseKra(false)}
+                style={{ flex: 1, padding: '14px', fontSize: 15, fontWeight: 800, borderRadius: 12, border: '1px solid #e2e8f0', background: '#f8fafc', color: '#334155', cursor: 'pointer' }}>
+                No
+              </button>
+              <button type="button" onClick={() => chooseKra(true)} autoFocus
+                style={{ flex: 1, padding: '14px', fontSize: 15, fontWeight: 800, borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#16a34a,#15803d)', color: '#fff', cursor: 'pointer' }}>
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

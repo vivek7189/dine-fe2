@@ -1234,7 +1234,7 @@ export default function DashboardTablesPanel({
                       #{selectedOrder.orderNumber || selectedOrder.id}
                     </span>
                     <span style={{ fontSize: '12px', color: '#6b7280', background: '#f3f4f6', padding: '2px 8px', borderRadius: '4px' }}>
-                      {selectedOrder.tableNumber ? `Table ${selectedOrder.tableNumber}` : 'No Table'}
+                      {selectedOrder.tableNumber ? `Table ${selectedOrder.tableNumber}${selectedOrder.chairNumber ? ` · Seat ${selectedOrder.chairNumber}` : ''}` : 'No Table'}
                     </span>
                   </div>
                 )}
@@ -1304,6 +1304,7 @@ export default function DashboardTablesPanel({
                   </div>
                 ) : selectedOrder ? (
                   <OrderSummary
+                    restaurant={selectedRestaurant}
                     cart={cart}
                     setCart={setCart}
                     orderType={orderType}

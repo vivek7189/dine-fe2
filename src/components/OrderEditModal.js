@@ -458,6 +458,7 @@ const OrderEditModal = ({
           name: modalCustomerName || order.customerInfo?.name || '',
           phone: modalCustomerMobile || order.customerInfo?.phone || null,
           tableNumber: order.tableNumber || null,
+          chairNumber: order.chairNumber || null, // optional per-seat QR — shown next to table on bill
           // Preserve hotel/room + floor context on edit (parity with dashboard)
           roomNumber: order.roomNumber || order.customerInfo?.roomNumber || null,
           floorName: order.floorName || order.customerInfo?.floorName || null,

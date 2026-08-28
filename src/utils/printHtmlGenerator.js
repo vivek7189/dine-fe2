@@ -6,6 +6,21 @@ import { renderKOT, renderBill } from './printTemplates/index';
 import { attachInclusiveSplits, splitIndiaGst } from './printTemplates/helpers';
 import { getContentWidth } from './printFontSizes';
 
+// Display-only: when an order came from a per-seat/chair QR (chairNumber/seat set), show the seat
+// next to the table on the printed KOT/bill. Returns a SHALLOW CLONE with the seat appended to
+// tableNumber — the original object is never mutated, so reprints stay idempotent (no "Seat 1 · Seat 1")
+// and table-matching logic elsewhere keeps the raw tableNumber. No seat → the object is returned as-is
+// (zero change for every existing order).
+function withSeatLabel(obj) {
+  if (!obj) return obj;
+  // Seat/chair may sit at the top level (KOT data / raw order) or under customerInfo (invoice
+  // records). Read either — absence of any is the normal case and returns the object untouched.
+  const seat = obj.chairNumber ?? obj.seat ?? obj.customerInfo?.chairNumber ?? obj.customerInfo?.seat;
+  if (seat == null || String(seat).trim() === '' || !obj.tableNumber) return obj;
+  if (String(obj.tableNumber).includes('· Seat')) return obj; // already labelled — never double up
+  return { ...obj, tableNumber: `${obj.tableNumber} · Seat ${String(seat).trim()}` };
+}
+
 /**
  * Generate complete bill/invoice HTML for thermal printing.
  * Delegates to the selected bill template via printSettings.billTemplate.
@@ -18,7 +33,7 @@ export function generateBillHTML(invoice, printSettings = {}, labels = {}) {
     attachInclusiveSplits(invoice);
     splitIndiaGst(invoice); // India: render GST as CGST + SGST (display only)
   } catch (_) { /* never block printing */ }
-  let html = renderBill(invoice, printSettings, labels);
+  let html = renderBill(withSeatLabel(invoice), printSettings, labels);
   // Kenya KRA eTIMS: once an order is fiscalised (order.etims.rcptSign present) the KRA fiscal block
   // must appear on EVERY receipt — first print, reprint, preview. Because THIS is the single choke
   // point for all bill prints, appending here covers them all (the QR is included when a data-URI was
@@ -60,7 +75,7 @@ function kraFiscalBlockHtml(inv) {
  * Delegates to the selected KOT template via printSettings.kotTemplate.
  */
 export function generateKOTHTML(kotData, printSettings = {}, labels = {}) {
-  return renderKOT(kotData, printSettings, labels);
+  return renderKOT(withSeatLabel(kotData), printSettings, labels);
 }
 
 // esc helper used by parking slip generators below
