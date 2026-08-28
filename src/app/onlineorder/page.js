@@ -244,14 +244,20 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   const [sessionRestored, setSessionRestored] = useState(false); // Track if we've checked session
 
   const restaurantId = restaurantIdProp || searchParams.get('restaurant') || 'default';
-  const seatNumber = searchParams.get('seat') || '';
+  // Table/seat from the scanned QR. The per-table QR encodes the table as ?table=N; the optional
+  // per-seat sub-QR adds &seat=M. Read the table from the URL OR the passed prop — so an empty
+  // ?seat= can NEVER wipe the scanned table (that param mismatch is what made every table's QR
+  // resolve to a blank/"same" table). `chairParam` is the optional seat/chair, carried separately.
+  const tableParam = searchParams.get('table') || tableNumberProp || '';
+  const chairParam = searchParams.get('seat') || '';
 
   useEffect(() => {
+    if (!tableParam) return; // no table in the URL → don't blank a value the customer may type
     setCustomerInfo(prev => ({
       ...prev,
-      seatNumber
+      seatNumber: tableParam
     }));
-  }, [seatNumber]);
+  }, [tableParam]);
 
   // ============================================
   // RESTORE SESSION ON PAGE LOAD
@@ -1038,6 +1044,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       seatNumber: orderType === 'table' ? (customerInfo.seatNumber.trim() || 'Walk-in') : null,
       roomNumber: orderType === 'room' ? (customerInfo.roomNumber.trim() || null) : null,
       tableNumber: orderType === 'table' ? (customerInfo.seatNumber.trim() || null) : null,
+      chairNumber: (orderType === 'table' && chairParam) ? String(chairParam).trim() : null, // optional per-seat sub-QR
       items: cart.map(item => ({
         menuItemId: item.id,
         name: item.name,
@@ -1049,7 +1056,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       orderType: orderType === 'table' ? 'dine_in' : 'takeaway',
       notes: orderType === 'room'
         ? `Online order for Room ${customerInfo.roomNumber || 'N/A'}`
-        : `Online order - ${orderType === 'table' ? `Table ${customerInfo.seatNumber || 'Walk-in'}` : 'Takeaway'}`,
+        : `Online order - ${orderType === 'table' ? `Table ${customerInfo.seatNumber || 'Walk-in'}${chairParam ? ` · Seat ${chairParam}` : ''}` : 'Takeaway'}`,
       otp: firebaseUid ? 'verified' : 'skipped',
       verificationId: firebaseUid || null,
       offerIds: selectedOffers.map(o => o.id),

@@ -47,19 +47,24 @@ const DeliveryTakeawayPanel = dynamic(
 const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
   const [qrCodes, setQrCodes] = useState(new Map());
   const [customTableName, setCustomTableName] = useState('');
+  const [customSeat, setCustomSeat] = useState('');
   const [customQR, setCustomQR] = useState(null);
   const [copiedTable, setCopiedTable] = useState(null);
 
-  const getQRUrl = (tableName) => {
+  const getQRUrl = (tableName, seat = null) => {
     const isDev = process.env.NODE_ENV === 'development';
+    // Optional per-seat/chair sub-QR: adds &seat=M so the ordering page can record the seat
+    // alongside the table. Absent seat → identical to the original per-table URL (unchanged).
+    const seatQs = (seat !== null && seat !== undefined && String(seat).trim() !== '')
+      ? `&seat=${String(seat).trim()}` : '';
     if (restaurant.subdomainEnabled && restaurant.subdomain) {
       const base = isDev
         ? `http://${restaurant.subdomain}.localhost:3002`
         : `https://${restaurant.subdomain}.dineopen.com`;
-      return `${base}/placeorder?restaurant=${restaurant.id}&table=${tableName}`;
+      return `${base}/placeorder?restaurant=${restaurant.id}&table=${tableName}${seatQs}`;
     }
     const base = process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.dineopen.com';
-    return `${base}/placeorder?restaurant=${restaurant.id}&table=${tableName}`;
+    return `${base}/placeorder?restaurant=${restaurant.id}&table=${tableName}${seatQs}`;
   };
 
   const allTables = floors.flatMap(floor =>
@@ -93,9 +98,10 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
   const generateCustomQR = async () => {
     if (!customTableName.trim()) return;
     try {
-      const url = getQRUrl(customTableName.trim());
+      const seat = customSeat.trim();
+      const url = getQRUrl(customTableName.trim(), seat || null);
       const dataUrl = await QRCode.toDataURL(url, { width: 200, margin: 1, color: { dark: '#1f2937', light: '#ffffff' } });
-      setCustomQR({ name: customTableName.trim(), dataUrl, url });
+      setCustomQR({ name: customTableName.trim(), seat: seat || null, dataUrl, url });
     } catch (e) {
       console.error('Custom QR generation failed', e);
     }
@@ -156,16 +162,27 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
           {/* Custom QR Section */}
           <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#faf5ff', borderRadius: '12px', border: '1px solid #e9d5ff' }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600', color: '#6b21a8' }}>Generate Custom QR</h3>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600', color: '#6b21a8' }}>Generate Custom QR <span style={{ fontWeight: 400, color: '#9333ea' }}>(table, or table + seat/chair)</span></h3>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
               <input
                 type="text"
                 value={customTableName}
                 onChange={(e) => setCustomTableName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && generateCustomQR()}
-                placeholder="Enter table number or name"
+                placeholder="Table number or name"
                 style={{
-                  flex: 1, minWidth: '180px', padding: '10px 14px', border: '2px solid #e9d5ff', borderRadius: '10px',
+                  flex: 1, minWidth: '150px', padding: '10px 14px', border: '2px solid #e9d5ff', borderRadius: '10px',
+                  fontSize: '14px', outline: 'none', backgroundColor: 'white',
+                }}
+              />
+              <input
+                type="text"
+                value={customSeat}
+                onChange={(e) => setCustomSeat(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && generateCustomQR()}
+                placeholder="Seat / chair (optional)"
+                style={{
+                  width: '160px', padding: '10px 14px', border: '2px solid #e9d5ff', borderRadius: '10px',
                   fontSize: '14px', outline: 'none', backgroundColor: 'white',
                 }}
               />
@@ -181,16 +198,16 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
               <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '16px', padding: '12px', backgroundColor: 'white', borderRadius: '10px', border: '1px solid #e9d5ff' }}>
                 <img src={customQR.dataUrl} alt={`QR for ${customQR.name}`} style={{ width: '120px', height: '120px', borderRadius: '8px' }} />
                 <div style={{ flex: 1 }}>
-                  <p style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>Table {customQR.name}</p>
+                  <p style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>Table {customQR.name}{customQR.seat ? ` · Seat ${customQR.seat}` : ''}</p>
                   <p style={{ margin: '0 0 12px 0', fontSize: '11px', color: '#6b7280', wordBreak: 'break-all' }}>{customQR.url}</p>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={() => downloadQR(customQR.dataUrl, customQR.name)} style={{
+                    <button onClick={() => downloadQR(customQR.dataUrl, customQR.seat ? `${customQR.name}-seat-${customQR.seat}` : customQR.name)} style={{
                       padding: '6px 14px', borderRadius: '8px', border: '1px solid #e9d5ff', backgroundColor: 'white',
                       fontSize: '12px', fontWeight: '600', color: '#7c3aed', cursor: 'pointer',
                     }}>
                       Download
                     </button>
-                    <button onClick={() => copyUrl(customQR.name)} style={{
+                    <button onClick={() => { navigator.clipboard.writeText(customQR.url); setCopiedTable(customQR.name); setTimeout(() => setCopiedTable(null), 2000); }} style={{
                       padding: '6px 14px', borderRadius: '8px', border: '1px solid #e9d5ff', backgroundColor: 'white',
                       fontSize: '12px', fontWeight: '600', color: '#7c3aed', cursor: 'pointer',
                     }}>
