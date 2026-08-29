@@ -13,6 +13,7 @@ import {
   FaSignInAlt
 } from 'react-icons/fa';
 import apiClient from '../../lib/api';
+import { resolveRoleLanding } from '../../lib/roleLanding';
 import { getLocalServerUrl } from '../../lib/localServer';
 import { redirectToSubdomain } from '../../utils/subdomain';
 
@@ -97,10 +98,11 @@ const LocalLogin = () => {
           if (data.subdomainUrl) {
             // Redirect to subdomain with token and user data
             redirectToSubdomain(data.subdomainUrl, data.token, data.user);
-          } else if (data.redirectTo) {
-            router.replace(data.redirectTo);
           } else {
-            router.replace('/home');
+            // Role landing: only override the generic /home redirect (keep subdomain/admin).
+            const roleDest = await resolveRoleLanding(data.user);
+            const generic = !data.redirectTo || data.redirectTo === '/home';
+            router.replace((generic && roleDest) || data.redirectTo || '/home');
           }
         }
       } else {

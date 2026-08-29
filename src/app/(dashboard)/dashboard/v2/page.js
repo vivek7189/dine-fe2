@@ -10,7 +10,7 @@ import { database } from '../../../../../firebase';
 import { subscribeRestaurantEvents } from '../../../../lib/realtimeSubscribe';
 import { isLocalServerMode } from '../../../../lib/localServer';
 import Onboarding from '../../../../components/Onboarding';
-import EtimsBillingGate from '../../../../components/EtimsBillingGate';
+import { useTerminalLock } from '../../../../contexts/TerminalLockContext';
 import EmptyMenuPrompt from '../../../../components/EmptyMenuPrompt';
 import MenuItemCard from '../../../../components/MenuItemCard';
 import CategoryButton from '../../../../components/CategoryButton';
@@ -72,7 +72,8 @@ import {
   FaBell,
   FaRobot,
   FaEye,
-  FaEyeSlash
+  FaEyeSlash,
+  FaLock
 } from 'react-icons/fa';
 import apiClient from '../../../../lib/api';
 import { performLogout } from '../../../../lib/logout';
@@ -124,6 +125,7 @@ function RestaurantPOSContent() {
   const router = useRouter();
   const { isLoading } = useSafeLoading();
   const { openDineBot } = useSafeDineBot();
+  const { enabled: terminalLockEnabled, lock: lockTerminal } = useTerminalLock();
 
   // Offline sync engine
   const { pendingCount, isOnline, isSyncing, lastSyncEvent, networkTransition, clearTransition, manualSync, queueOfflineOrder, generateIdempotencyKey, offlineEnabled } = useSyncEngine(apiClient);
@@ -5688,18 +5690,8 @@ function RestaurantPOSContent() {
     // by passing a flag through to OrderSummary
   };
 
-  // Kenya KRA eTIMS "live" toggle — ON only when Kenya + enabled + device
-  // initialised + desktop app. Until then the normal bill flow is used.
-  const etimsActive = !!(
-    (selectedRestaurant?.currencySettings?.countryCode === 'KE' || selectedRestaurant?.currencySettings?.currencyCode === 'KES')
-    && selectedRestaurant?.etimsConfig?.enabled
-    && selectedRestaurant?.etimsConfig?.device?.sdcId
-    && typeof window !== 'undefined' && window.electronAPI?.etimsRelay
-  );
-  // Opt-in per store: ask "Send this bill to KRA?" on every bill instead of auto-
-  // sending. Off by default → no prompt, auto-fiscalise as before. The suppress-
-  // normal-print flag + fiscalise/prompt flow are owned by <EtimsBillingGate/>.
-  const etimsAskPerBill = !!selectedRestaurant?.etimsConfig?.askPerBill;
+  // Kenya KRA eTIMS: the fiscalise decision + "Send to KRA?" prompt now live inside the shared
+  // OrderSummary (driven by the `restaurant` prop). Nothing eTIMS-specific is needed here.
 
   const clearCart = (opts = {}) => {
     const { keepOrderSuccess = false, preserveUrl = false, keepTable = false } = opts;
@@ -7308,6 +7300,27 @@ function RestaurantPOSContent() {
               >
                 <FaRobot size={22} color="#94a3b8" />
               </div>
+
+              {/* Manual Lock — only when Terminal PIN Lock is enabled. */}
+              {terminalLockEnabled && (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    padding: '6px 12px',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onClick={() => { try { lockTerminal(); } catch (_) {} }}
+                  title="Lock this terminal"
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1e293b'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <FaLock size={22} color="#f87171" />
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -8777,6 +8790,8 @@ function RestaurantPOSContent() {
           }}>
           {console.log('🖥️ Dashboard: Rendering OrderSummary with cart:', cart)}
           <OrderSummary
+            restaurant={selectedRestaurant}
+            onEtimsError={(res) => setNotification({ type: 'error', title: 'KRA eTIMS', message: `Fiscalisation failed: ${res.error}.${res.fallbackPrinted ? ' A standard receipt was printed — please re-fiscalise once the VSCU is available.' : ''}`, show: true })}
             cart={cart}
             setCart={setCart}
             orderType={orderType}
@@ -8881,6 +8896,8 @@ function RestaurantPOSContent() {
             {isMobile && showMobileCart && viewMode === 'orders' && (
               <div className="v2-order-panel">
                   <OrderSummary
+                    restaurant={selectedRestaurant}
+                    onEtimsError={(res) => setNotification({ type: 'error', title: 'KRA eTIMS', message: `Fiscalisation failed: ${res.error}.${res.fallbackPrinted ? ' A standard receipt was printed — please re-fiscalise once the VSCU is available.' : ''}`, show: true })}
                     cart={cart}
                 setCart={setCart}
                     orderType={orderType}
@@ -9603,17 +9620,6 @@ function RestaurantPOSContent() {
 
       {/* Guided First Sale — one-time aha coach for just-onboarded owners (passive). */}
       <GuidedFirstSale cartCount={cart?.length || 0} orderPlaced={!!orderSuccess?.show} />
-
-      {/* Kenya KRA eTIMS: suppress-normal-print flag + fiscalise-on-bill flow (+ the
-          optional per-bill "Send to KRA?" prompt). Inert for non-Kenya / eTIMS-off. */}
-      <EtimsBillingGate
-        etimsActive={etimsActive}
-        askPerBill={etimsAskPerBill}
-        orderSuccess={orderSuccess}
-        restaurant={selectedRestaurant}
-        printSettings={printSettings}
-        onError={(res) => setNotification({ type: 'error', title: 'KRA eTIMS', message: `Fiscalisation failed: ${res.error}.${res.fallbackPrinted ? ' A standard receipt was printed — please re-fiscalise once the VSCU is available.' : ''}`, show: true })}
-      />
 
       {/* Fullscreen Mode Button */}
       <button

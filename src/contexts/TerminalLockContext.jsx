@@ -49,15 +49,22 @@ export function TerminalLockProvider({ restaurantId, restaurantName, terminalLoc
   const [error, setError] = useState('');
   const idleTimer = useRef(null);
 
-  // On EVERY fresh page load (web refresh or Electron reopen), if the lock is enabled we ALWAYS
-  // start locked and require the PIN again — a refresh/restart must never leave Fast Billing/KOT
-  // open. The stored operator is kept only to pre-fill / attribute the next unlock, never to
-  // auto-unlock. (Config `enabled` comes from localStorage selectedRestaurant, so it persists.)
+  // Decide the lock state on mount. The operator is stored in sessionStorage on unlock and
+  // CLEARED by lock()/idle/after-order. sessionStorage survives an in-session document reload
+  // (SPA nav, and the Electron app:// page reloads that happen on every left-nav click) but is
+  // gone on a genuine app reopen / new tab. So:
+  //   • operator present  → the terminal is mid-session and already unlocked → STAY unlocked
+  //     (do NOT force a PIN on every navigation — this was the "random re-lock on nav" bug).
+  //   • operator absent   → fresh reopen, or we were just locked (after-order/idle/manual) → LOCK.
   useEffect(() => {
     if (!enabled) { setLocked(false); setOperator(null); return; }
     const stored = readOperator();
-    if (stored && stored.id) setOperator(stored); // remember who last unlocked, for prefill/attribution
-    setLocked(true);                              // always re-lock on a fresh load when enabled
+    if (stored && stored.id) {
+      setOperator(stored);   // resume the unlocked session (prefill/attribution)
+      setLocked(false);
+    } else {
+      setLocked(true);       // reopen or post-lock → require the PIN
+    }
   }, [enabled]);
 
   const lock = useCallback(() => {

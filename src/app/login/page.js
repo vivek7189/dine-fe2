@@ -27,6 +27,7 @@ import {
   onAuthStateChanged
 } from 'firebase/auth';
 import apiClient from '../../lib/api';
+import { resolveRoleLanding } from '../../lib/roleLanding';
 import { getLocalServerUrl, isLocalServerMode, isServerApp } from '../../lib/localServer';
 import OfflineLogin from '../../components/OfflineLogin';
 import { t } from '../../lib/i18n';
@@ -63,36 +64,7 @@ function getRefRedirectPath() {
   return '/home';
 }
 
-// Role-landing (opt-in): after a fresh login, send the role to the page it works on (e.g. waiter →
-// Tables). apiClient.getRedirectPath() reads posSettings.roleLandingPages, so we first make sure the
-// restaurant's posSettings is loaded (the login response doesn't include it) by persisting
-// selectedRestaurant if needed. Returns the role's configured path, or '' when role-landing is
-// off/unset so the caller keeps its normal /home redirect. Best-effort; never throws.
-async function resolveRoleLanding(user) {
-  if (typeof window === 'undefined') return '';
-  try {
-    let sr = null;
-    try { sr = JSON.parse(localStorage.getItem('selectedRestaurant') || 'null'); } catch {}
-    if (!sr || !sr.posSettings) {
-      try {
-        const data = await apiClient.getRestaurants();
-        const list = (data && (data.restaurants || data)) || [];
-        if (Array.isArray(list) && list.length) {
-          const rid = user?.restaurantId || user?.defaultRestaurantId || localStorage.getItem('selectedRestaurantId');
-          const chosen = (rid && list.find((r) => r.id === rid))
-            || (user?.defaultRestaurantId && list.find((r) => r.id === user.defaultRestaurantId))
-            || list[0];
-          if (chosen) {
-            localStorage.setItem('selectedRestaurant', JSON.stringify(chosen));
-            localStorage.setItem('selectedRestaurantId', chosen.id);
-          }
-        }
-      } catch (_) { /* fetch is best-effort */ }
-    }
-    const dest = apiClient.getRedirectPath();
-    return (dest && dest !== '/home') ? dest : '';
-  } catch { return ''; }
-}
+// resolveRoleLanding is shared with local-login via ../../lib/roleLanding (imported above).
 
 // Trigger background prefetch of dashboard data after login (non-blocking)
 function triggerDashboardPrefetch() {
@@ -1339,10 +1311,11 @@ const Login = () => {
             if (firebaseData.subdomainUrl) {
               // Redirect to subdomain with token and user data
               redirectToSubdomain(firebaseData.subdomainUrl, firebaseData.token, firebaseData.user);
-            } else if (firebaseData.redirectTo) {
-              router.replace(firebaseData.redirectTo);
             } else {
-              router.replace(getRefRedirectPath());
+              // Role landing: only override the generic /home redirect (keep subdomain/admin).
+              const roleDest = await resolveRoleLanding(firebaseData.user);
+              const generic = !firebaseData.redirectTo || firebaseData.redirectTo === '/home';
+              router.replace((generic && roleDest) || firebaseData.redirectTo || getRefRedirectPath());
             }
           }
         } else {
@@ -1401,10 +1374,11 @@ const Login = () => {
             if (data.subdomainUrl) {
               // Redirect to subdomain with token
               redirectToSubdomain(data.subdomainUrl, data.token, data.user);
-            } else if (data.redirectTo) {
-              router.replace(data.redirectTo);
             } else {
-              router.replace(getRefRedirectPath());
+              // Role landing: only override the generic /home redirect (keep subdomain/admin).
+              const roleDest = await resolveRoleLanding(data.user);
+              const generic = !data.redirectTo || data.redirectTo === '/home';
+              router.replace((generic && roleDest) || data.redirectTo || getRefRedirectPath());
             }
           }
         } else {

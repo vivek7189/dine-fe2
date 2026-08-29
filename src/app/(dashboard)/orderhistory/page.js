@@ -4568,6 +4568,7 @@ const OrderHistory = () => {
               {billingModalCart.length > 0 ? (
                 <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                   <OrderSummary
+                    restaurant={restaurant}
                     cart={billingModalCart}
                     setCart={setBillingModalCart}
                     orderType={billingModalOrder.orderType || 'dine-in'}
