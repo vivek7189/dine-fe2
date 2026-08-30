@@ -2062,7 +2062,9 @@ const OrderHistory = () => {
     // the Scheduled tab. Exception: when the user explicitly filters by the "scheduled" type.
     // Once an order is auto-fired at its time, isScheduled is cleared so it shows here normally.
     if (selectedOrderType !== 'scheduled') {
-      list = list.filter(order => !order.isScheduled);
+      // Hide only scheduled orders that haven't FIRED yet (they live in the Scheduled tab).
+      // Once auto-fired at their time (scheduledFired=true) they behave like a normal live order.
+      list = list.filter(order => !(order.isScheduled && !order.scheduledFired));
     }
     return list;
   }, [orders, filterSubRestaurant, selectedOrderType]);
