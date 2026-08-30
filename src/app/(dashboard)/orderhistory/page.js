@@ -358,6 +358,18 @@ const OrderHistory = () => {
     try { await navigator.clipboard.writeText(text); } catch (err) { console.error('Failed to copy text: ', err); }
   };
 
+  // Timestamps arrive as a Firestore/PG object ({_seconds,_nanoseconds} or .toDate()), an ISO
+  // string, a number, or a Date. new Date({_seconds}) yields "Invalid Date" — this parses every
+  // shape to a valid Date (or null). Used for scheduledFor so scheduled dates never break.
+  const parseTs = (v) => {
+    if (!v) return null;
+    if (typeof v.toDate === 'function') { const d = v.toDate(); return isNaN(d?.getTime?.()) ? null : d; }
+    if (v._seconds != null) return new Date(v._seconds * 1000);
+    if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
   const formatDate = (date, compact = false) => {
     if (!date) return 'N/A';
     try {
@@ -2042,9 +2054,18 @@ const OrderHistory = () => {
   }, [orders, analyticsStats]);
 
   // Client-side sub-restaurant filtering (memoized)
-  const displayedOrders = useMemo(() => filterSubRestaurant !== 'all'
-    ? orders.filter(order => order.subRestaurantId === filterSubRestaurant)
-    : orders, [orders, filterSubRestaurant]);
+  const displayedOrders = useMemo(() => {
+    let list = filterSubRestaurant !== 'all'
+      ? orders.filter(order => order.subRestaurantId === filterSubRestaurant)
+      : orders;
+    // Keep scheduled (future / not-yet-fired) orders OUT of the active orders list — they live in
+    // the Scheduled tab. Exception: when the user explicitly filters by the "scheduled" type.
+    // Once an order is auto-fired at its time, isScheduled is cleared so it shows here normally.
+    if (selectedOrderType !== 'scheduled') {
+      list = list.filter(order => !order.isScheduled);
+    }
+    return list;
+  }, [orders, filterSubRestaurant, selectedOrderType]);
 
   // Fetch scheduled orders
   const fetchScheduledOrders = useCallback(async () => {
@@ -2060,8 +2081,8 @@ const OrderHistory = () => {
       let schOrders = response.orders || [];
       // Sort by scheduledFor ascending (upcoming first)
       schOrders.sort((a, b) => {
-        const dateA = new Date(a.scheduledFor || a.createdAt);
-        const dateB = new Date(b.scheduledFor || b.createdAt);
+        const dateA = parseTs(a.scheduledFor) || parseTs(a.createdAt) || new Date(0);
+        const dateB = parseTs(b.scheduledFor) || parseTs(b.createdAt) || new Date(0);
         return dateA - dateB;
       });
       setScheduledOrders(schOrders);
@@ -4076,7 +4097,7 @@ const OrderHistory = () => {
                             )}
                             {order.isScheduled && order.scheduledFor && (
                               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '1px 5px', backgroundColor: '#eff6ff', color: '#2563eb', borderRadius: '5px', fontSize: '10px', fontWeight: '600' }}>
-                                <FaCalendarAlt size={8} /> {new Date(order.scheduledFor).toLocaleDateString()} {new Date(order.scheduledFor).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                <FaCalendarAlt size={8} /> {formatDate(order.scheduledFor)}
                               </span>
                             )}
                             {order.syncSource === 'offline' && (
@@ -5872,7 +5893,7 @@ const OrderHistory = () => {
             const monthEnd = new Date(todayStart); monthEnd.setMonth(monthEnd.getMonth() + 1);
 
             const filtered = scheduledOrders.filter(order => {
-              const schDate = new Date(order.scheduledFor || order.createdAt);
+              const schDate = parseTs(order.scheduledFor) || parseTs(order.createdAt) || new Date(0);
               switch (scheduledDateFilter) {
                 case 'upcoming': return schDate >= now;
                 case 'today': return schDate >= todayStart && schDate <= todayEnd;
@@ -5887,14 +5908,14 @@ const OrderHistory = () => {
             const totalScheduled = filtered.length;
             const totalValue = filtered.reduce((sum, o) => sum + (o.finalAmount || o.totalAmount || 0), 0);
             const todayCount = filtered.filter(o => {
-              const d = new Date(o.scheduledFor);
+              const d = parseTs(o.scheduledFor) || new Date(0);
               return d >= todayStart && d <= todayEnd;
             }).length;
 
             // Group by date for calendar view
             const groupedByDate = {};
             filtered.forEach(order => {
-              const dateKey = new Date(order.scheduledFor || order.createdAt).toLocaleDateString('en-CA'); // YYYY-MM-DD
+              const dateKey = (parseTs(order.scheduledFor) || parseTs(order.createdAt) || new Date(0)).toLocaleDateString('en-CA'); // YYYY-MM-DD
               if (!groupedByDate[dateKey]) groupedByDate[dateKey] = [];
               groupedByDate[dateKey].push(order);
             });
@@ -5947,7 +5968,7 @@ const OrderHistory = () => {
                 {scheduledViewMode === 'list' && (
                   <div className="space-y-2">
                     {filtered.map((order) => {
-                      const schDate = new Date(order.scheduledFor);
+                      const schDate = parseTs(order.scheduledFor) || new Date(0);
                       const isPast = schDate < now;
                       const isToday = schDate >= todayStart && schDate <= todayEnd;
                       const orderNum = order.orderNumber || order.id?.slice(-6);
@@ -6066,9 +6087,9 @@ const OrderHistory = () => {
                           {/* Orders for this date in a table-like layout */}
                           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden divide-y divide-gray-100">
                             {dayOrders
-                              .sort((a, b) => new Date(a.scheduledFor) - new Date(b.scheduledFor))
+                              .sort((a, b) => (parseTs(a.scheduledFor)?.getTime() || 0) - (parseTs(b.scheduledFor)?.getTime() || 0))
                               .map(order => {
-                                const schTime = new Date(order.scheduledFor);
+                                const schTime = parseTs(order.scheduledFor) || new Date(0);
                                 const items = order.items || order.orderItems || [];
                                 const itemCount = items.reduce((s, i) => s + (i.quantity || 1), 0);
                                 return (
