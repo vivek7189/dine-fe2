@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
+import PublicMenuBadge from '../../../components/PublicMenuBadge';
 import { Flame, Leaf } from 'lucide-react';
 
 // Skeuomorphic 3D Book using CSS (no WebGL). Two categories per sheet (left/right).
@@ -102,6 +103,7 @@ const PageFace = ({ category, items, currencySymbol = '₹' }) => {
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                   {item.isVeg !== false && <Leaf size={14} color="#16a34a" strokeWidth={2.5} />}
                   {item.isSpicy && <Flame size={14} color="#dc2626" strokeWidth={2.5} />}
+                  {item.badge && <PublicMenuBadge badge={item.badge} />}
                 </div>
               </div>
               {item.description && (

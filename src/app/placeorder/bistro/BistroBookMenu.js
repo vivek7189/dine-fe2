@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useEffect, useState } from 'react';
+import PublicMenuBadge from '../../../components/PublicMenuBadge';
 import { Flame, Leaf } from 'lucide-react';
 import { FaPlus, FaMinus } from 'react-icons/fa';
 
@@ -108,6 +109,7 @@ const Page = ({ category, items, isLeft, pageNumber, onAddToCart, cart = [], onR
             ) : (
               items.map((item, idx) => (
                 <div key={`${item.id || idx}-${category}`} className="relative group">
+                  {item.badge && <div className="mb-1"><PublicMenuBadge badge={item.badge} /></div>}
                   <div
                     className="flex justify-between items-baseline pb-1 mb-1"
                     style={{ borderBottom: '1px dotted rgba(17,24,39,0.2)' }}

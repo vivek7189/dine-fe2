@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import PublicMenuBadge from '../../../components/PublicMenuBadge';
 import { FaChevronLeft, FaChevronRight, FaPlus, FaUtensils, FaLeaf, FaFire } from 'react-icons/fa';
 import { getDisplayImage } from '../../../utils/placeholderImages';
 
@@ -322,6 +323,7 @@ const Carousel3DMenu = ({ menu, categories, restaurant, addToCart, cart, currenc
                 <div className={`${shouldHideImage(item) ? 'h-full' : 'h-[48%]'} bg-white p-3 flex flex-col justify-between relative z-10`}>
                   <div className="transform -translate-y-6 mb-[-14px]">
                      <div className="bg-white rounded-xl p-3 shadow border border-gray-100 text-center">
+                        {item.badge && <div className="mb-1 flex justify-center"><PublicMenuBadge badge={item.badge} /></div>}
                         <h3 className="text-base font-extrabold text-gray-900 mb-1 line-clamp-1">{item.name}</h3>
                         <p className="text-gray-500 text-[11px] line-clamp-2 leading-relaxed">{item.description}</p>
                      </div>

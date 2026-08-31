@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaSearch, FaPlus, FaMinus, FaStar, FaLeaf, FaDrumstickBite } from 'react-icons/fa';
 import { getDisplayImage } from '../../../utils/placeholderImages';
+import PublicMenuBadge from '../../../components/PublicMenuBadge';
 
 const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFromCart, currencySymbol = '₹' }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -175,6 +176,7 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
                     {/* Content */}
                     <div className="flex-1 flex flex-col justify-between min-w-0 py-1">
                       <div>
+                        {item.badge && <div className="mb-1"><PublicMenuBadge badge={item.badge} /></div>}
                         <h4 className="font-bold text-gray-800 text-base leading-tight mb-1 truncate">{item.name}</h4>
                         <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{item.description || 'Delicious and freshly prepared.'}</p>
                       </div>

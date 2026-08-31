@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useMemo } from 'react';
+import PublicMenuBadge from '../../../components/PublicMenuBadge';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Text, Float, OrbitControls, RoundedBox, useCursor, Html, Environment, ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
@@ -21,6 +22,7 @@ const MenuItemList = ({ items, currencySymbol = '₹' }) => {
         {displayItems.map((item, i) => (
           <div key={item.id || i} className="flex justify-between items-start border-b border-gray-100 pb-2 last:border-0 last:pb-0">
             <div className="flex-1 pr-2 text-left">
+              {item.badge && <div className="mb-0.5"><PublicMenuBadge badge={item.badge} style={{ fontSize: '8px', padding: '1px 5px' }} /></div>}
               <h4 className="text-sm font-extrabold text-gray-900 leading-tight mb-0.5">{item.name}</h4>
               <p className="text-[9px] text-gray-500 font-medium line-clamp-1 leading-relaxed">{item.description}</p>
             </div>
