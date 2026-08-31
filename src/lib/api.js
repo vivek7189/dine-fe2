@@ -1929,6 +1929,16 @@ class ApiClient {
     return result;
   }
 
+  // Reorder the public menu: itemOrder = item IDs top-to-bottom, categoryOrder = category names.
+  async reorderMenu(restaurantId, { itemOrder, categoryOrder } = {}) {
+    const result = await this.request(`/api/menus/reorder/${restaurantId}`, {
+      method: 'PATCH',
+      body: { ...(itemOrder ? { itemOrder } : {}), ...(categoryOrder ? { categoryOrder } : {}) },
+    });
+    this.invalidateCache('/api/menus/');
+    return result;
+  }
+
   async deleteFloor(floorId, restaurantId) {
     const result = await this.request(`/api/floors/${floorId}?restaurantId=${restaurantId}`, {
       method: 'DELETE',
