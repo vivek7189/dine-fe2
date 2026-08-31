@@ -3600,6 +3600,21 @@ class ApiClient {
     });
   }
 
+  // Report a browser-side WhatsApp connect failure (popup closed / not verified / SDK error) so
+  // the server captures the reason too. Best-effort — never throws, never blocks the UI.
+  async reportWhatsAppConnectDiagnostic(restaurantId, rec) {
+    try {
+      return await this.request(`/api/automation/${restaurantId}/whatsapp/diagnostic`, {
+        method: 'POST',
+        body: rec || {},
+      });
+    } catch { return null; }
+  }
+
+  async getWhatsAppConnectDiagnostics(restaurantId) {
+    return this.request(`/api/automation/${restaurantId}/whatsapp/diagnostics`);
+  }
+
   async disconnectWhatsApp(restaurantId) {
     return this.request(`/api/automation/${restaurantId}/whatsapp/disconnect`, {
       method: 'POST',

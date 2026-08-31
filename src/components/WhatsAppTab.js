@@ -30,6 +30,9 @@ export default function WhatsAppTab({ selectedRestaurant }) {
   const wabaDataRef = useRef(null);
   const messagesEndRef = useRef(null);
   const pollRef = useRef(null);
+  // Holds the current restaurantId for the Embedded Signup message listener (which is bound once
+  // at mount, so a plain closure would capture a stale/undefined id). Kept in sync below.
+  const restaurantIdRef = useRef(null);
 
   const FACEBOOK_APP_ID = '1591044548986175';
   // Config ID from Meta App → Facebook Login for Business → Configurations
@@ -37,6 +40,7 @@ export default function WhatsAppTab({ selectedRestaurant }) {
   const EMBEDDED_SIGNUP_CONFIG_ID = process.env.NEXT_PUBLIC_WA_EMBEDDED_SIGNUP_CONFIG_ID || '1503970314508774';
 
   const restaurantId = selectedRestaurant?.id;
+  restaurantIdRef.current = restaurantId; // keep the listener's id current without re-binding
 
   // Load Facebook SDK for Embedded Signup
   useEffect(() => {
@@ -74,8 +78,10 @@ export default function WhatsAppTab({ selectedRestaurant }) {
             };
           } else if (data.event === 'CANCEL') {
             console.log('Embedded Signup cancelled at step:', data.data?.current_step);
+            if (restaurantIdRef.current) apiClient.reportWhatsAppConnectDiagnostic(restaurantIdRef.current, { phase: 'client-cancel', ok: false, errorMessage: `Customer cancelled signup at step: ${data.data?.current_step || 'unknown'}`, raw: data.data });
           } else if (data.event === 'ERROR') {
             console.error('Embedded Signup error:', data.data?.error_message);
+            if (restaurantIdRef.current) apiClient.reportWhatsAppConnectDiagnostic(restaurantIdRef.current, { phase: 'client-error', ok: false, errorMessage: data.data?.error_message || 'Embedded Signup error', raw: data.data });
           }
         }
       } catch {
@@ -201,6 +207,7 @@ export default function WhatsAppTab({ selectedRestaurant }) {
           const wabaData = wabaDataRef.current;
           if (!wabaData?.phone_number_id || !wabaData?.waba_id) {
             setStatusMsg({ type: 'error', text: 'Signup was not completed fully. Please try again and complete all steps including phone verification.' });
+            apiClient.reportWhatsAppConnectDiagnostic(restaurantId, { phase: 'client-abort', ok: false, errorMessage: 'Signup not completed fully — no phone_number_id/waba_id (customer likely closed before phone verification)' });
             setEmbeddedSignupLoading(false);
             return;
           }
@@ -214,12 +221,14 @@ export default function WhatsAppTab({ selectedRestaurant }) {
             return loadSettings();
           }).catch(err => {
             setStatusMsg({ type: 'error', text: err.error || err.message || 'Failed to complete setup' });
+            apiClient.reportWhatsAppConnectDiagnostic(restaurantId, { phase: 'client-setup-failed', ok: false, wabaId: wabaData.waba_id, phoneNumberId: wabaData.phone_number_id, errorMessage: err.error || err.message || 'Failed to complete setup' });
           }).finally(() => {
             setEmbeddedSignupLoading(false);
           });
         } else {
           if (response.status !== 'unknown') {
             setStatusMsg({ type: 'error', text: 'Facebook login was cancelled or not authorized.' });
+            apiClient.reportWhatsAppConnectDiagnostic(restaurantId, { phase: 'client-login-cancelled', ok: false, errorMessage: `Facebook login not completed (status: ${response.status})` });
           }
         }
       },
