@@ -2084,6 +2084,33 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
 
           {/* Main Menu Content */}
           <div className="desktop-main-content" style={{ flex: 1, minWidth: 0 }}>
+        {/* ── Featured / Bestseller band (public-menu merchandising, display-only) ── */}
+        {(() => {
+          const featured = (filteredMenu || []).filter(i => i.featured);
+          if (!featured.length || selectedCategory !== 'all' || searchTerm) return null;
+          return (
+            <div style={{ marginTop: '20px', marginBottom: '4px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#b45309', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                🔥 Featured
+              </h2>
+              <div style={{ display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: '10px', WebkitOverflowScrolling: 'touch' }}>
+                {featured.map(item => (
+                  <div key={`feat-${item.id}`} style={{ minWidth: '280px', maxWidth: '320px', flex: '0 0 auto' }}>
+                    <MenuItemCard
+                      item={item}
+                      onAddToCart={addToCart}
+                      onRemoveFromCart={removeFromCart}
+                      cartQuantity={cart.find(ci => ci.id === item.id)?.quantity || 0}
+                      getCategoryColor={getCategoryColor}
+                      cs={cs}
+                      globalHideImages={restaurant?.posSettings?.hideMenuImages === true}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
         {Object.keys(groupedMenu).length > 0 ? (
           Object.entries(groupedMenu).map(([category, items]) => (
             <div key={category} id={`category-${category}`} style={{ marginTop: '20px', scrollMarginTop: '180px' }}>
@@ -2560,6 +2587,24 @@ const OffersBanner = ({ offers, gradientStart, gradientEnd, cs = '₹' }) => {
 };
 
 // Menu Item Card Component
+// Public-menu merchandising badges (display-only). Owner picks one per item in the admin Menu page.
+const MENU_BADGES = {
+  bestseller:  { label: 'Bestseller',   emoji: '🔥', bg: '#fef3c7', color: '#b45309' },
+  new:         { label: 'New',          emoji: '🆕', bg: '#dbeafe', color: '#1d4ed8' },
+  chef:        { label: "Chef's Special",emoji: '👨‍🍳', bg: '#ede9fe', color: '#6d28d9' },
+  recommended: { label: 'Recommended',  emoji: '⭐', bg: '#dcfce7', color: '#15803d' },
+};
+const ItemBadge = ({ badge, style = {} }) => {
+  const b = MENU_BADGES[String(badge || '').toLowerCase()];
+  if (!b) return null;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 8px', borderRadius: '999px',
+      fontSize: '10px', fontWeight: 700, background: b.bg, color: b.color, whiteSpace: 'nowrap', ...style }}>
+      <span aria-hidden>{b.emoji}</span>{b.label}
+    </span>
+  );
+};
+
 const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCategoryColor, cs = '₹', globalHideImages = false }) => {
   const isVeg = item.isVeg !== false;
   const [isHovered, setIsHovered] = useState(false);
@@ -2573,6 +2618,7 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
   return (
     <div
       style={{
+        position: 'relative',
         backgroundColor: 'white',
         borderRadius: '16px',
         padding: '16px',
@@ -2582,11 +2628,12 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
         alignItems: 'flex-start',
         transition: 'all 0.2s ease',
         transform: isHovered ? 'translateY(-1px)' : 'translateY(0)',
-        border: isHovered ? '1px solid #e5e7eb' : '1px solid #f0f0f0'
+        border: item.featured ? '1.5px solid #fbbf24' : (isHovered ? '1px solid #e5e7eb' : '1px solid #f0f0f0')
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      {item.badge && <ItemBadge badge={item.badge} style={{ position: 'absolute', top: '8px', right: '8px', zIndex: 2 }} />}
       {/* Image */}
       {!shouldHideImage && (
       <div style={{
