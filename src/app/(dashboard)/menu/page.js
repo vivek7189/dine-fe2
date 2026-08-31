@@ -3699,6 +3699,36 @@ const MenuManagement = () => {
     }
   }, [currentRestaurant?.id, isOnline, loadMenuData]);
 
+  // Move an item up/down in the public-menu order. Plain function (not memoized) so it
+  // always closes over the freshest menuItems/menuDirectItems. Swaps the item with its
+  // visible neighbour inside the MASTER list, then persists the full order (unlisted items
+  // keep their place server-side). Optimistic, reverts on failure. Scoped to the current
+  // restaurant only. Disabled while a search is active (index math wouldn't be meaningful).
+  const handleMoveItem = async (item, direction) => {
+    if (!currentRestaurant?.id || searchTerm) return;
+    const visible = menuDirectItems;
+    const vIdx = visible.findIndex(x => x.id === item.id);
+    if (vIdx === -1) return;
+    const neighbor = visible[vIdx + (direction === 'up' ? -1 : 1)];
+    if (!neighbor) return; // already at an end of the visible list
+    const before = menuItems;
+    const full = [...menuItems];
+    const a = full.findIndex(x => x.id === item.id);
+    const b = full.findIndex(x => x.id === neighbor.id);
+    if (a === -1 || b === -1) return;
+    [full[a], full[b]] = [full[b], full[a]];
+    const reordered = full.map((it, i) => ({ ...it, order: i }));
+    setMenuItems(reordered); // optimistic
+    if (!isOnline) return; // offline: local reorder only (won't persist until back online)
+    try {
+      await apiClient.reorderMenu(currentRestaurant.id, { itemOrder: reordered.map(x => x.id) });
+    } catch (error) {
+      console.error('Error reordering menu:', error);
+      setMenuItems(before); // revert
+      setError(t('menu.failedReorder') || 'Could not save the new order. Please try again.');
+    }
+  };
+
   const [hideImageToast, setHideImageToast] = useState(null);
   const handleToggleHideImage = useCallback(async (item) => {
     if (!currentRestaurant?.id) return;
@@ -5169,6 +5199,8 @@ const MenuManagement = () => {
                       justifyContent: 'center'
                     }}>
                       {[
+                        canEditMenuItem && !searchTerm && { icon: <FaChevronUp size={11} />, color: index === 0 ? '#e2e8f0' : '#94a3b8', hoverColor: '#0ea5e9', title: t('menu.moveUp') || 'Move up', disabled: index === 0, handler: (e) => { e.stopPropagation(); if (index !== 0) handleMoveItem(item, 'up'); } },
+                        canEditMenuItem && !searchTerm && { icon: <FaChevronDown size={11} />, color: index === menuDirectItems.length - 1 ? '#e2e8f0' : '#94a3b8', hoverColor: '#0ea5e9', title: t('menu.moveDown') || 'Move down', disabled: index === menuDirectItems.length - 1, handler: (e) => { e.stopPropagation(); if (index !== menuDirectItems.length - 1) handleMoveItem(item, 'down'); } },
                         { icon: <FaStar size={11} />, color: item.isFavorite ? '#f59e0b' : '#cbd5e1', hoverColor: '#f59e0b', title: t('menu.favorite'), handler: (e) => { e.stopPropagation(); handleToggleFavorite(item); } },
                         canEditMenuItem && { icon: <FaEdit size={11} />, color: '#94a3b8', hoverColor: '#3b82f6', title: t('menu.edit'), handler: (e) => { e.stopPropagation(); handleEdit(item); } },
                         canAddMenuItem && { icon: generatingRecipeFor === item.id ? <FaSpinner size={11} style={{ animation: 'spin 1s linear infinite' }} /> : menuItemRecipes[item.id] ? <FaCheckCircle size={11} /> : <FaFlask size={11} />, color: menuItemRecipes[item.id] ? '#059669' : '#94a3b8', hoverColor: '#059669', title: generatingRecipeFor === item.id ? t('menu.generating') : menuItemRecipes[item.id] ? t('menu.recipeLinkedAction') : t('menu.generateRecipe'), handler: (e) => { e.stopPropagation(); if (!menuItemRecipes[item.id]) handleGenerateRecipe(item); } },
@@ -5179,10 +5211,11 @@ const MenuManagement = () => {
                           key={i}
                           onClick={action.handler}
                           title={action.title}
+                          disabled={action.disabled}
                           style={{
                             background: 'none',
                             border: 'none',
-                            cursor: 'pointer',
+                            cursor: action.disabled ? 'default' : 'pointer',
                             padding: '6px',
                             borderRadius: '6px',
                             color: action.color,
@@ -5190,7 +5223,7 @@ const MenuManagement = () => {
                             display: 'flex',
                             alignItems: 'center'
                           }}
-                          onMouseEnter={(e) => { e.currentTarget.style.color = action.hoverColor; e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
+                          onMouseEnter={(e) => { if (action.disabled) return; e.currentTarget.style.color = action.hoverColor; e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
                           onMouseLeave={(e) => { e.currentTarget.style.color = action.color; e.currentTarget.style.backgroundColor = 'transparent'; }}
                         >
                           {action.icon}
