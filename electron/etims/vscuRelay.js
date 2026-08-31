@@ -39,19 +39,44 @@ function isPrivateHost(hostname) {
   return false;
 }
 
-function relay({ url, path = '', body }, timeoutMs = 30000) {
+// Relay timeout (ms). The renderer forwards the value the BACKEND decided per-store
+// (etimsConfig.relayTimeoutMs, surfaced in every payload response) so it can be tuned
+// from admin with NO app rebuild. Default 90s; clamp 5s–300s so a bad value can neither
+// freeze the till for minutes nor be uselessly short. Legacy 2nd-arg still honoured.
+function clampTimeout(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return 90000;
+  return Math.min(300000, Math.max(5000, Math.round(n)));
+}
+
+// Map a Node socket error to a stable, human-triageable class. Additive telemetry only —
+// nothing here changes control flow; callers that ignore `errorClass` are unaffected.
+function classifyErr(err) {
+  const code = err && err.code;
+  if (code === 'ECONNREFUSED') return 'REFUSED';         // nothing listening → VSCU not running
+  if (code === 'ETIMEDOUT') return 'TIMEOUT';            // socket-level timeout
+  if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') return 'DNS'; // bad host / LAN name unresolved
+  if (code === 'ECONNRESET' || code === 'EPIPE') return 'RESET';  // VSCU closed mid-response
+  if (code === 'CERT_HAS_EXPIRED' || (code && String(code).startsWith('ERR_TLS'))) return 'TLS';
+  return 'NETWORK';
+}
+
+function relay({ url, path = '', body, timeoutMs: bodyTimeout } = {}, timeoutMsArg) {
+  const timeoutMs = clampTimeout(bodyTimeout != null ? bodyTimeout : timeoutMsArg);
+  const startedAt = Date.now();
+  const elapsed = () => Date.now() - startedAt;
   return new Promise((resolve) => {
     let target;
     try {
       target = new URL((url || '').replace(/\/+$/, '') + (path || ''));
     } catch (e) {
-      return resolve({ ok: false, error: 'Invalid VSCU URL' });
+      return resolve({ ok: false, error: 'Invalid VSCU URL', errorClass: 'BAD_URL', latencyMs: elapsed(), timeoutMs });
     }
     if (!isPrivateHost(target.hostname)) {
-      return resolve({ ok: false, error: `Refused: VSCU target must be a local/LAN address (got ${target.hostname}).` });
+      return resolve({ ok: false, error: `Refused: VSCU target must be a local/LAN address (got ${target.hostname}).`, errorClass: 'REFUSED_NONLOCAL', latencyMs: elapsed(), timeoutMs });
     }
     if (target.protocol !== 'http:' && target.protocol !== 'https:') {
-      return resolve({ ok: false, error: 'VSCU URL must be http(s)' });
+      return resolve({ ok: false, error: 'VSCU URL must be http(s)', errorClass: 'BAD_URL', latencyMs: elapsed(), timeoutMs });
     }
 
     const payload = Buffer.from(JSON.stringify(body || {}), 'utf8');
@@ -73,12 +98,13 @@ function relay({ url, path = '', body }, timeoutMs = 30000) {
         resp.on('end', () => {
           let json = null;
           try { json = JSON.parse(data); } catch { /* non-JSON */ }
-          resolve({ ok: resp.statusCode >= 200 && resp.statusCode < 300, status: resp.statusCode, data: json, raw: json ? undefined : data });
+          const ok = resp.statusCode >= 200 && resp.statusCode < 300;
+          resolve({ ok, status: resp.statusCode, data: json, raw: json ? undefined : data, latencyMs: elapsed(), timeoutMs, ...(ok ? {} : { errorClass: `HTTP_${resp.statusCode}` }) });
         });
       }
     );
-    req.on('timeout', () => { req.destroy(); resolve({ ok: false, error: `VSCU timed out after ${Math.round(timeoutMs / 1000)}s. Is the VSCU running on this machine?` }); });
-    req.on('error', (err) => { resolve({ ok: false, error: `Could not reach the VSCU: ${err.message}` }); });
+    req.on('timeout', () => { req.destroy(); resolve({ ok: false, error: `VSCU timed out after ${Math.round(timeoutMs / 1000)}s. Is the VSCU running on this machine?`, errorClass: 'TIMEOUT', latencyMs: elapsed(), timeoutMs }); });
+    req.on('error', (err) => { resolve({ ok: false, error: `Could not reach the VSCU: ${err.message}`, errorClass: classifyErr(err), latencyMs: elapsed(), timeoutMs }); });
     req.write(payload);
     req.end();
   });

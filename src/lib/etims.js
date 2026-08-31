@@ -26,10 +26,31 @@ export function isEtimsCapable() {
  * they'd otherwise leave no server-side trace. Never throws — telemetry must never
  * break the POS or fiscalisation.
  */
+// Client context (app version + OS), gathered once and cached. Best-effort — attached to
+// every diagnostic so a server-side reader knows which build/OS a store is on without asking.
+let _clientCtx = null;
+async function clientCtx() {
+  if (_clientCtx) return _clientCtx;
+  let appVersion = null, os = null;
+  try { os = (typeof navigator !== 'undefined' && navigator.userAgent) ? String(navigator.userAgent).slice(0, 160) : null; } catch { /* ignore */ }
+  try {
+    if (typeof window !== 'undefined' && window.electronAPI && typeof window.electronAPI.getVersion === 'function') {
+      appVersion = await window.electronAPI.getVersion();
+    }
+  } catch { /* ignore */ }
+  _clientCtx = { appVersion: appVersion || null, os };
+  return _clientCtx;
+}
+
 export async function logEtimsDiagnostic(restaurantId, rec) {
   try {
     if (!restaurantId) return;
-    await apiClient.request(`/api/etims/${restaurantId}/diagnostic`, { method: 'POST', body: rec || {} });
+    const ctx = await clientCtx();
+    // Merge ctx UNDER rec so an explicit field on rec always wins; purely additive.
+    await apiClient.request(`/api/etims/${restaurantId}/diagnostic`, {
+      method: 'POST',
+      body: { appVersion: ctx.appVersion, os: ctx.os, ...(rec || {}) },
+    });
   } catch { /* ignore */ }
 }
 
@@ -40,10 +61,10 @@ export async function logEtimsDiagnostic(restaurantId, rec) {
 export async function initEtimsDevice(restaurantId) {
   if (!isEtimsCapable()) throw new Error('eTIMS device setup must be done from the DineOpen desktop app.');
   const prep = await apiClient.request(`/api/etims/${restaurantId}/init-payload`);
-  const relayRes = await window.electronAPI.etimsRelay({ url: prep.vscuUrl, path: prep.path, body: prep.body });
+  const relayRes = await window.electronAPI.etimsRelay({ url: prep.vscuUrl, path: prep.path, body: prep.body, timeoutMs: prep.timeoutMs });
   if (!relayRes || !relayRes.ok) {
     const msg = (relayRes && relayRes.error) || 'Could not reach the VSCU.';
-    logEtimsDiagnostic(restaurantId, { phase: 'init', ok: false, errorMessage: msg, raw: relayRes });
+    logEtimsDiagnostic(restaurantId, { phase: 'init', ok: false, errorMessage: msg, raw: relayRes, errorClass: (relayRes && relayRes.errorClass) || 'RELAY_ERROR', latencyMs: relayRes && relayRes.latencyMs, vscuUrl: prep.vscuUrl, timeoutMs: prep.timeoutMs });
     throw new Error(msg);
   }
   const conf = await apiClient.request(`/api/etims/${restaurantId}/init-result`, { method: 'POST', body: relayRes.data || relayRes });
@@ -70,7 +91,7 @@ export async function testEtimsConnection(restaurantId) {
   }
   let relayRes;
   try {
-    relayRes = await window.electronAPI.etimsRelay({ url: prep.vscuUrl, path: prep.path, body: prep.body });
+    relayRes = await window.electronAPI.etimsRelay({ url: prep.vscuUrl, path: prep.path, body: prep.body, timeoutMs: prep.timeoutMs });
   } catch (e) {
     relayRes = { ok: false, error: (e && e.message) || 'Relay error' };
   }
@@ -88,6 +109,11 @@ export async function testEtimsConnection(restaurantId) {
     resultMsg,
     errorMessage: ok ? null : (error || (resultMsg ? `${resultMsg} (code ${resultCd})` : `VSCU returned code ${resultCd}`)),
     raw: relayRes,
+    // Classify: reachable-but-KRA-rejected vs transport failure (from the relay).
+    errorClass: ok ? 'OK' : (reachable ? 'KRA_REJECT' : ((relayRes && relayRes.errorClass) || 'RELAY_ERROR')),
+    latencyMs: relayRes && relayRes.latencyMs,
+    vscuUrl: prep.vscuUrl,
+    timeoutMs: prep.timeoutMs,
   });
   return { reachable, ok, resultCd, resultMsg, error };
 }
@@ -118,7 +144,7 @@ export async function syncEtimsItems(restaurantId, onProgress) {
   let ok = 0, failed = 0;
   for (let i = 0; i < items.length; i++) {
     try {
-      const relayRes = await window.electronAPI.etimsRelay({ url: prep.vscuUrl, path: prep.path, body: items[i] });
+      const relayRes = await window.electronAPI.etimsRelay({ url: prep.vscuUrl, path: prep.path, body: items[i], timeoutMs: prep.timeoutMs });
       const rc = relayRes && relayRes.data && (relayRes.data.resultCd || (relayRes.data.data && relayRes.data.data.resultCd));
       if (relayRes && relayRes.ok && (rc === '000' || rc === undefined)) ok++; else failed++;
     } catch { failed++; }
@@ -144,18 +170,22 @@ export async function fiscaliseOrder(restaurantId, orderId) {
   const invcNo = prep.body && prep.body.invcNo;
   let relayRes;
   try {
-    relayRes = await window.electronAPI.etimsRelay({ url: prep.vscuUrl, path: prep.path, body: prep.body });
+    relayRes = await window.electronAPI.etimsRelay({ url: prep.vscuUrl, path: prep.path, body: prep.body, timeoutMs: prep.timeoutMs });
   } catch (e) {
     // The relay bridge itself threw (should resolve, not reject — but be safe). Log it so a
     // "prepared but never signed" order (order.etims has pendingInvcNo only) is never invisible.
     const msg = (e && e.message) || 'Relay bridge error';
-    await logEtimsDiagnostic(restaurantId, { phase: 'relay', ok: false, orderId, invcNo, errorMessage: msg });
+    await logEtimsDiagnostic(restaurantId, { phase: 'relay', ok: false, orderId, invcNo, errorMessage: msg, errorClass: 'BRIDGE_ERROR', vscuUrl: prep.vscuUrl, timeoutMs: prep.timeoutMs });
     throw new Error(msg);
   }
   if (!relayRes || !relayRes.ok) {
     const msg = (relayRes && relayRes.error) || 'Could not reach the VSCU.';
     // AWAIT (was fire-and-forget) so the trace survives even if the POS moves on right after.
-    await logEtimsDiagnostic(restaurantId, { phase: 'relay', ok: false, orderId, invcNo, errorMessage: msg, raw: relayRes });
+    await logEtimsDiagnostic(restaurantId, {
+      phase: 'relay', ok: false, orderId, invcNo, errorMessage: msg, raw: relayRes,
+      errorClass: (relayRes && relayRes.errorClass) || 'RELAY_ERROR',
+      latencyMs: relayRes && relayRes.latencyMs, vscuUrl: prep.vscuUrl, timeoutMs: prep.timeoutMs,
+    });
     throw new Error(msg);
   }
   // Relay reached the VSCU. confirm-sale (backend) stores the signature + logs the KRA resultCd. If
@@ -175,6 +205,7 @@ export async function fiscaliseOrder(restaurantId, orderId) {
       phase: 'confirm', ok: false, orderId, invcNo, resultCd: rc,
       resultMsg: vscu.resultMsg || (vscu.data && vscu.data.resultMsg) || null,
       errorMessage: `confirm-sale failed: ${(e && e.message) || 'unknown'}`, raw: relayRes.data || relayRes,
+      errorClass: 'CONFIRM_FAILED', latencyMs: relayRes && relayRes.latencyMs, vscuUrl: prep.vscuUrl, timeoutMs: prep.timeoutMs,
     });
     throw e;
   }
