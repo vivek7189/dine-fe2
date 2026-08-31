@@ -2502,6 +2502,9 @@ const MenuManagement = () => {
     hsnCode: '',
     // Inventory direct deduction
     deductionQuantity: 1,
+    // Public-menu merchandising (display-only): feature on the QR menu + a badge
+    featured: false,
+    badge: '',
   });
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [multiPricingEnabled, setMultiPricingEnabled] = useState(false);
@@ -3118,6 +3121,8 @@ const MenuManagement = () => {
             variants: itemData.variants,
             customizations: itemData.customizations,
             pricingRules: itemData.pricingRules,
+            featured: itemData.featured || false,
+            badge: itemData.badge || '',
           };
           await queueOfflineOrder({
             restaurantId: currentRestaurant.id,
@@ -3425,6 +3430,8 @@ const MenuManagement = () => {
       pricingRules: item.pricingRules || {},
       taxInclusive: item.taxInclusive != null ? item.taxInclusive : null,
       hsnCode: item.hsnCode || '',
+      featured: item.featured || false,
+      badge: item.badge || '',
       // Pre-populate channel prices from pricing rules
       dineInPrice: (() => {
         const rule = activePricingRules.find(r => DINEIN_NAMES.includes((r.name || '').toLowerCase().trim()));
@@ -5606,6 +5613,26 @@ const MenuManagement = () => {
                   onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                 />
                 <p style={{ fontSize: '11px', color: '#9ca3af', margin: '5px 0 0' }}>Shown on the bill &amp; in GST reports. Common: 996331 (restaurant service), or the product HSN for packaged goods.</p>
+              </div>
+
+              {/* Public-menu merchandising (display-only): feature on the QR menu + a badge */}
+              <div style={{ marginBottom: '16px', padding: '12px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: 600, color: '#92400e' }}>
+                  <input type="checkbox" checked={!!formData.featured} onChange={(e) => setFormData({ ...formData, featured: e.target.checked })} style={{ width: '16px', height: '16px' }} />
+                  ⭐ Feature on the public (QR) menu — shows in a &quot;Featured&quot; band on top
+                </label>
+                <div style={{ marginTop: '10px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#92400e', marginBottom: '5px' }}>Badge (optional)</label>
+                  <select value={formData.badge || ''} onChange={(e) => setFormData({ ...formData, badge: e.target.value })}
+                    style={{ width: '100%', maxWidth: '260px', padding: '8px 10px', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '13px', background: '#fff', outline: 'none' }}>
+                    <option value="">No badge</option>
+                    <option value="bestseller">🔥 Bestseller</option>
+                    <option value="new">🆕 New</option>
+                    <option value="chef">👨‍🍳 Chef&apos;s Special</option>
+                    <option value="recommended">⭐ Recommended</option>
+                  </select>
+                  <p style={{ fontSize: '11px', color: '#b45309', margin: '5px 0 0' }}>Display-only tag on the item card on the public menu. No effect on price or orders.</p>
+                </div>
               </div>
 
               {/* Description */}
