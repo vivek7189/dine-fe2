@@ -206,6 +206,7 @@ function BillingContent() {
           period: 'month',
           description: 'For new restaurants & cafes',
           popular: false,
+          discontinued: true, // Razorpay/Indian ₹299 Starter retired — shown disabled on /billing (Dodo unaffected)
           features: [
             'AI Agent (Voice/Chat)',
             'Unlimited menu items',
@@ -1747,6 +1748,7 @@ function BillingContent() {
 
               // Check if current paid plan is expired (allow renewal)
               const isPaidExpired = isCurrentPlan && currentSubscription?.status === 'expired' && plan.price > 0;
+              const isDiscontinued = !!plan.discontinued; // retired plan (Razorpay ₹299 Starter) — disable its button only
 
               // Determine button text for upgrade/downgrade
               let buttonText = '';
@@ -1859,19 +1861,21 @@ function BillingContent() {
                   </div>
 
                   <button
-                    onClick={() => (!isCurrentPlan || isPaidExpired) && handlePayment(plan)}
-                    disabled={(isCurrentPlan && !isPaidExpired) || paymentProcessing}
+                    onClick={() => !isDiscontinued && (!isCurrentPlan || isPaidExpired) && handlePayment(plan)}
+                    disabled={isDiscontinued || (isCurrentPlan && !isPaidExpired) || paymentProcessing}
                     style={{
                       width: '100%', padding: '10px', borderRadius: '8px',
-                      border: isCurrentPlan && !isPaidExpired ? '2px solid #10b981' : 'none',
-                      backgroundColor: isPaidExpired ? '#dc2626' : isCurrentPlan ? '#dcfce7' : isPopular ? '#ef4444' : '#f3f4f6',
-                      color: isPaidExpired ? 'white' : isCurrentPlan ? '#166534' : isPopular ? 'white' : '#ef4444',
+                      border: isDiscontinued ? '1px solid #e5e7eb' : (isCurrentPlan && !isPaidExpired ? '2px solid #10b981' : 'none'),
+                      backgroundColor: isDiscontinued ? '#f3f4f6' : (isPaidExpired ? '#dc2626' : isCurrentPlan ? '#dcfce7' : isPopular ? '#ef4444' : '#f3f4f6'),
+                      color: isDiscontinued ? '#9ca3af' : (isPaidExpired ? 'white' : isCurrentPlan ? '#166534' : isPopular ? 'white' : '#ef4444'),
                       fontWeight: '600', fontSize: '13px',
-                      cursor: isCurrentPlan && !isPaidExpired ? 'default' : 'pointer', marginBottom: '16px',
+                      cursor: isDiscontinued ? 'not-allowed' : (isCurrentPlan && !isPaidExpired ? 'default' : 'pointer'), marginBottom: isDiscontinued ? '4px' : '16px',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
                     }}
                   >
-                    {isPaidExpired ? (
+                    {isDiscontinued ? (
+                      <>Discontinued</>
+                    ) : isPaidExpired ? (
                       <><FaCreditCard size={12} /> {buttonText}</>
                     ) : isCurrentPlan ? (
                       <><FaCheckCircle size={12} /> {buttonText}</>
@@ -1881,6 +1885,11 @@ function BillingContent() {
                       <><FaCreditCard size={12} /> {buttonText}</>
                     )}
                   </button>
+                  {isDiscontinued && (
+                    <p style={{ fontSize: '11px', color: '#9ca3af', textAlign: 'center', margin: '0 0 12px 0' }}>
+                      We&apos;ve discontinued this plan.
+                    </p>
+                  )}
 
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                     {plan.features.slice(0, 6).map((feature, idx) => (
