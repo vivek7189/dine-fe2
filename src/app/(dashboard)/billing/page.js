@@ -1045,7 +1045,12 @@ function BillingContent() {
   };
 
   const currentPlans = (() => {
-    if (currency === 'INR') return indianPlanData.INR[billingCycle] || indianPlanData.INR.monthly;
+    if (currency === 'INR') {
+      const list = indianPlanData.INR[billingCycle] || indianPlanData.INR.monthly;
+      // Hide the retired INR Starter plan (₹299/mo, ₹250/mo yearly) from the UI — display-only,
+      // backend/plan data untouched. USD Starter is unaffected.
+      return list.filter(p => p.name !== 'Starter');
+    }
     return internationalPlanData.USD[billingCycle] || internationalPlanData.USD.monthly;
   })();
 
