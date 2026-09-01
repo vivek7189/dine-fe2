@@ -5648,26 +5648,6 @@ const MenuManagement = () => {
                 <p style={{ fontSize: '11px', color: '#9ca3af', margin: '5px 0 0' }}>Shown on the bill &amp; in GST reports. Common: 996331 (restaurant service), or the product HSN for packaged goods.</p>
               </div>
 
-              {/* Public-menu merchandising (display-only): feature on the QR menu + a badge */}
-              <div style={{ marginBottom: '16px', padding: '12px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: 600, color: '#92400e' }}>
-                  <input type="checkbox" checked={!!formData.featured} onChange={(e) => setFormData({ ...formData, featured: e.target.checked })} style={{ width: '16px', height: '16px' }} />
-                  ⭐ Feature on the public (QR) menu — shows in a &quot;Featured&quot; band on top
-                </label>
-                <div style={{ marginTop: '10px' }}>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#92400e', marginBottom: '5px' }}>Badge (optional)</label>
-                  <select value={formData.badge || ''} onChange={(e) => setFormData({ ...formData, badge: e.target.value })}
-                    style={{ width: '100%', maxWidth: '260px', padding: '8px 10px', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '13px', background: '#fff', outline: 'none' }}>
-                    <option value="">No badge</option>
-                    <option value="bestseller">🔥 Bestseller</option>
-                    <option value="new">🆕 New</option>
-                    <option value="chef">👨‍🍳 Chef&apos;s Special</option>
-                    <option value="recommended">⭐ Recommended</option>
-                  </select>
-                  <p style={{ fontSize: '11px', color: '#b45309', margin: '5px 0 0' }}>Display-only tag on the item card on the public menu. No effect on price or orders.</p>
-                </div>
-              </div>
-
               {/* Description */}
               <div style={{ marginBottom: '16px' }}>
                 <label style={{
@@ -7072,6 +7052,50 @@ const MenuManagement = () => {
               </div>
               </div>{/* END RIGHT COLUMN */}
               </div>{/* END TWO-COLUMN GRID */}
+
+              {/* ── Public-menu merchandising — feature on the QR menu + badge (full-width, last) ── */}
+              <div style={{
+                marginTop: '4px', marginBottom: '4px', padding: '16px 18px', borderRadius: '16px',
+                background: 'linear-gradient(135deg, #fffbeb 0%, #fff7ed 100%)', border: '1px solid #fde68a'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', minWidth: 0 }}>
+                    <div style={{ width: '42px', height: '42px', borderRadius: '11px', background: 'linear-gradient(135deg, #fbbf24, #f59e0b)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '21px', flexShrink: 0, boxShadow: '0 3px 10px rgba(245,158,11,0.35)' }}>⭐</div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#92400e' }}>Feature on the public (QR) menu</div>
+                      <div style={{ fontSize: '12px', color: '#b45309', marginTop: '2px' }}>Highlights this item in a “Featured” band at the top of your QR menu.</div>
+                    </div>
+                  </div>
+                  <button type="button" aria-label="Toggle featured" onClick={() => setFormData({ ...formData, featured: !formData.featured })}
+                    style={{ position: 'relative', width: '48px', height: '27px', borderRadius: '999px', border: 'none', cursor: 'pointer', flexShrink: 0, padding: 0, background: formData.featured ? 'linear-gradient(135deg, #f59e0b, #d97706)' : '#e5e7eb', transition: 'background 0.2s ease' }}>
+                    <span style={{ position: 'absolute', top: '3px', left: formData.featured ? '24px' : '3px', width: '21px', height: '21px', borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transition: 'left 0.2s ease' }} />
+                  </button>
+                </div>
+
+                <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px dashed #fcd34d' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: '#92400e', marginBottom: '9px' }}>Badge <span style={{ fontWeight: 400, color: '#b45309' }}>(optional — shows a tag on the item card)</span></div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {[
+                      { v: '', label: 'No badge' },
+                      { v: 'bestseller', label: '🔥 Bestseller' },
+                      { v: 'new', label: '🆕 New' },
+                      { v: 'chef', label: '👨‍🍳 Chef’s Special' },
+                      { v: 'recommended', label: '⭐ Recommended' },
+                    ].map(opt => {
+                      const active = (formData.badge || '') === opt.v;
+                      return (
+                        <button key={opt.v || 'none'} type="button" onClick={() => setFormData({ ...formData, badge: opt.v })}
+                          style={{ padding: '7px 14px', borderRadius: '999px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                            border: active ? '1.5px solid #f59e0b' : '1.5px solid #fde68a',
+                            background: active ? '#f59e0b' : '#fff', color: active ? '#fff' : '#92400e', transition: 'all 0.15s ease' }}>
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p style={{ fontSize: '11px', color: '#b45309', margin: '10px 0 0' }}>Display-only — no effect on price or orders.</p>
+                </div>
+              </div>
 
               {/* Sticky Actions Bar */}
               <div style={{

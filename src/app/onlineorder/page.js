@@ -2089,23 +2089,25 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
           const featured = (filteredMenu || []).filter(i => i.featured);
           if (!featured.length || selectedCategory !== 'all' || searchTerm) return null;
           return (
-            <div style={{ marginTop: '20px', marginBottom: '4px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#b45309', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                🔥 Featured
-              </h2>
-              <div style={{ display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: '10px', WebkitOverflowScrolling: 'touch' }}>
+            <div style={{ marginTop: '20px', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', margin: '0 0 12px 2px', flexWrap: 'wrap' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#1f2937', margin: 0, display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  <span>🔥</span> Featured
+                </h2>
+                <span style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 500 }}>Handpicked for you</span>
+              </div>
+              <div className="featured-scroll" style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '10px', WebkitOverflowScrolling: 'touch' }}>
                 {featured.map(item => (
-                  <div key={`feat-${item.id}`} style={{ minWidth: '280px', maxWidth: '320px', flex: '0 0 auto' }}>
-                    <MenuItemCard
-                      item={item}
-                      onAddToCart={addToCart}
-                      onRemoveFromCart={removeFromCart}
-                      cartQuantity={cart.find(ci => ci.id === item.id)?.quantity || 0}
-                      getCategoryColor={getCategoryColor}
-                      cs={cs}
-                      globalHideImages={restaurant?.posSettings?.hideMenuImages === true}
-                    />
-                  </div>
+                  <FeaturedCard
+                    key={`feat-${item.id}`}
+                    item={item}
+                    onAddToCart={addToCart}
+                    onRemoveFromCart={removeFromCart}
+                    cartQuantity={cart.find(ci => ci.id === item.id)?.quantity || 0}
+                    getCategoryColor={getCategoryColor}
+                    cs={cs}
+                    globalHideImages={restaurant?.posSettings?.hideMenuImages === true}
+                  />
                 ))}
               </div>
             </div>
@@ -2605,6 +2607,62 @@ const ItemBadge = ({ badge, style = {} }) => {
   );
 };
 
+// Clean vertical "featured" card (Zomato-style recommended carousel). The badge sits on the
+// image corner so it never overlaps the name. Used only in the Featured band.
+const FeaturedCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCategoryColor, cs = '₹', globalHideImages = false }) => {
+  const isVeg = item.isVeg !== false;
+  const indicatorColor = isVeg ? '#22c55e' : '#ef4444';
+  const shouldHideImage = globalHideImages || item.hideImage;
+  const imageUrl = shouldHideImage ? null : getDisplayImage(item);
+  const hasUserImages = !shouldHideImage && item.images && item.images.length > 0;
+  const vegDot = (
+    <span style={{ display: 'inline-flex', width: '14px', height: '14px', border: `1.5px solid ${indicatorColor}`, borderRadius: '3px', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: indicatorColor }} />
+    </span>
+  );
+  return (
+    <div style={{
+      width: '172px', flex: '0 0 auto', background: '#fff', borderRadius: '18px',
+      overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+      border: '1px solid #f1f1f1', display: 'flex', flexDirection: 'column'
+    }}>
+      {!shouldHideImage && (
+        <div style={{ position: 'relative', width: '100%', height: '128px', background: '#f3f4f6' }}>
+          {hasUserImages ? (
+            <ImageCarousel images={item.images} itemName={item.name} maxHeight="128px" showControls={false} showDots={false} autoPlay={true} autoPlayInterval={4000} />
+          ) : imageUrl ? (
+            <img src={imageUrl} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(135deg, ${getCategoryColor(item.category)} 0%, ${getCategoryColor(item.category, 0.7)} 100%)` }}>
+              <span style={{ fontSize: '36px' }}>🍽️</span>
+            </div>
+          )}
+          {item.badge && <ItemBadge badge={item.badge} style={{ position: 'absolute', top: '8px', left: '8px', zIndex: 2 }} />}
+          <span style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(255,255,255,0.95)', borderRadius: '4px', padding: '2px' }}>{vegDot}</span>
+        </div>
+      )}
+      <div style={{ padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+        <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1f2937', margin: 0, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: shouldHideImage ? 'auto' : '37px' }}>
+          {shouldHideImage && <span style={{ marginRight: '5px', verticalAlign: 'middle' }}>{vegDot}</span>}
+          {item.name}
+        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
+          <span style={{ fontSize: '15px', fontWeight: 800, color: '#1f2937' }}>{cs}{Number(item.price || 0).toFixed(0)}</span>
+          {cartQuantity > 0 ? (
+            <div style={{ display: 'flex', alignItems: 'center', borderRadius: '8px', overflow: 'hidden', height: '30px', background: '#22c55e' }}>
+              <button onClick={() => onRemoveFromCart(item.id)} style={{ background: 'transparent', border: 'none', color: '#fff', width: '26px', height: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaMinus size={9} /></button>
+              <span style={{ minWidth: '20px', textAlign: 'center', fontSize: '13px', fontWeight: 700, color: '#fff' }}>{cartQuantity}</span>
+              <button onClick={() => onAddToCart(item)} style={{ background: 'transparent', border: 'none', color: '#fff', width: '26px', height: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaPlus size={9} /></button>
+            </div>
+          ) : (
+            <button onClick={() => onAddToCart(item)} style={{ background: 'white', border: '1.5px solid #22c55e', color: '#22c55e', borderRadius: '8px', padding: '5px 16px', fontSize: '13px', fontWeight: 700, letterSpacing: '0.5px', cursor: 'pointer', height: '30px' }}>ADD</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCategoryColor, cs = '₹', globalHideImages = false }) => {
   const isVeg = item.isVeg !== false;
   const [isHovered, setIsHovered] = useState(false);
@@ -2633,7 +2691,6 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {item.badge && <ItemBadge badge={item.badge} style={{ position: 'absolute', top: '8px', right: '8px', zIndex: 2 }} />}
       {/* Image */}
       {!shouldHideImage && (
       <div style={{
@@ -2713,6 +2770,7 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
           }}>
             {item.name}
           </h3>
+          {item.badge && <ItemBadge badge={item.badge} style={{ flexShrink: 0 }} />}
         </div>
 
         {/* Description */}
