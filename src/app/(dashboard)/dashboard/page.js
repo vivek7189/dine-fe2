@@ -196,6 +196,16 @@ function RestaurantPOSContent() {
   const [menuCategories, setMenuCategories] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+  // Completed-order-edit approval gate (dashboard "Edit" path from Order History).
+  // When posSettings.requirePinForCompletedOrderEdit is on, a completed order can't be
+  // edited here until a manager PIN/OTP is verified server-side. approvedEditsRef keeps
+  // orders already approved this session so we don't re-prompt on re-render.
+  const [editApprovalGate, setEditApprovalGate] = useState(null); // { orderId, method } | null
+  const [editApprovalCode, setEditApprovalCode] = useState('');
+  const [editApprovalErr, setEditApprovalErr] = useState('');
+  const [editApprovalBusy, setEditApprovalBusy] = useState(false);
+  const [editApprovalSentInfo, setEditApprovalSentInfo] = useState('');
+  const approvedEditsRef = useRef(new Set());
   const [subRestaurants, setSubRestaurants] = useState([]);
   const [selectedSubRestaurant, setSelectedSubRestaurant] = useState(null);
   const [tables, setTables] = useState([]);
@@ -2215,6 +2225,55 @@ function RestaurantPOSContent() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  // --- Completed-order-edit approval gate handlers ---
+  const sendEditApprovalOtp = async (orderId) => {
+    try {
+      setEditApprovalBusy(true); setEditApprovalErr('');
+      const res = await apiClient.sendCompletedEditOtp(orderId);
+      const via = res?.channel === 'email' ? 'email' : 'WhatsApp';
+      setEditApprovalSentInfo(`Code sent to the manager on ${via}${res?.sentTo ? ` (${res.sentTo})` : ''}.`);
+    } catch (e) {
+      setEditApprovalErr(e?.error || e?.message || 'Could not send the code. Check the manager number in Settings.');
+    } finally { setEditApprovalBusy(false); }
+  };
+
+  const submitEditApproval = async () => {
+    if (!editApprovalGate) return;
+    const { orderId, method } = editApprovalGate;
+    if (method === 'otp' && (!editApprovalCode || editApprovalCode.length !== 6)) { setEditApprovalErr('Enter the 6-digit code'); return; }
+    if (method !== 'otp' && (!editApprovalCode || editApprovalCode.length < 4)) { setEditApprovalErr('PIN must be at least 4 digits'); return; }
+    try {
+      setEditApprovalBusy(true); setEditApprovalErr('');
+      const body = method === 'otp' ? { otp: editApprovalCode } : { pinCode: editApprovalCode };
+      await apiClient.verifyCompletedEditApproval(orderId, body);
+      approvedEditsRef.current.add(orderId); // don't re-prompt for this order this session
+      setEditApprovalGate(null); setEditApprovalCode(''); setEditApprovalSentInfo('');
+    } catch (e) {
+      setEditApprovalErr(e?.error || e?.message || 'Verification failed');
+    } finally { setEditApprovalBusy(false); }
+  };
+
+  const cancelEditApproval = () => {
+    setEditApprovalGate(null); setEditApprovalCode(''); setEditApprovalErr(''); setEditApprovalSentInfo('');
+    router.push('/orderhistory'); // not approved → leave the edit screen
+  };
+
+  // Trigger the approval gate for a completed order loaded in edit mode (called from the
+  // order-lookup success path). No-op when approval isn't required or already approved.
+  const maybeGateCompletedEdit = (orderId) => {
+    try {
+      let ps = selectedRestaurant?.posSettings;
+      if (!ps) { try { ps = JSON.parse(localStorage.getItem('selectedRestaurant') || '{}')?.posSettings; } catch {} }
+      ps = ps || {};
+      if (!ps.requirePinForCompletedOrderEdit) return;
+      if (approvedEditsRef.current.has(orderId)) return;
+      const method = ps.completedOrderEditApprovalMethod || 'pin';
+      setEditApprovalCode(''); setEditApprovalErr(''); setEditApprovalSentInfo('');
+      setEditApprovalGate({ orderId, method });
+      if (method === 'otp') sendEditApprovalOtp(orderId);
+    } catch {}
+  };
+
   // Handle orderId parameter from URL (for edit mode from Order History or Tables)
   useEffect(() => {
     const orderId = searchParams.get('orderId');
@@ -3381,6 +3440,8 @@ function RestaurantPOSContent() {
             });
             // Clear current order for new order creation
             setCurrentOrder(null);
+            // Require manager PIN/OTP approval before this completed order can be edited.
+            maybeGateCompletedEdit(orderId);
           } else {
             setNotification({
               type: 'success',
@@ -10141,6 +10202,56 @@ function RestaurantPOSContent() {
           restaurantName={selectedRestaurant?.name}
           restaurant={selectedRestaurant}
         />
+      )}
+
+      {/* Completed-order-edit approval gate — blocks editing until a manager PIN/OTP is
+          verified server-side. Shown only when posSettings requires it. */}
+      {editApprovalGate && (
+        <div className="fixed inset-0 z-[11000] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={cancelEditApproval} />
+          <div className="relative w-full max-w-sm rounded-2xl shadow-2xl border border-gray-200 bg-white overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900">
+                {editApprovalGate.method === 'otp' ? 'Manager Approval Code' : 'Approval PIN Required'}
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {editApprovalGate.method === 'otp'
+                  ? 'A one-time code was sent to the manager to approve this edit.'
+                  : 'Enter the approval PIN to edit this completed order.'}
+              </p>
+            </div>
+            <div className="px-5 py-4">
+              <input
+                type={editApprovalGate.method === 'otp' ? 'text' : 'password'}
+                inputMode="numeric"
+                value={editApprovalCode}
+                onChange={e => { setEditApprovalCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setEditApprovalErr(''); }}
+                placeholder={editApprovalGate.method === 'otp' ? 'Enter 6-digit code' : 'Enter 4-6 digit PIN'}
+                maxLength={6}
+                autoFocus
+                className="w-full px-3 py-3 rounded-xl border border-gray-200 text-center text-2xl tracking-widest font-mono focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none"
+                onKeyDown={e => e.key === 'Enter' && submitEditApproval()}
+              />
+              {editApprovalGate.method === 'otp' && (
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-xs text-emerald-600">{editApprovalSentInfo}</span>
+                  <button type="button" onClick={() => sendEditApprovalOtp(editApprovalGate.orderId)} disabled={editApprovalBusy}
+                    className="text-xs font-medium text-red-600 hover:text-red-700 disabled:opacity-50">
+                    {editApprovalBusy ? 'Sending…' : 'Resend code'}
+                  </button>
+                </div>
+              )}
+              {editApprovalErr && <p className="text-xs text-red-500 mt-2 text-center">{editApprovalErr}</p>}
+            </div>
+            <div className="px-5 py-4 border-t border-gray-100 flex gap-3">
+              <button onClick={cancelEditApproval} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-xl hover:bg-gray-200">Cancel</button>
+              <button onClick={submitEditApproval} disabled={editApprovalBusy || !editApprovalCode || (editApprovalGate.method === 'otp' ? editApprovalCode.length !== 6 : editApprovalCode.length < 4)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed">
+                {editApprovalBusy ? 'Verifying…' : 'Verify'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Bulk Upload Modal — only mount when opened */}

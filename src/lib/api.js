@@ -4010,6 +4010,15 @@ class ApiClient {
     });
   }
 
+  // Verify manager PIN/OTP approval for editing a completed order (dashboard "Edit" path,
+  // which doesn't call edit-completed-items). Returns { ok:true } or throws on 403.
+  async verifyCompletedEditApproval(orderId, data) {
+    return this.request(`/api/orders/${orderId}/edit-approval/verify`, {
+      method: 'POST',
+      body: data || {},
+    });
+  }
+
   async getOrderEditHistory(orderId) {
     return this.request(`/api/orders/${orderId}/edit-history`);
   }
