@@ -50,6 +50,10 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
   const [customSeat, setCustomSeat] = useState('');
   const [customQR, setCustomQR] = useState(null);
   const [copiedTable, setCopiedTable] = useState(null);
+  const [qrMode, setQrMode] = useState('table'); // 'table' = one QR per table · 'seat' = one QR per chair
+  const [seatQrCodes, setSeatQrCodes] = useState(new Map()); // key: `${tableName}::${seat}` → dataUrl
+  const [seatGenLoading, setSeatGenLoading] = useState(false);
+  const seatCountOf = (table) => Math.max(1, parseInt(table.capacity, 10) || parseInt(table.seats, 10) || 4);
 
   const getQRUrl = (tableName, seat = null) => {
     const isDev = process.env.NODE_ENV === 'development';
@@ -95,6 +99,31 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
     generateAll();
   }, [isOpen, floors]);
 
+  // Bulk per-seat QRs — one QR per chair of every table (?table=N&seat=M). Generated lazily
+  // when the owner switches to "Per Seat" mode. Scanning one prefills BOTH table and seat
+  // (same code path as the per-table QR — the ordering page reads ?seat= too).
+  useEffect(() => {
+    if (!isOpen || qrMode !== 'seat') return;
+    let cancelled = false;
+    const generateSeats = async () => {
+      setSeatGenLoading(true);
+      const map = new Map();
+      for (const table of allTables) {
+        const seats = seatCountOf(table);
+        for (let s = 1; s <= seats; s++) {
+          try {
+            const url = getQRUrl(table.tableName, s);
+            const dataUrl = await QRCode.toDataURL(url, { width: 200, margin: 1, color: { dark: '#1f2937', light: '#ffffff' } });
+            map.set(`${table.tableName}::${s}`, dataUrl);
+          } catch (e) { console.error('Seat QR generation failed for', table.tableName, 'seat', s, e); }
+        }
+      }
+      if (!cancelled) { setSeatQrCodes(new Map(map)); setSeatGenLoading(false); }
+    };
+    generateSeats();
+    return () => { cancelled = true; };
+  }, [isOpen, qrMode, floors]);
+
   const generateCustomQR = async () => {
     if (!customTableName.trim()) return;
     try {
@@ -131,6 +160,21 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
     }
   };
 
+  const downloadAllSeats = async () => {
+    for (const table of allTables) {
+      const seats = seatCountOf(table);
+      for (let s = 1; s <= seats; s++) {
+        const dataUrl = seatQrCodes.get(`${table.tableName}::${s}`);
+        if (dataUrl) {
+          downloadQR(dataUrl, `${table.tableName}-seat-${s}`);
+          await new Promise(r => setTimeout(r, 200));
+        }
+      }
+    }
+  };
+
+  const totalSeats = allTables.reduce((sum, t) => sum + seatCountOf(t), 0);
+
   if (!isOpen) return null;
 
   return createPortal(
@@ -144,12 +188,12 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             {allTables.length > 0 && (
-              <button onClick={downloadAll} style={{
+              <button onClick={qrMode === 'seat' ? downloadAllSeats : downloadAll} style={{
                 display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
                 background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', border: 'none', color: 'white',
                 fontSize: '13px', fontWeight: '600', cursor: 'pointer',
               }}>
-                Download All ({allTables.length})
+                Download All ({qrMode === 'seat' ? totalSeats : allTables.length})
               </button>
             )}
             <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px', borderRadius: '8px', color: '#6b7280' }}>
@@ -219,13 +263,26 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
             )}
           </div>
 
+          {/* QR mode toggle: one per table, or one per seat/chair */}
+          {allTables.length > 0 && (
+            <div style={{ display: 'inline-flex', gap: '4px', padding: '4px', background: '#f3f4f6', borderRadius: '10px', marginBottom: '16px' }}>
+              {[{ id: 'table', label: 'Per Table' }, { id: 'seat', label: 'Per Seat / Chair' }].map(opt => (
+                <button key={opt.id} onClick={() => setQrMode(opt.id)} style={{
+                  padding: '7px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+                  background: qrMode === opt.id ? '#fff' : 'transparent', color: qrMode === opt.id ? '#7c3aed' : '#6b7280',
+                  boxShadow: qrMode === opt.id ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
+                }}>{opt.label}</button>
+              ))}
+            </div>
+          )}
+
           {/* All Tables Grid */}
           {allTables.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>
               <FaQrcode size={40} style={{ marginBottom: '12px', opacity: 0.3 }} />
               <p style={{ fontSize: '14px', fontWeight: '500' }}>No tables found. Add tables first to generate QR codes.</p>
             </div>
-          ) : (
+          ) : qrMode === 'table' ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
               {allTables.map(table => {
                 const dataUrl = qrCodes.get(table.tableName);
@@ -260,6 +317,43 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
                   </div>
                 );
               })}
+            </div>
+          ) : (
+            /* Per-seat / per-chair grid — grouped by table */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+              {seatGenLoading && seatQrCodes.size === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>
+                  <FaSpinner size={22} className="animate-spin" style={{ marginBottom: '10px' }} />
+                  <p style={{ fontSize: '14px', fontWeight: '500' }}>Generating one QR per seat…</p>
+                </div>
+              ) : allTables.map(table => (
+                <div key={`seatgrp-${table.floorName}-${table.tableName}`}>
+                  <p style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 700, color: '#1f2937' }}>
+                    Table {table.tableName} <span style={{ fontWeight: 400, color: '#9ca3af' }}>· {table.floorName} · {seatCountOf(table)} seats</span>
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '12px' }}>
+                    {Array.from({ length: seatCountOf(table) }, (_, i) => i + 1).map(s => {
+                      const dataUrl = seatQrCodes.get(`${table.tableName}::${s}`);
+                      return (
+                        <div key={`seat-${table.tableName}-${s}`} style={{ padding: '12px', backgroundColor: '#fafafa', borderRadius: '12px', border: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                          {dataUrl ? (
+                            <img src={dataUrl} alt={`QR Table ${table.tableName} Seat ${s}`} style={{ width: '110px', height: '110px', borderRadius: '8px' }} />
+                          ) : (
+                            <div style={{ width: '110px', height: '110px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6', borderRadius: '8px' }}>
+                              <FaSpinner size={16} color="#9ca3af" className="animate-spin" />
+                            </div>
+                          )}
+                          <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#1f2937' }}>Seat {s}</p>
+                          <button onClick={() => dataUrl && downloadQR(dataUrl, `${table.tableName}-seat-${s}`)} disabled={!dataUrl} style={{
+                            width: '100%', padding: '5px 0', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white',
+                            fontSize: '11px', fontWeight: 600, color: dataUrl ? '#374151' : '#d1d5db', cursor: dataUrl ? 'pointer' : 'not-allowed',
+                          }}>Download</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
