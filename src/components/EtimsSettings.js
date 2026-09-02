@@ -36,6 +36,8 @@ export default function EtimsSettings({ restaurantId }) {
   const [loadingDiags, setLoadingDiags] = useState(false);
   const [testing, setTesting] = useState(false);
   const [resyncing, setResyncing] = useState(false);
+  const [manualInvcNo, setManualInvcNo] = useState('');
+  const [savingInvcNo, setSavingInvcNo] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -86,6 +88,22 @@ export default function EtimsSettings({ restaurantId }) {
       await load(); await loadDiags();
     } catch (e) { setMsg({ type: 'error', text: e.message || 'Could not re-sync the counter. Contact support.' }); }
     finally { setResyncing(false); }
+  };
+
+  // Manually set the invoice number to match KRA — the owner types the exact number shown in their
+  // KRA/eTIMS software (e.g. 1707) and saves. Use for a LARGE mismatch the app's small-step auto-retry
+  // can't bridge. Keeps the existing SDC/MRC (device stays initialised); only the counter changes.
+  const saveInvoiceNumber = async () => {
+    const n = Number(manualInvcNo);
+    if (manualInvcNo === '' || !Number.isFinite(n) || n < 0) { setMsg({ type: 'error', text: 'Enter the invoice number shown in your KRA software (digits only).' }); return; }
+    setSavingInvcNo(true); setMsg(null);
+    try {
+      await setEtimsDeviceManual(restaurantId, { sdcId: cfg?.device?.sdcId, mrcNo: cfg?.device?.mrcNo, lastInvcNo: n });
+      setMsg({ type: 'success', text: `✅ Invoice number set to ${n}. The next sale will be #${n + 1}. Try the sale again.` });
+      setManualInvcNo('');
+      await load(); await loadDiags();
+    } catch (e) { setMsg({ type: 'error', text: e.message || 'Could not set the invoice number.' }); }
+    finally { setSavingInvcNo(false); }
   };
 
   // The enable toggle persists to the DB IMMEDIATELY (not only via "Save settings"), so on/off — and
@@ -262,8 +280,32 @@ export default function EtimsSettings({ restaurantId }) {
       {field('Receipt footer message', 'receiptBottomMsg', { placeholder: 'Thank you for your business' })}
 
       {cfg && cfg.initialised && (
-        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 10, fontSize: 12, margin: '6px 0 14px' }}>
+        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 10, fontSize: 12, margin: '6px 0 10px' }}>
           ✅ Device initialised · SDC ID <b>{cfg.device?.sdcId}</b> · MRC <b>{cfg.device?.mrcNo}</b> · last invoice #{cfg.device?.lastInvcNo || 0}
+        </div>
+      )}
+
+      {/* Direct manual control: set the invoice number to KRA's exact value. Always available when the
+          device is initialised so the owner/support can align it with the KRA portal any time (e.g. after
+          a VSCU reinstall). The next sale = this number + 1. */}
+      {cfg && cfg.initialised && (
+        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', margin: '0 0 14px' }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 6 }}>Set invoice number to match KRA</div>
+          <div style={{ fontSize: 11.5, color: '#64748b', lineHeight: 1.5, marginBottom: 8 }}>
+            If KRA rejects sales as “invoice number already exists”, type the latest invoice number shown in your KRA/eTIMS software and save. The next sale will be that number + 1.
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input
+              value={manualInvcNo}
+              onChange={(e) => setManualInvcNo(e.target.value.replace(/[^0-9]/g, ''))}
+              placeholder={`e.g. ${cfg.device?.lastInvcNo || 1707}`}
+              inputMode="numeric"
+              style={{ width: 160, padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 13 }}
+            />
+            <button onClick={saveInvoiceNumber} disabled={savingInvcNo} style={{ padding: '8px 14px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 12.5 }}>
+              {savingInvcNo ? 'Saving…' : 'Set number'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -276,8 +318,8 @@ export default function EtimsSettings({ restaurantId }) {
           <div style={{ fontSize: 12, color: '#92400e', lineHeight: 1.55, marginBottom: 10 }}>
             KRA rejected a recent sale as <b>“invoice number already exists” (code 924){lastDupInvcNo ? ` — #${lastDupInvcNo}` : ''}</b>.
             This happens when the VSCU was reinstalled/reset, eTIMS was switched off then on, or another till shares this device — so this POS’s
-            invoice counter (currently <b>#{cfg?.device?.lastInvcNo || 0}</b>) fell behind KRA’s. Click below to skip the counter to the next
-            free number, then make the sale again.
+            invoice counter (currently <b>#{cfg?.device?.lastInvcNo || 0}</b>) fell behind KRA’s. Click <b>Fix invoice counter</b> to skip to the
+            next free number, or type KRA’s exact number in <b>“Set invoice number to match KRA”</b> above — then make the sale again.
           </div>
           <button onClick={resyncCounter} disabled={resyncing} style={{ padding: '8px 14px', background: '#b45309', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 12.5 }}>
             {resyncing ? 'Fixing…' : 'Fix invoice counter'}
