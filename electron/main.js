@@ -230,6 +230,15 @@ function createWindow() {
 function createPrintWindow() {
   printWindow = new BrowserWindow({
     show: false,
+    // Park it FAR off-screen, off the taskbar, and frameless so a Windows cold-start
+    // race can never surface this hidden print window as a stray blank "dine-frontend"
+    // / "Bill #N" frame (seen on some machines on the very first launch, before the main
+    // window paints and takes foreground). It still renders normally off-screen for
+    // printToPDF()/print()/capturePage() — position/visibility don't affect those.
+    x: -32000,
+    y: -32000,
+    frame: false,       // no title bar or default File/Edit/View menu to flash
+    skipTaskbar: true,  // never shows in the taskbar / alt-tab
     width: 302,
     height: 900,
     // Fix B: hidden windows are throttled/deprioritized by Chromium, so on some
@@ -238,6 +247,9 @@ function createPrintWindow() {
     // keeps it rendering reliably. Only affects this hidden print window.
     webPreferences: { contextIsolation: true, nodeIntegration: false, backgroundThrottling: false },
   });
+  printWindow.setMenu(null); // belt-and-suspenders: drop the default menu entirely
+  // If anything ever surfaces it, force it back off-screen and hidden.
+  printWindow.on('show', () => { try { printWindow.setPosition(-32000, -32000); printWindow.hide(); } catch (_) {} });
   printWindow.loadURL('data:text/html;charset=utf-8,<html><body></body></html>');
   printWindow.on('closed', () => {
     printWindow = null;
@@ -625,10 +637,17 @@ async function htmlToEscPosRaster(html, printerWidth) {
   const dots = printerWidth === 58 ? 384 : 576; // ~203dpi: 58mm≈384 dots, 80mm≈576 dots
   const win = new BrowserWindow({
     show: false,
+    // Same off-screen / off-taskbar / frameless hardening as the main print window, so this
+    // short-lived render window can never flash on-screen during its ~0.5s capture life.
+    x: -32000,
+    y: -32000,
+    frame: false,
+    skipTaskbar: true,
     width: dots,
     height: 1200,
     webPreferences: { backgroundThrottling: false, contextIsolation: true, nodeIntegration: false },
   });
+  win.setMenu(null);
   try {
     // Force paper pixel-width + pure black-on-white so the 1-bit raster is crisp.
     const styled = `<style>html,body{width:${dots}px!important;margin:0!important;padding:0!important;background:#fff!important;color:#000!important;}*{color:#000!important;}</style>`;
