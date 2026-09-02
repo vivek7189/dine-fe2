@@ -28,6 +28,9 @@ export default function WebsiteChatbot() {
   const [leadData, setLeadData] = useState({ name: '', phone: '', business: '' });
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  // Synchronous guard — React state (leadSubmitted) updates async, so rapid messages / re-detected
+  // contact could submit the same lead several times. A ref flips instantly and can't be stale.
+  const leadSubmittedRef = useRef(false);
 
   // Restore from sessionStorage
   useEffect(() => {
@@ -101,8 +104,8 @@ export default function WebsiteChatbot() {
       if (data.success) {
         setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
 
-        // If contact info detected, auto-submit as lead
-        if (data.contactDetected && !leadSubmitted) {
+        // If contact info detected, auto-submit as lead (once per session — ref guard)
+        if (data.contactDetected && !leadSubmittedRef.current) {
           await submitLead({
             phone: data.contactDetected.phone || '',
             email: data.contactDetected.email || '',
@@ -132,6 +135,10 @@ export default function WebsiteChatbot() {
   }, [input, isLoading, messages, messageCount, leadSubmitted, showLeadForm]);
 
   const submitLead = async (data) => {
+    // Single choke point — fire at most once per chat session (the server also dedups by
+    // phone/email, so any extra info from a later form submit is merged there, not duplicated).
+    if (leadSubmittedRef.current) return;
+    leadSubmittedRef.current = true;
     try {
       const contactType = data.phone ? 'phone' : 'email';
       const comment = data.business

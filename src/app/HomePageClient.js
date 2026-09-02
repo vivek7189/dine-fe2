@@ -149,6 +149,7 @@ export default function LandingPage() {
   };
 
   const handleSubmitDemoRequest = async () => {
+    if (demoSubmitting) return; // synchronous guard against rapid double-submit (state disables the button too)
     if (demoContactType === 'phone' && !demoPhone.trim()) return setDemoError('Phone number is required');
     if (demoContactType === 'email' && !demoEmail.trim()) return setDemoError('Email is required');
     setDemoSubmitting(true); setDemoError('');
