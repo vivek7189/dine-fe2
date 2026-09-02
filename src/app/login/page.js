@@ -1665,7 +1665,12 @@ const Login = () => {
     try {
       setLoading(true);
       setError('');
-      const data = await apiClient.pinLogin(pinIdentifier.trim(), pinCode);
+      // Route to the account's REAL backend (native → GCP) BEFORE the PIN check — otherwise a
+      // native account's PIN login hits Vercel, where the PIN isn't set, and fails with
+      // "PIN login is not enabled for this account". Mirrors the phone/email flows.
+      const pinId = pinIdentifier.trim();
+      await resolveAndPinBackend(pinId.includes('@') ? { email: pinId.toLowerCase() } : { phone: pinId });
+      const data = await apiClient.pinLogin(pinId, pinCode);
       if (data.success) {
         apiClient.setUser(data.user);
         triggerDashboardPrefetch();
