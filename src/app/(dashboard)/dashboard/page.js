@@ -205,7 +205,8 @@ function RestaurantPOSContent() {
   const [editApprovalErr, setEditApprovalErr] = useState('');
   const [editApprovalBusy, setEditApprovalBusy] = useState(false);
   const [editApprovalSentInfo, setEditApprovalSentInfo] = useState('');
-  const approvedEditsRef = useRef(new Set());
+  const approvedEditsRef = useRef(new Set());   // orders approved this session
+  const currentGateOrderRef = useRef(null);     // order the gate is currently open for (dedupe)
   const [subRestaurants, setSubRestaurants] = useState([]);
   const [selectedSubRestaurant, setSelectedSubRestaurant] = useState(null);
   const [tables, setTables] = useState([]);
@@ -2247,6 +2248,7 @@ function RestaurantPOSContent() {
       const body = method === 'otp' ? { otp: editApprovalCode } : { pinCode: editApprovalCode };
       await apiClient.verifyCompletedEditApproval(orderId, body);
       approvedEditsRef.current.add(orderId); // don't re-prompt for this order this session
+      currentGateOrderRef.current = null;
       setEditApprovalGate(null); setEditApprovalCode(''); setEditApprovalSentInfo('');
     } catch (e) {
       setEditApprovalErr(e?.error || e?.message || 'Verification failed');
@@ -2254,20 +2256,24 @@ function RestaurantPOSContent() {
   };
 
   const cancelEditApproval = () => {
+    currentGateOrderRef.current = null;
     setEditApprovalGate(null); setEditApprovalCode(''); setEditApprovalErr(''); setEditApprovalSentInfo('');
     router.push('/orderhistory'); // not approved → leave the edit screen
   };
 
-  // Trigger the approval gate for a completed order loaded in edit mode (called from the
-  // order-lookup success path). No-op when approval isn't required or already approved.
+  // Trigger the approval gate for a completed-order edit. No-op when approval isn't
+  // required, already approved this session, or already open (dedupe → single OTP send).
   const maybeGateCompletedEdit = (orderId) => {
     try {
+      if (!orderId) return;
+      if (approvedEditsRef.current.has(orderId)) return;      // already approved
+      if (currentGateOrderRef.current === orderId) return;    // gate already open for this order
       let ps = selectedRestaurant?.posSettings;
       if (!ps) { try { ps = JSON.parse(localStorage.getItem('selectedRestaurant') || '{}')?.posSettings; } catch {} }
       ps = ps || {};
       if (!ps.requirePinForCompletedOrderEdit) return;
-      if (approvedEditsRef.current.has(orderId)) return;
       const method = ps.completedOrderEditApprovalMethod || 'pin';
+      currentGateOrderRef.current = orderId;
       setEditApprovalCode(''); setEditApprovalErr(''); setEditApprovalSentInfo('');
       setEditApprovalGate({ orderId, method });
       if (method === 'otp') sendEditApprovalOtp(orderId);
@@ -2287,6 +2293,11 @@ function RestaurantPOSContent() {
       // This prevents showing "Billing Complete" from previous actions
       if (mode === 'edit') {
         setOrderSuccess(null);
+        // Completed-order edits opened from Order History must pass manager approval
+        // (PIN/OTP) first when the store requires it — block editing until verified.
+        if (fromParam === 'orderhistory') {
+          maybeGateCompletedEdit(orderId);
+        }
       }
 
       // Track where user came from for return navigation
@@ -3440,8 +3451,6 @@ function RestaurantPOSContent() {
             });
             // Clear current order for new order creation
             setCurrentOrder(null);
-            // Require manager PIN/OTP approval before this completed order can be edited.
-            maybeGateCompletedEdit(orderId);
           } else {
             setNotification({
               type: 'success',
