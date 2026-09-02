@@ -1644,7 +1644,7 @@ const en = {
     nonVegLabel: '● Non-Veg',
     itemImages: '{{item}} Images (Max 4)',
     generateSmartRecipe: 'Generate Smart Recipe with AI 🤖',
-    autoCreateIngredients: 'Auto-create ingredients list for inventory tracking',
+    autoCreateIngredients: 'Optional — for prepared dishes only. Direct-sale items (Coke, water) auto-link to stock without this.',
     variants: 'Variants',
     scoopOptions: 'Scoop Options',
     packSizes: 'Pack Sizes',

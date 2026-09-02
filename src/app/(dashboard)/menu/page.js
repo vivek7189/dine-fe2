@@ -2474,7 +2474,7 @@ const MenuManagement = () => {
     variants: [],
     customizations: [],
     modifierGroups: [],
-    generateRecipe: true,
+    generateRecipe: false, // AI recipe generation is OPT-IN (default off); direct-sale items auto-link 1:1 without it
     // Bar-specific fields
     spiritCategory: '',
     ingredients: '',
@@ -4065,7 +4065,7 @@ const MenuManagement = () => {
       variants: [],
       customizations: [],
       modifierGroups: [],
-      generateRecipe: true,
+      generateRecipe: false, // AI recipe generation is OPT-IN (default off); direct-sale items auto-link 1:1 without it
       spiritCategory: '',
       ingredients: '',
       abv: '',
