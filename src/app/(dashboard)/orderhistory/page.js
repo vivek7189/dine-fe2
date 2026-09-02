@@ -1540,26 +1540,29 @@ const OrderHistory = () => {
   // --- Edit Completed Order Items handlers ---
   const handleEditItemsClick = (order) => {
     setEditReason('');
+    setPinCode(''); setPinError('');
+    setOtpCode(''); setOtpError(''); setOtpSentInfo('');
     setEditReasonModal(order);
+    // OTP method: send the code immediately so it's arriving while the reason is typed —
+    // reason + code live in ONE modal, so there's no second popup. Only when enabled.
+    if (requirePin && editApprovalMethod === 'otp') {
+      handleSendEditOtp(order);
+    }
   };
 
+  // Single combined gate: reason (always) + PIN/OTP (only when approval is enabled).
   const handleEditReasonSubmit = () => {
     if (!editReason.trim() || editReason.trim().length < 3) return;
-    const order = editReasonModal;
-    setEditReasonModal(null);
     if (requirePin) {
       if (editApprovalMethod === 'otp') {
-        setOtpCode(''); setOtpError(''); setOtpSentInfo('');
-        setOtpModal(order);
-        handleSendEditOtp(order); // auto-send the code when the prompt opens
+        if (!otpCode || otpCode.length !== 6) { setOtpError('Enter the 6-digit code'); return; }
       } else {
-        setPinCode('');
-        setPinError('');
-        setPinModal(order);
+        if (!pinCode || pinCode.length < 4) { setPinError('PIN must be at least 4 digits'); return; }
       }
-    } else {
-      setEditItemsOrder(order);
     }
+    const order = editReasonModal;
+    setEditReasonModal(null);
+    setEditItemsOrder(order); // OrderEditModal receives editReason + pinCode + otp props
   };
 
   const handleSendEditOtp = async (orderArg) => {
@@ -5558,27 +5561,82 @@ const OrderHistory = () => {
               onClick={e => e.stopPropagation()}
             >
               <div className="px-5 py-4 border-b border-gray-100">
-                <h3 className="text-lg font-bold text-gray-900">Edit Reason Required</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Why are you editing this completed order?</p>
+                <h3 className="text-lg font-bold text-gray-900">Edit Completed Order</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {requirePin
+                    ? (editApprovalMethod === 'otp' ? 'Add a reason and enter the manager approval code.' : 'Add a reason and enter the approval PIN.')
+                    : 'Why are you editing this completed order?'}
+                </p>
               </div>
-              <div className="px-5 py-4">
-                <textarea
-                  value={editReason}
-                  onChange={e => setEditReason(e.target.value)}
-                  placeholder="e.g., Customer requested item change, wrong item billed..."
-                  rows={3}
-                  autoFocus
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none resize-none"
-                />
-                {editReason.trim().length > 0 && editReason.trim().length < 3 && (
-                  <p className="text-xs text-red-500 mt-1">Minimum 3 characters required</p>
+              <div className="px-5 py-4 space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Reason</label>
+                  <textarea
+                    value={editReason}
+                    onChange={e => setEditReason(e.target.value)}
+                    placeholder="e.g., Customer requested item change, wrong item billed..."
+                    rows={2}
+                    autoFocus
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none resize-none"
+                  />
+                  {editReason.trim().length > 0 && editReason.trim().length < 3 && (
+                    <p className="text-xs text-red-500 mt-1">Minimum 3 characters required</p>
+                  )}
+                </div>
+
+                {/* Approval — only rendered when the setting is enabled. WhatsApp OTP or Shared PIN. */}
+                {requirePin && editApprovalMethod === 'otp' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Manager approval code</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={otpCode}
+                      onChange={e => { setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setOtpError(''); }}
+                      placeholder="Enter 6-digit code"
+                      maxLength={6}
+                      className="w-full px-3 py-3 rounded-xl border border-gray-200 text-center text-2xl tracking-widest font-mono focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none"
+                      onKeyDown={e => e.key === 'Enter' && handleEditReasonSubmit()}
+                    />
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-xs text-emerald-600">{otpSentInfo}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleSendEditOtp(editReasonModal)}
+                        disabled={otpSending}
+                        className="text-xs font-medium text-red-600 hover:text-red-700 disabled:opacity-50"
+                      >
+                        {otpSending ? 'Sending…' : 'Resend code'}
+                      </button>
+                    </div>
+                    {otpError && <p className="text-xs text-red-500 mt-1">{otpError}</p>}
+                  </div>
+                )}
+                {requirePin && editApprovalMethod !== 'otp' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Approval PIN</label>
+                    <input
+                      type="password"
+                      value={pinCode}
+                      onChange={e => { setPinCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setPinError(''); }}
+                      placeholder="Enter 4-6 digit PIN"
+                      maxLength={6}
+                      className="w-full px-3 py-3 rounded-xl border border-gray-200 text-center text-2xl tracking-widest font-mono focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none"
+                      onKeyDown={e => e.key === 'Enter' && handleEditReasonSubmit()}
+                    />
+                    {pinError && <p className="text-xs text-red-500 mt-1">{pinError}</p>}
+                  </div>
                 )}
               </div>
               <div className="px-5 py-4 border-t border-gray-100 flex gap-3">
                 <button onClick={() => setEditReasonModal(null)} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-xl hover:bg-gray-200">Cancel</button>
                 <button
                   onClick={handleEditReasonSubmit}
-                  disabled={!editReason.trim() || editReason.trim().length < 3}
+                  disabled={
+                    !editReason.trim() || editReason.trim().length < 3 ||
+                    (requirePin && editApprovalMethod === 'otp' && (!otpCode || otpCode.length !== 6)) ||
+                    (requirePin && editApprovalMethod !== 'otp' && (!pinCode || pinCode.length < 4))
+                  }
                   className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Continue
