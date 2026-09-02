@@ -30,6 +30,7 @@ import QRCode from 'qrcode';
 import { getBillPrintCSS, getBillHeaderHTML } from '../../../utils/printFontSizes';
 import { printDocument, supportsNativeAutoPrint } from '../../../utils/printBridge';
 import { generateBillHTML } from '../../../utils/printHtmlGenerator';
+import { useEtimsBillPrint } from '../../../hooks/useEtimsBillPrint';
 import { printKOTByStations } from '../../../utils/printKotStations';
 // Dynamic imports — loaded on first use
 const TableBillingModal = dynamic(() => import('../../../components/TableBillingModal'), { ssr: false });
@@ -398,6 +399,9 @@ const TableManagement = () => {
   const [printSettings, setPrintSettings] = useState(null);
   const [printingTables, setPrintingTables] = useState({});
   const [printDropdownTable, setPrintDropdownTable] = useState(null);
+  // KRA-aware bill printing (shared hook) — a completed bill on a Kenya eTIMS store fiscalises +
+  // prints the fiscal receipt; a pre-bill / non-Kenya / eTIMS-off prints plainly, as before.
+  const { printBill: printBillKra, KraPrompt } = useEtimsBillPrint();
 
   // Billing modal data (loaded lazily when modal opens)
   const [taxSettings, setTaxSettings] = useState(null);
@@ -1692,6 +1696,10 @@ const TableManagement = () => {
       const order = response.orders[0];
       const restaurantName = selectedRestaurant?.name || 'Restaurant';
 
+      // Existing non-fiscal print, kept as `plainPrint` so the shared KRA-aware hook can wrap it:
+      // a Kenya eTIMS store fiscalises a COMPLETED bill + prints the fiscal receipt (asking
+      // "Send to KRA?" if configured); a pre-bill / non-Kenya / eTIMS-off prints as before.
+      const plainPrint = async () => {
       if (supportsNativeAutoPrint()) {
         const items = order.items || [];
         const subtotal = order.totalAmount || items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
@@ -1728,6 +1736,8 @@ const TableManagement = () => {
       } else {
         openManualPrintWindow(order, table);
       }
+      };
+      await printBillKra({ restaurantId: selectedRestaurant.id, order, restaurant: selectedRestaurant, printSettings, plainPrint });
     } catch (error) {
       console.error('Error printing bill:', error);
     } finally {
@@ -4017,6 +4027,8 @@ const TableManagement = () => {
       )}
 
       <NotificationContainer />
+      {/* KRA "Send to KRA?" prompt (portaled) — shown by the shared bill-print hook when needed */}
+      {KraPrompt}
     </div>
   );
 };

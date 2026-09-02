@@ -23,6 +23,7 @@ import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '
 import { printKOTByStations } from '../../../utils/printKotStations';
 import { generateBillHTML } from '../../../utils/printHtmlGenerator';
 import { orderDisplayNumber } from '../../../utils/orderNumber';
+import { useEtimsBillPrint } from '../../../hooks/useEtimsBillPrint';
 import dynamic from 'next/dynamic';
 const OrderSummary = dynamic(() => import('../../../components/OrderSummary'), { ssr: false });
 const OrderEditModal = dynamic(() => import('../../../components/OrderEditModal'), { ssr: false });
@@ -166,6 +167,9 @@ const OrderHistory = () => {
   const [restaurantId, setRestaurantId] = useState(null);
   const [restaurant, setRestaurant] = useState(null);
   const [allowOrderDelete, setAllowOrderDelete] = useState(false);
+  // KRA-aware bill printing (shared hook) — reprinting a completed bill on a Kenya eTIMS store
+  // fiscalises + prints the fiscal receipt, same as the dashboard; elsewhere it prints plainly.
+  const { printBill: printBillKra, KraPrompt } = useEtimsBillPrint();
   const [user, setUser] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileEmbed] = useState(() => typeof window !== 'undefined' && !!window.__DINEOPEN_MOBILE_EMBED__);
@@ -1895,24 +1899,30 @@ const OrderHistory = () => {
     // WEB terminals that offload printing to a separate networked KOT app; on
     // Electron it sends the job to the cloud and nothing prints on this machine
     // (and requestManualPrint resolves "success", so the fallback never fires).
-    const isElectronApp = typeof window !== 'undefined' && !!window.electronAPI;
-    // Print bill with original status — template shows PRE-BILL banner when not completed
-    if (!isElectronApp && printSettings?.kotPrinterEnabled && printSettings?.usePusherForKOT) {
-      // Try KOT printer app first
-      setPrintingOrderId(order.id);
-      apiClient.requestManualPrint(order.id, 'bill')
-        .then((response) => {
-          if (response?.success) {
-            const label = order.status === 'completed' ? 'Bill' : 'Pre-Bill';
-            setPrintSuccess(`${label} sent to printer (#${orderDisplayNumber(order)})`);
-            setTimeout(() => setPrintSuccess(null), 3000);
-          }
-        })
-        .catch(() => browserPrintBill(order))
-        .finally(() => setPrintingOrderId(null));
-    } else {
-      browserPrintBill(order);
-    }
+    // Existing non-fiscal print path, unchanged — kept as `plainPrint` so the KRA-aware hook can
+    // wrap it: a Kenya eTIMS store fiscalises a completed bill + prints the fiscal receipt (asking
+    // "Send to KRA?" if configured), exactly like the dashboard billing screen; everywhere else
+    // (web, non-Kenya, eTIMS off, or a pre-bill) this runs as before.
+    const plainPrint = () => {
+      const isElectronApp = typeof window !== 'undefined' && !!window.electronAPI;
+      // Print bill with original status — template shows PRE-BILL banner when not completed
+      if (!isElectronApp && printSettings?.kotPrinterEnabled && printSettings?.usePusherForKOT) {
+        // Try KOT printer app first
+        setPrintingOrderId(order.id);
+        return apiClient.requestManualPrint(order.id, 'bill')
+          .then((response) => {
+            if (response?.success) {
+              const label = order.status === 'completed' ? 'Bill' : 'Pre-Bill';
+              setPrintSuccess(`${label} sent to printer (#${orderDisplayNumber(order)})`);
+              setTimeout(() => setPrintSuccess(null), 3000);
+            }
+          })
+          .catch(() => browserPrintBill(order))
+          .finally(() => setPrintingOrderId(null));
+      }
+      return browserPrintBill(order);
+    };
+    printBillKra({ restaurantId, order, restaurant, printSettings, plainPrint });
   };
 
   const handlePrintKOT = (order) => {
@@ -6461,6 +6471,8 @@ const OrderHistory = () => {
         </div>,
         document.body
       )}
+      {/* KRA "Send to KRA?" prompt (portaled) — shown by the shared bill-print hook when needed */}
+      {KraPrompt}
     </div>
   );
 };
