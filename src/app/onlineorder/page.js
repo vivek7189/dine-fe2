@@ -11,6 +11,7 @@ import {
 } from 'react-icons/fa';
 import dynamic from 'next/dynamic';
 import apiClient from '../../lib/api.js';
+import { setPublicBackend, DEFAULT_API_BASE } from '../../lib/apiBase';
 import { getDisplayImage } from '../../utils/placeholderImages';
 import { matchesAudience } from '../../hooks/useOfferEngine';
 
@@ -412,9 +413,25 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
 
   // Load restaurant data with caching for faster loads
   useEffect(() => {
+    let cancelled = false;
     const loadData = async () => {
       try {
         setLoading(true);
+
+        // Resolve this restaurant's home backend FIRST (Vercel vs GCP) so every public call —
+        // menu, offers, and especially the ORDER — lands on the same backend the dashboard reads.
+        // In-memory only (never persisted, so it can't affect a logged-in staff pin); best-effort
+        // (falls back to the default backend on any failure).
+        if (restaurantId && restaurantId !== 'default') {
+          try {
+            const ctrl = new AbortController();
+            const to = setTimeout(() => ctrl.abort(), 4000); // never let a hung resolve block the menu
+            const rb = await fetch(`${DEFAULT_API_BASE}/api/auth/resolve-backend?restaurant=${encodeURIComponent(restaurantId)}`, { signal: ctrl.signal })
+              .then(r => (r.ok ? r.json() : null)).catch(() => null);
+            clearTimeout(to);
+            if (!cancelled) setPublicBackend(rb?.backendUrl || '');
+          } catch { /* timeout/error → keep default backend */ }
+        }
 
         // STEP 1: Show cached data immediately (instant UI)
         const cachedMenu = getCachedData(restaurantId, 'menu');
@@ -503,6 +520,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       }
     };
     loadData();
+    return () => { cancelled = true; setPublicBackend(''); };
   }, [restaurantId]);
 
   // Schedule validation helpers
@@ -3196,6 +3214,16 @@ const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemC
                     boxSizing: 'border-box'
                   }}
                 />
+              </div>
+            )}
+
+            {/* Seat / chair from the scanned per-seat QR (?seat=). Read-only — it's already carried
+                on the order as chairNumber; shown here so the guest sees which seat they scanned. */}
+            {orderType === 'table' && chairParam && (
+              <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px' }}>
+                <FaChair size={14} color="#ef4444" />
+                <span style={{ fontSize: '13px', color: '#374151', fontWeight: 600 }}>Seat / Chair: {chairParam}</span>
+                <span style={{ fontSize: '11px', color: '#9ca3af' }}>(from your QR)</span>
               </div>
             )}
 

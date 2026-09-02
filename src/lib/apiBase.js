@@ -51,6 +51,16 @@ export const BACKEND_CONFIG_URL =
 
 const norm = (u) => (u ? String(u).replace(/\/+$/, '') : u); // strip trailing slash
 
+// PUBLIC-PAGE backend override (in-memory only — NEVER persisted). QR/public pages
+// (placeorder, bill, print-kot) have no logged-in user, so they resolve the restaurant's
+// home backend by restaurantId and set this so every API call on that page lands on the
+// SAME backend the restaurant's dashboard reads (Vercel or GCP). It is deliberately NOT
+// stored in localStorage/cookie, so it can never clobber a logged-in staff member's real
+// pin and it resets on reload/unmount. Cleared with setPublicBackend('').
+let _publicBackend = null;
+export function setPublicBackend(url) { _publicBackend = url ? norm(url) : null; }
+export function getPublicBackend() { return _publicBackend; }
+
 // NOTE: isServerApp() (NEXT_PUBLIC_APP_KIND === 'server') lives in ./localServer and is
 // imported above — the LOCAL-SERVER Electron build is baked to the native GCP/Postgres VM
 // and must NEVER route to Vercel.
@@ -78,6 +88,10 @@ export function getApiBase() {
   // redirects to restaurant.dineopen.com where localStorage is a different origin).
   const override = getBackendOverride();
   if (override) return norm(override);
+  // Public/QR page override (in-memory, page-scoped). Only ever set by public pages that
+  // resolved a specific restaurant's backend; never persisted, so it can't leak into a
+  // logged-in session and resets on reload.
+  if (_publicBackend) return norm(_publicBackend);
   try {
     // per-user / pgBackendUrl pin wins over the remote default
     const persisted = window.localStorage.getItem(BACKEND_URL_KEY);

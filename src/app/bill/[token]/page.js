@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import { DEFAULT_API_BASE, PG_API_BASE } from '../../../lib/apiBase';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
 
@@ -27,13 +28,26 @@ export default function PublicBillPage() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${API_URL}/api/public/bill/${token}`)
-      .then(res => {
-        if (!res.ok) throw new Error(res.status === 404 ? 'Invoice not found' : 'Failed to load invoice');
-        return res.json();
-      })
-      .then(d => { setData(d); setLoading(false); })
-      .catch(e => { setError(e.message); setLoading(false); });
+    let cancelled = false;
+    (async () => {
+      // A bill token lives on whichever backend created it. Try the default (Vercel) first —
+      // exactly the old behaviour — then fall back to GCP/Postgres on a not-found, so bills for
+      // GCP-hosted restaurants load too. (API_URL === DEFAULT_API_BASE; kept for parity.)
+      const bases = [...new Set([API_URL, DEFAULT_API_BASE, PG_API_BASE].filter(Boolean))];
+      let loaded = null, lastErr = 'Failed to load invoice';
+      for (const base of bases) {
+        try {
+          const res = await fetch(`${base}/api/public/bill/${token}`);
+          if (res.ok) { loaded = await res.json(); break; }
+          lastErr = res.status === 404 ? 'Invoice not found' : 'Failed to load invoice';
+          // On 404, keep trying the next backend; on other errors, also try the next.
+        } catch { lastErr = 'Failed to load invoice'; }
+      }
+      if (cancelled) return;
+      if (loaded) { setData(loaded); setLoading(false); }
+      else { setError(lastErr); setLoading(false); }
+    })();
+    return () => { cancelled = true; };
   }, [token]);
 
   if (loading) {

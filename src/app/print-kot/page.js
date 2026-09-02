@@ -10,6 +10,7 @@ import { isLocalServerMode } from '../../lib/localServer';
 import { printDocument } from '../../utils/printBridge';
 import { isWeb } from '../../utils/platform';
 import { renderKOT } from '../../utils/printTemplates/index';
+import { getApiBase, setPublicBackend, DEFAULT_API_BASE } from '../../lib/apiBase';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
 // const PUSHER_KEY = process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec'; // COMMENTED OUT — replaced by Firebase RTDB
@@ -198,6 +199,12 @@ const PrintKOTContent = () => {
   const [kotUpdatePrintMode, setKotUpdatePrintMode] = useState('delta'); // 'delta' or 'detailed'
   const [printSettingsState, setPrintSettingsState] = useState({}); // Full print settings from API
 
+  // Backend routing for this public kiosk page: it must talk to the SAME backend the
+  // restaurant's account lives on (Vercel or GCP), else it polls the wrong DB and prints
+  // nothing. Resolved by restaurantId below; ready-flag gates all fetches until resolved.
+  const [backendReady, setBackendReady] = useState(false);
+  const backendReadyRef = useRef(false); // ref mirror for the polling interval closure
+
   const pollingIntervalRef = useRef(null);
   const printFrameRef = useRef(null);
   const kotUpdatePrintModeRef = useRef('delta'); // ref for use inside printOrder callback
@@ -227,13 +234,40 @@ const PrintKOTContent = () => {
     }
   }, [printedOrders, restaurantId]);
 
-  // Fetch restaurant info
+  // Resolve this restaurant's home backend (Vercel vs GCP) BEFORE any fetch/poll, so the kiosk
+  // never polls the wrong DB and misses KOTs. Uses the in-memory public-backend override
+  // (page-scoped, never persisted). Best-effort: on any failure it falls back to the default
+  // backend so printing keeps working exactly as before.
   useEffect(() => {
     if (!restaurantId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const ctrl = new AbortController();
+        const to = setTimeout(() => ctrl.abort(), 4000); // never let a hung resolve block printing
+        const rb = await fetch(`${DEFAULT_API_BASE}/api/auth/resolve-backend?restaurant=${encodeURIComponent(restaurantId)}`, { signal: ctrl.signal })
+          .then(r => (r.ok ? r.json() : null)).catch(() => null);
+        clearTimeout(to);
+        if (cancelled) return;
+        setPublicBackend(rb?.backendUrl || DEFAULT_API_BASE);
+      } catch {
+        if (!cancelled) setPublicBackend(DEFAULT_API_BASE);
+      } finally {
+        // ALWAYS flip ready (even on abort/error) so the kiosk prints with the default backend
+        // rather than waiting forever.
+        if (!cancelled) { backendReadyRef.current = true; setBackendReady(true); }
+      }
+    })();
+    return () => { cancelled = true; setPublicBackend(''); backendReadyRef.current = false; setBackendReady(false); };
+  }, [restaurantId]);
+
+  // Fetch restaurant info (only after the backend is resolved)
+  useEffect(() => {
+    if (!restaurantId || !backendReady) return;
 
     const fetchRestaurant = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/restaurant/info/${restaurantId}`);
+        const response = await fetch(`${getApiBase()}/api/restaurant/info/${restaurantId}`);
         const data = await response.json();
         if (data.success && data.restaurant) {
           setRestaurantName(data.restaurant.name);
@@ -244,7 +278,7 @@ const PrintKOTContent = () => {
     };
 
     fetchRestaurant();
-  }, [restaurantId]);
+  }, [restaurantId, backendReady]);
 
   // Print function - creates printable content and triggers print
   const printOrder = useCallback(async (order) => {
@@ -319,7 +353,7 @@ const PrintKOTContent = () => {
 
       // Mark as printed in API
       try {
-        await fetch(`${API_BASE_URL}/api/kot/${order.id}/printed`, {
+        await fetch(`${getApiBase()}/api/kot/${order.id}/printed`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -352,10 +386,10 @@ const PrintKOTContent = () => {
 
   // Fetch pending orders
   const fetchPendingOrders = useCallback(async () => {
-    if (!restaurantId) return;
+    if (!restaurantId || !backendReadyRef.current) return; // wait until the backend is resolved
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/kot/pending-print/${restaurantId}`);
+      const response = await fetch(`${getApiBase()}/api/kot/pending-print/${restaurantId}`);
       const data = await response.json();
 
       if (data.success && data.orders) {
