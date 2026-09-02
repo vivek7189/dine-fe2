@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import apiClient from '../../../lib/api';
+import BiometricSettings from '../../../components/BiometricSettings';
 import * as attendanceApi from '../../../services/attendanceApi';
 // import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
@@ -1346,6 +1347,10 @@ export default function AttendancePage() {
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        {/* Biometric attendance — owner/admin only */}
+        {['owner', 'admin'].includes(userRole) && (
+          <BiometricSettings restaurantId={restaurantId} staffList={staffList} isMobile={isMobile} />
+        )}
         {/* Working Hours */}
         <div style={cardStyle}>
           <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: '0 0 16px 0' }}>Working Hours</h3>

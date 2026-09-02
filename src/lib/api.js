@@ -1939,6 +1939,22 @@ class ApiClient {
     return result;
   }
 
+  // ── Biometric attendance (ZKTeco/eSSL/Realtime) ──────────────────────────
+  getBiometricSetupInfo(restaurantId) { return this.request(`/api/biometric/setup-info/${restaurantId}`); }
+  getBiometricDevices(restaurantId) { return this.request(`/api/biometric/devices/${restaurantId}`); }
+  registerBiometricDevice(restaurantId, serialNumber, name) {
+    return this.request(`/api/biometric/devices/${restaurantId}`, { method: 'POST', body: { serialNumber, name } });
+  }
+  removeBiometricDevice(restaurantId, sn) { return this.request(`/api/biometric/devices/${restaurantId}/${sn}`, { method: 'DELETE' }); }
+  getBiometricUnclaimed() { return this.request(`/api/biometric/unclaimed`); }
+  getBiometricMappings(restaurantId) { return this.request(`/api/biometric/mappings/${restaurantId}`); }
+  setBiometricMapping(restaurantId, deviceUserId, staffId, staffName, role) {
+    return this.request(`/api/biometric/mappings/${restaurantId}`, { method: 'POST', body: { deviceUserId, staffId, staffName, role } });
+  }
+  deleteBiometricMapping(restaurantId, deviceUserId) { return this.request(`/api/biometric/mappings/${restaurantId}/${deviceUserId}`, { method: 'DELETE' }); }
+  getBiometricDiagnostics(restaurantId, sn) { return this.request(`/api/biometric/diagnostics/${restaurantId}/${sn}`); }
+  getBiometricDeviceLogs(restaurantId, sn, limit = 100) { return this.request(`/api/biometric/devices/${restaurantId}/${sn}/logs?limit=${limit}`); }
+
   async deleteFloor(floorId, restaurantId) {
     const result = await this.request(`/api/floors/${floorId}?restaurantId=${restaurantId}`, {
       method: 'DELETE',
