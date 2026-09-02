@@ -16,6 +16,7 @@ import { useCurrency } from '../contexts/CurrencyContext';
 import { buildTokenSlipsDocumentHTML, buildTokenSlipHTML } from '../utils/printFontSizes';
 import { generateBillHTML, generateKOTHTML } from '../utils/printHtmlGenerator';
 import { printHtmlInHiddenFrame, printDocument, supportsNativeAutoPrint } from '../utils/printBridge';
+import { useEtimsBillPrint } from '../hooks/useEtimsBillPrint';
 import { printKOTByStations } from '../utils/printKotStations';
 import { seatLabel } from '../utils/orderItemKey';
 
@@ -97,6 +98,9 @@ export default function DashboardTablesPanel({
 
   // Track which tables are currently printing
   const [printingTables, setPrintingTables] = useState({});
+  // KRA-aware bill printing (shared hook) — a completed FINAL bill on a Kenya eTIMS store
+  // fiscalises + prints the fiscal receipt; pre-bill / non-Kenya / eTIMS-off prints plainly.
+  const { printBill: printBillKra, KraPrompt } = useEtimsBillPrint();
   const [printDropdownTable, setPrintDropdownTable] = useState(null);
 
   // Move order modal
@@ -430,10 +434,20 @@ export default function DashboardTablesPanel({
       if (preBill) invoice.isPreBill = true;
       const billContent = generateBillHTML(invoice, printSettings || {});
 
-      if (supportsNativeAutoPrint()) {
-        await printDocument({ html: billContent, type: 'bill', printSettings: printSettings || {} });
+      // Existing non-fiscal print kept as `plainPrint`. A FINAL bill (not preBill) on a Kenya eTIMS
+      // store is routed through the shared hook → fiscalise + print the fiscal receipt (asking
+      // "Send to KRA?" if configured). A pre-bill / non-Kenya / eTIMS-off prints exactly as before.
+      const plainPrint = async () => {
+        if (supportsNativeAutoPrint()) {
+          await printDocument({ html: billContent, type: 'bill', printSettings: printSettings || {} });
+        } else {
+          openManualPrintWindow(billContent);
+        }
+      };
+      if (preBill) {
+        await plainPrint();
       } else {
-        openManualPrintWindow(billContent);
+        await printBillKra({ restaurantId: selectedRestaurant.id, order, restaurant: selectedRestaurant, printSettings, plainPrint });
       }
       printFoodCourtTokensForOrder(order);
     } catch (error) {
@@ -1443,6 +1457,8 @@ export default function DashboardTablesPanel({
         </div>,
         document.body
       )}
+      {/* KRA "Send to KRA?" prompt (portaled) — shown by the shared bill-print hook when needed */}
+      {KraPrompt}
     </div>
   );
 }
