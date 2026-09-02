@@ -953,7 +953,12 @@ export default function AttendancePage() {
                     <tr key={a._id || a.id || i} style={{ borderBottom: '1px solid #f3f4f6', transition: 'background 0.15s' }}
                       onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                      <td style={{ padding: '12px' }}>{displayName}</td>
+                      <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>
+                        {displayName}
+                        {a.source === 'biometric' && (
+                          <span title="Punched via biometric device" style={{ marginLeft: '8px', display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '999px', background: '#eef2ff', color: '#4f46e5', verticalAlign: 'middle' }}>📟 Biometric</span>
+                        )}
+                      </td>
                       <td style={{ padding: '12px', color: '#6b7280' }}>{displayRole}</td>
                       <td style={{ padding: '12px' }}>{formatTime(a.clockIn)}</td>
                       <td style={{ padding: '12px' }}>{formatTime(a.clockOut)}</td>
