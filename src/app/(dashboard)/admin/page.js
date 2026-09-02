@@ -12529,65 +12529,92 @@ const Admin = () => {
                   Note: any owner/admin/manager can also approve with their own Approval PIN. */}
               {posSettings.requirePinForCompletedOrderEdit && (
                 <div style={{ marginLeft: '38px', marginBottom: '12px' }}>
-                  {/* Approval method: shared PIN, or a one-time code sent to a manager on WhatsApp */}
-                  <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-                    {[{ id: 'pin', label: 'Shared PIN' }, { id: 'otp', label: 'WhatsApp OTP' }].map(m => {
-                      const active = (posSettings.completedOrderEditApprovalMethod || 'pin') === m.id;
-                      return (
-                        <button key={m.id} type="button"
-                          onClick={() => setPosSettings(prev => ({ ...prev, completedOrderEditApprovalMethod: m.id }))}
-                          style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-                            border: active ? '1px solid #ef4444' : '1px solid #e5e7eb', background: active ? '#ef4444' : '#fff', color: active ? '#fff' : '#374151' }}>
-                          {m.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {/* Approval method — mutually-exclusive segmented toggle. Exactly one is
+                      active at a time; whichever is active is the ONLY prompt staff see. */}
+                  {(() => {
+                    const method = posSettings.completedOrderEditApprovalMethod || 'pin';
+                    return (
+                      <>
+                        <div style={{ fontSize: '11.5px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>Approval method</div>
+                        <div style={{ display: 'inline-flex', background: '#f1f5f9', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '3px', gap: '2px', marginBottom: '12px' }}>
+                          {[{ id: 'pin', label: 'Shared PIN', icon: '🔑' }, { id: 'otp', label: 'WhatsApp OTP', icon: '💬' }].map(m => {
+                            const active = method === m.id;
+                            return (
+                              <button key={m.id} type="button"
+                                aria-pressed={active}
+                                onClick={() => setPosSettings(prev => ({ ...prev, completedOrderEditApprovalMethod: m.id }))}
+                                style={{
+                                  padding: '7px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer',
+                                  border: 'none', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.15s',
+                                  background: active ? '#fff' : 'transparent',
+                                  color: active ? '#dc2626' : '#64748b',
+                                  boxShadow: active ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
+                                }}>
+                                <span>{m.icon}</span>{m.label}
+                              </button>
+                            );
+                          })}
+                        </div>
 
-                  {(posSettings.completedOrderEditApprovalMethod || 'pin') === 'otp' ? (
-                    <div>
-                      <input
-                        type="text"
-                        placeholder="Manager WhatsApp number (e.g. +974XXXXXXXX)"
-                        value={posSettings.completedOrderEditOtpNumber || ''}
-                        onChange={(e) => setPosSettings(prev => ({ ...prev, completedOrderEditOtpNumber: e.target.value.replace(/[^\d+]/g, '').slice(0, 16) }))}
-                        style={{ width: '100%', maxWidth: '320px', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', backgroundColor: '#fafafa', marginBottom: '8px' }}
-                      />
-                      <input
-                        type="email"
-                        placeholder="Manager email (fallback, optional)"
-                        value={posSettings.completedOrderEditOtpEmail || ''}
-                        onChange={(e) => setPosSettings(prev => ({ ...prev, completedOrderEditOtpEmail: e.target.value.trim() }))}
-                        style={{ width: '100%', maxWidth: '320px', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', backgroundColor: '#fafafa' }}
-                      />
-                      <div style={{ fontSize: '10.5px', color: '#9ca3af', marginTop: '4px' }}>
-                        When staff edit a completed order, a one-time code is sent to this manager on WhatsApp (falls back to email). Requires the approved WhatsApp “edit_approval_otp” template.
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        {(posSettings.completedOrderEditPinHash || posSettings.completedOrderEditPin) && (
-                          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #bbf7d0', borderRadius: '999px', padding: '3px 10px' }}>✓ Shared PIN set</span>
+                        {method === 'otp' ? (
+                          <div>
+                            <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '4px' }}>Manager WhatsApp number</div>
+                            <input
+                              type="text"
+                              placeholder="e.g. +974XXXXXXXX (with country code)"
+                              value={posSettings.completedOrderEditOtpNumber || ''}
+                              onChange={(e) => setPosSettings(prev => ({ ...prev, completedOrderEditOtpNumber: e.target.value.replace(/[^\d+]/g, '').slice(0, 16) }))}
+                              style={{ width: '100%', maxWidth: '320px', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', backgroundColor: '#fafafa', marginBottom: '8px' }}
+                            />
+                            <input
+                              type="email"
+                              placeholder="Manager email (fallback, optional)"
+                              value={posSettings.completedOrderEditOtpEmail || ''}
+                              onChange={(e) => setPosSettings(prev => ({ ...prev, completedOrderEditOtpEmail: e.target.value.trim() }))}
+                              style={{ width: '100%', maxWidth: '320px', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', backgroundColor: '#fafafa' }}
+                            />
+                            {/* Edge case: OTP method but no destination → nothing can be sent. */}
+                            {!((posSettings.completedOrderEditOtpNumber || '').trim()) && !((posSettings.completedOrderEditOtpEmail || '').trim()) ? (
+                              <div style={{ fontSize: '11px', color: '#dc2626', marginTop: '5px', fontWeight: 600 }}>⚠ Add a manager WhatsApp number (or email) — otherwise no approval code can be sent.</div>
+                            ) : ((posSettings.completedOrderEditOtpNumber || '').trim() && (posSettings.completedOrderEditOtpNumber || '').replace(/\D/g, '').length < 8) ? (
+                              <div style={{ fontSize: '11px', color: '#dc2626', marginTop: '5px', fontWeight: 600 }}>⚠ That number looks too short — include the country code.</div>
+                            ) : null}
+                            <div style={{ fontSize: '10.5px', color: '#9ca3af', marginTop: '4px' }}>
+                              When staff edit a completed order, a one-time code is sent to this manager on WhatsApp (falls back to email). Requires the approved WhatsApp “edit_approval_otp” template.
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '4px' }}>Shared PIN</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                              {(posSettings.completedOrderEditPinHash || posSettings.completedOrderEditPin) && (
+                                <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #bbf7d0', borderRadius: '999px', padding: '3px 10px' }}>✓ Shared PIN set</span>
+                              )}
+                              <input
+                                type="text"
+                                placeholder={(posSettings.completedOrderEditPinHash || posSettings.completedOrderEditPin) ? 'New PIN (blank = keep)' : 'Enter 4-6 digit PIN'}
+                                value={posSettings.completedOrderEditPin || ''}
+                                onChange={(e) => setPosSettings(prev => ({ ...prev, completedOrderEditPin: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+                                maxLength={6}
+                                style={{
+                                  width: '190px', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: '8px',
+                                  fontSize: '16px', fontFamily: 'monospace', letterSpacing: '4px', textAlign: 'center', backgroundColor: '#fafafa'
+                                }}
+                              />
+                            </div>
+                            {posSettings.completedOrderEditPin && posSettings.completedOrderEditPin.length < 4 && (
+                              <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px' }}>PIN must be at least 4 digits</div>
+                            )}
+                            {/* Edge case: PIN method but no shared PIN set yet → only personal approver PINs work. */}
+                            {!(posSettings.completedOrderEditPinHash || posSettings.completedOrderEditPin) && (
+                              <div style={{ fontSize: '11px', color: '#b45309', marginTop: '5px' }}>No shared PIN yet — until you set one, only an owner/admin/manager’s personal Approval PIN will unlock edits.</div>
+                            )}
+                            <div style={{ fontSize: '10.5px', color: '#9ca3af', marginTop: '4px' }}>Shared PIN for completed-order edits (stored encrypted). An owner/admin/manager can also approve with their own Approval PIN.</div>
+                          </div>
                         )}
-                        <input
-                          type="text"
-                          placeholder={(posSettings.completedOrderEditPinHash || posSettings.completedOrderEditPin) ? 'New PIN (blank = keep)' : 'Enter 4-6 digit PIN'}
-                          value={posSettings.completedOrderEditPin || ''}
-                          onChange={(e) => setPosSettings(prev => ({ ...prev, completedOrderEditPin: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
-                          maxLength={6}
-                          style={{
-                            width: '190px', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: '8px',
-                            fontSize: '16px', fontFamily: 'monospace', letterSpacing: '4px', textAlign: 'center', backgroundColor: '#fafafa'
-                          }}
-                        />
-                      </div>
-                      {posSettings.completedOrderEditPin && posSettings.completedOrderEditPin.length < 4 && (
-                        <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px' }}>PIN must be at least 4 digits</div>
-                      )}
-                      <div style={{ fontSize: '10.5px', color: '#9ca3af', marginTop: '4px' }}>Shared PIN for completed-order edits (stored encrypted). An owner/admin/manager can also approve with their own Approval PIN.</div>
-                    </div>
-                  )}
+                      </>
+                    );
+                  })()}
 
                   {/* Inline Save — this section sits far below the card's top Save button, so
                       surface one right here (saves all POS settings). Avoids scrolling back up. */}
