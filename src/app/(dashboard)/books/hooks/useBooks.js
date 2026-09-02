@@ -94,7 +94,23 @@ export default function useBooks() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  const restaurantId = typeof window !== 'undefined' ? localStorage.getItem('selectedRestaurantId') : null;
+  // The active restaurant, kept REACTIVE. Previously read once as a plain const, so a restaurant
+  // switch did NOT re-fetch Books data (stale id → the other restaurant showed the previous one's
+  // expenses / empty data). We now update it on the app-wide 'restaurantChanged' event (the same
+  // idiom Navigation dispatches and CurrencyContext/layout already listen to). Every fetch*
+  // callback lists restaurantId in its deps, so changing it re-runs their effects → the newly
+  // selected restaurant's overview/expenses/P&L/etc. load correctly.
+  const [restaurantId, setRestaurantId] = useState(typeof window !== 'undefined' ? localStorage.getItem('selectedRestaurantId') : null);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const read = () => {
+      const rid = localStorage.getItem('selectedRestaurantId');
+      setRestaurantId((prev) => (prev !== rid ? rid : prev)); // no needless re-render when unchanged
+    };
+    read(); // sync once on mount (covers a switch that happened before this hook mounted)
+    window.addEventListener('restaurantChanged', read);
+    return () => window.removeEventListener('restaurantChanged', read);
+  }, []);
 
   useEffect(() => {
     // Electron is always a desktop POS terminal — never use mobile layout
