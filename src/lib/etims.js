@@ -163,30 +163,66 @@ export async function syncEtimsItems(restaurantId, onProgress) {
  * bill/print flow is never blocked. A real fiscalisation error IS thrown so the
  * caller can surface it (a Kenya sale legally must be fiscalised).
  */
+// A KRA "invoice number already exists" rejection — our local counter fell behind KRA's.
+function isDuplicateInvoiceResult(vscu) {
+  const rc = String((vscu && (vscu.resultCd || (vscu.data && vscu.data.resultCd))) || '');
+  const rm = String((vscu && (vscu.resultMsg || (vscu.data && vscu.data.resultMsg))) || '');
+  return rc === '924' || /invoice.*already exist|already exist.*invoice/i.test(rm);
+}
+
 export async function fiscaliseOrder(restaurantId, orderId) {
   if (!isEtimsCapable()) return { skipped: 'not-desktop' };
-  const prep = await apiClient.request(`/api/etims/${restaurantId}/prepare-sale`, { method: 'POST', body: { orderId } });
-  if (prep.alreadyFiscalised) return { etims: prep.etims };
-  const invcNo = prep.body && prep.body.invcNo;
-  let relayRes;
-  try {
-    relayRes = await window.electronAPI.etimsRelay({ url: prep.vscuUrl, path: prep.path, body: prep.body, timeoutMs: prep.timeoutMs });
-  } catch (e) {
-    // The relay bridge itself threw (should resolve, not reject — but be safe). Log it so a
-    // "prepared but never signed" order (order.etims has pendingInvcNo only) is never invisible.
-    const msg = (e && e.message) || 'Relay bridge error';
-    await logEtimsDiagnostic(restaurantId, { phase: 'relay', ok: false, orderId, invcNo, errorMessage: msg, errorClass: 'BRIDGE_ERROR', vscuUrl: prep.vscuUrl, timeoutMs: prep.timeoutMs });
-    throw new Error(msg);
-  }
-  if (!relayRes || !relayRes.ok) {
-    const msg = (relayRes && relayRes.error) || 'Could not reach the VSCU.';
-    // AWAIT (was fire-and-forget) so the trace survives even if the POS moves on right after.
-    await logEtimsDiagnostic(restaurantId, {
-      phase: 'relay', ok: false, orderId, invcNo, errorMessage: msg, raw: relayRes,
-      errorClass: (relayRes && relayRes.errorClass) || 'RELAY_ERROR',
-      latencyMs: relayRes && relayRes.latencyMs, vscuUrl: prep.vscuUrl, timeoutMs: prep.timeoutMs,
-    });
-    throw new Error(msg);
+
+  // Self-healing loop: if KRA rejects the reserved invoice number as a duplicate (code 924),
+  // the counter is behind KRA. We ask the backend to skip the counter forward + free this order's
+  // reserved number, then re-prepare and re-sign — up to a few times — so the sale goes through
+  // WITHOUT the cashier seeing an error. Bounded so a persistent problem still surfaces normally.
+  const MAX_DUP_RETRIES = 4;
+  let prep, invcNo, relayRes;
+  for (let attempt = 0; ; attempt++) {
+    prep = await apiClient.request(`/api/etims/${restaurantId}/prepare-sale`, { method: 'POST', body: { orderId } });
+    if (prep.alreadyFiscalised) return { etims: prep.etims };
+    invcNo = prep.body && prep.body.invcNo;
+    try {
+      relayRes = await window.electronAPI.etimsRelay({ url: prep.vscuUrl, path: prep.path, body: prep.body, timeoutMs: prep.timeoutMs });
+    } catch (e) {
+      // The relay bridge itself threw (should resolve, not reject — but be safe). Log it so a
+      // "prepared but never signed" order (order.etims has pendingInvcNo only) is never invisible.
+      const msg = (e && e.message) || 'Relay bridge error';
+      await logEtimsDiagnostic(restaurantId, { phase: 'relay', ok: false, orderId, invcNo, errorMessage: msg, errorClass: 'BRIDGE_ERROR', vscuUrl: prep.vscuUrl, timeoutMs: prep.timeoutMs });
+      throw new Error(msg);
+    }
+    if (!relayRes || !relayRes.ok) {
+      const msg = (relayRes && relayRes.error) || 'Could not reach the VSCU.';
+      // AWAIT (was fire-and-forget) so the trace survives even if the POS moves on right after.
+      await logEtimsDiagnostic(restaurantId, {
+        phase: 'relay', ok: false, orderId, invcNo, errorMessage: msg, raw: relayRes,
+        errorClass: (relayRes && relayRes.errorClass) || 'RELAY_ERROR',
+        latencyMs: relayRes && relayRes.latencyMs, vscuUrl: prep.vscuUrl, timeoutMs: prep.timeoutMs,
+      });
+      throw new Error(msg);
+    }
+    // The VSCU answered. If it rejected the number as a duplicate AND we have retries left, auto-heal:
+    // skip the counter past this number, clear the order's reserved number, then loop to re-prepare.
+    if (isDuplicateInvoiceResult(relayRes.data) && attempt < MAX_DUP_RETRIES) {
+      const vscu = relayRes.data || {};
+      await logEtimsDiagnostic(restaurantId, {
+        phase: 'auto-resync', ok: false, orderId, invcNo,
+        resultCd: vscu.resultCd || (vscu.data && vscu.data.resultCd) || '924',
+        resultMsg: vscu.resultMsg || (vscu.data && vscu.data.resultMsg) || null,
+        errorMessage: `KRA: invoice #${invcNo} already exists (924) — auto-skipping counter and retrying (attempt ${attempt + 1}/${MAX_DUP_RETRIES}).`,
+        errorClass: 'AUTO_RESYNC', vscuUrl: prep.vscuUrl,
+      });
+      try {
+        // margin grows each attempt (1,2,3,4) so a bigger gap still converges within the retry budget.
+        await apiClient.request(`/api/etims/${restaurantId}/resync-counter`, { method: 'POST', body: { orderId, rejectedInvcNo: invcNo, margin: attempt + 1 } });
+      } catch (re) {
+        // Couldn't bump the counter — stop retrying and let confirm-sale surface the real 924 below.
+        break;
+      }
+      continue; // re-prepare with the skipped counter → fresh invoice number
+    }
+    break; // signed OK, or a non-duplicate result, or out of retries → hand to confirm-sale
   }
   // Relay reached the VSCU. confirm-sale (backend) stores the signature + logs the KRA resultCd. If
   // that HTTP call itself fails (network / backend error), the order is left "prepared but unsigned"

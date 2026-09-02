@@ -35,6 +35,7 @@ export default function EtimsSettings({ restaurantId }) {
   const [diags, setDiags] = useState([]);
   const [loadingDiags, setLoadingDiags] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [resyncing, setResyncing] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -68,6 +69,23 @@ export default function EtimsSettings({ restaurantId }) {
       setMsg({ type: 'success', text: 'Saved.' });
     } catch (e) { setMsg({ type: 'error', text: e.message || 'Save failed' }); }
     finally { setSaving(false); }
+  };
+
+  // Re-sync the invoice counter after a "924 invoice number already exists" mismatch.
+  // KRA keeps its own running invoice number for the SDC; if the local VSCU was re-installed
+  // or eTIMS was toggled off/on, our stored counter can fall BEHIND what KRA already has,
+  // so every new sale is rejected as a duplicate. This asks the backend to skip our counter
+  // forward past the highest number KRA has seen, so the next sale gets a fresh number.
+  const resyncCounter = async () => {
+    setResyncing(true); setMsg(null);
+    try {
+      // Manual fix skips a wider margin than the app's silent auto-retry, to clear a whole stuck range in one click.
+      const res = await apiClient.request(`/api/etims/${restaurantId}/resync-counter`, { method: 'POST', body: { margin: 5 } });
+      const next = (res.lastInvcNo || 0) + 1;
+      setMsg({ type: 'success', text: `✅ Invoice counter re-synced. The next sale will use invoice #${next}. Please try the sale again.` });
+      await load(); await loadDiags();
+    } catch (e) { setMsg({ type: 'error', text: e.message || 'Could not re-sync the counter. Contact support.' }); }
+    finally { setResyncing(false); }
   };
 
   // The enable toggle persists to the DB IMMEDIATELY (not only via "Save settings"), so on/off — and
@@ -182,6 +200,17 @@ export default function EtimsSettings({ restaurantId }) {
 
   if (loading) return <div style={{ padding: 16, color: '#6b7280' }}>Loading eTIMS settings…</div>;
 
+  // Invoice-counter health: detect an UNRESOLVED "924 – invoice number already exists" mismatch.
+  // Diagnostics are newest-first — walk from the top; if the most recent sale/resync SUCCEEDED, we're
+  // healthy (no warning). We only warn if a duplicate-invoice rejection is more recent than the last
+  // good sale, i.e. the counter is currently out of sync and sales are being rejected right now.
+  const isDupEvent = (d) => String(d.resultCd) === '924' || d.errorClass === 'AUTO_RESYNC' || /already exist/i.test(d.errorMessage || d.resultMsg || '');
+  let counterMismatch = false, lastDupInvcNo = null;
+  for (const d of (diags || [])) {
+    if ((d.phase === 'confirm-sale' && d.ok === true) || (d.phase === 'resync-counter' && d.ok === true)) break; // most recent sale/fix worked → healthy
+    if (isDupEvent(d)) { counterMismatch = true; lastDupInvcNo = d.invcNo || lastDupInvcNo; break; }
+  }
+
   return (
     <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20, maxWidth: 640 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -235,6 +264,24 @@ export default function EtimsSettings({ restaurantId }) {
       {cfg && cfg.initialised && (
         <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 10, fontSize: 12, margin: '6px 0 14px' }}>
           ✅ Device initialised · SDC ID <b>{cfg.device?.sdcId}</b> · MRC <b>{cfg.device?.mrcNo}</b> · last invoice #{cfg.device?.lastInvcNo || 0}
+        </div>
+      )}
+
+      {/* Invoice-counter mismatch warning — shows only when KRA is currently rejecting sales as
+          duplicate invoice numbers (code 924), so support/owner instantly know WHY sales fail and
+          can fix it in one click. Normally the app self-heals silently; this is the visible safety net. */}
+      {counterMismatch && (
+        <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 8, padding: '12px 14px', margin: '6px 0 14px' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#92400e', marginBottom: 4 }}>⚠️ Invoice number out of sync with KRA</div>
+          <div style={{ fontSize: 12, color: '#92400e', lineHeight: 1.55, marginBottom: 10 }}>
+            KRA rejected a recent sale as <b>“invoice number already exists” (code 924){lastDupInvcNo ? ` — #${lastDupInvcNo}` : ''}</b>.
+            This happens when the VSCU was reinstalled/reset, eTIMS was switched off then on, or another till shares this device — so this POS’s
+            invoice counter (currently <b>#{cfg?.device?.lastInvcNo || 0}</b>) fell behind KRA’s. Click below to skip the counter to the next
+            free number, then make the sale again.
+          </div>
+          <button onClick={resyncCounter} disabled={resyncing} style={{ padding: '8px 14px', background: '#b45309', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 12.5 }}>
+            {resyncing ? 'Fixing…' : 'Fix invoice counter'}
+          </button>
         </div>
       )}
 
