@@ -4001,6 +4001,15 @@ class ApiClient {
     });
   }
 
+  // Send an approval OTP (WhatsApp → email fallback) to the configured manager for a
+  // completed-order edit. Returns { success, channel, sentTo }.
+  async sendCompletedEditOtp(orderId) {
+    return this.request(`/api/orders/${orderId}/edit-otp/send`, {
+      method: 'POST',
+      body: {},
+    });
+  }
+
   async getOrderEditHistory(orderId) {
     return this.request(`/api/orders/${orderId}/edit-history`);
   }

@@ -12529,26 +12529,65 @@ const Admin = () => {
                   Note: any owner/admin/manager can also approve with their own Approval PIN. */}
               {posSettings.requirePinForCompletedOrderEdit && (
                 <div style={{ marginLeft: '38px', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    {(posSettings.completedOrderEditPinHash || posSettings.completedOrderEditPin) && (
-                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #bbf7d0', borderRadius: '999px', padding: '3px 10px' }}>✓ Shared PIN set</span>
-                    )}
-                    <input
-                      type="text"
-                      placeholder={(posSettings.completedOrderEditPinHash || posSettings.completedOrderEditPin) ? 'New PIN (blank = keep)' : 'Enter 4-6 digit PIN'}
-                      value={posSettings.completedOrderEditPin || ''}
-                      onChange={(e) => setPosSettings(prev => ({ ...prev, completedOrderEditPin: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
-                      maxLength={6}
-                      style={{
-                        width: '190px', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: '8px',
-                        fontSize: '16px', fontFamily: 'monospace', letterSpacing: '4px', textAlign: 'center', backgroundColor: '#fafafa'
-                      }}
-                    />
+                  {/* Approval method: shared PIN, or a one-time code sent to a manager on WhatsApp */}
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                    {[{ id: 'pin', label: 'Shared PIN' }, { id: 'otp', label: 'WhatsApp OTP' }].map(m => {
+                      const active = (posSettings.completedOrderEditApprovalMethod || 'pin') === m.id;
+                      return (
+                        <button key={m.id} type="button"
+                          onClick={() => setPosSettings(prev => ({ ...prev, completedOrderEditApprovalMethod: m.id }))}
+                          style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                            border: active ? '1px solid #ef4444' : '1px solid #e5e7eb', background: active ? '#ef4444' : '#fff', color: active ? '#fff' : '#374151' }}>
+                          {m.label}
+                        </button>
+                      );
+                    })}
                   </div>
-                  {posSettings.completedOrderEditPin && posSettings.completedOrderEditPin.length < 4 && (
-                    <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px' }}>PIN must be at least 4 digits</div>
+
+                  {(posSettings.completedOrderEditApprovalMethod || 'pin') === 'otp' ? (
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Manager WhatsApp number (e.g. +974XXXXXXXX)"
+                        value={posSettings.completedOrderEditOtpNumber || ''}
+                        onChange={(e) => setPosSettings(prev => ({ ...prev, completedOrderEditOtpNumber: e.target.value.replace(/[^\d+]/g, '').slice(0, 16) }))}
+                        style={{ width: '100%', maxWidth: '320px', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', backgroundColor: '#fafafa', marginBottom: '8px' }}
+                      />
+                      <input
+                        type="email"
+                        placeholder="Manager email (fallback, optional)"
+                        value={posSettings.completedOrderEditOtpEmail || ''}
+                        onChange={(e) => setPosSettings(prev => ({ ...prev, completedOrderEditOtpEmail: e.target.value.trim() }))}
+                        style={{ width: '100%', maxWidth: '320px', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', backgroundColor: '#fafafa' }}
+                      />
+                      <div style={{ fontSize: '10.5px', color: '#9ca3af', marginTop: '4px' }}>
+                        When staff edit a completed order, a one-time code is sent to this manager on WhatsApp (falls back to email). Requires the approved WhatsApp “edit_approval_otp” template.
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        {(posSettings.completedOrderEditPinHash || posSettings.completedOrderEditPin) && (
+                          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #bbf7d0', borderRadius: '999px', padding: '3px 10px' }}>✓ Shared PIN set</span>
+                        )}
+                        <input
+                          type="text"
+                          placeholder={(posSettings.completedOrderEditPinHash || posSettings.completedOrderEditPin) ? 'New PIN (blank = keep)' : 'Enter 4-6 digit PIN'}
+                          value={posSettings.completedOrderEditPin || ''}
+                          onChange={(e) => setPosSettings(prev => ({ ...prev, completedOrderEditPin: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+                          maxLength={6}
+                          style={{
+                            width: '190px', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: '8px',
+                            fontSize: '16px', fontFamily: 'monospace', letterSpacing: '4px', textAlign: 'center', backgroundColor: '#fafafa'
+                          }}
+                        />
+                      </div>
+                      {posSettings.completedOrderEditPin && posSettings.completedOrderEditPin.length < 4 && (
+                        <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px' }}>PIN must be at least 4 digits</div>
+                      )}
+                      <div style={{ fontSize: '10.5px', color: '#9ca3af', marginTop: '4px' }}>Shared PIN for completed-order edits (stored encrypted). An owner/admin/manager can also approve with their own Approval PIN.</div>
+                    </div>
                   )}
-                  <div style={{ fontSize: '10.5px', color: '#9ca3af', marginTop: '4px' }}>Shared PIN for completed-order edits (stored encrypted). An owner/admin/manager can also approve with their own Approval PIN.</div>
                 </div>
               )}
             </div>

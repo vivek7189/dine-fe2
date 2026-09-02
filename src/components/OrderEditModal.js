@@ -28,6 +28,7 @@ const OrderEditModal = ({
   mode = 'active',
   editReason = '',
   pinCode = '',
+  otp = '',
   // New optional props (orderhistory passes these; defaults keep it safe)
   menuItems = [],
   taxSettings,
@@ -367,6 +368,7 @@ const OrderEditModal = ({
         // Audit trail for the edit
         editReason: editReason || null,
         ...(pinCode ? { pinCode } : {}),
+        ...(otp ? { otp } : {}),
         status: isCompletedOrder ? 'completed' : (order?.status || undefined),
         paymentStatus: preserveDue
           ? order.paymentStatus

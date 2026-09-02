@@ -236,6 +236,13 @@ const OrderHistory = () => {
   const [pinCode, setPinCode] = useState('');
   const [pinError, setPinError] = useState('');
   const [requirePin, setRequirePin] = useState(false);
+  // Completed-order-edit approval method: 'pin' (shared PIN) or 'otp' (WhatsApp/email code to a manager)
+  const [editApprovalMethod, setEditApprovalMethod] = useState('pin');
+  const [otpModal, setOtpModal] = useState(null); // order object when showing the OTP prompt
+  const [otpCode, setOtpCode] = useState('');
+  const [otpError, setOtpError] = useState('');
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpSentInfo, setOtpSentInfo] = useState('');
   const [printSettings, setPrintSettings] = useState(null);
   const [upiSettings, setUpiSettings] = useState({});
   const [whatsappConnected, setWhatsappConnected] = useState(false);
@@ -788,6 +795,7 @@ const OrderHistory = () => {
       const savedRestaurant = JSON.parse(localStorage.getItem('selectedRestaurant') || '{}');
       if (savedRestaurant?.posSettings?.requirePinForCompletedOrderEdit) {
         setRequirePin(true);
+        setEditApprovalMethod(savedRestaurant.posSettings.completedOrderEditApprovalMethod || 'pin');
       }
     } catch {}
   }, []);
@@ -1530,12 +1538,43 @@ const OrderHistory = () => {
     const order = editReasonModal;
     setEditReasonModal(null);
     if (requirePin) {
-      setPinCode('');
-      setPinError('');
-      setPinModal(order);
+      if (editApprovalMethod === 'otp') {
+        setOtpCode(''); setOtpError(''); setOtpSentInfo('');
+        setOtpModal(order);
+        handleSendEditOtp(order); // auto-send the code when the prompt opens
+      } else {
+        setPinCode('');
+        setPinError('');
+        setPinModal(order);
+      }
     } else {
       setEditItemsOrder(order);
     }
+  };
+
+  const handleSendEditOtp = async (orderArg) => {
+    const order = orderArg || otpModal;
+    if (!order?.id || otpSending) return;
+    setOtpSending(true); setOtpError('');
+    try {
+      const res = await apiClient.sendCompletedEditOtp(order.id);
+      const via = res?.channel === 'email' ? 'email' : 'WhatsApp';
+      setOtpSentInfo(`Code sent to the manager on ${via}${res?.sentTo ? ` (${res.sentTo})` : ''}.`);
+    } catch (e) {
+      setOtpError(e?.error || e?.message || 'Could not send the code. Check the manager number in settings.');
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const handleOtpSubmit = () => {
+    if (!otpCode || otpCode.length !== 6) {
+      setOtpError('Enter the 6-digit code');
+      return;
+    }
+    const order = otpModal;
+    setOtpModal(null);
+    setEditItemsOrder(order);
   };
 
   const handlePinSubmit = () => {
@@ -1556,6 +1595,8 @@ const OrderHistory = () => {
     setEditItemsOrder(null);
     setEditReason('');
     setPinCode('');
+    setOtpCode('');
+    setOtpSentInfo('');
   };
 
   const [syncingOrderKey, setSyncingOrderKey] = useState(null);
@@ -5570,17 +5611,65 @@ const OrderHistory = () => {
         </>
       , document.body)}
 
+      {/* ========== OTP VERIFICATION MODAL (manager approval via WhatsApp/email) ========== */}
+      {otpModal && typeof document !== 'undefined' && createPortal(
+        <>
+          <div className="fixed inset-0 z-[10500] flex items-center justify-center p-4" onClick={() => setOtpModal(null)}>
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+            <div className="relative w-full max-w-sm rounded-2xl shadow-2xl border border-gray-200 bg-white overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="px-5 py-4 border-b border-gray-100">
+                <h3 className="text-lg font-bold text-gray-900">Manager Approval Code</h3>
+                <p className="text-xs text-gray-500 mt-0.5">A one-time code was sent to the manager to approve this edit</p>
+              </div>
+              <div className="px-5 py-4">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={otpCode}
+                  onChange={e => { setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setOtpError(''); }}
+                  placeholder="Enter 6-digit code"
+                  maxLength={6}
+                  autoFocus
+                  className="w-full px-3 py-3 rounded-xl border border-gray-200 text-center text-2xl tracking-widest font-mono focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none"
+                  onKeyDown={e => e.key === 'Enter' && handleOtpSubmit()}
+                />
+                {otpSentInfo && <p className="text-xs text-emerald-600 mt-2 text-center">{otpSentInfo}</p>}
+                {otpError && <p className="text-xs text-red-500 mt-2 text-center">{otpError}</p>}
+                <button
+                  onClick={() => handleSendEditOtp()}
+                  disabled={otpSending}
+                  className="mt-3 w-full text-xs font-medium text-red-600 hover:text-red-700 disabled:opacity-50"
+                >
+                  {otpSending ? 'Sending…' : 'Resend code'}
+                </button>
+              </div>
+              <div className="px-5 py-4 border-t border-gray-100 flex gap-3">
+                <button onClick={() => setOtpModal(null)} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-xl hover:bg-gray-200">Cancel</button>
+                <button
+                  onClick={handleOtpSubmit}
+                  disabled={!otpCode || otpCode.length !== 6}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Verify
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      , document.body)}
+
       {/* ========== ORDER EDIT MODAL (COMPLETED ORDER ITEMS) ========== */}
       {editItemsOrder && (
         <OrderEditModal
           isOpen={true}
-          onClose={() => { setEditItemsOrder(null); setEditReason(''); setPinCode(''); }}
+          onClose={() => { setEditItemsOrder(null); setEditReason(''); setPinCode(''); setOtpCode(''); setOtpSentInfo(''); }}
           orderId={editItemsOrder.id}
           selectedRestaurant={restaurant}
           onOrderUpdated={handleEditItemsComplete}
           mode="completed"
           editReason={editReason}
           pinCode={pinCode}
+          otp={otpCode}
           menuItems={menuItems}
           taxSettings={taxSettings}
           printSettings={printSettings}
