@@ -794,14 +794,20 @@ const OrderHistory = () => {
         }).catch(() => {});
       }
     } catch {}
-    // Check PIN requirement from restaurant posSettings
-    try {
-      const savedRestaurant = JSON.parse(localStorage.getItem('selectedRestaurant') || '{}');
-      if (savedRestaurant?.posSettings?.requirePinForCompletedOrderEdit) {
-        setRequirePin(true);
-        setEditApprovalMethod(savedRestaurant.posSettings.completedOrderEditApprovalMethod || 'pin');
-      }
-    } catch {}
+    // Check PIN requirement + approval method from restaurant posSettings. Re-read on
+    // 'restaurantChanged' so saving the method in Admin (or switching outlets) reflects
+    // here without a hard reload — keeps the edit modal's prompt (PIN vs OTP) in sync.
+    const readEditApproval = () => {
+      try {
+        const savedRestaurant = JSON.parse(localStorage.getItem('selectedRestaurant') || '{}');
+        const ps = savedRestaurant?.posSettings || {};
+        setRequirePin(!!ps.requirePinForCompletedOrderEdit);
+        setEditApprovalMethod(ps.completedOrderEditApprovalMethod || 'pin');
+      } catch {}
+    };
+    readEditApproval();
+    window.addEventListener('restaurantChanged', readEditApproval);
+    return () => window.removeEventListener('restaurantChanged', readEditApproval);
   }, []);
 
   // Fetch tax settings for billing modal

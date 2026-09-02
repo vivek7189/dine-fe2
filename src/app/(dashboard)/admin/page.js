@@ -12588,6 +12588,28 @@ const Admin = () => {
                       <div style={{ fontSize: '10.5px', color: '#9ca3af', marginTop: '4px' }}>Shared PIN for completed-order edits (stored encrypted). An owner/admin/manager can also approve with their own Approval PIN.</div>
                     </div>
                   )}
+
+                  {/* Inline Save — this section sits far below the card's top Save button, so
+                      surface one right here (saves all POS settings). Avoids scrolling back up. */}
+                  <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      disabled={posSettingsSaving || !selectedRestaurant}
+                      onClick={handleSaveDashboardSettings}
+                      style={{
+                        padding: '8px 18px', borderRadius: '8px', fontWeight: 600, fontSize: '13px', border: 'none',
+                        background: posSettingsSaving ? '#e5e7eb' : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                        color: posSettingsSaving ? '#9ca3af' : '#fff',
+                        cursor: posSettingsSaving ? 'not-allowed' : 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '6px',
+                        boxShadow: posSettingsSaving ? 'none' : '0 2px 8px rgba(239,68,68,0.25)'
+                      }}
+                    >
+                      {posSettingsSaving ? <FaSpinner className="animate-spin" size={12} /> : <FaSave size={12} />}
+                      {posSettingsSaving ? 'Saving…' : 'Save approval settings'}
+                    </button>
+                    <span style={{ fontSize: '10.5px', color: '#9ca3af' }}>Saves all POS settings on this page.</span>
+                  </div>
                 </div>
               )}
             </div>
