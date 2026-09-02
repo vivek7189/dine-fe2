@@ -275,7 +275,7 @@ export default function EtimsSettings({ restaurantId }) {
       {field('KRA PIN (TIN)', 'tin', { placeholder: 'P000000000X', hint: '11 characters' })}
       {field('Branch ID (bhfId)', 'bhfId', { placeholder: '00' })}
       {field('Device Serial No. (dvcSrlNo)', 'dvcSrlNo', { placeholder: 'The serial registered on the eTIMS portal' })}
-      {field('VSCU URL', 'vscuUrl', { placeholder: 'http://localhost:8088', hint: 'Local VSCU address (this machine or LAN)' })}
+      {field('VSCU URL', 'vscuUrl', { placeholder: 'http://192.168.1.50:8088', hint: 'The one machine running the VSCU. Single terminal: http://localhost:8088. Multiple terminals: use that machine’s LAN IP (e.g. http://192.168.1.50:8088) — a PC name like “desktop-xxxx” often won’t resolve from other tills. This is shared by all terminals of this outlet.' })}
       {field('Default item classification code', 'defaultItemClassCode', { placeholder: 'KRA UNSPSC code', hint: 'Fallback KRA item class for items without one' })}
       {field('Receipt footer message', 'receiptBottomMsg', { placeholder: 'Thank you for your business' })}
 

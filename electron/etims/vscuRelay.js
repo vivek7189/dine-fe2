@@ -20,23 +20,32 @@ const http = require('http');
 const https = require('https');
 const { URL } = require('url');
 
-// Only loopback + RFC1918 private ranges + *.local (mDNS) are permitted.
+// Permit loopback + RFC1918 private IP ranges + LAN hostnames. LAN hostnames are:
+// mDNS/.local, common home/LAN suffixes, and BARE single-label machine names (e.g.
+// "desktop-bugkgo7") — a name with NO dot cannot be a public internet domain (those
+// always carry a TLD), so it is LAN-scoped by definition. This lets a multi-terminal
+// setup point every till at the one VSCU machine by its IP (recommended, always
+// resolves) OR by its PC name, while still refusing any public host (SSRF guard).
 function isPrivateHost(hostname) {
   if (!hostname) return false;
-  const h = hostname.toLowerCase();
-  if (h === 'localhost' || h.endsWith('.local')) return true;
-  // IPv6 loopback
-  if (h === '::1' || h === '[::1]') return true;
-  // IPv4 checks
+  const h = hostname.toLowerCase().replace(/^\[|\]$/g, ''); // tolerate [::1] IPv6 brackets
+  if (h === 'localhost' || h === '::1') return true;
+  if (h.endsWith('.local') || h.endsWith('.lan') || h.endsWith('.internal') || h.endsWith('.home') || h.endsWith('.home.arpa')) return true;
+  // IPv4 literal?
   const m = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
-  if (!m) return false;
+  if (!m) {
+    // Not an IP → allow only bare single-label LAN hostnames (no dots), e.g. a Windows
+    // computer name. A dotted name that isn't a private IP or LAN suffix above is a
+    // public FQDN → refuse.
+    return !h.includes('.');
+  }
   const a = +m[1], b = +m[2];
   if (a === 127) return true;                       // 127.0.0.0/8 loopback
   if (a === 10) return true;                        // 10.0.0.0/8
   if (a === 192 && b === 168) return true;          // 192.168.0.0/16
   if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
   if (a === 169 && b === 254) return true;          // link-local
-  return false;
+  return false;                                     // public IP → refuse
 }
 
 // Relay timeout (ms). The renderer forwards the value the BACKEND decided per-store
