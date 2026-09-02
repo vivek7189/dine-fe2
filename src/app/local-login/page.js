@@ -61,8 +61,22 @@ const LocalLogin = () => {
         setBackendOverride(DEFAULT_API_BASE);
         apiClient.setCloudBackend(DEFAULT_API_BASE);
       } else {
+        // AUTO: land on the account's REAL backend — native accounts live on GCP, legacy on
+        // Vercel. Ask the resolver (same one the normal login page uses) instead of blindly
+        // defaulting to Vercel (which would create/hit an empty ghost account there).
         clearBackendOverride();
-        apiClient.setCloudBackend(''); // reset to default/normal resolution
+        apiClient.setCloudBackend('');
+        try {
+          const q = loginType === 'phone'
+            ? `phone=${encodeURIComponent(loginValue)}`
+            : `email=${encodeURIComponent(loginValue.toLowerCase())}`;
+          const rb = await fetch(`${getApiBase()}/api/auth/resolve-backend?${q}`);
+          const rj = await rb.json();
+          if (rj && rj.backendUrl) {
+            setBackendOverride(rj.backendUrl);
+            apiClient.setCloudBackend(rj.backendUrl);
+          }
+        } catch (e) { /* resolver hiccup → fall back to the default backend */ }
       }
 
       const backendUrl = getLocalServerUrl() || getApiBase();
