@@ -2233,6 +2233,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
           customerVerified={customerVerified}
           customerAppSettings={customerAppSettings}
           cs={cs}
+          chairParam={chairParam}
         />
       )}
 
@@ -2986,7 +2987,7 @@ const StickyCartBar = ({ cartItemCount, cartSubtotal, onViewCart, publicMenuOnly
 };
 
 // Cart Modal Component
-const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemCount, customerInfo, setCustomerInfo, orderType, setOrderType, onClose, onCheckout, sendingOtp, setCart, customerVerified, customerAppSettings, cs = '₹' }) => {
+const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemCount, customerInfo, setCustomerInfo, orderType, setOrderType, onClose, onCheckout, sendingOtp, setCart, customerVerified, customerAppSettings, cs = '₹', chairParam = '' }) => {
   const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
 
   return (
