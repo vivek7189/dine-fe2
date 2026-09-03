@@ -165,9 +165,9 @@ export default function ExpensesTab({
                           {expense.date ? new Date(expense.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
                         </span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                        <span style={{ fontSize: '15px', fontWeight: 700, color: '#111827' }}>{formatCurrency(expense.amount)}</span>
-                        {expense.description && <span style={{ fontSize: '12px', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{expense.description}</span>}
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', minWidth: 0 }}>
+                        <span style={{ fontSize: '15px', fontWeight: 700, color: '#111827', flexShrink: 0 }}>{formatCurrency(expense.amount)}</span>
+                        {expense.description && <span style={{ fontSize: '12px', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }} title={expense.description}>{expense.description}</span>}
                       </div>
                       {(expense.vendor || expense.paymentMethod) && (
                         <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>
