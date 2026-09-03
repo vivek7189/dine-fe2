@@ -28,8 +28,9 @@ import {
 } from 'firebase/auth';
 import apiClient from '../../lib/api';
 import { resolveRoleLanding } from '../../lib/roleLanding';
-import { getLocalServerUrl, isLocalServerMode, isServerApp } from '../../lib/localServer';
+import { getLocalServerUrl, isLocalServerMode, isServerApp, isStaffPinMode, getStaffPinConfig } from '../../lib/localServer';
 import OfflineLogin from '../../components/OfflineLogin';
+import StaffTerminalLogin from '../../components/StaffTerminalLogin';
 import { t } from '../../lib/i18n';
 import { redirectToSubdomain } from '../../utils/subdomain';
 import { prefetchDashboardInBackground } from '../../utils/dashboardCache';
@@ -520,6 +521,15 @@ const Login = () => {
     window.addEventListener('online', sync);
     window.addEventListener('offline', sync);
     window.addEventListener('resize', measure);
+    // Cloud/web staff-PIN terminal: ensure API traffic (roster + PIN login) targets the bound
+    // restaurant's backend, even if logout cleared the per-user pin. Re-pin from the device config.
+    // No-op on every normal device (staff-PIN mode off) and on the local-server app.
+    try {
+      if (!isLocalServerMode() && isStaffPinMode()) {
+        const cfg = getStaffPinConfig();
+        if (cfg?.backend && getApiBase() !== cfg.backend) apiClient.setCloudBackend(cfg.backend);
+      }
+    } catch (_) {}
     return () => { window.removeEventListener('online', sync); window.removeEventListener('offline', sync); window.removeEventListener('resize', measure); };
   }, []);
 
@@ -1700,6 +1710,23 @@ const Login = () => {
     }
   };
 
+  // Success handler for the cloud/web staff-terminal login (StaffTerminalLogin already set the user +
+  // token). Mirrors handlePinLogin's post-login routing so staff land on their role's configured page.
+  const handleStaffTerminalSuccess = async (data) => {
+    try {
+      triggerDashboardPrefetch();
+      const rid = data?.user?.restaurantId || localStorage.getItem('selectedRestaurantId');
+      if (rid && data?.token) { try { await prefetchCurrencySettings(rid, data.token); } catch (_) {} }
+      if (data?.firstTimeUser) { router.replace('/onboarding'); return; }
+      if (data?.subdomainUrl) { redirectToSubdomain(data.subdomainUrl, data.token, data.user); return; }
+      const roleDest = await resolveRoleLanding(data?.user);
+      const generic = !data?.redirectTo || data.redirectTo === '/home';
+      router.replace((generic && roleDest) || data?.redirectTo || getRefRedirectPath());
+    } catch (e) {
+      router.replace('/home');
+    }
+  };
+
   const handleGoogleLogin = async () => {
     if (!requireOnline()) return;
     try {
@@ -2149,6 +2176,20 @@ const Login = () => {
   // sets showOwnerLogin and falls through to the full OTP/Google UI below.
   if (typeof window !== 'undefined' && isLocalServerMode() && !showOwnerLogin) {
     return <OfflineLogin onOwnerLogin={() => setShowOwnerLogin(true)} />;
+  }
+
+  // Cloud/web STAFF login terminal — OPT-IN per device (Admin toggle), DEFAULT OFF. Public web and
+  // every unconfigured device have loginMode 'default' → this never renders → their login is unchanged.
+  // SECURITY: internet-reachable, so it shows NO staff roster/tiles — staff must TYPE their Staff ID /
+  // username + PIN (or password). The re-pin effect above points apiClient at the bound backend. The
+  // "Owner login →" button (onOwnerLogin) always escapes to the normal OTP/Google login.
+  if (typeof window !== 'undefined' && mounted && !isLocalServerMode() && isStaffPinMode() && !showOwnerLogin) {
+    return (
+      <StaffTerminalLogin
+        onOwnerLogin={() => setShowOwnerLogin(true)}
+        onSuccess={handleStaffTerminalSuccess}
+      />
+    );
   }
 
   // Restaurant picker for multi-restaurant staff
@@ -2837,19 +2878,19 @@ const Login = () => {
                   PIN Login
                 </h3>
                 <p style={{ fontSize: "13px", color: "#9ca3af", margin: 0 }}>
-                  Enter your phone or email with your PIN
+                  Owners: phone or email · Staff: your Staff ID — with your PIN
                 </p>
               </div>
               <form onSubmit={handlePinLogin}>
                 <div style={{ marginBottom: '16px' }}>
                   <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
-                    Phone or Email
+                    Phone, Email or Staff ID
                   </label>
                   <input
                     type="text"
                     value={pinIdentifier}
                     onChange={(e) => { setPinIdentifier(e.target.value); setError(''); }}
-                    placeholder="Phone number or email"
+                    placeholder="Phone, email, or staff ID"
                     style={{
                       width: '100%',
                       padding: '14px 16px',

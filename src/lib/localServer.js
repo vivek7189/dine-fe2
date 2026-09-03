@@ -112,3 +112,57 @@ export async function preferLoopbackIfLocal() {
   // Account-level reads always go to the cloud regardless (apiClient.accountScopeBase()).
   return getLocalServerUrl();
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Cloud/web STAFF-PIN keypad login (opt-in, per-device).
+ *
+ * A device (electron terminal OR a browser used as a POS terminal) can be switched to show the
+ * staff PIN keypad instead of the owner OTP/Google login. This is DEVICE-scoped (localStorage) and
+ * DEFAULTS OFF, so the public web login and every unconfigured device are completely unchanged.
+ * The owner turns it on from Admin while logged in; the keypad always keeps an "Owner login" escape.
+ * Distinct from the local-server app (isLocalServerMode) — that keeps its own local roster untouched.
+ * ────────────────────────────────────────────────────────────────────────── */
+const LOGIN_MODE_KEY = 'dineopen_login_mode';        // 'default' | 'staffPin'
+const STAFF_PIN_CFG_KEY = 'dineopen_staffpin_cfg';   // { restaurantId, backend }
+
+/** Device login mode. 'staffPin' = show the staff keypad; anything else = normal owner login. */
+export function getLoginMode() {
+  if (typeof window === 'undefined') return 'default';
+  try { return window.localStorage.getItem(LOGIN_MODE_KEY) === 'staffPin' ? 'staffPin' : 'default'; }
+  catch (_) { return 'default'; }
+}
+
+export function setLoginMode(mode) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (mode === 'staffPin') window.localStorage.setItem(LOGIN_MODE_KEY, 'staffPin');
+    else window.localStorage.removeItem(LOGIN_MODE_KEY);
+  } catch (_) {}
+}
+
+/** Which restaurant's roster this terminal shows + which backend to read it from. */
+export function getStaffPinConfig() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(STAFF_PIN_CFG_KEY);
+    if (!raw) return null;
+    const cfg = JSON.parse(raw);
+    return cfg && cfg.restaurantId ? { restaurantId: cfg.restaurantId, backend: (cfg.backend || '').replace(/\/+$/, '') || null } : null;
+  } catch (_) { return null; }
+}
+
+export function setStaffPinConfig(cfg) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (cfg && cfg.restaurantId) {
+      window.localStorage.setItem(STAFF_PIN_CFG_KEY, JSON.stringify({ restaurantId: cfg.restaurantId, backend: (cfg.backend || '').replace(/\/+$/, '') }));
+    } else {
+      window.localStorage.removeItem(STAFF_PIN_CFG_KEY);
+    }
+  } catch (_) {}
+}
+
+/** True when THIS device is provisioned for the cloud/web staff-PIN keypad (mode on + bound restaurant). */
+export function isStaffPinMode() {
+  return getLoginMode() === 'staffPin' && !!getStaffPinConfig();
+}

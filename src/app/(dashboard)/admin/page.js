@@ -2,6 +2,7 @@
 // Dynamic tax labels + waiter app granular controls v2
 import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { getApiBase } from '@/lib/apiBase';
+import { setLoginMode, setStaffPinConfig, isStaffPinMode } from '@/lib/localServer';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -5778,6 +5779,8 @@ const Admin = () => {
   const [currentLang, setCurrentLang] = useState('en');
   const [posSettings, setPosSettings] = useState({});
   const [posSettingsSaving, setPosSettingsSaving] = useState(false);
+  // Whether THIS device/browser is currently switched to the staff-PIN keypad (localStorage, per-device).
+  const [staffPinDeviceOn, setStaffPinDeviceOn] = useState(() => (typeof window !== 'undefined' ? isStaffPinMode() : false));
   const [businessType, setBusinessType] = useState('restaurant');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -12506,6 +12509,60 @@ const Admin = () => {
                   </div>
                 );
               })()}
+
+              {/* Staff PIN keypad login — restaurant-level enable (drives the opt-in roster endpoint). */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPosSettings(prev => ({ ...prev, staffPinLoginEnabled: !prev.staffPinLoginEnabled }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {posSettings.staffPinLoginEnabled
+                    ? <FaToggleOn size={28} color="#ef4444" />
+                    : <FaToggleOff size={28} color="#d1d5db" />}
+                </button>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>Staff terminal login</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>Let staff sign in on a terminal with their Staff ID + PIN (or password), instead of owner phone/Google. Remember to Save.</div>
+                </div>
+              </div>
+
+              {/* Per-device control — turn THIS browser/terminal into the staff keypad screen. Device-only
+                  (localStorage); does not affect any other device or the public web login. */}
+              {posSettings.staffPinLoginEnabled && (
+                <div style={{ marginLeft: '38px', marginBottom: '14px', padding: '10px 12px', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '10px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    This device: {staffPinDeviceOn ? <span style={{ color: '#16a34a' }}>staff keypad ON</span> : <span style={{ color: '#94a3b8' }}>normal owner login</span>}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '8px' }}>
+                    {staffPinDeviceOn
+                      ? 'After logout, this device shows the staff login (Staff ID + PIN/password) for this restaurant. It keeps an “Owner login →” escape.'
+                      : 'Switch this device to show the staff login screen after logout. Only affects this device/browser.'}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try {
+                        if (staffPinDeviceOn) {
+                          setLoginMode('default'); setStaffPinConfig(null); setStaffPinDeviceOn(false);
+                        } else {
+                          if (!selectedRestaurant?.id) { alert('Select a restaurant first.'); return; }
+                          setStaffPinConfig({ restaurantId: selectedRestaurant.id, backend: getApiBase() });
+                          setLoginMode('staffPin'); setStaffPinDeviceOn(true);
+                        }
+                      } catch (_) {}
+                    }}
+                    style={{
+                      padding: '7px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+                      border: staffPinDeviceOn ? '1px solid #ef4444' : '1px solid #16a34a',
+                      background: staffPinDeviceOn ? '#fff' : '#16a34a',
+                      color: staffPinDeviceOn ? '#ef4444' : '#fff',
+                    }}
+                  >
+                    {staffPinDeviceOn ? 'Stop using keypad on this device' : 'Use staff keypad on THIS device'}
+                  </button>
+                </div>
+              )}
 
               {/* Require PIN for Completed Order Edits */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
