@@ -329,7 +329,12 @@ function OnboardingContent() {
           setRestaurantId(savedRid);
           // Resume from saved step (URL param takes priority)
           const urlStep = parseInt(new URLSearchParams(window.location.search).get('step'));
-          const savedStep = typeof rest.onboardingStep === 'number' ? rest.onboardingStep : null;
+          // onboardingStep is a number|'complete'. Firestore returns a number; Postgres (GCP) returns it
+          // as a numeric string ("5") — accept both so resume works on either backend. 'complete' was
+          // already handled above.
+          const savedStep = (rest.onboardingStep != null && rest.onboardingStep !== 'complete' && !isNaN(Number(rest.onboardingStep)))
+            ? Number(rest.onboardingStep)
+            : null;
           const resumeStep = urlStep || savedStep || 1;
           if (resumeStep > 1) {
             setStep(resumeStep);
