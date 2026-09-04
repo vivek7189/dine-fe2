@@ -1,0 +1,287 @@
+name: Build Merged Unified App
+
+# Builds the ONE-app "POS + local server" desktop build: the POS UI bundled with the real
+# dine-backend (pg-full-migration) + embedded Postgres, for full offline operation.
+# Separate from build-electron.yml (the normal cloud POS) — distinct appId, its own tags.
+#
+# ── HOW TO TRIGGER — the TAG chooses the platform (no dropdown needed) ─────────────────────────────
+#   push tag  v<ver>-unified        → build BOTH  (.exe + .dmg)   e.g. v1.14.49-unified
+#   push tag  v<ver>-unified-win    → build WINDOWS only (.exe)   e.g. v1.14.49-unified-win   ← usual
+#   push tag  v<ver>-unified-mac    → build macOS only (.dmg)     e.g. v1.14.49-unified-mac
+# (A manual "Run workflow" dropdown is also available as a fallback.)
+#
+# AUTO-UPDATE: the app version keeps a `-unified` PRERELEASE suffix (1.14.49-unified), so electron-builder
+# writes the manifest as unified.yml / unified-mac.yml (never collides with the normal app's latest.yml),
+# and the release is published as a PRE-RELEASE so the normal app's "latest release" lookup skips it.
+# win-only and mac-only pushes publish to the SAME release (v<ver>-unified), so a later mac push just
+# adds the .dmg + unified-mac.yml to the release the windows push already created.
+#
+# REQUIRED repo secret:
+#   BACKEND_REPO_TOKEN  – a GitHub PAT (read access to vivek7189/dine-be2) so CI can check out the
+#                         private backend repo.
+# Reused secrets (already set for the normal build): APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD,
+#   APPLE_ID, APPLE_TEAM_ID, APPLE_APP_SPECIFIC_PASSWORD.
+
+on:
+  push:
+    tags:
+      - 'v*-unified'
+      - 'v*-unified-win'
+      - 'v*-unified-mac'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g. 1.14.49) — becomes tag v<version>-unified + release'
+        required: true
+        type: string
+      platform:
+        description: 'Which installer(s) to build'
+        required: true
+        default: windows
+        type: choice
+        options:
+          - windows      # .exe only (fast — the usual choice)
+          - macos        # .dmg only (slow: signs + notarizes)
+          - both         # .exe + .dmg
+
+env:
+  # MERGED app defaults to the CLOUD (Vercel), exactly like the normal cloud POS; per-account
+  # resolve + remote-config route GCP accounts to GCP. It does NOT bake APP_KIND=server, so it
+  # behaves as a plain cloud POS by default — offline is a runtime setting (serverMode), gated
+  # per-account. The embedded backend is still bundled and boots only when serverMode is on.
+  NEXT_PUBLIC_API_URL: https://dine-be2-phi.vercel.app
+  # GCP/Postgres backend for server-mode + GCP-account routing (apiBase PG_API_BASE reads this).
+  NEXT_PUBLIC_PG_API_URL: https://34-93-129-104.sslip.io
+  # Backend to bundle (POS UI still hits the local fork at runtime; this is build-time only).
+  BACKEND_REPO: vivek7189/dine-be2
+  BACKEND_REF: pg-full-migration
+
+jobs:
+  # ── Parse the tag (or dispatch inputs) → platform + version. Gates the build jobs. ──
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      platform: ${{ steps.p.outputs.platform }}   # windows | macos | both
+      version: ${{ steps.p.outputs.version }}      # e.g. 1.14.49-unified (prerelease → server channel)
+      tag: ${{ steps.p.outputs.tag }}              # e.g. v1.14.49-unified (canonical release tag)
+    steps:
+      - name: Parse trigger
+        id: p
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            PLATFORM="${{ inputs.platform }}"
+            VER="${{ inputs.version }}"
+            [[ "$VER" == *-unified ]] || VER="${VER}-unified"
+          else
+            REF="${GITHUB_REF_NAME}"
+            if [[ "$REF" == *-unified-win ]]; then
+              PLATFORM=windows; VER="${REF%-win}"
+            elif [[ "$REF" == *-unified-mac ]]; then
+              PLATFORM=macos;   VER="${REF%-mac}"
+            else
+              PLATFORM=both;    VER="$REF"
+            fi
+            VER="${VER#v}"   # strip leading v → 1.14.49-unified
+          fi
+          echo "platform=$PLATFORM" >> "$GITHUB_OUTPUT"
+          echo "version=$VER"       >> "$GITHUB_OUTPUT"
+          echo "tag=v$VER"          >> "$GITHUB_OUTPUT"
+          echo "→ platform=$PLATFORM  version=$VER  tag=v$VER"
+
+  # ── Windows x64 installer (.exe) — the usual deliverable ──────────────────────
+  build-windows:
+    needs: setup
+    if: ${{ needs.setup.outputs.platform == 'windows' || needs.setup.outputs.platform == 'both' }}
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+        with:
+          path: frontend
+
+      - name: Checkout backend (pg-full-migration) as sibling
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.BACKEND_REPO }}
+          ref: ${{ env.BACKEND_REF }}
+          token: ${{ secrets.BACKEND_REPO_TOKEN }}
+          path: dine-backend
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set frontend package.json version
+        working-directory: frontend
+        shell: bash
+        run: npm version ${{ needs.setup.outputs.version }} --no-git-tag-version --allow-same-version
+
+      - name: Install backend deps (bundles embedded-postgres for Windows)
+        working-directory: dine-backend
+        run: npm ci
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Rebuild better-sqlite3 for Electron
+        working-directory: frontend
+        run: npx electron-rebuild -f -w better-sqlite3
+
+      - name: Build Next.js static export for Electron
+        working-directory: frontend
+        # Write .env.production.local (higher Next.js precedence than the tracked .env.production,
+        # which otherwise wins) so the server app bakes the GCP backend from the workflow env.
+        run: |
+          printf 'NEXT_PUBLIC_API_URL=%s\nNEXT_PUBLIC_API_URL2=%s\nNEXT_PUBLIC_PG_API_URL=%s\n' "$NEXT_PUBLIC_API_URL" "$NEXT_PUBLIC_API_URL" "$NEXT_PUBLIC_PG_API_URL" > .env.production.local
+          node scripts/build-electron.js
+
+      - name: Build Windows unified installer (x64)
+        working-directory: frontend
+        shell: bash
+        # --publish never: we only want the artifact; electron-builder otherwise auto-derives a
+        # GitHub publish target on CI and fails asking for GH_TOKEN.
+        run: npx electron-builder --config electron-builder.merged.yml --win --x64 --publish never
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: dineopen-unified-windows-v${{ needs.setup.outputs.version }}
+          path: |
+            frontend/dist-electron-merged/*.exe
+            frontend/dist-electron-merged/*.exe.blockmap
+            frontend/dist-electron-merged/unified.yml
+          retention-days: 30
+
+  # ── macOS (signed + notarized) ───────────────────────────────────────────────
+  build-macos:
+    needs: setup
+    if: ${{ needs.setup.outputs.platform == 'macos' || needs.setup.outputs.platform == 'both' }}
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+        with:
+          path: frontend
+
+      - name: Checkout backend (pg-full-migration) as sibling
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.BACKEND_REPO }}
+          ref: ${{ env.BACKEND_REF }}
+          token: ${{ secrets.BACKEND_REPO_TOKEN }}
+          path: dine-backend
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set frontend package.json version
+        working-directory: frontend
+        run: npm version ${{ needs.setup.outputs.version }} --no-git-tag-version --allow-same-version
+
+      - name: Import Apple signing certificate
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          CERT_PATH=$RUNNER_TEMP/certificate.p12
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$CERT_PATH"
+          security import "$CERT_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          rm "$CERT_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+
+      # macos-latest ships Python 3.12+ (no distutils); node-gyp needs 3.11 to rebuild
+      # native modules (@serialport/bindings-cpp).
+      - name: Setup Python 3.11 for node-gyp
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install backend deps (bundles embedded-postgres for macOS)
+        working-directory: dine-backend
+        run: npm ci
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Rebuild better-sqlite3 for Electron
+        working-directory: frontend
+        run: npx electron-rebuild -f -w better-sqlite3
+
+      - name: Build Next.js static export for Electron
+        working-directory: frontend
+        # Write .env.production.local (higher Next.js precedence than the tracked .env.production,
+        # which otherwise wins) so the server app bakes the GCP backend from the workflow env.
+        run: |
+          printf 'NEXT_PUBLIC_API_URL=%s\nNEXT_PUBLIC_API_URL2=%s\nNEXT_PUBLIC_PG_API_URL=%s\n' "$NEXT_PUBLIC_API_URL" "$NEXT_PUBLIC_API_URL" "$NEXT_PUBLIC_PG_API_URL" > .env.production.local
+          node scripts/build-electron.js
+
+      - name: Build macOS unified app (signed + notarized)
+        working-directory: frontend
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: npx electron-builder --config electron-builder.merged.yml --mac --publish never
+
+      - name: Upload macOS installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: dineopen-unified-macos-v${{ needs.setup.outputs.version }}
+          path: |
+            frontend/dist-electron-merged/*.dmg
+            frontend/dist-electron-merged/*.zip
+            frontend/dist-electron-merged/*.blockmap
+            frontend/dist-electron-merged/unified-mac.yml
+          retention-days: 30
+
+      - name: Cleanup keychain
+        if: always()
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          if [ -f "$KEYCHAIN_PATH" ]; then
+            security delete-keychain "$KEYCHAIN_PATH"
+          fi
+
+  # ── Publish (or update) the PRE-RELEASE for v<ver>-unified with the installers + unified.yml manifest.
+  #    Runs if EITHER platform succeeded, so a windows-only push publishes, and a later mac-only push
+  #    for the same version just adds the .dmg to the same release. Prerelease keeps the server channel
+  #    out of the normal app's "latest release" lookup. ──
+  publish-release:
+    needs: [setup, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    if: ${{ always() && (needs.build-windows.result == 'success' || needs.build-macos.result == 'success') }}
+    permissions:
+      contents: write
+    steps:
+      - name: Download built installers (whichever platforms ran)
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Publish GitHub PRE-Release (v<ver>-unified)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.setup.outputs.tag }}
+          name: ${{ needs.setup.outputs.tag }}
+          prerelease: true   # REQUIRED — keeps the server channel out of the normal app's "latest"
+          files: dist/**/*
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

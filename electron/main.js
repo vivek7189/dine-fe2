@@ -1517,10 +1517,14 @@ try {
     // productName "DineOpen POS Server" only for the unified build).
     let exePath = '';
     try { exePath = app.getPath('exe') || ''; } catch (_) {}
-    const isServerApp = /DineOpen POS Server/i.test(exePath);
-    if (isServerApp) {
-      autoUpdater.allowPrerelease = true; // required for the `server` prerelease channel matching
-      // channel ('server') is baked into app-update.yml from electron-builder.unified.yml
+    // Server ("DineOpen POS Server") AND the merged test build ("DineOpen Unified") both use a
+    // PRERELEASE channel (-server / -unified), so both must allow prereleases for electron-updater to
+    // match their own channel. The normal cloud app ("DineOpen POS") stays on `latest` (no prerelease).
+    // At promotion the merged build ships as "DineOpen POS" → this stops matching → it uses `latest`.
+    const usesPrereleaseChannel = /DineOpen POS Server|DineOpen Unified/i.test(exePath);
+    if (usesPrereleaseChannel) {
+      autoUpdater.allowPrerelease = true; // required for the -server / -unified prerelease channel
+      // channel is baked into app-update.yml from the electron-builder config (server / unified)
     }
   } catch (_) {}
 

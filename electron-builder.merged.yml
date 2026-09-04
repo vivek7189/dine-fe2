@@ -1,0 +1,86 @@
+# MERGED "one app" build (feature/unified-app): the normal cloud POS that ALSO bundles the embedded
+# Postgres + dine-backend, so it can become a local/offline server at RUNTIME (a per-device setting,
+# default OFF). Unlike electron-builder.unified.yml this does NOT bake NEXT_PUBLIC_APP_KIND=server —
+# so it behaves as a plain cloud POS by default; offline is gated by the serverMode config + the
+# per-account offlineModeAllowed flag (see localServer.isServerModeActive / canDeviceUseOfflineMode).
+#
+# TEST IDENTITY: distinct appId/productName + a `-unified` PRERELEASE channel so this test build can
+# be installed ALONGSIDE the live cloud app (com.dineopen.desktop) and the server app
+# (com.dineopen.server) without collision, and its releases (prereleases) are skipped by the cloud
+# app's "latest release" auto-update lookup. When validated, PROMOTE by switching appId →
+# com.dineopen.desktop + the default channel so existing cloud users auto-update in place.
+publish:
+  provider: github
+  owner: vivek7189
+  repo: dine-fe2
+appId: com.dineopen.unified
+productName: DineOpen Unified
+directories:
+  output: dist-electron-merged
+files:
+  - out/**/*
+  - electron/**/*
+  - package.json
+asarUnpack:
+  - "node_modules/better-sqlite3/**/*"
+extraMetadata:
+  main: electron/main.js
+
+# Bundle the REAL backend (sibling ../dine-backend checkout, pg-full-migration) + its node_modules
+# incl. the embedded-postgres binary → Resources/backend; electron/localServer.js forks it ONLY when
+# the runtime serverMode config is on. Each CI runner's `npm ci` installs only that OS's binary.
+extraResources:
+  - from: "../dine-backend"
+    to: "backend"
+    filter:
+      - "**/*"
+      - "!.git/**"
+      - "!desktop-server/**"
+      - "!**/*.map"
+      - "!**/*.test.js"
+      - "!**/__tests__/**"
+      - "!.env"
+      - "!.env.local"
+      - "!.env.production"
+
+win:
+  icon: electron/icons/icon.ico
+  target:
+    # x64 only — embedded-postgres ships a Windows x64 binary (no ia32) and all POS hardware is 64-bit.
+    - target: nsis
+      arch:
+        - x64
+
+mac:
+  icon: electron/icons/icon.icns
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+    - target: zip
+      arch:
+        - arm64
+        - x64
+  category: public.app-category.business
+  identity: "Vivek Kumar (934QP9KSRD)"
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: electron/entitlements.mac.plist
+  entitlementsInherit: electron/entitlements.mac.plist
+  artifactName: "${productName}-${version}-${arch}.${ext}"
+afterSign: scripts/notarize.js
+
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+nsis:
+  oneClick: false
+  perMachine: true
+  allowToChangeInstallationDirectory: true
