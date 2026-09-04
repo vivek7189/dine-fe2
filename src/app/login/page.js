@@ -2780,9 +2780,10 @@ const Login = () => {
                     padding: '12px',
                     borderRadius: '8px',
                     border: 'none',
-                    backgroundColor: (authMethod === 'phone' || step === 'phone' || step === 'otp') ? '#e53e3e' : 'transparent',
-                    color: (authMethod === 'phone' || step === 'phone' || step === 'otp') ? 'white' : '#6b7280',
-                    fontWeight: '600',
+                    backgroundColor: (authMethod === 'phone' || step === 'phone' || step === 'otp') ? '#ffffff' : 'transparent',
+                    color: (authMethod === 'phone' || step === 'phone' || step === 'otp') ? '#e53e3e' : '#6b7280',
+                    boxShadow: (authMethod === 'phone' || step === 'phone' || step === 'otp') ? '0 1px 3px rgba(15,23,42,0.12)' : 'none',
+                    fontWeight: '700',
                     cursor: 'pointer',
                     transition: 'all 0.2s'
                   }}
@@ -2806,9 +2807,10 @@ const Login = () => {
                     padding: '12px',
                     borderRadius: '8px',
                     border: 'none',
-                    backgroundColor: (authMethod === 'email' || step === 'email-login' || step === 'email-register' || step === 'email-otp') ? '#e53e3e' : 'transparent',
-                    color: (authMethod === 'email' || step === 'email-login' || step === 'email-register' || step === 'email-otp') ? 'white' : '#6b7280',
-                    fontWeight: '600',
+                    backgroundColor: (authMethod === 'email' || step === 'email-login' || step === 'email-register' || step === 'email-otp') ? '#ffffff' : 'transparent',
+                    color: (authMethod === 'email' || step === 'email-login' || step === 'email-register' || step === 'email-otp') ? '#e53e3e' : '#6b7280',
+                    boxShadow: (authMethod === 'email' || step === 'email-login' || step === 'email-register' || step === 'email-otp') ? '0 1px 3px rgba(15,23,42,0.12)' : 'none',
+                    fontWeight: '700',
                     cursor: 'pointer',
                     transition: 'all 0.2s'
                   }}
