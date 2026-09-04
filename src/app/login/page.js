@@ -28,7 +28,7 @@ import {
 } from 'firebase/auth';
 import apiClient from '../../lib/api';
 import { resolveRoleLanding } from '../../lib/roleLanding';
-import { getLocalServerUrl, isLocalServerMode, isServerApp, isServerModeActive, syncServerModeFromHost, isStaffPinMode, getStaffPinConfig } from '../../lib/localServer';
+import { getLocalServerUrl, isLocalServerMode, isServerModeActive, syncServerModeFromHost, isStaffPinMode, getStaffPinConfig } from '../../lib/localServer';
 import OfflineLogin from '../../components/OfflineLogin';
 import StaffTerminalLogin from '../../components/StaffTerminalLogin';
 import { t } from '../../lib/i18n';
@@ -710,7 +710,7 @@ const Login = () => {
     // The desktop-auth page stores the session on the FIXED rendezvous (DEFAULT_API_BASE), so poll
     // THERE regardless of the user's home backend — then pin the backend the token actually came
     // from (session.backendUrl) below. The local-server app is Postgres-only, so it uses getApiBase→GCP.
-    const pollBase = isServerApp() ? getApiBase() : DEFAULT_API_BASE;
+    const pollBase = isServerModeActive() ? getApiBase() : DEFAULT_API_BASE;
     let cancelled = false;
 
     const poll = async () => {
@@ -731,7 +731,7 @@ const Login = () => {
             // Pin the backend the token was actually issued by (resolved per-user on the
             // desktop-auth page), so token + routing agree — a GCP-native user stays on GCP
             // instead of splitting to Vercel. Old sessions omit backendUrl → '' → Vercel default.
-            try { if (!isServerApp() && !getLocalServerUrl()) apiClient.setCloudBackend(data.backendUrl || ''); } catch (_) {}
+            try { if (!isServerModeActive() && !getLocalServerUrl()) apiClient.setCloudBackend(data.backendUrl || ''); } catch (_) {}
             // Apply local-server vs cloud routing (same as the direct OTP/Google paths). On a
             // provisioned local-server terminal, this routes the owner of the bound restaurant to
             // the local DB, and any OTHER owner to the cloud — so they see their own restaurant
@@ -1168,7 +1168,7 @@ const Login = () => {
   // to GCP would ask the wrong server). Best-effort: on any failure it pins '' → Vercel default,
   // so login never blocks and a new account is never accidentally duplicated onto GCP.
   const resolveAndPinBackend = async ({ phone, email } = {}) => {
-    if (isServerApp() || getLocalServerUrl()) return; // local-server app is hard-pinned, never repin
+    if (isServerModeActive() || getLocalServerUrl()) return; // local-server app is hard-pinned, never repin
     if (!phone && !email) return;
     try {
       const qs = phone ? `phone=${encodeURIComponent(phone)}` : `email=${encodeURIComponent(email)}`;

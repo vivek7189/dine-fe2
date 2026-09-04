@@ -16,7 +16,7 @@
 // Persistence = localStorage (source of truth, client-side, survives refresh) +
 // a cookie mirror (so SSR/middleware could read it later if ever needed).
 // ─────────────────────────────────────────────────────────────────────────────
-import { getLocalServerUrl, isServerApp } from './localServer';
+import { getLocalServerUrl, isServerModeActive } from './localServer';
 
 // The chosen-backend key. Kept identical to the one the ApiClient already persists
 // so the two never disagree (dine-admin pgBackendUrl switch used this too).
@@ -61,7 +61,7 @@ let _publicBackend = null;
 export function setPublicBackend(url) { _publicBackend = url ? norm(url) : null; }
 export function getPublicBackend() { return _publicBackend; }
 
-// NOTE: isServerApp() (NEXT_PUBLIC_APP_KIND === 'server') lives in ./localServer and is
+// NOTE: isServerModeActive() (runtime per-device server mode) lives in ./localServer and is
 // imported above — the LOCAL-SERVER Electron build is baked to the native GCP/Postgres VM
 // and must NEVER route to Vercel.
 
@@ -104,7 +104,7 @@ export function getApiBase() {
   // Local-server (offline-first) POS app defaults to the Postgres/GCP backend — it runs a local
   // Postgres, its accounts live on GCP, and it must NEVER fall back to Vercel. The per-user pin
   // above still wins when set (that's the account's real backend). Web/cloud app keeps Vercel.
-  if (isServerApp()) return norm(PG_API_BASE);
+  if (isServerModeActive()) return norm(PG_API_BASE);
   return norm(DEFAULT_API_BASE);
 }
 
@@ -118,7 +118,7 @@ export function getApiBase() {
 export async function refreshRemoteBackend() {
   // Skip on SSR, the local-server app (always baked PG), and local dev (localhost default) —
   // dev must never be pulled to a cloud backend by the remote config.
-  if (typeof window === 'undefined' || isServerApp() || /localhost|127\.0\.0\.1/.test(DEFAULT_API_BASE)) return;
+  if (typeof window === 'undefined' || isServerModeActive() || /localhost|127\.0\.0\.1/.test(DEFAULT_API_BASE)) return;
   try {
     const res = await fetch(BACKEND_CONFIG_URL, { cache: 'no-store' });
     if (!res.ok) return;
