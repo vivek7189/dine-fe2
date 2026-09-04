@@ -8,6 +8,7 @@ import { useLoading } from '../../../contexts/LoadingContext';
 import ImageCarousel from '../../../components/ImageCarousel';
 import ImageUpload from '../../../components/ImageUpload';
 const BulkMenuUpload = dynamic(() => import('../../../components/BulkMenuUpload'), { ssr: false });
+const BulkModifierGroupModal = dynamic(() => import('../../../components/BulkModifierGroupModal'), { ssr: false });
 const QRCodeModal = dynamic(() => import('../../../components/QRCodeModal'), { ssr: false });
 const BarcodeTab = dynamic(() => import('./components/BarcodeTab'), { ssr: false });
 import apiClient from '../../../lib/api';
@@ -2392,6 +2393,7 @@ const MenuManagement = () => {
   const [showBarcodeTab, setShowBarcodeTab] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [showBulkModifier, setShowBulkModifier] = useState(false);
   const [showMoreActions, setShowMoreActions] = useState(false);
   const moreActionsRef = useRef(null);
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
@@ -4563,6 +4565,7 @@ const MenuManagement = () => {
             {[
               { icon: <FaCloudUploadAlt size={isMobileEmbed ? 11 : 16} />, label: t('menu.upload'), onClick: () => setShowBulkUpload(true), bg: '#fef2f2', color: '#dc2626', hoverBg: '#fee2e2', border: '#fecaca' },
               { icon: <FaFileExport size={isMobileEmbed ? 11 : 16} />, label: 'Export', onClick: () => setShowExportModal(true), bg: '#f0fdf4', color: '#15803d', hoverBg: '#dcfce7', border: '#a7f3d0' },
+              { icon: <FaTags size={isMobileEmbed ? 11 : 16} />, label: 'Modifiers', onClick: () => setShowBulkModifier(true), bg: '#faf5ff', color: '#7c3aed', hoverBg: '#f3e8ff', border: '#e9d5ff' },
               { icon: <FaCamera size={isMobileEmbed ? 11 : 16} />, label: t('menu.photo'), onClick: handleCameraCapture, bg: '#fffbeb', color: '#d97706', hoverBg: '#fef3c7', border: '#fde68a' },
               { icon: <FaQrcode size={isMobileEmbed ? 11 : 16} />, label: t('menu.qrCode'), onClick: () => setShowQRCodeModal(true), bg: '#ecfdf5', color: '#059669', hoverBg: '#d1fae5', border: '#a7f3d0' },
               { icon: <FaEye size={isMobileEmbed ? 11 : 16} />, label: t('menu.customize'), onClick: () => { const rid = currentRestaurant?.id || localStorage.getItem('restaurantId'); const p = `/menu/customize${rid ? `?restaurant=${rid}` : ''}`; router.push(isMobileEmbed ? `/mobile${p}` : p); }, bg: '#eff6ff', color: '#2563eb', hoverBg: '#dbeafe', border: '#bfdbfe' },
@@ -7215,6 +7218,16 @@ const MenuManagement = () => {
           taxSettings={currentRestaurant?.taxSettings}
         />,
         document.body
+      )}
+
+      {showBulkModifier && (
+        <BulkModifierGroupModal
+          isOpen={showBulkModifier}
+          onClose={() => setShowBulkModifier(false)}
+          restaurantId={currentRestaurant?.id}
+          menuItems={menuItems}
+          onApplied={() => { if (currentRestaurant?.id) loadMenuData(currentRestaurant.id, false); }}
+        />
       )}
 
       {/* QR Code Modal — lazy-loaded, portal to render above sidebar */}

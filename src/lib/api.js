@@ -1282,6 +1282,14 @@ class ApiClient {
     return result;
   }
 
+  // Apply ONE modifier group to MANY products at once. mode: 'merge' | 'replace'.
+  async bulkApplyModifierGroup(restaurantId, { itemIds, modifierGroup, mode = 'merge' }) {
+    return this.request(`/api/menus/${restaurantId}/bulk-modifier-group`, {
+      method: 'POST',
+      body: { itemIds, modifierGroup, mode },
+    });
+  }
+
   async bulkDeleteMenuItems(restaurantId, reason) {
     const result = await this.request(`/api/menus/${restaurantId}/bulk-delete`, {
       method: 'DELETE',
