@@ -1,0 +1,52 @@
+# LOCAL UNSIGNED build of the merged app (feature/unified-app) — for on-device testing only.
+# Same as electron-builder.merged.yml but: no Apple signing/notarization, arm64 dmg only.
+# NOT for release. Build with: npx electron-builder --config electron-builder.merged.local.yml --mac --arm64 --publish never
+appId: com.dineopen.unified
+productName: DineOpen Unified
+directories:
+  output: dist-electron-merged
+files:
+  - out/**/*
+  - electron/**/*
+  - package.json
+asarUnpack:
+  - "node_modules/better-sqlite3/**/*"
+extraMetadata:
+  main: electron/main.js
+
+# Bundle the real backend (sibling ../dine-backend) + embedded Postgres → Resources/backend;
+# electron/localServer.js forks it only when runtime serverMode is on.
+extraResources:
+  - from: "../dine-backend"
+    to: "backend"
+    filter:
+      - "**/*"
+      - "!.git/**"
+      - "!desktop-server/**"
+      - "!**/*.map"
+      - "!**/*.test.js"
+      - "!**/__tests__/**"
+      - "!.env"
+      - "!.env.local"
+      - "!.env.production"
+
+mac:
+  icon: electron/icons/icon.icns
+  target:
+    - target: dmg
+      arch:
+        - arm64
+  category: public.app-category.business
+  identity: null            # UNSIGNED — local test build
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  artifactName: "${productName}-${version}-${arch}.${ext}"
+
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
