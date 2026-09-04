@@ -155,7 +155,7 @@ jobs:
             frontend/dist-electron-unified/*.exe
             frontend/dist-electron-unified/*.exe.blockmap
             frontend/dist-electron-unified/server.yml
-          retention-days: 30
+          retention-days: 5
 
   # ── macOS (signed + notarized) ───────────────────────────────────────────────
   build-macos:
@@ -249,7 +249,7 @@ jobs:
             frontend/dist-electron-unified/*.zip
             frontend/dist-electron-unified/*.blockmap
             frontend/dist-electron-unified/server-mac.yml
-          retention-days: 30
+          retention-days: 5
 
       - name: Cleanup keychain
         if: always()

@@ -155,7 +155,7 @@ jobs:
             frontend/dist-electron-merged/*.exe
             frontend/dist-electron-merged/*.exe.blockmap
             frontend/dist-electron-merged/unified.yml
-          retention-days: 30
+          retention-days: 5
 
   # ── macOS (signed + notarized) ───────────────────────────────────────────────
   build-macos:
@@ -249,7 +249,7 @@ jobs:
             frontend/dist-electron-merged/*.zip
             frontend/dist-electron-merged/*.blockmap
             frontend/dist-electron-merged/unified-mac.yml
-          retention-days: 30
+          retention-days: 5
 
       - name: Cleanup keychain
         if: always()

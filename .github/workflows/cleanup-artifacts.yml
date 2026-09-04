@@ -1,0 +1,90 @@
+name: Cleanup (keep last 3 versions — artifacts + releases)
+
+# Keeps the account tidy and its Actions storage bounded by retaining only the newest
+# 3 versions and pruning older ones. Two independent parts:
+#   1. Actions ARTIFACTS  — throwaway build-output copies that fill the account's Actions
+#      storage quota (the thing that triggers "90% of storage" emails). Keep newest 3 versions.
+#   2. GitHub RELEASES    — the installer download pages, PER CHANNEL (cloud `vX.Y.Z`,
+#      server `-server`, merged `-unified`). Keep newest 3 per channel. Git TAGS are
+#      preserved (no --cleanup-tag), so version history / re-releasing stays possible.
+#      Auto-update only ever needs the latest release per channel, so keeping 3 is safe.
+#
+# NOTE: `schedule` + `workflow_run` only fire once this file is on the repo's DEFAULT branch
+# (main). Until then, run on demand from the Actions tab ("Run workflow").
+
+on:
+  schedule:
+    - cron: '17 3 * * *'          # daily 03:17 UTC
+  workflow_dispatch:
+    inputs:
+      keep:
+        description: 'How many newest versions to keep (per channel for releases)'
+        required: false
+        default: '3'
+  workflow_run:
+    workflows:
+      - Build Electron App
+      - Build Unified Server-POS App
+      - Build Merged Unified App
+    types: [completed]
+
+permissions:
+  actions: write     # delete artifacts
+  contents: write    # delete releases (tags preserved)
+
+concurrency:
+  group: cleanup-keep3
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      KEEP: ${{ github.event.inputs.keep || '3' }}
+    steps:
+      - name: Prune ARTIFACTS beyond the newest N versions
+        run: |
+          set -euo pipefail
+          gh api --paginate "/repos/$REPO/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | [.id, .name] | @tsv' > all.tsv || true
+          total=$(wc -l < all.tsv | tr -d ' '); echo "Total artifacts: $total"
+          if [ "$total" = "0" ]; then echo "No artifacts."; else
+            KEEP_VERS=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+' all.tsv | sort -V -u | tail -n "$KEEP" || true)
+            echo "Keeping artifact versions:"; echo "$KEEP_VERS" | sed 's/^/  /'
+            kept=0; deleted=0
+            while IFS=$'\t' read -r id name; do
+              [ -z "${id:-}" ] && continue
+              v=$(printf '%s' "$name" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | tail -1 || true)
+              if [ -z "$v" ] || printf '%s\n' "$KEEP_VERS" | grep -qx "$v"; then
+                kept=$((kept+1)); continue
+              fi
+              gh api -X DELETE "/repos/$REPO/actions/artifacts/$id" >/dev/null 2>&1 && deleted=$((deleted+1)) || echo "  (fail artifact $id)"
+            done < all.tsv
+            echo "Artifacts: kept=$kept deleted=$deleted"
+          fi
+
+      - name: Prune RELEASES beyond the newest N per channel (tags preserved)
+        run: |
+          set -euo pipefail
+          gh api --paginate "/repos/$REPO/releases?per_page=100" --jq '.[].tag_name' > tags.txt || true
+          echo "Total releases: $(wc -l < tags.txt | tr -d ' ')"
+          del=0
+          for chan in cloud server unified; do
+            case "$chan" in
+              cloud)   list=$(grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' tags.txt || true) ;;
+              server)  list=$(grep -E -- '-server$'  tags.txt || true) ;;
+              unified) list=$(grep -E -- '-unified$' tags.txt || true) ;;
+            esac
+            [ -z "$list" ] && continue
+            # everything EXCEPT the newest $KEEP (version-sorted) → delete
+            todel=$(printf '%s\n' "$list" | sort -V | head -n "-$KEEP" || true)
+            keepn=$(printf '%s\n' "$list" | sort -V | tail -n "$KEEP" | tr '\n' ' ')
+            echo "[$chan] keep: $keepn"
+            for t in $todel; do
+              [ -z "$t" ] && continue
+              gh release delete "$t" --repo "$REPO" -y >/dev/null 2>&1 && del=$((del+1)) || echo "  (fail release $t)"
+            done
+          done
+          echo "Releases deleted: $del (git tags preserved)"
