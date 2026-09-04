@@ -2475,12 +2475,12 @@ const Login = () => {
       }}>
             <div style={{
               backgroundColor: "white",
-              borderRadius: "8px",
-              boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+              borderRadius: "18px",
+              boxShadow: "0 12px 40px rgba(15,23,42,0.10)",
               width: "100%",
               maxWidth: "400px",
               overflow: "hidden",
-              border: "1px solid #d1d5db",
+              border: "1px solid #eef1f6",
               padding: "20px"
             }}
             className="sm:p-5 p-3"
@@ -2579,12 +2579,14 @@ const Login = () => {
             }}
             style={{
               flex: 1,
-              padding: '16px',
-              fontSize: '16px',
-              fontWeight: '600',
+              padding: '14px 16px',
+              fontSize: '15px',
+              fontWeight: '700',
               border: 'none',
-              backgroundColor: loginType === 'owner' ? '#e53e3e' : 'transparent',
-              color: loginType === 'owner' ? 'white' : '#64748b',
+              background: 'transparent',
+              borderBottom: loginType === 'owner' ? '3px solid #e53e3e' : '3px solid transparent',
+              marginBottom: '-2px',
+              color: loginType === 'owner' ? '#e53e3e' : '#94a3b8',
               cursor: 'pointer',
               transition: 'all 0.2s',
               width: 'auto'
@@ -2601,12 +2603,14 @@ const Login = () => {
             }}
             style={{
               flex: 1,
-              padding: '16px',
-              fontSize: '16px',
-              fontWeight: '600',
+              padding: '14px 16px',
+              fontSize: '15px',
+              fontWeight: '700',
               border: 'none',
-              backgroundColor: loginType === 'staff' ? '#e53e3e' : 'transparent',
-              color: loginType === 'staff' ? 'white' : '#64748b',
+              background: 'transparent',
+              borderBottom: loginType === 'staff' ? '3px solid #e53e3e' : '3px solid transparent',
+              marginBottom: '-2px',
+              color: loginType === 'staff' ? '#e53e3e' : '#94a3b8',
               cursor: 'pointer',
               transition: 'all 0.2s',
               display: 'block'
