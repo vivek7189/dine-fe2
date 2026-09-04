@@ -1,7 +1,7 @@
 import { reportNetworkFailure, reportNetworkSuccess } from '../hooks/useNetworkStatus';
 import { setCachedData, getCachedData } from './offlineDb';
 import { getLocalServerUrl, setLocalServerUrl, isServerApp } from './localServer';
-import { getApiBase, setApiBase, clearApiBase, refreshRemoteBackend, DEFAULT_API_BASE, PG_API_BASE, BACKEND_URL_KEY, getBackendOverride, clearBackendOverride } from './apiBase';
+import { getApiBase, getCloudApiBase, setApiBase, clearApiBase, refreshRemoteBackend, DEFAULT_API_BASE, PG_API_BASE, BACKEND_URL_KEY, getBackendOverride, clearBackendOverride } from './apiBase';
 import { detectMultiTerminal } from '../utils/orderNumber';
 
 // Default cloud backend + the persisted-backend key both come from the SINGLE source
@@ -3388,9 +3388,12 @@ class ApiClient {
     });
   }
 
-  // Generic image upload
+  // Generic image upload. Routes to the CLOUD backend (getCloudApiBase), never the
+  // co-located local server — images are stored in cloud Storage (GCS bucket), which
+  // the local bundled server can't reach. This is what makes the receipt logo save +
+  // print on the local-server app the same way it does on web/Vercel.
   async uploadImage(formData) {
-    const url = `${getApiBase()}/api/upload/image`;
+    const url = `${getCloudApiBase()}/api/upload/image`;
     const token = this.getToken();
 
     const config = {
