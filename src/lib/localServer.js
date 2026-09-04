@@ -101,6 +101,30 @@ export function isServerModeActive() {
 }
 
 /**
+ * Whether OFFLINE (local-server) mode may be OFFERED on this device for the current account.
+ * Two gates, both required:
+ *   1. The owner enabled it per-account from dine-admin  → restaurant.offlineModeAllowed === true
+ *   2. Safety: offline runs a local Postgres that syncs with the account's cloud Postgres, so the
+ *      account MUST be on GCP/Postgres — signalled by restaurant.pgBackendUrl being set. A Vercel/
+ *      Firestore account has no Postgres data to serve offline, so it can never turn this on.
+ * When this is false the offline toggle is hidden entirely → the app is a plain cloud POS.
+ */
+export function canDeviceUseOfflineMode() {
+  // Migration-safe: the legacy local-server build, or a device already in server mode, is always
+  // allowed (it's already provisioned — never hide its own controls). This also preserves the
+  // existing local-server app until the dine-admin flag ships.
+  if (isServerApp() || isServerModeActive()) return true;
+  if (typeof window === 'undefined') return false;
+  try {
+    const rest = JSON.parse(window.localStorage.getItem('selectedRestaurant') || 'null');
+    if (!rest || rest.offlineModeAllowed !== true) return false; // admin gate (per-account)
+    return !!rest.pgBackendUrl;                                   // GCP safety gate
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
  * If the on-prem server answers on this machine's loopback (127.0.0.1:3003), then the
  * server is CO-LOCATED with this POS — prefer loopback. Loopback keeps working even with
  * Wi-Fi/LAN OFF (true offline), whereas a stored LAN-IP or `dineopen-server.local` name

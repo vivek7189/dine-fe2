@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { FaServer, FaWifi, FaCheckCircle, FaTimesCircle, FaSpinner, FaCloud, FaPlug } from 'react-icons/fa';
 import apiClient from '../lib/api';
-import { getLocalServerUrl } from '../lib/localServer';
+import { getLocalServerUrl, canDeviceUseOfflineMode } from '../lib/localServer';
 import SyncStatus from './SyncStatus';
 
 /**
@@ -21,8 +21,12 @@ export default function LocalServerSettings() {
   const [termSaved, setTermSaved] = useState(false);
   const [serverMode, setServerMode] = useState(null); // null=unknown/not-electron, else bool
   const [serverModeSaving, setServerModeSaving] = useState(false);
+  // Offline/local-server is OFFERED only when the account is allowed (dine-admin flag) AND on GCP.
+  // null = still checking (avoids a flash); true = show controls; false = hide (plain cloud POS).
+  const [canUseOffline, setCanUseOffline] = useState(null);
 
   useEffect(() => {
+    setCanUseOffline(canDeviceUseOfflineMode());
     try { window.electronAPI?.terminal?.getNumber?.().then((n) => { if (n) setTerminalNum(String(n)); }).catch(() => {}); } catch (_) {}
     // Electron only: is THIS device the restaurant server (host)?
     try { window.electronAPI?.server?.getMode?.().then((v) => setServerMode(!!v)).catch(() => {}); } catch (_) {}
@@ -105,6 +109,11 @@ export default function LocalServerSettings() {
   }, []);
 
   const isActive = !!saved;
+
+  // Gate: offline/local-server is available only for allowed GCP accounts. Otherwise this app is a
+  // plain cloud POS and the whole section stays hidden. (null → still checking, render nothing.)
+  if (canUseOffline === null) return null;
+  if (canUseOffline === false) return null;
 
   return (
     <div style={{ maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 16 }}>
