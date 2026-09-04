@@ -29,8 +29,7 @@ import {
 import apiClient from '../../lib/api';
 import { resolveRoleLanding } from '../../lib/roleLanding';
 import { getLocalServerUrl, isLocalServerMode, isServerModeActive, syncServerModeFromHost, isStaffPinMode, getStaffPinConfig } from '../../lib/localServer';
-import OfflineLogin from '../../components/OfflineLogin';
-import StaffTerminalLogin from '../../components/StaffTerminalLogin';
+import StaffKeypad from '../../components/StaffKeypad';
 import { t } from '../../lib/i18n';
 import { redirectToSubdomain } from '../../utils/subdomain';
 import { prefetchDashboardInBackground } from '../../utils/dashboardCache';
@@ -878,7 +877,7 @@ const Login = () => {
 
         // Local-server app: a PROVISIONED terminal always lands on the PIN pad (staff rotate;
         // no stale-session auto-login — this is what prevents a wrong-restaurant owner session
-        // from silently reopening). Pin to the local server and let OfflineLogin render.
+        // from silently reopening). Pin to the local server and let StaffKeypad (roster mode) render.
         try {
           const isInstalledApp = !!window.electronAPI || !!window.Capacitor;
           if (isInstalledApp) {
@@ -1713,7 +1712,7 @@ const Login = () => {
     }
   };
 
-  // Success handler for the cloud/web staff-terminal login (StaffTerminalLogin already set the user +
+  // Success handler for the cloud/web staff keypad login (StaffKeypad already set the user +
   // token). Mirrors handlePinLogin's post-login routing so staff land on their role's configured page.
   const handleStaffTerminalSuccess = async (data) => {
     try {
@@ -2178,7 +2177,13 @@ const Login = () => {
   // is false and this never renders — their login is completely unchanged. "Owner login"
   // sets showOwnerLogin and falls through to the full OTP/Google UI below.
   if (typeof window !== 'undefined' && isLocalServerMode() && !showOwnerLogin) {
-    return <OfflineLogin onOwnerLogin={() => setShowOwnerLogin(true)} />;
+    // ROSTER mode: trusted LAN, so show staff tiles from the local server's roster.
+    return (
+      <StaffKeypad
+        rosterUrl={`${getLocalServerUrl()}/api/local-server/roster`}
+        onOwnerLogin={() => setShowOwnerLogin(true)}
+      />
+    );
   }
 
   // Cloud/web STAFF login terminal — OPT-IN per device (Admin toggle), DEFAULT OFF. Public web and
@@ -2187,8 +2192,9 @@ const Login = () => {
   // username + PIN (or password). The re-pin effect above points apiClient at the bound backend. The
   // "Owner login →" button (onOwnerLogin) always escapes to the normal OTP/Google login.
   if (typeof window !== 'undefined' && mounted && !isLocalServerMode() && isStaffPinMode() && !showOwnerLogin) {
+    // TYPED mode: internet-reachable → no roster/tiles (no enumeration); staff type their Staff ID + PIN.
     return (
-      <StaffTerminalLogin
+      <StaffKeypad
         onOwnerLogin={() => setShowOwnerLogin(true)}
         onSuccess={handleStaffTerminalSuccess}
       />

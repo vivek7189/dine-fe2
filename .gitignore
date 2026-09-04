@@ -74,3 +74,4 @@ sales-docs/
 
 # notarization (contains credentials - NEVER commit)
 NOTARIZATION.md
+dist-electron-merged/
