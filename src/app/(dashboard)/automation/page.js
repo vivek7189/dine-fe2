@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { getCachedAutomationData, setCachedAutomationData } from '../../../utils/dashboardCache';
+import { toJsDate } from '../../../utils/dateParse';
 import {
   FaRobot,
   FaWhatsapp,
@@ -576,7 +577,7 @@ const CouponsTab = ({ coupons, restaurantId }) => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Valid until:</span>
-                    <span>{coupon.expiryDate ? new Date(coupon.expiryDate).toLocaleDateString() : 'No expiry'}</span>
+                    <span>{toJsDate(coupon.expiryDate) ? toJsDate(coupon.expiryDate).toLocaleDateString() : 'No expiry'}</span>
                   </div>
                 </div>
               </div>

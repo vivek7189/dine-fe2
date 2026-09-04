@@ -28,6 +28,7 @@ import {
   FaWallet,
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
+import { toJsDate } from '../../../utils/dateParse';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { useNotification } from '../../../components/Notification';
 
@@ -612,8 +613,8 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
       setFormData({
         ...emptyOffer,
         ...offer,
-        validFrom: offer.validFrom ? new Date(offer.validFrom).toISOString().split('T')[0] : '',
-        validUntil: offer.validUntil ? new Date(offer.validUntil).toISOString().split('T')[0] : '',
+        validFrom: toJsDate(offer.validFrom) ? toJsDate(offer.validFrom).toISOString().split('T')[0] : '',
+        validUntil: toJsDate(offer.validUntil) ? toJsDate(offer.validUntil).toISOString().split('T')[0] : '',
         audience: offer.audience || { type: offer.isFirstOrderOnly ? 'first_order' : 'all', groupIds: [], customerIds: [], customerPhones: [] },
         tiers: Array.isArray(offer.tiers) ? offer.tiers : [],
         crossItemBogo: offer.crossItemBogo || { enabled: false, buyItemIds: [], buyCategoryIds: [], buyQty: 1, getItemIds: [], getQty: 1, maxApplications: null },
@@ -2321,8 +2322,8 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                       {offer.usageLimit && (
                         <span>Usage limit: {offer.usageCount || 0}/{offer.usageLimit}</span>
                       )}
-                      {offer.validUntil && (
-                        <span>Valid until: {new Date(offer.validUntil).toLocaleDateString()}</span>
+                      {toJsDate(offer.validUntil) && (
+                        <span>Valid until: {toJsDate(offer.validUntil).toLocaleDateString()}</span>
                       )}
                     </div>
                   </div>
