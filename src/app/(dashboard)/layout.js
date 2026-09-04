@@ -23,7 +23,7 @@ import OfflineFallback from '../../components/OfflineFallback';
 import { isWeb, isTauri, isElectron } from '../../utils/platform';
 import { isAutoUpdateEnabled, checkForUpdates, restartApp } from '../../utils/autoUpdater';
 import apiClient from '../../lib/api';
-import { preferLoopbackIfLocal } from '../../lib/localServer';
+import { preferLoopbackIfLocal, syncServerModeFromHost } from '../../lib/localServer';
 import { reconnectLan } from '../../lib/lanRealtime';
 import { initPrintDiagnostics } from '../../lib/printDiagnostics';
 import { ROUTE_TO_ACCESS_KEY, ALWAYS_ACCESSIBLE } from '../../lib/pageAccessConfig';
@@ -61,6 +61,9 @@ function DashboardLayoutContent({ children }) {
   // localStorage the rest of the app uses; refresh on restaurant switch.
   const [lockRestaurant, setLockRestaurant] = useState(null);
   useEffect(() => {
+    // Keep the runtime server-mode mirror fresh so LAN/offline gates (isServerModeActive) reflect
+    // the real per-device setting inside the dashboard too. No-op on web / when not the installed app.
+    syncServerModeFromHost().catch(() => {});
     const read = () => { try { setLockRestaurant(JSON.parse(localStorage.getItem('selectedRestaurant') || 'null')); } catch { setLockRestaurant(null); } };
     read();
     window.addEventListener('restaurantChanged', read);

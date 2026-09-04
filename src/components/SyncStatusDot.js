@@ -11,7 +11,7 @@
  */
 import { useEffect, useState, useCallback } from 'react';
 import apiClient from '../lib/api';
-import { isServerApp, getLocalServerUrl, setLocalServerUrl } from '../lib/localServer';
+import { isServerModeActive, getLocalServerUrl, setLocalServerUrl } from '../lib/localServer';
 
 export default function SyncStatusDot() {
   const [mounted, setMounted] = useState(false);
@@ -26,7 +26,7 @@ export default function SyncStatusDot() {
     // Local-server app ONLY: on plain web / the cloud app there is no co-located local server, so we
     // must NOT poll 127.0.0.1:3003 (it just produces failed requests). Gate the effect, not only render.
     const installedApp = typeof window !== 'undefined' && (!!window.electronAPI || !!window.Capacitor);
-    if (!installedApp || !isServerApp()) return;
+    if (!installedApp || !isServerModeActive()) return;
     const read = () => {
       const s = (typeof window !== 'undefined' && window.__dineConnState) || null;
       if (s) setConn(s);
@@ -64,7 +64,7 @@ export default function SyncStatusDot() {
   }, [checking]);
 
   const isInstalledApp = typeof window !== 'undefined' && (!!window.electronAPI || !!window.Capacitor);
-  if (!mounted || !isInstalledApp || !isServerApp()) return null;
+  if (!mounted || !isInstalledApp || !isServerModeActive()) return null;
 
   // Priority (Phase 6): storage-full → manual check → sign-in needed → connection changing → draining →
   // dead-letter warning → offline → online. Disk-critical outranks all — it blocks new orders locally.

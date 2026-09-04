@@ -8,7 +8,7 @@
  * (pendingUp = orders on this hub not yet pushed; deadLetter = quarantined records still retrying).
  */
 import { useEffect, useState } from 'react';
-import { isServerApp } from '../lib/localServer';
+import { isServerModeActive } from '../lib/localServer';
 
 export default function ProvisionalSyncBanner() {
   const [mounted, setMounted] = useState(false);
@@ -20,7 +20,7 @@ export default function ProvisionalSyncBanner() {
     // Local-server app ONLY: don't poll 127.0.0.1:3003 on plain web / the cloud app (no local server
     // there → failed requests). Gate the effect itself, not just the render.
     const installedApp = typeof window !== 'undefined' && (!!window.electronAPI || !!window.Capacitor);
-    if (!installedApp || !isServerApp()) return;
+    if (!installedApp || !isServerModeActive()) return;
     let alive = true;
     const poll = async () => {
       try {
@@ -34,7 +34,7 @@ export default function ProvisionalSyncBanner() {
   }, []);
 
   const isInstalledApp = typeof window !== 'undefined' && (!!window.electronAPI || !!window.Capacitor);
-  if (!mounted || !isInstalledApp || !isServerApp()) return null;
+  if (!mounted || !isInstalledApp || !isServerModeActive()) return null;
   const n = (pending || 0) + (dead || 0);
   if (n <= 0) return null;
 

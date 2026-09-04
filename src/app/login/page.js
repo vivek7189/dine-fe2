@@ -28,7 +28,7 @@ import {
 } from 'firebase/auth';
 import apiClient from '../../lib/api';
 import { resolveRoleLanding } from '../../lib/roleLanding';
-import { getLocalServerUrl, isLocalServerMode, isServerApp, isStaffPinMode, getStaffPinConfig } from '../../lib/localServer';
+import { getLocalServerUrl, isLocalServerMode, isServerApp, isServerModeActive, syncServerModeFromHost, isStaffPinMode, getStaffPinConfig } from '../../lib/localServer';
 import OfflineLogin from '../../components/OfflineLogin';
 import StaffTerminalLogin from '../../components/StaffTerminalLogin';
 import { t } from '../../lib/i18n';
@@ -453,7 +453,7 @@ const Login = () => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const isInstalledApp = !!window.electronAPI || !!window.Capacitor;
-    if (!isInstalledApp || !isServerApp()) return; // ONLY the offline/LAN server app does LAN discovery
+    if (!isInstalledApp || !isServerModeActive()) return; // ONLY the offline/LAN server app does LAN discovery
     let cancelled = false;
     // A local server only takes over the login screen once it is PROVISIONED (bound to a
     // restaurant). A brand-new server (or the dev backend) reports provisioned:false — for
@@ -515,6 +515,9 @@ const Login = () => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     setMounted(true);
+    // Mirror electron-main's runtime server-mode into localStorage so the LAN/offline gates
+    // (isServerModeActive) read the real per-device setting. Re-render via setSrvInfo below.
+    syncServerModeFromHost().catch(() => {});
     const sync = () => setIsOnline(typeof navigator === 'undefined' ? true : navigator.onLine !== false);
     const measure = () => setIsWide(window.innerWidth >= 1024);
     sync(); measure();
@@ -2282,7 +2285,7 @@ const Login = () => {
   // right column (short, no scroll) with branding + the connect address on the left. Triggers on
   // either the build-time app kind OR the runtime server-mode flag (robust even if the build env
   // wasn't set). Never on the cloud app / phone.
-  const twoColServer = mounted && (isServerApp() || !!srvInfo?.serverMode) && isWide;
+  const twoColServer = mounted && (isServerModeActive() || !!srvInfo?.serverMode) && isWide;
   return (
     <div style={{
       height: "100vh",
@@ -2611,7 +2614,7 @@ const Login = () => {
         {/* Owner login is a one-time cloud setup (OTP/email) — it needs internet the first time to
             pull this restaurant down. After that the till runs local-first and daily staff sign-in
             is the fast PIN keypad. So: tell the user setup needs internet, and offer the PIN pad. */}
-        {mounted && (typeof window !== 'undefined') && (!!window.electronAPI || !!window.Capacitor) && isServerApp() && (
+        {mounted && (typeof window !== 'undefined') && (!!window.electronAPI || !!window.Capacitor) && isServerModeActive() && (
           <div style={{ margin: '10px 0 0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 600, borderRadius: 10, padding: '11px 13px',
               ...(isOnline
@@ -2638,7 +2641,7 @@ const Login = () => {
         {/* Multi-terminal hub setup — installed app, no hub auto-found on the LAN. This machine
             can become the hub, or connect to one already running (mDNS auto-join happens first;
             this only shows when nothing was found). */}
-        {mounted && (typeof window !== 'undefined') && (!!window.electronAPI || !!window.Capacitor) && isServerApp() && hubSearch === 'none' && !showLocalServer && (
+        {mounted && (typeof window !== 'undefined') && (!!window.electronAPI || !!window.Capacitor) && isServerModeActive() && hubSearch === 'none' && !showLocalServer && (
           <div style={{ margin: '12px 0 0', background: '#F7F1E7', border: '1px solid #EEE3D2', borderRadius: 14, padding: 14 }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: '#2A211C', marginBottom: 3 }}>No restaurant server found on this network</div>
             <div style={{ fontSize: 12, color: '#8A7D74', marginBottom: 12 }}>Make this the hub, or connect to one that&apos;s already running. Other tills &amp; phones auto-join the hub.</div>
@@ -2653,7 +2656,7 @@ const Login = () => {
           </div>
         )}
         {/* Manual "connect to the hub by IP" — fallback for Wi-Fi that blocks mDNS auto-discovery. */}
-        {mounted && showLocalServer && (typeof window !== 'undefined') && (!!window.electronAPI || !!window.Capacitor) && isServerApp() && (
+        {mounted && showLocalServer && (typeof window !== 'undefined') && (!!window.electronAPI || !!window.Capacitor) && isServerModeActive() && (
           <div style={{ margin: '10px 0 0', background: '#F8FAFC', border: '1px solid #E5E7EB', borderRadius: 12, padding: 12 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>HUB / SERVER ADDRESS</div>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -2672,7 +2675,7 @@ const Login = () => {
         {/* Login Form — blurred + disabled when the installed app has no internet, so it's
             obvious this cloud login is unavailable offline (the red banner above says to use PIN). */}
         <div style={{ padding: "16px 0",
-          ...(mounted && (typeof window !== 'undefined') && (!!window.electronAPI || !!window.Capacitor) && isServerApp() && !isOnline
+          ...(mounted && (typeof window !== 'undefined') && (!!window.electronAPI || !!window.Capacitor) && isServerModeActive() && !isOnline
             ? { filter: 'blur(2.5px)', opacity: 0.5, pointerEvents: 'none', userSelect: 'none', transition: 'filter .2s, opacity .2s' }
             : { transition: 'filter .2s, opacity .2s' }) }}>
           {error && (

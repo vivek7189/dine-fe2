@@ -1,6 +1,6 @@
 import { reportNetworkFailure, reportNetworkSuccess } from '../hooks/useNetworkStatus';
 import { setCachedData, getCachedData } from './offlineDb';
-import { getLocalServerUrl, setLocalServerUrl, isServerApp } from './localServer';
+import { getLocalServerUrl, setLocalServerUrl, isServerApp, isServerModeActive } from './localServer';
 import { getApiBase, setApiBase, clearApiBase, refreshRemoteBackend, DEFAULT_API_BASE, PG_API_BASE, BACKEND_URL_KEY, getBackendOverride, clearBackendOverride } from './apiBase';
 import { detectMultiTerminal } from '../utils/orderNumber';
 
@@ -357,7 +357,7 @@ class ApiClient {
       // KRA signature (the "prepared but never signed" failure). Route eTIMS straight over HTTP.
       const isEtimsCall = typeof endpoint === 'string' && endpoint.includes('/api/etims/');
       if (typeof window !== 'undefined' && window.electronAPI?.apiRequest
-          && !(config.body instanceof FormData) && !getLocalServerUrl() && !isServerApp() && !isEtimsCall) {
+          && !(config.body instanceof FormData) && !getLocalServerUrl() && !isServerModeActive() && !isEtimsCall) {
         return await withTimeout(this._electronRequest(endpoint, config), timeoutForMethod(config.method), endpoint);
       }
 

@@ -14,13 +14,13 @@
  * A switch still reloads once (clean socket/hook re-init), but only on a SUSTAINED change — never
  * per flap. So dropping Wi-Fi repeatedly no longer reloads the app over and over.
  *
- * GATING: self-hides on plain web / the cloud Electron app (isServerApp gate) → ZERO effect there.
+ * GATING: self-hides unless the device is in server/offline mode (isServerModeActive gate) → ZERO effect there.
  * Routing math (getApiBase / api.js) is untouched; this only changes the *timing* of the pin switch.
  * Publishes window.__dineConnState { mode, cloudUp, pending } (+ a 'dine-conn' event) for SyncStatusDot.
  */
 import { useEffect, useRef } from 'react';
 import apiClient from '../lib/api';
-import { isServerApp, getLocalServerUrl, setLocalServerUrl } from '../lib/localServer';
+import { isServerModeActive, getLocalServerUrl, setLocalServerUrl } from '../lib/localServer';
 import { reconnectLan } from '../lib/lanRealtime';
 
 const LOOPBACK = 'http://127.0.0.1:3003';
@@ -59,7 +59,7 @@ export default function OfflineFallback() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const isInstalledApp = !!window.electronAPI || !!window.Capacitor;
-    if (!isInstalledApp || !isServerApp()) return; // cloud app / web: no-op
+    if (!isInstalledApp || !isServerModeActive()) return; // cloud app / web: no-op
 
     let stopped = false;
 

@@ -11,7 +11,7 @@
  * Self-hides unless running on the local-server desktop app with the terminal IPC available.
  */
 import { useEffect, useState, useCallback } from 'react';
-import { isServerApp } from '../lib/localServer';
+import { isServerModeActive } from '../lib/localServer';
 
 export default function TerminalNumberSetting() {
   const [avail, setAvail] = useState(false);
@@ -22,7 +22,7 @@ export default function TerminalNumberSetting() {
 
   useEffect(() => {
     const api = typeof window !== 'undefined' && window.electronAPI && window.electronAPI.terminal;
-    if (!api || !isServerApp()) return;
+    if (!api || !isServerModeActive()) return;
     setAvail(true);
     (async () => {
       try { const n = await api.getNumber(); if (n != null) { setValue(String(n)); setSaved(Number(n)); } }
