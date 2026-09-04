@@ -62,6 +62,44 @@ export function isServerApp() {
   return process.env.NEXT_PUBLIC_APP_KIND === 'server';
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * MERGED-APP runtime server mode (feature/unified-app).
+ *
+ * The single merged app decides online-vs-offline at RUNTIME (a per-device setting), not at build
+ * time. Electron main owns the truth — localServer.isServerModeEnabled() persisted to a config file,
+ * exposed to the renderer via the existing `electron:getServerMode` IPC. We mirror it to localStorage
+ * on boot so the (synchronous) UI gates can read it without an await.
+ *
+ * MIGRATION-SAFE: until the 37 build-flag gates are converted, isServerModeActive() falls back to the
+ * build flag (isServerApp()), so the existing cloud + local-server apps behave EXACTLY as before.
+ * ────────────────────────────────────────────────────────────────────────── */
+const SERVER_MODE_KEY = 'dineopen_server_mode';
+
+/** Mirror electron-main's server-mode into localStorage. Call once on app boot (renderer). */
+export async function syncServerModeFromHost() {
+  if (typeof window === 'undefined') return;
+  try {
+    const on = await window.electronAPI?.server?.getMode?.();
+    if (typeof on === 'boolean') window.localStorage.setItem(SERVER_MODE_KEY, on ? '1' : '0');
+  } catch (_) { /* not the installed app, or IPC unavailable → leave as-is */ }
+}
+
+/**
+ * True when THIS device is in server/offline mode (runtime). This is what the LAN/offline/sync UI
+ * gates will key off in the merged app (default OFF → behaves as the cloud app). Pre-conversion it
+ * falls back to the build flag so nothing changes for the current two apps.
+ */
+export function isServerModeActive() {
+  if (typeof window !== 'undefined') {
+    try {
+      const v = window.localStorage.getItem(SERVER_MODE_KEY);
+      if (v === '1') return true;
+      if (v === '0') return false;
+    } catch (_) {}
+  }
+  return isServerApp(); // pre-merge fallback: the build flag
+}
+
 /**
  * If the on-prem server answers on this machine's loopback (127.0.0.1:3003), then the
  * server is CO-LOCATED with this POS — prefer loopback. Loopback keeps working even with
