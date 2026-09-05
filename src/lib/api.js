@@ -309,12 +309,15 @@ class ApiClient {
     // }
 
     // Merge headers properly to ensure Authorization token is always included
+    this._resolveAppVersion();
     const headers = {
       // Only set Content-Type for non-FormData requests
       ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
       ...(options.headers || {}),
       // Always add Authorization token if available (this should override any conflicting header)
       ...(token && { Authorization: `Bearer ${token}` }),
+      // Installed app build (Electron/native) — backend records it per restaurant.
+      ...(this.appVersion && { 'X-App-Version': this.appVersion }),
     };
 
     const config = {
@@ -3089,16 +3092,16 @@ class ApiClient {
     } catch (_) { /* diagnostics must never affect printing */ }
   }
 
-  // Fire-and-forget: report which app build this terminal is running so support can see,
-  // per restaurant, which version each store is on. Never throws / never blocks the UI.
-  sendTerminalHeartbeat({ restaurantId, terminalId, appVersion, platform, os } = {}) {
-    if (!restaurantId) return;
+  // Resolve the installed app version once (Electron/native). Sent as the X-App-Version
+  // header on requests so the backend can record which build a restaurant is running.
+  _resolveAppVersion() {
+    if (this._appVersionResolved) return;
+    this._appVersionResolved = true;
     try {
-      this.request('/api/terminal/heartbeat', {
-        method: 'POST',
-        body: { restaurantId, terminalId, appVersion, platform, os },
-      }).catch(() => {});
-    } catch (_) { /* telemetry must never affect the app */ }
+      if (typeof window !== 'undefined' && window.electronAPI?.getVersion) {
+        window.electronAPI.getVersion().then((v) => { this.appVersion = v || null; }).catch(() => {});
+      }
+    } catch (_) { /* ignore */ }
   }
 
   async updatePrintSettings(restaurantId, printSettings) {
