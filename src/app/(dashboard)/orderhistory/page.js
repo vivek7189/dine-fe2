@@ -5377,8 +5377,8 @@ const OrderHistory = () => {
                     </div>
                   )}
 
-                  {/* Cash Tendering */}
-                  {editCompletedForm.paymentMethod === 'cash' && (
+                  {/* Cash Tendering — flag-gated (same toggle that drives the POS panel + bill print) */}
+                  {editCompletedForm.paymentMethod === 'cash' && restaurant?.billingSettings?.cashTenderingEnabled && (
                     <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-3 space-y-2">
                       <div className="flex items-center gap-3">
                         <div className="flex-1">
