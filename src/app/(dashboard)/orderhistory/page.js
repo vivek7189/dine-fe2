@@ -22,6 +22,7 @@ import { getBillPrintCSS, getKOTPrintCSS, getBillHeaderHTML, buildTokenSlipsDocu
 import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '../../../utils/printBridge';
 import { printKOTByStations } from '../../../utils/printKotStations';
 import { generateBillHTML } from '../../../utils/printHtmlGenerator';
+import { buildBillIdentity } from '../../../utils/printTemplates/helpers';
 import { orderDisplayNumber } from '../../../utils/orderNumber';
 import { useEtimsBillPrint } from '../../../hooks/useEtimsBillPrint';
 import dynamic from 'next/dynamic';
@@ -1709,20 +1710,11 @@ const OrderHistory = () => {
       orderId: order.id,
       dailyOrderId: order.dailyOrderId || order.orderNumber,
       orderNumberDisplay: order.orderNumberDisplay || null,
-      restaurantName: restaurant?.name || 'Restaurant',
-      legalBusinessName: restaurant?.legalBusinessName || '',
-      address: restaurant?.address || '',
-      phone: restaurant?.phone || '',
-      gstin: restaurant?.gstin || '',
-      fssai: restaurant?.fssai || '',
-      vatNumber: restaurant?.vatNumber || '',
-      taxId: restaurant?.taxId || '',
-      businessRegistrationNumber: restaurant?.businessRegistrationNumber || '',
-      showGstOnInvoice: restaurant?.showGstOnInvoice,
-      showFssaiOnInvoice: restaurant?.showFssaiOnInvoice,
-      showTaxIdOnInvoice: restaurant?.showTaxIdOnInvoice,
-      countryCode: restaurant?.countryCode || '',
-      taxLabel: restaurant?.currencySettings?.taxLabel || '',
+      // Correct, template-matching header identity. (Previously used wrong keys —
+      // address/phone/legalBusinessName — so reprinted bills dropped the address / phone /
+      // legal name. buildBillIdentity emits restaurantAddress/restaurantPhone/restaurantLegalName
+      // and honours the printSettings receipt-address/phone overrides.)
+      ...buildBillIdentity(restaurant, printSettings),
       items,
       subtotal,
       taxBreakdown: order.taxBreakdown || [],

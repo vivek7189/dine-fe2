@@ -2364,6 +2364,12 @@ const OrderSummary = ({
           if (!invoiceData.orderId) invoiceData.orderId = orderId; // guarantee the DB id for eTIMS fiscalise
           if (!invoiceData.currencySymbol) invoiceData.currencySymbol = getCurrencySymbol();
           if (!invoiceData.countryCode) invoiceData.countryCode = countryCode;
+          // Safety net: never let the printed header fall back to a bare "RESTAURANT". Fill ONLY
+          // header fields the API left empty (never override what the backend returned).
+          if (!invoiceData.restaurantName) invoiceData.restaurantName = restaurant?.name || restaurantName || 'Restaurant';
+          if (!invoiceData.restaurantLegalName) invoiceData.restaurantLegalName = restaurant?.legalBusinessName || '';
+          if (!invoiceData.restaurantAddress) invoiceData.restaurantAddress = printSettings?.receiptAddress || restaurant?.address || '';
+          if (!invoiceData.restaurantPhone) invoiceData.restaurantPhone = printSettings?.receiptPhone || restaurant?.phone || '';
           attachInclusiveSplits(invoiceData); // per-item MRP + tax on inclusive bills
           setInvoice(invoiceData);
           setShowInvoicePermanently(true);
@@ -2383,7 +2389,23 @@ const OrderSummary = ({
       const localInvoice = {
         orderId,
         orderNumber: orderId?.slice(-4)?.toUpperCase() || '',
-        restaurantName: restaurantName || '',
+        // Full header identity so the OFFLINE/fallback bill still shows the correct restaurant
+        // name + legal name + address + phone + VAT — instead of a bare "RESTAURANT" — whenever
+        // the bill-render API is unreachable (common on the local-server / offline POS). Sourced
+        // from the restaurant prop + printSettings, mirroring the backend bill-render builder.
+        restaurantName: restaurantName || restaurant?.name || 'Restaurant',
+        restaurantLegalName: restaurant?.legalBusinessName || '',
+        restaurantAddress: printSettings?.receiptAddress || restaurant?.address || '',
+        restaurantPhone: printSettings?.receiptPhone || restaurant?.phone || '',
+        gstin: restaurant?.gstin || '',
+        fssai: restaurant?.fssai || '',
+        vatNumber: restaurant?.vatNumber || '',
+        taxId: restaurant?.taxId || '',
+        businessRegistrationNumber: restaurant?.businessRegistrationNumber || '',
+        showGstOnInvoice: restaurant?.showGstOnInvoice === true,
+        showFssaiOnInvoice: restaurant?.showFssaiOnInvoice === true,
+        showTaxIdOnInvoice: restaurant?.showTaxIdOnInvoice === true,
+        taxLabel: restaurant?.currencySettings?.taxLabel || '',
         items: (cart || []).map(item => {
           // Effective unit price = base + selectedCustomizations, added exactly once by
           // getItemUnitPrice. item.price alone is the BASE menu price, so using it here would

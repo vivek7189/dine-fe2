@@ -49,7 +49,20 @@ export async function fiscaliseAndPrint({ restaurantId, order, restaurant, print
   if (cc !== 'KE' && ccode !== 'KES') return { skipped: 'not-kenya' };
 
   // Load the full order once — needed for the fiscal receipt AND the fallback.
-  const fullOrder = await loadFullOrder(order, restaurant);
+  let fullOrder = await loadFullOrder(order, restaurant);
+  // Merge the restaurant header identity (name/legal name/address/phone/VAT) into the order used
+  // for RENDERING only. The raw order carries none of these, so generateBillHTML previously fell
+  // back to a bare "RESTAURANT" header on Kenya final bills. This does NOT touch fiscalisation:
+  // fiscaliseOrder() still uses order.id, and order.etims is preserved by the spread below.
+  try {
+    const { buildBillIdentity } = await import('../utils/printTemplates/helpers');
+    const identity = buildBillIdentity(restaurant, printSettings);
+    fullOrder = { ...identity, ...fullOrder };
+    if (!fullOrder.restaurantName) fullOrder.restaurantName = identity.restaurantName;
+    if (!fullOrder.restaurantAddress) fullOrder.restaurantAddress = identity.restaurantAddress;
+    if (!fullOrder.restaurantPhone) fullOrder.restaurantPhone = identity.restaurantPhone;
+    if (!fullOrder.restaurantLegalName) fullOrder.restaurantLegalName = identity.restaurantLegalName;
+  } catch (_) { /* header enrichment is best-effort — never block fiscalisation/printing */ }
 
   // Per-bill opt-out (only when the store enabled the "Ask 'Send to KRA?' on each bill"
   // setting and the cashier chose "No"): skip KRA entirely and print a plain, non-fiscal

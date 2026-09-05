@@ -13,6 +13,32 @@ export const esc = (str) => String(str ?? '').replace(/</g, '&lt;').replace(/>/g
 // time, so gating on the item field alone keeps legacy orders unchanged.
 const seatTag = (item) => (sanitizeSeat(item?.seat) === null ? '' : seatLabel(item.seat));
 
+// Canonical bill-header identity built from the restaurant object + print settings.
+// Keys match EXACTLY what the bill templates read (restaurantName/restaurantAddress/…), so any
+// print path can spread this onto its invoice/order to guarantee a correct header instead of a
+// bare "RESTAURANT". Single source of truth — keeps every print trigger consistent.
+export function buildBillIdentity(restaurant, printSettings) {
+  const r = restaurant || {};
+  const ps = printSettings || {};
+  return {
+    restaurantName: r.name || 'Restaurant',
+    restaurantLegalName: r.legalBusinessName || '',
+    restaurantAddress: ps.receiptAddress || r.address || '',
+    restaurantPhone: ps.receiptPhone || r.phone || '',
+    restaurantEmail: r.email || '',
+    gstin: r.gstin || '',
+    fssai: r.fssai || '',
+    vatNumber: r.vatNumber || '',
+    taxId: r.taxId || '',
+    businessRegistrationNumber: r.businessRegistrationNumber || '',
+    showGstOnInvoice: r.showGstOnInvoice === true,
+    showFssaiOnInvoice: r.showFssaiOnInvoice === true,
+    showTaxIdOnInvoice: r.showTaxIdOnInvoice === true,
+    countryCode: (r.currencySettings && r.currencySettings.countryCode) || r.countryCode || '',
+    taxLabel: (r.currencySettings && r.currencySettings.taxLabel) || '',
+  };
+}
+
 // Build identity lines (GSTIN, FSSAI, VAT, address, phone) for bill header.
 export function buildIdentityHtml(info, printSettings) {
   const bl = printSettings?.billLayout || {};
