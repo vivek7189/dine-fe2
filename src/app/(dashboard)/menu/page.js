@@ -2427,6 +2427,11 @@ const MenuManagement = () => {
   const [displaySearch, setDisplaySearch] = useState('');
   const searchDebounceRef = useRef(null);
   const [viewMode, setViewMode] = useState('grid');
+  // iPhone-style "Arrange" mode for the category cards (drag to reorder → Done saves).
+  const [arrangeMode, setArrangeMode] = useState(false);
+  const [arrangeOrder, setArrangeOrder] = useState([]); // folder objects in the edited order
+  const [savingArrange, setSavingArrange] = useState(false);
+  const dragFolderId = useRef(null);
   const [showBarcodeTab, setShowBarcodeTab] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
@@ -2971,6 +2976,33 @@ const MenuManagement = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategory, categories]);
 
+  // ── Arrange mode (drag category cards to reorder) ──────────────────────────
+  const enterArrange = () => { setArrangeOrder([...menuFolders]); setArrangeMode(true); };
+  const cancelArrange = () => { setArrangeMode(false); setArrangeOrder([]); dragFolderId.current = null; };
+  const onArrangeDrop = (targetId) => {
+    const from = dragFolderId.current; dragFolderId.current = null;
+    if (!from || from === targetId) return;
+    setArrangeOrder(prev => {
+      const arr = [...prev];
+      const fi = arr.findIndex(f => f.id === from);
+      const ti = arr.findIndex(f => f.id === targetId);
+      if (fi < 0 || ti < 0) return prev;
+      const [moved] = arr.splice(fi, 1);
+      arr.splice(ti, 0, moved);
+      return arr;
+    });
+  };
+  const saveArrange = async () => {
+    if (savingArrange) return;
+    setSavingArrange(true);
+    try {
+      await apiClient.reorderMenu(currentRestaurant.id, { categoryOrder: arrangeOrder.map(f => f.name) });
+      await loadMenuData(currentRestaurant.id, false); // reload fresh so the new order sticks
+      setArrangeMode(false); setArrangeOrder([]);
+    } catch (e) { console.error('Arrange save failed:', e); }
+    finally { setSavingArrange(false); }
+  };
+
   // Colourful category tile (same look as the POS dashboard drill-down)
   const renderMenuFolder = (folder) => {
     const PAL = [
@@ -2986,10 +3018,16 @@ const MenuManagement = () => {
     const c = PAL[h % PAL.length];
     const emoji = (folder.emoji && folder.emoji !== '🍽️') ? folder.emoji : getCategoryEmoji(folder.name);
     return (
-      <div key={`mfolder-${folder.id}`} onClick={() => setSelectedCategory(folder.id)}
-        style={{ display: 'flex', flexDirection: 'column', gap: '12px', minHeight: '122px', padding: '16px', borderRadius: '16px', cursor: 'pointer', background: `linear-gradient(155deg, #ffffff 32%, ${c.soft} 100%)`, border: `1px solid ${c.ring}`, boxShadow: '0 1px 3px rgba(15,23,42,0.05)', transition: 'all 0.18s' }}
-        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 10px 22px ${c.accent}22`; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = c.accent; }}
-        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(15,23,42,0.05)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = c.ring; }}
+      <div key={`mfolder-${folder.id}`}
+        onClick={() => { if (!arrangeMode) setSelectedCategory(folder.id); }}
+        draggable={arrangeMode}
+        onDragStart={arrangeMode ? (() => { dragFolderId.current = folder.id; }) : undefined}
+        onDragOver={arrangeMode ? ((e) => e.preventDefault()) : undefined}
+        onDrop={arrangeMode ? (() => onArrangeDrop(folder.id)) : undefined}
+        className={arrangeMode ? 'menu-arrange-wiggle' : undefined}
+        style={{ display: 'flex', flexDirection: 'column', gap: '12px', minHeight: '122px', padding: '16px', borderRadius: '16px', cursor: arrangeMode ? 'grab' : 'pointer', background: `linear-gradient(155deg, #ffffff 32%, ${c.soft} 100%)`, border: arrangeMode ? `2px dashed ${c.accent}` : `1px solid ${c.ring}`, boxShadow: '0 1px 3px rgba(15,23,42,0.05)', transition: 'all 0.18s' }}
+        onMouseEnter={arrangeMode ? undefined : ((e) => { e.currentTarget.style.boxShadow = `0 10px 22px ${c.accent}22`; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = c.accent; })}
+        onMouseLeave={arrangeMode ? undefined : ((e) => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(15,23,42,0.05)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = c.ring; })}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ width: '46px', height: '46px', borderRadius: '13px', background: '#ffffff', border: `1px solid ${c.ring}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>{emoji}</div>
@@ -5027,9 +5065,35 @@ const MenuManagement = () => {
             })()}
             {/* Category folder tiles (drill-down) */}
             {menuFolders.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(150px, 1fr))' : 'repeat(auto-fill, minmax(200px, 1fr))', gap: isMobile ? '12px' : '16px', marginBottom: menuDirectItems.length ? '22px' : '0' }}>
-                {menuFolders.map(renderMenuFolder)}
-              </div>
+              <>
+                <style>{`@keyframes menuArrangeWiggle{0%{transform:rotate(-0.6deg)}50%{transform:rotate(0.6deg)}100%{transform:rotate(-0.6deg)}} .menu-arrange-wiggle{animation:menuArrangeWiggle 0.35s ease-in-out infinite}`}</style>
+                {/* Arrange bar — drag the cards to reorder (iPhone-style); Done saves. */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                  {!arrangeMode ? (
+                    (menuFolders.length > 1 && isOwnerOrAdmin) && (
+                      <button type="button" onClick={enterArrange}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '9px', border: '1px solid #d1d5db', background: '#fff', color: '#374151', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+                        ⇅ Arrange
+                      </button>
+                    )
+                  ) : (
+                    <>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#dc2626' }}>Drag the cards to reorder</span>
+                      <button type="button" onClick={saveArrange} disabled={savingArrange}
+                        style={{ padding: '7px 16px', borderRadius: '9px', border: 'none', background: savingArrange ? '#9ca3af' : '#16a34a', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: savingArrange ? 'not-allowed' : 'pointer' }}>
+                        {savingArrange ? 'Saving…' : 'Done'}
+                      </button>
+                      <button type="button" onClick={cancelArrange} disabled={savingArrange}
+                        style={{ padding: '7px 14px', borderRadius: '9px', border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                        Cancel
+                      </button>
+                    </>
+                  )}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(150px, 1fr))' : 'repeat(auto-fill, minmax(200px, 1fr))', gap: isMobile ? '12px' : '16px', marginBottom: menuDirectItems.length ? '22px' : '0' }}>
+                  {(arrangeMode ? arrangeOrder : menuFolders).map(renderMenuFolder)}
+                </div>
+              </>
             )}
             {viewMode === 'grid' ? (
             <div style={{
