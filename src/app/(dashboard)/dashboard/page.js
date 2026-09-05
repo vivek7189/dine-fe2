@@ -7502,6 +7502,29 @@ function RestaurantPOSContent() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               {/* App-update pill (desktop only; renders nothing when no update) */}
               <UpdateIndicator />
+              {/* Manual Lock — placed next to Alerts. Only when Terminal PIN Lock is enabled;
+                  locks the POS on demand (staff re-enter their PIN). Platform-agnostic — works on
+                  web, the Electron app, and the local-server Electron app. */}
+              {terminalLockEnabled && (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    padding: '6px 12px',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onClick={() => { try { lockTerminal(); } catch (_) {} }}
+                  title="Lock this terminal"
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <FaLock size={22} color="#dc2626" />
+                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Lock</span>
+                </div>
+              )}
               {/* Notification Bell — hidden when showSuccessNotifications is disabled */}
               {printSettings?.showSuccessNotifications !== false && (
               <div
@@ -7676,28 +7699,6 @@ function RestaurantPOSContent() {
                 <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>DineBot</span>
               </div>
 
-              {/* Manual Lock — only when Terminal PIN Lock is enabled. Locks the POS on demand
-                  (staff must re-enter their PIN to continue). */}
-              {terminalLockEnabled && (
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    padding: '6px 12px',
-                    borderRadius: '10px',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onClick={() => { try { lockTerminal(); } catch (_) {} }}
-                  title="Lock this terminal"
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                >
-                  <FaLock size={22} color="#dc2626" />
-                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Lock</span>
-                </div>
-              )}
             </div>
           </div>
         )}

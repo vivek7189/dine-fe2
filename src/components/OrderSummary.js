@@ -5281,8 +5281,11 @@ const OrderSummary = ({
           flexShrink: 0,
           ...(isMobileEmbed ? { display: 'flex', flexDirection: 'column', flex: 1 } : {}),
           boxShadow: billingMode ? 'none' : '0 -4px 12px rgba(0,0,0,0.08)',
-          ...(twoColumn ? { width: '380px', flexShrink: 0, overflowY: 'auto', overflowX: 'hidden', borderTop: 'none', borderLeft: dm ? '1px solid ' + dm.border : '1px solid #eef1f4', boxShadow: 'none' } : {}),
+          ...(twoColumn ? { width: '380px', flexShrink: 0, overflowY: 'auto', overflowX: 'hidden', borderTop: 'none', borderLeft: dm ? '1px solid ' + dm.border : '1px solid #eef1f4', boxShadow: 'none', display: 'flex', flexDirection: 'column' } : {}),
         }}>
+          {/* Wide view: flexible spacer pushes total+checkout+buttons to the bottom of the column.
+              Collapses to 0 (and the column scrolls) when content is taller than the space. */}
+          {twoColumn && <div style={{ flex: '1 1 auto', minHeight: 0 }} />}
           {/* (Discount controls moved inline with special instructions below) */}
 
           {/* Total - Red bar */}
