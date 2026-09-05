@@ -8,6 +8,7 @@ import { useLoading } from '../../../contexts/LoadingContext';
 import ImageCarousel from '../../../components/ImageCarousel';
 import ImageUpload from '../../../components/ImageUpload';
 const BulkMenuUpload = dynamic(() => import('../../../components/BulkMenuUpload'), { ssr: false });
+const BulkModifierGroupModal = dynamic(() => import('../../../components/BulkModifierGroupModal'), { ssr: false });
 const QRCodeModal = dynamic(() => import('../../../components/QRCodeModal'), { ssr: false });
 const BarcodeTab = dynamic(() => import('./components/BarcodeTab'), { ssr: false });
 import apiClient from '../../../lib/api';
@@ -79,8 +80,10 @@ const CategoryDropdown = ({
   onCategoryAdded = null,
   onCategoryUpdated = null,
   onCategoryDeleted = null,
+  onReorder = null, // (orderedCategoryNames[]) => persist new order + refresh (parent calls reorderMenu)
   className = ""
 }) => {
+  const [reordering, setReordering] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
@@ -98,6 +101,30 @@ const CategoryDropdown = ({
   // Build hierarchical category list: top-level first, children indented below parent
   const topLevelCategories = categories.filter(c => !c.parentId);
   const childrenOf = (parentId) => categories.filter(c => c.parentId === parentId);
+
+  // Move a category up/down AMONG ITS SIBLINGS (same parent), then persist the full order.
+  // Builds the complete desired order (top-levels in order, each followed by its children,
+  // recursively) and hands the category NAMES to the parent, which calls the reorder API + reloads.
+  const moveCategory = async (category, dir) => {
+    if (reordering || !onReorder) return;
+    const pid = category.parentId || null;
+    const siblings = categories.filter(c => (c.parentId || null) === pid);
+    const idx = siblings.findIndex(c => c.id === category.id);
+    const swap = idx + (dir === 'up' ? -1 : 1);
+    if (idx < 0 || swap < 0 || swap >= siblings.length) return; // already at the edge
+    const newSibs = [...siblings];
+    [newSibs[idx], newSibs[swap]] = [newSibs[swap], newSibs[idx]];
+    const groupFor = (parentId) => ((parentId || null) === pid)
+      ? newSibs
+      : categories.filter(c => (c.parentId || null) === (parentId || null));
+    const flat = [];
+    const walk = (parentId) => { groupFor(parentId).forEach(c => { flat.push(c); walk(c.id); }); };
+    walk(null);
+    setReordering(true);
+    try { await onReorder(flat.map(c => c.name)); }
+    catch (e) { console.error('Category reorder failed:', e?.message); }
+    finally { setReordering(false); }
+  };
   // All descendants of a category — used to keep the parent picker acyclic
   // (a category can never be moved under one of its own descendants).
   const getDescendantIds = (rootId) => {
@@ -483,7 +510,18 @@ const CategoryDropdown = ({
             </button>
                 
                 {/* Category Actions */}
-                <div className="flex gap-1" style={{ flexShrink: 0 }}>
+                <div className="flex gap-1 items-center" style={{ flexShrink: 0 }}>
+                  {onReorder && (() => {
+                    const sibs = categories.filter(c => (c.parentId || null) === (category.parentId || null));
+                    const sIdx = sibs.findIndex(c => c.id === category.id);
+                    if (sibs.length < 2) return null; // nothing to reorder among a single sibling
+                    return (
+                      <>
+                        <button type="button" disabled={reordering || sIdx <= 0} onClick={(e) => { e.stopPropagation(); moveCategory(category, 'up'); }} className="px-1 text-xs text-gray-400 hover:text-gray-700 disabled:opacity-30" title="Move up">▲</button>
+                        <button type="button" disabled={reordering || sIdx >= sibs.length - 1} onClick={(e) => { e.stopPropagation(); moveCategory(category, 'down'); }} className="px-1 text-xs text-gray-400 hover:text-gray-700 disabled:opacity-30" title="Move down">▼</button>
+                      </>
+                    );
+                  })()}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -2389,9 +2427,15 @@ const MenuManagement = () => {
   const [displaySearch, setDisplaySearch] = useState('');
   const searchDebounceRef = useRef(null);
   const [viewMode, setViewMode] = useState('grid');
+  // iPhone-style "Arrange" mode for the category cards (drag to reorder → Done saves).
+  const [arrangeMode, setArrangeMode] = useState(false);
+  const [arrangeOrder, setArrangeOrder] = useState([]); // folder objects in the edited order
+  const [savingArrange, setSavingArrange] = useState(false);
+  const dragFolderId = useRef(null);
   const [showBarcodeTab, setShowBarcodeTab] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [showBulkModifier, setShowBulkModifier] = useState(false);
   const [showMoreActions, setShowMoreActions] = useState(false);
   const moreActionsRef = useRef(null);
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
@@ -2932,6 +2976,33 @@ const MenuManagement = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategory, categories]);
 
+  // ── Arrange mode (drag category cards to reorder) ──────────────────────────
+  const enterArrange = () => { setArrangeOrder([...menuFolders]); setArrangeMode(true); };
+  const cancelArrange = () => { setArrangeMode(false); setArrangeOrder([]); dragFolderId.current = null; };
+  const onArrangeDrop = (targetId) => {
+    const from = dragFolderId.current; dragFolderId.current = null;
+    if (!from || from === targetId) return;
+    setArrangeOrder(prev => {
+      const arr = [...prev];
+      const fi = arr.findIndex(f => f.id === from);
+      const ti = arr.findIndex(f => f.id === targetId);
+      if (fi < 0 || ti < 0) return prev;
+      const [moved] = arr.splice(fi, 1);
+      arr.splice(ti, 0, moved);
+      return arr;
+    });
+  };
+  const saveArrange = async () => {
+    if (savingArrange) return;
+    setSavingArrange(true);
+    try {
+      await apiClient.reorderMenu(currentRestaurant.id, { categoryOrder: arrangeOrder.map(f => f.name) });
+      await loadMenuData(currentRestaurant.id, false); // reload fresh so the new order sticks
+      setArrangeMode(false); setArrangeOrder([]);
+    } catch (e) { console.error('Arrange save failed:', e); }
+    finally { setSavingArrange(false); }
+  };
+
   // Colourful category tile (same look as the POS dashboard drill-down)
   const renderMenuFolder = (folder) => {
     const PAL = [
@@ -2947,10 +3018,16 @@ const MenuManagement = () => {
     const c = PAL[h % PAL.length];
     const emoji = (folder.emoji && folder.emoji !== '🍽️') ? folder.emoji : getCategoryEmoji(folder.name);
     return (
-      <div key={`mfolder-${folder.id}`} onClick={() => setSelectedCategory(folder.id)}
-        style={{ display: 'flex', flexDirection: 'column', gap: '12px', minHeight: '122px', padding: '16px', borderRadius: '16px', cursor: 'pointer', background: `linear-gradient(155deg, #ffffff 32%, ${c.soft} 100%)`, border: `1px solid ${c.ring}`, boxShadow: '0 1px 3px rgba(15,23,42,0.05)', transition: 'all 0.18s' }}
-        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 10px 22px ${c.accent}22`; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = c.accent; }}
-        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(15,23,42,0.05)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = c.ring; }}
+      <div key={`mfolder-${folder.id}`}
+        onClick={() => { if (!arrangeMode) setSelectedCategory(folder.id); }}
+        draggable={arrangeMode}
+        onDragStart={arrangeMode ? (() => { dragFolderId.current = folder.id; }) : undefined}
+        onDragOver={arrangeMode ? ((e) => e.preventDefault()) : undefined}
+        onDrop={arrangeMode ? (() => onArrangeDrop(folder.id)) : undefined}
+        className={arrangeMode ? 'menu-arrange-wiggle' : undefined}
+        style={{ display: 'flex', flexDirection: 'column', gap: '12px', minHeight: '122px', padding: '16px', borderRadius: '16px', cursor: arrangeMode ? 'grab' : 'pointer', background: `linear-gradient(155deg, #ffffff 32%, ${c.soft} 100%)`, border: arrangeMode ? `2px dashed ${c.accent}` : `1px solid ${c.ring}`, boxShadow: '0 1px 3px rgba(15,23,42,0.05)', transition: 'all 0.18s' }}
+        onMouseEnter={arrangeMode ? undefined : ((e) => { e.currentTarget.style.boxShadow = `0 10px 22px ${c.accent}22`; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = c.accent; })}
+        onMouseLeave={arrangeMode ? undefined : ((e) => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(15,23,42,0.05)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = c.ring; })}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ width: '46px', height: '46px', borderRadius: '13px', background: '#ffffff', border: `1px solid ${c.ring}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>{emoji}</div>
@@ -4563,6 +4640,7 @@ const MenuManagement = () => {
             {[
               { icon: <FaCloudUploadAlt size={isMobileEmbed ? 11 : 16} />, label: t('menu.upload'), onClick: () => setShowBulkUpload(true), bg: '#fef2f2', color: '#dc2626', hoverBg: '#fee2e2', border: '#fecaca' },
               { icon: <FaFileExport size={isMobileEmbed ? 11 : 16} />, label: 'Export', onClick: () => setShowExportModal(true), bg: '#f0fdf4', color: '#15803d', hoverBg: '#dcfce7', border: '#a7f3d0' },
+              { icon: <FaTags size={isMobileEmbed ? 11 : 16} />, label: 'Modifiers', onClick: () => setShowBulkModifier(true), bg: '#faf5ff', color: '#7c3aed', hoverBg: '#f3e8ff', border: '#e9d5ff' },
               { icon: <FaCamera size={isMobileEmbed ? 11 : 16} />, label: t('menu.photo'), onClick: handleCameraCapture, bg: '#fffbeb', color: '#d97706', hoverBg: '#fef3c7', border: '#fde68a' },
               { icon: <FaQrcode size={isMobileEmbed ? 11 : 16} />, label: t('menu.qrCode'), onClick: () => setShowQRCodeModal(true), bg: '#ecfdf5', color: '#059669', hoverBg: '#d1fae5', border: '#a7f3d0' },
               { icon: <FaEye size={isMobileEmbed ? 11 : 16} />, label: t('menu.customize'), onClick: () => { const rid = currentRestaurant?.id || localStorage.getItem('restaurantId'); const p = `/menu/customize${rid ? `?restaurant=${rid}` : ''}`; router.push(isMobileEmbed ? `/mobile${p}` : p); }, bg: '#eff6ff', color: '#2563eb', hoverBg: '#dbeafe', border: '#bfdbfe' },
@@ -4987,9 +5065,35 @@ const MenuManagement = () => {
             })()}
             {/* Category folder tiles (drill-down) */}
             {menuFolders.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(150px, 1fr))' : 'repeat(auto-fill, minmax(200px, 1fr))', gap: isMobile ? '12px' : '16px', marginBottom: menuDirectItems.length ? '22px' : '0' }}>
-                {menuFolders.map(renderMenuFolder)}
-              </div>
+              <>
+                <style>{`@keyframes menuArrangeWiggle{0%{transform:rotate(-0.6deg)}50%{transform:rotate(0.6deg)}100%{transform:rotate(-0.6deg)}} .menu-arrange-wiggle{animation:menuArrangeWiggle 0.35s ease-in-out infinite}`}</style>
+                {/* Arrange bar — drag the cards to reorder (iPhone-style); Done saves. */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                  {!arrangeMode ? (
+                    (menuFolders.length > 1 && isOwnerOrAdmin) && (
+                      <button type="button" onClick={enterArrange}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '9px', border: '1px solid #d1d5db', background: '#fff', color: '#374151', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+                        ⇅ Arrange
+                      </button>
+                    )
+                  ) : (
+                    <>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#dc2626' }}>Drag the cards to reorder</span>
+                      <button type="button" onClick={saveArrange} disabled={savingArrange}
+                        style={{ padding: '7px 16px', borderRadius: '9px', border: 'none', background: savingArrange ? '#9ca3af' : '#16a34a', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: savingArrange ? 'not-allowed' : 'pointer' }}>
+                        {savingArrange ? 'Saving…' : 'Done'}
+                      </button>
+                      <button type="button" onClick={cancelArrange} disabled={savingArrange}
+                        style={{ padding: '7px 14px', borderRadius: '9px', border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                        Cancel
+                      </button>
+                    </>
+                  )}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(150px, 1fr))' : 'repeat(auto-fill, minmax(200px, 1fr))', gap: isMobile ? '12px' : '16px', marginBottom: menuDirectItems.length ? '22px' : '0' }}>
+                  {(arrangeMode ? arrangeOrder : menuFolders).map(renderMenuFolder)}
+                </div>
+              </>
             )}
             {viewMode === 'grid' ? (
             <div style={{
@@ -6362,6 +6466,11 @@ const MenuManagement = () => {
                     onCategoryAdded={handleAddNewCategory}
                     onCategoryUpdated={handleCategoryUpdated}
                     onCategoryDeleted={handleCategoryDeleted}
+                    onReorder={async (orderedNames) => {
+                      // Persist the new category order (bill/POS reads it) + reload fresh from server.
+                      await apiClient.reorderMenu(currentRestaurant.id, { categoryOrder: orderedNames });
+                      await loadMenuData(currentRestaurant.id, false);
+                    }}
                   />
                 </div>
 
@@ -7215,6 +7324,16 @@ const MenuManagement = () => {
           taxSettings={currentRestaurant?.taxSettings}
         />,
         document.body
+      )}
+
+      {showBulkModifier && (
+        <BulkModifierGroupModal
+          isOpen={showBulkModifier}
+          onClose={() => setShowBulkModifier(false)}
+          restaurantId={currentRestaurant?.id}
+          menuItems={menuItems}
+          onApplied={() => { if (currentRestaurant?.id) loadMenuData(currentRestaurant.id, false); }}
+        />
       )}
 
       {/* QR Code Modal — lazy-loaded, portal to render above sidebar */}

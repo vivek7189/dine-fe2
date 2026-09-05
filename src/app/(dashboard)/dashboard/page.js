@@ -274,6 +274,11 @@ function RestaurantPOSContent() {
   const [isTablet, setIsTablet] = useState(false);
   const isMobileEmbed = isMobile && typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  // Wide 2-column order panel (persisted per-device); windowWidth tracked for the 50/50 split (also works in Electron)
+  const [orderPanelExpanded, setOrderPanelExpanded] = useState(false);
+  const [orderPanelPct, setOrderPanelPct] = useState(0.5); // user-chosen wide-panel width (fraction of window)
+  const [draggingPanel, setDraggingPanel] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(1440);
   const [showMobileEmbedSearch, setShowMobileEmbedSearch] = useState(false);
   const [hideMenuImagesLocal, setHideMenuImagesLocal] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -302,7 +307,49 @@ function RestaurantPOSContent() {
   useEffect(() => { activeSeatRef.current = seatOrderingEnabled ? activeSeat : null; }, [activeSeat, seatOrderingEnabled]);
 
   // Responsive panel width for order summary (tablet = narrower)
-  const orderPanelWidth = isTablet ? 340 : 450;
+  const normalOrderPanelWidth = isTablet ? 340 : 450;
+  // Wide "expanded" order panel (2-column) — only when the window is wide enough, else auto-fall back to normal
+  const canExpandOrderPanel = !isMobile && windowWidth >= 1100;
+  const orderPanelExpandedActive = orderPanelExpanded && canExpandOrderPanel;
+  // User-draggable width: clamp the chosen fraction to a safe 35%–75% band.
+  const ORDER_PANEL_MIN_PCT = 0.35;
+  const ORDER_PANEL_MAX_PCT = 0.75;
+  const clampedPanelPct = Math.min(ORDER_PANEL_MAX_PCT, Math.max(ORDER_PANEL_MIN_PCT, orderPanelPct));
+  const orderPanelWidth = orderPanelExpandedActive ? Math.round(windowWidth * clampedPanelPct) : normalOrderPanelWidth;
+  const toggleOrderPanelExpanded = useCallback(() => {
+    setOrderPanelExpanded(prev => {
+      const next = !prev;
+      try { localStorage.setItem('pos.orderPanelExpanded', next ? '1' : '0'); } catch (_) {}
+      return next;
+    });
+  }, []);
+  // Drag the panel's left edge to resize (persists the chosen fraction).
+  const startPanelResize = useCallback((e) => {
+    e.preventDefault();
+    setDraggingPanel(true);
+    const onMove = (ev) => {
+      const clientX = ev.touches ? ev.touches[0].clientX : ev.clientX;
+      const w = window.innerWidth;
+      const pct = Math.min(0.75, Math.max(0.35, (w - clientX) / w));
+      setOrderPanelPct(pct);
+    };
+    const onUp = () => {
+      setDraggingPanel(false);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
+      setOrderPanelPct(prev => {
+        const clamped = Math.min(0.75, Math.max(0.35, prev));
+        try { localStorage.setItem('pos.orderPanelPct', String(clamped)); } catch (_) {}
+        return clamped;
+      });
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onUp);
+  }, []);
 
   // Dashboard version redirect — if V2 is selected, redirect to /dashboard/v2
   useEffect(() => {
@@ -1084,10 +1131,31 @@ function RestaurantPOSContent() {
     const allItems = allCats.find(c => c.id === 'all-items');
     const otherCategories = allCats.filter(c => c.id !== 'favorites' && c.id !== 'all-items');
 
+    // Respect the owner-set category order (Menu → drag-reorder saves displayOrder/order on the
+    // category list). Match each tab to its category by id or name; categories with no order keep
+    // their current position (appended, stable) — so stores that never reordered look unchanged.
+    const orderOf = new Map();
+    (menuCategories || []).forEach((c, i) => {
+      if (!c) return;
+      const ord = (typeof c.displayOrder === 'number') ? c.displayOrder : (typeof c.order === 'number' ? c.order : i);
+      if (c.id) orderOf.set(String(c.id).toLowerCase(), ord);
+      if (c.name) orderOf.set(String(c.name).toLowerCase(), ord);
+    });
+    const BIG = 1e9;
+    const ordVal = (c) => {
+      const byId = orderOf.get(String(c.id || '').toLowerCase());
+      if (byId != null) return byId;
+      const byName = orderOf.get(String(c.name || '').toLowerCase());
+      return byName != null ? byName : BIG;
+    };
+    if (orderOf.size > 0) {
+      otherCategories.sort((a, b) => ordVal(a) - ordVal(b)); // Array.sort is stable → ties keep prior order
+    }
+
     return favorites && favorites.count > 0
       ? [favorites, allItems, ...otherCategories]
       : [allItems, ...otherCategories];
-  }, [effectiveMenuItems, categoryItemCountMap, getCategoryEmoji, hasCategoryTree, categoryIndex]);
+  }, [effectiveMenuItems, categoryItemCountMap, getCategoryEmoji, hasCategoryTree, categoryIndex, menuCategories]);
 
   // Measure the category chip bar to decide whether the 2-row clamp overflows
   // (i.e. whether to show the More/Less toggle). Placed here because it depends
@@ -1132,6 +1200,16 @@ function RestaurantPOSContent() {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Track window width + restore the saved wide-panel preference (runs in Electron too)
+  useEffect(() => {
+    try { setOrderPanelExpanded(localStorage.getItem('pos.orderPanelExpanded') === '1'); } catch (_) {}
+    try { const p = parseFloat(localStorage.getItem('pos.orderPanelPct')); if (!isNaN(p)) setOrderPanelPct(Math.min(0.75, Math.max(0.35, p))); } catch (_) {}
+    const onResize = () => setWindowWidth(window.innerWidth);
+    onResize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
   // Debounce search term for performance (avoids re-rendering 300+ cards on every keystroke)
@@ -7445,6 +7523,29 @@ function RestaurantPOSContent() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               {/* App-update pill (desktop only; renders nothing when no update) */}
               <UpdateIndicator />
+              {/* Manual Lock — placed next to Alerts. Only when Terminal PIN Lock is enabled;
+                  locks the POS on demand (staff re-enter their PIN). Platform-agnostic — works on
+                  web, the Electron app, and the local-server Electron app. */}
+              {terminalLockEnabled && (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    padding: '6px 12px',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onClick={() => { try { lockTerminal(); } catch (_) {} }}
+                  title="Lock this terminal"
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <FaLock size={22} color="#dc2626" />
+                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Lock</span>
+                </div>
+              )}
               {/* Notification Bell — hidden when showSuccessNotifications is disabled */}
               {printSettings?.showSuccessNotifications !== false && (
               <div
@@ -7619,28 +7720,6 @@ function RestaurantPOSContent() {
                 <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>DineBot</span>
               </div>
 
-              {/* Manual Lock — only when Terminal PIN Lock is enabled. Locks the POS on demand
-                  (staff must re-enter their PIN to continue). */}
-              {terminalLockEnabled && (
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    padding: '6px 12px',
-                    borderRadius: '10px',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onClick={() => { try { lockTerminal(); } catch (_) {} }}
-                  title="Lock this terminal"
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                >
-                  <FaLock size={22} color="#dc2626" />
-                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Lock</span>
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -9198,6 +9277,7 @@ function RestaurantPOSContent() {
             right: 0,
             top: '56px', // Below the header
             width: `${orderPanelWidth}px`,
+            transition: draggingPanel ? 'none' : 'width 0.18s ease',
             height: 'calc(100vh - 56px)', // Full height minus header
             display: 'flex',
             flexDirection: 'column',
@@ -9205,6 +9285,25 @@ function RestaurantPOSContent() {
             backgroundColor: '#ffffff',
             borderLeft: '1px solid #e5e7eb'
           }}>
+          {/* Drag handle — resize the wide panel to any width the user likes (expanded view only) */}
+          {orderPanelExpandedActive && (
+            <div
+              onMouseDown={startPanelResize}
+              onTouchStart={startPanelResize}
+              title="Drag to resize"
+              style={{
+                position: 'absolute', left: '-4px', top: 0, bottom: 0, width: '10px',
+                cursor: 'col-resize', zIndex: 95, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <div style={{
+                width: '4px', height: '46px', borderRadius: '3px',
+                background: draggingPanel ? '#dc2626' : '#cbd5e1',
+                boxShadow: draggingPanel ? '0 0 0 3px rgba(220,38,38,0.15)' : 'none',
+                transition: 'background 0.15s ease',
+              }} />
+            </div>
+          )}
           {console.log('🖥️ Dashboard: Rendering OrderSummary with cart:', cart)}
           <OrderSummary
             restaurant={selectedRestaurant}
@@ -9298,6 +9397,8 @@ function RestaurantPOSContent() {
             seatOrderingEnabled={seatOrderingEnabled}
             activeSeat={activeSeat}
             setActiveSeat={setActiveSeat}
+            expanded={orderPanelExpandedActive}
+            onToggleExpanded={toggleOrderPanelExpanded}
           />
         </div>
                 ) : (

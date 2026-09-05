@@ -9,7 +9,7 @@ import {
   getBillPrintCSS, getBillHeaderHTML, wrapInDocument, buildInclusiveTaxNote,
   buildFeedbackSection, buildOrderStatusSection, buildSplitBillHtml,
   BILL_LABELS_AR, getBillDualCSS, dualLabel, dualTitle,
-  buildCashbackHtml,
+  buildCashbackHtml, buildCustomFooterHtml,
 } from '../helpers';
 import { orderDisplayNumber } from '../../orderNumber';
 
@@ -62,6 +62,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
       (bl.showCovers !== false && invoice.covers && invoice.covers > 1 ? `<div><span>${showAr ? dualLabel('Covers', 'أغطية', showAr) : 'Covers'}:</span><span>${invoice.covers}</span></div>` : '') +
       (bl.showWaiter !== false && (invoice.waiterName || invoice.cashierName) ? `<div><span>Staff:</span><span>${esc(invoice.waiterName || invoice.cashierName)}</span></div>` : '') +
       (bl.showCustomer !== false && invoice.customerName ? `<div><span>${dualLabel(L.customer, AR.customer, showAr)}:</span><span>${esc(invoice.customerName)}</span></div>` : '') +
+      (invoice.customerTin ? `<div><span>KRA PIN:</span><span>${esc(invoice.customerTin)}</span></div>` : '') +
       (bl.showCustomerPhone && invoice.customerPhone ? `<div><span>${dualLabel('Phone', 'هاتف', showAr)}:</span><span>${esc(invoice.customerPhone)}</span></div>` : '') +
       (bl.showOrderType !== false && invoice.orderType ? `<div><span>Type:</span><span>${invoice.orderType}</span></div>` : '') +
       (bl.showPayment !== false ? `<div><span>${dualLabel(L.payment, AR.payment, showAr)}:</span><span>${(invoice.paymentMethodLabel || invoice.paymentMethod || 'CASH').toUpperCase()}</span></div>` : '') +
@@ -82,7 +83,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
     `<div class="divider">================================</div>` +
     buildFeedbackSection(printSettings) +
     buildOrderStatusSection(printSettings) +
-    `<div class="bill-footer">${bl.showFooter !== false ? `<p>${showAr ? dualLabel(L.footer, AR.footer, showAr) : L.footer}</p>` : ''}${bl.showPoweredBy !== false ? `<p style="font-size:10px;margin-top:4px;">${showAr ? dualLabel(L.poweredBy, AR.poweredBy, showAr) : L.poweredBy}</p>` : ''}</div>`;
+    `<div class="bill-footer">${buildCustomFooterHtml(bl)}${bl.showFooter !== false ? `<p>${showAr ? dualLabel(L.footer, AR.footer, showAr) : L.footer}</p>` : ''}${bl.showPoweredBy !== false ? `<p style="font-size:10px;margin-top:4px;">${showAr ? dualLabel(L.poweredBy, AR.poweredBy, showAr) : L.poweredBy}</p>` : ''}</div>`;
 
   return wrapInDocument(`${L.billLabel} #${orderDisplayNumber(invoice)}`, css, bodyHtml);
 }

@@ -21,7 +21,7 @@ function fmtWhen(v) {
  */
 export default function EtimsSettings({ restaurantId }) {
   const [cfg, setCfg] = useState(null);
-  const [form, setForm] = useState({ enabled: false, askPerBill: false, tin: '', bhfId: '00', dvcSrlNo: '', vscuUrl: 'http://localhost:8088', defaultItemClassCode: '', receiptBottomMsg: '' });
+  const [form, setForm] = useState({ enabled: false, askPerBill: false, tin: '', bhfId: '00', dvcSrlNo: '', vscuUrl: 'http://localhost:8088', defaultItemClassCode: '', receiptBottomMsg: '', trdeNm: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [togglingEnabled, setTogglingEnabled] = useState(false);
@@ -44,7 +44,7 @@ export default function EtimsSettings({ restaurantId }) {
       const res = await apiClient.request(`/api/etims/${restaurantId}/config`);
       const c = res.config || {};
       setCfg(c);
-      setForm((f) => ({ ...f, enabled: c.enabled, askPerBill: !!c.askPerBill, tin: c.tin || '', bhfId: c.bhfId || '00', dvcSrlNo: c.dvcSrlNo || '', vscuUrl: c.vscuUrl || 'http://localhost:8088', defaultItemClassCode: c.defaultItemClassCode || '', receiptBottomMsg: c.receiptBottomMsg || '' }));
+      setForm((f) => ({ ...f, enabled: c.enabled, askPerBill: !!c.askPerBill, tin: c.tin || '', bhfId: c.bhfId || '00', dvcSrlNo: c.dvcSrlNo || '', vscuUrl: c.vscuUrl || 'http://localhost:8088', defaultItemClassCode: c.defaultItemClassCode || '', receiptBottomMsg: c.receiptBottomMsg || '', trdeNm: c.trdeNm || '' }));
     } catch (e) { setMsg({ type: 'error', text: e.message || 'Failed to load' }); }
     finally { setLoading(false); }
   }, [restaurantId]);
@@ -210,6 +210,7 @@ export default function EtimsSettings({ restaurantId }) {
         value={form[key]}
         onChange={(e) => setForm({ ...form, [key]: e.target.value })}
         placeholder={opts.placeholder || ''}
+        maxLength={opts.maxLength}
         style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13 }}
       />
       {opts.hint && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{opts.hint}</div>}
@@ -277,6 +278,7 @@ export default function EtimsSettings({ restaurantId }) {
       {field('Device Serial No. (dvcSrlNo)', 'dvcSrlNo', { placeholder: 'The serial registered on the eTIMS portal' })}
       {field('VSCU URL', 'vscuUrl', { placeholder: 'http://192.168.1.50:8088', hint: 'The one machine running the VSCU. Single terminal: http://localhost:8088. Multiple terminals: use that machine’s LAN IP (e.g. http://192.168.1.50:8088) — a PC name like “desktop-xxxx” often won’t resolve from other tills. This is shared by all terminals of this outlet.' })}
       {field('Default item classification code', 'defaultItemClassCode', { placeholder: 'KRA UNSPSC code', hint: 'Fallback KRA item class for items without one' })}
+      {field('KRA trade name (optional)', 'trdeNm', { placeholder: 'e.g. XPRESS GRUB FOODS', maxLength: 20, hint: 'Short trade name sent to KRA on the fiscal receipt — max 20 characters (KRA limit). Leave blank to use your business name (auto-shortened to 20). The printed receipt still shows your full name.' })}
       {field('Receipt footer message', 'receiptBottomMsg', { placeholder: 'Thank you for your business' })}
 
       {cfg && cfg.initialised && (

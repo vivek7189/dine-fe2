@@ -48,6 +48,17 @@ import { resolveVariantTierPrice } from '../utils/variantPricing';
 
 const CustomerDetailModal = dynamic(() => import('./CustomerDetailModal'), { ssr: false });
 const DiscountApprovalModal = dynamic(() => import('./DiscountApprovalModal'), { ssr: false });
+
+// Options for the settlement / split-payment pickers. Prefer the restaurant's configured
+// settlement methods (billingSettings.settlementMethods); if none are set, mirror the POS
+// payment methods so a store's real methods (e.g. M-Pesa for Kenya) appear here instead of
+// a hardcoded India default (UPI). Only when neither is configured fall back to cash/card/UPI.
+// Behaviour is UNCHANGED for any restaurant that has settlementMethods configured.
+function settlementMethodOptions(billingSettings, posSettings) {
+  if (billingSettings?.settlementMethods) return billingSettings.settlementMethods;
+  if (Array.isArray(posSettings?.paymentMethods) && posSettings.paymentMethods.length) return posSettings.paymentMethods;
+  return [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }];
+}
 import UpiPaymentModal from './UpiPaymentModal';
 import EcrStatusModal from './EcrStatusModal';
 import useEcr from '../services/ecr/useEcr';
@@ -97,7 +108,8 @@ import {
   FaMapMarkerAlt,
   FaExclamationTriangle,
   FaUsers,
-  FaExpand
+  FaExpand,
+  FaCompress
 } from 'react-icons/fa';
 
 const OrderSummary = ({
@@ -204,6 +216,9 @@ const OrderSummary = ({
   seatOrderingEnabled = false,
   activeSeat = null,
   setActiveSeat,
+  // Wide 2-column order panel (desktop only; controlled by dashboard, persisted in localStorage)
+  expanded = false,
+  onToggleExpanded,
 }) => {
   // Dark-mode color mapping for V2
   const dm = darkMode ? {
@@ -2360,6 +2375,12 @@ const OrderSummary = ({
           if (!invoiceData.orderId) invoiceData.orderId = orderId; // guarantee the DB id for eTIMS fiscalise
           if (!invoiceData.currencySymbol) invoiceData.currencySymbol = getCurrencySymbol();
           if (!invoiceData.countryCode) invoiceData.countryCode = countryCode;
+          // Safety net: never let the printed header fall back to a bare "RESTAURANT". Fill ONLY
+          // header fields the API left empty (never override what the backend returned).
+          if (!invoiceData.restaurantName) invoiceData.restaurantName = restaurant?.name || restaurantName || 'Restaurant';
+          if (!invoiceData.restaurantLegalName) invoiceData.restaurantLegalName = restaurant?.legalBusinessName || '';
+          if (!invoiceData.restaurantAddress) invoiceData.restaurantAddress = printSettings?.receiptAddress || restaurant?.address || '';
+          if (!invoiceData.restaurantPhone) invoiceData.restaurantPhone = printSettings?.receiptPhone || restaurant?.phone || '';
           attachInclusiveSplits(invoiceData); // per-item MRP + tax on inclusive bills
           setInvoice(invoiceData);
           setShowInvoicePermanently(true);
@@ -2379,7 +2400,23 @@ const OrderSummary = ({
       const localInvoice = {
         orderId,
         orderNumber: orderId?.slice(-4)?.toUpperCase() || '',
-        restaurantName: restaurantName || '',
+        // Full header identity so the OFFLINE/fallback bill still shows the correct restaurant
+        // name + legal name + address + phone + VAT — instead of a bare "RESTAURANT" — whenever
+        // the bill-render API is unreachable (common on the local-server / offline POS). Sourced
+        // from the restaurant prop + printSettings, mirroring the backend bill-render builder.
+        restaurantName: restaurantName || restaurant?.name || 'Restaurant',
+        restaurantLegalName: restaurant?.legalBusinessName || '',
+        restaurantAddress: printSettings?.receiptAddress || restaurant?.address || '',
+        restaurantPhone: printSettings?.receiptPhone || restaurant?.phone || '',
+        gstin: restaurant?.gstin || '',
+        fssai: restaurant?.fssai || '',
+        vatNumber: restaurant?.vatNumber || '',
+        taxId: restaurant?.taxId || '',
+        businessRegistrationNumber: restaurant?.businessRegistrationNumber || '',
+        showGstOnInvoice: restaurant?.showGstOnInvoice === true,
+        showFssaiOnInvoice: restaurant?.showFssaiOnInvoice === true,
+        showTaxIdOnInvoice: restaurant?.showTaxIdOnInvoice === true,
+        taxLabel: restaurant?.currencySettings?.taxLabel || '',
         items: (cart || []).map(item => {
           // Effective unit price = base + selectedCustomizations, added exactly once by
           // getItemUnitPrice. item.price alone is the BASE menu price, so using it here would
@@ -2399,6 +2436,7 @@ const OrderSummary = ({
         covers: covers,
         floorName: selectedTable?.floor || '',
         customerName: customerName || 'Walk-in',
+        customerTin: customerTin || null,
         customerPhone: customerMobile || '',
         paymentMethod: paymentMethod || 'cash',
         paymentMethodLabel: (() => {
@@ -2843,7 +2881,10 @@ const OrderSummary = ({
       }
     }
   };
-  
+
+  // Wide 2-column order panel: item list on the left, checkout (total/customer/payment/buttons) on the right.
+  const twoColumn = !!expanded && !billingMode && !isMobile;
+
   return (
     <div style={{
       width: isMobile ? '100vw' : '100%',
@@ -2872,7 +2913,8 @@ const OrderSummary = ({
         position: 'relative',
         overflow: 'hidden',
         flexShrink: 0,
-        ...(billingMode && { borderBottom: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0' })
+        ...(billingMode && { borderBottom: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0' }),
+        ...(twoColumn ? { borderTopLeftRadius: '16px', borderTopRightRadius: '16px' } : {})
       }}>
         {/* Background Pattern - hidden in billing mode */}
         {!billingMode && (
@@ -2938,6 +2980,20 @@ const OrderSummary = ({
                 {cart.reduce((sum, item) => sum + item.quantity, 0)} {t('common.items')}
               </p>
             </div>
+            {onToggleExpanded && !isMobile && !billingMode && (
+              <button
+                onClick={onToggleExpanded}
+                title={expanded ? 'Back to normal width' : 'Expand to a wide 2-column view'}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  background: '#ffffff', color: '#dc2626', border: 'none',
+                  borderRadius: '8px', width: '30px', height: '30px', marginLeft: '8px',
+                  cursor: 'pointer', flexShrink: 0, boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
+                }}
+              >
+                {expanded ? <FaCompress size={16} /> : <FaExpand size={16} />}
+              </button>
+            )}
           </div>
           
           {/* Edit Mode Indicator - hidden in billing mode */}
@@ -3614,6 +3670,9 @@ const OrderSummary = ({
         </div>
       )}
 
+      {/* Order body — item list (left) + checkout (right) sit side-by-side only in wide/expanded mode.
+          display:contents when collapsed keeps the wrapper invisible to layout (zero change vs. today). */}
+      <div style={twoColumn ? { display: 'flex', flexDirection: 'row', flex: 1, minHeight: 0, overflow: 'hidden' } : { display: 'contents' }}>
       {/* Scrollable Content - Cart Items Only (in billing mode or embed, parent scrolls so this is static) */}
       <div style={{
         flex: billingMode ? 'none' : 1,
@@ -3623,9 +3682,9 @@ const OrderSummary = ({
         paddingBottom: '8px',
         scrollbarWidth: 'thin',
         scrollbarColor: '#cbd5e1 transparent',
-        minHeight: billingMode ? 'auto' : 0
+        minHeight: billingMode ? 'auto' : '160px'
       }}
-      className={billingMode ? undefined : 'hide-scrollbar'}
+      className={billingMode ? undefined : 'cart-items-scroll'}
       >
         {/* Saved Orders Chips - Always visible at top */}
         {savedOrders && savedOrders.length > 0 && (
@@ -5256,7 +5315,11 @@ const OrderSummary = ({
           flexShrink: 0,
           ...(isMobileEmbed ? { display: 'flex', flexDirection: 'column', flex: 1 } : {}),
           boxShadow: billingMode ? 'none' : '0 -4px 12px rgba(0,0,0,0.08)',
+          ...(twoColumn ? { width: '380px', flexShrink: 0, overflowY: 'auto', overflowX: 'hidden', borderTop: 'none', borderLeft: dm ? '1px solid ' + dm.border : '1px solid #eef1f4', boxShadow: 'none', display: 'flex', flexDirection: 'column' } : {}),
         }}>
+          {/* Wide view: flexible spacer pushes total+checkout+buttons to the bottom of the column.
+              Collapses to 0 (and the column scrolls) when content is taller than the space. */}
+          {twoColumn && <div style={{ flex: '1 1 auto', minHeight: 0 }} />}
           {/* (Discount controls moved inline with special instructions below) */}
 
           {/* Total - Red bar */}
@@ -5264,7 +5327,7 @@ const OrderSummary = ({
             <div style={{
               background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)',
               color: 'white',
-              padding: isMobile ? '8px 10px' : '12px 14px',
+              padding: isMobile ? '8px 10px' : '9px 12px',
               borderRadius: '8px',
               boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
               opacity: editPreFillPending ? 0.5 : 1,
@@ -5293,7 +5356,7 @@ const OrderSummary = ({
                     )}
                   </div>
                 </div>
-                <span style={{ fontSize: isMobile ? '18px' : '22px', fontWeight: 'bold' }}>{formatCurrency(editPreFillPending && currentOrder?.finalAmount != null ? currentOrder.finalAmount : (settleFinalAmount()))}</span>
+                <span style={{ fontSize: isMobile ? '18px' : '19px', fontWeight: 'bold' }}>{formatCurrency(editPreFillPending && currentOrder?.finalAmount != null ? currentOrder.finalAmount : (settleFinalAmount()))}</span>
               </div>
               {useWallet && parseFloat(walletRedeemAmount) > 0 && (
                 <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.25)' }}>
@@ -6422,7 +6485,7 @@ const OrderSummary = ({
                                   onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
                                   style={{ padding: '3px 6px', border: '1px solid #bae6fd', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}
                                 >
-                                  {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
+                                  {(settlementMethodOptions(billingSettings, posSettings))
                                     .filter(m => m.enabled).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
                                 </select>
                               </div>
@@ -6557,7 +6620,7 @@ const OrderSummary = ({
                                     onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
                                     style={{ flex: 1, padding: '3px 6px', border: '1px solid #bae6fd', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}
                                   >
-                                    {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
+                                    {(settlementMethodOptions(billingSettings, posSettings))
                                       .filter(m => m.enabled).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
                                   </select>
                                 </div>
@@ -6592,7 +6655,7 @@ const OrderSummary = ({
                                 onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
                                 style={{ padding: '3px 6px', border: '1px solid #bae6fd', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}
                               >
-                                {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
+                                {(settlementMethodOptions(billingSettings, posSettings))
                                   .filter(m => m.enabled).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
                               </select>
                             </div>
@@ -6656,11 +6719,7 @@ const OrderSummary = ({
                             width: '80px'
                           }}
                         >
-                          {(billingSettings?.settlementMethods || [
-                            { id: 'cash', label: 'Cash', enabled: true },
-                            { id: 'card', label: 'Card', enabled: true },
-                            { id: 'upi', label: 'UPI', enabled: true },
-                          ]).filter(m => m.enabled).map(m => (
+                          {(settlementMethodOptions(billingSettings, posSettings)).filter(m => m.enabled).map(m => (
                             <option key={m.id} value={m.id} disabled={usedMethods.includes(m.id)}>{m.label}{usedMethods.includes(m.id) ? ' (used)' : ''}</option>
                           ))}
                         </select>
@@ -6703,11 +6762,7 @@ const OrderSummary = ({
                       </div>
                     );})}
                     {(() => {
-                      const enabledMethods = (billingSettings?.settlementMethods || [
-                        { id: 'cash', label: 'Cash', enabled: true },
-                        { id: 'card', label: 'Card', enabled: true },
-                        { id: 'upi', label: 'UPI', enabled: true },
-                      ]).filter(m => m.enabled);
+                      const enabledMethods = (settlementMethodOptions(billingSettings, posSettings)).filter(m => m.enabled);
                       const allMethodsUsed = splitPayments.length >= enabledMethods.length;
                       return (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
@@ -7446,18 +7501,18 @@ const OrderSummary = ({
                   ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
                   : 'linear-gradient(135deg, #0891b2, #0e7490)',
                 color: 'white',
-                padding: isMobile ? '10px 12px' : '14px 16px',
-                borderRadius: isMobile ? '8px' : '10px',
+                padding: isMobile ? '10px 12px' : '10px 14px',
+                borderRadius: '8px',
                 fontWeight: '700',
                 border: 'none',
                 cursor: orderBusy || cart.length === 0 || completedBillingBlocked ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                fontSize: isMobile ? '13px' : '15px',
+                fontSize: isMobile ? '13px' : '13px',
                 transition: 'all 0.2s',
                 boxShadow: orderBusy || cart.length === 0 || completedBillingBlocked ? 'none' : '0 4px 12px rgba(8,145,178,0.35)',
               }}
             >
-              <FaPrint size={isMobile ? 13 : 15} /> KOT + Bill
+              <FaPrint size={13} /> KOT + Bill
             </button>
           )}
 
@@ -7548,6 +7603,7 @@ const OrderSummary = ({
           </div>
         </div>
       )}
+      </div>
 
       {/* Voice Confirmation Modal */}
       {showVoiceConfirm && (
@@ -8719,7 +8775,7 @@ const OrderSummary = ({
                           <select value={splitBillPaymentMethods[i] || 'cash'}
                             onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
                             style={{ padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}>
-                            {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
+                            {(settlementMethodOptions(billingSettings, posSettings))
                               .filter(sm => sm.enabled).map(sm => <option key={sm.id} value={sm.id}>{sm.label}</option>)}
                           </select>
                         </div>
@@ -8853,7 +8909,7 @@ const OrderSummary = ({
                             <select value={splitBillPaymentMethods[i] || 'cash'}
                               onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
                               style={{ padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}>
-                              {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
+                              {(settlementMethodOptions(billingSettings, posSettings))
                                 .filter(sm => sm.enabled).map(sm => <option key={sm.id} value={sm.id}>{sm.label}</option>)}
                             </select>
                           </div>
@@ -8887,7 +8943,7 @@ const OrderSummary = ({
                         <select value={splitBillPaymentMethods[i] || 'cash'}
                           onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
                           style={{ padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}>
-                          {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
+                          {(settlementMethodOptions(billingSettings, posSettings))
                             .filter(sm => sm.enabled).map(sm => <option key={sm.id} value={sm.id}>{sm.label}</option>)}
                         </select>
                       </div>

@@ -1,7 +1,7 @@
 import { reportNetworkFailure, reportNetworkSuccess } from '../hooks/useNetworkStatus';
 import { setCachedData, getCachedData } from './offlineDb';
 import { getLocalServerUrl, setLocalServerUrl, isServerApp, isServerModeActive } from './localServer';
-import { getApiBase, setApiBase, clearApiBase, refreshRemoteBackend, DEFAULT_API_BASE, PG_API_BASE, BACKEND_URL_KEY, getBackendOverride, clearBackendOverride } from './apiBase';
+import { getApiBase, getCloudApiBase, setApiBase, clearApiBase, refreshRemoteBackend, DEFAULT_API_BASE, PG_API_BASE, BACKEND_URL_KEY, getBackendOverride, clearBackendOverride } from './apiBase';
 import { detectMultiTerminal } from '../utils/orderNumber';
 
 // Default cloud backend + the persisted-backend key both come from the SINGLE source
@@ -309,12 +309,15 @@ class ApiClient {
     // }
 
     // Merge headers properly to ensure Authorization token is always included
+    this._resolveAppVersion();
     const headers = {
       // Only set Content-Type for non-FormData requests
       ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
       ...(options.headers || {}),
       // Always add Authorization token if available (this should override any conflicting header)
       ...(token && { Authorization: `Bearer ${token}` }),
+      // Installed app build (Electron/native) — backend records it per restaurant.
+      ...(this.appVersion && { 'X-App-Version': this.appVersion }),
     };
 
     const config = {
@@ -1282,6 +1285,14 @@ class ApiClient {
     return result;
   }
 
+  // Apply ONE modifier group to MANY products at once. mode: 'merge' | 'replace'.
+  async bulkApplyModifierGroup(restaurantId, { itemIds, modifierGroup, mode = 'merge' }) {
+    return this.request(`/api/menus/${restaurantId}/bulk-modifier-group`, {
+      method: 'POST',
+      body: { itemIds, modifierGroup, mode },
+    });
+  }
+
   async bulkDeleteMenuItems(restaurantId, reason) {
     const result = await this.request(`/api/menus/${restaurantId}/bulk-delete`, {
       method: 'DELETE',
@@ -1573,6 +1584,7 @@ class ApiClient {
       body: categoryData,
     });
     this.invalidateCache(`/api/categories/${restaurantId}`);
+    this.invalidateCache(`/api/menus/${restaurantId}`); // Dashboard reads category names from the menu response — must refresh too
     return result;
   }
 
@@ -1582,6 +1594,7 @@ class ApiClient {
       body: categoryData,
     });
     this.invalidateCache(`/api/categories/${restaurantId}`);
+    this.invalidateCache(`/api/menus/${restaurantId}`); // Dashboard reads category names from the menu response — must refresh too
     return result;
   }
 
@@ -1590,6 +1603,7 @@ class ApiClient {
       method: 'DELETE',
     });
     this.invalidateCache(`/api/categories/${restaurantId}`);
+    this.invalidateCache(`/api/menus/${restaurantId}`); // Dashboard reads category names from the menu response — must refresh too
     return result;
   }
 
@@ -3078,6 +3092,18 @@ class ApiClient {
     } catch (_) { /* diagnostics must never affect printing */ }
   }
 
+  // Resolve the installed app version once (Electron/native). Sent as the X-App-Version
+  // header on requests so the backend can record which build a restaurant is running.
+  _resolveAppVersion() {
+    if (this._appVersionResolved) return;
+    this._appVersionResolved = true;
+    try {
+      if (typeof window !== 'undefined' && window.electronAPI?.getVersion) {
+        window.electronAPI.getVersion().then((v) => { this.appVersion = v || null; }).catch(() => {});
+      }
+    } catch (_) { /* ignore */ }
+  }
+
   async updatePrintSettings(restaurantId, printSettings) {
     const result = await this.request(`/api/admin/print-settings/${restaurantId}`, {
       method: 'PUT',
@@ -3380,9 +3406,12 @@ class ApiClient {
     });
   }
 
-  // Generic image upload
+  // Generic image upload. Routes to the CLOUD backend (getCloudApiBase), never the
+  // co-located local server — images are stored in cloud Storage (GCS bucket), which
+  // the local bundled server can't reach. This is what makes the receipt logo save +
+  // print on the local-server app the same way it does on web/Vercel.
   async uploadImage(formData) {
-    const url = `${getApiBase()}/api/upload/image`;
+    const url = `${getCloudApiBase()}/api/upload/image`;
     const token = this.getToken();
 
     const config = {

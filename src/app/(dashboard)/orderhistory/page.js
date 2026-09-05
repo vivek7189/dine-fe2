@@ -22,8 +22,26 @@ import { getBillPrintCSS, getKOTPrintCSS, getBillHeaderHTML, buildTokenSlipsDocu
 import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '../../../utils/printBridge';
 import { printKOTByStations } from '../../../utils/printKotStations';
 import { generateBillHTML } from '../../../utils/printHtmlGenerator';
+import { buildBillIdentity } from '../../../utils/printTemplates/helpers';
 import { orderDisplayNumber } from '../../../utils/orderNumber';
 import { useEtimsBillPrint } from '../../../hooks/useEtimsBillPrint';
+import { etimsActiveFor } from '../../../lib/etimsDecision';
+import { fiscaliseCreditNote } from '../../../lib/etims';
+// KRA §4.16 Credit Note Reason Codes (rfdRsnCd) — shown in the refund dialog for Kenya eTIMS.
+const KRA_REFUND_REASONS = [
+  { code: '06', label: 'Refund' },
+  { code: '01', label: 'Missing Quantity' },
+  { code: '02', label: 'Missing Item' },
+  { code: '03', label: 'Damaged' },
+  { code: '04', label: 'Wasted' },
+  { code: '05', label: 'Raw Material Shortage' },
+  { code: '07', label: 'Wrong Customer PIN' },
+  { code: '08', label: 'Wrong Customer name' },
+  { code: '09', label: 'Wrong Amount/price' },
+  { code: '10', label: 'Wrong Quantity' },
+  { code: '11', label: 'Wrong Item(s)' },
+  { code: '12', label: 'Wrong tax type' },
+];
 import dynamic from 'next/dynamic';
 const OrderSummary = dynamic(() => import('../../../components/OrderSummary'), { ssr: false });
 const OrderEditModal = dynamic(() => import('../../../components/OrderEditModal'), { ssr: false });
@@ -221,6 +239,7 @@ const OrderHistory = () => {
   const [refundModalOrder, setRefundModalOrder] = useState(null);
   const [refundAmount, setRefundAmount] = useState('');
   const [refundReason, setRefundReason] = useState('');
+  const [refundRfdRsnCd, setRefundRfdRsnCd] = useState('06'); // KRA §4.16 credit-note reason (Kenya eTIMS)
   const [refundType, setRefundType] = useState('full'); // 'full' or 'partial'
   const [refundSubmitting, setRefundSubmitting] = useState(false);
   const [refundError, setRefundError] = useState(null);
@@ -1168,21 +1187,49 @@ const OrderHistory = () => {
 
     setRefundSubmitting(true);
     setRefundError(null);
+    const order = refundModalOrder;
     try {
-      const result = await apiClient.processRefund(refundModalOrder.id, {
+      await apiClient.processRefund(order.id, {
         refundAmount: amount,
         refundReason: refundReason.trim(),
         refundType: amount >= maxAmount ? 'full' : 'partial'
       });
+      const isFullRefund = amount >= maxAmount;
+
+      // Kenya KRA eTIMS: a refund on a fiscalised sale must be reported as a Credit Note and printed.
+      // Only on the eTIMS desktop (VSCU relay) and only when the original sale carried a KRA invoice
+      // number. Non-fatal: a CN failure never blocks the refund (already recorded) — it's surfaced.
+      let cnMsg = '';
+      if (etimsActiveFor(restaurant) && order.etims && order.etims.invcNo) {
+        try {
+          const cn = await fiscaliseCreditNote(restaurantId, order.id, { rfdRsnCd: refundRfdRsnCd });
+          if (cn && cn.creditNote && cn.creditNote.rcptSign) {
+            cnMsg = ' KRA credit note issued.';
+            try {
+              const inv = buildInvoiceFromOrder(order);
+              inv.etims = cn.creditNote;
+              inv.isCreditNote = true;
+              inv.creditNoteOrgInvcNo = cn.creditNote.orgInvcNo;
+              inv.creditNoteReason = (KRA_REFUND_REASONS.find(r => r.code === refundRfdRsnCd) || {}).label || 'Refund';
+              inv.creditNoteAmount = amount;
+              const html = generateBillHTML(inv, printSettings || {}, {});
+              await printDocument({ html, type: 'bill', orderId: order.id, restaurantId, printSettings: printSettings || {}, orderData: inv });
+            } catch (pErr) { console.warn('Credit note print failed (non-fatal):', pErr?.message); }
+          }
+        } catch (cnErr) {
+          console.error('KRA credit note fiscalisation failed:', cnErr);
+          cnMsg = ` ⚠ KRA credit note failed: ${cnErr?.message || 'VSCU error'} — retry from KRA diagnostics.`;
+        }
+      }
+
       setRefundModalOrder(null);
       fetchOrders();
-      const isFullRefund = amount >= maxAmount;
       setDeleteSuccess(
-        isFullRefund
+        (isFullRefund
           ? `Full refund of ${formatCurrency(amount)} processed. All calculations reversed.`
-          : `Partial refund of ${formatCurrency(amount)} recorded.`
+          : `Partial refund of ${formatCurrency(amount)} recorded.`) + cnMsg
       );
-      setTimeout(() => setDeleteSuccess(null), 5000);
+      setTimeout(() => setDeleteSuccess(null), 6000);
     } catch (error) {
       console.error('Error processing refund:', error);
       setRefundError(error.message || 'Failed to process refund');
@@ -1709,20 +1756,11 @@ const OrderHistory = () => {
       orderId: order.id,
       dailyOrderId: order.dailyOrderId || order.orderNumber,
       orderNumberDisplay: order.orderNumberDisplay || null,
-      restaurantName: restaurant?.name || 'Restaurant',
-      legalBusinessName: restaurant?.legalBusinessName || '',
-      address: restaurant?.address || '',
-      phone: restaurant?.phone || '',
-      gstin: restaurant?.gstin || '',
-      fssai: restaurant?.fssai || '',
-      vatNumber: restaurant?.vatNumber || '',
-      taxId: restaurant?.taxId || '',
-      businessRegistrationNumber: restaurant?.businessRegistrationNumber || '',
-      showGstOnInvoice: restaurant?.showGstOnInvoice,
-      showFssaiOnInvoice: restaurant?.showFssaiOnInvoice,
-      showTaxIdOnInvoice: restaurant?.showTaxIdOnInvoice,
-      countryCode: restaurant?.countryCode || '',
-      taxLabel: restaurant?.currencySettings?.taxLabel || '',
+      // Correct, template-matching header identity. (Previously used wrong keys —
+      // address/phone/legalBusinessName — so reprinted bills dropped the address / phone /
+      // legal name. buildBillIdentity emits restaurantAddress/restaurantPhone/restaurantLegalName
+      // and honours the printSettings receipt-address/phone overrides.)
+      ...buildBillIdentity(restaurant, printSettings),
       items,
       subtotal,
       taxBreakdown: order.taxBreakdown || [],
@@ -1733,6 +1771,7 @@ const OrderHistory = () => {
       floorName: order.floorName || '',
       roomNumber: order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || '',
       customerName: order.customerDisplay?.name || order.customerInfo?.name || '',
+      customerTin: order.customerTin || null,
       customerPhone: order.customerDisplay?.phone || order.customerInfo?.phone || '',
       waiterName: order.waiterName || '',
       cashierName: order.cashierName || '',
@@ -5009,6 +5048,26 @@ const OrderHistory = () => {
                   className="w-full px-3 py-2.5 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 disabled:bg-gray-50 mb-3"
                 />
 
+                {/* KRA credit-note reason (Kenya eTIMS) — sent to KRA as rfdRsnCd (§4.16) on the credit note */}
+                {etimsActiveFor(restaurant) && (
+                  <div className="mb-3">
+                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
+                      KRA Credit Note Reason <span className="text-red-600">*</span>
+                    </label>
+                    <select
+                      value={refundRfdRsnCd}
+                      onChange={(e) => setRefundRfdRsnCd(e.target.value)}
+                      disabled={refundSubmitting}
+                      className="w-full px-3 py-2.5 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 disabled:bg-gray-50"
+                    >
+                      {KRA_REFUND_REASONS.map(r => (
+                        <option key={r.code} value={r.code}>{r.code} — {r.label}</option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] text-gray-400 mt-1">Reported to KRA eTIMS as the credit-note reason; the refund is fiscalised + printed as a credit note.</p>
+                  </div>
+                )}
+
                 {/* Reason */}
                 <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
                   Reason <span className="text-red-600">*</span>
@@ -5318,8 +5377,8 @@ const OrderHistory = () => {
                     </div>
                   )}
 
-                  {/* Cash Tendering */}
-                  {editCompletedForm.paymentMethod === 'cash' && (
+                  {/* Cash Tendering — flag-gated (same toggle that drives the POS panel + bill print) */}
+                  {editCompletedForm.paymentMethod === 'cash' && restaurant?.billingSettings?.cashTenderingEnabled && (
                     <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-3 space-y-2">
                       <div className="flex items-center gap-3">
                         <div className="flex-1">

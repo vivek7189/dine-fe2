@@ -74,10 +74,15 @@ export const TAX_REGIMES = {
     hint: 'Australia GST is 10%, shown GST-inclusive.',
   },
   KE: {
-    country: 'Kenya', label: 'VAT', inclusiveDefault: false,
-    taxes: [{ name: 'VAT', rate: 16 }], slabs: [0, 16],
+    country: 'Kenya', label: 'VAT', inclusiveDefault: true,
+    // VAT is fiscal (reported to KRA via eTIMS). Catering/Tourism Levy is collected and
+    // shown on the bill but is NOT part of the eTIMS/VAT invoice → reportToEtims: false.
+    taxes: [
+      { name: 'VAT', rate: 16, reportToEtims: true },
+      { name: 'Catering Levy', rate: 2, reportToEtims: false },
+    ], slabs: [0, 16],
     idField: { key: 'pin', label: 'KRA PIN' },
-    hint: 'Kenya VAT is 16% (KRA eTIMS fiscalisation applies).',
+    hint: 'Kenya VAT 16% (→ KRA eTIMS) + Catering/Tourism Levy 2% (collected, not sent to KRA). Menu prices are usually VAT-inclusive. Remove the levy if your establishment is not liable.',
   },
   ZA: {
     country: 'South Africa', label: 'VAT', inclusiveDefault: true,

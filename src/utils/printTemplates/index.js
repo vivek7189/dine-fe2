@@ -51,5 +51,14 @@ export function renderKOT(kotData, printSettings = {}, labels = {}) {
 export function renderBill(invoice, printSettings = {}, labels = {}) {
   const templateId = printSettings.billTemplate || 'classic';
   const template = BILL_TEMPLATES[templateId] || BILL_TEMPLATES.classic;
+  // Order-type-aware footer: "Thank you for dining with us!" only fits dine-in. For
+  // takeaway / delivery / pickup use a neutral thank-you instead. Only applied when the
+  // restaurant hasn't set an explicit custom footer (labels.footer absent), so a custom
+  // footer is never overridden. Dine-in and unknown/custom types keep the default.
+  const ot = String(invoice.orderType || '').toLowerCase();
+  const isNonDineIn = /take\s*-?\s*away|delivery|pick\s*-?\s*up|parcel|to\s*-?\s*go|togo/.test(ot);
+  if (isNonDineIn && labels.footer == null) {
+    labels = { ...labels, footer: 'Thank you for your order!' };
+  }
   return template.render(invoice, printSettings, labels);
 }

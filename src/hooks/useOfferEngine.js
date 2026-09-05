@@ -7,6 +7,7 @@ import { subscribeRestaurantEvents } from '../lib/realtimeSubscribe';
 import { isLocalServerMode } from '../lib/localServer';
 import { database } from '../../firebase';
 import apiClient from '../lib/api';
+import { toJsDate } from '../utils/dateParse';
 
 /**
  * Normalize a phone number to the last 10 digits for matching.
@@ -259,12 +260,10 @@ const isScheduleValid = (offer) => {
  */
 const isDateValid = (offer) => {
   const now = new Date();
-  if (offer.validFrom) {
-    const from = new Date(offer.validFrom);
-    if (now < from) return false;
-  }
-  if (offer.validUntil) {
-    const until = new Date(offer.validUntil);
+  const from = toJsDate(offer.validFrom);
+  if (from && now < from) return false;
+  const until = toJsDate(offer.validUntil);
+  if (until) {
     until.setHours(23, 59, 59, 999); // Include the entire last day
     if (now > until) return false;
   }
@@ -319,15 +318,13 @@ const getNextScheduleTransition = (offers) => {
     }
 
     // Date-based transitions
-    if (offer.validFrom) {
-      const from = new Date(offer.validFrom);
-      if (from > now) {
-        const ms = from.getTime() - now.getTime();
-        if (minMs === null || ms < minMs) minMs = ms;
-      }
+    const from = toJsDate(offer.validFrom);
+    if (from && from > now) {
+      const ms = from.getTime() - now.getTime();
+      if (minMs === null || ms < minMs) minMs = ms;
     }
-    if (offer.validUntil) {
-      const until = new Date(offer.validUntil);
+    const until = toJsDate(offer.validUntil);
+    if (until) {
       until.setHours(23, 59, 59, 999);
       if (until > now) {
         const ms = until.getTime() - now.getTime();

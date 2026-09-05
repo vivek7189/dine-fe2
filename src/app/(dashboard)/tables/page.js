@@ -45,16 +45,27 @@ const DeliveryTakeawayPanel = dynamic(
   { ssr: false }
 );
 
-const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
+const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant, onTablesChanged }) => {
   const [qrCodes, setQrCodes] = useState(new Map());
-  const [customTableName, setCustomTableName] = useState('');
-  const [customSeat, setCustomSeat] = useState('');
+  const [customTableId, setCustomTableId] = useState(''); // selected existing table (dropdown)
+  const [customSeat, setCustomSeat] = useState('');       // '' = whole table, else a seat label
   const [customQR, setCustomQR] = useState(null);
   const [copiedTable, setCopiedTable] = useState(null);
+  const [savingTableId, setSavingTableId] = useState(null);   // table whose seat-count is being saved
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null); // table pending delete confirm
+  const [tableActionErr, setTableActionErr] = useState('');
   const [qrMode, setQrMode] = useState('table'); // 'table' = one QR per table · 'seat' = one QR per chair
   const [seatQrCodes, setSeatQrCodes] = useState(new Map()); // key: `${tableName}::${seat}` → dataUrl
   const [seatGenLoading, setSeatGenLoading] = useState(false);
+  const [selectedTableIds, setSelectedTableIds] = useState(() => new Set()); // Per-Table bulk delete
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const seatCountOf = (table) => Math.max(1, parseInt(table.capacity, 10) || parseInt(table.seats, 10) || 4);
+  // Per-seat QR: label chairs A, B, C… (nicer than 1,2,3) and cap at 26 (A–Z). The label is a plain
+  // string that flows straight through: QR ?seat=A → order.chairNumber → bill / KOT / history.
+  const SEAT_QR_MAX = 26;
+  const seatQrCountOf = (table) => Math.min(seatCountOf(table), SEAT_QR_MAX);
+  const seatLabel = (s) => String.fromCharCode(64 + s); // 1→A, 2→B … 26→Z
+  const disabledSeatsOf = (table) => new Set((Array.isArray(table.disabledSeats) ? table.disabledSeats : []).map(String)); // chairs the owner removed
 
   const getQRUrl = (tableName, seat = null) => {
     const isDev = process.env.NODE_ENV === 'development';
@@ -110,13 +121,15 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
       setSeatGenLoading(true);
       const map = new Map();
       for (const table of allTables) {
-        const seats = seatCountOf(table);
+        const seats = seatQrCountOf(table);
+        const disabled = disabledSeatsOf(table);
         for (let s = 1; s <= seats; s++) {
+          if (disabled.has(seatLabel(s))) continue; // chair removed by owner
           try {
-            const url = getQRUrl(table.tableName, s);
+            const url = getQRUrl(table.tableName, seatLabel(s));
             const dataUrl = await QRCode.toDataURL(url, { width: 200, margin: 1, color: { dark: '#1f2937', light: '#ffffff' } });
             map.set(`${table.tableName}::${s}`, dataUrl);
-          } catch (e) { console.error('Seat QR generation failed for', table.tableName, 'seat', s, e); }
+          } catch (e) { console.error('Seat QR generation failed for', table.tableName, 'seat', seatLabel(s), e); }
         }
       }
       if (!cancelled) { setSeatQrCodes(new Map(map)); setSeatGenLoading(false); }
@@ -125,16 +138,81 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
     return () => { cancelled = true; };
   }, [isOpen, qrMode, floors]);
 
+  const selectedCustomTable = allTables.find(t => String(t.id) === String(customTableId)) || null;
+
   const generateCustomQR = async () => {
-    if (!customTableName.trim()) return;
+    if (!selectedCustomTable) return;
     try {
-      const seat = customSeat.trim();
-      const url = getQRUrl(customTableName.trim(), seat || null);
+      const tableName = selectedCustomTable.tableName;
+      const seat = (customSeat || '').trim();
+      const url = getQRUrl(tableName, seat || null);
       const dataUrl = await QRCode.toDataURL(url, { width: 200, margin: 1, color: { dark: '#1f2937', light: '#ffffff' } });
-      setCustomQR({ name: customTableName.trim(), seat: seat || null, dataUrl, url });
+      setCustomQR({ name: tableName, seat: seat || null, dataUrl, url });
     } catch (e) {
       console.error('Custom QR generation failed', e);
     }
+  };
+
+  // Change a table's seat count (drives how many per-seat QRs it gets). Persists via updateTable,
+  // then asks the parent to reload so the QR grids regenerate. Clamp 1..50.
+  const setTableCapacity = async (table, nextCap) => {
+    const cap = Math.max(1, Math.min(50, parseInt(nextCap, 10) || 1));
+    if (cap === seatCountOf(table)) return;
+    setSavingTableId(table.id); setTableActionErr('');
+    try {
+      await apiClient.updateTable(table.id, { name: table.tableName, capacity: cap }, restaurant.id);
+      if (onTablesChanged) await onTablesChanged();
+    } catch (e) {
+      setTableActionErr(e?.message || 'Could not update seats');
+    } finally { setSavingTableId(null); }
+  };
+
+  const removeTable = async (table) => {
+    setSavingTableId(table.id); setTableActionErr('');
+    try {
+      await apiClient.deleteTable(table.id, restaurant.id);
+      setDeleteConfirmId(null);
+      if (onTablesChanged) await onTablesChanged();
+    } catch (e) {
+      setTableActionErr(e?.message || 'Could not remove table');
+    } finally { setSavingTableId(null); }
+  };
+
+  // Delete/restore a SPECIFIC chair's QR (persisted as table.disabledSeats so it survives reloads).
+  const deleteSeat = async (table, label) => {
+    const next = Array.from(new Set([...(table.disabledSeats || []).map(String), String(label)]));
+    setSavingTableId(table.id); setTableActionErr('');
+    try {
+      await apiClient.updateTable(table.id, { name: table.tableName, disabledSeats: next }, restaurant.id);
+      if (onTablesChanged) await onTablesChanged();
+    } catch (e) { setTableActionErr(e?.message || 'Could not delete chair'); }
+    finally { setSavingTableId(null); }
+  };
+  const restoreSeat = async (table, label) => {
+    const next = (table.disabledSeats || []).map(String).filter(l => l !== String(label));
+    setSavingTableId(table.id); setTableActionErr('');
+    try {
+      await apiClient.updateTable(table.id, { name: table.tableName, disabledSeats: next }, restaurant.id);
+      if (onTablesChanged) await onTablesChanged();
+    } catch (e) { setTableActionErr(e?.message || 'Could not restore chair'); }
+    finally { setSavingTableId(null); }
+  };
+
+  // Multi-select bulk delete of tables (Per Table view) — covers "selected tables" and "all".
+  const toggleSelectTable = (id) => setSelectedTableIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const allSelected = allTables.length > 0 && allTables.every(t => selectedTableIds.has(t.id));
+  const toggleSelectAll = () => setSelectedTableIds(allSelected ? new Set() : new Set(allTables.map(t => t.id)));
+  const bulkDeleteSelected = async () => {
+    if (selectedTableIds.size === 0) return;
+    setBulkDeleting(true); setTableActionErr('');
+    try {
+      for (const id of Array.from(selectedTableIds)) {
+        await apiClient.deleteTable(id, restaurant.id);
+      }
+      setSelectedTableIds(new Set());
+      if (onTablesChanged) await onTablesChanged();
+    } catch (e) { setTableActionErr(e?.message || 'Bulk delete failed'); }
+    finally { setBulkDeleting(false); }
   };
 
   const downloadQR = (dataUrl, tableName) => {
@@ -163,18 +241,20 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
 
   const downloadAllSeats = async () => {
     for (const table of allTables) {
-      const seats = seatCountOf(table);
+      const seats = seatQrCountOf(table);
+      const disabled = disabledSeatsOf(table);
       for (let s = 1; s <= seats; s++) {
+        if (disabled.has(seatLabel(s))) continue;
         const dataUrl = seatQrCodes.get(`${table.tableName}::${s}`);
         if (dataUrl) {
-          downloadQR(dataUrl, `${table.tableName}-seat-${s}`);
+          downloadQR(dataUrl, `${table.tableName}-seat-${seatLabel(s)}`);
           await new Promise(r => setTimeout(r, 200));
         }
       }
     }
   };
 
-  const totalSeats = allTables.reduce((sum, t) => sum + seatCountOf(t), 0);
+  const totalSeats = allTables.reduce((sum, t) => sum + seatQrCountOf(t), 0);
 
   if (!isOpen) return null;
 
@@ -209,36 +289,46 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
           <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#faf5ff', borderRadius: '12px', border: '1px solid #e9d5ff' }}>
             <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600', color: '#6b21a8' }}>Generate Custom QR <span style={{ fontWeight: 400, color: '#9333ea' }}>(table, or table + seat/chair)</span></h3>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <input
-                type="text"
-                value={customTableName}
-                onChange={(e) => setCustomTableName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && generateCustomQR()}
-                placeholder="Table number or name"
+              <select
+                value={customTableId}
+                onChange={(e) => { setCustomTableId(e.target.value); setCustomSeat(''); setCustomQR(null); }}
                 style={{
-                  flex: 1, minWidth: '150px', padding: '10px 14px', border: '2px solid #e9d5ff', borderRadius: '10px',
-                  fontSize: '14px', outline: 'none', backgroundColor: 'white',
+                  flex: 1, minWidth: '180px', padding: '10px 14px', border: '2px solid #e9d5ff', borderRadius: '10px',
+                  fontSize: '14px', outline: 'none', backgroundColor: 'white', cursor: 'pointer',
                 }}
-              />
-              <input
-                type="text"
+              >
+                <option value="">Select a table…</option>
+                {allTables.map(t => (
+                  <option key={t.id} value={t.id}>Table {t.tableName} · {t.floorName} · {seatCountOf(t)} seats</option>
+                ))}
+              </select>
+              <select
                 value={customSeat}
                 onChange={(e) => setCustomSeat(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && generateCustomQR()}
-                placeholder="Seat / chair (optional)"
+                disabled={!selectedCustomTable}
                 style={{
-                  width: '160px', padding: '10px 14px', border: '2px solid #e9d5ff', borderRadius: '10px',
-                  fontSize: '14px', outline: 'none', backgroundColor: 'white',
+                  width: '170px', padding: '10px 14px', border: '2px solid #e9d5ff', borderRadius: '10px',
+                  fontSize: '14px', outline: 'none', backgroundColor: selectedCustomTable ? 'white' : '#f3f4f6', cursor: selectedCustomTable ? 'pointer' : 'not-allowed',
                 }}
-              />
-              <button onClick={generateCustomQR} disabled={!customTableName.trim()} style={{
+              >
+                <option value="">Whole table</option>
+                {selectedCustomTable && Array.from({ length: seatQrCountOf(selectedCustomTable) }, (_, i) => seatLabel(i + 1)).map(l => (
+                  <option key={l} value={l}>Seat {l}</option>
+                ))}
+              </select>
+              <button onClick={generateCustomQR} disabled={!selectedCustomTable} style={{
                 padding: '10px 20px', borderRadius: '10px', border: 'none', color: 'white',
-                background: customTableName.trim() ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : '#d1d5db',
-                fontSize: '13px', fontWeight: '600', cursor: customTableName.trim() ? 'pointer' : 'not-allowed',
+                background: selectedCustomTable ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : '#d1d5db',
+                fontSize: '13px', fontWeight: '600', cursor: selectedCustomTable ? 'pointer' : 'not-allowed',
               }}>
                 Generate
               </button>
             </div>
+            {selectedCustomTable ? (
+              <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#15803d', fontWeight: 600 }}>✓ Existing table · {seatCountOf(selectedCustomTable)} seats{customSeat ? ` · Seat ${customSeat}` : ' · whole table'}</p>
+            ) : (
+              <p style={{ margin: '8px 0 0', fontSize: '11.5px', color: '#9333ea' }}>Pick a table from your floors. To add a new table, close this and use “Add Table”.</p>
+            )}
             {customQR && (
               <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '16px', padding: '12px', backgroundColor: 'white', borderRadius: '10px', border: '1px solid #e9d5ff' }}>
                 <img src={customQR.dataUrl} alt={`QR for ${customQR.name}`} style={{ width: '120px', height: '120px', borderRadius: '8px' }} />
@@ -264,6 +354,10 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
             )}
           </div>
 
+          {tableActionErr && (
+            <div style={{ marginBottom: '12px', padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#dc2626', fontSize: '12px', fontWeight: 600 }}>{tableActionErr}</div>
+          )}
+
           {/* QR mode toggle: one per table, or one per seat/chair */}
           {allTables.length > 0 && (
             <div style={{ display: 'inline-flex', gap: '4px', padding: '4px', background: '#f3f4f6', borderRadius: '10px', marginBottom: '16px' }}>
@@ -284,14 +378,31 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
               <p style={{ fontSize: '14px', fontWeight: '500' }}>No tables found. Add tables first to generate QR codes.</p>
             </div>
           ) : qrMode === 'table' ? (
+            <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#374151', cursor: 'pointer', fontWeight: 600 }}>
+                <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} /> Select all ({allTables.length})
+              </label>
+              {selectedTableIds.size > 0 && (
+                <button onClick={bulkDeleteSelected} disabled={bulkDeleting} style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: bulkDeleting ? 'not-allowed' : 'pointer' }}>
+                  {bulkDeleting ? 'Deleting…' : `Delete selected (${selectedTableIds.size})`}
+                </button>
+              )}
+              {selectedTableIds.size > 0 && !bulkDeleting && (
+                <button onClick={() => setSelectedTableIds(new Set())} style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Clear</button>
+              )}
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
               {allTables.map(table => {
                 const dataUrl = qrCodes.get(table.tableName);
                 return (
                   <div key={`${table.floorName}-${table.tableName}`} style={{
-                    padding: '16px', backgroundColor: '#fafafa', borderRadius: '12px', border: '1px solid #f3f4f6',
+                    padding: '16px', backgroundColor: selectedTableIds.has(table.id) ? '#faf5ff' : '#fafafa', borderRadius: '12px', border: selectedTableIds.has(table.id) ? '2px solid #a855f7' : '1px solid #f3f4f6',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
                   }}>
+                    <label style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#6b7280', cursor: 'pointer', fontWeight: 600 }}>
+                      <input type="checkbox" checked={selectedTableIds.has(table.id)} onChange={() => toggleSelectTable(table.id)} /> Select
+                    </label>
                     {dataUrl ? (
                       <img src={dataUrl} alt={`QR for ${table.tableName}`} style={{ width: '140px', height: '140px', borderRadius: '8px' }} />
                     ) : (
@@ -315,9 +426,19 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
                         {copiedTable === table.tableName ? 'Copied!' : 'Copy URL'}
                       </button>
                     </div>
+                    {deleteConfirmId === table.id ? (
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', justifyContent: 'center', fontSize: '11px' }}>
+                        <span style={{ color: '#ef4444', fontWeight: 600 }}>Delete table?</span>
+                        <button onClick={() => removeTable(table)} disabled={savingTableId === table.id} style={{ padding: '4px 10px', borderRadius: '6px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>{savingTableId === table.id ? '…' : 'Yes'}</button>
+                        <button onClick={() => setDeleteConfirmId(null)} style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', fontWeight: 600, cursor: 'pointer' }}>No</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => { setTableActionErr(''); setDeleteConfirmId(table.id); }} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '11px', fontWeight: 600, cursor: 'pointer', padding: '2px' }}>Remove table</button>
+                    )}
                   </div>
                 );
               })}
+            </div>
             </div>
           ) : (
             /* Per-seat / per-chair grid — grouped by table */
@@ -329,30 +450,52 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
                 </div>
               ) : allTables.map(table => (
                 <div key={`seatgrp-${table.floorName}-${table.tableName}`}>
-                  <p style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 700, color: '#1f2937' }}>
-                    Table {table.tableName} <span style={{ fontWeight: 400, color: '#9ca3af' }}>· {table.floorName} · {seatCountOf(table)} seats</span>
-                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '0 0 10px 0', flexWrap: 'wrap' }}>
+                    <p style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#1f2937' }}>
+                      Table {table.tableName} <span style={{ fontWeight: 400, color: '#9ca3af' }}>· {table.floorName}</span>
+                    </p>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '2px 6px', background: '#f3f4f6', borderRadius: '8px' }}>
+                      <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 600 }}>Seats</span>
+                      <button onClick={() => setTableCapacity(table, seatCountOf(table) - 1)} disabled={savingTableId === table.id || seatCountOf(table) <= 1} style={{ width: '22px', height: '22px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontWeight: 700, color: '#374151', lineHeight: 1 }}>−</button>
+                      <span style={{ minWidth: '18px', textAlign: 'center', fontSize: '13px', fontWeight: 700, color: '#1f2937' }}>{savingTableId === table.id ? '…' : seatCountOf(table)}</span>
+                      <button onClick={() => setTableCapacity(table, seatCountOf(table) + 1)} disabled={savingTableId === table.id || seatCountOf(table) >= 50} style={{ width: '22px', height: '22px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontWeight: 700, color: '#374151', lineHeight: 1 }}>+</button>
+                    </div>
+                    {seatCountOf(table) > SEAT_QR_MAX && <span style={{ fontSize: '10.5px', color: '#b45309' }}>showing first {SEAT_QR_MAX} (A–Z)</span>}
+                  </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '12px' }}>
-                    {Array.from({ length: seatCountOf(table) }, (_, i) => i + 1).map(s => {
+                    {Array.from({ length: seatQrCountOf(table) }, (_, i) => i + 1).filter(s => !disabledSeatsOf(table).has(seatLabel(s))).map(s => {
                       const dataUrl = seatQrCodes.get(`${table.tableName}::${s}`);
                       return (
                         <div key={`seat-${table.tableName}-${s}`} style={{ padding: '12px', backgroundColor: '#fafafa', borderRadius: '12px', border: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
                           {dataUrl ? (
-                            <img src={dataUrl} alt={`QR Table ${table.tableName} Seat ${s}`} style={{ width: '110px', height: '110px', borderRadius: '8px' }} />
+                            <img src={dataUrl} alt={`QR Table ${table.tableName} Seat ${seatLabel(s)}`} style={{ width: '110px', height: '110px', borderRadius: '8px' }} />
                           ) : (
                             <div style={{ width: '110px', height: '110px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6', borderRadius: '8px' }}>
                               <FaSpinner size={16} color="#9ca3af" className="animate-spin" />
                             </div>
                           )}
-                          <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#1f2937' }}>Seat {s}</p>
-                          <button onClick={() => dataUrl && downloadQR(dataUrl, `${table.tableName}-seat-${s}`)} disabled={!dataUrl} style={{
-                            width: '100%', padding: '5px 0', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white',
-                            fontSize: '11px', fontWeight: 600, color: dataUrl ? '#374151' : '#d1d5db', cursor: dataUrl ? 'pointer' : 'not-allowed',
-                          }}>Download</button>
+                          <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#1f2937' }}>Seat {seatLabel(s)}</p>
+                          <div style={{ display: 'flex', gap: '6px', width: '100%' }}>
+                            <button onClick={() => dataUrl && downloadQR(dataUrl, `${table.tableName}-seat-${seatLabel(s)}`)} disabled={!dataUrl} style={{
+                              flex: 1, padding: '5px 0', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white',
+                              fontSize: '11px', fontWeight: 600, color: dataUrl ? '#374151' : '#d1d5db', cursor: dataUrl ? 'pointer' : 'not-allowed',
+                            }}>Download</button>
+                            <button onClick={() => deleteSeat(table, seatLabel(s))} disabled={savingTableId === table.id} title="Delete this chair's QR" style={{
+                              padding: '5px 9px', borderRadius: '8px', border: '1px solid #fecaca', backgroundColor: '#fff', color: '#ef4444',
+                              fontSize: '11px', fontWeight: 700, cursor: 'pointer',
+                            }}>✕</button>
+                          </div>
                         </div>
                       );
                     })}
                   </div>
+                  {(table.disabledSeats || []).length > 0 && (
+                    <p style={{ margin: '8px 0 0', fontSize: '11.5px', color: '#9ca3af' }}>
+                      Removed:{(table.disabledSeats || []).map(String).sort().map(l => (
+                        <button key={l} onClick={() => restoreSeat(table, l)} disabled={savingTableId === table.id} style={{ margin: '0 4px', padding: '2px 8px', borderRadius: '999px', border: '1px dashed #cbd5e1', background: '#f8fafc', color: '#475569', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>Seat {l} · restore</button>
+                      ))}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
@@ -1772,6 +1915,7 @@ const TableManagement = () => {
       countryCode: selectedRestaurant?.countryCode,
       taxLabel: selectedRestaurant?.currencySettings?.taxLabel || '',
       customerName: order.customerDisplay?.name || order.customerInfo?.name || order.customerName,
+      customerTin: order.customerTin || null,
     };
   };
 
@@ -3415,6 +3559,7 @@ const TableManagement = () => {
           onClose={() => setShowQRModal(false)}
           floors={floors}
           restaurant={selectedRestaurant}
+          onTablesChanged={() => loadFloorsAndTables(selectedRestaurant.id, true)}
         />
       )}
 

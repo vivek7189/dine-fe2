@@ -230,6 +230,11 @@ function createWindow() {
 function createPrintWindow() {
   printWindow = new BrowserWindow({
     show: false,
+    // A show:false window won't paint (so print()/printToPDF() get a BLANK/empty frame and
+    // webContents.print() can throw → the renderer falls back to window.print(), which prints
+    // the whole app page/sidebar) unless paintWhenInitiallyHidden is set. Electron requires
+    // BOTH this and backgroundThrottling:false to reliably render an off-screen hidden window.
+    paintWhenInitiallyHidden: true,
     // Park it FAR off-screen, off the taskbar, and frameless so a Windows cold-start
     // race can never surface this hidden print window as a stray blank "dine-frontend"
     // / "Bill #N" frame (seen on some machines on the very first launch, before the main
@@ -353,8 +358,18 @@ if (!_gotSingleInstanceLock) {
   app.quit();
 } else {
   app.on('second-instance', () => {
-    const [w] = BrowserWindow.getAllWindows();
-    if (w) { try { if (w.isMinimized()) w.restore(); w.show(); w.focus(); } catch (_) {} }
+    // A relaunch fired while this instance is still alive. Focus the MAIN window specifically —
+    // NOT getAllWindows()[0], which can be the hidden off-screen print window once the main
+    // window has been closed. Showing that window does nothing (its own 'show' handler re-hides
+    // it off-screen), so the user sees nothing and is forced to kill the app in Task Manager.
+    // If the main window was closed but the process lingered (an auxiliary window — the print
+    // window or the customer-display window — kept it alive), recreate it, exactly like the
+    // macOS 'activate' path below does.
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      try { if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.show(); mainWindow.focus(); } catch (_) {}
+    } else {
+      createWindow();
+    }
   });
 }
 
@@ -637,6 +652,9 @@ async function htmlToEscPosRaster(html, printerWidth) {
   const dots = printerWidth === 58 ? 384 : 576; // ~203dpi: 58mm≈384 dots, 80mm≈576 dots
   const win = new BrowserWindow({
     show: false,
+    // Must render while hidden+off-screen (else capturePage gets a blank raster). Needs BOTH
+    // paintWhenInitiallyHidden and backgroundThrottling:false — same as the main print window.
+    paintWhenInitiallyHidden: true,
     // Same off-screen / off-taskbar / frameless hardening as the main print window, so this
     // short-lived render window can never flash on-screen during its ~0.5s capture life.
     x: -32000,

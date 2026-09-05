@@ -13,6 +13,7 @@ import dynamic from 'next/dynamic';
 import apiClient from '../../lib/api.js';
 import { setPublicBackend, DEFAULT_API_BASE } from '../../lib/apiBase';
 import { getDisplayImage } from '../../utils/placeholderImages';
+import { toJsDate } from '../../utils/dateParse';
 import { matchesAudience } from '../../hooks/useOfferEngine';
 
 // Lazy-load heavy components for faster initial render
@@ -396,13 +397,13 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       // for offers already cached in localStorage before the backend excluded
       // them from /api/public/offers.
       if (offer.promotionType === 'cashback') return false;
-      if (offer.validUntil) {
-        const expiryDate = new Date(offer.validUntil);
+      const expiryDate = toJsDate(offer.validUntil);
+      if (expiryDate) {
         expiryDate.setHours(23, 59, 59, 999);
         if (expiryDate < now) return false;
       }
-      if (offer.validFrom) {
-        const startDate = new Date(offer.validFrom);
+      const startDate = toJsDate(offer.validFrom);
+      if (startDate) {
         startDate.setHours(0, 0, 0, 0);
         if (startDate > now) return false;
       }
@@ -2482,7 +2483,7 @@ const OffersBanner = ({ offers, gradientStart, gradientEnd, cs = '₹' }) => {
                         </span>
                       )}
                     </div>
-                    {offer.validUntil && (
+                    {toJsDate(offer.validUntil) && (
                       <div style={{
                         fontSize: '10px',
                         color: '#6b7280',
@@ -2490,7 +2491,7 @@ const OffersBanner = ({ offers, gradientStart, gradientEnd, cs = '₹' }) => {
                         fontWeight: '500',
                         whiteSpace: 'nowrap'
                       }}>
-                        ⏰ Till {new Date(offer.validUntil).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        ⏰ Till {toJsDate(offer.validUntil).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                       </div>
                     )}
                   </div>

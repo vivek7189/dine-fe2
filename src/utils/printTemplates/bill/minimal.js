@@ -7,7 +7,7 @@ import {
   getPrintFontSizes, getContentWidth, wrapInDocument, buildInclusiveTaxNote,
   buildFeedbackSection, buildOrderStatusSection, buildSplitBillHtml,
   BILL_LABELS_AR, getBillDualCSS, dualLabel, dualTitle, dualItemName,
-  buildCashbackHtml,
+  buildCashbackHtml, buildCustomFooterHtml,
 } from '../helpers';
 import { orderDisplayNumber } from '../../orderNumber';
 
@@ -90,9 +90,14 @@ export function render(invoice, printSettings = {}, labels = {}) {
 
   const preBillBanner = invoice.isPreBill ? '<div style="text-align:center;font-weight:bold;font-size:16px;padding:6px 0;border:2px dashed #000;margin:6px 0;letter-spacing:2px;">*** PRE-BILL ***</div>' : '';
 
+  // Show the receipt logo when the restaurant has one; empty when none, so logo-less
+  // receipts render exactly as before. The URL is embedded as base64 at print time
+  // (printBridge.injectReceiptLogo) so it prints on thermal printers and offline.
+  const _rl = printSettings.receiptLogo;
+  const logoImg = (_rl && _rl.enabled && _rl.url) ? `<img src="${_rl.url}" style="width:${_rl.size || 70}px;height:auto;object-fit:contain;margin:0 auto 6px;display:block;" />` : '';
   const bodyHtml =
-    // Clean header - no logo for minimal
     `<div class="header">` +
+      logoImg +
       `<div class="restaurant-name">${esc(invoice.restaurantName || 'Restaurant')}</div>` +
       (identityHtml ? `<div style="margin-top:4px;">${identityHtml}</div>` : '') +
       `<div class="bill-title">${showAr ? dualTitle(L.billTitle, AR.billTitle, showAr) : L.billTitle}</div>` +
@@ -108,6 +113,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
       (bl.showCovers !== false && invoice.covers && invoice.covers > 1 ? `<div class="meta-row"><span>${showAr ? dualLabel('Covers', 'أغطية', showAr) : 'Covers'}: ${invoice.covers}</span></div>` : '') +
       (bl.showWaiter !== false && (invoice.waiterName || invoice.cashierName) ? `<div class="meta-row"><span>Staff: ${esc(invoice.waiterName || invoice.cashierName)}</span></div>` : '') +
       (bl.showCustomer !== false && invoice.customerName ? `<div class="meta-row"><span>${esc(invoice.customerName)}</span></div>` : '') +
+      (invoice.customerTin ? `<div class="meta-row"><span>KRA PIN: ${esc(invoice.customerTin)}</span></div>` : '') +
       (bl.showCustomerPhone && invoice.customerPhone ? `<div class="meta-row"><span>${dualLabel('Phone', 'هاتف', showAr)}: ${esc(invoice.customerPhone)}</span></div>` : '') +
       (bl.showOrderType !== false && invoice.orderType ? `<div class="meta-row"><span>Type: ${invoice.orderType}</span></div>` : '') +
     `</div>` +
@@ -131,7 +137,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
     buildFeedbackSection(printSettings) +
     buildOrderStatusSection(printSettings) +
     // Footer
-    `<div class="footer">${bl.showFooter !== false ? `<p>${showAr ? dualLabel(L.footer, AR.footer, showAr) : L.footer}</p>` : ''}${bl.showPoweredBy !== false ? `<p style="margin-top:4px;">${showAr ? dualLabel(L.poweredBy, AR.poweredBy, showAr) : L.poweredBy}</p>` : ''}</div>`;
+    `<div class="footer">${buildCustomFooterHtml(bl)}${bl.showFooter !== false ? `<p>${showAr ? dualLabel(L.footer, AR.footer, showAr) : L.footer}</p>` : ''}${bl.showPoweredBy !== false ? `<p style="margin-top:4px;">${showAr ? dualLabel(L.poweredBy, AR.poweredBy, showAr) : L.poweredBy}</p>` : ''}</div>`;
 
   return wrapInDocument(`${L.billLabel} #${orderDisplayNumber(invoice)}`, finalCss, bodyHtml);
 }

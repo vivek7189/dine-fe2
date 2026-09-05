@@ -13,6 +13,50 @@ export const esc = (str) => String(str ?? '').replace(/</g, '&lt;').replace(/>/g
 // time, so gating on the item field alone keeps legacy orders unchanged.
 const seatTag = (item) => (sanitizeSeat(item?.seat) === null ? '' : seatLabel(item.seat));
 
+// Canonical bill-header identity built from the restaurant object + print settings.
+// Keys match EXACTLY what the bill templates read (restaurantName/restaurantAddress/…), so any
+// print path can spread this onto its invoice/order to guarantee a correct header instead of a
+// bare "RESTAURANT". Single source of truth — keeps every print trigger consistent.
+export function buildBillIdentity(restaurant, printSettings) {
+  const r = restaurant || {};
+  const ps = printSettings || {};
+  return {
+    restaurantName: r.name || 'Restaurant',
+    restaurantLegalName: r.legalBusinessName || '',
+    restaurantAddress: ps.receiptAddress || r.address || '',
+    restaurantPhone: ps.receiptPhone || r.phone || '',
+    restaurantEmail: r.email || '',
+    gstin: r.gstin || '',
+    fssai: r.fssai || '',
+    vatNumber: r.vatNumber || '',
+    taxId: r.taxId || '',
+    businessRegistrationNumber: r.businessRegistrationNumber || '',
+    showGstOnInvoice: r.showGstOnInvoice === true,
+    showFssaiOnInvoice: r.showFssaiOnInvoice === true,
+    showTaxIdOnInvoice: r.showTaxIdOnInvoice === true,
+    countryCode: (r.currencySettings && r.currencySettings.countryCode) || r.countryCode || '',
+    taxLabel: (r.currencySettings && r.currencySettings.taxLabel) || '',
+  };
+}
+
+// Custom multi-line receipt footer — the owner's free text (website, bank details, notes, …)
+// printed at the very bottom of every bill. Returns '' when unset so bills are unchanged.
+// Edge cases: empty/whitespace → nothing; CRLF normalised; each line HTML-escaped; blank lines
+// kept as small spacers; hard caps (15 lines, 160 chars/line) so a runaway paste can't flood the
+// roll; alignment validated to left/center/right (default center). Text forced #000 (thermal 1-bit).
+export function buildCustomFooterHtml(billLayout) {
+  const bl = billLayout || {};
+  const raw = typeof bl.footerText === 'string' ? bl.footerText : '';
+  const trimmed = raw.replace(/\r\n?/g, '\n').trim();
+  if (!trimmed) return '';
+  const align = bl.footerAlign === 'left' ? 'left' : bl.footerAlign === 'right' ? 'right' : 'center';
+  const rows = trimmed.split('\n').slice(0, 15).map((l) => {
+    const line = l.trim();
+    return line ? `<div>${esc(line.slice(0, 160))}</div>` : '<div style="height:5px;"></div>';
+  }).join('');
+  return `<div class="bill-custom-footer" style="text-align:${align};margin:0 0 5px;color:#000;word-wrap:break-word;overflow-wrap:break-word;white-space:normal;">${rows}</div>`;
+}
+
 // Build identity lines (GSTIN, FSSAI, VAT, address, phone) for bill header.
 export function buildIdentityHtml(info, printSettings) {
   const bl = printSettings?.billLayout || {};
@@ -324,8 +368,12 @@ export function buildChargesHtml(invoice, L, cs) {
 export function buildPaymentHtml(invoice, L, cs) {
   const splitPaymentHtml = (invoice.splitPayments?.length >= 2)
     ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">${L.splitPayment}:</div>${invoice.splitPayments.map(sp => `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${(sp.label || sp.method || 'Cash').toUpperCase()}:</span><span>${cs}${(sp.amount || 0).toFixed(2)}</span></div>`).join('')}</div>` : '';
+  // Cash tendering block (flag-gated at source: cashReceived is only ever stored when the
+  // "Cash Tendering" feature toggle is on, so this line prints only for those bills). Rendered
+  // the standard thermal-receipt way — tendered amount, then the change/return line emphasised
+  // since that is the figure the cashier hands back to the customer.
   const cashReceivedHtml = (invoice.cashReceived > 0)
-    ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.cashReceived}:</span><span>${cs}${invoice.cashReceived.toFixed(2)}</span></div>${(invoice.changeReturned > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.change}:</span><span>${cs}${invoice.changeReturned.toFixed(2)}</span></div>` : ''}</div>` : '';
+    ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.cashReceived}:</span><span>${cs}${invoice.cashReceived.toFixed(2)}</span></div>${(invoice.changeReturned > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;font-weight:bold;"><span>${L.change}:</span><span>${cs}${invoice.changeReturned.toFixed(2)}</span></div>` : ''}</div>` : '';
   const partialPayHtml = (invoice.outstandingAmount > 0)
     ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">${invoice.paidAmount === 0 ? (L.duePayment || 'Due (Udhar)') : L.partialPayment}:</div>${invoice.paidAmount > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.paid}:</span><span>${cs}${invoice.paidAmount.toFixed(2)}</span></div>` : ''}<div style="display:flex;justify-content:space-between;margin:2px 0;color:#000;font-weight:bold;"><span>${L.outstanding || 'Outstanding'}:</span><span>${cs}${invoice.outstandingAmount.toFixed(2)}</span></div></div>` : '';
   const walletPayHtml = (invoice.walletRedeemAmount || 0) > 0

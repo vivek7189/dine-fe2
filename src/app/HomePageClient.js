@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -67,6 +67,7 @@ export default function LandingPage() {
   const [demoRestaurantName, setDemoRestaurantName] = useState('');
   const [demoComment, setDemoComment] = useState('');
   const [demoSubmitting, setDemoSubmitting] = useState(false);
+  const demoSubmittingRef = useRef(false); // synchronous guard — state/disabled update async, so a fast double-click can slip through and send two requests (→ two admin emails)
   const [demoSuccess, setDemoSuccess] = useState(false);
   const [demoError, setDemoError] = useState('');
   const [currency, setCurrency] = useState('USD');
@@ -149,9 +150,10 @@ export default function LandingPage() {
   };
 
   const handleSubmitDemoRequest = async () => {
-    if (demoSubmitting) return; // synchronous guard against rapid double-submit (state disables the button too)
+    if (demoSubmittingRef.current) return; // synchronous guard — blocks a same-tick double-click BEFORE the async state/disabled catches up (was sending two requests → two emails)
     if (demoContactType === 'phone' && !demoPhone.trim()) return setDemoError('Phone number is required');
     if (demoContactType === 'email' && !demoEmail.trim()) return setDemoError('Email is required');
+    demoSubmittingRef.current = true;
     setDemoSubmitting(true); setDemoError('');
     try {
       // Build comment: include restaurant name only if provided, then additional details
@@ -172,8 +174,8 @@ export default function LandingPage() {
         setDemoEmail(''); 
         setDemoComment(''); 
       }, 2000);
-    } catch (error) { setDemoError(error.message || 'Failed to submit demo request.'); } 
-    finally { setDemoSubmitting(false); }
+    } catch (error) { setDemoError(error.message || 'Failed to submit demo request.'); }
+    finally { setDemoSubmitting(false); demoSubmittingRef.current = false; }
   };
 
   const closeDemoModal = () => {

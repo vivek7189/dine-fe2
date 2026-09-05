@@ -34,6 +34,19 @@ export function generateBillHTML(invoice, printSettings = {}, labels = {}) {
     splitIndiaGst(invoice); // India: render GST as CGST + SGST (display only)
   } catch (_) { /* never block printing */ }
   let html = renderBill(withSeatLabel(invoice), printSettings, labels);
+  // Credit-note refund: mark the printout clearly at the top (the KRA block below carries the
+  // signed CREDIT NOTE + original-invoice reference + QR). Body amounts show the original order.
+  try {
+    if (invoice && invoice.isCreditNote) {
+      const q = (s) => String(s == null ? '' : s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+      const info = [];
+      if (invoice.creditNoteOrgInvcNo != null) info.push(`Against Invoice #${q(invoice.creditNoteOrgInvcNo)}`);
+      if (invoice.creditNoteReason) info.push(`Reason: ${q(invoice.creditNoteReason)}`);
+      if (invoice.creditNoteAmount != null) info.push(`Refund: ${q(invoice.currencySymbol || '')}${q(invoice.creditNoteAmount)}`);
+      const banner = `<div style="text-align:center;font-weight:bold;border:2px solid #000;padding:5px;margin:4px 0;">*** CREDIT NOTE ***${info.length ? `<br/><span style="font-size:11px;font-weight:normal;">${info.join(' · ')}</span>` : ''}</div>`;
+      html = /<body[^>]*>/.test(html) ? html.replace(/(<body[^>]*>)/, `$1${banner}`) : (banner + html);
+    }
+  } catch (_) { /* never block printing */ }
   // Kenya KRA eTIMS: once an order is fiscalised (order.etims.rcptSign present) the KRA fiscal block
   // must appear on EVERY receipt — first print, reprint, preview. Because THIS is the single choke
   // point for all bill prints, appending here covers them all (the QR is included when a data-URI was
@@ -57,8 +70,9 @@ function kraFiscalBlockHtml(inv) {
   const qr = e.qrDataUrl ? `<div style="text-align:center;margin-top:6px;"><img src="${e.qrDataUrl}" style="width:120px;height:120px;" alt="KRA QR"/></div>` : '';
   return `
     <div style="border-top:1px dashed #000;margin-top:6px;padding-top:6px;font-family:'Courier New',monospace;font-size:11px;line-height:1.5;">
-      <div style="text-align:center;font-weight:bold;letter-spacing:1px;margin-bottom:3px;">KRA eTIMS · FISCAL RECEIPT</div>
+      <div style="text-align:center;font-weight:bold;letter-spacing:1px;margin-bottom:3px;">KRA eTIMS · ${e.isCreditNote ? 'CREDIT NOTE' : 'FISCAL RECEIPT'}</div>
       ${row('Invoice No', e.invcNo)}
+      ${e.isCreditNote ? row('Original Invoice No', e.orgInvcNo) : ''}
       ${row('SDC ID', e.sdcId)}
       ${row('MRC No', e.mrcNo)}
       ${row('Receipt No', rcpt)}

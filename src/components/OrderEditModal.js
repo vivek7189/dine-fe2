@@ -776,6 +776,7 @@ const OrderEditModal = ({
                 currentOrder={order}
                 setCurrentOrder={() => {}}
                 onShowQRCode={() => {}}
+                restaurant={selectedRestaurant}
                 restaurantId={selectedRestaurant?.id}
                 restaurantName={selectedRestaurant?.name || ''}
                 taxSettings={taxSettings}

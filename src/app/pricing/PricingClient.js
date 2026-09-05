@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import CommonHeader from '../../components/CommonHeader';
 import Footer from '../../components/Footer';
@@ -26,10 +26,13 @@ export default function PricingClient() {
   const [demoSubmitting, setDemoSubmitting] = useState(false);
   const [demoSuccess, setDemoSuccess] = useState(false);
   const [demoError, setDemoError] = useState('');
+  const demoSubmittingRef = useRef(false); // synchronous guard against a fast double-click sending two requests (→ two admin emails)
 
   const handleSubmitDemoRequest = async () => {
+    if (demoSubmittingRef.current) return;
     if (demoContactType === 'phone' && !demoPhone.trim()) return setDemoError('Phone number is required');
     if (demoContactType === 'email' && !demoEmail.trim()) return setDemoError('Email is required');
+    demoSubmittingRef.current = true;
     setDemoSubmitting(true); setDemoError('');
     try {
       let comment = '';
@@ -46,7 +49,7 @@ export default function PricingClient() {
         setDemoComment('');
       }, 2000);
     } catch (error) { setDemoError(error.message || 'Failed to submit demo request.'); }
-    finally { setDemoSubmitting(false); }
+    finally { setDemoSubmitting(false); demoSubmittingRef.current = false; }
   };
 
   const closeDemoModal = () => {

@@ -1,4 +1,4 @@
-name: Cleanup (keep last 3 versions — artifacts + releases)
+name: Cleanup (delete all artifacts, keep last 3 releases)
 
 # Keeps the account tidy and its Actions storage bounded by retaining only the newest
 # 3 versions and pruning older ones. Two independent parts:
@@ -44,26 +44,23 @@ jobs:
       REPO: ${{ github.repository }}
       KEEP: ${{ github.event.inputs.keep || '3' }}
     steps:
-      - name: Prune ARTIFACTS beyond the newest N versions
+      - name: Delete ALL Actions artifacts (keep 0 — installers live on Releases)
         run: |
           set -euo pipefail
+          # Artifacts are throwaway CI copies; the real installers are attached to GitHub
+          # Releases (which do NOT count toward the 0.5 GB Actions-storage quota). Even 3
+          # kept versions (~2.5 GB) blows the GB-MONTHS free tier given how often we build,
+          # so we keep ZERO. Runs after every build (workflow_run) once its Release is
+          # published, plus daily — so storage stays at ~0. Nothing user-facing is lost.
           gh api --paginate "/repos/$REPO/actions/artifacts?per_page=100" \
-            --jq '.artifacts[] | [.id, .name] | @tsv' > all.tsv || true
-          total=$(wc -l < all.tsv | tr -d ' '); echo "Total artifacts: $total"
-          if [ "$total" = "0" ]; then echo "No artifacts."; else
-            KEEP_VERS=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+' all.tsv | sort -V -u | tail -n "$KEEP" || true)
-            echo "Keeping artifact versions:"; echo "$KEEP_VERS" | sed 's/^/  /'
-            kept=0; deleted=0
-            while IFS=$'\t' read -r id name; do
-              [ -z "${id:-}" ] && continue
-              v=$(printf '%s' "$name" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | tail -1 || true)
-              if [ -z "$v" ] || printf '%s\n' "$KEEP_VERS" | grep -qx "$v"; then
-                kept=$((kept+1)); continue
-              fi
-              gh api -X DELETE "/repos/$REPO/actions/artifacts/$id" >/dev/null 2>&1 && deleted=$((deleted+1)) || echo "  (fail artifact $id)"
-            done < all.tsv
-            echo "Artifacts: kept=$kept deleted=$deleted"
-          fi
+            --jq '.artifacts[].id' > ids.txt || true
+          total=$(wc -l < ids.txt | tr -d ' '); echo "Artifacts to delete: $total"
+          deleted=0
+          while read -r id; do
+            [ -z "${id:-}" ] && continue
+            gh api -X DELETE "/repos/$REPO/actions/artifacts/$id" >/dev/null 2>&1 && deleted=$((deleted+1)) || echo "  (fail $id)"
+          done < ids.txt
+          echo "Deleted $deleted artifacts (0 kept). Installers remain on the Releases page."
 
       - name: Prune RELEASES beyond the newest N per channel (tags preserved)
         run: |
