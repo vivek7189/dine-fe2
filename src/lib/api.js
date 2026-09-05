@@ -1581,6 +1581,7 @@ class ApiClient {
       body: categoryData,
     });
     this.invalidateCache(`/api/categories/${restaurantId}`);
+    this.invalidateCache(`/api/menus/${restaurantId}`); // Dashboard reads category names from the menu response — must refresh too
     return result;
   }
 
@@ -1590,6 +1591,7 @@ class ApiClient {
       body: categoryData,
     });
     this.invalidateCache(`/api/categories/${restaurantId}`);
+    this.invalidateCache(`/api/menus/${restaurantId}`); // Dashboard reads category names from the menu response — must refresh too
     return result;
   }
 
@@ -1598,6 +1600,7 @@ class ApiClient {
       method: 'DELETE',
     });
     this.invalidateCache(`/api/categories/${restaurantId}`);
+    this.invalidateCache(`/api/menus/${restaurantId}`); // Dashboard reads category names from the menu response — must refresh too
     return result;
   }
 
