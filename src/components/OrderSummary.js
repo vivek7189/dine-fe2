@@ -3623,9 +3623,9 @@ const OrderSummary = ({
         paddingBottom: '8px',
         scrollbarWidth: 'thin',
         scrollbarColor: '#cbd5e1 transparent',
-        minHeight: billingMode ? 'auto' : 0
+        minHeight: billingMode ? 'auto' : '160px'
       }}
-      className={billingMode ? undefined : 'hide-scrollbar'}
+      className={billingMode ? undefined : 'cart-items-scroll'}
       >
         {/* Saved Orders Chips - Always visible at top */}
         {savedOrders && savedOrders.length > 0 && (
@@ -5264,7 +5264,7 @@ const OrderSummary = ({
             <div style={{
               background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)',
               color: 'white',
-              padding: isMobile ? '8px 10px' : '12px 14px',
+              padding: isMobile ? '8px 10px' : '9px 12px',
               borderRadius: '8px',
               boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
               opacity: editPreFillPending ? 0.5 : 1,
@@ -5293,7 +5293,7 @@ const OrderSummary = ({
                     )}
                   </div>
                 </div>
-                <span style={{ fontSize: isMobile ? '18px' : '22px', fontWeight: 'bold' }}>{formatCurrency(editPreFillPending && currentOrder?.finalAmount != null ? currentOrder.finalAmount : (settleFinalAmount()))}</span>
+                <span style={{ fontSize: isMobile ? '18px' : '19px', fontWeight: 'bold' }}>{formatCurrency(editPreFillPending && currentOrder?.finalAmount != null ? currentOrder.finalAmount : (settleFinalAmount()))}</span>
               </div>
               {useWallet && parseFloat(walletRedeemAmount) > 0 && (
                 <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.25)' }}>
@@ -7446,18 +7446,18 @@ const OrderSummary = ({
                   ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
                   : 'linear-gradient(135deg, #0891b2, #0e7490)',
                 color: 'white',
-                padding: isMobile ? '10px 12px' : '14px 16px',
-                borderRadius: isMobile ? '8px' : '10px',
+                padding: isMobile ? '10px 12px' : '10px 14px',
+                borderRadius: '8px',
                 fontWeight: '700',
                 border: 'none',
                 cursor: orderBusy || cart.length === 0 || completedBillingBlocked ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                fontSize: isMobile ? '13px' : '15px',
+                fontSize: isMobile ? '13px' : '13px',
                 transition: 'all 0.2s',
                 boxShadow: orderBusy || cart.length === 0 || completedBillingBlocked ? 'none' : '0 4px 12px rgba(8,145,178,0.35)',
               }}
             >
-              <FaPrint size={isMobile ? 13 : 15} /> KOT + Bill
+              <FaPrint size={13} /> KOT + Bill
             </button>
           )}
 
