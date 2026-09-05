@@ -48,6 +48,17 @@ import { resolveVariantTierPrice } from '../utils/variantPricing';
 
 const CustomerDetailModal = dynamic(() => import('./CustomerDetailModal'), { ssr: false });
 const DiscountApprovalModal = dynamic(() => import('./DiscountApprovalModal'), { ssr: false });
+
+// Options for the settlement / split-payment pickers. Prefer the restaurant's configured
+// settlement methods (billingSettings.settlementMethods); if none are set, mirror the POS
+// payment methods so a store's real methods (e.g. M-Pesa for Kenya) appear here instead of
+// a hardcoded India default (UPI). Only when neither is configured fall back to cash/card/UPI.
+// Behaviour is UNCHANGED for any restaurant that has settlementMethods configured.
+function settlementMethodOptions(billingSettings, posSettings) {
+  if (billingSettings?.settlementMethods) return billingSettings.settlementMethods;
+  if (Array.isArray(posSettings?.paymentMethods) && posSettings.paymentMethods.length) return posSettings.paymentMethods;
+  return [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }];
+}
 import UpiPaymentModal from './UpiPaymentModal';
 import EcrStatusModal from './EcrStatusModal';
 import useEcr from '../services/ecr/useEcr';
@@ -6474,7 +6485,7 @@ const OrderSummary = ({
                                   onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
                                   style={{ padding: '3px 6px', border: '1px solid #bae6fd', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}
                                 >
-                                  {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
+                                  {(settlementMethodOptions(billingSettings, posSettings))
                                     .filter(m => m.enabled).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
                                 </select>
                               </div>
@@ -6609,7 +6620,7 @@ const OrderSummary = ({
                                     onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
                                     style={{ flex: 1, padding: '3px 6px', border: '1px solid #bae6fd', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}
                                   >
-                                    {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
+                                    {(settlementMethodOptions(billingSettings, posSettings))
                                       .filter(m => m.enabled).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
                                   </select>
                                 </div>
@@ -6644,7 +6655,7 @@ const OrderSummary = ({
                                 onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
                                 style={{ padding: '3px 6px', border: '1px solid #bae6fd', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}
                               >
-                                {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
+                                {(settlementMethodOptions(billingSettings, posSettings))
                                   .filter(m => m.enabled).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
                               </select>
                             </div>
@@ -6708,11 +6719,7 @@ const OrderSummary = ({
                             width: '80px'
                           }}
                         >
-                          {(billingSettings?.settlementMethods || [
-                            { id: 'cash', label: 'Cash', enabled: true },
-                            { id: 'card', label: 'Card', enabled: true },
-                            { id: 'upi', label: 'UPI', enabled: true },
-                          ]).filter(m => m.enabled).map(m => (
+                          {(settlementMethodOptions(billingSettings, posSettings)).filter(m => m.enabled).map(m => (
                             <option key={m.id} value={m.id} disabled={usedMethods.includes(m.id)}>{m.label}{usedMethods.includes(m.id) ? ' (used)' : ''}</option>
                           ))}
                         </select>
@@ -6755,11 +6762,7 @@ const OrderSummary = ({
                       </div>
                     );})}
                     {(() => {
-                      const enabledMethods = (billingSettings?.settlementMethods || [
-                        { id: 'cash', label: 'Cash', enabled: true },
-                        { id: 'card', label: 'Card', enabled: true },
-                        { id: 'upi', label: 'UPI', enabled: true },
-                      ]).filter(m => m.enabled);
+                      const enabledMethods = (settlementMethodOptions(billingSettings, posSettings)).filter(m => m.enabled);
                       const allMethodsUsed = splitPayments.length >= enabledMethods.length;
                       return (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
@@ -8772,7 +8775,7 @@ const OrderSummary = ({
                           <select value={splitBillPaymentMethods[i] || 'cash'}
                             onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
                             style={{ padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}>
-                            {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
+                            {(settlementMethodOptions(billingSettings, posSettings))
                               .filter(sm => sm.enabled).map(sm => <option key={sm.id} value={sm.id}>{sm.label}</option>)}
                           </select>
                         </div>
@@ -8906,7 +8909,7 @@ const OrderSummary = ({
                             <select value={splitBillPaymentMethods[i] || 'cash'}
                               onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
                               style={{ padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}>
-                              {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
+                              {(settlementMethodOptions(billingSettings, posSettings))
                                 .filter(sm => sm.enabled).map(sm => <option key={sm.id} value={sm.id}>{sm.label}</option>)}
                             </select>
                           </div>
@@ -8940,7 +8943,7 @@ const OrderSummary = ({
                         <select value={splitBillPaymentMethods[i] || 'cash'}
                           onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
                           style={{ padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}>
-                          {(billingSettings?.settlementMethods || [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }])
+                          {(settlementMethodOptions(billingSettings, posSettings))
                             .filter(sm => sm.enabled).map(sm => <option key={sm.id} value={sm.id}>{sm.label}</option>)}
                         </select>
                       </div>
