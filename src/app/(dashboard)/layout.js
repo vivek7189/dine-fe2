@@ -167,11 +167,13 @@ function DashboardLayoutContent({ children }) {
   }, [selectedRestaurantId]);
 
   // Report which app build this terminal is running (desktop/native only) so support can see,
-  // per restaurant, which version each store is on. Fires on load + every 6h. Fire-and-forget.
+  // per restaurant, which version each store is on. Fires once on load / restaurant switch —
+  // the version only changes on an app restart, which remounts this effect, so that's enough.
+  // Fire-and-forget: never blocks or errors the UI.
   useEffect(() => {
     if (isWeb() || !selectedRestaurantId) return;
     let cancelled = false;
-    const beat = async () => {
+    (async () => {
       try {
         let appVersion = null, terminalId = null;
         if (typeof window !== 'undefined' && window.electronAPI?.getVersion) {
@@ -184,10 +186,8 @@ function DashboardLayoutContent({ children }) {
         if (cancelled) return;
         apiClient.sendTerminalHeartbeat({ restaurantId: selectedRestaurantId, terminalId, appVersion, platform: getPlatform(), os });
       } catch (_) { /* telemetry — never affect the app */ }
-    };
-    beat();
-    const iv = setInterval(beat, 6 * 60 * 60 * 1000);
-    return () => { cancelled = true; clearInterval(iv); };
+    })();
+    return () => { cancelled = true; };
   }, [selectedRestaurantId]);
 
   // Auto-print on native platforms (Capacitor/Tauri) — no-op on web
