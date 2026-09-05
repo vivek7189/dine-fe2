@@ -48,6 +48,7 @@ export function TerminalLockProvider({ restaurantId, restaurantName, terminalLoc
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const idleTimer = useRef(null);
+  const autoTriedRef = useRef(false); // auto-submit the PIN at most ONCE per lock session
 
   // Decide the lock state on mount. The operator is stored in sessionStorage on unlock and
   // CLEARED by lock()/idle/after-order. sessionStorage survives an in-session document reload
@@ -105,6 +106,26 @@ export function TerminalLockProvider({ restaurantId, restaurantName, terminalLoc
       setError(e?.message === 'Wrong PIN' || e?.response?.status === 401 ? 'Wrong PIN' : (e?.message || 'Could not verify PIN')); setPin('');
     } finally { setBusy(false); }
   }, [pin, busy, restaurantId]);
+
+  // Re-arm the one-shot auto-submit each time the terminal (re)locks.
+  useEffect(() => { if (locked) autoTriedRef.current = false; }, [locked]);
+
+  // Auto-submit ONCE per lock: when the PIN looks complete (>=4 digits) and the staff pauses
+  // typing, submit automatically so a correct PIN unlocks without tapping "Unlock". We auto-try
+  // only ONCE per lock — after that (e.g. a wrong PIN) further attempts require a manual tap, so
+  // a wrong PIN never auto-resubmits on every keystroke. The short debounce lets longer PINs
+  // (5–8 digits) finish typing before it fires. Manual submit / clear cancels the pending timer
+  // (this effect re-runs and clears it), so there's never a double-submit.
+  useEffect(() => {
+    if (!enabled || !locked || busy || autoTriedRef.current || pin.length < 4) return;
+    const captured = pin;
+    const t = setTimeout(() => {
+      if (autoTriedRef.current || busy) return;
+      autoTriedRef.current = true;
+      submitPin(captured);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [pin, enabled, locked, busy, submitPin]);
 
   const press = (d) => {
     setError('');
