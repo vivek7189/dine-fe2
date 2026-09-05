@@ -10,7 +10,14 @@
 // and offline, with no network at print time.
 
 const KEY = (url) => `dineopen_logo_cache:${url}`;
-const MAX_BYTES = 1_500_000; // ~1.5MB cap so a big logo can't blow the localStorage quota
+// Embed cap. A big base64 logo bloats the bill HTML, and the electron print window loads that
+// HTML through a data: URL — an oversized data: URL exceeds its limit and the print silently
+// fails (falls back to window.print(), which prints the whole app page). So logos over this cap
+// are NOT embedded: injectReceiptLogo keeps the remote URL, which the print window renders fine
+// (online) exactly as it did before base64 embedding existed. Small logos still embed so thermal
+// / offline prints show them. A receipt logo has no business being larger than this.
+const MAX_BYTES = 400_000; // ~400KB of base64 (~300KB source image)
+const MAX_SRC_BYTES = 320_000; // skip the download entirely when the source is clearly too big
 
 /** Sync read of a previously-cached data-URI for this logo URL (or null). */
 export function getCachedLogoDataUri(url) {
@@ -41,11 +48,19 @@ export async function ensureLogoDataUri(url) {
   const cached = getCachedLogoDataUri(url);
   if (cached) return cached;
   try {
+    // Cheap pre-check: if the source image is clearly too big, don't download it at all —
+    // keep the remote URL so the print window renders it directly instead of embedding a
+    // giant base64 blob that breaks the electron print. HEAD may fail (CORS) — then the
+    // post-fetch length check below is the backstop.
+    try {
+      const head = await fetch(url, { method: 'HEAD' });
+      const len = Number(head.headers.get('content-length') || 0);
+      if (len > MAX_SRC_BYTES) return null;
+    } catch (_) { /* HEAD unsupported/blocked — fall through to GET + size check */ }
     const dataUri = await fetchAsDataUri(url);
-    if (dataUri && dataUri.length <= MAX_BYTES) {
-      try { window.localStorage.setItem(KEY(url), dataUri); } catch (_) { /* quota — still return it */ }
-    }
-    return dataUri || null;
+    if (!dataUri || dataUri.length > MAX_BYTES) return null; // too big to embed safely — keep remote URL
+    try { window.localStorage.setItem(KEY(url), dataUri); } catch (_) { /* quota — still return it */ }
+    return dataUri;
   } catch (_) {
     return null;
   }
