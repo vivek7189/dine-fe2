@@ -2951,15 +2951,13 @@ const OrderSummary = ({
                 onClick={onToggleExpanded}
                 title={expanded ? 'Back to normal width' : 'Expand to a wide 2-column view'}
                 style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '5px',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   background: '#ffffff', color: '#dc2626', border: 'none',
-                  borderRadius: '999px', padding: '5px 11px', marginLeft: '8px',
-                  fontSize: '11px', fontWeight: 800, letterSpacing: '0.2px',
+                  borderRadius: '8px', width: '30px', height: '30px', marginLeft: '8px',
                   cursor: 'pointer', flexShrink: 0, boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
-                  whiteSpace: 'nowrap',
                 }}
               >
-                {expanded ? <><FaCompress size={10} /> Exit wide</> : <><FaExpand size={10} /> Wide view</>}
+                {expanded ? <FaCompress size={16} /> : <FaExpand size={16} />}
               </button>
             )}
           </div>
