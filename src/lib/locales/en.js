@@ -160,7 +160,7 @@ const en = {
       total: 'TOTAL',
       splitPayment: 'Split Payment',
       cashReceived: 'Cash Received',
-      change: 'Change',
+      change: 'Change Due',
       partialPayment: 'Partial Payment',
       paid: 'Paid',
       outstanding: 'Outstanding',

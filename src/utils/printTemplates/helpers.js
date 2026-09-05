@@ -535,7 +535,7 @@ export function getBillLabels(labels = {}) {
     total: labels.total || 'TOTAL',
     splitPayment: labels.splitPayment || 'Split Payment',
     cashReceived: labels.cashReceived || 'Cash Received',
-    change: labels.change || 'Change',
+    change: labels.change || 'Change Due',
     partialPayment: labels.partialPayment || 'Partial Payment',
     paid: labels.paid || 'Paid',
     outstanding: labels.outstanding || 'Outstanding',

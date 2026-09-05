@@ -1840,7 +1840,7 @@ const OrderHistory = () => {
       subtotal: 'Subtotal', offer: 'Offer', manualDiscount: 'Discount',
       loyaltyRedeem: 'Loyalty', serviceCharge: 'Service Charge', tip: 'Tip',
       roundOff: 'Round Off', total: 'TOTAL', splitPayment: 'Split Payment',
-      cashReceived: 'Cash Received', change: 'Change', partialPayment: 'Partial Payment',
+      cashReceived: 'Cash Received', change: 'Change Due', partialPayment: 'Partial Payment',
       paid: 'Paid', outstanding: 'Outstanding', walletApplied: 'Wallet Applied',
       amountToPay: 'Amount to Pay',
       footer: bLabels.footer, poweredBy: 'Powered by DineOpen', tel: 'Tel',
