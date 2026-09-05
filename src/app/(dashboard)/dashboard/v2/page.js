@@ -976,10 +976,30 @@ function RestaurantPOSContent() {
     const allItems = allCats.find(c => c.id === 'all-items');
     const otherCategories = allCats.filter(c => c.id !== 'favorites' && c.id !== 'all-items');
 
+    // Respect the owner-set category order (Menu → drag-reorder saves displayOrder/order). Match by
+    // id or name; categories with no order keep their current position. Mirrors the classic dashboard.
+    const orderOf = new Map();
+    (menuCategories || []).forEach((c, i) => {
+      if (!c) return;
+      const ord = (typeof c.displayOrder === 'number') ? c.displayOrder : (typeof c.order === 'number' ? c.order : i);
+      if (c.id) orderOf.set(String(c.id).toLowerCase(), ord);
+      if (c.name) orderOf.set(String(c.name).toLowerCase(), ord);
+    });
+    const BIG = 1e9;
+    const ordVal = (c) => {
+      const byId = orderOf.get(String(c.id || '').toLowerCase());
+      if (byId != null) return byId;
+      const byName = orderOf.get(String(c.name || '').toLowerCase());
+      return byName != null ? byName : BIG;
+    };
+    if (orderOf.size > 0) {
+      otherCategories.sort((a, b) => ordVal(a) - ordVal(b));
+    }
+
     return favorites && favorites.count > 0
       ? [favorites, allItems, ...otherCategories]
       : [allItems, ...otherCategories];
-  }, [effectiveMenuItems, categoryItemCountMap, getCategoryEmoji, hasCategoryTree, categoryIndex]);
+  }, [effectiveMenuItems, categoryItemCountMap, getCategoryEmoji, hasCategoryTree, categoryIndex, menuCategories]);
 
   // Mobile detection hook — Electron (desktop POS) always uses desktop layout
   useEffect(() => {

@@ -80,8 +80,10 @@ const CategoryDropdown = ({
   onCategoryAdded = null,
   onCategoryUpdated = null,
   onCategoryDeleted = null,
+  onReorder = null, // (orderedCategoryNames[]) => persist new order + refresh (parent calls reorderMenu)
   className = ""
 }) => {
+  const [reordering, setReordering] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
@@ -99,6 +101,30 @@ const CategoryDropdown = ({
   // Build hierarchical category list: top-level first, children indented below parent
   const topLevelCategories = categories.filter(c => !c.parentId);
   const childrenOf = (parentId) => categories.filter(c => c.parentId === parentId);
+
+  // Move a category up/down AMONG ITS SIBLINGS (same parent), then persist the full order.
+  // Builds the complete desired order (top-levels in order, each followed by its children,
+  // recursively) and hands the category NAMES to the parent, which calls the reorder API + reloads.
+  const moveCategory = async (category, dir) => {
+    if (reordering || !onReorder) return;
+    const pid = category.parentId || null;
+    const siblings = categories.filter(c => (c.parentId || null) === pid);
+    const idx = siblings.findIndex(c => c.id === category.id);
+    const swap = idx + (dir === 'up' ? -1 : 1);
+    if (idx < 0 || swap < 0 || swap >= siblings.length) return; // already at the edge
+    const newSibs = [...siblings];
+    [newSibs[idx], newSibs[swap]] = [newSibs[swap], newSibs[idx]];
+    const groupFor = (parentId) => ((parentId || null) === pid)
+      ? newSibs
+      : categories.filter(c => (c.parentId || null) === (parentId || null));
+    const flat = [];
+    const walk = (parentId) => { groupFor(parentId).forEach(c => { flat.push(c); walk(c.id); }); };
+    walk(null);
+    setReordering(true);
+    try { await onReorder(flat.map(c => c.name)); }
+    catch (e) { console.error('Category reorder failed:', e?.message); }
+    finally { setReordering(false); }
+  };
   // All descendants of a category — used to keep the parent picker acyclic
   // (a category can never be moved under one of its own descendants).
   const getDescendantIds = (rootId) => {
@@ -484,7 +510,18 @@ const CategoryDropdown = ({
             </button>
                 
                 {/* Category Actions */}
-                <div className="flex gap-1" style={{ flexShrink: 0 }}>
+                <div className="flex gap-1 items-center" style={{ flexShrink: 0 }}>
+                  {onReorder && (() => {
+                    const sibs = categories.filter(c => (c.parentId || null) === (category.parentId || null));
+                    const sIdx = sibs.findIndex(c => c.id === category.id);
+                    if (sibs.length < 2) return null; // nothing to reorder among a single sibling
+                    return (
+                      <>
+                        <button type="button" disabled={reordering || sIdx <= 0} onClick={(e) => { e.stopPropagation(); moveCategory(category, 'up'); }} className="px-1 text-xs text-gray-400 hover:text-gray-700 disabled:opacity-30" title="Move up">▲</button>
+                        <button type="button" disabled={reordering || sIdx >= sibs.length - 1} onClick={(e) => { e.stopPropagation(); moveCategory(category, 'down'); }} className="px-1 text-xs text-gray-400 hover:text-gray-700 disabled:opacity-30" title="Move down">▼</button>
+                      </>
+                    );
+                  })()}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -6365,6 +6402,11 @@ const MenuManagement = () => {
                     onCategoryAdded={handleAddNewCategory}
                     onCategoryUpdated={handleCategoryUpdated}
                     onCategoryDeleted={handleCategoryDeleted}
+                    onReorder={async (orderedNames) => {
+                      // Persist the new category order (bill/POS reads it) + reload fresh from server.
+                      await apiClient.reorderMenu(currentRestaurant.id, { categoryOrder: orderedNames });
+                      await loadMenuData(currentRestaurant.id, false);
+                    }}
                   />
                 </div>
 
