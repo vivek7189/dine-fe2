@@ -247,3 +247,35 @@ export async function fiscaliseOrder(restaurantId, orderId) {
   }
   return { etims: conf.etims };
 }
+
+/**
+ * Fiscalise a REFUND as a KRA Credit Note: prepare-credit-note → relay to VSCU → confirm-credit-note.
+ * Returns { creditNote } (rcptSign, invcNo, orgInvcNo, qrDataUrl…) to print. Idempotent per order
+ * (backend allows one credit note per order). Returns { skipped } off-desktop; throws on a real
+ * VSCU/relay error so the caller can surface it. opts.rfdRsnCd = KRA §4.16 reason code (default '06').
+ */
+export async function fiscaliseCreditNote(restaurantId, orderId, opts = {}) {
+  if (!isEtimsCapable()) return { skipped: 'not-desktop' };
+  const rfdRsnCd = opts.rfdRsnCd || '06';
+  const prep = await apiClient.request(`/api/etims/${restaurantId}/prepare-credit-note`, { method: 'POST', body: { orderId, rfdRsnCd } });
+  if (prep.alreadyDone) return { creditNote: prep.creditNote };
+  const invcNo = prep.body && prep.body.invcNo;
+  let relayRes;
+  try {
+    relayRes = await window.electronAPI.etimsRelay({ url: prep.vscuUrl, path: prep.path, body: prep.body, timeoutMs: prep.timeoutMs });
+  } catch (e) {
+    const msg = (e && e.message) || 'Relay bridge error';
+    await logEtimsDiagnostic(restaurantId, { phase: 'relay-credit-note', ok: false, orderId, invcNo, errorMessage: msg, errorClass: 'BRIDGE_ERROR', vscuUrl: prep.vscuUrl, timeoutMs: prep.timeoutMs });
+    throw new Error(msg);
+  }
+  if (!relayRes || !relayRes.ok) {
+    const msg = (relayRes && relayRes.error) || 'Could not reach the VSCU.';
+    await logEtimsDiagnostic(restaurantId, { phase: 'relay-credit-note', ok: false, orderId, invcNo, errorMessage: msg, raw: relayRes, errorClass: (relayRes && relayRes.errorClass) || 'RELAY_ERROR', latencyMs: relayRes && relayRes.latencyMs, vscuUrl: prep.vscuUrl, timeoutMs: prep.timeoutMs });
+    throw new Error(msg);
+  }
+  const conf = await apiClient.request(`/api/etims/${restaurantId}/confirm-credit-note`, {
+    method: 'POST',
+    body: { orderId, vscuResponse: relayRes.data || relayRes },
+  });
+  return { creditNote: conf.creditNote };
+}
