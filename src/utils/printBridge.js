@@ -283,9 +283,18 @@ async function printViaElectron({ html, type, stationId, printSettings }) {
     if (err._printFailure) {
       throw err;
     }
-    console.error('Electron print IPC error, falling back to window.print:', err);
-    // IPC-level failure (Electron crashed, preload bridge broken) — last resort fallback
-    window.print();
+    // IPC-level failure (Electron crashed / preload bridge broken). Do NOT fall back to
+    // window.print(): a thermal bill has no @media-print CSS, so it would print the whole
+    // app page (sidebar/dashboard) and waste a receipt. Surface a failure toast + throw.
+    console.error('Electron print IPC error (no window.print fallback — would print the app page):', err);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('dine-print-event', {
+        detail: { type, status: 'failed', error: err?.message || 'Print failed (Electron IPC error)', method: 'electron-ipc' },
+      }));
+    }
+    const printErr = new Error(err?.message || 'Electron print failed');
+    printErr._printFailure = true;
+    throw printErr;
   }
 }
 
