@@ -72,9 +72,14 @@ export function render(invoice, printSettings = {}, labels = {}) {
   const revisedBanner = totalModifications > 0 ? `<div style="text-align:center;font-weight:bold;font-size:14px;padding:4px 0;border:2px solid #000;margin:4px 0;">${showAr ? dualLabel(L.revisedBill, AR.revisedBill, showAr) : L.revisedBill}${invoice.editCount > 0 ? ` (Edit #${invoice.editCount})` : ''}${invoice.updateCount > 0 ? ` (Modified ${invoice.updateCount}x)` : ''}</div>` : '';
   const preBillBanner = invoice.isPreBill ? '<div style="text-align:center;font-weight:bold;font-size:16px;padding:6px 0;border:2px dashed #000;margin:6px 0;letter-spacing:2px;">*** PRE-BILL ***</div>' : '';
 
-  // Compact: skip logo, minimal header
+  // Show the receipt logo when the restaurant has one (kept small for the compact layout);
+  // empty string when none, so logo-less receipts look exactly as before. The remote URL is
+  // swapped for an embedded base64 data-URI at print time (printBridge.injectReceiptLogo),
+  // so it prints on thermal printers and offline.
+  const _rl = printSettings.receiptLogo;
+  const logoImg = (_rl && _rl.enabled && _rl.url) ? `<img src="${_rl.url}" style="width:${_rl.size || 60}px;height:auto;object-fit:contain;margin:0 auto 3px;display:block;" />` : '';
   const bodyHtml =
-    `<div class="bill-header"><div class="restaurant-name">${esc(invoice.restaurantName || 'Restaurant')}</div><div class="bill-title">${showAr ? dualTitle('--- ' + L.billTitle + ' ---', '--- ' + AR.billTitle + ' ---', showAr) : '--- ' + L.billTitle + ' ---'}</div></div>` +
+    `<div class="bill-header">${logoImg}<div class="restaurant-name">${esc(invoice.restaurantName || 'Restaurant')}</div><div class="bill-title">${showAr ? dualTitle('--- ' + L.billTitle + ' ---', '--- ' + AR.billTitle + ' ---', showAr) : '--- ' + L.billTitle + ' ---'}</div></div>` +
     preBillBanner +
     revisedBanner +
     buildSplitBillHtml(invoice, L, cs) +
