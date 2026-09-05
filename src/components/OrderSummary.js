@@ -97,7 +97,8 @@ import {
   FaMapMarkerAlt,
   FaExclamationTriangle,
   FaUsers,
-  FaExpand
+  FaExpand,
+  FaCompress
 } from 'react-icons/fa';
 
 const OrderSummary = ({
@@ -204,6 +205,9 @@ const OrderSummary = ({
   seatOrderingEnabled = false,
   activeSeat = null,
   setActiveSeat,
+  // Wide 2-column order panel (desktop only; controlled by dashboard, persisted in localStorage)
+  expanded = false,
+  onToggleExpanded,
 }) => {
   // Dark-mode color mapping for V2
   const dm = darkMode ? {
@@ -2843,7 +2847,10 @@ const OrderSummary = ({
       }
     }
   };
-  
+
+  // Wide 2-column order panel: item list on the left, checkout (total/customer/payment/buttons) on the right.
+  const twoColumn = !!expanded && !billingMode && !isMobile;
+
   return (
     <div style={{
       width: isMobile ? '100vw' : '100%',
@@ -2938,6 +2945,19 @@ const OrderSummary = ({
                 {cart.reduce((sum, item) => sum + item.quantity, 0)} {t('common.items')}
               </p>
             </div>
+            {onToggleExpanded && !isMobile && !billingMode && (
+              <button
+                onClick={onToggleExpanded}
+                title={expanded ? 'Collapse order panel' : 'Expand to wide 2-column view'}
+                style={{
+                  background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '6px',
+                  width: '24px', height: '24px', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0, marginLeft: '4px',
+                }}
+              >
+                {expanded ? <FaCompress size={11} /> : <FaExpand size={11} />}
+              </button>
+            )}
           </div>
           
           {/* Edit Mode Indicator - hidden in billing mode */}
@@ -3614,6 +3634,9 @@ const OrderSummary = ({
         </div>
       )}
 
+      {/* Order body — item list (left) + checkout (right) sit side-by-side only in wide/expanded mode.
+          display:contents when collapsed keeps the wrapper invisible to layout (zero change vs. today). */}
+      <div style={twoColumn ? { display: 'flex', flexDirection: 'row', flex: 1, minHeight: 0, overflow: 'hidden' } : { display: 'contents' }}>
       {/* Scrollable Content - Cart Items Only (in billing mode or embed, parent scrolls so this is static) */}
       <div style={{
         flex: billingMode ? 'none' : 1,
@@ -5256,6 +5279,7 @@ const OrderSummary = ({
           flexShrink: 0,
           ...(isMobileEmbed ? { display: 'flex', flexDirection: 'column', flex: 1 } : {}),
           boxShadow: billingMode ? 'none' : '0 -4px 12px rgba(0,0,0,0.08)',
+          ...(twoColumn ? { width: '380px', flexShrink: 0, overflowY: 'auto', overflowX: 'hidden' } : {}),
         }}>
           {/* (Discount controls moved inline with special instructions below) */}
 
@@ -7548,6 +7572,7 @@ const OrderSummary = ({
           </div>
         </div>
       )}
+      </div>
 
       {/* Voice Confirmation Modal */}
       {showVoiceConfirm && (

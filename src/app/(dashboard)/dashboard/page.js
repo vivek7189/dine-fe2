@@ -274,6 +274,9 @@ function RestaurantPOSContent() {
   const [isTablet, setIsTablet] = useState(false);
   const isMobileEmbed = isMobile && typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  // Wide 2-column order panel (persisted per-device); windowWidth tracked for the 50/50 split (also works in Electron)
+  const [orderPanelExpanded, setOrderPanelExpanded] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(1440);
   const [showMobileEmbedSearch, setShowMobileEmbedSearch] = useState(false);
   const [hideMenuImagesLocal, setHideMenuImagesLocal] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -302,7 +305,18 @@ function RestaurantPOSContent() {
   useEffect(() => { activeSeatRef.current = seatOrderingEnabled ? activeSeat : null; }, [activeSeat, seatOrderingEnabled]);
 
   // Responsive panel width for order summary (tablet = narrower)
-  const orderPanelWidth = isTablet ? 340 : 450;
+  const normalOrderPanelWidth = isTablet ? 340 : 450;
+  // Wide "expanded" order panel (2-column) — only when the window is wide enough, else auto-fall back to normal
+  const canExpandOrderPanel = !isMobile && windowWidth >= 1100;
+  const orderPanelExpandedActive = orderPanelExpanded && canExpandOrderPanel;
+  const orderPanelWidth = orderPanelExpandedActive ? Math.max(560, Math.round(windowWidth * 0.5)) : normalOrderPanelWidth;
+  const toggleOrderPanelExpanded = useCallback(() => {
+    setOrderPanelExpanded(prev => {
+      const next = !prev;
+      try { localStorage.setItem('pos.orderPanelExpanded', next ? '1' : '0'); } catch (_) {}
+      return next;
+    });
+  }, []);
 
   // Dashboard version redirect — if V2 is selected, redirect to /dashboard/v2
   useEffect(() => {
@@ -1132,6 +1146,15 @@ function RestaurantPOSContent() {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Track window width + restore the saved wide-panel preference (runs in Electron too)
+  useEffect(() => {
+    try { setOrderPanelExpanded(localStorage.getItem('pos.orderPanelExpanded') === '1'); } catch (_) {}
+    const onResize = () => setWindowWidth(window.innerWidth);
+    onResize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
   // Debounce search term for performance (avoids re-rendering 300+ cards on every keystroke)
@@ -9198,6 +9221,7 @@ function RestaurantPOSContent() {
             right: 0,
             top: '56px', // Below the header
             width: `${orderPanelWidth}px`,
+            transition: 'width 0.18s ease',
             height: 'calc(100vh - 56px)', // Full height minus header
             display: 'flex',
             flexDirection: 'column',
@@ -9298,6 +9322,8 @@ function RestaurantPOSContent() {
             seatOrderingEnabled={seatOrderingEnabled}
             activeSeat={activeSeat}
             setActiveSeat={setActiveSeat}
+            expanded={orderPanelExpandedActive}
+            onToggleExpanded={toggleOrderPanelExpanded}
           />
         </div>
                 ) : (
