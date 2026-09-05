@@ -83,27 +83,35 @@ export function getApiBase() {
   // while the internet is perfectly fine), which routed the whole app to the empty local DB.
   const local = getLocalServerUrl();
   if (local) return norm(local);
+  return getCloudApiBase();
+}
+
+/**
+ * Resolve the account's CLOUD backend, NEVER the co-located local server — identical
+ * to getApiBase() minus the offline-pin short-circuit. Use this for operations that
+ * must hit the cloud regardless of offline mode, above all IMAGE/LOGO UPLOAD: uploads
+ * are stored in cloud Storage (GCS bucket), which the local bundled server has no access
+ * to. Routing logo uploads here (instead of getApiBase) is why the receipt logo now
+ * saves + prints on the local-server app just like on web/Vercel.
+ */
+export function getCloudApiBase() {
+  if (typeof window === 'undefined') return norm(DEFAULT_API_BASE); // SSR
   // Session override (Local Admin test) — highest web priority, above the per-user pin.
-  // Reads localStorage first, then a domain-wide cookie (so it survives cross-subdomain
-  // redirects to restaurant.dineopen.com where localStorage is a different origin).
   const override = getBackendOverride();
   if (override) return norm(override);
-  // Public/QR page override (in-memory, page-scoped). Only ever set by public pages that
-  // resolved a specific restaurant's backend; never persisted, so it can't leak into a
-  // logged-in session and resets on reload.
+  // Public/QR page override (in-memory, page-scoped).
   if (_publicBackend) return norm(_publicBackend);
   try {
     // per-user / pgBackendUrl pin wins over the remote default
     const persisted = window.localStorage.getItem(BACKEND_URL_KEY);
     if (persisted) return norm(persisted);
     // remote-config default (cached from BACKEND_CONFIG_URL at startup) — the cutover switch.
-    // Only in real builds: never let the remote override a local dev backend (localhost).
     const remote = window.localStorage.getItem(REMOTE_DEFAULT_KEY);
     if (remote && !/localhost|127\.0\.0\.1/.test(DEFAULT_API_BASE)) return norm(remote);
   } catch (_) { /* private mode / storage disabled */ }
-  // Local-server (offline-first) POS app defaults to the Postgres/GCP backend — it runs a local
-  // Postgres, its accounts live on GCP, and it must NEVER fall back to Vercel. The per-user pin
-  // above still wins when set (that's the account's real backend). Web/cloud app keeps Vercel.
+  // Local-server / server-mode: accounts live on GCP/Postgres — never fall back to Vercel.
+  // Uses the runtime server-mode flag (unified app), so it also covers the cloud app once a
+  // device is switched into server mode; the per-user pin above still wins when set.
   if (isServerModeActive()) return norm(PG_API_BASE);
   return norm(DEFAULT_API_BASE);
 }

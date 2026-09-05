@@ -1,7 +1,7 @@
 import { reportNetworkFailure, reportNetworkSuccess } from '../hooks/useNetworkStatus';
 import { setCachedData, getCachedData } from './offlineDb';
 import { getLocalServerUrl, setLocalServerUrl, isServerApp, isServerModeActive } from './localServer';
-import { getApiBase, setApiBase, clearApiBase, refreshRemoteBackend, DEFAULT_API_BASE, PG_API_BASE, BACKEND_URL_KEY, getBackendOverride, clearBackendOverride } from './apiBase';
+import { getApiBase, getCloudApiBase, setApiBase, clearApiBase, refreshRemoteBackend, DEFAULT_API_BASE, PG_API_BASE, BACKEND_URL_KEY, getBackendOverride, clearBackendOverride } from './apiBase';
 import { detectMultiTerminal } from '../utils/orderNumber';
 
 // Default cloud backend + the persisted-backend key both come from the SINGLE source
@@ -1282,6 +1282,14 @@ class ApiClient {
     return result;
   }
 
+  // Apply ONE modifier group to MANY products at once. mode: 'merge' | 'replace'.
+  async bulkApplyModifierGroup(restaurantId, { itemIds, modifierGroup, mode = 'merge' }) {
+    return this.request(`/api/menus/${restaurantId}/bulk-modifier-group`, {
+      method: 'POST',
+      body: { itemIds, modifierGroup, mode },
+    });
+  }
+
   async bulkDeleteMenuItems(restaurantId, reason) {
     const result = await this.request(`/api/menus/${restaurantId}/bulk-delete`, {
       method: 'DELETE',
@@ -1573,6 +1581,7 @@ class ApiClient {
       body: categoryData,
     });
     this.invalidateCache(`/api/categories/${restaurantId}`);
+    this.invalidateCache(`/api/menus/${restaurantId}`); // Dashboard reads category names from the menu response — must refresh too
     return result;
   }
 
@@ -1582,6 +1591,7 @@ class ApiClient {
       body: categoryData,
     });
     this.invalidateCache(`/api/categories/${restaurantId}`);
+    this.invalidateCache(`/api/menus/${restaurantId}`); // Dashboard reads category names from the menu response — must refresh too
     return result;
   }
 
@@ -1590,6 +1600,7 @@ class ApiClient {
       method: 'DELETE',
     });
     this.invalidateCache(`/api/categories/${restaurantId}`);
+    this.invalidateCache(`/api/menus/${restaurantId}`); // Dashboard reads category names from the menu response — must refresh too
     return result;
   }
 
@@ -3380,9 +3391,12 @@ class ApiClient {
     });
   }
 
-  // Generic image upload
+  // Generic image upload. Routes to the CLOUD backend (getCloudApiBase), never the
+  // co-located local server — images are stored in cloud Storage (GCS bucket), which
+  // the local bundled server can't reach. This is what makes the receipt logo save +
+  // print on the local-server app the same way it does on web/Vercel.
   async uploadImage(formData) {
-    const url = `${getApiBase()}/api/upload/image`;
+    const url = `${getCloudApiBase()}/api/upload/image`;
     const token = this.getToken();
 
     const config = {

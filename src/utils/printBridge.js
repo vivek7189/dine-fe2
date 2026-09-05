@@ -11,6 +11,25 @@
 
 import { isCapacitor, isTauri, isElectron, isWeb, isReactNativeWebView } from './platform';
 import { ORDER_STATUS_QR_MARKER, renderOrderStatusQRHtml } from './printTemplates/helpers';
+import { ensureLogoDataUri } from './logoCache';
+
+// Embed the receipt logo as a base64 data-URI so it prints on thermal/native printers
+// (which can't fetch a remote URL) and offline (no network at print time). The logo is
+// stored as a cloud-Storage URL; we swap that URL in the HTML for the cached/fetched
+// data-URI. Fully guarded: on any failure (offline + uncached) the original URL stays,
+// so the bill still prints — just without the logo, exactly like before.
+async function injectReceiptLogo(html, { printSettings = {} } = {}) {
+  try {
+    const url = printSettings?.receiptLogo?.url;
+    if (!html || typeof html !== 'string' || !url || url.startsWith('data:') || !html.includes(url)) return html;
+    const dataUri = await ensureLogoDataUri(url);
+    if (!dataUri || dataUri === url) return html;
+    return html.split(url).join(dataUri);
+  } catch (e) {
+    console.warn('injectReceiptLogo failed, printing with remote logo URL:', e?.message);
+    return html;
+  }
+}
 
 // Replace the bill's order-status QR marker (emitted by the templates when the
 // store enables "Track your order" QR) with a real QR image + link. Runs only
@@ -89,6 +108,10 @@ export async function printDocument({ html, domSelector, type = 'bill', orderId,
   if (type === 'bill' && printHtml.includes(ORDER_STATUS_QR_MARKER)) {
     printHtml = await injectOrderStatusQR(printHtml, { orderId, printSettings });
   }
+
+  // Embed the receipt logo as base64 so it prints on thermal/native printers and
+  // offline (they can't fetch the remote logo URL). Guarded — never blocks the bill.
+  printHtml = await injectReceiptLogo(printHtml, { printSettings });
 
   // Route to platform-specific printer
   if (isCapacitor()) {

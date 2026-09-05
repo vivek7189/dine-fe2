@@ -328,7 +328,7 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
       ...prev,
       enabled: true,
       taxInclusivePricing: !!regime.inclusiveDefault,
-      taxes: (regime.taxes || []).map((t, i) => ({ id: `tax_${Date.now()}_${i}`, name: t.name, rate: t.rate, enabled: true, type: 'percentage' })),
+      taxes: (regime.taxes || []).map((t, i) => ({ id: `tax_${Date.now()}_${i}`, name: t.name, rate: t.rate, enabled: true, type: 'percentage', ...(t.reportToEtims != null ? { reportToEtims: t.reportToEtims } : {}) })),
     }));
   };
   // Quick-add a tax at a slab rate (ADDS — does not replace existing taxes).
@@ -689,6 +689,17 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
                               {(!Array.isArray(tax.orderTypes) || tax.orderTypes.length === 0)
                                 ? <span style={{ fontSize: '10px', color: '#9ca3af' }}>(all order types)</span>
                                 : null}
+                              {(selectedRestaurant?.currencySettings?.countryCode === 'KE' || selectedRestaurant?.currencySettings?.currencyCode === 'KES') && (
+                                <label
+                                  title="Send this tax to KRA / eTIMS. VAT: yes. Levies (e.g. Catering Levy) are collected & shown on the bill but are NOT part of the fiscal invoice — leave unchecked."
+                                  style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#6b7280', fontWeight: 600, cursor: 'pointer', marginLeft: 'auto' }}>
+                                  <input type="checkbox"
+                                    checked={tax.reportToEtims != null ? !!tax.reportToEtims : /vat|gst|sales\s*tax/i.test(tax.name || '')}
+                                    onChange={(e) => updateTax(index, 'reportToEtims', e.target.checked)}
+                                    style={{ width: '13px', height: '13px' }} />
+                                  → KRA/eTIMS
+                                </label>
+                              )}
                             </div>
                           </div>
                         ))}
