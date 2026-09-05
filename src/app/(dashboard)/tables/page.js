@@ -1915,6 +1915,7 @@ const TableManagement = () => {
       countryCode: selectedRestaurant?.countryCode,
       taxLabel: selectedRestaurant?.currencySettings?.taxLabel || '',
       customerName: order.customerDisplay?.name || order.customerInfo?.name || order.customerName,
+      customerTin: order.customerTin || null,
     };
   };
 

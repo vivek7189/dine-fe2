@@ -1725,6 +1725,7 @@ const OrderHistory = () => {
       floorName: order.floorName || '',
       roomNumber: order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || '',
       customerName: order.customerDisplay?.name || order.customerInfo?.name || '',
+      customerTin: order.customerTin || null,
       customerPhone: order.customerDisplay?.phone || order.customerInfo?.phone || '',
       waiterName: order.waiterName || '',
       cashierName: order.cashierName || '',

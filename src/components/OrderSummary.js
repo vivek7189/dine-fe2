@@ -2425,6 +2425,7 @@ const OrderSummary = ({
         covers: covers,
         floorName: selectedTable?.floor || '',
         customerName: customerName || 'Walk-in',
+        customerTin: customerTin || null,
         customerPhone: customerMobile || '',
         paymentMethod: paymentMethod || 'cash',
         paymentMethodLabel: (() => {

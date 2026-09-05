@@ -412,6 +412,7 @@ export default function DashboardTablesPanel({
       countryCode: selectedRestaurant?.countryCode || countryCode,
       taxLabel: selectedRestaurant?.currencySettings?.taxLabel || '',
       customerName: order.customerDisplay?.name || order.customerInfo?.name || order.customerName,
+      customerTin: order.customerTin || null,
     };
   };
 
@@ -516,6 +517,7 @@ export default function DashboardTablesPanel({
         restaurantName: restaurantName || 'Restaurant',
         orderId: order.id,
         customerName: order.customerDisplay?.name || order.customerInfo?.name || order.customerName,
+      customerTin: order.customerTin || null,
         covers: order.covers || 1,
       };
       const kotHtml = generateKOTHTML(kotData, printSettings || {});
