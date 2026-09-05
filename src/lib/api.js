@@ -3089,6 +3089,18 @@ class ApiClient {
     } catch (_) { /* diagnostics must never affect printing */ }
   }
 
+  // Fire-and-forget: report which app build this terminal is running so support can see,
+  // per restaurant, which version each store is on. Never throws / never blocks the UI.
+  sendTerminalHeartbeat({ restaurantId, terminalId, appVersion, platform, os } = {}) {
+    if (!restaurantId) return;
+    try {
+      this.request('/api/terminal/heartbeat', {
+        method: 'POST',
+        body: { restaurantId, terminalId, appVersion, platform, os },
+      }).catch(() => {});
+    } catch (_) { /* telemetry must never affect the app */ }
+  }
+
   async updatePrintSettings(restaurantId, printSettings) {
     const result = await this.request(`/api/admin/print-settings/${restaurantId}`, {
       method: 'PUT',

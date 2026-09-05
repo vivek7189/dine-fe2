@@ -20,7 +20,7 @@ import SyncStatus from '../../components/SyncStatus';
 import SyncStatusDot from '../../components/SyncStatusDot';
 // Local-first: no online/offline routing switch. A read-only SyncStatusDot floats top-right.
 import OfflineFallback from '../../components/OfflineFallback';
-import { isWeb, isTauri, isElectron } from '../../utils/platform';
+import { isWeb, isTauri, isElectron, getPlatform } from '../../utils/platform';
 import { isAutoUpdateEnabled, checkForUpdates, restartApp } from '../../utils/autoUpdater';
 import apiClient from '../../lib/api';
 import { preferLoopbackIfLocal } from '../../lib/localServer';
@@ -164,6 +164,30 @@ function DashboardLayoutContent({ children }) {
       if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVisible);
       clearInterval(poll);
     };
+  }, [selectedRestaurantId]);
+
+  // Report which app build this terminal is running (desktop/native only) so support can see,
+  // per restaurant, which version each store is on. Fires on load + every 6h. Fire-and-forget.
+  useEffect(() => {
+    if (isWeb() || !selectedRestaurantId) return;
+    let cancelled = false;
+    const beat = async () => {
+      try {
+        let appVersion = null, terminalId = null;
+        if (typeof window !== 'undefined' && window.electronAPI?.getVersion) {
+          appVersion = await window.electronAPI.getVersion().catch(() => null);
+        }
+        if (typeof window !== 'undefined' && window.electronAPI?.getTerminalId) {
+          terminalId = await window.electronAPI.getTerminalId().catch(() => null);
+        }
+        const os = (typeof navigator !== 'undefined' && navigator.userAgent) ? navigator.userAgent.slice(0, 140) : null;
+        if (cancelled) return;
+        apiClient.sendTerminalHeartbeat({ restaurantId: selectedRestaurantId, terminalId, appVersion, platform: getPlatform(), os });
+      } catch (_) { /* telemetry — never affect the app */ }
+    };
+    beat();
+    const iv = setInterval(beat, 6 * 60 * 60 * 1000);
+    return () => { cancelled = true; clearInterval(iv); };
   }, [selectedRestaurantId]);
 
   // Auto-print on native platforms (Capacitor/Tauri) — no-op on web
