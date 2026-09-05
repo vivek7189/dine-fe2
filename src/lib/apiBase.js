@@ -109,10 +109,9 @@ export function getCloudApiBase() {
     const remote = window.localStorage.getItem(REMOTE_DEFAULT_KEY);
     if (remote && !/localhost|127\.0\.0\.1/.test(DEFAULT_API_BASE)) return norm(remote);
   } catch (_) { /* private mode / storage disabled */ }
-  // Local-server (offline-first) POS app defaults to the Postgres/GCP backend — it runs a local
-  // Postgres, its accounts live on GCP, and it must NEVER fall back to Vercel. The per-user pin
-  // above still wins when set (that's the account's real backend). Web/cloud app keeps Vercel.
-  // Unified app: runtime mode (isServerModeActive), not the build-time isServerApp.
+  // Local-server / server-mode: accounts live on GCP/Postgres — never fall back to Vercel.
+  // Uses the runtime server-mode flag (unified app), so it also covers the cloud app once a
+  // device is switched into server mode; the per-user pin above still wins when set.
   if (isServerModeActive()) return norm(PG_API_BASE);
   return norm(DEFAULT_API_BASE);
 }
