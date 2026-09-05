@@ -2879,7 +2879,8 @@ const OrderSummary = ({
         position: 'relative',
         overflow: 'hidden',
         flexShrink: 0,
-        ...(billingMode && { borderBottom: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0' })
+        ...(billingMode && { borderBottom: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0' }),
+        ...(twoColumn ? { borderTopLeftRadius: '16px', borderTopRightRadius: '16px' } : {})
       }}>
         {/* Background Pattern - hidden in billing mode */}
         {!billingMode && (
@@ -2948,14 +2949,17 @@ const OrderSummary = ({
             {onToggleExpanded && !isMobile && !billingMode && (
               <button
                 onClick={onToggleExpanded}
-                title={expanded ? 'Collapse order panel' : 'Expand to wide 2-column view'}
+                title={expanded ? 'Back to normal width' : 'Expand to a wide 2-column view'}
                 style={{
-                  background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '6px',
-                  width: '24px', height: '24px', display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0, marginLeft: '4px',
+                  display: 'inline-flex', alignItems: 'center', gap: '5px',
+                  background: '#ffffff', color: '#dc2626', border: 'none',
+                  borderRadius: '999px', padding: '5px 11px', marginLeft: '8px',
+                  fontSize: '11px', fontWeight: 800, letterSpacing: '0.2px',
+                  cursor: 'pointer', flexShrink: 0, boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                {expanded ? <FaCompress size={11} /> : <FaExpand size={11} />}
+                {expanded ? <><FaCompress size={10} /> Exit wide</> : <><FaExpand size={10} /> Wide view</>}
               </button>
             )}
           </div>
@@ -5279,7 +5283,7 @@ const OrderSummary = ({
           flexShrink: 0,
           ...(isMobileEmbed ? { display: 'flex', flexDirection: 'column', flex: 1 } : {}),
           boxShadow: billingMode ? 'none' : '0 -4px 12px rgba(0,0,0,0.08)',
-          ...(twoColumn ? { width: '380px', flexShrink: 0, overflowY: 'auto', overflowX: 'hidden' } : {}),
+          ...(twoColumn ? { width: '380px', flexShrink: 0, overflowY: 'auto', overflowX: 'hidden', borderTop: 'none', borderLeft: dm ? '1px solid ' + dm.border : '1px solid #eef1f4', boxShadow: 'none' } : {}),
         }}>
           {/* (Discount controls moved inline with special instructions below) */}
 

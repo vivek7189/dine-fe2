@@ -276,6 +276,8 @@ function RestaurantPOSContent() {
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   // Wide 2-column order panel (persisted per-device); windowWidth tracked for the 50/50 split (also works in Electron)
   const [orderPanelExpanded, setOrderPanelExpanded] = useState(false);
+  const [orderPanelPct, setOrderPanelPct] = useState(0.5); // user-chosen wide-panel width (fraction of window)
+  const [draggingPanel, setDraggingPanel] = useState(false);
   const [windowWidth, setWindowWidth] = useState(1440);
   const [showMobileEmbedSearch, setShowMobileEmbedSearch] = useState(false);
   const [hideMenuImagesLocal, setHideMenuImagesLocal] = useState(() => {
@@ -309,13 +311,44 @@ function RestaurantPOSContent() {
   // Wide "expanded" order panel (2-column) — only when the window is wide enough, else auto-fall back to normal
   const canExpandOrderPanel = !isMobile && windowWidth >= 1100;
   const orderPanelExpandedActive = orderPanelExpanded && canExpandOrderPanel;
-  const orderPanelWidth = orderPanelExpandedActive ? Math.max(560, Math.round(windowWidth * 0.5)) : normalOrderPanelWidth;
+  // User-draggable width: clamp the chosen fraction to a safe 35%–75% band.
+  const ORDER_PANEL_MIN_PCT = 0.35;
+  const ORDER_PANEL_MAX_PCT = 0.75;
+  const clampedPanelPct = Math.min(ORDER_PANEL_MAX_PCT, Math.max(ORDER_PANEL_MIN_PCT, orderPanelPct));
+  const orderPanelWidth = orderPanelExpandedActive ? Math.round(windowWidth * clampedPanelPct) : normalOrderPanelWidth;
   const toggleOrderPanelExpanded = useCallback(() => {
     setOrderPanelExpanded(prev => {
       const next = !prev;
       try { localStorage.setItem('pos.orderPanelExpanded', next ? '1' : '0'); } catch (_) {}
       return next;
     });
+  }, []);
+  // Drag the panel's left edge to resize (persists the chosen fraction).
+  const startPanelResize = useCallback((e) => {
+    e.preventDefault();
+    setDraggingPanel(true);
+    const onMove = (ev) => {
+      const clientX = ev.touches ? ev.touches[0].clientX : ev.clientX;
+      const w = window.innerWidth;
+      const pct = Math.min(0.75, Math.max(0.35, (w - clientX) / w));
+      setOrderPanelPct(pct);
+    };
+    const onUp = () => {
+      setDraggingPanel(false);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
+      setOrderPanelPct(prev => {
+        const clamped = Math.min(0.75, Math.max(0.35, prev));
+        try { localStorage.setItem('pos.orderPanelPct', String(clamped)); } catch (_) {}
+        return clamped;
+      });
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onUp);
   }, []);
 
   // Dashboard version redirect — if V2 is selected, redirect to /dashboard/v2
@@ -1151,6 +1184,7 @@ function RestaurantPOSContent() {
   // Track window width + restore the saved wide-panel preference (runs in Electron too)
   useEffect(() => {
     try { setOrderPanelExpanded(localStorage.getItem('pos.orderPanelExpanded') === '1'); } catch (_) {}
+    try { const p = parseFloat(localStorage.getItem('pos.orderPanelPct')); if (!isNaN(p)) setOrderPanelPct(Math.min(0.75, Math.max(0.35, p))); } catch (_) {}
     const onResize = () => setWindowWidth(window.innerWidth);
     onResize();
     window.addEventListener('resize', onResize);
@@ -9221,7 +9255,7 @@ function RestaurantPOSContent() {
             right: 0,
             top: '56px', // Below the header
             width: `${orderPanelWidth}px`,
-            transition: 'width 0.18s ease',
+            transition: draggingPanel ? 'none' : 'width 0.18s ease',
             height: 'calc(100vh - 56px)', // Full height minus header
             display: 'flex',
             flexDirection: 'column',
@@ -9229,6 +9263,25 @@ function RestaurantPOSContent() {
             backgroundColor: '#ffffff',
             borderLeft: '1px solid #e5e7eb'
           }}>
+          {/* Drag handle — resize the wide panel to any width the user likes (expanded view only) */}
+          {orderPanelExpandedActive && (
+            <div
+              onMouseDown={startPanelResize}
+              onTouchStart={startPanelResize}
+              title="Drag to resize"
+              style={{
+                position: 'absolute', left: '-4px', top: 0, bottom: 0, width: '10px',
+                cursor: 'col-resize', zIndex: 95, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <div style={{
+                width: '4px', height: '46px', borderRadius: '3px',
+                background: draggingPanel ? '#dc2626' : '#cbd5e1',
+                boxShadow: draggingPanel ? '0 0 0 3px rgba(220,38,38,0.15)' : 'none',
+                transition: 'background 0.15s ease',
+              }} />
+            </div>
+          )}
           {console.log('🖥️ Dashboard: Rendering OrderSummary with cart:', cart)}
           <OrderSummary
             restaurant={selectedRestaurant}
