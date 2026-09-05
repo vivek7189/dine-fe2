@@ -39,6 +39,24 @@ export function buildBillIdentity(restaurant, printSettings) {
   };
 }
 
+// Custom multi-line receipt footer — the owner's free text (website, bank details, notes, …)
+// printed at the very bottom of every bill. Returns '' when unset so bills are unchanged.
+// Edge cases: empty/whitespace → nothing; CRLF normalised; each line HTML-escaped; blank lines
+// kept as small spacers; hard caps (15 lines, 160 chars/line) so a runaway paste can't flood the
+// roll; alignment validated to left/center/right (default center). Text forced #000 (thermal 1-bit).
+export function buildCustomFooterHtml(billLayout) {
+  const bl = billLayout || {};
+  const raw = typeof bl.footerText === 'string' ? bl.footerText : '';
+  const trimmed = raw.replace(/\r\n?/g, '\n').trim();
+  if (!trimmed) return '';
+  const align = bl.footerAlign === 'left' ? 'left' : bl.footerAlign === 'right' ? 'right' : 'center';
+  const rows = trimmed.split('\n').slice(0, 15).map((l) => {
+    const line = l.trim();
+    return line ? `<div>${esc(line.slice(0, 160))}</div>` : '<div style="height:5px;"></div>';
+  }).join('');
+  return `<div class="bill-custom-footer" style="text-align:${align};margin:0 0 5px;color:#000;word-wrap:break-word;overflow-wrap:break-word;white-space:normal;">${rows}</div>`;
+}
+
 // Build identity lines (GSTIN, FSSAI, VAT, address, phone) for bill header.
 export function buildIdentityHtml(info, printSettings) {
   const bl = printSettings?.billLayout || {};

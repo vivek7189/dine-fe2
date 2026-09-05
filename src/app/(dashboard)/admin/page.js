@@ -4480,6 +4480,38 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                                 />
                               </div>
                             )}
+                            {/* Custom multi-line footer — prints on EVERY bill (website, bank details, notes…).
+                                Independent of the "Footer" (thank-you) + "Powered By" toggles; empty = nothing. */}
+                            <div>
+                              <label style={{ fontSize: '11px', color: '#374151', fontWeight: 500, display: 'block', marginBottom: '4px' }}>Custom Footer</label>
+                              <textarea
+                                value={printSettings.billLayout?.footerText || ''}
+                                onChange={(e) => setPrintSettings(prev => ({ ...prev, billLayout: { ...prev.billLayout, footerText: e.target.value } }))}
+                                placeholder={"Extra lines printed at the bottom of every bill.\nE.g. website, bank details, GST note, thank-you message…"}
+                                rows={3}
+                                maxLength={600}
+                                style={{
+                                  width: '100%', padding: '6px 8px', fontSize: '12px', border: '1px solid #d1d5db',
+                                  borderRadius: '6px', resize: 'vertical', fontFamily: 'inherit', outline: 'none',
+                                  boxSizing: 'border-box', whiteSpace: 'pre-wrap',
+                                }}
+                                onFocus={(e) => e.target.style.borderColor = '#6366f1'}
+                                onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                              />
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                                <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500 }}>Alignment</span>
+                                <select
+                                  value={printSettings.billLayout?.footerAlign || 'center'}
+                                  onChange={(e) => setPrintSettings(prev => ({ ...prev, billLayout: { ...prev.billLayout, footerAlign: e.target.value } }))}
+                                  style={{ fontSize: '12px', padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: '6px', outline: 'none', cursor: 'pointer' }}
+                                >
+                                  <option value="left">Left</option>
+                                  <option value="center">Center</option>
+                                  <option value="right">Right</option>
+                                </select>
+                              </div>
+                              <p style={{ fontSize: '10px', color: '#9ca3af', margin: '4px 0 0' }}>Prints on every bill, below the totals. Leave empty to show nothing.</p>
+                            </div>
                           </div>
                         )}
                       </div>
