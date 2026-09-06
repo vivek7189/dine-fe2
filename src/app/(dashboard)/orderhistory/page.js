@@ -26,7 +26,7 @@ import { buildBillIdentity } from '../../../utils/printTemplates/helpers';
 import { orderDisplayNumber } from '../../../utils/orderNumber';
 import { useEtimsBillPrint } from '../../../hooks/useEtimsBillPrint';
 import { etimsActiveFor } from '../../../lib/etimsDecision';
-import { fiscaliseCreditNote } from '../../../lib/etims';
+import { fiscaliseCreditNote, fiscaliseOrder, isEtimsCapable } from '../../../lib/etims';
 // KRA §4.16 Credit Note Reason Codes (rfdRsnCd) — shown in the refund dialog for Kenya eTIMS.
 const KRA_REFUND_REASONS = [
   { code: '06', label: 'Refund' },
@@ -243,6 +243,8 @@ const OrderHistory = () => {
   const [refundType, setRefundType] = useState('full'); // 'full' or 'partial'
   const [refundSubmitting, setRefundSubmitting] = useState(false);
   const [refundError, setRefundError] = useState(null);
+  // KRA eTIMS resend (per-order "send/resend to KRA") — tracks which order is currently sending.
+  const [resendingKraId, setResendingKraId] = useState(null);
   // Scroll-aware collapsing header
   const [isScrolled, setIsScrolled] = useState(false);
   // Edit Completed Order state
@@ -2954,6 +2956,75 @@ const OrderHistory = () => {
     } catch { return true; }
   })();
 
+  // ─── KRA eTIMS per-order status + resend ───
+  // kraEnabled = show the KRA status badge on every order card (Kenya store with eTIMS on).
+  // Display-only, so it works on web too. kraCapable adds the extra requirement for actually
+  // (re)sending: the desktop app, where the local VSCU relay lives.
+  const kraEnabled = (() => {
+    const cs = restaurant?.currencySettings || {};
+    const isKenya = cs.countryCode === 'KE' || cs.currencyCode === 'KES';
+    return !!(isKenya && restaurant?.etimsConfig?.enabled);
+  })();
+  const kraCapable = isEtimsCapable();
+
+  // Re-send a sale to KRA (idempotent: backend no-ops if already fiscalised). Recovers orders that
+  // failed/timed-out at the VSCU so they still get reported. Desktop-only (needs the VSCU relay).
+  const handleResendKra = async (order) => {
+    if (!kraCapable) { setDeleteError('Send to KRA from the desktop POS app — the KRA (VSCU) connection runs there.'); setTimeout(() => setDeleteError(null), 5000); return; }
+    setResendingKraId(order.id);
+    try {
+      const res = await fiscaliseOrder(restaurantId, order.id);
+      if (res?.etims?.rcptSign) {
+        setOrders(prev => prev.map(o => o.id === order.id ? { ...o, etims: res.etims } : o));
+        setDeleteSuccess(`Order sent to KRA (invoice #${res.etims.invcNo}).`);
+        setTimeout(() => setDeleteSuccess(null), 5000);
+      } else if (res?.skipped) {
+        setDeleteError('Send to KRA from the desktop POS app.'); setTimeout(() => setDeleteError(null), 5000);
+      } else {
+        setDeleteError('KRA did not confirm the sale — check eTIMS diagnostics.'); setTimeout(() => setDeleteError(null), 6000);
+      }
+    } catch (e) {
+      setDeleteError(`KRA send failed: ${e?.message || 'VSCU error'}`); setTimeout(() => setDeleteError(null), 6000);
+    } finally {
+      setResendingKraId(null);
+    }
+  };
+
+  // Badge (+ resend button) showing whether an order reached KRA. compact=true for the table view.
+  const renderKraStatus = (order, compact) => {
+    if (!kraEnabled) return null;
+    // Cancelled/deleted/saved orders are never fiscalised — don't nag about them.
+    if (['cancelled', 'deleted', 'saved'].includes(String(order.status || '').toLowerCase())) return null;
+    const sent = !!(order?.etims?.rcptSign);
+    const sending = resendingKraId === order.id;
+    const badgeStyle = {
+      fontSize: compact ? '9px' : '10px', fontWeight: 700, padding: compact ? '1px 5px' : '2px 7px',
+      borderRadius: '6px', whiteSpace: 'nowrap',
+      background: sent ? '#dcfce7' : '#fef2f2', color: sent ? '#166534' : '#b91c1c',
+      border: `1px solid ${sent ? '#86efac' : '#fecaca'}`,
+    };
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+        <span style={badgeStyle} title={sent ? `Fiscalised to KRA — invoice #${order.etims.invcNo}` : 'Not yet reported to KRA'}>
+          {sent ? `KRA ✓${order.etims.invcNo ? ' #' + order.etims.invcNo : ''}` : 'KRA ✗'}
+        </span>
+        {!sent && kraCapable && (
+          <button
+            onClick={(e) => { e.stopPropagation(); handleResendKra(order); }}
+            disabled={sending}
+            title="Send this order to KRA"
+            className={compact
+              ? 'h-7 px-2 rounded-lg flex items-center justify-center gap-1 text-[9px] font-bold text-white border transition-colors'
+              : `${isMobile ? 'p-1.5 text-[10px]' : 'px-3 py-1.5 text-xs'} font-medium text-white rounded-md transition-all flex items-center gap-1 whitespace-nowrap flex-shrink-0`}
+            style={{ background: sending ? '#93c5fd' : '#2563eb', borderColor: '#2563eb', cursor: sending ? 'default' : 'pointer' }}
+          >
+            <FaCloudUploadAlt size={compact ? 10 : (isMobile ? 11 : 12)} /> {compact ? (sending ? '' : 'KRA') : (sending ? 'Sending…' : 'Send to KRA')}
+          </button>
+        )}
+      </span>
+    );
+  };
+
   // Who can advance order status (preparing/ready/served) from the orders list.
   const canAdvanceStatus = (() => {
     const roles = restaurant?.billingSettings?.orderStatusRoles;
@@ -3971,6 +4042,7 @@ const OrderHistory = () => {
                                     <FaTimesCircle size={11} />
                                   </button>
                                 )}
+                                {renderKraStatus(order, true)}
                                 {order.status === 'completed' && !order.refundedAt && canRefund && (
                                   <button
                                     onClick={() => handleOpenRefund(order)}
@@ -4461,6 +4533,7 @@ const OrderHistory = () => {
                                 <FaTimesCircle size={isMobile ? 11 : 12} /> {!isMobile && t('orderHistory.cancel')}
                               </button>
                             )}
+                            {renderKraStatus(order, false)}
                             {order.status === 'completed' && !order.refundedAt && canRefund && (
                               <button
                                 onClick={() => handleOpenRefund(order)}
