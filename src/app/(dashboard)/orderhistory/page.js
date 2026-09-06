@@ -1221,7 +1221,9 @@ const OrderHistory = () => {
           }
         } catch (cnErr) {
           console.error('KRA credit note fiscalisation failed:', cnErr);
-          cnMsg = ` ⚠ KRA credit note failed: ${cnErr?.message || 'VSCU error'} — retry from KRA diagnostics.`;
+          cnMsg = ` ⚠ KRA credit note failed: ${cnErr?.message || 'VSCU error'} — it will auto-retry.`;
+          // Event-driven recovery: nudge the background worker to drain the credit-note backlog.
+          try { if (typeof window !== 'undefined') window.dispatchEvent(new Event('kra:retry')); } catch (_) { /* ignore */ }
         }
       }
 

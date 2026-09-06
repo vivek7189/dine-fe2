@@ -79,6 +79,9 @@ export async function fiscaliseAndPrint({ restaurantId, order, restaurant, print
   } catch (e) {
     // Fiscalisation failed → still give the customer a (non-fiscal) receipt.
     const fallbackPrinted = await printPlainBill(fullOrder, restaurantId, printSettings, labels);
+    // Event-driven recovery: tell the background retry worker to pick this up now (it drains the
+    // server-side pending list with adaptive backoff). Best-effort — never blocks the POS.
+    try { if (typeof window !== 'undefined') window.dispatchEvent(new Event('kra:retry')); } catch (_) { /* ignore */ }
     return { error: e && e.message, fallbackPrinted };
   }
   if (result.skipped) return result;

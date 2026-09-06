@@ -21,6 +21,33 @@ const COOLDOWNS = [2 * 60 * 1000, 5 * 60 * 1000, 10 * 60 * 1000]; // escalating 
 const OPEN_AFTER_FAILS = 2;   // consecutive VSCU-down failures before opening the circuit
 const PER_RUN_MAX = 25;       // cap orders processed per cycle (keeps a cycle bounded)
 
+// ── Adaptive scheduling (event-driven + exponential backoff, the industry-standard pattern) ──
+// The worker is driven mainly by EVENTS (a bill-time fiscalisation failure, connectivity restored)
+// — not a fixed poll. Between events the delay adapts to the outcome so a HEALTHY store barely
+// touches the server, while a backlog drains fast:
+//   • all clear (nothing pending)  → slow safety-net (20 min) — the only idle call
+//   • draining, making progress    → fast (30 s)
+//   • stuck backlog / VSCU down    → exponential backoff (1→2→5→10 min)
+// All delays get ±15% jitter so multiple tills never retry in lockstep.
+const FAST_MS = 30 * 1000;
+const SAFETY_NET_MS = 20 * 60 * 1000;
+const BACKOFF_MS = [60 * 1000, 2 * 60 * 1000, 5 * 60 * 1000, 10 * 60 * 1000];
+
+/**
+ * Pure: given a cycle outcome + how many times we've backed off, return the ms until the next run.
+ * (Exported so it can be unit-tested and so the hook stays a thin driver.)
+ */
+export function nextDelayMs(outcome, backoffIdx = 0) {
+  const jitter = (ms) => Math.round(ms * (0.85 + Math.random() * 0.30)); // ±15%
+  const step = BACKOFF_MS[Math.min(Math.max(0, backoffIdx), BACKOFF_MS.length - 1)];
+  if (!outcome) return jitter(SAFETY_NET_MS);
+  if (outcome.circuitOpen) return jitter(step);                 // VSCU down → back off
+  if (outcome.fetchFailed) return jitter(BACKOFF_MS[0]);        // cloud blip fetching /pending → ~1 min
+  if (outcome.pending > 0 && outcome.progressed) return jitter(FAST_MS); // draining, keep going
+  if (outcome.pending > 0) return jitter(step);                 // stuck backlog → back off
+  return jitter(SAFETY_NET_MS);                                 // all clear → slow backstop
+}
+
 let state = {
   circuit: 'closed',          // 'closed' | 'open' | 'half_open'
   consecutiveFails: 0,
@@ -77,10 +104,10 @@ function circuitAllowsRun(now) {
  * double-reports to KRA.
  */
 export async function runKraRetryOnce({ restaurantId, apiClient, fiscaliseOrder, fiscaliseCreditNote, force = false }) {
-  if (!restaurantId || !apiClient || typeof fiscaliseOrder !== 'function') return;
-  if (state.running) return;
+  if (!restaurantId || !apiClient || typeof fiscaliseOrder !== 'function') return { ran: false };
+  if (state.running) return { ran: false };
   const now = Date.now();
-  if (!force && !circuitAllowsRun(now)) return;
+  if (!force && !circuitAllowsRun(now)) return { ran: false, circuitOpen: true };
   if (force) state.circuit = 'half_open';
 
   state.running = true; state.lastRunAt = now; notify();
@@ -91,7 +118,7 @@ export async function runKraRetryOnce({ restaurantId, apiClient, fiscaliseOrder,
     } catch (e) {
       // Couldn't even fetch the work-list (cloud/network) — leave the circuit alone (it's for VSCU).
       state.lastError = e?.message || 'pending fetch failed';
-      state.running = false; notify(); return;
+      return { ran: true, fetchFailed: true, pending: state.pending, progressed: false };
     }
     const items = (res && res.items) || [];
     state.pending = items.length;
@@ -99,9 +126,10 @@ export async function runKraRetryOnce({ restaurantId, apiClient, fiscaliseOrder,
     if (!items.length) {
       // Nothing pending → healthy. Close the circuit.
       state.circuit = 'closed'; state.consecutiveFails = 0; state.cooldownIdx = 0; state.lastError = null;
-      state.running = false; notify(); return;
+      return { ran: true, pending: 0, progressed: false };
     }
     let processed = 0;
+    let progressed = false;
     for (const it of items) {
       if (processed >= PER_RUN_MAX) break;
       processed++;
@@ -113,7 +141,8 @@ export async function runKraRetryOnce({ restaurantId, apiClient, fiscaliseOrder,
           ? await fiscaliseCreditNote(restaurantId, it.orderId, it.rfdRsnCd ? { rfdRsnCd: it.rfdRsnCd } : {})
           : await fiscaliseOrder(restaurantId, it.orderId);
         if (r && r.skipped) break; // not the desktop / not capable — nothing we can do here
-        // success (signed now, or already signed)
+        // success (signed now, already signed, or dead-lettered/kraRegistered → resolved either way)
+        progressed = true;
         state.consecutiveFails = 0; state.cooldownIdx = 0; state.circuit = 'closed';
         state.lastSuccessAt = Date.now(); state.lastError = null;
         state.pending = Math.max(0, state.pending - 1);
@@ -136,6 +165,7 @@ export async function runKraRetryOnce({ restaurantId, apiClient, fiscaliseOrder,
         notify();
       }
     }
+    return { ran: true, pending: state.pending, progressed, circuitOpen: state.circuit === 'open' };
   } finally {
     state.running = false; notify();
   }
