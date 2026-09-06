@@ -86,7 +86,11 @@ function toMs(v) {
 // circuit — a single order's data reject must not stop the whole queue.
 function isVscuDownError(msg) {
   const m = String(msg || '').toLowerCase();
-  return /timed out|timeout|could not reach|refused|econnrefused|vscu|relay|network|bridge|unreachable/.test(m);
+  // NOTE: deliberately NO bare "vscu" token — a KRA DATA reject is surfaced as "VSCU rejected the
+  // sale: …", and matching "vscu" there would misclassify a single order's data reject as the whole
+  // VSCU being down and wrongly open the circuit. These patterns match only genuine unreachable/relay
+  // failures ("VSCU timed out", "could not reach the VSCU", refused, relay bridge, DNS, network).
+  return /timed out|timeout|could not reach|refused|econnrefused|relay|network|bridge|unreachable|dns/.test(m);
 }
 
 function circuitAllowsRun(now) {
@@ -141,7 +145,7 @@ export async function runKraRetryOnce({ restaurantId, apiClient, fiscaliseOrder,
           ? await fiscaliseCreditNote(restaurantId, it.orderId, it.rfdRsnCd ? { rfdRsnCd: it.rfdRsnCd } : {})
           : await fiscaliseOrder(restaurantId, it.orderId);
         if (r && r.skipped) break; // not the desktop / not capable — nothing we can do here
-        // success (signed now, already signed, or dead-lettered/kraRegistered → resolved either way)
+        // resolved: signed now, already signed, or flagged needsReconciliation → drop from the queue either way
         progressed = true;
         state.consecutiveFails = 0; state.cooldownIdx = 0; state.circuit = 'closed';
         state.lastSuccessAt = Date.now(); state.lastError = null;

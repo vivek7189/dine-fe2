@@ -179,6 +179,7 @@ export async function fiscaliseOrder(restaurantId, orderId) {
   // WITHOUT the cashier seeing an error. Bounded so a persistent problem still surfaces normally.
   const MAX_DUP_RETRIES = 4;
   let prep, invcNo, relayRes;
+  let reusedDup = false; // set when a 924 hits a REUSED reserved number → tell confirm-sale it's a dup
   for (let attempt = 0; ; attempt++) {
     prep = await apiClient.request(`/api/etims/${restaurantId}/prepare-sale`, { method: 'POST', body: { orderId } });
     if (prep.alreadyFiscalised) return { etims: prep.etims };
@@ -213,12 +214,13 @@ export async function fiscaliseOrder(restaurantId, orderId) {
         await logEtimsDiagnostic(restaurantId, {
           phase: 'auto-resync', ok: false, orderId, invcNo,
           resultCd: vscu.resultCd || (vscu.data && vscu.data.resultCd) || '924',
-          errorMessage: `KRA: invoice #${invcNo} already registered for THIS order — not resending (idempotency guard; no duplicate sent).`,
-          errorClass: 'ALREADY_AT_KRA', vscuUrl: prep.vscuUrl,
+          errorMessage: `KRA: invoice #${invcNo} 924 on a REUSED number — not resending (idempotency guard; no duplicate sent).`,
+          errorClass: 'DUP_REUSED', vscuUrl: prep.vscuUrl,
         });
-        // Do NOT resend under a new number. Fall through to confirm-sale with this 924 response — the
-        // backend detects the duplicate + marks the order kraRegistered (dead-letter: it's at KRA, so
-        // it's dropped from the retry queue). Never throws a duplicate to KRA.
+        // Do NOT resend under a new number. Fall through to confirm-sale WITH duplicateReused=true —
+        // the backend flags the order needsReconciliation (⚠ verify on KRA, NOT "filed"), drops it
+        // from the retry queue, and never resends → no duplicate.
+        reusedDup = true;
         break;
       }
       // FRESH number + 924 = our counter is behind KRA (this number belongs to another transaction,
@@ -251,7 +253,7 @@ export async function fiscaliseOrder(restaurantId, orderId) {
   try {
     conf = await apiClient.request(`/api/etims/${restaurantId}/confirm-sale`, {
       method: 'POST',
-      body: { orderId, invcNo, vscuResponse: relayRes.data || relayRes },
+      body: { orderId, invcNo, vscuResponse: relayRes.data || relayRes, duplicateReused: reusedDup },
     });
   } catch (e) {
     const vscu = (relayRes && relayRes.data) || {};
@@ -264,9 +266,10 @@ export async function fiscaliseOrder(restaurantId, orderId) {
     });
     throw e;
   }
-  // Dead-letter: the backend detected a 924 duplicate on a reused number → already at KRA, no
-  // signature. Not an error (no duplicate was sent); the order is dropped from the retry queue.
-  if (conf && conf.kraRegistered) return { kraRegistered: true, invcNo: conf.invcNo };
+  // Flagged for manual KRA reconciliation (a duplicate 924 on a reused number, or past the attempt
+  // cap). Not an error and no duplicate was sent; the order is dropped from the auto-retry queue and
+  // surfaced for a human to verify on the KRA portal.
+  if (conf && conf.needsReconciliation) return { needsReconciliation: true, invcNo: conf.invcNo };
   return { etims: conf.etims };
 }
 
@@ -295,11 +298,14 @@ export async function fiscaliseCreditNote(restaurantId, orderId, opts = {}) {
     await logEtimsDiagnostic(restaurantId, { phase: 'relay-credit-note', ok: false, orderId, invcNo, errorMessage: msg, raw: relayRes, errorClass: (relayRes && relayRes.errorClass) || 'RELAY_ERROR', latencyMs: relayRes && relayRes.latencyMs, vscuUrl: prep.vscuUrl, timeoutMs: prep.timeoutMs });
     throw new Error(msg);
   }
+  // A 924 on the credit note means the reserved CN number is already taken at KRA — never resend under
+  // a new number. Tell confirm-credit-note (duplicateReused) so it flags needsReconciliation (⚠ verify
+  // on KRA), rather than silently claiming the credit note was filed.
+  const cnIsDup = isDuplicateInvoiceResult(relayRes.data);
   const conf = await apiClient.request(`/api/etims/${restaurantId}/confirm-credit-note`, {
     method: 'POST',
-    body: { orderId, vscuResponse: relayRes.data || relayRes },
+    body: { orderId, vscuResponse: relayRes.data || relayRes, duplicateReused: cnIsDup },
   });
-  // Dead-letter: backend detected a 924 duplicate → the credit note is already at KRA (no signature).
-  if (conf && conf.kraRegistered) return { kraRegistered: true, invcNo: conf.invcNo };
+  if (conf && conf.needsReconciliation) return { needsReconciliation: true, invcNo: conf.invcNo };
   return { creditNote: conf.creditNote };
 }

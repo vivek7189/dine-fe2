@@ -2179,7 +2179,9 @@ const OrderHistory = () => {
         if (['cancelled', 'deleted', 'saved'].includes(s)) return false;
         const e = o.etims || {}; const cn = o.etimsCreditNote || {};
         const refunded = !!o.refundedAt || s === 'refunded';
-        return refunded ? (!cn.rcptSign && !cn.kraRegistered) : (!e.rcptSign && !e.kraRegistered);
+        // Show the full "not filed to KRA" backlog — including needsReconciliation (⚠), which is
+        // NOT filed and needs a human to verify on the KRA portal.
+        return refunded ? !cn.rcptSign : !e.rcptSign;
       });
     }
     return list;
@@ -3044,7 +3046,7 @@ const OrderHistory = () => {
     const GREEN = { bg: '#dcfce7', fg: '#166534', bd: '#86efac' };
     const AMBER = { bg: '#fffbeb', fg: '#92400e', bd: '#fde68a' };
     const RED = { bg: '#fef2f2', fg: '#b91c1c', bd: '#fecaca' };
-    const GRAY = { bg: '#f3f4f6', fg: '#4b5563', bd: '#d1d5db' }; // dead-letter: at KRA, no signature
+    const WARN = { bg: '#fff7ed', fg: '#9a3412', bd: '#fed7aa' }; // ⚠ needs manual KRA reconciliation
     // Surface the persisted last error on the badge tooltip (no log-diving).
     const errNote = (le) => (le ? ` · KRA said ${le.resultCd || '?'}${le.resultMsg ? ': ' + String(le.resultMsg).slice(0, 80) : ''}` : '');
     const mkResendBtn = (onClick, label) => (
@@ -3066,13 +3068,13 @@ const OrderHistory = () => {
     if (isRefunded) {
       const cn = order?.etimsCreditNote || {};
       const cnSent = !!cn.rcptSign;
-      const cnRegistered = !cnSent && !!cn.kraRegistered;   // at KRA (924 dup), no signature — dead-lettered
+      const cnNeedsRec = !cnSent && !!cn.needsReconciliation;   // ⚠ verify on KRA — not resent, not "filed"
       const saleSigned = !!(order?.etims?.rcptSign);
-      const cnPending = !cnSent && !cnRegistered && saleSigned; // sale on KRA, credit note owed (auto-retrying)
-      const col = cnSent ? GREEN : cnRegistered ? GRAY : cnPending ? AMBER : RED;
-      const label = cnSent ? `CN ✓${cn.invcNo ? ' #' + cn.invcNo : ''}` : cnRegistered ? `CN ✓*${cn.invcNo ? ' #' + cn.invcNo : ''}` : cnPending ? 'CN ⏳' : 'CN ✗';
+      const cnPending = !cnSent && !cnNeedsRec && saleSigned; // sale on KRA, credit note owed (auto-retrying)
+      const col = cnSent ? GREEN : cnNeedsRec ? WARN : cnPending ? AMBER : RED;
+      const label = cnSent ? `CN ✓${cn.invcNo ? ' #' + cn.invcNo : ''}` : cnNeedsRec ? 'CN ⚠' : cnPending ? 'CN ⏳' : 'CN ✗';
       const title = cnSent ? `Refund credit note filed — invoice #${cn.invcNo}`
-        : cnRegistered ? `Credit note already registered at KRA (no signature captured)${errNote(cn.lastError)}`
+        : cnNeedsRec ? `Credit note couldn't be confirmed with KRA — verify on the KRA portal${errNote(cn.lastError)}`
         : cnPending ? `Refund not yet sent to KRA — auto-retrying${errNote(cn.lastError)}` : 'Original sale is not on KRA — a credit note cannot be filed';
       return (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
@@ -3085,19 +3087,19 @@ const OrderHistory = () => {
     // ── Normal order → SALE status ──
     const e = order?.etims || {};
     const sent = !!e.rcptSign;
-    const registered = !sent && !!e.kraRegistered;   // at KRA (924 dup), no signature — dead-lettered
+    const needsRec = !sent && !!e.needsReconciliation;   // ⚠ verify on KRA — not resent, not "filed"
     // "pending" = prepared but not signed (failed/timed-out at the VSCU) → the auto-retry queue is
     // working on it. Distinct from "never sent" (no order.etims at all, e.g. cashier-skipped).
-    const pending = !sent && !registered && !!e.pendingInvcNo;
-    const col = sent ? GREEN : registered ? GRAY : pending ? AMBER : RED;
-    const label = sent ? `KRA ✓${e.invcNo ? ' #' + e.invcNo : ''}` : registered ? `KRA ✓*${e.invcNo ? ' #' + e.invcNo : ''}` : pending ? 'KRA ⏳' : 'KRA ✗';
+    const pending = !sent && !needsRec && !!e.pendingInvcNo;
+    const col = sent ? GREEN : needsRec ? WARN : pending ? AMBER : RED;
+    const label = sent ? `KRA ✓${e.invcNo ? ' #' + e.invcNo : ''}` : needsRec ? 'KRA ⚠' : pending ? 'KRA ⏳' : 'KRA ✗';
     const title = sent ? `Fiscalised to KRA — invoice #${e.invcNo}`
-      : registered ? `Registered at KRA (no receipt signature captured)${errNote(e.lastError)}`
+      : needsRec ? `Couldn't confirm with KRA — verify on the KRA portal${errNote(e.lastError)}`
       : pending ? `Prepared but not yet signed — auto-retrying${errNote(e.lastError)}` : `Not yet reported to KRA${errNote(e.lastError)}`;
     return (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
         <span style={mkBadgeStyle(col)} title={title}>{label}</span>
-        {!sent && !registered && kraCapable && mkResendBtn(handleResendKra, { short: 'KRA', full: 'Send to KRA' })}
+        {!sent && !needsRec && kraCapable && mkResendBtn(handleResendKra, { short: 'KRA', full: 'Send to KRA' })}
       </span>
     );
   };
