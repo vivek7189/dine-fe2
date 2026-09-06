@@ -308,8 +308,11 @@ function RestaurantPOSContent() {
 
   // Responsive panel width for order summary (tablet = narrower)
   const normalOrderPanelWidth = isTablet ? 340 : 450;
-  // Wide "expanded" order panel (2-column) — only when the window is wide enough, else auto-fall back to normal
-  const canExpandOrderPanel = !isMobile && windowWidth >= 1100;
+  // Wide "expanded" order panel (2-column). Width gate removed — Electron POS windows are often
+  // < 1100px (where the toggle silently did nothing while it worked on wider web browsers). The
+  // panel width is a clamped fraction (35–75%) of the window, so it stays usable on narrower
+  // screens too. Still disabled on true mobile layouts (where 2-column has no room).
+  const canExpandOrderPanel = !isMobile;
   const orderPanelExpandedActive = orderPanelExpanded && canExpandOrderPanel;
   // User-draggable width: clamp the chosen fraction to a safe 35%–75% band.
   const ORDER_PANEL_MIN_PCT = 0.35;
