@@ -29,7 +29,7 @@ export function useKraRetryQueue(restaurant, restaurantId, apiClient) {
     if (!rid || !ac) return;
     // Lazy import so this hook never pulls the eTIMS/electron code on non-Kenya bundles.
     import('../lib/etims')
-      .then(({ fiscaliseOrder }) => runKraRetryOnce({ restaurantId: rid, apiClient: ac, fiscaliseOrder, force }))
+      .then(({ fiscaliseOrder, fiscaliseCreditNote }) => runKraRetryOnce({ restaurantId: rid, apiClient: ac, fiscaliseOrder, fiscaliseCreditNote, force }))
       .catch(() => {});
   }, []);
 

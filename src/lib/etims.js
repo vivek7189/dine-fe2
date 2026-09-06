@@ -202,25 +202,41 @@ export async function fiscaliseOrder(restaurantId, orderId) {
       });
       throw new Error(msg);
     }
-    // The VSCU answered. If it rejected the number as a duplicate AND we have retries left, auto-heal:
-    // skip the counter past this number, clear the order's reserved number, then loop to re-prepare.
-    if (isDuplicateInvoiceResult(relayRes.data) && attempt < MAX_DUP_RETRIES) {
+    // The VSCU answered. Handle a KRA "924 duplicate" carefully to stay IDEMPOTENT (never double-report):
+    if (isDuplicateInvoiceResult(relayRes.data)) {
       const vscu = relayRes.data || {};
-      await logEtimsDiagnostic(restaurantId, {
-        phase: 'auto-resync', ok: false, orderId, invcNo,
-        resultCd: vscu.resultCd || (vscu.data && vscu.data.resultCd) || '924',
-        resultMsg: vscu.resultMsg || (vscu.data && vscu.data.resultMsg) || null,
-        errorMessage: `KRA: invoice #${invcNo} already exists (924) — auto-skipping counter and retrying (attempt ${attempt + 1}/${MAX_DUP_RETRIES}).`,
-        errorClass: 'AUTO_RESYNC', vscuUrl: prep.vscuUrl,
-      });
-      try {
-        // margin grows each attempt (1,2,3,4) so a bigger gap still converges within the retry budget.
-        await apiClient.request(`/api/etims/${restaurantId}/resync-counter`, { method: 'POST', body: { orderId, rejectedInvcNo: invcNo, margin: attempt + 1 } });
-      } catch (re) {
-        // Couldn't bump the counter — stop retrying and let confirm-sale surface the real 924 below.
-        break;
+      // IDEMPOTENCY GUARD: a 924 on a REUSED reserved number (prep.reusedPending) means our own prior
+      // relay already registered THIS sale at KRA — the confirm just didn't land. Skipping the counter
+      // and re-sending under a NEW number would double-report the sale. So DO NOT resend; stop here.
+      // (The plain receipt already printed; the fiscal signature can be reconciled from KRA if needed.)
+      if (prep.reusedPending) {
+        await logEtimsDiagnostic(restaurantId, {
+          phase: 'auto-resync', ok: false, orderId, invcNo,
+          resultCd: vscu.resultCd || (vscu.data && vscu.data.resultCd) || '924',
+          errorMessage: `KRA: invoice #${invcNo} already registered for THIS order — not resending (idempotency guard; no duplicate sent).`,
+          errorClass: 'ALREADY_AT_KRA', vscuUrl: prep.vscuUrl,
+        });
+        throw new Error(`Already reported to KRA (invoice #${invcNo}) — not resent to avoid a duplicate.`);
       }
-      continue; // re-prepare with the skipped counter → fresh invoice number
+      // FRESH number + 924 = our counter is behind KRA (this number belongs to another transaction,
+      // ours was never sent) → safe to skip the counter forward and retry with a new number.
+      if (attempt < MAX_DUP_RETRIES) {
+        await logEtimsDiagnostic(restaurantId, {
+          phase: 'auto-resync', ok: false, orderId, invcNo,
+          resultCd: vscu.resultCd || (vscu.data && vscu.data.resultCd) || '924',
+          resultMsg: vscu.resultMsg || (vscu.data && vscu.data.resultMsg) || null,
+          errorMessage: `KRA: invoice #${invcNo} already exists (924) — auto-skipping counter and retrying (attempt ${attempt + 1}/${MAX_DUP_RETRIES}).`,
+          errorClass: 'AUTO_RESYNC', vscuUrl: prep.vscuUrl,
+        });
+        try {
+          // margin grows each attempt (1,2,3,4) so a bigger gap still converges within the retry budget.
+          await apiClient.request(`/api/etims/${restaurantId}/resync-counter`, { method: 'POST', body: { orderId, rejectedInvcNo: invcNo, margin: attempt + 1 } });
+        } catch (re) {
+          // Couldn't bump the counter — stop retrying and let confirm-sale surface the real 924 below.
+          break;
+        }
+        continue; // re-prepare with the skipped counter → fresh invoice number
+      }
     }
     break; // signed OK, or a non-duplicate result, or out of retries → hand to confirm-sale
   }

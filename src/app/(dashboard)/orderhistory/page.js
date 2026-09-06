@@ -2990,45 +2990,89 @@ const OrderHistory = () => {
     }
   };
 
+  // Re-send a REFUND to KRA as a Credit Note (idempotent: reuses the reserved CN number, so it can
+  // never create a second credit note). Desktop-only (VSCU relay).
+  const handleResendCreditNote = async (order) => {
+    if (!kraCapable) { setDeleteError('Send to KRA from the desktop POS app — the KRA (VSCU) connection runs there.'); setTimeout(() => setDeleteError(null), 5000); return; }
+    setResendingKraId(order.id);
+    try {
+      const rfd = order?.etimsCreditNote?.rfdRsnCd || '06';
+      const res = await fiscaliseCreditNote(restaurantId, order.id, { rfdRsnCd: rfd });
+      if (res?.creditNote?.rcptSign) {
+        setOrders(prev => prev.map(o => o.id === order.id ? { ...o, etimsCreditNote: res.creditNote } : o));
+        setDeleteSuccess(`Credit note sent to KRA (invoice #${res.creditNote.invcNo}).`);
+        setTimeout(() => setDeleteSuccess(null), 5000);
+      } else if (res?.skipped) {
+        setDeleteError('Send to KRA from the desktop POS app.'); setTimeout(() => setDeleteError(null), 5000);
+      } else {
+        setDeleteError('KRA did not confirm the credit note — check eTIMS diagnostics.'); setTimeout(() => setDeleteError(null), 6000);
+      }
+    } catch (e) {
+      setDeleteError(`KRA credit note failed: ${e?.message || 'VSCU error'}`); setTimeout(() => setDeleteError(null), 6000);
+    } finally {
+      setResendingKraId(null);
+    }
+  };
+
   // Badge (+ resend button) showing whether an order reached KRA. compact=true for the table view.
+  // Refunded orders show their CREDIT NOTE status (that's the KRA doc a refund owes); other orders
+  // show the SALE status.
   const renderKraStatus = (order, compact) => {
     if (!kraEnabled) return null;
     // Cancelled/deleted/saved orders are never fiscalised — don't nag about them.
     if (['cancelled', 'deleted', 'saved'].includes(String(order.status || '').toLowerCase())) return null;
+    const sending = resendingKraId === order.id;
+    const mkBadgeStyle = (col) => ({
+      fontSize: compact ? '9px' : '10px', fontWeight: 700, padding: compact ? '1px 5px' : '2px 7px',
+      borderRadius: '6px', whiteSpace: 'nowrap', background: col.bg, color: col.fg, border: `1px solid ${col.bd}`,
+    });
+    const GREEN = { bg: '#dcfce7', fg: '#166534', bd: '#86efac' };
+    const AMBER = { bg: '#fffbeb', fg: '#92400e', bd: '#fde68a' };
+    const RED = { bg: '#fef2f2', fg: '#b91c1c', bd: '#fecaca' };
+    const mkResendBtn = (onClick, label) => (
+      <button
+        onClick={(e) => { e.stopPropagation(); onClick(order); }}
+        disabled={sending}
+        title="Send to KRA"
+        className={compact
+          ? 'h-7 px-2 rounded-lg flex items-center justify-center gap-1 text-[9px] font-bold text-white border transition-colors'
+          : `${isMobile ? 'p-1.5 text-[10px]' : 'px-3 py-1.5 text-xs'} font-medium text-white rounded-md transition-all flex items-center gap-1 whitespace-nowrap flex-shrink-0`}
+        style={{ background: sending ? '#93c5fd' : '#2563eb', borderColor: '#2563eb', cursor: sending ? 'default' : 'pointer' }}
+      >
+        <FaCloudUploadAlt size={compact ? 10 : (isMobile ? 11 : 12)} /> {compact ? (sending ? '' : label.short) : (sending ? 'Sending…' : label.full)}
+      </button>
+    );
+
+    // ── Refunded order → show the CREDIT NOTE status (the KRA doc a refund owes) ──
+    const isRefunded = !!order?.refundedAt || String(order.status || '').toLowerCase() === 'refunded';
+    if (isRefunded) {
+      const cnSent = !!(order?.etimsCreditNote?.rcptSign);
+      const saleSigned = !!(order?.etims?.rcptSign);
+      const cnPending = !cnSent && saleSigned;        // sale on KRA, credit note owed (auto-retrying)
+      const col = cnSent ? GREEN : cnPending ? AMBER : RED;
+      const label = cnSent ? `CN ✓${order.etimsCreditNote.invcNo ? ' #' + order.etimsCreditNote.invcNo : ''}` : cnPending ? 'CN ⏳' : 'CN ✗';
+      const title = cnSent ? `Refund credit note filed — invoice #${order.etimsCreditNote.invcNo}`
+        : cnPending ? 'Refund not yet sent to KRA — auto-retrying' : 'Original sale is not on KRA — a credit note cannot be filed';
+      return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+          <span style={mkBadgeStyle(col)} title={title}>{label}</span>
+          {cnPending && kraCapable && mkResendBtn(handleResendCreditNote, { short: 'CN', full: 'Send credit note' })}
+        </span>
+      );
+    }
+
+    // ── Normal order → SALE status ──
     const sent = !!(order?.etims?.rcptSign);
     // "pending" = prepared but not signed (failed/timed-out at the VSCU) → the auto-retry queue is
     // working on it. Distinct from "never sent" (no order.etims at all, e.g. cashier-skipped).
     const pending = !sent && !!(order?.etims?.pendingInvcNo);
-    const sending = resendingKraId === order.id;
-    // three states: green sent / amber pending / red not-sent
-    const c = sent
-      ? { bg: '#dcfce7', fg: '#166534', bd: '#86efac' }
-      : pending
-        ? { bg: '#fffbeb', fg: '#92400e', bd: '#fde68a' }
-        : { bg: '#fef2f2', fg: '#b91c1c', bd: '#fecaca' };
-    const badgeStyle = {
-      fontSize: compact ? '9px' : '10px', fontWeight: 700, padding: compact ? '1px 5px' : '2px 7px',
-      borderRadius: '6px', whiteSpace: 'nowrap',
-      background: c.bg, color: c.fg, border: `1px solid ${c.bd}`,
-    };
+    const col = sent ? GREEN : pending ? AMBER : RED;
     return (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-        <span style={badgeStyle} title={sent ? `Fiscalised to KRA — invoice #${order.etims.invcNo}` : pending ? 'Prepared but not yet signed — auto-retrying' : 'Not yet reported to KRA'}>
+        <span style={mkBadgeStyle(col)} title={sent ? `Fiscalised to KRA — invoice #${order.etims.invcNo}` : pending ? 'Prepared but not yet signed — auto-retrying' : 'Not yet reported to KRA'}>
           {sent ? `KRA ✓${order.etims.invcNo ? ' #' + order.etims.invcNo : ''}` : pending ? 'KRA ⏳' : 'KRA ✗'}
         </span>
-        {!sent && kraCapable && (
-          <button
-            onClick={(e) => { e.stopPropagation(); handleResendKra(order); }}
-            disabled={sending}
-            title="Send this order to KRA"
-            className={compact
-              ? 'h-7 px-2 rounded-lg flex items-center justify-center gap-1 text-[9px] font-bold text-white border transition-colors'
-              : `${isMobile ? 'p-1.5 text-[10px]' : 'px-3 py-1.5 text-xs'} font-medium text-white rounded-md transition-all flex items-center gap-1 whitespace-nowrap flex-shrink-0`}
-            style={{ background: sending ? '#93c5fd' : '#2563eb', borderColor: '#2563eb', cursor: sending ? 'default' : 'pointer' }}
-          >
-            <FaCloudUploadAlt size={compact ? 10 : (isMobile ? 11 : 12)} /> {compact ? (sending ? '' : 'KRA') : (sending ? 'Sending…' : 'Send to KRA')}
-          </button>
-        )}
+        {!sent && kraCapable && mkResendBtn(handleResendKra, { short: 'KRA', full: 'Send to KRA' })}
       </span>
     );
   };

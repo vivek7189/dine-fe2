@@ -71,10 +71,12 @@ function circuitAllowsRun(now) {
 
 /**
  * Run one retry cycle. Deps injected so the module stays free of import cycles:
- *   { restaurantId, apiClient, fiscaliseOrder, force }
- * force=true (manual "Retry now") bypasses the cooldown.
+ *   { restaurantId, apiClient, fiscaliseOrder, fiscaliseCreditNote, force }
+ * force=true (manual "Retry now") bypasses the cooldown. The work-list tags each item with
+ * kind ('sale' | 'creditNote'); both underlying calls are idempotent so a re-send never
+ * double-reports to KRA.
  */
-export async function runKraRetryOnce({ restaurantId, apiClient, fiscaliseOrder, force = false }) {
+export async function runKraRetryOnce({ restaurantId, apiClient, fiscaliseOrder, fiscaliseCreditNote, force = false }) {
   if (!restaurantId || !apiClient || typeof fiscaliseOrder !== 'function') return;
   if (state.running) return;
   const now = Date.now();
@@ -104,7 +106,12 @@ export async function runKraRetryOnce({ restaurantId, apiClient, fiscaliseOrder,
       if (processed >= PER_RUN_MAX) break;
       processed++;
       try {
-        const r = await fiscaliseOrder(restaurantId, it.orderId);
+        // Dispatch by kind. Both are idempotent server-side (sale reuses pendingInvcNo + a 924 on a
+        // reused number is NOT resent; credit note reuses its reserved CN number + alreadyDone guard)
+        // → a re-send can never create a duplicate at KRA.
+        const r = (it.kind === 'creditNote' && typeof fiscaliseCreditNote === 'function')
+          ? await fiscaliseCreditNote(restaurantId, it.orderId, it.rfdRsnCd ? { rfdRsnCd: it.rfdRsnCd } : {})
+          : await fiscaliseOrder(restaurantId, it.orderId);
         if (r && r.skipped) break; // not the desktop / not capable — nothing we can do here
         // success (signed now, or already signed)
         state.consecutiveFails = 0; state.cooldownIdx = 0; state.circuit = 'closed';
