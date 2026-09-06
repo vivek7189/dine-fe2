@@ -177,6 +177,7 @@ const OrderHistory = () => {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedOrderType, setSelectedOrderType] = useState('all');
   const [myOrdersOnly, setMyOrdersOnly] = useState(false);
+  const [kraUnfiledOnly, setKraUnfiledOnly] = useState(false); // Kenya: show only orders not yet on KRA
   const [dateFilterMode, setDateFilterMode] = useState('today');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('all');
   const [customStartDate, setCustomStartDate] = useState('');
@@ -2167,8 +2168,20 @@ const OrderHistory = () => {
       // Once auto-fired at their time (scheduledFired=true) they behave like a normal live order.
       list = list.filter(order => !(order.isScheduled && !order.scheduledFired));
     }
+    // "Unfiled to KRA" filter (Kenya): only orders whose KRA doc isn't filed yet — the explicit
+    // compliance backlog. Non-refunded → sale not signed & not dead-lettered; refunded → credit
+    // note not signed & not dead-lettered. (The toggle is only shown for eTIMS stores.)
+    if (kraUnfiledOnly) {
+      list = list.filter(o => {
+        const s = String(o.status || '').toLowerCase();
+        if (['cancelled', 'deleted', 'saved'].includes(s)) return false;
+        const e = o.etims || {}; const cn = o.etimsCreditNote || {};
+        const refunded = !!o.refundedAt || s === 'refunded';
+        return refunded ? (!cn.rcptSign && !cn.kraRegistered) : (!e.rcptSign && !e.kraRegistered);
+      });
+    }
     return list;
-  }, [orders, filterSubRestaurant, selectedOrderType]);
+  }, [orders, filterSubRestaurant, selectedOrderType, kraUnfiledOnly]);
 
   // Fetch scheduled orders
   const fetchScheduledOrders = useCallback(async () => {
@@ -3029,6 +3042,9 @@ const OrderHistory = () => {
     const GREEN = { bg: '#dcfce7', fg: '#166534', bd: '#86efac' };
     const AMBER = { bg: '#fffbeb', fg: '#92400e', bd: '#fde68a' };
     const RED = { bg: '#fef2f2', fg: '#b91c1c', bd: '#fecaca' };
+    const GRAY = { bg: '#f3f4f6', fg: '#4b5563', bd: '#d1d5db' }; // dead-letter: at KRA, no signature
+    // Surface the persisted last error on the badge tooltip (no log-diving).
+    const errNote = (le) => (le ? ` · KRA said ${le.resultCd || '?'}${le.resultMsg ? ': ' + String(le.resultMsg).slice(0, 80) : ''}` : '');
     const mkResendBtn = (onClick, label) => (
       <button
         onClick={(e) => { e.stopPropagation(); onClick(order); }}
@@ -3046,13 +3062,16 @@ const OrderHistory = () => {
     // ── Refunded order → show the CREDIT NOTE status (the KRA doc a refund owes) ──
     const isRefunded = !!order?.refundedAt || String(order.status || '').toLowerCase() === 'refunded';
     if (isRefunded) {
-      const cnSent = !!(order?.etimsCreditNote?.rcptSign);
+      const cn = order?.etimsCreditNote || {};
+      const cnSent = !!cn.rcptSign;
+      const cnRegistered = !cnSent && !!cn.kraRegistered;   // at KRA (924 dup), no signature — dead-lettered
       const saleSigned = !!(order?.etims?.rcptSign);
-      const cnPending = !cnSent && saleSigned;        // sale on KRA, credit note owed (auto-retrying)
-      const col = cnSent ? GREEN : cnPending ? AMBER : RED;
-      const label = cnSent ? `CN ✓${order.etimsCreditNote.invcNo ? ' #' + order.etimsCreditNote.invcNo : ''}` : cnPending ? 'CN ⏳' : 'CN ✗';
-      const title = cnSent ? `Refund credit note filed — invoice #${order.etimsCreditNote.invcNo}`
-        : cnPending ? 'Refund not yet sent to KRA — auto-retrying' : 'Original sale is not on KRA — a credit note cannot be filed';
+      const cnPending = !cnSent && !cnRegistered && saleSigned; // sale on KRA, credit note owed (auto-retrying)
+      const col = cnSent ? GREEN : cnRegistered ? GRAY : cnPending ? AMBER : RED;
+      const label = cnSent ? `CN ✓${cn.invcNo ? ' #' + cn.invcNo : ''}` : cnRegistered ? `CN ✓*${cn.invcNo ? ' #' + cn.invcNo : ''}` : cnPending ? 'CN ⏳' : 'CN ✗';
+      const title = cnSent ? `Refund credit note filed — invoice #${cn.invcNo}`
+        : cnRegistered ? `Credit note already registered at KRA (no signature captured)${errNote(cn.lastError)}`
+        : cnPending ? `Refund not yet sent to KRA — auto-retrying${errNote(cn.lastError)}` : 'Original sale is not on KRA — a credit note cannot be filed';
       return (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
           <span style={mkBadgeStyle(col)} title={title}>{label}</span>
@@ -3062,17 +3081,21 @@ const OrderHistory = () => {
     }
 
     // ── Normal order → SALE status ──
-    const sent = !!(order?.etims?.rcptSign);
+    const e = order?.etims || {};
+    const sent = !!e.rcptSign;
+    const registered = !sent && !!e.kraRegistered;   // at KRA (924 dup), no signature — dead-lettered
     // "pending" = prepared but not signed (failed/timed-out at the VSCU) → the auto-retry queue is
     // working on it. Distinct from "never sent" (no order.etims at all, e.g. cashier-skipped).
-    const pending = !sent && !!(order?.etims?.pendingInvcNo);
-    const col = sent ? GREEN : pending ? AMBER : RED;
+    const pending = !sent && !registered && !!e.pendingInvcNo;
+    const col = sent ? GREEN : registered ? GRAY : pending ? AMBER : RED;
+    const label = sent ? `KRA ✓${e.invcNo ? ' #' + e.invcNo : ''}` : registered ? `KRA ✓*${e.invcNo ? ' #' + e.invcNo : ''}` : pending ? 'KRA ⏳' : 'KRA ✗';
+    const title = sent ? `Fiscalised to KRA — invoice #${e.invcNo}`
+      : registered ? `Registered at KRA (no receipt signature captured)${errNote(e.lastError)}`
+      : pending ? `Prepared but not yet signed — auto-retrying${errNote(e.lastError)}` : `Not yet reported to KRA${errNote(e.lastError)}`;
     return (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-        <span style={mkBadgeStyle(col)} title={sent ? `Fiscalised to KRA — invoice #${order.etims.invcNo}` : pending ? 'Prepared but not yet signed — auto-retrying' : 'Not yet reported to KRA'}>
-          {sent ? `KRA ✓${order.etims.invcNo ? ' #' + order.etims.invcNo : ''}` : pending ? 'KRA ⏳' : 'KRA ✗'}
-        </span>
-        {!sent && kraCapable && mkResendBtn(handleResendKra, { short: 'KRA', full: 'Send to KRA' })}
+        <span style={mkBadgeStyle(col)} title={title}>{label}</span>
+        {!sent && !registered && kraCapable && mkResendBtn(handleResendKra, { short: 'KRA', full: 'Send to KRA' })}
       </span>
     );
   };
@@ -3783,6 +3806,13 @@ const OrderHistory = () => {
                 <input type="checkbox" checked={myOrdersOnly} onChange={(e) => setMyOrdersOnly(e.target.checked)} className="w-3 h-3 text-red-600 rounded focus:ring-red-500 border-gray-300" />
                 {t('orderHistory.mine')}
               </label>
+              {/* Kenya eTIMS: quick filter to the KRA compliance backlog (orders not yet on KRA). */}
+              {kraEnabled && (
+                <label className={`flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer transition-all text-xs font-medium whitespace-nowrap shrink-0 border ${kraUnfiledOnly ? 'bg-amber-50 text-amber-800 border-amber-300' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`} title="Show only orders not yet reported to KRA">
+                  <input type="checkbox" checked={kraUnfiledOnly} onChange={(e) => setKraUnfiledOnly(e.target.checked)} className="w-3 h-3 text-amber-600 rounded focus:ring-amber-500 border-gray-300" />
+                  Unfiled to KRA
+                </label>
+              )}
               {hasActiveFilters && (
                 <button type="button" onClick={resetAllFilters} className="flex items-center gap-1 px-2 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-lg border border-red-200 shrink-0 transition-all" title="Reset all filters">
                   <FaTimes className="text-[10px]" /> <span className="hidden sm:inline">{t('orderHistory.clear')}</span>

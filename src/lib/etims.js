@@ -216,7 +216,10 @@ export async function fiscaliseOrder(restaurantId, orderId) {
           errorMessage: `KRA: invoice #${invcNo} already registered for THIS order — not resending (idempotency guard; no duplicate sent).`,
           errorClass: 'ALREADY_AT_KRA', vscuUrl: prep.vscuUrl,
         });
-        throw new Error(`Already reported to KRA (invoice #${invcNo}) — not resent to avoid a duplicate.`);
+        // Do NOT resend under a new number. Fall through to confirm-sale with this 924 response — the
+        // backend detects the duplicate + marks the order kraRegistered (dead-letter: it's at KRA, so
+        // it's dropped from the retry queue). Never throws a duplicate to KRA.
+        break;
       }
       // FRESH number + 924 = our counter is behind KRA (this number belongs to another transaction,
       // ours was never sent) → safe to skip the counter forward and retry with a new number.
@@ -261,6 +264,9 @@ export async function fiscaliseOrder(restaurantId, orderId) {
     });
     throw e;
   }
+  // Dead-letter: the backend detected a 924 duplicate on a reused number → already at KRA, no
+  // signature. Not an error (no duplicate was sent); the order is dropped from the retry queue.
+  if (conf && conf.kraRegistered) return { kraRegistered: true, invcNo: conf.invcNo };
   return { etims: conf.etims };
 }
 
@@ -293,5 +299,7 @@ export async function fiscaliseCreditNote(restaurantId, orderId, opts = {}) {
     method: 'POST',
     body: { orderId, vscuResponse: relayRes.data || relayRes },
   });
+  // Dead-letter: backend detected a 924 duplicate → the credit note is already at KRA (no signature).
+  if (conf && conf.kraRegistered) return { kraRegistered: true, invcNo: conf.invcNo };
   return { creditNote: conf.creditNote };
 }
