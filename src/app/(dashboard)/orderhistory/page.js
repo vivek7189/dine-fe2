@@ -2996,17 +2996,25 @@ const OrderHistory = () => {
     // Cancelled/deleted/saved orders are never fiscalised — don't nag about them.
     if (['cancelled', 'deleted', 'saved'].includes(String(order.status || '').toLowerCase())) return null;
     const sent = !!(order?.etims?.rcptSign);
+    // "pending" = prepared but not signed (failed/timed-out at the VSCU) → the auto-retry queue is
+    // working on it. Distinct from "never sent" (no order.etims at all, e.g. cashier-skipped).
+    const pending = !sent && !!(order?.etims?.pendingInvcNo);
     const sending = resendingKraId === order.id;
+    // three states: green sent / amber pending / red not-sent
+    const c = sent
+      ? { bg: '#dcfce7', fg: '#166534', bd: '#86efac' }
+      : pending
+        ? { bg: '#fffbeb', fg: '#92400e', bd: '#fde68a' }
+        : { bg: '#fef2f2', fg: '#b91c1c', bd: '#fecaca' };
     const badgeStyle = {
       fontSize: compact ? '9px' : '10px', fontWeight: 700, padding: compact ? '1px 5px' : '2px 7px',
       borderRadius: '6px', whiteSpace: 'nowrap',
-      background: sent ? '#dcfce7' : '#fef2f2', color: sent ? '#166534' : '#b91c1c',
-      border: `1px solid ${sent ? '#86efac' : '#fecaca'}`,
+      background: c.bg, color: c.fg, border: `1px solid ${c.bd}`,
     };
     return (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-        <span style={badgeStyle} title={sent ? `Fiscalised to KRA — invoice #${order.etims.invcNo}` : 'Not yet reported to KRA'}>
-          {sent ? `KRA ✓${order.etims.invcNo ? ' #' + order.etims.invcNo : ''}` : 'KRA ✗'}
+        <span style={badgeStyle} title={sent ? `Fiscalised to KRA — invoice #${order.etims.invcNo}` : pending ? 'Prepared but not yet signed — auto-retrying' : 'Not yet reported to KRA'}>
+          {sent ? `KRA ✓${order.etims.invcNo ? ' #' + order.etims.invcNo : ''}` : pending ? 'KRA ⏳' : 'KRA ✗'}
         </span>
         {!sent && kraCapable && (
           <button
