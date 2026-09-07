@@ -1,0 +1,176 @@
+'use client';
+
+/**
+ * Kenya KRA eTIMS — background retry engine (renderer singleton).
+ *
+ * Store-and-forward safety net. A sale the local VSCU couldn't sign at bill time is left
+ * "prepared but unsigned" on the server (order.etims.pendingInvcNo set, no rcptSign). This engine
+ * periodically pulls that work-list (GET /api/etims/:id/pending) and re-drives fiscaliseOrder()
+ * — which is idempotent (the backend no-ops if already signed, so no duplicate KRA invoice) — so
+ * unreported sales self-heal when the VSCU recovers, WITHOUT ever blocking the cashier.
+ *
+ * A circuit breaker stops hammering a down VSCU and drives the health banner. Only VSCU-DOWN
+ * failures (timeout/refused/relay) trip it; a single order's data/KRA reject just skips that order.
+ * Cashier-skipped bills have no order.etims, so they are never in the work-list (choice honored).
+ *
+ * Pure module singleton (no React import). The hook (useKraRetryQueue) drives runKraRetryOnce() on
+ * triggers; the health banner subscribes to snapshots via subscribeKraStatus().
+ */
+
+const COOLDOWNS = [2 * 60 * 1000, 5 * 60 * 1000, 10 * 60 * 1000]; // escalating open-circuit cooldowns
+const OPEN_AFTER_FAILS = 2;   // consecutive VSCU-down failures before opening the circuit
+const PER_RUN_MAX = 25;       // cap orders processed per cycle (keeps a cycle bounded)
+
+// ── Adaptive scheduling (event-driven + exponential backoff, the industry-standard pattern) ──
+// The worker is driven mainly by EVENTS (a bill-time fiscalisation failure, connectivity restored)
+// — not a fixed poll. Between events the delay adapts to the outcome so a HEALTHY store barely
+// touches the server, while a backlog drains fast:
+//   • all clear (nothing pending)  → slow safety-net (20 min) — the only idle call
+//   • draining, making progress    → fast (30 s)
+//   • stuck backlog / VSCU down    → exponential backoff (1→2→5→10 min)
+// All delays get ±15% jitter so multiple tills never retry in lockstep.
+const FAST_MS = 30 * 1000;
+const SAFETY_NET_MS = 20 * 60 * 1000;
+const BACKOFF_MS = [60 * 1000, 2 * 60 * 1000, 5 * 60 * 1000, 10 * 60 * 1000];
+
+/**
+ * Pure: given a cycle outcome + how many times we've backed off, return the ms until the next run.
+ * (Exported so it can be unit-tested and so the hook stays a thin driver.)
+ */
+export function nextDelayMs(outcome, backoffIdx = 0) {
+  const jitter = (ms) => Math.round(ms * (0.85 + Math.random() * 0.30)); // ±15%
+  const step = BACKOFF_MS[Math.min(Math.max(0, backoffIdx), BACKOFF_MS.length - 1)];
+  if (!outcome) return jitter(SAFETY_NET_MS);
+  if (outcome.circuitOpen) return jitter(step);                 // VSCU down → back off
+  if (outcome.fetchFailed) return jitter(BACKOFF_MS[0]);        // cloud blip fetching /pending → ~1 min
+  if (outcome.pending > 0 && outcome.progressed) return jitter(FAST_MS); // draining, keep going
+  if (outcome.pending > 0) return jitter(step);                 // stuck backlog → back off
+  return jitter(SAFETY_NET_MS);                                 // all clear → slow backstop
+}
+
+let state = {
+  circuit: 'closed',          // 'closed' | 'open' | 'half_open'
+  consecutiveFails: 0,
+  cooldownIdx: 0,
+  openedAt: 0,
+  running: false,
+  pending: 0,
+  oldestPendingAt: null,      // ms epoch of oldest pending order (for the 24h-cutoff escalation)
+  lastSuccessAt: null,        // ms epoch of last successful fiscalisation
+  lastRunAt: null,
+  lastError: null,
+};
+
+const listeners = new Set();
+const snapshot = () => ({ ...state });
+function notify() { const s = snapshot(); listeners.forEach(fn => { try { fn(s); } catch (_) {} }); }
+
+export function subscribeKraStatus(fn) {
+  listeners.add(fn);
+  try { fn(snapshot()); } catch (_) {}
+  return () => listeners.delete(fn);
+}
+export function getKraStatus() { return snapshot(); }
+
+function toMs(v) {
+  try {
+    if (!v) return 0;
+    if (typeof v === 'number') return v;
+    if (v._seconds) return v._seconds * 1000;
+    if (v.toDate) return v.toDate().getTime();
+    return new Date(v).getTime() || 0;
+  } catch { return 0; }
+}
+
+// A "VSCU is down / unreachable" failure (vs a one-off data/KRA reject). Only these trip the
+// circuit — a single order's data reject must not stop the whole queue.
+function isVscuDownError(msg) {
+  const m = String(msg || '').toLowerCase();
+  // NOTE: deliberately NO bare "vscu" token — a KRA DATA reject is surfaced as "VSCU rejected the
+  // sale: …", and matching "vscu" there would misclassify a single order's data reject as the whole
+  // VSCU being down and wrongly open the circuit. These patterns match only genuine unreachable/relay
+  // failures ("VSCU timed out", "could not reach the VSCU", refused, relay bridge, DNS, network).
+  return /timed out|timeout|could not reach|refused|econnrefused|relay|network|bridge|unreachable|dns/.test(m);
+}
+
+function circuitAllowsRun(now) {
+  if (state.circuit !== 'open') return true;
+  const cd = COOLDOWNS[Math.min(state.cooldownIdx, COOLDOWNS.length - 1)];
+  if (now - state.openedAt >= cd) { state.circuit = 'half_open'; return true; } // allow one probe
+  return false;
+}
+
+/**
+ * Run one retry cycle. Deps injected so the module stays free of import cycles:
+ *   { restaurantId, apiClient, fiscaliseOrder, fiscaliseCreditNote, force }
+ * force=true (manual "Retry now") bypasses the cooldown. The work-list tags each item with
+ * kind ('sale' | 'creditNote'); both underlying calls are idempotent so a re-send never
+ * double-reports to KRA.
+ */
+export async function runKraRetryOnce({ restaurantId, apiClient, fiscaliseOrder, fiscaliseCreditNote, force = false }) {
+  if (!restaurantId || !apiClient || typeof fiscaliseOrder !== 'function') return { ran: false };
+  if (state.running) return { ran: false };
+  const now = Date.now();
+  if (!force && !circuitAllowsRun(now)) return { ran: false, circuitOpen: true };
+  if (force) state.circuit = 'half_open';
+
+  state.running = true; state.lastRunAt = now; notify();
+  try {
+    let res;
+    try {
+      res = await apiClient.request(`/api/etims/${restaurantId}/pending`, { method: 'GET' });
+    } catch (e) {
+      // Couldn't even fetch the work-list (cloud/network) — leave the circuit alone (it's for VSCU).
+      state.lastError = e?.message || 'pending fetch failed';
+      return { ran: true, fetchFailed: true, pending: state.pending, progressed: false };
+    }
+    const items = (res && res.items) || [];
+    state.pending = items.length;
+    state.oldestPendingAt = items.length ? (toMs(items[0].preparedAt) || null) : null;
+    if (!items.length) {
+      // Nothing pending → healthy. Close the circuit.
+      state.circuit = 'closed'; state.consecutiveFails = 0; state.cooldownIdx = 0; state.lastError = null;
+      return { ran: true, pending: 0, progressed: false };
+    }
+    let processed = 0;
+    let progressed = false;
+    for (const it of items) {
+      if (processed >= PER_RUN_MAX) break;
+      processed++;
+      try {
+        // Dispatch by kind. Both are idempotent server-side (sale reuses pendingInvcNo + a 924 on a
+        // reused number is NOT resent; credit note reuses its reserved CN number + alreadyDone guard)
+        // → a re-send can never create a duplicate at KRA.
+        const r = (it.kind === 'creditNote' && typeof fiscaliseCreditNote === 'function')
+          ? await fiscaliseCreditNote(restaurantId, it.orderId, it.rfdRsnCd ? { rfdRsnCd: it.rfdRsnCd } : {})
+          : await fiscaliseOrder(restaurantId, it.orderId);
+        if (r && r.skipped) break; // not the desktop / not capable — nothing we can do here
+        // resolved: signed now, already signed, or flagged needsReconciliation → drop from the queue either way
+        progressed = true;
+        state.consecutiveFails = 0; state.cooldownIdx = 0; state.circuit = 'closed';
+        state.lastSuccessAt = Date.now(); state.lastError = null;
+        state.pending = Math.max(0, state.pending - 1);
+        notify();
+      } catch (e) {
+        const msg = e?.message || 'fiscalise failed';
+        state.lastError = msg;
+        if (isVscuDownError(msg)) {
+          state.consecutiveFails++;
+          if (state.consecutiveFails >= OPEN_AFTER_FAILS) {
+            // VSCU is down — open the circuit, back off, stop this cycle (don't hammer a dead unit).
+            state.circuit = 'open';
+            state.openedAt = Date.now();
+            state.cooldownIdx = Math.min(state.cooldownIdx + 1, COOLDOWNS.length - 1);
+            notify();
+            break;
+          }
+        }
+        // data/KRA reject for this one order → skip it, keep processing the rest.
+        notify();
+      }
+    }
+    return { ran: true, pending: state.pending, progressed, circuitOpen: state.circuit === 'open' };
+  } finally {
+    state.running = false; notify();
+  }
+}

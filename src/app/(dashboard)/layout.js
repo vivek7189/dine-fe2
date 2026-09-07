@@ -20,6 +20,8 @@ import SyncStatus from '../../components/SyncStatus';
 import SyncStatusDot from '../../components/SyncStatusDot';
 // Local-first: no online/offline routing switch. A read-only SyncStatusDot floats top-right.
 import OfflineFallback from '../../components/OfflineFallback';
+import KraHealthBanner from '../../components/KraHealthBanner';
+import { useKraRetryQueue } from '../../hooks/useKraRetryQueue';
 import { isWeb, isTauri, isElectron } from '../../utils/platform';
 import { isAutoUpdateEnabled, checkForUpdates, restartApp } from '../../utils/autoUpdater';
 import apiClient from '../../lib/api';
@@ -69,6 +71,10 @@ function DashboardLayoutContent({ children }) {
     window.addEventListener('restaurantChanged', read);
     return () => window.removeEventListener('restaurantChanged', read);
   }, []);
+  // KRA eTIMS auto-retry: while the POS is open, re-drive any sales the VSCU couldn't sign
+  // (store-and-forward). No-op unless Kenya + eTIMS + desktop. Drives the health banner below.
+  const kra = useKraRetryQueue(lockRestaurant, selectedRestaurantId, apiClient);
+
   // Connectivity-based routing (online → cloud, offline → local server) is handled by the
   // <OfflineFallback/> reconciler below — it probes the real cloud and pins/unpins accordingly.
 
@@ -602,6 +608,10 @@ function DashboardLayoutContent({ children }) {
                 top-right toggle and no bottom-right pill cluttering the POS screen. */}
             {/* LAN-first resilience: if on Internet mode and it drops, fall back to local server */}
             <OfflineFallback />
+
+            {/* KRA eTIMS health alert (Kenya desktop) — shows only when the VSCU is unreachable or
+                sales are pending; never blocks the POS. Auto-retry runs via useKraRetryQueue above. */}
+            {kra.active && <KraHealthBanner status={kra.status} onRetry={kra.retryNow} onTest={kra.testConnection} />}
 
             {/* DineAI Floating Button */}
             <DineAIButton />

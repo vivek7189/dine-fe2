@@ -34,6 +34,7 @@ export default function EtimsSettings({ restaurantId }) {
   const [savingManual, setSavingManual] = useState(false);
   const [diags, setDiags] = useState([]);
   const [loadingDiags, setLoadingDiags] = useState(false);
+  const [diagFailuresOnly, setDiagFailuresOnly] = useState(false);
   const [testing, setTesting] = useState(false);
   const [resyncing, setResyncing] = useState(false);
   const [manualInvcNo, setManualInvcNo] = useState('');
@@ -55,11 +56,12 @@ export default function EtimsSettings({ restaurantId }) {
   const loadDiags = useCallback(async () => {
     setLoadingDiags(true);
     try {
-      const res = await apiClient.request(`/api/etims/${restaurantId}/diagnostics`);
+      const q = `?limit=100${diagFailuresOnly ? '&failuresOnly=1' : ''}`;
+      const res = await apiClient.request(`/api/etims/${restaurantId}/diagnostics${q}`);
       setDiags(Array.isArray(res.items) ? res.items : []);
     } catch { /* advisory only */ }
     finally { setLoadingDiags(false); }
-  }, [restaurantId]);
+  }, [restaurantId, diagFailuresOnly]);
 
   useEffect(() => { load(); loadDiags(); }, [load, loadDiags]);
 
@@ -400,9 +402,18 @@ export default function EtimsSettings({ restaurantId }) {
       <div style={{ marginTop: 16, borderTop: '1px dashed #e5e7eb', paddingTop: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <span style={{ fontSize: 12.5, fontWeight: 700, color: '#374151' }}>Recent eTIMS activity</span>
-          <button onClick={loadDiags} disabled={loadingDiags} style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, color: '#6b7280', cursor: 'pointer' }}>
-            {loadingDiags ? 'Refreshing…' : '↻ Refresh'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              onClick={() => setDiagFailuresOnly(v => !v)}
+              title="Show only failed attempts"
+              style={{ background: diagFailuresOnly ? '#fef2f2' : 'none', border: `1px solid ${diagFailuresOnly ? '#fecaca' : '#e5e7eb'}`, borderRadius: 6, padding: '4px 10px', fontSize: 11.5, color: diagFailuresOnly ? '#b91c1c' : '#6b7280', fontWeight: diagFailuresOnly ? 700 : 500, cursor: 'pointer' }}
+            >
+              {diagFailuresOnly ? '● Failures only' : 'Failures only'}
+            </button>
+            <button onClick={loadDiags} disabled={loadingDiags} style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, color: '#6b7280', cursor: 'pointer' }}>
+              {loadingDiags ? 'Refreshing…' : '↻ Refresh'}
+            </button>
+          </div>
         </div>
         {diags.length === 0 ? (
           <div style={{ fontSize: 11.5, color: '#9ca3af' }}>
