@@ -1028,6 +1028,38 @@ const OrderHistory = () => {
     };
   }, [restaurantId]); // Only re-subscribe when restaurant changes
 
+  // ──── Server-controlled order-history screen polling fallback (default OFF · Electron only) ────
+  // Safety net for terminals where the Firebase RTDB live socket can't stay up (seen on some
+  // Windows machines) — without it the list stops updating live and needs a manual refresh. When
+  // enabled, while THIS order-history screen is open AND the window is visible, it re-fetches
+  // orders so new/updated ones still appear on their own.
+  //   • DEFAULT OFF — enable per restaurant from the DB: printSettings.orderHistoryPollingEnabled = true
+  //   • Interval:   printSettings.orderHistoryPollingIntervalSec (default 5s, clamped 3–60s)
+  //   • Electron ONLY — web is untouched (RTDB works there); no extra reads on web.
+  //   • Stops the instant you leave this screen (effect unmounts) or the window is hidden.
+  useEffect(() => {
+    const isElectronApp = typeof window !== 'undefined' && !!window.electronAPI;
+    if (!isElectronApp || !restaurantId) return;
+    if (printSettings?.orderHistoryPollingEnabled !== true) return; // server switch — OFF by default
+    const intervalMs = Math.max(3, Math.min(parseInt(printSettings?.orderHistoryPollingIntervalSec) || 5, 60)) * 1000;
+    let stopped = false;
+    const tick = () => {
+      if (stopped) return;
+      // Never poll a hidden/background window — only the active, open order screen.
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+      try { if (fetchOrdersRef.current) fetchOrdersRef.current(false); } catch (_) { /* never break the screen */ }
+    };
+    const timer = setInterval(tick, intervalMs);
+    // Catch up immediately when the window regains focus after being hidden.
+    const onVis = () => { if (typeof document !== 'undefined' && document.visibilityState === 'visible') tick(); };
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVis);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+      if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVis);
+    };
+  }, [restaurantId, printSettings?.orderHistoryPollingEnabled, printSettings?.orderHistoryPollingIntervalSec]);
+
   // Reset to page 1 only when filters change (not when currentPage changes – that was breaking Next/Prev)
   useEffect(() => { setCurrentPage(1); }, [selectedStatus, selectedOrderType, myOrdersOnly, searchTerm, dateFilterMode, selectedPaymentMethod, selectedPaymentStatus, customStartDate, customEndDate]);
 
