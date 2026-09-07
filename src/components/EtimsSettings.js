@@ -38,6 +38,9 @@ export default function EtimsSettings({ restaurantId }) {
   const [diags, setDiags] = useState([]);
   const [loadingDiags, setLoadingDiags] = useState(false);
   const [diagFailuresOnly, setDiagFailuresOnly] = useState(false);
+  const [openOrderId, setOpenOrderId] = useState(null);   // order whose full KRA trail is expanded
+  const [orderTrail, setOrderTrail] = useState([]);       // that order's rows WITH raw (request + response)
+  const [trailLoading, setTrailLoading] = useState(false);
   const [testing, setTesting] = useState(false);
   const [resyncing, setResyncing] = useState(false);
   const [manualInvcNo, setManualInvcNo] = useState('');
@@ -65,6 +68,25 @@ export default function EtimsSettings({ restaurantId }) {
     } catch { /* advisory only */ }
     finally { setLoadingDiags(false); }
   }, [restaurantId, diagFailuresOnly]);
+
+  // Expand one order's full KRA trail (prepare-sale REQUEST + confirm-sale RESPONSE, with raw payloads)
+  // so a reject can be root-caused in-app: you see exactly what we sent to KRA and what KRA returned.
+  const viewOrderTrail = useCallback(async (orderId) => {
+    if (!orderId) return;
+    if (openOrderId === orderId) { setOpenOrderId(null); setOrderTrail([]); return; }
+    setOpenOrderId(orderId); setOrderTrail([]); setTrailLoading(true);
+    try {
+      const res = await apiClient.request(`/api/etims/${restaurantId}/diagnostics?orderId=${encodeURIComponent(orderId)}&includeRaw=1&limit=50`);
+      setOrderTrail(Array.isArray(res.items) ? res.items : []);
+    } catch { setOrderTrail([]); }
+    finally { setTrailLoading(false); }
+  }, [restaurantId, openOrderId]);
+
+  const prettyRaw = (raw) => {
+    if (raw == null) return '(not recorded)';
+    if (typeof raw === 'string') { try { return JSON.stringify(JSON.parse(raw), null, 2); } catch { return raw; } }
+    try { return JSON.stringify(raw, null, 2); } catch { return String(raw); }
+  };
 
   useEffect(() => { load(); loadDiags(); }, [load, loadDiags]);
 
@@ -432,15 +454,43 @@ export default function EtimsSettings({ restaurantId }) {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {diags.map((d) => (
-              <div key={d.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 11.5, background: d.ok ? '#f0fdf4' : '#fef2f2', border: `1px solid ${d.ok ? '#bbf7d0' : '#fecaca'}`, borderRadius: 6, padding: '6px 8px' }}>
-                <span style={{ fontWeight: 700, color: d.ok ? '#166534' : '#b91c1c', whiteSpace: 'nowrap' }}>{d.ok ? '✓' : '✕'} {d.phase}</span>
-                <span style={{ flex: 1, color: '#374151', minWidth: 0, wordBreak: 'break-word' }}>
-                  {d.ok
-                    ? (d.orderId ? `order …${String(d.orderId).slice(-6)}${d.invcNo != null ? ` · inv #${d.invcNo}` : ''}` : 'success')
-                    : (d.errorMessage || d.resultMsg || `code ${d.resultCd || '?'}`)}
-                  {!d.ok && d.resultCd ? <span style={{ color: '#9ca3af' }}> · code {d.resultCd}</span> : null}
-                </span>
-                <span style={{ color: '#9ca3af', whiteSpace: 'nowrap' }}>{fmtWhen(d.createdAt)}</span>
+              <div key={d.id}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 11.5, background: d.ok ? '#f0fdf4' : '#fef2f2', border: `1px solid ${d.ok ? '#bbf7d0' : '#fecaca'}`, borderRadius: 6, padding: '6px 8px' }}>
+                  <span style={{ fontWeight: 700, color: d.ok ? '#166534' : '#b91c1c', whiteSpace: 'nowrap' }}>{d.ok ? '✓' : '✕'} {d.phase}</span>
+                  <span style={{ flex: 1, color: '#374151', minWidth: 0, wordBreak: 'break-word' }}>
+                    {d.ok
+                      ? (d.orderId ? `order …${String(d.orderId).slice(-6)}${d.invcNo != null ? ` · inv #${d.invcNo}` : ''}` : 'success')
+                      : (d.errorMessage || d.resultMsg || `code ${d.resultCd || '?'}`)}
+                    {!d.ok && d.resultCd ? <span style={{ color: '#9ca3af' }}> · code {d.resultCd}</span> : null}
+                  </span>
+                  {d.orderId && (
+                    <button onClick={() => viewOrderTrail(d.orderId)} style={{ background: 'none', border: '1px solid #d1d5db', borderRadius: 5, padding: '1px 7px', fontSize: 10.5, color: '#4b5563', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                      {openOrderId === d.orderId ? 'Hide' : '🔍 Details'}
+                    </button>
+                  )}
+                  <span style={{ color: '#9ca3af', whiteSpace: 'nowrap' }}>{fmtWhen(d.createdAt)}</span>
+                </div>
+                {openOrderId === d.orderId && (
+                  <div style={{ margin: '4px 0 8px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#f9fafb', padding: 8 }}>
+                    {trailLoading ? (
+                      <div style={{ fontSize: 11.5, color: '#6b7280' }}>Loading order’s KRA trail…</div>
+                    ) : orderTrail.length === 0 ? (
+                      <div style={{ fontSize: 11.5, color: '#6b7280' }}>No detail recorded for this order.</div>
+                    ) : (
+                      orderTrail.map((t) => (
+                        <div key={t.id} style={{ marginBottom: 8 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: t.ok ? '#166534' : '#b91c1c' }}>
+                            {t.ok ? '✓' : '✕'} {t.phase}
+                            {t.phase && t.phase.indexOf('prepare') === 0 ? ' — what we SENT to KRA (request)' : (t.phase && t.phase.indexOf('confirm') === 0 ? ' — what KRA RETURNED (response)' : '')}
+                            {t.resultCd ? ` · code ${t.resultCd}` : ''}{t.invcNo != null ? ` · inv #${t.invcNo}` : ''}
+                          </div>
+                          {t.errorMessage && <div style={{ fontSize: 11, color: '#b91c1c', marginTop: 2 }}>{t.errorMessage}</div>}
+                          <pre style={{ margin: '3px 0 0', fontSize: 10.5, lineHeight: 1.4, color: '#374151', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 5, padding: 7, overflowX: 'auto', maxHeight: 220, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{prettyRaw(t.raw)}</pre>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
