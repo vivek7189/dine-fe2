@@ -3677,8 +3677,8 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
     autoPrintOnBilling: false,
     // Advanced
     usePusherForKOT: false,
-    // Future reserved
-    autoPrintOnOnlineOrder: false,
+    // Online/QR orders: auto-accept to kitchen + auto-print KOT (default ON)
+    autoPrintOnOnlineOrder: true,
     autoPrintOnTableCall: false,
     // Bill print font size & font
     billFontSize: 'medium',
@@ -3959,14 +3959,12 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
       icon: <FaReceipt size={18} />,
       section: 'display'
     },
-    // Future reserved (disabled)
     {
       key: 'autoPrintOnOnlineOrder',
-      title: 'Auto-Print Online Orders',
-      description: 'Auto-print when online/delivery order is received (Coming soon)',
+      title: 'Auto-Accept & Print Online Orders',
+      description: 'Send QR/online orders straight to the kitchen and auto-print the KOT on arrival (no manual accept). Turn off to review orders first.',
       icon: <FaStore size={18} />,
-      section: 'future',
-      disabled: true
+      section: 'web'
     },
     {
       key: 'autoPrintOnTableCall',
