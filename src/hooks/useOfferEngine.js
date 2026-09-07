@@ -573,6 +573,49 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     };
   }, [restaurantId]);
 
+  // Backstop refresh: converge even if a live RTDB push was missed (terminal was
+  // asleep/backgrounded/offline when the owner changed an offer). Re-fetch on window
+  // focus, tab becoming visible, and coming back online — throttled so rapid focus
+  // events don't spam the API. Cheap (offers are small + server/Redis cached).
+  useEffect(() => {
+    if (!restaurantId) return;
+    let lastFetch = 0;
+    let cancelled = false;
+    const doRefetch = async () => {
+      const now = Date.now();
+      if (now - lastFetch < 20000) return; // throttle to at most once / 20s
+      lastFetch = now;
+      try {
+        let resp;
+        try {
+          resp = await apiClient.getActiveOffersForPOS(restaurantId, customerInfo?.isFirstOrder);
+        } catch (e) {
+          resp = await apiClient.getActiveOffers(restaurantId, customerInfo?.isFirstOrder);
+        }
+        if (cancelled) return;
+        const offers = (resp.offers || resp || []).filter(o => o.isActive !== false);
+        setAllOffers(offers);
+        try { localStorage.setItem(`dine_offers_${restaurantId}`, JSON.stringify({ data: offers, timestamp: Date.now() })); } catch (_) {}
+      } catch (_) {
+        // Keep existing offers on failure
+      }
+    };
+    const onVisible = () => { if (typeof document !== 'undefined' && document.visibilityState === 'visible') doRefetch(); };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', doRefetch);
+      window.addEventListener('online', doRefetch);
+      document.addEventListener('visibilitychange', onVisible);
+    }
+    return () => {
+      cancelled = true;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('focus', doRefetch);
+        window.removeEventListener('online', doRefetch);
+        document.removeEventListener('visibilitychange', onVisible);
+      }
+    };
+  }, [restaurantId, customerInfo?.isFirstOrder]);
+
   // Re-fetch offers when customerInfo.isFirstOrder changes (to filter first-order-only)
   useEffect(() => {
     if (!restaurantId || !customerInfo) return;
