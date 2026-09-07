@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import apiClient from '../lib/api';
 import { initEtimsDevice, isEtimsCapable, syncEtimsItems, setEtimsDeviceManual, testEtimsConnection } from '../lib/etims';
+import KraHealthBanner from './KraHealthBanner';
+import { useKraStatus } from '../contexts/KraStatusContext';
 
 // Format a Firestore/ISO timestamp for the activity log (short, local).
 function fmtWhen(v) {
@@ -20,6 +22,7 @@ function fmtWhen(v) {
  * (which only works from the desktop app).
  */
 export default function EtimsSettings({ restaurantId }) {
+  const kra = useKraStatus();   // shared KRA retry status from the dashboard layout (worker runs there)
   const [cfg, setCfg] = useState(null);
   const [form, setForm] = useState({ enabled: false, askPerBill: false, tin: '', bhfId: '00', dvcSrlNo: '', vscuUrl: 'http://localhost:8088', defaultItemClassCode: '', receiptBottomMsg: '', trdeNm: '' });
   const [loading, setLoading] = useState(true);
@@ -242,6 +245,13 @@ export default function EtimsSettings({ restaurantId }) {
         Report every sale to KRA in real time via your local VSCU. Setup and fiscalisation run through the
         DineOpen <b>desktop app</b> (the VSCU runs on this machine).
       </p>
+
+      {/* KRA health banner — lives ONLY here (not floated on every page). Shows the auto-retry
+          status: VSCU unreachable vs VSCU-up-but-KRA-rejecting, and reassures that the app keeps
+          retrying pending sales in the background. */}
+      {kra?.active && (
+        <KraHealthBanner status={kra.status} onRetry={kra.retryNow} onTest={kra.testConnection} inline />
+      )}
 
       {/* Toggle gates ALL setup below. Because you must turn it ON to reveal the fields, eTIMS can never
           be left "configured but not enabled" — the forgot-to-tick failure mode can't happen. */}
