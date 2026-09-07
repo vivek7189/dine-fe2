@@ -3031,6 +3031,29 @@ const OrderHistory = () => {
     }
   };
 
+  // Refund visibility chip: a PARTIAL refund keeps status 'completed' (order still counts) so nothing
+  // on the card otherwise shows it happened; a FULL refund shows the "Refunded" status badge but not
+  // the amount. This chip surfaces the refunded amount for BOTH, with reason/date/by in the tooltip.
+  // Display-only — the refund amount/status is already stored + accounted server-side.
+  const renderRefundChip = (order, compact) => {
+    const amt = Number(order?.refundAmount) || 0;
+    if (amt <= 0) return null;
+    const total = Number(order?.finalAmount) || Number(order?.totalAmount) || 0;
+    const full = String(order?.refundType || '').toLowerCase() === 'full' || (total > 0 && amt >= total - 0.01);
+    const who = order?.refundedBy ? ` · by ${order.refundedBy}` : '';
+    const when = order?.refundedAt ? ` · ${formatDate(order.refundedAt, true)}` : '';
+    const title = `${full ? 'Full' : 'Partial'} refund of ${formatCurrency(amt)}${order?.refundReason ? ` — ${order.refundReason}` : ''}${when}${who}`;
+    return (
+      <span
+        title={title}
+        className={`inline-flex items-center gap-1 rounded-full font-semibold ${compact ? 'px-1.5 py-px text-[9px]' : 'px-2 py-px text-[10px]'}`}
+        style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', whiteSpace: 'nowrap' }}
+      >
+        <FaUndoAlt size={compact ? 8 : 9} /> {full ? 'Refunded' : 'Partial refund'} {formatCurrency(amt)}
+      </span>
+    );
+  };
+
   // Badge (+ resend button) showing whether an order reached KRA. compact=true for the table view.
   // Refunded orders show their CREDIT NOTE status (that's the KRA doc a refund owes); other orders
   // show the SALE status.
@@ -3941,6 +3964,7 @@ const OrderHistory = () => {
                                   <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusStyle.text, opacity: 0.6 }} />
                                   {statusStyle.label}
                                 </span>
+                                {renderRefundChip(order, true)}
                                 {sourceChip && (
                                   <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-medium border w-fit ${sourceChip.className}`}>
                                     {sourceChip.label}
@@ -4243,6 +4267,17 @@ const OrderHistory = () => {
                                         <span>Total</span>
                                         <span>{formatCurrency(breakdown.total)}</span>
                                       </div>
+                                      {Number(order.refundAmount) > 0 && (() => {
+                                        const amt = Number(order.refundAmount) || 0;
+                                        const total = Number(order.finalAmount) || Number(order.totalAmount) || 0;
+                                        const full = String(order.refundType || '').toLowerCase() === 'full' || (total > 0 && amt >= total - 0.01);
+                                        return (
+                                          <div className="flex justify-between text-amber-700 font-semibold" title={order.refundedAt ? formatDate(order.refundedAt, true) : ''}>
+                                            <span>{full ? 'Refunded' : 'Partial refund'}{order.refundReason ? ` — ${order.refundReason}` : ''}</span>
+                                            <span>-{formatCurrency(amt)}</span>
+                                          </div>
+                                        );
+                                      })()}
                                       {order.outstandingAmount > 0 && (
                                         <div className="flex justify-between text-red-600 font-semibold">
                                           <span>{t('orderHistory.due')}</span>
@@ -4315,6 +4350,7 @@ const OrderHistory = () => {
                             >
                               {statusStyle.label}
                             </span>
+                            {renderRefundChip(order, isMobile)}
                             {isMobile && (
                               <span className={`text-[10px] text-gray-400 flex items-center gap-0.5`}>
                                 <FaClock className="text-[8px]" />
