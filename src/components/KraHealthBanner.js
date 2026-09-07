@@ -65,12 +65,16 @@ export default function KraHealthBanner({ status, onRetry, onTest, inline = fals
     setTesting(true); setTestMsg(null);
     try {
       const res = await onTest?.();
-      setTestMsg(res?.reachable ? 'VSCU reachable ✓' : `VSCU not reachable${res?.error ? ': ' + res.error : ''}`);
+      // Definitive 3-state verdict (not just "reachable"): tells them which problem it is.
+      if (!res) setTestMsg('Test could not run.');
+      else if (res.ok) setTestMsg('✓ VSCU + KRA responding OK (code 000) — filing works right now.');
+      else if (res.reachable) setTestMsg(`⚠ VSCU is UP but KRA rejected the test${res.resultCd ? ` (code ${res.resultCd})` : ''} — it's the VSCU↔KRA link/internet on this PC, not the app. Restart the VSCU app + check internet.`);
+      else setTestMsg(`✗ VSCU not reachable${res.error ? ': ' + res.error : ''} — open the VSCU app on this PC.`);
     } catch (e) {
       setTestMsg('Test failed: ' + (e?.message || 'error'));
     } finally {
       setTesting(false);
-      setTimeout(() => setTestMsg(null), 6000);
+      setTimeout(() => setTestMsg(null), 14000);
     }
   };
 

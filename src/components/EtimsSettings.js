@@ -196,7 +196,7 @@ export default function EtimsSettings({ restaurantId }) {
       if (res.reachable && res.ok) {
         setMsg({ type: 'success', text: `✅ VSCU reachable at ${form.vscuUrl} and responding OK.` });
       } else if (res.reachable) {
-        setMsg({ type: 'error', text: `⚠️ VSCU is reachable but returned an error: ${res.resultMsg || 'no message'} (code ${res.resultCd || '?'}). The VSCU is running, but the device may not be initialised for this PIN/branch.` });
+        setMsg({ type: 'error', text: `⚠️ The VSCU is running and reachable, but KRA rejected the test: ${res.resultMsg || 'no message'} (code ${res.resultCd || '?'}). The app and the bill are fine — this points to the VSCU↔KRA link (this PC's internet to KRA, or a transient KRA error). Fix: restart the VSCU app on this PC + check its internet, then retry. (If you have never initialised this device, do "Set up device" first.)` });
       } else {
         setMsg({ type: 'error', text: `❌ ${res.error || 'Could not reach the VSCU.'} Make sure the VSCU application is running on this machine and the VSCU URL is correct.` });
       }
