@@ -20,12 +20,26 @@ const HEARTBEAT_MIN_MS = 25000;    // throttle "connected" heartbeats to at most
 export default function useRealtimeConnection(restaurantId) {
   const reconnectTimer = useRef(null);
   const lastBeat = useRef(0);
+  const serverOffsetMs = useRef(null);   // Firebase clock skew (serverTime − localClock), ms
+  const disconnectedSince = useRef(0);   // when the socket last went down (0 = up)
 
   useEffect(() => {
     if (!database || !restaurantId) return;
 
     const platform = (typeof navigator !== 'undefined' && navigator.platform) || '';
     const isElectron = typeof window !== 'undefined' && !!window.electronAPI;
+
+    // Track Firebase's server-time offset = serverTime − this machine's clock. A large magnitude
+    // means the TERMINAL'S CLOCK IS WRONG — the #1 cause of "live orders / KOT auto-print stop" on
+    // a single machine (the RTDB since-query starts at the local clock and skips events when the
+    // clock runs ahead). Logging it lets us diagnose clock skew remotely from the DB — no console.
+    let unsubOffset = () => {};
+    try {
+      unsubOffset = onValue(ref(database, '.info/serverTimeOffset'), (s) => {
+        const v = Number(s.val());
+        if (Number.isFinite(v)) serverOffsetMs.current = Math.round(v);
+      });
+    } catch { /* noop */ }
 
     const heartbeat = (state) => {
       const now = Date.now();
@@ -36,6 +50,11 @@ export default function useRealtimeConnection(restaurantId) {
         apiClient.logPrintDiagnostic?.(restaurantId, {
           phase: 'rt-connection', state, ts: now, platform, electron: isElectron,
           appVersion: (typeof window !== 'undefined' && window.electronAPI?.appVersion) || undefined,
+          // ── Root-cause diagnostics for a terminal whose realtime link keeps failing ──
+          serverOffsetMs: serverOffsetMs.current,                 // clock skew; big ± = wrong PC clock
+          localIso: new Date(now).toISOString(),                  // the machine's own clock reading
+          online: (typeof navigator !== 'undefined') ? navigator.onLine : undefined, // false = network down
+          downForMs: (state === 'disconnected' && disconnectedSince.current) ? (now - disconnectedSince.current) : undefined,
         });
       } catch { /* diagnostics are best-effort */ }
     };
@@ -48,6 +67,8 @@ export default function useRealtimeConnection(restaurantId) {
     const infoRef = ref(database, '.info/connected');
     const unsub = onValue(infoRef, (snap) => {
       const connected = snap.val() === true;
+      if (!connected && !disconnectedSince.current) disconnectedSince.current = Date.now();
+      else if (connected) disconnectedSince.current = 0;
       heartbeat(connected ? 'connected' : 'disconnected');
       if (connected) {
         if (reconnectTimer.current) { clearTimeout(reconnectTimer.current); reconnectTimer.current = null; }
@@ -68,6 +89,7 @@ export default function useRealtimeConnection(restaurantId) {
 
     return () => {
       try { unsub(); } catch { /* noop */ }
+      try { unsubOffset(); } catch { /* noop */ }
       if (reconnectTimer.current) { clearTimeout(reconnectTimer.current); reconnectTimer.current = null; }
       offResume();
     };
