@@ -217,6 +217,22 @@ export const calculateOfferResult = (offer, subtotal, cart = [], context = {}) =
       let disc = (applicableSubtotal * effectiveDiscountValue) / 100;
       if (offer.maxDiscount && disc > offer.maxDiscount) disc = offer.maxDiscount;
       baseDiscount = Math.round(disc * 100) / 100;
+    } else if (effectiveDiscountType === 'flat_per_item') {
+      // Fixed amount off EACH qualifying unit (must match backend offerEngine so the
+      // on-screen preview equals the saved/printed bill). e.g. 76 off × 3 beers = 228.
+      const applicableItems = cart
+        .filter(item => !isItemExcluded(item, offer))
+        .filter(item => {
+          if (offerScope === 'item' && offer.targetItems?.length > 0) return offer.targetItems.includes(item.menuItemId || item.id);
+          if (offerScope === 'category' && offer.targetCategories?.length > 0) return offer.targetCategories.map(normalizeCategory).includes(normalizeCategory(item.category || ''));
+          return true;
+        });
+      let disc = 0;
+      for (const it of applicableItems) {
+        disc += Math.min(effectiveDiscountValue, it.price || 0) * (it.quantity || 1);
+      }
+      if (offer.maxDiscount && disc > offer.maxDiscount) disc = offer.maxDiscount;
+      baseDiscount = Math.round(disc * 100) / 100;
     } else {
       baseDiscount = Math.round(Math.min(effectiveDiscountValue, applicableSubtotal) * 100) / 100;
     }
