@@ -670,6 +670,17 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
         payload.tiers = [];
         payload.crossItemBogo = { ...payload.crossItemBogo, enabled: false };
         payload.promotionType = 'bogo';
+        // Require a complete BOGO config. A 'bogo' offer saved with no bogoConfig
+        // silently degrades to a one-time flat/percentage discount in the engine
+        // (the cause of the "discount only picks 1 item" bug). Build + validate it.
+        const bc = payload.bogoConfig || {};
+        const buyQty = Number(bc.buyQty), getQty = Number(bc.getQty);
+        if (!(buyQty > 0) || !(getQty > 0)) {
+          showWarning('For "Buy X Get Y", please enter both the Buy quantity and the Get (free) quantity.');
+          setSaving(false);
+          return;
+        }
+        payload.bogoConfig = { buyQty, getQty, getDiscount: Number(bc.getDiscount) > 0 ? Number(bc.getDiscount) : 100 };
       } else if (discountMode === 'cashback') {
         // Cashback: tiers define wallet credit per spend level; never discounts
         // the current bill (engine returns 0 discount; credit happens at
@@ -709,6 +720,25 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
           return;
         }
       }
+      // Item/category-scoped offers MUST have targets — otherwise the engine
+      // falls back to the whole order (an offer that silently applies too widely).
+      if (payload.scope === 'item' && !(payload.targetItems?.length > 0)) {
+        showWarning('Please select at least one menu item for this offer.');
+        setSaving(false);
+        return;
+      }
+      if (payload.scope === 'category' && !(payload.targetCategories?.length > 0)) {
+        showWarning('Please select at least one category for this offer.');
+        setSaving(false);
+        return;
+      }
+      // "Fixed amount off each item" only makes sense on specific items/categories.
+      if (payload.discountType === 'flat_per_item' && payload.scope === 'order') {
+        showWarning('"Fixed amount off each item" needs a specific item or category selection (set "Applies To").');
+        setSaving(false);
+        return;
+      }
+
       // Sync first-order flag with audience for back-compat with older engine bits
       payload.isFirstOrderOnly = payload.audience?.type === 'first_order';
 
@@ -978,6 +1008,9 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
   const getDiscountLabel = (offer) => {
     if (offer.discountType === 'percentage') {
       return `${offer.discountValue}% OFF`;
+    }
+    if (offer.discountType === 'flat_per_item') {
+      return `${getCurrencySymbol()}${offer.discountValue} OFF each item`;
     }
     return `${getCurrencySymbol()}${offer.discountValue} OFF`;
   };
@@ -2523,6 +2556,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                   >
                     <option value="percentage">Percentage (%)</option>
                     <option value="flat">Flat Amount ({getCurrencySymbol()})</option>
+                    <option value="flat_per_item">Fixed amount off EACH item ({getCurrencySymbol()})</option>
                   </select>
                 </div>
 

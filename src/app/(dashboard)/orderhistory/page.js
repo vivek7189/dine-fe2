@@ -1028,6 +1028,38 @@ const OrderHistory = () => {
     };
   }, [restaurantId]); // Only re-subscribe when restaurant changes
 
+  // ──── Server-controlled order-history screen polling fallback (default OFF · Electron only) ────
+  // Safety net for terminals where the Firebase RTDB live socket can't stay up (seen on some
+  // Windows machines) — without it the list stops updating live and needs a manual refresh. When
+  // enabled, while THIS order-history screen is open AND the window is visible, it re-fetches
+  // orders so new/updated ones still appear on their own.
+  //   • DEFAULT OFF — enable per restaurant from the DB: printSettings.orderHistoryPollingEnabled = true
+  //   • Interval:   printSettings.orderHistoryPollingIntervalSec (default 5s, clamped 3–60s)
+  //   • Electron ONLY — web is untouched (RTDB works there); no extra reads on web.
+  //   • Stops the instant you leave this screen (effect unmounts) or the window is hidden.
+  useEffect(() => {
+    const isElectronApp = typeof window !== 'undefined' && !!window.electronAPI;
+    if (!isElectronApp || !restaurantId) return;
+    if (printSettings?.orderHistoryPollingEnabled !== true) return; // server switch — OFF by default
+    const intervalMs = Math.max(3, Math.min(parseInt(printSettings?.orderHistoryPollingIntervalSec) || 5, 60)) * 1000;
+    let stopped = false;
+    const tick = () => {
+      if (stopped) return;
+      // Never poll a hidden/background window — only the active, open order screen.
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+      try { if (fetchOrdersRef.current) fetchOrdersRef.current(false); } catch (_) { /* never break the screen */ }
+    };
+    const timer = setInterval(tick, intervalMs);
+    // Catch up immediately when the window regains focus after being hidden.
+    const onVis = () => { if (typeof document !== 'undefined' && document.visibilityState === 'visible') tick(); };
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVis);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+      if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVis);
+    };
+  }, [restaurantId, printSettings?.orderHistoryPollingEnabled, printSettings?.orderHistoryPollingIntervalSec]);
+
   // Reset to page 1 only when filters change (not when currentPage changes – that was breaking Next/Prev)
   useEffect(() => { setCurrentPage(1); }, [selectedStatus, selectedOrderType, myOrdersOnly, searchTerm, dateFilterMode, selectedPaymentMethod, selectedPaymentStatus, customStartDate, customEndDate]);
 
@@ -3031,6 +3063,29 @@ const OrderHistory = () => {
     }
   };
 
+  // Refund visibility chip: a PARTIAL refund keeps status 'completed' (order still counts) so nothing
+  // on the card otherwise shows it happened; a FULL refund shows the "Refunded" status badge but not
+  // the amount. This chip surfaces the refunded amount for BOTH, with reason/date/by in the tooltip.
+  // Display-only — the refund amount/status is already stored + accounted server-side.
+  const renderRefundChip = (order, compact) => {
+    const amt = Number(order?.refundAmount) || 0;
+    if (amt <= 0) return null;
+    const total = Number(order?.finalAmount) || Number(order?.totalAmount) || 0;
+    const full = String(order?.refundType || '').toLowerCase() === 'full' || (total > 0 && amt >= total - 0.01);
+    const who = order?.refundedBy ? ` · by ${order.refundedBy}` : '';
+    const when = order?.refundedAt ? ` · ${formatDate(order.refundedAt, true)}` : '';
+    const title = `${full ? 'Full' : 'Partial'} refund of ${formatCurrency(amt)}${order?.refundReason ? ` — ${order.refundReason}` : ''}${when}${who}`;
+    return (
+      <span
+        title={title}
+        className={`inline-flex items-center gap-1 rounded-full font-semibold ${compact ? 'px-1.5 py-px text-[9px]' : 'px-2 py-px text-[10px]'}`}
+        style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', whiteSpace: 'nowrap' }}
+      >
+        <FaUndoAlt size={compact ? 8 : 9} /> {full ? 'Refunded' : 'Partial refund'} {formatCurrency(amt)}
+      </span>
+    );
+  };
+
   // Badge (+ resend button) showing whether an order reached KRA. compact=true for the table view.
   // Refunded orders show their CREDIT NOTE status (that's the KRA doc a refund owes); other orders
   // show the SALE status.
@@ -3941,6 +3996,7 @@ const OrderHistory = () => {
                                   <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusStyle.text, opacity: 0.6 }} />
                                   {statusStyle.label}
                                 </span>
+                                {renderRefundChip(order, true)}
                                 {sourceChip && (
                                   <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-medium border w-fit ${sourceChip.className}`}>
                                     {sourceChip.label}
@@ -4243,6 +4299,17 @@ const OrderHistory = () => {
                                         <span>Total</span>
                                         <span>{formatCurrency(breakdown.total)}</span>
                                       </div>
+                                      {Number(order.refundAmount) > 0 && (() => {
+                                        const amt = Number(order.refundAmount) || 0;
+                                        const total = Number(order.finalAmount) || Number(order.totalAmount) || 0;
+                                        const full = String(order.refundType || '').toLowerCase() === 'full' || (total > 0 && amt >= total - 0.01);
+                                        return (
+                                          <div className="flex justify-between text-amber-700 font-semibold" title={order.refundedAt ? formatDate(order.refundedAt, true) : ''}>
+                                            <span>{full ? 'Refunded' : 'Partial refund'}{order.refundReason ? ` — ${order.refundReason}` : ''}</span>
+                                            <span>-{formatCurrency(amt)}</span>
+                                          </div>
+                                        );
+                                      })()}
                                       {order.outstandingAmount > 0 && (
                                         <div className="flex justify-between text-red-600 font-semibold">
                                           <span>{t('orderHistory.due')}</span>
@@ -4315,6 +4382,7 @@ const OrderHistory = () => {
                             >
                               {statusStyle.label}
                             </span>
+                            {renderRefundChip(order, isMobile)}
                             {isMobile && (
                               <span className={`text-[10px] text-gray-400 flex items-center gap-0.5`}>
                                 <FaClock className="text-[8px]" />

@@ -2582,6 +2582,12 @@ class ApiClient {
     return this.request(`/api/inventory/${restaurantId}/usage-summary${queryString}`);
   }
 
+  async getInventoryUsageVariance(restaurantId, params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const queryString = query ? `?${query}` : '';
+    return this.request(`/api/inventory/${restaurantId}/usage-variance${queryString}`);
+  }
+
   async parseQuickOrder(restaurantId, payload) {
     if (payload instanceof FormData) {
       return this.upload(`/api/inventory/${restaurantId}/quick-order`, payload);
@@ -4147,8 +4153,11 @@ class ApiClient {
 
   // Get active offers for POS (authenticated, returns full fields including scope, schedule, bogoConfig)
   async getActiveOffersForPOS(restaurantId, isFirstOrder = undefined) {
-    const params = isFirstOrder !== undefined ? `?isFirstOrder=${isFirstOrder}` : '';
-    return this.request(`/api/offers/${restaurantId}/active${params}`);
+    // includeUpcoming: pre-load future-dated offers so the POS auto-activates them on
+    // their start date (client gates application by validFrom — no early apply, no refresh).
+    const parts = ['includeUpcoming=true'];
+    if (isFirstOrder !== undefined) parts.push(`isFirstOrder=${isFirstOrder}`);
+    return this.request(`/api/offers/${restaurantId}/active?${parts.join('&')}`);
   }
 
   // Get customer app settings (public)

@@ -81,10 +81,18 @@ export function useOrderNotifications(restaurantId, notificationOrderTypes = nul
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const addNotification = useCallback((orderData) => {
-    const orderType = orderData.orderType || 'dine-in';
+    const rawType = orderData.orderType || 'dine-in';
+    // Online orders (public QR page + dine-app/crave) come through with an
+    // orderSource tag, or a 'dine_in' (underscore) orderType from the public
+    // endpoint. Detect them explicitly so they (a) always notify — staff aren't
+    // at the counter for these, so they must never be filtered out — and
+    // (b) always render with the "Online" badge.
+    const isOnline = /online|crave/i.test(String(orderData.orderSource || '')) || rawType === 'dine_in';
+    const orderType = isOnline ? 'online' : rawType;
 
-    // If notificationOrderTypes is set, only notify for matching types
-    if (notificationOrderTypes && notificationOrderTypes.length > 0) {
+    // If notificationOrderTypes is set, only notify for matching types.
+    // Online orders bypass this filter — they are never silently dropped.
+    if (!isOnline && notificationOrderTypes && notificationOrderTypes.length > 0) {
       if (!notificationOrderTypes.includes(orderType)) {
         return; // Skip — this order type has notifications disabled
       }

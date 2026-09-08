@@ -313,6 +313,20 @@ function SectionHeader({ icon, title }) {
 // ─── Manual Item Form (shared between Add & Edit) ───────────────────────────
 function ManualItemForm({ formData, setFormData, categories, suppliers }) {
   const update = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
+
+  // Picking a purchase + stock unit that are a known same-dimension pair (kg↔g, L↔ml,
+  // dozen↔pcs…) auto-fills the conversion factor so operators never hand-type "1000".
+  // Custom packs (bottle→ml, case→pcs) can't be derived → the field stays manual.
+  const updateUnitField = (field, value) => setFormData(prev => {
+    const next = { ...prev, [field]: value };
+    const pu = field === 'purchaseUnit' ? value : prev.purchaseUnit;
+    const su = field === 'unit' ? value : prev.unit;
+    if (pu && su && pu !== su) {
+      const derived = convertUnits(1, pu, su);
+      if (derived && derived !== 1) next.conversionFactor = derived;
+    }
+    return next;
+  });
   const updateMulti = (fields) => setFormData(prev => ({ ...prev, ...fields }));
 
   const categoryOptions = categories.map(c => ({ value: c.name || c, label: c.name || c }));
@@ -332,17 +346,22 @@ function ManualItemForm({ formData, setFormData, categories, suppliers }) {
       </div>
       <div style={fieldWrap}>
         <label style={labelStyle}>Stock / Usage Unit</label>
-        <CustomSelect value={formData.unit} onChange={v => update('unit', v)} options={unitOptions} placeholder="Select unit" />
+        <CustomSelect value={formData.unit} onChange={v => updateUnitField('unit', v)} options={unitOptions} placeholder="Select unit" />
       </div>
       <div style={fieldWrap}>
         <label style={labelStyle}>Purchase Unit (optional)</label>
-        <CustomSelect value={formData.purchaseUnit || ''} onChange={v => update('purchaseUnit', v)} options={unitOptions} placeholder="Same as stock unit" />
+        <CustomSelect value={formData.purchaseUnit || ''} onChange={v => updateUnitField('purchaseUnit', v)} options={unitOptions} placeholder="Same as stock unit" />
         <span style={{ fontSize: 11, color: '#6b7280' }}>Buy in this unit (e.g. bottle, case), track/deduct in the stock unit.</span>
       </div>
       {formData.purchaseUnit && formData.purchaseUnit !== formData.unit && (
         <div style={fieldWrap}>
           <label style={labelStyle}>1 {formData.purchaseUnit} = ? {formData.unit || 'stock units'}</label>
           <FocusInput type="number" step="any" value={formData.conversionFactor || ''} onChange={e => update('conversionFactor', parseFloat(e.target.value) || 1)} placeholder="e.g. 750" />
+          <span style={{ fontSize: 11, color: '#6b7280' }}>
+            {convertUnits(1, formData.purchaseUnit, formData.unit) !== 1
+              ? 'Auto-filled for standard units — edit only if needed.'
+              : 'Enter how many stock units are in 1 purchase unit (custom pack).'}
+          </span>
         </div>
       )}
       <SectionHeader icon={<FaClipboardList size={10} color="white" />} title="Stock & Pricing" />
@@ -671,16 +690,23 @@ function AddPurchaseOrderModal(props) {
     showAddPurchaseOrderModal, setShowAddPurchaseOrderModal,
     purchaseOrderFormData, setPurchaseOrderFormData,
     handleAddPurchaseOrder, addPurchaseOrderItem, removePurchaseOrderItem, updatePurchaseOrderItem,
-    suppliers, inventoryItems, getModalStyles, getModalContentStyles
+    suppliers, inventoryItems, getModalStyles, getModalContentStyles, formatCurrency,
+    editingPurchaseOrderId, resetPurchaseOrderForm
   } = props;
 
+  const fmtMoney = formatCurrency || (n => `₹${(Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+  const poGrandTotal = (purchaseOrderFormData.items || []).reduce(
+    (sum, it) => sum + (parseFloat(it.quantity) || 0) * (parseFloat(it.unitPrice) || 0), 0);
+  const isEditingPO = !!editingPurchaseOrderId;
+  const closePOModal = () => { setShowAddPurchaseOrderModal(false); if (resetPurchaseOrderForm) resetPurchaseOrderForm(); };
+
   return (
-    <ModalShell show={showAddPurchaseOrderModal} onClose={() => setShowAddPurchaseOrderModal(false)} title="Create Purchase Order"
+    <ModalShell show={showAddPurchaseOrderModal} onClose={closePOModal} title={isEditingPO ? 'Edit Purchase Order' : 'Create Purchase Order'}
       getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-          <button style={secondaryBtn} onClick={() => setShowAddPurchaseOrderModal(false)}>Cancel</button>
-          <button style={primaryBtn} onClick={handleAddPurchaseOrder}><FaSave /> Create Order</button>
+          <button style={secondaryBtn} onClick={closePOModal}>Cancel</button>
+          <button style={primaryBtn} onClick={handleAddPurchaseOrder}><FaSave /> {isEditingPO ? 'Update Order' : 'Create Order'}</button>
         </div>
       }>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -704,22 +730,41 @@ function AddPurchaseOrderModal(props) {
           <label style={{ ...labelStyle, marginBottom: 0 }}>Items *</label>
           <button style={secondaryBtn} onClick={addPurchaseOrderItem}><FaPlus /> Add Item</button>
         </div>
-        {purchaseOrderFormData.items.map((item, index) => (
-          <div key={index} style={rowStyle}>
-            <FocusSelect style={{ ...inputStyle, flex: 2 }} value={item.inventoryItemId}
-              onChange={e => updatePurchaseOrderItem(index, 'inventoryItemId', e.target.value)}>
-              <option value="">Select item</option>
-              {inventoryItems.map(inv => <option key={inv.id} value={inv.id}>{inv.name}</option>)}
-            </FocusSelect>
-            <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" min="1" placeholder="Qty"
-              value={item.quantity} onChange={e => updatePurchaseOrderItem(index, 'quantity', parseInt(e.target.value) || 1)} />
-            <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" step="0.01" placeholder="Price"
-              value={item.unitPrice} onChange={e => updatePurchaseOrderItem(index, 'unitPrice', parseFloat(e.target.value) || 0)} />
-            {purchaseOrderFormData.items.length > 1 && (
-              <button style={dangerBtn} onClick={() => removePurchaseOrderItem(index)}><FaTrash /></button>
-            )}
-          </div>
-        ))}
+        {purchaseOrderFormData.items.map((item, index) => {
+          const selectedInv = inventoryItems.find(i => i.id === item.inventoryItemId);
+          // Purchase unit the quantity is entered in (e.g. kg) — makes it clear the
+          // operator is buying in kg even though the recipe consumes in grams.
+          const purchaseUnit = selectedInv?.purchaseUnit || selectedInv?.unit || '';
+          const lineTotal = (parseFloat(item.quantity) || 0) * (parseFloat(item.unitPrice) || 0);
+          return (
+            <div key={index} style={rowStyle}>
+              <FocusSelect style={{ ...inputStyle, flex: 2 }} value={item.inventoryItemId}
+                onChange={e => updatePurchaseOrderItem(index, 'inventoryItemId', e.target.value)}>
+                <option value="">Select item</option>
+                {inventoryItems.map(inv => <option key={inv.id} value={inv.id}>{inv.name}</option>)}
+              </FocusSelect>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <FocusInput style={inputStyle} type="number" min="0" step="any" placeholder="Qty"
+                  value={item.quantity} onChange={e => updatePurchaseOrderItem(index, 'quantity', parseFloat(e.target.value) || 0)} />
+                {purchaseUnit && <span style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>in {purchaseUnit}</span>}
+              </div>
+              <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" min="0" step="0.01"
+                placeholder={purchaseUnit ? `Price / ${purchaseUnit}` : 'Unit price'}
+                value={item.unitPrice} onChange={e => updatePurchaseOrderItem(index, 'unitPrice', parseFloat(e.target.value) || 0)} />
+              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600, fontSize: 13, color: '#111827', whiteSpace: 'nowrap', alignSelf: 'center' }}>
+                {fmtMoney(lineTotal)}
+              </div>
+              {purchaseOrderFormData.items.length > 1 && (
+                <button style={dangerBtn} onClick={() => removePurchaseOrderItem(index)}><FaTrash /></button>
+              )}
+            </div>
+          );
+        })}
+        {/* Live order total so operators catch unit/price mistakes before saving */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'baseline', gap: 12, marginTop: 10, paddingTop: 10, borderTop: '1px solid #e5e7eb' }}>
+          <span style={{ fontSize: 13, color: '#6b7280', fontWeight: 500 }}>Order Total</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: '#065f46' }}>{fmtMoney(poGrandTotal)}</span>
+        </div>
       </div>
 
       <div style={fieldWrap}>

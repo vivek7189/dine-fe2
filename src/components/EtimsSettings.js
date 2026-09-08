@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import apiClient from '../lib/api';
 import { initEtimsDevice, isEtimsCapable, syncEtimsItems, setEtimsDeviceManual, testEtimsConnection } from '../lib/etims';
+import KraHealthBanner from './KraHealthBanner';
+import { useKraStatus } from '../contexts/KraStatusContext';
 
 // Format a Firestore/ISO timestamp for the activity log (short, local).
 function fmtWhen(v) {
@@ -20,6 +22,7 @@ function fmtWhen(v) {
  * (which only works from the desktop app).
  */
 export default function EtimsSettings({ restaurantId }) {
+  const kra = useKraStatus();   // shared KRA retry status from the dashboard layout (worker runs there)
   const [cfg, setCfg] = useState(null);
   const [form, setForm] = useState({ enabled: false, askPerBill: false, tin: '', bhfId: '00', dvcSrlNo: '', vscuUrl: 'http://localhost:8088', defaultItemClassCode: '', receiptBottomMsg: '', trdeNm: '' });
   const [loading, setLoading] = useState(true);
@@ -35,6 +38,9 @@ export default function EtimsSettings({ restaurantId }) {
   const [diags, setDiags] = useState([]);
   const [loadingDiags, setLoadingDiags] = useState(false);
   const [diagFailuresOnly, setDiagFailuresOnly] = useState(false);
+  const [openOrderId, setOpenOrderId] = useState(null);   // order whose full KRA trail is expanded
+  const [orderTrail, setOrderTrail] = useState([]);       // that order's rows WITH raw (request + response)
+  const [trailLoading, setTrailLoading] = useState(false);
   const [testing, setTesting] = useState(false);
   const [resyncing, setResyncing] = useState(false);
   const [manualInvcNo, setManualInvcNo] = useState('');
@@ -62,6 +68,25 @@ export default function EtimsSettings({ restaurantId }) {
     } catch { /* advisory only */ }
     finally { setLoadingDiags(false); }
   }, [restaurantId, diagFailuresOnly]);
+
+  // Expand one order's full KRA trail (prepare-sale REQUEST + confirm-sale RESPONSE, with raw payloads)
+  // so a reject can be root-caused in-app: you see exactly what we sent to KRA and what KRA returned.
+  const viewOrderTrail = useCallback(async (orderId) => {
+    if (!orderId) return;
+    if (openOrderId === orderId) { setOpenOrderId(null); setOrderTrail([]); return; }
+    setOpenOrderId(orderId); setOrderTrail([]); setTrailLoading(true);
+    try {
+      const res = await apiClient.request(`/api/etims/${restaurantId}/diagnostics?orderId=${encodeURIComponent(orderId)}&includeRaw=1&limit=50`);
+      setOrderTrail(Array.isArray(res.items) ? res.items : []);
+    } catch { setOrderTrail([]); }
+    finally { setTrailLoading(false); }
+  }, [restaurantId, openOrderId]);
+
+  const prettyRaw = (raw) => {
+    if (raw == null) return '(not recorded)';
+    if (typeof raw === 'string') { try { return JSON.stringify(JSON.parse(raw), null, 2); } catch { return raw; } }
+    try { return JSON.stringify(raw, null, 2); } catch { return String(raw); }
+  };
 
   useEffect(() => { load(); loadDiags(); }, [load, loadDiags]);
 
@@ -193,7 +218,7 @@ export default function EtimsSettings({ restaurantId }) {
       if (res.reachable && res.ok) {
         setMsg({ type: 'success', text: `✅ VSCU reachable at ${form.vscuUrl} and responding OK.` });
       } else if (res.reachable) {
-        setMsg({ type: 'error', text: `⚠️ VSCU is reachable but returned an error: ${res.resultMsg || 'no message'} (code ${res.resultCd || '?'}). The VSCU is running, but the device may not be initialised for this PIN/branch.` });
+        setMsg({ type: 'error', text: `⚠️ The VSCU is running and reachable, but KRA rejected the test: ${res.resultMsg || 'no message'} (code ${res.resultCd || '?'}). The app and the bill are fine — this points to the VSCU↔KRA link (this PC's internet to KRA, or a transient KRA error). Fix: restart the VSCU app on this PC + check its internet, then retry. (If you have never initialised this device, do "Set up device" first.)` });
       } else {
         setMsg({ type: 'error', text: `❌ ${res.error || 'Could not reach the VSCU.'} Make sure the VSCU application is running on this machine and the VSCU URL is correct.` });
       }
@@ -242,6 +267,13 @@ export default function EtimsSettings({ restaurantId }) {
         Report every sale to KRA in real time via your local VSCU. Setup and fiscalisation run through the
         DineOpen <b>desktop app</b> (the VSCU runs on this machine).
       </p>
+
+      {/* KRA health banner — lives ONLY here (not floated on every page). Shows the auto-retry
+          status: VSCU unreachable vs VSCU-up-but-KRA-rejecting, and reassures that the app keeps
+          retrying pending sales in the background. */}
+      {kra?.active && (
+        <KraHealthBanner status={kra.status} onRetry={kra.retryNow} onTest={kra.testConnection} inline />
+      )}
 
       {/* Toggle gates ALL setup below. Because you must turn it ON to reveal the fields, eTIMS can never
           be left "configured but not enabled" — the forgot-to-tick failure mode can't happen. */}
@@ -422,15 +454,43 @@ export default function EtimsSettings({ restaurantId }) {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {diags.map((d) => (
-              <div key={d.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 11.5, background: d.ok ? '#f0fdf4' : '#fef2f2', border: `1px solid ${d.ok ? '#bbf7d0' : '#fecaca'}`, borderRadius: 6, padding: '6px 8px' }}>
-                <span style={{ fontWeight: 700, color: d.ok ? '#166534' : '#b91c1c', whiteSpace: 'nowrap' }}>{d.ok ? '✓' : '✕'} {d.phase}</span>
-                <span style={{ flex: 1, color: '#374151', minWidth: 0, wordBreak: 'break-word' }}>
-                  {d.ok
-                    ? (d.orderId ? `order …${String(d.orderId).slice(-6)}${d.invcNo != null ? ` · inv #${d.invcNo}` : ''}` : 'success')
-                    : (d.errorMessage || d.resultMsg || `code ${d.resultCd || '?'}`)}
-                  {!d.ok && d.resultCd ? <span style={{ color: '#9ca3af' }}> · code {d.resultCd}</span> : null}
-                </span>
-                <span style={{ color: '#9ca3af', whiteSpace: 'nowrap' }}>{fmtWhen(d.createdAt)}</span>
+              <div key={d.id}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 11.5, background: d.ok ? '#f0fdf4' : '#fef2f2', border: `1px solid ${d.ok ? '#bbf7d0' : '#fecaca'}`, borderRadius: 6, padding: '6px 8px' }}>
+                  <span style={{ fontWeight: 700, color: d.ok ? '#166534' : '#b91c1c', whiteSpace: 'nowrap' }}>{d.ok ? '✓' : '✕'} {d.phase}</span>
+                  <span style={{ flex: 1, color: '#374151', minWidth: 0, wordBreak: 'break-word' }}>
+                    {d.ok
+                      ? (d.orderId ? `order …${String(d.orderId).slice(-6)}${d.invcNo != null ? ` · inv #${d.invcNo}` : ''}` : 'success')
+                      : (d.errorMessage || d.resultMsg || `code ${d.resultCd || '?'}`)}
+                    {!d.ok && d.resultCd ? <span style={{ color: '#9ca3af' }}> · code {d.resultCd}</span> : null}
+                  </span>
+                  {d.orderId && (
+                    <button onClick={() => viewOrderTrail(d.orderId)} style={{ background: 'none', border: '1px solid #d1d5db', borderRadius: 5, padding: '1px 7px', fontSize: 10.5, color: '#4b5563', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                      {openOrderId === d.orderId ? 'Hide' : '🔍 Details'}
+                    </button>
+                  )}
+                  <span style={{ color: '#9ca3af', whiteSpace: 'nowrap' }}>{fmtWhen(d.createdAt)}</span>
+                </div>
+                {openOrderId === d.orderId && (
+                  <div style={{ margin: '4px 0 8px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#f9fafb', padding: 8 }}>
+                    {trailLoading ? (
+                      <div style={{ fontSize: 11.5, color: '#6b7280' }}>Loading order’s KRA trail…</div>
+                    ) : orderTrail.length === 0 ? (
+                      <div style={{ fontSize: 11.5, color: '#6b7280' }}>No detail recorded for this order.</div>
+                    ) : (
+                      orderTrail.map((t) => (
+                        <div key={t.id} style={{ marginBottom: 8 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: t.ok ? '#166534' : '#b91c1c' }}>
+                            {t.ok ? '✓' : '✕'} {t.phase}
+                            {t.phase && t.phase.indexOf('prepare') === 0 ? ' — what we SENT to KRA (request)' : (t.phase && t.phase.indexOf('confirm') === 0 ? ' — what KRA RETURNED (response)' : '')}
+                            {t.resultCd ? ` · code ${t.resultCd}` : ''}{t.invcNo != null ? ` · inv #${t.invcNo}` : ''}
+                          </div>
+                          {t.errorMessage && <div style={{ fontSize: 11, color: '#b91c1c', marginTop: 2 }}>{t.errorMessage}</div>}
+                          <pre style={{ margin: '3px 0 0', fontSize: 10.5, lineHeight: 1.4, color: '#374151', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 5, padding: 7, overflowX: 'auto', maxHeight: 220, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{prettyRaw(t.raw)}</pre>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle, FaHistory, FaRecycle, FaMagic, FaTruck, FaIndustry, FaRoute } from 'react-icons/fa';
+import { FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle, FaHistory, FaRecycle, FaMagic, FaTruck, FaIndustry, FaRoute, FaBalanceScale } from 'react-icons/fa';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { resolveFeaturePermissions } from '@/lib/permissions';
 import useInventory from './hooks/useInventory';
@@ -11,6 +11,7 @@ import DashboardTab from './components/DashboardTab';
 import StockTab from './components/StockTab';
 import RecipesTab from './components/RecipesTab';
 import UsageTab from './components/UsageTab';
+import VarianceTab from './components/VarianceTab';
 import ProcurementTab from './components/ProcurementTab';
 import InsightsTab from './components/InsightsTab';
 import WasteTab from './components/WasteTab';
@@ -61,6 +62,7 @@ export default function InventoryManagement() {
     { id: 'stock', name: 'Stock', icon: FaBoxes },
     ...(outletType !== 'warehouse' ? [{ id: 'recipes', name: 'Recipes', icon: FaClipboardList }] : []),
     { id: 'usage', name: 'Usage', icon: FaHistory },
+    ...(outletType !== 'warehouse' ? [{ id: 'variance', name: 'Variance', icon: FaBalanceScale }] : []),
     { id: 'procurement', name: 'Procurement', icon: FaShoppingCart },
     ...(outletType === 'warehouse' ? [{ id: 'indent-queue', name: 'Indent Queue', icon: FaTruck }] : []),
     ...(outletType === 'central_kitchen' ? [
@@ -332,6 +334,14 @@ export default function InventoryManagement() {
           />
         )}
 
+        {activeTab === 'variance' && (
+          <VarianceTab
+            currentRestaurant={inventory.currentRestaurant}
+            isMobile={isMobile}
+            formatCurrency={formatCurrency}
+          />
+        )}
+
         {activeTab === 'procurement' && (
           <ProcurementTab
             procurementSubTab={inventory.procurementSubTab}
@@ -355,6 +365,7 @@ export default function InventoryManagement() {
             setShowAddTransferModal={inventory.setShowAddTransferModal}
             handleDeleteSupplier={inventory.handleDeleteSupplier}
             handleUpdateOrderStatus={inventory.handleUpdateOrderStatus}
+            handleEditPurchaseOrder={inventory.handleEditPurchaseOrder}
             handleEmailPurchaseOrder={inventory.handleEmailPurchaseOrder}
             getOrderStatusColor={inventory.getOrderStatusColor}
             startVoiceListeningPO={inventory.startVoiceListeningPO}

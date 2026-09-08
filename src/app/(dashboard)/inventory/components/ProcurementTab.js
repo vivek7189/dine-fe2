@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import apiClient from '../../../../lib/api';
-import { FaPlus, FaEnvelope, FaMicrophone, FaStop, FaCheck, FaTimes, FaArrowRight, FaTruck, FaFileInvoice, FaExchangeAlt, FaUndoAlt, FaClipboardCheck, FaBoxes, FaWarehouse, FaIndustry, FaSpinner } from 'react-icons/fa';
+import { FaPlus, FaEnvelope, FaMicrophone, FaStop, FaCheck, FaTimes, FaArrowRight, FaTruck, FaFileInvoice, FaExchangeAlt, FaUndoAlt, FaClipboardCheck, FaBoxes, FaWarehouse, FaIndustry, FaSpinner, FaEdit } from 'react-icons/fa';
 
 const BASE_SUB_TABS = [
   { key: 'suppliers', label: 'Suppliers' },
@@ -90,7 +90,7 @@ export default function ProcurementTab({
   isMobile, formatCurrency,
   setShowAddSupplierModal, setShowAddPurchaseOrderModal, setShowAddGRNModal,
   setShowAddRequisitionModal, setShowAddInvoiceModal, setShowAddReturnModal, setShowAddTransferModal,
-  handleDeleteSupplier, handleUpdateOrderStatus, handleEmailPurchaseOrder,
+  handleDeleteSupplier, handleUpdateOrderStatus, handleEditPurchaseOrder, handleEmailPurchaseOrder,
   getOrderStatusColor,
   startVoiceListeningPO, isListeningVoice, voiceTranscript, processingVoice, voiceError,
   smartSuggestions, loadingSuggestions,
@@ -406,6 +406,11 @@ export default function ProcurementTab({
                           {a.icon} {a.label}
                         </button>
                       ))}
+                      {handleEditPurchaseOrder && !['received', 'delivered', 'cancelled'].includes(po.status) && (
+                        <button style={btnSmall('#dbeafe', '#1e40af')} onClick={() => handleEditPurchaseOrder(po)} title="Edit order">
+                          <FaEdit size={10} /> Edit
+                        </button>
+                      )}
                       <button style={btnSmall('#ede9fe', '#5b21b6')} onClick={() => handleEmailPurchaseOrder(po)}>
                         <FaEnvelope size={10} />
                       </button>

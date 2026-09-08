@@ -62,7 +62,7 @@ var CustomerDetail = function() {
   var [walletData, setWalletData] = useState({ walletBalance: 0, walletHistory: [] });
   var [walletLoading, setWalletLoading] = useState(false);
   var [showAddCredit, setShowAddCredit] = useState(false);
-  var [creditForm, setCreditForm] = useState({ amount: '', reason: 'advance_payment', notes: '' });
+  var [creditForm, setCreditForm] = useState({ amount: '', reason: 'advance_payment', notes: '', paymentMethod: 'cash' });
   var [addingCredit, setAddingCredit] = useState(false);
   var [expandedOrderId, setExpandedOrderId] = useState(null);
   var [statsPeriod, setStatsPeriod] = useState('all');
@@ -219,11 +219,15 @@ var CustomerDetail = function() {
       await apiClient.addCustomerWalletCredit(customerId, {
         amount: parseFloat(creditForm.amount),
         reason: creditForm.reason,
-        notes: creditForm.notes
+        notes: creditForm.notes,
+        // Only an advance-payment top-up is real money RECEIVED (a refund/compensation credit is money
+        // given, not cash in the drawer). Send the method only then → the backend adds cash top-ups to
+        // the open shift drawer (R4b), and never mis-attributes a refund/compensation credit.
+        paymentMethod: creditForm.reason === 'advance_payment' ? creditForm.paymentMethod : null
       });
       var data = await apiClient.getCustomerWallet(customerId);
       setWalletData(data);
-      setCreditForm({ amount: '', reason: 'advance_payment', notes: '' });
+      setCreditForm({ amount: '', reason: 'advance_payment', notes: '', paymentMethod: 'cash' });
       setShowAddCredit(false);
       await loadCustomer();
     } catch (err) {
@@ -1006,6 +1010,27 @@ var CustomerDetail = function() {
                         <option value="other">Other</option>
                       </select>
                     </div>
+                    {creditForm.reason === 'advance_payment' && (
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#0e7490', marginBottom: '4px' }}>Paid via</label>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          {['cash', 'card', 'upi'].map(function(m) {
+                            var active = creditForm.paymentMethod === m;
+                            return (
+                              <button
+                                key={m}
+                                type="button"
+                                onClick={function() { setCreditForm(function(p) { return Object.assign({}, p, { paymentMethod: m }); }); }}
+                                style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1.5px solid ' + (active ? '#0891b2' : '#a5f3fc'), background: active ? '#cffafe' : 'white', color: '#0e7490', fontSize: '12px', fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize' }}
+                              >
+                                {m}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#64748b', marginTop: '4px' }}>Cash top-ups are added to the open shift drawer.</div>
+                      </div>
+                    )}
                     <div>
                       <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#0e7490', marginBottom: '4px' }}>Notes</label>
                       <input

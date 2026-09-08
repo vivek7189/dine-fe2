@@ -20,8 +20,8 @@ import SyncStatus from '../../components/SyncStatus';
 import SyncStatusDot from '../../components/SyncStatusDot';
 // Local-first: no online/offline routing switch. A read-only SyncStatusDot floats top-right.
 import OfflineFallback from '../../components/OfflineFallback';
-import KraHealthBanner from '../../components/KraHealthBanner';
 import { useKraRetryQueue } from '../../hooks/useKraRetryQueue';
+import { KraStatusContext } from '../../contexts/KraStatusContext';
 import { isWeb, isTauri, isElectron } from '../../utils/platform';
 import { isAutoUpdateEnabled, checkForUpdates, restartApp } from '../../utils/autoUpdater';
 import apiClient from '../../lib/api';
@@ -538,7 +538,9 @@ function DashboardLayoutContent({ children }) {
               )}
 
               <div key={pathname} className="dashboard-page-content" style={{ width: '100%', minHeight: '100%' }}>
-                {accessChecked ? children : null}
+                <KraStatusContext.Provider value={kra}>
+                  {accessChecked ? children : null}
+                </KraStatusContext.Provider>
               </div>
             </main>
 
@@ -609,9 +611,10 @@ function DashboardLayoutContent({ children }) {
             {/* LAN-first resilience: if on Internet mode and it drops, fall back to local server */}
             <OfflineFallback />
 
-            {/* KRA eTIMS health alert (Kenya desktop) — shows only when the VSCU is unreachable or
-                sales are pending; never blocks the POS. Auto-retry runs via useKraRetryQueue above. */}
-            {kra.active && <KraHealthBanner status={kra.status} onRetry={kra.retryNow} onTest={kra.testConnection} />}
+            {/* KRA eTIMS health banner is no longer floated on every page — the auto-retry WORKER
+                still runs here (useKraRetryQueue above, draining pending sales in the background on
+                all pages), but the banner itself renders only on the KRA settings page, which reads
+                the status via KraStatusContext. */}
 
             {/* DineAI Floating Button */}
             <DineAIButton />
