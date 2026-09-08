@@ -15,6 +15,9 @@ import { setPublicBackend, DEFAULT_API_BASE } from '../../lib/apiBase';
 import { getDisplayImage } from '../../utils/placeholderImages';
 import { toJsDate } from '../../utils/dateParse';
 import { matchesAudience } from '../../hooks/useOfferEngine';
+import PhoneInputWithCountry from '../../components/PhoneInputWithCountry';
+import { DEFAULT_COUNTRY, getCountryByCode } from '../../lib/countries';
+import { detectCountry } from '../../lib/detectCountry';
 
 // Lazy-load heavy components for faster initial render
 const ImageCarousel = dynamic(() => import('../../components/ImageCarousel'), { ssr: false });
@@ -198,6 +201,9 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     name: '',
     email: ''
   });
+  // Dialling country for the phone fields. Defaults to India, then auto-detects
+  // the customer's country from geo (Vercel cookie → timezone → language).
+  const [selectedCountry, setSelectedCountry] = useState(DEFAULT_COUNTRY);
   const [orderType, setOrderType] = useState(tableNumberProp ? 'table' : 'takeaway');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -261,6 +267,15 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     }));
   }, [tableParam]);
 
+  // Auto-detect the customer's country for the phone dial-code (geo → timezone → language).
+  // Runs once on mount; falls back to India when detection is inconclusive.
+  useEffect(() => {
+    try {
+      const { countryCode } = detectCountry();
+      if (countryCode) setSelectedCountry(getCountryByCode(countryCode));
+    } catch { /* keep default */ }
+  }, []);
+
   // ============================================
   // RESTORE SESSION ON PAGE LOAD
   // ============================================
@@ -279,6 +294,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
           phone: session.phone,
           name: session.name || prev.name
         }));
+        if (session.countryCode) setSelectedCountry(getCountryByCode(session.countryCode));
         setFirebaseUid(session.firebaseUid);
         setCustomerVerified(true);
 
@@ -293,7 +309,10 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
           if (!sessionPhone) {
             return;
           }
-          const response = await apiClient.lookupCustomerByPhone(restaurantId, sessionPhone);
+          // Reconstruct the stored record phone: India = bare digits, others = E.164.
+          const sc = getCountryByCode(session.countryCode);
+          const lookupPhone = (sc.code === 'IN' || !sc.dialCode) ? sessionPhone : `${sc.dialCode}${sessionPhone}`;
+          const response = await apiClient.lookupCustomerByPhone(restaurantId, lookupPhone);
           if (response?.customer) {
             setCustomerData(response.customer);
 
@@ -853,6 +872,17 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     return DUMMY_PHONES_LIST.includes(last10);
   };
 
+  // Full international number for OTP / Firebase — always dial-code prefixed.
+  const otpPhone = () => `${selectedCountry?.dialCode || '+91'}${customerInfo.phone.trim()}`;
+  // Phone stored on the customer record / order. India keeps its bare 10-digit form
+  // (matches existing records + dashboard display); other countries store E.164.
+  const recordPhone = () => {
+    const local = customerInfo.phone.trim();
+    if (!local) return '';
+    if (selectedCountry?.code === 'IN' || !selectedCountry?.dialCode) return local;
+    return `${selectedCountry.dialCode}${local}`;
+  };
+
   const sendOtp = async () => {
     if (!customerInfo.phone.trim()) {
       setError('Please enter your phone number');
@@ -863,10 +893,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       setSendingOtp(true);
       setError('');
 
-      let phoneNumber = customerInfo.phone.trim();
-      if (!phoneNumber.startsWith('+')) {
-        phoneNumber = '+91' + phoneNumber;
-      }
+      let phoneNumber = otpPhone();
 
       // Dummy test account — bypass Firebase, use backend OTP
       if (isDummyPhone(phoneNumber)) {
@@ -936,7 +963,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     if (!customerInfo.phone.trim()) return null;
 
     try {
-      const response = await apiClient.lookupCustomerByPhone(restaurantId, customerInfo.phone.trim());
+      const response = await apiClient.lookupCustomerByPhone(restaurantId, recordPhone());
       if (response) {
         setCustomerData(response.customer);
         setCustomerVerified(true);
@@ -978,8 +1005,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
 
       if (isDummy) {
         // Test account — verify via backend
-        let phoneNumber = customerInfo.phone.trim();
-        if (!phoneNumber.startsWith('+')) phoneNumber = '+91' + phoneNumber;
+        let phoneNumber = otpPhone();
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
         const resp = await fetch(`${apiUrl}/api/auth/phone/verify-otp`, {
           method: 'POST',
@@ -1014,6 +1040,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       // ============================================
       saveCustomerSession(restaurantId, {
         phone: customerInfo.phone.trim(),
+        countryCode: selectedCountry?.code || 'IN',
         name: customerInfo.name || customer?.name || '',
         firebaseUid: uid,
         customerData: customer,
@@ -1057,7 +1084,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       : 0;
 
     return {
-      customerPhone: customerInfo.phone.trim(),
+      customerPhone: recordPhone(),
       customerName: customerInfo.name.trim() || customerData?.name || 'Customer',
       customerEmail: customerInfo.email?.trim() || '',
       seatNumber: orderType === 'table' ? (customerInfo.seatNumber.trim() || 'Walk-in') : null,
@@ -1154,7 +1181,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         amount: amountInPaise,
         currency: 'INR',
         receipt: `online_${Date.now()}`,
-        notes: { customerPhone: customerInfo.phone.trim(), orderType: orderType === 'table' ? 'dine_in' : 'takeaway' },
+        notes: { customerPhone: recordPhone(), orderType: orderType === 'table' ? 'dine_in' : 'takeaway' },
       });
 
       // 2. Load Razorpay script if not loaded
@@ -1209,7 +1236,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
           }
         },
         prefill: {
-          contact: customerInfo.phone.trim(),
+          contact: recordPhone(),
           name: customerInfo.name.trim() || undefined,
           email: customerInfo.email?.trim() || undefined,
         },
@@ -1410,6 +1437,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       <CheckoutView
         currentView={currentView}
         setCurrentView={setCurrentView}
+        onBack={() => { setCurrentView('menu'); setShowCart(true); }}
         restaurant={restaurant}
         customerData={customerData}
         customerInfo={customerInfo}
@@ -2235,6 +2263,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
           customerAppSettings={customerAppSettings}
           cs={cs}
           chairParam={chairParam}
+          selectedCountry={selectedCountry}
+          setSelectedCountry={setSelectedCountry}
         />
       )}
 
@@ -2256,13 +2286,15 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
             await sendOtp();
           }}
           cartItemCount={getCartItemCount()}
+          selectedCountry={selectedCountry}
+          setSelectedCountry={setSelectedCountry}
         />
       )}
 
       {/* OTP Modal */}
       {showOtpModal && (
         <OtpModal
-          customerPhone={customerInfo.phone}
+          customerPhone={`${selectedCountry?.dialCode || ''} ${customerInfo.phone}`.trim()}
           otp={otp}
           setOtp={setOtp}
           sendingOtp={sendingOtp}
@@ -2988,7 +3020,7 @@ const StickyCartBar = ({ cartItemCount, cartSubtotal, onViewCart, publicMenuOnly
 };
 
 // Cart Modal Component
-const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemCount, customerInfo, setCustomerInfo, orderType, setOrderType, onClose, onCheckout, sendingOtp, setCart, customerVerified, customerAppSettings, cs = '₹', chairParam = '' }) => {
+const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemCount, customerInfo, setCustomerInfo, orderType, setOrderType, onClose, onCheckout, sendingOtp, setCart, customerVerified, customerAppSettings, cs = '₹', chairParam = '', selectedCountry, setSelectedCountry }) => {
   const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
 
   return (
@@ -3054,27 +3086,14 @@ const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemC
             <div style={{ marginBottom: '4px' }}>
               {(customerAppSettings?.pageSettings?.loginMode || 'optional') !== 'none' && (
                 <div style={{ marginBottom: '8px' }}>
-                  <div style={{ position: 'relative' }}>
-                    <span style={{
-                      position: 'absolute', left: '12px', top: '50%',
-                      transform: 'translateY(-50%)', color: '#6b7280',
-                      fontSize: '13px', fontWeight: '500'
-                    }}>+91</span>
-                    <input
-                      type="tel"
-                      value={customerInfo.phone}
-                      onChange={(e) => setCustomerInfo({
-                        ...customerInfo,
-                        phone: e.target.value.replace(/\D/g, '').slice(0, 10)
-                      })}
-                      placeholder="Phone number"
-                      style={{
-                        width: '100%', padding: '10px 12px 10px 44px',
-                        border: '2px solid #f3f4f6', borderRadius: '10px',
-                        fontSize: '14px', outline: 'none', boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
+                  <PhoneInputWithCountry
+                    country={selectedCountry}
+                    onCountryChange={setSelectedCountry}
+                    value={customerInfo.phone}
+                    onChange={(digits) => setCustomerInfo({ ...customerInfo, phone: digits })}
+                    placeholder="Phone number"
+                    size="sm"
+                  />
                 </div>
               )}
               {customerAppSettings?.pageSettings?.collectName !== false && (
@@ -3260,7 +3279,11 @@ const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemC
 };
 
 // Login Popup Component - Shows when user clicks cart without being logged in
-const LoginPopup = ({ customerInfo, setCustomerInfo, sendingOtp, error, setError, onClose, onSendOtp, cartItemCount }) => {
+const LoginPopup = ({ customerInfo, setCustomerInfo, sendingOtp, error, setError, onClose, onSendOtp, cartItemCount, selectedCountry, setSelectedCountry }) => {
+  // Country-aware minimum length: India needs 10 digits, others 7+.
+  const phoneValid = selectedCountry?.code === 'IN'
+    ? customerInfo.phone.length === 10
+    : customerInfo.phone.length >= 7;
   return (
     <div style={{
       position: 'fixed',
@@ -3351,46 +3374,15 @@ const LoginPopup = ({ customerInfo, setCustomerInfo, sendingOtp, error, setError
             <FaPhone size={12} style={{ marginRight: '6px' }} />
             Phone Number
           </label>
-          <div style={{ position: 'relative' }}>
-            <span style={{
-              position: 'absolute',
-              left: '14px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: '#6b7280',
-              fontSize: '15px',
-              fontWeight: '500'
-            }}>
-              +91
-            </span>
-            <input
-              type="tel"
-              value={customerInfo.phone}
-              onChange={(e) => {
-                setError('');
-                setCustomerInfo({...customerInfo, phone: e.target.value.replace(/\D/g, '').slice(0, 10)});
-              }}
-              placeholder="Enter 10-digit number"
-              style={{
-                width: '100%',
-                padding: '14px 14px 14px 52px',
-                border: '2px solid #e5e7eb',
-                borderRadius: '12px',
-                fontSize: '16px',
-                outline: 'none',
-                boxSizing: 'border-box',
-                transition: 'all 0.2s ease'
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#ef4444';
-                e.target.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = '#e5e7eb';
-                e.target.style.boxShadow = 'none';
-              }}
-            />
-          </div>
+          <PhoneInputWithCountry
+            country={selectedCountry}
+            onCountryChange={setSelectedCountry}
+            value={customerInfo.phone}
+            onChange={(digits) => { setError(''); setCustomerInfo({ ...customerInfo, phone: digits }); }}
+            placeholder={selectedCountry?.code === 'IN' ? 'Enter 10-digit number' : 'Enter phone number'}
+            size="md"
+            autoFocus
+          />
         </div>
 
         {/* Buttons */}
@@ -3413,10 +3405,10 @@ const LoginPopup = ({ customerInfo, setCustomerInfo, sendingOtp, error, setError
           </button>
           <button
             onClick={onSendOtp}
-            disabled={sendingOtp || customerInfo.phone.length !== 10}
+            disabled={sendingOtp || !phoneValid}
             style={{
               flex: 1.5,
-              background: sendingOtp || customerInfo.phone.length !== 10
+              background: sendingOtp || !phoneValid
                 ? '#d1d5db'
                 : 'linear-gradient(135deg, #ef4444, #dc2626)',
               color: 'white',
@@ -3425,12 +3417,12 @@ const LoginPopup = ({ customerInfo, setCustomerInfo, sendingOtp, error, setError
               borderRadius: '12px',
               fontSize: '15px',
               fontWeight: '600',
-              cursor: sendingOtp || customerInfo.phone.length !== 10 ? 'not-allowed' : 'pointer',
+              cursor: sendingOtp || !phoneValid ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '8px',
-              boxShadow: sendingOtp || customerInfo.phone.length !== 10
+              boxShadow: sendingOtp || !phoneValid
                 ? 'none'
                 : '0 4px 12px rgba(239, 68, 68, 0.3)'
             }}
@@ -3599,6 +3591,7 @@ const OtpModal = ({ customerPhone, otp, setOtp, sendingOtp, error, onCancel, onV
 const CheckoutView = ({
   currentView,
   setCurrentView,
+  onBack,
   restaurant,
   customerData,
   customerInfo,
@@ -3673,7 +3666,12 @@ const CheckoutView = ({
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: '900px', margin: '0 auto' }}>
           <button
-            onClick={() => setCurrentView(currentView === 'checkout' ? 'menu' : 'checkout')}
+            onClick={() => {
+              // From checkout, go back to the cart modal so the customer can edit
+              // their phone / items before continuing. Profile/history → checkout.
+              if (currentView === 'checkout') { onBack ? onBack() : setCurrentView('menu'); }
+              else { setCurrentView('checkout'); }
+            }}
             style={{
               background: '#f3f4f6',
               border: 'none',
@@ -3689,7 +3687,7 @@ const CheckoutView = ({
             }}
           >
             <FaArrowLeft size={14} />
-            {currentView === 'profile' || currentView === 'history' ? 'Back' : 'Menu'}
+            Back
           </button>
           <h1 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
             {currentView === 'checkout' ? 'Checkout' : currentView === 'profile' ? 'My Profile' : 'Points History'}
