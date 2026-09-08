@@ -671,20 +671,23 @@ function AddPurchaseOrderModal(props) {
     showAddPurchaseOrderModal, setShowAddPurchaseOrderModal,
     purchaseOrderFormData, setPurchaseOrderFormData,
     handleAddPurchaseOrder, addPurchaseOrderItem, removePurchaseOrderItem, updatePurchaseOrderItem,
-    suppliers, inventoryItems, getModalStyles, getModalContentStyles, formatCurrency
+    suppliers, inventoryItems, getModalStyles, getModalContentStyles, formatCurrency,
+    editingPurchaseOrderId, resetPurchaseOrderForm
   } = props;
 
   const fmtMoney = formatCurrency || (n => `₹${(Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
   const poGrandTotal = (purchaseOrderFormData.items || []).reduce(
     (sum, it) => sum + (parseFloat(it.quantity) || 0) * (parseFloat(it.unitPrice) || 0), 0);
+  const isEditingPO = !!editingPurchaseOrderId;
+  const closePOModal = () => { setShowAddPurchaseOrderModal(false); if (resetPurchaseOrderForm) resetPurchaseOrderForm(); };
 
   return (
-    <ModalShell show={showAddPurchaseOrderModal} onClose={() => setShowAddPurchaseOrderModal(false)} title="Create Purchase Order"
+    <ModalShell show={showAddPurchaseOrderModal} onClose={closePOModal} title={isEditingPO ? 'Edit Purchase Order' : 'Create Purchase Order'}
       getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-          <button style={secondaryBtn} onClick={() => setShowAddPurchaseOrderModal(false)}>Cancel</button>
-          <button style={primaryBtn} onClick={handleAddPurchaseOrder}><FaSave /> Create Order</button>
+          <button style={secondaryBtn} onClick={closePOModal}>Cancel</button>
+          <button style={primaryBtn} onClick={handleAddPurchaseOrder}><FaSave /> {isEditingPO ? 'Update Order' : 'Create Order'}</button>
         </div>
       }>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>

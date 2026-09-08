@@ -355,6 +355,7 @@ export default function InventoryManagement() {
             setShowAddTransferModal={inventory.setShowAddTransferModal}
             handleDeleteSupplier={inventory.handleDeleteSupplier}
             handleUpdateOrderStatus={inventory.handleUpdateOrderStatus}
+            handleEditPurchaseOrder={inventory.handleEditPurchaseOrder}
             handleEmailPurchaseOrder={inventory.handleEmailPurchaseOrder}
             getOrderStatusColor={inventory.getOrderStatusColor}
             startVoiceListeningPO={inventory.startVoiceListeningPO}

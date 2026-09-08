@@ -24,6 +24,7 @@ export default function useInventory() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
   const [showAddPurchaseOrderModal, setShowAddPurchaseOrderModal] = useState(false);
+  const [editingPurchaseOrderId, setEditingPurchaseOrderId] = useState(null);
   const [showAddRecipeModal, setShowAddRecipeModal] = useState(false);
   const [showAddGRNModal, setShowAddGRNModal] = useState(false);
   const [showAddRequisitionModal, setShowAddRequisitionModal] = useState(false);
@@ -669,6 +670,34 @@ export default function useInventory() {
   };
 
   // Purchase Order handlers
+  const resetPurchaseOrderForm = () => {
+    setEditingPurchaseOrderId(null);
+    setPurchaseOrderFormData({ supplierId: '', items: [{ inventoryItemId: '', inventoryItemName: '', quantity: 1, unitPrice: 0 }], expectedDeliveryDate: '', notes: '' });
+  };
+
+  // Load an existing PO into the form for editing (reuses the Create PO modal).
+  const handleEditPurchaseOrder = (po) => {
+    if (!po) return;
+    const toDateInput = (d) => {
+      if (!d) return '';
+      const dt = d._seconds ? new Date(d._seconds * 1000) : new Date(d);
+      return isNaN(dt.getTime()) ? '' : dt.toISOString().slice(0, 10);
+    };
+    setPurchaseOrderFormData({
+      supplierId: po.supplierId || '',
+      items: (po.items || []).map(it => ({
+        inventoryItemId: it.inventoryItemId || '',
+        inventoryItemName: it.inventoryItemName || '',
+        quantity: it.quantity ?? 1,
+        unitPrice: it.unitPrice ?? 0,
+      })),
+      expectedDeliveryDate: toDateInput(po.expectedDeliveryDate),
+      notes: '',
+    });
+    setEditingPurchaseOrderId(po.id || po._id);
+    setShowAddPurchaseOrderModal(true);
+  };
+
   const handleAddPurchaseOrder = async () => {
     if (!currentRestaurant) return;
     if (!purchaseOrderFormData.supplierId || purchaseOrderFormData.items.length === 0) {
@@ -676,16 +705,29 @@ export default function useInventory() {
     }
     try {
       setLoading(true); setError(null);
+      if (editingPurchaseOrderId) {
+        // Edit existing PO (backend re-snapshots units + recomputes total; locked once received)
+        await apiClient.updatePurchaseOrder(currentRestaurant.id, editingPurchaseOrderId, {
+          supplierId: purchaseOrderFormData.supplierId,
+          items: purchaseOrderFormData.items,
+          expectedDeliveryDate: purchaseOrderFormData.expectedDeliveryDate || null,
+        });
+        setSuccess('Purchase order updated successfully!');
+        setShowAddPurchaseOrderModal(false);
+        resetPurchaseOrderForm();
+        loadInventoryData();
+        return;
+      }
       const response = await apiClient.createPurchaseOrder(currentRestaurant.id, purchaseOrderFormData);
       if (response.order) {
         setSuccess('Purchase order created successfully!');
         setShowAddPurchaseOrderModal(false);
-        setPurchaseOrderFormData({ supplierId: '', items: [{ inventoryItemId: '', inventoryItemName: '', quantity: 1, unitPrice: 0 }], expectedDeliveryDate: '', notes: '' });
+        resetPurchaseOrderForm();
         loadInventoryData();
       }
     } catch (error) {
-      console.error('Error creating purchase order:', error);
-      setError(error.message || 'Failed to create purchase order');
+      console.error('Error saving purchase order:', error);
+      setError(error.message || 'Failed to save purchase order');
     } finally { setLoading(false); }
   };
 
@@ -1241,6 +1283,7 @@ export default function useInventory() {
     // Modal states
     showAddModal, setShowAddModal, showEditModal, setShowEditModal,
     showAddSupplierModal, setShowAddSupplierModal, showAddPurchaseOrderModal, setShowAddPurchaseOrderModal,
+    editingPurchaseOrderId, handleEditPurchaseOrder, resetPurchaseOrderForm,
     showAddRecipeModal, setShowAddRecipeModal, showAddGRNModal, setShowAddGRNModal,
     showAddRequisitionModal, setShowAddRequisitionModal, showAddInvoiceModal, setShowAddInvoiceModal,
     showAddReturnModal, setShowAddReturnModal, showAddTransferModal, setShowAddTransferModal,
