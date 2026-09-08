@@ -2582,6 +2582,12 @@ class ApiClient {
     return this.request(`/api/inventory/${restaurantId}/usage-summary${queryString}`);
   }
 
+  async getInventoryUsageVariance(restaurantId, params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const queryString = query ? `?${query}` : '';
+    return this.request(`/api/inventory/${restaurantId}/usage-variance${queryString}`);
+  }
+
   async parseQuickOrder(restaurantId, payload) {
     if (payload instanceof FormData) {
       return this.upload(`/api/inventory/${restaurantId}/quick-order`, payload);
