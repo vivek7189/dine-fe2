@@ -313,6 +313,20 @@ function SectionHeader({ icon, title }) {
 // ─── Manual Item Form (shared between Add & Edit) ───────────────────────────
 function ManualItemForm({ formData, setFormData, categories, suppliers }) {
   const update = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
+
+  // Picking a purchase + stock unit that are a known same-dimension pair (kg↔g, L↔ml,
+  // dozen↔pcs…) auto-fills the conversion factor so operators never hand-type "1000".
+  // Custom packs (bottle→ml, case→pcs) can't be derived → the field stays manual.
+  const updateUnitField = (field, value) => setFormData(prev => {
+    const next = { ...prev, [field]: value };
+    const pu = field === 'purchaseUnit' ? value : prev.purchaseUnit;
+    const su = field === 'unit' ? value : prev.unit;
+    if (pu && su && pu !== su) {
+      const derived = convertUnits(1, pu, su);
+      if (derived && derived !== 1) next.conversionFactor = derived;
+    }
+    return next;
+  });
   const updateMulti = (fields) => setFormData(prev => ({ ...prev, ...fields }));
 
   const categoryOptions = categories.map(c => ({ value: c.name || c, label: c.name || c }));
@@ -332,17 +346,22 @@ function ManualItemForm({ formData, setFormData, categories, suppliers }) {
       </div>
       <div style={fieldWrap}>
         <label style={labelStyle}>Stock / Usage Unit</label>
-        <CustomSelect value={formData.unit} onChange={v => update('unit', v)} options={unitOptions} placeholder="Select unit" />
+        <CustomSelect value={formData.unit} onChange={v => updateUnitField('unit', v)} options={unitOptions} placeholder="Select unit" />
       </div>
       <div style={fieldWrap}>
         <label style={labelStyle}>Purchase Unit (optional)</label>
-        <CustomSelect value={formData.purchaseUnit || ''} onChange={v => update('purchaseUnit', v)} options={unitOptions} placeholder="Same as stock unit" />
+        <CustomSelect value={formData.purchaseUnit || ''} onChange={v => updateUnitField('purchaseUnit', v)} options={unitOptions} placeholder="Same as stock unit" />
         <span style={{ fontSize: 11, color: '#6b7280' }}>Buy in this unit (e.g. bottle, case), track/deduct in the stock unit.</span>
       </div>
       {formData.purchaseUnit && formData.purchaseUnit !== formData.unit && (
         <div style={fieldWrap}>
           <label style={labelStyle}>1 {formData.purchaseUnit} = ? {formData.unit || 'stock units'}</label>
           <FocusInput type="number" step="any" value={formData.conversionFactor || ''} onChange={e => update('conversionFactor', parseFloat(e.target.value) || 1)} placeholder="e.g. 750" />
+          <span style={{ fontSize: 11, color: '#6b7280' }}>
+            {convertUnits(1, formData.purchaseUnit, formData.unit) !== 1
+              ? 'Auto-filled for standard units — edit only if needed.'
+              : 'Enter how many stock units are in 1 purchase unit (custom pack).'}
+          </span>
         </div>
       )}
       <SectionHeader icon={<FaClipboardList size={10} color="white" />} title="Stock & Pricing" />
