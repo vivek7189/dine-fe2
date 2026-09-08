@@ -672,22 +672,32 @@ function OutletRankingPDF({ data }) {
 // ── Consolidated P&L ────────────────────────────────────────────
 
 function ConsolidatedPLPDF({ data }) {
-  const sm = data?.summary || {};
-  const outlets = data?.outletBreakdown || [];
+  // The /consolidated-pl endpoint returns totals at the TOP LEVEL (not under a
+  // `summary` object) and does NOT send margin/orders/avgTicket — the web view
+  // derives those from outletBreakdown. Mirror that exactly here, else the summary
+  // cards render 0 while the per-outlet table shows real data.
+  const outlets = data?.outletBreakdown || data?.outlets || [];
+  const totalRevenue = data?.totalRevenue ?? data?.summary?.totalRevenue ?? 0;
+  const totalExpenses = data?.totalExpenses ?? data?.summary?.totalExpenses ?? 0;
+  const grossProfit = data?.grossProfit ?? data?.summary?.grossProfit ?? (totalRevenue - totalExpenses);
+  const totalOrders = data?.totalOrders ?? data?.summary?.totalOrders ?? outlets.reduce((sum, o) => sum + (o.orderCount || 0), 0);
+  const profitMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+  const avgTicket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+  const outletCount = data?.outletCount ?? data?.summary?.outletCount ?? outlets.length;
 
   return (
     <View>
       <Text style={s.sectionTitle}>Profit & Loss Summary</Text>
       <View style={s.statsRow}>
-        <StatBox label="Revenue" value={fmtCurrency(sm.totalRevenue)} color={C.primary} />
-        <StatBox label="Expenses" value={fmtCurrency(sm.totalExpenses)} color={C.red} />
-        <StatBox label="Gross Profit" value={fmtCurrency(sm.grossProfit)} color={C.blue} />
-        <StatBox label="Margin" value={fmtPct(sm.profitMargin)} color={sm.profitMargin >= 0 ? C.primary : C.red} />
+        <StatBox label="Revenue" value={fmtCurrency(totalRevenue)} color={C.primary} />
+        <StatBox label="Expenses" value={fmtCurrency(totalExpenses)} color={C.red} />
+        <StatBox label="Gross Profit" value={fmtCurrency(grossProfit)} color={C.blue} />
+        <StatBox label="Margin" value={fmtPct(profitMargin)} color={profitMargin >= 0 ? C.primary : C.red} />
       </View>
       <View style={s.statsRow}>
-        <StatBox label="Orders" value={fmtNum(sm.totalOrders)} color={C.cyan} />
-        <StatBox label="Avg Ticket" value={fmtCurrency(sm.avgTicket)} color={C.purple} />
-        <StatBox label="Outlets" value={fmtNum(sm.outletCount || outlets.length)} color={C.amber} />
+        <StatBox label="Orders" value={fmtNum(totalOrders)} color={C.cyan} />
+        <StatBox label="Avg Ticket" value={fmtCurrency(avgTicket)} color={C.purple} />
+        <StatBox label="Outlets" value={fmtNum(outletCount)} color={C.amber} />
       </View>
 
       {outlets.length > 0 && (
