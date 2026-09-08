@@ -671,8 +671,12 @@ function AddPurchaseOrderModal(props) {
     showAddPurchaseOrderModal, setShowAddPurchaseOrderModal,
     purchaseOrderFormData, setPurchaseOrderFormData,
     handleAddPurchaseOrder, addPurchaseOrderItem, removePurchaseOrderItem, updatePurchaseOrderItem,
-    suppliers, inventoryItems, getModalStyles, getModalContentStyles
+    suppliers, inventoryItems, getModalStyles, getModalContentStyles, formatCurrency
   } = props;
+
+  const fmtMoney = formatCurrency || (n => `₹${(Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+  const poGrandTotal = (purchaseOrderFormData.items || []).reduce(
+    (sum, it) => sum + (parseFloat(it.quantity) || 0) * (parseFloat(it.unitPrice) || 0), 0);
 
   return (
     <ModalShell show={showAddPurchaseOrderModal} onClose={() => setShowAddPurchaseOrderModal(false)} title="Create Purchase Order"
@@ -704,22 +708,41 @@ function AddPurchaseOrderModal(props) {
           <label style={{ ...labelStyle, marginBottom: 0 }}>Items *</label>
           <button style={secondaryBtn} onClick={addPurchaseOrderItem}><FaPlus /> Add Item</button>
         </div>
-        {purchaseOrderFormData.items.map((item, index) => (
-          <div key={index} style={rowStyle}>
-            <FocusSelect style={{ ...inputStyle, flex: 2 }} value={item.inventoryItemId}
-              onChange={e => updatePurchaseOrderItem(index, 'inventoryItemId', e.target.value)}>
-              <option value="">Select item</option>
-              {inventoryItems.map(inv => <option key={inv.id} value={inv.id}>{inv.name}</option>)}
-            </FocusSelect>
-            <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" min="1" placeholder="Qty"
-              value={item.quantity} onChange={e => updatePurchaseOrderItem(index, 'quantity', parseInt(e.target.value) || 1)} />
-            <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" step="0.01" placeholder="Price"
-              value={item.unitPrice} onChange={e => updatePurchaseOrderItem(index, 'unitPrice', parseFloat(e.target.value) || 0)} />
-            {purchaseOrderFormData.items.length > 1 && (
-              <button style={dangerBtn} onClick={() => removePurchaseOrderItem(index)}><FaTrash /></button>
-            )}
-          </div>
-        ))}
+        {purchaseOrderFormData.items.map((item, index) => {
+          const selectedInv = inventoryItems.find(i => i.id === item.inventoryItemId);
+          // Purchase unit the quantity is entered in (e.g. kg) — makes it clear the
+          // operator is buying in kg even though the recipe consumes in grams.
+          const purchaseUnit = selectedInv?.purchaseUnit || selectedInv?.unit || '';
+          const lineTotal = (parseFloat(item.quantity) || 0) * (parseFloat(item.unitPrice) || 0);
+          return (
+            <div key={index} style={rowStyle}>
+              <FocusSelect style={{ ...inputStyle, flex: 2 }} value={item.inventoryItemId}
+                onChange={e => updatePurchaseOrderItem(index, 'inventoryItemId', e.target.value)}>
+                <option value="">Select item</option>
+                {inventoryItems.map(inv => <option key={inv.id} value={inv.id}>{inv.name}</option>)}
+              </FocusSelect>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <FocusInput style={inputStyle} type="number" min="0" step="any" placeholder="Qty"
+                  value={item.quantity} onChange={e => updatePurchaseOrderItem(index, 'quantity', parseFloat(e.target.value) || 0)} />
+                {purchaseUnit && <span style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>in {purchaseUnit}</span>}
+              </div>
+              <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" min="0" step="0.01"
+                placeholder={purchaseUnit ? `Price / ${purchaseUnit}` : 'Unit price'}
+                value={item.unitPrice} onChange={e => updatePurchaseOrderItem(index, 'unitPrice', parseFloat(e.target.value) || 0)} />
+              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600, fontSize: 13, color: '#111827', whiteSpace: 'nowrap', alignSelf: 'center' }}>
+                {fmtMoney(lineTotal)}
+              </div>
+              {purchaseOrderFormData.items.length > 1 && (
+                <button style={dangerBtn} onClick={() => removePurchaseOrderItem(index)}><FaTrash /></button>
+              )}
+            </div>
+          );
+        })}
+        {/* Live order total so operators catch unit/price mistakes before saving */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'baseline', gap: 12, marginTop: 10, paddingTop: 10, borderTop: '1px solid #e5e7eb' }}>
+          <span style={{ fontSize: 13, color: '#6b7280', fontWeight: 500 }}>Order Total</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: '#065f46' }}>{fmtMoney(poGrandTotal)}</span>
+        </div>
       </div>
 
       <div style={fieldWrap}>
