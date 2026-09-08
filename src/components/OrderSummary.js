@@ -3,6 +3,7 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
 import apiClient from '../lib/api';
 import { etimsActiveFor, etimsAskPerBillFor } from '../lib/etimsDecision';
 import { t } from '../lib/i18n';
@@ -599,6 +600,19 @@ const OrderSummary = ({
       if (digits.length >= getPhoneMinLength(countryCode)) triggerLookup(digits);
     }
   }, [onCustomerNameChange, onCustomerMobileChange, triggerLookup, countryCode]);
+
+  const router = useRouter();
+  // Open the found customer's profile page. Web opens a NEW browser tab; the installed
+  // desktop/mobile app (static export, no dynamic route) redirects IN-APP via the static
+  // alias. Mirrors goToCustomer() in customers/page.js. No-op unless the customer is in our
+  // DB (has an id).
+  const openCustomerProfile = useCallback(() => {
+    const id = customerData?.id;
+    if (!id || typeof window === 'undefined') return;
+    if (window.__DINEOPEN_MOBILE_EMBED__) return router.push('/mobile/customers/' + id);
+    if (window.electronAPI || window.Capacitor) return router.push('/customers/view/?id=' + id);
+    window.open('/customers/' + id, '_blank', 'noopener');
+  }, [customerData?.id, router]);
 
   // Offer Engine Hook
   const {
@@ -5849,6 +5863,25 @@ const OrderSummary = ({
                       </span>
                     )}
                     </div>
+                    )}
+
+                    {/* Small link to open this customer's full profile — only when they exist in
+                        our DB. Web opens a new tab; the installed app redirects in-app. */}
+                    {lookupStatus === 'found' && customerData?.id && (
+                      <button
+                        type="button"
+                        onClick={openCustomerProfile}
+                        title="Open this customer's profile"
+                        style={{
+                          gridColumn: '1 / -1', justifySelf: 'start',
+                          background: 'none', border: 'none', padding: '1px 0',
+                          margin: isMobile ? '1px 0 0' : '2px 0 0',
+                          color: '#0891b2', fontSize: isMobile ? '10.5px' : '11px', fontWeight: 600,
+                          cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px',
+                        }}
+                      >
+                        View profile <span aria-hidden="true">↗</span>
+                      </button>
                     )}
 
                     {/* Customer Info Card — shows when customer found via lookup */}
