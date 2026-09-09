@@ -718,24 +718,52 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   const getTaxBreakdown = () => {
     const taxSettings = customerAppSettings?.taxSettings;
     if (!taxSettings?.enabled || !taxSettings?.taxes?.length) {
-      return { taxAmount: 0, taxLines: [] };
+      return { taxAmount: 0, taxLines: [], exclusiveTaxAmount: 0, inclusiveTaxAmount: 0 };
     }
 
     const subtotal = getCartSubtotal();
-    const offerDiscount = getOfferDiscount();
-    const loyaltyDiscount = getLoyaltyDiscount();
-    const preTaxTotal = Math.max(0, subtotal - offerDiscount - loyaltyDiscount);
+    const totalDiscount = getOfferDiscount() + getLoyaltyDiscount();
 
-    let taxAmount = 0;
-    const taxLines = [];
+    // Ditto with dashboard billing (OrderSummary) + backend (calculatePerItemTax): respect
+    // TAX-INCLUSIVE pricing. For an inclusive item the tax is EXTRACTED from the price
+    // (rate/(100+totalRate)) and is ALREADY in the subtotal — it must NOT be added on top; only
+    // EXCLUSIVE tax is added. Previously this always added tax on top, so an inclusive-priced menu
+    // showed a total higher than the dashboard/receipt (and risked overcharging online payments).
+    // Per-item override (item.taxInclusive) wins over the global taxInclusivePricing flag.
+    const enabledTaxes = taxSettings.taxes.filter(t => t.enabled !== false && (Number(t.rate) || 0) > 0);
+    const totRate = enabledTaxes.reduce((s, t) => s + (Number(t.rate) || 0), 0);
+    const globalInclusive = taxSettings.taxInclusivePricing === true;
 
-    taxSettings.taxes.forEach(tax => {
-      const amt = Math.round((preTaxTotal * (tax.rate || 0) / 100) * 100) / 100;
-      taxAmount += amt;
-      taxLines.push({ name: tax.name || 'Tax', rate: tax.rate, amount: amt });
-    });
+    const taxTotals = {}; // key -> { name, rate, amount, inclusive }
+    let inclusiveTaxAmount = 0, exclusiveTaxAmount = 0;
 
-    return { taxAmount: Math.round(taxAmount * 100) / 100, taxLines };
+    for (const item of cart) {
+      const lineTotal = (item.price || 0) * (item.quantity || 1);
+      // Distribute the cart-level offer/loyalty discount proportionally, then tax the net.
+      const discShare = subtotal > 0 ? (lineTotal / subtotal) * totalDiscount : 0;
+      const taxable = Math.max(0, lineTotal - discShare);
+      const isInclusive = item.taxInclusive === true ? true
+        : item.taxInclusive === false ? false
+        : globalInclusive;
+      for (const tax of enabledTaxes) {
+        const rate = Number(tax.rate) || 0;
+        const amt = isInclusive
+          ? (taxable * rate / (100 + totRate)) // back-calculate FROM the inclusive price
+          : (taxable * rate / 100);            // add on top
+        const key = `${tax.name || 'Tax'}|${rate}|${isInclusive}`;
+        if (!taxTotals[key]) taxTotals[key] = { name: tax.name || 'Tax', rate, amount: 0, inclusive: isInclusive };
+        taxTotals[key].amount += amt;
+        if (isInclusive) inclusiveTaxAmount += amt; else exclusiveTaxAmount += amt;
+      }
+    }
+
+    const taxLines = Object.values(taxTotals).map(t => ({ ...t, amount: Math.round(t.amount * 100) / 100 }));
+    return {
+      taxAmount: Math.round((inclusiveTaxAmount + exclusiveTaxAmount) * 100) / 100,
+      taxLines,
+      exclusiveTaxAmount: Math.round(exclusiveTaxAmount * 100) / 100,
+      inclusiveTaxAmount: Math.round(inclusiveTaxAmount * 100) / 100,
+    };
   };
 
   const getPreTaxTotal = () => {
@@ -754,9 +782,11 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
 
   const getFinalTotal = () => {
     const preTaxTotal = getPreTaxTotal();
-    const { taxAmount } = getTaxBreakdown();
+    // Only EXCLUSIVE tax is added on top — inclusive tax is already contained in the item prices
+    // (preTaxTotal). Matches the backend's finalTotal = preTaxTotal + exclusiveTaxAmount + sc + tip.
+    const { exclusiveTaxAmount } = getTaxBreakdown();
     const serviceCharge = getServiceCharge();
-    return Math.round((preTaxTotal + taxAmount + serviceCharge + tipAmount) * 100) / 100;
+    return Math.round((preTaxTotal + exclusiveTaxAmount + serviceCharge + tipAmount) * 100) / 100;
   };
 
   const getLoyaltyPointsToEarn = () => {
@@ -4523,7 +4553,7 @@ const CheckoutView = ({
                 {/* Tax breakdown - only show if tax is enabled */}
                 {getTaxBreakdown().taxLines.map((tax, index) => (
                   <div key={index} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
-                    <span style={{ color: '#6b7280' }}>{tax.name} ({tax.rate}%)</span>
+                    <span style={{ color: '#6b7280' }}>{tax.name} ({tax.rate}%){tax.inclusive ? ' (incl.)' : ''}</span>
                     <span style={{ color: '#374151' }}>{cs}{tax.amount.toFixed(2)}</span>
                   </div>
                 ))}
