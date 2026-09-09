@@ -14,7 +14,7 @@ import apiClient from '../../lib/api.js';
 import { setPublicBackend, DEFAULT_API_BASE } from '../../lib/apiBase';
 import { getDisplayImage } from '../../utils/placeholderImages';
 import { toJsDate } from '../../utils/dateParse';
-import { matchesAudience, calculateDiscountForOffer } from '../../hooks/useOfferEngine';
+import { matchesAudience, calculateDiscountForOffer, isScheduleValid, isDateValid } from '../../hooks/useOfferEngine';
 import PhoneInputWithCountry from '../../components/PhoneInputWithCountry';
 import { DEFAULT_COUNTRY, getCountryByCode } from '../../lib/countries';
 import { detectCountry } from '../../lib/detectCountry';
@@ -407,7 +407,6 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   // Helper to filter valid offers
   const filterValidOffers = (offersData) => {
     if (!offersData?.offers) return [];
-    const now = new Date();
     return offersData.offers.filter(offer => {
       if (!offer.isActive) return false;
       // Cashback offers are automatic post-payment wallet credits, not bill
@@ -416,16 +415,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       // for offers already cached in localStorage before the backend excluded
       // them from /api/public/offers.
       if (offer.promotionType === 'cashback') return false;
-      const expiryDate = toJsDate(offer.validUntil);
-      if (expiryDate) {
-        expiryDate.setHours(23, 59, 59, 999);
-        if (expiryDate < now) return false;
-      }
-      const startDate = toJsDate(offer.validFrom);
-      if (startDate) {
-        startDate.setHours(0, 0, 0, 0);
-        if (startDate > now) return false;
-      }
+      // Date validity via the SHARED engine helper (ditto with dashboard billing) — validFrom/validUntil.
+      if (!isDateValid(offer)) return false;
       if (offer.usageLimit && offer.usageCount >= offer.usageLimit) return false;
       return true;
     });
@@ -544,16 +535,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   }, [restaurantId]);
 
   // Schedule validation helpers
-  const isScheduleValid = (offer) => {
-    if (!offer.schedule || offer.schedule.type !== 'recurring') return true;
-    const now = new Date();
-    const currentDay = now.getDay();
-    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    const scheduleDays = offer.schedule.days || [];
-    const startTime = offer.schedule.startTime || '00:00';
-    const endTime = offer.schedule.endTime || '23:59';
-    return scheduleDays.includes(currentDay) && currentTime >= startTime && currentTime <= endTime;
-  };
+  // isScheduleValid is now imported from useOfferEngine (the SAME function dashboard billing uses —
+  // handles overnight ranges e.g. 22:00–02:00, which the old local copy did not). Ditto behaviour.
 
   const [scheduleCheckKey, setScheduleCheckKey] = useState(0);
 

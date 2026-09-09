@@ -254,7 +254,7 @@ export const calculateDiscountForOffer = (offer, subtotal, cart = [], context = 
 /**
  * Check if an offer's schedule is currently valid.
  */
-const isScheduleValid = (offer) => {
+export const isScheduleValid = (offer) => {
   if (!offer.schedule || offer.schedule.type !== 'recurring') return true;
   const now = new Date();
   const currentDay = now.getDay();
@@ -274,7 +274,7 @@ const isScheduleValid = (offer) => {
 /**
  * Check if an offer's date range is currently valid.
  */
-const isDateValid = (offer) => {
+export const isDateValid = (offer) => {
   const now = new Date();
   const from = toJsDate(offer.validFrom);
   if (from && now < from) return false;
