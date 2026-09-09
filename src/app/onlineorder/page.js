@@ -404,6 +404,27 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     return () => { cancelled = true; };
   }, [restaurantId, customerData?.id, customerData?.phone]);
 
+  // Re-fetch offers WITH the customer's phone once it's known (after OTP/session). The public offers
+  // endpoint matches phone-targeted offers server-side and never returns other customers' phone lists
+  // (privacy), so a targeted offer for this customer only appears here after their phone is resolved.
+  // Without a phone the initial load already fetched public-only offers.
+  useEffect(() => {
+    const phone = customerData?.phone || (customerVerified ? (customerInfo?.phone || null) : null);
+    if (!restaurantId || !phone) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const resp = await apiClient.getActiveOffers(restaurantId, customerData?.isFirstOrder, phone);
+        if (!cancelled && resp?.offers) {
+          const valid = filterValidOffers(resp);
+          setOffers(valid);
+          setCachedData(restaurantId, 'offers', valid);
+        }
+      } catch { /* keep the public offers already loaded */ }
+    })();
+    return () => { cancelled = true; };
+  }, [restaurantId, customerData?.phone, customerVerified]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Helper to filter valid offers
   const filterValidOffers = (offersData) => {
     if (!offersData?.offers) return [];

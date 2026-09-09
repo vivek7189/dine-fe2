@@ -4146,8 +4146,13 @@ class ApiClient {
 
   // Get active offers (public) - used by Crave app
   // isFirstOrder: true/false - Filter first-order-only offers based on customer status
-  async getActiveOffers(restaurantId, isFirstOrder = undefined) {
-    const params = isFirstOrder !== undefined ? `?isFirstOrder=${isFirstOrder}` : '';
+  async getActiveOffers(restaurantId, isFirstOrder = undefined, phone = undefined) {
+    const parts = [];
+    if (isFirstOrder !== undefined) parts.push(`isFirstOrder=${isFirstOrder}`);
+    // Pass the customer's own phone so the server can match phone-targeted offers WITHOUT ever
+    // returning other customers' phone lists to the browser (privacy). Omitted → public offers only.
+    if (phone) parts.push(`phone=${encodeURIComponent(phone)}`);
+    const params = parts.length ? `?${parts.join('&')}` : '';
     return this.request(`/api/public/offers/${restaurantId}${params}`);
   }
 
