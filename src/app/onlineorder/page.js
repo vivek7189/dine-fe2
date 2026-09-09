@@ -14,7 +14,7 @@ import apiClient from '../../lib/api.js';
 import { setPublicBackend, DEFAULT_API_BASE } from '../../lib/apiBase';
 import { getDisplayImage } from '../../utils/placeholderImages';
 import { toJsDate } from '../../utils/dateParse';
-import { matchesAudience } from '../../hooks/useOfferEngine';
+import { matchesAudience, calculateDiscountForOffer } from '../../hooks/useOfferEngine';
 import PhoneInputWithCountry from '../../components/PhoneInputWithCountry';
 import { DEFAULT_COUNTRY, getCountryByCode } from '../../lib/countries';
 import { detectCountry } from '../../lib/detectCountry';
@@ -645,19 +645,9 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     // Calculate discount for each applicable offer and sort by best discount
     const offersWithDiscount = applicableOffers
       .filter(offer => subtotal >= (offer.minOrderValue || 0))
-      .map(offer => {
-        let discount = 0;
-        if (offer.discountType === 'percentage') {
-          discount = (subtotal * offer.discountValue) / 100;
-          if (offer.maxDiscount && discount > offer.maxDiscount) {
-            discount = offer.maxDiscount;
-          }
-        } else {
-          discount = offer.discountValue;
-        }
-        discount = Math.min(discount, subtotal);
-        return { ...offer, calculatedDiscount: discount };
-      })
+      // Same shared engine as getOfferDiscount / dashboard / BE — so "best offer" is ranked by the
+      // REAL tier-aware discount (a below-tier offer scores 0 and won't be auto-picked over a live one).
+      .map(offer => ({ ...offer, calculatedDiscount: calculateDiscountForOffer(offer, subtotal, cart, {}) || 0 }))
       .sort((a, b) => b.calculatedDiscount - a.calculatedDiscount);
 
     // Select best offer(s) based on settings
@@ -710,37 +700,14 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     let totalDiscount = 0;
 
     for (const offer of selectedOffers) {
-      // Calculate applicable subtotal based on scope
-      let applicableSubtotal = subtotal;
-      if (offer.scope === 'category' && offer.targetCategories?.length) {
-        applicableSubtotal = cart.reduce((sum, item) => {
-          if (offer.targetCategories.some(c => c.toLowerCase() === (item.category || '').toLowerCase())) {
-            return sum + (item.price * item.quantity);
-          }
-          return sum;
-        }, 0);
-      } else if (offer.scope === 'item' && offer.targetItems?.length) {
-        applicableSubtotal = cart.reduce((sum, item) => {
-          if (offer.targetItems.includes(item.id)) {
-            return sum + (item.price * item.quantity);
-          }
-          return sum;
-        }, 0);
-      }
-
-      if (applicableSubtotal < (offer.minOrderValue || 0)) continue;
+      // Server-authoritative eligibility gates (the engine doesn't self-check these):
+      if (subtotal < (offer.minOrderValue || 0)) continue;
       if (offer.isFirstOrderOnly && customerData && !customerData.isFirstOrder) continue;
-
-      let discount = 0;
-      if (offer.discountType === 'percentage') {
-        discount = (applicableSubtotal * offer.discountValue) / 100;
-        if (offer.maxDiscount && discount > offer.maxDiscount) {
-          discount = offer.maxDiscount;
-        }
-      } else {
-        discount = Math.min(offer.discountValue, applicableSubtotal);
-      }
-      totalDiscount += discount;
+      // DITTO with dashboard billing (OrderSummary) + backend (offerEngine.calculateDiscountForOffer):
+      // the shared engine handles scope (order/category/item), TIERS (incl. below-lowest-tier → 0),
+      // percentage / flat / flat_per_item / BOGO, and maxDiscount — so the public checkout shows
+      // EXACTLY what the server will charge (no more tier-ignored over-discounting).
+      totalDiscount += calculateDiscountForOffer(offer, subtotal, cart, {}) || 0;
     }
 
     return Math.round(Math.min(totalDiscount, subtotal) * 100) / 100;
