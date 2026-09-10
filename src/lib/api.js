@@ -108,36 +108,40 @@ class ApiClient {
    * @param {number} ttlMs - Cache TTL in milliseconds (default: 5 min)
    * @returns {Promise<any>} - API response data
    */
-  async cachedGet(endpoint, ttlMs = 5 * 60 * 1000) {
+  async cachedGet(endpoint, ttlMs = 5 * 60 * 1000, baseOverride = null) {
+    // Cache/dedup key includes the base so a cloud-sourced read (local-server app, online) and a
+    // local-server-sourced read never collide under the same endpoint. invalidateCache still matches
+    // via includes(endpoint), so writes clear both variants.
+    const cacheKey = baseOverride ? `${baseOverride}|${endpoint}` : endpoint;
     // Check in-memory cache
-    const cached = this._cache.get(endpoint);
+    const cached = this._cache.get(cacheKey);
     if (cached && (Date.now() - cached.timestamp) < ttlMs) {
       return cached.data;
     }
 
     // Deduplicate: if same request is already in-flight, wait for it
-    if (this._inflight.has(endpoint)) {
-      return this._inflight.get(endpoint);
+    if (this._inflight.has(cacheKey)) {
+      return this._inflight.get(cacheKey);
     }
 
     // Make the request and cache it
-    const promise = this.request(endpoint)
+    const promise = this.request(endpoint, baseOverride ? { baseOverride } : {})
       .then(data => {
         // Evict oldest entries if cache exceeds max size
         if (this._cache.size >= this._cacheMaxSize) {
           const firstKey = this._cache.keys().next().value;
           this._cache.delete(firstKey);
         }
-        this._cache.set(endpoint, { data, timestamp: Date.now() });
-        this._inflight.delete(endpoint);
+        this._cache.set(cacheKey, { data, timestamp: Date.now() });
+        this._inflight.delete(cacheKey);
         return data;
       })
       .catch(err => {
-        this._inflight.delete(endpoint);
+        this._inflight.delete(cacheKey);
         throw err;
       });
 
-    this._inflight.set(endpoint, promise);
+    this._inflight.set(cacheKey, promise);
     return promise;
   }
 
@@ -1247,7 +1251,20 @@ class ApiClient {
   // Menu endpoints
   async getMenu(restaurantId, category = null) {
     const query = category ? `?category=${category}` : '';
-    return this.cachedGet(`/api/menus/${restaurantId}${query}`, 5 * 60 * 1000); // 5 min
+    const endpoint = `/api/menus/${restaurantId}${query}`;
+    // Local-server app: the menu is authored in the CLOUD (dashboard / other terminals). The local hub's
+    // copy can lag, so when online we fetch the AUTHORITATIVE cloud menu (and cache it); fall back to the
+    // local server when offline or if the cloud call fails, so the POS always renders. Scoped to server
+    // mode — the normal cloud app is unaffected (its baseURL is already the cloud).
+    const online = typeof navigator === 'undefined' || navigator.onLine !== false;
+    if (isServerApp() && online && this.cloudBase()) {
+      try {
+        return await this.cachedGet(endpoint, 5 * 60 * 1000, this.cloudBase());
+      } catch (e) {
+        console.warn('[getMenu] cloud fetch failed — falling back to local server:', e?.message);
+      }
+    }
+    return this.cachedGet(endpoint, 5 * 60 * 1000); // 5 min
   }
 
   async createMenuItem(restaurantId, menuItemData) {
@@ -1727,7 +1744,20 @@ class ApiClient {
     if (options.endDate) params.append('endDate', options.endDate);
     if (options.subRestaurantId) params.append('subRestaurantId', options.subRestaurantId);
     const qs = params.toString();
-    return this.request(`/api/analytics/${restaurantId}/daily-summary${qs ? '?' + qs : ''}`);
+    const endpoint = `/api/analytics/${restaurantId}/daily-summary${qs ? '?' + qs : ''}`;
+    // Home-page report: on the local-server app, the hub only aggregates orders rung up ON this hub,
+    // so its daily summary undercounts online/other-terminal sales. When internet is available read the
+    // AUTHORITATIVE cloud summary; fall back to the local server offline or on failure. Scoped to server
+    // mode; the normal cloud app is unaffected. (Mirrors getOrders / getMenu.)
+    const online = typeof navigator === 'undefined' || navigator.onLine !== false;
+    if (isServerApp() && online && this.cloudBase()) {
+      try {
+        return await this.request(endpoint, { baseOverride: this.cloudBase() });
+      } catch (e) {
+        console.warn('[getDailySummary] cloud fetch failed — falling back to local server:', e?.message);
+      }
+    }
+    return this.request(endpoint);
   }
 
   async getCancelledOrdersReport(restaurantId, options = {}) {

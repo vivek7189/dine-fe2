@@ -1637,8 +1637,33 @@ const Login = () => {
         if (selectedCountry?.code) localStorage.setItem('selectedCountryCode', selectedCountry.code);
         triggerDashboardPrefetch();
 
+        // Resolve + persist the active restaurant, exactly like the phone/Google flows do.
+        // Native / multi-outlet accounts (e.g. email-login owners) can have an EMPTY
+        // user.restaurantId with only defaultRestaurantId set — without this step the
+        // dashboard has no selectedRestaurantId, the menu fetch returns nothing and falls
+        // back to the demo menu, and page-access errors with "User not found".
+        let emailRestaurantId = loginData.user?.restaurantId || localStorage.getItem('selectedRestaurantId');
+        try {
+          const restaurantsRes = await fetch(`${backendUrl}/api/restaurants`, {
+            headers: { 'Authorization': `Bearer ${loginData.token}`, 'Content-Type': 'application/json' },
+          });
+          if (restaurantsRes.ok) {
+            const restaurantsData = await restaurantsRes.json();
+            if (restaurantsData.restaurants?.length > 0) {
+              const defaultId = loginData.user?.defaultRestaurantId || loginData.user?.restaurantId;
+              const defaultRestaurant = (defaultId
+                ? restaurantsData.restaurants.find(r => r.id === defaultId)
+                : null) || restaurantsData.restaurants[0];
+              localStorage.setItem('selectedRestaurant', JSON.stringify(defaultRestaurant));
+              localStorage.setItem('selectedRestaurantId', defaultRestaurant.id);
+              emailRestaurantId = defaultRestaurant.id;
+            }
+          }
+        } catch (e) {
+          console.error('Error fetching restaurants (email login):', e);
+        }
+
         // Pre-fetch currency settings before redirect
-        const emailRestaurantId = loginData.user?.restaurantId || localStorage.getItem('selectedRestaurantId');
         if (emailRestaurantId && loginData.token) {
           await prefetchCurrencySettings(emailRestaurantId, loginData.token);
         }
