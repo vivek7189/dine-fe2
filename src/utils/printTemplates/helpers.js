@@ -52,7 +52,12 @@ export function buildCustomFooterHtml(billLayout) {
   const align = bl.footerAlign === 'left' ? 'left' : bl.footerAlign === 'right' ? 'right' : 'center';
   const rows = trimmed.split('\n').slice(0, 15).map((l) => {
     const line = l.trim();
-    return line ? `<div>${esc(line.slice(0, 160))}</div>` : '<div style="height:5px;"></div>';
+    if (!line) return '<div style="height:5px;"></div>';
+    // Bold any footer line carrying a phone / M-Pesa / till number (e.g. "Send Money : 0743414538")
+    // so the pay-to number stands out on the customer copy. 6+ digits (allowing spaces/dashes) is a
+    // strong signal of a number and won't match decorative lines like "=====" or "!! Payment !!".
+    const isNumberLine = /\d(?:[\d\s-]{4,})\d/.test(line);
+    return `<div${isNumberLine ? ' style="font-weight:bold;"' : ''}>${esc(line.slice(0, 160))}</div>`;
   }).join('');
   return `<div class="bill-custom-footer" style="text-align:${align};margin:0 0 5px;color:#000;word-wrap:break-word;overflow-wrap:break-word;white-space:normal;">${rows}</div>`;
 }

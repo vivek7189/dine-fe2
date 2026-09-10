@@ -4363,6 +4363,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                     { key: 'showCovers', label: 'Covers' },
                     { key: 'showFooter', label: 'Footer' },
                     { key: 'showPoweredBy', label: 'Powered By' },
+                    { key: 'showRevisedBillBanner', label: 'Revised Bill Banner' },
                   ];
                   const kotFields = [
                     { key: 'showKotTitle', label: 'KOT Title' },
@@ -4428,8 +4429,8 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                         {billExpanded && (
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e5e7eb' }}>
                             {billFields.map(({ key, label }) => {
-                              // Item Tax Split & Customer Phone are opt-in (default OFF).
-                              const defaultOn = (key === 'showCustomerPhone' || key === 'showItemTaxBreakup') ? false : true;
+                              // Item Tax Split, Customer Phone & Revised Bill Banner are opt-in (default OFF).
+                              const defaultOn = (key === 'showCustomerPhone' || key === 'showItemTaxBreakup' || key === 'showRevisedBillBanner') ? false : true;
                               const isOn = printSettings.billLayout?.[key] ?? defaultOn;
                               return toggleChip(label, isOn, () => setPrintSettings(prev => ({
                                 ...prev,

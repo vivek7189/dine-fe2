@@ -50,7 +50,7 @@ const RICH_INVOICE = {
 const billPrintSettings = (billTemplate) => ({
   billTemplate,
   feedbackQREnabled: true, feedbackFormUrl: 'https://x.co/f', feedbackQRDataUrl: 'data:image/png;base64,AAAA',
-  billLayout: { showItemTaxBreakup: true }, // opt the per-item split ON so it is colour-checked too
+  billLayout: { showItemTaxBreakup: true, showRevisedBillBanner: true }, // opt per-item split + revised banner ON so both are colour-checked
 });
 
 const KOT_DATA = {
