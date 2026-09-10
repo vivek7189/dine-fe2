@@ -4,7 +4,12 @@
 // ONLINE (default): mirrors the gold-standard split in OrderSummary.js WITHOUT touching it —
 // for a given orderId it fetches each enabled print station and asks the backend to render only
 // that station's items (getKOTRender with stationId), then prints each split to its own local
-// printer via printDocument({ stationId }). This is the exact same server-rendered flow the
+// printer via printDocument({ stationId }). NOTE: this module is the DELIBERATE "Print KOT" /
+// reprint path (Tables page, order-history — always user-clicked, never automatic). It intentionally
+// does NOT pass a dedupKey, so a reprint ALWAYS prints — even seconds after an auto-print — for the
+// common "the ticket jammed / was missed, print it again" case. Only the automatic pair (OrderSummary
+// place/update auto-print + useAutoPrint realtime echo) carries a dedupKey and is de-duplicated.
+// This is the exact same server-rendered flow the
 // dashboard billing page uses, so behaviour matches everywhere.
 //
 // OFFLINE (navigator.onLine === false): the render API is unreachable, so we do the SAME

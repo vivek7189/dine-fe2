@@ -13,6 +13,75 @@ import { isCapacitor, isTauri, isElectron, isWeb, isReactNativeWebView } from '.
 import { ORDER_STATUS_QR_MARKER, renderOrderStatusQRHtml } from './printTemplates/helpers';
 import { ensureLogoDataUri } from './logoCache';
 
+// ── Cross-path KOT de-duplication ───────────────────────────────────────────
+// On one device, TWO independent client paths can issue a print for the SAME
+// kitchen ticket on an order UPDATE: the realtime auto-printer (useAutoPrint,
+// fired by the RTDB/FCM kot-print-request) and the direct station print
+// (printKotStations — e.g. the Tables "Print KOT" button / order-history). They
+// render through different label bags, so they can't be matched by HTML — but
+// both fetch the SAME server render data, so we dedup on a CONTENT signature:
+// orderId + station + the exact item/removed-item delta. The FIRST job for a
+// given signature prints; an identical one arriving within a short window is
+// suppressed (that's the echo). Because the key includes the delta CONTENT, a
+// genuinely different later update (different items) has a different key and is
+// NEVER suppressed — no missed kitchen ticket. Same-station jobs target the same
+// printer, so we do NOT release the claim on a print failure: the echo would hit
+// the same failing printer anyway, and keeping the claim means the suppression
+// still works even when the driver reports failure (verifiable in the print log).
+// Fail-open: no key (bills, cash-drawer, any non-KOT caller) ⇒ never deduped.
+const _kotPrintClaims = new Map(); // dedupKey -> timestamp(ms)
+// Window must sit comfortably ABOVE the realtime echo delay (observed 0.55–2.70s) so the echo is
+// always caught, yet stay short so re-adding the same item feels responsive. 5s = ~1.85× the worst
+// observed echo — reliable margin without a long re-add block. (Too tight risks a slow echo slipping
+// through → the double returns.) Only affects the automatic pair; reprints carry no key and always print.
+//
+// LIVE-TUNABLE from the backend: the value comes from `printSettings.kotDedupWindowMs` (per-restaurant,
+// stored in the DB, editable from dine-admin) — so it updates in real time for a running app on the next
+// settings refresh, with NO rebuild. Falls back to this default when unset. Set it to 0 to DISABLE the
+// dedup remotely (kill-switch) if it ever misbehaves in the field.
+const KOT_DEDUP_WINDOW_MS = 5000;
+const KOT_DEDUP_WINDOW_MAX_MS = 60000; // clamp — a misconfigured huge value must never block real tickets
+
+function resolveKotDedupWindow(windowMs) {
+  if (windowMs === 0) return 0; // explicit remote kill-switch
+  if (typeof windowMs !== 'number' || !isFinite(windowMs) || windowMs < 0) return KOT_DEDUP_WINDOW_MS;
+  return Math.min(windowMs, KOT_DEDUP_WINDOW_MAX_MS);
+}
+
+/** Build a stable content signature for a KOT render. Same order+station+delta ⇒ same key. */
+export function buildKotDedupKey(kot, stationId) {
+  try {
+    if (!kot) return null;
+    const oid = kot.orderId || kot.id;
+    if (!oid) return null;
+    const norm = (arr) => (Array.isArray(arr) ? arr : [])
+      .map((i) => `${String(i?.name || i?.itemName || i?.menuItemName || '').trim().toLowerCase()}#${i?.quantity ?? i?.qty ?? ''}`)
+      .sort()
+      .join('|');
+    return `kot|${oid}|${stationId || 'all'}|${norm(kot.items)}|R:${norm(kot.removedItems)}`;
+  } catch (_) {
+    return null; // fail-open — no key means no dedup, so the ticket always prints
+  }
+}
+
+/** Returns true if this exact KOT was already claimed within the window (⇒ suppress the echo). */
+function _isDuplicateKot(dedupKey, windowMs) {
+  const win = resolveKotDedupWindow(windowMs);
+  if (win === 0) return false; // dedup disabled remotely — never suppress
+  const now = Date.now();
+  for (const [k, ts] of _kotPrintClaims) {
+    if (now - ts > win) _kotPrintClaims.delete(k);
+  }
+  const prev = _kotPrintClaims.get(dedupKey);
+  if (prev && now - prev <= win) return true;
+  _kotPrintClaims.set(dedupKey, now);
+  if (_kotPrintClaims.size > 200) { // safety cap — never grow unbounded
+    const first = _kotPrintClaims.keys().next().value;
+    _kotPrintClaims.delete(first);
+  }
+  return false;
+}
+
 // Embed the receipt logo as a base64 data-URI so it prints on thermal/native printers
 // (which can't fetch a remote URL) and offline (no network at print time). The logo is
 // stored as a cloud-Storage URL; we swap that URL in the HTML for the cached/fetched
@@ -63,7 +132,7 @@ async function injectOrderStatusQR(html, { orderId, printSettings = {} } = {}) {
  * @param {string} [options.restaurantId] - Restaurant ID (used with orderId)
  * @param {object} [options.printSettings] - Print settings from /admin
  */
-export async function printDocument({ html, domSelector, type = 'bill', orderId, restaurantId, stationId, printSettings = {}, orderData } = {}) {
+export async function printDocument({ html, domSelector, type = 'bill', orderId, restaurantId, stationId, printSettings = {}, orderData, dedupKey } = {}) {
   // Debug: log print request details
   // itemCount from orderData (when available), otherwise estimate from HTML item rows
   const _itemCount = orderData?.items?.length || (html ? (html.match(/<tr|item-main|item-qty/g) || []).length : 0);
@@ -112,6 +181,15 @@ export async function printDocument({ html, domSelector, type = 'bill', orderId,
   // Embed the receipt logo as base64 so it prints on thermal/native printers and
   // offline (they can't fetch the remote logo URL). Guarded — never blocks the bill.
   printHtml = await injectReceiptLogo(printHtml, { printSettings });
+
+  // Cross-path KOT de-dup: only KOT callers pass dedupKey. If this exact ticket
+  // (same order+station+item delta) was already sent within the window, this is
+  // the second path's echo — suppress it so the kitchen gets exactly one copy.
+  // (Runs only for native printers — web/RN already returned above.)
+  if (type === 'kot' && dedupKey && _isDuplicateKot(dedupKey, printSettings?.kotDedupWindowMs)) {
+    console.log('[PrintBridge] Duplicate KOT suppressed (same order/station/items within window):', dedupKey);
+    return { success: true, deduped: true };
+  }
 
   // Route to platform-specific printer
   if (isCapacitor()) {
