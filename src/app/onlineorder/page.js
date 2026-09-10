@@ -184,7 +184,7 @@ const tierInfo = {
   platinum: { color: '#E5E4E2', bgColor: '#f8f8ff', label: 'Platinum', icon: '💎', multiplier: 2 }
 };
 
-const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tableNumberProp = null }) => {
+const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tableNumberProp = null, orderTypeProp = null }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -204,7 +204,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   // Dialling country for the phone fields. Defaults to India, then auto-detects
   // the customer's country from geo (Vercel cookie → timezone → language).
   const [selectedCountry, setSelectedCountry] = useState(DEFAULT_COUNTRY);
-  const [orderType, setOrderType] = useState(tableNumberProp ? 'table' : 'takeaway');
+  const [orderType, setOrderType] = useState(orderTypeProp === 'takeaway' ? 'takeaway' : (tableNumberProp ? 'table' : 'takeaway'));
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showCart, setShowCart] = useState(false);
@@ -4796,7 +4796,7 @@ const CheckoutView = ({
   );
 };
 
-const OnlineOrderPage = ({ restaurantId = null, themeOverride = null, tableNumber = null }) => {
+const OnlineOrderPage = ({ restaurantId = null, themeOverride = null, tableNumber = null, orderType = null }) => {
   return (
     <Suspense fallback={
       <div style={{
@@ -4809,7 +4809,7 @@ const OnlineOrderPage = ({ restaurantId = null, themeOverride = null, tableNumbe
         <FaSpinner size={40} color="#ef4444" style={{ animation: 'spin 1s linear infinite' }} />
       </div>
     }>
-      <OnlineOrderContent restaurantIdProp={restaurantId} themeOverride={themeOverride} tableNumberProp={tableNumber} />
+      <OnlineOrderContent restaurantIdProp={restaurantId} themeOverride={themeOverride} tableNumberProp={tableNumber} orderTypeProp={orderType} />
     </Suspense>
   );
 };

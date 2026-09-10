@@ -9,7 +9,9 @@ function PlaceOrderContent() {
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant');
   const tableNumber = searchParams.get('table');
-  return <OnlineOrderPage restaurantId={restaurantId} tableNumber={tableNumber} />;
+  // Takeaway QR carries &orderType=takeaway (no table/seat) so the menu opens in takeaway mode.
+  const orderType = searchParams.get('orderType');
+  return <OnlineOrderPage restaurantId={restaurantId} tableNumber={tableNumber} orderType={orderType} />;
 }
 
 export default function PlaceOrderPage() {

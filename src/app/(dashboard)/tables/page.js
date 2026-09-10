@@ -57,6 +57,7 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant, onTablesChange
   const [qrMode, setQrMode] = useState('table'); // 'table' = one QR per table · 'seat' = one QR per chair
   const [seatQrCodes, setSeatQrCodes] = useState(new Map()); // key: `${tableName}::${seat}` → dataUrl
   const [seatGenLoading, setSeatGenLoading] = useState(false);
+  const [takeawayQr, setTakeawayQr] = useState(null);   // single restaurant-level takeaway QR
   const [selectedTableIds, setSelectedTableIds] = useState(() => new Set()); // Per-Table bulk delete
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const seatCountOf = (table) => Math.max(1, parseInt(table.capacity, 10) || parseInt(table.seats, 10) || 4);
@@ -81,6 +82,19 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant, onTablesChange
     }
     const base = process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.dineopen.com';
     return `${base}/placeorder?restaurant=${restaurant.id}&table=${tableName}${seatQs}`;
+  };
+
+  // One restaurant-level TAKEAWAY QR — no table/chair. It carries &orderType=takeaway so the
+  // ordering page opens the menu in takeaway mode; table/seat are never required to place it.
+  const getTakeawayQRUrl = () => {
+    const isDev = process.env.NODE_ENV === 'development';
+    const qs = `restaurant=${restaurant.id}&orderType=takeaway`;
+    if (restaurant.subdomainEnabled && restaurant.subdomain) {
+      const base = isDev ? `http://${restaurant.subdomain}.localhost:3002` : `https://${restaurant.subdomain}.dineopen.com`;
+      return `${base}/placeorder?${qs}`;
+    }
+    const base = process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.dineopen.com';
+    return `${base}/placeorder?${qs}`;
   };
 
   const allTables = floors.flatMap(floor =>
@@ -137,6 +151,13 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant, onTablesChange
     generateSeats();
     return () => { cancelled = true; };
   }, [isOpen, qrMode, floors]);
+
+  // Generate the single takeaway QR when that mode is selected.
+  useEffect(() => {
+    if (!isOpen || qrMode !== 'takeaway') return;
+    QRCode.toDataURL(getTakeawayQRUrl(), { width: 260, margin: 1, color: { dark: '#1f2937', light: '#ffffff' } })
+      .then(setTakeawayQr).catch(e => console.error('Takeaway QR generation failed', e));
+  }, [isOpen, qrMode, restaurant.id]);
 
   const selectedCustomTable = allTables.find(t => String(t.id) === String(customTableId)) || null;
 
@@ -268,7 +289,7 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant, onTablesChange
             <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1f2937' }}>Table QR Codes</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {allTables.length > 0 && (
+            {allTables.length > 0 && qrMode !== 'takeaway' && (
               <button onClick={qrMode === 'seat' ? downloadAllSeats : downloadAll} style={{
                 display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
                 background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', border: 'none', color: 'white',
@@ -359,9 +380,9 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant, onTablesChange
           )}
 
           {/* QR mode toggle: one per table, or one per seat/chair */}
-          {allTables.length > 0 && (
+          {(
             <div style={{ display: 'inline-flex', gap: '4px', padding: '4px', background: '#f3f4f6', borderRadius: '10px', marginBottom: '16px' }}>
-              {[{ id: 'table', label: 'Per Table' }, { id: 'seat', label: 'Per Seat / Chair' }].map(opt => (
+              {[{ id: 'table', label: 'Per Table' }, { id: 'seat', label: 'Per Seat / Chair' }, { id: 'takeaway', label: 'Takeaway' }].map(opt => (
                 <button key={opt.id} onClick={() => setQrMode(opt.id)} style={{
                   padding: '7px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
                   background: qrMode === opt.id ? '#fff' : 'transparent', color: qrMode === opt.id ? '#7c3aed' : '#6b7280',
@@ -372,7 +393,23 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant, onTablesChange
           )}
 
           {/* All Tables Grid */}
-          {allTables.length === 0 ? (
+          {qrMode === 'takeaway' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', padding: '12px 0 24px' }}>
+              <div style={{ padding: '20px', background: '#fafafa', borderRadius: '16px', border: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', maxWidth: '320px' }}>
+                {takeawayQr ? (
+                  <img src={takeawayQr} alt="Takeaway QR" style={{ width: '220px', height: '220px', borderRadius: '10px' }} />
+                ) : (
+                  <div style={{ width: '220px', height: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6', borderRadius: '10px' }}><FaSpinner size={24} color="#9ca3af" className="animate-spin" /></div>
+                )}
+                <p style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#1f2937' }}>Takeaway</p>
+                <p style={{ margin: 0, fontSize: '12px', color: '#6b7280', textAlign: 'center' }}>Scan to open the menu and order for takeaway — no table or seat needed.</p>
+                <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                  <button onClick={() => takeawayQr && downloadQR(takeawayQr, 'Takeaway')} disabled={!takeawayQr} style={{ flex: 1, padding: '8px 0', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#fff', fontSize: '12px', fontWeight: 600, color: takeawayQr ? '#374151' : '#d1d5db', cursor: takeawayQr ? 'pointer' : 'not-allowed' }}>Download</button>
+                  <button onClick={() => { try { navigator.clipboard.writeText(getTakeawayQRUrl()); } catch (e) {} }} style={{ flex: 1, padding: '8px 0', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#fff', fontSize: '12px', fontWeight: 600, color: '#374151', cursor: 'pointer' }}>Copy link</button>
+                </div>
+              </div>
+            </div>
+          ) : allTables.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>
               <FaQrcode size={40} style={{ marginBottom: '12px', opacity: 0.3 }} />
               <p style={{ fontSize: '14px', fontWeight: '500' }}>No tables found. Add tables first to generate QR codes.</p>
