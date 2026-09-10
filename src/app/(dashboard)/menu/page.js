@@ -2951,12 +2951,18 @@ const MenuManagement = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [menuItems, categories]);
   const menuFolders = useMemo(() => {
-    if (!menuHasSubcats || searchTerm.trim() || selectedVegFilter !== 'all' || selectedWeightFilter !== 'all') return [];
+    if (searchTerm.trim() || selectedVegFilter !== 'all' || selectedWeightFilter !== 'all') return [];
     const mk = (c) => ({ id: _idOf(c.id), name: c.name, emoji: c.emoji, count: menuCatCount.get(_idOf(c.id)) || 0 });
-    const list = selectedCategory === 'all'
+    const list = (selectedCategory === 'all'
       ? categories.filter(c => !c.parentId).map(mk)
-      : categories.filter(c => _idOf(c.parentId) === _idOf(selectedCategory)).map(mk);
-    return list.filter(f => f.count > 0);
+      : categories.filter(c => _idOf(c.parentId) === _idOf(selectedCategory)).map(mk)
+    ).filter(f => f.count > 0);
+    // Flat (no sub-category) menus now get the SAME folder drill-down + Arrange — but only at the TOP
+    // level and only when there are >=2 categories worth drilling into; otherwise keep the flat item
+    // grid (a 0/1-category menu gains nothing from folders). Nested menus are unchanged (they always
+    // showed folders at every level).
+    if (!menuHasSubcats && (selectedCategory !== 'all' || list.length < 2)) return [];
+    return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [menuHasSubcats, searchTerm, selectedVegFilter, selectedWeightFilter, selectedCategory, categories, menuCatCount]);
   // When folders are shown for a selected category, the grid shows only that
@@ -2964,9 +2970,16 @@ const MenuManagement = () => {
   const menuDirectItems = useMemo(() => {
     if (!menuFolders.length) return filteredItems;
     const sel = _idOf(selectedCategory);
+    // Top level with folders: show any items that belong to NO shown category (uncategorised or an
+    // unknown/legacy category) as loose items beneath the folders — so a flat or partly-categorised
+    // menu NEVER hides items behind the drill-down. Deeper levels keep showing that category's items.
+    if (sel === 'all') {
+      const known = new Set([...categories.map(c => _idOf(c.id)), ...categories.map(c => _idOf(c.name))]);
+      return filteredItems.filter(it => { const leaf = _idOf(it.subCategory || it.category); return !leaf || !known.has(leaf); });
+    }
     return filteredItems.filter(it => _idOf(it.subCategory || it.category) === sel);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [menuFolders, filteredItems, selectedCategory]);
+  }, [menuFolders, filteredItems, selectedCategory, categories]);
   const menuPath = useMemo(() => {
     if (selectedCategory === 'all') return [];
     const byId = new Map(categories.map(c => [_idOf(c.id), c]));
