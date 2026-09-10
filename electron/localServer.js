@@ -106,6 +106,64 @@ async function loadEmbeddedPostgres() {
   return M.default || M;
 }
 
+// Dollar-quote ($$…$$ / $tag$…$tag$) and single-quote aware SQL statement splitter. The bundled
+// offline-schema.sql is a pg_dump (functions with $$ bodies), so a naive split on ';' would break
+// them. This keeps quoted bodies intact so each statement can be run + retried independently.
+function splitSqlStatements(sql) {
+  const stmts = []; let buf = ''; let i = 0; let inSingle = false; let dollarTag = null;
+  while (i < sql.length) {
+    const ch = sql[i];
+    if (dollarTag) {
+      if (ch === '$' && sql.startsWith(dollarTag, i)) { buf += dollarTag; i += dollarTag.length; dollarTag = null; continue; }
+      buf += ch; i++; continue;
+    }
+    if (inSingle) {
+      buf += ch; i++;
+      if (ch === "'") { if (sql[i] === "'") { buf += "'"; i++; } else inSingle = false; }
+      continue;
+    }
+    if (ch === "'") { inSingle = true; buf += ch; i++; continue; }
+    if (ch === '$') { const m = /^\$[A-Za-z0-9_]*\$/.exec(sql.slice(i)); if (m) { dollarTag = m[0]; buf += dollarTag; i += dollarTag.length; continue; } }
+    if (ch === ';') { stmts.push(buf); buf = ''; i++; continue; }
+    buf += ch; i++;
+  }
+  if (buf.trim()) stmts.push(buf);
+  return stmts;
+}
+
+// Ensure the bundled schema is applied idempotently — so an APP UPDATE that adds new tables/indexes/
+// functions migrates an EXISTING local DB (not just first-time installs). Non-destructive: the schema
+// has no DROP/ALTER-destructive statements; "already exists" errors are ignored. Gated on app-version
+// change (marker file) so it doesn't re-run ~2000 DDL statements on every normal boot. Fully guarded —
+// never throws, so a migration hiccup can never block the POS from starting.
+async function ensureSchema(connString, first, PgClient) {
+  const schemaFile = path.join(backendDir(), 'scripts', 'offline-schema.sql');
+  if (!fs.existsSync(schemaFile)) { log('ℹ️ No bundled schema — tables created lazily / while provisioning online.'); return; }
+  const verMarker = path.join(dataRoot(), 'schema-app-version.txt');
+  let lastVer = ''; try { lastVer = fs.readFileSync(verMarker, 'utf8').trim(); } catch (_) {}
+  let curVer = ''; try { curVer = app.getVersion(); } catch (_) {}
+  if (!first && curVer && curVer === lastVer) { log('📐 Schema up to date (no app-version change).'); return; }
+  try {
+    const c = new PgClient({ connectionString: connString });
+    await c.connect();
+    // Strip psql meta-commands (\restrict/\connect) node-postgres can't parse.
+    const sql = fs.readFileSync(schemaFile, 'utf8').split('\n').filter((l) => !/^\s*\\/.test(l)).join('\n');
+    let applied = 0, present = 0, failed = 0;
+    for (const stmt of splitSqlStatements(sql)) {
+      const s = stmt.trim();
+      if (!s || /^--/.test(s.replace(/\n[\s\S]*/, '').trim()) && !/\b(CREATE|ALTER|INSERT|SET|SELECT|COMMENT|GRANT)\b/i.test(s)) continue;
+      try { await c.query(s); applied++; }
+      catch (e) {
+        if (/already exists|duplicate|multiple primary keys/i.test(e.message)) present++;
+        else { failed++; if (failed <= 5) log(`⚠️ schema stmt skipped: ${e.message.slice(0, 140)}`); }
+      }
+    }
+    await c.end();
+    try { if (curVer) fs.writeFileSync(verMarker, curVer); } catch (_) {}
+    log(`📐 Schema ensured (${first ? 'first-time' : 'migration ' + (lastVer || '?') + '→' + (curVer || '?')}: ${applied} applied, ${present} already present${failed ? ', ' + failed + ' skipped' : ''}).`);
+  } catch (e) { log(`⚠️ Schema ensure failed (continuing): ${e.message}`); }
+}
+
 async function startPostgres() {
   const EmbeddedPostgres = await loadEmbeddedPostgres();
   const dataDir = pgDataDir();
@@ -121,23 +179,8 @@ async function startPostgres() {
 
   const connString = `postgresql://${PG_USER}:${PG_PASSWORD}@127.0.0.1:${PG_PORT}/dine`;
 
-  if (first) {
-    const schemaFile = path.join(backendDir(), 'scripts', 'offline-schema.sql');
-    if (fs.existsSync(schemaFile)) {
-      try {
-        const { Client } = require(path.join(backendDir(), 'node_modules', 'pg'));
-        const c = new Client({ connectionString: connString });
-        await c.connect();
-        // Strip psql meta-commands (\restrict/\connect) that node-postgres can't parse.
-        const sql = fs.readFileSync(schemaFile, 'utf8').split('\n').filter((l) => !/^\s*\\/.test(l)).join('\n');
-        await c.query(sql);
-        await c.end();
-        log('📐 Database schema loaded.');
-      } catch (e) { log(`⚠️ Schema load: ${e.message}`); }
-    } else {
-      log('ℹ️ No bundled schema — tables created lazily / while provisioning online.');
-    }
-  }
+  const { Client: PgClient } = require(path.join(backendDir(), 'node_modules', 'pg'));
+  await ensureSchema(connString, first, PgClient);
   log('🐘 Database ready.');
   return connString;
 }

@@ -147,6 +147,26 @@ jobs:
         # GitHub publish target on CI and fails asking for GH_TOKEN.
         run: npx electron-builder --config electron-builder.unified.yml --win --x64 --publish never
 
+      # electron-builder with `--publish never` does NOT emit the update manifest, so the server
+      # channel had no server.yml → the installed server app could never see updates. Generate it
+      # here from the built .exe (sha512 + size) so electron-updater's `server` channel can find it.
+      - name: Generate server.yml update manifest
+        working-directory: frontend
+        shell: bash
+        run: |
+          node -e '
+            const fs=require("fs"),crypto=require("crypto"),path=require("path");
+            const dir="dist-electron-unified";
+            const exe=fs.readdirSync(dir).find(f=>f.toLowerCase().endsWith(".exe"));
+            if(!exe){console.error("no .exe found in "+dir);process.exit(1);}
+            const buf=fs.readFileSync(path.join(dir,exe));
+            const sha512=crypto.createHash("sha512").update(buf).digest("base64");
+            const version=require("./package.json").version;
+            const yml=["version: "+version,"files:","  - url: "+exe,"    sha512: "+sha512,"    size: "+buf.length,"path: "+exe,"sha512: "+sha512,"releaseDate: \x27"+new Date().toISOString()+"\x27",""].join("\n");
+            fs.writeFileSync(path.join(dir,"server.yml"),yml);
+            console.log("Wrote server.yml for "+exe+" (v"+version+", "+buf.length+" bytes)");
+          '
+
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
