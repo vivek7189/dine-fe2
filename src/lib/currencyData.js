@@ -1429,3 +1429,18 @@ export function getAllCountriesWithCurrency() {
     a.countryName.localeCompare(b.countryName)
   );
 }
+
+/**
+ * Full list of selectable currencies as { value, label } options (deduped by currency code,
+ * sorted by code). Includes KES, AED, and every currency in currencyByCountry — so region-specific
+ * currencies (e.g. Kenya) are always available instead of a hardcoded INR/USD/EUR/GBP shortlist.
+ */
+export function getCurrencyOptions() {
+  const seen = new Map();
+  for (const c of Object.values(currencyByCountry)) {
+    if (c && c.currencyCode && !seen.has(c.currencyCode)) {
+      seen.set(c.currencyCode, { value: c.currencyCode, label: `${c.currencyCode} - ${c.currencyName || c.currencyCode}` });
+    }
+  }
+  return [...seen.values()].sort((a, b) => a.value.localeCompare(b.value));
+}

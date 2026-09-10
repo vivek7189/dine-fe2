@@ -5,6 +5,9 @@ import { useRouter, useParams } from 'next/navigation';
 import { HiPencil, HiTrash, HiX, HiPlus, HiArrowLeft, HiMail, HiPhone, HiOfficeBuilding, HiLocationMarker } from 'react-icons/hi';
 import apiClient from '../../../../../lib/api';
 import { useToast } from '../../contexts/InvoiceToastContext';
+import { useCurrency } from '../../../../../contexts/CurrencyContext';
+import { countries, getCountryByCode } from '../../../../../lib/countries';
+import { getCurrencyOptions } from '../../../../../lib/currencyData';
 import PageHeader from '../../components/layout/PageHeader';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -22,12 +25,10 @@ const salutationOptions = [
   { value: 'Dr.', label: 'Dr.' },
 ];
 
-const currencyOptions = [
-  { value: 'INR', label: 'INR - Indian Rupee' },
-  { value: 'USD', label: 'USD - US Dollar' },
-  { value: 'EUR', label: 'EUR - Euro' },
-  { value: 'GBP', label: 'GBP - British Pound' },
-];
+// Full currency list (incl. KES and every region) instead of a hardcoded INR/USD/EUR/GBP shortlist.
+const currencyOptions = getCurrencyOptions();
+// Dial-code options for the editable phone country selector (no hardcoded +91).
+const dialCodeOptions = countries.map((c) => ({ value: c.dialCode, label: `${c.flag} ${c.dialCode}` }));
 
 const paymentTermsOptions = [
   { value: '', label: 'Select payment terms' },
@@ -94,6 +95,7 @@ export default function CustomerDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { showToast } = useToast();
+  const { currencySettings } = useCurrency();
   const customerId = params.id;
 
   const [customer, setCustomer] = useState(null);
@@ -134,9 +136,12 @@ export default function CustomerDetailPage() {
       lastName: c.lastName || '',
       companyName: c.companyName || '',
       displayName: c.displayName || '',
-      currency: c.currency || 'INR',
+      currency: c.currency || currencySettings?.currencyCode || 'INR',
       email: c.email || '',
+      // Prefer a saved per-phone dial code; else the restaurant's country dial code (editable, no hardcoded +91).
+      workPhoneDialCode: c.workPhoneDialCode || getCountryByCode(currencySettings?.countryCode).dialCode,
       workPhone: c.workPhone || '',
+      mobileDialCode: c.mobileDialCode || getCountryByCode(currencySettings?.countryCode).dialCode,
       mobile: c.mobile || '',
       language: c.language || 'en',
       pan: c.pan || '',
@@ -517,11 +522,11 @@ export default function CustomerDetailPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex gap-2">
-                  <div className="w-20 flex-shrink-0"><Input value="+91" disabled /></div>
+                  <div className="w-24 flex-shrink-0"><Select options={dialCodeOptions} value={form.workPhoneDialCode} onChange={(e) => updateForm('workPhoneDialCode', e.target.value)} /></div>
                   <Input placeholder="Work Phone" value={form.workPhone} onChange={(e) => updateForm('workPhone', e.target.value)} />
                 </div>
                 <div className="flex gap-2">
-                  <div className="w-20 flex-shrink-0"><Input value="+91" disabled /></div>
+                  <div className="w-24 flex-shrink-0"><Select options={dialCodeOptions} value={form.mobileDialCode} onChange={(e) => updateForm('mobileDialCode', e.target.value)} /></div>
                   <Input placeholder="Mobile" value={form.mobile} onChange={(e) => updateForm('mobile', e.target.value)} />
                 </div>
               </div>
