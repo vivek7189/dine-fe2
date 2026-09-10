@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { HiX, HiPlus, HiTrash } from 'react-icons/hi';
 import apiClient from '../../../../../lib/api';
 import { useToast } from '../../contexts/InvoiceToastContext';
+import { useCurrency } from '../../../../../contexts/CurrencyContext';
+import { countries, getCountryByCode } from '../../../../../lib/countries';
+import { getCurrencyOptions } from '../../../../../lib/currencyData';
 import PageHeader from '../../components/layout/PageHeader';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -19,12 +22,10 @@ const salutationOptions = [
   { value: 'Dr.', label: 'Dr.' },
 ];
 
-const currencyOptions = [
-  { value: 'INR', label: 'INR - Indian Rupee' },
-  { value: 'USD', label: 'USD - US Dollar' },
-  { value: 'EUR', label: 'EUR - Euro' },
-  { value: 'GBP', label: 'GBP - British Pound' },
-];
+// Full currency list (incl. KES and every region) instead of a hardcoded INR/USD/EUR/GBP shortlist.
+const currencyOptions = getCurrencyOptions();
+// Dial-code options for the editable phone country selector (no hardcoded +91).
+const dialCodeOptions = countries.map((c) => ({ value: c.dialCode, label: `${c.flag} ${c.dialCode}` }));
 
 const paymentTermsOptions = [
   { value: '', label: 'Select payment terms' },
@@ -68,10 +69,15 @@ const emptyContactPerson = {
 export default function NewCustomerPage() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { currencySettings } = useCurrency();
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('otherDetails');
   const [errors, setErrors] = useState({});
   const [showDisplaySuggestions, setShowDisplaySuggestions] = useState(false);
+
+  // Prefill from the restaurant's own currency/country (if known) but keep everything editable —
+  // a Kenya restaurant defaults to KES + +254 instead of a hardcoded INR/+91.
+  const defaultDialCode = getCountryByCode(currencySettings?.countryCode).dialCode;
 
   const [form, setForm] = useState({
     customerType: 'business',
@@ -80,9 +86,11 @@ export default function NewCustomerPage() {
     lastName: '',
     companyName: '',
     displayName: '',
-    currency: 'INR',
+    currency: currencySettings?.currencyCode || 'INR',
     email: '',
+    workPhoneDialCode: defaultDialCode,
     workPhone: '',
+    mobileDialCode: defaultDialCode,
     mobile: '',
     language: 'en',
     pan: '',
@@ -324,8 +332,12 @@ export default function NewCustomerPage() {
               </label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex gap-2">
-                  <div className="w-20 flex-shrink-0">
-                    <Input value="+91" disabled />
+                  <div className="w-24 flex-shrink-0">
+                    <Select
+                      options={dialCodeOptions}
+                      value={form.workPhoneDialCode}
+                      onChange={(e) => updateForm('workPhoneDialCode', e.target.value)}
+                    />
                   </div>
                   <Input
                     placeholder="Work Phone"
@@ -334,8 +346,12 @@ export default function NewCustomerPage() {
                   />
                 </div>
                 <div className="flex gap-2">
-                  <div className="w-20 flex-shrink-0">
-                    <Input value="+91" disabled />
+                  <div className="w-24 flex-shrink-0">
+                    <Select
+                      options={dialCodeOptions}
+                      value={form.mobileDialCode}
+                      onChange={(e) => updateForm('mobileDialCode', e.target.value)}
+                    />
                   </div>
                   <Input
                     placeholder="Mobile"
