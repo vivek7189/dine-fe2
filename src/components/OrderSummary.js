@@ -2818,10 +2818,18 @@ const OrderSummary = ({
     setPendingDiscountAction(null);
   };
 
+  // Full Due (udhar) needs a customer to attribute the receivable to. That can be an EXISTING (found)
+  // customer OR a NEW customer as long as a valid phone is entered — the backend (/api/orders) creates
+  // the customer from customerInfo.phone and records the outstanding against them (verified both
+  // branches). Previously the gate required lookupStatus === 'found', which wrongly blocked a brand-new
+  // customer even with a valid phone typed ("will be saved on billing"). Shared by the gate + the
+  // "phone required" warning so they stay in sync.
+  const dueCustomerReady = lookupStatus === 'found'
+    || (customerMobile || '').replace(/\D/g, '').length >= getPhoneMinLength(countryCode);
+
   const handleProcessOrder = async () => {
     if (orderBusy) return; // Prevent double-tap while order is processing
-    // Full Due requires a customer
-    if (fullDueMode && lookupStatus !== 'found') {
+    if (fullDueMode && !dueCustomerReady) {
       alert('Customer phone number is required for due (udhar) orders. Please enter a valid customer phone first.');
       return;
     }
@@ -7003,7 +7011,7 @@ const OrderSummary = ({
                             {formatCurrency(grandTotal)}
                           </span>
                         </div>
-                        {lookupStatus !== 'found' && (
+                        {!dueCustomerReady && (
                           <div style={{ marginTop: '6px', fontSize: '10px', color: '#dc2626', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <FaExclamationTriangle size={9} /> Customer phone required for due orders
                           </div>
