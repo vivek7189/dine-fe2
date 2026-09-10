@@ -86,11 +86,33 @@ function emitPrintEvent(type, orderId, status) {
 // ── HTML generation from render data ──
 // The render API returns structured data (kot/bill objects), not pre-built HTML.
 // We generate HTML locally using the same generators as OrderSummary.
-function kotRenderToHtml(renderData) {
+//
+// PRINT-SIZE FIX (online/QR auto-print): the server render payload's printSettings come from a
+// Redis-cached, terminal-AGNOSTIC restaurant doc, so its size/format fields can lag or differ from
+// THIS terminal's live settings — which is why an online KOT could print at a different (small) size
+// than the same terminal's manual print. The manual print already uses the device's live settings and
+// is correct, so we override ONLY the layout/size/format fields with the device's live values (when
+// present), keeping the server payload's DATA + content toggles. Falls back to the server payload
+// verbatim when device settings aren't loaded — so nothing changes for the no-device-settings case.
+const PRINT_FORMAT_KEYS = [
+  'printerWidth', 'printContentWidth', 'billFontScale', 'billFontSize',
+  'billFontFamily', 'printLeftMargin', 'kotTemplate', 'billTemplate',
+];
+function mergeDeviceFormatting(serverPs, devicePs) {
+  const base = serverPs || {};
+  if (!devicePs || typeof devicePs !== 'object') return base;
+  const overrides = {};
+  for (const k of PRINT_FORMAT_KEYS) {
+    if (devicePs[k] !== undefined) overrides[k] = devicePs[k];
+  }
+  return { ...base, ...overrides };
+}
+
+function kotRenderToHtml(renderData, deviceSettings) {
   if (renderData?.html) return renderData.html; // if server ever returns pre-built HTML
   const kot = renderData?.kot;
   if (!kot) return null;
-  const ps = renderData?.printSettings || {};
+  const ps = mergeDeviceFormatting(renderData?.printSettings, deviceSettings);
   const labels = renderData?.labels || {};
   // Enrich kot with restaurant name for the generator
   const kotData = {
@@ -100,11 +122,11 @@ function kotRenderToHtml(renderData) {
   return generateKOTHTML(kotData, ps, labels);
 }
 
-function billRenderToHtml(renderData) {
+function billRenderToHtml(renderData, deviceSettings) {
   if (renderData?.html) return renderData.html;
   const invoice = renderData?.invoice || renderData?.bill;
   if (!invoice) return null;
-  const ps = renderData?.printSettings || {};
+  const ps = mergeDeviceFormatting(renderData?.printSettings, deviceSettings);
   const labels = renderData?.labels || {};
   return generateBillHTML(invoice, ps, labels);
 }
@@ -293,7 +315,7 @@ export function useAutoPrint(restaurantId, printSettings) {
             console.log(`[AutoPrint] Station KOT skipped (0 items): ${station.name} (${station.id})`);
             continue;
           }
-          const html = kotRenderToHtml(renderData);
+          const html = kotRenderToHtml(renderData, printSettings);
           if (html) {
             printQueueRef.current.push({ html, type: 'kot', orderId: `${orderId}-${station.id}`, stationId: station.id, dedupKey: buildKotDedupKey(renderData.kot, station.id) });
             const itemNames = kotItems.map(i => `${i.quantity || 1}x ${i.name || i.itemName}`).join(', ');
@@ -314,7 +336,7 @@ export function useAutoPrint(restaurantId, printSettings) {
           // Only print catch-all if there could be unassigned items (not all categories are covered)
           if (allAssignedCatIds.size > 0) {
             const renderData = await apiClient.getKOTRender(restaurantId, orderId);
-            const html = kotRenderToHtml(renderData);
+            const html = kotRenderToHtml(renderData, printSettings);
             if (html) {
               // Print to default printer (no stationId) — catch-all for unassigned items
               printQueueRef.current.push({ html, type: 'kot', orderId: `${orderId}-default`, dedupKey: buildKotDedupKey(renderData.kot, null) });
@@ -337,7 +359,7 @@ export function useAutoPrint(restaurantId, printSettings) {
     // Default: single KOT with all items
     try {
       const renderData = await apiClient.getKOTRender(restaurantId, orderId);
-      const html = kotRenderToHtml(renderData);
+      const html = kotRenderToHtml(renderData, printSettings);
       if (html) {
         printQueueRef.current.push({ html, type: 'kot', orderId, dedupKey: buildKotDedupKey(renderData.kot, null) });
         processQueue();
@@ -387,7 +409,7 @@ export function useAutoPrint(restaurantId, printSettings) {
         restaurantId, orderId,
         { newOnly: data.isIncremental || false, stationId, eventKey: data._eventKey || data.key || null }
       );
-      const html = kotRenderToHtml(renderData);
+      const html = kotRenderToHtml(renderData, printSettings);
       if (html) {
         // orderId here is the per-revision queue/markPrinted id; the separate content
         // signature (dedupKey) is what suppresses the OTHER path's echo of this same update.
@@ -442,7 +464,7 @@ export function useAutoPrint(restaurantId, printSettings) {
         if (renderData.invoice) renderData.invoice.isPreBill = true;
         if (renderData.bill) renderData.bill.isPreBill = true;
       }
-      const html = billRenderToHtml(renderData);
+      const html = billRenderToHtml(renderData, printSettings);
       console.log(`🖨️ AutoPrint: Bill HTML generated:`, html ? `${html.length} chars` : 'null');
       if (html) {
         markPrinted(dedupKey, 'bill');
