@@ -1472,15 +1472,35 @@ class ApiClient {
     });
   }
 
-  async getOrders(restaurantId, filters = {}) {
+  async getOrders(restaurantId, filters = {}, opts = {}) {
     // Filter out undefined values to avoid sending them in query params
     const cleanFilters = Object.fromEntries(
       Object.entries(filters).filter(([_, value]) => value !== undefined && value !== null && value !== '')
     );
     const query = new URLSearchParams(cleanFilters).toString();
     const queryString = query ? `?${query}` : '';
+    const endpoint = `/api/orders/${restaurantId}${queryString}`;
     console.log('📤 API Client - getOrders filters:', cleanFilters);
-    const res = await this.request(`/api/orders/${restaurantId}${queryString}`);
+
+    // Order-page source of truth: on the LOCAL-SERVER app, the local hub only holds orders that were
+    // rung up ON this hub — orders placed online (other terminals / QR / a period the hub was offline)
+    // are NOT down-synced. So when internet is available we read the AUTHORITATIVE cloud history for the
+    // selected filter, so the order page shows the complete/up-to-date data. Falls back to the local
+    // server when offline, or if the cloud call fails — the page always renders. (Scoped to server mode;
+    // the normal cloud app is unaffected: its baseURL is already the cloud.)
+    const online = typeof navigator === 'undefined' || navigator.onLine !== false;
+    const preferCloud = opts.fromCloud ?? (isServerModeActive() && online && !!this.cloudBase());
+    let res;
+    if (preferCloud) {
+      try {
+        res = await this.request(endpoint, { baseOverride: this.cloudBase() });
+      } catch (e) {
+        console.warn('[getOrders] cloud fetch failed — falling back to local server:', e?.message);
+        res = await this.request(endpoint);
+      }
+    } else {
+      res = await this.request(endpoint);
+    }
     // Central multi-terminal detection: if these orders carry ≥2 distinct terminal tags, remember it
     // so orderDisplayNumber() shows the "T2-45" prefix everywhere. Best-effort, never affects the result.
     try { detectMultiTerminal(Array.isArray(res) ? res : (res && res.orders)); } catch (_) {}
