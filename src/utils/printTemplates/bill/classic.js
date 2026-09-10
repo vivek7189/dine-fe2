@@ -46,7 +46,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
   const css = showAr ? baseCss + getBillDualCSS() : baseCss;
 
   const totalModifications = (invoice.editCount || 0) + (invoice.updateCount || 0);
-  const revisedBanner = totalModifications > 0 ? `<div style="text-align:center;font-weight:bold;font-size:14px;padding:4px 0;border:2px solid #000;margin:4px 0;">${showAr ? dualLabel(L.revisedBill, AR.revisedBill, showAr) : L.revisedBill}${invoice.editCount > 0 ? ` (Edit #${invoice.editCount})` : ''}${invoice.updateCount > 0 ? ` (Modified ${invoice.updateCount}x)` : ''}</div>` : '';
+  const revisedBanner = (bl.showRevisedBillBanner === true && totalModifications > 0) ? `<div style="text-align:center;font-weight:bold;font-size:14px;padding:4px 0;border:2px solid #000;margin:4px 0;">${showAr ? dualLabel(L.revisedBill, AR.revisedBill, showAr) : L.revisedBill}${invoice.editCount > 0 ? ` (Edit #${invoice.editCount})` : ''}${invoice.updateCount > 0 ? ` (Modified ${invoice.updateCount}x)` : ''}</div>` : '';
   const preBillBanner = invoice.isPreBill ? `<div style="text-align:center;font-weight:bold;font-size:16px;padding:6px 0;border:2px dashed #000;margin:6px 0;letter-spacing:2px;">*** PRE-BILL ***</div>` : '';
 
   const bodyHtml =
@@ -69,7 +69,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
     `</div>` +
     deliveryHtml +
     `<div class="divider">--------------------------------</div>` +
-    `<table><thead><tr><th style="text-align:left;width:52%;">${dualLabel(L.itemCol, AR.itemCol, showAr)}</th><th style="text-align:center;width:10%;">${dualLabel(L.qtyCol, AR.qtyCol, showAr)}</th><th style="text-align:right;width:38%;">${dualLabel(L.amt, AR.amt, showAr)}</th></tr></thead><tbody>${itemsHtml}</tbody></table>` +
+    `<table><thead><tr><th style="text-align:left;width:48%;">${dualLabel(L.itemCol, AR.itemCol, showAr)}</th><th style="text-align:center;width:14%;white-space:nowrap;">${dualLabel(L.qtyCol, AR.qtyCol, showAr)}</th><th style="text-align:right;width:38%;">${dualLabel(L.amt, AR.amt, showAr)}</th></tr></thead><tbody>${itemsHtml}</tbody></table>` +
     `<div class="total-section">` +
       `<div class="bill-info">${bl.showSubtotal !== false ? `<div><span>${dualLabel(L.subtotal, AR.subtotal, showAr)}:</span><span>${cs}${(invoice.subtotal || 0).toFixed(2)}</span></div>` : ''}${discountHtml}</div>` +
       (taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : '') +
