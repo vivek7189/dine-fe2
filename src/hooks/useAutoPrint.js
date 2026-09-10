@@ -10,7 +10,7 @@
 // or "Bill & Print"), the event-triggered print is skipped to avoid double-printing.
 
 import { useEffect, useRef, useCallback } from 'react';
-import { supportsNativeAutoPrint, printDocument } from '../utils/printBridge';
+import { supportsNativeAutoPrint, printDocument, buildKotDedupKey } from '../utils/printBridge';
 import { generateKOTHTML, generateBillHTML } from '../utils/printHtmlGenerator';
 import { buildTokenSlipHTML } from '../utils/printFontSizes';
 import { isElectron, isReactNativeWebView } from '../utils/platform';
@@ -171,6 +171,7 @@ export function useAutoPrint(restaurantId, printSettings) {
           restaurantId,
           stationId: job.stationId,
           printSettings: printSettings || {},
+          dedupKey: job.dedupKey || null,
         });
         markPrinted(job.orderId, job.type);
         emitPrintEvent(job.type, job.orderId, 'printed');
@@ -294,7 +295,7 @@ export function useAutoPrint(restaurantId, printSettings) {
           }
           const html = kotRenderToHtml(renderData);
           if (html) {
-            printQueueRef.current.push({ html, type: 'kot', orderId: `${orderId}-${station.id}`, stationId: station.id });
+            printQueueRef.current.push({ html, type: 'kot', orderId: `${orderId}-${station.id}`, stationId: station.id, dedupKey: buildKotDedupKey(renderData.kot, station.id) });
             const itemNames = kotItems.map(i => `${i.quantity || 1}x ${i.name || i.itemName}`).join(', ');
             console.log(`[AutoPrint] Station KOT queued: ${station.name} (${station.id}) [${kotItems.length} items]${station.isDefault ? ' [default - includes unassigned]' : ''}`);
             console.log(`[AutoPrint]   → Items: ${itemNames}`);
@@ -316,7 +317,7 @@ export function useAutoPrint(restaurantId, printSettings) {
             const html = kotRenderToHtml(renderData);
             if (html) {
               // Print to default printer (no stationId) — catch-all for unassigned items
-              printQueueRef.current.push({ html, type: 'kot', orderId: `${orderId}-default` });
+              printQueueRef.current.push({ html, type: 'kot', orderId: `${orderId}-default`, dedupKey: buildKotDedupKey(renderData.kot, null) });
               console.log('[AutoPrint] Catch-all KOT queued for unassigned categories → default printer');
             }
           }
@@ -338,7 +339,7 @@ export function useAutoPrint(restaurantId, printSettings) {
       const renderData = await apiClient.getKOTRender(restaurantId, orderId);
       const html = kotRenderToHtml(renderData);
       if (html) {
-        printQueueRef.current.push({ html, type: 'kot', orderId });
+        printQueueRef.current.push({ html, type: 'kot', orderId, dedupKey: buildKotDedupKey(renderData.kot, null) });
         processQueue();
       }
     } catch (err) {
@@ -388,7 +389,9 @@ export function useAutoPrint(restaurantId, printSettings) {
       );
       const html = kotRenderToHtml(renderData);
       if (html) {
-        printQueueRef.current.push({ html, type: 'kot', orderId: dedupKey, stationId });
+        // orderId here is the per-revision queue/markPrinted id; the separate content
+        // signature (dedupKey) is what suppresses the OTHER path's echo of this same update.
+        printQueueRef.current.push({ html, type: 'kot', orderId: dedupKey, stationId, dedupKey: buildKotDedupKey(renderData.kot, stationId) });
         processQueue();
         return true;
       }

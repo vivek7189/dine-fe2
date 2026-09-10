@@ -44,7 +44,7 @@ import { generateBillHTML, generateKOTHTML } from '../utils/printHtmlGenerator';
 import { orderDisplayNumber } from '../utils/orderNumber';
 import { buildSplitInvoice } from '../utils/printTemplates/helpers';
 import { seatLabel, sanitizeSeat, getOrderItemKey } from '../utils/orderItemKey';
-import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '../utils/printBridge';
+import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint, buildKotDedupKey } from '../utils/printBridge';
 import { resolveVariantTierPrice } from '../utils/variantPricing';
 
 const CustomerDetailModal = dynamic(() => import('./CustomerDetailModal'), { ssr: false });
@@ -1102,7 +1102,7 @@ const OrderSummary = ({
       const printCombinedFallback = async () => {
         const k = orderSuccess.kotData;
         const html = k && generateKOTHTML(k, kotPS, kotLabels);
-        if (html) await printDocument({ html, type: 'kot', orderId: thisOrderId, restaurantId, printSettings: printSettings || {} });
+        if (html) await printDocument({ html, type: 'kot', orderId: thisOrderId, restaurantId, printSettings: printSettings || {}, dedupKey: buildKotDedupKey(k, null) });
       };
       (async () => {
         try {
@@ -1125,7 +1125,7 @@ const OrderSummary = ({
             const kotData = { ...rd.kot, restaurantName: rd?.restaurant?.name || rd.kot.restaurantName || '' };
             const html = generateKOTHTML(kotData, kotPS, kotLabels);
             if (html) {
-              await printDocument({ html, type: 'kot', orderId: `${thisOrderId}-${station.id}`, stationId: station.id, restaurantId, printSettings: printSettings || {} });
+              await printDocument({ html, type: 'kot', orderId: `${thisOrderId}-${station.id}`, stationId: station.id, restaurantId, printSettings: printSettings || {}, dedupKey: buildKotDedupKey(rd.kot, station.id) });
               printedAny = true;
               if (isIncremental) {
                 const newCount = items.filter(i => i.isNew || (i.isUpdated && i.quantityDelta > 0)).length;
@@ -1144,7 +1144,7 @@ const OrderSummary = ({
             if (!rd?.empty && (items.length > 0 || removedItems.length > 0)) {
               const html = rd?.kot && generateKOTHTML({ ...rd.kot, restaurantName: rd?.restaurant?.name || '' }, kotPS, kotLabels);
               if (html) {
-                await printDocument({ html, type: 'kot', orderId: `${thisOrderId}-default`, restaurantId, printSettings: printSettings || {} });
+                await printDocument({ html, type: 'kot', orderId: `${thisOrderId}-default`, restaurantId, printSettings: printSettings || {}, dedupKey: buildKotDedupKey(rd.kot, null) });
                 printedAny = true;
                 console.log(`[KOT][station:default/unassigned] ${isIncremental ? 'update' : 'new'} → items:${items.length} CANCELLED:${removedItems.length}`);
               }
