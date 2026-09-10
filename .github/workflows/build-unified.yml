@@ -162,9 +162,12 @@ jobs:
             const buf=fs.readFileSync(path.join(dir,exe));
             const sha512=crypto.createHash("sha512").update(buf).digest("base64");
             const version=require("./package.json").version;
-            const yml=["version: "+version,"files:","  - url: "+exe,"    sha512: "+sha512,"    size: "+buf.length,"path: "+exe,"sha512: "+sha512,"releaseDate: \x27"+new Date().toISOString()+"\x27",""].join("\n");
+            // GitHub release upload renames spaces → dots in the asset name, so the manifest URL must
+            // use the DOTTED name (the on-disk file has spaces) or electron-updater 404s on download.
+            const url=exe.replace(/ /g,".");
+            const yml=["version: "+version,"files:","  - url: "+url,"    sha512: "+sha512,"    size: "+buf.length,"path: "+url,"sha512: "+sha512,"releaseDate: \x27"+new Date().toISOString()+"\x27",""].join("\n");
             fs.writeFileSync(path.join(dir,"server.yml"),yml);
-            console.log("Wrote server.yml for "+exe+" (v"+version+", "+buf.length+" bytes)");
+            console.log("Wrote server.yml url="+url+" (v"+version+", "+buf.length+" bytes)");
           '
 
       - name: Upload Windows installer
