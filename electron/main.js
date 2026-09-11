@@ -5,6 +5,7 @@ const net = require('net');
 const os = require('os');
 const { initOfflineEngine, shutdownOfflineEngine } = require('./offline');
 const localServer = require('./localServer');
+const directBackend = require('./directBackend');
 
 // ── Crash guard: a POS must NEVER hard-crash from a transient network error ────────────────────
 // When the machine goes offline (Wi-Fi off), the mDNS/Bonjour multicast socket tries to send an
@@ -492,7 +493,10 @@ function registerFallbackApiProxy(baseUrl) {
   try {
     ipcMain.handle('electron:apiRequest', async (_event, request) => {
       const { method = 'GET', endpoint, body, headers = {} } = request;
-      const url = `${API_URL}${endpoint}`;
+      // Cloud app: once a flagged account's proxied response teaches us the direct
+      // GCP backend, use it. Loopback (server mode) base is never overridden.
+      const base = directBackend.resolveBase(API_URL);
+      const url = `${base}${endpoint}`;
       const opts = {
         method,
         headers: { 'Content-Type': 'application/json', ...headers },
@@ -503,6 +507,7 @@ function registerFallbackApiProxy(baseUrl) {
       }
       try {
         const res = await fetch(url, opts);
+        directBackend.observeResponse(base, res.headers);
         const text = await res.text();
         let data;
         try { data = JSON.parse(text); } catch { data = { error: text || 'Non-JSON response' }; }

@@ -31,6 +31,7 @@ const { advertiseHub, stopAdvertising, discoverHub, stopDiscovery, getDiscovered
 const { getTerminalId, getTerminalConfig, saveTerminalConfig, isPaired, isHub, setHubMode, clearPairing } = require('./terminalIdentity');
 const entityStore = require('./entityStore');
 const { verifyStaffLogin, saveStaffCredentials } = entityStore;
+const directBackend = require('./directBackend');
 
 const fs = require('fs');
 const pathMod = require('path');
@@ -157,7 +158,11 @@ function hasLocalData(restaurantId) {
 // ─── Cloud Proxy (fallback for unhandled routes) ────────────────────────────
 
 async function proxyToCloud(endpoint, method, body, headers) {
-  const fullUrl = `${API_BASE_URL}${endpoint}`;
+  // Migrated (flagged) accounts: after the first proxied response teaches us the
+  // real GCP backend (via X-Dine-Backend), talk to it directly and skip the hop.
+  // For non-migrated accounts / local mode this stays the Vercel base unchanged.
+  const base = directBackend.resolveBase(API_BASE_URL);
+  const fullUrl = `${base}${endpoint}`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), CLOUD_TIMEOUT_MS);
 
@@ -179,6 +184,9 @@ async function proxyToCloud(endpoint, method, body, headers) {
       signal: controller.signal,
     });
     clearTimeout(timeout);
+
+    // Learn the direct backend from the proxy's response header (idempotent, one-time).
+    directBackend.observeResponse(base, resp.headers);
 
     const status = resp.status;
     const bodyText = await resp.text();
