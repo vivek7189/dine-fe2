@@ -831,6 +831,12 @@ class ApiClient {
     this._businessDayStartHour = (isNaN(n) || n < 0 || n > 23) ? 0 : Math.floor(n);
   }
 
+  // Business-day start hour (0..23) — the same value sent to the backend as ?dayStart, so the
+  // frontend date-range presets can align to the business day too.
+  getBusinessDayStartHour() {
+    return this._businessDayStartHour || 0;
+  }
+
   setRestaurantTimezone(iana) {
     this._restaurantTimezone = iana || null;
   }

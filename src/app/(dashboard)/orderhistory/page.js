@@ -520,15 +520,20 @@ const OrderHistory = () => {
   // Convert dateFilterMode to API params
   const getDateRange = useCallback(() => {
     const now = new Date();
-    const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59, 999);
+    // Business-day-aware boundaries: the "day" starts at businessDayStartHour (e.g. 3 AM) so
+    // late-night orders count to the correct business day — consistent with the Today filter
+    // (which the backend already computes from the same dayStart). Hour 0 = calendar day (unchanged).
+    const bdh = (apiClient.getBusinessDayStartHour ? apiClient.getBusinessDayStartHour() : 0) || 0;
+    const todayStart = new Date(now); todayStart.setHours(bdh, 0, 0, 0);
+    if (now.getHours() < bdh) todayStart.setDate(todayStart.getDate() - 1);
+    const todayEnd = new Date(todayStart); todayEnd.setDate(todayEnd.getDate() + 1); todayEnd.setTime(todayEnd.getTime() - 1);
 
     switch (dateFilterMode) {
       case 'today':
         return { todayOnly: true };
       case 'yesterday': {
         const ys = new Date(todayStart); ys.setDate(ys.getDate() - 1);
-        const ye = new Date(ys); ye.setHours(23, 59, 59, 999);
+        const ye = new Date(todayStart.getTime() - 1);   // end of business-yesterday = business-today start - 1ms
         return { startDate: ys.toISOString(), endDate: ye.toISOString() };
       }
       case 'last7days': {
