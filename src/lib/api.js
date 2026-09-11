@@ -3173,6 +3173,25 @@ class ApiClient {
     } catch (_) { /* ignore */ }
   }
 
+  // Report which installed build THIS user + THIS terminal (device) is running, so the
+  // backend can track the fleet per-user and per-terminal. Called low-frequency (app open
+  // + every ~6h from the dashboard layout), never per request. Native app only; no-op on
+  // web. Fire-and-forget — telemetry must never surface an error to the UI.
+  async reportAppVersion() {
+    try {
+      if (typeof window === 'undefined' || !window.electronAPI?.getVersion) return;
+      const appVersion = await window.electronAPI.getVersion().catch(() => null);
+      if (!appVersion) return;
+      let terminalId = 'default';
+      try { terminalId = (await window.electronAPI.lanHub?.getTerminalId?.()) || 'default'; } catch (_) {}
+      const platform = (typeof navigator !== 'undefined' && navigator.platform) ? navigator.platform : '';
+      await this.request('/api/telemetry/app-version', {
+        method: 'POST',
+        body: { appVersion, terminalId, platform },
+      });
+    } catch (_) { /* telemetry: never throw */ }
+  }
+
   async updatePrintSettings(restaurantId, printSettings) {
     const result = await this.request(`/api/admin/print-settings/${restaurantId}`, {
       method: 'PUT',

@@ -68,6 +68,15 @@ function DashboardLayoutContent({ children }) {
     window.addEventListener('restaurantChanged', read);
     return () => window.removeEventListener('restaurantChanged', read);
   }, []);
+
+  // App-version telemetry: report which build this user + terminal is running. Low-frequency
+  // (once on open + every ~6h) so already-logged-in tills are captured without per-request cost.
+  // Native app only; no-op on web. Fire-and-forget.
+  useEffect(() => {
+    try { apiClient.reportAppVersion?.(); } catch (_) {}
+    const id = setInterval(() => { try { apiClient.reportAppVersion?.(); } catch (_) {} }, 6 * 60 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
   // KRA eTIMS auto-retry: while the POS is open, re-drive any sales the VSCU couldn't sign
   // (store-and-forward). No-op unless Kenya + eTIMS + desktop. Drives the health banner below.
   const kra = useKraRetryQueue(lockRestaurant, selectedRestaurantId, apiClient);
