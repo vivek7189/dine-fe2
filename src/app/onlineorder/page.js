@@ -19,25 +19,28 @@ import PhoneInputWithCountry from '../../components/PhoneInputWithCountry';
 import { DEFAULT_COUNTRY, getCountryByCode } from '../../lib/countries';
 import { detectCountry } from '../../lib/detectCountry';
 
-// Order the public menu's category tabs by the SAME saved order as the dashboard/menu page:
-// use the canonical category list's displayOrder when available, and append any category that
-// only appears on items (safety) so nothing is ever hidden. Falls back to item-appearance order
-// when the categories list is missing (older backends / cache).
+// Order the public menu's category tabs by the SAME saved order as the dashboard/menu page.
+// IMPORTANT: the sidebar entries must stay equal to the ACTUAL item.category values (that's what
+// the item sections are keyed/scrolled by as `category-<value>`), so we DON'T swap in display
+// names — we keep the real category values and just re-sort them by each category's displayOrder
+// (looked up from the canonical list by id OR name). Unknown categories keep their appearance order.
 function orderCategoryNames(catArray, items) {
   const fromItems = [...new Set((items || []).map((i) => i && i.category).filter(Boolean))];
-  const ordered = (Array.isArray(catArray) ? catArray : [])
-    .filter((c) => c && c.name)
-    .slice()
-    .sort((a, b) => {
-      const oa = (typeof a.displayOrder === 'number') ? a.displayOrder : 9999;
-      const ob = (typeof b.displayOrder === 'number') ? b.displayOrder : 9999;
-      return oa - ob;
+  const ord = new Map();
+  for (const c of (Array.isArray(catArray) ? catArray : [])) {
+    if (!c) continue;
+    const o = (typeof c.displayOrder === 'number') ? c.displayOrder : null;
+    if (o == null) continue;
+    if (c.id != null) ord.set(String(c.id).toLowerCase(), o);
+    if (c.name != null) ord.set(String(c.name).toLowerCase(), o);
+  }
+  return fromItems
+    .map((cat, i) => {
+      const key = String(cat).toLowerCase();
+      return { cat, o: ord.has(key) ? ord.get(key) : 9999, i };
     })
-    .map((c) => c.name);
-  const seen = new Set();
-  const out = [];
-  for (const n of [...ordered, ...fromItems]) { if (n && !seen.has(n)) { seen.add(n); out.push(n); } }
-  return out;
+    .sort((a, b) => (a.o - b.o) || (a.i - b.i))
+    .map((x) => x.cat);
 }
 
 // Lazy-load heavy components for faster initial render

@@ -3028,8 +3028,10 @@ const MenuManagement = () => {
 
   // ── Arrange mode (dnd-kit modal: drag category tiles + item rows to reorder → Done saves) ──
   const enterArrange = () => {
-    setArrangeOrder([...menuFolders]);
-    setArrangeItemOrder([...menuDirectItems]);
+    // Only include entries that have a stable id — dnd-kit's useSortable requires a defined id,
+    // so a stray item/folder without one would otherwise break the modal.
+    setArrangeOrder([...menuFolders].filter(f => f && f.id != null));
+    setArrangeItemOrder([...menuDirectItems].filter(it => it && it.id != null));
     setArrangeMode(true);
   };
   const cancelArrange = () => { setArrangeMode(false); setArrangeOrder([]); setArrangeItemOrder([]); };
@@ -3169,8 +3171,7 @@ const MenuManagement = () => {
                       <SortableCell key={item.id} id={item.id}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', background: '#fff', border: '1px solid #e5e7eb' }}>
                           <span style={{ color: '#cbd5e1', fontSize: '16px', lineHeight: 1 }}>⋮⋮</span>
-                          <span style={{ fontSize: '20px' }}>{(item.image ? '' : getCategoryEmoji(item.category))}</span>
-                          {item.image ? <img src={getDisplayImage(item.image, item.name)} alt="" style={{ width: '34px', height: '34px', borderRadius: '8px', objectFit: 'cover' }} /> : null}
+                          <img src={getDisplayImage(item)} alt="" style={{ width: '34px', height: '34px', borderRadius: '8px', objectFit: 'cover', background: '#f1f5f9', flex: 'none' }} onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} />
                           <span style={{ flex: 1, fontSize: '14px', fontWeight: 600, color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
                           <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>{formatCurrency ? formatCurrency(item.price) : item.price}</span>
                         </div>
