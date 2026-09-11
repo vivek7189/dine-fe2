@@ -52,10 +52,18 @@ export function generateBillHTML(invoice, printSettings = {}, labels = {}) {
   // point for all bill prints, appending here covers them all (the QR is included when a data-URI was
   // pre-rendered onto invoice.etims.qrDataUrl; otherwise the compliant text block still prints).
   try {
+    // Kenya: keep ALL KRA info grouped at the BOTTOM. If fiscalised, the fiscal block already
+    // carries the Customer PIN (top row) + Invoice/SDC/Receipt-Sign + QR. If NOT fiscalised
+    // (eTIMS off, or a failed/queued sale) but a Customer PIN was entered, still print it at the
+    // bottom so the buyer's PIN never gets dropped from the receipt.
+    let kraBottom = '';
     if (invoice && invoice.etims && invoice.etims.rcptSign) {
-      const block = kraFiscalBlockHtml(invoice);
-      html = html.includes('</body>') ? html.replace('</body>', `${block}</body>`) : (html + block);
+      kraBottom = kraFiscalBlockHtml(invoice);
+    } else if (invoice && invoice.customerTin) {
+      const pin = String(invoice.customerTin).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      kraBottom = `<div style="border-top:1px dashed #000;margin-top:6px;padding-top:6px;font-family:'Courier New',monospace;font-size:11px;display:flex;justify-content:space-between;gap:8px;"><span>Customer PIN</span><span style="text-align:right;word-break:break-all;">${pin}</span></div>`;
     }
+    if (kraBottom) html = html.includes('</body>') ? html.replace('</body>', `${kraBottom}</body>`) : (html + kraBottom);
   } catch (_) { /* never block printing */ }
   return html;
 }
@@ -71,6 +79,7 @@ function kraFiscalBlockHtml(inv) {
   return `
     <div style="border-top:1px dashed #000;margin-top:6px;padding-top:6px;font-family:'Courier New',monospace;font-size:11px;line-height:1.5;">
       <div style="text-align:center;font-weight:bold;letter-spacing:1px;margin-bottom:3px;">KRA eTIMS · ${e.isCreditNote ? 'CREDIT NOTE' : 'FISCAL RECEIPT'}</div>
+      ${row('Customer PIN', inv.customerTin)}
       ${row('Invoice No', e.invcNo)}
       ${e.isCreditNote ? row('Original Invoice No', e.orgInvcNo) : ''}
       ${row('SDC ID', e.sdcId)}
