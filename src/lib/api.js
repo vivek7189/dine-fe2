@@ -61,6 +61,30 @@ const withTimeout = (promise, timeoutMs, label) => {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 };
 
+// Migrated (flagged) cloud accounts live on GCP; the Electron main process learns that GCP
+// backend from the Vercel proxy's X-Dine-Backend header (see electron/directBackend.js). Most
+// calls already go direct via the IPC proxy, but a few deliberately bypass IPC — notably Kenya
+// KRA eTIMS (real-time fiscalisation, never offline-queued). For those we fetch the learned
+// backend here so they can go DIRECT to GCP instead of taking the extra Vercel→GCP hop.
+//
+// Fail-safe by construction: returns null for web, local-server mode, non-migrated accounts,
+// or before the backend is learned → callers keep using their normal base (today's working
+// path). So KRA can never be broken by this — worst case it uses the proven proxy route.
+let _learnedDirectBackend = null; // sticky once set (main-process learning is idempotent per session)
+async function getLearnedDirectBackend() {
+  if (_learnedDirectBackend) return _learnedDirectBackend;
+  if (typeof window === 'undefined' || !window.electronAPI?.getDirectBackend) return null;
+  if (getLocalServerUrl() || isServerApp()) return null; // never override the local-server app's base
+  try {
+    const v = await window.electronAPI.getDirectBackend();
+    if (typeof v === 'string' && /^https:\/\//i.test(v)) {
+      _learnedDirectBackend = v.replace(/\/+$/, '');
+      return _learnedDirectBackend;
+    }
+  } catch (_) { /* fall back to the normal base */ }
+  return null;
+}
+
 class ApiClient {
   constructor() {
     // Local-server (offline LAN) mode: when this terminal is pointed at the on-prem
@@ -303,7 +327,7 @@ class ApiClient {
       const sep = endpoint.includes('?') ? '&' : '?';
       endpoint = `${endpoint}${sep}dayStart=${this._businessDayStartHour}`;
     }
-    const url = `${options.baseOverride || this.baseURL}${endpoint}`;
+    let url = `${options.baseOverride || this.baseURL}${endpoint}`;
     const token = this.getToken();
     
     // SECURITY: Commented out to prevent exposing sensitive token data in console logs
@@ -366,6 +390,15 @@ class ApiClient {
       if (typeof window !== 'undefined' && window.electronAPI?.apiRequest
           && !(config.body instanceof FormData) && !getLocalServerUrl() && !isServerApp() && !isEtimsCall) {
         return await withTimeout(this._electronRequest(endpoint, config), timeoutForMethod(config.method), endpoint);
+      }
+
+      // KRA eTIMS bypasses the IPC proxy (must be real-time, never offline-queued). For a
+      // migrated cloud account, send it DIRECT to the learned GCP backend so fiscalisation
+      // doesn't depend on the Vercel hop. If nothing is learned yet (or not applicable), this
+      // is a no-op and the request uses its normal base — KRA can never break from this.
+      if (isEtimsCall && !options.baseOverride) {
+        const direct = await getLearnedDirectBackend();
+        if (direct) url = `${direct}${endpoint}`;
       }
 
       // Abort the request if it exceeds the per-verb timeout budget, so a

@@ -901,6 +901,14 @@ ipcMain.handle('electron:setTerminalNumber', async (_e, n) => {
   catch (e) { return { ok: false, error: e && e.message }; }
 });
 
+// The GCP backend this session has learned from the Vercel proxy's X-Dine-Backend header
+// (cloud app + migrated account only), or null. Lets the renderer send calls that bypass the
+// IPC proxy — notably Kenya KRA eTIMS — DIRECT to GCP instead of via the Vercel hop. Null in
+// every other case (non-migrated / web / server mode) → renderer keeps using its normal base.
+ipcMain.handle('electron:getDirectBackend', async () => {
+  try { return directBackend.getLearnedBackend(); } catch { return null; }
+});
+
 // ──── IPC: Local-server auto-discovery (zero-config LAN) ────
 // Browse mDNS for the on-prem DineOpen server (_dineopen._tcp) and return its current
 // URL (using the discovered IP, so it works even where `.local` resolution is flaky).

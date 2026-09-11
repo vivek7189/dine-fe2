@@ -5,6 +5,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   discoverLocalServer: () => ipcRenderer.invoke('discover-local-server'),
   // Kenya KRA eTIMS — relay a request to the local VSCU (Kenya stores only)
   etimsRelay: (args) => ipcRenderer.invoke('etims:relay', args),
+  // Migrated (flagged) cloud accounts: the GCP backend learned from the proxy this session,
+  // or null. Lets the renderer send eTIMS (and other non-IPC calls) DIRECT to GCP.
+  getDirectBackend: () => ipcRenderer.invoke('electron:getDirectBackend'),
   // Printing
   print: (html, options = {}) =>
     ipcRenderer.invoke('electron:print', { html, ...options }),
