@@ -19,6 +19,27 @@ import PhoneInputWithCountry from '../../components/PhoneInputWithCountry';
 import { DEFAULT_COUNTRY, getCountryByCode } from '../../lib/countries';
 import { detectCountry } from '../../lib/detectCountry';
 
+// Order the public menu's category tabs by the SAME saved order as the dashboard/menu page:
+// use the canonical category list's displayOrder when available, and append any category that
+// only appears on items (safety) so nothing is ever hidden. Falls back to item-appearance order
+// when the categories list is missing (older backends / cache).
+function orderCategoryNames(catArray, items) {
+  const fromItems = [...new Set((items || []).map((i) => i && i.category).filter(Boolean))];
+  const ordered = (Array.isArray(catArray) ? catArray : [])
+    .filter((c) => c && c.name)
+    .slice()
+    .sort((a, b) => {
+      const oa = (typeof a.displayOrder === 'number') ? a.displayOrder : 9999;
+      const ob = (typeof b.displayOrder === 'number') ? b.displayOrder : 9999;
+      return oa - ob;
+    })
+    .map((c) => c.name);
+  const seen = new Set();
+  const out = [];
+  for (const n of [...ordered, ...fromItems]) { if (n && !seen.has(n)) { seen.add(n); out.push(n); } }
+  return out;
+}
+
 // Lazy-load heavy components for faster initial render
 const ImageCarousel = dynamic(() => import('../../components/ImageCarousel'), { ssr: false });
 const UpiPaymentModal = dynamic(() => import('../../components/UpiPaymentModal'), { ssr: false });
@@ -474,8 +495,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         if (cachedMenu?.data) {
           setRestaurant(cachedMenu.data.restaurant);
           setMenu(cachedMenu.data.menu);
-          const uniqueCategories = [...new Set(cachedMenu.data.menu.map(item => item.category).filter(Boolean))];
-          setCategories(['all', ...uniqueCategories]);
+          setCategories(['all', ...orderCategoryNames(cachedMenu.data.categories, cachedMenu.data.menu)]);
           hasCachedMenu = true;
           // End loading immediately if we have cached menu
           setLoading(false);
@@ -493,13 +513,13 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         if (response.success && response.restaurant && response.menu) {
           setRestaurant(response.restaurant);
           setMenu(response.menu);
-          const uniqueCategories = [...new Set(response.menu.map(item => item.category).filter(Boolean))];
-          setCategories(['all', ...uniqueCategories]);
+          setCategories(['all', ...orderCategoryNames(response.categories, response.menu)]);
 
-          // Cache the fresh menu data
+          // Cache the fresh menu data (incl. categories so the ordered tabs survive a reload)
           setCachedData(restaurantId, 'menu', {
             restaurant: response.restaurant,
-            menu: response.menu
+            menu: response.menu,
+            categories: response.categories || []
           });
 
           // End loading after menu is loaded (don't wait for offers)

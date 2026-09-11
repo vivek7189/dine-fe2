@@ -23,6 +23,9 @@ import { canPerform } from '../../../lib/permissions';
 import { isLocalServerMode } from '../../../lib/localServer';
 import OfflineBanner from '../../../components/OfflineBanner';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
+import { DndContext, PointerSensor, TouchSensor, KeyboardSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
+import { SortableContext, useSortable, arrayMove, rectSortingStrategy, verticalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { 
   FaPlus,
   FaEdit,
@@ -68,6 +71,30 @@ const RecipeFormBody = dynamic(() => import('../inventory/components/InventoryMo
 
 // Capitalize first character, keep rest as-is
 const capitalizeFirst = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+
+// dnd-kit sortable wrapper — flashcard-smooth transforms + lift on grab. Used for both the
+// category tiles and the item rows in the Arrange modal. The parent SortableContext confines
+// dragging to its own list, so an item can never be dropped into the categories zone (or vice
+// versa) — each level/zone is a separate container.
+function SortableCell({ id, children, dragging }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition: transition || 'transform 200ms cubic-bezier(0.2,0,0,1)',
+    zIndex: isDragging ? 60 : 'auto',
+    opacity: isDragging ? 0.96 : 1,
+    boxShadow: isDragging ? '0 16px 34px rgba(15,23,42,0.28)' : undefined,
+    scale: isDragging ? '1.03' : '1',
+    cursor: isDragging ? 'grabbing' : 'grab',
+    touchAction: 'none',
+    userSelect: 'none',
+  };
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      {children}
+    </div>
+  );
+}
 
 // Enhanced Category Dropdown Component with Management
 const CategoryDropdown = ({ 
@@ -2429,9 +2456,16 @@ const MenuManagement = () => {
   const [viewMode, setViewMode] = useState('grid');
   // iPhone-style "Arrange" mode for the category cards (drag to reorder → Done saves).
   const [arrangeMode, setArrangeMode] = useState(false);
-  const [arrangeOrder, setArrangeOrder] = useState([]); // folder objects in the edited order
+  const [arrangeOrder, setArrangeOrder] = useState([]); // category folders in the edited order
+  const [arrangeItemOrder, setArrangeItemOrder] = useState([]); // leaf items in the edited order
   const [savingArrange, setSavingArrange] = useState(false);
   const dragFolderId = useRef(null);
+  // Small activation distance so a tap still selects/edits; drag only starts after a real move.
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 140, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
   const [showBarcodeTab, setShowBarcodeTab] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
@@ -2953,10 +2987,13 @@ const MenuManagement = () => {
   const menuFolders = useMemo(() => {
     if (searchTerm.trim() || selectedVegFilter !== 'all' || selectedWeightFilter !== 'all') return [];
     const mk = (c) => ({ id: _idOf(c.id), name: c.name, emoji: c.emoji, count: menuCatCount.get(_idOf(c.id)) || 0 });
+    // Sort folders by the saved displayOrder (same key the dashboard + public page use) so the
+    // reordered arrangement shows here identically — at every level (top categories + sub-categories).
+    const ordVal = (c) => (typeof c.displayOrder === 'number') ? c.displayOrder : (typeof c.order === 'number' ? c.order : 9999);
     const list = (selectedCategory === 'all'
-      ? categories.filter(c => !c.parentId).map(mk)
-      : categories.filter(c => _idOf(c.parentId) === _idOf(selectedCategory)).map(mk)
-    ).filter(f => f.count > 0);
+      ? categories.filter(c => !c.parentId)
+      : categories.filter(c => _idOf(c.parentId) === _idOf(selectedCategory))
+    ).slice().sort((a, b) => ordVal(a) - ordVal(b)).map(mk).filter(f => f.count > 0);
     // Flat (no sub-category) menus now get the SAME folder drill-down + Arrange — but only at the TOP
     // level and only when there are >=2 categories worth drilling into; otherwise keep the flat item
     // grid (a 0/1-category menu gains nothing from folders). Nested menus are unchanged (they always
@@ -2989,35 +3026,59 @@ const MenuManagement = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategory, categories]);
 
-  // ── Arrange mode (drag category cards to reorder) ──────────────────────────
-  const enterArrange = () => { setArrangeOrder([...menuFolders]); setArrangeMode(true); };
-  const cancelArrange = () => { setArrangeMode(false); setArrangeOrder([]); dragFolderId.current = null; };
-  const onArrangeDrop = (targetId) => {
-    const from = dragFolderId.current; dragFolderId.current = null;
-    if (!from || from === targetId) return;
+  // ── Arrange mode (dnd-kit modal: drag category tiles + item rows to reorder → Done saves) ──
+  const enterArrange = () => {
+    setArrangeOrder([...menuFolders]);
+    setArrangeItemOrder([...menuDirectItems]);
+    setArrangeMode(true);
+  };
+  const cancelArrange = () => { setArrangeMode(false); setArrangeOrder([]); setArrangeItemOrder([]); };
+  const onFolderDragEnd = ({ active, over }) => {
+    if (!over || active.id === over.id) return;
     setArrangeOrder(prev => {
-      const arr = [...prev];
-      const fi = arr.findIndex(f => f.id === from);
-      const ti = arr.findIndex(f => f.id === targetId);
-      if (fi < 0 || ti < 0) return prev;
-      const [moved] = arr.splice(fi, 1);
-      arr.splice(ti, 0, moved);
-      return arr;
+      const oldI = prev.findIndex(f => f.id === active.id);
+      const newI = prev.findIndex(f => f.id === over.id);
+      return (oldI < 0 || newI < 0) ? prev : arrayMove(prev, oldI, newI);
+    });
+  };
+  const onItemDragEnd = ({ active, over }) => {
+    if (!over || active.id === over.id) return;
+    setArrangeItemOrder(prev => {
+      const oldI = prev.findIndex(it => it.id === active.id);
+      const newI = prev.findIndex(it => it.id === over.id);
+      return (oldI < 0 || newI < 0) ? prev : arrayMove(prev, oldI, newI);
     });
   };
   const saveArrange = async () => {
     if (savingArrange) return;
     setSavingArrange(true);
     try {
-      await apiClient.reorderMenu(currentRestaurant.id, { categoryOrder: arrangeOrder.map(f => f.name) });
-      await loadMenuData(currentRestaurant.id, false); // reload fresh so the new order sticks
-      setArrangeMode(false); setArrangeOrder([]);
+      const id = currentRestaurant.id;
+      const payload = {};
+      // Categories: only send if this level's folder order actually changed.
+      const foldersChanged = arrangeOrder.length > 1 && arrangeOrder.some((f, i) => menuFolders[i]?.id !== f.id);
+      if (foldersChanged) payload.categoryOrder = arrangeOrder.map(f => f.name);
+      // Items: only send if this level's item order changed. Rebuild the FULL items list with just
+      // this level's items reordered IN PLACE (every other item keeps its exact position) so we
+      // never disturb other categories' ordering.
+      const itemsChanged = arrangeItemOrder.length > 1 && arrangeItemOrder.some((it, i) => menuDirectItems[i]?.id !== it.id);
+      if (itemsChanged) {
+        const levelIds = new Set(arrangeItemOrder.map(it => it.id));
+        const queue = [...arrangeItemOrder];
+        payload.itemOrder = menuItems.map(it => (levelIds.has(it.id) ? queue.shift() : it)).map(x => x.id);
+      }
+      if (payload.categoryOrder || payload.itemOrder) {
+        await apiClient.reorderMenu(id, payload);
+        await loadMenuData(id, false); // reload fresh so the new order sticks (caches already busted)
+      }
+      setArrangeMode(false); setArrangeOrder([]); setArrangeItemOrder([]);
     } catch (e) { console.error('Arrange save failed:', e); }
     finally { setSavingArrange(false); }
   };
 
   // Colourful category tile (same look as the POS dashboard drill-down)
-  const renderMenuFolder = (folder) => {
+  // Palette + emoji for a category tile (deterministic per name) — shared by the grid + Arrange modal.
+  const folderPalette = (folder) => {
     const PAL = [
       { soft: '#fff7ed', ring: '#fed7aa', accent: '#ea580c' },
       { soft: '#fffbeb', ring: '#fde68a', accent: '#d97706' },
@@ -3028,34 +3089,102 @@ const MenuManagement = () => {
     ];
     let h = 0; const s = String(folder.name || folder.id || '');
     for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-    const c = PAL[h % PAL.length];
-    const emoji = (folder.emoji && folder.emoji !== '🍽️') ? folder.emoji : getCategoryEmoji(folder.name);
+    return { c: PAL[h % PAL.length], emoji: (folder.emoji && folder.emoji !== '🍽️') ? folder.emoji : getCategoryEmoji(folder.name) };
+  };
+  // The inner visual of a category tile — reused by the grid tile AND the Arrange modal tile.
+  const folderTileInner = (folder, c, emoji) => (
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ width: '46px', height: '46px', borderRadius: '13px', background: '#ffffff', border: `1px solid ${c.ring}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>{emoji}</div>
+        <span style={{ fontSize: '12px', fontWeight: 800, color: c.accent, background: '#ffffff', border: `1px solid ${c.ring}`, padding: '3px 10px', borderRadius: '999px' }}>{folder.count}</span>
+      </div>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+        <div style={{ fontSize: '15px', fontWeight: 700, color: '#1f2937', lineHeight: 1.2, marginBottom: '4px' }}>{capitalizeFirst(folder.name)}</div>
+        <div style={{ display: 'flex', alignItems: 'center', color: c.accent, fontSize: '12px', fontWeight: 600 }}>
+          <span>{folder.count} {t('common.items')}</span>
+          <span style={{ marginLeft: 'auto', fontSize: '16px', fontWeight: 800 }}>›</span>
+        </div>
+      </div>
+    </>
+  );
+  const renderMenuFolder = (folder) => {
+    const { c, emoji } = folderPalette(folder);
     return (
       <div key={`mfolder-${folder.id}`}
-        onClick={() => { if (!arrangeMode) setSelectedCategory(folder.id); }}
-        draggable={arrangeMode}
-        onDragStart={arrangeMode ? (() => { dragFolderId.current = folder.id; }) : undefined}
-        onDragOver={arrangeMode ? ((e) => e.preventDefault()) : undefined}
-        onDrop={arrangeMode ? (() => onArrangeDrop(folder.id)) : undefined}
-        className={arrangeMode ? 'menu-arrange-wiggle' : undefined}
-        style={{ display: 'flex', flexDirection: 'column', gap: '12px', minHeight: '122px', padding: '16px', borderRadius: '16px', cursor: arrangeMode ? 'grab' : 'pointer', background: `linear-gradient(155deg, #ffffff 32%, ${c.soft} 100%)`, border: arrangeMode ? `2px dashed ${c.accent}` : `1px solid ${c.ring}`, boxShadow: '0 1px 3px rgba(15,23,42,0.05)', transition: 'all 0.18s' }}
-        onMouseEnter={arrangeMode ? undefined : ((e) => { e.currentTarget.style.boxShadow = `0 10px 22px ${c.accent}22`; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = c.accent; })}
-        onMouseLeave={arrangeMode ? undefined : ((e) => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(15,23,42,0.05)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = c.ring; })}
+        onClick={() => setSelectedCategory(folder.id)}
+        style={{ display: 'flex', flexDirection: 'column', gap: '12px', minHeight: '122px', padding: '16px', borderRadius: '16px', cursor: 'pointer', background: `linear-gradient(155deg, #ffffff 32%, ${c.soft} 100%)`, border: `1px solid ${c.ring}`, boxShadow: '0 1px 3px rgba(15,23,42,0.05)', transition: 'all 0.18s' }}
+        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 10px 22px ${c.accent}22`; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = c.accent; }}
+        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(15,23,42,0.05)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = c.ring; }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ width: '46px', height: '46px', borderRadius: '13px', background: '#ffffff', border: `1px solid ${c.ring}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>{emoji}</div>
-          <span style={{ fontSize: '12px', fontWeight: 800, color: c.accent, background: '#ffffff', border: `1px solid ${c.ring}`, padding: '3px 10px', borderRadius: '999px' }}>{folder.count}</span>
-        </div>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-          <div style={{ fontSize: '15px', fontWeight: 700, color: '#1f2937', lineHeight: 1.2, marginBottom: '4px' }}>{capitalizeFirst(folder.name)}</div>
-          <div style={{ display: 'flex', alignItems: 'center', color: c.accent, fontSize: '12px', fontWeight: 600 }}>
-            <span>{folder.count} {t('common.items')}</span>
-            <span style={{ marginLeft: 'auto', fontSize: '16px', fontWeight: 800 }}>›</span>
-          </div>
-        </div>
+        {folderTileInner(folder, c, emoji)}
       </div>
     );
   };
+
+  // ── Arrange modal (dnd-kit) — smooth, constrained drag for the CURRENT level's categories + items.
+  const arrangeModal = arrangeMode ? createPortal((
+    <div onClick={(e) => { if (e.target === e.currentTarget && !savingArrange) cancelArrange(); }}
+      style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: isMobile ? '16px 10px' : '40px 16px', overflowY: 'auto' }}>
+      <div style={{ width: '100%', maxWidth: '760px', background: '#fff', borderRadius: '18px', boxShadow: '0 24px 60px rgba(15,23,42,0.3)', overflow: 'hidden' }}>
+        {/* header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '16px 18px', borderBottom: '1px solid #eef2f7', position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
+          <div style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>⇅ Arrange</div>
+          <div style={{ fontSize: '12px', color: '#94a3b8', marginRight: 'auto' }}>{menuPath.length ? menuPath.map(p => capitalizeFirst(p.name)).join(' › ') : 'Top level'} · drag to reorder</div>
+          <button type="button" onClick={cancelArrange} disabled={savingArrange}
+            style={{ padding: '8px 14px', borderRadius: '9px', border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          <button type="button" onClick={saveArrange} disabled={savingArrange}
+            style={{ padding: '8px 18px', borderRadius: '9px', border: 'none', background: savingArrange ? '#9ca3af' : '#16a34a', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: savingArrange ? 'not-allowed' : 'pointer' }}>{savingArrange ? 'Saving…' : 'Done'}</button>
+        </div>
+        <div style={{ padding: '18px', maxHeight: isMobile ? '75vh' : '70vh', overflowY: 'auto' }}>
+          {/* Categories zone (its own SortableContext → items can never drop in here) */}
+          {arrangeOrder.length > 1 && (
+            <div style={{ marginBottom: arrangeItemOrder.length > 1 ? '24px' : 0 }}>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '10px' }}>Categories</div>
+              <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={onFolderDragEnd}>
+                <SortableContext items={arrangeOrder.map(f => f.id)} strategy={rectSortingStrategy}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
+                    {arrangeOrder.map(folder => {
+                      const { c, emoji } = folderPalette(folder);
+                      return (
+                        <SortableCell key={folder.id} id={folder.id}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minHeight: '112px', padding: '14px', borderRadius: '15px', background: `linear-gradient(155deg, #ffffff 32%, ${c.soft} 100%)`, border: `2px dashed ${c.ring}` }}>
+                            {folderTileInner(folder, c, emoji)}
+                          </div>
+                        </SortableCell>
+                      );
+                    })}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </div>
+          )}
+          {/* Items zone (separate SortableContext → locked to this category, can't leave it) */}
+          {arrangeItemOrder.length > 1 && (
+            <div>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '10px' }}>Items</div>
+              <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={onItemDragEnd}>
+                <SortableContext items={arrangeItemOrder.map(it => it.id)} strategy={verticalListSortingStrategy}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {arrangeItemOrder.map(item => (
+                      <SortableCell key={item.id} id={item.id}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', background: '#fff', border: '1px solid #e5e7eb' }}>
+                          <span style={{ color: '#cbd5e1', fontSize: '16px', lineHeight: 1 }}>⋮⋮</span>
+                          <span style={{ fontSize: '20px' }}>{(item.image ? '' : getCategoryEmoji(item.category))}</span>
+                          {item.image ? <img src={getDisplayImage(item.image, item.name)} alt="" style={{ width: '34px', height: '34px', borderRadius: '8px', objectFit: 'cover' }} /> : null}
+                          <span style={{ flex: 1, fontSize: '14px', fontWeight: 600, color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>{formatCurrency ? formatCurrency(item.price) : item.price}</span>
+                        </div>
+                      </SortableCell>
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  ), document.body) : null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -5076,37 +5205,22 @@ const MenuManagement = () => {
                 </div>
               );
             })()}
+            {arrangeModal}
+            {/* Arrange button — opens the dnd-kit reorder modal for the CURRENT level's categories + items.
+                Shown for flat menus too (when there are >1 direct items but no sub-folders). */}
+            {((menuFolders.length > 1 || menuDirectItems.length > 1) && isOwnerOrAdmin) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                <button type="button" onClick={enterArrange}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '9px', border: '1px solid #d1d5db', background: '#fff', color: '#374151', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+                  ⇅ Arrange
+                </button>
+              </div>
+            )}
             {/* Category folder tiles (drill-down) */}
             {menuFolders.length > 0 && (
-              <>
-                <style>{`@keyframes menuArrangeWiggle{0%{transform:rotate(-0.6deg)}50%{transform:rotate(0.6deg)}100%{transform:rotate(-0.6deg)}} .menu-arrange-wiggle{animation:menuArrangeWiggle 0.35s ease-in-out infinite}`}</style>
-                {/* Arrange bar — drag the cards to reorder (iPhone-style); Done saves. */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
-                  {!arrangeMode ? (
-                    (menuFolders.length > 1 && isOwnerOrAdmin) && (
-                      <button type="button" onClick={enterArrange}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '9px', border: '1px solid #d1d5db', background: '#fff', color: '#374151', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
-                        ⇅ Arrange
-                      </button>
-                    )
-                  ) : (
-                    <>
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#dc2626' }}>Drag the cards to reorder</span>
-                      <button type="button" onClick={saveArrange} disabled={savingArrange}
-                        style={{ padding: '7px 16px', borderRadius: '9px', border: 'none', background: savingArrange ? '#9ca3af' : '#16a34a', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: savingArrange ? 'not-allowed' : 'pointer' }}>
-                        {savingArrange ? 'Saving…' : 'Done'}
-                      </button>
-                      <button type="button" onClick={cancelArrange} disabled={savingArrange}
-                        style={{ padding: '7px 14px', borderRadius: '9px', border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
-                        Cancel
-                      </button>
-                    </>
-                  )}
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(150px, 1fr))' : 'repeat(auto-fill, minmax(200px, 1fr))', gap: isMobile ? '12px' : '16px', marginBottom: menuDirectItems.length ? '22px' : '0' }}>
-                  {(arrangeMode ? arrangeOrder : menuFolders).map(renderMenuFolder)}
-                </div>
-              </>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(150px, 1fr))' : 'repeat(auto-fill, minmax(200px, 1fr))', gap: isMobile ? '12px' : '16px', marginBottom: menuDirectItems.length ? '22px' : '0' }}>
+                {menuFolders.map(renderMenuFolder)}
+              </div>
             )}
             {viewMode === 'grid' ? (
             <div style={{

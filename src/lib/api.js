@@ -2018,7 +2018,11 @@ class ApiClient {
       method: 'PATCH',
       body: { ...(itemOrder ? { itemOrder } : {}), ...(categoryOrder ? { categoryOrder } : {}) },
     });
+    // Bust BOTH caches: the menu (items) AND the categories list (folder order is derived from
+    // getCategories, cached separately). Without the categories bust the new order only appears
+    // after a hard page refresh (which recreates the in-memory cache).
     this.invalidateCache('/api/menus/');
+    this.invalidateCache('/api/categories/');
     return result;
   }
 
