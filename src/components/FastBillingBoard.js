@@ -51,7 +51,9 @@ const STYLE = `
 .fbb-badge{position:absolute;top:9px;right:9px;min-width:23px;height:23px;padding:0 6px;border-radius:12px;color:#fff;font-weight:800;font-size:12px;display:grid;place-items:center}
 .fbb-oos{position:absolute;inset:0;background:rgba(255,255,255,.66);display:grid;place-items:center;font-size:11px;font-weight:700;color:#dc2626;letter-spacing:.4px}
 .fbb-empty{grid-column:1/-1;text-align:center;color:var(--fbb-faint);padding:56px 20px;font-size:14px}
-@media (prefers-color-scheme:dark){.fbb{--fbb-line:#232a37;--fbb-panel:#141924;--fbb-sunken:#0f131c;--fbb-ink:#eef1f6;--fbb-muted:#9aa4b2;--fbb-faint:#6b7482}.fbb-oos{background:rgba(20,25,36,.66)}}
+/* NOTE: no prefers-color-scheme:dark override — the POS dashboard is a light-only surface, so a
+   component-level dark theme made ONLY the Fast Billing cards flip near-black (#141924) when the
+   browser/OS is in dark mode, while everything around them stayed light. Keep the light palette. */
 @media (prefers-reduced-motion:reduce){.fbb-card,.fbb-cat,.fbb-sub{transition:none}}
 `;
 
