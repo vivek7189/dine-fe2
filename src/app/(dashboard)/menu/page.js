@@ -3124,7 +3124,9 @@ const MenuManagement = () => {
   };
 
   // ── Arrange modal (dnd-kit) — smooth, constrained drag for the CURRENT level's categories + items.
-  const arrangeModal = arrangeMode ? createPortal((
+  // Deferred to a function (called at render time in the return) so its .map callbacks don't run
+  // eagerly here and touch helpers like getCategoryEmoji that are declared later in the component.
+  const arrangeModal = () => (arrangeMode ? createPortal((
     <div onClick={(e) => { if (e.target === e.currentTarget && !savingArrange) cancelArrange(); }}
       style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: isMobile ? '16px 10px' : '40px 16px', overflowY: 'auto' }}>
       <div style={{ width: '100%', maxWidth: '760px', background: '#fff', borderRadius: '18px', boxShadow: '0 24px 60px rgba(15,23,42,0.3)', overflow: 'hidden' }}>
@@ -3185,7 +3187,7 @@ const MenuManagement = () => {
         </div>
       </div>
     </div>
-  ), document.body) : null;
+  ), document.body) : null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -5206,7 +5208,7 @@ const MenuManagement = () => {
                 </div>
               );
             })()}
-            {arrangeModal}
+            {arrangeModal()}
             {/* Arrange button — opens the dnd-kit reorder modal for the CURRENT level's categories + items.
                 Shown for flat menus too (when there are >1 direct items but no sub-folders). */}
             {((menuFolders.length > 1 || menuDirectItems.length > 1) && isOwnerOrAdmin) && (
