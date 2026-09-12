@@ -1044,6 +1044,31 @@ const TableManagement = () => {
       const orderEvents = ['order-created', 'order-updated', 'order-status-updated', 'order-completed', 'order-deleted'];
       if (orderEvents.includes(data.type)) {
         console.log(`📡 Tables: Received '${data.type}'`, data);
+        // Event-sourced occupancy — mirror the dashboard so a QR / customer-mobile (or
+        // dashboard) order marks its table OCCUPIED + shows the running total INSTANTLY,
+        // instead of waiting on the (laggy) refetch. Occupying an order doesn't emit a
+        // table-status event, so apply it straight from the order payload. Only for a
+        // NON-terminal order that carries a table; freeing is handled by the release
+        // table-status-updated event. debouncedRefresh() below still reconciles the truth.
+        const tname = (data.tableNumber != null ? String(data.tableNumber) : '').trim();
+        const terminal = ['completed', 'cancelled', 'deleted'].includes(String(data.status || '').toLowerCase());
+        if (tname && !terminal && (data.type === 'order-created' || data.type === 'order-updated' || data.type === 'order-status-updated')) {
+          const oid = data.id ?? data.orderId ?? null;
+          const total = data.totalAmount != null ? data.totalAmount : (data.finalAmount != null ? data.finalAmount : null);
+          setFloors(prev => prev.map(floor => ({
+            ...floor,
+            tables: (floor.tables || []).map(t => {
+              const matchById = !!(data.tableId && t.id === data.tableId);
+              const matchByName = !!(t.name && String(t.name).trim().toLowerCase() === tname.toLowerCase());
+              return (matchById || matchByName)
+                ? { ...t, status: 'occupied',
+                    currentOrderId: oid ?? t.currentOrderId,
+                    currentOrderTotal: total != null ? total : t.currentOrderTotal,
+                    lastOrderTime: new Date().toISOString() }
+                : t;
+            }),
+          })));
+        }
         debouncedRefresh();
         setPusherRefreshSignal(prev => prev + 1);
       }
