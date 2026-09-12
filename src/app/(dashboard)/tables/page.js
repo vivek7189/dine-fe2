@@ -669,6 +669,25 @@ const TableManagement = () => {
   // newer one (or an optimistic reset). Over the LAN (local-server mode) a refresh can
   // resolve out of order and clobber fresh state — this makes the latest load always win.
   const loadSeqRef = useRef(0);
+  // Optimistic table-status overrides (short TTL) so a LAGGING getFloors refetch can't revert
+  // an occupancy/status we just applied from a live event. Mirrors the dashboard's guard.
+  const optimisticTableOverridesRef = useRef({});
+  const applyTableOverrides = (floorsData) => {
+    if (!Array.isArray(floorsData)) return floorsData;
+    const overrides = optimisticTableOverridesRef.current;
+    const now = Date.now();
+    for (const k of Object.keys(overrides)) if (overrides[k].expiresAt < now) delete overrides[k];
+    if (Object.keys(overrides).length === 0) return floorsData;
+    return floorsData.map(floor => ({
+      ...floor,
+      tables: (floor.tables || []).map(t => {
+        const ov = overrides[`${floor.id || ''}_${t.id}`] || overrides[String(t.id)] || overrides[String(t.name)];
+        if (!ov) return t;
+        const { expiresAt, ...data } = ov;
+        return { ...t, ...data };
+      }),
+    }));
+  };
   const [hoveredTableId, setHoveredTableId] = useState(null);
   const [floorModalTab, setFloorModalTab] = useState('details'); // 'details' | 'order'
   const [floorOrderList, setFloorOrderList] = useState([]); // for reordering
@@ -1068,6 +1087,11 @@ const TableManagement = () => {
                 : t;
             }),
           })));
+          // Guard the optimistic apply so the follow-up refetch (getFloors) can't revert it (12s TTL).
+          const ov = { status: 'occupied', lastOrderTime: new Date().toISOString(), expiresAt: Date.now() + 12000 };
+          if (oid != null) ov.currentOrderId = oid;
+          if (total != null) ov.currentOrderTotal = total;
+          optimisticTableOverridesRef.current[data.tableId ? String(data.tableId) : tname] = ov;
         }
         debouncedRefresh();
         setPusherRefreshSignal(prev => prev + 1);
@@ -1098,12 +1122,24 @@ const TableManagement = () => {
               : t
           ),
         })));
+        // Guard this authoritative change too — and supersede any lingering occupy override
+        // for this table (keyed by id, which applyTableOverrides checks before name), so a
+        // freed table can't be re-occupied by a stale refetch.
+        {
+          const tov = { status: data.status, lastOrderTime: new Date().toISOString(), expiresAt: Date.now() + 12000 };
+          if (data.status === 'available') tov.currentOrderId = null;
+          else if (data.orderId != null) tov.currentOrderId = data.orderId;
+          optimisticTableOverridesRef.current[String(data.tableId)] = tov;
+        }
         setPusherRefreshSignal(prev => prev + 1);
         return;
       }
       // Bulk change (reset all) — no per-table payload, so reconcile once (fresh: no-store).
       if (data.type === 'tables-reset') {
         console.log(`📡 Tables: tables-reset`, data);
+        // Bulk free — drop any per-table optimistic overrides so the reconcile shows the
+        // real (reset) state instead of re-applying a just-occupied override.
+        optimisticTableOverridesRef.current = {};
         debouncedRefresh();
         setPusherRefreshSignal(prev => prev + 1);
       }
@@ -1175,7 +1211,7 @@ const TableManagement = () => {
       if (useCache && restaurantId) {
         const cachedData = getCachedTablesData(restaurantId);
         if (cachedData) {
-          if (cachedData.floors) setFloors(cachedData.floors);
+          if (cachedData.floors) setFloors(applyTableOverrides(cachedData.floors));
           if (cachedData.selectedRestaurant) setSelectedRestaurant(cachedData.selectedRestaurant);
           setLoading(false);
           setBackgroundLoading(true);
@@ -1264,7 +1300,9 @@ const TableManagement = () => {
       }
       // A newer load/reset already updated the UI — don't clobber it with our older data.
       if (isStale()) return;
-      setFloors(floorsData);
+      // Respect recent optimistic status overrides so a lagging getFloors can't revert a
+      // just-applied occupancy/release (raw floorsData is still what we cache below).
+      setFloors(applyTableOverrides(floorsData));
       const currentRestaurant = selectedRestaurant || { id: restaurantId };
       setCachedTablesData(restaurantId, { floors: floorsData, selectedRestaurant: currentRestaurant });
       // Persist to IndexedDB for offline
@@ -1317,7 +1355,7 @@ const TableManagement = () => {
         // newer live update.
         if (isStale()) return;
         if (idbData?.floors) {
-          setFloors(idbData.floors);
+          setFloors(applyTableOverrides(idbData.floors));
         } else {
           setError('Failed to load tables');
         }
@@ -1346,6 +1384,8 @@ const TableManagement = () => {
       // Invalidate any in-flight loadFloorsAndTables so a slow/older refresh can't re-apply
       // the pre-reset (occupied) snapshot over our optimistic update.
       loadSeqRef.current++;
+      // Drop optimistic overrides too, so applyTableOverrides can't re-occupy a reset table.
+      optimisticTableOverridesRef.current = {};
       setFloors(prev => prev.map(floor => ({
         ...floor,
         tables: floor.tables?.map(t =>
