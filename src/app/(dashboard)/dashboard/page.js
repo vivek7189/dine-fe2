@@ -2568,8 +2568,14 @@ function RestaurantPOSContent() {
         appliedPricingRuleId: activePricingRuleId || null,
       };
     }));
+    // NOTE: `pricingRules` MUST be a dep — the effect reads it (rule lookup + markup).
+    // If it's omitted, the effect runs once with an empty/stale rules array (rules
+    // load async, after activePricingRuleId is set), so `rule` is undefined, the
+    // markup is skipped, and cart lines collapse to the base price while the menu
+    // card (getItemDisplayPrice, which does list pricingRules) shows the marked-up
+    // price. `cart` stays OUT of deps on purpose (read via prevCart; adding it loops).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePricingRuleId, multiPricingEnabled, menuItems]);
+  }, [activePricingRuleId, multiPricingEnabled, menuItems, pricingRules]);
 
   // Apply display prices to filtered items for rendering
   // IMPORTANT: Always spread-copy each item to avoid shared object references.
@@ -2719,9 +2725,12 @@ function RestaurantPOSContent() {
       item = { ...item, seat: sanitizeSeat(activeSeatRef.current) };
     }
     if (multiPricingEnabled && activePricingRuleId && !itemRaw?.selectedVariant) {
-      const adjustedPrice = getItemDisplayPrice(itemRaw);
       // Use _originalPrice (set by filteredItems mapping) or existing basePrice as the true base
       const trueBasePrice = itemRaw._originalPrice ?? itemRaw.basePrice ?? itemRaw.price;
+      // Compute the tier price from the TRUE BASE — itemRaw.price may already be the
+      // marked-up display price (from the filteredItems mapping), so passing it back
+      // into getItemDisplayPrice would double-apply the rule markup (e.g. 199→238.80→286.56).
+      const adjustedPrice = getItemDisplayPrice({ ...itemRaw, price: trueBasePrice });
       item = { ...itemRaw, price: adjustedPrice, basePrice: trueBasePrice, appliedPricingRuleId: activePricingRuleId };
     }
 
