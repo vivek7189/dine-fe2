@@ -45,7 +45,7 @@ import { orderDisplayNumber } from '../utils/orderNumber';
 import { buildSplitInvoice } from '../utils/printTemplates/helpers';
 import { seatLabel, sanitizeSeat, getOrderItemKey } from '../utils/orderItemKey';
 import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint, buildKotDedupKey } from '../utils/printBridge';
-import { resolveVariantTierPrice } from '../utils/variantPricing';
+import { resolveVariantTierPrice, resolveItemTierPrice } from '../utils/variantPricing';
 
 const CustomerDetailModal = dynamic(() => import('./CustomerDetailModal'), { ssr: false });
 const DiscountApprovalModal = dynamic(() => import('./DiscountApprovalModal'), { ssr: false });
@@ -1573,23 +1573,20 @@ const OrderSummary = ({
         unitPrice = cartItem.selectedVariant.price;
       }
     } else if (multiPricingEnabled && activePricingRuleId) {
-      // Check per-item pricing rule override. Prefer the CURRENT menu item's
-      // pricingRules (authoritative/fresh) over the cart item's embedded copy.
-      // The cart copy is snapshotted at add-time and can be stale — e.g. the
-      // item was added before its channel (takeaway/delivery/zone) price was
-      // set — which would otherwise show the base price in the cart while the
-      // menu grid (which reads fresh data) shows the updated channel price.
+      // Resolve the item's tier price via the SHARED resolver so the cart line/total
+      // matches the menu card exactly: per-item override → zone Dine-In inherit →
+      // rule default markup (e.g. Delivery +20%) → base. Previously this branch only
+      // handled the per-item override and fell straight to base, so a rule's default
+      // markup was applied on the card but NOT in the cart total (card 238.80 / cart 199).
+      // Prefer the CURRENT menu item's pricingRules (fresh) over the cart's snapshot,
+      // and use the authoritative base price (fresh menu price → original → basePrice).
       const freshMenuItem = cartItem?.id != null ? menuItems.find(m => m.id === cartItem.id) : undefined;
-      const perItemPrice = freshMenuItem?.pricingRules?.[activePricingRuleId]
-        ?? cartItem?.pricingRules?.[activePricingRuleId];
-      const parsed = perItemPrice != null ? Number(perItemPrice) : NaN;
-      if (!isNaN(parsed) && parsed >= 0) {
-        unitPrice = parsed;
-      } else {
-        // No per-item price for this rule — use original base price
-        unitPrice = typeof cartItem?.basePrice === 'number' ? cartItem.basePrice
-          : typeof cartItem?.price === 'number' ? cartItem.price : 0;
-      }
+      const base = typeof freshMenuItem?.price === 'number' ? freshMenuItem.price
+        : typeof cartItem?._originalPrice === 'number' ? cartItem._originalPrice
+        : typeof cartItem?.basePrice === 'number' ? cartItem.basePrice
+        : typeof cartItem?.price === 'number' ? cartItem.price : 0;
+      const mergedRules = { ...(cartItem?.pricingRules || {}), ...(freshMenuItem?.pricingRules || {}) };
+      unitPrice = resolveItemTierPrice({ pricingRules: mergedRules }, base, activePricingRuleId, pricingRules);
     } else {
       // No multi-pricing — use price as-is
       unitPrice = typeof cartItem?.price === 'number' ? cartItem.price
