@@ -208,7 +208,10 @@ function getTimeAgo(dateStr) {
 function formatTime(dateStr) {
   const d = parseDate(dateStr);
   if (!d) return '';
-  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  // Render in the restaurant's timezone when configured, so order times read the same
+  // for every viewer (e.g. an owner abroad sees restaurant-local time, not device time).
+  const tz = apiClient.getRestaurantTimezone ? apiClient.getRestaurantTimezone() : null;
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, ...(tz ? { timeZone: tz } : {}) });
 }
 
 // Yesterday's-sales recap — the retention reward. When an owner comes back and
@@ -437,7 +440,8 @@ export default function HomePage() {
 
   // Other roles: simplified home page with quick actions + recent data
   const firstName = user?.name?.split(' ')[0] || 'there';
-  const todayDate = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const _homeTz = apiClient.getRestaurantTimezone ? apiClient.getRestaurantTimezone() : null;
+  const todayDate = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', ...(_homeTz ? { timeZone: _homeTz } : {}) });
   const posPath = isBar ? '/dashboard/bar' : '/dashboard';
 
   const quickActions = [

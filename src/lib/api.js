@@ -841,6 +841,13 @@ class ApiClient {
     this._restaurantTimezone = iana || null;
   }
 
+  // The restaurant's configured IANA timezone (or null → fall back to device tz).
+  // Single source of truth for rendering order times/dates the same for every viewer
+  // regardless of where they sign in from (e.g. an owner abroad sees restaurant-local time).
+  getRestaurantTimezone() {
+    return this._restaurantTimezone || null;
+  }
+
   // Convert IANA timezone string to getTimezoneOffset()-compatible value
   _computeIanaOffset(iana) {
     try {
