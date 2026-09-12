@@ -416,15 +416,21 @@ const OrderHistory = () => {
       if (isNaN(d.getTime())) return 'N/A';
       
       const locale = currentLanguage === 'hi' ? 'hi-IN' : 'en-IN';
+      // Render in the RESTAURANT's timezone when configured, so order times read the same
+      // no matter where the viewer signs in from (e.g. an owner abroad sees the restaurant's
+      // local time, not their device time). Falls back to the device timezone when unset.
+      const tz = restaurant?.posSettings?.timezone || undefined;
+      const tzOpt = tz ? { timeZone: tz } : {};
 
       if (compact) {
         const now = new Date();
-        const isToday = d.toDateString() === now.toDateString();
-        return isToday 
-          ? d.toLocaleString(locale, { hour: '2-digit', minute: '2-digit', hour12: true })
-          : d.toLocaleString(locale, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
+        const dayOf = (x) => tz ? x.toLocaleDateString('en-CA', { timeZone: tz }) : x.toDateString();
+        const isToday = dayOf(d) === dayOf(now);
+        return isToday
+          ? d.toLocaleString(locale, { hour: '2-digit', minute: '2-digit', hour12: true, ...tzOpt })
+          : d.toLocaleString(locale, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true, ...tzOpt });
       }
-      return d.toLocaleString(locale, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+      return d.toLocaleString(locale, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, ...tzOpt });
     } catch (error) {
       console.error('Date formatting error:', error);
       return 'N/A';
@@ -524,8 +530,22 @@ const OrderHistory = () => {
     // late-night orders count to the correct business day — consistent with the Today filter
     // (which the backend already computes from the same dayStart). Hour 0 = calendar day (unchanged).
     const bdh = (apiClient.getBusinessDayStartHour ? apiClient.getBusinessDayStartHour() : 0) || 0;
-    const todayStart = new Date(now); todayStart.setHours(bdh, 0, 0, 0);
-    if (now.getHours() < bdh) todayStart.setDate(todayStart.getDate() - 1);
+    // Compute the business-day boundary in the RESTAURANT's timezone when configured, so a
+    // viewer in a different timezone (e.g. owner abroad) still gets the restaurant's local
+    // day for Yesterday/7D/30D/custom. Falls back to the device timezone when unset (unchanged).
+    const rtz = restaurant?.posSettings?.timezone || null;
+    const rOff = rtz ? apiClient._computeIanaOffset(rtz) : null;   // getTimezoneOffset() convention (e.g. -330 for IST)
+    let todayStart;
+    if (rtz) {
+      const wall = new Date(now.getTime() - rOff * 60000);         // restaurant local wall-clock held in UTC fields
+      const wallHour = wall.getUTCHours();
+      wall.setUTCHours(bdh, 0, 0, 0);
+      if (wallHour < bdh) wall.setUTCDate(wall.getUTCDate() - 1);
+      todayStart = new Date(wall.getTime() + rOff * 60000);        // back to the real UTC instant
+    } else {
+      todayStart = new Date(now); todayStart.setHours(bdh, 0, 0, 0);
+      if (now.getHours() < bdh) todayStart.setDate(todayStart.getDate() - 1);
+    }
     const todayEnd = new Date(todayStart); todayEnd.setDate(todayEnd.getDate() + 1); todayEnd.setTime(todayEnd.getTime() - 1);
 
     switch (dateFilterMode) {
@@ -546,17 +566,22 @@ const OrderHistory = () => {
       }
       case 'custom':
         if (customStartDate && customEndDate) {
-          // Parse BOTH bounds as local-day boundaries (append time), matching the
-          // presets above. `new Date('2026-07-25')` alone parses as UTC midnight,
-          // which shifted the custom range by the timezone offset and made a
-          // custom "yesterday" return different results than the Yesterday preset.
+          // Interpret the picked calendar dates as boundaries in the RESTAURANT's timezone
+          // (when set) so a remote viewer's custom range still matches the restaurant's day.
+          // `new Date('2026-07-25')` alone parses as UTC midnight — shifting the range by the
+          // tz offset — so we build the instants explicitly.
+          if (rtz) {
+            const s = new Date(Date.parse(customStartDate + 'T00:00:00.000Z') + rOff * 60000);
+            const e = new Date(Date.parse(customEndDate + 'T23:59:59.999Z') + rOff * 60000);
+            return { startDate: s.toISOString(), endDate: e.toISOString() };
+          }
           return { startDate: new Date(customStartDate + 'T00:00:00.000').toISOString(), endDate: new Date(customEndDate + 'T23:59:59.999').toISOString() };
         }
         return { todayOnly: true };
       default:
         return { todayOnly: true };
     }
-  }, [dateFilterMode, customStartDate, customEndDate]);
+  }, [dateFilterMode, customStartDate, customEndDate, restaurant]);
 
   // Check if any non-default filters are active
   const hasActiveFilters = selectedStatus !== 'all' || selectedOrderType !== 'all' || selectedPaymentMethod !== 'all' || selectedPaymentStatus !== 'all' || filterSubRestaurant !== 'all' || dateFilterMode !== 'today' || myOrdersOnly || searchTerm.trim();
