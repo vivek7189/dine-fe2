@@ -415,7 +415,16 @@ const OrderSummary = ({
   const highestCartSeat = seatOrderingEnabled
     ? cart.reduce((mx, c) => Math.max(mx, sanitizeSeat(c?.seat) || 0), 0)
     : 0;
-  const seatChipCount = Math.min(26, Math.max(4, highestCartSeat, sanitizeSeat(activeSeat) || 0) + extraSeatCount);
+  // Base chip count = THIS table's real seat count (dynamic: 2, 4, 6…), from the table's
+  // capacity/seats. Falls back to 4 when the table's capacity is unknown (e.g. an edited
+  // order that didn't carry it) so existing behaviour is preserved. highestCartSeat and
+  // activeSeat still expand it, so a seat that already has items — or the edited order's
+  // pre-selected chair — is always visible.
+  const tableSeatCount = (() => {
+    const n = parseInt(selectedTable?.capacity ?? selectedTable?.seats, 10);
+    return Number.isFinite(n) && n >= 1 ? Math.min(n, 26) : 4;
+  })();
+  const seatChipCount = Math.min(26, Math.max(tableSeatCount, highestCartSeat, sanitizeSeat(activeSeat) || 0) + extraSeatCount);
   // Cart line identity: cartId when present, else id + seat. Before seats,
   // two no-cartId lines could never share an id (they always merged); with
   // seats they can (same item on 7B and 7C), so the fallback must include

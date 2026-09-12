@@ -3493,7 +3493,24 @@ function RestaurantPOSContent() {
                 name: order.tableNumber,
                 floor: cd.floorName || order.floorName || null,
                 floorId: cd.floorId || order.floorId || null,
+                capacity: order.capacity ?? cd.capacity ?? null,
               });
+            }
+            // Pre-select the seat/chair for an order placed against a specific chair
+            // (per-seat QR, e.g. ?seat=D → chairNumber "D"). Only when seat ordering is on
+            // (the seat selector is visible); a no-chair order keeps the "Table" (shared)
+            // selection, so existing non-chair flows are untouched.
+            if (seatOrderingEnabled) {
+              const chairRaw = order.chairNumber ?? order.customerInfo?.chairNumber ?? cd.chairNumber ?? null;
+              const chairSeat = (() => {
+                if (chairRaw == null) return null;
+                const str = String(chairRaw).trim();
+                if (!str) return null;
+                if (/^\d+$/.test(str)) { const n = parseInt(str, 10); return n >= 1 && n <= 65 ? n : null; }
+                if (/^[A-Za-z]+$/.test(str)) { let n = 0; const up = str.toUpperCase(); for (let i = 0; i < up.length; i++) n = n * 26 + (up.charCodeAt(i) - 64); return n >= 1 && n <= 65 ? n : null; }
+                return null;
+              })();
+              if (chairSeat != null) setActiveSeat(chairSeat);
             }
           } else {
             // No table or room - default to table
