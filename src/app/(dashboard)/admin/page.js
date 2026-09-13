@@ -4361,7 +4361,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                     { key: 'showTaxBreakdown', label: 'Tax Lines' },
                     { key: 'showItemTaxBreakup', label: 'Item Tax Split' },
                     { key: 'showCovers', label: 'Covers' },
-                    { key: 'showFooter', label: 'Footer' },
+                    { key: 'showFooter', label: 'Thank-You Line' },
                     { key: 'showPoweredBy', label: 'Powered By' },
                     { key: 'showRevisedBillBanner', label: 'Revised Bill Banner' },
                   ];
@@ -4480,7 +4480,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                               </div>
                             )}
                             {/* Custom multi-line footer — prints on EVERY bill (website, bank details, notes…).
-                                Independent of the "Footer" (thank-you) + "Powered By" toggles; empty = nothing. */}
+                                Independent of the "Thank-You Line" + "Powered By" toggles; empty = nothing. */}
                             <div>
                               <label style={{ fontSize: '11px', color: '#374151', fontWeight: 500, display: 'block', marginBottom: '4px' }}>Custom Footer</label>
                               <textarea
