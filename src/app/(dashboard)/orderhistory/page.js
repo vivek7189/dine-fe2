@@ -2207,16 +2207,19 @@ const OrderHistory = () => {
       return !['cancelled', 'deleted', 'saved', 'refunded'].includes(order.status);
     });
 
-    const totalRevenue = validOrders.reduce((sum, order) => {
+    // Revenue + payments only from REALIZED (completed/paid/settled) orders — matches the backend, so the
+    // pre-analytics fallback doesn't briefly count OPEN/unbilled orders as revenue (the wrong→correct flash).
+    const realizedOrders = validOrders.filter(o => ['completed', 'paid', 'settled'].includes(String(o.status || '').toLowerCase()));
+    const totalRevenue = realizedOrders.reduce((sum, order) => {
       const refundAdj = order.refundAmount || 0;
       return sum + calculateOrderTotal(order) - refundAdj;
     }, 0);
     const orderCount = validOrders.length;
-    const completedCount = validOrders.filter(o => o.status === 'completed').length;
+    const completedCount = realizedOrders.length;
 
-    // Client-side payment breakdown fallback
+    // Client-side payment breakdown fallback (realized only)
     const paymentBreakdown = {};
-    validOrders.forEach(order => {
+    realizedOrders.forEach(order => {
       const method = (order.paymentMethod || 'cash').toLowerCase();
       const refundAdj = order.refundAmount || 0;
       if (!paymentBreakdown[method]) paymentBreakdown[method] = { count: 0, total: 0 };
