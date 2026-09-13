@@ -3570,7 +3570,8 @@ const OrderHistory = () => {
                 </div>
               )}
               <div className="text-[11px] text-gray-400 ml-auto hidden md:block flex-shrink-0">
-                Placed {stats.placedCount} = Billed {stats.completedCount} + Open {stats.openCount} + Cancelled {stats.cancelledCount}{stats.refundedCount > 0 ? ` + Refunded ${stats.refundedCount}` : ''}
+                Placed {stats.placedCount} = Billed {stats.completedCount} + Open {stats.openCount}
+                {(stats.cancelledCount > 0 || stats.refundedCount > 0) ? `  ·  +${stats.cancelledCount} cancelled${stats.refundedCount > 0 ? `, +${stats.refundedCount} refunded` : ''}` : ''}
               </div>
             </div>
           )}
