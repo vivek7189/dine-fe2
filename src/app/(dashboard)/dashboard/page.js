@@ -95,7 +95,7 @@ import { useHubEvents } from '../../../hooks/useHubEvents';
 import { useDineBot } from '../../../components/DineBotProvider';
 import { parseScaleBarcode, isScaleBarcode } from '../../../utils/scaleBarcode';
 import { printDocument } from '../../../utils/printBridge';
-import { resolveVariantTierPrice } from '../../../utils/variantPricing';
+import { resolveVariantTierPrice, resolveItemTierPrice } from '../../../utils/variantPricing';
 
 // Safe wrappers for contexts that may not be available in mobile embed mode
 function useSafeLoading() {
@@ -2984,14 +2984,21 @@ function RestaurantPOSContent() {
         base = item.selectedVariant.price;
       }
     } else if (multiPricingEnabled && activePricingRuleId) {
-      const perItemPrice = item?.pricingRules?.[activePricingRuleId];
-      const parsed = perItemPrice != null ? Number(perItemPrice) : NaN;
-      if (!isNaN(parsed) && parsed >= 0) {
-        base = parsed;
-      } else {
-        base = typeof item?.basePrice === 'number' ? item.basePrice
-          : typeof item?.price === 'number' ? item.price : 0;
-      }
+      // Resolve the item's tier price via the SHARED resolver so the Total/subtotal
+      // banner (getTotalAmount) AND the order payload (buildItemPayload) apply the
+      // rule's default markup (e.g. Delivery +20%) — matching the menu card and the
+      // OrderSummary line. Previously this branch only handled a per-item override
+      // then fell straight to base, so the default markup showed on the line/card
+      // but NOT in the total or the placed order (line 202.80 / total 169). Use the
+      // authoritative base (fresh menu price → original → basePrice), never item.price
+      // which may already be the marked-up display value (would double-apply).
+      const freshMenuItem = item?.id != null ? (menuItems || []).find(m => m.id === item.id) : undefined;
+      const trueBase = typeof freshMenuItem?.price === 'number' ? freshMenuItem.price
+        : typeof item?._originalPrice === 'number' ? item._originalPrice
+        : typeof item?.basePrice === 'number' ? item.basePrice
+        : typeof item?.price === 'number' ? item.price : 0;
+      const mergedRules = { ...(item?.pricingRules || {}), ...(freshMenuItem?.pricingRules || {}) };
+      base = resolveItemTierPrice({ pricingRules: mergedRules }, trueBase, activePricingRuleId, pricingRules);
     } else {
       base = typeof item?.price === 'number' ? item.price : 0;
     }
