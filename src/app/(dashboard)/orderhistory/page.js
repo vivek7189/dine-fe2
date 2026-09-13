@@ -3550,9 +3550,16 @@ const OrderHistory = () => {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
                 {/* Billed / Revenue + payment methods (cash / upi / dynamic / split / due) */}
                 <div className="col-span-2 bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl p-3 shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="bg-green-500 w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"><FaCheckCircle className="text-white text-sm" /></div>
-                    <span className="text-[10px] sm:text-[11px] text-green-800/80 font-semibold uppercase tracking-wide">Revenue · Billed (completed)</span>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-green-500 w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"><FaCheckCircle className="text-white text-sm" /></div>
+                      <span className="text-[10px] sm:text-[11px] text-green-800/80 font-semibold uppercase tracking-wide">Revenue · Billed (paid)</span>
+                    </div>
+                    <div className="text-right leading-tight">
+                      <div className="text-[9px] text-gray-500 uppercase tracking-wide">Total Sales</div>
+                      <div className="text-sm font-bold text-gray-700">{formatCurrency((stats.totalRevenue || 0) + (stats.openTotal || 0))}</div>
+                      <div className="text-[9px] text-gray-400">incl. unbilled</div>
+                    </div>
                   </div>
                   <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-1.5">{formatCurrency(stats.totalRevenue)}</div>
                   <div className="text-[11px] text-gray-500">{stats.completedCount} completed{stats.totalRevenueWithTax > stats.totalRevenue ? ` · incl tax ${formatCurrency(stats.totalRevenueWithTax)}` : ''}</div>
@@ -3583,23 +3590,24 @@ const OrderHistory = () => {
                   <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-1.5">{formatCurrency(stats.openTotal)}</div>
                   <div className="text-[11px] text-gray-500">{stats.openCount} order{stats.openCount !== 1 ? 's' : ''} · to settle</div>
                 </div>
-                {/* Cancelled */}
-                <div className="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-xl p-3 shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="bg-slate-400 w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"><span className="text-white text-xs font-bold leading-none">✕</span></div>
-                    <span className="text-[10px] sm:text-[11px] text-slate-600 font-semibold uppercase tracking-wide">Cancelled</span>
+                {/* Total Orders — segmented by status (billed / unbilled / cancelled / refunded) */}
+                <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] sm:text-[11px] text-gray-500 font-semibold uppercase tracking-wide">Total Orders</span>
+                    <span className="text-lg sm:text-xl font-extrabold text-gray-900 leading-none">{(stats.placedCount || 0) + (stats.cancelledCount || 0) + (stats.refundedCount || 0)}</span>
                   </div>
-                  <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-1.5">{formatCurrency(stats.cancelledTotal)}</div>
-                  <div className="text-[11px] text-gray-500">{stats.cancelledCount} order{stats.cancelledCount !== 1 ? 's' : ''} · excluded</div>
+                  <div className="mt-2 pt-2 border-t border-gray-100 space-y-1">
+                    <div className="flex items-center justify-between text-[11px]"><span className="flex items-center gap-1.5 text-gray-600"><span className="w-1.5 h-1.5 rounded-full bg-green-500" />Billed</span><span className="text-gray-500"><b className="text-gray-900">{stats.completedCount}</b> · {formatCurrency(stats.totalRevenue)}</span></div>
+                    <div className="flex items-center justify-between text-[11px]"><span className="flex items-center gap-1.5 text-gray-600"><span className="w-1.5 h-1.5 rounded-full bg-amber-500" />Unbilled</span><span className="text-gray-500"><b className="text-gray-900">{stats.openCount}</b> · {formatCurrency(stats.openTotal)}</span></div>
+                    <div className="flex items-center justify-between text-[11px]"><span className="flex items-center gap-1.5 text-gray-600"><span className="w-1.5 h-1.5 rounded-full bg-slate-400" />Cancelled</span><span className="text-gray-500"><b className="text-gray-900">{stats.cancelledCount}</b> · {formatCurrency(stats.cancelledTotal)}</span></div>
+                    <div className="flex items-center justify-between text-[11px]"><span className="flex items-center gap-1.5 text-gray-600"><span className="w-1.5 h-1.5 rounded-full bg-red-500" />Refunded</span><span className="text-gray-500"><b className="text-gray-900">{stats.refundedCount}</b> · −{formatCurrency(stats.refundedTotal)}</span></div>
+                  </div>
                 </div>
               </div>
-              {/* Refunded + Net Sales + reconcile */}
+              {/* Net Sales + reconcile */}
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 px-1 text-[11.5px]">
-                {stats.refundedCount > 0 && (
-                  <span className="text-red-600 font-semibold">↩︎ Refunded {stats.refundedCount} · −{formatCurrency(stats.refundedTotal)}</span>
-                )}
-                <span className="text-gray-600">Net Sales <b className="text-gray-900 text-[13px]">{formatCurrency((stats.totalRevenue || 0) - (stats.refundedTotal || 0))}</b></span>
-                <span className="text-gray-400 ml-auto">Placed {stats.placedCount} = Billed {stats.completedCount} + Open {stats.openCount} · {(stats.placedCount || 0) + (stats.cancelledCount || 0) + (stats.refundedCount || 0)} total orders</span>
+                <span className="text-gray-600">Net Sales (billed − refunds) <b className="text-gray-900 text-[13px]">{formatCurrency((stats.totalRevenue || 0) - (stats.refundedTotal || 0))}</b></span>
+                <span className="text-gray-400 ml-auto">Placed {stats.placedCount} = Billed {stats.completedCount} + Open {stats.openCount}</span>
               </div>
             </div>
           )}
