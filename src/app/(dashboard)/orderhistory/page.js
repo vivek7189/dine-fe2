@@ -3547,46 +3547,44 @@ const OrderHistory = () => {
               accounted for and nothing reads as "money gone". Replaces the default cards when on. */}
           {reconciledSummary && (
             <div className="pb-2 sm:pb-3">
-              <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                {/* Metrics row — flat, label over value, subtle dividers (Toast/Petpooja style) */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-gray-100">
-                  <div className="p-3">
-                    <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Net Sales</div>
-                    <div className="text-lg sm:text-2xl font-extrabold text-green-700 leading-tight mt-0.5">{formatCurrency((stats.totalRevenue || 0) - (stats.refundedTotal || 0))}</div>
-                    <div className="text-[10.5px] text-gray-400 mt-0.5">{stats.completedCount} billed{stats.refundedCount > 0 ? ` · −${formatCurrency(stats.refundedTotal)} refunds` : ''}</div>
-                  </div>
-                  <div className="p-3">
-                    <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Total Sales</div>
-                    <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-0.5">{formatCurrency((stats.totalRevenue || 0) + (stats.openTotal || 0))}</div>
-                    <div className="text-[10.5px] text-gray-400 mt-0.5">billed + unbilled</div>
-                  </div>
-                  <div className="p-3">
-                    <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Open · Unbilled</div>
-                    <div className="text-lg sm:text-2xl font-extrabold text-amber-600 leading-tight mt-0.5">{formatCurrency(stats.openTotal)}</div>
-                    <div className="text-[10.5px] text-gray-400 mt-0.5">{stats.openCount} to settle</div>
-                  </div>
-                  <div className="p-3">
-                    <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Orders</div>
-                    <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-0.5">{(stats.placedCount || 0) + (stats.cancelledCount || 0) + (stats.refundedCount || 0)}</div>
-                    <div className="text-[10.5px] text-gray-400 mt-0.5">{stats.completedCount} billed · {stats.openCount} open</div>
-                  </div>
+              {/* Colorful metric tiles — colored backgrounds, BLACK values for readability */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+                <div className="rounded-xl border border-green-200 bg-green-50 p-3">
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-green-700">Net Sales</div>
+                  <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-0.5">{formatCurrency((stats.totalRevenue || 0) - (stats.refundedTotal || 0))}</div>
+                  <div className="text-[10.5px] text-gray-700 mt-0.5">{stats.completedCount} billed{stats.refundedCount > 0 ? ` · −${formatCurrency(stats.refundedTotal)} refunds` : ''}</div>
                 </div>
-                {/* Payments + status footer */}
-                <div className="border-t border-gray-100 px-3 py-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 bg-gray-50/60">
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Payments</span>
-                  {(stats.paymentBreakdown && Object.keys(stats.paymentBreakdown).length > 0)
-                    ? Object.entries(stats.paymentBreakdown).sort((a, b) => b[1].total - a[1].total).map(([m, d]) => (
-                        <span key={m} className="text-[11.5px]"><span className="capitalize text-gray-500">{m}</span> <span className="font-bold text-gray-900">{formatCurrency(d.total)}</span>{d.count ? <span className="text-gray-400"> ({d.count})</span> : null}</span>
-                      ))
-                    : <span className="text-[11.5px] text-gray-400">—</span>}
-                  {stats.dueTotal > 0 && (<span className="text-[11.5px]"><span className="text-orange-600">Due</span> <span className="font-bold text-orange-700">{formatCurrency(stats.dueTotal)}</span></span>)}
-                  <span className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500">
-                    <span><span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 mr-1 align-middle" />Billed <b className="text-gray-800">{stats.completedCount}</b></span>
-                    <span><span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 mr-1 align-middle" />Unbilled <b className="text-gray-800">{stats.openCount}</b></span>
-                    <span><span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-400 mr-1 align-middle" />Cancelled <b className="text-gray-800">{stats.cancelledCount}</b></span>
-                    {stats.refundedCount > 0 && (<span><span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 mr-1 align-middle" />Refunded <b className="text-gray-800">{stats.refundedCount}</b></span>)}
-                  </span>
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-3">
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-blue-700">Total Sales</div>
+                  <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-0.5">{formatCurrency((stats.totalRevenue || 0) + (stats.openTotal || 0))}</div>
+                  <div className="text-[10.5px] text-gray-700 mt-0.5">billed + unbilled</div>
                 </div>
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-amber-700">Open · Unbilled</div>
+                  <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-0.5">{formatCurrency(stats.openTotal)}</div>
+                  <div className="text-[10.5px] text-gray-700 mt-0.5">{stats.openCount} to settle</div>
+                </div>
+                <div className="rounded-xl border border-purple-200 bg-purple-50 p-3">
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-purple-700">Orders</div>
+                  <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-0.5">{(stats.placedCount || 0) + (stats.cancelledCount || 0) + (stats.refundedCount || 0)}</div>
+                  <div className="text-[10.5px] text-gray-700 mt-0.5">{stats.completedCount} billed · {stats.openCount} open</div>
+                </div>
+              </div>
+              {/* Payments + status footer — colorful chips, black values */}
+              <div className="mt-2 rounded-xl border border-gray-200 bg-white px-3 py-2 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Payments</span>
+                {(stats.paymentBreakdown && Object.keys(stats.paymentBreakdown).length > 0)
+                  ? Object.entries(stats.paymentBreakdown).sort((a, b) => b[1].total - a[1].total).map(([m, d]) => (
+                      <span key={m} className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-100 px-2 py-0.5 text-[11.5px]"><span className="capitalize text-indigo-700 font-medium">{m}</span> <span className="font-bold text-gray-900">{formatCurrency(d.total)}</span>{d.count ? <span className="text-gray-500">({d.count})</span> : null}</span>
+                    ))
+                  : <span className="text-[11.5px] text-gray-500">—</span>}
+                {stats.dueTotal > 0 && (<span className="inline-flex items-center gap-1 rounded-full bg-orange-50 border border-orange-200 px-2 py-0.5 text-[11.5px]"><span className="text-orange-700 font-medium">Due</span> <span className="font-bold text-gray-900">{formatCurrency(stats.dueTotal)}</span></span>)}
+                <span className="ml-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-green-50 border border-green-100 px-2 py-0.5"><span className="w-1.5 h-1.5 rounded-full bg-green-500" /><span className="text-gray-600">Billed</span> <b className="text-gray-900">{stats.completedCount}</b></span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-100 px-2 py-0.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-500" /><span className="text-gray-600">Unbilled</span> <b className="text-gray-900">{stats.openCount}</b></span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-400" /><span className="text-gray-600">Cancelled</span> <b className="text-gray-900">{stats.cancelledCount}</b></span>
+                  {stats.refundedCount > 0 && (<span className="inline-flex items-center gap-1 rounded-full bg-red-50 border border-red-100 px-2 py-0.5"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /><span className="text-gray-600">Refunded</span> <b className="text-gray-900">{stats.refundedCount}</b></span>)}
+                </span>
               </div>
             </div>
           )}
