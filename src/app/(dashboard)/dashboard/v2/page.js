@@ -328,9 +328,15 @@ function RestaurantPOSContent() {
   // Register enforcement — check if register is open when setting enabled
   useEffect(() => {
     if (posSettings.requireRegisterOpen && selectedRestaurant?.id) {
-      apiClient.getCurrentRegister(selectedRestaurant.id)
-        .then(res => {
-          const isOpen = !!res.register;
+      // Billing is allowed when EITHER the cash register (old /register system) OR the
+      // user's Shifts & Cash shift is open — so opening a shift satisfies the gate too.
+      Promise.allSettled([
+        apiClient.getCurrentRegister(selectedRestaurant.id),
+        apiClient.getCurrentShift(selectedRestaurant.id),
+      ])
+        .then(([reg, shift]) => {
+          const isOpen = !!(reg.status === 'fulfilled' && reg.value?.register)
+            || !!(shift.status === 'fulfilled' && shift.value?.shift);
           setRegisterOpen(isOpen);
           localStorage.setItem('registerOpen', String(isOpen));
         })
