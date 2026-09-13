@@ -3547,67 +3547,46 @@ const OrderHistory = () => {
               accounted for and nothing reads as "money gone". Replaces the default cards when on. */}
           {reconciledSummary && (
             <div className="pb-2 sm:pb-3">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-                {/* Billed / Revenue + payment methods (cash / upi / dynamic / split / due) */}
-                <div className="col-span-2 bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl p-3 shadow-sm">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <div className="bg-green-500 w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"><FaCheckCircle className="text-white text-sm" /></div>
-                      <span className="text-[10px] sm:text-[11px] text-green-800/80 font-semibold uppercase tracking-wide">Revenue · Billed (paid)</span>
-                    </div>
-                    <div className="text-right leading-tight">
-                      <div className="text-[9px] text-gray-500 uppercase tracking-wide">Total Sales</div>
-                      <div className="text-sm font-bold text-gray-700">{formatCurrency((stats.totalRevenue || 0) + (stats.openTotal || 0))}</div>
-                      <div className="text-[9px] text-gray-400">incl. unbilled</div>
-                    </div>
+              <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                {/* Metrics row — flat, label over value, subtle dividers (Toast/Petpooja style) */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-gray-100">
+                  <div className="p-3">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Net Sales</div>
+                    <div className="text-lg sm:text-2xl font-extrabold text-green-700 leading-tight mt-0.5">{formatCurrency((stats.totalRevenue || 0) - (stats.refundedTotal || 0))}</div>
+                    <div className="text-[10.5px] text-gray-400 mt-0.5">{stats.completedCount} billed{stats.refundedCount > 0 ? ` · −${formatCurrency(stats.refundedTotal)} refunds` : ''}</div>
                   </div>
-                  <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-1.5">{formatCurrency(stats.totalRevenue)}</div>
-                  <div className="text-[11px] text-gray-500">{stats.completedCount} completed{stats.totalRevenueWithTax > stats.totalRevenue ? ` · incl tax ${formatCurrency(stats.totalRevenueWithTax)}` : ''}</div>
-                  {((stats.paymentBreakdown && Object.keys(stats.paymentBreakdown).length > 0) || stats.dueTotal > 0) && (
-                    <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2.5 border-t border-green-200/70">
-                      {Object.entries(stats.paymentBreakdown || {}).sort((a, b) => b[1].total - a[1].total).map(([m, d]) => (
-                        <span key={m} className="inline-flex items-center gap-1 bg-white/80 border border-green-200/60 rounded-full px-2 py-0.5 text-[11px]">
-                          <span className="capitalize text-gray-500">{m}</span>
-                          <span className="font-bold text-gray-900">{formatCurrency(d.total)}</span>
-                          {d.count ? <span className="text-gray-400">({d.count})</span> : null}
-                        </span>
-                      ))}
-                      {stats.dueTotal > 0 && (
-                        <span className="inline-flex items-center gap-1 bg-orange-100 border border-orange-200 rounded-full px-2 py-0.5 text-[11px]">
-                          <span className="text-orange-700">Due · Credit</span>
-                          <span className="font-bold text-orange-800">{formatCurrency(stats.dueTotal)}</span>
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-                {/* Open / Unbilled */}
-                <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-xl p-3 shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="bg-amber-500 w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"><span className="text-white text-xs font-bold leading-none">●</span></div>
-                    <span className="text-[10px] sm:text-[11px] text-amber-800/80 font-semibold uppercase tracking-wide">Open · Unbilled</span>
+                  <div className="p-3">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Total Sales</div>
+                    <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-0.5">{formatCurrency((stats.totalRevenue || 0) + (stats.openTotal || 0))}</div>
+                    <div className="text-[10.5px] text-gray-400 mt-0.5">billed + unbilled</div>
                   </div>
-                  <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-1.5">{formatCurrency(stats.openTotal)}</div>
-                  <div className="text-[11px] text-gray-500">{stats.openCount} order{stats.openCount !== 1 ? 's' : ''} · to settle</div>
-                </div>
-                {/* Total Orders — segmented by status (billed / unbilled / cancelled / refunded) */}
-                <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] sm:text-[11px] text-gray-500 font-semibold uppercase tracking-wide">Total Orders</span>
-                    <span className="text-lg sm:text-xl font-extrabold text-gray-900 leading-none">{(stats.placedCount || 0) + (stats.cancelledCount || 0) + (stats.refundedCount || 0)}</span>
+                  <div className="p-3">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Open · Unbilled</div>
+                    <div className="text-lg sm:text-2xl font-extrabold text-amber-600 leading-tight mt-0.5">{formatCurrency(stats.openTotal)}</div>
+                    <div className="text-[10.5px] text-gray-400 mt-0.5">{stats.openCount} to settle</div>
                   </div>
-                  <div className="mt-2 pt-2 border-t border-gray-100 space-y-1">
-                    <div className="flex items-center justify-between text-[11px]"><span className="flex items-center gap-1.5 text-gray-600"><span className="w-1.5 h-1.5 rounded-full bg-green-500" />Billed</span><span className="text-gray-500"><b className="text-gray-900">{stats.completedCount}</b> · {formatCurrency(stats.totalRevenue)}</span></div>
-                    <div className="flex items-center justify-between text-[11px]"><span className="flex items-center gap-1.5 text-gray-600"><span className="w-1.5 h-1.5 rounded-full bg-amber-500" />Unbilled</span><span className="text-gray-500"><b className="text-gray-900">{stats.openCount}</b> · {formatCurrency(stats.openTotal)}</span></div>
-                    <div className="flex items-center justify-between text-[11px]"><span className="flex items-center gap-1.5 text-gray-600"><span className="w-1.5 h-1.5 rounded-full bg-slate-400" />Cancelled</span><span className="text-gray-500"><b className="text-gray-900">{stats.cancelledCount}</b> · {formatCurrency(stats.cancelledTotal)}</span></div>
-                    <div className="flex items-center justify-between text-[11px]"><span className="flex items-center gap-1.5 text-gray-600"><span className="w-1.5 h-1.5 rounded-full bg-red-500" />Refunded</span><span className="text-gray-500"><b className="text-gray-900">{stats.refundedCount}</b> · −{formatCurrency(stats.refundedTotal)}</span></div>
+                  <div className="p-3">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Orders</div>
+                    <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-0.5">{(stats.placedCount || 0) + (stats.cancelledCount || 0) + (stats.refundedCount || 0)}</div>
+                    <div className="text-[10.5px] text-gray-400 mt-0.5">{stats.completedCount} billed · {stats.openCount} open</div>
                   </div>
                 </div>
-              </div>
-              {/* Net Sales + reconcile */}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 px-1 text-[11.5px]">
-                <span className="text-gray-600">Net Sales (billed − refunds) <b className="text-gray-900 text-[13px]">{formatCurrency((stats.totalRevenue || 0) - (stats.refundedTotal || 0))}</b></span>
-                <span className="text-gray-400 ml-auto">Placed {stats.placedCount} = Billed {stats.completedCount} + Open {stats.openCount}</span>
+                {/* Payments + status footer */}
+                <div className="border-t border-gray-100 px-3 py-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 bg-gray-50/60">
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Payments</span>
+                  {(stats.paymentBreakdown && Object.keys(stats.paymentBreakdown).length > 0)
+                    ? Object.entries(stats.paymentBreakdown).sort((a, b) => b[1].total - a[1].total).map(([m, d]) => (
+                        <span key={m} className="text-[11.5px]"><span className="capitalize text-gray-500">{m}</span> <span className="font-bold text-gray-900">{formatCurrency(d.total)}</span>{d.count ? <span className="text-gray-400"> ({d.count})</span> : null}</span>
+                      ))
+                    : <span className="text-[11.5px] text-gray-400">—</span>}
+                  {stats.dueTotal > 0 && (<span className="text-[11.5px]"><span className="text-orange-600">Due</span> <span className="font-bold text-orange-700">{formatCurrency(stats.dueTotal)}</span></span>)}
+                  <span className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500">
+                    <span><span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 mr-1 align-middle" />Billed <b className="text-gray-800">{stats.completedCount}</b></span>
+                    <span><span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 mr-1 align-middle" />Unbilled <b className="text-gray-800">{stats.openCount}</b></span>
+                    <span><span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-400 mr-1 align-middle" />Cancelled <b className="text-gray-800">{stats.cancelledCount}</b></span>
+                    {stats.refundedCount > 0 && (<span><span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 mr-1 align-middle" />Refunded <b className="text-gray-800">{stats.refundedCount}</b></span>)}
+                  </span>
+                </div>
               </div>
             </div>
           )}
