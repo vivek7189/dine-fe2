@@ -3549,22 +3549,22 @@ const OrderHistory = () => {
             <div className="pb-2 sm:pb-3">
               {/* Colorful metric tiles — colored backgrounds, BLACK values for readability */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                <div className="rounded-xl border border-green-200 bg-green-50 p-3">
+                <div className="rounded-xl border border-green-200 bg-gradient-to-br from-green-50 to-green-100 p-3 shadow-sm">
                   <div className="text-[10px] font-bold uppercase tracking-wide text-green-700">Net Sales</div>
                   <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-0.5">{formatCurrency((stats.totalRevenue || 0) - (stats.refundedTotal || 0))}</div>
                   <div className="text-[10.5px] text-gray-700 mt-0.5">{stats.completedCount} billed{stats.refundedCount > 0 ? ` · −${formatCurrency(stats.refundedTotal)} refunds` : ''}</div>
                 </div>
-                <div className="rounded-xl border border-blue-200 bg-blue-50 p-3">
+                <div className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 p-3 shadow-sm">
                   <div className="text-[10px] font-bold uppercase tracking-wide text-blue-700">Total Sales</div>
                   <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-0.5">{formatCurrency((stats.totalRevenue || 0) + (stats.openTotal || 0))}</div>
                   <div className="text-[10.5px] text-gray-700 mt-0.5">billed + unbilled</div>
                 </div>
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                <div className="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100 p-3 shadow-sm">
                   <div className="text-[10px] font-bold uppercase tracking-wide text-amber-700">Open · Unbilled</div>
                   <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-0.5">{formatCurrency(stats.openTotal)}</div>
                   <div className="text-[10.5px] text-gray-700 mt-0.5">{stats.openCount} to settle</div>
                 </div>
-                <div className="rounded-xl border border-purple-200 bg-purple-50 p-3">
+                <div className="rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100 p-3 shadow-sm">
                   <div className="text-[10px] font-bold uppercase tracking-wide text-purple-700">Orders</div>
                   <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-0.5">{(stats.placedCount || 0) + (stats.cancelledCount || 0) + (stats.refundedCount || 0)}</div>
                   <div className="text-[10.5px] text-gray-700 mt-0.5">{stats.completedCount} billed · {stats.openCount} open</div>
