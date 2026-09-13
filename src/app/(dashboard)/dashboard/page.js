@@ -1123,11 +1123,17 @@ function RestaurantPOSContent() {
         if (item.category) {
           const categoryId = item.category.toLowerCase();
           if (!catMap.has(categoryId)) {
+            // Prefer the display NAME from the restaurant's category list (menuCategories),
+            // resolved by id — so renaming a category reflects on the till without editing
+            // items (item.category holds the category id/slug, not the name). The Menu page
+            // already resolves this way; this makes the dashboard tabs match. Falls back to
+            // the formatted id when the category isn't in the list.
+            const def = (menuCategories || []).find(c => (c.id || '').toLowerCase() === categoryId);
             const emoji = getCategoryEmoji(item.category);
             catMap.set(categoryId, {
               id: categoryId,
-              name: item.category.charAt(0).toUpperCase() + item.category.slice(1),
-              emoji: emoji,
+              name: (def && def.name) ? def.name : (item.category.charAt(0).toUpperCase() + item.category.slice(1)),
+              emoji: (def && def.emoji) ? def.emoji : emoji,
               count: categoryItemCountMap.get(categoryId) || 0
             });
           }
@@ -8792,7 +8798,13 @@ function RestaurantPOSContent() {
                             fontWeight: '700',
                             color: '#1f2937'
                           }}>
-                            {capitalizeFirst(categoryName)}
+                            {(() => {
+                              // Show the category's display NAME (resolved by id from the
+                              // restaurant's list) so renames reflect here too — items group
+                              // by category id, but the header must read the current name.
+                              const _def = (menuCategories || []).find(c => (c.id || '').toLowerCase() === String(categoryName || '').toLowerCase());
+                              return (_def && _def.name) ? _def.name : capitalizeFirst(categoryName);
+                            })()}
                           </span>
                           <span style={{
                             fontSize: '12px',
