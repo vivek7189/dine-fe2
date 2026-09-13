@@ -3476,7 +3476,7 @@ const OrderHistory = () => {
           {/* Summary Stats — only in orders view; full cards or compact inline strip based on scroll */}
           {activeView === 'orders' && (<>
           {/* Expanded stat cards — hidden when scrolled, on mobile embed, or on mobile screens */}
-          <div style={{ willChange: 'max-height, opacity' }} className={`overflow-hidden transition-[max-height,opacity,padding] duration-300 ease-in-out ${isScrolled || isMobileEmbed || isMobile ? 'max-h-0 opacity-0 pb-0' : 'max-h-40 opacity-100 pb-2 sm:pb-3'}`}>
+          <div style={{ willChange: 'max-height, opacity' }} className={`overflow-hidden transition-[max-height,opacity,padding] duration-300 ease-in-out ${isScrolled || isMobileEmbed || isMobile ? 'max-h-0 opacity-0 pb-0' : 'max-h-40 opacity-100 pb-2 sm:pb-3'} ${reconciledSummary ? 'hidden' : ''}`}>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-3">
               {/* Revenue */}
               <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
@@ -3541,43 +3541,71 @@ const OrderHistory = () => {
             </div>
           </div>
 
-          {/* Reconciled buckets strip (flag-gated: posSettings.reconciledOrderSummary) — shows where
-              every order sits so nothing reads as "money gone". Additive; existing cards unchanged. */}
+          {/* Reconciled CLEAN CARD view (flag-gated: posSettings.reconciledOrderSummary).
+              Billed/Revenue with its payment methods under it (that's where money is collected),
+              plus Open·Unbilled, Cancelled, and a Net Sales + reconcile footer — so every order is
+              accounted for and nothing reads as "money gone". Replaces the default cards when on. */}
           {reconciledSummary && (
-            <div className="flex items-center flex-wrap gap-2 pb-2 sm:pb-3 overflow-x-auto scrollbar-hide">
-              <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-full px-3 py-1 flex-shrink-0">
-                <span className="w-2 h-2 rounded-full bg-amber-500" />
-                <span className="text-[10.5px] text-amber-700 font-semibold uppercase tracking-wide">Open · Unbilled</span>
-                <span className="text-xs font-bold text-gray-900">{stats.openCount} · {formatCurrency(stats.openTotal)}</span>
-              </div>
-              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-full px-3 py-1 flex-shrink-0">
-                <span className="w-2 h-2 rounded-full bg-slate-400" />
-                <span className="text-[10.5px] text-slate-600 font-semibold uppercase tracking-wide">Cancelled</span>
-                <span className="text-xs font-bold text-gray-900">{stats.cancelledCount} · {formatCurrency(stats.cancelledTotal)}</span>
-              </div>
-              {stats.refundedCount > 0 && (
-                <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 rounded-full px-3 py-1 flex-shrink-0">
-                  <span className="w-2 h-2 rounded-full bg-red-500" />
-                  <span className="text-[10.5px] text-red-700 font-semibold uppercase tracking-wide">Refunded</span>
-                  <span className="text-xs font-bold text-gray-900">{stats.refundedCount} · −{formatCurrency(stats.refundedTotal)}</span>
+            <div className="pb-2 sm:pb-3">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+                {/* Billed / Revenue + payment methods (cash / upi / dynamic / split / due) */}
+                <div className="col-span-2 bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl p-3 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-green-500 w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"><FaCheckCircle className="text-white text-sm" /></div>
+                    <span className="text-[10px] sm:text-[11px] text-green-800/80 font-semibold uppercase tracking-wide">Revenue · Billed (completed)</span>
+                  </div>
+                  <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-1.5">{formatCurrency(stats.totalRevenue)}</div>
+                  <div className="text-[11px] text-gray-500">{stats.completedCount} completed{stats.totalRevenueWithTax > stats.totalRevenue ? ` · incl tax ${formatCurrency(stats.totalRevenueWithTax)}` : ''}</div>
+                  {((stats.paymentBreakdown && Object.keys(stats.paymentBreakdown).length > 0) || stats.dueTotal > 0) && (
+                    <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2.5 border-t border-green-200/70">
+                      {Object.entries(stats.paymentBreakdown || {}).sort((a, b) => b[1].total - a[1].total).map(([m, d]) => (
+                        <span key={m} className="inline-flex items-center gap-1 bg-white/80 border border-green-200/60 rounded-full px-2 py-0.5 text-[11px]">
+                          <span className="capitalize text-gray-500">{m}</span>
+                          <span className="font-bold text-gray-900">{formatCurrency(d.total)}</span>
+                          {d.count ? <span className="text-gray-400">({d.count})</span> : null}
+                        </span>
+                      ))}
+                      {stats.dueTotal > 0 && (
+                        <span className="inline-flex items-center gap-1 bg-orange-100 border border-orange-200 rounded-full px-2 py-0.5 text-[11px]">
+                          <span className="text-orange-700">Due · Credit</span>
+                          <span className="font-bold text-orange-800">{formatCurrency(stats.dueTotal)}</span>
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
-              {stats.dueTotal > 0 && (
-                <div className="flex items-center gap-1.5 bg-orange-50 border border-orange-200 rounded-full px-3 py-1 flex-shrink-0">
-                  <span className="w-2 h-2 rounded-full bg-orange-500" />
-                  <span className="text-[10.5px] text-orange-700 font-semibold uppercase tracking-wide">Due · Credit</span>
-                  <span className="text-xs font-bold text-gray-900">{formatCurrency(stats.dueTotal)}</span>
+                {/* Open / Unbilled */}
+                <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-xl p-3 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-amber-500 w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"><span className="text-white text-xs font-bold leading-none">●</span></div>
+                    <span className="text-[10px] sm:text-[11px] text-amber-800/80 font-semibold uppercase tracking-wide">Open · Unbilled</span>
+                  </div>
+                  <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-1.5">{formatCurrency(stats.openTotal)}</div>
+                  <div className="text-[11px] text-gray-500">{stats.openCount} order{stats.openCount !== 1 ? 's' : ''} · to settle</div>
                 </div>
-              )}
-              <div className="text-[11px] text-gray-400 ml-auto hidden md:block flex-shrink-0">
-                Placed {stats.placedCount} = Billed {stats.completedCount} + Open {stats.openCount}
-                {(stats.cancelledCount > 0 || stats.refundedCount > 0) ? `  ·  +${stats.cancelledCount} cancelled${stats.refundedCount > 0 ? `, +${stats.refundedCount} refunded` : ''}` : ''}
+                {/* Cancelled */}
+                <div className="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-xl p-3 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-slate-400 w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"><span className="text-white text-xs font-bold leading-none">✕</span></div>
+                    <span className="text-[10px] sm:text-[11px] text-slate-600 font-semibold uppercase tracking-wide">Cancelled</span>
+                  </div>
+                  <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-1.5">{formatCurrency(stats.cancelledTotal)}</div>
+                  <div className="text-[11px] text-gray-500">{stats.cancelledCount} order{stats.cancelledCount !== 1 ? 's' : ''} · excluded</div>
+                </div>
+              </div>
+              {/* Refunded + Net Sales + reconcile */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 px-1 text-[11.5px]">
+                {stats.refundedCount > 0 && (
+                  <span className="text-red-600 font-semibold">↩︎ Refunded {stats.refundedCount} · −{formatCurrency(stats.refundedTotal)}</span>
+                )}
+                <span className="text-gray-600">Net Sales <b className="text-gray-900 text-[13px]">{formatCurrency((stats.totalRevenue || 0) - (stats.refundedTotal || 0))}</b></span>
+                <span className="text-gray-400 ml-auto">Placed {stats.placedCount} = Billed {stats.completedCount} + Open {stats.openCount} · {(stats.placedCount || 0) + (stats.cancelledCount || 0) + (stats.refundedCount || 0)} total orders</span>
               </div>
             </div>
           )}
 
           {/* Compact inline stat strip — visible when scrolled, on mobile embed, or mobile screens */}
-          <div style={{ willChange: 'max-height, opacity' }} className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${isScrolled || isMobileEmbed || isMobile ? 'max-h-12 opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div style={{ willChange: 'max-height, opacity' }} className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${isScrolled || isMobileEmbed || isMobile ? 'max-h-12 opacity-100' : 'max-h-0 opacity-0'} ${reconciledSummary ? 'hidden' : ''}`}>
             <div className={`flex items-center gap-3 sm:gap-5 text-xs overflow-x-auto scrollbar-hide ${isMobileEmbed ? 'py-1.5 gap-2' : 'py-1.5'}`} style={isMobileEmbed ? { scrollbarWidth: 'none', msOverflowStyle: 'none' } : {}}>
               <div className={`flex items-center gap-1.5 ${isMobileEmbed ? 'bg-green-50 rounded-full px-2 py-0.5 flex-shrink-0' : ''}`}>
                 <div className="w-2 h-2 rounded-full bg-green-500" />
