@@ -3556,6 +3556,14 @@ const OrderHistory = () => {
                   <div className="text-[10px] font-bold uppercase tracking-wide text-green-700">Net Sales</div>
                   <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-0.5">{formatCurrency((stats.totalRevenue || 0) - (stats.refundedTotal || 0))}</div>
                   <div className="text-[10.5px] text-gray-700 mt-0.5">{stats.completedCount} billed{stats.refundedCount > 0 ? ` · −${formatCurrency(stats.refundedTotal)} refunds` : ''}</div>
+                  {((stats.paymentBreakdown && Object.keys(stats.paymentBreakdown).length > 0) || stats.dueTotal > 0) && (
+                    <div className="mt-2 pt-2 border-t border-green-200/70 flex flex-wrap gap-1">
+                      {Object.entries(stats.paymentBreakdown || {}).sort((a, b) => b[1].total - a[1].total).map(([m, d]) => (
+                        <span key={m} className="inline-flex items-center gap-1 rounded-full bg-white/80 border border-green-200/60 px-2 py-0.5 text-[10.5px]"><span className="capitalize text-gray-500">{m}</span> <span className="font-bold text-gray-900">{formatCurrency(d.total)}</span>{d.count ? <span className="text-gray-400">({d.count})</span> : null}</span>
+                      ))}
+                      {stats.dueTotal > 0 && (<span className="inline-flex items-center gap-1 rounded-full bg-orange-100 border border-orange-200 px-2 py-0.5 text-[10.5px]"><span className="text-orange-700">Due</span> <span className="font-bold text-gray-900">{formatCurrency(stats.dueTotal)}</span></span>)}
+                    </div>
+                  )}
                 </div>
                 <div className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 p-3 shadow-sm">
                   <div className="text-[10px] font-bold uppercase tracking-wide text-blue-700">Total Sales</div>
@@ -3568,26 +3576,17 @@ const OrderHistory = () => {
                   <div className="text-[10.5px] text-gray-700 mt-0.5">{stats.openCount} to settle</div>
                 </div>
                 <div className="rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100 p-3 shadow-sm">
-                  <div className="text-[10px] font-bold uppercase tracking-wide text-purple-700">Orders</div>
-                  <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-0.5">{(stats.placedCount || 0) + (stats.cancelledCount || 0) + (stats.refundedCount || 0)}</div>
-                  <div className="text-[10.5px] text-gray-700 mt-0.5">{stats.completedCount} billed · {stats.openCount} open</div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-purple-700">Orders</span>
+                    <span className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-none">{(stats.placedCount || 0) + (stats.cancelledCount || 0) + (stats.refundedCount || 0)}</span>
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-purple-200/70 space-y-1">
+                    <div className="flex items-center justify-between text-[11px]"><span className="flex items-center gap-1.5 text-gray-700"><span className="w-1.5 h-1.5 rounded-full bg-green-500" />Billed</span><b className="text-gray-900">{stats.completedCount}</b></div>
+                    <div className="flex items-center justify-between text-[11px]"><span className="flex items-center gap-1.5 text-gray-700"><span className="w-1.5 h-1.5 rounded-full bg-amber-500" />Unbilled</span><b className="text-gray-900">{stats.openCount}</b></div>
+                    <div className="flex items-center justify-between text-[11px]"><span className="flex items-center gap-1.5 text-gray-700"><span className="w-1.5 h-1.5 rounded-full bg-slate-400" />Cancelled</span><b className="text-gray-900">{stats.cancelledCount}</b></div>
+                    <div className="flex items-center justify-between text-[11px]"><span className="flex items-center gap-1.5 text-gray-700"><span className="w-1.5 h-1.5 rounded-full bg-red-500" />Refunded</span><b className="text-gray-900">{stats.refundedCount}</b></div>
+                  </div>
                 </div>
-              </div>
-              {/* Payments + status footer — colorful chips, black values */}
-              <div className="mt-2 rounded-xl border border-gray-200 bg-white px-3 py-2 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Payments</span>
-                {(stats.paymentBreakdown && Object.keys(stats.paymentBreakdown).length > 0)
-                  ? Object.entries(stats.paymentBreakdown).sort((a, b) => b[1].total - a[1].total).map(([m, d]) => (
-                      <span key={m} className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-100 px-2 py-0.5 text-[11.5px]"><span className="capitalize text-indigo-700 font-medium">{m}</span> <span className="font-bold text-gray-900">{formatCurrency(d.total)}</span>{d.count ? <span className="text-gray-500">({d.count})</span> : null}</span>
-                    ))
-                  : <span className="text-[11.5px] text-gray-500">—</span>}
-                {stats.dueTotal > 0 && (<span className="inline-flex items-center gap-1 rounded-full bg-orange-50 border border-orange-200 px-2 py-0.5 text-[11.5px]"><span className="text-orange-700 font-medium">Due</span> <span className="font-bold text-gray-900">{formatCurrency(stats.dueTotal)}</span></span>)}
-                <span className="ml-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-green-50 border border-green-100 px-2 py-0.5"><span className="w-1.5 h-1.5 rounded-full bg-green-500" /><span className="text-gray-600">Billed</span> <b className="text-gray-900">{stats.completedCount}</b></span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-100 px-2 py-0.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-500" /><span className="text-gray-600">Unbilled</span> <b className="text-gray-900">{stats.openCount}</b></span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-400" /><span className="text-gray-600">Cancelled</span> <b className="text-gray-900">{stats.cancelledCount}</b></span>
-                  {stats.refundedCount > 0 && (<span className="inline-flex items-center gap-1 rounded-full bg-red-50 border border-red-100 px-2 py-0.5"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /><span className="text-gray-600">Refunded</span> <b className="text-gray-900">{stats.refundedCount}</b></span>)}
-                </span>
               </div>
             </div>
           )}
