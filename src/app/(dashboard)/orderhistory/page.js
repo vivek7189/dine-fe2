@@ -2240,7 +2240,6 @@ const OrderHistory = () => {
   }, [orders, analyticsStats]);
 
   // Flag: show the reconciled Order summary (Open/Unbilled · Cancelled · Refunded · Due) — opt-in per restaurant.
-  const reconciledSummary = restaurant?.posSettings?.reconciledOrderSummary === true;
 
   // Client-side sub-restaurant filtering (memoized)
   const displayedOrders = useMemo(() => {
@@ -3478,77 +3477,7 @@ const OrderHistory = () => {
 
           {/* Summary Stats — only in orders view; full cards or compact inline strip based on scroll */}
           {activeView === 'orders' && (<>
-          {/* Expanded stat cards — hidden when scrolled, on mobile embed, or on mobile screens */}
-          <div style={{ willChange: 'max-height, opacity' }} className={`overflow-hidden transition-[max-height,opacity,padding] duration-300 ease-in-out ${isScrolled || isMobileEmbed || isMobile ? 'max-h-0 opacity-0 pb-0' : 'max-h-40 opacity-100 pb-2 sm:pb-3'} ${reconciledSummary ? 'hidden' : ''}`}>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-3">
-              {/* Revenue */}
-              <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
-                  <div className="bg-green-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
-                    <span className="text-white text-xs sm:text-sm font-bold leading-none">{getCurrencySymbol()}</span>
-                  </div>
-                  <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">{t('orderHistory.revenue')}</span>
-                </div>
-                <div className="text-sm sm:text-lg font-bold text-gray-900 leading-tight">{formatCurrency(stats.totalRevenue)}</div>
-                {stats.totalRevenueWithTax > stats.totalRevenue && (
-                  <div className="text-[10px] sm:text-[12px] text-green-700/70 mt-0.5 leading-tight">{t('orderHistory.inclTax')} {formatCurrency(stats.totalRevenueWithTax)}</div>
-                )}
-              </div>
-              {/* Orders */}
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
-                  <div className="bg-blue-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
-                    <FaShoppingBag className="text-white text-xs sm:text-sm" />
-                  </div>
-                  <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">{t('orderHistory.orders')}</span>
-                </div>
-                <div className="text-sm sm:text-lg font-bold text-gray-900 leading-tight">{stats.orderCount}</div>
-              </div>
-              {/* Payment Breakdown */}
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
-                  <div className="bg-purple-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
-                    <FaCreditCard className="text-white text-xs sm:text-sm" />
-                  </div>
-                  <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">{t('orderHistory.payments')}</span>
-                </div>
-                {stats.paymentBreakdown && Object.keys(stats.paymentBreakdown).length > 0 ? (
-                  <div className="space-y-1">
-                    {Object.entries(stats.paymentBreakdown)
-                      .sort((a, b) => b[1].total - a[1].total)
-                      .map(([method, data]) => {
-                        const colors = { cash: 'text-emerald-600', upi: 'text-violet-600', card: 'text-sky-600', online: 'text-cyan-600' };
-                        const color = colors[method] || 'text-gray-600';
-                        return (
-                          <div key={method} className="flex items-center justify-between">
-                            <span className={`text-[10px] sm:text-xs font-semibold capitalize ${color}`}>{method}</span>
-                            <span className="text-[10px] sm:text-xs font-bold text-gray-900">{formatCurrency(data.total)} <span className="font-normal text-gray-400 text-[9px]">({data.count})</span></span>
-                          </div>
-                        );
-                      })}
-                  </div>
-                ) : (
-                  <div className="text-sm sm:text-lg font-bold text-gray-900 leading-tight">--</div>
-                )}
-              </div>
-              {/* Completed */}
-              <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
-                  <div className="bg-amber-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
-                    <FaCheckCircle className="text-white text-xs sm:text-sm" />
-                  </div>
-                  <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">{t('orderHistory.completed')}</span>
-                </div>
-                <div className="text-sm sm:text-lg font-bold text-gray-900 leading-tight">{stats.completedCount}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Reconciled CLEAN CARD view (flag-gated: posSettings.reconciledOrderSummary).
-              Billed/Revenue with its payment methods under it (that's where money is collected),
-              plus Open·Unbilled, Cancelled, and a Net Sales + reconcile footer — so every order is
-              accounted for and nothing reads as "money gone". Replaces the default cards when on. */}
-          {reconciledSummary && (
+          {/* Order summary — reconciled cards (Net Sales·payments / Total Sales / Open / Orders·breakdown). Live for all. */}
             <div className="pb-2 sm:pb-3">
               {/* Colorful metric tiles — colored backgrounds, BLACK values for readability */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
@@ -3589,44 +3518,6 @@ const OrderHistory = () => {
                 </div>
               </div>
             </div>
-          )}
-
-          {/* Compact inline stat strip — visible when scrolled, on mobile embed, or mobile screens */}
-          <div style={{ willChange: 'max-height, opacity' }} className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${isScrolled || isMobileEmbed || isMobile ? 'max-h-12 opacity-100' : 'max-h-0 opacity-0'} ${reconciledSummary ? 'hidden' : ''}`}>
-            <div className={`flex items-center gap-3 sm:gap-5 text-xs overflow-x-auto scrollbar-hide ${isMobileEmbed ? 'py-1.5 gap-2' : 'py-1.5'}`} style={isMobileEmbed ? { scrollbarWidth: 'none', msOverflowStyle: 'none' } : {}}>
-              <div className={`flex items-center gap-1.5 ${isMobileEmbed ? 'bg-green-50 rounded-full px-2 py-0.5 flex-shrink-0' : ''}`}>
-                <div className="w-2 h-2 rounded-full bg-green-500" />
-                <span className="text-gray-500">{t('orderHistory.revenue')}</span>
-                <span className="font-bold text-gray-900">{formatCurrency(stats.totalRevenueWithTax || stats.totalRevenue)}</span>
-              </div>
-              {!isMobileEmbed && <div className="w-px h-3.5 bg-gray-200" />}
-              <div className={`flex items-center gap-1.5 ${isMobileEmbed ? 'bg-blue-50 rounded-full px-2 py-0.5 flex-shrink-0' : ''}`}>
-                <div className="w-2 h-2 rounded-full bg-blue-500" />
-                <span className="font-bold text-gray-900">{stats.orderCount}</span>
-                <span className="text-gray-500">{t('orderHistory.orders')}</span>
-              </div>
-              {!isMobileEmbed && <div className="w-px h-3.5 bg-gray-200" />}
-              {stats.paymentBreakdown && Object.keys(stats.paymentBreakdown).length > 0 && (
-                <>
-                  {Object.entries(stats.paymentBreakdown)
-                    .sort((a, b) => b[1].total - a[1].total)
-                    .slice(0, isMobileEmbed ? 3 : 2)
-                    .map(([method, data]) => (
-                      <div key={method} className={`flex items-center gap-1.5 ${isMobileEmbed ? 'bg-gray-50 rounded-full px-2 py-0.5 flex-shrink-0' : ''}`}>
-                        <span className="text-gray-500 capitalize">{method}</span>
-                        <span className="font-bold text-gray-900">{formatCurrency(data.total)}</span>
-                      </div>
-                    ))}
-                  {!isMobileEmbed && <div className="w-px h-3.5 bg-gray-200" />}
-                </>
-              )}
-              <div className={`flex items-center gap-1.5 ${isMobileEmbed ? 'bg-amber-50 rounded-full px-2 py-0.5 flex-shrink-0' : ''}`}>
-                <div className="w-2 h-2 rounded-full bg-amber-500" />
-                <span className="font-bold text-gray-900">{stats.completedCount}</span>
-                <span className="text-gray-500">{t('orderHistory.completed')}</span>
-              </div>
-            </div>
-          </div>
 
           {/* Delete success banner */}
           {deleteSuccess && (
