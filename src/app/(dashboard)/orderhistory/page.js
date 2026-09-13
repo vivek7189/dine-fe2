@@ -2190,7 +2190,15 @@ const OrderHistory = () => {
         // back to `orders` (only the current paginated page) capped this at the
         // page size (e.g. 10) even when every order in the range was completed.
         completedCount: analyticsStats.completedOrders ?? orders.filter(o => o.status === 'completed').length,
-        paymentBreakdown: analyticsStats.paymentBreakdown || {}
+        paymentBreakdown: analyticsStats.paymentBreakdown || {},
+        // Reconciled buckets (flag-gated UI). Default 0 when absent (older backend or the
+        // long-range dailyStats aggregate path, which doesn't carry per-status buckets).
+        openCount: analyticsStats.openCount || 0, openTotal: analyticsStats.openTotal || 0,
+        cancelledCount: analyticsStats.cancelledCount || 0, cancelledTotal: analyticsStats.cancelledTotal || 0,
+        refundedCount: analyticsStats.refundedCount || 0, refundedTotal: analyticsStats.refundedTotal || 0,
+        dueTotal: analyticsStats.dueTotal || 0, dueOrders: analyticsStats.dueOrders || 0,
+        placedCount: analyticsStats.placedCount ?? (analyticsStats.totalOrders || 0),
+        grossPlacedTotal: analyticsStats.grossPlacedTotal || 0
       };
     }
 
@@ -2216,8 +2224,20 @@ const OrderHistory = () => {
       paymentBreakdown[method].total += calculateOrderTotal(order) - refundAdj;
     });
 
-    return { totalRevenue, orderCount, completedCount, paymentBreakdown };
+    // Reconciled buckets — best-effort from the current page until server analytics loads.
+    const _low = (o) => String(o.status || '').toLowerCase();
+    const _open = orders.filter(o => !['completed','paid','settled','cancelled','deleted','saved','refunded'].includes(_low(o)));
+    const _canc = orders.filter(o => ['cancelled','deleted','void'].includes(_low(o)));
+    const _refd = orders.filter(o => _low(o) === 'refunded' || (o.refundAmount || 0) > 0);
+    return { totalRevenue, orderCount, completedCount, paymentBreakdown,
+      openCount: _open.length, openTotal: _open.reduce((s,o)=>s+calculateOrderTotal(o),0),
+      cancelledCount: _canc.length, cancelledTotal: _canc.reduce((s,o)=>s+calculateOrderTotal(o),0),
+      refundedCount: _refd.length, refundedTotal: _refd.reduce((s,o)=>s+(o.refundAmount||0),0),
+      dueTotal: 0, dueOrders: 0, placedCount: orderCount, grossPlacedTotal: 0 };
   }, [orders, analyticsStats]);
+
+  // Flag: show the reconciled Order summary (Open/Unbilled · Cancelled · Refunded · Due) — opt-in per restaurant.
+  const reconciledSummary = restaurant?.posSettings?.reconciledOrderSummary === true;
 
   // Client-side sub-restaurant filtering (memoized)
   const displayedOrders = useMemo(() => {
@@ -3520,6 +3540,40 @@ const OrderHistory = () => {
               </div>
             </div>
           </div>
+
+          {/* Reconciled buckets strip (flag-gated: posSettings.reconciledOrderSummary) — shows where
+              every order sits so nothing reads as "money gone". Additive; existing cards unchanged. */}
+          {reconciledSummary && (
+            <div className="flex items-center flex-wrap gap-2 pb-2 sm:pb-3 overflow-x-auto scrollbar-hide">
+              <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-full px-3 py-1 flex-shrink-0">
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                <span className="text-[10.5px] text-amber-700 font-semibold uppercase tracking-wide">Open · Unbilled</span>
+                <span className="text-xs font-bold text-gray-900">{stats.openCount} · {formatCurrency(stats.openTotal)}</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-full px-3 py-1 flex-shrink-0">
+                <span className="w-2 h-2 rounded-full bg-slate-400" />
+                <span className="text-[10.5px] text-slate-600 font-semibold uppercase tracking-wide">Cancelled</span>
+                <span className="text-xs font-bold text-gray-900">{stats.cancelledCount} · {formatCurrency(stats.cancelledTotal)}</span>
+              </div>
+              {stats.refundedCount > 0 && (
+                <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 rounded-full px-3 py-1 flex-shrink-0">
+                  <span className="w-2 h-2 rounded-full bg-red-500" />
+                  <span className="text-[10.5px] text-red-700 font-semibold uppercase tracking-wide">Refunded</span>
+                  <span className="text-xs font-bold text-gray-900">{stats.refundedCount} · −{formatCurrency(stats.refundedTotal)}</span>
+                </div>
+              )}
+              {stats.dueTotal > 0 && (
+                <div className="flex items-center gap-1.5 bg-orange-50 border border-orange-200 rounded-full px-3 py-1 flex-shrink-0">
+                  <span className="w-2 h-2 rounded-full bg-orange-500" />
+                  <span className="text-[10.5px] text-orange-700 font-semibold uppercase tracking-wide">Due · Credit</span>
+                  <span className="text-xs font-bold text-gray-900">{formatCurrency(stats.dueTotal)}</span>
+                </div>
+              )}
+              <div className="text-[11px] text-gray-400 ml-auto hidden md:block flex-shrink-0">
+                Placed {stats.placedCount} = Billed {stats.completedCount} + Open {stats.openCount} + Cancelled {stats.cancelledCount}{stats.refundedCount > 0 ? ` + Refunded ${stats.refundedCount}` : ''}
+              </div>
+            </div>
+          )}
 
           {/* Compact inline stat strip — visible when scrolled, on mobile embed, or mobile screens */}
           <div style={{ willChange: 'max-height, opacity' }} className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${isScrolled || isMobileEmbed || isMobile ? 'max-h-12 opacity-100' : 'max-h-0 opacity-0'}`}>
