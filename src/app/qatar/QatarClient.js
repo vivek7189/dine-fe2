@@ -32,9 +32,9 @@ export default function QatarClient() {
   ];
 
   const whyPartner = [
-    { icon: FaGlobe, title: 'Global Technology, Local Support', desc: 'DineOpen powers 1,000+ restaurants in 20+ countries. In Qatar, you get the same world-class platform with local, on-ground support from Booster Trading Services.' },
+    { icon: FaGlobe, title: 'Global Technology, Local Support', desc: 'DineOpen powers 1,000+ restaurants in 20+ countries. In Qatar, you get the same world-class platform with local, on-ground support from Retzuky.' },
     { icon: FaShieldAlt, title: 'Qatar Payment Ready', desc: 'Pre-integrated with Sadad/WiseCashier cloud terminals and NAPS Qatar direct terminals. Accept Visa, Mastercard, and local cards seamlessly.' },
-    { icon: FaHeadset, title: 'Full Service — Sales to Support', desc: 'Booster Trading Services handles everything — demo, installation, staff training, CCTV setup, hardware, and ongoing technical support in Doha and across Qatar.' },
+    { icon: FaHeadset, title: 'Full Service — Sales to Support', desc: 'Retzuky handles everything — demo, installation, staff training, CCTV setup, hardware, and ongoing technical support in Doha and across Qatar.' },
     { icon: FaStore, title: 'Built for Every Restaurant Type', desc: 'Fine dining, casual restaurants, cafes, cloud kitchens, QSR chains, food courts, catering — DineOpen adapts to your format.' },
   ];
 
@@ -63,7 +63,7 @@ export default function QatarClient() {
   const faqs = [
     {
       q: 'Is DineOpen available in Qatar?',
-      a: 'Yes. DineOpen is available in Qatar through our official partner Booster Trading Services, based in Doha. They provide sales, installation, training, and ongoing support for all DineOpen products.',
+      a: 'Yes. DineOpen is available in Qatar through our official partner Retzuky, based in Doha. They provide sales, installation, training, and ongoing support for all DineOpen products.',
     },
     {
       q: 'Does DineOpen support Sadad payment terminals in Qatar?',
@@ -75,7 +75,7 @@ export default function QatarClient() {
     },
     {
       q: 'Can I get a free demo in Qatar?',
-      a: 'Yes. Contact Booster Trading Services at +974-7023-9555 or sales@boostertradingservicesqa.com to schedule a free demo at your restaurant in Doha or anywhere in Qatar.',
+      a: 'Yes. Contact Retzuky at +974 51120555 or sales.it@retzuky.com to schedule a free demo at your restaurant in Doha or anywhere in Qatar.',
     },
     {
       q: 'Does DineOpen work offline?',
@@ -125,10 +125,10 @@ export default function QatarClient() {
               fontSize: isMobile ? '16px' : '20px', color: 'rgba(255,255,255,0.85)',
               lineHeight: '1.6', maxWidth: '700px', margin: '0 auto 40px',
             }}>
-              DineOpen partners with Booster Trading Services to bring world-class restaurant technology to Doha and across Qatar — Cloud POS, Sadad terminal integration, AI voice ordering, and everything your restaurant needs.
+              DineOpen partners with Retzuky to bring world-class restaurant technology to Doha and across Qatar — Cloud POS, Sadad terminal integration, AI voice ordering, and everything your restaurant needs.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <a href="https://wa.me/97470239555?text=Hi%2C%20I%27m%20interested%20in%20DineOpen%20POS%20for%20my%20restaurant%20in%20Qatar" target="_blank" rel="noopener noreferrer" style={{
+              <a href="https://wa.me/97451120555?text=Hi%2C%20I%27m%20interested%20in%20DineOpen%20POS%20for%20my%20restaurant%20in%20Qatar" target="_blank" rel="noopener noreferrer" style={{
                 display: 'inline-flex', alignItems: 'center', gap: '8px',
                 padding: '14px 32px', backgroundColor: '#25d366', color: '#ffffff',
                 borderRadius: '12px', fontSize: '16px', fontWeight: '700',
@@ -176,10 +176,10 @@ export default function QatarClient() {
                 Official Partner in Qatar
               </p>
               <h2 style={{ fontSize: isMobile ? '30px' : '42px', fontWeight: '800', color: '#111827', marginBottom: '20px', lineHeight: '1.15' }}>
-                DineOpen + Booster Trading Services
+                DineOpen + Retzuky
               </h2>
               <p style={{ fontSize: '18px', color: '#6b7280', lineHeight: '1.7', maxWidth: '700px', margin: '0 auto' }}>
-                Booster Trading Services is our official sales and technology partner in Qatar. Based in Doha, they bring deep expertise in restaurant technology, hardware installation, and on-ground support — ensuring your DineOpen setup runs flawlessly from day one.
+                Retzuky is our official sales and technology partner in Qatar. Based in Doha, they bring deep expertise in restaurant technology, hardware installation, and on-ground support — ensuring your DineOpen setup runs flawlessly from day one.
               </p>
             </div>
 
@@ -187,38 +187,34 @@ export default function QatarClient() {
               display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
               gap: '40px', alignItems: 'start',
             }}>
-              {/* Booster Info */}
+              {/* Partner Info */}
               <div style={{
                 backgroundColor: '#f9fafb', borderRadius: '16px', padding: '32px',
                 border: '1px solid #e5e7eb',
               }}>
                 <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '20px' }}>
-                  Booster Trading Services
+                  Retzuky
                 </h3>
                 <p style={{ fontSize: '15px', color: '#6b7280', lineHeight: '1.7', marginBottom: '24px' }}>
-                  Part of the Booster Group of Companies, Booster Trading Services is a Doha-based technology and services company specializing in software solutions for restaurants, retail stores, salons, and supermarkets — along with CCTV installation, manpower supply, and business logistics across Qatar.
+                  Retzuky is our Doha-based technology and services partner in Qatar, delivering DineOpen's cloud POS, payment terminal integration, and restaurant solutions — with local sales, installation, training, and on-ground support across Qatar.
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <a href="https://www.retzuky.com" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
+                    <FaGlobe size={14} color="#ef4444" />
+                    <span style={{ fontSize: '14px', color: '#3b82f6' }}>www.retzuky.com</span>
+                  </a>
+                  <a href="tel:+97451120555" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
+                    <FaPhone size={14} color="#ef4444" />
+                    <span style={{ fontSize: '14px', color: '#374151' }}>+974 51120555</span>
+                  </a>
+                  <a href="mailto:sales.it@retzuky.com" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
+                    <FaEnvelope size={14} color="#ef4444" />
+                    <span style={{ fontSize: '14px', color: '#374151' }}>sales.it@retzuky.com</span>
+                  </a>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <FaMapMarkerAlt size={16} color="#ef4444" />
-                    <span style={{ fontSize: '14px', color: '#374151' }}>Ain Khaled, Souq Al Nayef, Doha, Qatar</span>
+                    <span style={{ fontSize: '14px', color: '#374151' }}>Doha, Qatar</span>
                   </div>
-                  <a href="tel:+97470239555" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
-                    <FaPhone size={14} color="#ef4444" />
-                    <span style={{ fontSize: '14px', color: '#374151' }}>+974 7023 9555 (Hotline)</span>
-                  </a>
-                  <a href="tel:+97470239555" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
-                    <FaPhone size={14} color="#ef4444" />
-                    <span style={{ fontSize: '14px', color: '#374151' }}>+974 7023 9555</span>
-                  </a>
-                  <a href="mailto:sales@boostertradingservicesqa.com" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
-                    <FaEnvelope size={14} color="#ef4444" />
-                    <span style={{ fontSize: '14px', color: '#374151' }}>sales@boostertradingservicesqa.com</span>
-                  </a>
-                  <a href="https://www.boostertradingservicesqa.com" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
-                    <FaGlobe size={14} color="#ef4444" />
-                    <span style={{ fontSize: '14px', color: '#3b82f6' }}>www.boostertradingservicesqa.com</span>
-                  </a>
                 </div>
               </div>
 
@@ -400,7 +396,7 @@ export default function QatarClient() {
               Get a free demo at your restaurant. Our Qatar team will set up everything — POS, payment terminal, kitchen display — and train your staff.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '40px' }}>
-              <a href="https://wa.me/97470239555?text=Hi%2C%20I%27m%20interested%20in%20DineOpen%20POS%20for%20my%20restaurant%20in%20Qatar" target="_blank" rel="noopener noreferrer" style={{
+              <a href="https://wa.me/97451120555?text=Hi%2C%20I%27m%20interested%20in%20DineOpen%20POS%20for%20my%20restaurant%20in%20Qatar" target="_blank" rel="noopener noreferrer" style={{
                 display: 'inline-flex', alignItems: 'center', gap: '8px',
                 padding: '14px 32px', backgroundColor: '#25d366', color: '#ffffff',
                 borderRadius: '12px', fontSize: '16px', fontWeight: '700',
@@ -409,13 +405,13 @@ export default function QatarClient() {
               }}>
                 <FaWhatsapp size={20} /> WhatsApp Us
               </a>
-              <a href="tel:+97470239555" style={{
+              <a href="tel:+97451120555" style={{
                 display: 'inline-flex', alignItems: 'center', gap: '8px',
                 padding: '14px 32px', backgroundColor: 'rgba(255,255,255,0.15)', color: '#ffffff',
                 borderRadius: '12px', fontSize: '16px', fontWeight: '700',
                 textDecoration: 'none', border: '2px solid rgba(255,255,255,0.3)',
               }}>
-                <FaPhone size={16} /> +974 7023 9555
+                <FaPhone size={16} /> +974 51120555
               </a>
             </div>
             <div style={{
@@ -423,7 +419,7 @@ export default function QatarClient() {
               fontSize: '14px', color: 'rgba(255,255,255,0.7)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <FaEnvelope size={12} /> sales@boostertradingservicesqa.com
+                <FaEnvelope size={12} /> sales.it@retzuky.com
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <FaMapMarkerAlt size={12} /> Ain Khaled, Doha, Qatar
