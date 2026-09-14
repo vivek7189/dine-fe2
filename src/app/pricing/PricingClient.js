@@ -406,10 +406,6 @@ export default function PricingClient() {
 
                 {/* Direct contact line */}
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap', justifyContent: 'center', fontSize: '13px', color: '#9ca3af' }}>
-                  <a href={INDIA_WA_LINK} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#86efac', textDecoration: 'none', fontWeight: '600' }}>
-                    <FaWhatsapp size={13} /> +91 90044 59951
-                  </a>
-                  <span style={{ opacity: 0.4 }}>•</span>
                   <a href={`mailto:${INDIA_EMAIL}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#fca5a5', textDecoration: 'none', fontWeight: '600' }}>
                     <FaEnvelope size={12} /> {INDIA_EMAIL}
                   </a>
