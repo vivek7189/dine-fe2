@@ -196,7 +196,7 @@ export default function QatarClient() {
                   Retzuky
                 </h3>
                 <p style={{ fontSize: '15px', color: '#6b7280', lineHeight: '1.7', marginBottom: '24px' }}>
-                  Retzuky is our Doha-based technology and services partner in Qatar, delivering DineOpen's cloud POS, payment terminal integration, and restaurant solutions — with local sales, installation, training, and on-ground support across Qatar.
+                  Retzuky is our Doha-based technology and services partner in Qatar, delivering DineOpen&apos;s cloud POS, payment terminal integration, and restaurant solutions — with local sales, installation, training, and on-ground support across Qatar.
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                   <a href="https://www.retzuky.com" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
