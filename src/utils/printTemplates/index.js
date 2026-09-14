@@ -14,6 +14,8 @@ import * as billElegant from './bill/elegant';
 import * as billMinimal from './bill/minimal';
 import * as billProfessional from './bill/professional';
 
+import { pickNameLang } from './helpers';
+
 const KOT_TEMPLATES = {
   classic: kotClassic,
   compact: kotCompact,
@@ -51,6 +53,15 @@ export function renderKOT(kotData, printSettings = {}, labels = {}) {
 export function renderBill(invoice, printSettings = {}, labels = {}) {
   const templateId = printSettings.billTemplate || 'classic';
   const template = BILL_TEMPLATES[templateId] || BILL_TEMPLATES.classic;
+
+  // Bill item-name language (default unset/'both' = unchanged). When 'english' or 'local', trim each
+  // bilingual "English / local-script" item name to one script so long dual-language names (e.g.
+  // Tamil) don't wrap to 3-4 lines on the printed bill. Clone so the caller's invoice/items are
+  // NEVER mutated — only the printed name changes; KOT and the menu screen keep the full name.
+  const _nameLang = printSettings.billNameLanguage;
+  if ((_nameLang === 'english' || _nameLang === 'local') && Array.isArray(invoice.items)) {
+    invoice = { ...invoice, items: invoice.items.map((it) => ({ ...it, name: pickNameLang(it.name, _nameLang) })) };
+  }
   // Order-type-aware footer: "Thank you for dining with us!" only fits dine-in. For
   // takeaway / delivery / pickup use a neutral thank-you instead. Only applied when the
   // restaurant hasn't set an explicit custom footer (labels.footer absent), so a custom

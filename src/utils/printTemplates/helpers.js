@@ -510,6 +510,19 @@ export function dualTitle(en, ar, showAr) {
 }
 
 // Render item name with optional Arabic name below
+// Pick a single language from a bilingual "English / local-script" item name (e.g. Tamil
+// "MASALA DOSAI / மசாலா தோசை") so the printed bill doesn't wrap each item to 3-4 lines.
+// Script-aware: the "local" part is the one with non-Latin characters, so a plain "Tea/Coffee"
+// (both Latin) is never trimmed. mode: 'english' | 'local'; anything else (incl. 'both'/undefined)
+// returns the name unchanged. Falls back to the full name if the split yields nothing.
+export function pickNameLang(name, mode) {
+  if (!name || (mode !== 'english' && mode !== 'local') || !String(name).includes('/')) return name;
+  const parts = String(name).split('/').map((s) => s.trim()).filter(Boolean);
+  const hasLocal = (s) => Array.from(String(s)).some((ch) => ch.charCodeAt(0) > 127);
+  const picked = mode === 'english' ? parts.filter((p) => !hasLocal(p)) : parts.filter(hasLocal);
+  return picked.length ? picked.join(' / ') : name;
+}
+
 export function dualItemName(item, showAr) {
   const name = esc(item.name);
   if (!showAr || !item.nameAr) return name;
