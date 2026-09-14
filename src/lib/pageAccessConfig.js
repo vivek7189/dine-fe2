@@ -72,6 +72,13 @@ export const ROUTE_TO_ACCESS_KEY = {
 // ─── Pages accessible without any permission check ───
 export const ALWAYS_ACCESSIBLE = ['/profile', '/home', '/more'];
 
+// Pages a WAITER normally has (true in the waiter role default). Waiters historically bypassed
+// pageAccess entirely; we now let an owner restrict ONLY these normally-available pages (e.g. hide
+// Order History). Pages that were only ever shown to waiters via that legacy bypass (KOT, Admin,
+// etc. — false in the waiter default) stay visible exactly as before, so no existing waiter loses
+// access by default. An owner opting a waiter OUT of one of these keys is honored.
+export const WAITER_ENFORCEABLE_KEYS = new Set(['dashboard', 'history', 'tables', 'menu']);
+
 // ─── Helper: check if a pageAccess key has granular sub-operations ───
 export function hasGranularOps(key) {
   return !!FEATURE_OPS[key];

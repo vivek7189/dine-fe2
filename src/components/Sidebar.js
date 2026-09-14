@@ -44,7 +44,7 @@ import { t } from '../lib/i18n';
 import { performLogout } from '../lib/logout';
 import { useLoading } from '../contexts/LoadingContext';
 import { isElectron } from '../utils/platform';
-import { NAV_ID_TO_ACCESS_KEY } from '../lib/pageAccessConfig';
+import { NAV_ID_TO_ACCESS_KEY, WAITER_ENFORCEABLE_KEYS } from '../lib/pageAccessConfig';
 
 export default function Sidebar({ isDashboardPage = false }) {
   const pathname = usePathname();
@@ -330,8 +330,23 @@ export default function Sidebar({ isDashboardPage = false }) {
     }
 
     // Owner and admin (co-owner) bypass pageAccess — full sidebar access
-    if (['owner', 'admin', 'waiter'].includes(user.role)) {
+    if (['owner', 'admin'].includes(user.role)) {
       return item.roles.includes(user.role);
+    }
+
+    // Waiters must be an allowed role for the item. We only ENFORCE pageAccess on pages a waiter
+    // normally has (WAITER_ENFORCEABLE_KEYS) and only when the owner explicitly set it — so an owner
+    // can hide e.g. Order History. Legacy-bypass pages (KOT, Admin, …) stay visible exactly as
+    // before → zero impact on existing waiters.
+    if (user.role === 'waiter') {
+      if (!item.roles.includes('waiter')) return false;
+      const accessKey = NAV_ID_TO_ACCESS_KEY[item.id];
+      if (!accessKey || !WAITER_ENFORCEABLE_KEYS.has(accessKey) || !pageAccess) return true;
+      const accessValue = pageAccess[accessKey];
+      if (typeof accessValue === 'object' && accessValue !== null) {
+        return Object.values(accessValue).some(Boolean);
+      }
+      return !!accessValue;
     }
 
     // All other roles (manager, employee, cashier, sales, custom) — pageAccess is the authority

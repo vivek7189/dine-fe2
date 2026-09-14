@@ -25,18 +25,18 @@ import { KraStatusContext } from '../../contexts/KraStatusContext';
 import { isWeb, isTauri, isElectron } from '../../utils/platform';
 import { isAutoUpdateEnabled, checkForUpdates, restartApp } from '../../utils/autoUpdater';
 import apiClient from '../../lib/api';
-import { preferLoopbackIfLocal } from '../../lib/localServer';
+import { preferLoopbackIfLocal, syncServerModeFromHost } from '../../lib/localServer';
 import { reconnectLan } from '../../lib/lanRealtime';
 import { initPrintDiagnostics } from '../../lib/printDiagnostics';
-import { ROUTE_TO_ACCESS_KEY, ALWAYS_ACCESSIBLE } from '../../lib/pageAccessConfig';
+import { ROUTE_TO_ACCESS_KEY, ALWAYS_ACCESSIBLE, WAITER_ENFORCEABLE_KEYS } from '../../lib/pageAccessConfig';
 import { FaCloudUploadAlt, FaArrowRight, FaUtensils, FaSyncAlt } from 'react-icons/fa';
 import { DineBotProvider } from '../../components/DineBotProvider';
 
 function checkRouteAccess(pathname, user, pageAccess) {
   if (!user || !user.role) return false;
 
-  // Owner, admin, and waiter bypass pageAccess (consistent with Sidebar)
-  if (['owner', 'admin', 'waiter'].includes(user.role)) return true;
+  // Owner and admin bypass pageAccess (consistent with Sidebar)
+  if (['owner', 'admin'].includes(user.role)) return true;
 
   // Always-accessible pages
   if (ALWAYS_ACCESSIBLE.some(p => pathname === p || pathname.startsWith(p + '/'))) return true;
@@ -45,6 +45,19 @@ function checkRouteAccess(pathname, user, pageAccess) {
   const routeSegment = '/' + pathname.split('/').filter(Boolean)[0];
   const accessKey = ROUTE_TO_ACCESS_KEY[routeSegment];
   if (!accessKey) return true; // Unknown routes default to accessible (profile, etc.)
+
+  // Waiters historically bypassed pageAccess entirely. Now HONOR the owner's setting, but ONLY for
+  // pages a waiter normally has (WAITER_ENFORCEABLE_KEYS) and only when explicitly set — so a waiter
+  // is restricted only on pages the owner deliberately turned off. Pages shown to waiters solely via
+  // the legacy bypass (KOT, Admin, …) stay visible exactly as before → zero impact by default.
+  if (user.role === 'waiter') {
+    if (!WAITER_ENFORCEABLE_KEYS.has(accessKey)) return true; // legacy-bypass pages: unchanged
+    if (!pageAccess) return true;
+    const v = pageAccess[accessKey];
+    if (v === undefined || v === null) return true; // not configured → allow (unchanged behaviour)
+    if (typeof v === 'object') return Object.values(v).some(Boolean);
+    return !!v;
+  }
 
   if (!pageAccess) return false;
 
@@ -63,19 +76,13 @@ function DashboardLayoutContent({ children }) {
   // localStorage the rest of the app uses; refresh on restaurant switch.
   const [lockRestaurant, setLockRestaurant] = useState(null);
   useEffect(() => {
+    // Keep the runtime server-mode mirror fresh so LAN/offline gates (isServerModeActive) reflect
+    // the real per-device setting inside the dashboard too. No-op on web / when not the installed app.
+    syncServerModeFromHost().catch(() => {});
     const read = () => { try { setLockRestaurant(JSON.parse(localStorage.getItem('selectedRestaurant') || 'null')); } catch { setLockRestaurant(null); } };
     read();
     window.addEventListener('restaurantChanged', read);
     return () => window.removeEventListener('restaurantChanged', read);
-  }, []);
-
-  // App-version telemetry: report which build this user + terminal is running. Low-frequency
-  // (once on open + every ~6h) so already-logged-in tills are captured without per-request cost.
-  // Native app only; no-op on web. Fire-and-forget.
-  useEffect(() => {
-    try { apiClient.reportAppVersion?.(); } catch (_) {}
-    const id = setInterval(() => { try { apiClient.reportAppVersion?.(); } catch (_) {} }, 6 * 60 * 60 * 1000);
-    return () => clearInterval(id);
   }, []);
   // KRA eTIMS auto-retry: while the POS is open, re-drive any sales the VSCU couldn't sign
   // (store-and-forward). No-op unless Kenya + eTIMS + desktop. Drives the health banner below.
