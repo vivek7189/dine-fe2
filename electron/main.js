@@ -88,6 +88,16 @@ function isServerBuild() {
   try { return /DineOpen POS Server/i.test(app.getPath('exe') || ''); } catch { return false; }
 }
 
+// Cloud-build hard-guard: the embedded local server (DineOpenServer/pgdata) is ONLY for the
+// dedicated "DineOpen POS Server" build. In the plain cloud app, a stray serverMode flag caused the
+// old local DB to resurface with stale orders and auto-recreate the DineOpenServer folder. Force it
+// off in the cloud build so isServerModeEnabled() short-circuits to false (localServer.js:74) — the
+// local Postgres never boots, never rebuilds pgdata, and the folder isn't touched. An explicit env
+// override (set intentionally by an operator) is still respected.
+if (!isServerBuild() && process.env.DINE_LOCAL_SERVER == null) {
+  process.env.DINE_LOCAL_SERVER = '0';
+}
+
 // Remember the version the app ran BEFORE the current one, so the user can revert to it from
 // Admin → Download. Runs once per launch; purely local file bookkeeping, fully guarded so it
 // can never affect startup. On the very first install there is no previous version (no revert).
