@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { FaDatabase, FaTrash, FaSync, FaExclamationTriangle, FaCheckCircle, FaSpinner, FaClipboardList, FaShoppingCart, FaServer, FaToggleOn, FaToggleOff, FaPowerOff, FaRedo, FaCircle, FaClock } from 'react-icons/fa';
 import { getOfflineEngineEnabled, setOfflineEngineEnabled, useSyncEngine } from '../hooks/useSyncEngine';
 import apiClient from '../lib/api';
+import { getApiBase, getCloudApiBase } from '../lib/apiBase';
+import { getLocalServerUrl } from '../lib/localServer';
 import { isTauri, isElectron } from '../utils/platform';
 import { getSyncStatus, getPendingMutations, getSyncHistory, triggerSync, pauseSync, resumeSync, retryMutation, deleteMutation, clearCache, getCacheStats } from '../lib/tauriSync';
 import * as electronSync from '../lib/electronSync';
@@ -31,6 +33,12 @@ export default function OfflineDataTab() {
   const [offlineEnabled, setOfflineEnabled] = useState(() => getOfflineEngineEnabled());
   const [confirmDeleteKey, setConfirmDeleteKey] = useState(null);
   const [expandedFailed, setExpandedFailed] = useState(false);
+  const [expandedOrders, setExpandedOrders] = useState(true);
+  const [syncingKey, setSyncingKey] = useState(null);
+  const [diag, setDiag] = useState(null);
+  const [runningDiag, setRunningDiag] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const {
     pendingCount: syncPendingCount,
@@ -121,6 +129,32 @@ export default function OfflineDataTab() {
         }
       } catch { /* caches not available */ }
 
+      // Compact per-order projection for the detailed list (keeps React state light).
+      // Un-synced orders (pending/failed/syncing) sort first, newest-first within each group.
+      const orderList = allOrders.map((o) => {
+        const od = o.orderData || {};
+        const action = od._offlineAction;
+        const label = action === 'create_saved_cart' ? 'Saved Cart'
+          : action === 'complete_billing_new' ? 'New Bill'
+          : action === 'complete_billing_existing' ? 'Existing Bill' : 'Order';
+        const amount = od.finalAmount ?? od.totalAmount ?? od.grandTotal ?? od.total ?? od.amount ?? null;
+        return {
+          idempotencyKey: o.idempotencyKey,
+          syncStatus: o.syncStatus,
+          createdAt: o.createdAt,
+          retryCount: o.retryCount || 0,
+          lastError: o.lastError || null,
+          label,
+          itemsCount: Array.isArray(od.items) ? od.items.length : 0,
+          amount,
+          orderNumber: od.orderNumber || od.dailyOrderId || null,
+        };
+      }).sort((a, b) => {
+        const rank = (s) => (s === 'synced' ? 1 : 0);
+        const r = rank(a.syncStatus) - rank(b.syncStatus);
+        return r !== 0 ? r : (b.createdAt || 0) - (a.createdAt || 0);
+      });
+
       setStats({
         orders: {
           total: allOrders.length,
@@ -129,6 +163,7 @@ export default function OfflineDataTab() {
           synced: syncedOrders.length,
           syncing: syncingOrders.length,
           oldest: allOrders.length > 0 ? Math.min(...allOrders.map(o => o.createdAt)) : null,
+          list: orderList,
         },
         cache: {
           items: cachedItems.length,
@@ -166,6 +201,160 @@ export default function OfflineDataTab() {
   useEffect(() => {
     loadStats();
   }, [loadStats]);
+
+  // Sync ONE offline order now (works for pending/failed): re-queue → push → refresh.
+  const handleSyncOne = useCallback(async (key) => {
+    setSyncingKey(key);
+    try {
+      await retrySingleOrder(key);
+      await manualSync();
+      showToast('Order queued and synced');
+    } catch (e) {
+      showToast('Sync failed: ' + (e?.message || 'error'), 'error');
+    } finally {
+      setSyncingKey(null);
+      await loadStats();
+    }
+  }, [retrySingleOrder, manualSync, loadStats]);
+
+  // Delete ONE offline order from this device. The UI guards this: synced orders delete
+  // freely; un-synced ones require an explicit "delete anyway" so a real order is never lost by accident.
+  const handleDeleteOne = useCallback(async (key) => {
+    try {
+      await deleteFailedOrder(key); // generic delete-by-key (name is historical)
+      showToast('Order deleted from this device');
+    } catch (e) {
+      showToast('Delete failed: ' + (e?.message || 'error'), 'error');
+    } finally {
+      setConfirmDeleteKey(null);
+      await loadStats();
+    }
+  }, [deleteFailedOrder, loadStats]);
+
+  // ---- Diagnostics: what backend is the app pointed at, is it reachable, and where do any
+  // stale orders actually live (localStorage cache vs IndexedDB API cache)? ----
+  const probe = useCallback(async (url, ms = 3500) => {
+    if (!url) return false;
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), ms);
+      const res = await fetch(`${String(url).replace(/\/+$/, '')}/api/health`, { signal: ctrl.signal, cache: 'no-store' });
+      clearTimeout(t);
+      return res.ok;
+    } catch { return false; }
+  }, []);
+
+  const countOrders = (d) => {
+    try {
+      if (Array.isArray(d)) return d.length;
+      if (d && Array.isArray(d.orders)) return d.orders.length;
+      if (d && d.data && Array.isArray(d.data.orders)) return d.data.orders.length;
+      if (d && d.data && Array.isArray(d.data)) return d.data.length;
+    } catch { /* ignore */ }
+    return null;
+  };
+
+  const runDiagnostics = useCallback(async () => {
+    setRunningDiag(true);
+    try {
+      const LOOPBACK = 'http://127.0.0.1:3003';
+      const activeBackend = (() => { try { return getApiBase(); } catch { return null; } })();
+      const cloudBackend = (() => { try { return getCloudApiBase(); } catch { return null; } })();
+      let localPin = null; try { localPin = getLocalServerUrl(); } catch { /* ignore */ }
+      let backendPin = null; try { backendPin = localStorage.getItem('dineopen_backend_url'); } catch { /* ignore */ }
+      const online = typeof navigator !== 'undefined' ? navigator.onLine : true;
+
+      const [localAlive, activeAlive, cloudAlive] = await Promise.all([
+        probe(LOOPBACK, 2500), probe(activeBackend, 4000), probe(cloudBackend, 4000),
+      ]);
+
+      // Where do cached ORDERS live? (this is usually the real source of a stale display)
+      const cachedOrders = [];
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith('orderhistory_cache_') || key.startsWith('dashboard_cache_'))) {
+            let n = null; try { n = countOrders(JSON.parse(localStorage.getItem(key))); } catch { /* ignore */ }
+            cachedOrders.push({ where: 'localStorage', key, orders: n });
+          }
+        }
+      } catch { /* ignore */ }
+      try {
+        const { getDb } = await import('../lib/offlineDb');
+        const db = await getDb();
+        const cachedApi = await db.getAll('cached_api');
+        cachedApi.forEach((c) => {
+          if (c.cacheKey && c.cacheKey.toLowerCase().includes('order')) {
+            cachedOrders.push({ where: 'IndexedDB:cached_api', key: c.cacheKey, orders: countOrders(c.data) });
+          }
+        });
+      } catch { /* ignore */ }
+
+      let storage = null;
+      try { if (navigator.storage?.estimate) { const e = await navigator.storage.estimate(); storage = { usedMB: Math.round((e.usage || 0) / 1e6), quotaMB: Math.round((e.quota || 0) / 1e6) }; } } catch { /* ignore */ }
+      let dbNames = [];
+      try { if (indexedDB.databases) dbNames = (await indexedDB.databases()).map(d => d.name).filter(Boolean); } catch { /* ignore */ }
+
+      const usingLocal = !!localPin || (!!activeBackend && activeBackend.includes('127.0.0.1'));
+      const staleCached = cachedOrders.some(c => (c.orders || 0) > 0);
+      let verdict, severity;
+      if (usingLocal && !localAlive) {
+        severity = 'bad';
+        verdict = 'App is pointed at the LOCAL SERVER (127.0.0.1:3003) but it is DEAD. This is the bug — click "Clean Everything & Reload" below.';
+      } else if (usingLocal && localAlive) {
+        severity = 'warn';
+        verdict = 'App is using the LOCAL SERVER (still running on this PC). Stop/uninstall the local server app, then Clean Everything.';
+      } else if (!activeAlive) {
+        severity = 'warn';
+        verdict = 'App is pointed at the cloud, but the backend is not reachable now (check internet / firewall / VPN).';
+      } else if (staleCached) {
+        severity = 'warn';
+        verdict = 'App is on the cloud and reachable, but old ORDERS are cached locally (see below). Click "Clean Everything & Reload" to drop them and refetch fresh.';
+      } else {
+        severity = 'good';
+        verdict = 'App is correctly using the cloud backend, it is reachable, and no stale cached orders were found. It should match the website.';
+      }
+
+      setDiag({
+        at: new Date().toLocaleString(), online,
+        activeBackend, cloudBackend, localServerPin: localPin || '(none)', backendPin: backendPin || '(none)',
+        localServerAlive: localAlive, activeBackendAlive: activeAlive, cloudBackendAlive: cloudAlive,
+        offlineOrders: stats?.orders?.total ?? '?',
+        pendingUnsynced: (stats?.orders?.pending ?? 0) + (stats?.orders?.failed ?? 0),
+        cachedOrders, storage, indexedDbs: dbNames, verdict, severity,
+      });
+    } finally {
+      setRunningDiag(false);
+    }
+  }, [probe, stats]);
+
+  const copyDiag = useCallback(() => {
+    if (!diag) return;
+    try { navigator.clipboard.writeText(JSON.stringify(diag, null, 2)); showToast('Diagnostics copied — paste to support'); }
+    catch { showToast('Copy failed', 'error'); }
+  }, [diag]);
+
+  // ---- Clean Everything: wipe ALL local state (localStorage + IndexedDB + caches) and reload.
+  // Forces the app back to the cloud. Guarded in the UI when un-synced orders exist. ----
+  const handleHardReset = useCallback(async () => {
+    setResetting(true);
+    try {
+      try { localStorage.clear(); } catch { /* ignore */ }
+      try { sessionStorage.clear(); } catch { /* ignore */ }
+      try {
+        const dbs = indexedDB.databases ? await indexedDB.databases() : [];
+        await Promise.all(dbs.map(d => d.name
+          ? new Promise((res) => { const r = indexedDB.deleteDatabase(d.name); r.onsuccess = r.onerror = r.onblocked = () => res(); })
+          : Promise.resolve()));
+      } catch { /* ignore */ }
+      try { if (window.caches) { const k = await caches.keys(); await Promise.all(k.map(n => caches.delete(n))); } } catch { /* ignore */ }
+      showToast('All local data cleared — reloading…');
+      setTimeout(() => { try { window.location.reload(); } catch { /* ignore */ } }, 700);
+    } catch (e) {
+      setResetting(false);
+      showToast('Reset failed: ' + (e?.message || 'error'), 'error');
+    }
+  }, []);
 
   const handleClearAll = async () => {
     setClearing('all');
@@ -506,6 +695,111 @@ export default function OfflineDataTab() {
         </div>
       ) : (
         <>
+          {/* Diagnostics — what backend the app uses, where stale orders live, + Clean Everything reset */}
+          <div style={{ ...cardStyle, border: '1px solid #c7d2fe', background: '#eef2ff' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FaServer style={{ color: '#4f46e5' }} />
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700' }}>Diagnostics</h3>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button onClick={runDiagnostics} disabled={runningDiag} style={{ ...btnStyle('#4f46e5'), opacity: runningDiag ? 0.5 : 1 }}>
+                  {runningDiag ? <FaSpinner size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <FaServer size={11} />}
+                  {runningDiag ? 'Checking…' : 'Run Check'}
+                </button>
+                {diag && (
+                  <button onClick={copyDiag} style={btnStyle('#6b7280')}>
+                    <FaClipboardList size={11} /> Copy Report
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {!diag && !runningDiag && (
+              <p style={{ margin: 0, color: '#4338ca', fontSize: '13px' }}>
+                Click <strong>Run Check</strong> to see which backend this app is using, whether it can reach the cloud, and where any old orders are cached. Then <strong>Copy Report</strong> and send it to support.
+              </p>
+            )}
+
+            {diag && (
+              <>
+                <div style={{
+                  padding: '10px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, marginBottom: '12px',
+                  background: diag.severity === 'bad' ? '#fef2f2' : diag.severity === 'warn' ? '#fffbeb' : '#f0fdf4',
+                  color: diag.severity === 'bad' ? '#991b1b' : diag.severity === 'warn' ? '#92400e' : '#166534',
+                  border: `1px solid ${diag.severity === 'bad' ? '#fca5a5' : diag.severity === 'warn' ? '#fde68a' : '#bbf7d0'}`,
+                }}>
+                  {diag.severity === 'bad' ? '🔴 ' : diag.severity === 'warn' ? '⚠️ ' : '✅ '}{diag.verdict}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px', fontSize: '12px' }}>
+                  {[
+                    ['Active backend (in use)', diag.activeBackend || '(unknown)'],
+                    ['Active reachable?', diag.activeBackendAlive ? '✅ yes' : '❌ no'],
+                    ['Cloud backend', diag.cloudBackend || '(unknown)'],
+                    ['Cloud reachable?', diag.cloudBackendAlive ? '✅ yes' : '❌ no'],
+                    ['Local-server pin', diag.localServerPin],
+                    ['Local server 127.0.0.1:3003', diag.localServerAlive ? '⚠️ RUNNING' : 'not running'],
+                    ['Backend pin', diag.backendPin],
+                    ['Internet', diag.online ? 'online' : 'OFFLINE'],
+                    ['Offline orders (queue)', String(diag.offlineOrders) + (diag.pendingUnsynced ? ` — ${diag.pendingUnsynced} unsynced!` : '')],
+                    ['Storage used', diag.storage ? `${diag.storage.usedMB} / ${diag.storage.quotaMB} MB` : 'n/a'],
+                  ].map(([k, v]) => (
+                    <div key={k} style={{ padding: '8px 10px', background: '#fff', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                      <div style={{ color: '#6b7280', marginBottom: '2px' }}>{k}</div>
+                      <div style={{ color: '#111', fontWeight: 600, fontFamily: 'monospace', wordBreak: 'break-all' }}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Where stale orders are cached */}
+                <div style={{ marginTop: '12px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#4338ca', marginBottom: '6px' }}>Cached order data on this device</div>
+                  {diag.cachedOrders.length === 0 ? (
+                    <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>None found — no old orders cached locally.</p>
+                  ) : (
+                    <div style={{ maxHeight: '160px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {diag.cachedOrders.map((c, idx) => (
+                        <div key={idx} style={{ padding: '6px 10px', background: (c.orders || 0) > 0 ? '#fffbeb' : '#fff', border: `1px solid ${(c.orders || 0) > 0 ? '#fde68a' : '#e5e7eb'}`, borderRadius: '6px', fontSize: '12px', display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                          <span style={{ fontFamily: 'monospace', color: '#374151', wordBreak: 'break-all' }}>{c.where}: {c.key}</span>
+                          <span style={{ fontWeight: 700, color: (c.orders || 0) > 0 ? '#b45309' : '#6b7280', whiteSpace: 'nowrap' }}>{c.orders == null ? '? orders' : `${c.orders} orders`}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Clean Everything */}
+            <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px dashed #c7d2fe' }}>
+              {confirmReset ? (
+                <div style={{ padding: '12px 14px', borderRadius: '8px', background: '#fef2f2', border: '1px solid #fca5a5' }}>
+                  <div style={{ fontSize: '13px', color: '#991b1b', fontWeight: 600, marginBottom: '8px' }}>
+                    This deletes ALL local data on this device (cached orders, caches, saved server pointer) and reloads — forcing the app back to the cloud.{' '}
+                    {(stats.orders.pending + stats.orders.failed) > 0
+                      ? <span>⚠️ You have {stats.orders.pending + stats.orders.failed} UN-SYNCED order(s) — Sync them first or they will be lost!</span>
+                      : <span>Offline orders: 0 — nothing will be lost. You may need to log in again.</span>}
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button onClick={handleHardReset} disabled={resetting} style={{ ...btnStyle('#dc2626'), opacity: resetting ? 0.6 : 1 }}>
+                      {resetting ? <FaSpinner size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <FaTrash size={11} />}
+                      Yes, clean everything &amp; reload
+                    </button>
+                    <button onClick={() => setConfirmReset(false)} disabled={resetting} style={btnStyle('#6b7280')}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => setConfirmReset(true)} style={btnStyle('#dc2626')}>
+                  <FaTrash size={11} /> Clean Everything &amp; Reload
+                </button>
+              )}
+              <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#6b7280' }}>
+                Use this if the app shows old orders that don&apos;t match the website. It clears every local cache/pointer and reloads onto the cloud.
+              </p>
+            </div>
+          </div>
+
           {/* Storage Overview */}
           <div style={cardStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
@@ -577,6 +871,113 @@ export default function OfflineDataTab() {
               </div>
             )}
           </div>
+
+          {/* Offline Order Details — per-order list with individual Sync / Delete (safe, scrollable) */}
+          {stats.orders.total > 0 && Array.isArray(stats.orders.list) && (
+            <div style={cardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                <button
+                  onClick={() => setExpandedOrders(v => !v)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                >
+                  <FaClipboardList style={{ color: '#f59e0b' }} />
+                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700' }}>Order Details</h3>
+                  <span style={{ ...statBoxStyle, background: '#fef3c7', color: '#92400e', fontSize: '12px' }}>
+                    {stats.orders.list.length} order{stats.orders.list.length !== 1 ? 's' : ''}
+                  </span>
+                  <span style={{ fontSize: '12px', color: '#9ca3af' }}>{expandedOrders ? '▼' : '▶'}</span>
+                </button>
+                {(stats.orders.pending + stats.orders.failed) > 0 && (
+                  <button
+                    onClick={manualSync}
+                    disabled={!isOnline || isSyncing}
+                    style={{ ...btnStyle('#2563eb'), opacity: (!isOnline || isSyncing) ? 0.4 : 1 }}
+                  >
+                    {isSyncing ? <FaSpinner size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <FaSync size={11} />}
+                    Sync All Unsynced
+                  </button>
+                )}
+              </div>
+
+              <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px' }}>
+                <span style={{ color: '#c2410c', fontWeight: 700 }}>●</span> Pending / <span style={{ color: '#dc2626', fontWeight: 700 }}>●</span> Failed = <strong>not on server yet</strong> · <span style={{ color: '#15803d', fontWeight: 700 }}>●</span> Synced = safely on server
+              </div>
+
+              {expandedOrders && (
+                <div style={{ maxHeight: '380px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '4px' }}>
+                  {stats.orders.list.map((order) => {
+                    const st = order.syncStatus;
+                    const isSynced = st === 'synced';
+                    const meta = isSynced ? { bg: '#f0fdf4', bd: '#bbf7d0', col: '#15803d', txt: 'Synced', Icon: FaCheckCircle }
+                      : st === 'failed' ? { bg: '#fef2f2', bd: '#fca5a5', col: '#dc2626', txt: 'Failed', Icon: FaExclamationTriangle }
+                      : st === 'syncing' ? { bg: '#eff6ff', bd: '#bfdbfe', col: '#2563eb', txt: 'Syncing', Icon: FaSync }
+                      : { bg: '#fff7ed', bd: '#fed7aa', col: '#c2410c', txt: 'Pending', Icon: FaClock };
+                    const Icon = meta.Icon;
+                    const isRowSyncing = syncingKey === order.idempotencyKey;
+                    return (
+                      <div key={order.idempotencyKey} style={{ padding: '10px 14px', borderRadius: '8px', background: '#fff', border: `1px solid ${meta.bd}`, fontSize: '13px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', flexWrap: 'wrap' }}>
+                          <div style={{ flex: 1, minWidth: '180px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '20px', background: meta.bg, color: meta.col, fontSize: '11px', fontWeight: 700 }}>
+                                <Icon size={9} /> {meta.txt}
+                              </span>
+                              <span style={{ fontWeight: 600, color: '#111' }}>{order.label}</span>
+                              {order.orderNumber && <span style={{ color: '#6b7280', fontSize: '12px' }}>#{order.orderNumber}</span>}
+                              {order.itemsCount > 0 && <span style={{ color: '#9ca3af', fontSize: '12px' }}>· {order.itemsCount} item{order.itemsCount !== 1 ? 's' : ''}</span>}
+                              {order.amount != null && <span style={{ fontWeight: 700, color: '#111' }}>· {order.amount}</span>}
+                            </div>
+                            <div style={{ color: '#9ca3af', fontSize: '12px' }}>
+                              {formatTime(order.createdAt)}
+                              {order.retryCount > 0 && <span> · {order.retryCount} attempt{order.retryCount !== 1 ? 's' : ''}</span>}
+                            </div>
+                            {order.lastError && (
+                              <div style={{ color: '#dc2626', fontSize: '11px', marginTop: '4px', fontFamily: 'monospace', wordBreak: 'break-word' }}>{order.lastError}</div>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', gap: '6px', flexShrink: 0, alignItems: 'center' }}>
+                            {!isSynced && (
+                              <button
+                                onClick={() => handleSyncOne(order.idempotencyKey)}
+                                disabled={isRowSyncing || isSyncing || !isOnline}
+                                title={!isOnline ? 'Go online to sync' : 'Sync this order to the server'}
+                                style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #93c5fd', background: '#eff6ff', color: '#1d4ed8', fontSize: '12px', fontWeight: 600, cursor: 'pointer', opacity: (isRowSyncing || isSyncing || !isOnline) ? 0.5 : 1, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              >
+                                {isRowSyncing ? <FaSpinner size={10} style={{ animation: 'spin 1s linear infinite' }} /> : <FaSync size={10} />} Sync
+                              </button>
+                            )}
+                            {confirmDeleteKey === order.idempotencyKey ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
+                                {!isSynced && (
+                                  <span style={{ fontSize: '11px', color: '#b91c1c', fontWeight: 600, maxWidth: '220px', textAlign: 'right' }}>
+                                    Not on server — this order will be lost.
+                                  </span>
+                                )}
+                                <div style={{ display: 'flex', gap: '4px' }}>
+                                  <button onClick={() => handleDeleteOne(order.idempotencyKey)} style={{ padding: '4px 10px', borderRadius: '6px', border: 'none', background: '#dc2626', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                                    {isSynced ? 'Delete' : 'Delete anyway'}
+                                  </button>
+                                  <button onClick={() => setConfirmDeleteKey(null)} style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setConfirmDeleteKey(order.idempotencyKey)}
+                                title={isSynced ? 'Delete from this device (already on server)' : 'Delete — WARNING: not on server yet'}
+                                style={{ padding: '4px 10px', borderRadius: '6px', border: `1px solid ${isSynced ? '#e5e7eb' : '#fca5a5'}`, background: isSynced ? '#fff' : '#fef2f2', color: isSynced ? '#6b7280' : '#dc2626', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              >
+                                <FaTrash size={10} /> Delete
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Sync Engine Status */}
           <div style={{
