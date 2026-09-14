@@ -1508,8 +1508,12 @@ const OrderSummary = ({
   // Check if current user role is allowed for a billing feature
   // Empty/missing roles array = all roles allowed (backward compatible)
   const isRoleAllowed = useCallback((rolesArray) => {
+    // Owner/admin ALWAYS keep access — they configure these restrictions and must never lock
+    // themselves out (consistent with canPerform). Default is unchanged: no roles set = all allowed.
+    const role = userRole?.toLowerCase();
+    if (role === 'owner' || role === 'admin') return true;
     if (!rolesArray || rolesArray.length === 0) return true;
-    return rolesArray.includes(userRole?.toLowerCase());
+    return rolesArray.includes(role);
   }, [userRole]);
 
   // Coupon helpers
