@@ -7949,8 +7949,10 @@ function RestaurantPOSContent() {
           // Expand to full width when in tables view
           width: viewMode === 'tables' ? '100%' : undefined
         }}>
-          {/* Fast Billing view toggle (desktop/tablet, order mode, hierarchical menu) */}
-          {!isMobile && viewMode === 'orders' && hasCategoryTree && (
+          {/* Fast Billing EXIT control — floats only while the board is ON (the board replaces
+              the grid + its inline toggle, so this is the way back out). When OFF, the toggle
+              lives inline next to the Top Bar / card-size controls in the category header. */}
+          {!isMobile && viewMode === 'orders' && hasCategoryTree && fastMode && (
             <button
               onClick={toggleFastMode}
               title="Toggle Fast Billing view"
@@ -8828,6 +8830,25 @@ function RestaurantPOSContent() {
                         {/* View Toggles - Only show on first category row */}
                         {index === 0 && !isMobile && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {/* Fast Billing toggle — inline with the view toggles */}
+                            {hasCategoryTree && (
+                              <div
+                                onClick={toggleFastMode}
+                                title="Toggle Fast Billing view"
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: '6px',
+                                  padding: '5px 10px', borderRadius: '6px', cursor: 'pointer',
+                                  transition: 'all 0.15s ease',
+                                  backgroundColor: fastMode ? '#ef4444' : '#f9fafb',
+                                  border: fastMode ? '1px solid #ef4444' : '1px solid #e5e7eb'
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#ef4444'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.borderColor = fastMode ? '#ef4444' : '#e5e7eb'; }}
+                              >
+                                <span style={{ fontSize: '12px', lineHeight: 1 }}>⚡</span>
+                                <span style={{ fontSize: '11px', fontWeight: '600', color: fastMode ? '#fff' : '#4b5563' }}>Fast Billing</span>
+                              </div>
+                            )}
                             {/* Category View Toggle */}
                             <div
                               onClick={() => setCategoryViewMode(categoryViewMode === 'sidebar' ? 'chips' : 'sidebar')}
@@ -9011,6 +9032,25 @@ function RestaurantPOSContent() {
                     {/* View Toggles */}
                     {!isMobile && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {/* Fast Billing toggle — inline with the view toggles */}
+                        {hasCategoryTree && (
+                          <div
+                            onClick={toggleFastMode}
+                            title="Toggle Fast Billing view"
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: '6px',
+                              padding: '5px 10px', borderRadius: '6px', cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                              backgroundColor: fastMode ? '#ef4444' : '#f9fafb',
+                              border: fastMode ? '1px solid #ef4444' : '1px solid #e5e7eb'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#ef4444'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.borderColor = fastMode ? '#ef4444' : '#e5e7eb'; }}
+                          >
+                            <span style={{ fontSize: '12px', lineHeight: 1 }}>⚡</span>
+                            <span style={{ fontSize: '11px', fontWeight: '600', color: fastMode ? '#fff' : '#4b5563' }}>Fast Billing</span>
+                          </div>
+                        )}
                         {/* Category View Toggle */}
                         <div
                           onClick={() => setCategoryViewMode(categoryViewMode === 'sidebar' ? 'chips' : 'sidebar')}
