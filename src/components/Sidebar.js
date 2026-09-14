@@ -336,7 +336,7 @@ export default function Sidebar({ isDashboardPage = false }) {
 
     // Waiters must be an allowed role for the item. We only ENFORCE pageAccess on pages a waiter
     // normally has (WAITER_ENFORCEABLE_KEYS) and only when the owner explicitly set it — so an owner
-    // can hide e.g. Order History. Legacy-bypass pages (KOT, Admin, …) stay visible exactly as
+    // can hide e.g. Order History. Legacy-bypass pages (KOT, Admin, ...) stay visible exactly as
     // before → zero impact on existing waiters.
     if (user.role === 'waiter') {
       if (!item.roles.includes('waiter')) return false;
