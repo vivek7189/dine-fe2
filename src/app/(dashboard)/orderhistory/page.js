@@ -146,6 +146,18 @@ async function mergeOfflineOrderHistory(existingOrders, restaurantId) {
   }
 }
 
+// Payment-method LABEL for DISPLAY ONLY — never mutates order.paymentMethod, so every filter,
+// report, and billing calc that reads the raw field is unaffected. A bill settled as Full Due
+// (udhar) keeps paymentMethod:'cash' (the default) while paymentStatus:'due', so the raw method
+// reads as "Cash" for a credit bill. Derive the shown label from status: due→"Due (Udhar)",
+// partial→"Partial", else the real method. `fallback` is the caller's own empty-state text.
+const paymentDisplayLabel = (order, fallback) => {
+  const st = order && order.paymentStatus;
+  if (st === 'due') return 'Due (Udhar)';
+  if (st === 'partial') return 'Partial';
+  return (order && order.paymentMethod) || fallback || '';
+};
+
 const OrderHistory = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -2579,7 +2591,7 @@ const OrderHistory = () => {
               <div className="px-4 py-3">
                 <div className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">{t('common.category')}</div>
                 <div className="text-sm font-semibold text-gray-900 capitalize">{order.orderType?.replace('-', ' ') || t('orderHistory.type.dineIn')}</div>
-                <div className="text-xs text-gray-400 capitalize">{order.paymentMethod || t('orderHistory.unpaid')}</div>
+                <div className="text-xs text-gray-400 capitalize">{paymentDisplayLabel(order, t('orderHistory.unpaid'))}</div>
               </div>
               <div className="px-4 py-3" style={{ position: 'relative' }}>
                 <div className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">Assigned Staff</div>
@@ -4007,7 +4019,7 @@ const OrderHistory = () => {
                             </td>
                             {/* Payment */}
                             <td className="px-3 py-2.5">
-                              <span className="text-xs text-gray-600 capitalize">{order.paymentMethod || t('orderHistory.cash')}</span>
+                              <span className="text-xs text-gray-600 capitalize">{paymentDisplayLabel(order, t('orderHistory.cash'))}</span>
                               {order.outstandingAmount > 0 && (
                                 <div className="mt-0.5">
                                   <span className="text-[9px] font-semibold text-white bg-red-500 px-1.5 py-0.5 rounded-full">{t('orderHistory.partial')}</span>
@@ -4383,7 +4395,7 @@ const OrderHistory = () => {
                           </div>
                           <div className="text-right flex-shrink-0">
                             <span className={`${isMobile ? 'text-[15px]' : 'text-xl'} font-bold text-gray-900`}>{formatCurrency(breakdown.total)}</span>
-                            <span className={`${isMobile ? 'text-[9px]' : 'text-[11px]'} text-gray-400 ml-1`}>{order.paymentMethod || t('orderHistory.cash')}</span>
+                            <span className={`${isMobile ? 'text-[9px]' : 'text-[11px]'} text-gray-400 ml-1`}>{paymentDisplayLabel(order, t('orderHistory.cash'))}</span>
                           </div>
                         </div>
 
@@ -6457,7 +6469,7 @@ const OrderHistory = () => {
                             </div>
                             <div className="text-right flex-shrink-0">
                               <div className="text-base font-bold text-gray-900">{formatCurrency(order.finalAmount || order.totalAmount || 0)}</div>
-                              <div className="text-[10px] text-gray-400">{itemCount} item{itemCount !== 1 ? 's' : ''} · {order.paymentMethod || 'cash'}</div>
+                              <div className="text-[10px] text-gray-400">{itemCount} item{itemCount !== 1 ? 's' : ''} · {paymentDisplayLabel(order, 'cash')}</div>
                             </div>
                           </div>
                           {/* Items preview + actions */}
@@ -7094,7 +7106,7 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
                     {order.customerDisplay?.floorName && !order.roomNumber && !order.customerDisplay?.roomNumber && !order.customerInfo?.roomNumber && <p>{t('orderHistory.floorLabel')} {order.customerDisplay.floorName}</p>}
                     {order.orderType && <p>{t('orderHistory.typeLabel')} <span className="capitalize">{order.orderType.replace('-', ' ')}</span></p>}
                     {order.subRestaurantName && <p>Outlet: <span className="font-semibold">{order.subRestaurantName}</span></p>}
-                    {order.paymentMethod && <p>{t('orderHistory.paymentLabel')} <span className="capitalize">{order.paymentMethod}</span></p>}
+                    {order.paymentMethod && <p>{t('orderHistory.paymentLabel')} <span className="capitalize">{paymentDisplayLabel(order)}</span></p>}
                   </div>
                 </div>
               </div>
