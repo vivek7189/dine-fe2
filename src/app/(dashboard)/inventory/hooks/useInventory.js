@@ -790,6 +790,35 @@ export default function useInventory() {
     });
   };
 
+  // One-click "Add to stock": create a real inventory item from an unmapped ingredient (0 stock)
+  // and link the recipe line to it. This is the deliberate, owner-driven promotion that replaces
+  // the old silent auto-create — nothing hits inventory until the owner clicks.
+  const quickAddIngredientStock = async (index) => {
+    const ing = recipeFormData.ingredients?.[index];
+    if (!ing || ing.inventoryItemId || !ing.inventoryItemName || !currentRestaurant?.id) return;
+    try {
+      const created = await apiClient.createInventoryItem(currentRestaurant.id, {
+        name: ing.inventoryItemName,
+        unit: ing.unit || '',
+        category: 'Raw Material',
+        currentStock: 0,
+        minStock: 0,
+        costPerUnit: 0,
+      });
+      const newId = created?.item?.id || created?.id;
+      if (newId) {
+        setRecipeFormData(prev => {
+          const ingredients = [...prev.ingredients];
+          ingredients[index] = { ...ingredients[index], inventoryItemId: newId, _unmatched: false, unmapped: false };
+          return { ...prev, ingredients };
+        });
+        loadInventoryData();
+      }
+    } catch (e) {
+      console.warn('quickAddIngredientStock failed:', e);
+    }
+  };
+
   const updateRecipeIngredient = (index, field, value) => {
     const newIngredients = [...recipeFormData.ingredients];
     newIngredients[index] = { ...newIngredients[index], [field]: value };
@@ -809,7 +838,10 @@ export default function useInventory() {
 
     if (field === 'inventoryItemId') {
       const selectedItem = inventoryItems.find(item => item.id === value);
-      newIngredients[index].inventoryItemName = selectedItem ? selectedItem.name : '';
+      // Preserve the ingredient's name when unselecting (keeps the unmapped label visible);
+      // once linked to a real stock item, clear the unmapped/_unmatched flags.
+      newIngredients[index].inventoryItemName = selectedItem ? selectedItem.name : newIngredients[index].inventoryItemName;
+      if (value) { newIngredients[index]._unmatched = false; newIngredients[index].unmapped = false; }
     }
 
     if (field === 'subRecipeId') {
@@ -941,8 +973,11 @@ export default function useInventory() {
         existingInventoryItems: existingItems,
       });
       if (result) {
-        // Map AI ingredients to existing inventory items via fuzzy name match
-        const unmatchedToCreate = [];
+        // Map AI ingredients to existing stock via tolerant name match. We deliberately do NOT
+        // auto-create inventory items for unmatched ingredients — that used to spawn phantom
+        // zero-stock rows the owner never added (the "why is Kiwi in my inventory?" problem).
+        // Unmatched lines stay flagged (_unmatched) and name-only; the owner links each to real
+        // stock — or clicks "Add to stock" — from the recipe editor below.
         const mappedIngredients = (result.ingredients || []).map(aiIng => {
           const normalizedName = (aiIng.itemName || '').toLowerCase().trim();
           const match = inventoryItems.find(inv => {
@@ -951,13 +986,6 @@ export default function useInventory() {
               invName.includes(normalizedName) ||
               normalizedName.includes(invName);
           });
-          if (!match) {
-            unmatchedToCreate.push({
-              name: aiIng.itemName,
-              unit: aiIng.unit || 'g',
-              category: result.category || 'Other',
-            });
-          }
           return {
             inventoryItemId: match ? match.id : '',
             inventoryItemName: match ? match.name : aiIng.itemName,
@@ -966,37 +994,6 @@ export default function useInventory() {
             _unmatched: !match,
           };
         });
-
-        // Auto-create unmatched ingredients as new inventory items (stock = 0)
-        let createdCount = 0;
-        if (unmatchedToCreate.length > 0) {
-          for (const newItem of unmatchedToCreate) {
-            try {
-              const created = await apiClient.createInventoryItem(currentRestaurant.id, {
-                name: newItem.name,
-                unit: newItem.unit,
-                category: newItem.category,
-                currentStock: 0,
-                minStock: 0,
-                costPerUnit: 0,
-              });
-              // Update mapped ingredient with the new inventory item ID
-              const idx = mappedIngredients.findIndex(m => m._unmatched && m.inventoryItemName === newItem.name);
-              const newId = created?.item?.id || created?.id;
-              if (idx !== -1 && newId) {
-                mappedIngredients[idx].inventoryItemId = newId;
-                mappedIngredients[idx]._unmatched = false;
-              }
-              createdCount++;
-            } catch (e) {
-              console.warn(`Failed to create inventory item "${newItem.name}":`, e);
-            }
-          }
-          // Reload inventory to include new items
-          if (createdCount > 0) {
-            loadInventoryData();
-          }
-        }
 
         setRecipeFormData(prev => ({
           ...prev,
@@ -1009,8 +1006,9 @@ export default function useInventory() {
           ingredients: mappedIngredients.length > 0 ? mappedIngredients : prev.ingredients,
         }));
 
-        if (createdCount > 0) {
-          setSuccess(`AI generated recipe for ${result.servings || 4} servings! ${createdCount} new ingredient(s) added to inventory.`);
+        const unmatchedCount = mappedIngredients.filter(i => i._unmatched && !i.inventoryItemId).length;
+        if (unmatchedCount > 0) {
+          setSuccess(`AI generated recipe for ${result.servings || 4} servings! ${unmatchedCount} ingredient(s) aren't in your stock yet — link or add them below.`);
         } else {
           setSuccess(`AI generated complete recipe for ${result.servings || 4} servings!`);
         }
@@ -1330,7 +1328,7 @@ export default function useInventory() {
     deleteConfirmModal, setDeleteConfirmModal,
     handleQuickStockUpdate, handleAddSupplier, handleDeleteSupplier,
     handleAddPurchaseOrder, addPurchaseOrderItem, removePurchaseOrderItem, updatePurchaseOrderItem,
-    handleAddRecipe, addRecipeIngredient, removeRecipeIngredient, updateRecipeIngredient,
+    handleAddRecipe, addRecipeIngredient, removeRecipeIngredient, updateRecipeIngredient, quickAddIngredientStock,
     addRecipeInstruction, removeRecipeInstruction, updateRecipeInstruction, handleDeleteRecipe,
     handleEditRecipe, handleUpdateRecipe, handleViewRecipe, handleGenerateRecipeSteps, handleGenerateFullRecipe,
     handleEmailPurchaseOrder, handleUpdateOrderStatus,

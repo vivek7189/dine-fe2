@@ -95,7 +95,7 @@ export default function CustomerDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { showToast } = useToast();
-  const { currencySettings } = useCurrency();
+  const { currencySettings, getCurrencySymbol } = useCurrency();
   const customerId = params.id;
 
   const [customer, setCustomer] = useState(null);
@@ -416,7 +416,7 @@ export default function CustomerDetailPage() {
             <Card>
               <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">Receivables</h3>
               <p className="text-2xl font-bold text-gray-900">
-                {'\u20B9'}{formatCurrency(customer.receivables || 0)}
+                {getCurrencySymbol()}{formatCurrency(customer.receivables || 0)}
               </p>
             </Card>
           </div>

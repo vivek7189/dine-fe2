@@ -408,10 +408,16 @@ const ConsolidatedPLView = ({ data, formatCurrency }) => {
   // Backend returns flat fields, not nested summary
   const totalRevenue = data.totalRevenue ?? data.summary?.totalRevenue ?? 0;
   const totalExpenses = data.totalExpenses ?? data.summary?.totalExpenses ?? 0;
-  const grossProfit = data.grossProfit ?? data.summary?.grossProfit ?? (totalRevenue - totalExpenses);
+  const hasCOGS = data.totalCOGS != null; // backend now sends COGS → show full P&L
+  const totalCOGS = data.totalCOGS ?? 0;
+  // Gross Profit = Revenue − COGS; Net Profit = Gross − Expenses. Falls back to the legacy
+  // (revenue − expenses) shape when the backend hasn't sent COGS.
+  const grossProfit = data.grossProfit ?? data.summary?.grossProfit ?? (hasCOGS ? (totalRevenue - totalCOGS) : (totalRevenue - totalExpenses));
+  const netProfit = data.netProfit ?? (hasCOGS ? (grossProfit - totalExpenses) : grossProfit);
+  const grossMargin = data.grossMargin ?? (totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0);
+  const netMargin = data.netMargin ?? (totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0);
   const outletCount = data.outletCount || 0;
   const outletBreakdown = (data.outletBreakdown || data.outlets || []).sort((a, b) => (b.totalRevenue || b.revenue || 0) - (a.totalRevenue || a.revenue || 0));
-  const profitMargin = totalRevenue > 0 ? ((grossProfit / totalRevenue) * 100).toFixed(1) : '0.0';
   const totalOrders = outletBreakdown.reduce((s, o) => s + (o.orderCount || 0), 0);
   const avgTicket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
@@ -419,9 +425,12 @@ const ConsolidatedPLView = ({ data, formatCurrency }) => {
     <div>
       <div style={styles.summaryGrid}>
         <SummaryCard label="Total Revenue" value={formatCurrency(totalRevenue)} color="#16a34a" />
-        <SummaryCard label="Total Expenses" value={formatCurrency(totalExpenses)} color="#dc2626" />
+        {hasCOGS && <SummaryCard label="COGS" value={formatCurrency(totalCOGS)} color="#ea580c" />}
         <SummaryCard label="Gross Profit" value={formatCurrency(grossProfit)} color={grossProfit >= 0 ? '#3b82f6' : '#dc2626'} />
-        <SummaryCard label="Profit Margin" value={`${profitMargin}%`} color={Number(profitMargin) >= 0 ? '#8b5cf6' : '#dc2626'} />
+        <SummaryCard label="Total Expenses" value={formatCurrency(totalExpenses)} color="#dc2626" />
+        <SummaryCard label={hasCOGS ? 'Net Profit' : 'Profit'} value={formatCurrency(netProfit)} color={netProfit >= 0 ? '#16a34a' : '#dc2626'} />
+        {hasCOGS && <SummaryCard label="Gross Margin" value={`${grossMargin.toFixed(1)}%`} color={grossMargin >= 0 ? '#8b5cf6' : '#dc2626'} />}
+        <SummaryCard label={hasCOGS ? 'Net Margin' : 'Profit Margin'} value={`${netMargin.toFixed(1)}%`} color={netMargin >= 0 ? '#8b5cf6' : '#dc2626'} />
         <SummaryCard label="Total Orders" value={totalOrders.toLocaleString()} color="#3b82f6" />
         <SummaryCard label="Avg Ticket Size" value={formatCurrency(avgTicket)} color="#d97706" />
         <SummaryCard label="Outlets" value={outletCount || outletBreakdown.length} color="#6b7280" />
@@ -437,8 +446,10 @@ const ConsolidatedPLView = ({ data, formatCurrency }) => {
                   <th style={styles.th}>Outlet</th>
                   <th style={styles.th}>Type</th>
                   <th style={{ ...styles.th, textAlign: 'right' }}>Revenue</th>
+                  {hasCOGS && <th style={{ ...styles.th, textAlign: 'right' }}>COGS</th>}
+                  {hasCOGS && <th style={{ ...styles.th, textAlign: 'right' }}>Gross Profit</th>}
                   <th style={{ ...styles.th, textAlign: 'right' }}>Expenses</th>
-                  <th style={{ ...styles.th, textAlign: 'right' }}>Profit</th>
+                  <th style={{ ...styles.th, textAlign: 'right' }}>{hasCOGS ? 'Net Profit' : 'Profit'}</th>
                   <th style={{ ...styles.th, textAlign: 'right' }}>Margin</th>
                   <th style={{ ...styles.th, textAlign: 'right' }}>Orders</th>
                   <th style={{ ...styles.th, textAlign: 'right' }}>% of Revenue</th>
@@ -447,9 +458,11 @@ const ConsolidatedPLView = ({ data, formatCurrency }) => {
               <tbody>
                 {outletBreakdown.map((row, idx) => {
                   const rev = row.totalRevenue || row.revenue || 0;
+                  const cogs = row.totalCOGS ?? 0;
                   const exp = row.totalExpenses || row.expenses || 0;
-                  const profit = row.grossProfit || row.profit || (rev - exp);
-                  const margin = rev > 0 ? ((profit / rev) * 100).toFixed(1) : '0.0';
+                  const grossP = row.grossProfit ?? (hasCOGS ? (rev - cogs) : (rev - exp));
+                  const netP = row.netProfit ?? (hasCOGS ? (grossP - exp) : grossP);
+                  const margin = (row.netMargin != null ? row.netMargin : (rev > 0 ? (netP / rev) * 100 : 0)).toFixed(1);
                   const revPct = totalRevenue > 0 ? ((rev / totalRevenue) * 100).toFixed(1) : '0.0';
                   return (
                     <tr key={row.outletId || idx}>
@@ -464,11 +477,21 @@ const ConsolidatedPLView = ({ data, formatCurrency }) => {
                       <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right', fontWeight: '600', color: '#16a34a' }}>
                         {formatCurrency(rev)}
                       </td>
+                      {hasCOGS && (
+                        <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right', color: '#ea580c' }}>
+                          {formatCurrency(cogs)}
+                        </td>
+                      )}
+                      {hasCOGS && (
+                        <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right', fontWeight: '600', color: grossP >= 0 ? '#3b82f6' : '#dc2626' }}>
+                          {formatCurrency(grossP)}
+                        </td>
+                      )}
                       <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right', color: '#dc2626' }}>
                         {formatCurrency(exp)}
                       </td>
-                      <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right', fontWeight: '600', color: profit >= 0 ? '#16a34a' : '#dc2626' }}>
-                        {formatCurrency(profit)}
+                      <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right', fontWeight: '600', color: netP >= 0 ? '#16a34a' : '#dc2626' }}>
+                        {formatCurrency(netP)}
                       </td>
                       <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right' }}>
                         <span style={{ color: Number(margin) >= 0 ? '#16a34a' : '#dc2626', fontWeight: '600' }}>{margin}%</span>

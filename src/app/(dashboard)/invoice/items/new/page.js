@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { HiX, HiPhotograph } from 'react-icons/hi';
 import apiClient from '../../../../../lib/api';
+import { useCurrency } from '../../../../../contexts/CurrencyContext';
 import { useToast } from '../../contexts/InvoiceToastContext';
 import useInvoiceAI from '../../hooks/useInvoiceAI';
 import PageHeader from '../../components/layout/PageHeader';
@@ -30,6 +31,7 @@ const unitOptions = [
 ];
 
 export default function NewItemPage() {
+  const { getCurrencySymbol } = useCurrency();
   const router = useRouter();
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
@@ -198,7 +200,7 @@ export default function NewItemPage() {
                     <span className="text-red-500 ml-0.5">*</span>
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">{'\u20B9'}</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">{getCurrencySymbol()}</span>
                     <input
                       type="number"
                       step="0.01"

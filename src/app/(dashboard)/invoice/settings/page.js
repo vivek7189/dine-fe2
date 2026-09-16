@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import apiClient from '../../../../lib/api';
+import { useCurrency } from '../../../../contexts/CurrencyContext';
 import { useToast } from '../contexts/InvoiceToastContext';
 import PageHeader from '../components/layout/PageHeader';
 import Tabs from '../components/ui/Tabs';
@@ -57,6 +58,8 @@ const templateOptions = [
 ];
 
 function TemplateThumbnail({ templateKey, bg, label, font }) {
+  const { getCurrencySymbol } = useCurrency();
+  const curSym = getCurrencySymbol();
   const b = bg || '#ffffff';
   const l = label || '#6b7280';
   const f = font || '#111827';
@@ -117,7 +120,7 @@ function TemplateThumbnail({ templateKey, bg, label, font }) {
               <span style={txt('2.8px', fMuted)}>Subtotal</span><span style={txt('2.8px', f)}>1,220</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2.5px 0', borderTop: `1px solid ${l}`, marginTop: '2px' }}>
-              <span style={txt('3.5px', l, 700)}>Total</span><span style={txt('3.5px', f, 800)}>₹1,281</span>
+              <span style={txt('3.5px', l, 700)}>Total</span><span style={txt('3.5px', f, 800)}>{curSym}1,281</span>
             </div>
           </div>
         </div>
@@ -150,7 +153,7 @@ function TemplateThumbnail({ templateKey, bg, label, font }) {
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <div style={{ width: '50%', padding: '3px 4px', backgroundColor: withAlpha(l, 0.08), borderRadius: '3px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={txt('3.5px', l, 700)}>Total</span><span style={txt('3.5px', f, 800)}>₹1,281</span>
+              <span style={txt('3.5px', l, 700)}>Total</span><span style={txt('3.5px', f, 800)}>{curSym}1,281</span>
             </div>
           </div>
         </div>
@@ -187,7 +190,7 @@ function TemplateThumbnail({ templateKey, bg, label, font }) {
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <div style={{ border: `1px solid ${f}`, padding: '2px 3px', display: 'flex', gap: '6px' }}>
-            <span style={txt('3px', f, 700)}>TOTAL</span><span style={txt('3px', f, 900)}>₹1,281</span>
+            <span style={txt('3px', f, 700)}>TOTAL</span><span style={txt('3px', f, 900)}>{curSym}1,281</span>
           </div>
         </div>
       </div>
@@ -225,7 +228,7 @@ function TemplateThumbnail({ templateKey, bg, label, font }) {
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <div style={{ width: '50%' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px', borderTop: `1.5px solid ${l}` }}>
-                <span style={txt('3.5px', l, 700)}>Total</span><span style={txt('3.5px', f, 800)}>₹1,281</span>
+                <span style={txt('3.5px', l, 700)}>Total</span><span style={txt('3.5px', f, 800)}>{curSym}1,281</span>
               </div>
             </div>
           </div>
@@ -266,7 +269,7 @@ function TemplateThumbnail({ templateKey, bg, label, font }) {
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <div style={{ width: '50%', padding: '2px', backgroundColor: lLight, borderRadius: '1px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={txt('3px', l, 700)}>Total</span><span style={txt('3px', f, 800)}>₹1,281</span>
+              <span style={txt('3px', l, 700)}>Total</span><span style={txt('3px', f, 800)}>{curSym}1,281</span>
             </div>
           </div>
         </div>
@@ -295,7 +298,7 @@ function TemplateThumbnail({ templateKey, bg, label, font }) {
         </div>
         <div style={{ borderTop: `1px solid ${l}`, paddingTop: '3px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2.5px 4px', backgroundColor: lLight, borderRadius: '2px' }}>
-            <span style={txt('3.5px', l, 700)}>Total</span><span style={txt('3.5px', f, 800)}>₹1,220</span>
+            <span style={txt('3.5px', l, 700)}>Total</span><span style={txt('3.5px', f, 800)}>{curSym}1,220</span>
           </div>
         </div>
       </div>
@@ -338,7 +341,7 @@ function TemplateThumbnail({ templateKey, bg, label, font }) {
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <div style={{ width: '50%', border: `0.5px solid ${lMuted}`, borderRadius: '2px', padding: '2px 3px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={txt('3px', l, 700)}>Total</span><span style={txt('3px', f, 800)}>₹1,281</span>
+              <span style={txt('3px', l, 700)}>Total</span><span style={txt('3px', f, 800)}>{curSym}1,281</span>
             </div>
           </div>
         </div>
@@ -387,7 +390,7 @@ function TemplateThumbnail({ templateKey, bg, label, font }) {
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <div style={{ padding: '3px 5px', backgroundColor: l, borderRadius: '2px', display: 'flex', gap: '8px' }}>
-          <span style={txt('3.5px', b, 700)}>Total</span><span style={txt('3.5px', b, 800)}>₹1,281</span>
+          <span style={txt('3.5px', b, 700)}>Total</span><span style={txt('3.5px', b, 800)}>{curSym}1,281</span>
         </div>
       </div>
     </div>

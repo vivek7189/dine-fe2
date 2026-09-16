@@ -781,7 +781,7 @@ function RecipeFormBody({ recipeFormData, setRecipeFormData, inventoryItems,
   addRecipeIngredient, removeRecipeIngredient, updateRecipeIngredient,
   addRecipeInstruction, removeRecipeInstruction, updateRecipeInstruction,
   handleGenerateRecipeSteps, generatingSteps,
-  handleGenerateFullRecipe, generatingFullRecipe,
+  handleGenerateFullRecipe, generatingFullRecipe, onQuickAddIngredientStock,
   recipes = [], editingRecipeId = null }) {
 
   const update = (field, value) => setRecipeFormData({ ...recipeFormData, [field]: value });
@@ -828,7 +828,7 @@ function RecipeFormBody({ recipeFormData, setRecipeFormData, inventoryItems,
             </button>
           </div>
           <div style={{ fontSize: 11, color: '#6b7280', marginTop: 6 }}>
-            AI will fill category, description, ingredients (auto-added to inventory), prep/cook time & instructions
+            AI will fill category, description, ingredients (unmatched ones stay unlinked — link or add them to stock below), prep/cook time & instructions
           </div>
         </div>
       )}
@@ -872,6 +872,10 @@ function RecipeFormBody({ recipeFormData, setRecipeFormData, inventoryItems,
         {recipeFormData.ingredients.map((ing, index) => {
           const isSubRecipe = ing.type === 'recipe';
           const availableRecipes = recipes.filter(r => (r._id || r.id) !== editingRecipeId);
+          // An ingredient the AI/import proposed but that isn't linked to a real stock item yet.
+          // Covers both the client-side import flag (_unmatched) and persisted name-only lines
+          // (unmapped:true / no inventoryItemId) that the backend now produces.
+          const needsLink = !isSubRecipe && !ing.inventoryItemId && (ing.unmapped || ing._unmatched);
           return (
           <div key={index}>
             <div style={rowStyle}>
@@ -893,11 +897,11 @@ function RecipeFormBody({ recipeFormData, setRecipeFormData, inventoryItems,
                   {availableRecipes.map(r => <option key={r._id || r.id} value={r._id || r.id}>{r.name}</option>)}
                 </FocusSelect>
               ) : (
-                /* Inventory item dropdown */
-                <FocusSelect style={{ ...inputStyle, flex: 2, ...(ing._unmatched && !ing.inventoryItemId ? { borderColor: '#f59e0b', backgroundColor: '#fffbeb' } : {}) }}
-                  value={ing.inventoryItemId}
+                /* Inventory item dropdown — this IS the "link to stock" control */
+                <FocusSelect style={{ ...inputStyle, flex: 2, ...(needsLink ? { borderColor: '#f59e0b', backgroundColor: '#fffbeb' } : {}) }}
+                  value={ing.inventoryItemId || ''}
                   onChange={e => updateRecipeIngredient(index, 'inventoryItemId', e.target.value)}>
-                  <option value="">{ing._unmatched ? `⚠ ${ing.inventoryItemName || 'Select item'}` : 'Select item'}</option>
+                  <option value="">{needsLink ? `⚠ ${ing.inventoryItemName || 'Link to stock…'}` : 'Select item'}</option>
                   {inventoryItems.map(inv => <option key={inv.id} value={inv.id}>{inv.name}</option>)}
                 </FocusSelect>
               )}
@@ -919,9 +923,19 @@ function RecipeFormBody({ recipeFormData, setRecipeFormData, inventoryItems,
               <button style={dangerBtn} onClick={() => removeRecipeIngredient(index)}><FaTrash /></button>
             )}
             </div>
-            {!isSubRecipe && ing._unmatched && !ing.inventoryItemId && (
-              <div style={{ fontSize: 11, color: '#d97706', marginTop: 2, marginBottom: 4, paddingLeft: 4 }}>
-                Not in inventory — please select a matching item or add &quot;{ing.inventoryItemName}&quot; to inventory first
+            {needsLink && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 11, color: '#d97706', marginTop: 2, marginBottom: 4, paddingLeft: 4 }}>
+                <span>Not linked to stock — pick a matching item above{onQuickAddIngredientStock ? ', or' : '.'}</span>
+                {onQuickAddIngredientStock && (
+                  <button type="button"
+                    onClick={() => onQuickAddIngredientStock(index)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600,
+                      color: '#b45309', background: '#fff7ed', border: '1px solid #fdba74',
+                      borderRadius: 6, padding: '3px 8px', cursor: 'pointer' }}
+                    title={`Create "${ing.inventoryItemName}" as a stock item and link it`}>
+                    <FaPlus size={9} /> Add &quot;{ing.inventoryItemName}&quot; to stock
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -1030,6 +1044,7 @@ function AddRecipeModal(props) {
             updateRecipeInstruction={updateRecipeInstruction}
             handleGenerateRecipeSteps={handleGenerateRecipeSteps} generatingSteps={generatingSteps}
             handleGenerateFullRecipe={handleGenerateFullRecipe} generatingFullRecipe={generatingFullRecipe}
+            onQuickAddIngredientStock={props.quickAddIngredientStock}
             recipes={props.recipes || []} editingRecipeId={props.editingRecipe?._id || props.editingRecipe?.id || null}
           />
         </div>
@@ -2195,6 +2210,7 @@ function EditRecipeModal(props) {
             updateRecipeInstruction={updateRecipeInstruction}
             handleGenerateRecipeSteps={handleGenerateRecipeSteps} generatingSteps={generatingSteps}
             handleGenerateFullRecipe={handleGenerateFullRecipe} generatingFullRecipe={generatingFullRecipe}
+            onQuickAddIngredientStock={props.quickAddIngredientStock}
             recipes={props.recipes || []} editingRecipeId={props.editingRecipe?._id || props.editingRecipe?.id || null}
           />
         </div>

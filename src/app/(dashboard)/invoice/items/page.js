@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { HiSearch, HiCube, HiPlus } from 'react-icons/hi';
 import apiClient from '../../../../lib/api';
+import { useCurrency } from '../../../../contexts/CurrencyContext';
 import PageHeader from '../components/layout/PageHeader';
 import Table from '../components/ui/Table';
 import Badge from '../components/ui/Badge';
@@ -28,6 +29,7 @@ const filterTabs = [
 ];
 
 export default function ItemsPage() {
+  const { getCurrencySymbol } = useCurrency();
   const router = useRouter();
   const [items, setItems] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
@@ -120,7 +122,7 @@ export default function ItemsPage() {
       width: '140px',
       render: (value) => (
         <span className="font-medium">
-          {'\u20B9'}{formatCurrency(value || 0)}
+          {getCurrencySymbol()}{formatCurrency(value || 0)}
         </span>
       ),
     },
@@ -163,7 +165,7 @@ export default function ItemsPage() {
       width: '140px',
       render: (value) => (
         <span className="font-medium">
-          {'\u20B9'}{formatCurrency(value || 0)}
+          {getCurrencySymbol()}{formatCurrency(value || 0)}
         </span>
       ),
     },

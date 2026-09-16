@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { HiSearch, HiUserGroup, HiPlus } from 'react-icons/hi';
 import apiClient from '../../../../lib/api';
+import { useCurrency } from '../../../../contexts/CurrencyContext';
 import PageHeader from '../components/layout/PageHeader';
 import Table from '../components/ui/Table';
 import Badge from '../components/ui/Badge';
@@ -20,6 +21,7 @@ function formatCurrency(amount) {
 }
 
 export default function CustomersPage() {
+  const { getCurrencySymbol } = useCurrency();
   const router = useRouter();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +77,7 @@ export default function CustomersPage() {
       label: 'Receivables',
       render: (value) => (
         <span className="font-medium">
-          {'\u20B9'}{formatCurrency(value || 0)}
+          {getCurrencySymbol()}{formatCurrency(value || 0)}
         </span>
       ),
     },

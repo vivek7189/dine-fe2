@@ -678,10 +678,14 @@ function ConsolidatedPLPDF({ data }) {
   // cards render 0 while the per-outlet table shows real data.
   const outlets = data?.outletBreakdown || data?.outlets || [];
   const totalRevenue = data?.totalRevenue ?? data?.summary?.totalRevenue ?? 0;
+  const totalCOGS = data?.totalCOGS ?? 0;
   const totalExpenses = data?.totalExpenses ?? data?.summary?.totalExpenses ?? 0;
-  const grossProfit = data?.grossProfit ?? data?.summary?.grossProfit ?? (totalRevenue - totalExpenses);
+  // Gross Profit = Revenue − COGS; Net Profit = Gross − Expenses.
+  const grossProfit = data?.grossProfit ?? data?.summary?.grossProfit ?? (totalRevenue - totalCOGS);
+  const netProfit = data?.netProfit ?? (grossProfit - totalExpenses);
   const totalOrders = data?.totalOrders ?? data?.summary?.totalOrders ?? outlets.reduce((sum, o) => sum + (o.orderCount || 0), 0);
-  const profitMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+  const grossMargin = data?.grossMargin ?? (totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0);
+  const netMargin = data?.netMargin ?? (totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0);
   const avgTicket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
   const outletCount = data?.outletCount ?? data?.summary?.outletCount ?? outlets.length;
 
@@ -690,9 +694,14 @@ function ConsolidatedPLPDF({ data }) {
       <Text style={s.sectionTitle}>Profit & Loss Summary</Text>
       <View style={s.statsRow}>
         <StatBox label="Revenue" value={fmtCurrency(totalRevenue)} color={C.primary} />
-        <StatBox label="Expenses" value={fmtCurrency(totalExpenses)} color={C.red} />
+        <StatBox label="COGS" value={fmtCurrency(totalCOGS)} color={C.amber} />
         <StatBox label="Gross Profit" value={fmtCurrency(grossProfit)} color={C.blue} />
-        <StatBox label="Margin" value={fmtPct(profitMargin)} color={profitMargin >= 0 ? C.primary : C.red} />
+        <StatBox label="Gross Margin" value={fmtPct(grossMargin)} color={grossMargin >= 0 ? C.primary : C.red} />
+      </View>
+      <View style={s.statsRow}>
+        <StatBox label="Expenses" value={fmtCurrency(totalExpenses)} color={C.red} />
+        <StatBox label="Net Profit" value={fmtCurrency(netProfit)} color={netProfit >= 0 ? C.primary : C.red} />
+        <StatBox label="Net Margin" value={fmtPct(netMargin)} color={netMargin >= 0 ? C.primary : C.red} />
       </View>
       <View style={s.statsRow}>
         <StatBox label="Orders" value={fmtNum(totalOrders)} color={C.cyan} />
@@ -705,23 +714,32 @@ function ConsolidatedPLPDF({ data }) {
           <Text style={s.subTitle}>Per-Outlet P&L</Text>
           <View style={s.table}>
             <View style={s.tHead}>
-              <Text style={[s.th, { width: '22%' }]}>Outlet</Text>
-              <Text style={[s.th, { width: '18%', textAlign: 'right' }]}>Revenue</Text>
-              <Text style={[s.th, { width: '18%', textAlign: 'right' }]}>Expenses</Text>
-              <Text style={[s.th, { width: '18%', textAlign: 'right' }]}>Profit</Text>
-              <Text style={[s.th, { width: '12%', textAlign: 'right' }]}>Margin</Text>
-              <Text style={[s.th, { width: '12%', textAlign: 'right' }]}>Orders</Text>
+              <Text style={[s.th, { width: '18%' }]}>Outlet</Text>
+              <Text style={[s.th, { width: '15%', textAlign: 'right' }]}>Revenue</Text>
+              <Text style={[s.th, { width: '13%', textAlign: 'right' }]}>COGS</Text>
+              <Text style={[s.th, { width: '15%', textAlign: 'right' }]}>Gross</Text>
+              <Text style={[s.th, { width: '13%', textAlign: 'right' }]}>Expenses</Text>
+              <Text style={[s.th, { width: '14%', textAlign: 'right' }]}>Net</Text>
+              <Text style={[s.th, { width: '6%', textAlign: 'right' }]}>Mgn</Text>
+              <Text style={[s.th, { width: '6%', textAlign: 'right' }]}>Ord</Text>
             </View>
             {outlets.map((o, i) => {
-              const margin = o.margin || (o.totalRevenue > 0 ? ((o.grossProfit / o.totalRevenue) * 100) : 0);
+              const rev = o.totalRevenue || 0;
+              const cogs = o.totalCOGS ?? 0;
+              const exp = o.totalExpenses || 0;
+              const grossP = o.grossProfit ?? (rev - cogs);
+              const netP = o.netProfit ?? (grossP - exp);
+              const nMargin = o.netMargin ?? (rev > 0 ? (netP / rev) * 100 : 0);
               return (
                 <View key={i} style={i % 2 ? s.tRowAlt : s.tRow}>
-                  <Text style={[s.tdBold, { width: '22%' }]}>{o.outletName}</Text>
-                  <Text style={[s.tdGreen, { width: '18%', textAlign: 'right' }]}>{fmtCurrency(o.totalRevenue)}</Text>
-                  <Text style={[s.tdRed, { width: '18%', textAlign: 'right' }]}>{fmtCurrency(o.totalExpenses)}</Text>
-                  <Text style={[margin >= 0 ? s.tdGreen : s.tdRed, { width: '18%', textAlign: 'right' }]}>{fmtCurrency(o.grossProfit)}</Text>
-                  <Text style={[s.tdRight, { width: '12%' }]}>{fmtPct(margin)}</Text>
-                  <Text style={[s.tdRight, { width: '12%' }]}>{o.orderCount || 0}</Text>
+                  <Text style={[s.tdBold, { width: '18%' }]}>{o.outletName}</Text>
+                  <Text style={[s.tdGreen, { width: '15%', textAlign: 'right' }]}>{fmtCurrency(rev)}</Text>
+                  <Text style={[s.tdRight, { width: '13%' }]}>{fmtCurrency(cogs)}</Text>
+                  <Text style={[grossP >= 0 ? s.tdGreen : s.tdRed, { width: '15%', textAlign: 'right' }]}>{fmtCurrency(grossP)}</Text>
+                  <Text style={[s.tdRed, { width: '13%', textAlign: 'right' }]}>{fmtCurrency(exp)}</Text>
+                  <Text style={[netP >= 0 ? s.tdGreen : s.tdRed, { width: '14%', textAlign: 'right' }]}>{fmtCurrency(netP)}</Text>
+                  <Text style={[s.tdRight, { width: '6%' }]}>{fmtPct(nMargin)}</Text>
+                  <Text style={[s.tdRight, { width: '6%' }]}>{o.orderCount || 0}</Text>
                 </View>
               );
             })}

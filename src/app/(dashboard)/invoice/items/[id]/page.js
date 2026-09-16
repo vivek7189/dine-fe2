@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { HiPencil, HiTrash, HiX, HiArrowLeft, HiPhotograph } from 'react-icons/hi';
 import apiClient from '../../../../../lib/api';
+import { useCurrency } from '../../../../../contexts/CurrencyContext';
 import { useToast } from '../../contexts/InvoiceToastContext';
 import PageHeader from '../../components/layout/PageHeader';
 import Button from '../../components/ui/Button';
@@ -43,6 +44,7 @@ function formatCurrency(amount) {
 }
 
 export default function ItemDetailPage() {
+  const { getCurrencySymbol } = useCurrency();
   const router = useRouter();
   const params = useParams();
   const { showToast } = useToast();
@@ -215,7 +217,7 @@ export default function ItemDetailPage() {
                   <div>
                     <p className="text-xs text-gray-500">Selling Price</p>
                     <p className="text-sm font-medium text-gray-900">
-                      {'\u20B9'}{formatCurrency(item.sellingPrice)}
+                      {getCurrencySymbol()}{formatCurrency(item.sellingPrice)}
                     </p>
                   </div>
                   {item.taxRate !== undefined && item.taxRate !== null && item.taxRate !== '' && (
@@ -249,7 +251,7 @@ export default function ItemDetailPage() {
                 Selling Price
               </h3>
               <p className="text-2xl font-bold text-gray-900">
-                {'\u20B9'}{formatCurrency(item.sellingPrice)}
+                {getCurrencySymbol()}{formatCurrency(item.sellingPrice)}
               </p>
               {item.taxRate !== undefined && item.taxRate !== null && item.taxRate !== '' && (
                 <p className="text-xs text-gray-500 mt-1">+ {item.taxRate}% tax</p>
@@ -394,7 +396,7 @@ export default function ItemDetailPage() {
                     <span className="text-red-500 ml-0.5">*</span>
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">{'\u20B9'}</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">{getCurrencySymbol()}</span>
                     <input
                       type="number"
                       step="0.01"
