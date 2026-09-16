@@ -1,7 +1,7 @@
 import { reportNetworkFailure, reportNetworkSuccess } from '../hooks/useNetworkStatus';
 import { setCachedData, getCachedData } from './offlineDb';
 import { getLocalServerUrl, setLocalServerUrl, isServerApp } from './localServer';
-import { getApiBase, getCloudApiBase, setApiBase, clearApiBase, refreshRemoteBackend, DEFAULT_API_BASE, PG_API_BASE, BACKEND_URL_KEY, getBackendOverride, clearBackendOverride } from './apiBase';
+import { getApiBase, getCloudApiBase, setApiBase, clearApiBase, refreshRemoteBackend, DEFAULT_API_BASE, PG_API_BASE, BACKEND_URL_KEY, getBackendOverride, clearBackendOverride, getPublicBackend } from './apiBase';
 import { detectMultiTerminal } from '../utils/orderNumber';
 
 // Default cloud backend + the persisted-backend key both come from the SINGLE source
@@ -423,6 +423,23 @@ class ApiClient {
 
       // Report network success — we got a response from the server
       reportNetworkSuccess();
+
+      // ── Auto-route to the restaurant's DIRECT backend (no logout/login, no reload) ──
+      // The Vercel→GCP proxy stamps `X-Dine-Backend` (the restaurant's direct GCP URL) on responses
+      // it forwards. When we see it, pin that URL so the NEXT request skips the proxy hop and goes
+      // straight to GCP. getApiBase() reads the pin at call time, so it takes effect immediately.
+      // Strictly guarded: only a real https URL, only when it differs, and NEVER during local-server
+      // (offline) / impersonation-override / public-QR modes — those pins must not be disturbed.
+      // Only flagged restaurants are ever proxied, so only they self-pin; unsynced ones are untouched.
+      try {
+        const _pg = response.headers.get('x-dine-backend');
+        if (_pg && /^https:\/\/[^\s]+$/.test(_pg) && this.baseURL !== _pg
+            && !getLocalServerUrl() && !getBackendOverride() && !getPublicBackend()) {
+          setApiBase(_pg);
+          this.baseURL = _pg;
+          console.log(`🎯 Auto-pinned direct backend: ${_pg}`);
+        }
+      } catch (_) { /* header unreadable / storage disabled — harmless no-op */ }
 
       // Handle non-JSON responses
       let data;
