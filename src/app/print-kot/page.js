@@ -10,7 +10,7 @@ import { isLocalServerMode } from '../../lib/localServer';
 import { printDocument } from '../../utils/printBridge';
 import { isWeb } from '../../utils/platform';
 import { renderKOT } from '../../utils/printTemplates/index';
-import { getApiBase, setPublicBackend, DEFAULT_API_BASE } from '../../lib/apiBase';
+import { getApiBase, setPublicBackend, DEFAULT_API_BASE, getGcpBackend } from '../../lib/apiBase';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
 // const PUSHER_KEY = process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec'; // COMMENTED OUT — replaced by Firebase RTDB
@@ -243,13 +243,10 @@ const PrintKOTContent = () => {
     let cancelled = false;
     (async () => {
       try {
-        const ctrl = new AbortController();
-        const to = setTimeout(() => ctrl.abort(), 4000); // never let a hung resolve block printing
-        const rb = await fetch(`${DEFAULT_API_BASE}/api/auth/resolve-backend?restaurant=${encodeURIComponent(restaurantId)}`, { signal: ctrl.signal })
-          .then(r => (r.ok ? r.json() : null)).catch(() => null);
-        clearTimeout(to);
+        // Whole fleet is on GCP now — point printing at GCP directly instead of the Vercel
+        // /api/auth/resolve-backend round-trip. From remote-config (backend.json).
         if (cancelled) return;
-        setPublicBackend(rb?.backendUrl || DEFAULT_API_BASE);
+        setPublicBackend(getGcpBackend());
       } catch {
         if (!cancelled) setPublicBackend(DEFAULT_API_BASE);
       } finally {

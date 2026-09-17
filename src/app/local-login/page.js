@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { getApiBase, setBackendOverride, clearBackendOverride, DEFAULT_API_BASE, PG_API_BASE } from '@/lib/apiBase';
+import { getApiBase, setBackendOverride, clearBackendOverride, DEFAULT_API_BASE, PG_API_BASE, getGcpBackend } from '@/lib/apiBase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -61,22 +61,15 @@ const LocalLogin = () => {
         setBackendOverride(DEFAULT_API_BASE);
         apiClient.setCloudBackend(DEFAULT_API_BASE);
       } else {
-        // AUTO: land on the account's REAL backend — native accounts live on GCP, legacy on
-        // Vercel. Ask the resolver (same one the normal login page uses) instead of blindly
-        // defaulting to Vercel (which would create/hit an empty ghost account there).
+        // AUTO: the WHOLE fleet is on GCP now, so land on GCP directly instead of the Vercel
+        // /api/auth/resolve-backend round-trip (which would always return GCP anyway). GCP URL
+        // comes from remote-config (backend.json), so it stays centrally changeable/reversible.
         clearBackendOverride();
-        apiClient.setCloudBackend('');
         try {
-          const q = loginType === 'phone'
-            ? `phone=${encodeURIComponent(loginValue)}`
-            : `email=${encodeURIComponent(loginValue.toLowerCase())}`;
-          const rb = await fetch(`${getApiBase()}/api/auth/resolve-backend?${q}`);
-          const rj = await rb.json();
-          if (rj && rj.backendUrl) {
-            setBackendOverride(rj.backendUrl);
-            apiClient.setCloudBackend(rj.backendUrl);
-          }
-        } catch (e) { /* resolver hiccup → fall back to the default backend */ }
+          const gcp = getGcpBackend();
+          setBackendOverride(gcp);
+          apiClient.setCloudBackend(gcp);
+        } catch (e) { apiClient.setCloudBackend(''); /* fall back to the default backend */ }
       }
 
       const backendUrl = getLocalServerUrl() || getApiBase();

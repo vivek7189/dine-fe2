@@ -115,6 +115,25 @@ export function getCloudApiBase() {
 }
 
 /**
+ * The single GCP backend the WHOLE fleet now runs on (all restaurants migrated off Vercel).
+ * Prefer the remote-config value (backend.json — editable centrally without a rebuild, and
+ * instantly reversible); fall back to the baked PG_API_BASE if the remote config hasn't been
+ * cached yet. This replaces the per-identity /api/auth/resolve-backend round-trip to Vercel at
+ * login: since every restaurant is on GCP, the resolver would always return GCP anyway, so we
+ * pin GCP directly and stop calling Vercel. NOTE: a per-user pin or a super-admin override still
+ * wins in getCloudApiBase(); this is only the default target the login flow pins.
+ */
+export function getGcpBackend() {
+  if (typeof window !== 'undefined') {
+    try {
+      const r = window.localStorage.getItem(REMOTE_DEFAULT_KEY);
+      if (r && /^https?:\/\//.test(r)) return norm(r);
+    } catch (_) { /* private mode / storage disabled */ }
+  }
+  return norm(PG_API_BASE);
+}
+
+/**
  * Fetch the remote backend config once at startup and cache its `defaultBackend`.
  * Fire-and-forget: getApiBase() reads the cache, so this never blocks. On any
  * failure it leaves the last cache (or baked default) intact — cannot break routing.

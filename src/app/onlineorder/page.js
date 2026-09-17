@@ -11,7 +11,7 @@ import {
 } from 'react-icons/fa';
 import dynamic from 'next/dynamic';
 import apiClient from '../../lib/api.js';
-import { setPublicBackend, DEFAULT_API_BASE } from '../../lib/apiBase';
+import { setPublicBackend, DEFAULT_API_BASE, getGcpBackend } from '../../lib/apiBase';
 import { getDisplayImage } from '../../utils/placeholderImages';
 import { toJsDate } from '../../utils/dateParse';
 import { matchesAudience, calculateDiscountForOffer, isScheduleValid, isDateValid } from '../../hooks/useOfferEngine';
@@ -479,14 +479,9 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         // In-memory only (never persisted, so it can't affect a logged-in staff pin); best-effort
         // (falls back to the default backend on any failure).
         if (restaurantId && restaurantId !== 'default') {
-          try {
-            const ctrl = new AbortController();
-            const to = setTimeout(() => ctrl.abort(), 4000); // never let a hung resolve block the menu
-            const rb = await fetch(`${DEFAULT_API_BASE}/api/auth/resolve-backend?restaurant=${encodeURIComponent(restaurantId)}`, { signal: ctrl.signal })
-              .then(r => (r.ok ? r.json() : null)).catch(() => null);
-            clearTimeout(to);
-            if (!cancelled) setPublicBackend(rb?.backendUrl || '');
-          } catch { /* timeout/error → keep default backend */ }
+          // Whole fleet is on GCP now — point public calls at GCP directly instead of the
+          // Vercel /api/auth/resolve-backend round-trip. From remote-config (backend.json).
+          try { if (!cancelled) setPublicBackend(getGcpBackend()); } catch { /* keep default backend */ }
         }
 
         // STEP 1: Show cached data immediately (instant UI)

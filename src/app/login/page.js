@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getApiBase, DEFAULT_API_BASE } from '@/lib/apiBase';
+import { getApiBase, DEFAULT_API_BASE, getGcpBackend } from '@/lib/apiBase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -1166,16 +1166,10 @@ const Login = () => {
   // so login never blocks and a new account is never accidentally duplicated onto GCP.
   const resolveAndPinBackend = async ({ phone, email } = {}) => {
     if (isServerApp() || getLocalServerUrl()) return; // local-server app is hard-pinned, never repin
-    if (!phone && !email) return;
-    try {
-      const qs = phone ? `phone=${encodeURIComponent(phone)}` : `email=${encodeURIComponent(email)}`;
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 5000);
-      const rb = await fetch(`${DEFAULT_API_BASE}/api/auth/resolve-backend?${qs}`, { signal: ctrl.signal })
-        .then(r => (r.ok ? r.json() : null)).catch(() => null);
-      clearTimeout(t);
-      apiClient.setCloudBackend(rb?.backendUrl || ''); // GCP(new)/toggled-home, or '' → Vercel default
-    } catch (_) { /* resolver must never block login */ }
+    // The WHOLE fleet is migrated to GCP, so pin GCP directly instead of the Vercel
+    // /api/auth/resolve-backend round-trip (which would now always return GCP anyway).
+    // Sourced from remote-config (backend.json), so it stays centrally changeable/reversible.
+    try { apiClient.setCloudBackend(getGcpBackend()); } catch (_) { /* resolver must never block login */ }
   };
 
   const handlePhoneSubmit = async (e) => {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { DEFAULT_API_BASE } from '@/lib/apiBase';
+import { DEFAULT_API_BASE, getGcpBackend } from '@/lib/apiBase';
 import { auth } from '../../../firebase';
 import {
   signInWithPhoneNumber,
@@ -55,16 +55,10 @@ export default function DesktopAuthPage() {
   // The desktop app must then pin THIS backend after polling, or a GCP-native user would
   // get a GCP token but route to Vercel (split-brain).
   const resolveBackend = async ({ phone, email } = {}) => {
-    if (!phone && !email) return '';
-    try {
-      const qs = phone ? `phone=${encodeURIComponent(phone)}` : `email=${encodeURIComponent(email)}`;
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 5000);
-      const rb = await fetch(`${DEFAULT_API_BASE}/api/auth/resolve-backend?${qs}`, { signal: ctrl.signal })
-        .then(r => (r.ok ? r.json() : null)).catch(() => null);
-      clearTimeout(t);
-      return (rb && rb.backendUrl) ? rb.backendUrl : '';
-    } catch (_) { return ''; }
+    // The WHOLE fleet is on GCP now — return GCP directly instead of the Vercel
+    // /api/auth/resolve-backend round-trip (which would always return GCP anyway).
+    // From remote-config (backend.json), so it stays centrally changeable/reversible.
+    try { return getGcpBackend(); } catch (_) { return ''; }
   };
 
   useEffect(() => {
