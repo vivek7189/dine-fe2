@@ -176,7 +176,7 @@ export default function QatarClient() {
                 Official Partner in Qatar
               </p>
               <h2 style={{ fontSize: isMobile ? '30px' : '42px', fontWeight: '800', color: '#111827', marginBottom: '20px', lineHeight: '1.15' }}>
-                DineOpen + Retzuky
+                DineOpen <span style={{ margin: '0 4px' }}>🤝</span> Retzuky
               </h2>
               <p style={{ fontSize: '18px', color: '#6b7280', lineHeight: '1.7', maxWidth: '700px', margin: '0 auto' }}>
                 Retzuky is our official sales and technology partner in Qatar. Based in Doha, they bring deep expertise in restaurant technology, hardware installation, and on-ground support — ensuring your DineOpen setup runs flawlessly from day one.
