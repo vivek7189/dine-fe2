@@ -12,6 +12,7 @@ import { ref, get, onChildAdded, off, query, orderByChild, startAt } from 'fireb
 import { database } from '../../firebase';
 import { isLocalServerMode } from './localServer';
 import { subscribeLan } from './lanRealtime';
+import { getRealtimeTransport, subscribeSocket } from './socketRealtimeClient';
 
 /**
  * @param {string} restaurantId
@@ -30,22 +31,39 @@ export function subscribeRestaurantEvents(restaurantId, category, onData, opts =
     return typeof unsub === 'function' ? unsub : () => {};
   }
 
-  // Cloud mode: Firebase RTDB.
-  if (!database) return () => {};
-  const base = ref(database, `events/${restaurantId}/${category}`);
-  let activeQuery = null;
+  // Cloud mode: the backend decides the transport per restaurant — 'socket' (our self-hosted
+  // socket.io bus on the VM, zero-cost) or 'rtdb' (Firebase RTDB, the DEFAULT). The choice is a
+  // tiny cached async fetch, so resolve it inside while keeping the returned unsubscribe synchronous
+  // and cancellation-safe. RTDB stays the default — nothing changes unless the restaurant is opted in.
   let cancelled = false;
-  let serverOffset = 0;
-  const handler = (snapshot) => {
-    const data = snapshot.val();
-    if (data) onData({ ...data, _eventKey: snapshot.key, _serverNow: Date.now() + serverOffset });
-  };
+  let cleanup = null;
 
-  // RTDB event timestamps are written by the backend. Starting a query at the Windows machine's
-  // Date.now() silently loses every live event when that clock runs ahead. Resolve Firebase's
-  // server offset first and include a small overlap; downstream KOT dedup makes the overlap safe.
-  // The async setup is cancellation-safe so navigating/unmounting cannot leave a listener behind.
   (async () => {
+    let transport = 'rtdb';
+    try { transport = await getRealtimeTransport(restaurantId); } catch (_) { /* stay on RTDB */ }
+    if (cancelled) return;
+
+    // ── Self-hosted socket.io bus ── same payload shape (_eventKey/_serverNow) as RTDB, so every
+    // downstream consumer (orders / KOT / auto-print / tables) is identical and needs no change.
+    if (transport === 'socket') {
+      cleanup = subscribeSocket(restaurantId, category, (data) => {
+        if (data) onData({ ...data, _eventKey: String(data.ts || ''), _serverNow: Date.now() });
+      });
+      return;
+    }
+
+    // ── Firebase RTDB (default) — logic unchanged (server-offset overlap, cancellation-safe) ──
+    if (!database) return;
+    const base = ref(database, `events/${restaurantId}/${category}`);
+    let activeQuery = null;
+    let serverOffset = 0;
+    const handler = (snapshot) => {
+      const data = snapshot.val();
+      if (data) onData({ ...data, _eventKey: snapshot.key, _serverNow: Date.now() + serverOffset });
+    };
+    // RTDB event timestamps are written by the backend. Starting a query at the Windows machine's
+    // Date.now() silently loses every live event when that clock runs ahead. Resolve Firebase's
+    // server offset first and include a small overlap; downstream KOT dedup makes the overlap safe.
     if (sinceNow) {
       try {
         const offsetSnap = await Promise.race([
@@ -60,10 +78,11 @@ export function subscribeRestaurantEvents(restaurantId, category, onData, opts =
     const startTs = Date.now() + serverOffset - 5000;
     activeQuery = sinceNow ? query(base, orderByChild('ts'), startAt(startTs)) : base;
     onChildAdded(activeQuery, handler, (err) => { if (onError) onError(err); });
+    cleanup = () => { if (activeQuery) off(activeQuery, 'child_added', handler); };
   })();
 
   return () => {
     cancelled = true;
-    if (activeQuery) off(activeQuery, 'child_added', handler);
+    if (cleanup) { try { cleanup(); } catch (_) { /* ignore */ } }
   };
 }
