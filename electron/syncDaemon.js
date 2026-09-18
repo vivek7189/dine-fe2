@@ -18,7 +18,7 @@ const entityStore = require('./entityStore');
 // ─── Configuration ──────────────────────────────────────────────────────────
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'https://dine-be2-phi.vercel.app';
+  process.env.NEXT_PUBLIC_API_URL || 'https://34-93-129-104.sslip.io';
 
 const SYNC_INTERVAL_ONLINE_MS = 5_000;
 const SYNC_INTERVAL_OFFLINE_MS = 30_000;

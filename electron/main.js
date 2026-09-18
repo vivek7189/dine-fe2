@@ -497,7 +497,7 @@ app.whenReady().then(() => {
 // server mode: the renderer only skips the IPC path once a local-server URL is adopted, so
 // pre-adoption calls (notably the login screen) route through here.
 function registerFallbackApiProxy(baseUrl) {
-  const API_URL = baseUrl || process.env.NEXT_PUBLIC_API_URL || 'https://dine-be2-phi.vercel.app';
+  const API_URL = baseUrl || process.env.NEXT_PUBLIC_API_URL || 'https://34-93-129-104.sslip.io';
 
   // Only register if not already registered by offline engine
   try {

@@ -8,7 +8,7 @@ const nextConfig = {
     unoptimized: true,
   },
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://dine-be2-phi.vercel.app',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://34-93-129-104.sslip.io',
   },
   experimental: {
     optimizePackageImports: ['react-icons'],

@@ -33,7 +33,7 @@ pub async fn api_request(
 ) -> Result<ApiProxyResponse, String> {
     let is_get = request.method.to_uppercase() == "GET";
     let base_url = std::env::var("NEXT_PUBLIC_API_URL")
-        .unwrap_or_else(|_| "https://dine-backend-lake.vercel.app".to_string());
+        .unwrap_or_else(|_| "https://34-93-129-104.sslip.io".to_string());
     let full_url = format!("{}{}", base_url, request.endpoint);
 
     // Store auth token for sync daemon to use later

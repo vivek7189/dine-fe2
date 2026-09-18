@@ -74,7 +74,7 @@ pub async fn get_sync_status(
     }; // conn dropped here before await
 
     let is_online = reqwest::Client::new()
-        .head("https://dine-backend-lake.vercel.app/api/health")
+        .head("https://34-93-129-104.sslip.io/api/health")
         .timeout(std::time::Duration::from_secs(3))
         .send()
         .await

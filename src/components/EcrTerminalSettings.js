@@ -50,7 +50,7 @@ const fieldGroupStyle = {
   marginBottom: '16px',
 };
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://dine-be2-phi.vercel.app';
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://34-93-129-104.sslip.io';
 
 /**
  * Admin settings tab for ECR payment terminal configuration.

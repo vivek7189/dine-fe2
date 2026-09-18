@@ -126,7 +126,7 @@ plugins/
 ## API Connection
 
 - Dev: `http://localhost:3003`
-- Prod: `https://dine-backend-lake.vercel.app`
+- Prod: `https://34-93-129-104.sslip.io`
 - All requests via `lib/api.js` ApiClient with Bearer token
 
 ## Important Notes

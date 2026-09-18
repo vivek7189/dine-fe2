@@ -98,7 +98,7 @@ enum DrainResult {
 async fn check_connectivity() -> bool {
     let client = reqwest::Client::new();
     let base_url = std::env::var("NEXT_PUBLIC_API_URL")
-        .unwrap_or_else(|_| "https://dine-backend-lake.vercel.app".to_string());
+        .unwrap_or_else(|_| "https://34-93-129-104.sslip.io".to_string());
 
     client
         .head(&format!("{}/api/health", base_url))
@@ -153,7 +153,7 @@ async fn drain_queue(db: &AppDb) -> DrainResult {
 
         // Build and send request
         let base_url = std::env::var("NEXT_PUBLIC_API_URL")
-            .unwrap_or_else(|_| "https://dine-backend-lake.vercel.app".to_string());
+            .unwrap_or_else(|_| "https://34-93-129-104.sslip.io".to_string());
         let full_url = format!("{}{}", base_url, endpoint);
 
         let client = reqwest::Client::new();
