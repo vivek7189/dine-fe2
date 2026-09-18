@@ -2464,11 +2464,13 @@ const OrderSummary = ({
         customerPhone: customerMobile || '',
         paymentMethod: paymentMethod || 'cash',
         paymentMethodLabel: (() => {
+          // Standard-POS: an unpaid (credit / pay-later) bill must not show a tender.
+          if (fullDueMode) return 'Credit';
           const id = paymentMethod || 'cash';
           const builtIn = { cash: 'Cash', card: 'Card', upi: 'UPI', 'card-terminal': 'Card', split: 'Split', due: 'Due' };
-          if (builtIn[id]) return builtIn[id];
           const found = Array.isArray(posSettings?.paymentMethods) ? posSettings.paymentMethods.find(m => m?.id === id) : null;
-          return found?.label || String(id).replace(/[_-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          const base = builtIn[id] || found?.label || String(id).replace(/[_-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          return (parseFloat(partialPayAmount) > 0) ? `${base} (Partial)` : base;
         })(),
         orderType: orderType || 'dine_in',
         // Delivery fields for receipt printing
