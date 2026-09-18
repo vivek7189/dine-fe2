@@ -1866,6 +1866,10 @@ export function HeadquartersContent({ embedded = false }) {
 
     const revenueChartData = chartSourceData.map(d => {
       const entry = { label: formatLabel(d), value: d.revenue };
+      // Day of week for the tooltip (daily view only; skip 7d, whose axis label is already the weekday).
+      if (effectiveView === 'daily' && dateRange.preset !== '7d') {
+        entry.weekday = new Date(d.date).toLocaleDateString('en-US', { weekday: 'long' });
+      }
       if (hasPrevHourly && effectiveView === 'hourly') {
         const hourStr = d.date.split('T')[1]?.substring(0, 2);
         const prev = prevHourlyData.find(p => p.hour === hourStr);
@@ -2033,6 +2037,7 @@ export function HeadquartersContent({ embedded = false }) {
                           name === 'prevValue' ? t('hq.yesterday') || 'Yesterday' : t('hq.today') || 'Today'
                         ]}
                         labelStyle={{ color: '#374151', fontWeight: 600, marginBottom: 4 }}
+                        labelFormatter={(label, payload) => { const wd = payload?.[0]?.payload?.weekday; return wd ? `${label} · ${wd}` : label; }}
                         cursor={{ fill: 'rgba(22, 163, 74, 0.1)' }}
                       />
                       <Legend formatter={(value) => value === 'prevValue' ? (t('hq.yesterday') || 'Yesterday') : (t('hq.today') || 'Today')} />
@@ -2054,6 +2059,7 @@ export function HeadquartersContent({ embedded = false }) {
                         contentStyle={{ backgroundColor: 'white', border: 'none', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.15)', padding: '12px 16px' }}
                         formatter={(value) => [formatCurrency ? formatCurrency(value) : `₹${value.toLocaleString()}`, t('hq.revenue')]}
                         labelStyle={{ color: '#374151', fontWeight: 600, marginBottom: 4 }}
+                        labelFormatter={(label, payload) => { const wd = payload?.[0]?.payload?.weekday; return wd ? `${label} · ${wd}` : label; }}
                         cursor={{ fill: 'rgba(22, 163, 74, 0.1)' }}
                       />
                       <Bar dataKey="value" fill="url(#revenueGradient)" radius={[6, 6, 0, 0]} maxBarSize={50} />
