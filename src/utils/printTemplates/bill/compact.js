@@ -27,7 +27,10 @@ function getCompactBillCSS(scaleOrPreset, fontId, printerWidth, printSettings) {
   const f = getPrintFontSizes(compactScale);
   const ff = getPrintFontFamily(fontId);
   const cw = getContentWidth(printerWidth, printSettings?.printContentWidth);
-  return `@page{size:${cw} auto;margin:0;}*{box-sizing:border-box;}body{font-family:${ff};margin:0;padding:1mm 2mm;font-size:${f.body};line-height:1.3;width:${cw};max-width:${cw};overflow-wrap:break-word;word-wrap:break-word;} .bill-header{text-align:center;margin-bottom:4px;} .restaurant-name{font-size:${f.restaurantName};font-weight:bold;text-transform:uppercase;} .bill-title{font-size:${f.billTitle};font-weight:bold;margin-top:2px;} .divider{text-align:center;margin:2px 0;overflow:hidden;font-size:10px;} .bill-info{margin:2px 0;font-size:${f.info};} .bill-info div{display:flex;justify-content:space-between;flex-wrap:wrap;margin:1px 0;gap:4px;} .bill-info div span:first-child{flex:0 1 auto;min-width:0;} .bill-info div span:last-child{text-align:right;flex:0 1 auto;min-width:0;} table{width:100%;border-collapse:collapse;margin:2px 0;table-layout:fixed;} th{text-align:left;border-bottom:1px dashed #000;padding:1px;font-size:${f.th};} td{font-size:${f.td};padding:1px 2px;word-wrap:break-word;} td:last-child{text-align:right;} .total-section{border-top:1px dashed #000;margin-top:2px;padding-top:2px;font-size:${f.totalSection};} .total-row{display:flex;justify-content:space-between;font-weight:bold;font-size:${f.totalRow};margin-top:2px;} .bill-footer{margin-top:4px;text-align:center;font-size:${f.footer};}`;
+  // Opt-in: bold the order-type value + item names for a cleaner, more scannable bill.
+  const bold = printSettings?.billLayout?.boldBillLabels === true;
+  const boldCss = bold ? ' td:first-child{font-weight:bold;} .type-row span{font-weight:bold;}' : '';
+  return `@page{size:${cw} auto;margin:0;}*{box-sizing:border-box;}body{font-family:${ff};margin:0;padding:1mm 2mm;font-size:${f.body};line-height:1.3;width:${cw};max-width:${cw};overflow-wrap:break-word;word-wrap:break-word;} .bill-header{text-align:center;margin-bottom:4px;} .restaurant-name{font-size:${f.restaurantName};font-weight:bold;text-transform:uppercase;} .bill-title{font-size:${f.billTitle};font-weight:bold;margin-top:2px;} .divider{text-align:center;margin:2px 0;overflow:hidden;font-size:10px;} .bill-info{margin:2px 0;font-size:${f.info};} .bill-info div{display:flex;justify-content:space-between;flex-wrap:wrap;margin:1px 0;gap:4px;} .bill-info div span:first-child{flex:0 1 auto;min-width:0;} .bill-info div span:last-child{text-align:right;flex:0 1 auto;min-width:0;} table{width:100%;border-collapse:collapse;margin:2px 0;table-layout:fixed;} th{text-align:left;border-bottom:1px dashed #000;padding:1px;font-size:${f.th};} td{font-size:${f.td};padding:1px 2px;word-wrap:break-word;} td:last-child{text-align:right;} .total-section{border-top:1px dashed #000;margin-top:2px;padding-top:2px;font-size:${f.totalSection};} .total-row{display:flex;justify-content:space-between;font-weight:bold;font-size:${f.totalRow};margin-top:2px;} .bill-footer{margin-top:4px;text-align:center;font-size:${f.footer};}${boldCss}`;
 }
 
 export function render(invoice, printSettings = {}, labels = {}) {
@@ -85,14 +88,14 @@ export function render(invoice, printSettings = {}, labels = {}) {
     buildSplitBillHtml(invoice, L, cs) +
     `<div class="divider">- - - - - - - - - - - - - - - -</div>` +
     `<div class="bill-info">` +
-      `<div><span>#${orderDisplayNumber(invoice)}</span><span>${dateStr}</span></div>` +
+      `<div><span>Bill#: ${orderDisplayNumber(invoice)}</span><span>${dateStr}</span></div>` +
       (bl.showTable !== false && invoice.tableNumber ? `<div><span>${dualLabel(L.table, AR.table, showAr)}: ${invoice.tableNumber}</span>${bl.showPayment !== false ? `<span>${(invoice.paymentMethodLabel || invoice.paymentMethod || 'CASH').toUpperCase()}</span>` : ''}</div>` : (bl.showPayment !== false ? `<div><span>${dualLabel(L.payment, AR.payment, showAr)}:</span><span>${(invoice.paymentMethodLabel || invoice.paymentMethod || 'CASH').toUpperCase()}</span></div>` : '')) +
       (bl.showCovers !== false && invoice.covers && invoice.covers > 1 ? `<div><span>${showAr ? dualLabel('Covers', 'أغطية', showAr) : 'Covers'}:</span><span>${invoice.covers}</span></div>` : '') +
       (bl.showWaiter !== false && (invoice.waiterName || invoice.cashierName) ? `<div><span>Staff:</span><span>${esc(invoice.waiterName || invoice.cashierName)}</span></div>` : '') +
       (bl.showCustomer !== false && invoice.customerName ? `<div><span>${dualLabel(L.customer, AR.customer, showAr)}:</span><span>${esc(invoice.customerName)}</span></div>` : '') +
       '' +
       (bl.showCustomerPhone && invoice.customerPhone ? `<div><span>${dualLabel('Phone', 'هاتف', showAr)}:</span><span>${esc(invoice.customerPhone)}</span></div>` : '') +
-      (bl.showOrderType !== false && invoice.orderType ? `<div><span>Type:</span><span>${invoice.orderType}</span></div>` : '') +
+      (bl.showOrderType !== false && invoice.orderType ? `<div class="type-row"><span>Type:</span><span>${invoice.orderType}</span></div>` : '') +
     `</div>` +
     deliveryHtml +
     `<div class="divider">- - - - - - - - - - - - - - - -</div>` +

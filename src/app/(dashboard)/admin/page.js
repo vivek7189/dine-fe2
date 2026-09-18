@@ -4437,6 +4437,11 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                                 billLayout: { ...prev.billLayout, [key]: !(prev.billLayout?.[key] ?? defaultOn) }
                               })));
                             })}
+                            {/* Style option (opt-in, default OFF) — bolds order-type value + item names. Not a hide-section, so excluded from the hidden count. */}
+                            {toggleChip('Bold Type & Items', printSettings.billLayout?.boldBillLabels === true, () => setPrintSettings(prev => ({
+                              ...prev,
+                              billLayout: { ...prev.billLayout, boldBillLabels: !(prev.billLayout?.boldBillLabels === true) }
+                            })))}
                           </div>
                         )}
                         {/* Receipt Address & Phone Overrides */}
