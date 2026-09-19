@@ -345,15 +345,19 @@ const SummaryCard = ({ label, value, color }) => (
 // ---- Report Views ----
 
 const InventoryComparisonView = ({ data, outlets, formatCurrency }) => {
-  if (!data || !data.items || data.items.length === 0) return <EmptyState message="No inventory data found." />;
+  // Backend returns rows under `matrix` (each: { itemName, outlets: { [outletId]: { currentStock, reorderLevel, unit, ... } } }).
+  // Tolerate the older `items`/`qty` shape too so this can never regress.
+  const rows = (data && (data.matrix || data.items)) || [];
+  if (!data || rows.length === 0) return <EmptyState message="No inventory data found." />;
 
   const outletList = data.outlets || outlets?.outlet || [];
-  const lowStockCount = data.lowStockCount || 0;
+  const lowStockCount = data.lowStockItems ?? data.lowStockCount ?? 0;
 
   const getStockLevel = (cell) => {
-    if (!cell || cell.qty === undefined || cell.qty === null) return 'none';
-    if (cell.qty <= 0) return 'critical';
-    if (cell.qty <= (cell.reorderLevel || 5)) return 'low';
+    const qty = cell?.currentStock ?? cell?.qty;
+    if (!cell || qty === undefined || qty === null) return 'none';
+    if (qty <= 0) return 'critical';
+    if (qty <= (cell.reorderLevel || 5)) return 'low';
     return 'ok';
   };
 
@@ -378,23 +382,28 @@ const InventoryComparisonView = ({ data, outlets, formatCurrency }) => {
             </tr>
           </thead>
           <tbody>
-            {data.items.map((item, idx) => (
-              <tr key={item.itemId || idx}>
+            {rows.map((item, idx) => {
+              const itemName = item.itemName || item.name || 'Unnamed Item';
+              const unit = item.unit || Object.values(item.outlets || {}).map((c) => c && c.unit).find(Boolean) || '';
+              return (
+              <tr key={item.itemId || item.itemName || idx}>
                 <td style={styles.td(idx % 2 === 0)}>
-                  <div style={{ fontWeight: '600' }}>{item.name}</div>
-                  {item.unit && <div style={{ fontSize: '12px', color: '#9ca3af' }}>{item.unit}</div>}
+                  <div style={{ fontWeight: '600' }}>{itemName}</div>
+                  {unit && <div style={{ fontSize: '12px', color: '#9ca3af' }}>{unit}</div>}
                 </td>
                 {outletList.map((o) => {
                   const cell = item.outlets?.[o.id || o._id] || {};
                   const level = getStockLevel(cell);
+                  const qty = cell.currentStock ?? cell.qty;
                   return (
                     <td key={o.id || o._id} style={styles.stockCell(level)}>
-                      {cell.qty !== undefined && cell.qty !== null ? cell.qty : '-'}
+                      {qty !== undefined && qty !== null ? qty : '-'}
                     </td>
                   );
                 })}
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
