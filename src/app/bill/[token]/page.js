@@ -203,6 +203,11 @@ export default function PublicBillPage() {
             {hasServiceCharge && (
               <SummaryRow label={`Service Charge${inv.serviceChargeRate ? ` (${inv.serviceChargeRate}%)` : ''}`} value={`${cs}${r2(inv.serviceChargeAmount)}`} />
             )}
+            {(Array.isArray(inv.additionalCharges) ? inv.additionalCharges : [])
+              .filter((c) => c && Number(c.amount) > 0)
+              .map((c, i) => (
+                <SummaryRow key={c.id || i} label={c.name || 'Charge'} value={`${cs}${r2(c.amount)}`} />
+              ))}
             {hasTip && <SummaryRow label="Tip" value={`${cs}${r2(inv.tipAmount)}`} />}
             {hasRoundOff && <SummaryRow label="Round Off" value={`${inv.roundOffAmount > 0 ? '' : '-'}${cs}${r2(Math.abs(inv.roundOffAmount))}`} />}
 

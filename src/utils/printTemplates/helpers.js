@@ -362,11 +362,16 @@ export function buildDiscountHtml(invoice, L, cs) {
 export function buildChargesHtml(invoice, L, cs) {
   const serviceChargeHtml = (invoice.serviceChargeAmount > 0)
     ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.serviceCharge}${invoice.serviceChargeRate ? ` (${invoice.serviceChargeRate}%)` : ''}:</span><span>${cs}${invoice.serviceChargeAmount.toFixed(2)}</span></div>` : '';
+  // Additional charges (packaging, etc.) — each shown as its own line, using its configured name.
+  const additionalChargesHtml = (Array.isArray(invoice.additionalCharges) ? invoice.additionalCharges : [])
+    .filter((c) => c && Number(c.amount) > 0)
+    .map((c) => `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${esc(c.name || 'Charge')}:</span><span>${cs}${Number(c.amount).toFixed(2)}</span></div>`)
+    .join('');
   const tipHtml = (invoice.tipAmount > 0)
     ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.tip}${invoice.tipPercentage ? ` (${invoice.tipPercentage}%)` : ''}:</span><span>${cs}${invoice.tipAmount.toFixed(2)}</span></div>` : '';
   const roundOffHtml = (invoice.roundOffAmount != null && invoice.roundOffAmount !== 0)
     ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.roundOff}:</span><span>${invoice.roundOffAmount > 0 ? '+' : ''}${cs}${invoice.roundOffAmount.toFixed(2)}</span></div>` : '';
-  return serviceChargeHtml + tipHtml + roundOffHtml;
+  return serviceChargeHtml + additionalChargesHtml + tipHtml + roundOffHtml;
 }
 
 // Build payment details HTML (split, cash, partial, wallet)
@@ -416,7 +421,7 @@ export function calcGrandTotal(invoice) {
   return invoice.grandTotal || (
     (invoice.subtotal || 0) - totalDiscount +
     (invoice.taxBreakdown?.filter(tax => !tax.inclusive).reduce((sum, tax) => sum + (tax.amount || 0), 0) || 0) +
-    (invoice.serviceChargeAmount || 0) + (invoice.tipAmount || 0) + (invoice.roundOffAmount || 0)
+    (invoice.serviceChargeAmount || 0) + (invoice.additionalChargesTotal || 0) + (invoice.tipAmount || 0) + (invoice.roundOffAmount || 0)
   );
 }
 

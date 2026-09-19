@@ -1879,6 +1879,8 @@ const OrderHistory = () => {
       couponCode: order.couponCode || '',
       serviceChargeAmount: Number(order.serviceChargeAmount) || 0,
       serviceChargeRate: order.serviceChargeRate,
+      additionalCharges: Array.isArray(order.additionalCharges) ? order.additionalCharges : [],
+      additionalChargesTotal: Number(order.additionalChargesTotal) || 0,
       tipAmount: Number(order.tipAmount) || 0,
       tipPercentage: order.tipPercentage,
       roundOffAmount: Number(order.roundOffAmount) || 0,
