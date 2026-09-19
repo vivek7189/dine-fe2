@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
+import AdditionalChargesSettings from '../../../components/AdditionalChargesSettings';
 import { t, getCurrentLanguage, setLanguage, getAvailableLanguages } from '../../../lib/i18n';
 import NativePrinterSettings from '../../../components/NativePrinterSettings';
 import TerminalNumberSetting from '../../../components/TerminalNumberSetting';
@@ -193,6 +194,7 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
     taxes: [],
     defaultTaxRate: 0,
     taxGroups: [],
+    additionalCharges: [],
     taxComplianceAccepted: false,
   });
   const [loading, setLoading] = useState(false);
@@ -235,6 +237,7 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
           ...taxRes.taxSettings,
           taxes: Array.isArray(taxRes.taxSettings.taxes) ? taxRes.taxSettings.taxes : [],
           taxGroups: taxRes.taxSettings.taxGroups || [],
+          additionalCharges: Array.isArray(taxRes.taxSettings.additionalCharges) ? taxRes.taxSettings.additionalCharges : [],
         });
       }
       setCategories(catsRes?.categories || []);
@@ -277,6 +280,7 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
         ...taxSettings,
         taxes: Array.isArray(taxSettings.taxes) ? taxSettings.taxes : [],
         taxGroups: Array.isArray(taxSettings.taxGroups) ? taxSettings.taxGroups : [],
+        additionalCharges: Array.isArray(taxSettings.additionalCharges) ? taxSettings.additionalCharges : [],
       };
       const response = await apiClient.updateTaxSettings(restaurantId, payload);
       if (response.success) showSuccess('Tax settings saved successfully!');
@@ -900,6 +904,13 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
 
                   </div>
                 )}
+
+                {/* Additional Charges (packaging, service, etc.) — generic %/fixed, per order type */}
+                <AdditionalChargesSettings
+                  charges={taxSettings.additionalCharges}
+                  onChange={(next) => setTaxSettings((prev) => ({ ...prev, additionalCharges: next }))}
+                  currencySymbol={selectedRestaurant?.currencySettings?.currencySymbol || '₹'}
+                />
 
                 {/* Save Tax Button — always visible so user can save disabled state */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
