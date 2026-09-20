@@ -51,7 +51,7 @@ export default function PublicBooking({ restaurantId }) {
     setBooking(true); setError(null);
     try {
       const r = await publicBookingApi.book(restaurantId, {
-        roomTypeId: selected.roomTypeId, checkIn, checkOut, adults: guests,
+        roomTypeId: selected.roomTypeId, checkIn, checkOut, adults: Math.min(30, Math.max(1, parseInt(guests, 10) || 1)),
         guestName: form.guestName.trim(), guestPhone: form.guestPhone.trim() || null,
         guestEmail: form.guestEmail.trim() || null, specialRequests: form.specialRequests.trim() || null,
       });

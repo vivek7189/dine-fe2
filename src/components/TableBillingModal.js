@@ -6,7 +6,10 @@ import { createPortal } from 'react-dom';
 import { FaReceipt, FaTimes, FaSpinner, FaBed } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
-import ChargeToRoomModal from '../features/hotel/components/ChargeToRoomModal';
+import dynamic from 'next/dynamic';
+// Hotel feature — code-split so it isn't downloaded by non-hotel restaurants and
+// stays isolated (only loaded when a hotel account opens the charge-to-room modal).
+const ChargeToRoomModal = dynamic(() => import('../features/hotel/components/ChargeToRoomModal'), { ssr: false });
 
 /**
  * Shared billing modal used on both the Tables page and Dashboard Tables Panel.
@@ -43,6 +46,7 @@ export default function TableBillingModal({
   const [modalCustomerMobile, setModalCustomerMobile] = useState('');
   const [mounted, setMounted] = useState(false);
   const [showChargeToRoom, setShowChargeToRoom] = useState(false);
+  const chargeToRoomRef = useRef(null); // set while a charge-to-room settle is in flight
   const isMobileEmbed = typeof window !== 'undefined' && !!window.__DINEOPEN_MOBILE_EMBED__;
   const closeTimerRef = useRef(null);
   // Hotel-only: bill this restaurant order to an in-house guest's room folio.
@@ -277,6 +281,7 @@ export default function TableBillingModal({
       }
 
       console.log('Billing completed for order:', completedOrderId);
+      chargeToRoomRef.current = null; // settled cleanly (incl. charge-to-room)
 
       // Delay modal close so OrderSummary can generate invoice + auto-print fires
       // Auto-print useEffect needs invoice set + 800ms timer, so 3s is safe
@@ -292,8 +297,20 @@ export default function TableBillingModal({
       if (onRefreshTables) {
         onRefreshTables();
       }
+      const roomTarget = chargeToRoomRef.current;
+      chargeToRoomRef.current = null;
       handleClose();
-      alert('Billing failed: ' + (error.message || 'Unknown error'));
+      if (roomTarget) {
+        // The charge is already safely on the guest's folio (idempotent). Warn clearly
+        // so staff don't also collect payment at the POS — reopen and settle as "Room".
+        alert(
+          `The bill was charged to ${roomTarget.roomNumber ? 'Room ' + roomTarget.roomNumber : "the guest's room"} and will be collected at check-out.\n\n` +
+          'The POS order could not be closed automatically — please reopen it and settle as "Room". ' +
+          'Do NOT collect payment separately (the amount is already on the room folio).'
+        );
+      } else {
+        alert('Billing failed: ' + (error.message || 'Unknown error'));
+      }
       setModalProcessing(false); // Only reset on error so user can retry; on success keep disabled until modal closes
     }
   };
@@ -546,9 +563,12 @@ export default function TableBillingModal({
             description={`Restaurant · ${table?.name || order.tableNumber || 'Table'} · #${orderDisplayNumber(order)}`}
             sourceRef={order.id}
             onClose={() => setShowChargeToRoom(false)}
-            onCharged={async () => {
+            onCharged={async (guest) => {
               setShowChargeToRoom(false);
-              // Settle the POS order as paid via 'room' (amount already posted to the folio).
+              // The F&B amount is now on the guest's room folio (idempotent by order id).
+              // Settle the POS order as paid via 'room'. If this fails, the catch shows a
+              // room-specific warning so no one collects cash on top of the folio charge.
+              chargeToRoomRef.current = guest || {};
               await handleModalProcessOrder({ __paymentMethodOverride: 'room' });
             }}
           />

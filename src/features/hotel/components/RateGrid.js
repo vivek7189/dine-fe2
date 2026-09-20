@@ -30,7 +30,8 @@ export default function RateGrid({ restaurantId, formatCurrency, notify }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const days = grid?.days || [];
+  // Normalize to bare YYYY-MM-DD defensively (in case the API ever returns ISO timestamps).
+  const days = (grid?.days || []).map((d) => (typeof d === 'string' ? d.slice(0, 10) : d));
 
   return (
     <div>

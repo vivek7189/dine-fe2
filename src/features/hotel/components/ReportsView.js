@@ -6,7 +6,7 @@ import hotelApi from '../api/hotelApi';
 const localToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const addDays = (s, n) => { const d = new Date(s + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const fmtDate = (s) => { const [, m, d] = s.split('-'); return `${MONTHS[+m - 1]} ${+d}`; };
+const fmtDate = (s) => { if (!s) return '—'; const [, m, d] = String(s).slice(0, 10).split('-'); return `${MONTHS[+m - 1]} ${+d}`; };
 
 const PRESETS = [
   { id: '7', label: 'Last 7 days', days: 7 },

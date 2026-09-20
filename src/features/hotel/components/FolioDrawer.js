@@ -102,9 +102,10 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
                       </td>
                       <td className="py-1.5 text-right tabular-nums text-slate-700 whitespace-nowrap">{money(it.amount)}</td>
                       <td className="py-1.5 pl-2 text-right">
-                        {isOpen && it.type !== 'room' && (
+                        {isOpen && it.type !== 'room' && it.source !== 'pos' && (
                           <button onClick={() => voidItem(it.id)} disabled={busy} className="text-slate-300 hover:text-rose-600" aria-label="Void"><FaTrash size={11} /></button>
                         )}
+                        {it.source === 'pos' && <span className="text-[10px] text-slate-300" title="Posted from the POS — reverse it in the POS order">POS</span>}
                       </td>
                     </tr>
                   ))}
