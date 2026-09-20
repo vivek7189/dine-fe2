@@ -72,6 +72,10 @@ hotelApi.reportSummary = (rid, params) => req(`${BASE}/reports/summary${qs(withR
 hotelApi.getTax = (rid) => req(`${BASE}/tax${qs({ restaurantId: rid })}`);
 hotelApi.saveTax = (rid, body) => req(`${BASE}/tax`, { method: 'PUT', body: withRid(body, rid) });
 
+// ── Chain (multi-property; owner-scoped, no restaurantId needed) ──
+hotelApi.chainProperties = () => req(`${BASE}/chain/properties`);
+hotelApi.chainSummary = (params) => req(`${BASE}/chain/summary${qs(params)}`);
+
 export const FOLIO_ITEM_TYPES = ['room', 'food', 'beverage', 'service', 'tax', 'discount', 'misc'];
 export const PAY_METHODS = ['cash', 'card', 'upi', 'bank', 'other'];
 
