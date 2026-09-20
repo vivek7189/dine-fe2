@@ -81,6 +81,13 @@ hotelApi.getRates = (rid, from, to) => req(`${BASE}/rates${qs({ restaurantId: ri
 hotelApi.setRate = (rid, body) => req(`${BASE}/rates`, { method: 'PUT', body: withRid(body, rid) });
 hotelApi.bulkRate = (rid, body) => req(`${BASE}/rates/bulk`, { method: 'PUT', body: withRid(body, rid) });
 
+// ── OTA channels ──
+hotelApi.getChannels = (rid) => req(`${BASE}/channels${qs({ restaurantId: rid })}`);
+hotelApi.connectChannel = (rid, code) => req(`${BASE}/channels/connect`, { method: 'POST', body: withRid({ code }, rid) });
+hotelApi.disconnectChannel = (rid, id) => req(`${BASE}/channels/${id}/disconnect`, { method: 'POST', body: withRid({}, rid) });
+hotelApi.pushChannel = (rid, id, from, to) => req(`${BASE}/channels/${id}/push`, { method: 'POST', body: withRid({ from, to }, rid) });
+hotelApi.channelLogs = (rid, id) => req(`${BASE}/channels/${id}/logs${qs({ restaurantId: rid })}`);
+
 export const FOLIO_ITEM_TYPES = ['room', 'food', 'beverage', 'service', 'tax', 'discount', 'misc'];
 export const PAY_METHODS = ['cash', 'card', 'upi', 'bank', 'other'];
 
