@@ -152,6 +152,10 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
             {/* footer totals + settle */}
             <div className="border-t border-slate-100 px-5 py-4">
               <div className="mb-1 flex justify-between text-sm text-slate-500"><span>Charges</span><span className="tabular-nums">{money(folio.totalCharges)}</span></div>
+              {(folio.taxLines || []).map((tl, i) => (
+                <div key={i} className="mb-1 flex justify-between text-xs text-slate-400"><span>{tl.name} ({tl.rate}%)</span><span className="tabular-nums">{money(tl.amount)}</span></div>
+              ))}
+              {folio.taxTotal > 0 && <div className="mb-1 flex justify-between text-sm text-slate-500"><span>Tax</span><span className="tabular-nums">{money(folio.taxTotal)}</span></div>}
               <div className="mb-1 flex justify-between text-sm text-slate-500"><span>Paid</span><span className="tabular-nums">{money(folio.totalPaid)}</span></div>
               <div className="mb-3 flex justify-between text-base font-semibold text-slate-900"><span>Balance</span><span className={`tabular-nums ${folio.balance > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{money(folio.balance)}</span></div>
               {isOpen ? (
