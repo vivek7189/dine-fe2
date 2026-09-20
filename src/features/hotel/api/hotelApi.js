@@ -1,0 +1,50 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Hotel PMS — web API client.
+//
+// Thin wrapper over the shared apiClient (reuses auth token, base-URL resolution,
+// retry + offline handling). Every call targets the isolated /api/hotel/pms/*
+// namespace on the GCP/Postgres backend and carries the active property id
+// (restaurantId) that hotelScope authorizes on the server.
+//
+// This whole feature lives under src/features/hotel/ and is removable by deleting
+// the folder + its route pages + the one Sidebar entry.
+// ─────────────────────────────────────────────────────────────────────────────
+import apiClient from '../../../lib/api';
+
+const BASE = '/api/hotel/pms';
+
+const qs = (obj) => {
+  const parts = Object.entries(obj || {})
+    .filter(([, v]) => v != null && v !== '')
+    .map(([k, v]) => `${k}=${encodeURIComponent(v)}`);
+  return parts.length ? `?${parts.join('&')}` : '';
+};
+
+// restaurantId is required by every endpoint (property scope). Fold it into the
+// query string (GET/DELETE) or the JSON body (POST/PATCH).
+const req = (endpoint, opts = {}) => apiClient.request(endpoint, opts);
+const withRid = (obj, rid) => ({ ...(obj || {}), restaurantId: rid });
+
+const hotelApi = {
+  // ── Room types ──
+  listRoomTypes: (rid, params) => req(`${BASE}/room-types${qs(withRid(params, rid))}`),
+  createRoomType: (rid, body) => req(`${BASE}/room-types`, { method: 'POST', body: withRid(body, rid) }),
+  updateRoomType: (rid, id, body) => req(`${BASE}/room-types/${id}`, { method: 'PATCH', body: withRid(body, rid) }),
+  deleteRoomType: (rid, id) => req(`${BASE}/room-types/${id}${qs({ restaurantId: rid })}`, { method: 'DELETE' }),
+
+  // ── Rooms ──
+  listRooms: (rid, params) => req(`${BASE}/rooms${qs(withRid(params, rid))}`),
+  getRoom: (rid, id) => req(`${BASE}/rooms/${id}${qs({ restaurantId: rid })}`),
+  createRoom: (rid, body) => req(`${BASE}/rooms`, { method: 'POST', body: withRid(body, rid) }),
+  updateRoom: (rid, id, body) => req(`${BASE}/rooms/${id}`, { method: 'PATCH', body: withRid(body, rid) }),
+  setRoomStatus: (rid, id, status) => req(`${BASE}/rooms/${id}/status`, { method: 'PATCH', body: withRid({ status }, rid) }),
+  setRoomHousekeeping: (rid, id, housekeepingStatus) =>
+    req(`${BASE}/rooms/${id}/housekeeping`, { method: 'PATCH', body: withRid({ housekeepingStatus }, rid) }),
+  deleteRoom: (rid, id) => req(`${BASE}/rooms/${id}${qs({ restaurantId: rid })}`, { method: 'DELETE' }),
+};
+
+// Server-side allowed values (kept in sync with hotel/repos/roomsRepo.js).
+export const SELL_STATUS = ['available', 'occupied', 'reserved', 'blocked', 'out-of-service'];
+export const HK_STATUS = ['clean', 'dirty', 'inspected', 'out-of-order'];
+
+export default hotelApi;

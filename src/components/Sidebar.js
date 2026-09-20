@@ -35,6 +35,7 @@ import {
   FaCalendarCheck,
   FaWhatsapp,
   FaThLarge,
+  FaHotel,
 } from 'react-icons/fa';
 import { BiRestaurant } from 'react-icons/bi';
 import Link from 'next/link';
@@ -297,6 +298,10 @@ export default function Sidebar({ isDashboardPage = false }) {
     { id: 'attendance', name: t('nav.attendance'), icon: FaUserClock, href: '/attendance', color: '#ef4444', roles: ['owner', 'admin', 'manager'] },
     ...(selectedRestaurant?.posSettings?.enableShiftsCash ? [{ id: 'shifts-cash', name: 'Shifts & Cash', icon: FaCashRegister, href: '/shifts-cash', color: '#3b82f6', roles: ['owner', 'admin', 'manager', 'cashier'] }] : []),
     { id: 'billing', name: t('nav.billing'), icon: FaCreditCard, href: '/billing', color: '#06b6d4', roles: ['owner', 'admin'] },
+    // --- Hotel PMS (self-contained feature; shown only for hotel accounts) ---
+    ...((selectedRestaurant?.businessType === 'hotel' || selectedRestaurant?.posSettings?.enableHotel)
+      ? [{ id: 'hotel-pms', name: 'Hotel', icon: FaHotel, href: '/hotel/pms/rooms', color: '#4f46e5', roles: ['owner', 'admin', 'manager'] }]
+      : []),
     // --- Tools & Extras ---
     { id: 'invoice', name: t('nav.invoice'), icon: FaFileInvoice, href: '/invoice', color: '#0ea5e9', roles: ['owner', 'admin', 'manager'] },
     // --- More (groups advanced features) ---
