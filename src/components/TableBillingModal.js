@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { orderDisplayNumber } from '../utils/orderNumber';
 import { createPortal } from 'react-dom';
-import { FaReceipt, FaTimes, FaSpinner } from 'react-icons/fa';
+import { FaReceipt, FaTimes, FaSpinner, FaBed } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
+import ChargeToRoomModal from '../features/hotel/components/ChargeToRoomModal';
 
 /**
  * Shared billing modal used on both the Tables page and Dashboard Tables Panel.
@@ -41,8 +42,11 @@ export default function TableBillingModal({
   const [modalCustomerName, setModalCustomerName] = useState('');
   const [modalCustomerMobile, setModalCustomerMobile] = useState('');
   const [mounted, setMounted] = useState(false);
+  const [showChargeToRoom, setShowChargeToRoom] = useState(false);
   const isMobileEmbed = typeof window !== 'undefined' && !!window.__DINEOPEN_MOBILE_EMBED__;
   const closeTimerRef = useRef(null);
+  // Hotel-only: bill this restaurant order to an in-house guest's room folio.
+  const hotelEnabled = businessType === 'hotel' || !!selectedRestaurant?.posSettings?.enableHotel;
 
   // Ensure portal target is available (client-side only)
   useEffect(() => { setMounted(true); }, []);
@@ -142,6 +146,9 @@ export default function TableBillingModal({
 
     setModalProcessing(true);
 
+    // Optional payment-method override (e.g. hotel "charge to room" settles as 'room').
+    const chosenMethod = taxData.__paymentMethodOverride || modalPaymentMethod;
+
     const {
       taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null,
       serviceChargeAmount, serviceChargeRate, tipAmount, tipPercentage,
@@ -167,7 +174,7 @@ export default function TableBillingModal({
       const updateData = {
         status: 'completed',
         paymentStatus: isFullDue ? 'due' : (isPartialPayment ? 'partial' : 'paid'),
-        paymentMethod: splitPayments ? 'split' : modalPaymentMethod,
+        paymentMethod: splitPayments ? 'split' : chosenMethod,
         completedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         ...(taxBreakdown.length > 0 && {
@@ -245,7 +252,7 @@ export default function TableBillingModal({
       // Persist the REAL method (incl. custom methods like gpay/phonepe/bank) — do NOT collapse to 'cash'.
       const effectiveMethod = splitPayments
         ? (splitPayments[0]?.method || 'cash')
-        : modalPaymentMethod;
+        : chosenMethod;
       const safePaymentMethod = effectiveMethod || 'cash';
 
       await apiClient.verifyPayment({
@@ -383,27 +390,45 @@ export default function TableBillingModal({
               )}
             </div>
           </div>
-          <button
-            onClick={handleClose}
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              border: 'none',
-              background: 'rgba(255,255,255,0.15)',
-              color: '#fff',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'background 0.15s',
-              flexShrink: 0,
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.25)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
-          >
-            <FaTimes size={14} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            {hotelEnabled && order && !loading && (
+              <button
+                onClick={() => setShowChargeToRoom(true)}
+                title="Charge this bill to an in-house guest's room"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  height: '32px', padding: '0 12px', borderRadius: '8px', border: 'none',
+                  background: 'rgba(255,255,255,0.18)', color: '#fff', cursor: 'pointer',
+                  fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.18)'; }}
+              >
+                <FaBed size={12} /> Charge to Room
+              </button>
+            )}
+            <button
+              onClick={handleClose}
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                border: 'none',
+                background: 'rgba(255,255,255,0.15)',
+                color: '#fff',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background 0.15s',
+                flexShrink: 0,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.25)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
+            >
+              <FaTimes size={14} />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -512,6 +537,21 @@ export default function TableBillingModal({
             </div>
             <div style={{ fontSize: '14px', color: '#6b7280', fontWeight: 500 }}>No order found for this table</div>
           </div>
+        )}
+
+        {showChargeToRoom && order && (
+          <ChargeToRoomModal
+            restaurantId={selectedRestaurant?.id}
+            amount={order.finalAmount ?? order.totalAmount ?? getModalTotalAmount()}
+            description={`Restaurant · ${table?.name || order.tableNumber || 'Table'} · #${orderDisplayNumber(order)}`}
+            sourceRef={order.id}
+            onClose={() => setShowChargeToRoom(false)}
+            onCharged={async () => {
+              setShowChargeToRoom(false);
+              // Settle the POS order as paid via 'room' (amount already posted to the folio).
+              await handleModalProcessOrder({ __paymentMethodOverride: 'room' });
+            }}
+          />
         )}
       </div>
     </div>
