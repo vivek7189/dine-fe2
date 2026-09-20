@@ -76,6 +76,11 @@ hotelApi.saveTax = (rid, body) => req(`${BASE}/tax`, { method: 'PUT', body: with
 hotelApi.chainProperties = () => req(`${BASE}/chain/properties`);
 hotelApi.chainSummary = (params) => req(`${BASE}/chain/summary${qs(params)}`);
 
+// ── Rate calendar ──
+hotelApi.getRates = (rid, from, to) => req(`${BASE}/rates${qs({ restaurantId: rid, from, to })}`);
+hotelApi.setRate = (rid, body) => req(`${BASE}/rates`, { method: 'PUT', body: withRid(body, rid) });
+hotelApi.bulkRate = (rid, body) => req(`${BASE}/rates/bulk`, { method: 'PUT', body: withRid(body, rid) });
+
 export const FOLIO_ITEM_TYPES = ['room', 'food', 'beverage', 'service', 'tax', 'discount', 'misc'];
 export const PAY_METHODS = ['cash', 'card', 'upi', 'bank', 'other'];
 
