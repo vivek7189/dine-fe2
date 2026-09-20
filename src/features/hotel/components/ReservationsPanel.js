@@ -94,8 +94,18 @@ export default function ReservationsPanel({ restaurantId, formatCurrency, notify
   const doCheckOut = (r) => act(() => hotelApi.checkOut(restaurantId, r.id), r.id, `${r.guestName} checked out`);
   const doCancel = (r) => { if (window.confirm(`Cancel booking for ${r.guestName}?`)) act(() => hotelApi.cancelReservation(restaurantId, r.id), r.id, 'Booking cancelled'); };
 
+  const bookingUrl = typeof window !== 'undefined' ? `${window.location.origin}/book/hotel/${restaurantId}` : '';
+  const [copied, setCopied] = useState(false);
+  const copyLink = () => { try { navigator.clipboard.writeText(bookingUrl); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* noop */ } };
+
   return (
     <div>
+      <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50/60 px-3 py-2 text-sm">
+        <FaCalendarCheck className="text-indigo-500" size={12} />
+        <span className="text-indigo-700">Direct booking link:</span>
+        <a href={bookingUrl} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate font-mono text-xs text-indigo-600 hover:underline">{bookingUrl}</a>
+        <button onClick={copyLink} className="rounded-md border border-indigo-200 bg-white px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50">{copied ? 'Copied!' : 'Copy'}</button>
+      </div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1">
           {FILTERS.map((f) => (
