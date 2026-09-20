@@ -41,6 +41,18 @@ const hotelApi = {
   setRoomHousekeeping: (rid, id, housekeepingStatus) =>
     req(`${BASE}/rooms/${id}/housekeeping`, { method: 'PATCH', body: withRid({ housekeepingStatus }, rid) }),
   deleteRoom: (rid, id) => req(`${BASE}/rooms/${id}${qs({ restaurantId: rid })}`, { method: 'DELETE' }),
+
+  // ── Reservations ──
+  availability: (rid, checkIn, checkOut, params) =>
+    req(`${BASE}/reservations/availability${qs({ ...params, restaurantId: rid, checkIn, checkOut })}`),
+  listReservations: (rid, params) => req(`${BASE}/reservations${qs(withRid(params, rid))}`),
+  getReservation: (rid, id) => req(`${BASE}/reservations/${id}${qs({ restaurantId: rid })}`),
+  createReservation: (rid, body) => req(`${BASE}/reservations`, { method: 'POST', body: withRid(body, rid) }),
+  updateReservation: (rid, id, body) => req(`${BASE}/reservations/${id}`, { method: 'PATCH', body: withRid(body, rid) }),
+  assignRoom: (rid, id, roomId) => req(`${BASE}/reservations/${id}/assign`, { method: 'PATCH', body: withRid({ roomId }, rid) }),
+  checkIn: (rid, id) => req(`${BASE}/reservations/${id}/check-in`, { method: 'POST', body: withRid({}, rid) }),
+  checkOut: (rid, id) => req(`${BASE}/reservations/${id}/check-out`, { method: 'POST', body: withRid({}, rid) }),
+  cancelReservation: (rid, id, reason) => req(`${BASE}/reservations/${id}/cancel`, { method: 'POST', body: withRid({ reason }, rid) }),
 };
 
 // Server-side allowed values (kept in sync with hotel/repos/roomsRepo.js).
