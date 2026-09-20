@@ -53,7 +53,20 @@ const hotelApi = {
   checkIn: (rid, id) => req(`${BASE}/reservations/${id}/check-in`, { method: 'POST', body: withRid({}, rid) }),
   checkOut: (rid, id) => req(`${BASE}/reservations/${id}/check-out`, { method: 'POST', body: withRid({}, rid) }),
   cancelReservation: (rid, id, reason) => req(`${BASE}/reservations/${id}/cancel`, { method: 'POST', body: withRid({ reason }, rid) }),
+
+  // ── Folio / charge-to-room ──
+  folioByReservation: (rid, reservationId) => req(`${BASE}/folios/by-reservation/${reservationId}${qs({ restaurantId: rid })}`),
+  folioByRoom: (rid, roomId) => req(`${BASE}/folios/by-room/${roomId}${qs({ restaurantId: rid })}`),
+  getFolio: (rid, id) => req(`${BASE}/folios/${id}${qs({ restaurantId: rid })}`),
+  postCharge: (rid, folioId, body) => req(`${BASE}/folios/${folioId}/charges`, { method: 'POST', body: withRid(body, rid) }),
+  postToRoom: (rid, body) => req(`${BASE}/folios/post-to-room`, { method: 'POST', body: withRid(body, rid) }),
+  voidCharge: (rid, folioId, itemId) => req(`${BASE}/folios/${folioId}/charges/${itemId}${qs({ restaurantId: rid })}`, { method: 'DELETE' }),
+  addPayment: (rid, folioId, body) => req(`${BASE}/folios/${folioId}/payments`, { method: 'POST', body: withRid(body, rid) }),
+  settleFolio: (rid, folioId, force) => req(`${BASE}/folios/${folioId}/settle`, { method: 'POST', body: withRid({ force }, rid) }),
 };
+
+export const FOLIO_ITEM_TYPES = ['room', 'food', 'beverage', 'service', 'tax', 'discount', 'misc'];
+export const PAY_METHODS = ['cash', 'card', 'upi', 'bank', 'other'];
 
 // Server-side allowed values (kept in sync with hotel/repos/roomsRepo.js).
 export const SELL_STATUS = ['available', 'occupied', 'reserved', 'blocked', 'out-of-service'];

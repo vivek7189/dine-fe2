@@ -1,9 +1,10 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import { FaPlus, FaSpinner, FaSignInAlt, FaSignOutAlt, FaBed, FaTimesCircle, FaCalendarCheck } from 'react-icons/fa';
+import { FaPlus, FaSpinner, FaSignInAlt, FaSignOutAlt, FaBed, FaTimesCircle, FaCalendarCheck, FaReceipt } from 'react-icons/fa';
 import hotelApi from '../api/hotelApi';
 import { Modal, Btn, Pill } from './ui';
 import NewBookingModal from './NewBookingModal';
+import FolioDrawer from './FolioDrawer';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const ymd = (v) => (typeof v === 'string' ? v.slice(0, 10) : v ? new Date(v).toISOString().slice(0, 10) : '');
@@ -64,6 +65,7 @@ export default function ReservationsPanel({ restaurantId, formatCurrency, notify
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [assign, setAssign] = useState(null);
+  const [folioRes, setFolioRes] = useState(null);
   const [busyId, setBusyId] = useState(null);
 
   const load = useCallback(async () => {
@@ -146,6 +148,9 @@ export default function ReservationsPanel({ restaurantId, formatCurrency, notify
                       {r.status === 'confirmed' && r.roomId && (
                         <button onClick={() => doCheckIn(r)} disabled={busyId === r.id} className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"><FaSignInAlt size={11} /> Check-in</button>
                       )}
+                      {(r.status === 'checked_in' || r.status === 'checked_out') && (
+                        <button onClick={() => setFolioRes(r)} className="inline-flex items-center gap-1 rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"><FaReceipt size={11} /> Folio</button>
+                      )}
                       {r.status === 'checked_in' && (
                         <button onClick={() => doCheckOut(r)} disabled={busyId === r.id} className="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"><FaSignOutAlt size={11} /> Check-out</button>
                       )}
@@ -163,6 +168,7 @@ export default function ReservationsPanel({ restaurantId, formatCurrency, notify
 
       <NewBookingModal restaurantId={restaurantId} open={showNew} onClose={() => setShowNew(false)} onCreated={() => { notify('success', 'Booking created'); load(); }} formatCurrency={formatCurrency} />
       {assign && <AssignModal restaurantId={restaurantId} reservation={assign} onClose={() => setAssign(null)} onAssigned={() => { notify('success', 'Room assigned'); load(); }} formatCurrency={formatCurrency} />}
+      {folioRes && <FolioDrawer restaurantId={restaurantId} reservation={folioRes} formatCurrency={formatCurrency} onClose={() => setFolioRes(null)} onChanged={load} />}
     </div>
   );
 }
