@@ -10,7 +10,7 @@ const nightsBetween = (ci, co) => {
   return d > 0 ? Math.round(d) : 0;
 };
 
-export default function NewBookingModal({ restaurantId, open, onClose, onCreated, formatCurrency }) {
+export default function NewBookingModal({ restaurantId, open, onClose, onCreated, formatCurrency, initial }) {
   const [form, setForm] = useState({ guestName: '', guestPhone: '', checkIn: '', checkOut: '', adults: 2, children: 0, roomId: '', rate: '' });
   const [rooms, setRooms] = useState([]);
   const [loadingRooms, setLoadingRooms] = useState(false);
@@ -21,10 +21,16 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
   const nights = nightsBetween(form.checkIn, form.checkOut);
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
 
-  // reset on open
+  // reset on open (honouring an optional prefill from the calendar)
   useEffect(() => {
-    if (open) { setForm({ guestName: '', guestPhone: '', checkIn: '', checkOut: '', adults: 2, children: 0, roomId: '', rate: '' }); setRooms([]); setError(null); setAvailErr(null); }
-  }, [open]);
+    if (open) {
+      setForm({
+        guestName: '', guestPhone: '', adults: 2, children: 0, rate: '',
+        checkIn: initial?.checkIn || '', checkOut: initial?.checkOut || '', roomId: initial?.roomId || '',
+      });
+      setRooms([]); setError(null); setAvailErr(null);
+    }
+  }, [open, initial]);
 
   // fetch availability whenever a valid date range is set
   useEffect(() => {
@@ -32,7 +38,18 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
     let cancelled = false;
     setLoadingRooms(true); setAvailErr(null);
     hotelApi.availability(restaurantId, form.checkIn, form.checkOut)
-      .then((res) => { if (!cancelled) { setRooms(res.rooms || []); if (!(res.rooms || []).length) setAvailErr('No rooms free for those dates.'); } })
+      .then((res) => {
+        if (cancelled) return;
+        const rr = res.rooms || [];
+        setRooms(rr);
+        if (!rr.length) setAvailErr('No rooms free for those dates.');
+        // reconcile a prefilled room: drop it if no longer free; seed rate from tariff
+        setForm((f) => {
+          if (f.roomId && !rr.find((x) => x.id === f.roomId)) return { ...f, roomId: '' };
+          const chosen = rr.find((x) => x.id === f.roomId);
+          return chosen && (f.rate === '' || f.rate == null) ? { ...f, rate: chosen.tariff ?? '' } : f;
+        });
+      })
       .catch((e) => { if (!cancelled) { setRooms([]); setAvailErr(e.message || 'Could not load availability'); } })
       .finally(() => { if (!cancelled) setLoadingRooms(false); });
     return () => { cancelled = true; };
