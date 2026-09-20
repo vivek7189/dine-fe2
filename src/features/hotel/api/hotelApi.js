@@ -65,6 +65,9 @@ const hotelApi = {
   settleFolio: (rid, folioId, force) => req(`${BASE}/folios/${folioId}/settle`, { method: 'POST', body: withRid({ force }, rid) }),
 };
 
+// ── Reports ──
+hotelApi.reportSummary = (rid, params) => req(`${BASE}/reports/summary${qs(withRid(params, rid))}`);
+
 export const FOLIO_ITEM_TYPES = ['room', 'food', 'beverage', 'service', 'tax', 'discount', 'misc'];
 export const PAY_METHODS = ['cash', 'card', 'upi', 'bank', 'other'];
 

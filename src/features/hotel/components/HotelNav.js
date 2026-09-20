@@ -3,12 +3,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FaHotel, FaCalendarCheck, FaDoorClosed, FaTh, FaBroom } from 'react-icons/fa';
+import { FaHotel, FaCalendarCheck, FaDoorClosed, FaTh, FaBroom, FaChartLine } from 'react-icons/fa';
 
 const LINKS = [
   { href: '/hotel/pms/calendar', label: 'Calendar', icon: FaTh },
   { href: '/hotel/pms/reservations', label: 'Reservations', icon: FaCalendarCheck },
   { href: '/hotel/pms/housekeeping', label: 'Housekeeping', icon: FaBroom },
+  { href: '/hotel/pms/reports', label: 'Reports', icon: FaChartLine },
   { href: '/hotel/pms/rooms', label: 'Rooms & Types', icon: FaDoorClosed },
 ];
 
