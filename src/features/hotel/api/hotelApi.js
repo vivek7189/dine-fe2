@@ -87,6 +87,11 @@ hotelApi.createService = (rid, body) => req(`${BASE}/services`, { method: 'POST'
 hotelApi.updateService = (rid, id, body) => req(`${BASE}/services/${id}`, { method: 'PATCH', body: withRid(body, rid) });
 hotelApi.deleteService = (rid, id) => req(`${BASE}/services/${id}${qs({ restaurantId: rid })}`, { method: 'DELETE' });
 
+// ── Guests / CRM (shared customers) ──
+hotelApi.listGuests = (rid, search) => req(`${BASE}/guests${qs({ restaurantId: rid, search })}`);
+hotelApi.getGuest = (rid, id) => req(`${BASE}/guests/${id}${qs({ restaurantId: rid })}`);
+hotelApi.updateGuest = (rid, id, body) => req(`${BASE}/guests/${id}`, { method: 'PATCH', body: withRid(body, rid) });
+
 // ── Staff & area assignments ──
 hotelApi.listStaff = (rid, params) => req(`${BASE}/staff${qs(withRid(params, rid))}`);
 hotelApi.createStaff = (rid, body) => req(`${BASE}/staff`, { method: 'POST', body: withRid(body, rid) });

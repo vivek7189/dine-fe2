@@ -376,6 +376,7 @@ export default function Sidebar({ isDashboardPage = false }) {
     { id: 'h-front', name: 'Front Desk', icon: FaThLarge, href: '/hotel/pms/home', color: '#9A7B45' },
     { id: 'h-cal', name: 'Reservations', icon: FaRegClock, href: '/hotel/pms/calendar', color: '#9A7B45' },
     { id: 'h-book', name: 'Bookings', icon: FaCalendarCheck, href: '/hotel/pms/reservations', color: '#9A7B45' },
+    { id: 'h-guests', name: 'Guests', icon: FaUser, href: '/hotel/pms/guests', color: '#9A7B45' },
     { id: 'h-rates', name: 'Rates', icon: FaTag, href: '/hotel/pms/rates', color: '#9A7B45' },
     { id: 'h-hk', name: 'Housekeeping', icon: FaBroom, href: '/hotel/pms/housekeeping', color: '#9A7B45' },
     { id: 'h-staff', name: 'Staff', icon: FaUsers, href: '/hotel/pms/staff', color: '#9A7B45' },
