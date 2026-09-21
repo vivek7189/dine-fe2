@@ -81,6 +81,15 @@ hotelApi.getRates = (rid, from, to) => req(`${BASE}/rates${qs({ restaurantId: ri
 hotelApi.setRate = (rid, body) => req(`${BASE}/rates`, { method: 'PUT', body: withRid(body, rid) });
 hotelApi.bulkRate = (rid, body) => req(`${BASE}/rates/bulk`, { method: 'PUT', body: withRid(body, rid) });
 
+// ── Rate plans & packages (BAR / CP / corporate / promo) ──
+hotelApi.listRatePlans = (rid, all) => req(`${BASE}/rate-plans${qs({ restaurantId: rid, all: all ? 1 : undefined })}`);
+hotelApi.createRatePlan = (rid, body) => req(`${BASE}/rate-plans`, { method: 'POST', body: withRid(body, rid) });
+hotelApi.updateRatePlan = (rid, id, body) => req(`${BASE}/rate-plans/${id}`, { method: 'PATCH', body: withRid(body, rid) });
+hotelApi.deleteRatePlan = (rid, id) => req(`${BASE}/rate-plans/${id}${qs({ restaurantId: rid })}`, { method: 'DELETE' });
+hotelApi.seedRatePlans = (rid) => req(`${BASE}/rate-plans/seed-defaults`, { method: 'POST', body: withRid({}, rid) });
+hotelApi.quoteRatePlans = (rid, roomTypeId, checkIn, checkOut, promoCode) =>
+  req(`${BASE}/rate-plans/quote${qs({ restaurantId: rid, roomTypeId, checkIn, checkOut, promoCode })}`);
+
 // ── Services catalog ──
 hotelApi.listServices = (rid) => req(`${BASE}/services${qs({ restaurantId: rid })}`);
 hotelApi.createService = (rid, body) => req(`${BASE}/services`, { method: 'POST', body: withRid(body, rid) });

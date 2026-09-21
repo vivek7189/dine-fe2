@@ -17,9 +17,18 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
   const [availErr, setAvailErr] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  // Rate plans (priced by the selected room's type + stay dates).
+  const [plans, setPlans] = useState([]);
+  const [loadingPlans, setLoadingPlans] = useState(false);
+  const [ratePlanId, setRatePlanId] = useState(null);
+  const [mealPlan, setMealPlan] = useState(null);
+  const [promo, setPromo] = useState('');
+  const [promoInput, setPromoInput] = useState('');
 
   const nights = nightsBetween(form.checkIn, form.checkOut);
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
+  const selectedRoom = rooms.find((r) => r.id === form.roomId);
+  const roomTypeId = selectedRoom?.roomTypeId || null;
 
   // reset on open (honouring an optional prefill from the calendar)
   useEffect(() => {
@@ -29,8 +38,39 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
         checkIn: initial?.checkIn || '', checkOut: initial?.checkOut || '', roomId: initial?.roomId || '',
       });
       setRooms([]); setError(null); setAvailErr(null);
+      setPlans([]); setRatePlanId(null); setMealPlan(null); setPromo(''); setPromoInput('');
     }
   }, [open, initial]);
+
+  // Fetch priced rate plans whenever a room (→ type) + valid dates are chosen.
+  useEffect(() => {
+    if (!open || !roomTypeId || nights <= 0) { setPlans([]); return; }
+    let cancelled = false;
+    setLoadingPlans(true);
+    hotelApi.quoteRatePlans(restaurantId, roomTypeId, form.checkIn, form.checkOut, promo || undefined)
+      .then((res) => {
+        if (cancelled) return;
+        const opts = (res.options || []).filter((o) => o.bookable);
+        setPlans(opts);
+        // default-select BAR (or first) if nothing chosen yet
+        setRatePlanId((cur) => {
+          if (cur && opts.some((o) => o.ratePlanId === cur)) return cur;
+          const def = opts.find((o) => o.isDefault) || opts[0];
+          if (def) { setForm((f) => ({ ...f, rate: def.nightly })); setMealPlan(def.mealPlan || null); }
+          return def ? def.ratePlanId : null;
+        });
+      })
+      .catch(() => { if (!cancelled) setPlans([]); })
+      .finally(() => { if (!cancelled) setLoadingPlans(false); });
+    return () => { cancelled = true; };
+  }, [open, restaurantId, roomTypeId, form.checkIn, form.checkOut, nights, promo]);
+
+  const pickPlan = (o) => {
+    setRatePlanId(o.ratePlanId);
+    setMealPlan(o.mealPlan || null);
+    set({ rate: o.nightly });
+  };
+  const applyPromo = () => setPromo(promoInput.trim().toUpperCase());
 
   // fetch availability whenever a valid date range is set
   useEffect(() => {
@@ -72,6 +112,7 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
         checkIn: form.checkIn, checkOut: form.checkOut,
         adults: Number(form.adults) || 1, children: Number(form.children) || 0,
         roomId: form.roomId || null, rate: form.rate === '' ? null : Number(form.rate),
+        ratePlanId: ratePlanId || null, mealPlan: mealPlan || null,
         source: 'walk-in',
       });
       onCreated && onCreated();
@@ -125,8 +166,46 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
           {availErr && <span className="mt-1 block text-[11px] text-amber-600">{availErr}</span>}
         </Field>
 
+        {roomTypeId && nights > 0 && (
+          <Field label="Rate plan & package" hint="Pricing pulls from the calendar for this room type.">
+            {loadingPlans ? (
+              <div className="flex items-center gap-2 py-2 text-sm text-[#A79C88]"><FaSpinner className="animate-spin" size={12} /> Pricing plans…</div>
+            ) : plans.length === 0 ? (
+              <div className="text-[12px] text-[#A79C88]">No rate plans configured — enter a nightly rate below.</div>
+            ) : (
+              <div className="space-y-2">
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {plans.map((o) => {
+                    const on = o.ratePlanId === ratePlanId;
+                    return (
+                      <button type="button" key={o.ratePlanId || o.code} onClick={() => pickPlan(o)}
+                        className={`flex flex-col rounded-xl border p-2.5 text-left transition ${on ? 'border-[#9A7B45] bg-[#F3EAD7]/60 ring-1 ring-[#9A7B45]/30' : 'border-[#DDD4C2] bg-white hover:bg-[#F3EFE6]'}`}>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[13px] font-semibold text-[#2A241B]">{o.name}</span>
+                          <span className="text-[13px] font-semibold text-[#9A7B45]">{formatCurrency ? formatCurrency(o.nightly) : o.nightly}<span className="text-[10px] font-normal text-[#A79C88]">/night</span></span>
+                        </div>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10.5px] text-[#8A8172]">
+                          {o.mealPlan && o.mealPlan !== 'none' && <span className="rounded-full bg-[#E7F1EA] px-1.5 py-0.5 text-[#356B4E]">{o.mealLabel}</span>}
+                          {!o.refundable && <span className="rounded-full bg-[#F5E6E2] px-1.5 py-0.5 text-[#8A3F31]">Non-refundable</span>}
+                          {o.isPromo && <span className="rounded-full bg-[#EEEAF6] px-1.5 py-0.5 text-[#5A4A85]">Promo</span>}
+                          <span className="text-[#B3A88F]">· {formatCurrency ? formatCurrency(o.total) : o.total} total</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input className={`${inputCls} max-w-[180px]`} value={promoInput} onChange={(e) => setPromoInput(e.target.value.toUpperCase())} placeholder="Promo code" />
+                  <Btn variant="ghost" onClick={applyPromo} className="!py-1.5">Apply</Btn>
+                  {promo && <span className="text-[11px] text-[#356B4E]">Applied: {promo}</span>}
+                </div>
+              </div>
+            )}
+          </Field>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Nightly rate"><input type="number" min="0" step="0.01" className={inputCls} value={form.rate} onChange={(e) => set({ rate: e.target.value })} placeholder="0" /></Field>
+          <Field label="Nightly rate"><input type="number" min="0" step="0.01" className={inputCls} value={form.rate} onChange={(e) => { set({ rate: e.target.value }); setRatePlanId(null); }} placeholder="0" /></Field>
           <Field label="Total">
             <div className={`${inputCls} bg-[#FAF7F0] text-[#4A4335]`}>{total != null ? (formatCurrency ? formatCurrency(total) : total) : '—'}</div>
           </Field>

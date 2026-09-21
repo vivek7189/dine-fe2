@@ -26,6 +26,13 @@ export default function PublicBooking({ restaurantId }) {
   const [form, setForm] = useState({ guestName: '', guestPhone: '', guestEmail: '', specialRequests: '' });
   const [booking, setBooking] = useState(false);
   const [confirmed, setConfirmed] = useState(null);
+  // Rate plans for the chosen room type.
+  const [plans, setPlans] = useState(null);   // null = loading
+  const [planId, setPlanId] = useState(null);
+  const [promo, setPromo] = useState('');
+  const [promoInput, setPromoInput] = useState('');
+  const chosenPlan = (plans || []).find((p) => p.ratePlanId === planId) || null;
+  const stayTotal = chosenPlan ? chosenPlan.total : (selected ? (selected.rate || 0) * n : 0);
 
   const cur = property?.currency || '';
   const money = (v) => `${cur}${cur ? ' ' : ''}${Number(v || 0).toLocaleString()}`;
@@ -45,6 +52,22 @@ export default function PublicBooking({ restaurantId }) {
     finally { setSearching(false); }
   }, [restaurantId, checkIn, checkOut, n]);
 
+  // Load priced rate plans when a room type is picked (and when a promo is applied).
+  useEffect(() => {
+    if (!selected) { setPlans(null); setPlanId(null); return; }
+    let cancelled = false;
+    setPlans(null);
+    publicBookingApi.ratePlans(restaurantId, selected.roomTypeId, checkIn, checkOut, promo || undefined)
+      .then((r) => {
+        if (cancelled) return;
+        const opts = r.options || [];
+        setPlans(opts);
+        setPlanId((cur) => (cur && opts.some((o) => o.ratePlanId === cur) ? cur : (opts.find((o) => o.isDefault) || opts[0])?.ratePlanId || null));
+      })
+      .catch(() => { if (!cancelled) setPlans([]); });
+    return () => { cancelled = true; };
+  }, [selected, restaurantId, checkIn, checkOut, promo]);
+
   const submit = async () => {
     if (!form.guestName.trim()) { setError('Please enter your name'); return; }
     if (!form.guestPhone.trim() && !form.guestEmail.trim()) { setError('Please enter a phone or email'); return; }
@@ -54,6 +77,7 @@ export default function PublicBooking({ restaurantId }) {
         roomTypeId: selected.roomTypeId, checkIn, checkOut, adults: Math.min(30, Math.max(1, parseInt(guests, 10) || 1)),
         guestName: form.guestName.trim(), guestPhone: form.guestPhone.trim() || null,
         guestEmail: form.guestEmail.trim() || null, specialRequests: form.specialRequests.trim() || null,
+        ratePlanId: planId || null, promoCode: promo || null,
       });
       setConfirmed(r.booking);
     } catch (e) { setError(e.message || 'Booking failed'); }
@@ -79,10 +103,11 @@ export default function PublicBooking({ restaurantId }) {
             <Row k="Reference" v={<span className="font-mono font-semibold">{confirmed.code}</span>} />
             <Row k="Guest" v={confirmed.guestName} />
             <Row k="Room" v={confirmed.roomType} />
+            {confirmed.ratePlan ? <Row k="Rate plan" v={confirmed.ratePlan} /> : null}
             <Row k="Stay" v={`${fmt(confirmed.checkIn)} → ${fmt(confirmed.checkOut)} · ${confirmed.nights} night${confirmed.nights > 1 ? 's' : ''}`} />
             {confirmed.total ? <Row k="Total" v={money(confirmed.total)} /> : null}
           </div>
-          <button onClick={() => { setConfirmed(null); setSelected(null); setTypes(null); setForm({ guestName: '', guestPhone: '', guestEmail: '', specialRequests: '' }); }}
+          <button onClick={() => { setConfirmed(null); setSelected(null); setTypes(null); setPlanId(null); setPromo(''); setPromoInput(''); setForm({ guestName: '', guestPhone: '', guestEmail: '', specialRequests: '' }); }}
             className="mt-5 text-sm font-medium text-indigo-600 hover:underline">Make another booking</button>
         </div>
       </Shell>
@@ -96,8 +121,52 @@ export default function PublicBooking({ restaurantId }) {
         <button onClick={() => setSelected(null)} className="mb-3 inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700"><FaArrowLeft size={11} /> Back to rooms</button>
         <div className="mb-4 rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-sm">
           <div className="font-semibold text-indigo-800">{selected.name}</div>
-          <div className="text-indigo-600">{fmt(checkIn)} → {fmt(checkOut)} · {n} night{n > 1 ? 's' : ''} · {money((selected.rate || 0) * n)}</div>
+          <div className="text-indigo-600">{fmt(checkIn)} → {fmt(checkOut)} · {n} night{n > 1 ? 's' : ''} · {money(stayTotal)}</div>
         </div>
+
+        {/* Rate plan / package chooser */}
+        <div className="mb-4">
+          <div className="mb-1.5 text-xs font-medium text-slate-500">Choose a rate</div>
+          {plans === null ? (
+            <div className="flex items-center gap-2 py-3 text-sm text-slate-400"><FaSpinner className="animate-spin" size={12} /> Loading rates…</div>
+          ) : plans.length === 0 ? (
+            <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-500">Standard rate · {money((selected.rate || 0) * n)}</div>
+          ) : (
+            <div className="space-y-2">
+              {plans.map((o) => {
+                const on = o.ratePlanId === planId;
+                return (
+                  <button key={o.ratePlanId || o.code} type="button" onClick={() => setPlanId(o.ratePlanId)}
+                    className={`flex w-full items-start justify-between gap-3 rounded-xl border p-3 text-left transition ${on ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-200' : 'border-slate-200 bg-white hover:border-indigo-200'}`}>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={`h-3.5 w-3.5 flex-none rounded-full border ${on ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'}`} />
+                        <span className="text-sm font-semibold text-slate-800">{o.name}</span>
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-1.5 pl-5 text-[11px]">
+                        {o.mealPlan && o.mealPlan !== 'none' && <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-emerald-700">{o.mealLabel}</span>}
+                        {!o.refundable && <span className="rounded-full bg-rose-50 px-1.5 py-0.5 text-rose-600">Non-refundable</span>}
+                        {o.isPromo && <span className="rounded-full bg-violet-50 px-1.5 py-0.5 text-violet-700">Promo applied</span>}
+                        {o.description && <span className="text-slate-400">{o.description}</span>}
+                      </div>
+                    </div>
+                    <div className="flex-none text-right">
+                      <div className="text-sm font-semibold text-slate-900">{money(o.total)}</div>
+                      <div className="text-[10px] text-slate-400">{money(o.nightly)}/night</div>
+                    </div>
+                  </button>
+                );
+              })}
+              <div className="flex items-center gap-2 pt-1">
+                <input value={promoInput} onChange={(e) => setPromoInput(e.target.value.toUpperCase())} placeholder="Promo code"
+                  className="w-40 rounded-lg border border-slate-300 px-3 py-1.5 text-sm outline-none focus:border-indigo-500" />
+                <button type="button" onClick={() => setPromo(promoInput.trim().toUpperCase())} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50">Apply</button>
+                {promo && <span className="text-[11px] text-emerald-600">Code “{promo}” applied</span>}
+              </div>
+            </div>
+          )}
+        </div>
+
         {error && <div className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</div>}
         <div className="space-y-3">
           <Input label="Full name" value={form.guestName} onChange={(v) => setForm({ ...form, guestName: v })} placeholder="Your name" />
@@ -108,7 +177,7 @@ export default function PublicBooking({ restaurantId }) {
           <Input label="Special requests" value={form.specialRequests} onChange={(v) => setForm({ ...form, specialRequests: v })} placeholder="Optional" />
           <button onClick={submit} disabled={booking}
             className="mt-1 w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white hover:bg-indigo-700 disabled:bg-indigo-300">
-            {booking ? 'Booking…' : `Confirm booking${selected.rate ? ` · ${money((selected.rate || 0) * n)}` : ''}`}
+            {booking ? 'Booking…' : `Confirm booking${stayTotal ? ` · ${money(stayTotal)}` : ''}`}
           </button>
         </div>
       </Shell>
