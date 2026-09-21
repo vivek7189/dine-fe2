@@ -2,13 +2,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaPlus, FaSpinner, FaSignInAlt, FaSignOutAlt, FaBed, FaTimesCircle, FaCalendarCheck, FaReceipt } from 'react-icons/fa';
 import hotelApi from '../api/hotelApi';
-import { Modal, Btn, Pill } from './ui';
+import { Modal, Btn, Pill, StatCard } from './ui';
 import NewBookingModal from './NewBookingModal';
 import FolioDrawer from './FolioDrawer';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const ymd = (v) => (typeof v === 'string' ? v.slice(0, 10) : v ? new Date(v).toISOString().slice(0, 10) : '');
 const fmtDate = (v) => { const s = ymd(v); if (!s) return '—'; const [, m, d] = s.split('-'); return `${MONTHS[+m - 1]} ${+d}`; };
+const localToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const addDays = (s, n) => { const d = new Date(s + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 
 const FILTERS = [
   { id: 'upcoming', label: 'Upcoming', params: { status: 'confirmed' } },
@@ -62,6 +64,7 @@ function AssignModal({ restaurantId, reservation, onClose, onAssigned, formatCur
 export default function ReservationsPanel({ restaurantId, formatCurrency, notify }) {
   const [filter, setFilter] = useState('upcoming');
   const [rows, setRows] = useState([]);
+  const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [assign, setAssign] = useState(null);
@@ -71,10 +74,21 @@ export default function ReservationsPanel({ restaurantId, formatCurrency, notify
   const load = useCallback(async () => {
     if (!restaurantId) return;
     setLoading(true);
+    const today = localToday();
     try {
       const params = FILTERS.find((f) => f.id === filter)?.params || {};
-      const res = await hotelApi.listReservations(restaurantId, params);
+      const [res, near] = await Promise.all([
+        hotelApi.listReservations(restaurantId, params),
+        hotelApi.listReservations(restaurantId, { from: addDays(today, -1), to: addDays(today, 2) }),
+      ]);
       setRows(res.reservations || []);
+      const n = (near.reservations || []).filter((r) => r.status !== 'cancelled');
+      setSummary({
+        arrivals: n.filter((r) => ymd(r.checkIn) === today).length,
+        departures: n.filter((r) => ymd(r.checkOut) === today && r.status !== 'checked_out').length,
+        inHouse: n.filter((r) => r.status === 'checked_in' && ymd(r.checkIn) <= today && ymd(r.checkOut) > today).length,
+        unassigned: n.filter((r) => !r.roomId && r.status === 'confirmed').length,
+      });
     } catch (e) {
       notify('error', e.message || 'Failed to load reservations');
     } finally {
@@ -100,6 +114,14 @@ export default function ReservationsPanel({ restaurantId, formatCurrency, notify
 
   return (
     <div>
+      {summary && (
+        <div className="mb-3 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          <StatCard icon={FaSignInAlt} tone="emerald" label="Arrivals today" value={summary.arrivals} />
+          <StatCard icon={FaBed} tone="indigo" label="In-house" value={summary.inHouse} />
+          <StatCard icon={FaSignOutAlt} tone="rose" label="Departures today" value={summary.departures} />
+          <StatCard icon={FaCalendarCheck} tone="amber" label="Unassigned" value={summary.unassigned} />
+        </div>
+      )}
       <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50/60 px-3 py-2 text-sm">
         <FaCalendarCheck className="text-indigo-500" size={12} />
         <span className="text-indigo-700">Direct booking link:</span>

@@ -80,6 +80,24 @@ export function Modal({ open, title, onClose, children, footer, wide }) {
   );
 }
 
+// Compact KPI card used in the summary strips across hotel pages.
+export function StatCard({ icon: Icon, tone = 'indigo', label, value, sub }) {
+  const tones = {
+    indigo: 'bg-indigo-50 text-indigo-600', sky: 'bg-sky-50 text-sky-600',
+    emerald: 'bg-emerald-50 text-emerald-600', rose: 'bg-rose-50 text-rose-600',
+    amber: 'bg-amber-50 text-amber-600', slate: 'bg-slate-100 text-slate-500',
+  };
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3.5 py-3 shadow-sm">
+      {Icon && <span className={`flex h-9 w-9 flex-none items-center justify-center rounded-lg ${tones[tone]}`}><Icon size={14} /></span>}
+      <div className="min-w-0">
+        <div className="text-lg font-semibold leading-none text-slate-900 tabular-nums">{value}</div>
+        <div className="mt-0.5 truncate text-[11px] text-slate-400">{label}{sub ? ` · ${sub}` : ''}</div>
+      </div>
+    </div>
+  );
+}
+
 export function Btn({ variant = 'primary', children, ...rest }) {
   const styles = {
     primary: 'bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-indigo-300',
