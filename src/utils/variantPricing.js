@@ -64,27 +64,6 @@ export function resolveItemTierPrice(item, basePrice, activeRuleId, rules) {
   return base;
 }
 
-// Item-level multi-tier price resolver — mirrors the backend resolveItemPriceForRule() item branch
-// so the customer/public page shows the SAME price the server will charge. Always returns a number
-// (falls back to the item's base price when the rule has no per-item price / markup).
-export function resolveItemTierPrice(item, activeRuleId, rules) {
-  const base = typeof item?.price === 'number' ? item.price : (parseFloat(item?.price) || 0);
-  if (!activeRuleId || !rules?.length) return base;
-  const rule = rules.find(r => r.id === activeRuleId && r.isActive);
-  if (!rule) return base;
-  // Priority 1: per-item price for this exact rule
-  if (item.pricingRules && typeof item.pricingRules[activeRuleId] === 'number') return item.pricingRules[activeRuleId];
-  // Priority 2 (zone rules only): inherit the item's Dine-In price
-  if (isZoneRule(rule)) {
-    const di = findDineInRule(rules);
-    if (di && item.pricingRules && typeof item.pricingRules[di.id] === 'number') return item.pricingRules[di.id];
-  }
-  // Priority 3: rule default markup off the base price
-  if (rule.defaultMarkupType === 'percentage' && rule.defaultMarkupValue) return Math.round(base * (1 + rule.defaultMarkupValue / 100) * 100) / 100;
-  if (rule.defaultMarkupType === 'flat' && rule.defaultMarkupValue) return Math.round((base + rule.defaultMarkupValue) * 100) / 100;
-  return base;
-}
-
 // Map an order type (id or label) to the active pricing-rule id — mirrors the backend
 // resolveOrderTypePricingRule(). Normalizes case/spaces/underscores/hyphens so "Take Away",
 // "take-away", "takeaway" all match a rule named "Takeaway". Returns null when multi-pricing is off.

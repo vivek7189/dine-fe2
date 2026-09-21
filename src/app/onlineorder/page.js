@@ -893,7 +893,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   // so restaurants without multi-pricing get the exact same numbers as before.
   const pricedMenu = useMemo(
     () => (menu || []).map(item => {
-      const resolved = resolveItemTierPrice(item, activePricingRuleId, restaurant?.multiPricing?.rules);
+      const resolved = resolveItemTierPrice(item, item.price, activePricingRuleId, restaurant?.multiPricing?.rules);
       return resolved !== item.price ? { ...item, price: resolved, basePrice: item.price } : item;
     }),
     [menu, activePricingRuleId, restaurant]
@@ -907,7 +907,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       const next = prev.map(ci => {
         const src = (menu || []).find(m => m.id === ci.id);
         if (!src) return ci;
-        const resolved = resolveItemTierPrice(src, activePricingRuleId, restaurant?.multiPricing?.rules);
+        const resolved = resolveItemTierPrice(src, src.price, activePricingRuleId, restaurant?.multiPricing?.rules);
         if (resolved === ci.price) return ci;
         changed = true;
         return { ...ci, price: resolved };
