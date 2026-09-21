@@ -170,7 +170,10 @@ export default function ReservationsPanel({ restaurantId, formatCurrency, notify
                   <td className="px-4 py-2.5 text-[#6E6656]">{r.roomNumber || <span className="text-amber-600">Unassigned</span>}</td>
                   <td className="px-4 py-2.5 text-[#6E6656]">{fmtDate(r.checkIn)} → {fmtDate(r.checkOut)}<span className="ml-1 text-xs text-[#A79C88]">· {r.nights}n</span></td>
                   <td className="px-4 py-2.5 text-[#6E6656]">{r.totalAmount != null ? (formatCurrency ? formatCurrency(r.totalAmount) : r.totalAmount) : '—'}</td>
-                  <td className="px-4 py-2.5"><Pill value={r.status === 'checked_in' ? 'occupied' : r.status === 'checked_out' ? 'inspected' : r.status === 'cancelled' ? 'out-of-service' : 'reserved'} /><span className="ml-1 text-xs capitalize text-[#A79C88]">{r.status.replace('_', ' ')}</span></td>
+                  <td className="px-4 py-2.5">{(() => {
+                    const S = { confirmed: ['Confirmed', '#6D5B9A', '#EEEAF6'], checked_in: ['In-house', '#4E6E8E', '#EAF0F5'], checked_out: ['Departed', '#8A6721', '#F6EEDD'], cancelled: ['Cancelled', '#9A9081', '#F0EBE1'], no_show: ['No-show', '#8A3F31', '#F5E6E2'] }[r.status] || ['—', '#8A8172', '#F1ECE1'];
+                    return <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold" style={{ color: S[1], background: S[2] }}><span className="h-1.5 w-1.5 rounded-full" style={{ background: S[1] }} />{S[0]}</span>;
+                  })()}</td>
                   <td className="px-4 py-2.5">
                     <div className="flex justify-end gap-1.5">
                       {busyId === r.id && <FaSpinner className="animate-spin text-[#A79C88]" />}
@@ -178,13 +181,13 @@ export default function ReservationsPanel({ restaurantId, formatCurrency, notify
                         <button onClick={() => setAssign(r)} className="inline-flex items-center gap-1 rounded-md border border-[#DFD7C6] px-2 py-1 text-xs text-[#4A4335] hover:bg-[#F3EFE6]"><FaBed size={11} /> Assign</button>
                       )}
                       {r.status === 'confirmed' && r.roomId && (
-                        <button onClick={() => doCheckIn(r)} disabled={busyId === r.id} className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"><FaSignInAlt size={11} /> Check-in</button>
+                        <button onClick={() => doCheckIn(r)} disabled={busyId === r.id} style={{ backgroundColor: '#9A7B45' }} className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold text-white hover:brightness-110 disabled:opacity-50"><FaSignInAlt size={11} /> Check-in</button>
                       )}
                       {(r.status === 'checked_in' || r.status === 'checked_out') && (
                         <button onClick={() => setFolioRes(r)} className="inline-flex items-center gap-1 rounded-md border border-[#DFD7C6] px-2 py-1 text-xs text-[#4A4335] hover:bg-[#F3EFE6]"><FaReceipt size={11} /> Folio</button>
                       )}
                       {r.status === 'checked_in' && (
-                        <button onClick={() => doCheckOut(r)} disabled={busyId === r.id} className="inline-flex items-center gap-1 rounded-md bg-[#9A7B45] px-2 py-1 text-xs font-medium text-white hover:bg-[#876A3A] disabled:opacity-50"><FaSignOutAlt size={11} /> Check-out</button>
+                        <button onClick={() => doCheckOut(r)} disabled={busyId === r.id} style={{ backgroundColor: '#4E6E8E' }} className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold text-white hover:brightness-110 disabled:opacity-50"><FaSignOutAlt size={11} /> Check-out</button>
                       )}
                       {(r.status === 'confirmed' || r.status === 'checked_in') && (
                         <button onClick={() => doCancel(r)} disabled={busyId === r.id} className="inline-flex items-center gap-1 rounded-md border border-[#EBE4D6] px-2 py-1 text-xs text-[#8A8172] hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"><FaTimesCircle size={11} /></button>

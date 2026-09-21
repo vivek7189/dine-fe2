@@ -163,5 +163,5 @@ function GuestRow({ name, sub, chip, action }) {
   );
 }
 function BrassBtn({ busy, onClick, children }) {
-  return <button onClick={onClick} disabled={busy} className={`inline-flex flex-none items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12.5px] font-semibold ${T.brassBtn} disabled:opacity-50`}>{busy && <FaSpinner className="animate-spin" size={10} />}{children}</button>;
+  return <button onClick={onClick} disabled={busy} style={{ backgroundColor: '#9A7B45' }} className="inline-flex flex-none items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12.5px] font-semibold text-white shadow-sm hover:brightness-110 disabled:opacity-50">{busy && <FaSpinner className="animate-spin" size={10} />}{children}</button>;
 }

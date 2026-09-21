@@ -22,7 +22,7 @@ export default function HotelShell({ children }) {
 
   return (
     <div className="min-h-screen bg-[#F6F3EC]">
-      <div className="mx-auto max-w-6xl px-4 py-5 sm:px-8">
+      <div className="px-4 py-5 sm:px-6">
         {/* property context bar */}
         <div className="mb-6 flex flex-wrap items-center gap-2.5 border-b border-[#EBE4D6] pb-4">
           <FaCircle size={8} className="text-[#3E7C5A]" />

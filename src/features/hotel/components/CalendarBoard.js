@@ -16,10 +16,11 @@ const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MO = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const DAYS = 14;
-const STATUS_BAR = {
-  confirmed: 'bg-[#6D5B9A] text-white',    // arriving / confirmed → purple
-  checked_in: 'bg-[#4E6E8E] text-white',   // in-house → blue
-  checked_out: 'bg-[#B58836] text-white',  // departed → gold
+// inline colors (guaranteed to render regardless of Tailwind JIT)
+const BAR_COLOR = {
+  confirmed: '#6D5B9A',   // arriving / confirmed → purple
+  checked_in: '#4E6E8E',  // in-house → blue
+  checked_out: '#B58836', // departed → gold
 };
 
 export default function CalendarBoard({ restaurantId, formatCurrency, notify }) {
@@ -164,9 +165,10 @@ export default function CalendarBoard({ restaurantId, formatCurrency, notify }) 
                     const st = barStyle(r);
                     if (!st) return null;
                     return (
-                      <button key={r.id} onClick={() => setSelected(r)} style={st}
+                      <button key={r.id} onClick={() => setSelected(r)}
+                        style={{ ...st, backgroundColor: BAR_COLOR[r.status] || '#C3B9A3', color: '#fff' }}
                         title={`${r.guestName} · ${ymd(r.checkIn)} → ${ymd(r.checkOut)} · ${r.nights}n`}
-                        className={`absolute top-2 bottom-2 mx-[3px] flex items-center gap-1 overflow-hidden rounded-md px-2 text-[11px] font-semibold shadow-sm ring-1 ring-black/5 transition hover:brightness-105 ${STATUS_BAR[r.status] || 'bg-[#C3B9A3]'}`}>
+                        className="absolute top-2 bottom-2 mx-[3px] flex items-center gap-1 overflow-hidden rounded-md px-2 text-[11px] font-semibold shadow-sm ring-1 ring-black/10 transition hover:brightness-110">
                         {r.status === 'checked_in' && <FaBed size={9} className="flex-none opacity-80" />}
                         <span className="truncate">{r.guestName}</span>
                       </button>

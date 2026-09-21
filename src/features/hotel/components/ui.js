@@ -21,15 +21,16 @@ export function Field({ label, children, hint, required }) {
 }
 
 // Buttons ---------------------------------------------------------------------
-export function Btn({ variant = 'primary', children, className = '', ...rest }) {
-  const styles = {
-    primary: 'bg-[#9A7B45] text-white hover:bg-[#876A3A] shadow-sm disabled:bg-[#C9BC9E]',
-    ghost: 'bg-white text-[#4A4335] border border-[#DDD4C2] hover:bg-[#F3EFE6]',
-    danger: 'bg-[#9B4A3A] text-white hover:bg-[#873F31] disabled:bg-[#C9A79E]',
-  };
+export function Btn({ variant = 'primary', children, className = '', style, ...rest }) {
+  // Inline colors so buttons render reliably regardless of Tailwind JIT.
+  const bg = { primary: '#9A7B45', danger: '#9B4A3A' }[variant];
+  const base = 'inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-60';
+  if (variant === 'ghost') {
+    return <button {...rest} className={`${base} border border-[#DDD4C2] bg-white text-[#4A4335] hover:bg-[#F3EFE6] ${className}`} style={style}>{children}</button>;
+  }
   return (
-    <button {...rest}
-      className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-semibold transition disabled:cursor-not-allowed ${styles[variant]} ${className}`}>
+    <button {...rest} style={{ backgroundColor: bg, color: '#fff', ...style }}
+      className={`${base} text-white shadow-sm hover:brightness-110 ${className}`}>
       {children}
     </button>
   );
