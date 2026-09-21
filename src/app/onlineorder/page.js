@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect, Suspense, useCallback } from 'react';
+import { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
 import { orderDisplayNumber } from '../../utils/orderNumber';
+import { resolveItemTierPrice, resolveOrderTypeRuleId } from '../../utils/variantPricing';
+import { resolveAdditionalCharges } from '../../utils/additionalCharges';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   FaSearch, FaShoppingCart, FaPlus, FaMinus, FaTrash, FaArrowLeft,
@@ -819,13 +821,25 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     return Math.round((preTaxTotal * bs.serviceChargeRate / 100) * 100) / 100;
   };
 
+  // Per-order-type additional charges (packaging / delivery / service fee). Uses the SAME order
+  // type sent with the order + the same resolver as the server, so the payable total matches
+  // exactly. Reads the charge config exposed on the public menu payload.
+  const getAdditionalChargesResult = () => resolveAdditionalCharges(
+    { additionalCharges: restaurant?.additionalCharges },
+    (pricingOrderType === 'dine-in' ? 'dine_in' : pricingOrderType),
+    getPreTaxTotal()
+  );
+
   const getFinalTotal = () => {
     const preTaxTotal = getPreTaxTotal();
     // Only EXCLUSIVE tax is added on top — inclusive tax is already contained in the item prices
     // (preTaxTotal). Matches the backend's finalTotal = preTaxTotal + exclusiveTaxAmount + sc + tip.
     const { exclusiveTaxAmount } = getTaxBreakdown();
     const serviceCharge = getServiceCharge();
-    return Math.round((preTaxTotal + exclusiveTaxAmount + serviceCharge + tipAmount) * 100) / 100;
+    // Additional charges added at face value + their own tax — matches the public order-create
+    // path exactly (charges are NOT folded into item tax on the customer page, so FE == server).
+    const addl = getAdditionalChargesResult();
+    return Math.round((preTaxTotal + exclusiveTaxAmount + serviceCharge + tipAmount + addl.total + addl.ownTaxTotal) * 100) / 100;
   };
 
   const getLoyaltyPointsToEarn = () => {
@@ -866,8 +880,44 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     }
   };
 
-  // Filter menu
-  const filteredMenu = menu.filter(item => {
+  // ── Order-type-aware pricing (mirrors the POS + server) ──────────────────────
+  // Map the page's internal order type to the restaurant's order-type id used by the
+  // multi-pricing rules ('table'/'room' seat a dine-in; otherwise it's the channel itself).
+  const pricingOrderType = (orderType === 'table' || orderType === 'room') ? 'dine-in' : orderType;
+  // The active pricing rule id for the selected order type (null when multi-pricing is off).
+  const activePricingRuleId = useMemo(
+    () => resolveOrderTypeRuleId(pricingOrderType, restaurant?.orderTypes, restaurant?.multiPricing),
+    [pricingOrderType, restaurant]
+  );
+  // Menu with each item's price resolved for the selected order type. Falls back to base price,
+  // so restaurants without multi-pricing get the exact same numbers as before.
+  const pricedMenu = useMemo(
+    () => (menu || []).map(item => {
+      const resolved = resolveItemTierPrice(item, activePricingRuleId, restaurant?.multiPricing?.rules);
+      return resolved !== item.price ? { ...item, price: resolved, basePrice: item.price } : item;
+    }),
+    [menu, activePricingRuleId, restaurant]
+  );
+  // Keep cart line prices in sync when the customer switches order type (so the total the
+  // customer pays always matches the resolved per-order-type price the server will charge).
+  useEffect(() => {
+    setCart(prev => {
+      if (!prev.length) return prev;
+      let changed = false;
+      const next = prev.map(ci => {
+        const src = (menu || []).find(m => m.id === ci.id);
+        if (!src) return ci;
+        const resolved = resolveItemTierPrice(src, activePricingRuleId, restaurant?.multiPricing?.rules);
+        if (resolved === ci.price) return ci;
+        changed = true;
+        return { ...ci, price: resolved };
+      });
+      return changed ? next : prev;
+    });
+  }, [activePricingRuleId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Filter menu (uses order-type-resolved prices)
+  const filteredMenu = pricedMenu.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.description?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
@@ -1118,7 +1168,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         shortCode: item.shortCode
       })),
       totalAmount: getCartSubtotal(),
-      orderType: orderType === 'table' ? 'dine_in' : 'takeaway',
+      orderType: (pricingOrderType === 'dine-in' ? 'dine_in' : pricingOrderType),
       notes: orderType === 'room'
         ? `Online order for Room ${customerInfo.roomNumber || 'N/A'}`
         : `Online order - ${orderType === 'table' ? `Table ${customerInfo.seatNumber || 'Walk-in'}${chairParam ? ` · Seat ${chairParam}` : ''}` : 'Takeaway'}`,
@@ -1200,7 +1250,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         amount: amountInPaise,
         currency: 'INR',
         receipt: `online_${Date.now()}`,
-        notes: { customerPhone: recordPhone(), orderType: orderType === 'table' ? 'dine_in' : 'takeaway' },
+        notes: { customerPhone: recordPhone(), orderType: (pricingOrderType === 'dine-in' ? 'dine_in' : pricingOrderType) },
       });
 
       // 2. Load Razorpay script if not loaded
@@ -1877,6 +1927,32 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
               />
             </div>
 
+            {/* Order-type selector — lets the customer pick Takeaway/Delivery so the correct
+                per-order-type price shows (mirrors the POS). Only when the restaurant uses
+                multi-pricing and this isn't a table-locked QR; hidden otherwise. */}
+            {(() => {
+              if (!restaurant?.multiPricing?.enabled || tableNumberProp) return null;
+              const opts = (restaurant?.orderTypes || []).filter(o => o.enabled !== false && !['dine-in', 'booking'].includes(o.id));
+              if (opts.length < 2) return null;
+              return (
+                <div style={{ display: 'flex', gap: '8px', margin: '2px 4px 12px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280' }}>Order for:</span>
+                  {opts.map(o => {
+                    const active = pricingOrderType === o.id;
+                    return (
+                      <button key={o.id} onClick={() => setOrderType(o.id)} style={{
+                        padding: '7px 16px', borderRadius: '20px', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+                        textTransform: 'capitalize', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                        border: active ? `1.5px solid ${brandColor}` : '1px solid #e5e7eb',
+                        background: active ? brandColor : '#ffffff',
+                        color: active ? '#ffffff' : '#374151'
+                      }}>{o.label || o.id}</button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
             {/* Categories - Mobile horizontal scroll */}
             <div className="mobile-categories" style={{
               display: 'flex',
@@ -1918,6 +1994,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
                     borderRadius: '20px',
                     fontSize: '12px',
                     fontWeight: '600',
+                    textTransform: 'uppercase',
                     cursor: 'pointer',
                     whiteSpace: 'nowrap',
                     flexShrink: 0,
@@ -2126,6 +2203,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
                     borderRadius: '10px',
                     fontSize: '14px',
                     fontWeight: selectedCategory === category ? '600' : '500',
+                    textTransform: 'uppercase',
                     cursor: 'pointer',
                     marginBottom: '4px',
                     transition: 'all 0.2s ease',
@@ -2190,6 +2268,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
                 padding: '16px 20px',
                 backgroundColor: 'white',
                 borderRadius: '16px',
+                textTransform: 'uppercase',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
               }}>
                 {category}
@@ -4605,6 +4684,26 @@ const CheckoutView = ({
                     <span style={{ color: '#374151' }}>{cs}{getServiceCharge().toFixed(2)}</span>
                   </div>
                 )}
+                {/* Additional charges (packaging / delivery / service fee) — per selected order type */}
+                {(() => {
+                  const addl = getAdditionalChargesResult();
+                  return (
+                    <>
+                      {addl.charges.map((c, i) => (
+                        <div key={`addl-${c.id}-${i}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
+                          <span style={{ color: '#6b7280' }}>{c.name}{c.type === 'percent' ? ` (${c.value}%)` : ''}</span>
+                          <span style={{ color: '#374151' }}>{cs}{c.amount.toFixed(2)}</span>
+                        </div>
+                      ))}
+                      {addl.taxLines.map((t, i) => (
+                        <div key={`addltax-${i}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px' }}>
+                          <span style={{ color: '#9ca3af' }}>{t.name} ({t.rate}%)</span>
+                          <span style={{ color: '#6b7280' }}>{cs}{t.amount.toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </>
+                  );
+                })()}
                 {/* Tip */}
                 {tipAmount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
