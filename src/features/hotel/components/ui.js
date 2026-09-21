@@ -24,22 +24,28 @@ export function Banner({ tone = 'info', children, onClose }) {
   );
 }
 
-// Colored pill for a status value.
+// Premium status chip with a leading status dot.
 const PILL_TONES = {
-  available: 'bg-emerald-100 text-emerald-700',
-  occupied: 'bg-rose-100 text-rose-700',
-  reserved: 'bg-amber-100 text-amber-700',
-  blocked: 'bg-slate-200 text-slate-700',
-  'out-of-service': 'bg-slate-200 text-slate-500',
-  clean: 'bg-emerald-100 text-emerald-700',
-  dirty: 'bg-amber-100 text-amber-700',
-  inspected: 'bg-sky-100 text-sky-700',
-  'out-of-order': 'bg-rose-100 text-rose-700',
+  available: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+  occupied: 'bg-rose-50 text-rose-700 ring-rose-600/20',
+  reserved: 'bg-amber-50 text-amber-700 ring-amber-600/20',
+  blocked: 'bg-slate-100 text-slate-600 ring-slate-500/20',
+  'out-of-service': 'bg-slate-100 text-slate-500 ring-slate-500/20',
+  clean: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+  dirty: 'bg-amber-50 text-amber-700 ring-amber-600/20',
+  inspected: 'bg-sky-50 text-sky-700 ring-sky-600/20',
+  'out-of-order': 'bg-rose-50 text-rose-700 ring-rose-600/20',
 };
-export function Pill({ value }) {
+const DOT_TONES = {
+  available: 'bg-emerald-500', occupied: 'bg-rose-500', reserved: 'bg-amber-500',
+  blocked: 'bg-slate-400', 'out-of-service': 'bg-slate-400',
+  clean: 'bg-emerald-500', dirty: 'bg-amber-500', inspected: 'bg-sky-500', 'out-of-order': 'bg-rose-500',
+};
+export function Pill({ value, dot = true }) {
   const label = String(value || '').replace(/-/g, ' ');
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${PILL_TONES[value] || 'bg-slate-100 text-slate-600'}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium capitalize ring-1 ring-inset ${PILL_TONES[value] || 'bg-slate-100 text-slate-600 ring-slate-500/20'}`}>
+      {dot && <span className={`h-1.5 w-1.5 rounded-full ${DOT_TONES[value] || 'bg-slate-400'}`} />}
       {label || '—'}
     </span>
   );

@@ -1,8 +1,28 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import { FaPlus, FaPen, FaTrash, FaDoorClosed, FaSpinner } from 'react-icons/fa';
+import { FaPlus, FaPen, FaTrash, FaDoorClosed, FaSpinner, FaChevronDown } from 'react-icons/fa';
 import hotelApi, { SELL_STATUS, HK_STATUS } from '../api/hotelApi';
-import { Modal, Field, inputCls, Btn, Pill } from './ui';
+import { Modal, Field, inputCls, Btn } from './ui';
+
+// A status shown as a colored capsule that is itself the dropdown control.
+const STATUS_TONE = {
+  available: 'text-emerald-700 bg-emerald-50 ring-emerald-600/20', occupied: 'text-rose-700 bg-rose-50 ring-rose-600/20',
+  reserved: 'text-amber-700 bg-amber-50 ring-amber-600/20', blocked: 'text-slate-600 bg-slate-100 ring-slate-500/20',
+  'out-of-service': 'text-slate-500 bg-slate-100 ring-slate-500/20', clean: 'text-emerald-700 bg-emerald-50 ring-emerald-600/20',
+  dirty: 'text-amber-700 bg-amber-50 ring-amber-600/20', inspected: 'text-sky-700 bg-sky-50 ring-sky-600/20',
+  'out-of-order': 'text-rose-700 bg-rose-50 ring-rose-600/20',
+};
+function StatusSelect({ value, options, onChange, disabled }) {
+  return (
+    <span className={`relative inline-flex items-center rounded-full ring-1 ring-inset ${STATUS_TONE[value] || 'bg-slate-100 text-slate-600 ring-slate-500/20'}`}>
+      <select value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled}
+        className="appearance-none rounded-full bg-transparent py-1 pl-3 pr-6 text-[11px] font-medium capitalize outline-none focus:ring-2 focus:ring-indigo-200">
+        {options.map((s) => <option key={s} value={s} className="capitalize">{s.replace(/-/g, ' ')}</option>)}
+      </select>
+      <FaChevronDown size={8} className="pointer-events-none absolute right-2 opacity-60" />
+    </span>
+  );
+}
 
 const EMPTY = { roomNumber: '', roomTypeId: '', floor: '', capacity: '', tariff: '', status: 'available' };
 
@@ -128,27 +148,13 @@ export default function RoomsPanel({ restaurantId, formatCurrency, notify, types
                   <tbody className="divide-y divide-slate-50">
                     {byFloor[fk].map((r) => (
                       <tr key={r.id} className="hover:bg-slate-50/60">
-                        <td className="px-4 py-2.5 font-semibold text-slate-800">{r.roomNumber}</td>
-                        <td className="px-4 py-2.5 text-slate-600">{r.typeName || r.type || '—'}</td>
-                        <td className="px-4 py-2.5 text-slate-600">{r.tariff != null ? (formatCurrency ? formatCurrency(r.tariff) : r.tariff) : '—'}</td>
-                        <td className="px-4 py-2.5">
-                          <div className="flex items-center gap-2">
-                            <Pill value={r.status} />
-                            <select className={selCls} value={r.status} onChange={(e) => quickStatus(r, e.target.value)}>
-                              {SELL_STATUS.map((s) => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                          </div>
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <div className="flex items-center gap-2">
-                            <Pill value={r.housekeepingStatus} />
-                            <select className={selCls} value={r.housekeepingStatus || 'clean'} onChange={(e) => quickHk(r, e.target.value)}>
-                              {HK_STATUS.map((s) => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                          </div>
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <div className="flex justify-end gap-1">
+                        <td className="px-4 py-3 text-[15px] font-bold text-slate-800 tabular-nums">{r.roomNumber}</td>
+                        <td className="px-4 py-3"><span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium capitalize text-slate-600">{r.typeName || r.type || '—'}</span></td>
+                        <td className="px-4 py-3 tabular-nums font-medium text-slate-700">{r.tariff ? (formatCurrency ? formatCurrency(r.tariff) : r.tariff) : <span className="text-slate-300">—</span>}</td>
+                        <td className="px-4 py-3"><StatusSelect value={r.status} options={SELL_STATUS} onChange={(v) => quickStatus(r, v)} /></td>
+                        <td className="px-4 py-3"><StatusSelect value={r.housekeepingStatus || 'clean'} options={HK_STATUS} onChange={(v) => quickHk(r, v)} /></td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-end gap-1 opacity-0 transition group-hover:opacity-100">
                             <button onClick={() => openEdit(r)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-indigo-600" aria-label="Edit"><FaPen size={12} /></button>
                             <button onClick={() => remove(r)} className="rounded p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label="Delete"><FaTrash size={12} /></button>
                           </div>

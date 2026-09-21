@@ -300,7 +300,7 @@ export default function Sidebar({ isDashboardPage = false }) {
     { id: 'billing', name: t('nav.billing'), icon: FaCreditCard, href: '/billing', color: '#06b6d4', roles: ['owner', 'admin'] },
     // --- Hotel PMS (self-contained feature; shown only for hotel accounts) ---
     ...((selectedRestaurant?.businessType === 'hotel' || selectedRestaurant?.posSettings?.enableHotel)
-      ? [{ id: 'hotel-pms', name: 'Hotel', icon: FaHotel, href: '/hotel/pms/calendar', color: '#4f46e5', roles: ['owner', 'admin', 'manager'] }]
+      ? [{ id: 'hotel-pms', name: 'Hotel', icon: FaHotel, href: '/hotel/pms/home', color: '#9A7B45', roles: ['owner', 'admin', 'manager'] }]
       : []),
     // --- Tools & Extras ---
     { id: 'invoice', name: t('nav.invoice'), icon: FaFileInvoice, href: '/invoice', color: '#0ea5e9', roles: ['owner', 'admin', 'manager'] },
