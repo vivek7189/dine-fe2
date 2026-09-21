@@ -90,6 +90,16 @@ hotelApi.seedRatePlans = (rid) => req(`${BASE}/rate-plans/seed-defaults`, { meth
 hotelApi.quoteRatePlans = (rid, roomTypeId, checkIn, checkOut, promoCode) =>
   req(`${BASE}/rate-plans/quote${qs({ restaurantId: rid, roomTypeId, checkIn, checkOut, promoCode })}`);
 
+// ── Group / block bookings ──
+hotelApi.listGroups = (rid, status) => req(`${BASE}/groups${qs({ restaurantId: rid, status })}`);
+hotelApi.getGroup = (rid, id) => req(`${BASE}/groups/${id}${qs({ restaurantId: rid })}`);
+hotelApi.groupRoomingList = (rid, id) => req(`${BASE}/groups/${id}/rooming-list${qs({ restaurantId: rid })}`);
+hotelApi.createGroup = (rid, body) => req(`${BASE}/groups`, { method: 'POST', body: withRid(body, rid) });
+hotelApi.updateGroup = (rid, id, body) => req(`${BASE}/groups/${id}`, { method: 'PATCH', body: withRid(body, rid) });
+hotelApi.bookIntoGroup = (rid, id, body) => req(`${BASE}/groups/${id}/book`, { method: 'POST', body: withRid(body, rid) });
+hotelApi.releaseGroup = (rid, id) => req(`${BASE}/groups/${id}/release`, { method: 'POST', body: withRid({}, rid) });
+hotelApi.deleteGroup = (rid, id) => req(`${BASE}/groups/${id}${qs({ restaurantId: rid })}`, { method: 'DELETE' });
+
 // ── Services catalog ──
 hotelApi.listServices = (rid) => req(`${BASE}/services${qs({ restaurantId: rid })}`);
 hotelApi.createService = (rid, body) => req(`${BASE}/services`, { method: 'POST', body: withRid(body, rid) });
