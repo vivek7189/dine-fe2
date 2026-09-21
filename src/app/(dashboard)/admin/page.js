@@ -6049,14 +6049,22 @@ const Admin = () => {
   const [billingSaving, setBillingSaving] = useState(false);
   const [billingMessage, setBillingMessage] = useState({ type: '', text: '' });
   const [billingLoading, setBillingLoading] = useState(false);
+  // True only once billingSettings has been fetched for the current restaurant. Guards the
+  // POS-page save from overwriting real billing config with the empty default (data-loss guard).
+  const [billingSettingsLoaded, setBillingSettingsLoaded] = useState(false);
 
+  // Load billingSettings on BOTH the Billing tab and the Features tab — the Features tab renders
+  // the "Allow Price Edit"/"Allow Custom Items" role restrictions which live in billingSettings,
+  // so it must have the real values loaded before its Save can persist them.
   useEffect(() => {
-    if (activeTab === 'billing-settings' && selectedRestaurant?.id) {
+    if ((activeTab === 'billing-settings' || activeTab === 'features') && selectedRestaurant?.id) {
       setBillingLoading(true);
+      setBillingSettingsLoaded(false);
       (async () => {
         try {
           const data = await apiClient.getBillingSettings(selectedRestaurant.id);
           if (data.settings) setBillingSettings(data.settings);
+          setBillingSettingsLoaded(true);
         } catch (err) {
           console.error('Failed to load billing settings:', err);
         } finally {
@@ -6094,6 +6102,22 @@ const Admin = () => {
     setPosSettingsSaving(true);
     try {
       await apiClient.updateRestaurant(selectedRestaurant.id, { posSettings, businessType });
+      // Also persist billingSettings. The "Allow Price Edit" / "Allow Custom Items" role
+      // restrictions (priceEditRoles / customItemRoles) live in billingSettings but are shown
+      // on THIS page, so the "Save all POS settings" button must save them too — otherwise the
+      // restriction silently reverts to default (all roles) on reload. Mirrors handleSaveBillingSettings.
+      // Only persist when billingSettings has actually been loaded — otherwise it's the empty
+      // default and saving it would wipe real billing config (service charge, tips, etc.).
+      let savedBillingSettings = selectedRestaurant.billingSettings;
+      if (billingSettingsLoaded) {
+        try {
+          const bsResult = await apiClient.updateBillingSettings(selectedRestaurant.id, billingSettings);
+          savedBillingSettings = bsResult?.settings || billingSettings;
+          if (bsResult?.settings) setBillingSettings(bsResult.settings);
+        } catch (bsErr) {
+          console.error('Failed to save billingSettings from POS page:', bsErr);
+        }
+      }
       // Sync cash drawer settings to Electron local settings
       if (window.electronAPI?.setPrinterConfig) {
         window.electronAPI.setPrinterConfig({
@@ -6101,7 +6125,7 @@ const Admin = () => {
           cashDrawerPort: posSettings.cashDrawerPort || null,
         }).catch(() => {});
       }
-      const updated = { ...selectedRestaurant, posSettings, businessType };
+      const updated = { ...selectedRestaurant, posSettings, businessType, ...(billingSettingsLoaded ? { billingSettings: savedBillingSettings } : {}) };
       localStorage.setItem('selectedRestaurant', JSON.stringify(updated));
       setSelectedRestaurant(updated);
       // Notify other pages (dashboard, layout) about the settings change
