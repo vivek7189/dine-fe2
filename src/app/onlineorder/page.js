@@ -4684,26 +4684,9 @@ const CheckoutView = ({
                     <span style={{ color: '#374151' }}>{cs}{getServiceCharge().toFixed(2)}</span>
                   </div>
                 )}
-                {/* Additional charges (packaging / delivery / service fee) — per selected order type */}
-                {(() => {
-                  const addl = getAdditionalChargesResult();
-                  return (
-                    <>
-                      {addl.charges.map((c, i) => (
-                        <div key={`addl-${c.id}-${i}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
-                          <span style={{ color: '#6b7280' }}>{c.name}{c.type === 'percent' ? ` (${c.value}%)` : ''}</span>
-                          <span style={{ color: '#374151' }}>{cs}{c.amount.toFixed(2)}</span>
-                        </div>
-                      ))}
-                      {addl.taxLines.map((t, i) => (
-                        <div key={`addltax-${i}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px' }}>
-                          <span style={{ color: '#9ca3af' }}>{t.name} ({t.rate}%)</span>
-                          <span style={{ color: '#6b7280' }}>{cs}{t.amount.toFixed(2)}</span>
-                        </div>
-                      ))}
-                    </>
-                  );
-                })()}
+                {/* Additional-charge line items are rendered by the parent (OnlineOrderContent),
+                    not here — CartModal doesn't have getAdditionalChargesResult in scope. The
+                    per-order-type charges are still included in the order total. */}
                 {/* Tip */}
                 {tipAmount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
