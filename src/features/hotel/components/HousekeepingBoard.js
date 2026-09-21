@@ -64,58 +64,58 @@ export default function HousekeepingBoard({ restaurantId, notify }) {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <FaBroom className="text-indigo-600" />
-          <span className="text-sm text-slate-500">Turn rooms around: dirty → clean → inspected → ready to sell.</span>
+          <FaBroom className="text-[#9A7B45]" />
+          <span className="text-sm text-[#8A8172]">Turn rooms around: dirty → clean → inspected → ready to sell.</span>
         </div>
         <div className="flex items-center gap-2">
-          <select className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700" value={floor} onChange={(e) => setFloor(e.target.value)}>
+          <select className="rounded-lg border border-[#DFD7C6] px-3 py-1.5 text-sm text-[#4A4335]" value={floor} onChange={(e) => setFloor(e.target.value)}>
             <option value="">All floors</option>
             {floors.map((f) => <option key={f} value={f}>Floor {f}</option>)}
           </select>
-          <button onClick={load} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50">Refresh</button>
+          <button onClick={load} className="rounded-lg border border-[#DFD7C6] px-3 py-1.5 text-sm text-[#6E6656] hover:bg-[#F3EFE6]">Refresh</button>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 py-10 text-slate-400"><FaSpinner className="animate-spin" /> Loading…</div>
+        <div className="flex items-center gap-2 py-10 text-[#A79C88]"><FaSpinner className="animate-spin" /> Loading…</div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {COLUMNS.map((col) => {
             const a = ACCENT[col.accent];
             const list = grouped[col.key] || [];
             return (
-              <div key={col.key} className="rounded-xl border border-slate-200 bg-slate-50/50">
-                <div className="flex items-center justify-between rounded-t-xl border-b border-slate-100 bg-white px-3 py-2.5">
+              <div key={col.key} className="rounded-xl border border-[#EBE4D6] bg-[#FAF7F0]">
+                <div className="flex items-center justify-between rounded-t-xl border-b border-[#F1ECE1] bg-white px-3 py-2.5">
                   <div className="flex items-center gap-2">
                     <span className={`h-2.5 w-2.5 rounded-full ${a.bar}`} />
-                    <span className="text-sm font-semibold text-slate-800">{col.label}</span>
+                    <span className="text-sm font-semibold text-[#2A241B]">{col.label}</span>
                   </div>
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${a.chip}`}>{list.length}</span>
                 </div>
                 <div className="space-y-2 p-2">
                   {list.length === 0 ? (
-                    <p className="py-6 text-center text-xs text-slate-300">Empty</p>
+                    <p className="py-6 text-center text-xs text-[#C3B9A3]">Empty</p>
                   ) : list.map((room) => (
-                    <div key={room.id} className="rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm">
+                    <div key={room.id} className="rounded-lg border border-[#EBE4D6] bg-white p-2.5 shadow-sm">
                       <div className="flex items-start justify-between">
                         <div>
-                          <div className="text-sm font-semibold text-slate-800">Room {room.roomNumber}</div>
-                          <div className="text-[11px] text-slate-400">{room.typeName || room.type || ''}{room.floor != null && room.floor !== '' ? ` · Fl ${room.floor}` : ''}</div>
+                          <div className="text-sm font-semibold text-[#2A241B]">Room {room.roomNumber}</div>
+                          <div className="text-[11px] text-[#A79C88]">{room.typeName || room.type || ''}{room.floor != null && room.floor !== '' ? ` · Fl ${room.floor}` : ''}</div>
                         </div>
                         <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${room.status === 'occupied' ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>{room.status === 'occupied' ? 'Occupied' : 'Vacant'}</span>
                       </div>
-                      {room.currentGuest && <div className="mt-1 flex items-center gap-1 text-[11px] text-slate-500"><FaUser size={9} /> {room.currentGuest}</div>}
+                      {room.currentGuest && <div className="mt-1 flex items-center gap-1 text-[11px] text-[#8A8172]"><FaUser size={9} /> {room.currentGuest}</div>}
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {col.actions.map((act) => {
                           const Icon = act.icon;
                           return (
                             <button key={act.to} onClick={() => setStatus(room, act.to)} disabled={busyId === room.id}
-                              className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 disabled:opacity-50">
+                              className="inline-flex items-center gap-1 rounded-md border border-[#EBE4D6] px-2 py-1 text-[11px] font-medium text-[#6E6656] hover:border-[#CBB68C] hover:bg-[#F3EAD7] hover:text-[#876A3A] disabled:opacity-50">
                               <Icon size={9} /> {act.label}
                             </button>
                           );
                         })}
-                        {busyId === room.id && <FaSpinner className="animate-spin text-slate-300" size={11} />}
+                        {busyId === room.id && <FaSpinner className="animate-spin text-[#C3B9A3]" size={11} />}
                       </div>
                     </div>
                   ))}

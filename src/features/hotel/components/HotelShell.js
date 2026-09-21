@@ -1,0 +1,46 @@
+'use client';
+// One shell for every hotel page: warm canvas + slim property context bar +
+// property gate + banner. Navigation lives in the app sidebar (hotel workspace),
+// so there is no in-page tab nav — the two never stack.
+import React from 'react';
+import { FaSpinner, FaCircle } from 'react-icons/fa';
+import { useCurrency } from '../../../contexts/CurrencyContext';
+import { useHotelProperty } from '../lib/useHotelProperty';
+import { Banner } from './ui';
+
+const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MO = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+export default function HotelShell({ children }) {
+  const { formatCurrency } = useCurrency();
+  const { restaurantId, booting, banner, setBanner, notify } = useHotelProperty();
+
+  let outlet = '';
+  if (typeof window !== 'undefined') { try { outlet = JSON.parse(localStorage.getItem('selectedRestaurant') || '{}')?.name || ''; } catch { /* noop */ } }
+  const now = new Date();
+  const dateLabel = `${WD[now.getDay()]}, ${now.getDate()} ${MO[now.getMonth()]} ${now.getFullYear()}`;
+
+  return (
+    <div className="min-h-screen bg-[#F6F3EC]">
+      <div className="mx-auto max-w-6xl px-4 py-5 sm:px-8">
+        {/* property context bar */}
+        <div className="mb-6 flex flex-wrap items-center gap-2.5 border-b border-[#EBE4D6] pb-4">
+          <FaCircle size={8} className="text-[#3E7C5A]" />
+          <span className="text-[15px] font-semibold text-[#2A241B]">{outlet || 'Hotel'}</span>
+          <span className="text-[13px] text-[#A79C88]">· Business date <span className="font-medium text-[#6E6656]">{dateLabel}</span></span>
+        </div>
+
+        {booting ? (
+          <div className="flex items-center gap-2 py-16 text-[#A79C88]"><FaSpinner className="animate-spin" /> Loading…</div>
+        ) : !restaurantId ? (
+          <Banner tone="error">No property selected. Pick a restaurant/property first, then reopen this page.</Banner>
+        ) : (
+          <>
+            {banner && <div className="mb-4"><Banner tone={banner.tone} onClose={() => setBanner(null)}>{banner.msg}</Banner></div>}
+            {children({ restaurantId, notify, formatCurrency })}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

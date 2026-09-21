@@ -1,121 +1,113 @@
 'use client';
-// Tiny presentational primitives shared by the hotel PMS panels. Self-contained
-// (Tailwind only) so the whole feature stays in one folder.
+// Shared primitives for the hotel PMS — warm editorial design (Cardamom House).
+// Every hotel page composes these so the look stays consistent and premium.
 import React from 'react';
 import { FaTimes } from 'react-icons/fa';
 
-// Inline status banner (success / error). Auto-styled by tone.
+// Inputs ----------------------------------------------------------------------
+export const inputCls =
+  'w-full rounded-lg border border-[#DFD7C6] bg-white px-3 py-2 text-[13.5px] text-[#2A241B] outline-none transition focus:border-[#9A7B45] focus:ring-2 focus:ring-[#9A7B45]/15 placeholder:text-[#B3A88F]';
+
+export function Field({ label, children, hint, required }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-[11px] font-medium uppercase tracking-[0.06em] text-[#8A8172]">
+        {label}{required && <span className="text-[#9B4A3A]"> *</span>}
+      </span>
+      {children}
+      {hint && <span className="mt-1 block text-[11px] text-[#B3A88F]">{hint}</span>}
+    </label>
+  );
+}
+
+// Buttons ---------------------------------------------------------------------
+export function Btn({ variant = 'primary', children, className = '', ...rest }) {
+  const styles = {
+    primary: 'bg-[#9A7B45] text-white hover:bg-[#876A3A] shadow-sm disabled:bg-[#C9BC9E]',
+    ghost: 'bg-white text-[#4A4335] border border-[#DDD4C2] hover:bg-[#F3EFE6]',
+    danger: 'bg-[#9B4A3A] text-white hover:bg-[#873F31] disabled:bg-[#C9A79E]',
+  };
+  return (
+    <button {...rest}
+      className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-semibold transition disabled:cursor-not-allowed ${styles[variant]} ${className}`}>
+      {children}
+    </button>
+  );
+}
+
+// Status chip with a leading dot -------------------------------------------------
+const PILL = {
+  available: { c: 'bg-[#E7F1EA] text-[#356B4E]', d: 'bg-[#3E7C5A]' },
+  occupied: { c: 'bg-[#EAF0F5] text-[#3F5C79]', d: 'bg-[#4E6E8E]' },
+  reserved: { c: 'bg-[#EEEAF6] text-[#5A4A85]', d: 'bg-[#6D5B9A]' },
+  blocked: { c: 'bg-[#EFEAE0] text-[#7A6F58]', d: 'bg-[#A79C88]' },
+  'out-of-service': { c: 'bg-[#EFEAE0] text-[#9A9081]', d: 'bg-[#A79C88]' },
+  clean: { c: 'bg-[#E7F1EA] text-[#356B4E]', d: 'bg-[#3E7C5A]' },
+  dirty: { c: 'bg-[#F6EEDD] text-[#8A6721]', d: 'bg-[#B58836]' },
+  inspected: { c: 'bg-[#EAF0F5] text-[#3F5C79]', d: 'bg-[#4E6E8E]' },
+  'out-of-order': { c: 'bg-[#F5E6E2] text-[#8A3F31]', d: 'bg-[#9B4A3A]' },
+};
+export function Pill({ value, dot = true }) {
+  const t = PILL[value] || { c: 'bg-[#EFEAE0] text-[#7A6F58]', d: 'bg-[#A79C88]' };
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold capitalize ${t.c}`}>
+      {dot && <span className={`h-1.5 w-1.5 rounded-full ${t.d}`} />}
+      {String(value || '').replace(/-/g, ' ') || '—'}
+    </span>
+  );
+}
+
+// Banner ----------------------------------------------------------------------
 export function Banner({ tone = 'info', children, onClose }) {
   if (!children) return null;
   const tones = {
-    success: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-    error: 'bg-rose-50 text-rose-800 border-rose-200',
-    info: 'bg-slate-50 text-slate-700 border-slate-200',
+    success: 'bg-[#E7F1EA] text-[#2F6047] border-[#CFE3D6]',
+    error: 'bg-[#F5E6E2] text-[#8A3F31] border-[#EAD1C9]',
+    info: 'bg-[#F1ECE1] text-[#6E6656] border-[#E4DCC9]',
   };
   return (
-    <div className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-sm ${tones[tone] || tones.info}`}>
+    <div className={`flex items-start gap-2 rounded-xl border px-3.5 py-2.5 text-[13px] ${tones[tone] || tones.info}`}>
       <span className="flex-1">{children}</span>
-      {onClose && (
-        <button onClick={onClose} className="mt-0.5 opacity-60 hover:opacity-100" aria-label="Dismiss">
-          <FaTimes size={12} />
-        </button>
+      {onClose && <button onClick={onClose} className="mt-0.5 opacity-60 hover:opacity-100" aria-label="Dismiss"><FaTimes size={12} /></button>}
+    </div>
+  );
+}
+
+// KPI / stat card -------------------------------------------------------------
+export function StatCard({ icon: Icon, tone = 'brass', label, value, sub, bar }) {
+  const tones = {
+    brass: 'bg-[#F3EAD7] text-[#876A3A]', indigo: 'bg-[#EEEAF6] text-[#5A4A85]', sky: 'bg-[#EAF0F5] text-[#3F5C79]',
+    emerald: 'bg-[#E7F1EA] text-[#356B4E]', rose: 'bg-[#F5E6E2] text-[#8A3F31]', amber: 'bg-[#F6EEDD] text-[#8A6721]', slate: 'bg-[#EFEAE0] text-[#7A6F58]',
+  };
+  return (
+    <div className="rounded-2xl border border-[#EBE4D6] bg-white p-4 shadow-[0_1px_2px_rgba(40,33,20,0.05)]">
+      <div className="flex items-center gap-3">
+        {Icon && <span className={`flex h-9 w-9 flex-none items-center justify-center rounded-lg ${tones[tone] || tones.brass}`}><Icon size={14} /></span>}
+        <div className="min-w-0">
+          <div className="font-serif text-[22px] font-semibold leading-none text-[#2A241B]">{value}</div>
+          <div className="mt-0.5 truncate text-[11px] text-[#A79C88]">{label}{sub ? ` · ${sub}` : ''}</div>
+        </div>
+      </div>
+      {bar != null && (
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#EDE7DB]"><div className="h-full rounded-full bg-[#9A7B45]" style={{ width: `${Math.min(100, bar)}%` }} /></div>
       )}
     </div>
   );
 }
 
-// Premium status chip with a leading status dot.
-const PILL_TONES = {
-  available: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
-  occupied: 'bg-rose-50 text-rose-700 ring-rose-600/20',
-  reserved: 'bg-amber-50 text-amber-700 ring-amber-600/20',
-  blocked: 'bg-slate-100 text-slate-600 ring-slate-500/20',
-  'out-of-service': 'bg-slate-100 text-slate-500 ring-slate-500/20',
-  clean: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
-  dirty: 'bg-amber-50 text-amber-700 ring-amber-600/20',
-  inspected: 'bg-sky-50 text-sky-700 ring-sky-600/20',
-  'out-of-order': 'bg-rose-50 text-rose-700 ring-rose-600/20',
-};
-const DOT_TONES = {
-  available: 'bg-emerald-500', occupied: 'bg-rose-500', reserved: 'bg-amber-500',
-  blocked: 'bg-slate-400', 'out-of-service': 'bg-slate-400',
-  clean: 'bg-emerald-500', dirty: 'bg-amber-500', inspected: 'bg-sky-500', 'out-of-order': 'bg-rose-500',
-};
-export function Pill({ value, dot = true }) {
-  const label = String(value || '').replace(/-/g, ' ');
-  return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium capitalize ring-1 ring-inset ${PILL_TONES[value] || 'bg-slate-100 text-slate-600 ring-slate-500/20'}`}>
-      {dot && <span className={`h-1.5 w-1.5 rounded-full ${DOT_TONES[value] || 'bg-slate-400'}`} />}
-      {label || '—'}
-    </span>
-  );
-}
-
-// Labeled form field wrapper.
-export function Field({ label, children, hint, required }) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-medium text-slate-600">
-        {label}{required && <span className="text-rose-500"> *</span>}
-      </span>
-      {children}
-      {hint && <span className="mt-1 block text-[11px] text-slate-400">{hint}</span>}
-    </label>
-  );
-}
-
-export const inputCls =
-  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100';
-
-// Centered modal dialog.
+// Modal -----------------------------------------------------------------------
 export function Modal({ open, title, onClose, children, footer, wide }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-4 sm:items-center">
-      <div className={`w-full ${wide ? 'max-w-2xl' : 'max-w-md'} rounded-2xl bg-white shadow-xl`}>
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
-          <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="Close">
-            <FaTimes />
-          </button>
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#2A241B]/40 p-4 backdrop-blur-[2px] sm:items-center">
+      <div className={`w-full ${wide ? 'max-w-2xl' : 'max-w-md'} rounded-2xl border border-[#EBE4D6] bg-[#FBF9F4] shadow-2xl`}>
+        <div className="flex items-center justify-between border-b border-[#EFE9DD] px-5 py-3.5">
+          <h3 className="font-serif text-[16px] font-semibold text-[#2A241B]">{title}</h3>
+          <button onClick={onClose} className="text-[#A79C88] hover:text-[#6E6656]" aria-label="Close"><FaTimes /></button>
         </div>
         <div className="px-5 py-4">{children}</div>
-        {footer && <div className="flex justify-end gap-2 border-t border-slate-100 px-5 py-3">{footer}</div>}
+        {footer && <div className="flex justify-end gap-2 border-t border-[#EFE9DD] px-5 py-3">{footer}</div>}
       </div>
     </div>
-  );
-}
-
-// Compact KPI card used in the summary strips across hotel pages.
-export function StatCard({ icon: Icon, tone = 'indigo', label, value, sub }) {
-  const tones = {
-    indigo: 'bg-indigo-50 text-indigo-600', sky: 'bg-sky-50 text-sky-600',
-    emerald: 'bg-emerald-50 text-emerald-600', rose: 'bg-rose-50 text-rose-600',
-    amber: 'bg-amber-50 text-amber-600', slate: 'bg-slate-100 text-slate-500',
-  };
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3.5 py-3 shadow-sm">
-      {Icon && <span className={`flex h-9 w-9 flex-none items-center justify-center rounded-lg ${tones[tone]}`}><Icon size={14} /></span>}
-      <div className="min-w-0">
-        <div className="text-lg font-semibold leading-none text-slate-900 tabular-nums">{value}</div>
-        <div className="mt-0.5 truncate text-[11px] text-slate-400">{label}{sub ? ` · ${sub}` : ''}</div>
-      </div>
-    </div>
-  );
-}
-
-export function Btn({ variant = 'primary', children, ...rest }) {
-  const styles = {
-    primary: 'bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-indigo-300',
-    ghost: 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50',
-    danger: 'bg-rose-600 text-white hover:bg-rose-700 disabled:bg-rose-300',
-  };
-  return (
-    <button
-      {...rest}
-      className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition disabled:cursor-not-allowed ${styles[variant]} ${rest.className || ''}`}
-    >
-      {children}
-    </button>
   );
 }

@@ -17,9 +17,9 @@ const MO = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'
 
 const DAYS = 14;
 const STATUS_BAR = {
-  confirmed: 'bg-amber-400 text-amber-950',
-  checked_in: 'bg-emerald-500 text-white',
-  checked_out: 'bg-slate-300 text-slate-600',
+  confirmed: 'bg-[#6D5B9A] text-white',    // arriving / confirmed → purple
+  checked_in: 'bg-[#4E6E8E] text-white',   // in-house → blue
+  checked_out: 'bg-[#B58836] text-white',  // departed → gold
 };
 
 export default function CalendarBoard({ restaurantId, formatCurrency, notify }) {
@@ -101,41 +101,41 @@ export default function CalendarBoard({ restaurantId, formatCurrency, notify }) 
       {/* toolbar */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <button onClick={() => setStart(addDays(start, -7))} className="rounded-lg border border-slate-300 p-2 text-slate-600 hover:bg-slate-50" aria-label="Previous week"><FaChevronLeft size={12} /></button>
-          <button onClick={() => setStart(today)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Today</button>
-          <button onClick={() => setStart(addDays(start, 7))} className="rounded-lg border border-slate-300 p-2 text-slate-600 hover:bg-slate-50" aria-label="Next week"><FaChevronRight size={12} /></button>
-          <span className="ml-1 text-sm font-medium text-slate-600">{rangeLabel}</span>
+          <button onClick={() => setStart(addDays(start, -7))} className="rounded-lg border border-[#DFD7C6] p-2 text-[#6E6656] hover:bg-[#F3EFE6]" aria-label="Previous week"><FaChevronLeft size={12} /></button>
+          <button onClick={() => setStart(today)} className="rounded-lg border border-[#DFD7C6] px-3 py-1.5 text-sm font-medium text-[#4A4335] hover:bg-[#F3EFE6]">Today</button>
+          <button onClick={() => setStart(addDays(start, 7))} className="rounded-lg border border-[#DFD7C6] p-2 text-[#6E6656] hover:bg-[#F3EFE6]" aria-label="Next week"><FaChevronRight size={12} /></button>
+          <span className="ml-1 text-sm font-medium text-[#6E6656]">{rangeLabel}</span>
         </div>
-        <div className="flex items-center gap-3 text-xs text-slate-500">
+        <div className="flex items-center gap-3 text-xs text-[#8A8172]">
           {unassigned > 0 && <span className="rounded-full bg-amber-50 px-2.5 py-1 font-medium text-amber-700">{unassigned} unassigned</span>}
-          <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-amber-400" /> Confirmed</span>
-          <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-emerald-500" /> In-house</span>
-          <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-slate-300" /> Departed</span>
+          <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-[#6D5B9A]" /> Confirmed</span>
+          <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-[#4E6E8E]" /> In-house</span>
+          <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-[#C3B9A3]" /> Departed</span>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 py-10 text-slate-400"><FaSpinner className="animate-spin" /> Loading…</div>
+        <div className="flex items-center gap-2 py-10 text-[#A79C88]"><FaSpinner className="animate-spin" /> Loading…</div>
       ) : rooms.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-200 py-16 text-center text-slate-400">
-          <FaBed className="mx-auto mb-2" size={22} /> No rooms yet — add rooms in <span className="font-medium text-slate-500">Rooms &amp; Types</span> first.
+        <div className="rounded-xl border border-dashed border-[#EBE4D6] py-16 text-center text-[#A79C88]">
+          <FaBed className="mx-auto mb-2" size={22} /> No rooms yet — add rooms in <span className="font-medium text-[#8A8172]">Rooms &amp; Types</span> first.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+        <div className="overflow-x-auto rounded-xl border border-[#EBE4D6] shadow-sm">
           <div className="min-w-[840px]">
             {/* header */}
-            <div className="flex border-b border-slate-200 bg-slate-50/80">
-              <div className="w-40 flex-none border-r border-slate-200 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Room</div>
+            <div className="flex border-b border-[#EBE4D6] bg-[#FAF7F0]/80">
+              <div className="w-40 flex-none border-r border-[#EBE4D6] px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-[#A79C88]">Room</div>
               <div className="flex flex-1">
                 {days.map((d) => {
                   const wd = toDate(d).getUTCDay();
                   const isToday = d === today;
                   const free = Math.max(0, rooms.length - (occupiedByDay[d] || 0));
                   return (
-                    <div key={d} className={`flex-1 border-l border-slate-100 py-1.5 text-center ${isToday ? 'bg-indigo-50' : (wd === 0 || wd === 6) ? 'bg-slate-100/70' : ''}`}>
-                      <div className={`text-[10px] font-medium uppercase ${isToday ? 'text-indigo-600' : 'text-slate-400'}`}>{WD[wd]}</div>
-                      <div className={`text-[13px] font-semibold tabular-nums ${isToday ? 'text-indigo-700' : 'text-slate-700'}`}>{+d.split('-')[2]}</div>
-                      <div className={`text-[9px] tabular-nums ${free === 0 ? 'text-rose-400' : 'text-slate-400'}`}>{free} free</div>
+                    <div key={d} className={`flex-1 border-l border-[#F1ECE1] py-1.5 text-center ${isToday ? 'bg-[#F3EAD7]' : (wd === 0 || wd === 6) ? 'bg-[#F1ECE1]/70' : ''}`}>
+                      <div className={`text-[10px] font-medium uppercase ${isToday ? 'text-[#9A7B45]' : 'text-[#A79C88]'}`}>{WD[wd]}</div>
+                      <div className={`text-[13px] font-semibold tabular-nums ${isToday ? 'text-[#876A3A]' : 'text-[#4A4335]'}`}>{+d.split('-')[2]}</div>
+                      <div className={`text-[9px] tabular-nums ${free === 0 ? 'text-rose-400' : 'text-[#A79C88]'}`}>{free} free</div>
                     </div>
                   );
                 })}
@@ -144,20 +144,20 @@ export default function CalendarBoard({ restaurantId, formatCurrency, notify }) 
 
             {/* rows */}
             {rooms.map((room, idx) => (
-              <div key={room.id} className={`flex border-b border-slate-50 last:border-0 ${idx % 2 ? 'bg-slate-50/30' : 'bg-white'} hover:bg-indigo-50/20`}>
-                <div className="w-40 flex-none border-r border-slate-100 px-3 py-2.5">
+              <div key={room.id} className={`flex border-b border-[#F5F1E8] last:border-0 ${idx % 2 ? 'bg-[#FAF7F0]/30' : 'bg-white'} hover:bg-[#F3EAD7]/20`}>
+                <div className="w-40 flex-none border-r border-[#F1ECE1] px-3 py-2.5">
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-sm font-bold text-slate-800">{room.roomNumber}</span>
-                    <span className="truncate text-[11px] capitalize text-slate-400">{room.typeName || room.type || ''}</span>
+                    <span className="text-sm font-bold text-[#2A241B]">{room.roomNumber}</span>
+                    <span className="truncate text-[11px] capitalize text-[#A79C88]">{room.typeName || room.type || ''}</span>
                   </div>
-                  {room.floor != null && room.floor !== '' && <span className="text-[10px] text-slate-300">Floor {room.floor}</span>}
+                  {room.floor != null && room.floor !== '' && <span className="text-[10px] text-[#C3B9A3]">Floor {room.floor}</span>}
                 </div>
                 <div className="relative flex flex-1">
                   {days.map((d) => {
                     const wd = toDate(d).getUTCDay();
                     return <button key={d} onClick={() => setNewFor({ roomId: room.id, checkIn: d, checkOut: addDays(d, 1) })}
-                      className={`group flex-1 border-l border-slate-100 ${d === today ? 'bg-indigo-50/40' : (wd === 0 || wd === 6) ? 'bg-slate-50/50' : ''}`} aria-label={`Book room ${room.roomNumber} on ${d}`}>
-                      <span className="flex h-full min-h-[42px] items-center justify-center opacity-0 group-hover:opacity-100"><FaPlus size={9} className="text-indigo-300" /></span>
+                      className={`group flex-1 border-l border-[#F1ECE1] ${d === today ? 'bg-[#F6EFE0]' : (wd === 0 || wd === 6) ? 'bg-[#FAF7F0]' : ''}`} aria-label={`Book room ${room.roomNumber} on ${d}`}>
+                      <span className="flex h-full min-h-[42px] items-center justify-center opacity-0 group-hover:opacity-100"><FaPlus size={9} className="text-[#CBB68C]" /></span>
                     </button>;
                   })}
                   {(byRoom[room.id] || []).map((r) => {
@@ -166,7 +166,7 @@ export default function CalendarBoard({ restaurantId, formatCurrency, notify }) 
                     return (
                       <button key={r.id} onClick={() => setSelected(r)} style={st}
                         title={`${r.guestName} · ${ymd(r.checkIn)} → ${ymd(r.checkOut)} · ${r.nights}n`}
-                        className={`absolute top-2 bottom-2 mx-[3px] flex items-center gap-1 overflow-hidden rounded-md px-2 text-[11px] font-semibold shadow-sm ring-1 ring-black/5 transition hover:brightness-105 ${STATUS_BAR[r.status] || 'bg-slate-300'}`}>
+                        className={`absolute top-2 bottom-2 mx-[3px] flex items-center gap-1 overflow-hidden rounded-md px-2 text-[11px] font-semibold shadow-sm ring-1 ring-black/5 transition hover:brightness-105 ${STATUS_BAR[r.status] || 'bg-[#C3B9A3]'}`}>
                         {r.status === 'checked_in' && <FaBed size={9} className="flex-none opacity-80" />}
                         <span className="truncate">{r.guestName}</span>
                       </button>
@@ -193,15 +193,15 @@ export default function CalendarBoard({ restaurantId, formatCurrency, notify }) 
 
 function Stat({ icon: Icon, tone, label, value, sub }) {
   const tones = {
-    indigo: 'bg-indigo-50 text-indigo-600', sky: 'bg-sky-50 text-sky-600',
+    indigo: 'bg-[#F3EAD7] text-[#9A7B45]', sky: 'bg-sky-50 text-sky-600',
     emerald: 'bg-emerald-50 text-emerald-600', rose: 'bg-rose-50 text-rose-600',
   };
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3.5 py-3 shadow-sm">
+    <div className="flex items-center gap-3 rounded-xl border border-[#EBE4D6] bg-white px-3.5 py-3 shadow-sm">
       <span className={`flex h-9 w-9 flex-none items-center justify-center rounded-lg ${tones[tone]}`}><Icon size={14} /></span>
       <div className="min-w-0">
-        <div className="text-lg font-semibold leading-none text-slate-900 tabular-nums">{value}</div>
-        <div className="mt-0.5 truncate text-[11px] text-slate-400">{label} · {sub}</div>
+        <div className="text-lg font-semibold leading-none text-[#2A241B] tabular-nums">{value}</div>
+        <div className="mt-0.5 truncate text-[11px] text-[#A79C88]">{label} · {sub}</div>
       </div>
     </div>
   );

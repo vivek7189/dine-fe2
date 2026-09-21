@@ -75,39 +75,39 @@ export default function RoomTypesPanel({ restaurantId, formatCurrency, notify, o
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm text-slate-500">Categories that rooms belong to and rates hang off.</p>
+        <p className="text-sm text-[#8A8172]">Categories that rooms belong to and rates hang off.</p>
         <Btn onClick={openNew}><FaPlus size={12} /> New type</Btn>
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 py-10 text-slate-400"><FaSpinner className="animate-spin" /> Loading…</div>
+        <div className="flex items-center gap-2 py-10 text-[#A79C88]"><FaSpinner className="animate-spin" /> Loading…</div>
       ) : types.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-200 py-12 text-center text-slate-400">
+        <div className="rounded-xl border border-dashed border-[#EBE4D6] py-12 text-center text-[#A79C88]">
           <FaBed className="mx-auto mb-2" size={22} />
           No room types yet. Create your first one.
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {types.map((t) => (
-            <div key={t.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div key={t.id} className="rounded-xl border border-[#EBE4D6] bg-white p-4 shadow-sm">
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h4 className="font-semibold text-slate-800">{t.name}</h4>
+                    <h4 className="font-semibold text-[#2A241B]">{t.name}</h4>
                     {t.code && <Pill value={t.code} />}
                   </div>
-                  <p className="mt-0.5 text-xs text-slate-500">Sleeps {t.baseOccupancy}–{t.maxOccupancy}</p>
+                  <p className="mt-0.5 text-xs text-[#8A8172]">Sleeps {t.baseOccupancy}–{t.maxOccupancy}</p>
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => openEdit(t)} className="rounded p-1.5 text-slate-400 hover:bg-slate-50 hover:text-indigo-600" aria-label="Edit"><FaPen size={12} /></button>
-                  <button onClick={() => remove(t)} className="rounded p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label="Delete"><FaTrash size={12} /></button>
+                  <button onClick={() => openEdit(t)} className="rounded p-1.5 text-[#A79C88] hover:bg-[#F3EFE6] hover:text-[#9A7B45]" aria-label="Edit"><FaPen size={12} /></button>
+                  <button onClick={() => remove(t)} className="rounded p-1.5 text-[#A79C88] hover:bg-rose-50 hover:text-rose-600" aria-label="Delete"><FaTrash size={12} /></button>
                 </div>
               </div>
-              <div className="mt-3 text-lg font-semibold text-slate-900">
+              <div className="mt-3 text-lg font-semibold text-[#2A241B]">
                 {formatCurrency ? formatCurrency(t.defaultRate || 0) : t.defaultRate}
-                <span className="ml-1 text-xs font-normal text-slate-400">/ night</span>
+                <span className="ml-1 text-xs font-normal text-[#A79C88]">/ night</span>
               </div>
-              {t.description && <p className="mt-2 line-clamp-2 text-xs text-slate-500">{t.description}</p>}
+              {t.description && <p className="mt-2 line-clamp-2 text-xs text-[#8A8172]">{t.description}</p>}
             </div>
           ))}
         </div>

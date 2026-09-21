@@ -111,7 +111,7 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
 
         <Field label={`Available rooms${nights > 0 ? ` · ${nights} night${nights > 1 ? 's' : ''}` : ''}`} hint="Leave unassigned to book now and assign a room later.">
           {loadingRooms ? (
-            <div className="flex items-center gap-2 py-2 text-sm text-slate-400"><FaSpinner className="animate-spin" size={12} /> Checking availability…</div>
+            <div className="flex items-center gap-2 py-2 text-sm text-[#A79C88]"><FaSpinner className="animate-spin" size={12} /> Checking availability…</div>
           ) : (
             <select className={inputCls} value={form.roomId} onChange={(e) => pickRoom(e.target.value)} disabled={nights <= 0}>
               <option value="">{nights <= 0 ? 'Pick dates first' : '— Unassigned —'}</option>
@@ -128,7 +128,7 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
         <div className="grid grid-cols-2 gap-3">
           <Field label="Nightly rate"><input type="number" min="0" step="0.01" className={inputCls} value={form.rate} onChange={(e) => set({ rate: e.target.value })} placeholder="0" /></Field>
           <Field label="Total">
-            <div className={`${inputCls} bg-slate-50 text-slate-700`}>{total != null ? (formatCurrency ? formatCurrency(total) : total) : '—'}</div>
+            <div className={`${inputCls} bg-[#FAF7F0] text-[#4A4335]`}>{total != null ? (formatCurrency ? formatCurrency(total) : total) : '—'}</div>
           </Field>
         </div>
       </div>

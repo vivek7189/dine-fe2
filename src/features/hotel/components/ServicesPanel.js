@@ -45,35 +45,35 @@ export default function ServicesPanel({ restaurantId, formatCurrency, notify }) 
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-slate-500">Add-on services staff can charge to a guest (cab, laundry, spa…). Set them up here; staff pick them on the folio.</p>
+        <p className="text-sm text-[#8A8172]">Add-on services staff can charge to a guest (cab, laundry, spa…). Set them up here; staff pick them on the folio.</p>
         <Btn onClick={openNew}><FaPlus size={12} /> Add service</Btn>
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 py-10 text-slate-400"><FaSpinner className="animate-spin" /> Loading…</div>
+        <div className="flex items-center gap-2 py-10 text-[#A79C88]"><FaSpinner className="animate-spin" /> Loading…</div>
       ) : services.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-200 py-12 text-center text-slate-400">
+        <div className="rounded-xl border border-dashed border-[#EBE4D6] py-12 text-center text-[#A79C88]">
           <FaConciergeBell className="mx-auto mb-2" size={22} /> No services yet. Add cab, laundry, airport pickup, spa…
         </div>
       ) : (
         <div className="space-y-5">
           {Object.keys(byCat).map((cat) => (
             <div key={cat}>
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-indigo-500">{cat}</div>
-              <div className="overflow-hidden rounded-xl border border-slate-200">
-                <table className="min-w-full divide-y divide-slate-100 text-sm">
-                  <tbody className="divide-y divide-slate-50">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#9A7B45]">{cat}</div>
+              <div className="overflow-hidden rounded-xl border border-[#EBE4D6]">
+                <table className="min-w-full divide-y divide-[#F1ECE1] text-sm">
+                  <tbody className="divide-y divide-[#F5F1E8]">
                     {byCat[cat].map((s) => (
-                      <tr key={s.id} className="group hover:bg-slate-50/60">
+                      <tr key={s.id} className="group hover:bg-[#F3EFE6]/60">
                         <td className="px-4 py-2.5">
-                          <div className="font-medium text-slate-800">{s.name}{!s.active && <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-400">inactive</span>}</div>
-                          <div className="text-[11px] text-slate-400">{s.unit.replace('-', ' ')}{s.taxable ? ' · taxable' : ''}</div>
+                          <div className="font-medium text-[#2A241B]">{s.name}{!s.active && <span className="ml-2 rounded bg-[#F1ECE1] px-1.5 py-0.5 text-[10px] text-[#A79C88]">inactive</span>}</div>
+                          <div className="text-[11px] text-[#A79C88]">{s.unit.replace('-', ' ')}{s.taxable ? ' · taxable' : ''}</div>
                         </td>
-                        <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-slate-800">{money(s.price)}</td>
+                        <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-[#2A241B]">{money(s.price)}</td>
                         <td className="px-4 py-2.5 text-right">
                           <div className="flex justify-end gap-1 opacity-0 transition group-hover:opacity-100">
-                            <button onClick={() => openEdit(s)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-indigo-600"><FaPen size={11} /></button>
-                            <button onClick={() => remove(s)} className="rounded p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600"><FaTrash size={11} /></button>
+                            <button onClick={() => openEdit(s)} className="rounded p-1.5 text-[#A79C88] hover:bg-[#EFE9DD] hover:text-[#9A7B45]"><FaPen size={11} /></button>
+                            <button onClick={() => remove(s)} className="rounded p-1.5 text-[#A79C88] hover:bg-rose-50 hover:text-rose-600"><FaTrash size={11} /></button>
                           </div>
                         </td>
                       </tr>
@@ -100,8 +100,8 @@ export default function ServicesPanel({ restaurantId, formatCurrency, notify }) 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Charged"><select className={inputCls} value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>{UNITS.map((u) => <option key={u.v} value={u.v}>{u.l}</option>)}</select></Field>
             <div className="flex items-end gap-4 pb-2">
-              <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={form.taxable} onChange={(e) => setForm({ ...form, taxable: e.target.checked })} className="h-4 w-4 rounded border-slate-300" /> Taxable</label>
-              <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} className="h-4 w-4 rounded border-slate-300" /> Active</label>
+              <label className="flex items-center gap-2 text-sm text-[#6E6656]"><input type="checkbox" checked={form.taxable} onChange={(e) => setForm({ ...form, taxable: e.target.checked })} className="h-4 w-4 rounded border-[#DFD7C6]" /> Taxable</label>
+              <label className="flex items-center gap-2 text-sm text-[#6E6656]"><input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} className="h-4 w-4 rounded border-[#DFD7C6]" /> Active</label>
             </div>
           </div>
         </div>

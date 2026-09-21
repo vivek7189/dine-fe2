@@ -41,7 +41,7 @@ export default function ReservationQuickView({ restaurantId, reservation, format
       <div className="space-y-2 text-sm">
         <div className="flex items-center gap-2">
           <Pill value={r.status === 'checked_in' ? 'occupied' : r.status === 'checked_out' ? 'inspected' : 'reserved'} />
-          <span className="capitalize text-slate-500">{r.status.replace('_', ' ')}</span>
+          <span className="capitalize text-[#8A8172]">{r.status.replace('_', ' ')}</span>
         </div>
         <Row label="Room" value={r.roomNumber ? `${r.roomNumber}` : 'Unassigned'} />
         <Row label="Stay" value={`${fmt(r.checkIn)} → ${fmt(r.checkOut)} · ${r.nights} night${r.nights > 1 ? 's' : ''}`} />
@@ -51,7 +51,7 @@ export default function ReservationQuickView({ restaurantId, reservation, format
         {(r.status === 'confirmed' || r.status === 'checked_in') && (
           <button
             onClick={() => { if (window.confirm(`Cancel booking for ${r.guestName}?`)) act(() => hotelApi.cancelReservation(restaurantId, r.id), 'Booking cancelled'); }}
-            disabled={busy} className="mt-1 inline-flex items-center gap-1 text-xs text-slate-400 hover:text-rose-600">
+            disabled={busy} className="mt-1 inline-flex items-center gap-1 text-xs text-[#A79C88] hover:text-rose-600">
             <FaTimesCircle size={11} /> Cancel booking
           </button>
         )}
@@ -62,9 +62,9 @@ export default function ReservationQuickView({ restaurantId, reservation, format
 
 function Row({ label, value }) {
   return (
-    <div className="flex justify-between border-b border-slate-50 py-1.5">
-      <span className="text-slate-400">{label}</span>
-      <span className="font-medium text-slate-700">{value}</span>
+    <div className="flex justify-between border-b border-[#F5F1E8] py-1.5">
+      <span className="text-[#A79C88]">{label}</span>
+      <span className="font-medium text-[#4A4335]">{value}</span>
     </div>
   );
 }

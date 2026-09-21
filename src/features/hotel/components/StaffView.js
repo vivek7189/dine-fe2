@@ -13,7 +13,7 @@ const DEPTS = {
   management: { label: 'Management', icon: FaUserTie, color: 'emerald' },
 };
 const DEPT_ORDER = ['front-desk', 'housekeeping', 'food-beverage', 'maintenance', 'security', 'management'];
-const AVATAR = { indigo: 'bg-indigo-100 text-indigo-700', sky: 'bg-sky-100 text-sky-700', amber: 'bg-amber-100 text-amber-700', slate: 'bg-slate-200 text-slate-600', rose: 'bg-rose-100 text-rose-700', emerald: 'bg-emerald-100 text-emerald-700' };
+const AVATAR = { indigo: 'bg-[#F3EAD7] text-[#876A3A]', sky: 'bg-sky-100 text-sky-700', amber: 'bg-amber-100 text-amber-700', slate: 'bg-[#E4DCC9] text-[#6E6656]', rose: 'bg-rose-100 text-rose-700', emerald: 'bg-emerald-100 text-emerald-700' };
 const initials = (n) => (n || '').trim().split(/\s+/).slice(0, 2).map((x) => x[0]).join('').toUpperCase() || '?';
 const EMPTY = { name: '', role: '', department: 'front-desk', shift: '', phone: '', email: '' };
 
@@ -68,14 +68,14 @@ export default function StaffView({ restaurantId, notify }) {
       </div>
 
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-slate-500">Your team, organised by the area they cover.</p>
+        <p className="text-sm text-[#8A8172]">Your team, organised by the area they cover.</p>
         <Btn onClick={openNew}><FaPlus size={12} /> Add staff</Btn>
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 py-10 text-slate-400"><FaSpinner className="animate-spin" /> Loading…</div>
+        <div className="flex items-center gap-2 py-10 text-[#A79C88]"><FaSpinner className="animate-spin" /> Loading…</div>
       ) : staff.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-200 py-12 text-center text-slate-400">
+        <div className="rounded-xl border border-dashed border-[#EBE4D6] py-12 text-center text-[#A79C88]">
           <FaUserTie className="mx-auto mb-2" size={22} /> No staff yet. Add your team and assign each to an area.
         </div>
       ) : (
@@ -86,21 +86,21 @@ export default function StaffView({ restaurantId, notify }) {
               <div key={d}>
                 <div className="mb-2 flex items-center gap-2">
                   <span className={`flex h-6 w-6 items-center justify-center rounded-md ${AVATAR[meta.color]}`}><Icon size={11} /></span>
-                  <h3 className="text-sm font-semibold text-slate-700">{meta.label}</h3>
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">{byDept[d].length}</span>
+                  <h3 className="text-sm font-semibold text-[#4A4335]">{meta.label}</h3>
+                  <span className="rounded-full bg-[#F1ECE1] px-2 py-0.5 text-[11px] text-[#8A8172]">{byDept[d].length}</span>
                 </div>
                 <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
                   {byDept[d].map((s) => (
-                    <div key={s.id} className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                    <div key={s.id} className="group flex items-center gap-3 rounded-xl border border-[#EBE4D6] bg-white p-3 shadow-sm">
                       <span className={`flex h-10 w-10 flex-none items-center justify-center rounded-full text-sm font-semibold ${AVATAR[meta.color]}`}>{initials(s.name)}</span>
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-semibold text-slate-800">{s.name}</div>
-                        <div className="truncate text-xs text-slate-400">{s.role || meta.label}{s.shift ? ` · ${s.shift}` : ''}</div>
-                        {s.phone && <div className="mt-0.5 flex items-center gap-1 text-[11px] text-slate-400"><FaPhone size={8} /> {s.phone}</div>}
+                        <div className="truncate text-sm font-semibold text-[#2A241B]">{s.name}</div>
+                        <div className="truncate text-xs text-[#A79C88]">{s.role || meta.label}{s.shift ? ` · ${s.shift}` : ''}</div>
+                        {s.phone && <div className="mt-0.5 flex items-center gap-1 text-[11px] text-[#A79C88]"><FaPhone size={8} /> {s.phone}</div>}
                       </div>
                       <div className="flex flex-col gap-1 opacity-0 transition group-hover:opacity-100">
-                        <button onClick={() => openEdit(s)} className="rounded p-1 text-slate-400 hover:bg-slate-50 hover:text-indigo-600" aria-label="Edit"><FaPen size={11} /></button>
-                        <button onClick={() => remove(s)} className="rounded p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label="Remove"><FaTrash size={11} /></button>
+                        <button onClick={() => openEdit(s)} className="rounded p-1 text-[#A79C88] hover:bg-[#F3EFE6] hover:text-[#9A7B45]" aria-label="Edit"><FaPen size={11} /></button>
+                        <button onClick={() => remove(s)} className="rounded p-1 text-[#A79C88] hover:bg-rose-50 hover:text-rose-600" aria-label="Remove"><FaTrash size={11} /></button>
                       </div>
                     </div>
                   ))}

@@ -85,22 +85,22 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
   const isOpen = folio?.status === 'open';
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex justify-end bg-[#2A241B]/40" onClick={onClose}>
       <div className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
         {/* header */}
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
+        <div className="flex items-center justify-between border-b border-[#F1ECE1] px-5 py-3.5">
           <div className="flex items-center gap-2">
-            <FaReceipt className="text-indigo-600" />
+            <FaReceipt className="text-[#9A7B45]" />
             <div>
-              <h3 className="text-sm font-semibold text-slate-800">Folio · {reservation.guestName}</h3>
-              <p className="text-xs text-slate-400">{reservation.roomNumber ? `Room ${reservation.roomNumber}` : 'Unassigned'} {folio ? `· ${folio.status}` : ''}</p>
+              <h3 className="text-sm font-semibold text-[#2A241B]">Folio · {reservation.guestName}</h3>
+              <p className="text-xs text-[#A79C88]">{reservation.roomNumber ? `Room ${reservation.roomNumber}` : 'Unassigned'} {folio ? `· ${folio.status}` : ''}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="Close"><FaTimes /></button>
+          <button onClick={onClose} className="text-[#A79C88] hover:text-[#6E6656]" aria-label="Close"><FaTimes /></button>
         </div>
 
         {loading ? (
-          <div className="flex flex-1 items-center gap-2 p-6 text-slate-400"><FaSpinner className="animate-spin" /> Loading…</div>
+          <div className="flex flex-1 items-center gap-2 p-6 text-[#A79C88]"><FaSpinner className="animate-spin" /> Loading…</div>
         ) : !folio ? (
           <div className="p-6 text-sm text-rose-600">{err || 'No folio.'}</div>
         ) : (
@@ -109,22 +109,22 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
               {err && <div className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{err}</div>}
 
               {/* charges */}
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Charges</div>
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#A79C88]">Charges</div>
               <table className="mb-3 w-full text-sm">
                 <tbody>
-                  {folio.items.length === 0 && <tr><td className="py-2 text-slate-400">No charges yet.</td></tr>}
+                  {folio.items.length === 0 && <tr><td className="py-2 text-[#A79C88]">No charges yet.</td></tr>}
                   {folio.items.map((it) => (
-                    <tr key={it.id} className="border-b border-slate-50">
+                    <tr key={it.id} className="border-b border-[#F5F1E8]">
                       <td className="py-1.5 pr-2">
-                        <div className="text-slate-800">{it.description}</div>
-                        <div className="text-[11px] text-slate-400">{TYPE_LABEL[it.type] || it.type}{it.source === 'pos' ? ' · POS' : ''}</div>
+                        <div className="text-[#2A241B]">{it.description}</div>
+                        <div className="text-[11px] text-[#A79C88]">{TYPE_LABEL[it.type] || it.type}{it.source === 'pos' ? ' · POS' : ''}</div>
                       </td>
-                      <td className="py-1.5 text-right tabular-nums text-slate-700 whitespace-nowrap">{money(it.amount)}</td>
+                      <td className="py-1.5 text-right tabular-nums text-[#4A4335] whitespace-nowrap">{money(it.amount)}</td>
                       <td className="py-1.5 pl-2 text-right">
                         {isOpen && it.type !== 'room' && it.source !== 'pos' && (
-                          <button onClick={() => voidItem(it.id)} disabled={busy} className="text-slate-300 hover:text-rose-600" aria-label="Void"><FaTrash size={11} /></button>
+                          <button onClick={() => voidItem(it.id)} disabled={busy} className="text-[#C3B9A3] hover:text-rose-600" aria-label="Void"><FaTrash size={11} /></button>
                         )}
-                        {it.source === 'pos' && <span className="text-[10px] text-slate-300" title="Posted from the POS — reverse it in the POS order">POS</span>}
+                        {it.source === 'pos' && <span className="text-[10px] text-[#C3B9A3]" title="Posted from the POS — reverse it in the POS order">POS</span>}
                       </td>
                     </tr>
                   ))}
@@ -138,7 +138,7 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
                     {services.map((s) => <option key={s.id} value={s.id}>{s.name} — {money(s.price)}{s.unit !== 'per-item' ? `/${s.unit.replace('per-', '')}` : ''}</option>)}
                   </select>
                   <input className={`${inputCls} w-16`} type="number" min="1" value={svc.qty} onChange={(e) => setSvc({ ...svc, qty: e.target.value })} title="Quantity" />
-                  <button onClick={addService} disabled={busy || !svc.id} className="rounded-lg bg-indigo-600 px-2.5 text-white hover:bg-indigo-700 disabled:opacity-50" aria-label="Add service"><FaPlus size={12} /></button>
+                  <button onClick={addService} disabled={busy || !svc.id} className="rounded-lg bg-[#9A7B45] px-2.5 text-white hover:bg-[#876A3A] disabled:opacity-50" aria-label="Add service"><FaPlus size={12} /></button>
                 </div>
               )}
               {isOpen && (
@@ -149,19 +149,19 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
                   </select>
                   <div className="flex gap-1">
                     <input className={`${inputCls} w-24`} type="number" step="0.01" placeholder="Amt" value={charge.amount} onChange={(e) => setCharge({ ...charge, amount: e.target.value })} />
-                    <button onClick={addCharge} disabled={busy} className="rounded-lg bg-slate-800 px-2.5 text-white hover:bg-slate-900 disabled:opacity-50" aria-label="Add charge"><FaPlus size={12} /></button>
+                    <button onClick={addCharge} disabled={busy} className="rounded-lg bg-[#3A332A] px-2.5 text-white hover:bg-[#2A241B] disabled:opacity-50" aria-label="Add charge"><FaPlus size={12} /></button>
                   </div>
                 </div>
               )}
 
               {/* payments */}
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Payments</div>
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#A79C88]">Payments</div>
               <table className="mb-3 w-full text-sm">
                 <tbody>
-                  {folio.payments.length === 0 && <tr><td className="py-2 text-slate-400">No payments yet.</td></tr>}
+                  {folio.payments.length === 0 && <tr><td className="py-2 text-[#A79C88]">No payments yet.</td></tr>}
                   {folio.payments.map((p) => (
-                    <tr key={p.id} className="border-b border-slate-50">
-                      <td className="py-1.5 capitalize text-slate-700">{p.method}{p.reference ? <span className="text-[11px] text-slate-400"> · {p.reference}</span> : null}</td>
+                    <tr key={p.id} className="border-b border-[#F5F1E8]">
+                      <td className="py-1.5 capitalize text-[#4A4335]">{p.method}{p.reference ? <span className="text-[11px] text-[#A79C88]"> · {p.reference}</span> : null}</td>
                       <td className="py-1.5 text-right tabular-nums text-emerald-700">{money(p.amount)}</td>
                     </tr>
                   ))}
@@ -180,14 +180,14 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
             </div>
 
             {/* footer totals + settle */}
-            <div className="border-t border-slate-100 px-5 py-4">
-              <div className="mb-1 flex justify-between text-sm text-slate-500"><span>Charges</span><span className="tabular-nums">{money(folio.totalCharges)}</span></div>
+            <div className="border-t border-[#F1ECE1] px-5 py-4">
+              <div className="mb-1 flex justify-between text-sm text-[#8A8172]"><span>Charges</span><span className="tabular-nums">{money(folio.totalCharges)}</span></div>
               {(folio.taxLines || []).map((tl, i) => (
-                <div key={i} className="mb-1 flex justify-between text-xs text-slate-400"><span>{tl.name} ({tl.rate}%)</span><span className="tabular-nums">{money(tl.amount)}</span></div>
+                <div key={i} className="mb-1 flex justify-between text-xs text-[#A79C88]"><span>{tl.name} ({tl.rate}%)</span><span className="tabular-nums">{money(tl.amount)}</span></div>
               ))}
-              {folio.taxTotal > 0 && <div className="mb-1 flex justify-between text-sm text-slate-500"><span>Tax</span><span className="tabular-nums">{money(folio.taxTotal)}</span></div>}
-              <div className="mb-1 flex justify-between text-sm text-slate-500"><span>Paid</span><span className="tabular-nums">{money(folio.totalPaid)}</span></div>
-              <div className="mb-3 flex justify-between text-base font-semibold text-slate-900"><span>Balance</span><span className={`tabular-nums ${folio.balance > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{money(folio.balance)}</span></div>
+              {folio.taxTotal > 0 && <div className="mb-1 flex justify-between text-sm text-[#8A8172]"><span>Tax</span><span className="tabular-nums">{money(folio.taxTotal)}</span></div>}
+              <div className="mb-1 flex justify-between text-sm text-[#8A8172]"><span>Paid</span><span className="tabular-nums">{money(folio.totalPaid)}</span></div>
+              <div className="mb-3 flex justify-between text-base font-semibold text-[#2A241B]"><span>Balance</span><span className={`tabular-nums ${folio.balance > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{money(folio.balance)}</span></div>
               {isOpen ? (
                 <Btn onClick={() => settle(false)} disabled={busy} className="w-full justify-center"><FaCheckCircle size={13} /> {folio.balance > 0 ? 'Collect & settle' : 'Settle folio'}</Btn>
               ) : (

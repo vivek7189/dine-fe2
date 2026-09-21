@@ -36,6 +36,8 @@ import {
   FaWhatsapp,
   FaThLarge,
   FaHotel,
+  FaBroom,
+  FaRegClock,
 } from 'react-icons/fa';
 import { BiRestaurant } from 'react-icons/bi';
 import Link from 'next/link';
@@ -298,10 +300,7 @@ export default function Sidebar({ isDashboardPage = false }) {
     { id: 'attendance', name: t('nav.attendance'), icon: FaUserClock, href: '/attendance', color: '#ef4444', roles: ['owner', 'admin', 'manager'] },
     ...(selectedRestaurant?.posSettings?.enableShiftsCash ? [{ id: 'shifts-cash', name: 'Shifts & Cash', icon: FaCashRegister, href: '/shifts-cash', color: '#3b82f6', roles: ['owner', 'admin', 'manager', 'cashier'] }] : []),
     { id: 'billing', name: t('nav.billing'), icon: FaCreditCard, href: '/billing', color: '#06b6d4', roles: ['owner', 'admin'] },
-    // --- Hotel PMS (self-contained feature; shown only for hotel accounts) ---
-    ...((selectedRestaurant?.businessType === 'hotel' || selectedRestaurant?.posSettings?.enableHotel)
-      ? [{ id: 'hotel-pms', name: 'Hotel', icon: FaHotel, href: '/hotel/pms/home', color: '#9A7B45', roles: ['owner', 'admin', 'manager'] }]
-      : []),
+    // (Hotel PMS is reached via the Restaurant⇄Hotel workspace switcher below, not a nav item.)
     // --- Tools & Extras ---
     { id: 'invoice', name: t('nav.invoice'), icon: FaFileInvoice, href: '/invoice', color: '#0ea5e9', roles: ['owner', 'admin', 'manager'] },
     // --- More (groups advanced features) ---
@@ -367,6 +366,23 @@ export default function Sidebar({ isDashboardPage = false }) {
 
     return false;
   });
+
+  // ── Workspace switch: Restaurant ⇄ Hotel ─────────────────────────────────
+  // On /hotel/pms/* the sidebar shows the HOTEL menu (not the restaurant menu),
+  // so the two navs never stack. A switcher at the top flips between them.
+  const hotelEnabled = selectedRestaurant?.businessType === 'hotel' || selectedRestaurant?.posSettings?.enableHotel;
+  const inHotel = !!pathname?.startsWith('/hotel/pms');
+  const HOTEL_NAV = [
+    { id: 'h-front', name: 'Front Desk', icon: FaThLarge, href: '/hotel/pms/home', color: '#9A7B45' },
+    { id: 'h-cal', name: 'Reservations', icon: FaRegClock, href: '/hotel/pms/calendar', color: '#9A7B45' },
+    { id: 'h-book', name: 'Bookings', icon: FaCalendarCheck, href: '/hotel/pms/reservations', color: '#9A7B45' },
+    { id: 'h-rates', name: 'Rates', icon: FaTag, href: '/hotel/pms/rates', color: '#9A7B45' },
+    { id: 'h-hk', name: 'Housekeeping', icon: FaBroom, href: '/hotel/pms/housekeeping', color: '#9A7B45' },
+    { id: 'h-staff', name: 'Staff', icon: FaUsers, href: '/hotel/pms/staff', color: '#9A7B45' },
+    { id: 'h-rep', name: 'Reports', icon: FaChartBar, href: '/hotel/pms/reports', color: '#9A7B45' },
+    { id: 'h-setup', name: 'Setup', icon: FaCog, href: '/hotel/pms/rooms', color: '#9A7B45' },
+  ];
+  const renderNav = inHotel ? HOTEL_NAV : navItems;
 
   const getUserInitials = () => {
     if (user?.name) return user.name.split(' ').map(n => n[0]).join('').toUpperCase();
@@ -544,11 +560,35 @@ export default function Sidebar({ isDashboardPage = false }) {
             </div>
           )}
 
+          {/* Workspace switcher — Restaurant ⇄ Hotel (only for hotel-enabled outlets) */}
+          {hotelEnabled && !isCollapsed && (
+            <div className="px-3 pt-3">
+              <div className="flex rounded-xl bg-gray-100 p-1">
+                <button
+                  onClick={() => { if (inHotel) router.push('/home'); }}
+                  className={`flex-1 rounded-lg py-1.5 text-[12px] font-semibold transition ${!inHotel ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >Restaurant</button>
+                <button
+                  onClick={() => { if (!inHotel) router.push('/hotel/pms/home'); }}
+                  className={`flex-1 rounded-lg py-1.5 text-[12px] font-semibold transition ${inHotel ? 'bg-white text-[#9A7B45] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >Hotel</button>
+              </div>
+            </div>
+          )}
+          {hotelEnabled && isCollapsed && (
+            <div className="px-2 pt-3">
+              <button onClick={() => router.push(inHotel ? '/home' : '/hotel/pms/home')} title={inHotel ? 'Switch to Restaurant' : 'Switch to Hotel'}
+                className={`flex w-full items-center justify-center rounded-xl py-2 ${inHotel ? 'text-[#9A7B45]' : 'text-gray-500'} hover:bg-gray-100`}>
+                <FaHotel size={16} />
+              </button>
+            </div>
+          )}
+
           {/* Navigation Items */}
           <nav className="flex-1 overflow-y-auto py-3 px-2">
             <div style={{ display: 'flex', flexDirection: 'column', gap: isCollapsed ? '3px' : '8px' }}>
               {isNavigationReady ? (
-                navItems.map((item, index) => {
+                renderNav.map((item, index) => {
                   const IconComponent = item.icon;
                   const isActive = pathname === item.href;
 

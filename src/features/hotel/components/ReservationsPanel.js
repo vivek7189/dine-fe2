@@ -40,19 +40,19 @@ function AssignModal({ restaurantId, reservation, onClose, onAssigned, formatCur
   };
   return (
     <Modal open title={`Assign a room · ${reservation.guestName}`} onClose={onClose}>
-      <p className="mb-3 text-sm text-slate-500">{fmtDate(reservation.checkIn)} → {fmtDate(reservation.checkOut)} · {reservation.nights} night{reservation.nights > 1 ? 's' : ''}</p>
+      <p className="mb-3 text-sm text-[#8A8172]">{fmtDate(reservation.checkIn)} → {fmtDate(reservation.checkOut)} · {reservation.nights} night{reservation.nights > 1 ? 's' : ''}</p>
       {err && <div className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{err}</div>}
       {loading ? (
-        <div className="flex items-center gap-2 py-6 text-slate-400"><FaSpinner className="animate-spin" /> Loading…</div>
+        <div className="flex items-center gap-2 py-6 text-[#A79C88]"><FaSpinner className="animate-spin" /> Loading…</div>
       ) : rooms.length === 0 ? (
-        <p className="py-6 text-center text-sm text-slate-400">No rooms free for these dates.</p>
+        <p className="py-6 text-center text-sm text-[#A79C88]">No rooms free for these dates.</p>
       ) : (
         <div className="max-h-72 space-y-1.5 overflow-y-auto">
           {rooms.map((r) => (
             <button key={r.id} disabled={busy} onClick={() => assign(r.id)}
-              className="flex w-full items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-left text-sm hover:border-indigo-400 hover:bg-indigo-50/40 disabled:opacity-50">
-              <span className="font-medium text-slate-800">Room {r.roomNumber}{r.typeName ? <span className="font-normal text-slate-500"> · {r.typeName}</span> : null}</span>
-              <span className="text-slate-500">{r.tariff != null ? (formatCurrency ? formatCurrency(r.tariff) : r.tariff) : ''}</span>
+              className="flex w-full items-center justify-between rounded-lg border border-[#EBE4D6] px-3 py-2 text-left text-sm hover:border-[#B79A63] hover:bg-[#F6EFE0] disabled:opacity-50">
+              <span className="font-medium text-[#2A241B]">Room {r.roomNumber}{r.typeName ? <span className="font-normal text-[#8A8172]"> · {r.typeName}</span> : null}</span>
+              <span className="text-[#8A8172]">{r.tariff != null ? (formatCurrency ? formatCurrency(r.tariff) : r.tariff) : ''}</span>
             </button>
           ))}
         </div>
@@ -122,17 +122,17 @@ export default function ReservationsPanel({ restaurantId, formatCurrency, notify
           <StatCard icon={FaCalendarCheck} tone="amber" label="Unassigned" value={summary.unassigned} />
         </div>
       )}
-      <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50/60 px-3 py-2 text-sm">
-        <FaCalendarCheck className="text-indigo-500" size={12} />
-        <span className="text-indigo-700">Direct booking link:</span>
-        <a href={bookingUrl} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate font-mono text-xs text-indigo-600 hover:underline">{bookingUrl}</a>
-        <button onClick={copyLink} className="rounded-md border border-indigo-200 bg-white px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50">{copied ? 'Copied!' : 'Copy'}</button>
+      <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-[#EBE0C9] bg-[#F6EFE0] px-3 py-2 text-sm">
+        <FaCalendarCheck className="text-[#9A7B45]" size={12} />
+        <span className="text-[#876A3A]">Direct booking link:</span>
+        <a href={bookingUrl} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate font-mono text-xs text-[#9A7B45] hover:underline">{bookingUrl}</a>
+        <button onClick={copyLink} className="rounded-md border border-[#E3D6BA] bg-white px-2 py-1 text-xs font-medium text-[#9A7B45] hover:bg-[#F3EAD7]">{copied ? 'Copied!' : 'Copy'}</button>
       </div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1">
+        <div className="inline-flex rounded-xl border border-[#EBE4D6] bg-white p-1">
           {FILTERS.map((f) => (
             <button key={f.id} onClick={() => setFilter(f.id)}
-              className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${filter === f.id ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>
+              className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${filter === f.id ? 'bg-[#9A7B45] text-white' : 'text-[#6E6656] hover:bg-[#F3EFE6]'}`}>
               {f.label}
             </button>
           ))}
@@ -141,16 +141,16 @@ export default function ReservationsPanel({ restaurantId, formatCurrency, notify
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 py-10 text-slate-400"><FaSpinner className="animate-spin" /> Loading…</div>
+        <div className="flex items-center gap-2 py-10 text-[#A79C88]"><FaSpinner className="animate-spin" /> Loading…</div>
       ) : rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-200 py-12 text-center text-slate-400">
+        <div className="rounded-xl border border-dashed border-[#EBE4D6] py-12 text-center text-[#A79C88]">
           <FaCalendarCheck className="mx-auto mb-2" size={22} />
           No reservations here.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200">
-          <table className="min-w-full divide-y divide-slate-100 text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-400">
+        <div className="overflow-x-auto rounded-xl border border-[#EBE4D6]">
+          <table className="min-w-full divide-y divide-[#F1ECE1] text-sm">
+            <thead className="bg-[#FAF7F0] text-left text-xs uppercase tracking-wide text-[#A79C88]">
               <tr>
                 <th className="px-4 py-2 font-medium">Guest</th>
                 <th className="px-4 py-2 font-medium">Room</th>
@@ -160,34 +160,34 @@ export default function ReservationsPanel({ restaurantId, formatCurrency, notify
                 <th className="px-4 py-2" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-[#F5F1E8]">
               {rows.map((r) => (
-                <tr key={r.id} className="hover:bg-slate-50/60">
+                <tr key={r.id} className="hover:bg-[#F3EFE6]/60">
                   <td className="px-4 py-2.5">
-                    <div className="font-semibold text-slate-800">{r.guestName}</div>
-                    <div className="text-xs text-slate-400">{r.guestPhone || r.code}</div>
+                    <div className="font-semibold text-[#2A241B]">{r.guestName}</div>
+                    <div className="text-xs text-[#A79C88]">{r.guestPhone || r.code}</div>
                   </td>
-                  <td className="px-4 py-2.5 text-slate-600">{r.roomNumber || <span className="text-amber-600">Unassigned</span>}</td>
-                  <td className="px-4 py-2.5 text-slate-600">{fmtDate(r.checkIn)} → {fmtDate(r.checkOut)}<span className="ml-1 text-xs text-slate-400">· {r.nights}n</span></td>
-                  <td className="px-4 py-2.5 text-slate-600">{r.totalAmount != null ? (formatCurrency ? formatCurrency(r.totalAmount) : r.totalAmount) : '—'}</td>
-                  <td className="px-4 py-2.5"><Pill value={r.status === 'checked_in' ? 'occupied' : r.status === 'checked_out' ? 'inspected' : r.status === 'cancelled' ? 'out-of-service' : 'reserved'} /><span className="ml-1 text-xs capitalize text-slate-400">{r.status.replace('_', ' ')}</span></td>
+                  <td className="px-4 py-2.5 text-[#6E6656]">{r.roomNumber || <span className="text-amber-600">Unassigned</span>}</td>
+                  <td className="px-4 py-2.5 text-[#6E6656]">{fmtDate(r.checkIn)} → {fmtDate(r.checkOut)}<span className="ml-1 text-xs text-[#A79C88]">· {r.nights}n</span></td>
+                  <td className="px-4 py-2.5 text-[#6E6656]">{r.totalAmount != null ? (formatCurrency ? formatCurrency(r.totalAmount) : r.totalAmount) : '—'}</td>
+                  <td className="px-4 py-2.5"><Pill value={r.status === 'checked_in' ? 'occupied' : r.status === 'checked_out' ? 'inspected' : r.status === 'cancelled' ? 'out-of-service' : 'reserved'} /><span className="ml-1 text-xs capitalize text-[#A79C88]">{r.status.replace('_', ' ')}</span></td>
                   <td className="px-4 py-2.5">
                     <div className="flex justify-end gap-1.5">
-                      {busyId === r.id && <FaSpinner className="animate-spin text-slate-400" />}
+                      {busyId === r.id && <FaSpinner className="animate-spin text-[#A79C88]" />}
                       {r.status === 'confirmed' && !r.roomId && (
-                        <button onClick={() => setAssign(r)} className="inline-flex items-center gap-1 rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"><FaBed size={11} /> Assign</button>
+                        <button onClick={() => setAssign(r)} className="inline-flex items-center gap-1 rounded-md border border-[#DFD7C6] px-2 py-1 text-xs text-[#4A4335] hover:bg-[#F3EFE6]"><FaBed size={11} /> Assign</button>
                       )}
                       {r.status === 'confirmed' && r.roomId && (
                         <button onClick={() => doCheckIn(r)} disabled={busyId === r.id} className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"><FaSignInAlt size={11} /> Check-in</button>
                       )}
                       {(r.status === 'checked_in' || r.status === 'checked_out') && (
-                        <button onClick={() => setFolioRes(r)} className="inline-flex items-center gap-1 rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"><FaReceipt size={11} /> Folio</button>
+                        <button onClick={() => setFolioRes(r)} className="inline-flex items-center gap-1 rounded-md border border-[#DFD7C6] px-2 py-1 text-xs text-[#4A4335] hover:bg-[#F3EFE6]"><FaReceipt size={11} /> Folio</button>
                       )}
                       {r.status === 'checked_in' && (
-                        <button onClick={() => doCheckOut(r)} disabled={busyId === r.id} className="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"><FaSignOutAlt size={11} /> Check-out</button>
+                        <button onClick={() => doCheckOut(r)} disabled={busyId === r.id} className="inline-flex items-center gap-1 rounded-md bg-[#9A7B45] px-2 py-1 text-xs font-medium text-white hover:bg-[#876A3A] disabled:opacity-50"><FaSignOutAlt size={11} /> Check-out</button>
                       )}
                       {(r.status === 'confirmed' || r.status === 'checked_in') && (
-                        <button onClick={() => doCancel(r)} disabled={busyId === r.id} className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-500 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"><FaTimesCircle size={11} /></button>
+                        <button onClick={() => doCancel(r)} disabled={busyId === r.id} className="inline-flex items-center gap-1 rounded-md border border-[#EBE4D6] px-2 py-1 text-xs text-[#8A8172] hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"><FaTimesCircle size={11} /></button>
                       )}
                     </div>
                   </td>
