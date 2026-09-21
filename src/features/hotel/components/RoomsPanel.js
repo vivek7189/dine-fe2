@@ -33,6 +33,19 @@ export default function RoomsPanel({ restaurantId, formatCurrency, notify, types
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
+  const [newType, setNewType] = useState(null); // inline "add room type" form
+  const canManage = (() => { try { return ['owner', 'admin', 'manager'].includes((JSON.parse(localStorage.getItem('user') || '{}').role || '').toLowerCase()); } catch { return false; } })();
+
+  const addTypeInline = async () => {
+    if (!newType.name.trim()) return notify('error', 'Type name is required');
+    try {
+      const res = await hotelApi.createRoomType(restaurantId, { name: newType.name.trim(), defaultRate: newType.rate === '' ? 0 : Number(newType.rate) });
+      await loadTypes();
+      setForm((f) => ({ ...f, roomTypeId: res.roomType.id, tariff: f.tariff || res.roomType.defaultRate || '' }));
+      setNewType(null);
+      notify('success', `Room type "${res.roomType.name}" added`);
+    } catch (e) { notify('error', e.message || 'Could not add type'); }
+  };
 
   const loadTypes = useCallback(async () => {
     if (!restaurantId) return;
@@ -184,10 +197,19 @@ export default function RoomsPanel({ restaurantId, formatCurrency, notify, types
             <Field label="Floor"><input className={inputCls} value={form.floor} onChange={(e) => setForm({ ...form, floor: e.target.value })} placeholder="1" /></Field>
           </div>
           <Field label="Room type">
-            <select className={inputCls} value={form.roomTypeId} onChange={(e) => setForm({ ...form, roomTypeId: e.target.value })}>
+            <select className={inputCls} value={newType ? '__new__' : form.roomTypeId}
+              onChange={(e) => { const v = e.target.value; if (v === '__new__') setNewType({ name: '', rate: '' }); else { setNewType(null); setForm({ ...form, roomTypeId: v }); } }}>
               <option value="">— none —</option>
               {types.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              {canManage && <option value="__new__">＋ Add a new room type…</option>}
             </select>
+            {newType && (
+              <div className="mt-2 grid grid-cols-[1fr_90px_auto] gap-2 rounded-lg border border-[#E4DCC9] bg-[#FBF9F4] p-2">
+                <input className={inputCls} placeholder="Type name (e.g. Deluxe)" value={newType.name} onChange={(e) => setNewType({ ...newType, name: e.target.value })} />
+                <input className={inputCls} type="number" min="0" placeholder="Rate" value={newType.rate} onChange={(e) => setNewType({ ...newType, rate: e.target.value })} />
+                <button onClick={addTypeInline} style={{ backgroundColor: '#9A7B45' }} className="rounded-lg px-3 text-sm font-semibold text-white hover:brightness-110">Add</button>
+              </div>
+            )}
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Capacity"><input type="number" min="1" className={inputCls} value={form.capacity} onChange={(e) => setForm({ ...form, capacity: e.target.value })} placeholder="2" /></Field>

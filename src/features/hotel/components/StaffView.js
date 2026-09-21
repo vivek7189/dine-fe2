@@ -80,8 +80,8 @@ export default function StaffView({ restaurantId, notify }) {
         </div>
       ) : (
         <div className="space-y-5">
-          {DEPT_ORDER.filter((d) => (byDept[d] || []).length).map((d) => {
-            const meta = DEPTS[d]; const Icon = meta.icon;
+          {[...DEPT_ORDER, ...Object.keys(byDept).filter((d) => !DEPT_ORDER.includes(d))].filter((d) => (byDept[d] || []).length).map((d) => {
+            const meta = DEPTS[d] || { label: d, icon: FaUserTie, color: 'slate' }; const Icon = meta.icon;
             return (
               <div key={d}>
                 <div className="mb-2 flex items-center gap-2">
@@ -119,10 +119,10 @@ export default function StaffView({ restaurantId, notify }) {
             <Field label="Role"><input className={inputCls} value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} placeholder="e.g. Receptionist" /></Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Area / department">
-              <select className={inputCls} value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })}>
-                {DEPT_ORDER.map((d) => <option key={d} value={d}>{DEPTS[d].label}</option>)}
-              </select>
+            <Field label="Area / department" hint="Pick one or type your own">
+              <input className={inputCls} list="staff-depts" value={DEPTS[form.department]?.label || form.department}
+                onChange={(e) => { const v = e.target.value; const match = DEPT_ORDER.find((d) => DEPTS[d].label.toLowerCase() === v.toLowerCase()); setForm({ ...form, department: match || v }); }} />
+              <datalist id="staff-depts">{DEPT_ORDER.map((d) => <option key={d} value={DEPTS[d].label} />)}</datalist>
             </Field>
             <Field label="Shift"><input className={inputCls} value={form.shift} onChange={(e) => setForm({ ...form, shift: e.target.value })} placeholder="Morning / Evening / Night" /></Field>
           </div>

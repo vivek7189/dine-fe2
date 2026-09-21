@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { FaTimes, FaSpinner, FaPlus, FaTrash, FaReceipt, FaCheckCircle } from 'react-icons/fa';
 import hotelApi, { FOLIO_ITEM_TYPES, PAY_METHODS } from '../api/hotelApi';
 import { inputCls, Btn } from './ui';
@@ -84,8 +85,9 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
 
   const isOpen = folio?.status === 'open';
 
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-[#2A241B]/40" onClick={onClose}>
+  if (typeof document === 'undefined') return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[1000] flex justify-end bg-[#2A241B]/50" onClick={onClose}>
       <div className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
         {/* header */}
         <div className="flex items-center justify-between border-b border-[#F1ECE1] px-5 py-3.5">
@@ -197,6 +199,7 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -2,6 +2,7 @@
 // Shared primitives for the hotel PMS — warm editorial design (Cardamom House).
 // Every hotel page composes these so the look stays consistent and premium.
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { FaTimes } from 'react-icons/fa';
 
 // Inputs ----------------------------------------------------------------------
@@ -98,10 +99,12 @@ export function StatCard({ icon: Icon, tone = 'brass', label, value, sub, bar })
 
 // Modal -----------------------------------------------------------------------
 export function Modal({ open, title, onClose, children, footer, wide }) {
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#2A241B]/40 p-4 backdrop-blur-[2px] sm:items-center">
-      <div className={`w-full ${wide ? 'max-w-2xl' : 'max-w-md'} rounded-2xl border border-[#EBE4D6] bg-[#FBF9F4] shadow-2xl`}>
+  if (!open || typeof document === 'undefined') return null;
+  // Rendered via a portal on <body> so the overlay covers the whole screen —
+  // including the app sidebar — regardless of where it's mounted in the tree.
+  return createPortal(
+    <div className="fixed inset-0 z-[1000] flex items-start justify-center overflow-y-auto bg-[#2A241B]/50 p-4 backdrop-blur-[2px] sm:items-center" onClick={onClose}>
+      <div className={`w-full ${wide ? 'max-w-2xl' : 'max-w-md'} rounded-2xl border border-[#EBE4D6] bg-[#FBF9F4] shadow-2xl`} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-[#EFE9DD] px-5 py-3.5">
           <h3 className="font-serif text-[16px] font-semibold text-[#2A241B]">{title}</h3>
           <button onClick={onClose} className="text-[#A79C88] hover:text-[#6E6656]" aria-label="Close"><FaTimes /></button>
@@ -109,6 +112,7 @@ export function Modal({ open, title, onClose, children, footer, wide }) {
         <div className="px-5 py-4">{children}</div>
         {footer && <div className="flex justify-end gap-2 border-t border-[#EFE9DD] px-5 py-3">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
