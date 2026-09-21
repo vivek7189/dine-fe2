@@ -81,6 +81,12 @@ hotelApi.getRates = (rid, from, to) => req(`${BASE}/rates${qs({ restaurantId: ri
 hotelApi.setRate = (rid, body) => req(`${BASE}/rates`, { method: 'PUT', body: withRid(body, rid) });
 hotelApi.bulkRate = (rid, body) => req(`${BASE}/rates/bulk`, { method: 'PUT', body: withRid(body, rid) });
 
+// ── Services catalog ──
+hotelApi.listServices = (rid) => req(`${BASE}/services${qs({ restaurantId: rid })}`);
+hotelApi.createService = (rid, body) => req(`${BASE}/services`, { method: 'POST', body: withRid(body, rid) });
+hotelApi.updateService = (rid, id, body) => req(`${BASE}/services/${id}`, { method: 'PATCH', body: withRid(body, rid) });
+hotelApi.deleteService = (rid, id) => req(`${BASE}/services/${id}${qs({ restaurantId: rid })}`, { method: 'DELETE' });
+
 // ── Staff & area assignments ──
 hotelApi.listStaff = (rid, params) => req(`${BASE}/staff${qs(withRid(params, rid))}`);
 hotelApi.createStaff = (rid, body) => req(`${BASE}/staff`, { method: 'POST', body: withRid(body, rid) });

@@ -1,7 +1,7 @@
 'use client';
 // Hotel PMS — Rooms & Types setup. Part of the isolated hotel feature.
 import React, { useState } from 'react';
-import { FaBed, FaDoorClosed, FaSpinner, FaPercent } from 'react-icons/fa';
+import { FaBed, FaDoorClosed, FaSpinner, FaPercent, FaConciergeBell } from 'react-icons/fa';
 import { useCurrency } from '../../contexts/CurrencyContext';
 import { useHotelProperty } from './lib/useHotelProperty';
 import { Banner } from './components/ui';
@@ -9,10 +9,12 @@ import HotelNav from './components/HotelNav';
 import RoomTypesPanel from './components/RoomTypesPanel';
 import RoomsPanel from './components/RoomsPanel';
 import TaxSettingsPanel from './components/TaxSettingsPanel';
+import ServicesPanel from './components/ServicesPanel';
 
 const TABS = [
   { id: 'rooms', label: 'Rooms', icon: FaDoorClosed },
   { id: 'types', label: 'Room types', icon: FaBed },
+  { id: 'services', label: 'Services', icon: FaConciergeBell },
   { id: 'taxes', label: 'Taxes', icon: FaPercent },
 ];
 
@@ -52,6 +54,9 @@ export default function HotelPmsSetup() {
           )}
           {tab === 'types' && (
             <RoomTypesPanel restaurantId={restaurantId} formatCurrency={formatCurrency} notify={notify} onChanged={() => setTypesRefreshKey((k) => k + 1)} />
+          )}
+          {tab === 'services' && (
+            <ServicesPanel restaurantId={restaurantId} formatCurrency={formatCurrency} notify={notify} />
           )}
           {tab === 'taxes' && (
             <TaxSettingsPanel restaurantId={restaurantId} notify={notify} />

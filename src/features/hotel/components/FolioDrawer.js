@@ -13,6 +13,8 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
   const [busy, setBusy] = useState(false);
   const [charge, setCharge] = useState({ description: '', type: 'food', amount: '' });
   const [pay, setPay] = useState({ amount: '', method: 'cash' });
+  const [services, setServices] = useState([]);
+  const [svc, setSvc] = useState({ id: '', qty: 1 });
   const money = (v) => (formatCurrency ? formatCurrency(v || 0) : Number(v || 0).toFixed(2));
 
   const load = useCallback(async () => {
@@ -25,6 +27,23 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
   }, [restaurantId, reservation]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { hotelApi.listServices(restaurantId).then((r) => setServices(r.services || [])).catch(() => {}); }, [restaurantId]);
+
+  const addService = async () => {
+    const s = services.find((x) => x.id === svc.id);
+    if (!s) return setErr('Pick a service');
+    const qty = Math.max(1, Number(svc.qty) || 1);
+    setBusy(true); setErr(null);
+    try {
+      const res = await hotelApi.postCharge(restaurantId, folio.id, {
+        description: qty > 1 ? `${s.name} × ${qty}` : s.name,
+        type: s.taxable ? 'service' : 'misc', unitPrice: s.price, quantity: qty,
+      });
+      setSvc({ id: '', qty: 1 });
+      refresh(res.folio);
+    } catch (e) { setErr(e.message || 'Could not add service'); }
+    finally { setBusy(false); }
+  };
 
   const refresh = (updated) => { if (updated) setFolio(updated); else load(); onChanged && onChanged(); };
 
@@ -112,9 +131,19 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
                 </tbody>
               </table>
 
+              {isOpen && services.length > 0 && (
+                <div className="mb-2.5 grid grid-cols-[1fr_auto_auto] gap-2">
+                  <select className={inputCls} value={svc.id} onChange={(e) => setSvc({ ...svc, id: e.target.value })}>
+                    <option value="">Add a service…</option>
+                    {services.map((s) => <option key={s.id} value={s.id}>{s.name} — {money(s.price)}{s.unit !== 'per-item' ? `/${s.unit.replace('per-', '')}` : ''}</option>)}
+                  </select>
+                  <input className={`${inputCls} w-16`} type="number" min="1" value={svc.qty} onChange={(e) => setSvc({ ...svc, qty: e.target.value })} title="Quantity" />
+                  <button onClick={addService} disabled={busy || !svc.id} className="rounded-lg bg-indigo-600 px-2.5 text-white hover:bg-indigo-700 disabled:opacity-50" aria-label="Add service"><FaPlus size={12} /></button>
+                </div>
+              )}
               {isOpen && (
                 <div className="mb-4 grid grid-cols-[1fr_auto_auto] gap-2">
-                  <input className={inputCls} placeholder="Add charge…" value={charge.description} onChange={(e) => setCharge({ ...charge, description: e.target.value })} />
+                  <input className={inputCls} placeholder="Or a custom charge…" value={charge.description} onChange={(e) => setCharge({ ...charge, description: e.target.value })} />
                   <select className={inputCls} value={charge.type} onChange={(e) => setCharge({ ...charge, type: e.target.value })}>
                     {FOLIO_ITEM_TYPES.filter((t) => t !== 'room').map((t) => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
                   </select>
