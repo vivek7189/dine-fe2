@@ -81,6 +81,12 @@ hotelApi.getRates = (rid, from, to) => req(`${BASE}/rates${qs({ restaurantId: ri
 hotelApi.setRate = (rid, body) => req(`${BASE}/rates`, { method: 'PUT', body: withRid(body, rid) });
 hotelApi.bulkRate = (rid, body) => req(`${BASE}/rates/bulk`, { method: 'PUT', body: withRid(body, rid) });
 
+// ── Staff & area assignments ──
+hotelApi.listStaff = (rid, params) => req(`${BASE}/staff${qs(withRid(params, rid))}`);
+hotelApi.createStaff = (rid, body) => req(`${BASE}/staff`, { method: 'POST', body: withRid(body, rid) });
+hotelApi.updateStaff = (rid, id, body) => req(`${BASE}/staff/${id}`, { method: 'PATCH', body: withRid(body, rid) });
+hotelApi.deleteStaff = (rid, id) => req(`${BASE}/staff/${id}${qs({ restaurantId: rid })}`, { method: 'DELETE' });
+
 // ── OTA channels ──
 hotelApi.getChannels = (rid) => req(`${BASE}/channels${qs({ restaurantId: rid })}`);
 hotelApi.connectChannel = (rid, code) => req(`${BASE}/channels/connect`, { method: 'POST', body: withRid({ code }, rid) });
