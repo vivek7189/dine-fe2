@@ -1,13 +1,85 @@
 'use client';
 // Shared primitives for the hotel PMS — warm editorial design (Cardamom House).
 // Every hotel page composes these so the look stays consistent and premium.
-import React from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { FaTimes } from 'react-icons/fa';
+import { FaTimes, FaChevronDown, FaCheck } from 'react-icons/fa';
 
 // Inputs ----------------------------------------------------------------------
 export const inputCls =
   'w-full rounded-lg border border-[var(--h-border2)] bg-white px-3 py-2 text-[13.5px] text-[var(--h-ink)] outline-none transition focus:border-[var(--h-brand)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--h-brand)_15%,transparent)] placeholder:text-[var(--h-faint2)]';
+
+// Custom Select ----------------------------------------------------------------
+// A themed dropdown that replaces the native <select>. The menu is portalled to
+// <body> (z above modals) and fixed-positioned under the trigger, so it never
+// gets clipped inside a modal/drawer. options = [{ value, label, sub?, right?, disabled? }].
+export function Select({ value, onChange, options = [], placeholder = 'Select…', disabled, className = '' }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState(null);
+  const btnRef = useRef(null);
+  const menuRef = useRef(null);
+  const selected = options.find((o) => String(o.value) === String(value));
+
+  const place = useCallback(() => {
+    const el = btnRef.current; if (!el) return;
+    const r = el.getBoundingClientRect();
+    const vh = window.innerHeight;
+    const below = vh - r.bottom;
+    const menuH = Math.min(288, options.length * 40 + 8);
+    const up = below < menuH + 12 && r.top > below;
+    setPos({ left: r.left, width: r.width, top: up ? undefined : r.bottom + 6, bottom: up ? vh - r.top + 6 : undefined });
+  }, [options.length]);
+
+  useEffect(() => {
+    if (!open) return;
+    place();
+    const onDoc = (e) => { if (!btnRef.current?.contains(e.target) && !menuRef.current?.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    const onScroll = () => place();
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', onScroll, true);
+    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); window.removeEventListener('resize', place); window.removeEventListener('scroll', onScroll, true); };
+  }, [open, place]);
+
+  const pick = (o) => { if (o.disabled) return; onChange(o.value); setOpen(false); };
+
+  return (
+    <>
+      <button type="button" ref={btnRef} disabled={disabled} onClick={() => setOpen((v) => !v)}
+        className={`flex w-full items-center justify-between gap-2 rounded-lg border bg-white px-3 py-2 text-left text-[13.5px] outline-none transition ${open ? 'border-[var(--h-brand)] ring-2 ring-[color-mix(in_srgb,var(--h-brand)_15%,transparent)]' : 'border-[var(--h-border2)]'} ${disabled ? 'cursor-not-allowed opacity-60' : 'hover:border-[var(--h-brand)]'} ${className}`}>
+        <span className={`flex min-w-0 items-center gap-2 truncate ${selected ? 'text-[var(--h-ink)]' : 'text-[var(--h-faint2)]'}`}>
+          {selected ? (<><span className="truncate">{selected.label}</span>{selected.right != null && <span className="ml-1 shrink-0 text-[12px] text-[var(--h-muted)]">{selected.right}</span>}</>) : placeholder}
+        </span>
+        <FaChevronDown size={11} className={`shrink-0 text-[var(--h-faint)] transition ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && pos && typeof document !== 'undefined' && createPortal(
+        <div ref={menuRef} className="hotel-fade fixed z-[10060] overflow-auto rounded-xl border border-[var(--h-border)] bg-[var(--h-surface)] py-1 shadow-[0_16px_40px_-12px_rgba(20,16,8,0.35)]"
+          style={{ left: pos.left, width: pos.width, top: pos.top, bottom: pos.bottom, maxHeight: 288 }}>
+          {options.length === 0 && <div className="px-3 py-2 text-[12.5px] text-[var(--h-faint)]">No options</div>}
+          {options.map((o) => {
+            const on = String(o.value) === String(value);
+            return (
+              <button type="button" key={String(o.value)} onClick={() => pick(o)} disabled={o.disabled}
+                className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[13px] transition ${o.disabled ? 'cursor-not-allowed opacity-45' : 'hover:bg-[var(--h-hover)]'} ${on ? 'bg-[var(--h-brand-soft)]' : ''}`}>
+                <span className="flex min-w-0 flex-col">
+                  <span className={`truncate ${on ? 'font-semibold text-[var(--h-brand-ink)]' : 'text-[var(--h-ink)]'}`}>{o.label}</span>
+                  {o.sub && <span className="truncate text-[11px] text-[var(--h-faint)]">{o.sub}</span>}
+                </span>
+                <span className="flex shrink-0 items-center gap-2">
+                  {o.right != null && <span className="text-[12px] text-[var(--h-muted)]">{o.right}</span>}
+                  {on && <FaCheck size={10} className="text-[var(--h-brand)]" />}
+                </span>
+              </button>
+            );
+          })}
+        </div>,
+        document.body
+      )}
+    </>
+  );
+}
 
 export function Field({ label, children, hint, required }) {
   return (
@@ -98,13 +170,14 @@ export function StatCard({ icon: Icon, tone = 'brass', label, value, sub, bar })
 }
 
 // Modal -----------------------------------------------------------------------
-export function Modal({ open, title, subtitle, icon: Icon, onClose, children, footer, wide }) {
+export function Modal({ open, title, subtitle, icon: Icon, onClose, children, footer, wide, size }) {
   if (!open || typeof document === 'undefined') return null;
+  const maxW = { sm: 'max-w-md', lg: 'max-w-2xl', xl: 'max-w-3xl', '2xl': 'max-w-4xl' }[size] || (wide ? 'max-w-2xl' : 'max-w-md');
   // Rendered via a portal on <body> so the overlay covers the whole screen —
   // including the app sidebar (z above it) — regardless of where it's mounted.
   return createPortal(
     <div className="hotel-fade fixed inset-0 z-[10050] flex items-start justify-center overflow-y-auto bg-[color-mix(in_srgb,var(--h-ink)_55%,transparent)] p-4 backdrop-blur-[3px] sm:items-center" onClick={onClose}>
-      <div className={`hotel-pop w-full ${wide ? 'max-w-2xl' : 'max-w-md'} overflow-hidden rounded-2xl border border-[var(--h-border)] bg-[var(--h-surface)] shadow-[0_24px_60px_-12px_rgba(20,16,8,0.35)]`} onClick={(e) => e.stopPropagation()}>
+      <div className={`hotel-pop w-full ${maxW} overflow-hidden rounded-2xl border border-[var(--h-border)] bg-[var(--h-surface)] shadow-[0_24px_60px_-12px_rgba(20,16,8,0.35)]`} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3 border-b border-[var(--h-bsoft)] bg-[var(--h-surface2)] px-5 py-4">
           <div className="flex items-start gap-3">
             {Icon && <span className="mt-0.5 flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-[var(--h-brand-soft)] text-[var(--h-brand)]"><Icon size={14} /></span>}
