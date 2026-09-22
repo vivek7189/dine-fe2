@@ -91,6 +91,16 @@ hotelApi.seedRatePlans = (rid) => req(`${BASE}/rate-plans/seed-defaults`, { meth
 hotelApi.quoteRatePlans = (rid, roomTypeId, checkIn, checkOut, promoCode) =>
   req(`${BASE}/rate-plans/quote${qs({ restaurantId: rid, roomTypeId, checkIn, checkOut, promoCode })}`);
 
+// ── City ledger (bill-to-company / AR) ──
+hotelApi.listCompanies = (rid, all) => req(`${BASE}/companies${qs({ restaurantId: rid, all: all ? 1 : undefined })}`);
+hotelApi.getCompany = (rid, id) => req(`${BASE}/companies/${id}${qs({ restaurantId: rid })}`);
+hotelApi.companyStatement = (rid, id) => req(`${BASE}/companies/${id}/statement${qs({ restaurantId: rid })}`);
+hotelApi.createCompany = (rid, body) => req(`${BASE}/companies`, { method: 'POST', body: withRid(body, rid) });
+hotelApi.updateCompany = (rid, id, body) => req(`${BASE}/companies/${id}`, { method: 'PATCH', body: withRid(body, rid) });
+hotelApi.deleteCompany = (rid, id) => req(`${BASE}/companies/${id}${qs({ restaurantId: rid })}`, { method: 'DELETE' });
+hotelApi.companyPayment = (rid, id, body) => req(`${BASE}/companies/${id}/payments`, { method: 'POST', body: withRid(body, rid) });
+hotelApi.billFolioToCompany = (rid, id, folioId) => req(`${BASE}/companies/${id}/bill-folio`, { method: 'POST', body: withRid({ folioId }, rid) });
+
 // ── Cancellation & no-show policies ──
 hotelApi.listPolicies = (rid, all) => req(`${BASE}/policies${qs({ restaurantId: rid, all: all ? 1 : undefined })}`);
 hotelApi.createPolicy = (rid, body) => req(`${BASE}/policies`, { method: 'POST', body: withRid(body, rid) });

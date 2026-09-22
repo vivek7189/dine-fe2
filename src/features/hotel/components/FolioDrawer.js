@@ -1,9 +1,9 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { FaTimes, FaSpinner, FaPlus, FaTrash, FaReceipt, FaCheckCircle, FaFileInvoiceDollar } from 'react-icons/fa';
+import { FaTimes, FaSpinner, FaPlus, FaTrash, FaReceipt, FaCheckCircle, FaFileInvoiceDollar, FaBuilding } from 'react-icons/fa';
 import hotelApi, { FOLIO_ITEM_TYPES, PAY_METHODS } from '../api/hotelApi';
-import { inputCls, Btn } from './ui';
+import { inputCls, Btn, Modal, Field } from './ui';
 import InvoiceModal from './InvoiceModal';
 
 const TYPE_LABEL = { room: 'Room', food: 'Food', beverage: 'Beverage', service: 'Service', tax: 'Tax', discount: 'Discount', misc: 'Misc' };
@@ -18,6 +18,9 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
   const [services, setServices] = useState([]);
   const [svc, setSvc] = useState({ id: '', qty: 1 });
   const [showInvoice, setShowInvoice] = useState(false);
+  const [billOpen, setBillOpen] = useState(false);
+  const [companies, setCompanies] = useState([]);
+  const [billCompanyId, setBillCompanyId] = useState('');
   const money = (v) => (formatCurrency ? formatCurrency(v || 0) : Number(v || 0).toFixed(2));
 
   const load = useCallback(async () => {
@@ -49,6 +52,19 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
   };
 
   const refresh = (updated) => { if (updated) setFolio(updated); else load(); onChanged && onChanged(); };
+
+  const openBill = async () => {
+    setBillOpen(true);
+    try { const r = await hotelApi.listCompanies(restaurantId); setCompanies(r.companies || []); }
+    catch (e) { setErr(e.message); }
+  };
+  const billToCompany = async () => {
+    if (!billCompanyId) return setErr('Choose a company');
+    setBusy(true); setErr(null);
+    try { const res = await hotelApi.billFolioToCompany(restaurantId, billCompanyId, folio.id); refresh(res.folio); setBillOpen(false); }
+    catch (e) { setErr(e.message || 'Could not bill to company'); }
+    finally { setBusy(false); }
+  };
 
   const addCharge = async () => {
     if (!charge.description.trim() || charge.amount === '') return setErr('Enter a description and amount');
@@ -197,10 +213,18 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
               ) : (
                 <div className="rounded-lg bg-emerald-50 py-2 text-center text-sm font-medium capitalize text-emerald-700">{folio.status}</div>
               )}
-              <button onClick={() => setShowInvoice(true)}
-                className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-[#DDD4C2] bg-white py-2 text-[13px] font-semibold text-[#4A4335] hover:bg-[#F3EFE6]">
-                <FaFileInvoiceDollar size={12} /> Invoice / Bill
-              </button>
+              <div className="mt-2 flex gap-2">
+                <button onClick={() => setShowInvoice(true)}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#DDD4C2] bg-white py-2 text-[13px] font-semibold text-[#4A4335] hover:bg-[#F3EFE6]">
+                  <FaFileInvoiceDollar size={12} /> Invoice
+                </button>
+                {isOpen && folio.balance > 0 && (
+                  <button onClick={openBill}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#DDD4C2] bg-white py-2 text-[13px] font-semibold text-[#4A4335] hover:bg-[#F3EFE6]">
+                    <FaBuilding size={12} /> Bill to company
+                  </button>
+                )}
+              </div>
             </div>
           </>
         )}
@@ -208,6 +232,19 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
       {showInvoice && folio && (
         <InvoiceModal restaurantId={restaurantId} folioId={folio.id} open={showInvoice}
           onClose={() => setShowInvoice(false)} notify={(t, m) => setErr(t === 'error' ? m : null)} />
+      )}
+      {billOpen && folio && (
+        <Modal open title="Bill folio to a company" onClose={() => setBillOpen(false)}
+          footer={<><Btn variant="ghost" onClick={() => setBillOpen(false)}>Cancel</Btn><Btn onClick={billToCompany} disabled={busy || !billCompanyId}>{busy ? 'Transferring…' : `Transfer ${money(folio.balance)}`}</Btn></>}>
+          {companies.length === 0 ? (
+            <p className="text-[13px] text-[#A79C88]">No company accounts yet. Add one under City Ledger first.</p>
+          ) : (
+            <>
+              <Field label="Company"><select className={inputCls} value={billCompanyId} onChange={(e) => setBillCompanyId(e.target.value)}><option value="">Choose a company…</option>{companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
+              <p className="mt-2 text-[12px] text-[#8A8172]">The outstanding balance of <strong>{money(folio.balance)}</strong> moves to the company city-ledger account and the folio is settled.</p>
+            </>
+          )}
+        </Modal>
       )}
     </div>,
     document.body

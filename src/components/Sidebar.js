@@ -382,6 +382,7 @@ export default function Sidebar({ isDashboardPage = false }) {
     { id: 'h-rates', name: 'Rates', icon: FaTag, href: '/hotel/pms/rates', color: '#9A7B45' },
     { id: 'h-hk', name: 'Housekeeping', icon: FaBroom, href: '/hotel/pms/housekeeping', color: '#9A7B45' },
     { id: 'h-staff', name: 'Staff', icon: FaUsers, href: '/hotel/pms/staff', color: '#9A7B45' },
+    { id: 'h-ledger', name: 'City Ledger', icon: FaBuilding, href: '/hotel/pms/companies', color: '#9A7B45' },
     { id: 'h-rep', name: 'Reports', icon: FaChartBar, href: '/hotel/pms/reports', color: '#9A7B45' },
     { id: 'h-setup', name: 'Setup', icon: FaCog, href: '/hotel/pms/rooms', color: '#9A7B45' },
   ];
