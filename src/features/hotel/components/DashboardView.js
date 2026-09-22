@@ -27,7 +27,7 @@ export default function DashboardView({ restaurantId, formatCurrency, notify }) 
   const [busyId, setBusyId] = useState(null);
   const [booking, setBooking] = useState(null); // null=closed; {} or {initial} = open
   const today = localToday();
-  const money = (v) => (formatCurrency ? formatCurrency(v || 0) : `₹${Number(v || 0).toLocaleString()}`);
+  const money = (v) => (formatCurrency ? formatCurrency(v || 0) : Number(v || 0).toLocaleString());
 
   const load = useCallback(async () => {
     if (!restaurantId) return;

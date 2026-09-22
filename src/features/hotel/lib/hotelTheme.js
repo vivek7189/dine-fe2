@@ -9,7 +9,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 const KEY = 'dineopen.hotel.theme';
 const IDS = ['cardamom', 'dineopen'];
-const DEFAULT = 'cardamom';
+const DEFAULT = 'dineopen';
 export const THEMES = [
   { id: 'cardamom', label: 'Cardamom' },
   { id: 'dineopen', label: 'DineOpen' },

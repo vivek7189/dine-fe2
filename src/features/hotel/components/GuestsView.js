@@ -14,7 +14,7 @@ export default function GuestsView({ restaurantId, formatCurrency, notify }) {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [openId, setOpenId] = useState(null);
-  const money = (v) => (formatCurrency ? formatCurrency(v || 0) : `₹${Number(v || 0).toLocaleString()}`);
+  const money = (v) => (formatCurrency ? formatCurrency(v || 0) : Number(v || 0).toLocaleString());
 
   const load = useCallback(async (term) => {
     setLoading(true);

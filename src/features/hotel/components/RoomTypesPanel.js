@@ -4,7 +4,7 @@ import { FaPlus, FaPen, FaTrash, FaBed, FaSpinner } from 'react-icons/fa';
 import hotelApi from '../api/hotelApi';
 import { Modal, Field, inputCls, Btn, Pill } from './ui';
 
-const EMPTY = { name: '', code: '', baseOccupancy: 2, maxOccupancy: 3, defaultRate: '', description: '' };
+const EMPTY = { name: '', code: '', baseOccupancy: 2, maxOccupancy: 3, defaultRate: '', extraBedCharge: '', extraBedLimit: '', description: '' };
 
 export default function RoomTypesPanel({ restaurantId, formatCurrency, notify, onChanged }) {
   const [types, setTypes] = useState([]);
@@ -32,7 +32,8 @@ export default function RoomTypesPanel({ restaurantId, formatCurrency, notify, o
   const openEdit = (t) => {
     setForm({
       name: t.name || '', code: t.code || '', baseOccupancy: t.baseOccupancy ?? 2,
-      maxOccupancy: t.maxOccupancy ?? 3, defaultRate: t.defaultRate ?? '', description: t.description || '',
+      maxOccupancy: t.maxOccupancy ?? 3, defaultRate: t.defaultRate ?? '',
+      extraBedCharge: t.extraBedCharge || '', extraBedLimit: t.extraBedLimit || '', description: t.description || '',
     });
     setEditing(t);
   };
@@ -45,6 +46,8 @@ export default function RoomTypesPanel({ restaurantId, formatCurrency, notify, o
         name: form.name.trim(), code: form.code.trim() || null,
         baseOccupancy: Number(form.baseOccupancy) || 1, maxOccupancy: Number(form.maxOccupancy) || 1,
         defaultRate: form.defaultRate === '' ? 0 : Number(form.defaultRate),
+        extraBedCharge: form.extraBedCharge === '' ? 0 : Number(form.extraBedCharge),
+        extraBedLimit: form.extraBedLimit === '' ? 0 : Number(form.extraBedLimit),
         description: form.description.trim() || null,
       };
       if (editing.id) await hotelApi.updateRoomType(restaurantId, editing.id, body);
@@ -137,6 +140,8 @@ export default function RoomTypesPanel({ restaurantId, formatCurrency, notify, o
             <Field label="Base occupancy"><input type="number" min="1" className={inputCls} value={form.baseOccupancy} onChange={(e) => setForm({ ...form, baseOccupancy: e.target.value })} /></Field>
             <Field label="Max occupancy"><input type="number" min="1" className={inputCls} value={form.maxOccupancy} onChange={(e) => setForm({ ...form, maxOccupancy: e.target.value })} /></Field>
             <Field label="Default rate" hint="per night"><input type="number" min="0" step="0.01" className={inputCls} value={form.defaultRate} onChange={(e) => setForm({ ...form, defaultRate: e.target.value })} /></Field>
+            <Field label="Extra bed charge" hint="per bed / night · 0 = off"><input type="number" min="0" step="0.01" className={inputCls} value={form.extraBedCharge} onChange={(e) => setForm({ ...form, extraBedCharge: e.target.value })} placeholder="0" /></Field>
+            <Field label="Extra beds allowed" hint="max rollaway beds"><input type="number" min="0" className={inputCls} value={form.extraBedLimit} onChange={(e) => setForm({ ...form, extraBedLimit: e.target.value })} placeholder="0" /></Field>
           </div>
           <Field label="Description">
             <textarea rows={2} className={inputCls} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="What guests get with this room type." />

@@ -32,11 +32,24 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
   const [catalog, setCatalog] = useState([]);
   const [chosenSvcs, setChosenSvcs] = useState([]);
   const [svcPick, setSvcPick] = useState({ id: '', qty: 1 });
+  const [types, setTypes] = useState([]);
 
   const nights = nightsBetween(form.checkIn, form.checkOut);
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
   const selectedRoom = rooms.find((r) => r.id === form.roomId);
   const roomTypeId = selectedRoom?.roomTypeId || null;
+
+  // Occupancy & extra-bed rules from the selected room's type (dynamic; only when
+  // the property has configured them).
+  const selType = types.find((t) => t.id === roomTypeId) || null;
+  const guests = (Number(form.adults) || 0) + (Number(form.children) || 0);
+  const baseOcc = selType?.baseOccupancy || 0;
+  const maxOcc = selType?.maxOccupancy || 0;
+  const ebCharge = selType?.extraBedCharge || 0;
+  const ebLimit = selType?.extraBedLimit || 0;
+  const overMax = !!(selType && maxOcc && guests > maxOcc);
+  const extraBeds = (selType && ebCharge > 0 && ebLimit > 0) ? Math.min(Math.max(0, guests - baseOcc), ebLimit) : 0;
+  const extraBedNightly = extraBeds * ebCharge;
 
   // reset on open (honouring an optional prefill from the calendar)
   useEffect(() => {
@@ -51,10 +64,11 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
     }
   }, [open, initial]);
 
-  // Load the services catalog once when the modal opens.
+  // Load the services catalog + room types once when the modal opens.
   useEffect(() => {
     if (!open) return;
     hotelApi.listServices(restaurantId).then((r) => setCatalog((r.services || []).filter((s) => s.active !== false))).catch(() => setCatalog([]));
+    hotelApi.listRoomTypes(restaurantId).then((r) => setTypes(r.roomTypes || r.types || [])).catch(() => setTypes([]));
   }, [open, restaurantId]);
 
   const addService = () => {
@@ -130,6 +144,7 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
   const submit = async () => {
     if (!form.guestName.trim()) return setError('Guest name is required');
     if (nights <= 0) return setError('Enter valid check-in / check-out dates');
+    if (overMax) return setError(`This room type allows at most ${maxOcc} guest(s). Reduce guests or pick a bigger room.`);
     setSaving(true); setError(null);
     try {
       await hotelApi.createReservation(restaurantId, {
@@ -138,7 +153,7 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
         adults: Number(form.adults) || 1, children: Number(form.children) || 0,
         roomId: form.roomId || null, rate: form.rate === '' ? null : Number(form.rate),
         ratePlanId: ratePlanId || null, mealPlan: mealPlan || null,
-        services: chosenSvcs,
+        services: chosenSvcs, extraBeds, extraBedCharge: ebCharge,
         source: 'walk-in',
       });
       onCreated && onCreated();
@@ -151,7 +166,8 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
   };
 
   const roomTotal = total || 0;
-  const grandTotal = roomTotal + servicesTotal;
+  const extraBedTotal = extraBedNightly * nights;
+  const grandTotal = roomTotal + extraBedTotal + servicesTotal;
   const fmt = (v) => (formatCurrency ? formatCurrency(v) : v);
 
   const roomOptions = [
@@ -213,6 +229,25 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
             )}
             {availErr && <span className="mt-1 block text-[11px] text-amber-600">{availErr}</span>}
           </Field>
+
+          {selType && (baseOcc > 0 || maxOcc > 0) && (
+            <div className={`rounded-xl border px-3 py-2 text-[12px] ${overMax ? 'border-[#EAD1C9] bg-[#F9EFEA] text-[#8A3F31]' : 'border-[var(--h-border)] bg-[var(--h-surface2)] text-[var(--h-muted)]'}`}>
+              <div className="flex items-center justify-between">
+                <span>{selType.name} · sleeps {baseOcc}{maxOcc > baseOcc ? `, up to ${maxOcc}` : ''}</span>
+                <span className="tabular-nums">{guests} guest{guests !== 1 ? 's' : ''}</span>
+              </div>
+              {overMax && <div className="mt-1 font-medium">Exceeds max occupancy ({maxOcc}). Reduce guests or choose a bigger room.</div>}
+              {!overMax && extraBeds > 0 && (
+                <div className="mt-1 flex items-center justify-between text-[var(--h-brand-ink)]">
+                  <span>+ Extra bed × {extraBeds} · {fmt(ebCharge)}/night</span>
+                  <span className="font-semibold tabular-nums">{fmt(extraBedNightly)}/night</span>
+                </div>
+              )}
+              {!overMax && guests > baseOcc && extraBeds === 0 && ebLimit === 0 && (
+                <div className="mt-1 text-[var(--h-faint)]">Over base occupancy — no extra bed configured for this type.</div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── right column ── */}
