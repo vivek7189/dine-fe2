@@ -90,6 +90,13 @@ hotelApi.seedRatePlans = (rid) => req(`${BASE}/rate-plans/seed-defaults`, { meth
 hotelApi.quoteRatePlans = (rid, roomTypeId, checkIn, checkOut, promoCode) =>
   req(`${BASE}/rate-plans/quote${qs({ restaurantId: rid, roomTypeId, checkIn, checkOut, promoCode })}`);
 
+// ── Invoices (printable GST/tax folio) ──
+hotelApi.invoicePreview = (rid, folioId) => req(`${BASE}/invoices/preview${qs({ restaurantId: rid, folioId })}`);
+hotelApi.invoiceByFolio = (rid, folioId) => req(`${BASE}/invoices/by-folio/${folioId}${qs({ restaurantId: rid })}`);
+hotelApi.generateInvoice = (rid, folioId) => req(`${BASE}/invoices`, { method: 'POST', body: withRid({ folioId }, rid) });
+hotelApi.getInvoice = (rid, id) => req(`${BASE}/invoices/${id}${qs({ restaurantId: rid })}`);
+hotelApi.listInvoices = (rid, limit) => req(`${BASE}/invoices${qs({ restaurantId: rid, limit })}`);
+
 // ── Night audit (end-of-day) ──
 hotelApi.nightAuditStatus = (rid) => req(`${BASE}/night-audit/status${qs({ restaurantId: rid })}`);
 hotelApi.nightAuditHistory = (rid, limit) => req(`${BASE}/night-audit/history${qs({ restaurantId: rid, limit })}`);

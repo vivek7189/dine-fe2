@@ -1,9 +1,10 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { FaTimes, FaSpinner, FaPlus, FaTrash, FaReceipt, FaCheckCircle } from 'react-icons/fa';
+import { FaTimes, FaSpinner, FaPlus, FaTrash, FaReceipt, FaCheckCircle, FaFileInvoiceDollar } from 'react-icons/fa';
 import hotelApi, { FOLIO_ITEM_TYPES, PAY_METHODS } from '../api/hotelApi';
 import { inputCls, Btn } from './ui';
+import InvoiceModal from './InvoiceModal';
 
 const TYPE_LABEL = { room: 'Room', food: 'Food', beverage: 'Beverage', service: 'Service', tax: 'Tax', discount: 'Discount', misc: 'Misc' };
 
@@ -16,6 +17,7 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
   const [pay, setPay] = useState({ amount: '', method: 'cash' });
   const [services, setServices] = useState([]);
   const [svc, setSvc] = useState({ id: '', qty: 1 });
+  const [showInvoice, setShowInvoice] = useState(false);
   const money = (v) => (formatCurrency ? formatCurrency(v || 0) : Number(v || 0).toFixed(2));
 
   const load = useCallback(async () => {
@@ -195,10 +197,18 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
               ) : (
                 <div className="rounded-lg bg-emerald-50 py-2 text-center text-sm font-medium capitalize text-emerald-700">{folio.status}</div>
               )}
+              <button onClick={() => setShowInvoice(true)}
+                className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-[#DDD4C2] bg-white py-2 text-[13px] font-semibold text-[#4A4335] hover:bg-[#F3EFE6]">
+                <FaFileInvoiceDollar size={12} /> Invoice / Bill
+              </button>
             </div>
           </>
         )}
       </div>
+      {showInvoice && folio && (
+        <InvoiceModal restaurantId={restaurantId} folioId={folio.id} open={showInvoice}
+          onClose={() => setShowInvoice(false)} notify={(t, m) => setErr(t === 'error' ? m : null)} />
+      )}
     </div>,
     document.body
   );
