@@ -105,7 +105,7 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
 
   if (typeof document === 'undefined') return null;
   return createPortal(
-    <div className="fixed inset-0 z-[1000] flex justify-end bg-[color-mix(in_srgb,var(--h-ink)_50%,transparent)]" onClick={onClose}>
+    <div className="fixed inset-0 z-[10050] flex justify-end bg-[color-mix(in_srgb,var(--h-ink)_50%,transparent)]" onClick={onClose}>
       <div className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
         {/* header */}
         <div className="flex items-center justify-between border-b border-[var(--h-bsoft2)] px-5 py-3.5">

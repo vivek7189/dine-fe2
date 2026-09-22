@@ -1,9 +1,18 @@
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { FaSpinner, FaArrowRight } from 'react-icons/fa';
+import { FaSpinner, FaArrowRight, FaPlus, FaCalendarAlt, FaBroom, FaWalking } from 'react-icons/fa';
 import hotelApi from '../api/hotelApi';
 import { T, STATUS, Chip } from '../theme';
+import NewBookingModal from './NewBookingModal';
+
+// Front-desk quick-action button.
+function QuickAction({ icon: Icon, label, onClick, href, primary }) {
+  const cls = `inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-[13px] font-semibold transition ${primary ? 'text-white shadow-sm hover:brightness-110' : 'border border-[var(--h-border)] bg-[var(--h-surface)] text-[var(--h-ink2)] hover:bg-[var(--h-hover)]'}`;
+  const style = primary ? { backgroundColor: 'var(--h-brand)' } : undefined;
+  const inner = <><Icon size={12} /> {label}</>;
+  return href ? <Link href={href} className={cls} style={style}>{inner}</Link> : <button onClick={onClick} className={cls} style={style}>{inner}</button>;
+}
 
 const localToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const addDays = (s, n) => { const d = new Date(s + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
@@ -16,6 +25,7 @@ export default function DashboardView({ restaurantId, formatCurrency, notify }) 
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
+  const [booking, setBooking] = useState(null); // null=closed; {} or {initial} = open
   const today = localToday();
   const money = (v) => (formatCurrency ? formatCurrency(v || 0) : `₹${Number(v || 0).toLocaleString()}`);
 
@@ -59,10 +69,23 @@ export default function DashboardView({ restaurantId, formatCurrency, notify }) 
 
   if (loading) return <div className="flex items-center gap-2 py-16 text-[var(--h-faint)]"><FaSpinner className="animate-spin" /> Loading…</div>;
 
+  const walkInInitial = { checkIn: today, checkOut: addDays(today, 1) };
+
   return (
     <div>
-      <h1 className={T.h1}>Front desk</h1>
-      <p className={`mt-1 mb-6 ${T.sub}`}>{d.total} rooms · everything for today at a glance</p>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className={T.h1}>Front desk</h1>
+          <p className={`mt-1 ${T.sub}`}>{d.total} rooms · everything for today at a glance</p>
+        </div>
+        {/* quick actions */}
+        <div className="flex flex-wrap items-center gap-2">
+          <QuickAction icon={FaPlus} label="New booking" primary onClick={() => setBooking({})} />
+          <QuickAction icon={FaWalking} label="Walk-in" onClick={() => setBooking({ initial: walkInInitial })} />
+          <QuickAction icon={FaCalendarAlt} label="Tape chart" href="/hotel/pms/calendar" />
+          <QuickAction icon={FaBroom} label="Housekeeping" href="/hotel/pms/housekeeping" />
+        </div>
+      </div>
 
       {/* KPI cards */}
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
@@ -120,6 +143,15 @@ export default function DashboardView({ restaurantId, formatCurrency, notify }) 
           })}
         </div>
       )}
+
+      <NewBookingModal
+        restaurantId={restaurantId}
+        open={booking != null}
+        initial={booking?.initial}
+        formatCurrency={formatCurrency}
+        onClose={() => setBooking(null)}
+        onCreated={() => { setBooking(null); notify('success', 'Booking created'); load(); }}
+      />
     </div>
   );
 }

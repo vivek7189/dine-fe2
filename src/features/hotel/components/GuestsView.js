@@ -99,7 +99,7 @@ function GuestDrawer({ restaurantId, guestId, money, onClose, onSaved, notify })
   };
   if (typeof document === 'undefined') return null;
   return createPortal(
-    <div className="fixed inset-0 z-[1000] flex justify-end bg-[color-mix(in_srgb,var(--h-ink)_50%,transparent)]" onClick={onClose}>
+    <div className="fixed inset-0 z-[10050] flex justify-end bg-[color-mix(in_srgb,var(--h-ink)_50%,transparent)]" onClick={onClose}>
       <div className="flex h-full w-full max-w-lg flex-col bg-[var(--h-surface)] shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-[var(--h-bsoft)] px-5 py-3.5">
           <h3 className="font-serif text-[17px] font-semibold text-[var(--h-ink)]">Guest profile</h3>

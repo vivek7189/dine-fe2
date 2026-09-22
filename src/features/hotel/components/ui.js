@@ -98,19 +98,25 @@ export function StatCard({ icon: Icon, tone = 'brass', label, value, sub, bar })
 }
 
 // Modal -----------------------------------------------------------------------
-export function Modal({ open, title, onClose, children, footer, wide }) {
+export function Modal({ open, title, subtitle, icon: Icon, onClose, children, footer, wide }) {
   if (!open || typeof document === 'undefined') return null;
   // Rendered via a portal on <body> so the overlay covers the whole screen —
-  // including the app sidebar — regardless of where it's mounted in the tree.
+  // including the app sidebar (z above it) — regardless of where it's mounted.
   return createPortal(
-    <div className="fixed inset-0 z-[1000] flex items-start justify-center overflow-y-auto bg-[color-mix(in_srgb,var(--h-ink)_50%,transparent)] p-4 backdrop-blur-[2px] sm:items-center" onClick={onClose}>
-      <div className={`w-full ${wide ? 'max-w-2xl' : 'max-w-md'} rounded-2xl border border-[var(--h-border)] bg-[var(--h-surface)] shadow-2xl`} onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-[var(--h-bsoft)] px-5 py-3.5">
-          <h3 className="font-serif text-[16px] font-semibold text-[var(--h-ink)]">{title}</h3>
-          <button onClick={onClose} className="text-[var(--h-faint)] hover:text-[var(--h-text)]" aria-label="Close"><FaTimes /></button>
+    <div className="hotel-fade fixed inset-0 z-[10050] flex items-start justify-center overflow-y-auto bg-[color-mix(in_srgb,var(--h-ink)_55%,transparent)] p-4 backdrop-blur-[3px] sm:items-center" onClick={onClose}>
+      <div className={`hotel-pop w-full ${wide ? 'max-w-2xl' : 'max-w-md'} overflow-hidden rounded-2xl border border-[var(--h-border)] bg-[var(--h-surface)] shadow-[0_24px_60px_-12px_rgba(20,16,8,0.35)]`} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-3 border-b border-[var(--h-bsoft)] bg-[var(--h-surface2)] px-5 py-4">
+          <div className="flex items-start gap-3">
+            {Icon && <span className="mt-0.5 flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-[var(--h-brand-soft)] text-[var(--h-brand)]"><Icon size={14} /></span>}
+            <div>
+              <h3 className="font-serif text-[17px] font-semibold leading-tight text-[var(--h-ink)]">{title}</h3>
+              {subtitle && <p className="mt-0.5 text-[12px] text-[var(--h-muted)]">{subtitle}</p>}
+            </div>
+          </div>
+          <button onClick={onClose} className="flex h-7 w-7 flex-none items-center justify-center rounded-lg text-[var(--h-faint)] transition hover:bg-[var(--h-hover)] hover:text-[var(--h-text)]" aria-label="Close"><FaTimes size={13} /></button>
         </div>
-        <div className="px-5 py-4">{children}</div>
-        {footer && <div className="flex justify-end gap-2 border-t border-[var(--h-bsoft)] px-5 py-3">{footer}</div>}
+        <div className="max-h-[calc(100vh-13rem)] overflow-y-auto px-5 py-4">{children}</div>
+        {footer && <div className="flex justify-end gap-2 border-t border-[var(--h-bsoft)] bg-[var(--h-surface2)] px-5 py-3.5">{footer}</div>}
       </div>
     </div>,
     document.body

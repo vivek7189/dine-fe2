@@ -42,7 +42,7 @@ export default function InvoiceModal({ restaurantId, folioId, open, onClose, not
   const isDraft = !issued;
 
   return createPortal(
-    <div className="fixed inset-0 z-[1000] flex items-start justify-center overflow-y-auto bg-[color-mix(in_srgb,var(--h-ink)_50%,transparent)] p-4 backdrop-blur-[2px] sm:items-center">
+    <div className="fixed inset-0 z-[10050] flex items-start justify-center overflow-y-auto bg-[color-mix(in_srgb,var(--h-ink)_50%,transparent)] p-4 backdrop-blur-[2px] sm:items-center">
       <style>{`@media print {
         body * { visibility: hidden !important; }
         #hotel-invoice, #hotel-invoice * { visibility: visible !important; }

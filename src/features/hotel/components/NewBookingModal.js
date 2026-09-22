@@ -1,8 +1,12 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { FaSpinner } from 'react-icons/fa';
+import { FaSpinner, FaBed, FaPlus, FaTimes, FaConciergeBell } from 'react-icons/fa';
 import hotelApi from '../api/hotelApi';
 import { Modal, Field, inputCls, Btn } from './ui';
+
+const SectionLabel = ({ children }) => (
+  <div className="mb-2 mt-1 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--h-brand)]">{children}</div>
+);
 
 const nightsBetween = (ci, co) => {
   if (!ci || !co) return 0;
@@ -24,6 +28,10 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
   const [mealPlan, setMealPlan] = useState(null);
   const [promo, setPromo] = useState('');
   const [promoInput, setPromoInput] = useState('');
+  // Optional add-on services chosen at booking time.
+  const [catalog, setCatalog] = useState([]);
+  const [chosenSvcs, setChosenSvcs] = useState([]);
+  const [svcPick, setSvcPick] = useState({ id: '', qty: 1 });
 
   const nights = nightsBetween(form.checkIn, form.checkOut);
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
@@ -39,8 +47,25 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
       });
       setRooms([]); setError(null); setAvailErr(null);
       setPlans([]); setRatePlanId(null); setMealPlan(null); setPromo(''); setPromoInput('');
+      setChosenSvcs([]); setSvcPick({ id: '', qty: 1 });
     }
   }, [open, initial]);
+
+  // Load the services catalog once when the modal opens.
+  useEffect(() => {
+    if (!open) return;
+    hotelApi.listServices(restaurantId).then((r) => setCatalog((r.services || []).filter((s) => s.active !== false))).catch(() => setCatalog([]));
+  }, [open, restaurantId]);
+
+  const addService = () => {
+    const s = catalog.find((x) => x.id === svcPick.id);
+    if (!s) return;
+    const qty = Math.max(1, Number(svcPick.qty) || 1);
+    setChosenSvcs((list) => [...list, { serviceId: s.id, name: s.name, price: Number(s.price) || 0, qty, taxable: s.taxable !== false, unit: s.unit }]);
+    setSvcPick({ id: '', qty: 1 });
+  };
+  const removeService = (i) => setChosenSvcs((list) => list.filter((_, idx) => idx !== i));
+  const servicesTotal = chosenSvcs.reduce((s, x) => s + x.price * x.qty, 0);
 
   // Fetch priced rate plans whenever a room (→ type) + valid dates are chosen.
   useEffect(() => {
@@ -113,6 +138,7 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
         adults: Number(form.adults) || 1, children: Number(form.children) || 0,
         roomId: form.roomId || null, rate: form.rate === '' ? null : Number(form.rate),
         ratePlanId: ratePlanId || null, mealPlan: mealPlan || null,
+        services: chosenSvcs,
         source: 'walk-in',
       });
       onCreated && onCreated();
@@ -124,13 +150,23 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
     }
   };
 
+  const roomTotal = total || 0;
+  const grandTotal = roomTotal + servicesTotal;
+  const fmt = (v) => (formatCurrency ? formatCurrency(v) : v);
+
   return (
     <Modal
       open={open}
       title="New booking"
+      subtitle="Create a reservation — assign a room now or later."
+      icon={FaBed}
       wide
       onClose={onClose}
       footer={<>
+        <div className="mr-auto text-left">
+          <div className="text-[11px] text-[var(--h-faint)]">Estimated total</div>
+          <div className="text-[16px] font-semibold text-[var(--h-ink)]">{grandTotal > 0 ? fmt(grandTotal) : '—'}</div>
+        </div>
         <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
         <Btn onClick={submit} disabled={saving}>{saving ? 'Booking…' : 'Create booking'}</Btn>
       </>}
@@ -138,11 +174,13 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
       <div className="space-y-3">
         {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</div>}
 
+        <SectionLabel>Guest</SectionLabel>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Guest name" required><input className={inputCls} value={form.guestName} onChange={(e) => set({ guestName: e.target.value })} placeholder="Full name" /></Field>
           <Field label="Phone"><input className={inputCls} value={form.guestPhone} onChange={(e) => set({ guestPhone: e.target.value })} placeholder="Optional" /></Field>
         </div>
 
+        <SectionLabel>Stay</SectionLabel>
         <div className="grid grid-cols-4 gap-3">
           <Field label="Check-in" required><input type="date" className={inputCls} value={form.checkIn} onChange={(e) => set({ checkIn: e.target.value, roomId: '' })} /></Field>
           <Field label="Check-out" required><input type="date" className={inputCls} value={form.checkOut} min={form.checkIn || undefined} onChange={(e) => set({ checkOut: e.target.value, roomId: '' })} /></Field>
@@ -150,6 +188,7 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
           <Field label="Children"><input type="number" min="0" className={inputCls} value={form.children} onChange={(e) => set({ children: e.target.value })} /></Field>
         </div>
 
+        <SectionLabel>Room &amp; rate</SectionLabel>
         <Field label={`Available rooms${nights > 0 ? ` · ${nights} night${nights > 1 ? 's' : ''}` : ''}`} hint="Leave unassigned to book now and assign a room later.">
           {loadingRooms ? (
             <div className="flex items-center gap-2 py-2 text-sm text-[var(--h-faint)]"><FaSpinner className="animate-spin" size={12} /> Checking availability…</div>
@@ -206,9 +245,44 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="Nightly rate"><input type="number" min="0" step="0.01" className={inputCls} value={form.rate} onChange={(e) => { set({ rate: e.target.value }); setRatePlanId(null); }} placeholder="0" /></Field>
-          <Field label="Total">
-            <div className={`${inputCls} bg-[var(--h-surface2)] text-[var(--h-ink2)]`}>{total != null ? (formatCurrency ? formatCurrency(total) : total) : '—'}</div>
+          <Field label="Room subtotal">
+            <div className={`${inputCls} bg-[var(--h-surface2)] text-[var(--h-ink2)]`}>{total != null ? fmt(total) : '—'}</div>
           </Field>
+        </div>
+
+        <SectionLabel>Add-on services · optional</SectionLabel>
+        <div className="rounded-xl border border-[var(--h-border)] bg-[var(--h-surface2)] p-3">
+          {catalog.length === 0 ? (
+            <div className="flex items-center gap-2 text-[12px] text-[var(--h-faint)]"><FaConciergeBell size={11} /> No services configured. Add them under Setup → Services.</div>
+          ) : (
+            <>
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <select className={inputCls} value={svcPick.id} onChange={(e) => setSvcPick({ ...svcPick, id: e.target.value })}>
+                    <option value="">Add a service…</option>
+                    {catalog.map((s) => <option key={s.id} value={s.id}>{s.name} · {fmt(s.price)}{s.unit ? `/${s.unit.replace('per-', '')}` : ''}</option>)}
+                  </select>
+                </div>
+                <input type="number" min="1" className={`${inputCls} w-16`} value={svcPick.qty} onChange={(e) => setSvcPick({ ...svcPick, qty: e.target.value })} />
+                <Btn variant="ghost" onClick={addService} disabled={!svcPick.id} className="!py-2"><FaPlus size={11} /> Add</Btn>
+              </div>
+              {chosenSvcs.length > 0 && (
+                <div className="mt-2.5 space-y-1.5">
+                  {chosenSvcs.map((s, i) => (
+                    <div key={i} className="flex items-center justify-between rounded-lg bg-[var(--h-surface)] px-3 py-1.5 text-[13px]">
+                      <span className="text-[var(--h-ink2)]">{s.name} <span className="text-[var(--h-faint)]">× {s.qty}</span></span>
+                      <span className="flex items-center gap-2">
+                        <span className="font-medium tabular-nums text-[var(--h-ink)]">{fmt(s.price * s.qty)}</span>
+                        <button onClick={() => removeService(i)} className="text-[var(--h-faint)] hover:text-rose-600"><FaTimes size={11} /></button>
+                      </span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between px-3 pt-1 text-[12px] text-[var(--h-muted)]"><span>Services subtotal</span><span className="font-semibold text-[var(--h-ink)]">{fmt(servicesTotal)}</span></div>
+                  <p className="px-3 text-[11px] text-[var(--h-faint)]">Services post to the guest folio at check-in.</p>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </Modal>

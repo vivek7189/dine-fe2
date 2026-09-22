@@ -507,3 +507,12 @@ textarea:focus {
 :root[data-hotel-theme="dineopen"] .font-serif {
   font-family:'Inter',ui-sans-serif,system-ui,sans-serif; letter-spacing:-0.02em;
 }
+
+/* Hotel modal / drawer entrance */
+@keyframes hotelPop { from { opacity:0; transform:translateY(8px) scale(.98) } to { opacity:1; transform:translateY(0) scale(1) } }
+@keyframes hotelFade { from { opacity:0 } to { opacity:1 } }
+@keyframes hotelSlideR { from { opacity:0; transform:translateX(24px) } to { opacity:1; transform:translateX(0) } }
+.hotel-pop { animation: hotelPop .18s cubic-bezier(.16,1,.3,1) both; }
+.hotel-fade { animation: hotelFade .16s ease-out both; }
+.hotel-slide-r { animation: hotelSlideR .22s cubic-bezier(.16,1,.3,1) both; }
+@media (prefers-reduced-motion: reduce) { .hotel-pop,.hotel-fade,.hotel-slide-r { animation: none; } }

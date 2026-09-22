@@ -254,7 +254,7 @@ function GroupDrawer({ restaurantId, groupId, types, money, notify, canManage, o
   const typeName = (id) => types.find((t) => t.id === id)?.name || (g?.allotments || []).find((a) => a.roomTypeId === id)?.typeName || 'Room';
 
   return createPortal(
-    <div className="fixed inset-0 z-[1000] flex justify-end bg-[color-mix(in_srgb,var(--h-ink)_50%,transparent)] backdrop-blur-[2px]" onClick={onClose}>
+    <div className="fixed inset-0 z-[10050] flex justify-end bg-[color-mix(in_srgb,var(--h-ink)_50%,transparent)] backdrop-blur-[2px]" onClick={onClose}>
       <div className="flex h-full w-full max-w-lg flex-col bg-[var(--h-surface)] shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between border-b border-[var(--h-bsoft)] px-5 py-4">
           <div className="min-w-0">
