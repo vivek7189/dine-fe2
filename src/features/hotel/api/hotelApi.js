@@ -90,6 +90,11 @@ hotelApi.seedRatePlans = (rid) => req(`${BASE}/rate-plans/seed-defaults`, { meth
 hotelApi.quoteRatePlans = (rid, roomTypeId, checkIn, checkOut, promoCode) =>
   req(`${BASE}/rate-plans/quote${qs({ restaurantId: rid, roomTypeId, checkIn, checkOut, promoCode })}`);
 
+// ── Night audit (end-of-day) ──
+hotelApi.nightAuditStatus = (rid) => req(`${BASE}/night-audit/status${qs({ restaurantId: rid })}`);
+hotelApi.nightAuditHistory = (rid, limit) => req(`${BASE}/night-audit/history${qs({ restaurantId: rid, limit })}`);
+hotelApi.runNightAudit = (rid, notes) => req(`${BASE}/night-audit/run`, { method: 'POST', body: withRid({ notes }, rid) });
+
 // ── Group / block bookings ──
 hotelApi.listGroups = (rid, status) => req(`${BASE}/groups${qs({ restaurantId: rid, status })}`);
 hotelApi.getGroup = (rid, id) => req(`${BASE}/groups/${id}${qs({ restaurantId: rid })}`);
