@@ -1,10 +1,11 @@
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { FaSpinner, FaArrowRight, FaPlus, FaCalendarAlt, FaBroom, FaWalking } from 'react-icons/fa';
+import { FaSpinner, FaArrowRight, FaPlus, FaCalendarAlt, FaBroom, FaWalking, FaChartLine, FaBed, FaRupeeSign, FaSignInAlt, FaSignOutAlt } from 'react-icons/fa';
 import hotelApi from '../api/hotelApi';
 import { T, STATUS, Chip } from '../theme';
 import NewBookingModal from './NewBookingModal';
+import ReservationQuickView from './ReservationQuickView';
 
 // Front-desk quick-action button.
 function QuickAction({ icon: Icon, label, onClick, href, primary }) {
@@ -26,6 +27,7 @@ export default function DashboardView({ restaurantId, formatCurrency, notify }) 
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
   const [booking, setBooking] = useState(null); // null=closed; {} or {initial} = open
+  const [quickRes, setQuickRes] = useState(null); // room-click → reservation quick view
   const today = localToday();
   const money = (v) => (formatCurrency ? formatCurrency(v || 0) : Number(v || 0).toLocaleString());
 
@@ -67,6 +69,15 @@ export default function DashboardView({ restaurantId, formatCurrency, notify }) 
 
   const act = async (fn, id, msg) => { setBusyId(id); try { await fn(); notify('success', msg); await load(); } catch (e) { notify('error', e.message); } finally { setBusyId(null); } };
 
+  // Click a room → open the in-house guest's stay (check-out from there), or the
+  // arrival's reservation (check-in), or start a new booking for a free room.
+  const onRoomClick = (room) => {
+    const inh = resv.find((r) => r.status === 'checked_in' && r.roomId === room.id);
+    const res = inh || d.arrivalByRoom[room.id] || null;
+    if (res) setQuickRes(res);
+    else setBooking({ initial: { roomId: room.id, checkIn: today, checkOut: addDays(today, 1) } });
+  };
+
   if (loading) return <div className="flex items-center gap-2 py-16 text-[var(--h-faint)]"><FaSpinner className="animate-spin" /> Loading…</div>;
 
   const walkInInitial = { checkIn: today, checkOut: addDays(today, 1) };
@@ -84,12 +95,12 @@ export default function DashboardView({ restaurantId, formatCurrency, notify }) 
 
       {/* KPI cards */}
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <Kpi label="Occupancy" value={`${d.occ}%`} bar={{ pct: d.occ, color: '#4E6E8E' }} />
-        <Kpi label="In-house" value={<><span className="tabular-nums">{d.inHouse.length}</span><span className="text-[16px] font-normal text-[var(--h-faint)]"> / {d.total}</span></>} bar={{ pct: d.total ? (d.inHouse.length / d.total) * 100 : 0, color: '#3E7C5A' }} />
-        <Kpi label="ADR" value={money(d.adr)} />
-        <Kpi label="RevPAR" value={money(d.revpar)} />
-        <Kpi label="Arrivals today" value={<span className="text-[#6D5B9A]">{d.arrivals.length}</span>} />
-        <Kpi label="Departures" value={<span className="text-[#B58836]">{d.departures.length}</span>} />
+        <Kpi icon={FaChartLine} tint="#2563EB" label="Occupancy" value={`${d.occ}%`} bar={{ pct: d.occ, color: '#2563EB' }} />
+        <Kpi icon={FaBed} tint="#059669" label="In-house" value={<><span className="tabular-nums">{d.inHouse.length}</span><span className="text-[16px] font-normal text-[var(--h-faint)]"> / {d.total}</span></>} bar={{ pct: d.total ? (d.inHouse.length / d.total) * 100 : 0, color: '#059669' }} />
+        <Kpi icon={FaRupeeSign} tint="#0F172A" label="ADR" value={money(d.adr)} />
+        <Kpi icon={FaChartLine} tint="#0F172A" label="RevPAR" value={money(d.revpar)} />
+        <Kpi icon={FaSignInAlt} tint="#7C3AED" label="Arrivals today" value={d.arrivals.length} />
+        <Kpi icon={FaSignOutAlt} tint="#D97706" label="Departures" value={d.departures.length} />
       </div>
 
       {/* arrivals + departures */}
@@ -124,16 +135,17 @@ export default function DashboardView({ restaurantId, formatCurrency, notify }) 
           {rooms.map((room) => {
             const st = roomState(room);
             return (
-              <div key={room.id} className="overflow-hidden rounded-2xl border border-[var(--h-border)] shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:shadow-md">
+              <button key={room.id} onClick={() => onRoomClick(room)} title={st.guest ? `${st.guest} · Room ${room.roomNumber}` : `Room ${room.roomNumber}`}
+                className="overflow-hidden rounded-2xl border border-[var(--h-border)] text-left shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:-translate-y-0.5 hover:shadow-md">
                 <div className="border-l-[3px] px-3 py-2.5" style={{ borderColor: st.solid, backgroundColor: `color-mix(in srgb, ${st.solid} 5%, var(--h-surface))` }}>
                   <div className="flex items-start justify-between gap-1">
                     <span className="text-[17px] font-bold leading-none text-[var(--h-ink)]">{room.roomNumber}</span>
-                    <span className="rounded-full px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wide" style={{ color: st.solid, backgroundColor: `color-mix(in srgb, ${st.solid} 13%, transparent)` }}>{st.label.split(' · ')[1] || st.label}</span>
+                    <span className="rounded-full px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wide" style={{ color: st.solid, backgroundColor: `color-mix(in srgb, ${st.solid} 14%, transparent)` }}>{st.label.split(' · ')[1] || st.label}</span>
                   </div>
-                  <div className="mt-1 text-[10px] uppercase tracking-wide text-[var(--h-faint)]">{room.typeName || room.type || ''}</div>
-                  <div className="mt-0.5 h-4 truncate text-[12px] font-medium text-[var(--h-ink2)]">{st.guest || ''}</div>
+                  <div className="mt-1 text-[10px] font-medium uppercase tracking-wide text-[var(--h-faint)]">{room.typeName || room.type || ''}</div>
+                  <div className="mt-0.5 h-4 truncate text-[12px] font-semibold text-[var(--h-ink2)]">{st.guest || ''}</div>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -147,15 +159,22 @@ export default function DashboardView({ restaurantId, formatCurrency, notify }) 
         onClose={() => setBooking(null)}
         onCreated={() => { setBooking(null); notify('success', 'Booking created'); load(); }}
       />
+      {quickRes && (
+        <ReservationQuickView restaurantId={restaurantId} reservation={quickRes} formatCurrency={formatCurrency}
+          notify={notify} onClose={() => setQuickRes(null)} onChanged={load} />
+      )}
     </div>
   );
 }
 
-function Kpi({ label, value, bar }) {
+function Kpi({ label, value, bar, icon: Icon, tint }) {
   return (
-    <div className={`${T.card} p-4`}>
-      <div className={T.label}>{label}</div>
-      <div className="mt-1.5 font-serif text-[26px] font-semibold leading-none text-[var(--h-ink)]">{value}</div>
+    <div className="rounded-2xl border border-[var(--h-border)] bg-[var(--h-surface)] p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:shadow-md">
+      <div className="flex items-center gap-2">
+        {Icon && <span className="flex h-6 w-6 flex-none items-center justify-center rounded-lg" style={{ color: tint, backgroundColor: `color-mix(in srgb, ${tint} 12%, transparent)` }}><Icon size={11} /></span>}
+        <div className={T.label}>{label}</div>
+      </div>
+      <div className="mt-2 text-[26px] font-bold leading-none tracking-[-0.01em] text-[var(--h-ink)]">{value}</div>
       {bar && (
         <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[var(--h-track)]">
           <div className="h-full rounded-full" style={{ width: `${Math.min(100, bar.pct)}%`, background: bar.color }} />

@@ -7,10 +7,10 @@ export const T = {
   card: 'rounded-2xl border border-[var(--h-border)] bg-white shadow-[0_1px_2px_rgba(40,33,20,0.05)]',
   cardHover: 'hover:border-[var(--h-brand-tint2)] hover:shadow-[0_4px_16px_rgba(40,33,20,0.06)]',
   serif: 'font-serif',
-  h1: 'font-serif text-[28px] font-semibold leading-tight tracking-[-0.01em] text-[var(--h-ink)]',
-  h2: 'font-serif text-[19px] font-semibold text-[var(--h-ink)]',
-  sub: 'text-[13.5px] text-[var(--h-muted2)]',
-  label: 'text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--h-faint)]',
+  h1: 'font-serif text-[28px] font-bold leading-tight tracking-[-0.01em] text-[var(--h-ink)]',
+  h2: 'font-serif text-[18px] font-bold text-[var(--h-ink)]',
+  sub: 'text-[13.5px] text-[var(--h-text)]',
+  label: 'text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--h-muted)]',
   ink: 'text-[var(--h-ink)]',
   muted: 'text-[var(--h-text)]',
   faint: 'text-[var(--h-faint)]',
@@ -20,13 +20,13 @@ export const T = {
   ghostBtn: 'border border-[var(--h-border2)] bg-white text-[var(--h-ink2)] hover:bg-[var(--h-hover)]',
 };
 
-// status → { bar (solid), soft chip bg+text, dot }
+// status → { bar (solid), soft chip bg+text, dot }. Clean, modern palette.
 export const STATUS = {
-  occupied:     { solid: '#4E6E8E', chip: 'bg-[#EAF0F5] text-[#3F5C79]', dot: 'bg-[#4E6E8E]', label: 'Occupied' },
-  available:    { solid: '#3E7C5A', chip: 'bg-[#E7F1EA] text-[#356B4E]', dot: 'bg-[#3E7C5A]', label: 'Vacant · clean' },
-  dirty:        { solid: '#B58836', chip: 'bg-[#F6EEDD] text-[#8A6721]', dot: 'bg-[#B58836]', label: 'Vacant · dirty' },
-  arriving:     { solid: '#6D5B9A', chip: 'bg-[#EEEAF6] text-[#5A4A85]', dot: 'bg-[#6D5B9A]', label: 'Arriving' },
-  'out-of-order': { solid: '#9B4A3A', chip: 'bg-[#F5E6E2] text-[#8A3F31]', dot: 'bg-[#9B4A3A]', label: 'Out of order' },
+  occupied:     { solid: '#2563EB', chip: 'bg-[#EFF5FF] text-[#1D4ED8]', dot: 'bg-[#2563EB]', label: 'Occupied' },
+  available:    { solid: '#059669', chip: 'bg-[#ECFDF5] text-[#047857]', dot: 'bg-[#059669]', label: 'Vacant · clean' },
+  dirty:        { solid: '#D97706', chip: 'bg-[#FFF7ED] text-[#B45309]', dot: 'bg-[#D97706]', label: 'Vacant · dirty' },
+  arriving:     { solid: '#7C3AED', chip: 'bg-[#F5F3FF] text-[#6D28D9]', dot: 'bg-[#7C3AED]', label: 'Arriving' },
+  'out-of-order': { solid: '#E11D48', chip: 'bg-[#FFF1F2] text-[#BE123C]', dot: 'bg-[#E11D48]', label: 'Out of order' },
 };
 
 // reservation/folio state chips
