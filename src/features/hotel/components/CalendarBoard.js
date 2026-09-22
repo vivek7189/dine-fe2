@@ -18,9 +18,9 @@ const MO = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'
 const DAYS = 14;
 // inline colors (guaranteed to render regardless of Tailwind JIT)
 const BAR_COLOR = {
-  confirmed: '#6D5B9A',   // arriving / confirmed → purple
-  checked_in: '#4E6E8E',  // in-house → blue
-  checked_out: '#B58836', // departed → gold
+  confirmed: '#6366F1',   // upcoming / confirmed → indigo
+  checked_in: '#10B981',  // in-house → emerald
+  checked_out: '#94A3B8', // departed → slate
 };
 
 export default function CalendarBoard({ restaurantId, formatCurrency, notify }) {
@@ -109,9 +109,9 @@ export default function CalendarBoard({ restaurantId, formatCurrency, notify }) 
         </div>
         <div className="flex items-center gap-3 text-xs text-[var(--h-muted)]">
           {unassigned > 0 && <span className="rounded-full bg-amber-50 px-2.5 py-1 font-medium text-amber-700">{unassigned} unassigned</span>}
-          <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-[#6D5B9A]" /> Confirmed</span>
-          <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-[#4E6E8E]" /> In-house</span>
-          <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-[var(--h-faint3)]" /> Departed</span>
+          <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-[#6366F1]" /> Confirmed</span>
+          <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-[#10B981]" /> In-house</span>
+          <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-[#94A3B8]" /> Departed</span>
         </div>
       </div>
 
@@ -133,7 +133,7 @@ export default function CalendarBoard({ restaurantId, formatCurrency, notify }) 
                   const isToday = d === today;
                   const free = Math.max(0, rooms.length - (occupiedByDay[d] || 0));
                   return (
-                    <div key={d} className={`flex-1 border-l border-[var(--h-bsoft2)] py-1.5 text-center ${isToday ? 'bg-[var(--h-brand-soft)]' : (wd === 0 || wd === 6) ? 'bg-[color-mix(in_srgb,var(--h-bsoft2)_70%,transparent)]' : ''}`}>
+                    <div key={d} className={`flex-1 border-l border-[var(--h-divider)] py-1.5 text-center ${isToday ? 'bg-[var(--h-brand-soft)]' : ''}`}>
                       <div className={`text-[10px] font-medium uppercase ${isToday ? 'text-[var(--h-brand)]' : 'text-[var(--h-faint)]'}`}>{WD[wd]}</div>
                       <div className={`text-[13px] font-semibold tabular-nums ${isToday ? 'text-[var(--h-brand-ink)]' : 'text-[var(--h-ink2)]'}`}>{+d.split('-')[2]}</div>
                       <div className={`text-[9px] tabular-nums ${free === 0 ? 'text-rose-400' : 'text-[var(--h-faint)]'}`}>{free} free</div>
@@ -157,7 +157,7 @@ export default function CalendarBoard({ restaurantId, formatCurrency, notify }) 
                   {days.map((d) => {
                     const wd = toDate(d).getUTCDay();
                     return <button key={d} onClick={() => setNewFor({ roomId: room.id, checkIn: d, checkOut: addDays(d, 1) })}
-                      className={`group flex-1 border-l border-[var(--h-bsoft2)] ${d === today ? 'bg-[var(--h-brand-tint)]' : (wd === 0 || wd === 6) ? 'bg-[var(--h-surface2)]' : ''}`} aria-label={`Book room ${room.roomNumber} on ${d}`}>
+                      className={`group flex-1 border-l border-[var(--h-divider)] ${d === today ? 'bg-[var(--h-brand-tint)]' : ''}`} aria-label={`Book room ${room.roomNumber} on ${d}`}>
                       <span className="flex h-full min-h-[42px] items-center justify-center opacity-0 group-hover:opacity-100"><FaPlus size={9} className="text-[var(--h-brand-tint2)]" /></span>
                     </button>;
                   })}
@@ -168,7 +168,7 @@ export default function CalendarBoard({ restaurantId, formatCurrency, notify }) 
                       <button key={r.id} onClick={() => setSelected(r)}
                         style={{ ...st, backgroundColor: BAR_COLOR[r.status] || 'var(--h-faint3)', color: '#fff' }}
                         title={`${r.guestName} · ${ymd(r.checkIn)} → ${ymd(r.checkOut)} · ${r.nights}n`}
-                        className="absolute top-2 bottom-2 mx-[3px] flex items-center gap-1 overflow-hidden rounded-md px-2 text-[11px] font-semibold shadow-sm ring-1 ring-black/10 transition hover:brightness-110">
+                        className="absolute top-2 bottom-2 mx-[3px] flex items-center gap-1 overflow-hidden rounded-lg px-2.5 text-[11px] font-semibold shadow-[0_1px_3px_rgba(15,23,42,0.18)] ring-1 ring-white/15 transition hover:brightness-[1.06]">
                         {r.status === 'checked_in' && <FaBed size={9} className="flex-none opacity-80" />}
                         <span className="truncate">{r.guestName}</span>
                       </button>

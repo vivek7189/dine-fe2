@@ -484,15 +484,15 @@ textarea:focus {
    through var(--h-*). Toggled via <html data-hotel-theme>. Removable with the
    hotel feature (delete this block + src/features/hotel). Semantic status colours
    are intentionally not themed. */
-/* Default = DineOpen (app-matching red). Cardamom applies only when chosen. */
+/* Default = DineOpen (app-matching red, clean white). Cardamom applies only when chosen. */
 :root, :root[data-hotel-theme="dineopen"] {
-  --h-ink:#0F172A; --h-ink2:#334155; --h-text:#475569; --h-text2:#52616B;
-  --h-muted:#64748B; --h-muted2:#6B7280; --h-faint:#94A3B8; --h-faint2:#A6B0BD; --h-faint3:#CBD5E1;
-  --h-canvas:#F1F5F9; --h-canvas2:#E9EEF3; --h-surface:#FFFFFF; --h-surface2:#F8FAFC;
-  --h-border:#E2E8F0; --h-border2:#CBD5E1; --h-bsoft:#EEF2F6; --h-bsoft2:#F1F5F9;
-  --h-divider:#F1F5F9; --h-track:#E2E8F0; --h-hover:#F1F5F9; --h-chip:#F1F5F9;
+  --h-ink:#0B1220; --h-ink2:#1E293B; --h-text:#334155; --h-text2:#475569;
+  --h-muted:#546174; --h-muted2:#64748B; --h-faint:#8593A6; --h-faint2:#98A4B5; --h-faint3:#CBD5E1;
+  --h-canvas:#FFFFFF; --h-canvas2:#F8FAFC; --h-surface:#FFFFFF; --h-surface2:#F8FAFC;
+  --h-border:#E6EAF0; --h-border2:#D5DCE5; --h-bsoft:#EEF1F5; --h-bsoft2:#F3F5F8;
+  --h-divider:#F1F4F8; --h-track:#EAEEF3; --h-hover:#F5F7FA; --h-chip:#F1F4F8;
   --h-brand:#EF4444; --h-brand-ink:#DC2626; --h-brand-si:#F87171;
-  --h-brand-soft:#FEF2F2; --h-brand-tint:#FEF2F2; --h-brand-tint2:#FEE2E2;
+  --h-brand-soft:#FEF2F2; --h-brand-tint:#FEF4F4; --h-brand-tint2:#FEE2E2;
   --h-serif:'Inter',ui-sans-serif,system-ui,sans-serif;
 }
 :root[data-hotel-theme="cardamom"] {

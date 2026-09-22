@@ -75,10 +75,10 @@ export default function RateGrid({ restaurantId, formatCurrency, notify }) {
                   {days.map((d) => {
                     const c = grid.cells[t.id]?.[d] || {};
                     return (
-                      <td key={d} className="border-b border-l border-[var(--h-divider)] p-0">
+                      <td key={d} className={`border-b border-l border-[var(--h-divider)] p-0 ${c.rateOverride && !c.closed ? 'bg-[var(--h-brand-tint)]' : ''}`}>
                         <button onClick={() => setEdit({ typeId: t.id, typeName: t.name, date: d, cell: c })}
-                          className={`flex h-full w-full flex-col items-center px-1 py-1.5 text-center hover:bg-[var(--h-brand-tint)] ${c.closed ? 'bg-rose-50' : ''}`}>
-                          <span className={`text-xs font-semibold tabular-nums ${c.rateOverride ? 'text-[var(--h-brand)]' : 'text-[var(--h-ink2)]'}`}>{c.closed ? '—' : money(c.rate)}</span>
+                          className={`flex h-full w-full flex-col items-center gap-0.5 px-1 py-2.5 text-center transition hover:bg-[color-mix(in_srgb,var(--h-brand)_8%,transparent)] ${c.closed ? 'bg-rose-50' : ''}`}>
+                          <span className={`text-[12.5px] font-semibold tabular-nums ${c.rateOverride ? 'text-[var(--h-brand-ink)]' : 'text-[var(--h-ink)]'}`}>{c.closed ? '—' : money(c.rate)}</span>
                           <span className={`text-[10px] tabular-nums ${c.closed ? 'text-rose-500' : c.available === 0 ? 'text-amber-500' : 'text-[var(--h-faint)]'}`}>{c.closed ? 'closed' : `${c.available} left`}</span>
                         </button>
                       </td>
@@ -91,7 +91,7 @@ export default function RateGrid({ restaurantId, formatCurrency, notify }) {
         </div>
       )}
 
-      <p className="mt-2 text-[11px] text-[var(--h-faint)]">Blue = custom rate · click any cell to edit rate, stop-sell, min-stay or allotment. These rates feed the direct booking page (and OTA channels later).</p>
+      <p className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-[var(--h-faint)]"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-[var(--h-brand-tint)] ring-1 ring-[var(--h-brand)]/30" /> Highlighted = custom rate · click any cell to edit rate, stop-sell, min-stay or allotment. These rates feed the direct booking page (and OTA channels later).</p>
 
       {edit && <CellEditor restaurantId={restaurantId} edit={edit} money={money}
         onClose={() => setEdit(null)} onSaved={() => { setEdit(null); notify('success', 'Rate updated'); load(); }} notify={notify} />}
