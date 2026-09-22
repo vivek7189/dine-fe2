@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaPlus, FaTrash, FaSpinner, FaGlobe } from 'react-icons/fa';
 import hotelApi from '../api/hotelApi';
-import { inputCls, Btn } from './ui';
+import { inputCls, Btn, Select } from './ui';
 
 const APPLIES = [{ v: 'room', l: 'Rooms' }, { v: 'fnb', l: 'F&B' }, { v: 'all', l: 'All' }];
 
@@ -60,10 +60,8 @@ export default function TaxSettingsPanel({ restaurantId, notify }) {
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <label className="flex items-center gap-2">
           <FaGlobe className="text-[var(--h-faint)]" size={13} />
-          <select className={`${inputCls} w-56`} value={country} onChange={(e) => applyPack(e.target.value)}>
-            <option value="">Select country pack…</option>
-            {packs.map((p) => <option key={p.code} value={p.code}>{p.label}</option>)}
-          </select>
+          <div className="w-56"><Select value={country} onChange={applyPack} placeholder="Select country pack…"
+            options={[{ value: '', label: 'Select country pack…' }, ...packs.map((p) => ({ value: p.code, label: p.label }))]} /></div>
         </label>
         <label className="flex items-center gap-2 text-sm text-[var(--h-text)]">
           <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} className="h-4 w-4 rounded border-[var(--h-border2)]" />
@@ -81,9 +79,7 @@ export default function TaxSettingsPanel({ restaurantId, notify }) {
             <div key={i} className="grid grid-cols-[1fr_90px_120px_36px] items-center gap-2 py-1.5">
               <input className={inputCls} value={r.name} onChange={(e) => updateRow(i, { name: e.target.value })} placeholder="VAT" />
               <input type="number" min="0" step="0.5" className={inputCls} value={r.rate} onChange={(e) => updateRow(i, { rate: e.target.value })} placeholder="5" />
-              <select className={inputCls} value={r.appliesTo} onChange={(e) => updateRow(i, { appliesTo: e.target.value })}>
-                {APPLIES.map((a) => <option key={a.v} value={a.v}>{a.l}</option>)}
-              </select>
+              <Select value={r.appliesTo} onChange={(v) => updateRow(i, { appliesTo: v })} options={APPLIES.map((a) => ({ value: a.v, label: a.l }))} />
               <button onClick={() => removeRow(i)} className="flex justify-center text-[var(--h-faint3)] hover:text-rose-600" aria-label="Remove"><FaTrash size={12} /></button>
             </div>
           ))}

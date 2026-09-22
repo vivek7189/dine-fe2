@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FaSpinner, FaBroom, FaCheck, FaSearch, FaTools, FaUndo, FaUser } from 'react-icons/fa';
 import hotelApi from '../api/hotelApi';
+import { Select } from './ui';
 
 // Housekeeping columns in workflow order. Each defines the actions available on a
 // room in that state (targets are housekeeping_status values).
@@ -68,10 +69,7 @@ export default function HousekeepingBoard({ restaurantId, notify }) {
           <span className="text-sm text-[var(--h-muted)]">Turn rooms around: dirty → clean → inspected → ready to sell.</span>
         </div>
         <div className="flex items-center gap-2">
-          <select className="rounded-lg border border-[var(--h-border2)] px-3 py-1.5 text-sm text-[var(--h-ink2)]" value={floor} onChange={(e) => setFloor(e.target.value)}>
-            <option value="">All floors</option>
-            {floors.map((f) => <option key={f} value={f}>Floor {f}</option>)}
-          </select>
+          <div className="w-40"><Select value={floor} onChange={setFloor} options={[{ value: '', label: 'All floors' }, ...floors.map((f) => ({ value: String(f), label: `Floor ${f}` }))]} /></div>
           <button onClick={load} className="rounded-lg border border-[var(--h-border2)] px-3 py-1.5 text-sm text-[var(--h-text)] hover:bg-[var(--h-hover)]">Refresh</button>
         </div>
       </div>

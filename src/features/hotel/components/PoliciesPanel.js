@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaPlus, FaPen, FaTrash, FaSpinner, FaShieldAlt } from 'react-icons/fa';
 import hotelApi from '../api/hotelApi';
-import { Modal, Field, inputCls, Btn } from './ui';
+import { Modal, Field, inputCls, Btn, Select } from './ui';
 
 const CHARGE_TYPES = [
   { v: 'none', l: 'No charge' },
@@ -111,14 +111,14 @@ export default function PoliciesPanel({ restaurantId, notify }) {
           <div className="rounded-xl border border-[var(--h-border)] bg-[var(--h-surface)] p-3">
             <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--h-muted)]">Cancellation fee (after free window)</div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Charge"><select className={inputCls} value={form.cancelChargeType} onChange={(e) => setForm({ ...form, cancelChargeType: e.target.value })}>{CHARGE_TYPES.map((c) => <option key={c.v} value={c.v}>{c.l}</option>)}</select></Field>
+              <Field label="Charge"><Select value={form.cancelChargeType} onChange={(v) => setForm({ ...form, cancelChargeType: v })} options={CHARGE_TYPES.map((c) => ({ value: c.v, label: c.l }))} /></Field>
               {needsValue(form.cancelChargeType) && <Field label={form.cancelChargeType === 'percent' ? 'Percent' : 'Amount'}><input type="number" min="0" className={inputCls} value={form.cancelChargeValue} onChange={(e) => setForm({ ...form, cancelChargeValue: e.target.value })} /></Field>}
             </div>
           </div>
           <div className="rounded-xl border border-[var(--h-border)] bg-[var(--h-surface)] p-3">
             <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--h-muted)]">No-show fee</div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Charge"><select className={inputCls} value={form.noShowChargeType} onChange={(e) => setForm({ ...form, noShowChargeType: e.target.value })}>{CHARGE_TYPES.map((c) => <option key={c.v} value={c.v}>{c.l}</option>)}</select></Field>
+              <Field label="Charge"><Select value={form.noShowChargeType} onChange={(v) => setForm({ ...form, noShowChargeType: v })} options={CHARGE_TYPES.map((c) => ({ value: c.v, label: c.l }))} /></Field>
               {needsValue(form.noShowChargeType) && <Field label={form.noShowChargeType === 'percent' ? 'Percent' : 'Amount'}><input type="number" min="0" className={inputCls} value={form.noShowChargeValue} onChange={(e) => setForm({ ...form, noShowChargeValue: e.target.value })} /></Field>}
             </div>
           </div>

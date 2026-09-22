@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { FaPlus, FaSpinner, FaBuilding, FaTimes, FaPen, FaTrash, FaMoneyBillWave } from 'react-icons/fa';
 import hotelApi from '../api/hotelApi';
-import { Modal, Field, inputCls, Btn } from './ui';
+import { Modal, Field, inputCls, Btn, Select } from './ui';
 
 const fmtDateTime = (v) => { if (!v) return '—'; try { const d = new Date(v); const M = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']; return `${d.getDate()} ${M[d.getMonth()]} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; } catch { return '—'; } };
 const canManage = (() => { try { return ['owner', 'admin', 'manager'].includes((JSON.parse(localStorage.getItem('user') || '{}').role || '').toLowerCase()); } catch { return false; } })();
@@ -215,7 +215,7 @@ function CompanyDrawer({ restaurantId, companyId, money, notify, canManage, onCl
           footer={<><Btn variant="ghost" onClick={() => setPayOpen(false)}>Cancel</Btn><Btn onClick={recordPayment} disabled={busy}>{busy ? 'Saving…' : 'Record'}</Btn></>}>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Amount" required><input type="number" min="0" step="0.01" className={inputCls} value={pay.amount} onChange={(e) => setPay({ ...pay, amount: e.target.value })} autoFocus /></Field>
-            <Field label="Method"><select className={inputCls} value={pay.method} onChange={(e) => setPay({ ...pay, method: e.target.value })}>{PAY.map((m) => <option key={m} value={m}>{m}</option>)}</select></Field>
+            <Field label="Method"><Select value={pay.method} onChange={(v) => setPay({ ...pay, method: v })} options={PAY.map((m) => ({ value: m, label: m }))} /></Field>
           </div>
           <Field label="Reference"><input className={inputCls} value={pay.reference} onChange={(e) => setPay({ ...pay, reference: e.target.value })} placeholder="Cheque / UTR / note" /></Field>
         </Modal>

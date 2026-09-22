@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FaPlus, FaPen, FaTrash, FaSpinner, FaConciergeBell } from 'react-icons/fa';
 import hotelApi from '../api/hotelApi';
-import { Modal, Field, inputCls, Btn } from './ui';
+import { Modal, Field, inputCls, Btn, Select } from './ui';
 
 const UNITS = [{ v: 'per-item', l: 'per item' }, { v: 'per-night', l: 'per night' }, { v: 'per-person', l: 'per person' }];
 const CATEGORIES = ['Transport', 'Laundry', 'Spa & Wellness', 'Food & Beverage', 'Business', 'Other'];
@@ -98,7 +98,7 @@ export default function ServicesPanel({ restaurantId, formatCurrency, notify }) 
             <Field label="Price"><input type="number" min="0" step="0.01" className={inputCls} value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} /></Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Charged"><select className={inputCls} value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>{UNITS.map((u) => <option key={u.v} value={u.v}>{u.l}</option>)}</select></Field>
+            <Field label="Charged"><Select value={form.unit} onChange={(v) => setForm({ ...form, unit: v })} options={UNITS.map((u) => ({ value: u.v, label: u.l }))} /></Field>
             <div className="flex items-end gap-4 pb-2">
               <label className="flex items-center gap-2 text-sm text-[var(--h-text)]"><input type="checkbox" checked={form.taxable} onChange={(e) => setForm({ ...form, taxable: e.target.checked })} className="h-4 w-4 rounded border-[var(--h-border2)]" /> Taxable</label>
               <label className="flex items-center gap-2 text-sm text-[var(--h-text)]"><input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} className="h-4 w-4 rounded border-[var(--h-border2)]" /> Active</label>

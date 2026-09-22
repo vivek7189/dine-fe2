@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaPlus, FaPen, FaTrash, FaSpinner, FaTags, FaTicketAlt, FaUtensils, FaBan } from 'react-icons/fa';
 import hotelApi from '../api/hotelApi';
-import { Modal, Field, inputCls, Btn } from './ui';
+import { Modal, Field, inputCls, Btn, Select } from './ui';
 
 // Pricing modes — how a plan's price derives from the base (rate-calendar) rate.
 const MODES = [
@@ -173,9 +173,7 @@ export default function RatePlansPanel({ restaurantId, formatCurrency, notify })
           <div className="rounded-xl border border-[var(--h-border)] bg-[var(--h-surface)] p-3">
             <div className="grid grid-cols-2 gap-3">
               <Field label="Pricing" hint={MODES.find((m) => m.v === form.pricingMode)?.hint}>
-                <select className={inputCls} value={form.pricingMode} onChange={(e) => setForm({ ...form, pricingMode: e.target.value })}>
-                  {MODES.map((m) => <option key={m.v} value={m.v}>{m.l}</option>)}
-                </select>
+                <Select value={form.pricingMode} onChange={(v) => setForm({ ...form, pricingMode: v })} options={MODES.map((m) => ({ value: m.v, label: m.l }))} />
               </Field>
               <Field label={form.pricingMode === 'percent' ? 'Percentage (±)' : form.pricingMode === 'delta' ? 'Amount (±)' : 'Nightly rate'}>
                 <input type="number" step="0.01" className={inputCls} value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} />
@@ -184,7 +182,7 @@ export default function RatePlansPanel({ restaurantId, formatCurrency, notify })
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Meal plan"><select className={inputCls} value={form.mealPlan} onChange={(e) => setForm({ ...form, mealPlan: e.target.value })}>{MEALS.map((m) => <option key={m.v} value={m.v}>{m.l}</option>)}</select></Field>
+            <Field label="Meal plan"><Select value={form.mealPlan} onChange={(v) => setForm({ ...form, mealPlan: v })} options={MEALS.map((m) => ({ value: m.v, label: m.l }))} /></Field>
             <div className="flex items-end gap-4 pb-2">
               <label className="flex items-center gap-2 text-sm text-[var(--h-text)]"><input type="checkbox" checked={form.refundable} onChange={(e) => setForm({ ...form, refundable: e.target.checked })} className="h-4 w-4 rounded border-[var(--h-border2)]" /> Refundable</label>
               <label className="flex items-center gap-2 text-sm text-[var(--h-text)]"><input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} className="h-4 w-4 rounded border-[var(--h-border2)]" /> Active</label>

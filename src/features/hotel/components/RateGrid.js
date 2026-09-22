@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaChevronLeft, FaChevronRight, FaSpinner, FaLayerGroup } from 'react-icons/fa';
 import hotelApi from '../api/hotelApi';
-import { Modal, Field, inputCls, Btn } from './ui';
+import { Modal, Field, inputCls, Btn, Select } from './ui';
 
 const toYmd = (d) => d.toISOString().slice(0, 10);
 const addDays = (s, n) => { const d = new Date(s + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return toYmd(d); };
@@ -162,7 +162,7 @@ function BulkEditor({ restaurantId, roomTypes, start, onClose, onSaved, notify }
     <Modal open title="Bulk update rates" onClose={onClose} wide
       footer={<><Btn variant="ghost" onClick={onClose}>Cancel</Btn><Btn onClick={save} disabled={saving}>{saving ? 'Applying…' : 'Apply'}</Btn></>}>
       <div className="space-y-3">
-        <Field label="Room type"><select className={inputCls} value={form.roomTypeId} onChange={(e) => setForm({ ...form, roomTypeId: e.target.value })}>{roomTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></Field>
+        <Field label="Room type"><Select value={form.roomTypeId} onChange={(v) => setForm({ ...form, roomTypeId: v })} options={roomTypes.map((t) => ({ value: t.id, label: t.name }))} /></Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="From"><input type="date" className={inputCls} value={form.from} onChange={(e) => setForm({ ...form, from: e.target.value })} /></Field>
           <Field label="To (exclusive)"><input type="date" className={inputCls} value={form.to} min={form.from} onChange={(e) => setForm({ ...form, to: e.target.value })} /></Field>
@@ -176,7 +176,7 @@ function BulkEditor({ restaurantId, roomTypes, start, onClose, onSaved, notify }
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Set rate" hint="Blank = leave unchanged"><input type="number" min="0" step="0.01" className={inputCls} value={form.rate} onChange={(e) => setForm({ ...form, rate: e.target.value })} placeholder="—" /></Field>
-          <Field label="Stop-sell"><select className={inputCls} value={form.closed} onChange={(e) => setForm({ ...form, closed: e.target.value })}><option value="">Leave unchanged</option><option value="open">Open</option><option value="closed">Closed</option></select></Field>
+          <Field label="Stop-sell"><Select value={form.closed} onChange={(v) => setForm({ ...form, closed: v })} placeholder="Leave unchanged" options={[{ value: '', label: 'Leave unchanged' }, { value: 'open', label: 'Open' }, { value: 'closed', label: 'Closed' }]} /></Field>
         </div>
       </div>
     </Modal>

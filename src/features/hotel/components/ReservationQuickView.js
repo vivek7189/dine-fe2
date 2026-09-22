@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { FaSignInAlt, FaSignOutAlt, FaReceipt, FaTimesCircle, FaWallet } from 'react-icons/fa';
 import hotelApi from '../api/hotelApi';
-import { Modal, Btn, Pill, Field, inputCls } from './ui';
+import { Modal, Btn, Pill, Field, inputCls, Select } from './ui';
 import FolioDrawer from './FolioDrawer';
 
 const PAY = ['cash', 'card', 'upi', 'bank', 'other'];
@@ -86,7 +86,7 @@ export default function ReservationQuickView({ restaurantId, reservation, format
           footer={<><Btn variant="ghost" onClick={() => setDepositOpen(false)}>Cancel</Btn><Btn onClick={saveDeposit} disabled={busy}>{busy ? 'Saving…' : 'Record deposit'}</Btn></>}>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Amount" required><input type="number" min="0" step="0.01" className={inputCls} value={dep.amount} onChange={(e) => setDep({ ...dep, amount: e.target.value })} autoFocus /></Field>
-            <Field label="Method"><select className={inputCls} value={dep.method} onChange={(e) => setDep({ ...dep, method: e.target.value })}>{PAY.map((m) => <option key={m} value={m} className="capitalize">{m}</option>)}</select></Field>
+            <Field label="Method"><Select value={dep.method} onChange={(v) => setDep({ ...dep, method: v })} options={PAY.map((m) => ({ value: m, label: m }))} /></Field>
           </div>
           <p className="mt-2 text-[12px] text-[var(--h-faint)]">Advance is credited to the guest folio and offsets the balance at check-out.</p>
         </Modal>

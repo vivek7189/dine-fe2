@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { FaPlus, FaSpinner, FaLayerGroup, FaTimes, FaTrash, FaUserPlus, FaUndo, FaBuilding, FaPhone } from 'react-icons/fa';
 import hotelApi from '../api/hotelApi';
-import { Modal, Field, inputCls, Btn } from './ui';
+import { Modal, Field, inputCls, Btn, Select } from './ui';
 
 const STATUS = [
   { v: 'tentative', l: 'Tentative', c: 'bg-[#F6EEDD] text-[#8A6721]', d: 'bg-[#B58836]' },
@@ -144,7 +144,7 @@ export default function GroupsView({ restaurantId, formatCurrency, notify }) {
         <div className="space-y-3.5">
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-2"><Field label="Block name" required><input className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Sharma–Verma Wedding" /></Field></div>
-            <Field label="Status"><select className={inputCls} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>{STATUS.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}</select></Field>
+            <Field label="Status"><Select value={form.status} onChange={(v) => setForm({ ...form, status: v })} options={STATUS.map((s) => ({ value: s.v, label: s.l }))} /></Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Contact name"><input className={inputCls} value={form.contactName} onChange={(e) => setForm({ ...form, contactName: e.target.value })} placeholder="Organiser" /></Field>
@@ -161,16 +161,12 @@ export default function GroupsView({ restaurantId, formatCurrency, notify }) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Negotiated rate plan" hint="optional">
-              <select className={inputCls} value={form.ratePlanId} onChange={(e) => setForm({ ...form, ratePlanId: e.target.value })}>
-                <option value="">— None —</option>
-                {plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
+              <Select value={form.ratePlanId} onChange={(v) => setForm({ ...form, ratePlanId: v })} placeholder="— None —"
+                options={[{ value: '', label: '— None —' }, ...plans.map((p) => ({ value: p.id, label: p.name }))]} />
             </Field>
             <Field label="Billing" hint="master = bill-to-company">
-              <select className={inputCls} value={form.billTo} onChange={(e) => setForm({ ...form, billTo: e.target.value })}>
-                <option value="individual">Each guest pays own</option>
-                <option value="master">Master account (bill company)</option>
-              </select>
+              <Select value={form.billTo} onChange={(v) => setForm({ ...form, billTo: v })}
+                options={[{ value: 'individual', label: 'Each guest pays own' }, { value: 'master', label: 'Master account (bill company)' }]} />
             </Field>
           </div>
 
@@ -319,10 +315,8 @@ function GroupDrawer({ restaurantId, groupId, types, money, notify, canManage, o
                       <input className={inputCls} value={guest.guestPhone} onChange={(e) => setGuest({ ...guest, guestPhone: e.target.value })} placeholder="Phone (optional)" />
                     </div>
                     {g.allotments.length > 1 && (
-                      <select className={`${inputCls} mt-2`} value={guest.roomTypeId} onChange={(e) => setGuest({ ...guest, roomTypeId: e.target.value })}>
-                        <option value="">Choose room type…</option>
-                        {g.allotments.map((a) => <option key={a.roomTypeId} value={a.roomTypeId} disabled={a.remaining <= 0}>{a.typeName} ({a.remaining} left)</option>)}
-                      </select>
+                      <div className="mt-2"><Select value={guest.roomTypeId} onChange={(v) => setGuest({ ...guest, roomTypeId: v })} placeholder="Choose room type…"
+                        options={[{ value: '', label: 'Choose room type…' }, ...g.allotments.map((a) => ({ value: a.roomTypeId, label: a.typeName, right: `${a.remaining} left`, disabled: a.remaining <= 0 }))]} /></div>
                     )}
                     <div className="mt-2 flex justify-end gap-2">
                       <Btn variant="ghost" onClick={() => setAdding(false)}>Cancel</Btn>

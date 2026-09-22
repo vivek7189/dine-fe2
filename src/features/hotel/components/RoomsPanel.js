@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaPlus, FaPen, FaTrash, FaDoorClosed, FaSpinner, FaChevronDown } from 'react-icons/fa';
 import hotelApi, { SELL_STATUS, HK_STATUS } from '../api/hotelApi';
-import { Modal, Field, inputCls, Btn } from './ui';
+import { Modal, Field, inputCls, Btn, Select } from './ui';
 
 // A status shown as a colored capsule that is itself the dropdown control.
 const STATUS_TONE = {
@@ -197,12 +197,9 @@ export default function RoomsPanel({ restaurantId, formatCurrency, notify, types
             <Field label="Floor"><input className={inputCls} value={form.floor} onChange={(e) => setForm({ ...form, floor: e.target.value })} placeholder="1" /></Field>
           </div>
           <Field label="Room type">
-            <select className={inputCls} value={newType ? '__new__' : form.roomTypeId}
-              onChange={(e) => { const v = e.target.value; if (v === '__new__') setNewType({ name: '', rate: '' }); else { setNewType(null); setForm({ ...form, roomTypeId: v }); } }}>
-              <option value="">— none —</option>
-              {types.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-              {canManage && <option value="__new__">＋ Add a new room type…</option>}
-            </select>
+            <Select value={newType ? '__new__' : form.roomTypeId}
+              onChange={(v) => { if (v === '__new__') setNewType({ name: '', rate: '' }); else { setNewType(null); setForm({ ...form, roomTypeId: v }); } }}
+              options={[{ value: '', label: '— none —' }, ...types.map((t) => ({ value: t.id, label: t.name })), ...(canManage ? [{ value: '__new__', label: '＋ Add a new room type…' }] : [])]} />
             {newType && (
               <div className="mt-2 grid grid-cols-[1fr_90px_auto] gap-2 rounded-lg border border-[var(--h-border2)] bg-[var(--h-surface)] p-2">
                 <input className={inputCls} placeholder="Type name (e.g. Deluxe)" value={newType.name} onChange={(e) => setNewType({ ...newType, name: e.target.value })} />
@@ -216,9 +213,7 @@ export default function RoomsPanel({ restaurantId, formatCurrency, notify, types
             <Field label="Tariff" hint="per night"><input type="number" min="0" step="0.01" className={inputCls} value={form.tariff} onChange={(e) => setForm({ ...form, tariff: e.target.value })} /></Field>
           </div>
           <Field label="Sell status">
-            <select className={inputCls} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-              {SELL_STATUS.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
+            <Select value={form.status} onChange={(v) => setForm({ ...form, status: v })} options={SELL_STATUS.map((s) => ({ value: s, label: s.replace(/-/g, ' ') }))} />
           </Field>
         </div>
       </Modal>

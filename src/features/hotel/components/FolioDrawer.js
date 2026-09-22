@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { FaTimes, FaSpinner, FaPlus, FaTrash, FaReceipt, FaCheckCircle, FaFileInvoiceDollar, FaBuilding } from 'react-icons/fa';
 import hotelApi, { FOLIO_ITEM_TYPES, PAY_METHODS } from '../api/hotelApi';
-import { inputCls, Btn, Modal, Field } from './ui';
+import { inputCls, Btn, Modal, Field, Select } from './ui';
 import InvoiceModal from './InvoiceModal';
 
 const TYPE_LABEL = { room: 'Room', food: 'Food', beverage: 'Beverage', service: 'Service', tax: 'Tax', discount: 'Discount', misc: 'Misc' };
@@ -153,10 +153,8 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
 
               {isOpen && services.length > 0 && (
                 <div className="mb-2.5 grid grid-cols-[1fr_auto_auto] gap-2">
-                  <select className={inputCls} value={svc.id} onChange={(e) => setSvc({ ...svc, id: e.target.value })}>
-                    <option value="">Add a service…</option>
-                    {services.map((s) => <option key={s.id} value={s.id}>{s.name} — {money(s.price)}{s.unit !== 'per-item' ? `/${s.unit.replace('per-', '')}` : ''}</option>)}
-                  </select>
+                  <Select value={svc.id} onChange={(v) => setSvc({ ...svc, id: v })} placeholder="Add a service…"
+                    options={[{ value: '', label: 'Add a service…' }, ...services.map((s) => ({ value: s.id, label: s.name, right: `${money(s.price)}${s.unit !== 'per-item' ? `/${s.unit.replace('per-', '')}` : ''}` }))]} />
                   <input className={`${inputCls} w-16`} type="number" min="1" value={svc.qty} onChange={(e) => setSvc({ ...svc, qty: e.target.value })} title="Quantity" />
                   <button onClick={addService} disabled={busy || !svc.id} className="rounded-lg bg-[var(--h-brand)] px-2.5 text-white hover:bg-[var(--h-brand-ink)] disabled:opacity-50" aria-label="Add service"><FaPlus size={12} /></button>
                 </div>
@@ -164,9 +162,8 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
               {isOpen && (
                 <div className="mb-4 grid grid-cols-[1fr_auto_auto] gap-2">
                   <input className={inputCls} placeholder="Or a custom charge…" value={charge.description} onChange={(e) => setCharge({ ...charge, description: e.target.value })} />
-                  <select className={inputCls} value={charge.type} onChange={(e) => setCharge({ ...charge, type: e.target.value })}>
-                    {FOLIO_ITEM_TYPES.filter((t) => t !== 'room').map((t) => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
-                  </select>
+                  <Select value={charge.type} onChange={(v) => setCharge({ ...charge, type: v })}
+                    options={FOLIO_ITEM_TYPES.filter((t) => t !== 'room').map((t) => ({ value: t, label: TYPE_LABEL[t] }))} />
                   <div className="flex gap-1">
                     <input className={`${inputCls} w-24`} type="number" step="0.01" placeholder="Amt" value={charge.amount} onChange={(e) => setCharge({ ...charge, amount: e.target.value })} />
                     <button onClick={addCharge} disabled={busy} className="rounded-lg bg-[var(--h-ink)] px-2.5 text-white hover:bg-[var(--h-ink)] disabled:opacity-50" aria-label="Add charge"><FaPlus size={12} /></button>
@@ -191,9 +188,7 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
               {isOpen && (
                 <div className="mb-2 grid grid-cols-[1fr_auto_auto] gap-2">
                   <input className={inputCls} type="number" step="0.01" placeholder="Payment amount" value={pay.amount} onChange={(e) => setPay({ ...pay, amount: e.target.value })} />
-                  <select className={inputCls} value={pay.method} onChange={(e) => setPay({ ...pay, method: e.target.value })}>
-                    {PAY_METHODS.map((m) => <option key={m} value={m} className="capitalize">{m}</option>)}
-                  </select>
+                  <Select value={pay.method} onChange={(v) => setPay({ ...pay, method: v })} options={PAY_METHODS.map((m) => ({ value: m, label: m }))} />
                   <button onClick={addPayment} disabled={busy} className="rounded-lg bg-emerald-600 px-2.5 text-white hover:bg-emerald-700 disabled:opacity-50" aria-label="Add payment"><FaPlus size={12} /></button>
                 </div>
               )}
@@ -240,7 +235,7 @@ export default function FolioDrawer({ restaurantId, reservation, formatCurrency,
             <p className="text-[13px] text-[var(--h-faint)]">No company accounts yet. Add one under City Ledger first.</p>
           ) : (
             <>
-              <Field label="Company"><select className={inputCls} value={billCompanyId} onChange={(e) => setBillCompanyId(e.target.value)}><option value="">Choose a company…</option>{companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
+              <Field label="Company"><Select value={billCompanyId} onChange={setBillCompanyId} placeholder="Choose a company…" options={[{ value: '', label: 'Choose a company…' }, ...companies.map((c) => ({ value: c.id, label: c.name, right: c.balance ? money(c.balance) : undefined }))]} /></Field>
               <p className="mt-2 text-[12px] text-[var(--h-muted)]">The outstanding balance of <strong>{money(folio.balance)}</strong> moves to the company city-ledger account and the folio is settled.</p>
             </>
           )}
