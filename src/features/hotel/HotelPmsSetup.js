@@ -22,8 +22,8 @@ export default function HotelPmsSetup() {
   const [typesRefreshKey, setTypesRefreshKey] = useState(0);
   return <HotelShell>{(ctx) => (
     <>
-      <h1 className="font-serif text-[28px] font-semibold leading-tight tracking-[-0.01em] text-[#2A241B]">Setup</h1>
-      <p className="mt-1 mb-5 text-[13.5px] text-[#9A9081]">Rooms, room types, add-on services and taxes.</p>
+      <h1 className="font-serif text-[28px] font-semibold leading-tight tracking-[-0.01em] text-[var(--h-ink)]">Setup</h1>
+      <p className="mt-1 mb-5 text-[13.5px] text-[var(--h-muted2)]">Rooms, room types, add-on services and taxes.</p>
       <HotelTabs tabs={TABS} active={tab} onChange={setTab} />
       {tab === 'rooms' && <RoomsPanel {...ctx} typesRefreshKey={typesRefreshKey} />}
       {tab === 'types' && <RoomTypesPanel {...ctx} onChanged={() => setTypesRefreshKey((k) => k + 1)} />}

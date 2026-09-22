@@ -11,7 +11,7 @@ const fmtTime = (t) => { if (!t) return 'never'; try { return new Date(t).toLoca
 const STATUS_BADGE = {
   connected: 'bg-emerald-50 text-emerald-700',
   pending_credentials: 'bg-amber-50 text-amber-700',
-  disconnected: 'bg-[#F1ECE1] text-[#8A8172]',
+  disconnected: 'bg-[var(--h-bsoft2)] text-[var(--h-muted)]',
   error: 'bg-rose-50 text-rose-700',
 };
 
@@ -62,32 +62,32 @@ export default function ChannelsView({ restaurantId, notify }) {
     catch (e) { notify('error', e.message); }
   };
 
-  if (loading) return <div className="flex items-center gap-2 py-10 text-[#A79C88]"><FaSpinner className="animate-spin" /> Loading…</div>;
+  if (loading) return <div className="flex items-center gap-2 py-10 text-[var(--h-faint)]"><FaSpinner className="animate-spin" /> Loading…</div>;
 
   return (
     <div>
-      <p className="mb-4 text-sm text-[#8A8172]">Sync your rates &amp; availability to booking channels. The rate calendar is the source of truth — connect a channel and push.</p>
+      <p className="mb-4 text-sm text-[var(--h-muted)]">Sync your rates &amp; availability to booking channels. The rate calendar is the source of truth — connect a channel and push.</p>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {channels.map((c) => (
-          <div key={c.code} className="rounded-xl border border-[#EBE4D6] bg-white p-4">
+          <div key={c.code} className="rounded-xl border border-[var(--h-border)] bg-white p-4">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-2">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#F1ECE1] text-[#8A8172]"><FaGlobe size={14} /></span>
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--h-bsoft2)] text-[var(--h-muted)]"><FaGlobe size={14} /></span>
                 <div>
-                  <div className="font-semibold text-[#2A241B]">{c.label}</div>
+                  <div className="font-semibold text-[var(--h-ink)]">{c.label}</div>
                   {c.connected
                     ? <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ${STATUS_BADGE[c.status] || STATUS_BADGE.disconnected}`}>{c.status.replace('_', ' ')}</span>
-                    : <span className="text-[11px] text-[#A79C88]">Not connected</span>}
+                    : <span className="text-[11px] text-[var(--h-faint)]">Not connected</span>}
                 </div>
               </div>
-              {!c.functional && <span title="Needs OTA partner credentials" className="text-[#C3B9A3]"><FaLock size={12} /></span>}
+              {!c.functional && <span title="Needs OTA partner credentials" className="text-[var(--h-faint3)]"><FaLock size={12} /></span>}
             </div>
 
             {c.connected && c.status === 'pending_credentials' && (
               <p className="mt-2 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-700">Awaiting OTA partner credentials before it can sync. The wiring is ready.</p>
             )}
             {c.connected && c.lastSyncAt && (
-              <p className="mt-2 text-[11px] text-[#A79C88]">Last sync: {fmtTime(c.lastSyncAt)}</p>
+              <p className="mt-2 text-[11px] text-[var(--h-faint)]">Last sync: {fmtTime(c.lastSyncAt)}</p>
             )}
 
             <div className="mt-3 flex flex-wrap gap-2">
@@ -99,22 +99,22 @@ export default function ChannelsView({ restaurantId, notify }) {
               )}
               {c.connected && (
                 <>
-                  <button onClick={() => toggleLogs(c)} className="rounded-lg border border-[#DFD7C6] px-3 py-2 text-sm font-medium text-[#6E6656] hover:bg-[#F3EFE6]">{logs[c.id] ? 'Hide log' : 'Sync log'}</button>
-                  <button onClick={() => disconnect(c)} disabled={busy === c.code} className="rounded-lg border border-[#EBE4D6] px-3 py-2 text-sm text-[#8A8172] hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50">Disconnect</button>
+                  <button onClick={() => toggleLogs(c)} className="rounded-lg border border-[var(--h-border2)] px-3 py-2 text-sm font-medium text-[var(--h-text)] hover:bg-[var(--h-hover)]">{logs[c.id] ? 'Hide log' : 'Sync log'}</button>
+                  <button onClick={() => disconnect(c)} disabled={busy === c.code} className="rounded-lg border border-[var(--h-border)] px-3 py-2 text-sm text-[var(--h-muted)] hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50">Disconnect</button>
                 </>
               )}
             </div>
 
             {logs[c.id] && (
-              <div className="mt-3 max-h-40 space-y-1 overflow-y-auto rounded-lg bg-[#FAF7F0] p-2 text-[11px]">
-                {logs[c.id].length === 0 && <p className="text-[#A79C88]">No syncs yet.</p>}
+              <div className="mt-3 max-h-40 space-y-1 overflow-y-auto rounded-lg bg-[var(--h-surface2)] p-2 text-[11px]">
+                {logs[c.id].length === 0 && <p className="text-[var(--h-faint)]">No syncs yet.</p>}
                 {logs[c.id].map((l) => (
                   <div key={l.id} className="flex items-center justify-between">
-                    <span className="flex items-center gap-1 text-[#6E6656]">
+                    <span className="flex items-center gap-1 text-[var(--h-text)]">
                       {l.status === 'success' ? <FaCheckCircle className="text-emerald-500" size={9} /> : <span className="text-rose-500">✕</span>}
                       {l.action} · {l.detail?.pushed != null ? `${l.detail.pushed} rates` : l.status}
                     </span>
-                    <span className="text-[#A79C88]">{fmtTime(l.createdAt)}</span>
+                    <span className="text-[var(--h-faint)]">{fmtTime(l.createdAt)}</span>
                   </div>
                 ))}
               </div>

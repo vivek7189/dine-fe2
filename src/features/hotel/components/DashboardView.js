@@ -57,7 +57,7 @@ export default function DashboardView({ restaurantId, formatCurrency, notify }) 
 
   const act = async (fn, id, msg) => { setBusyId(id); try { await fn(); notify('success', msg); await load(); } catch (e) { notify('error', e.message); } finally { setBusyId(null); } };
 
-  if (loading) return <div className="flex items-center gap-2 py-16 text-[#A79C88]"><FaSpinner className="animate-spin" /> Loading…</div>;
+  if (loading) return <div className="flex items-center gap-2 py-16 text-[var(--h-faint)]"><FaSpinner className="animate-spin" /> Loading…</div>;
 
   return (
     <div>
@@ -67,7 +67,7 @@ export default function DashboardView({ restaurantId, formatCurrency, notify }) 
       {/* KPI cards */}
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Kpi label="Occupancy" value={`${d.occ}%`} bar={{ pct: d.occ, color: '#4E6E8E' }} />
-        <Kpi label="In-house" value={<><span className="tabular-nums">{d.inHouse.length}</span><span className="text-[16px] font-normal text-[#A79C88]"> / {d.total}</span></>} bar={{ pct: d.total ? (d.inHouse.length / d.total) * 100 : 0, color: '#3E7C5A' }} />
+        <Kpi label="In-house" value={<><span className="tabular-nums">{d.inHouse.length}</span><span className="text-[16px] font-normal text-[var(--h-faint)]"> / {d.total}</span></>} bar={{ pct: d.total ? (d.inHouse.length / d.total) * 100 : 0, color: '#3E7C5A' }} />
         <Kpi label="ADR" value={money(d.adr)} />
         <Kpi label="RevPAR" value={money(d.revpar)} />
         <Kpi label="Arrivals today" value={<span className="text-[#6D5B9A]">{d.arrivals.length}</span>} />
@@ -94,7 +94,7 @@ export default function DashboardView({ restaurantId, formatCurrency, notify }) 
 
       {/* room status grid */}
       <h2 className={`${T.h2} mb-1`}>Room status</h2>
-      <div className="mb-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[12px] text-[#6E6656]">
+      <div className="mb-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[12px] text-[var(--h-text)]">
         {['occupied', 'available', 'dirty', 'arriving', 'out-of-order'].map((k) => (
           <span key={k} className="inline-flex items-center gap-1.5"><span className={`h-2.5 w-2.5 rounded-sm ${STATUS[k].dot}`} /> {STATUS[k].label}</span>
         ))}
@@ -109,11 +109,11 @@ export default function DashboardView({ restaurantId, formatCurrency, notify }) 
               <div key={room.id} className={`${T.card} overflow-hidden p-0`}>
                 <div className="border-l-[3px] px-3 py-2.5" style={{ borderColor: st.solid }}>
                   <div className="flex items-start justify-between">
-                    <span className="text-[17px] font-bold leading-none text-[#2A241B]">{room.roomNumber}</span>
+                    <span className="text-[17px] font-bold leading-none text-[var(--h-ink)]">{room.roomNumber}</span>
                     <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: st.solid }}>{st.label.split(' · ')[1] || st.label}</span>
                   </div>
-                  <div className="mt-1 text-[10px] uppercase tracking-wide text-[#A79C88]">{room.typeName || room.type || ''}</div>
-                  <div className="mt-0.5 h-4 truncate text-[12px] text-[#4A4335]">{st.guest || ''}</div>
+                  <div className="mt-1 text-[10px] uppercase tracking-wide text-[var(--h-faint)]">{room.typeName || room.type || ''}</div>
+                  <div className="mt-0.5 h-4 truncate text-[12px] text-[var(--h-ink2)]">{st.guest || ''}</div>
                 </div>
               </div>
             );
@@ -128,9 +128,9 @@ function Kpi({ label, value, bar }) {
   return (
     <div className={`${T.card} p-4`}>
       <div className={T.label}>{label}</div>
-      <div className="mt-1.5 font-serif text-[26px] font-semibold leading-none text-[#2A241B]">{value}</div>
+      <div className="mt-1.5 font-serif text-[26px] font-semibold leading-none text-[var(--h-ink)]">{value}</div>
       {bar && (
-        <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[#EDE7DB]">
+        <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[var(--h-track)]">
           <div className="h-full rounded-full" style={{ width: `${Math.min(100, bar.pct)}%`, background: bar.color }} />
         </div>
       )}
@@ -141,21 +141,21 @@ function ListCard({ title, count, href, empty, children }) {
   const items = React.Children.toArray(children).filter(Boolean);
   return (
     <div className={`${T.card} overflow-hidden`}>
-      <div className="flex items-center justify-between border-b border-[#EFE9DD] px-4 py-3">
-        <div className="flex items-center gap-2"><span className={T.h2}>{title}</span><span className="rounded-md bg-[#F1ECE1] px-2 py-0.5 text-[11px] font-medium text-[#8A8172]">{count}</span></div>
+      <div className="flex items-center justify-between border-b border-[var(--h-bsoft)] px-4 py-3">
+        <div className="flex items-center gap-2"><span className={T.h2}>{title}</span><span className="rounded-md bg-[var(--h-bsoft2)] px-2 py-0.5 text-[11px] font-medium text-[var(--h-muted)]">{count}</span></div>
         <Link href={href} className={`inline-flex items-center gap-1 text-[12.5px] font-medium ${T.brassText} hover:underline`}>View all <FaArrowRight size={9} /></Link>
       </div>
-      <div className="divide-y divide-[#F1ECE1]">{items.length ? items : <p className="px-4 py-8 text-center text-[13px] text-[#B3A88F]">{empty}</p>}</div>
+      <div className="divide-y divide-[var(--h-bsoft2)]">{items.length ? items : <p className="px-4 py-8 text-center text-[13px] text-[var(--h-faint2)]">{empty}</p>}</div>
     </div>
   );
 }
 function GuestRow({ name, sub, chip, action }) {
   return (
     <div className="flex items-center gap-3 px-4 py-3">
-      <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-[#F1E8D6] text-[11px] font-semibold text-[#876A3A]">{initials(name)}</span>
+      <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-[var(--h-brand-tint)] text-[11px] font-semibold text-[var(--h-brand-ink)]">{initials(name)}</span>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[14px] font-semibold text-[#2A241B]">{name}</div>
-        <div className="truncate text-[12px] text-[#9A9081]">{sub}</div>
+        <div className="truncate text-[14px] font-semibold text-[var(--h-ink)]">{name}</div>
+        <div className="truncate text-[12px] text-[var(--h-muted2)]">{sub}</div>
       </div>
       {chip}
       {action}
@@ -163,5 +163,5 @@ function GuestRow({ name, sub, chip, action }) {
   );
 }
 function BrassBtn({ busy, onClick, children }) {
-  return <button onClick={onClick} disabled={busy} style={{ backgroundColor: '#9A7B45' }} className="inline-flex flex-none items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12.5px] font-semibold text-white shadow-sm hover:brightness-110 disabled:opacity-50">{busy && <FaSpinner className="animate-spin" size={10} />}{children}</button>;
+  return <button onClick={onClick} disabled={busy} style={{ backgroundColor: 'var(--h-brand)' }} className="inline-flex flex-none items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12.5px] font-semibold text-white shadow-sm hover:brightness-110 disabled:opacity-50">{busy && <FaSpinner className="animate-spin" size={10} />}{children}</button>;
 }

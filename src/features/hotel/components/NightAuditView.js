@@ -10,9 +10,9 @@ const canManage = (() => { try { return ['owner', 'admin', 'manager'].includes((
 function PendingRow({ icon: Icon, label, value, tone }) {
   const warn = tone === 'warn' && value > 0;
   return (
-    <div className={`flex items-center justify-between rounded-xl border px-3.5 py-2.5 ${warn ? 'border-[#EAD1C9] bg-[#F9EFEA]' : 'border-[#EBE4D6] bg-white'}`}>
-      <span className="flex items-center gap-2 text-[13px] text-[#4A4335]"><Icon size={12} className={warn ? 'text-[#9B4A3A]' : 'text-[#A79C88]'} /> {label}</span>
-      <span className={`text-[15px] font-semibold tabular-nums ${warn ? 'text-[#9B4A3A]' : 'text-[#2A241B]'}`}>{value}</span>
+    <div className={`flex items-center justify-between rounded-xl border px-3.5 py-2.5 ${warn ? 'border-[#EAD1C9] bg-[#F9EFEA]' : 'border-[var(--h-border)] bg-white'}`}>
+      <span className="flex items-center gap-2 text-[13px] text-[var(--h-ink2)]"><Icon size={12} className={warn ? 'text-[#9B4A3A]' : 'text-[var(--h-faint)]'} /> {label}</span>
+      <span className={`text-[15px] font-semibold tabular-nums ${warn ? 'text-[#9B4A3A]' : 'text-[var(--h-ink)]'}`}>{value}</span>
     </div>
   );
 }
@@ -46,29 +46,29 @@ export default function NightAuditView({ restaurantId, formatCurrency, notify })
     finally { setRunning(false); }
   };
 
-  if (loading) return <div className="flex items-center gap-2 py-10 text-[#A79C88]"><FaSpinner className="animate-spin" /> Loading…</div>;
+  if (loading) return <div className="flex items-center gap-2 py-10 text-[var(--h-faint)]"><FaSpinner className="animate-spin" /> Loading…</div>;
   const p = status?.pending || {};
   const warnings = (p.noShows || 0) + (p.overstays || 0);
 
   return (
     <div className="space-y-5">
       {/* Business date + run */}
-      <div className="flex flex-col gap-4 rounded-2xl border border-[#EBE4D6] bg-white p-5 shadow-[0_1px_2px_rgba(40,33,20,0.05)] sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 rounded-2xl border border-[var(--h-border)] bg-white p-5 shadow-[0_1px_2px_rgba(40,33,20,0.05)] sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EEEAF6] text-[#5A4A85]"><FaMoon size={16} /></span>
           <div>
-            <div className="text-[11px] uppercase tracking-[0.06em] text-[#A79C88]">Current business date</div>
-            <div className="font-serif text-[22px] font-semibold text-[#2A241B]">{fmtDate(status?.businessDate)}</div>
+            <div className="text-[11px] uppercase tracking-[0.06em] text-[var(--h-faint)]">Current business date</div>
+            <div className="font-serif text-[22px] font-semibold text-[var(--h-ink)]">{fmtDate(status?.businessDate)}</div>
           </div>
         </div>
         {canManage ? (
           <Btn onClick={() => setConfirm(true)}><FaMoon size={12} /> Run night audit</Btn>
-        ) : <span className="text-[12px] text-[#A79C88]">Manager access required to close the day.</span>}
+        ) : <span className="text-[12px] text-[var(--h-faint)]">Manager access required to close the day.</span>}
       </div>
 
       {/* Pre-audit checklist */}
       <div>
-        <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8A8172]">Before you close</div>
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--h-muted)]">Before you close</div>
         <div className="grid gap-2 sm:grid-cols-2">
           <PendingRow icon={FaSignInAlt} label="Arrivals still expected today" value={p.arrivalsDue || 0} />
           <PendingRow icon={FaSignOutAlt} label="Departures still due today" value={p.departuresDue || 0} />
@@ -86,7 +86,7 @@ export default function NightAuditView({ restaurantId, formatCurrency, notify })
       {/* Last close snapshot */}
       {status?.lastAudit && (
         <div>
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8A8172]">Last close · {fmtDate(status.lastAudit.auditDate)}</div>
+          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--h-muted)]">Last close · {fmtDate(status.lastAudit.auditDate)}</div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <StatCard tone="brass" label="Occupancy" value={`${status.lastAudit.occupancy ?? 0}%`} />
             <StatCard tone="emerald" label="Room revenue" value={money(status.lastAudit.roomRevenue)} />
@@ -98,13 +98,13 @@ export default function NightAuditView({ restaurantId, formatCurrency, notify })
 
       {/* History */}
       <div>
-        <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8A8172]">Audit history</div>
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--h-muted)]">Audit history</div>
         {history.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-[#EBE4D6] py-8 text-center text-[13px] text-[#A79C88]">No closes yet. The first night audit will appear here.</div>
+          <div className="rounded-xl border border-dashed border-[var(--h-border)] py-8 text-center text-[13px] text-[var(--h-faint)]">No closes yet. The first night audit will appear here.</div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-[#EBE4D6]">
+          <div className="overflow-x-auto rounded-xl border border-[var(--h-border)]">
             <table className="min-w-full text-sm">
-              <thead className="bg-[#F3EFE6] text-[11px] uppercase tracking-wide text-[#8A8172]">
+              <thead className="bg-[var(--h-hover)] text-[11px] uppercase tracking-wide text-[var(--h-muted)]">
                 <tr>
                   <th className="px-3 py-2 text-left font-medium">Date</th>
                   <th className="px-3 py-2 text-right font-medium">Occ%</th>
@@ -116,10 +116,10 @@ export default function NightAuditView({ restaurantId, formatCurrency, notify })
                   <th className="px-3 py-2 text-right font-medium">No-shows</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F5F1E8]">
+              <tbody className="divide-y divide-[var(--h-divider)]">
                 {history.map((a) => (
-                  <tr key={a.id} className="hover:bg-[#F3EFE6]/60">
-                    <td className="px-3 py-2 font-medium text-[#2A241B]">{fmtDate(a.auditDate)}</td>
+                  <tr key={a.id} className="hover:bg-[color-mix(in_srgb,var(--h-hover)_60%,transparent)]">
+                    <td className="px-3 py-2 font-medium text-[var(--h-ink)]">{fmtDate(a.auditDate)}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{a.occupancy ?? 0}%</td>
                     <td className="px-3 py-2 text-right tabular-nums">{a.roomsSold}/{a.roomsAvailable}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{money(a.adr)}</td>
@@ -137,14 +137,14 @@ export default function NightAuditView({ restaurantId, formatCurrency, notify })
 
       <Modal open={confirm} title="Run night audit?" onClose={() => setConfirm(false)}
         footer={<><Btn variant="ghost" onClick={() => setConfirm(false)}>Cancel</Btn><Btn onClick={run} disabled={running}>{running ? 'Closing…' : 'Close the day'}</Btn></>}>
-        <div className="space-y-2 text-[13.5px] text-[#4A4335]">
+        <div className="space-y-2 text-[13.5px] text-[var(--h-ink2)]">
           <p>This will close <strong>{fmtDate(status?.businessDate)}</strong> and roll the business date forward. It will:</p>
-          <ul className="ml-4 list-disc space-y-1 text-[13px] text-[#6E6656]">
+          <ul className="ml-4 list-disc space-y-1 text-[13px] text-[var(--h-text)]">
             <li>Mark <strong>{p.noShows || 0}</strong> no-show(s) and free their rooms</li>
             <li>Record an immutable daily snapshot (occupancy, ADR, RevPAR, money)</li>
             <li>Advance the business date to the next day</li>
           </ul>
-          <p className="text-[12px] text-[#A79C88]">A closed date cannot be re-opened.</p>
+          <p className="text-[12px] text-[var(--h-faint)]">A closed date cannot be re-opened.</p>
         </div>
       </Modal>
     </div>

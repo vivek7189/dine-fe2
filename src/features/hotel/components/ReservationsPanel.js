@@ -40,19 +40,19 @@ function AssignModal({ restaurantId, reservation, onClose, onAssigned, formatCur
   };
   return (
     <Modal open title={`Assign a room · ${reservation.guestName}`} onClose={onClose}>
-      <p className="mb-3 text-sm text-[#8A8172]">{fmtDate(reservation.checkIn)} → {fmtDate(reservation.checkOut)} · {reservation.nights} night{reservation.nights > 1 ? 's' : ''}</p>
+      <p className="mb-3 text-sm text-[var(--h-muted)]">{fmtDate(reservation.checkIn)} → {fmtDate(reservation.checkOut)} · {reservation.nights} night{reservation.nights > 1 ? 's' : ''}</p>
       {err && <div className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{err}</div>}
       {loading ? (
-        <div className="flex items-center gap-2 py-6 text-[#A79C88]"><FaSpinner className="animate-spin" /> Loading…</div>
+        <div className="flex items-center gap-2 py-6 text-[var(--h-faint)]"><FaSpinner className="animate-spin" /> Loading…</div>
       ) : rooms.length === 0 ? (
-        <p className="py-6 text-center text-sm text-[#A79C88]">No rooms free for these dates.</p>
+        <p className="py-6 text-center text-sm text-[var(--h-faint)]">No rooms free for these dates.</p>
       ) : (
         <div className="max-h-72 space-y-1.5 overflow-y-auto">
           {rooms.map((r) => (
             <button key={r.id} disabled={busy} onClick={() => assign(r.id)}
-              className="flex w-full items-center justify-between rounded-lg border border-[#EBE4D6] px-3 py-2 text-left text-sm hover:border-[#B79A63] hover:bg-[#F6EFE0] disabled:opacity-50">
-              <span className="font-medium text-[#2A241B]">Room {r.roomNumber}{r.typeName ? <span className="font-normal text-[#8A8172]"> · {r.typeName}</span> : null}</span>
-              <span className="text-[#8A8172]">{r.tariff != null ? (formatCurrency ? formatCurrency(r.tariff) : r.tariff) : ''}</span>
+              className="flex w-full items-center justify-between rounded-lg border border-[var(--h-border)] px-3 py-2 text-left text-sm hover:border-[var(--h-brand-si)] hover:bg-[var(--h-brand-tint)] disabled:opacity-50">
+              <span className="font-medium text-[var(--h-ink)]">Room {r.roomNumber}{r.typeName ? <span className="font-normal text-[var(--h-muted)]"> · {r.typeName}</span> : null}</span>
+              <span className="text-[var(--h-muted)]">{r.tariff != null ? (formatCurrency ? formatCurrency(r.tariff) : r.tariff) : ''}</span>
             </button>
           ))}
         </div>
@@ -122,17 +122,17 @@ export default function ReservationsPanel({ restaurantId, formatCurrency, notify
           <StatCard icon={FaCalendarCheck} tone="amber" label="Unassigned" value={summary.unassigned} />
         </div>
       )}
-      <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-[#EBE0C9] bg-[#F6EFE0] px-3 py-2 text-sm">
-        <FaCalendarCheck className="text-[#9A7B45]" size={12} />
-        <span className="text-[#876A3A]">Direct booking link:</span>
-        <a href={bookingUrl} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate font-mono text-xs text-[#9A7B45] hover:underline">{bookingUrl}</a>
-        <button onClick={copyLink} className="rounded-md border border-[#E3D6BA] bg-white px-2 py-1 text-xs font-medium text-[#9A7B45] hover:bg-[#F3EAD7]">{copied ? 'Copied!' : 'Copy'}</button>
+      <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-[var(--h-brand-tint2)] bg-[var(--h-brand-tint)] px-3 py-2 text-sm">
+        <FaCalendarCheck className="text-[var(--h-brand)]" size={12} />
+        <span className="text-[var(--h-brand-ink)]">Direct booking link:</span>
+        <a href={bookingUrl} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate font-mono text-xs text-[var(--h-brand)] hover:underline">{bookingUrl}</a>
+        <button onClick={copyLink} className="rounded-md border border-[var(--h-brand-tint2)] bg-white px-2 py-1 text-xs font-medium text-[var(--h-brand)] hover:bg-[var(--h-brand-soft)]">{copied ? 'Copied!' : 'Copy'}</button>
       </div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex rounded-xl border border-[#EBE4D6] bg-white p-1">
+        <div className="inline-flex rounded-xl border border-[var(--h-border)] bg-white p-1">
           {FILTERS.map((f) => (
             <button key={f.id} onClick={() => setFilter(f.id)}
-              className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${filter === f.id ? 'bg-[#9A7B45] text-white' : 'text-[#6E6656] hover:bg-[#F3EFE6]'}`}>
+              className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${filter === f.id ? 'bg-[var(--h-brand)] text-white' : 'text-[var(--h-text)] hover:bg-[var(--h-hover)]'}`}>
               {f.label}
             </button>
           ))}
@@ -141,16 +141,16 @@ export default function ReservationsPanel({ restaurantId, formatCurrency, notify
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 py-10 text-[#A79C88]"><FaSpinner className="animate-spin" /> Loading…</div>
+        <div className="flex items-center gap-2 py-10 text-[var(--h-faint)]"><FaSpinner className="animate-spin" /> Loading…</div>
       ) : rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[#EBE4D6] py-12 text-center text-[#A79C88]">
+        <div className="rounded-xl border border-dashed border-[var(--h-border)] py-12 text-center text-[var(--h-faint)]">
           <FaCalendarCheck className="mx-auto mb-2" size={22} />
           No reservations here.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-[#EBE4D6]">
-          <table className="min-w-full divide-y divide-[#F1ECE1] text-sm">
-            <thead className="bg-[#FAF7F0] text-left text-xs uppercase tracking-wide text-[#A79C88]">
+        <div className="overflow-x-auto rounded-xl border border-[var(--h-border)]">
+          <table className="min-w-full divide-y divide-[var(--h-bsoft2)] text-sm">
+            <thead className="bg-[var(--h-surface2)] text-left text-xs uppercase tracking-wide text-[var(--h-faint)]">
               <tr>
                 <th className="px-4 py-2 font-medium">Guest</th>
                 <th className="px-4 py-2 font-medium">Room</th>
@@ -160,37 +160,37 @@ export default function ReservationsPanel({ restaurantId, formatCurrency, notify
                 <th className="px-4 py-2" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F5F1E8]">
+            <tbody className="divide-y divide-[var(--h-divider)]">
               {rows.map((r) => (
-                <tr key={r.id} className="hover:bg-[#F3EFE6]/60">
+                <tr key={r.id} className="hover:bg-[color-mix(in_srgb,var(--h-hover)_60%,transparent)]">
                   <td className="px-4 py-2.5">
-                    <div className="font-semibold text-[#2A241B]">{r.guestName}</div>
-                    <div className="text-xs text-[#A79C88]">{r.guestPhone || r.code}</div>
+                    <div className="font-semibold text-[var(--h-ink)]">{r.guestName}</div>
+                    <div className="text-xs text-[var(--h-faint)]">{r.guestPhone || r.code}</div>
                   </td>
-                  <td className="px-4 py-2.5 text-[#6E6656]">{r.roomNumber || <span className="text-amber-600">Unassigned</span>}</td>
-                  <td className="px-4 py-2.5 text-[#6E6656]">{fmtDate(r.checkIn)} → {fmtDate(r.checkOut)}<span className="ml-1 text-xs text-[#A79C88]">· {r.nights}n</span></td>
-                  <td className="px-4 py-2.5 text-[#6E6656]">{r.totalAmount != null ? (formatCurrency ? formatCurrency(r.totalAmount) : r.totalAmount) : '—'}</td>
+                  <td className="px-4 py-2.5 text-[var(--h-text)]">{r.roomNumber || <span className="text-amber-600">Unassigned</span>}</td>
+                  <td className="px-4 py-2.5 text-[var(--h-text)]">{fmtDate(r.checkIn)} → {fmtDate(r.checkOut)}<span className="ml-1 text-xs text-[var(--h-faint)]">· {r.nights}n</span></td>
+                  <td className="px-4 py-2.5 text-[var(--h-text)]">{r.totalAmount != null ? (formatCurrency ? formatCurrency(r.totalAmount) : r.totalAmount) : '—'}</td>
                   <td className="px-4 py-2.5">{(() => {
-                    const S = { confirmed: ['Confirmed', '#6D5B9A', '#EEEAF6'], checked_in: ['In-house', '#4E6E8E', '#EAF0F5'], checked_out: ['Departed', '#8A6721', '#F6EEDD'], cancelled: ['Cancelled', '#9A9081', '#F0EBE1'], no_show: ['No-show', '#8A3F31', '#F5E6E2'] }[r.status] || ['—', '#8A8172', '#F1ECE1'];
+                    const S = { confirmed: ['Confirmed', '#6D5B9A', '#EEEAF6'], checked_in: ['In-house', '#4E6E8E', '#EAF0F5'], checked_out: ['Departed', '#8A6721', '#F6EEDD'], cancelled: ['Cancelled', 'var(--h-muted2)', 'var(--h-canvas2)'], no_show: ['No-show', '#8A3F31', '#F5E6E2'] }[r.status] || ['—', 'var(--h-muted)', 'var(--h-bsoft2)'];
                     return <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold" style={{ color: S[1], background: S[2] }}><span className="h-1.5 w-1.5 rounded-full" style={{ background: S[1] }} />{S[0]}</span>;
                   })()}</td>
                   <td className="px-4 py-2.5">
                     <div className="flex justify-end gap-1.5">
-                      {busyId === r.id && <FaSpinner className="animate-spin text-[#A79C88]" />}
+                      {busyId === r.id && <FaSpinner className="animate-spin text-[var(--h-faint)]" />}
                       {r.status === 'confirmed' && !r.roomId && (
-                        <button onClick={() => setAssign(r)} className="inline-flex items-center gap-1 rounded-md border border-[#DFD7C6] px-2 py-1 text-xs text-[#4A4335] hover:bg-[#F3EFE6]"><FaBed size={11} /> Assign</button>
+                        <button onClick={() => setAssign(r)} className="inline-flex items-center gap-1 rounded-md border border-[var(--h-border2)] px-2 py-1 text-xs text-[var(--h-ink2)] hover:bg-[var(--h-hover)]"><FaBed size={11} /> Assign</button>
                       )}
                       {r.status === 'confirmed' && r.roomId && (
-                        <button onClick={() => doCheckIn(r)} disabled={busyId === r.id} style={{ backgroundColor: '#9A7B45' }} className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold text-white hover:brightness-110 disabled:opacity-50"><FaSignInAlt size={11} /> Check-in</button>
+                        <button onClick={() => doCheckIn(r)} disabled={busyId === r.id} style={{ backgroundColor: 'var(--h-brand)' }} className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold text-white hover:brightness-110 disabled:opacity-50"><FaSignInAlt size={11} /> Check-in</button>
                       )}
                       {(r.status === 'checked_in' || r.status === 'checked_out') && (
-                        <button onClick={() => setFolioRes(r)} className="inline-flex items-center gap-1 rounded-md border border-[#DFD7C6] px-2 py-1 text-xs text-[#4A4335] hover:bg-[#F3EFE6]"><FaReceipt size={11} /> Folio</button>
+                        <button onClick={() => setFolioRes(r)} className="inline-flex items-center gap-1 rounded-md border border-[var(--h-border2)] px-2 py-1 text-xs text-[var(--h-ink2)] hover:bg-[var(--h-hover)]"><FaReceipt size={11} /> Folio</button>
                       )}
                       {r.status === 'checked_in' && (
                         <button onClick={() => doCheckOut(r)} disabled={busyId === r.id} style={{ backgroundColor: '#4E6E8E' }} className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold text-white hover:brightness-110 disabled:opacity-50"><FaSignOutAlt size={11} /> Check-out</button>
                       )}
                       {(r.status === 'confirmed' || r.status === 'checked_in') && (
-                        <button onClick={() => doCancel(r)} disabled={busyId === r.id} className="inline-flex items-center gap-1 rounded-md border border-[#EBE4D6] px-2 py-1 text-xs text-[#8A8172] hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"><FaTimesCircle size={11} /></button>
+                        <button onClick={() => doCancel(r)} disabled={busyId === r.id} className="inline-flex items-center gap-1 rounded-md border border-[var(--h-border)] px-2 py-1 text-xs text-[var(--h-muted)] hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"><FaTimesCircle size={11} /></button>
                       )}
                     </div>
                   </td>

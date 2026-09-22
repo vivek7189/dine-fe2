@@ -374,17 +374,17 @@ export default function Sidebar({ isDashboardPage = false }) {
   const hotelEnabled = selectedRestaurant?.businessType === 'hotel' || selectedRestaurant?.posSettings?.enableHotel;
   const inHotel = !!pathname?.startsWith('/hotel/pms');
   const HOTEL_NAV = [
-    { id: 'h-front', name: 'Front Desk', icon: FaThLarge, href: '/hotel/pms/home', color: '#9A7B45' },
-    { id: 'h-cal', name: 'Reservations', icon: FaRegClock, href: '/hotel/pms/calendar', color: '#9A7B45' },
-    { id: 'h-book', name: 'Bookings', icon: FaCalendarCheck, href: '/hotel/pms/reservations', color: '#9A7B45' },
-    { id: 'h-groups', name: 'Groups & Blocks', icon: FaLayerGroup, href: '/hotel/pms/groups', color: '#9A7B45' },
-    { id: 'h-guests', name: 'Guests', icon: FaUser, href: '/hotel/pms/guests', color: '#9A7B45' },
-    { id: 'h-rates', name: 'Rates', icon: FaTag, href: '/hotel/pms/rates', color: '#9A7B45' },
-    { id: 'h-hk', name: 'Housekeeping', icon: FaBroom, href: '/hotel/pms/housekeeping', color: '#9A7B45' },
-    { id: 'h-staff', name: 'Staff', icon: FaUsers, href: '/hotel/pms/staff', color: '#9A7B45' },
-    { id: 'h-ledger', name: 'City Ledger', icon: FaBuilding, href: '/hotel/pms/companies', color: '#9A7B45' },
-    { id: 'h-rep', name: 'Reports', icon: FaChartBar, href: '/hotel/pms/reports', color: '#9A7B45' },
-    { id: 'h-setup', name: 'Setup', icon: FaCog, href: '/hotel/pms/rooms', color: '#9A7B45' },
+    { id: 'h-front', name: 'Front Desk', icon: FaThLarge, href: '/hotel/pms/home', color: 'var(--h-brand)' },
+    { id: 'h-cal', name: 'Reservations', icon: FaRegClock, href: '/hotel/pms/calendar', color: 'var(--h-brand)' },
+    { id: 'h-book', name: 'Bookings', icon: FaCalendarCheck, href: '/hotel/pms/reservations', color: 'var(--h-brand)' },
+    { id: 'h-groups', name: 'Groups & Blocks', icon: FaLayerGroup, href: '/hotel/pms/groups', color: 'var(--h-brand)' },
+    { id: 'h-guests', name: 'Guests', icon: FaUser, href: '/hotel/pms/guests', color: 'var(--h-brand)' },
+    { id: 'h-rates', name: 'Rates', icon: FaTag, href: '/hotel/pms/rates', color: 'var(--h-brand)' },
+    { id: 'h-hk', name: 'Housekeeping', icon: FaBroom, href: '/hotel/pms/housekeeping', color: 'var(--h-brand)' },
+    { id: 'h-staff', name: 'Staff', icon: FaUsers, href: '/hotel/pms/staff', color: 'var(--h-brand)' },
+    { id: 'h-ledger', name: 'City Ledger', icon: FaBuilding, href: '/hotel/pms/companies', color: 'var(--h-brand)' },
+    { id: 'h-rep', name: 'Reports', icon: FaChartBar, href: '/hotel/pms/reports', color: 'var(--h-brand)' },
+    { id: 'h-setup', name: 'Setup', icon: FaCog, href: '/hotel/pms/rooms', color: 'var(--h-brand)' },
   ];
   const renderNav = inHotel ? HOTEL_NAV : navItems;
 
@@ -574,7 +574,7 @@ export default function Sidebar({ isDashboardPage = false }) {
                 >Restaurant</button>
                 <button
                   onClick={() => { if (!inHotel) router.push('/hotel/pms/home'); }}
-                  className={`flex-1 rounded-lg py-1.5 text-[12px] font-semibold transition ${inHotel ? 'bg-white text-[#9A7B45] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                  className={`flex-1 rounded-lg py-1.5 text-[12px] font-semibold transition ${inHotel ? 'bg-white text-[var(--h-brand)] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                 >Hotel</button>
               </div>
             </div>
@@ -582,7 +582,7 @@ export default function Sidebar({ isDashboardPage = false }) {
           {hotelEnabled && isCollapsed && (
             <div className="px-2 pt-3">
               <button onClick={() => router.push(inHotel ? '/home' : '/hotel/pms/home')} title={inHotel ? 'Switch to Restaurant' : 'Switch to Hotel'}
-                className={`flex w-full items-center justify-center rounded-xl py-2 ${inHotel ? 'text-[#9A7B45]' : 'text-gray-500'} hover:bg-gray-100`}>
+                className={`flex w-full items-center justify-center rounded-xl py-2 ${inHotel ? 'text-[var(--h-brand)]' : 'text-gray-500'} hover:bg-gray-100`}>
                 <FaHotel size={16} />
               </button>
             </div>

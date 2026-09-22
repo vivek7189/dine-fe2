@@ -45,35 +45,35 @@ export default function ServicesPanel({ restaurantId, formatCurrency, notify }) 
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-[#8A8172]">Add-on services staff can charge to a guest (cab, laundry, spa…). Set them up here; staff pick them on the folio.</p>
+        <p className="text-sm text-[var(--h-muted)]">Add-on services staff can charge to a guest (cab, laundry, spa…). Set them up here; staff pick them on the folio.</p>
         <Btn onClick={openNew}><FaPlus size={12} /> Add service</Btn>
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 py-10 text-[#A79C88]"><FaSpinner className="animate-spin" /> Loading…</div>
+        <div className="flex items-center gap-2 py-10 text-[var(--h-faint)]"><FaSpinner className="animate-spin" /> Loading…</div>
       ) : services.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[#EBE4D6] py-12 text-center text-[#A79C88]">
+        <div className="rounded-xl border border-dashed border-[var(--h-border)] py-12 text-center text-[var(--h-faint)]">
           <FaConciergeBell className="mx-auto mb-2" size={22} /> No services yet. Add cab, laundry, airport pickup, spa…
         </div>
       ) : (
         <div className="space-y-5">
           {Object.keys(byCat).map((cat) => (
             <div key={cat}>
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#9A7B45]">{cat}</div>
-              <div className="overflow-hidden rounded-xl border border-[#EBE4D6]">
-                <table className="min-w-full divide-y divide-[#F1ECE1] text-sm">
-                  <tbody className="divide-y divide-[#F5F1E8]">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--h-brand)]">{cat}</div>
+              <div className="overflow-hidden rounded-xl border border-[var(--h-border)]">
+                <table className="min-w-full divide-y divide-[var(--h-bsoft2)] text-sm">
+                  <tbody className="divide-y divide-[var(--h-divider)]">
                     {byCat[cat].map((s) => (
-                      <tr key={s.id} className="group hover:bg-[#F3EFE6]/60">
+                      <tr key={s.id} className="group hover:bg-[color-mix(in_srgb,var(--h-hover)_60%,transparent)]">
                         <td className="px-4 py-2.5">
-                          <div className="font-medium text-[#2A241B]">{s.name}{!s.active && <span className="ml-2 rounded bg-[#F1ECE1] px-1.5 py-0.5 text-[10px] text-[#A79C88]">inactive</span>}</div>
-                          <div className="text-[11px] text-[#A79C88]">{s.unit.replace('-', ' ')}{s.taxable ? ' · taxable' : ''}</div>
+                          <div className="font-medium text-[var(--h-ink)]">{s.name}{!s.active && <span className="ml-2 rounded bg-[var(--h-bsoft2)] px-1.5 py-0.5 text-[10px] text-[var(--h-faint)]">inactive</span>}</div>
+                          <div className="text-[11px] text-[var(--h-faint)]">{s.unit.replace('-', ' ')}{s.taxable ? ' · taxable' : ''}</div>
                         </td>
-                        <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-[#2A241B]">{money(s.price)}</td>
+                        <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-[var(--h-ink)]">{money(s.price)}</td>
                         <td className="px-4 py-2.5 text-right">
                           <div className="flex justify-end gap-1 opacity-0 transition group-hover:opacity-100">
-                            <button onClick={() => openEdit(s)} className="rounded p-1.5 text-[#A79C88] hover:bg-[#EFE9DD] hover:text-[#9A7B45]"><FaPen size={11} /></button>
-                            <button onClick={() => remove(s)} className="rounded p-1.5 text-[#A79C88] hover:bg-rose-50 hover:text-rose-600"><FaTrash size={11} /></button>
+                            <button onClick={() => openEdit(s)} className="rounded p-1.5 text-[var(--h-faint)] hover:bg-[var(--h-bsoft)] hover:text-[var(--h-brand)]"><FaPen size={11} /></button>
+                            <button onClick={() => remove(s)} className="rounded p-1.5 text-[var(--h-faint)] hover:bg-rose-50 hover:text-rose-600"><FaTrash size={11} /></button>
                           </div>
                         </td>
                       </tr>
@@ -100,8 +100,8 @@ export default function ServicesPanel({ restaurantId, formatCurrency, notify }) 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Charged"><select className={inputCls} value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>{UNITS.map((u) => <option key={u.v} value={u.v}>{u.l}</option>)}</select></Field>
             <div className="flex items-end gap-4 pb-2">
-              <label className="flex items-center gap-2 text-sm text-[#6E6656]"><input type="checkbox" checked={form.taxable} onChange={(e) => setForm({ ...form, taxable: e.target.checked })} className="h-4 w-4 rounded border-[#DFD7C6]" /> Taxable</label>
-              <label className="flex items-center gap-2 text-sm text-[#6E6656]"><input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} className="h-4 w-4 rounded border-[#DFD7C6]" /> Active</label>
+              <label className="flex items-center gap-2 text-sm text-[var(--h-text)]"><input type="checkbox" checked={form.taxable} onChange={(e) => setForm({ ...form, taxable: e.target.checked })} className="h-4 w-4 rounded border-[var(--h-border2)]" /> Taxable</label>
+              <label className="flex items-center gap-2 text-sm text-[var(--h-text)]"><input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} className="h-4 w-4 rounded border-[var(--h-border2)]" /> Active</label>
             </div>
           </div>
         </div>

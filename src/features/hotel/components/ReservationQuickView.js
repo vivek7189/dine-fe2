@@ -64,7 +64,7 @@ export default function ReservationQuickView({ restaurantId, reservation, format
       <div className="space-y-2 text-sm">
         <div className="flex items-center gap-2">
           <Pill value={r.status === 'checked_in' ? 'occupied' : r.status === 'checked_out' ? 'inspected' : 'reserved'} />
-          <span className="capitalize text-[#8A8172]">{r.status.replace('_', ' ')}</span>
+          <span className="capitalize text-[var(--h-muted)]">{r.status.replace('_', ' ')}</span>
         </div>
         <Row label="Room" value={r.roomNumber ? `${r.roomNumber}` : 'Unassigned'} />
         <Row label="Stay" value={`${fmt(r.checkIn)} → ${fmt(r.checkOut)} · ${r.nights} night${r.nights > 1 ? 's' : ''}`} />
@@ -74,7 +74,7 @@ export default function ReservationQuickView({ restaurantId, reservation, format
         {r.guestPhone && <Row label="Phone" value={r.guestPhone} />}
         {(r.status === 'confirmed' || r.status === 'checked_in') && (
           <button onClick={() => { setWaiveFee(false); setCancelOpen(true); }}
-            disabled={busy} className="mt-1 inline-flex items-center gap-1 text-xs text-[#A79C88] hover:text-rose-600">
+            disabled={busy} className="mt-1 inline-flex items-center gap-1 text-xs text-[var(--h-faint)] hover:text-rose-600">
             <FaTimesCircle size={11} /> Cancel booking
           </button>
         )}
@@ -88,7 +88,7 @@ export default function ReservationQuickView({ restaurantId, reservation, format
             <Field label="Amount" required><input type="number" min="0" step="0.01" className={inputCls} value={dep.amount} onChange={(e) => setDep({ ...dep, amount: e.target.value })} autoFocus /></Field>
             <Field label="Method"><select className={inputCls} value={dep.method} onChange={(e) => setDep({ ...dep, method: e.target.value })}>{PAY.map((m) => <option key={m} value={m} className="capitalize">{m}</option>)}</select></Field>
           </div>
-          <p className="mt-2 text-[12px] text-[#A79C88]">Advance is credited to the guest folio and offsets the balance at check-out.</p>
+          <p className="mt-2 text-[12px] text-[var(--h-faint)]">Advance is credited to the guest folio and offsets the balance at check-out.</p>
         </Modal>
       )}
 
@@ -96,10 +96,10 @@ export default function ReservationQuickView({ restaurantId, reservation, format
       {cancelOpen && (
         <Modal open title="Cancel booking" onClose={() => setCancelOpen(false)}
           footer={<><Btn variant="ghost" onClick={() => setCancelOpen(false)}>Keep booking</Btn><Btn variant="danger" onClick={doCancel} disabled={busy}>{busy ? 'Cancelling…' : 'Cancel booking'}</Btn></>}>
-          <p className="text-[13.5px] text-[#4A4335]">Cancel the booking for <strong>{r.guestName}</strong>?</p>
-          <p className="mt-1 text-[12px] text-[#8A8172]">Any cancellation fee (per your policy &amp; timing) will be posted to the folio.</p>
-          <label className="mt-3 flex items-center gap-2 text-[13px] text-[#6E6656]">
-            <input type="checkbox" checked={waiveFee} onChange={(e) => setWaiveFee(e.target.checked)} className="h-4 w-4 rounded border-[#DFD7C6]" /> Waive the cancellation fee
+          <p className="text-[13.5px] text-[var(--h-ink2)]">Cancel the booking for <strong>{r.guestName}</strong>?</p>
+          <p className="mt-1 text-[12px] text-[var(--h-muted)]">Any cancellation fee (per your policy &amp; timing) will be posted to the folio.</p>
+          <label className="mt-3 flex items-center gap-2 text-[13px] text-[var(--h-text)]">
+            <input type="checkbox" checked={waiveFee} onChange={(e) => setWaiveFee(e.target.checked)} className="h-4 w-4 rounded border-[var(--h-border2)]" /> Waive the cancellation fee
           </label>
         </Modal>
       )}
@@ -109,9 +109,9 @@ export default function ReservationQuickView({ restaurantId, reservation, format
 
 function Row({ label, value }) {
   return (
-    <div className="flex justify-between border-b border-[#F5F1E8] py-1.5">
-      <span className="text-[#A79C88]">{label}</span>
-      <span className="font-medium text-[#4A4335]">{value}</span>
+    <div className="flex justify-between border-b border-[var(--h-divider)] py-1.5">
+      <span className="text-[var(--h-faint)]">{label}</span>
+      <span className="font-medium text-[var(--h-ink2)]">{value}</span>
     </div>
   );
 }

@@ -25,10 +25,10 @@ export default function HotelNav() {
   return (
     <header className="mb-6">
       {/* property context bar */}
-      <div className="mb-5 flex flex-wrap items-center gap-3 border-b border-[#EBE4D6] pb-4">
+      <div className="mb-5 flex flex-wrap items-center gap-3 border-b border-[var(--h-border)] pb-4">
         <FaCircle size={8} className="text-[#3E7C5A]" />
         <span className={`text-[15px] font-semibold ${T.ink}`}>{outlet || 'Hotel'}</span>
-        <span className="ml-auto inline-flex items-center gap-2 rounded-full border border-[#EBE4D6] bg-white px-3 py-1 text-[12px] text-[#8A6721]">
+        <span className="ml-auto inline-flex items-center gap-2 rounded-full border border-[var(--h-border)] bg-white px-3 py-1 text-[12px] text-[#8A6721]">
           <FaCircle size={6} className="text-[#B58836]" /> Property management
         </span>
       </div>
@@ -40,10 +40,10 @@ export default function HotelNav() {
           const active = path === l.href || path.startsWith(l.href + '/');
           return (
             <Link key={l.href} href={l.href}
-              className={`group relative flex items-center gap-2 whitespace-nowrap px-4 py-2.5 text-[13.5px] font-medium transition-colors ${active ? T.brassText : 'text-[#8A8172] hover:text-[#2A241B]'}`}>
-              <Icon size={12.5} className={active ? '' : 'text-[#B3A88F] group-hover:text-[#8A8172]'} />
+              className={`group relative flex items-center gap-2 whitespace-nowrap px-4 py-2.5 text-[13.5px] font-medium transition-colors ${active ? T.brassText : 'text-[var(--h-muted)] hover:text-[var(--h-ink)]'}`}>
+              <Icon size={12.5} className={active ? '' : 'text-[var(--h-faint2)] group-hover:text-[var(--h-muted)]'} />
               {l.label}
-              <span className={`absolute inset-x-3 -bottom-px h-[2.5px] rounded-full transition-all ${active ? 'bg-[#9A7B45]' : 'bg-transparent group-hover:bg-[#E3DAC5]'}`} />
+              <span className={`absolute inset-x-3 -bottom-px h-[2.5px] rounded-full transition-all ${active ? 'bg-[var(--h-brand)]' : 'bg-transparent group-hover:bg-[var(--h-brand-tint2)]'}`} />
             </Link>
           );
         })}

@@ -48,14 +48,14 @@ export default function CompaniesView({ restaurantId, formatCurrency, notify }) 
   return (
     <div>
       <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="text-sm text-[#8A8172]">Corporate / travel-agent accounts. Bill a guest folio to a company at checkout, then settle the receivable later.</p>
+        <p className="text-sm text-[var(--h-muted)]">Corporate / travel-agent accounts. Bill a guest folio to a company at checkout, then settle the receivable later.</p>
         {canManage && <Btn onClick={openNew}><FaPlus size={12} /> New company</Btn>}
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 py-10 text-[#A79C88]"><FaSpinner className="animate-spin" /> Loading…</div>
+        <div className="flex items-center gap-2 py-10 text-[var(--h-faint)]"><FaSpinner className="animate-spin" /> Loading…</div>
       ) : companies.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[#EBE4D6] py-12 text-center text-[#A79C88]">
+        <div className="rounded-xl border border-dashed border-[var(--h-border)] py-12 text-center text-[var(--h-faint)]">
           <FaBuilding className="mx-auto mb-2" size={22} /> No company accounts yet.
         </div>
       ) : (
@@ -69,15 +69,15 @@ export default function CompaniesView({ restaurantId, formatCurrency, notify }) 
           <div className="grid gap-3 sm:grid-cols-2">
             {companies.map((c) => (
               <button key={c.id} onClick={() => setOpenId(c.id)}
-                className="rounded-2xl border border-[#EBE4D6] bg-white p-4 text-left shadow-[0_1px_2px_rgba(40,33,20,0.05)] transition hover:border-[#D8CDB6] hover:shadow-md">
+                className="rounded-2xl border border-[var(--h-border)] bg-white p-4 text-left shadow-[0_1px_2px_rgba(40,33,20,0.05)] transition hover:border-[var(--h-border2)] hover:shadow-md">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="font-serif text-[16px] font-semibold text-[#2A241B]">{c.name}{!c.active && <span className="ml-2 rounded bg-[#F1ECE1] px-1.5 py-0.5 text-[10px] text-[#A79C88]">inactive</span>}</div>
-                    {c.contactName && <div className="mt-0.5 text-[12px] text-[#9A9081]">{c.contactName}{c.phone ? ` · ${c.phone}` : ''}</div>}
-                    {c.taxId && <div className="text-[11px] text-[#B3A88F]">Tax: {c.taxId}</div>}
+                    <div className="font-serif text-[16px] font-semibold text-[var(--h-ink)]">{c.name}{!c.active && <span className="ml-2 rounded bg-[var(--h-bsoft2)] px-1.5 py-0.5 text-[10px] text-[var(--h-faint)]">inactive</span>}</div>
+                    {c.contactName && <div className="mt-0.5 text-[12px] text-[var(--h-muted2)]">{c.contactName}{c.phone ? ` · ${c.phone}` : ''}</div>}
+                    {c.taxId && <div className="text-[11px] text-[var(--h-faint2)]">Tax: {c.taxId}</div>}
                   </div>
                   <div className="text-right">
-                    <div className="text-[11px] text-[#A79C88]">Balance</div>
+                    <div className="text-[11px] text-[var(--h-faint)]">Balance</div>
                     <div className={`text-[16px] font-semibold tabular-nums ${c.balance > 0 ? 'text-[#8A3F31]' : 'text-[#356B4E]'}`}>{money(c.balance)}</div>
                   </div>
                 </div>
@@ -102,7 +102,7 @@ export default function CompaniesView({ restaurantId, formatCurrency, notify }) 
           <Field label="Address"><input className={inputCls} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Credit limit" hint="optional"><input type="number" min="0" className={inputCls} value={form.creditLimit} onChange={(e) => setForm({ ...form, creditLimit: e.target.value })} /></Field>
-            <div className="flex items-end pb-2"><label className="flex items-center gap-2 text-sm text-[#6E6656]"><input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} className="h-4 w-4 rounded border-[#DFD7C6]" /> Active</label></div>
+            <div className="flex items-end pb-2"><label className="flex items-center gap-2 text-sm text-[var(--h-text)]"><input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} className="h-4 w-4 rounded border-[var(--h-border2)]" /> Active</label></div>
           </div>
         </div>
       </Modal>
@@ -151,19 +151,19 @@ function CompanyDrawer({ restaurantId, companyId, money, notify, canManage, onCl
   const c = data?.company; const totals = data?.totals;
 
   return createPortal(
-    <div className="fixed inset-0 z-[1000] flex justify-end bg-[#2A241B]/50 backdrop-blur-[2px]" onClick={onClose}>
-      <div className="flex h-full w-full max-w-lg flex-col bg-[#FBF9F4] shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between border-b border-[#EFE9DD] px-5 py-4">
+    <div className="fixed inset-0 z-[1000] flex justify-end bg-[color-mix(in_srgb,var(--h-ink)_50%,transparent)] backdrop-blur-[2px]" onClick={onClose}>
+      <div className="flex h-full w-full max-w-lg flex-col bg-[var(--h-surface)] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between border-b border-[var(--h-bsoft)] px-5 py-4">
           <div className="min-w-0">
-            <div className="font-serif text-[18px] font-semibold text-[#2A241B]">{c?.name || 'Company'}</div>
-            {c && <div className="mt-0.5 text-[12px] text-[#9A9081]">{[c.contactName, c.phone, c.taxId && `Tax ${c.taxId}`].filter(Boolean).join(' · ')}</div>}
+            <div className="font-serif text-[18px] font-semibold text-[var(--h-ink)]">{c?.name || 'Company'}</div>
+            {c && <div className="mt-0.5 text-[12px] text-[var(--h-muted2)]">{[c.contactName, c.phone, c.taxId && `Tax ${c.taxId}`].filter(Boolean).join(' · ')}</div>}
           </div>
-          <button onClick={onClose} className="text-[#A79C88] hover:text-[#6E6656]"><FaTimes /></button>
+          <button onClick={onClose} className="text-[var(--h-faint)] hover:text-[var(--h-text)]"><FaTimes /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {loading || !c ? (
-            <div className="flex items-center gap-2 py-10 text-[#A79C88]"><FaSpinner className="animate-spin" /> Loading…</div>
+            <div className="flex items-center gap-2 py-10 text-[var(--h-faint)]"><FaSpinner className="animate-spin" /> Loading…</div>
           ) : (
             <div className="space-y-4">
               <div className="grid grid-cols-3 gap-3">
@@ -173,21 +173,21 @@ function CompanyDrawer({ restaurantId, companyId, money, notify, canManage, onCl
               </div>
 
               <div>
-                <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8A8172]">Statement</div>
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--h-muted)]">Statement</div>
                 {data.entries.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-[#EBE4D6] py-6 text-center text-[12px] text-[#A79C88]">No entries yet.</div>
+                  <div className="rounded-xl border border-dashed border-[var(--h-border)] py-6 text-center text-[12px] text-[var(--h-faint)]">No entries yet.</div>
                 ) : (
-                  <div className="overflow-hidden rounded-xl border border-[#EBE4D6]">
+                  <div className="overflow-hidden rounded-xl border border-[var(--h-border)]">
                     <table className="min-w-full text-sm">
-                      <tbody className="divide-y divide-[#F5F1E8]">
+                      <tbody className="divide-y divide-[var(--h-divider)]">
                         {data.entries.map((e) => (
-                          <tr key={e.id} className="hover:bg-[#F3EFE6]/60">
+                          <tr key={e.id} className="hover:bg-[color-mix(in_srgb,var(--h-hover)_60%,transparent)]">
                             <td className="px-3 py-2">
-                              <div className="text-[12.5px] text-[#2A241B]">{e.description || (e.entryType === 'payment' ? 'Payment' : 'Charge')}</div>
-                              <div className="text-[10.5px] text-[#A79C88]">{fmtDateTime(e.createdAt)}{e.method ? ` · ${e.method}` : ''}</div>
+                              <div className="text-[12.5px] text-[var(--h-ink)]">{e.description || (e.entryType === 'payment' ? 'Payment' : 'Charge')}</div>
+                              <div className="text-[10.5px] text-[var(--h-faint)]">{fmtDateTime(e.createdAt)}{e.method ? ` · ${e.method}` : ''}</div>
                             </td>
                             <td className={`px-3 py-2 text-right tabular-nums ${e.entryType === 'charge' ? 'text-[#8A3F31]' : 'text-[#356B4E]'}`}>{e.entryType === 'charge' ? '+' : '−'}{money(e.amount)}</td>
-                            <td className="px-3 py-2 text-right tabular-nums text-[#8A8172]">{money(e.runningBalance)}</td>
+                            <td className="px-3 py-2 text-right tabular-nums text-[var(--h-muted)]">{money(e.runningBalance)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -200,7 +200,7 @@ function CompanyDrawer({ restaurantId, companyId, money, notify, canManage, onCl
         </div>
 
         {c && (
-          <div className="flex items-center justify-between gap-2 border-t border-[#EFE9DD] px-5 py-3">
+          <div className="flex items-center justify-between gap-2 border-t border-[var(--h-bsoft)] px-5 py-3">
             {canManage ? <button onClick={del} disabled={busy} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-[#9B4A3A] hover:bg-rose-50 disabled:opacity-50"><FaTrash size={11} /> Delete</button> : <span />}
             <div className="flex gap-2">
               {canManage && <Btn variant="ghost" onClick={() => onEdit(c)}><FaPen size={11} /> Edit</Btn>}
@@ -226,10 +226,10 @@ function CompanyDrawer({ restaurantId, companyId, money, notify, canManage, onCl
 }
 
 function Stat({ label, value, tone }) {
-  const c = tone === 'green' ? 'text-[#356B4E]' : tone === 'rose' ? 'text-[#8A3F31]' : 'text-[#2A241B]';
+  const c = tone === 'green' ? 'text-[#356B4E]' : tone === 'rose' ? 'text-[#8A3F31]' : 'text-[var(--h-ink)]';
   return (
-    <div className="rounded-xl border border-[#EBE4D6] bg-white p-3 text-center">
-      <div className="text-[10px] uppercase tracking-wide text-[#A79C88]">{label}</div>
+    <div className="rounded-xl border border-[var(--h-border)] bg-white p-3 text-center">
+      <div className="text-[10px] uppercase tracking-wide text-[var(--h-faint)]">{label}</div>
       <div className={`mt-0.5 text-[15px] font-semibold tabular-nums ${c}`}>{value}</div>
     </div>
   );

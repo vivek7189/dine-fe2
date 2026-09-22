@@ -152,7 +152,7 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
 
         <Field label={`Available rooms${nights > 0 ? ` · ${nights} night${nights > 1 ? 's' : ''}` : ''}`} hint="Leave unassigned to book now and assign a room later.">
           {loadingRooms ? (
-            <div className="flex items-center gap-2 py-2 text-sm text-[#A79C88]"><FaSpinner className="animate-spin" size={12} /> Checking availability…</div>
+            <div className="flex items-center gap-2 py-2 text-sm text-[var(--h-faint)]"><FaSpinner className="animate-spin" size={12} /> Checking availability…</div>
           ) : (
             <select className={inputCls} value={form.roomId} onChange={(e) => pickRoom(e.target.value)} disabled={nights <= 0}>
               <option value="">{nights <= 0 ? 'Pick dates first' : '— Unassigned —'}</option>
@@ -169,9 +169,9 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
         {roomTypeId && nights > 0 && (
           <Field label="Rate plan & package" hint="Pricing pulls from the calendar for this room type.">
             {loadingPlans ? (
-              <div className="flex items-center gap-2 py-2 text-sm text-[#A79C88]"><FaSpinner className="animate-spin" size={12} /> Pricing plans…</div>
+              <div className="flex items-center gap-2 py-2 text-sm text-[var(--h-faint)]"><FaSpinner className="animate-spin" size={12} /> Pricing plans…</div>
             ) : plans.length === 0 ? (
-              <div className="text-[12px] text-[#A79C88]">No rate plans configured — enter a nightly rate below.</div>
+              <div className="text-[12px] text-[var(--h-faint)]">No rate plans configured — enter a nightly rate below.</div>
             ) : (
               <div className="space-y-2">
                 <div className="grid gap-2 sm:grid-cols-2">
@@ -179,16 +179,16 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
                     const on = o.ratePlanId === ratePlanId;
                     return (
                       <button type="button" key={o.ratePlanId || o.code} onClick={() => pickPlan(o)}
-                        className={`flex flex-col rounded-xl border p-2.5 text-left transition ${on ? 'border-[#9A7B45] bg-[#F3EAD7]/60 ring-1 ring-[#9A7B45]/30' : 'border-[#DDD4C2] bg-white hover:bg-[#F3EFE6]'}`}>
+                        className={`flex flex-col rounded-xl border p-2.5 text-left transition ${on ? 'border-[var(--h-brand)] bg-[color-mix(in_srgb,var(--h-brand-soft)_60%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--h-brand)_30%,transparent)]' : 'border-[var(--h-border2)] bg-white hover:bg-[var(--h-hover)]'}`}>
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-[13px] font-semibold text-[#2A241B]">{o.name}</span>
-                          <span className="text-[13px] font-semibold text-[#9A7B45]">{formatCurrency ? formatCurrency(o.nightly) : o.nightly}<span className="text-[10px] font-normal text-[#A79C88]">/night</span></span>
+                          <span className="text-[13px] font-semibold text-[var(--h-ink)]">{o.name}</span>
+                          <span className="text-[13px] font-semibold text-[var(--h-brand)]">{formatCurrency ? formatCurrency(o.nightly) : o.nightly}<span className="text-[10px] font-normal text-[var(--h-faint)]">/night</span></span>
                         </div>
-                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10.5px] text-[#8A8172]">
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10.5px] text-[var(--h-muted)]">
                           {o.mealPlan && o.mealPlan !== 'none' && <span className="rounded-full bg-[#E7F1EA] px-1.5 py-0.5 text-[#356B4E]">{o.mealLabel}</span>}
                           {!o.refundable && <span className="rounded-full bg-[#F5E6E2] px-1.5 py-0.5 text-[#8A3F31]">Non-refundable</span>}
                           {o.isPromo && <span className="rounded-full bg-[#EEEAF6] px-1.5 py-0.5 text-[#5A4A85]">Promo</span>}
-                          <span className="text-[#B3A88F]">· {formatCurrency ? formatCurrency(o.total) : o.total} total</span>
+                          <span className="text-[var(--h-faint2)]">· {formatCurrency ? formatCurrency(o.total) : o.total} total</span>
                         </div>
                       </button>
                     );
@@ -207,7 +207,7 @@ export default function NewBookingModal({ restaurantId, open, onClose, onCreated
         <div className="grid grid-cols-2 gap-3">
           <Field label="Nightly rate"><input type="number" min="0" step="0.01" className={inputCls} value={form.rate} onChange={(e) => { set({ rate: e.target.value }); setRatePlanId(null); }} placeholder="0" /></Field>
           <Field label="Total">
-            <div className={`${inputCls} bg-[#FAF7F0] text-[#4A4335]`}>{total != null ? (formatCurrency ? formatCurrency(total) : total) : '—'}</div>
+            <div className={`${inputCls} bg-[var(--h-surface2)] text-[var(--h-ink2)]`}>{total != null ? (formatCurrency ? formatCurrency(total) : total) : '—'}</div>
           </Field>
         </div>
       </div>

@@ -7,16 +7,16 @@ import { Modal, Field, inputCls, Btn } from './ui';
 // A status shown as a colored capsule that is itself the dropdown control.
 const STATUS_TONE = {
   available: 'text-emerald-700 bg-emerald-50 ring-emerald-600/20', occupied: 'text-rose-700 bg-rose-50 ring-rose-600/20',
-  reserved: 'text-amber-700 bg-amber-50 ring-amber-600/20', blocked: 'text-[#6E6656] bg-[#F1ECE1] ring-[#A79C88]/25',
-  'out-of-service': 'text-[#8A8172] bg-[#F1ECE1] ring-[#A79C88]/25', clean: 'text-emerald-700 bg-emerald-50 ring-emerald-600/20',
+  reserved: 'text-amber-700 bg-amber-50 ring-amber-600/20', blocked: 'text-[var(--h-text)] bg-[var(--h-bsoft2)] ring-[color-mix(in_srgb,var(--h-faint)_25%,transparent)]',
+  'out-of-service': 'text-[var(--h-muted)] bg-[var(--h-bsoft2)] ring-[color-mix(in_srgb,var(--h-faint)_25%,transparent)]', clean: 'text-emerald-700 bg-emerald-50 ring-emerald-600/20',
   dirty: 'text-amber-700 bg-amber-50 ring-amber-600/20', inspected: 'text-sky-700 bg-sky-50 ring-sky-600/20',
   'out-of-order': 'text-rose-700 bg-rose-50 ring-rose-600/20',
 };
 function StatusSelect({ value, options, onChange, disabled }) {
   return (
-    <span className={`relative inline-flex items-center rounded-full ring-1 ring-inset ${STATUS_TONE[value] || 'bg-[#F1ECE1] text-[#6E6656] ring-[#A79C88]/25'}`}>
+    <span className={`relative inline-flex items-center rounded-full ring-1 ring-inset ${STATUS_TONE[value] || 'bg-[var(--h-bsoft2)] text-[var(--h-text)] ring-[color-mix(in_srgb,var(--h-faint)_25%,transparent)]'}`}>
       <select value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled}
-        className="appearance-none rounded-full bg-transparent py-1 pl-3 pr-6 text-[11px] font-medium capitalize outline-none focus:ring-2 focus:ring-[#9A7B45]/20">
+        className="appearance-none rounded-full bg-transparent py-1 pl-3 pr-6 text-[11px] font-medium capitalize outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--h-brand)_20%,transparent)]">
         {options.map((s) => <option key={s} value={s} className="capitalize">{s.replace(/-/g, ' ')}</option>)}
       </select>
       <FaChevronDown size={8} className="pointer-events-none absolute right-2 opacity-60" />
@@ -125,19 +125,19 @@ export default function RoomsPanel({ restaurantId, formatCurrency, notify, types
   }, {});
   const floorKeys = Object.keys(byFloor).sort((a, b) => (a === 'Unassigned' ? 1 : b === 'Unassigned' ? -1 : a.localeCompare(b, undefined, { numeric: true })));
 
-  const selCls = 'rounded-md border border-[#EBE4D6] bg-white px-1.5 py-0.5 text-xs text-[#6E6656] outline-none focus:border-[#B79A63]';
+  const selCls = 'rounded-md border border-[var(--h-border)] bg-white px-1.5 py-0.5 text-xs text-[var(--h-text)] outline-none focus:border-[var(--h-brand-si)]';
 
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm text-[#8A8172]">Your physical room inventory. Sell-status and housekeeping are tracked separately.</p>
+        <p className="text-sm text-[var(--h-muted)]">Your physical room inventory. Sell-status and housekeeping are tracked separately.</p>
         <Btn onClick={openNew}><FaPlus size={12} /> New room</Btn>
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 py-10 text-[#A79C88]"><FaSpinner className="animate-spin" /> Loading…</div>
+        <div className="flex items-center gap-2 py-10 text-[var(--h-faint)]"><FaSpinner className="animate-spin" /> Loading…</div>
       ) : rooms.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[#EBE4D6] py-12 text-center text-[#A79C88]">
+        <div className="rounded-xl border border-dashed border-[var(--h-border)] py-12 text-center text-[var(--h-faint)]">
           <FaDoorClosed className="mx-auto mb-2" size={22} />
           No rooms yet. Add your first room.
         </div>
@@ -145,10 +145,10 @@ export default function RoomsPanel({ restaurantId, formatCurrency, notify, types
         <div className="space-y-5">
           {floorKeys.map((fk) => (
             <div key={fk}>
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#A79C88]">{fk} · {byFloor[fk].length}</div>
-              <div className="overflow-x-auto rounded-xl border border-[#EBE4D6]">
-                <table className="min-w-full divide-y divide-[#F1ECE1] text-sm">
-                  <thead className="bg-[#FAF7F0] text-left text-xs uppercase tracking-wide text-[#A79C88]">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--h-faint)]">{fk} · {byFloor[fk].length}</div>
+              <div className="overflow-x-auto rounded-xl border border-[var(--h-border)]">
+                <table className="min-w-full divide-y divide-[var(--h-bsoft2)] text-sm">
+                  <thead className="bg-[var(--h-surface2)] text-left text-xs uppercase tracking-wide text-[var(--h-faint)]">
                     <tr>
                       <th className="px-4 py-2 font-medium">Room</th>
                       <th className="px-4 py-2 font-medium">Type</th>
@@ -158,18 +158,18 @@ export default function RoomsPanel({ restaurantId, formatCurrency, notify, types
                       <th className="px-4 py-2" />
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F5F1E8]">
+                  <tbody className="divide-y divide-[var(--h-divider)]">
                     {byFloor[fk].map((r) => (
-                      <tr key={r.id} className="hover:bg-[#F3EFE6]/60">
-                        <td className="px-4 py-3 text-[15px] font-bold text-[#2A241B] tabular-nums">{r.roomNumber}</td>
-                        <td className="px-4 py-3"><span className="inline-flex items-center rounded-md bg-[#F1ECE1] px-2 py-0.5 text-xs font-medium capitalize text-[#6E6656]">{r.typeName || r.type || '—'}</span></td>
-                        <td className="px-4 py-3 tabular-nums font-medium text-[#4A4335]">{r.tariff ? (formatCurrency ? formatCurrency(r.tariff) : r.tariff) : <span className="text-[#C3B9A3]">—</span>}</td>
+                      <tr key={r.id} className="hover:bg-[color-mix(in_srgb,var(--h-hover)_60%,transparent)]">
+                        <td className="px-4 py-3 text-[15px] font-bold text-[var(--h-ink)] tabular-nums">{r.roomNumber}</td>
+                        <td className="px-4 py-3"><span className="inline-flex items-center rounded-md bg-[var(--h-bsoft2)] px-2 py-0.5 text-xs font-medium capitalize text-[var(--h-text)]">{r.typeName || r.type || '—'}</span></td>
+                        <td className="px-4 py-3 tabular-nums font-medium text-[var(--h-ink2)]">{r.tariff ? (formatCurrency ? formatCurrency(r.tariff) : r.tariff) : <span className="text-[var(--h-faint3)]">—</span>}</td>
                         <td className="px-4 py-3"><StatusSelect value={r.status} options={SELL_STATUS} onChange={(v) => quickStatus(r, v)} /></td>
                         <td className="px-4 py-3"><StatusSelect value={r.housekeepingStatus || 'clean'} options={HK_STATUS} onChange={(v) => quickHk(r, v)} /></td>
                         <td className="px-4 py-3">
                           <div className="flex justify-end gap-1 opacity-0 transition group-hover:opacity-100">
-                            <button onClick={() => openEdit(r)} className="rounded p-1.5 text-[#A79C88] hover:bg-[#EFE9DD] hover:text-[#9A7B45]" aria-label="Edit"><FaPen size={12} /></button>
-                            <button onClick={() => remove(r)} className="rounded p-1.5 text-[#A79C88] hover:bg-rose-50 hover:text-rose-600" aria-label="Delete"><FaTrash size={12} /></button>
+                            <button onClick={() => openEdit(r)} className="rounded p-1.5 text-[var(--h-faint)] hover:bg-[var(--h-bsoft)] hover:text-[var(--h-brand)]" aria-label="Edit"><FaPen size={12} /></button>
+                            <button onClick={() => remove(r)} className="rounded p-1.5 text-[var(--h-faint)] hover:bg-rose-50 hover:text-rose-600" aria-label="Delete"><FaTrash size={12} /></button>
                           </div>
                         </td>
                       </tr>
@@ -204,10 +204,10 @@ export default function RoomsPanel({ restaurantId, formatCurrency, notify, types
               {canManage && <option value="__new__">＋ Add a new room type…</option>}
             </select>
             {newType && (
-              <div className="mt-2 grid grid-cols-[1fr_90px_auto] gap-2 rounded-lg border border-[#E4DCC9] bg-[#FBF9F4] p-2">
+              <div className="mt-2 grid grid-cols-[1fr_90px_auto] gap-2 rounded-lg border border-[var(--h-border2)] bg-[var(--h-surface)] p-2">
                 <input className={inputCls} placeholder="Type name (e.g. Deluxe)" value={newType.name} onChange={(e) => setNewType({ ...newType, name: e.target.value })} />
                 <input className={inputCls} type="number" min="0" placeholder="Rate" value={newType.rate} onChange={(e) => setNewType({ ...newType, rate: e.target.value })} />
-                <button onClick={addTypeInline} style={{ backgroundColor: '#9A7B45' }} className="rounded-lg px-3 text-sm font-semibold text-white hover:brightness-110">Add</button>
+                <button onClick={addTypeInline} style={{ backgroundColor: 'var(--h-brand)' }} className="rounded-lg px-3 text-sm font-semibold text-white hover:brightness-110">Add</button>
               </div>
             )}
           </Field>

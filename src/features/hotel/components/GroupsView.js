@@ -8,7 +8,7 @@ import { Modal, Field, inputCls, Btn } from './ui';
 const STATUS = [
   { v: 'tentative', l: 'Tentative', c: 'bg-[#F6EEDD] text-[#8A6721]', d: 'bg-[#B58836]' },
   { v: 'definite', l: 'Definite', c: 'bg-[#E7F1EA] text-[#356B4E]', d: 'bg-[#3E7C5A]' },
-  { v: 'closed', l: 'Closed', c: 'bg-[#EFEAE0] text-[#7A6F58]', d: 'bg-[#A79C88]' },
+  { v: 'closed', l: 'Closed', c: 'bg-[var(--h-chip)] text-[var(--h-text2)]', d: 'bg-[var(--h-faint)]' },
   { v: 'cancelled', l: 'Cancelled', c: 'bg-[#F5E6E2] text-[#8A3F31]', d: 'bg-[#9B4A3A]' },
 ];
 const statusMeta = (s) => STATUS.find((x) => x.v === s) || STATUS[0];
@@ -34,8 +34,8 @@ function Bar({ picked, blocked }) {
   const pct = blocked > 0 ? Math.min(100, Math.round((picked / blocked) * 100)) : 0;
   return (
     <div>
-      <div className="mb-1 flex items-center justify-between text-[11px] text-[#8A8172]"><span>Pickup</span><span className="tabular-nums">{picked}/{blocked} rooms</span></div>
-      <div className="h-2 overflow-hidden rounded-full bg-[#EDE7DB]"><div className="h-full rounded-full bg-[#9A7B45]" style={{ width: `${pct}%` }} /></div>
+      <div className="mb-1 flex items-center justify-between text-[11px] text-[var(--h-muted)]"><span>Pickup</span><span className="tabular-nums">{picked}/{blocked} rooms</span></div>
+      <div className="h-2 overflow-hidden rounded-full bg-[var(--h-track)]"><div className="h-full rounded-full bg-[var(--h-brand)]" style={{ width: `${pct}%` }} /></div>
     </div>
   );
 }
@@ -108,14 +108,14 @@ export default function GroupsView({ restaurantId, formatCurrency, notify }) {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="text-sm text-[#8A8172]">A block reserves rooms for an event at a negotiated rate. Blocked rooms are held out of general availability until guests pick them up or the balance is released.</p>
+        <p className="text-sm text-[var(--h-muted)]">A block reserves rooms for an event at a negotiated rate. Blocked rooms are held out of general availability until guests pick them up or the balance is released.</p>
         {canManage && <Btn onClick={openNew} disabled={!types.length}><FaPlus size={12} /> New block</Btn>}
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 py-10 text-[#A79C88]"><FaSpinner className="animate-spin" /> Loading…</div>
+        <div className="flex items-center gap-2 py-10 text-[var(--h-faint)]"><FaSpinner className="animate-spin" /> Loading…</div>
       ) : groups.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[#EBE4D6] py-12 text-center text-[#A79C88]">
+        <div className="rounded-xl border border-dashed border-[var(--h-border)] py-12 text-center text-[var(--h-faint)]">
           <FaLayerGroup className="mx-auto mb-2" size={22} />
           <div>No group blocks yet. Create one for a wedding, corporate stay or tour.</div>
         </div>
@@ -123,16 +123,16 @@ export default function GroupsView({ restaurantId, formatCurrency, notify }) {
         <div className="grid gap-3 md:grid-cols-2">
           {groups.map((g) => (
             <button key={g.id} onClick={() => setOpenId(g.id)}
-              className="rounded-2xl border border-[#EBE4D6] bg-white p-4 text-left shadow-[0_1px_2px_rgba(40,33,20,0.05)] transition hover:border-[#D8CDB6] hover:shadow-md">
+              className="rounded-2xl border border-[var(--h-border)] bg-white p-4 text-left shadow-[0_1px_2px_rgba(40,33,20,0.05)] transition hover:border-[var(--h-border2)] hover:shadow-md">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="font-serif text-[17px] font-semibold text-[#2A241B]">{g.name}</div>
-                  <div className="mt-0.5 text-[12px] text-[#9A9081]">{fmtDate(g.checkIn)} → {fmtDate(g.checkOut)}{g.company ? ` · ${g.company}` : ''}</div>
+                  <div className="font-serif text-[17px] font-semibold text-[var(--h-ink)]">{g.name}</div>
+                  <div className="mt-0.5 text-[12px] text-[var(--h-muted2)]">{fmtDate(g.checkIn)} → {fmtDate(g.checkOut)}{g.company ? ` · ${g.company}` : ''}</div>
                 </div>
                 <StatusChip status={g.status} />
               </div>
               <div className="mt-3"><Bar picked={g.roomsPicked || 0} blocked={g.roomsBlocked || 0} /></div>
-              <div className="mt-2 text-[11px] text-[#B3A88F]">{g.typeCount || 0} room type{g.typeCount === 1 ? '' : 's'} · {g.code}</div>
+              <div className="mt-2 text-[11px] text-[var(--h-faint2)]">{g.typeCount || 0} room type{g.typeCount === 1 ? '' : 's'} · {g.code}</div>
             </button>
           ))}
         </div>
@@ -174,15 +174,15 @@ export default function GroupsView({ restaurantId, formatCurrency, notify }) {
             </Field>
           </div>
 
-          <div className="rounded-xl border border-[#EBE4D6] bg-[#FBF9F4] p-3">
-            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8A8172]">Allotment — rooms per type</div>
+          <div className="rounded-xl border border-[var(--h-border)] bg-[var(--h-surface)] p-3">
+            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--h-muted)]">Allotment — rooms per type</div>
             {form.allotments.length === 0 ? (
-              <div className="text-[12px] text-[#A79C88]">No room types configured yet.</div>
+              <div className="text-[12px] text-[var(--h-faint)]">No room types configured yet.</div>
             ) : (
               <div className="space-y-2">
                 {form.allotments.map((a) => (
                   <div key={a.roomTypeId} className="grid grid-cols-12 items-center gap-2">
-                    <div className="col-span-6 truncate text-[13px] text-[#4A4335]">{a.typeName}</div>
+                    <div className="col-span-6 truncate text-[13px] text-[var(--h-ink2)]">{a.typeName}</div>
                     <div className="col-span-3"><input type="number" min="0" className={inputCls} value={a.roomsBlocked} onChange={(e) => setAllot(a.roomTypeId, { roomsBlocked: e.target.value })} placeholder="rooms" /></div>
                     <div className="col-span-3"><input type="number" min="0" step="0.01" className={inputCls} value={a.rate} onChange={(e) => setAllot(a.roomTypeId, { rate: e.target.value })} placeholder="rate/night" /></div>
                   </div>
@@ -254,49 +254,49 @@ function GroupDrawer({ restaurantId, groupId, types, money, notify, canManage, o
   const typeName = (id) => types.find((t) => t.id === id)?.name || (g?.allotments || []).find((a) => a.roomTypeId === id)?.typeName || 'Room';
 
   return createPortal(
-    <div className="fixed inset-0 z-[1000] flex justify-end bg-[#2A241B]/50 backdrop-blur-[2px]" onClick={onClose}>
-      <div className="flex h-full w-full max-w-lg flex-col bg-[#FBF9F4] shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between border-b border-[#EFE9DD] px-5 py-4">
+    <div className="fixed inset-0 z-[1000] flex justify-end bg-[color-mix(in_srgb,var(--h-ink)_50%,transparent)] backdrop-blur-[2px]" onClick={onClose}>
+      <div className="flex h-full w-full max-w-lg flex-col bg-[var(--h-surface)] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between border-b border-[var(--h-bsoft)] px-5 py-4">
           <div className="min-w-0">
-            <div className="font-serif text-[18px] font-semibold text-[#2A241B]">{g?.name || 'Block'}</div>
-            {g && <div className="mt-0.5 text-[12px] text-[#9A9081]">{fmtDate(g.checkIn)} → {fmtDate(g.checkOut)} · {g.code}</div>}
+            <div className="font-serif text-[18px] font-semibold text-[var(--h-ink)]">{g?.name || 'Block'}</div>
+            {g && <div className="mt-0.5 text-[12px] text-[var(--h-muted2)]">{fmtDate(g.checkIn)} → {fmtDate(g.checkOut)} · {g.code}</div>}
           </div>
           <div className="flex items-center gap-2">
             {g && <StatusChip status={g.status} />}
-            <button onClick={onClose} className="text-[#A79C88] hover:text-[#6E6656]"><FaTimes /></button>
+            <button onClick={onClose} className="text-[var(--h-faint)] hover:text-[var(--h-text)]"><FaTimes /></button>
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {loading || !g ? (
-            <div className="flex items-center gap-2 py-10 text-[#A79C88]"><FaSpinner className="animate-spin" /> Loading…</div>
+            <div className="flex items-center gap-2 py-10 text-[var(--h-faint)]"><FaSpinner className="animate-spin" /> Loading…</div>
           ) : (
             <div className="space-y-5">
               {(g.contactName || g.company || g.contactPhone) && (
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] text-[#6E6656]">
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] text-[var(--h-text)]">
                   {g.contactName && <span>{g.contactName}</span>}
-                  {g.company && <span className="inline-flex items-center gap-1"><FaBuilding size={10} className="text-[#A79C88]" /> {g.company}</span>}
-                  {g.contactPhone && <span className="inline-flex items-center gap-1"><FaPhone size={10} className="text-[#A79C88]" /> {g.contactPhone}</span>}
+                  {g.company && <span className="inline-flex items-center gap-1"><FaBuilding size={10} className="text-[var(--h-faint)]" /> {g.company}</span>}
+                  {g.contactPhone && <span className="inline-flex items-center gap-1"><FaPhone size={10} className="text-[var(--h-faint)]" /> {g.contactPhone}</span>}
                   {g.billTo === 'master' && <span className="rounded-full bg-[#EEEAF6] px-2 py-0.5 text-[11px] text-[#5A4A85]">Bill to company</span>}
                 </div>
               )}
 
               {/* Allotments */}
               <div>
-                <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8A8172]">Allotment</div>
-                <div className="overflow-hidden rounded-xl border border-[#EBE4D6]">
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--h-muted)]">Allotment</div>
+                <div className="overflow-hidden rounded-xl border border-[var(--h-border)]">
                   <table className="min-w-full text-sm">
-                    <thead className="bg-[#F3EFE6] text-[11px] uppercase tracking-wide text-[#8A8172]">
+                    <thead className="bg-[var(--h-hover)] text-[11px] uppercase tracking-wide text-[var(--h-muted)]">
                       <tr><th className="px-3 py-2 text-left font-medium">Room type</th><th className="px-3 py-2 text-right font-medium">Blocked</th><th className="px-3 py-2 text-right font-medium">Picked</th><th className="px-3 py-2 text-right font-medium">Left</th><th className="px-3 py-2 text-right font-medium">Rate</th></tr>
                     </thead>
-                    <tbody className="divide-y divide-[#F5F1E8]">
+                    <tbody className="divide-y divide-[var(--h-divider)]">
                       {g.allotments.map((a) => (
                         <tr key={a.roomTypeId}>
-                          <td className="px-3 py-2 text-[#2A241B]">{a.typeName}</td>
+                          <td className="px-3 py-2 text-[var(--h-ink)]">{a.typeName}</td>
                           <td className="px-3 py-2 text-right tabular-nums">{a.roomsBlocked}</td>
                           <td className="px-3 py-2 text-right tabular-nums text-[#356B4E]">{a.picked}</td>
-                          <td className="px-3 py-2 text-right tabular-nums text-[#9A7B45]">{a.remaining}</td>
-                          <td className="px-3 py-2 text-right tabular-nums text-[#6E6656]">{a.rate != null ? money(a.rate) : '—'}</td>
+                          <td className="px-3 py-2 text-right tabular-nums text-[var(--h-brand)]">{a.remaining}</td>
+                          <td className="px-3 py-2 text-right tabular-nums text-[var(--h-text)]">{a.rate != null ? money(a.rate) : '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -307,13 +307,13 @@ function GroupDrawer({ restaurantId, groupId, types, money, notify, canManage, o
               {/* Rooming list */}
               <div>
                 <div className="mb-2 flex items-center justify-between">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8A8172]">Rooming list ({rooming.length})</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--h-muted)]">Rooming list ({rooming.length})</div>
                   {['cancelled', 'closed'].includes(g.status) ? null : (
-                    <button onClick={() => setAdding((v) => !v)} className="inline-flex items-center gap-1.5 rounded-lg border border-[#DDD4C2] bg-white px-2.5 py-1 text-[12px] font-medium text-[#4A4335] hover:bg-[#F3EFE6]"><FaUserPlus size={11} /> Add guest</button>
+                    <button onClick={() => setAdding((v) => !v)} className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--h-border2)] bg-white px-2.5 py-1 text-[12px] font-medium text-[var(--h-ink2)] hover:bg-[var(--h-hover)]"><FaUserPlus size={11} /> Add guest</button>
                   )}
                 </div>
                 {adding && (
-                  <div className="mb-2 rounded-xl border border-[#EBE4D6] bg-white p-3">
+                  <div className="mb-2 rounded-xl border border-[var(--h-border)] bg-white p-3">
                     <div className="grid grid-cols-2 gap-2">
                       <input className={inputCls} value={guest.guestName} onChange={(e) => setGuest({ ...guest, guestName: e.target.value })} placeholder="Guest name" />
                       <input className={inputCls} value={guest.guestPhone} onChange={(e) => setGuest({ ...guest, guestPhone: e.target.value })} placeholder="Phone (optional)" />
@@ -331,18 +331,18 @@ function GroupDrawer({ restaurantId, groupId, types, money, notify, canManage, o
                   </div>
                 )}
                 {rooming.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-[#EBE4D6] py-6 text-center text-[12px] text-[#A79C88]">No pickups yet.</div>
+                  <div className="rounded-xl border border-dashed border-[var(--h-border)] py-6 text-center text-[12px] text-[var(--h-faint)]">No pickups yet.</div>
                 ) : (
-                  <div className="overflow-hidden rounded-xl border border-[#EBE4D6]">
+                  <div className="overflow-hidden rounded-xl border border-[var(--h-border)]">
                     <table className="min-w-full text-sm">
-                      <tbody className="divide-y divide-[#F5F1E8]">
+                      <tbody className="divide-y divide-[var(--h-divider)]">
                         {rooming.map((r) => (
-                          <tr key={r.id} className="hover:bg-[#F3EFE6]/60">
+                          <tr key={r.id} className="hover:bg-[color-mix(in_srgb,var(--h-hover)_60%,transparent)]">
                             <td className="px-3 py-2">
-                              <div className="font-medium text-[#2A241B]">{r.guestName}</div>
-                              <div className="text-[11px] text-[#A79C88]">{r.code}{r.roomNumber ? ` · Room ${r.roomNumber}` : ` · ${typeName(r.roomTypeId)} · unassigned`}</div>
+                              <div className="font-medium text-[var(--h-ink)]">{r.guestName}</div>
+                              <div className="text-[11px] text-[var(--h-faint)]">{r.code}{r.roomNumber ? ` · Room ${r.roomNumber}` : ` · ${typeName(r.roomTypeId)} · unassigned`}</div>
                             </td>
-                            <td className="px-3 py-2 text-right text-[12px] text-[#6E6656] tabular-nums">{fmtDate(r.checkIn)}→{fmtDate(r.checkOut)}</td>
+                            <td className="px-3 py-2 text-right text-[12px] text-[var(--h-text)] tabular-nums">{fmtDate(r.checkIn)}→{fmtDate(r.checkOut)}</td>
                             <td className="px-3 py-2 text-right"><span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${r.status === 'checked_in' ? 'bg-[#EAF0F5] text-[#3F5C79]' : r.status === 'cancelled' ? 'bg-[#F5E6E2] text-[#8A3F31]' : 'bg-[#E7F1EA] text-[#356B4E]'}`}>{String(r.status).replace('_', ' ')}</span></td>
                           </tr>
                         ))}
@@ -356,7 +356,7 @@ function GroupDrawer({ restaurantId, groupId, types, money, notify, canManage, o
         </div>
 
         {g && canManage && (
-          <div className="flex items-center justify-between gap-2 border-t border-[#EFE9DD] px-5 py-3">
+          <div className="flex items-center justify-between gap-2 border-t border-[var(--h-bsoft)] px-5 py-3">
             <button onClick={del} disabled={busy} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-[#9B4A3A] hover:bg-rose-50 disabled:opacity-50"><FaTrash size={11} /> Delete</button>
             <div className="flex gap-2">
               <Btn variant="ghost" onClick={release} disabled={busy}><FaUndo size={11} /> Release unpicked</Btn>

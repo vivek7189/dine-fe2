@@ -102,41 +102,41 @@ export default function CalendarBoard({ restaurantId, formatCurrency, notify }) 
       {/* toolbar */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <button onClick={() => setStart(addDays(start, -7))} className="rounded-lg border border-[#DFD7C6] p-2 text-[#6E6656] hover:bg-[#F3EFE6]" aria-label="Previous week"><FaChevronLeft size={12} /></button>
-          <button onClick={() => setStart(today)} className="rounded-lg border border-[#DFD7C6] px-3 py-1.5 text-sm font-medium text-[#4A4335] hover:bg-[#F3EFE6]">Today</button>
-          <button onClick={() => setStart(addDays(start, 7))} className="rounded-lg border border-[#DFD7C6] p-2 text-[#6E6656] hover:bg-[#F3EFE6]" aria-label="Next week"><FaChevronRight size={12} /></button>
-          <span className="ml-1 text-sm font-medium text-[#6E6656]">{rangeLabel}</span>
+          <button onClick={() => setStart(addDays(start, -7))} className="rounded-lg border border-[var(--h-border2)] p-2 text-[var(--h-text)] hover:bg-[var(--h-hover)]" aria-label="Previous week"><FaChevronLeft size={12} /></button>
+          <button onClick={() => setStart(today)} className="rounded-lg border border-[var(--h-border2)] px-3 py-1.5 text-sm font-medium text-[var(--h-ink2)] hover:bg-[var(--h-hover)]">Today</button>
+          <button onClick={() => setStart(addDays(start, 7))} className="rounded-lg border border-[var(--h-border2)] p-2 text-[var(--h-text)] hover:bg-[var(--h-hover)]" aria-label="Next week"><FaChevronRight size={12} /></button>
+          <span className="ml-1 text-sm font-medium text-[var(--h-text)]">{rangeLabel}</span>
         </div>
-        <div className="flex items-center gap-3 text-xs text-[#8A8172]">
+        <div className="flex items-center gap-3 text-xs text-[var(--h-muted)]">
           {unassigned > 0 && <span className="rounded-full bg-amber-50 px-2.5 py-1 font-medium text-amber-700">{unassigned} unassigned</span>}
           <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-[#6D5B9A]" /> Confirmed</span>
           <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-[#4E6E8E]" /> In-house</span>
-          <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-[#C3B9A3]" /> Departed</span>
+          <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-[var(--h-faint3)]" /> Departed</span>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 py-10 text-[#A79C88]"><FaSpinner className="animate-spin" /> Loading…</div>
+        <div className="flex items-center gap-2 py-10 text-[var(--h-faint)]"><FaSpinner className="animate-spin" /> Loading…</div>
       ) : rooms.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[#EBE4D6] py-16 text-center text-[#A79C88]">
-          <FaBed className="mx-auto mb-2" size={22} /> No rooms yet — add rooms in <span className="font-medium text-[#8A8172]">Rooms &amp; Types</span> first.
+        <div className="rounded-xl border border-dashed border-[var(--h-border)] py-16 text-center text-[var(--h-faint)]">
+          <FaBed className="mx-auto mb-2" size={22} /> No rooms yet — add rooms in <span className="font-medium text-[var(--h-muted)]">Rooms &amp; Types</span> first.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-[#EBE4D6] shadow-sm">
+        <div className="overflow-x-auto rounded-xl border border-[var(--h-border)] shadow-sm">
           <div className="min-w-[840px]">
             {/* header */}
-            <div className="flex border-b border-[#EBE4D6] bg-[#FAF7F0]/80">
-              <div className="w-40 flex-none border-r border-[#EBE4D6] px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-[#A79C88]">Room</div>
+            <div className="flex border-b border-[var(--h-border)] bg-[color-mix(in_srgb,var(--h-surface2)_80%,transparent)]">
+              <div className="w-40 flex-none border-r border-[var(--h-border)] px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--h-faint)]">Room</div>
               <div className="flex flex-1">
                 {days.map((d) => {
                   const wd = toDate(d).getUTCDay();
                   const isToday = d === today;
                   const free = Math.max(0, rooms.length - (occupiedByDay[d] || 0));
                   return (
-                    <div key={d} className={`flex-1 border-l border-[#F1ECE1] py-1.5 text-center ${isToday ? 'bg-[#F3EAD7]' : (wd === 0 || wd === 6) ? 'bg-[#F1ECE1]/70' : ''}`}>
-                      <div className={`text-[10px] font-medium uppercase ${isToday ? 'text-[#9A7B45]' : 'text-[#A79C88]'}`}>{WD[wd]}</div>
-                      <div className={`text-[13px] font-semibold tabular-nums ${isToday ? 'text-[#876A3A]' : 'text-[#4A4335]'}`}>{+d.split('-')[2]}</div>
-                      <div className={`text-[9px] tabular-nums ${free === 0 ? 'text-rose-400' : 'text-[#A79C88]'}`}>{free} free</div>
+                    <div key={d} className={`flex-1 border-l border-[var(--h-bsoft2)] py-1.5 text-center ${isToday ? 'bg-[var(--h-brand-soft)]' : (wd === 0 || wd === 6) ? 'bg-[color-mix(in_srgb,var(--h-bsoft2)_70%,transparent)]' : ''}`}>
+                      <div className={`text-[10px] font-medium uppercase ${isToday ? 'text-[var(--h-brand)]' : 'text-[var(--h-faint)]'}`}>{WD[wd]}</div>
+                      <div className={`text-[13px] font-semibold tabular-nums ${isToday ? 'text-[var(--h-brand-ink)]' : 'text-[var(--h-ink2)]'}`}>{+d.split('-')[2]}</div>
+                      <div className={`text-[9px] tabular-nums ${free === 0 ? 'text-rose-400' : 'text-[var(--h-faint)]'}`}>{free} free</div>
                     </div>
                   );
                 })}
@@ -145,20 +145,20 @@ export default function CalendarBoard({ restaurantId, formatCurrency, notify }) 
 
             {/* rows */}
             {rooms.map((room, idx) => (
-              <div key={room.id} className={`flex border-b border-[#F5F1E8] last:border-0 ${idx % 2 ? 'bg-[#FAF7F0]/30' : 'bg-white'} hover:bg-[#F3EAD7]/20`}>
-                <div className="w-40 flex-none border-r border-[#F1ECE1] px-3 py-2.5">
+              <div key={room.id} className={`flex border-b border-[var(--h-divider)] last:border-0 ${idx % 2 ? 'bg-[color-mix(in_srgb,var(--h-surface2)_30%,transparent)]' : 'bg-white'} hover:bg-[color-mix(in_srgb,var(--h-brand-soft)_20%,transparent)]`}>
+                <div className="w-40 flex-none border-r border-[var(--h-bsoft2)] px-3 py-2.5">
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-sm font-bold text-[#2A241B]">{room.roomNumber}</span>
-                    <span className="truncate text-[11px] capitalize text-[#A79C88]">{room.typeName || room.type || ''}</span>
+                    <span className="text-sm font-bold text-[var(--h-ink)]">{room.roomNumber}</span>
+                    <span className="truncate text-[11px] capitalize text-[var(--h-faint)]">{room.typeName || room.type || ''}</span>
                   </div>
-                  {room.floor != null && room.floor !== '' && <span className="text-[10px] text-[#C3B9A3]">Floor {room.floor}</span>}
+                  {room.floor != null && room.floor !== '' && <span className="text-[10px] text-[var(--h-faint3)]">Floor {room.floor}</span>}
                 </div>
                 <div className="relative flex flex-1">
                   {days.map((d) => {
                     const wd = toDate(d).getUTCDay();
                     return <button key={d} onClick={() => setNewFor({ roomId: room.id, checkIn: d, checkOut: addDays(d, 1) })}
-                      className={`group flex-1 border-l border-[#F1ECE1] ${d === today ? 'bg-[#F6EFE0]' : (wd === 0 || wd === 6) ? 'bg-[#FAF7F0]' : ''}`} aria-label={`Book room ${room.roomNumber} on ${d}`}>
-                      <span className="flex h-full min-h-[42px] items-center justify-center opacity-0 group-hover:opacity-100"><FaPlus size={9} className="text-[#CBB68C]" /></span>
+                      className={`group flex-1 border-l border-[var(--h-bsoft2)] ${d === today ? 'bg-[var(--h-brand-tint)]' : (wd === 0 || wd === 6) ? 'bg-[var(--h-surface2)]' : ''}`} aria-label={`Book room ${room.roomNumber} on ${d}`}>
+                      <span className="flex h-full min-h-[42px] items-center justify-center opacity-0 group-hover:opacity-100"><FaPlus size={9} className="text-[var(--h-brand-tint2)]" /></span>
                     </button>;
                   })}
                   {(byRoom[room.id] || []).map((r) => {
@@ -166,7 +166,7 @@ export default function CalendarBoard({ restaurantId, formatCurrency, notify }) 
                     if (!st) return null;
                     return (
                       <button key={r.id} onClick={() => setSelected(r)}
-                        style={{ ...st, backgroundColor: BAR_COLOR[r.status] || '#C3B9A3', color: '#fff' }}
+                        style={{ ...st, backgroundColor: BAR_COLOR[r.status] || 'var(--h-faint3)', color: '#fff' }}
                         title={`${r.guestName} · ${ymd(r.checkIn)} → ${ymd(r.checkOut)} · ${r.nights}n`}
                         className="absolute top-2 bottom-2 mx-[3px] flex items-center gap-1 overflow-hidden rounded-md px-2 text-[11px] font-semibold shadow-sm ring-1 ring-black/10 transition hover:brightness-110">
                         {r.status === 'checked_in' && <FaBed size={9} className="flex-none opacity-80" />}
@@ -195,15 +195,15 @@ export default function CalendarBoard({ restaurantId, formatCurrency, notify }) 
 
 function Stat({ icon: Icon, tone, label, value, sub }) {
   const tones = {
-    indigo: 'bg-[#F3EAD7] text-[#9A7B45]', sky: 'bg-sky-50 text-sky-600',
+    indigo: 'bg-[var(--h-brand-soft)] text-[var(--h-brand)]', sky: 'bg-sky-50 text-sky-600',
     emerald: 'bg-emerald-50 text-emerald-600', rose: 'bg-rose-50 text-rose-600',
   };
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-[#EBE4D6] bg-white px-3.5 py-3 shadow-sm">
+    <div className="flex items-center gap-3 rounded-xl border border-[var(--h-border)] bg-white px-3.5 py-3 shadow-sm">
       <span className={`flex h-9 w-9 flex-none items-center justify-center rounded-lg ${tones[tone]}`}><Icon size={14} /></span>
       <div className="min-w-0">
-        <div className="text-lg font-semibold leading-none text-[#2A241B] tabular-nums">{value}</div>
-        <div className="mt-0.5 truncate text-[11px] text-[#A79C88]">{label} · {sub}</div>
+        <div className="text-lg font-semibold leading-none text-[var(--h-ink)] tabular-nums">{value}</div>
+        <div className="mt-0.5 truncate text-[11px] text-[var(--h-faint)]">{label} · {sub}</div>
       </div>
     </div>
   );
