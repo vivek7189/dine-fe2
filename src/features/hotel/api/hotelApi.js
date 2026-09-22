@@ -52,7 +52,8 @@ const hotelApi = {
   assignRoom: (rid, id, roomId) => req(`${BASE}/reservations/${id}/assign`, { method: 'PATCH', body: withRid({ roomId }, rid) }),
   checkIn: (rid, id) => req(`${BASE}/reservations/${id}/check-in`, { method: 'POST', body: withRid({}, rid) }),
   checkOut: (rid, id) => req(`${BASE}/reservations/${id}/check-out`, { method: 'POST', body: withRid({}, rid) }),
-  cancelReservation: (rid, id, reason) => req(`${BASE}/reservations/${id}/cancel`, { method: 'POST', body: withRid({ reason }, rid) }),
+  cancelReservation: (rid, id, reason, waiveFee) => req(`${BASE}/reservations/${id}/cancel`, { method: 'POST', body: withRid({ reason, waiveFee }, rid) }),
+  takeDeposit: (rid, id, body) => req(`${BASE}/reservations/${id}/deposit`, { method: 'POST', body: withRid(body, rid) }),
 
   // ── Folio / charge-to-room ──
   folioByReservation: (rid, reservationId) => req(`${BASE}/folios/by-reservation/${reservationId}${qs({ restaurantId: rid })}`),
@@ -89,6 +90,13 @@ hotelApi.deleteRatePlan = (rid, id) => req(`${BASE}/rate-plans/${id}${qs({ resta
 hotelApi.seedRatePlans = (rid) => req(`${BASE}/rate-plans/seed-defaults`, { method: 'POST', body: withRid({}, rid) });
 hotelApi.quoteRatePlans = (rid, roomTypeId, checkIn, checkOut, promoCode) =>
   req(`${BASE}/rate-plans/quote${qs({ restaurantId: rid, roomTypeId, checkIn, checkOut, promoCode })}`);
+
+// ── Cancellation & no-show policies ──
+hotelApi.listPolicies = (rid, all) => req(`${BASE}/policies${qs({ restaurantId: rid, all: all ? 1 : undefined })}`);
+hotelApi.createPolicy = (rid, body) => req(`${BASE}/policies`, { method: 'POST', body: withRid(body, rid) });
+hotelApi.updatePolicy = (rid, id, body) => req(`${BASE}/policies/${id}`, { method: 'PATCH', body: withRid(body, rid) });
+hotelApi.deletePolicy = (rid, id) => req(`${BASE}/policies/${id}${qs({ restaurantId: rid })}`, { method: 'DELETE' });
+hotelApi.seedPolicy = (rid) => req(`${BASE}/policies/seed-default`, { method: 'POST', body: withRid({}, rid) });
 
 // ── Invoices (printable GST/tax folio) ──
 hotelApi.invoicePreview = (rid, folioId) => req(`${BASE}/invoices/preview${qs({ restaurantId: rid, folioId })}`);

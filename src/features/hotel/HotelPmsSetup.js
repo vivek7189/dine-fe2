@@ -1,18 +1,20 @@
 'use client';
 import React, { useState } from 'react';
-import { FaBed, FaDoorClosed, FaConciergeBell, FaPercent } from 'react-icons/fa';
+import { FaBed, FaDoorClosed, FaConciergeBell, FaPercent, FaShieldAlt } from 'react-icons/fa';
 import HotelShell from './components/HotelShell';
 import { HotelTabs } from './components/HotelTabs';
 import RoomTypesPanel from './components/RoomTypesPanel';
 import RoomsPanel from './components/RoomsPanel';
 import TaxSettingsPanel from './components/TaxSettingsPanel';
 import ServicesPanel from './components/ServicesPanel';
+import PoliciesPanel from './components/PoliciesPanel';
 
 const TABS = [
   { id: 'rooms', label: 'Rooms', icon: FaDoorClosed },
   { id: 'types', label: 'Room types', icon: FaBed },
   { id: 'services', label: 'Services', icon: FaConciergeBell },
   { id: 'taxes', label: 'Taxes', icon: FaPercent },
+  { id: 'policies', label: 'Policies', icon: FaShieldAlt },
 ];
 
 export default function HotelPmsSetup() {
@@ -27,6 +29,7 @@ export default function HotelPmsSetup() {
       {tab === 'types' && <RoomTypesPanel {...ctx} onChanged={() => setTypesRefreshKey((k) => k + 1)} />}
       {tab === 'services' && <ServicesPanel {...ctx} />}
       {tab === 'taxes' && <TaxSettingsPanel {...ctx} />}
+      {tab === 'policies' && <PoliciesPanel {...ctx} />}
     </>
   )}</HotelShell>;
 }
