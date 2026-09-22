@@ -15,12 +15,14 @@ const TABS = [
 
 export default function HotelRates() {
   const [tab, setTab] = useState('rates');
-  return <HotelShell>{(ctx) => (
-    <>
-      <h1 className="font-serif text-[28px] font-semibold leading-tight tracking-[-0.01em] text-[var(--h-ink)]">Rates &amp; Calendar</h1>
-      <p className="mt-1 mb-5 text-[13.5px] text-[var(--h-muted2)]">Per-date pricing and availability — the source of truth for direct bookings and channels.</p>
-      <HotelTabs tabs={TABS} active={tab} onChange={setTab} />
-      {tab === 'rates' ? <RateGrid {...ctx} /> : tab === 'plans' ? <RatePlansPanel {...ctx} /> : <ChannelsView {...ctx} />}
-    </>
-  )}</HotelShell>;
+  return (
+    <HotelShell icon={FaTags} title="Rates & Calendar" subtitle="Per-date pricing and availability — the source of truth for direct bookings and channels.">
+      {(ctx) => (
+        <>
+          <HotelTabs tabs={TABS} active={tab} onChange={setTab} />
+          {tab === 'rates' ? <RateGrid {...ctx} /> : tab === 'plans' ? <RatePlansPanel {...ctx} /> : <ChannelsView {...ctx} />}
+        </>
+      )}
+    </HotelShell>
+  );
 }

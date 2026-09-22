@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { FaBed, FaDoorClosed, FaConciergeBell, FaPercent, FaShieldAlt } from 'react-icons/fa';
+import { FaBed, FaDoorClosed, FaConciergeBell, FaPercent, FaShieldAlt, FaCog } from 'react-icons/fa';
 import HotelShell from './components/HotelShell';
 import { HotelTabs } from './components/HotelTabs';
 import RoomTypesPanel from './components/RoomTypesPanel';
@@ -20,16 +20,18 @@ const TABS = [
 export default function HotelPmsSetup() {
   const [tab, setTab] = useState('rooms');
   const [typesRefreshKey, setTypesRefreshKey] = useState(0);
-  return <HotelShell>{(ctx) => (
-    <>
-      <h1 className="font-serif text-[28px] font-semibold leading-tight tracking-[-0.01em] text-[var(--h-ink)]">Setup</h1>
-      <p className="mt-1 mb-5 text-[13.5px] text-[var(--h-muted2)]">Rooms, room types, add-on services and taxes.</p>
-      <HotelTabs tabs={TABS} active={tab} onChange={setTab} />
-      {tab === 'rooms' && <RoomsPanel {...ctx} typesRefreshKey={typesRefreshKey} />}
-      {tab === 'types' && <RoomTypesPanel {...ctx} onChanged={() => setTypesRefreshKey((k) => k + 1)} />}
-      {tab === 'services' && <ServicesPanel {...ctx} />}
-      {tab === 'taxes' && <TaxSettingsPanel {...ctx} />}
-      {tab === 'policies' && <PoliciesPanel {...ctx} />}
-    </>
-  )}</HotelShell>;
+  return (
+    <HotelShell icon={FaCog} title="Setup" subtitle="Rooms, room types, add-on services, taxes and policies.">
+      {(ctx) => (
+        <>
+          <HotelTabs tabs={TABS} active={tab} onChange={setTab} />
+          {tab === 'rooms' && <RoomsPanel {...ctx} typesRefreshKey={typesRefreshKey} />}
+          {tab === 'types' && <RoomTypesPanel {...ctx} onChanged={() => setTypesRefreshKey((k) => k + 1)} />}
+          {tab === 'services' && <ServicesPanel {...ctx} />}
+          {tab === 'taxes' && <TaxSettingsPanel {...ctx} />}
+          {tab === 'policies' && <PoliciesPanel {...ctx} />}
+        </>
+      )}
+    </HotelShell>
+  );
 }

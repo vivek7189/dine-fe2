@@ -564,26 +564,27 @@ export default function Sidebar({ isDashboardPage = false }) {
             </div>
           )}
 
-          {/* Workspace switcher — Restaurant ⇄ Hotel (only for hotel-enabled outlets) */}
-          {hotelEnabled && !isCollapsed && (
+          {/* Workspace switcher — Restaurant ⇄ Hotel. Shown for hotel-enabled
+              outlets, and always while inside the hotel workspace (so you can get back). */}
+          {(hotelEnabled || inHotel) && !isCollapsed && (
             <div className="px-3 pt-3">
-              <div className="flex rounded-xl bg-gray-100 p-1">
-                <button
-                  onClick={() => { if (inHotel) router.push('/home'); }}
-                  className={`flex-1 rounded-lg py-1.5 text-[12px] font-semibold transition ${!inHotel ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                >Restaurant</button>
-                <button
-                  onClick={() => { if (!inHotel) router.push('/hotel/pms/home'); }}
-                  className={`flex-1 rounded-lg py-1.5 text-[12px] font-semibold transition ${inHotel ? 'bg-white text-[var(--h-brand)] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                >Hotel</button>
+              <div className="grid grid-cols-2 gap-1 rounded-2xl border border-gray-200 bg-gray-50 p-1">
+                <button onClick={() => { if (inHotel) router.push('/home'); }}
+                  className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-[12px] font-semibold transition ${!inHotel ? 'bg-white text-gray-900 shadow-sm ring-1 ring-gray-200' : 'text-gray-500 hover:text-gray-800'}`}>
+                  <BiRestaurant size={14} /> Restaurant
+                </button>
+                <button onClick={() => { if (!inHotel) router.push('/hotel/pms/home'); }}
+                  className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-[12px] font-semibold transition ${inHotel ? 'bg-red-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>
+                  <FaHotel size={12} /> Hotel
+                </button>
               </div>
             </div>
           )}
-          {hotelEnabled && isCollapsed && (
+          {(hotelEnabled || inHotel) && isCollapsed && (
             <div className="px-2 pt-3">
               <button onClick={() => router.push(inHotel ? '/home' : '/hotel/pms/home')} title={inHotel ? 'Switch to Restaurant' : 'Switch to Hotel'}
-                className={`flex w-full items-center justify-center rounded-xl py-2 ${inHotel ? 'text-[var(--h-brand)]' : 'text-gray-500'} hover:bg-gray-100`}>
-                <FaHotel size={16} />
+                className={`flex w-full items-center justify-center rounded-xl py-2.5 transition ${inHotel ? 'bg-red-500 text-white' : 'text-gray-500 hover:bg-gray-100'}`}>
+                {inHotel ? <BiRestaurant size={16} /> : <FaHotel size={16} />}
               </button>
             </div>
           )}

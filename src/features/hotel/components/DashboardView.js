@@ -73,18 +73,13 @@ export default function DashboardView({ restaurantId, formatCurrency, notify }) 
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className={T.h1}>Front desk</h1>
-          <p className={`mt-1 ${T.sub}`}>{d.total} rooms · everything for today at a glance</p>
-        </div>
-        {/* quick actions */}
-        <div className="flex flex-wrap items-center gap-2">
-          <QuickAction icon={FaPlus} label="New booking" primary onClick={() => setBooking({})} />
-          <QuickAction icon={FaWalking} label="Walk-in" onClick={() => setBooking({ initial: walkInInitial })} />
-          <QuickAction icon={FaCalendarAlt} label="Tape chart" href="/hotel/pms/calendar" />
-          <QuickAction icon={FaBroom} label="Housekeeping" href="/hotel/pms/housekeeping" />
-        </div>
+      {/* quick actions toolbar */}
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        <QuickAction icon={FaPlus} label="New booking" primary onClick={() => setBooking({})} />
+        <QuickAction icon={FaWalking} label="Walk-in" onClick={() => setBooking({ initial: walkInInitial })} />
+        <QuickAction icon={FaCalendarAlt} label="Tape chart" href="/hotel/pms/calendar" />
+        <QuickAction icon={FaBroom} label="Housekeeping" href="/hotel/pms/housekeeping" />
+        <span className="ml-auto text-[12.5px] text-[var(--h-faint)]">{d.total} rooms</span>
       </div>
 
       {/* KPI cards */}
@@ -129,14 +124,14 @@ export default function DashboardView({ restaurantId, formatCurrency, notify }) 
           {rooms.map((room) => {
             const st = roomState(room);
             return (
-              <div key={room.id} className={`${T.card} overflow-hidden p-0`}>
-                <div className="border-l-[3px] px-3 py-2.5" style={{ borderColor: st.solid }}>
-                  <div className="flex items-start justify-between">
+              <div key={room.id} className="overflow-hidden rounded-2xl border border-[var(--h-border)] shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:shadow-md">
+                <div className="border-l-[3px] px-3 py-2.5" style={{ borderColor: st.solid, backgroundColor: `color-mix(in srgb, ${st.solid} 5%, var(--h-surface))` }}>
+                  <div className="flex items-start justify-between gap-1">
                     <span className="text-[17px] font-bold leading-none text-[var(--h-ink)]">{room.roomNumber}</span>
-                    <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: st.solid }}>{st.label.split(' · ')[1] || st.label}</span>
+                    <span className="rounded-full px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wide" style={{ color: st.solid, backgroundColor: `color-mix(in srgb, ${st.solid} 13%, transparent)` }}>{st.label.split(' · ')[1] || st.label}</span>
                   </div>
                   <div className="mt-1 text-[10px] uppercase tracking-wide text-[var(--h-faint)]">{room.typeName || room.type || ''}</div>
-                  <div className="mt-0.5 h-4 truncate text-[12px] text-[var(--h-ink2)]">{st.guest || ''}</div>
+                  <div className="mt-0.5 h-4 truncate text-[12px] font-medium text-[var(--h-ink2)]">{st.guest || ''}</div>
                 </div>
               </div>
             );

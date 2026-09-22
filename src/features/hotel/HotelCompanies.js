@@ -1,14 +1,14 @@
 'use client';
 import React from 'react';
+import { FaBuilding } from 'react-icons/fa';
 import HotelShell from './components/HotelShell';
 import CompaniesView from './components/CompaniesView';
 
 export default function HotelCompanies() {
-  return <HotelShell>{(ctx) => (
-    <>
-      <h1 className="font-serif text-[28px] font-semibold leading-tight tracking-[-0.01em] text-[var(--h-ink)]">City Ledger</h1>
-      <p className="mt-1 mb-6 text-[13.5px] text-[var(--h-muted2)]">Company accounts (bill-to-company) — transfer folios, track receivables, record settlements.</p>
-      <CompaniesView {...ctx} />
-    </>
-  )}</HotelShell>;
+  return (
+    <HotelShell icon={FaBuilding} title="City Ledger"
+      subtitle="Company accounts (bill-to-company) — transfer folios, track receivables, record settlements.">
+      {(ctx) => <CompaniesView {...ctx} />}
+    </HotelShell>
+  );
 }
