@@ -12,7 +12,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { isElectron } from '../../utils/platform';
-import { getStableTerminalId, getTerminalPrintRoles, setTerminalPrintRole } from '../../utils/terminalId';
+import { getStableTerminalId } from '../../utils/terminalId';
 import apiClient from '../../lib/api';
 import {
   FaNetworkWired,
@@ -74,26 +74,21 @@ export default function TerminalsTab({ restaurantId }) {
   // ── Multi-terminal printing ──
   // Master switch (server, printSettings.multiTerminalPrinting) is DEFAULT OFF → every
   // terminal prints exactly as today; single-POS / existing customers are 100% unchanged.
-  // When ON: each terminal prints only the orders IT created; QR/online/WhatsApp print on
-  // the Main terminal (server, printSettings.printTerminalId). Per-device Print KOT/Bills
-  // (localStorage) are overrides on top.
+  // When ON: each desktop terminal prints only the KOTs for orders IT created; QR / online /
+  // WhatsApp / tablet / phone orders (no owning terminal) print on the Main terminal (server,
+  // printSettings.printTerminalId).
   const [myStableId, setMyStableId] = useState(null);
   const [multiEnabled, setMultiEnabled] = useState(false);   // server: master switch
   const [mainTerminalId, setMainTerminalId] = useState(null); // server: designated Main
   const [savingServer, setSavingServer] = useState(false);
-  const [printKot, setPrintKot] = useState(true);             // local: this device's KOT override
-  const [printBill, setPrintBill] = useState(true);           // local: this device's Bills override
 
   const electronAvailable = isElectron();
   const api = (typeof window !== 'undefined' && electronAvailable) ? window.electronAPI?.lanHub : null;
 
-  // Load this terminal's stable id + its local switches + the restaurant's server print settings.
+  // Load this terminal's stable id + the restaurant's server print settings.
   useEffect(() => {
     let off = false;
     getStableTerminalId().then((id) => { if (!off) setMyStableId(id || null); }).catch(() => {});
-    const roles = getTerminalPrintRoles();
-    setPrintKot(roles.printKot);
-    setPrintBill(roles.printBill);
     if (restaurantId) {
       apiClient.getPrintSettings(restaurantId)
         .then((res) => {
@@ -106,16 +101,6 @@ export default function TerminalsTab({ restaurantId }) {
     }
     return () => { off = true; };
   }, [restaurantId]);
-
-  // Flip a role for THIS device only (localStorage). Default on = today's behaviour;
-  // turn KOT off on a cashier / bills off on a kitchen display to stop duplicates.
-  const toggleRole = useCallback((type) => {
-    if (type === 'bill') {
-      setPrintBill((prev) => { const next = !prev; setTerminalPrintRole('bill', next); return next; });
-    } else {
-      setPrintKot((prev) => { const next = !prev; setTerminalPrintRole('kot', next); return next; });
-    }
-  }, []);
 
   // Master switch — restaurant-wide (server). Off = today's behaviour everywhere.
   const toggleMulti = useCallback(async () => {
@@ -294,11 +279,10 @@ export default function TerminalsTab({ restaurantId }) {
         </div>
       </div>
 
-      {/* Multi-terminal printing — per-order print ownership (prevents duplicate KOT) */}
+      {/* Multi-terminal printing — per-order KOT ownership (prevents duplicate KOT) */}
       {electronAvailable && myStableId && (() => {
         const isMain = mainTerminalId && mainTerminalId === myStableId;
         const someoneElseMain = mainTerminalId && mainTerminalId !== myStableId;
-        const bothOff = multiEnabled && !printKot && !printBill;
         return (
           <div style={{ marginBottom: '24px', padding: '20px', background: '#fff', borderRadius: '14px', border: `1px solid ${multiEnabled ? '#fecaca' : '#e5e7eb'}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -328,28 +312,14 @@ export default function TerminalsTab({ restaurantId }) {
                 <PrintRoleRow
                   label="This is the Main terminal"
                   help={someoneElseMain
-                    ? 'Another terminal is currently the Main. Turn on to make THIS terminal print the QR / online / WhatsApp orders instead.'
-                    : 'Main prints the QR / online / WhatsApp orders (these have no terminal of their own). Pick exactly ONE terminal as Main.'}
+                    ? 'Another terminal is currently the Main. Turn on to make THIS terminal print the QR / online / WhatsApp / tablet orders instead.'
+                    : 'The Main terminal prints every order that has no terminal of its own — QR, online, WhatsApp, and orders taken on tablets / phones. Pick exactly ONE terminal as Main, and keep it switched on.'}
                   on={!!isMain}
                   onToggle={toggleMain}
                 />
-                <div style={{ height: '1px', background: '#f1f5f9' }} />
-                <PrintRoleRow
-                  label="Print KOT (kitchen tickets)"
-                  help="Kitchen tickets for orders rung up on THIS terminal. Turn OFF on a cashier that shouldn't print KOT."
-                  on={printKot}
-                  onToggle={() => toggleRole('kot')}
-                />
-                <div style={{ height: '1px', background: '#f1f5f9' }} />
-                <PrintRoleRow
-                  label="Print Bills / receipts"
-                  help="Customer bills and receipts on THIS terminal. Turn OFF on a kitchen-only screen."
-                  on={printBill}
-                  onToggle={() => toggleRole('bill')}
-                />
-                {bothOff && (
+                {!mainTerminalId && (
                   <div style={{ marginTop: '10px', fontSize: '12px', color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '8px 10px' }}>
-                    Both are off — this terminal won&apos;t print anything. Make sure another terminal covers KOT and Bills.
+                    No Main terminal set yet — until you pick one, QR / online / tablet orders still print on every terminal (as before). Set one terminal as Main to send them to a single printer.
                   </div>
                 )}
               </div>

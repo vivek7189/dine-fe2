@@ -4,6 +4,7 @@ import { getLocalServerUrl, setLocalServerUrl, isServerApp } from './localServer
 import { getApiBase, getCloudApiBase, setApiBase, clearApiBase, refreshRemoteBackend, DEFAULT_API_BASE, PG_API_BASE, BACKEND_URL_KEY, getBackendOverride, clearBackendOverride, getPublicBackend } from './apiBase';
 import { detectMultiTerminal } from '../utils/orderNumber';
 import { getStableTerminalId } from '../utils/terminalId';
+import { isElectron } from '../utils/platform';
 
 // Default cloud backend + the persisted-backend key both come from the SINGLE source
 // of truth (lib/apiBase.js). Never hardcode a backend URL or read the env directly
@@ -1546,11 +1547,15 @@ class ApiClient {
       } catch {}
     }
     // Multi-terminal print ownership: stamp WHICH terminal created this order (header) so the
-    // backend can route each KOT to exactly one terminal. Backend ignores it for public
-    // self-orders and only acts on it when the restaurant enables multiTerminalPrinting.
-    // Fail-open: if the id isn't resolved yet, omit → backend stores null → prints as today.
+    // backend can route each KOT to exactly one terminal. ONLY a real desktop printing station
+    // (Electron) claims ownership — tablets / phones / web / dine-app do NOT, so their orders
+    // carry no origin and print on the designated Main terminal (never owned by a device that
+    // can't print → no missed ticket). Backend also ignores it for public self-orders, and only
+    // acts on it when the restaurant enables multiTerminalPrinting. Fail-open: omit on any error.
     let _termHeader = {};
-    try { const _tid = await getStableTerminalId(); if (_tid) _termHeader = { 'X-Terminal-Id': _tid }; } catch { /* omit → fail-open */ }
+    try {
+      if (isElectron()) { const _tid = await getStableTerminalId(); if (_tid) _termHeader = { 'X-Terminal-Id': _tid }; }
+    } catch { /* omit → fail-open */ }
     console.log('📤 API Client - Creating order with data:', orderData);
     return this.request('/api/orders', {
       method: 'POST',

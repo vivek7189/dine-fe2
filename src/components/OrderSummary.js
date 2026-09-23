@@ -45,7 +45,7 @@ import { orderDisplayNumber } from '../utils/orderNumber';
 import { buildSplitInvoice } from '../utils/printTemplates/helpers';
 import { seatLabel, sanitizeSeat, getOrderItemKey } from '../utils/orderItemKey';
 import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint, buildKotDedupKey } from '../utils/printBridge';
-import { getTerminalPrintRoles } from '../utils/terminalId';
+import { isElectron } from '../utils/platform';
 import { resolveVariantTierPrice, resolveItemTierPrice } from '../utils/variantPricing';
 
 const CustomerDetailModal = dynamic(() => import('./CustomerDetailModal'), { ssr: false });
@@ -1038,10 +1038,11 @@ const OrderSummary = ({
     if (!orderSuccess?.kotData || typeof window === 'undefined') return;
     // Skip optimistic render (orderId is null before API returns) to avoid double-printing
     if (!orderSuccess.kotData.orderId) return;
-    // Multi-terminal (only when the master switch is ON): honor this device's Print-KOT
-    // override. Default OFF → unchanged for single-POS / existing customers. This is the
-    // OWNER printing its own order, so ownership is already satisfied; only the switch applies.
-    if (printSettings?.multiTerminalPrinting && !getTerminalPrintRoles().printKot) { window.__autoPrintKOT = false; return; }
+    // Multi-terminal (only when the master switch is ON): a desktop printing station owns and
+    // directly prints its own order's KOT (the realtime echo is de-duped). A NON-desktop device
+    // (tablet / phone / web) does NOT own it → skip the local direct print; the Main terminal
+    // prints it via realtime. Default OFF → unchanged for single-POS / existing customers.
+    if (printSettings?.multiTerminalPrinting && !isElectron()) { window.__autoPrintKOT = false; return; }
 
     const isNative = supportsNativeAutoPrint();
     const isRNWebView = typeof window !== 'undefined' && !!window.ReactNativeWebView;
@@ -1241,9 +1242,8 @@ const OrderSummary = ({
   //        OR: autoPrintOnCompleteBilling setting is ON (auto-print on every Complete Billing)
   useEffect(() => {
     if (!showInvoicePermanently || !invoice || typeof window === 'undefined') return;
-    // Multi-terminal (only when the master switch is ON): honor this device's Print-Bills
-    // override. Default OFF → unchanged for single-POS / existing customers.
-    if (printSettings?.multiTerminalPrinting && !getTerminalPrintRoles().printBill) { window.__autoPrintBill = false; return; }
+    // NOTE: bills are NOT routed by multi-terminal ownership — they print as today (a bill
+    // prints where it's settled). Only kitchen tickets (KOT) use multi-terminal ownership.
 
     const isNative = supportsNativeAutoPrint();
     const isRNWebView = typeof window !== 'undefined' && !!window.ReactNativeWebView;

@@ -11,7 +11,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { supportsNativeAutoPrint, printDocument, buildKotDedupKey } from '../utils/printBridge';
-import { getStableTerminalId, getTerminalPrintRoles } from '../utils/terminalId';
+import { getStableTerminalId } from '../utils/terminalId';
 import { generateKOTHTML, generateBillHTML } from '../utils/printHtmlGenerator';
 import { buildTokenSlipHTML } from '../utils/printFontSizes';
 import { isElectron, isReactNativeWebView } from '../utils/platform';
@@ -158,25 +158,23 @@ export function useAutoPrint(restaurantId, printSettings) {
     }
   }, []);
 
-  // ── Multi-terminal print ownership (gated by printSettings.multiTerminalPrinting) ──
+  // ── Multi-terminal KOT ownership (gated by printSettings.multiTerminalPrinting) ──
   // Master switch DEFAULT OFF → every terminal prints exactly as today (single-POS and all
-  // existing customers are 100% unchanged: the ownership rule + per-device switches below
-  // never run). When ON, each ticket has ONE owner: a POS order → the terminal that created
-  // it (event.originTerminalId); a QR / online / WhatsApp order (no origin) → the designated
-  // Main terminal (printSettings.printTerminalId). Per-device Print KOT/Bills act as an
-  // override on top. FAIL-OPEN everywhere: if our id can't be read, or no Main is set for a
-  // remote order, we PRINT (today's behavior) — a duplicate at worst, never a missed ticket.
-  const shouldPrintHere = useCallback((data, kind) => {
+  // existing customers are 100% unchanged; this rule never runs). When ON, each KOT has ONE
+  // owner: a POS order carries the desktop terminal that created it (event.originTerminalId,
+  // stamped ONLY by Electron printing stations); a QR / online / WhatsApp / tablet / dine-app
+  // order has no origin → the designated Main terminal (printSettings.printTerminalId) prints
+  // it. FAIL-OPEN: if our id can't be read, or no Main is set for an origin-less order, we
+  // PRINT (today's behavior) — a duplicate at worst, NEVER a missed ticket. Bills are NOT
+  // routed by ownership (they print as today) — only kitchen tickets.
+  const shouldPrintHere = useCallback((data) => {
     if (!printSettings?.multiTerminalPrinting) return true;   // feature OFF → 100% unchanged
-    const roles = getTerminalPrintRoles();                    // per-device override
-    if (kind === 'bill') { if (!roles.printBill) return false; }
-    else if (!roles.printKot) return false;
     const myId = myTerminalIdRef.current;
     const origin = data && (data.originTerminalId || null);
-    if (origin) return !myId || origin === myId;              // POS order → owner only (fail-open if id unknown)
-    const mainId = printSettings?.printTerminalId || null;    // remote order (QR/online/WhatsApp/legacy → no origin)
+    if (origin) return !myId || origin === myId;              // POS order → owner (a real printing terminal) only
+    const mainId = printSettings?.printTerminalId || null;    // origin-less order (QR/online/WhatsApp/tablet/legacy)
     if (!mainId || !myId) return true;                        // no Main set / unknown id → print (today's behavior)
-    return mainId === myId;                                    // remote → only the Main terminal
+    return mainId === myId;                                    // origin-less → only the Main terminal
   }, [printSettings]);
 
   // Report a remote-print diagnostic to the server (fire-and-forget). Only sends when the
@@ -299,7 +297,7 @@ export function useAutoPrint(restaurantId, printSettings) {
     if (!printSettings?.autoPrintOnKOT) return;
     const orderId = data.orderId || data.id;
     // Multi-terminal role: skip if this terminal is set NOT to print kitchen tickets.
-    if (!shouldPrintHere(data, 'kot')) {
+    if (!shouldPrintHere(data)) {
       logDiag({ phase: 'skipped', kind: 'kot', orderId, reason: 'not-this-terminal (multi-terminal ownership)' });
       return;
     }
@@ -393,7 +391,7 @@ export function useAutoPrint(restaurantId, printSettings) {
 
   const handleKotPrintRequest = useCallback(async (data) => {
     if (!printSettings?.autoPrintOnKOT) return true;
-    if (!shouldPrintHere(data, 'kot')) {
+    if (!shouldPrintHere(data)) {
       logDiag({ phase: 'skipped', kind: 'kot-request', orderId: data.orderId || data.id, reason: 'not-this-terminal (multi-terminal ownership)' });
       return true;
     }
@@ -457,10 +455,9 @@ export function useAutoPrint(restaurantId, printSettings) {
   const handleBillingPrint = useCallback(async (data) => {
     const isPreBill = data.isPreBill === true;
     console.log(`🖨️ AutoPrint: handleBillingPrint called, isPreBill=${isPreBill}, orderId=${data.orderId || data.id}`);
-    if (!shouldPrintHere(data, 'bill')) {
-      logDiag({ phase: 'skipped', kind: 'billing', orderId: data.orderId || data.id, reason: 'not-this-terminal (multi-terminal ownership)' });
-      return;
-    }
+    // NOTE: bills are intentionally NOT routed by multi-terminal ownership — they print
+    // exactly as today (a bill prints where it's settled, not where the order was created).
+    // Multi-terminal ownership applies to kitchen tickets (KOT) only.
     // Kenya KRA eTIMS: when live, the eTIMS flow prints the combined fiscal
     // receipt. Skip the normal final-bill print here (a pre-bill still prints).
     if (!isPreBill && typeof window !== 'undefined' && window.__etimsFiscalActive) {
@@ -634,9 +631,8 @@ export function useAutoPrint(restaurantId, printSettings) {
     if (!supportsNativeAutoPrint() || !restaurantId) return;
     if (isReactNativeWebView()) return;         // WebView prints via OrderSummary, not this hook
     if (!pollAutoKot || !pollEnabled) return;   // KOT auto-print must be on AND polling switched on
-    // Multi-terminal: skip polling only if this terminal never prints KOT (switch off). Ownership
-    // per-order is re-checked inside the handlers (shouldPrintHere) as each poll event is processed.
-    if (printSettings?.multiTerminalPrinting && !getTerminalPrintRoles().printKot) return;
+    // Multi-terminal ownership is applied per-order inside the handlers (shouldPrintHere) as
+    // each polled event is processed — so polling arms exactly as before; no terminal-level gate.
 
     let stopped = false;
     let timer = null;
