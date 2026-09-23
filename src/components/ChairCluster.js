@@ -36,6 +36,10 @@ export default function ChairCluster({
   const amountOf = (o) => Number(o?.amount ?? o?.finalAmount ?? o?.totalAmount ?? 0);
   const grandTotal = sorted.reduce((s, o) => s + amountOf(o), 0);
 
+  // Take only as much grid space as the chairs need (one column per chair, capped),
+  // instead of hogging the whole row. Extra chairs wrap inside the cluster.
+  const spanCols = Math.min(Math.max(sorted.length, 1), 4);
+
   // Elapsed since the order was placed (createdAt may be a Firestore Timestamp,
   // a {_seconds} blob, an ISO string, or a Date).
   const fmtElapsed = (createdAt) => {
@@ -70,11 +74,12 @@ export default function ChairCluster({
   return (
     <div
       style={{
-        gridColumn: '1 / -1',            // full-width cluster row, like a split table
+        gridColumn: `span ${spanCols}`,  // only as wide as its chairs (not the whole row)
         border: '1.5px solid #fcd34d',
         background: '#fffdf5',
         borderRadius: '14px',
         padding: '10px 12px',
+        minWidth: 0,
       }}
     >
       {/* Cluster header: Table N · X chairs · combined total */}
