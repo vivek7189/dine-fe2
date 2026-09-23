@@ -9,6 +9,7 @@ import Link from 'next/link';
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import AdditionalChargesSettings from '../../../components/AdditionalChargesSettings';
+import WhatsAppOrderingTab from '../../../components/WhatsAppOrderingTab';
 import { t, getCurrentLanguage, setLanguage, getAvailableLanguages } from '../../../lib/i18n';
 import NativePrinterSettings from '../../../components/NativePrinterSettings';
 import TerminalNumberSetting from '../../../components/TerminalNumberSetting';
@@ -6165,6 +6166,7 @@ const Admin = () => {
     { label: 'INTEGRATIONS', items: [
       { id: 'google-reviews', label: 'Google Reviews', icon: FaGoogle },
       { id: 'whatsapp', label: 'WhatsApp', icon: FaPhone },
+      { id: 'whatsapp-ordering', label: 'WhatsApp Ordering', icon: FaWhatsapp },
       { id: 'ecr-terminal', label: 'ECR Terminal', icon: FaCashRegister },
       { id: 'd365', label: 'Dynamics 365', icon: FaMicrosoft },
     ]},
@@ -15264,6 +15266,15 @@ const Admin = () => {
       {activeTab === 'whatsapp' && !(loading && restaurants.length === 0) && (
         <WhatsAppTab
           selectedRestaurant={selectedRestaurant}
+        />
+      )}
+
+      {activeTab === 'whatsapp-ordering' && !(loading && restaurants.length === 0) && (
+        <WhatsAppOrderingTab
+          restaurantId={selectedRestaurant?.id}
+          restaurantName={selectedRestaurant?.name || 'Your Restaurant'}
+          currencySymbol={selectedRestaurant?.currencySettings?.currencySymbol || selectedRestaurant?.currencySymbol || '₹'}
+          onGoToConnect={() => setActiveTab('whatsapp')}
         />
       )}
 
