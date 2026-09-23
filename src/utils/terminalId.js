@@ -72,3 +72,31 @@ export function getStableTerminalIdSync() {
   if (id) cached = id;
   return cached;
 }
+
+// ── Per-terminal print roles (multi-terminal duplicate prevention) ──────────────
+// Two LOCAL, per-device switches deciding what THIS terminal auto-prints:
+//   printKot  — kitchen tickets (orders, incl. QR/online/waiter)
+//   printBill — bills / receipts (and cash drawer)
+// Default BOTH true → the terminal prints everything, exactly like today. So a
+// single terminal, and any terminal nobody has reconfigured, is 100% unchanged.
+// With several terminals, the owner turns a type OFF on the terminals that
+// shouldn't print it (e.g. KOT off on the cashier) → no duplicate. Stored in
+// localStorage (per device, survives restarts, works offline, no server needed).
+const ROLE_KOT = 'dineopen_terminal_print_kot';
+const ROLE_BILL = 'dineopen_terminal_print_bill';
+
+/** @returns {{printKot:boolean, printBill:boolean}} — default both true; fail-open on any error. */
+export function getTerminalPrintRoles() {
+  if (typeof window === 'undefined') return { printKot: true, printBill: true };
+  try {
+    return {
+      printKot: window.localStorage.getItem(ROLE_KOT) !== '0',   // only an explicit '0' turns it off
+      printBill: window.localStorage.getItem(ROLE_BILL) !== '0',
+    };
+  } catch { return { printKot: true, printBill: true }; }
+}
+
+export function setTerminalPrintRole(type, on) {
+  if (typeof window === 'undefined') return;
+  try { window.localStorage.setItem(type === 'bill' ? ROLE_BILL : ROLE_KOT, on ? '1' : '0'); } catch { /* noop */ }
+}

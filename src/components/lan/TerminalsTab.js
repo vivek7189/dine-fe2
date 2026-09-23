@@ -12,8 +12,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { isElectron } from '../../utils/platform';
-import { getStableTerminalId } from '../../utils/terminalId';
-import apiClient from '../../lib/api';
+import { getStableTerminalId, getTerminalPrintRoles, setTerminalPrintRole } from '../../utils/terminalId';
 import {
   FaNetworkWired,
   FaDesktop,
@@ -51,39 +50,34 @@ export default function TerminalsTab({ restaurantId }) {
   const [loading, setLoading] = useState(true);
   const [codeCopied, setCodeCopied] = useState(false);
   const pollRef = useRef(null);
-  // Main print terminal (multi-terminal duplicate prevention)
+  // Per-terminal print roles (multi-terminal duplicate prevention). LOCAL to this
+  // device (localStorage), default BOTH on → single/unconfigured terminals unchanged.
   const [myStableId, setMyStableId] = useState(null);
-  const [printTerminalId, setPrintTerminalId] = useState(null);
-  const [savingMain, setSavingMain] = useState(false);
+  const [printKot, setPrintKot] = useState(true);
+  const [printBill, setPrintBill] = useState(true);
 
   const electronAvailable = isElectron();
   const api = (typeof window !== 'undefined' && electronAvailable) ? window.electronAPI?.lanHub : null;
 
-  // Load this terminal's stable id + the restaurant's designated Main print terminal.
+  // Load this terminal's stable id + its local print-role switches.
   useEffect(() => {
     let off = false;
     getStableTerminalId().then((id) => { if (!off) setMyStableId(id || null); }).catch(() => {});
-    if (restaurantId) {
-      apiClient.getPrintSettings(restaurantId)
-        .then((res) => { if (!off) { const ps = res?.printSettings || res || {}; setPrintTerminalId(ps.printTerminalId || null); } })
-        .catch(() => {});
-    }
+    const roles = getTerminalPrintRoles();
+    setPrintKot(roles.printKot);
+    setPrintBill(roles.printBill);
     return () => { off = true; };
-  }, [restaurantId]);
+  }, []);
 
-  // Designate/undesignate THIS terminal as the Main print terminal. One value on the
-  // restaurant → turning it on here clears it everywhere else. Off → every terminal
-  // prints (the pre-feature behaviour). Saved to the restaurant (printSettings).
-  const toggleMainTerminal = useCallback(async () => {
-    if (!restaurantId || !myStableId || savingMain) return;
-    const enabling = printTerminalId !== myStableId;
-    setSavingMain(true);
-    try {
-      await apiClient.updatePrintSettings(restaurantId, { printTerminalId: enabling ? myStableId : null });
-      setPrintTerminalId(enabling ? myStableId : null);
-    } catch { /* noop */ }
-    finally { setSavingMain(false); }
-  }, [restaurantId, myStableId, printTerminalId, savingMain]);
+  // Flip a role for THIS device only (localStorage). Default on = today's behaviour;
+  // turn KOT off on a cashier / bills off on a kitchen display to stop duplicates.
+  const toggleRole = useCallback((type) => {
+    if (type === 'bill') {
+      setPrintBill((prev) => { const next = !prev; setTerminalPrintRole('bill', next); return next; });
+    } else {
+      setPrintKot((prev) => { const next = !prev; setTerminalPrintRole('kot', next); return next; });
+    }
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!api) return;
@@ -239,34 +233,55 @@ export default function TerminalsTab({ restaurantId }) {
         </div>
       </div>
 
-      {/* Main print terminal — multi-terminal duplicate prevention */}
+      {/* This terminal's print roles — multi-terminal duplicate prevention */}
       {electronAvailable && myStableId && (() => {
-        const isThis = printTerminalId && printTerminalId === myStableId;
-        const someoneElse = printTerminalId && printTerminalId !== myStableId;
+        const bothOff = !printKot && !printBill;
+        const Row = ({ label, help, on, onToggle }) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 0' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b' }}>{label}</div>
+              <div style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.5, marginTop: '2px' }}>{help}</div>
+            </div>
+            <button
+              onClick={onToggle}
+              title={label}
+              style={{ width: '46px', height: '26px', borderRadius: '13px', border: 'none', flexShrink: 0, position: 'relative', background: on ? '#ef4444' : '#cbd5e1', cursor: 'pointer' }}
+            >
+              <span style={{ position: 'absolute', top: '3px', left: on ? '23px' : '3px', width: '20px', height: '20px', borderRadius: '50%', background: '#fff', transition: 'left .15s' }} />
+            </button>
+          </div>
+        );
         return (
-          <div style={{ marginBottom: '24px', padding: '20px', background: isThis ? '#eff6ff' : '#fff', borderRadius: '14px', border: `1px solid ${isThis ? '#bfdbfe' : '#e5e7eb'}` }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <FaDesktop style={{ color: '#ef4444' }} />
-                  <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>Main print terminal</h4>
-                </div>
-                <div style={{ fontSize: '12.5px', color: '#64748b', lineHeight: 1.6 }}>
-                  {isThis
-                    ? '✓ This terminal prints all QR / waiter / online (remote) orders. Other terminals still print the orders they ring up.'
-                    : someoneElse
-                      ? 'Another terminal is the Main printer, so remote orders print there. Turn on to make THIS the Main terminal.'
-                      : 'With more than one terminal, pick ONE Main terminal to print remote (QR / waiter / online) orders — prevents duplicate KOTs. Each terminal still prints the orders it rings up. Off = every terminal prints (can duplicate).'}
-                </div>
+          <div style={{ marginBottom: '24px', padding: '20px', background: '#fff', borderRadius: '14px', border: '1px solid #e5e7eb' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+              <FaDesktop style={{ color: '#ef4444' }} />
+              <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>What this terminal prints</h4>
+            </div>
+            <div style={{ fontSize: '12.5px', color: '#64748b', lineHeight: 1.6, marginBottom: '4px' }}>
+              Running more than one terminal? Turn OFF a type here so it doesn&apos;t print twice —
+              e.g. KOT off on the cashier, Bills off on a kitchen screen. Leave both ON (default)
+              and this terminal prints everything, exactly as before.
+            </div>
+            <Row
+              label="Print KOT (kitchen tickets)"
+              help="Kitchen tickets for orders rung up here AND remote QR / waiter / online orders."
+              on={printKot}
+              onToggle={() => toggleRole('kot')}
+            />
+            <div style={{ height: '1px', background: '#f1f5f9' }} />
+            <Row
+              label="Print Bills / receipts"
+              help="Customer bills, receipts and the cash drawer."
+              on={printBill}
+              onToggle={() => toggleRole('bill')}
+            />
+            {bothOff && (
+              <div style={{ marginTop: '10px', fontSize: '12px', color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '8px 10px' }}>
+                Both are off — this terminal won&apos;t print anything. Make sure another terminal covers KOT and Bills.
               </div>
-              <button
-                onClick={toggleMainTerminal}
-                disabled={savingMain}
-                title="Designate this terminal as the Main printer"
-                style={{ width: '46px', height: '26px', borderRadius: '13px', border: 'none', flexShrink: 0, position: 'relative', background: isThis ? '#ef4444' : '#cbd5e1', cursor: savingMain ? 'not-allowed' : 'pointer' }}
-              >
-                <span style={{ position: 'absolute', top: '3px', left: isThis ? '23px' : '3px', width: '20px', height: '20px', borderRadius: '50%', background: '#fff', transition: 'left .15s' }} />
-              </button>
+            )}
+            <div style={{ marginTop: '10px', fontSize: '11px', color: '#94a3b8', wordBreak: 'break-all' }}>
+              Device ID: {myStableId}
             </div>
           </div>
         );

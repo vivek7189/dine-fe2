@@ -11,7 +11,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { supportsNativeAutoPrint, printDocument, buildKotDedupKey } from '../utils/printBridge';
-import { getStableTerminalId } from '../utils/terminalId';
+import { getStableTerminalId, getTerminalPrintRoles } from '../utils/terminalId';
 import { generateKOTHTML, generateBillHTML } from '../utils/printHtmlGenerator';
 import { buildTokenSlipHTML } from '../utils/printFontSizes';
 import { isElectron, isReactNativeWebView } from '../utils/platform';
@@ -158,25 +158,13 @@ export function useAutoPrint(restaurantId, printSettings) {
     }
   }, []);
 
-  // ── Multi-terminal print ownership ──
-  // Decide whether THIS terminal should auto-print a realtime order. Rules (only
-  // active when the owner has designated a Main terminal — else 100% unchanged):
-  //   • Remote orders (QR / dine-app / online — carry an orderSource) → print ONLY
-  //     on the Main terminal. (Fail-open: if we can't read our own id, print, so a
-  //     remote ticket is never missed.)
-  //   • POS orders (rung up on a terminal — no orderSource) → skip here; the
-  //     terminal that placed it prints it directly. This stops a second terminal
-  //     (incl. the Main) from doubling a POS ticket, while each terminal still
-  //     prints the orders it rings up.
-  const isRemoteOrder = (data) => !!(data && (data.orderSource || data.orderType === 'customer_self_order'));
-  const shouldAutoPrintHere = useCallback((data) => {
-    const mainId = printSettings?.printTerminalId;
-    if (!mainId) return true;                    // no Main designated → unchanged
-    if (!isRemoteOrder(data)) return false;      // POS order → its own terminal prints it
-    const myId = myTerminalIdRef.current;
-    if (!myId) return true;                       // remote + id unknown → fail-open (never miss)
-    return mainId === myId;                        // remote → only the Main prints
-  }, [printSettings]);
+  // ── Multi-terminal print roles ──
+  // What THIS terminal auto-prints is decided by two LOCAL, per-device switches
+  // (getTerminalPrintRoles): printKot / printBill. Default BOTH true → prints
+  // everything, exactly as today (single terminal & any unconfigured terminal are
+  // 100% unchanged). With several terminals the owner turns a type OFF on the
+  // terminals that shouldn't print it → no duplicate. Fail-open: on any read
+  // error the roles default to true, so a ticket is never silently missed.
 
   // Report a remote-print diagnostic to the server (fire-and-forget). Only sends when the
   // restaurant has opted in (printSettings.printDiagnostics) OR the event is a failure — so
@@ -297,9 +285,9 @@ export function useAutoPrint(restaurantId, printSettings) {
   const handleKotCreated = useCallback(async (data) => {
     if (!printSettings?.autoPrintOnKOT) return;
     const orderId = data.orderId || data.id;
-    // Multi-terminal ownership: only the owner terminal prints this (see shouldAutoPrintHere).
-    if (!shouldAutoPrintHere(data)) {
-      logDiag({ phase: 'skipped', kind: 'kot', orderId, reason: isRemoteOrder(data) ? 'not-main-terminal' : 'pos-order-prints-on-its-own-terminal' });
+    // Multi-terminal role: skip if this terminal is set NOT to print kitchen tickets.
+    if (!getTerminalPrintRoles().printKot) {
+      logDiag({ phase: 'skipped', kind: 'kot', orderId, reason: 'terminal-print-kot-off' });
       return;
     }
     if (!orderId || wasPrinted(orderId, 'kot')) return;
@@ -392,8 +380,8 @@ export function useAutoPrint(restaurantId, printSettings) {
 
   const handleKotPrintRequest = useCallback(async (data) => {
     if (!printSettings?.autoPrintOnKOT) return true;
-    if (printSettings?.printTerminalId && myTerminalIdRef.current && printSettings.printTerminalId !== myTerminalIdRef.current) {
-      logDiag({ phase: 'skipped', kind: 'kot-request', orderId: data.orderId || data.id, reason: 'not-designated-print-terminal' });
+    if (!getTerminalPrintRoles().printKot) {
+      logDiag({ phase: 'skipped', kind: 'kot-request', orderId: data.orderId || data.id, reason: 'terminal-print-kot-off' });
       return true;
     }
     const orderId = data.orderId || data.id;
@@ -456,8 +444,8 @@ export function useAutoPrint(restaurantId, printSettings) {
   const handleBillingPrint = useCallback(async (data) => {
     const isPreBill = data.isPreBill === true;
     console.log(`🖨️ AutoPrint: handleBillingPrint called, isPreBill=${isPreBill}, orderId=${data.orderId || data.id}`);
-    if (printSettings?.printTerminalId && myTerminalIdRef.current && printSettings.printTerminalId !== myTerminalIdRef.current) {
-      logDiag({ phase: 'skipped', kind: 'billing', orderId: data.orderId || data.id, reason: 'not-designated-print-terminal' });
+    if (!getTerminalPrintRoles().printBill) {
+      logDiag({ phase: 'skipped', kind: 'billing', orderId: data.orderId || data.id, reason: 'terminal-print-bill-off' });
       return;
     }
     // Kenya KRA eTIMS: when live, the eTIMS flow prints the combined fiscal
@@ -629,13 +617,11 @@ export function useAutoPrint(restaurantId, printSettings) {
   const pollEnabled = printSettings?.kotPollingEnabled === true;
   const pollAutoKot = printSettings?.autoPrintOnKOT === true;
   const pollIntervalSec = printSettings?.kotPollingIntervalSec;
-  const pollTerminalId = printSettings?.printTerminalId || null;
   useEffect(() => {
     if (!supportsNativeAutoPrint() || !restaurantId) return;
     if (isReactNativeWebView()) return;         // WebView prints via OrderSummary, not this hook
     if (!pollAutoKot || !pollEnabled) return;   // KOT auto-print must be on AND polling switched on
-    // Designated-terminal setups: only the print terminal polls+prints (fail-open if id unknown).
-    if (pollTerminalId && myTerminalIdRef.current && pollTerminalId !== myTerminalIdRef.current) return;
+    if (!getTerminalPrintRoles().printKot) return; // this terminal is set NOT to print kitchen tickets
 
     let stopped = false;
     let timer = null;
@@ -750,5 +736,5 @@ export function useAutoPrint(restaurantId, printSettings) {
       clearTimeout(kickoff);
       if (timer) clearInterval(timer);
     };
-  }, [restaurantId, pollEnabled, pollAutoKot, pollIntervalSec, pollTerminalId]);
+  }, [restaurantId, pollEnabled, pollAutoKot, pollIntervalSec]);
 }

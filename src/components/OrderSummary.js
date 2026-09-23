@@ -45,6 +45,7 @@ import { orderDisplayNumber } from '../utils/orderNumber';
 import { buildSplitInvoice } from '../utils/printTemplates/helpers';
 import { seatLabel, sanitizeSeat, getOrderItemKey } from '../utils/orderItemKey';
 import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint, buildKotDedupKey } from '../utils/printBridge';
+import { getTerminalPrintRoles } from '../utils/terminalId';
 import { resolveVariantTierPrice, resolveItemTierPrice } from '../utils/variantPricing';
 
 const CustomerDetailModal = dynamic(() => import('./CustomerDetailModal'), { ssr: false });
@@ -1037,6 +1038,10 @@ const OrderSummary = ({
     if (!orderSuccess?.kotData || typeof window === 'undefined') return;
     // Skip optimistic render (orderId is null before API returns) to avoid double-printing
     if (!orderSuccess.kotData.orderId) return;
+    // Multi-terminal role: if THIS terminal is set not to print kitchen tickets,
+    // don't direct-print here (another terminal that has KOT on will). Default ON
+    // (getTerminalPrintRoles) → unchanged for single/unconfigured terminals.
+    if (!getTerminalPrintRoles().printKot) { window.__autoPrintKOT = false; return; }
 
     const isNative = supportsNativeAutoPrint();
     const isRNWebView = typeof window !== 'undefined' && !!window.ReactNativeWebView;
@@ -1236,6 +1241,9 @@ const OrderSummary = ({
   //        OR: autoPrintOnCompleteBilling setting is ON (auto-print on every Complete Billing)
   useEffect(() => {
     if (!showInvoicePermanently || !invoice || typeof window === 'undefined') return;
+    // Multi-terminal: skip auto bill-print on terminals whose Print Bills switch is OFF
+    // (Terminals & LAN tab). Default ON → single/unconfigured terminals unchanged.
+    if (!getTerminalPrintRoles().printBill) { window.__autoPrintBill = false; return; }
 
     const isNative = supportsNativeAutoPrint();
     const isRNWebView = typeof window !== 'undefined' && !!window.ReactNativeWebView;
