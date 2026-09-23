@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   FaWhatsapp, FaCheckCircle, FaExclamationTriangle, FaMotorcycle,
-  FaMoneyBillWave, FaLink, FaStore, FaCommentDots, FaInfoCircle,
+  FaMoneyBillWave, FaLink, FaStore, FaCommentDots, FaInfoCircle, FaListUl,
 } from 'react-icons/fa';
 import apiClient from '../lib/api';
 
@@ -30,6 +30,7 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
   const [requireAddress, setRequireAddress] = useState(true);
   const [paymentMode, setPaymentMode] = useState('pay_at_counter');
   const [paymentLink, setPaymentLink] = useState('');
+  const [orderingMode, setOrderingMode] = useState('chat');
   const [toast, setToast] = useState('');
 
   useEffect(() => { if (restaurantId) loadAll(); /* eslint-disable-next-line */ }, [restaurantId]);
@@ -47,6 +48,7 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
       setEnabled(!!c.enabled);
       setWelcomeMessage(c.welcomeMessage || `Welcome to *${restaurantName}*! 🍽️\n\nI can help you place an order.\nType *menu* to see our menu.`);
       setRequireAddress(c.requireAddress !== false);
+      setOrderingMode(c.orderingMode || 'chat');
       setPaymentMode(c.paymentMode || 'pay_at_counter');
       setPaymentLink(c.paymentLink || '');
     } catch (e) { /* ignore — show defaults */ }
@@ -62,6 +64,7 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
         enabled: nextEnabled != null ? nextEnabled : enabled,
         welcomeMessage,
         requireAddress,
+        orderingMode,
         paymentMode,
         paymentLink,
       };
@@ -154,6 +157,27 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
           {/* Step 3 — settings */}
           <div style={{ ...card, opacity: enabled ? 1 : 0.55, pointerEvents: enabled ? 'auto' : 'none' }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: '#9ca3af', letterSpacing: 0.6, marginBottom: 14 }}>STEP 3 · CONFIGURE</div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={label}><FaListUl style={{ marginRight: 6, verticalAlign: -1 }} />How customers order</label>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {[
+                  { id: 'chat', label: 'In chat', desc: 'Guided, step-by-step in WhatsApp' },
+                  { id: 'link', label: 'Web menu link', desc: 'Send a full-cart web page' },
+                  { id: 'both', label: 'Both', desc: 'Link + chat fallback' },
+                ].map(opt => {
+                  const active = orderingMode === opt.id;
+                  return (
+                    <button key={opt.id} onClick={() => setOrderingMode(opt.id)}
+                      style={{ flex: '1 1 150px', textAlign: 'left', padding: '10px 12px', borderRadius: 10, cursor: 'pointer', border: active ? `2px solid ${WA_GREEN}` : '1px solid #d1d5db', background: active ? '#f0fdf4' : '#fff' }}>
+                      <div style={{ fontWeight: 700, fontSize: 13.5, color: active ? '#065f46' : '#374151' }}>{opt.label}</div>
+                      <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 2 }}>{opt.desc}</div>
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 6 }}>The web link opens your online-order page (a real cart — best for large menus). Orders flow into your POS either way.</div>
+            </div>
 
             <div style={{ marginBottom: 16 }}>
               <label style={label}><FaCommentDots style={{ marginRight: 6, verticalAlign: -1 }} />Welcome message</label>
