@@ -7,6 +7,7 @@ import { FaEye, FaReceipt, FaTimes, FaMinus, FaChevronUp, FaWindowMaximize, FaCh
 import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
 import TableCard from './TableCard';
+import ChairCluster from './ChairCluster';
 import TableFloorPlan from './TableFloorPlan';
 import TableBillingModal from './TableBillingModal';
 import TableChecksSheet from './TableChecksSheet';
@@ -85,6 +86,30 @@ export default function DashboardTablesPanel({
   const isMobileEmbed = typeof window !== 'undefined' && !!window.__DINEOPEN_MOBILE_EMBED__;
   const [sliderOpen, setSliderOpen] = useState(false);
   const [sliderMinimized, setSliderMinimized] = useState(false);
+
+  // Per-chair ordering ('chair' mode): a table with 2+ open chair orders splits into
+  // one mini-card per chair (see ChairCluster). Fetched only in chair mode → non-chair
+  // restaurants make zero extra calls and are unchanged. Refreshes on order-event ticks.
+  const chairModeEnabled = posSettings?.seatOrdering === 'chair';
+  const [chairOrdersByTable, setChairOrdersByTable] = useState({});
+  useEffect(() => {
+    if (!chairModeEnabled || !selectedRestaurant?.id) { setChairOrdersByTable({}); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiClient.getOpenOrders(selectedRestaurant.id);
+        if (cancelled) return;
+        const map = {};
+        (res?.openOrders || []).forEach((o) => {
+          const tname = String(o?.tableNumber ?? '').trim();
+          if (!tname) return;
+          (map[tname.toLowerCase()] = map[tname.toLowerCase()] || []).push(o);
+        });
+        setChairOrdersByTable(map);
+      } catch { if (!cancelled) setChairOrdersByTable({}); }
+    })();
+    return () => { cancelled = true; };
+  }, [chairModeEnabled, selectedRestaurant?.id, recentlyUpdatedTableId]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [loadingOrder, setLoadingOrder] = useState(false);
   const [orderError, setOrderError] = useState(null);
@@ -943,6 +968,27 @@ export default function DashboardTablesPanel({
                     </div>
                   </div>
                 );
+              }
+              // Per-chair: a table with 2+ open chair orders splits into mini-cards.
+              if (chairModeEnabled) {
+                const tOrders = chairOrdersByTable[String(t.name || '').trim().toLowerCase()] || [];
+                const chairOrders = tOrders.filter(o => o?.chairNumber != null && String(o.chairNumber).trim() !== '');
+                if (chairOrders.length >= 2) {
+                  return (
+                    <ChairCluster
+                      key={t.id || tIdx}
+                      table={t}
+                      orders={tOrders}
+                      formatCurrency={formatCurrency}
+                      onOpenOrder={(synth) => { if (synth.currentOrderId) { if (sliderOpen) handleSliderClose(); router.push(`/dashboard?orderId=${synth.currentOrderId}&mode=edit&from=tables`); } }}
+                      onBill={(synth) => { if (synth.currentOrderId) openActionsModal({ ...synth, floor: group.info?.name, floorId: group.info?.id }); }}
+                      onPrintBill={(synth) => handlePrintBill(synth)}
+                      onPrintPreBill={(synth) => handlePrintPreBill(synth)}
+                      onPrintKOT={(synth) => handlePrintKOT(synth)}
+                      onQuickView={(e, synth) => handleQuickView(e, synth)}
+                    />
+                  );
+                }
               }
               const isRecentlyUpdated = recentlyUpdatedTableId && t.id === recentlyUpdatedTableId;
               return (
