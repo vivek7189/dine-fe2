@@ -4698,9 +4698,11 @@ const OrderSummary = ({
                 )}
               </div>
             )}
-            {/* Chair chips row — per-chair ordering (order-level; separate order per chair). */}
-            {chairModeEnabled && (
+            {/* Chair chips row — per-chair ordering (order-level; separate order per chair).
+                Only shown once a TABLE is selected (a chair has no meaning without a table). */}
+            {chairModeEnabled && (selectedTable || (tableNumber && String(tableNumber).trim())) && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }}>
+                <span style={{ flexShrink: 0, fontSize: '11px', fontWeight: '700', color: dm ? dm.textMuted : '#9ca3af', marginRight: '2px' }}>Chair:</span>
                 {[null, ...Array.from({ length: tableSeatCount }, (_, i) => i + 1)].map((seatNum) => {
                   const label = seatNum === null ? null : seatLabel(seatNum);
                   const isActive = (selectedChair == null ? null : String(selectedChair)) === (label == null ? null : String(label));
@@ -4721,9 +4723,9 @@ const OrderSummary = ({
                         border: isActive ? '1px solid #ef4444' : (dm ? '1px solid ' + dm.border : '1px solid #e2e8f0'),
                         transition: 'all 0.15s',
                       }}
-                      title={seatNum === null ? 'Whole table (no specific chair)' : `Place this order for chair ${label} (its own order/bill)`}
+                      title={seatNum === null ? 'Order for the full table (no specific chair)' : `Place this order for chair ${label} (its own order/bill)`}
                     >
-                      {seatNum === null ? 'Whole Table' : label}
+                      {seatNum === null ? 'Full Table' : label}
                     </button>
                   );
                 })}
