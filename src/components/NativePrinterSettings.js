@@ -708,33 +708,7 @@ export default function NativePrinterSettings({ restaurantId }) {
         })()}
       </div>
 
-      {/* ── Designated print terminal (multi-terminal) ── */}
-      {isElectronPlatform && myTerminalId && (() => {
-        const isThis = printTerminalId && printTerminalId === myTerminalId;
-        const someoneElse = printTerminalId && printTerminalId !== myTerminalId;
-        return (
-          <div style={{ marginBottom: '12px', padding: '10px 12px', borderRadius: '8px', background: isThis ? '#eff6ff' : '#fff', border: `1px solid ${isThis ? '#bfdbfe' : '#e5e7eb'}` }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#374151' }}>This terminal prints incoming orders</div>
-                <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>
-                  {isThis ? '✓ Incoming (waiter/app) KOTs auto-print on THIS terminal only.'
-                    : someoneElse ? 'Another terminal is the designated printer — this one won’t auto-print. Turn on to take over.'
-                      : 'Off = every open terminal prints (can duplicate KOTs when multiple terminals are open).'}
-                </div>
-              </div>
-              <button
-                onClick={togglePrintTerminal}
-                disabled={savingPrintTerminal}
-                title="Designate this terminal as the printer"
-                style={{ width: '42px', height: '24px', borderRadius: '12px', border: 'none', flexShrink: 0, position: 'relative', background: isThis ? '#2563eb' : '#cbd5e1', cursor: savingPrintTerminal ? 'not-allowed' : 'pointer', opacity: 1 }}
-              >
-                <span style={{ position: 'absolute', top: '2px', left: isThis ? '20px' : '2px', width: '20px', height: '20px', borderRadius: '50%', background: '#fff', transition: 'left .15s' }} />
-              </button>
-            </div>
-          </div>
-        );
-      })()}
+      {/* The "Main print terminal" control now lives on the Terminals & LAN tab. */}
 
       {/* ── Discover Printers ── */}
       <div style={{ display: 'flex', gap: '6px', marginBottom: '4px', alignItems: 'center' }}>

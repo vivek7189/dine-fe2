@@ -12,6 +12,8 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { isElectron } from '../../utils/platform';
+import { getStableTerminalId } from '../../utils/terminalId';
+import apiClient from '../../lib/api';
 import {
   FaNetworkWired,
   FaDesktop,
@@ -49,9 +51,39 @@ export default function TerminalsTab({ restaurantId }) {
   const [loading, setLoading] = useState(true);
   const [codeCopied, setCodeCopied] = useState(false);
   const pollRef = useRef(null);
+  // Main print terminal (multi-terminal duplicate prevention)
+  const [myStableId, setMyStableId] = useState(null);
+  const [printTerminalId, setPrintTerminalId] = useState(null);
+  const [savingMain, setSavingMain] = useState(false);
 
   const electronAvailable = isElectron();
   const api = (typeof window !== 'undefined' && electronAvailable) ? window.electronAPI?.lanHub : null;
+
+  // Load this terminal's stable id + the restaurant's designated Main print terminal.
+  useEffect(() => {
+    let off = false;
+    getStableTerminalId().then((id) => { if (!off) setMyStableId(id || null); }).catch(() => {});
+    if (restaurantId) {
+      apiClient.getPrintSettings(restaurantId)
+        .then((res) => { if (!off) { const ps = res?.printSettings || res || {}; setPrintTerminalId(ps.printTerminalId || null); } })
+        .catch(() => {});
+    }
+    return () => { off = true; };
+  }, [restaurantId]);
+
+  // Designate/undesignate THIS terminal as the Main print terminal. One value on the
+  // restaurant → turning it on here clears it everywhere else. Off → every terminal
+  // prints (the pre-feature behaviour). Saved to the restaurant (printSettings).
+  const toggleMainTerminal = useCallback(async () => {
+    if (!restaurantId || !myStableId || savingMain) return;
+    const enabling = printTerminalId !== myStableId;
+    setSavingMain(true);
+    try {
+      await apiClient.updatePrintSettings(restaurantId, { printTerminalId: enabling ? myStableId : null });
+      setPrintTerminalId(enabling ? myStableId : null);
+    } catch { /* noop */ }
+    finally { setSavingMain(false); }
+  }, [restaurantId, myStableId, printTerminalId, savingMain]);
 
   const refresh = useCallback(async () => {
     if (!api) return;
@@ -206,6 +238,39 @@ export default function TerminalsTab({ restaurantId }) {
           )}
         </div>
       </div>
+
+      {/* Main print terminal — multi-terminal duplicate prevention */}
+      {electronAvailable && myStableId && (() => {
+        const isThis = printTerminalId && printTerminalId === myStableId;
+        const someoneElse = printTerminalId && printTerminalId !== myStableId;
+        return (
+          <div style={{ marginBottom: '24px', padding: '20px', background: isThis ? '#eff6ff' : '#fff', borderRadius: '14px', border: `1px solid ${isThis ? '#bfdbfe' : '#e5e7eb'}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <FaDesktop style={{ color: '#ef4444' }} />
+                  <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>Main print terminal</h4>
+                </div>
+                <div style={{ fontSize: '12.5px', color: '#64748b', lineHeight: 1.6 }}>
+                  {isThis
+                    ? '✓ This terminal prints all QR / waiter / online (remote) orders. Other terminals still print the orders they ring up.'
+                    : someoneElse
+                      ? 'Another terminal is the Main printer, so remote orders print there. Turn on to make THIS the Main terminal.'
+                      : 'With more than one terminal, pick ONE Main terminal to print remote (QR / waiter / online) orders — prevents duplicate KOTs. Each terminal still prints the orders it rings up. Off = every terminal prints (can duplicate).'}
+                </div>
+              </div>
+              <button
+                onClick={toggleMainTerminal}
+                disabled={savingMain}
+                title="Designate this terminal as the Main printer"
+                style={{ width: '46px', height: '26px', borderRadius: '13px', border: 'none', flexShrink: 0, position: 'relative', background: isThis ? '#ef4444' : '#cbd5e1', cursor: savingMain ? 'not-allowed' : 'pointer' }}
+              >
+                <span style={{ position: 'absolute', top: '3px', left: isThis ? '23px' : '3px', width: '20px', height: '20px', borderRadius: '50%', background: '#fff', transition: 'left .15s' }} />
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Hub Mode Toggle */}
       <div style={{ marginBottom: '24px', padding: '20px', background: '#fff', borderRadius: '14px', border: '1px solid #e5e7eb' }}>

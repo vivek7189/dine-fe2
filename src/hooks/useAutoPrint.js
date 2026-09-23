@@ -11,6 +11,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { supportsNativeAutoPrint, printDocument, buildKotDedupKey } from '../utils/printBridge';
+import { getStableTerminalId } from '../utils/terminalId';
 import { generateKOTHTML, generateBillHTML } from '../utils/printHtmlGenerator';
 import { buildTokenSlipHTML } from '../utils/printFontSizes';
 import { isElectron, isReactNativeWebView } from '../utils/platform';
@@ -149,13 +150,33 @@ export function useAutoPrint(restaurantId, printSettings) {
   const myTerminalIdRef = useRef(null);
   const appVersionRef = useRef(null);
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.electronAPI?.getTerminalId) {
-      window.electronAPI.getTerminalId().then((id) => { myTerminalIdRef.current = id || null; }).catch(() => {});
-    }
+    // Build-proof terminal id (works even if the Electron preload didn't expose
+    // getTerminalId — the v1.14.146 bug — via a localStorage fallback).
+    getStableTerminalId().then((id) => { myTerminalIdRef.current = id || null; }).catch(() => {});
     if (typeof window !== 'undefined' && window.electronAPI?.getVersion) {
       window.electronAPI.getVersion().then((v) => { appVersionRef.current = v || null; }).catch(() => {});
     }
   }, []);
+
+  // ── Multi-terminal print ownership ──
+  // Decide whether THIS terminal should auto-print a realtime order. Rules (only
+  // active when the owner has designated a Main terminal — else 100% unchanged):
+  //   • Remote orders (QR / dine-app / online — carry an orderSource) → print ONLY
+  //     on the Main terminal. (Fail-open: if we can't read our own id, print, so a
+  //     remote ticket is never missed.)
+  //   • POS orders (rung up on a terminal — no orderSource) → skip here; the
+  //     terminal that placed it prints it directly. This stops a second terminal
+  //     (incl. the Main) from doubling a POS ticket, while each terminal still
+  //     prints the orders it rings up.
+  const isRemoteOrder = (data) => !!(data && (data.orderSource || data.orderType === 'customer_self_order'));
+  const shouldAutoPrintHere = useCallback((data) => {
+    const mainId = printSettings?.printTerminalId;
+    if (!mainId) return true;                    // no Main designated → unchanged
+    if (!isRemoteOrder(data)) return false;      // POS order → its own terminal prints it
+    const myId = myTerminalIdRef.current;
+    if (!myId) return true;                       // remote + id unknown → fail-open (never miss)
+    return mainId === myId;                        // remote → only the Main prints
+  }, [printSettings]);
 
   // Report a remote-print diagnostic to the server (fire-and-forget). Only sends when the
   // restaurant has opted in (printSettings.printDiagnostics) OR the event is a failure — so
@@ -276,9 +297,9 @@ export function useAutoPrint(restaurantId, printSettings) {
   const handleKotCreated = useCallback(async (data) => {
     if (!printSettings?.autoPrintOnKOT) return;
     const orderId = data.orderId || data.id;
-    // Designated-terminal gate: if a print terminal is chosen and this isn't it, skip (log why).
-    if (printSettings?.printTerminalId && myTerminalIdRef.current && printSettings.printTerminalId !== myTerminalIdRef.current) {
-      logDiag({ phase: 'skipped', kind: 'kot', orderId, reason: 'not-designated-print-terminal' });
+    // Multi-terminal ownership: only the owner terminal prints this (see shouldAutoPrintHere).
+    if (!shouldAutoPrintHere(data)) {
+      logDiag({ phase: 'skipped', kind: 'kot', orderId, reason: isRemoteOrder(data) ? 'not-main-terminal' : 'pos-order-prints-on-its-own-terminal' });
       return;
     }
     if (!orderId || wasPrinted(orderId, 'kot')) return;
