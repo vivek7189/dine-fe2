@@ -36,6 +36,26 @@ const ROLE_OPTIONS = [
   { value: 'manager', label: 'Manager' },
 ];
 
+// A single per-terminal print-role toggle row (Print KOT / Print Bills).
+// Module-scope so it isn't remounted on every parent render (keeps the knob animation).
+function PrintRoleRow({ label, help, on, onToggle }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 0' }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b' }}>{label}</div>
+        <div style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.5, marginTop: '2px' }}>{help}</div>
+      </div>
+      <button
+        onClick={onToggle}
+        title={label}
+        style={{ width: '46px', height: '26px', borderRadius: '13px', border: 'none', flexShrink: 0, position: 'relative', background: on ? '#ef4444' : '#cbd5e1', cursor: 'pointer' }}
+      >
+        <span style={{ position: 'absolute', top: '3px', left: on ? '23px' : '3px', width: '20px', height: '20px', borderRadius: '50%', background: '#fff', transition: 'left .15s' }} />
+      </button>
+    </div>
+  );
+}
+
 export default function TerminalsTab({ restaurantId }) {
   const [isHubMode, setIsHubMode] = useState(false);
   const [hubInfo, setHubInfo] = useState(null);
@@ -236,21 +256,6 @@ export default function TerminalsTab({ restaurantId }) {
       {/* This terminal's print roles — multi-terminal duplicate prevention */}
       {electronAvailable && myStableId && (() => {
         const bothOff = !printKot && !printBill;
-        const Row = ({ label, help, on, onToggle }) => (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 0' }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b' }}>{label}</div>
-              <div style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.5, marginTop: '2px' }}>{help}</div>
-            </div>
-            <button
-              onClick={onToggle}
-              title={label}
-              style={{ width: '46px', height: '26px', borderRadius: '13px', border: 'none', flexShrink: 0, position: 'relative', background: on ? '#ef4444' : '#cbd5e1', cursor: 'pointer' }}
-            >
-              <span style={{ position: 'absolute', top: '3px', left: on ? '23px' : '3px', width: '20px', height: '20px', borderRadius: '50%', background: '#fff', transition: 'left .15s' }} />
-            </button>
-          </div>
-        );
         return (
           <div style={{ marginBottom: '24px', padding: '20px', background: '#fff', borderRadius: '14px', border: '1px solid #e5e7eb' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
@@ -262,16 +267,16 @@ export default function TerminalsTab({ restaurantId }) {
               e.g. KOT off on the cashier, Bills off on a kitchen screen. Leave both ON (default)
               and this terminal prints everything, exactly as before.
             </div>
-            <Row
+            <PrintRoleRow
               label="Print KOT (kitchen tickets)"
               help="Kitchen tickets for orders rung up here AND remote QR / waiter / online orders."
               on={printKot}
               onToggle={() => toggleRole('kot')}
             />
             <div style={{ height: '1px', background: '#f1f5f9' }} />
-            <Row
+            <PrintRoleRow
               label="Print Bills / receipts"
-              help="Customer bills, receipts and the cash drawer."
+              help="Customer bills and receipts."
               on={printBill}
               onToggle={() => toggleRole('bill')}
             />
