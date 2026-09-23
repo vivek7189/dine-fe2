@@ -14,6 +14,7 @@ import { getCachedData, setCachedData } from '../../../lib/offlineDb';
 import OfflineBanner from '../../../components/OfflineBanner';
 import TableFloorPlan from '../../../components/TableFloorPlan';
 import TableCard from '../../../components/TableCard';
+import ChairCluster from '../../../components/ChairCluster';
 import TableActionsSheet from '../../../components/TableActionsSheet';
 import TableChecksSheet from '../../../components/TableChecksSheet';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
@@ -712,6 +713,34 @@ const TableManagement = () => {
   // Move order modal
   const [moveModalTable, setMoveModalTable] = useState(null);
   const posSettings = selectedRestaurant?.posSettings || {};
+
+  // Per-chair ordering ('chair' mode): a table can hold a SEPARATE open order per
+  // chair. When 2+ chairs are running on one table, we render one mini-card per chair
+  // (see ChairCluster) instead of a single table card. `chairOrdersByTable` maps a
+  // lowercased table name -> its open orders (each carrying chairNumber). Fetched only
+  // in chair mode, so non-chair restaurants make zero extra calls and are unchanged.
+  const chairModeEnabled = posSettings.seatOrdering === 'chair';
+  const [chairOrdersByTable, setChairOrdersByTable] = useState({});
+
+  useEffect(() => {
+    if (!chairModeEnabled || !selectedRestaurant?.id) { setChairOrdersByTable({}); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiClient.getOpenOrders(selectedRestaurant.id);
+        if (cancelled) return;
+        const map = {};
+        (res?.openOrders || []).forEach((o) => {
+          const tname = String(o?.tableNumber ?? o?.customerInfo?.tableNumber ?? '').trim();
+          if (!tname) return;
+          const key = tname.toLowerCase();
+          (map[key] = map[key] || []).push(o);
+        });
+        setChairOrdersByTable(map);
+      } catch { if (!cancelled) setChairOrdersByTable({}); }
+    })();
+    return () => { cancelled = true; };
+  }, [chairModeEnabled, selectedRestaurant?.id, pusherRefreshSignal]);
 
   // Dropdown state
   const [activeDropdown, setActiveDropdown] = useState(null);
@@ -2895,6 +2924,30 @@ const TableManagement = () => {
                             </div>
                           </div>
                         );
+                      }
+                      // Per-chair (chair mode): a table with 2+ open chair orders splits
+                      // into one mini-card per chair. Otherwise the normal card is used —
+                      // so single-order tables and non-chair restaurants are unchanged.
+                      if (chairModeEnabled) {
+                        const tOrders = chairOrdersByTable[String(table.name || '').trim().toLowerCase()] || [];
+                        const chairOrders = tOrders.filter(o => o?.chairNumber != null && String(o.chairNumber).trim() !== '');
+                        if (chairOrders.length >= 2) {
+                          return (
+                            <ChairCluster
+                              key={table.id}
+                              table={table}
+                              orders={tOrders}
+                              formatCurrency={formatCurrency}
+                              getElapsed={getElapsed}
+                              onOpenOrder={(synth) => handleTableAction('view-order', synth)}
+                              onBill={(synth) => { if (synth.currentOrderId) { setBillingModalTable(synth); setBillingModalOpen(true); } }}
+                              onPrintBill={(synth) => handlePrintBill(synth)}
+                              onPrintPreBill={(synth) => handlePrintPreBill(synth)}
+                              onPrintKOT={(synth) => handlePrintKOT(synth)}
+                              onQuickView={(e, synth) => handleQuickView(e, synth)}
+                            />
+                          );
+                        }
                       }
                       return renderCard(table);
                     });
