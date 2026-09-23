@@ -33,7 +33,7 @@ export default function ChairCluster({
     return ca.localeCompare(cb);
   });
 
-  const amountOf = (o) => Number(o?.finalAmount ?? o?.totalAmount ?? 0);
+  const amountOf = (o) => Number(o?.amount ?? o?.finalAmount ?? o?.totalAmount ?? 0);
   const grandTotal = sorted.reduce((s, o) => s + amountOf(o), 0);
 
   // Elapsed since the order was placed (createdAt may be a Firestore Timestamp,
@@ -61,8 +61,8 @@ export default function ChairCluster({
     ...table,
     status: 'occupied',
     currentOrderId: o.id,
-    currentOrderTotal: o.totalAmount ?? o.finalAmount,
-    currentOrderFinalAmount: o.finalAmount ?? o.totalAmount,
+    currentOrderTotal: o.amount ?? o.totalAmount ?? o.finalAmount,
+    currentOrderFinalAmount: o.amount ?? o.finalAmount ?? o.totalAmount,
     // keep the base table name; chair shown separately on each mini-card
     name: table.name,
   });
