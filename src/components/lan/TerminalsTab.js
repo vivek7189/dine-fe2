@@ -13,6 +13,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { isElectron } from '../../utils/platform';
 import { getStableTerminalId, getTerminalPrintRoles, setTerminalPrintRole } from '../../utils/terminalId';
+import apiClient from '../../lib/api';
 import {
   FaNetworkWired,
   FaDesktop,
@@ -70,24 +71,41 @@ export default function TerminalsTab({ restaurantId }) {
   const [loading, setLoading] = useState(true);
   const [codeCopied, setCodeCopied] = useState(false);
   const pollRef = useRef(null);
-  // Per-terminal print roles (multi-terminal duplicate prevention). LOCAL to this
-  // device (localStorage), default BOTH on → single/unconfigured terminals unchanged.
+  // ── Multi-terminal printing ──
+  // Master switch (server, printSettings.multiTerminalPrinting) is DEFAULT OFF → every
+  // terminal prints exactly as today; single-POS / existing customers are 100% unchanged.
+  // When ON: each terminal prints only the orders IT created; QR/online/WhatsApp print on
+  // the Main terminal (server, printSettings.printTerminalId). Per-device Print KOT/Bills
+  // (localStorage) are overrides on top.
   const [myStableId, setMyStableId] = useState(null);
-  const [printKot, setPrintKot] = useState(true);
-  const [printBill, setPrintBill] = useState(true);
+  const [multiEnabled, setMultiEnabled] = useState(false);   // server: master switch
+  const [mainTerminalId, setMainTerminalId] = useState(null); // server: designated Main
+  const [savingServer, setSavingServer] = useState(false);
+  const [printKot, setPrintKot] = useState(true);             // local: this device's KOT override
+  const [printBill, setPrintBill] = useState(true);           // local: this device's Bills override
 
   const electronAvailable = isElectron();
   const api = (typeof window !== 'undefined' && electronAvailable) ? window.electronAPI?.lanHub : null;
 
-  // Load this terminal's stable id + its local print-role switches.
+  // Load this terminal's stable id + its local switches + the restaurant's server print settings.
   useEffect(() => {
     let off = false;
     getStableTerminalId().then((id) => { if (!off) setMyStableId(id || null); }).catch(() => {});
     const roles = getTerminalPrintRoles();
     setPrintKot(roles.printKot);
     setPrintBill(roles.printBill);
+    if (restaurantId) {
+      apiClient.getPrintSettings(restaurantId)
+        .then((res) => {
+          if (off) return;
+          const ps = res?.printSettings || res || {};
+          setMultiEnabled(!!ps.multiTerminalPrinting);
+          setMainTerminalId(ps.printTerminalId || null);
+        })
+        .catch(() => {});
+    }
     return () => { off = true; };
-  }, []);
+  }, [restaurantId]);
 
   // Flip a role for THIS device only (localStorage). Default on = today's behaviour;
   // turn KOT off on a cashier / bills off on a kitchen display to stop duplicates.
@@ -98,6 +116,29 @@ export default function TerminalsTab({ restaurantId }) {
       setPrintKot((prev) => { const next = !prev; setTerminalPrintRole('kot', next); return next; });
     }
   }, []);
+
+  // Master switch — restaurant-wide (server). Off = today's behaviour everywhere.
+  const toggleMulti = useCallback(async () => {
+    if (!restaurantId || savingServer) return;
+    const next = !multiEnabled;
+    setMultiEnabled(next);            // optimistic
+    setSavingServer(true);
+    try { await apiClient.updatePrintSettings(restaurantId, { multiTerminalPrinting: next }); }
+    catch { setMultiEnabled(!next); } // revert on failure
+    finally { setSavingServer(false); }
+  }, [restaurantId, multiEnabled, savingServer]);
+
+  // Designate / clear THIS terminal as the Main (prints QR/online/WhatsApp). One value on the
+  // restaurant → turning it on here clears it everywhere else.
+  const toggleMain = useCallback(async () => {
+    if (!restaurantId || !myStableId || savingServer) return;
+    const enabling = mainTerminalId !== myStableId;
+    setMainTerminalId(enabling ? myStableId : null); // optimistic
+    setSavingServer(true);
+    try { await apiClient.updatePrintSettings(restaurantId, { printTerminalId: enabling ? myStableId : null }); }
+    catch { setMainTerminalId(enabling ? null : myStableId); } // revert
+    finally { setSavingServer(false); }
+  }, [restaurantId, myStableId, mainTerminalId, savingServer]);
 
   const refresh = useCallback(async () => {
     if (!api) return;
@@ -253,39 +294,68 @@ export default function TerminalsTab({ restaurantId }) {
         </div>
       </div>
 
-      {/* This terminal's print roles — multi-terminal duplicate prevention */}
+      {/* Multi-terminal printing — per-order print ownership (prevents duplicate KOT) */}
       {electronAvailable && myStableId && (() => {
-        const bothOff = !printKot && !printBill;
+        const isMain = mainTerminalId && mainTerminalId === myStableId;
+        const someoneElseMain = mainTerminalId && mainTerminalId !== myStableId;
+        const bothOff = multiEnabled && !printKot && !printBill;
         return (
-          <div style={{ marginBottom: '24px', padding: '20px', background: '#fff', borderRadius: '14px', border: '1px solid #e5e7eb' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-              <FaDesktop style={{ color: '#ef4444' }} />
-              <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>What this terminal prints</h4>
+          <div style={{ marginBottom: '24px', padding: '20px', background: '#fff', borderRadius: '14px', border: `1px solid ${multiEnabled ? '#fecaca' : '#e5e7eb'}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <FaDesktop style={{ color: '#ef4444' }} />
+                  <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>Multi-terminal printing</h4>
+                </div>
+                <div style={{ fontSize: '12.5px', color: '#64748b', lineHeight: 1.6 }}>
+                  Turn ON only if this restaurant runs <strong>2 or more POS terminals</strong>. It stops the
+                  same kitchen ticket printing on every terminal — each terminal prints only the orders it
+                  rings up. Leave OFF (default) for a single POS; everything prints exactly as today.
+                </div>
+              </div>
+              <button
+                onClick={toggleMulti}
+                disabled={savingServer}
+                title="Enable multi-terminal print ownership"
+                style={{ width: '46px', height: '26px', borderRadius: '13px', border: 'none', flexShrink: 0, position: 'relative', background: multiEnabled ? '#ef4444' : '#cbd5e1', cursor: savingServer ? 'not-allowed' : 'pointer' }}
+              >
+                <span style={{ position: 'absolute', top: '3px', left: multiEnabled ? '23px' : '3px', width: '20px', height: '20px', borderRadius: '50%', background: '#fff', transition: 'left .15s' }} />
+              </button>
             </div>
-            <div style={{ fontSize: '12.5px', color: '#64748b', lineHeight: 1.6, marginBottom: '4px' }}>
-              Running more than one terminal? Turn OFF a type here so it doesn&apos;t print twice —
-              e.g. KOT off on the cashier, Bills off on a kitchen screen. Leave both ON (default)
-              and this terminal prints everything, exactly as before.
-            </div>
-            <PrintRoleRow
-              label="Print KOT (kitchen tickets)"
-              help="Kitchen tickets for orders rung up here AND remote QR / waiter / online orders."
-              on={printKot}
-              onToggle={() => toggleRole('kot')}
-            />
-            <div style={{ height: '1px', background: '#f1f5f9' }} />
-            <PrintRoleRow
-              label="Print Bills / receipts"
-              help="Customer bills and receipts."
-              on={printBill}
-              onToggle={() => toggleRole('bill')}
-            />
-            {bothOff && (
-              <div style={{ marginTop: '10px', fontSize: '12px', color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '8px 10px' }}>
-                Both are off — this terminal won&apos;t print anything. Make sure another terminal covers KOT and Bills.
+
+            {multiEnabled && (
+              <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #f1f5f9' }}>
+                <PrintRoleRow
+                  label="This is the Main terminal"
+                  help={someoneElseMain
+                    ? 'Another terminal is currently the Main. Turn on to make THIS terminal print the QR / online / WhatsApp orders instead.'
+                    : 'Main prints the QR / online / WhatsApp orders (these have no terminal of their own). Pick exactly ONE terminal as Main.'}
+                  on={!!isMain}
+                  onToggle={toggleMain}
+                />
+                <div style={{ height: '1px', background: '#f1f5f9' }} />
+                <PrintRoleRow
+                  label="Print KOT (kitchen tickets)"
+                  help="Kitchen tickets for orders rung up on THIS terminal. Turn OFF on a cashier that shouldn't print KOT."
+                  on={printKot}
+                  onToggle={() => toggleRole('kot')}
+                />
+                <div style={{ height: '1px', background: '#f1f5f9' }} />
+                <PrintRoleRow
+                  label="Print Bills / receipts"
+                  help="Customer bills and receipts on THIS terminal. Turn OFF on a kitchen-only screen."
+                  on={printBill}
+                  onToggle={() => toggleRole('bill')}
+                />
+                {bothOff && (
+                  <div style={{ marginTop: '10px', fontSize: '12px', color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '8px 10px' }}>
+                    Both are off — this terminal won&apos;t print anything. Make sure another terminal covers KOT and Bills.
+                  </div>
+                )}
               </div>
             )}
-            <div style={{ marginTop: '10px', fontSize: '11px', color: '#94a3b8', wordBreak: 'break-all' }}>
+
+            <div style={{ marginTop: '12px', fontSize: '11px', color: '#94a3b8', wordBreak: 'break-all' }}>
               Device ID: {myStableId}
             </div>
           </div>

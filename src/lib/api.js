@@ -3,6 +3,7 @@ import { setCachedData, getCachedData } from './offlineDb';
 import { getLocalServerUrl, setLocalServerUrl, isServerApp } from './localServer';
 import { getApiBase, getCloudApiBase, setApiBase, clearApiBase, refreshRemoteBackend, DEFAULT_API_BASE, PG_API_BASE, BACKEND_URL_KEY, getBackendOverride, clearBackendOverride, getPublicBackend } from './apiBase';
 import { detectMultiTerminal } from '../utils/orderNumber';
+import { getStableTerminalId } from '../utils/terminalId';
 
 // Default cloud backend + the persisted-backend key both come from the SINGLE source
 // of truth (lib/apiBase.js). Never hardcode a backend URL or read the env directly
@@ -1544,11 +1545,18 @@ class ApiClient {
         if (op && op.id) { orderData.operatorId = op.id; orderData.operatorName = op.name || null; }
       } catch {}
     }
+    // Multi-terminal print ownership: stamp WHICH terminal created this order (header) so the
+    // backend can route each KOT to exactly one terminal. Backend ignores it for public
+    // self-orders and only acts on it when the restaurant enables multiTerminalPrinting.
+    // Fail-open: if the id isn't resolved yet, omit → backend stores null → prints as today.
+    let _termHeader = {};
+    try { const _tid = await getStableTerminalId(); if (_tid) _termHeader = { 'X-Terminal-Id': _tid }; } catch { /* omit → fail-open */ }
     console.log('📤 API Client - Creating order with data:', orderData);
     return this.request('/api/orders', {
       method: 'POST',
       body: orderData,
       ...extraOptions,
+      headers: { ...(extraOptions.headers || {}), ..._termHeader },
     });
   }
 
