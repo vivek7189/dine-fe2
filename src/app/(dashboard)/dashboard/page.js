@@ -306,6 +306,32 @@ function RestaurantPOSContent() {
   const activeSeatRef = useRef(null);
   useEffect(() => { activeSeatRef.current = seatOrderingEnabled ? activeSeat : null; }, [activeSeat, seatOrderingEnabled]);
 
+  // Per-chair ordering ('chair' mode): each chair is its OWN order/bill on the table
+  // (mirrors per-seat QR). selectedChair is an order-level letter ("A"/"B"…) or null
+  // (= whole table). Gated by chairModeEnabled; inert in every other mode so the
+  // normal single-order-per-table flow is unchanged.
+  const chairModeEnabled = posSettings.seatOrdering === 'chair';
+  const [selectedChair, setSelectedChair] = useState(null);
+  const selectedChairRef = useRef(null);
+  useEffect(() => { selectedChairRef.current = chairModeEnabled ? selectedChair : null; }, [selectedChair, chairModeEnabled]);
+  // Stamp the order-level chair onto a create/update payload. No-op (null) unless
+  // chair mode is on, so every existing order path is byte-for-byte unchanged.
+  const stampChair = (payload) => {
+    // Chair only applies to dine-in table orders — never stamp it on takeaway/delivery/room.
+    if (payload && typeof payload === 'object') payload.chairNumber = (chairModeEnabled && orderType === 'dine-in') ? (selectedChairRef.current || null) : null;
+    return payload;
+  };
+  // Chair chip handler: choosing a DIFFERENT chair than the order currently loaded must
+  // start a SEPARATE order for that chair (not re-tag/move the loaded one). If nothing
+  // is loaded yet (fresh build) we just set the chair. Only active in chair mode.
+  const handleSelectChair = (label) => {
+    if (chairModeEnabled && currentOrder && String(currentOrder.chairNumber ?? '') !== String(label ?? '')) {
+      setCurrentOrder(null);
+      setCart([]);
+    }
+    setSelectedChair(label);
+  };
+
   // Responsive panel width for order summary (tablet = narrower)
   const normalOrderPanelWidth = isTablet ? 340 : 450;
   // Wide "expanded" order panel (2-column). Width gate removed — Electron POS windows are often
@@ -2712,6 +2738,7 @@ function RestaurantPOSContent() {
       setCurrentOrder(null);
       setActiveSavedOrderId(null);
       setActiveSeat(null);
+      setSelectedChair(null);
       setCustomerName(''); setAssignedStaff(null);
       setCustomerMobile(''); setCustomerTin('');
       setCustomerData(null);
@@ -3289,6 +3316,7 @@ function RestaurantPOSContent() {
     setOrderComplete(false);
     setPlacingOrder(false);
     setActiveSavedOrderId(null);
+    setSelectedChair(null);
     localStorage.removeItem('dine_cart');
     if (typeof window !== 'undefined') router.replace(window.__DINEOPEN_MOBILE_EMBED__ ? '/mobile/dashboard' : '/dashboard');
     // Show success notification
@@ -3539,6 +3567,12 @@ function RestaurantPOSContent() {
                 return null;
               })();
               if (chairSeat != null) setActiveSeat(chairSeat);
+            }
+            // Per-chair mode: pre-select the order-level chair so subsequent adds / KOT /
+            // bill stay on the SAME chair as the order that was opened.
+            if (chairModeEnabled) {
+              const chairRaw = order.chairNumber ?? order.customerInfo?.chairNumber ?? cd.chairNumber ?? null;
+              setSelectedChair(chairRaw == null ? null : (String(chairRaw).trim() || null));
             }
           } else {
             // No table or room - default to table
@@ -4221,6 +4255,7 @@ function RestaurantPOSContent() {
           return;
         }
 
+        stampChair(updateData);
         const response = await apiClient.updateOrder(currentOrder.id, updateData);
 
         // Cloud returns { message, data: { orderId } }, Electron local fallback returns { order, success }
@@ -4506,6 +4541,7 @@ function RestaurantPOSContent() {
           return;
         }
 
+      stampChair(orderData);
       const orderResponse = await apiClient.createOrder(orderData);
       const orderId = orderResponse.order.id;
         console.log('✅ Order created successfully:', orderId);
@@ -5224,6 +5260,7 @@ function RestaurantPOSContent() {
         })()
       };
 
+      stampChair(updateData);
       const response = await apiClient.updateOrder(currentOrder.id, updateData);
 
       // Cloud returns { message, data: { orderId } }, Electron local fallback returns { order, success }
@@ -5440,6 +5477,7 @@ function RestaurantPOSContent() {
         const seatOnlyUpdate = baseUnchanged && cart.some(i => !preOldKeys.has(getOrderItemKey(i)));
         if (seatOnlyUpdate) updateData.skipKOT = true;
 
+        stampChair(updateData);
         const response = await apiClient.updateOrder(currentOrder.id, updateData);
 
         // Cloud returns { message, data: { orderId } }, Electron local fallback returns { order, success }
@@ -5874,6 +5912,7 @@ function RestaurantPOSContent() {
 
         // Fire API call
         try {
+          stampChair(orderData);
           const response = await apiClient.createOrder(orderData);
           console.log('Create order response:', response);
 
@@ -9491,6 +9530,9 @@ function RestaurantPOSContent() {
             seatOrderingEnabled={seatOrderingEnabled}
             activeSeat={activeSeat}
             setActiveSeat={setActiveSeat}
+            chairModeEnabled={chairModeEnabled && orderType === 'dine-in'}
+            selectedChair={selectedChair}
+            setSelectedChair={handleSelectChair}
             expanded={orderPanelExpandedActive}
             onToggleExpanded={toggleOrderPanelExpanded}
           />
@@ -9600,6 +9642,9 @@ function RestaurantPOSContent() {
                     seatOrderingEnabled={seatOrderingEnabled}
                     activeSeat={activeSeat}
                     setActiveSeat={setActiveSeat}
+                    chairModeEnabled={chairModeEnabled && orderType === 'dine-in'}
+                    selectedChair={selectedChair}
+                    setSelectedChair={handleSelectChair}
                   />
             )}
           </>

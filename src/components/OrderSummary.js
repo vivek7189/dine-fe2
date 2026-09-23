@@ -218,6 +218,11 @@ const OrderSummary = ({
   seatOrderingEnabled = false,
   activeSeat = null,
   setActiveSeat,
+  // Per-chair ordering (order-level chair; separate order per chair, like per-seat QR).
+  // Distinct from seatOrderingEnabled (per-item). Defaults keep all other callers unchanged.
+  chairModeEnabled = false,
+  selectedChair = null,
+  setSelectedChair,
   // Wide 2-column order panel (desktop only; controlled by dashboard, persisted in localStorage)
   expanded = false,
   onToggleExpanded,
@@ -1199,7 +1204,7 @@ const OrderSummary = ({
           orderData: {
             restaurantName: k.restaurantName || '',
             tableNumber: k.tableNumber || k.tableName || '',
-            chairNumber: k.chairNumber || null, // optional per-seat QR — shown next to table on KOT
+            chairNumber: k.chairNumber || selectedChair || null, // per-seat QR or POS per-chair — shown next to table on KOT
             floorName: k.floorName || '',
             roomNumber: k.roomNumber || '',
             orderNumber: orderDisplayNumber(k),
@@ -2464,7 +2469,7 @@ const OrderSummary = ({
           };
         }),
         tableNumber: tableNumber || selectedTable?.name || selectedTable?.number || '',
-        chairNumber: currentOrder?.chairNumber || null, // optional per-seat QR — shown next to table on bill
+        chairNumber: currentOrder?.chairNumber || selectedChair || null, // per-seat QR or POS per-chair — shown next to table on bill
         covers: covers,
         floorName: selectedTable?.floor || '',
         customerName: customerName || 'Walk-in',
@@ -4691,6 +4696,37 @@ const OrderSummary = ({
                     +
                   </button>
                 )}
+              </div>
+            )}
+            {/* Chair chips row — per-chair ordering (order-level; separate order per chair). */}
+            {chairModeEnabled && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }}>
+                {[null, ...Array.from({ length: tableSeatCount }, (_, i) => i + 1)].map((seatNum) => {
+                  const label = seatNum === null ? null : seatLabel(seatNum);
+                  const isActive = (selectedChair == null ? null : String(selectedChair)) === (label == null ? null : String(label));
+                  return (
+                    <button
+                      key={seatNum === null ? 'whole-table' : seatNum}
+                      onClick={() => setSelectedChair && setSelectedChair(label)}
+                      style={{
+                        flexShrink: 0,
+                        padding: seatNum === null ? '3px 10px' : '3px 8px',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        borderRadius: '999px',
+                        cursor: 'pointer',
+                        lineHeight: 1.2,
+                        backgroundColor: isActive ? '#ef4444' : (dm ? dm.card : '#ffffff'),
+                        color: isActive ? 'white' : (dm ? dm.textSec : '#6b7280'),
+                        border: isActive ? '1px solid #ef4444' : (dm ? '1px solid ' + dm.border : '1px solid #e2e8f0'),
+                        transition: 'all 0.15s',
+                      }}
+                      title={seatNum === null ? 'Whole table (no specific chair)' : `Place this order for chair ${label} (its own order/bill)`}
+                    >
+                      {seatNum === null ? 'Whole Table' : label}
+                    </button>
+                  );
+                })}
               </div>
             )}
             {cart.map((item) => (

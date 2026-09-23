@@ -11684,8 +11684,8 @@ const Admin = () => {
                   <FaChair size={18} color="#6b7280" />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <span style={{ fontSize: '13px', color: '#374151' }}>Seat-Level Ordering</span>
-                  <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '4px' }}>Assign items to individual seats (7A/7B/7C) while taking orders</div>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>Seat / Chair Ordering</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '4px' }}>How chairs are handled on POS while taking a dine-in order</div>
                   <select
                     value={posSettings.seatOrdering || ''}
                     onChange={(e) => setPosSettings(prev => ({ ...prev, seatOrdering: e.target.value }))}
@@ -11698,10 +11698,12 @@ const Admin = () => {
                       color: '#374151',
                       cursor: 'pointer',
                       outline: 'none',
+                      maxWidth: '320px',
                     }}
                   >
                     <option value="">Off</option>
-                    <option value="optional">On</option>
+                    <option value="optional">Per-item seats (one shared bill, items tagged 7A/7B/7C)</option>
+                    <option value="chair">Per-chair orders (separate order per chair — same as QR)</option>
                     {/* 'required' (force a seat on every item) is reserved for a
                         future phase — enforcement isn't implemented yet, so the
                         option is hidden to avoid a dead setting */}
