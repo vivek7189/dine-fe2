@@ -2212,6 +2212,21 @@ class ApiClient {
     return this.request(`/api/staff-bonuses/${restaurantId}/${bonusId}`, { method: 'DELETE' });
   }
 
+  // ── Staff appraisals (HR) ────────────────────────────────────────────
+  async getStaffAppraisals(restaurantId, options = {}) {
+    const q = new URLSearchParams(Object.entries(options).filter(([, v]) => v != null && v !== '')).toString();
+    return this.request(`/api/staff-appraisals/${restaurantId}${q ? `?${q}` : ''}`);
+  }
+  async createStaffAppraisal(restaurantId, data) {
+    return this.request(`/api/staff-appraisals/${restaurantId}`, { method: 'POST', body: data });
+  }
+  async updateStaffAppraisal(restaurantId, appraisalId, data) {
+    return this.request(`/api/staff-appraisals/${restaurantId}/${appraisalId}`, { method: 'PATCH', body: data });
+  }
+  async deleteStaffAppraisal(restaurantId, appraisalId) {
+    return this.request(`/api/staff-appraisals/${restaurantId}/${appraisalId}`, { method: 'DELETE' });
+  }
+
   // Terminal-lock PIN
   async verifyStaffPin(restaurantId, pin) {
     return this.request(`/api/staff/${restaurantId}/verify-pin`, { method: 'POST', body: { pin } });
