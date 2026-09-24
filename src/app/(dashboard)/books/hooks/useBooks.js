@@ -279,9 +279,9 @@ export default function useBooks() {
     } catch (err) { setError('Failed to delete config'); }
   };
 
-  const handleGeneratePayrollRun = async (month) => {
+  const handleGeneratePayrollRun = async (month, daysWorked) => {
     try {
-      await apiClient.generatePayrollRun(restaurantId, { month });
+      await apiClient.generatePayrollRun(restaurantId, { month, daysWorked: daysWorked || {} });
       setSuccess(`Payroll generated for ${month}`);
       fetchPayroll();
     } catch (err) { setError(err?.message || 'Failed to generate payroll run'); }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { FaPlus, FaPlay, FaCheck, FaEye, FaTimes, FaSave, FaTrash, FaMoneyBillWave, FaUsers, FaCalendarAlt, FaPrint } from 'react-icons/fa';
 
@@ -40,6 +40,8 @@ export default function PayrollTab({
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [daysWorked, setDaysWorked] = useState({}); // { staffId: '' | number } — blank = full month
 
   const [form, setForm] = useState({
     staffId: '', staffName: '', role: '', baseSalary: '',
@@ -226,7 +228,7 @@ export default function PayrollTab({
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <input type="month" value={runMonth} onChange={e => setRunMonth(e.target.value)}
               style={{ ...inputStyle, width: 'auto', padding: '8px 12px', fontSize: '13px' }} />
-            <button onClick={() => onGenerateRun(runMonth)} style={btnPrimary} disabled={configs.length === 0}>
+            <button onClick={() => { setDaysWorked({}); setShowGenerateModal(true); }} style={btnPrimary} disabled={configs.length === 0}>
               <FaPlay size={10} /> Generate
             </button>
           </div>
@@ -284,6 +286,47 @@ export default function PayrollTab({
           </div>
         )}
       </div>
+
+      {/* Generate Run Modal — optional per-staff days-worked to pro-rate salary */}
+      {showGenerateModal && typeof document !== 'undefined' && createPortal(
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10002, backdropFilter: 'blur(4px)' }} onClick={e => { if (e.target === e.currentTarget) setShowGenerateModal(false); }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '16px', width: '92%', maxWidth: '520px', maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: '18px 20px', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: 'white' }}>
+              <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>Generate Payroll — {runMonth}</h2>
+              <p style={{ margin: '4px 0 0', fontSize: '12px', opacity: 0.9 }}>Leave “Days worked” blank for full-month pay. Enter days only for staff who were absent — the salary is pro-rated (LOP for the missing days).</p>
+            </div>
+            <div style={{ padding: '12px 20px', overflowY: 'auto' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px 12px', alignItems: 'center' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Staff</div>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', textAlign: 'right' }}>Days worked</div>
+                {configs.map(cfg => (
+                  <Fragment key={cfg.staffId || cfg.id}>
+                    <div style={{ fontSize: '13px', color: '#111827' }}>
+                      {cfg.staffName || cfg.staffId} <span style={{ color: '#9ca3af', fontSize: '11px' }}>· {formatCurrency(cfg.grossPay || cfg.baseSalary || 0)}</span>
+                    </div>
+                    <input type="number" min="0" step="0.5" placeholder="Full"
+                      value={daysWorked[cfg.staffId] ?? ''}
+                      onChange={e => setDaysWorked(d => ({ ...d, [cfg.staffId]: e.target.value }))}
+                      style={{ ...inputStyle, width: '90px', padding: '8px 10px', fontSize: '13px', textAlign: 'right' }} />
+                  </Fragment>
+                ))}
+              </div>
+            </div>
+            <div style={{ padding: '14px 20px', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowGenerateModal(false)} style={{ ...inputStyle, width: 'auto', padding: '9px 16px', cursor: 'pointer', backgroundColor: '#f9fafb', fontWeight: 600 }}>Cancel</button>
+              <button onClick={() => {
+                const clean = {};
+                Object.entries(daysWorked).forEach(([sid, v]) => { if (v !== '' && v != null && !isNaN(Number(v))) clean[sid] = Number(v); });
+                onGenerateRun(runMonth, clean);
+                setShowGenerateModal(false);
+              }} style={btnPrimary}>
+                <FaPlay size={10} /> Generate
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Config Modal */}
       {showConfigModal && typeof document !== 'undefined' && createPortal(
