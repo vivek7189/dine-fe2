@@ -1084,6 +1084,17 @@ var CustomerDetail = function() {
                     </thead>
                     <tbody>
                       {walletData.walletHistory.map(function(txn, idx) {
+                        // Signed balance effect drives the credit/debit display so
+                        // refunds/re-charges never show with the wrong sign.
+                        var delta = (txn.type === 'redeem' || txn.type === 'restore_redebit')
+                          ? -Math.abs(Number(txn.amount) || 0)
+                          : (Number(txn.amount) || 0); // credit / refund_reversal / partial_refund_reversal (signed)
+                        var isCredit = delta >= 0;
+                        var typeLabels = {
+                          credit: 'Credit', redeem: 'Redeem', refund_reversal: 'Refund',
+                          partial_refund_reversal: 'Partial Refund', restore_redebit: 'Re-charge'
+                        };
+                        var label = typeLabels[txn.type] || (isCredit ? 'Credit' : 'Debit');
                         return (
                           <tr key={txn.id || idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
                             <td style={{ padding: '10px 12px', fontSize: '13px', color: '#374151' }}>
@@ -1093,14 +1104,14 @@ var CustomerDetail = function() {
                               <span style={{
                                 display: 'inline-flex', alignItems: 'center', gap: '4px',
                                 padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '600',
-                                backgroundColor: txn.type === 'credit' ? '#ecfdf5' : '#fef2f2',
-                                color: txn.type === 'credit' ? '#059669' : '#dc2626'
+                                backgroundColor: isCredit ? '#ecfdf5' : '#fef2f2',
+                                color: isCredit ? '#059669' : '#dc2626'
                               }}>
-                                {txn.type === 'credit' ? '+ Credit' : '- Redeem'}
+                                {(isCredit ? '+ ' : '- ') + label}
                               </span>
                             </td>
-                            <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: '13px', fontWeight: '600', color: txn.type === 'credit' ? '#059669' : '#dc2626' }}>
-                              {txn.type === 'credit' ? '+' : '-'}{formatCurrency(txn.amount)}
+                            <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: '13px', fontWeight: '600', color: isCredit ? '#059669' : '#dc2626' }}>
+                              {(isCredit ? '+' : '-')}{formatCurrency(Math.abs(delta))}
                             </td>
                             <td style={{ padding: '10px 12px', fontSize: '12px', color: '#6b7280' }}>
                               {(txn.reason || '').replace(/_/g, ' ')}
