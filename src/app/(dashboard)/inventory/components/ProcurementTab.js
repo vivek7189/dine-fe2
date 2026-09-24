@@ -494,9 +494,9 @@ export default function ProcurementTab({
               {supplierInvoices.map(inv => (
                 <tr key={inv.id || inv._id}>
                   <td style={{ ...td, fontWeight: 600 }}>{inv.invoiceNumber || inv.id || inv._id}</td>
-                  <td style={td}>{inv.supplierName || inv.supplier || '-'}</td>
-                  <td style={td}>{inv.date ? new Date(inv.date).toLocaleDateString() : '-'}</td>
-                  <td style={td}>{formatCurrency(inv.amount || inv.total || 0)}</td>
+                  <td style={td}>{inv.supplierName || inv.supplier || (suppliers.find(s => (s.id || s._id) === (inv.supplierId || inv.supplier_id))?.name) || '-'}</td>
+                  <td style={td}>{(() => { const d = inv.invoiceDate || inv.date || inv.invoice_date || inv.receivedDate || inv.createdAt; return d ? new Date(d).toLocaleDateString() : '-'; })()}</td>
+                  <td style={td}>{formatCurrency(inv.totalAmount || inv.amount || inv.total || inv.subtotal || 0)}</td>
                   <td style={td}>
                     <span style={badge(...Object.values(invoiceStatusColor(inv.status)))}>
                       {inv.status || 'unmatched'}
