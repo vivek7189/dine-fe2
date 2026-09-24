@@ -5950,12 +5950,15 @@ const OrderSummary = ({
                       </button>
                     )}
 
-                    {/* Customer Info Card — shows when customer found via lookup */}
+                    {/* Customer Info Card — orders/points chip. When the customer has a wallet
+                        balance it shares this row with a live wallet chip (below), so the cashier
+                        sees remaining balance and can apply it in one tap without opening the modal. */}
                     {lookupStatus === 'found' && customerData && (
+                      <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'stretch', gap: '6px' }}>
                       <button
                         onClick={() => setShowOffersModal(true)}
                         style={{
-                          gridColumn: '1 / -1',
+                          flex: walletBalance > 0 ? '0 1 auto' : '1 1 auto', minWidth: 0,
                           padding: isMobile ? '6px 10px' : '6px 12px',
                           borderRadius: '10px',
                           border: 'none',
@@ -5992,6 +5995,53 @@ const OrderSummary = ({
                         </span>
                         <FaChevronDown size={8} style={{ color: 'rgba(255,255,255,0.6)', marginLeft: isMobile ? 'auto' : '0', flexShrink: 0 }} />
                       </button>
+
+                      {/* Live wallet-balance chip — only when this customer has a positive balance.
+                          One-tap "Use" mirrors the Order Details modal (sets useWallet + prefills the
+                          redeem amount = min(balance, bill)); everything downstream already keys off
+                          useWallet + walletRedeemAmount, so no extra wiring is needed. */}
+                      {walletBalance > 0 && (
+                        <div style={{
+                          flex: '1 1 auto', minWidth: 0,
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px',
+                          padding: isMobile ? '6px 10px' : '6px 10px',
+                          borderRadius: '10px',
+                          border: `1px solid ${useWallet ? '#93c5fd' : '#bfdbfe'}`,
+                          background: dm ? '#0b213f' : '#eff6ff',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, overflow: 'hidden' }}>
+                            <FaWallet size={isMobile ? 11 : 10} style={{ color: '#2563eb', flexShrink: 0 }} />
+                            <span style={{ fontSize: isMobile ? '11px' : '10.5px', fontWeight: 800, color: dm ? '#bfdbfe' : '#1d4ed8', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {formatCurrency(walletBalance)}
+                            </span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const next = !useWallet;
+                              setUseWallet(next);
+                              if (next) {
+                                const billAmount = settleFinalAmount();
+                                setWalletRedeemAmount(String(Math.round(Math.min(walletBalance, Math.max(0, billAmount)) * 100) / 100));
+                              } else {
+                                setWalletRedeemAmount('');
+                              }
+                            }}
+                            title={useWallet ? t('common.cancel') : t('dashboard.use')}
+                            style={{
+                              flexShrink: 0,
+                              padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 700,
+                              background: useWallet ? '#dc2626' : '#2563eb', color: '#fff', border: 'none',
+                              cursor: 'pointer', transition: 'all 0.15s',
+                            }}
+                          >
+                            {useWallet ? t('common.cancel') : t('dashboard.use')}
+                          </button>
+                        </div>
+                      )}
+                      </div>
                     )}
 
                     {/* New Customer indicator — when phone entered but no profile found */}
