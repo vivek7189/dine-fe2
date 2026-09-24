@@ -986,6 +986,7 @@ export default function DashboardTablesPanel({
                       onPrintPreBill={(synth) => handlePrintPreBill(synth)}
                       onPrintKOT={(synth) => handlePrintKOT(synth)}
                       onQuickView={(e, synth) => handleQuickView(e, synth)}
+                      onNewChair={(tbl) => handleTakeOrderGuarded(tbl, group.info?.name, group.info?.id)}
                     />
                   );
                 }

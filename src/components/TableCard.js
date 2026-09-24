@@ -394,6 +394,17 @@ export default function TableCard({
                 }}>
                   <FaPlus size={isMobileEmbed ? 7 : 9} style={{ color: '#059669' }} /> Add
                 </button>
+                {/* Per-chair mode: start a SEPARATE order for another chair on this table
+                    (opens a fresh order via take-order; the waiter picks the next chair). */}
+                {chairModeOn && (
+                  <button className="tbl-action" title="Start a separate order for another chair" onClick={(e) => { e.stopPropagation(); onTableAction('take-order', table); }} style={{
+                    flex: 1, padding: isMobileEmbed ? '4px 4px' : '7px 8px', background: '#fff7ed', border: '1px solid #fed7aa', color: '#c2410c',
+                    borderRadius: isMobileEmbed ? '6px' : '8px', fontSize: isMobileEmbed ? '9px' : '11px', fontWeight: 700, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', whiteSpace: 'nowrap',
+                  }}>
+                    <FaPlus size={isMobileEmbed ? 7 : 9} /> Chair
+                  </button>
+                )}
                 {/* Complete Bill — primary action */}
                 <button className="tbl-action" onClick={(e) => {
                   e.stopPropagation();

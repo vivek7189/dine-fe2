@@ -2945,6 +2945,7 @@ const TableManagement = () => {
                               onPrintPreBill={(synth) => handlePrintPreBill(synth)}
                               onPrintKOT={(synth) => handlePrintKOT(synth)}
                               onQuickView={(e, synth) => handleQuickView(e, synth)}
+                              onNewChair={(tbl) => handleTableAction('take-order', tbl)}
                             />
                           );
                         }

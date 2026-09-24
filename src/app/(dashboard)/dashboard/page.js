@@ -2190,6 +2190,7 @@ function RestaurantPOSContent() {
         setCart([]);
         setCurrentOrder(null);
         setActiveSavedOrderId(null);
+        setSelectedChair(null); // fresh order for a table → start on "Full Table"; waiter picks the chair
         setCustomerName(''); setAssignedStaff(null);
         setCustomerMobile(''); setCustomerTin('');
         setCustomerData(null);

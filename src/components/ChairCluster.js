@@ -25,6 +25,7 @@ export default function ChairCluster({
   onPrintPreBill,           // (synthTable)
   onPrintKOT,               // (synthTable)
   onQuickView,              // (e, synthTable)
+  onNewChair,               // (table) => start a fresh order for another chair
 }) {
   // Sort by chair label so seats read A, B, C… (a whole-table order, if any, last).
   const sorted = [...orders].sort((a, b) => {
@@ -93,9 +94,20 @@ export default function ChairCluster({
             {sorted.length} chairs
           </span>
         </div>
-        <span style={{ fontWeight: 800, fontSize: '13px', color: '#b45309' }}>
-          {formatCurrency ? formatCurrency(grandTotal) : `₹${grandTotal}`}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {onNewChair && (
+            <button
+              onClick={() => onNewChair(table)}
+              title="Start a separate order for another chair"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '999px', border: '1px solid #fdba74', background: '#fff', color: '#c2410c', fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}
+            >
+              <FaPlus size={9} /> Chair
+            </button>
+          )}
+          <span style={{ fontWeight: 800, fontSize: '13px', color: '#b45309' }}>
+            {formatCurrency ? formatCurrency(grandTotal) : `₹${grandTotal}`}
+          </span>
+        </div>
       </div>
 
       {/* One compact mini-card per chair */}
