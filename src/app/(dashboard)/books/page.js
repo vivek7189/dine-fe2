@@ -11,6 +11,7 @@ import ExpensesTab from './components/ExpensesTab';
 import SupplierDuesTab from './components/SupplierDuesTab';
 import ProfitLossTab from './components/ProfitLossTab';
 import PayrollTab from './components/PayrollTab';
+import AdvancesTab from './components/AdvancesTab';
 import GSTReportsTab from './components/GSTReportsTab';
 import LedgerTab from './components/LedgerTab';
 import BooksModals from './components/BooksModals';
@@ -22,6 +23,7 @@ const tabs = [
   { id: 'supplier-dues', name: 'Payables', icon: FaTruck },
   { id: 'pnl', name: 'P&L', icon: FaBalanceScale },
   { id: 'payroll', name: 'Payroll', icon: FaUsers },
+  { id: 'advances', name: 'Advances', icon: FaMoneyBillWave },
   { id: 'gst', name: 'GST Reports', icon: FaFileInvoice },
   { id: 'ledger', name: 'Ledger', icon: FaListAlt },
 ];
@@ -157,6 +159,15 @@ export default function BooksPage() {
             onGenerateRun={books.handleGeneratePayrollRun}
             onUpdateRun={books.handleUpdatePayrollRun}
             onViewSlips={books.handleViewPaySlips}
+          />
+        )}
+        {activeTab === 'advances' && (
+          <AdvancesTab
+            restaurantId={books.restaurantId}
+            apiClient={books.apiClient}
+            staffList={books.staffList}
+            isMobile={books.isMobile}
+            formatCurrency={formatCurrency}
           />
         )}
         {activeTab === 'gst' && (
