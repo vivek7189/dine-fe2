@@ -101,14 +101,6 @@ const features = [
     href: '/hotel',
   },
   {
-    id: 'books',
-    name: 'Books & Accounting',
-    description: 'Track expenses, revenue, and generate financial reports',
-    icon: FaBook,
-    gradient: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-    href: '/books',
-  },
-  {
     id: 'google-reviews',
     name: 'Google Reviews',
     description: 'Monitor, reply to, and collect Google Reviews from customers',

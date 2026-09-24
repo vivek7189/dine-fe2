@@ -304,6 +304,7 @@ export default function Sidebar({ isDashboardPage = false }) {
     // (Hotel PMS is reached via the Restaurant⇄Hotel workspace switcher below, not a nav item.)
     // --- Tools & Extras ---
     { id: 'invoice', name: t('nav.invoice'), icon: FaFileInvoice, href: '/invoice', color: '#0ea5e9', roles: ['owner', 'admin', 'manager'] },
+    { id: 'books', name: 'Books', icon: FaBook, href: '/books', color: '#2563eb', roles: ['owner', 'admin', 'manager'] },
     // --- More (groups advanced features) ---
     { id: 'more', name: 'More', icon: FaThLarge, href: '/more', color: '#6366f1', roles: ['owner', 'admin', 'manager'] },
     // --- Settings (always last) ---
