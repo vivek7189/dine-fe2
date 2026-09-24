@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { FaChartLine, FaMoneyBillWave, FaReceipt, FaTruck, FaBalanceScale, FaBook, FaCheckCircle, FaTimesCircle, FaUsers, FaFileInvoice, FaListAlt } from 'react-icons/fa';
+import { FaChartLine, FaMoneyBillWave, FaReceipt, FaTruck, FaBalanceScale, FaBook, FaCheckCircle, FaTimesCircle, FaUsers, FaFileInvoice, FaListAlt, FaGift } from 'react-icons/fa';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import useBooks from './hooks/useBooks';
 import OverviewTab from './components/OverviewTab';
@@ -12,6 +12,7 @@ import SupplierDuesTab from './components/SupplierDuesTab';
 import ProfitLossTab from './components/ProfitLossTab';
 import PayrollTab from './components/PayrollTab';
 import AdvancesTab from './components/AdvancesTab';
+import BonusTab from './components/BonusTab';
 import GSTReportsTab from './components/GSTReportsTab';
 import LedgerTab from './components/LedgerTab';
 import BooksModals from './components/BooksModals';
@@ -24,6 +25,7 @@ const tabs = [
   { id: 'pnl', name: 'P&L', icon: FaBalanceScale },
   { id: 'payroll', name: 'Payroll', icon: FaUsers },
   { id: 'advances', name: 'Advances', icon: FaMoneyBillWave },
+  { id: 'bonus', name: 'Bonus', icon: FaGift },
   { id: 'gst', name: 'GST Reports', icon: FaFileInvoice },
   { id: 'ledger', name: 'Ledger', icon: FaListAlt },
 ];
@@ -163,6 +165,15 @@ export default function BooksPage() {
         )}
         {activeTab === 'advances' && (
           <AdvancesTab
+            restaurantId={books.restaurantId}
+            apiClient={books.apiClient}
+            staffList={books.staffList}
+            isMobile={books.isMobile}
+            formatCurrency={formatCurrency}
+          />
+        )}
+        {activeTab === 'bonus' && (
+          <BonusTab
             restaurantId={books.restaurantId}
             apiClient={books.apiClient}
             staffList={books.staffList}
