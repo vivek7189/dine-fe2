@@ -320,7 +320,10 @@ export default function useBooks() {
     else if (activeTab === 'expenses') fetchExpenses();
     else if (activeTab === 'supplier-dues') fetchSupplierDues();
     else if (activeTab === 'pnl') fetchPnl();
-    else if (activeTab === 'payroll') fetchPayroll();
+    // Payroll + Advances/Bonus/Appraisals all need staffList for their staff dropdown —
+    // fetchPayroll loads it. Without this, opening Advances directly left the staff
+    // picker empty until the user visited Payroll (the "names don't show first time" bug).
+    else if (activeTab === 'payroll' || activeTab === 'advances' || activeTab === 'bonus' || activeTab === 'appraisals') fetchPayroll();
   }, [activeTab, period, customStart, customEnd]);
 
   // Ensure subCategories is always a clean array
