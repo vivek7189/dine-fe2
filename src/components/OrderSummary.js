@@ -6013,7 +6013,15 @@ const OrderSummary = ({
                           <span style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, overflow: 'hidden' }}>
                             <FaWallet size={isMobile ? 11 : 10} style={{ color: '#2563eb', flexShrink: 0 }} />
                             <span style={{ fontSize: isMobile ? '11px' : '10.5px', fontWeight: 800, color: dm ? '#bfdbfe' : '#1d4ed8', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {formatCurrency(walletBalance)}
+                              {(() => {
+                                // While applied, show the balance that WILL remain after this order.
+                                // walletRedeemAmount is already capped at the bill (min(balance, bill)),
+                                // so remaining is clamped at 0 and never shows negative.
+                                const remaining = Math.max(0, Math.round((walletBalance - (parseFloat(walletRedeemAmount) || 0)) * 100) / 100);
+                                return useWallet
+                                  ? (<>{formatCurrency(remaining)} <span style={{ fontSize: isMobile ? '9px' : '8.5px', fontWeight: 600, color: dm ? '#93c5fd' : '#3b82f6' }}>left</span></>)
+                                  : formatCurrency(walletBalance);
+                              })()}
                             </span>
                           </span>
                           <button
