@@ -1229,6 +1229,12 @@ class ApiClient {
     return this.cachedGet(`/api/restaurants/${restaurantId}`, 10 * 60 * 1000);
   }
 
+  // Lightweight poll for the account/billing gate banner (super-admin controlled).
+  // Short cache so a newly-set/cleared notice surfaces within a couple of minutes.
+  async getBillingNotice(restaurantId) {
+    return this.cachedGet(`/api/restaurants/${restaurantId}/billing-notice`, 90 * 1000);
+  }
+
   async updateRestaurant(restaurantId, updateData) {
     const result = await this.request(`/api/restaurants/${restaurantId}`, {
       method: 'PATCH',

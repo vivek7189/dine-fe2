@@ -20,6 +20,7 @@ import SyncStatus from '../../components/SyncStatus';
 import SyncStatusDot from '../../components/SyncStatusDot';
 // Local-first: no online/offline routing switch. A read-only SyncStatusDot floats top-right.
 import OfflineFallback from '../../components/OfflineFallback';
+import AccountNoticeGate from '../../components/AccountNoticeGate';
 import { useKraRetryQueue } from '../../hooks/useKraRetryQueue';
 import { KraStatusContext } from '../../contexts/KraStatusContext';
 import { isWeb, isTauri, isElectron } from '../../utils/platform';
@@ -629,6 +630,10 @@ function DashboardLayoutContent({ children }) {
                 top-right toggle and no bottom-right pill cluttering the POS screen. */}
             {/* LAN-first resilience: if on Internet mode and it drops, fall back to local server */}
             <OfflineFallback />
+
+            {/* Per-restaurant account/billing gate banner (super-admin controlled).
+                Self-portals to <body>; info→bottom banner, warning→popup, blocking→full-screen. */}
+            <AccountNoticeGate />
 
             {/* KRA eTIMS health banner is no longer floated on every page — the auto-retry WORKER
                 still runs here (useKraRetryQueue above, draining pending sales in the background on
