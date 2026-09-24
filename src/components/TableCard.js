@@ -95,7 +95,11 @@ export default function TableCard({
   // Dynamic parties (Path A): a base dine-in table can host multiple independently-billed
   // parties (Party A = this table, B/C/… = siblings). Not offered for sub-tables, party
   // siblings, merged or split tables. Guarded by the onAddParty handler being passed.
-  const partiesEnabled = !!onAddParty && !table.isSubTable && !table.isPartyTable && !table.isSplit && !table.mergeGroupId && !table.mergedInto;
+  // Per-chair mode uses its own table-splitting UI (chair mini-cards), so the older
+  // "Parties / Checks" mechanism is hidden to avoid two overlapping concepts on screen.
+  // Non-chair restaurants keep Parties exactly as before.
+  const chairModeOn = posSettings?.seatOrdering === 'chair';
+  const partiesEnabled = !chairModeOn && !!onAddParty && !table.isSubTable && !table.isPartyTable && !table.isSplit && !table.mergeGroupId && !table.mergedInto;
   // Multi-check table (Path A): render a CLEAN combined view (one total + a "View Checks"
   // button → detail popup) instead of a cluttered chip cluster.
   const hasChecks = isToday && partiesEnabled && parties.length > 0;
