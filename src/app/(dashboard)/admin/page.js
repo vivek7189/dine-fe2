@@ -9,6 +9,7 @@ import Link from 'next/link';
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import AdditionalChargesSettings from '../../../components/AdditionalChargesSettings';
+import StaffDocuments from '../../../components/StaffDocuments';
 import WhatsAppOrderingTab from '../../../components/WhatsAppOrderingTab';
 import { t, getCurrentLanguage, setLanguage, getAvailableLanguages } from '../../../lib/i18n';
 import NativePrinterSettings from '../../../components/NativePrinterSettings';
@@ -10680,6 +10681,13 @@ const Admin = () => {
                   )}
                 </div>
                 
+                <StaffDocuments
+                  staffId={selectedStaff.id}
+                  initialDocuments={selectedStaff.documents}
+                  canEdit={currentUserRole === 'owner' || currentUserRole === 'admin'}
+                  isMobile={isClient && isMobile}
+                />
+
                 <div style={{
                   backgroundColor: '#f8fafc',
                   padding: isClient && isMobile ? '12px' : '16px',

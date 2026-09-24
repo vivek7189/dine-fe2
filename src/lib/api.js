@@ -2182,6 +2182,15 @@ class ApiClient {
     return this.request(`/api/staff/${restaurantId}`);
   }
 
+  // ── Staff documents (ID / contract upload) ───────────────────────────
+  async uploadStaffDocument(staffId, formData) {
+    // formData: FormData with 'document' (file) and optional 'name'
+    return this.request(`/api/staff/${staffId}/documents`, { method: 'POST', body: formData });
+  }
+  async deleteStaffDocument(staffId, url) {
+    return this.request(`/api/staff/${staffId}/documents`, { method: 'DELETE', body: { url } });
+  }
+
   // ── Staff advances (HR) ──────────────────────────────────────────────
   async getStaffAdvances(restaurantId, options = {}) {
     const q = new URLSearchParams(Object.entries(options).filter(([, v]) => v != null && v !== '')).toString();
