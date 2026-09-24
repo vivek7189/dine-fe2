@@ -1740,10 +1740,18 @@ const OrderSummary = ({
     // Check if per-item tax is needed (taxGroups exist)
     const hasTaxGroups = taxSettings.taxGroups && taxSettings.taxGroups.length > 0;
 
+    // Per-ITEM tax-inclusive override: if any item's effective inclusive setting differs
+    // from the restaurant default, the flat (whole-order) path below can't represent it —
+    // it would tax an INCLUSIVE item on top (₹30 incl-tax → ₹31.50). Route such carts
+    // through the per-item path, which splits inclusive items and adds only exclusive tax.
+    // Carts where EVERY item matches the global setting keep the original flat path (unchanged).
+    const globalInclusive = taxSettings.taxInclusivePricing === true;
+    const hasMixedInclusive = cart.some(ci => isItemTaxInclusive(ci, taxSettings) !== globalInclusive);
+
     let calculatedTaxes = [];
     let totalTaxAmount = 0;
 
-    if (hasTaxGroups) {
+    if (hasTaxGroups || hasMixedInclusive) {
       // Per-item tax calculation with discountApplicable support
       // Discountable subtotal: only items where discountApplicable !== false
       const discountableSubtotal = cart.reduce((sum, cartItem) => {
