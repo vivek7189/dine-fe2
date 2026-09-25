@@ -5468,6 +5468,16 @@ const OrderSummary = ({
           {/* Actions Section */}
           {!shouldShowOrderSummary() && (
             <div style={{ padding: isMobile ? '4px 8px 8px 8px' : '6px 12px 12px 12px' }}>
+              {/* Covers (Pax) Stepper — only for Dine-In. Moved up here as order-meta so it sits
+                  near the top of the checkout instead of far below the customer block. */}
+              {(orderType === 'dine_in' || orderType === 'dine-in') && posSettings?.showCovers !== false && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '5px 12px', background: dm ? dm.card : '#f8fafc', border: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb', borderRadius: '999px', marginBottom: isMobile ? '4px' : '6px' }}>
+                  <span style={{ fontSize: '11px', color: dm ? dm.textSec : '#64748b', fontWeight: 600 }}>👥 Covers</span>
+                  <button type="button" onClick={() => setCovers(c => Math.max(1, c - 1))} style={{ width: '22px', height: '22px', borderRadius: '50%', border: dm ? '1px solid ' + dm.border : '1px solid #d1d5db', background: dm ? dm.white : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, color: '#dc2626' }}>−</button>
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: dm ? dm.text : '#1f2937', minWidth: '18px', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{covers}</span>
+                  <button type="button" onClick={() => setCovers(c => c + 1)} style={{ width: '22px', height: '22px', borderRadius: '50%', border: dm ? '1px solid ' + dm.border : '1px solid #d1d5db', background: dm ? dm.white : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, color: '#16a34a' }}>+</button>
+                </div>
+              )}
               {/* Offers, Discount, SC, Staff — horizontal scroll row */}
               {(() => {
                 const hasOffers = genericOffers.length > 0 || personalizedOffers.length > 0;
@@ -5819,19 +5829,6 @@ const OrderSummary = ({
                     </div>
                     )}
 
-                    {/* Customer Due Warning */}
-                    {lookupStatus === 'found' && customerData?.outstandingBalance > 0 && (
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: '4px',
-                        padding: '3px 8px', background: dm ? dm.redBg : '#fef2f2', border: '1px solid #fecaca',
-                        borderRadius: '8px', fontSize: '10px', fontWeight: 700, color: '#dc2626',
-                        flexShrink: 0, gridColumn: '1 / -1',
-                      }}>
-                        <FaExclamationTriangle size={9} />
-                        Due: {formatCurrency(customerData.outstandingBalance)}
-                      </div>
-                    )}
-
                     {/* #20 Walk-in KRA PIN (Kenya eTIMS) — tags the order (customerTin) for the
                         fiscal receipt WITHOUT creating a CRM customer. Only shown when eTIMS is on. */}
                     {etimsEnabled && (
@@ -5948,9 +5945,10 @@ const OrderSummary = ({
                         title="Open this customer's profile"
                         style={{
                           gridColumn: '1 / -1', justifySelf: 'start',
-                          background: 'none', border: 'none', padding: '1px 0',
+                          background: dm ? 'rgba(8,145,178,0.14)' : '#ecfeff', border: dm ? '1px solid rgba(8,145,178,0.3)' : '1px solid #cffafe',
+                          padding: isMobile ? '3px 10px' : '4px 11px', borderRadius: '999px',
                           margin: isMobile ? '1px 0 0' : '2px 0 0',
-                          color: '#0891b2', fontSize: isMobile ? '10.5px' : '11px', fontWeight: 600,
+                          color: '#0891b2', fontSize: isMobile ? '10.5px' : '11px', fontWeight: 700,
                           cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px',
                         }}
                       >
@@ -5962,46 +5960,46 @@ const OrderSummary = ({
                         balance it shares this row with a live wallet chip (below), so the cashier
                         sees remaining balance and can apply it in one tap without opening the modal. */}
                     {lookupStatus === 'found' && customerData && (
-                      <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'stretch', gap: '6px' }}>
+                      <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                       <button
                         onClick={() => setShowOffersModal(true)}
                         style={{
-                          flex: walletBalance > 0 ? '0 1 auto' : '1 1 auto', minWidth: 0,
-                          padding: isMobile ? '6px 10px' : '6px 12px',
-                          borderRadius: '10px',
-                          border: 'none',
-                          background: 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)',
+                          flex: '0 1 auto', minWidth: 0,
+                          padding: isMobile ? '6px 12px' : '6px 12px',
+                          borderRadius: '999px',
+                          border: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb',
+                          background: dm ? dm.card : '#f4f6f9',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           gap: isMobile ? '10px' : '8px',
                           fontSize: isMobile ? '12px' : '11px',
                           fontWeight: 600,
-                          color: '#ffffff',
+                          color: dm ? dm.text : '#334155',
                           transition: 'all 0.2s',
                           whiteSpace: 'nowrap',
-                          boxShadow: '0 2px 8px rgba(30,41,59,0.35)',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                         }}
-                        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(30,41,59,0.5)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(30,41,59,0.35)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                        onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                         title="View customer details & offers"
                       >
                         <div style={{
-                          width: isMobile ? '26px' : '20px', height: isMobile ? '26px' : '20px',
-                          borderRadius: '50%', background: 'rgba(255,255,255,0.15)',
+                          width: isMobile ? '24px' : '20px', height: isMobile ? '24px' : '20px',
+                          borderRadius: '50%', background: 'linear-gradient(135deg, #f2704a, #e5342b)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                         }}>
                           <FaUser size={isMobile ? 9 : 8} style={{ color: '#fff' }} />
                         </div>
                         {customerData.loyaltyPoints > 0 && (
-                          <span style={{ color: '#fbbf24', fontWeight: 700, fontSize: isMobile ? '11px' : '10px', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                            <FaStar size={8} style={{ color: '#fbbf24' }} />{customerData.loyaltyPoints}
+                          <span style={{ color: '#2563eb', fontWeight: 700, fontSize: isMobile ? '11px' : '10px', display: 'flex', alignItems: 'center', gap: '3px', background: dm ? '#1a2540' : '#e8f0fe', padding: '2px 8px', borderRadius: '999px' }}>
+                            <FaStar size={8} style={{ color: '#2563eb' }} />{customerData.loyaltyPoints}
                           </span>
                         )}
-                        <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: isMobile ? '11px' : '10px' }}>
+                        <span style={{ color: dm ? dm.textSec : '#64748b', fontSize: isMobile ? '11px' : '10px', fontWeight: 600 }}>
                           {customerData.totalOrders} orders
                         </span>
-                        <FaChevronDown size={8} style={{ color: 'rgba(255,255,255,0.6)', marginLeft: isMobile ? 'auto' : '0', flexShrink: 0 }} />
+                        <FaChevronDown size={8} style={{ color: dm ? dm.textMuted : '#94a3b8', marginLeft: isMobile ? 'auto' : '0', flexShrink: 0 }} />
                       </button>
 
                       {/* Live wallet-balance chip — only when this customer has a positive balance.
@@ -6013,14 +6011,14 @@ const OrderSummary = ({
                           flex: '1 1 auto', minWidth: 0,
                           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px',
                           padding: isMobile ? '6px 10px' : '6px 10px',
-                          borderRadius: '10px',
-                          border: `1px solid ${useWallet ? '#93c5fd' : '#bfdbfe'}`,
-                          background: dm ? '#0b213f' : '#eff6ff',
+                          borderRadius: '999px',
+                          border: `1px solid ${useWallet ? '#6ee7b7' : '#a7f3d0'}`,
+                          background: dm ? '#12301f' : '#e7f6ee',
                           whiteSpace: 'nowrap',
                         }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, overflow: 'hidden' }}>
-                            <FaWallet size={isMobile ? 11 : 10} style={{ color: '#2563eb', flexShrink: 0 }} />
-                            <span style={{ fontSize: isMobile ? '11px' : '10.5px', fontWeight: 800, color: dm ? '#bfdbfe' : '#1d4ed8', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <FaWallet size={isMobile ? 11 : 10} style={{ color: '#0f9d58', flexShrink: 0 }} />
+                            <span style={{ fontSize: isMobile ? '11px' : '10.5px', fontWeight: 800, color: dm ? '#6ee7b7' : '#0b7a44', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {(() => {
                                 // While applied, show the balance that WILL remain after this order.
                                 // walletRedeemAmount is already capped at the bill (min(balance, bill)),
@@ -6049,12 +6047,28 @@ const OrderSummary = ({
                             style={{
                               flexShrink: 0,
                               padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 700,
-                              background: useWallet ? '#dc2626' : '#2563eb', color: '#fff', border: 'none',
+                              background: useWallet ? '#dc2626' : '#0f9d58', color: '#fff', border: 'none',
                               cursor: 'pointer', transition: 'all 0.15s',
                             }}
                           >
                             {useWallet ? t('common.cancel') : t('dashboard.use')}
                           </button>
+                        </div>
+                      )}
+                      {/* Due chip — read-only display of the customer's existing outstanding balance
+                          (from the same lookup data), styled amber to sit alongside the other chips. */}
+                      {customerData.outstandingBalance > 0 && (
+                        <div style={{
+                          flex: '0 1 auto', minWidth: 0,
+                          display: 'inline-flex', alignItems: 'center', gap: '5px',
+                          padding: isMobile ? '6px 11px' : '6px 12px',
+                          borderRadius: '999px',
+                          border: dm ? '1px solid #4d3a12' : '1px solid #fde3bf',
+                          background: dm ? '#2e2413' : '#fdf1df',
+                          color: dm ? '#f6bd6d' : '#9c5c05', fontWeight: 800,
+                          fontSize: isMobile ? '11px' : '10.5px', whiteSpace: 'nowrap',
+                        }}>
+                          ⚠ Due {formatCurrency(customerData.outstandingBalance)}
                         </div>
                       )}
                       </div>
@@ -6260,15 +6274,7 @@ const OrderSummary = ({
                   );
                 })()}
 
-              {/* Covers (Pax) Stepper — only for Dine-In */}
-              {(orderType === 'dine_in' || orderType === 'dine-in') && posSettings?.showCovers !== false && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', background: '#f8fafc', borderRadius: '8px', marginTop: '6px' }}>
-                  <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Covers:</span>
-                  <button type="button" onClick={() => setCovers(c => Math.max(1, c - 1))} style={{ width: '24px', height: '24px', borderRadius: '6px', border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 600, color: '#374151' }}>−</button>
-                  <span style={{ fontSize: '14px', fontWeight: 600, color: '#1f2937', minWidth: '20px', textAlign: 'center' }}>{covers}</span>
-                  <button type="button" onClick={() => setCovers(c => c + 1)} style={{ width: '24px', height: '24px', borderRadius: '6px', border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 600, color: '#374151' }}>+</button>
-                </div>
-              )}
+              {/* (Covers stepper moved to the top of this checkout section — see above) */}
 
               {/* Payment Method Selection */}
               {isRoleAllowed(billingSettings.paymentMethodRoles) && <div style={{ marginBottom: isMobile ? '6px' : '16px' }}>
