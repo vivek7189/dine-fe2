@@ -5515,7 +5515,7 @@ function AppDownloadTab() {
             </div>
           </a>
           <a
-            href="https://github.com/vivek7189/dine-app2/releases/download/android-latest/DineOpen-Waiter.apk"
+            href={apkInfo.url || "https://github.com/vivek7189/dine-app2/releases/download/android-latest/DineOpen-Waiter.apk"}
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -5533,7 +5533,7 @@ function AppDownloadTab() {
             <FaAndroid size={36} style={{ color: 'white', flexShrink: 0 }} />
             <div>
               <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', fontWeight: '500', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Download</div>
-              <div style={{ fontSize: '20px', color: 'white', fontWeight: '700', lineHeight: '1.2' }}>Android APK</div>
+              <div style={{ fontSize: '20px', color: 'white', fontWeight: '700', lineHeight: '1.2' }}>Android APK{apkInfo.version ? <span style={{ fontSize: '12px', fontWeight: 600, opacity: 0.85 }}> · v{apkInfo.version}</span> : ''}</div>
             </div>
           </a>
         </div>
@@ -6075,6 +6075,30 @@ const Admin = () => {
       })();
     }
   }, [activeTab, selectedRestaurant?.id]);
+
+  // App-download tab: fetch the latest published Android APK version + versioned URL
+  // from the GitHub release, so the page shows the version and the downloaded file
+  // carries it (e.g. DineOpen-Waiter-2.98.15.apk). Falls back to the stable link.
+  const [apkInfo, setApkInfo] = useState({ version: '', url: '' });
+  useEffect(() => {
+    if (activeTab !== 'app-download') return;
+    let alive = true;
+    (async () => {
+      try {
+        const r = await fetch('https://api.github.com/repos/vivek7189/dine-app2/releases?per_page=15', { headers: { Accept: 'application/vnd.github+json' } });
+        if (!r.ok) return;
+        const rels = await r.json();
+        // newest release with a vX.Y.Z tag that ships an .apk
+        const rel = (Array.isArray(rels) ? rels : []).find(x => /^v?\d+\.\d+/.test(x.tag_name || '') && (x.assets || []).some(a => /\.apk$/i.test(a.name)));
+        if (!rel) return;
+        const version = (rel.tag_name || '').replace(/^v/, '');
+        const assets = rel.assets || [];
+        const asset = assets.find(a => /DineOpen-Waiter-[\d.]+\.apk$/i.test(a.name)) || assets.find(a => /\.apk$/i.test(a.name));
+        if (alive && version && asset) setApkInfo({ version, url: asset.browser_download_url });
+      } catch { /* keep stable fallback */ }
+    })();
+    return () => { alive = false; };
+  }, [activeTab]);
 
   const handleSaveBillingSettings = async () => {
     if (!selectedRestaurant?.id) return;
