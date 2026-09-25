@@ -5358,6 +5358,8 @@ function AppDownloadTab() {
   // Desktop-only: the version this app ran before the current one, for one-step rollback.
   const [verInfo, setVerInfo] = useState(null);   // { current, previous, appKind, platform }
   const [confirmRevert, setConfirmRevert] = useState(false);
+  // Latest published Android APK (version + versioned download URL) from GitHub releases.
+  const [apkInfo, setApkInfo] = useState({ version: '', url: '' });
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -5367,6 +5369,24 @@ function AppDownloadTab() {
           if (alive) setVerInfo(info || null);
         }
       } catch { /* web build or older app: no revert UI */ }
+    })();
+    return () => { alive = false; };
+  }, []);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const r = await fetch('https://api.github.com/repos/vivek7189/dine-app2/releases?per_page=15', { headers: { Accept: 'application/vnd.github+json' } });
+        if (!r.ok) return;
+        const rels = await r.json();
+        // newest release with a vX.Y.Z tag that ships an .apk
+        const rel = (Array.isArray(rels) ? rels : []).find(x => /^v?\d+\.\d+/.test(x.tag_name || '') && (x.assets || []).some(a => /\.apk$/i.test(a.name)));
+        if (!rel) return;
+        const version = (rel.tag_name || '').replace(/^v/, '');
+        const assets = rel.assets || [];
+        const asset = assets.find(a => /DineOpen-Waiter-[\d.]+\.apk$/i.test(a.name)) || assets.find(a => /\.apk$/i.test(a.name));
+        if (alive && version && asset) setApkInfo({ version, url: asset.browser_download_url });
+      } catch { /* keep stable fallback */ }
     })();
     return () => { alive = false; };
   }, []);
@@ -6079,27 +6099,6 @@ const Admin = () => {
   // App-download tab: fetch the latest published Android APK version + versioned URL
   // from the GitHub release, so the page shows the version and the downloaded file
   // carries it (e.g. DineOpen-Waiter-2.98.15.apk). Falls back to the stable link.
-  const [apkInfo, setApkInfo] = useState({ version: '', url: '' });
-  useEffect(() => {
-    if (activeTab !== 'app-download') return;
-    let alive = true;
-    (async () => {
-      try {
-        const r = await fetch('https://api.github.com/repos/vivek7189/dine-app2/releases?per_page=15', { headers: { Accept: 'application/vnd.github+json' } });
-        if (!r.ok) return;
-        const rels = await r.json();
-        // newest release with a vX.Y.Z tag that ships an .apk
-        const rel = (Array.isArray(rels) ? rels : []).find(x => /^v?\d+\.\d+/.test(x.tag_name || '') && (x.assets || []).some(a => /\.apk$/i.test(a.name)));
-        if (!rel) return;
-        const version = (rel.tag_name || '').replace(/^v/, '');
-        const assets = rel.assets || [];
-        const asset = assets.find(a => /DineOpen-Waiter-[\d.]+\.apk$/i.test(a.name)) || assets.find(a => /\.apk$/i.test(a.name));
-        if (alive && version && asset) setApkInfo({ version, url: asset.browser_download_url });
-      } catch { /* keep stable fallback */ }
-    })();
-    return () => { alive = false; };
-  }, [activeTab]);
-
   const handleSaveBillingSettings = async () => {
     if (!selectedRestaurant?.id) return;
     setBillingSaving(true);
