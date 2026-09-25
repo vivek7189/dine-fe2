@@ -234,6 +234,15 @@ body {
   contain-intrinsic-size: auto 150px;
 }
 
+/* Soft Pill menu card — hover lift (colours/ring are inline in MenuItemCard.js) */
+.menu-item-card.soft-pill {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.menu-item-card.soft-pill:not(.is-oos):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(239, 68, 68, 0.28) !important;
+}
+
 .menu-item-card img {
   image-rendering: -webkit-optimize-contrast;
   will-change: opacity;

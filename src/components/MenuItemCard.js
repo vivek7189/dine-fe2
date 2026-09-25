@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useMemo, memo, useCallback, useEffect } from 'react';
-import { FaPlus, FaMinus, FaLeaf, FaDrumstickBite, FaStar, FaFire, FaHeart, FaUtensils } from 'react-icons/fa';
+import { FaPlus, FaMinus, FaLeaf, FaDrumstickBite, FaStar, FaHeart, FaUtensils } from 'react-icons/fa';
 import { getDisplayImage } from '../utils/placeholderImages';
 import { useCurrency } from '../contexts/CurrencyContext';
 
@@ -104,320 +104,180 @@ const MenuItemCard = ({
     setImageLoaded(true);
   }, []);
   
-  if (!useModernDesign) {
-    // Original Compact Design (Exact old style)
-    
+  // ── Soft Pill card (used for every card without a photo: Compact + Standard/Large) ──
+  // UI only — same handlers as before: card click → handleCardClick, favourite → onToggleFavorite,
+  // Add/+ → onAddToCart(item), − → onRemoveFromCart(item.id). Add controls stay hidden for
+  // items that need customization (the card click opens the modal instead).
+  const renderSoftPillCard = (compact) => {
+    const sp = dm ? {
+      bg: '#1e293b', inCartBg: 'linear-gradient(180deg, #1e293b 0%, #2b2130 100%)',
+      ring: '0 0 0 1px #334155', inCartRing: '0 0 0 1.5px rgba(248,113,113,0.55)',
+      text: '#e2e8f0', sec: '#94a3b8', chipBg: '#0f172a', chipText: '#94a3b8',
+      priceBg: 'rgba(239,68,68,0.15)', priceText: '#fca5a5',
+      addBg: '#0f172a', addBorder: '#334155', addText: '#e2e8f0', heart: '#64748b',
+      soldOutBg: '#1b2536', soldOutPillBg: 'rgba(148,163,184,0.12)', soldOutPillBorder: '#334155', soldOutPillText: '#94a3b8',
+    } : {
+      bg: '#ffffff', inCartBg: 'linear-gradient(180deg, #ffffff 0%, #fff5f5 100%)',
+      ring: '0 1px 2px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.07)',
+      inCartRing: '0 1px 2px rgba(15,23,42,0.06), 0 0 0 1.5px #fca5a5',
+      text: '#0f172a', sec: '#64748b', chipBg: '#f1f5f9', chipText: '#64748b',
+      priceBg: '#fef2f2', priceText: '#b91c1c',
+      addBg: '#ffffff', addBorder: '#e2e8f0', addText: '#0f172a', heart: '#cbd5e1',
+      soldOutBg: '#fafafa', soldOutPillBg: '#f1f5f9', soldOutPillBorder: '#e2e8f0', soldOutPillText: '#64748b',
+    };
+    const inCart = quantityInCart > 0;
+    const large = !compact && cardSize === 'large';
+
+    // Display-only split of bilingual names ("MASALA DOSAI / மசாலா தோசை") so the second
+    // language sits on its own line instead of truncating the main name. item.name is untouched.
+    const rawName = item.name || '';
+    const slashAt = rawName.indexOf(' / ');
+    const primaryName = !item.nameAr && slashAt > 0 ? rawName.slice(0, slashAt).trim() : rawName;
+    const secondaryName = item.nameAr || (slashAt > 0 ? rawName.slice(slashAt + 3).trim() : '');
+    const subLine = secondaryName || (!compact && item.description) || '';
+
+    const priceText = getDisplayPrice();
+    const fromPrice = priceText.startsWith('From ');
+
+    const metaChip = (bg, color, label, key) => (
+      <span key={key} style={{ fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '999px', backgroundColor: bg, color, whiteSpace: 'nowrap', lineHeight: 1.3 }}>{label}</span>
+    );
+    const metaChips = [
+      item.soldByWeight && metaChip(dm ? 'rgba(234,179,8,0.15)' : '#fefce8', dm ? '#fde047' : '#854d0e', '⚖️ By weight', 'w'),
+      compact && isStockManaged && !isLowStock && !isOutOfStock && metaChip(dm ? 'rgba(16,185,129,0.15)' : '#ecfdf5', dm ? '#6ee7b7' : '#047857', `${item.stockQuantity} ${item.stockUnit || 'pcs'}`, 's'),
+      expiryStatus && metaChip(expiryStatus === 'expired' ? (dm ? 'rgba(239,68,68,0.15)' : '#fee2e2') : (dm ? 'rgba(245,158,11,0.15)' : '#fef3c7'), expiryStatus === 'expired' ? (dm ? '#fca5a5' : '#dc2626') : (dm ? '#fcd34d' : '#92400e'), expiryStatus === 'expired' ? 'Expired' : expiryStatus === 'expiring-soon' ? 'Exp soon' : 'Exp 7d', 'e'),
+      !compact && isPopular && metaChip(dm ? 'rgba(245,158,11,0.15)' : '#fff7ed', dm ? '#fcd34d' : '#c2410c', '★ Hot', 'p'),
+      !compact && isNew && metaChip(dm ? 'rgba(139,92,246,0.18)' : '#f5f3ff', dm ? '#c4b5fd' : '#6d28d9', 'New', 'n'),
+      !compact && isSpicy && metaChip(dm ? 'rgba(239,68,68,0.15)' : '#fef2f2', dm ? '#fca5a5' : '#dc2626', '🌶 Spicy', 'h'),
+    ].filter(Boolean);
+
+    const stepBtn = { width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', borderRadius: '999px', padding: 0 };
+
     return (
       <div
-        className="menu-item-card"
-      style={{
-        backgroundColor: dm ? dm.cardBg : '#ffffff',
-        border: dm ? '1px solid #334155' : '1px solid #f3f4f6',
-        borderTop: `4px solid ${isVeg ? '#22c55e' : '#ef4444'}`,
-        borderRadius: '4px',
-        cursor: 'pointer',
-        height: isMobile ? '85px' : '95px',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        padding: '12px',
-        boxShadow: dm ? dm.shadow : '0 2px 8px rgba(0, 0, 0, 0.06)',
-        position: 'relative',
-        overflow: 'hidden',
-        transition: 'none',
-        filter: isOutOfStock ? 'blur(1.1px)' : 'none',
-        opacity: isOutOfStock ? 0.95 : 1
-      }}
-        onClick={handleCardClick}
-        onMouseEnter={() => {
-          if (isOutOfStock) {
-            setShowOutOfStockLabel(true);
-          }
-        }}
-        onMouseLeave={() => {
-          setShowOutOfStockLabel(false);
-        }}
-      >
-        {/* Out of Stock Label - On Hover */}
-        {isOutOfStock && showOutOfStockLabel && (
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            backgroundColor: 'rgba(220, 38, 38, 0.95)',
-            color: 'white',
-            padding: '8px 16px',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: '700',
-            zIndex: 20,
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-            pointerEvents: 'none',
-            whiteSpace: 'nowrap'
-          }}>
-            Out of Stock
-          </div>
-        )}
-        {/* Short Code - Top Left Corner */}
-        {item.shortCode && (
-          <div style={{
-            position: 'absolute',
-            top: '2px',
-            left: '2px',
-            backgroundColor: dm ? dm.cardBg : '#f3f4f6',
-            color: dm ? dm.textSec : '#6b7280',
-            padding: '2px 6px',
-            borderRadius: '4px',
-            fontSize: '8px',
-            fontWeight: '600',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            zIndex: 5
-          }}>
-            {item.shortCode}
-          </div>
-        )}
-
-        {/* Favorite Button - Top Right Corner (Old Design) */}
-        {onToggleFavorite && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFavorite(item);
-            }}
-            style={{
-              position: 'absolute',
-              top: '2px',
-              right: '2px',
-              backgroundColor: item.isFavorite ? '#ef4444' : (dm ? dm.badgeBg : 'rgba(243, 244, 246, 0.9)'),
-              color: item.isFavorite ? 'white' : (dm ? dm.textSec : '#6b7280'),
-              border: 'none',
-              padding: '4px',
-              borderRadius: '50%',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: item.isFavorite ? '0 2px 6px rgba(239, 68, 68, 0.4)' : (dm ? dm.shadow : '0 1px 3px rgba(0, 0, 0, 0.1)'),
-              transition: 'all 0.2s ease',
-              width: '20px',
-              height: '20px',
-              zIndex: 5
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.1)';
-              e.currentTarget.style.backgroundColor = item.isFavorite ? '#dc2626' : '#ef4444';
-              e.currentTarget.style.color = 'white';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.backgroundColor = item.isFavorite ? '#ef4444' : (dm ? dm.badgeBg : 'rgba(243, 244, 246, 0.9)');
-              e.currentTarget.style.color = item.isFavorite ? 'white' : (dm ? dm.textSec : '#6b7280');
-            }}
-          >
-            <FaHeart size={8} fill={item.isFavorite ? 'white' : 'none'} />
-          </button>
-        )}
-
-        {/* Main Content Area */}
-        <div style={{ 
-          flex: 1, 
-          display: 'flex', 
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          textAlign: 'center',
-          paddingTop: '2px'
-        }}>
-          {/* Dish Name */}
-          <h3 style={{
-            fontSize: isMobile ? '12px' : '14px',
-            fontWeight: '600',
-            margin: '0 0 4px 0',
-            color: dm ? dm.text : '#1f2937',
-            lineHeight: '1.2',
-            textAlign: 'center',
-            overflow: 'hidden',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            wordWrap: 'break-word',
-            maxHeight: '32px'
-          }}>
-            {item.name}
-          </h3>
-        </div>
-        
-        {/* Bottom Section */}
-        <div style={{
+        className={`menu-item-card soft-pill${isOutOfStock ? ' is-oos' : ''}`}
+        title={rawName}
+        style={{
+          position: 'relative',
+          overflow: 'hidden',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingTop: '8px',
-          borderTop: dm ? '1px solid #334155' : '1px solid #f3f4f6',
-          marginTop: '6px'
-        }}>
-          {/* Price */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-start'
-          }}>
-            <span style={{
-              fontSize: isMobile ? '12px' : '14px',
-              color: '#ef4444',
-              fontWeight: '700',
-              lineHeight: 1
-            }}>
-              {getDisplayPrice()}
-            </span>
-            {/* Stock/Expiry/Weight badges */}
-            {(isStockManaged || expiryStatus || item.soldByWeight) && (
-              <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', marginTop: '2px' }}>
-                {item.soldByWeight && (
-                  <span style={{
-                    fontSize: '8px', fontWeight: '700',
-                    padding: '1px 4px', borderRadius: '3px',
-                    backgroundColor: '#fefce8', color: '#854d0e',
-                    border: '1px solid #fde047'
-                  }}>
-                    ⚖️ By Weight
-                  </span>
-                )}
-                {isStockManaged && !isLowStock && !isOutOfStock && (
-                  <span style={{
-                    fontSize: '8px', fontWeight: '700',
-                    padding: '1px 4px', borderRadius: '3px',
-                    backgroundColor: '#ecfdf5', color: '#065f46',
-                    border: '1px solid #a7f3d0'
-                  }}>
-                    {item.stockQuantity} {item.stockUnit || 'pcs'}
-                  </span>
-                )}
-                {isLowStock && (
-                  <span style={{
-                    fontSize: '8px', fontWeight: '700',
-                    padding: '1px 4px', borderRadius: '3px',
-                    backgroundColor: '#fef3c7', color: '#92400e',
-                    border: '1px solid #fde68a'
-                  }}>
-                    {item.stockQuantity} left
-                  </span>
-                )}
-                {expiryStatus && (
-                  <span style={{
-                    fontSize: '8px', fontWeight: '700',
-                    padding: '1px 4px', borderRadius: '3px',
-                    backgroundColor: expiryStatus === 'expired' ? '#fee2e2' : '#fef3c7',
-                    color: expiryStatus === 'expired' ? '#dc2626' : '#92400e'
-                  }}>
-                    {expiryStatus === 'expired' ? 'EXPIRED' : expiryStatus === 'expiring-soon' ? 'Exp Soon' : 'Exp 7d'}
-                  </span>
-                )}
-              </div>
+          flexDirection: 'column',
+          minHeight: compact ? (isMobile ? '96px' : '108px') : large ? (isMobile ? '160px' : '170px') : (isMobile ? '125px' : '135px'),
+          padding: compact ? (isMobile ? '9px 10px 9px 13px' : '10px 12px 10px 15px') : large ? '14px 16px 14px 19px' : '12px 14px 12px 17px',
+          borderRadius: '16px',
+          background: inCart ? sp.inCartBg : (isOutOfStock ? sp.soldOutBg : sp.bg),
+          boxShadow: inCart ? sp.inCartRing : sp.ring,
+          cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+        }}
+        onClick={handleCardClick}
+      >
+        {/* Veg / non-veg accent stripe (faded when sold out) */}
+        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px', backgroundColor: isVeg ? '#22c55e' : '#ef4444', opacity: isOutOfStock ? 0.35 : 1 }} />
+
+        {/* Top row: short code + stock status · qty badge + favourite */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', minHeight: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, overflow: 'hidden' }}>
+            {item.shortCode && (
+              <span style={{ fontSize: '10px', fontWeight: 700, color: sp.chipText, backgroundColor: sp.chipBg, padding: '3px 7px', borderRadius: '6px', letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                {item.shortCode}
+              </span>
+            )}
+            {isLowStock && (
+              <span style={{ fontSize: '10px', fontWeight: 700, color: dm ? '#fdba74' : '#c2410c', whiteSpace: 'nowrap' }}>● {item.stockQuantity} left</span>
             )}
           </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+            {/* Qty badge for items added via the customization modal (no inline stepper for those) */}
+            {inCart && needsCustomization && (
+              <span style={{ minWidth: '22px', height: '22px', borderRadius: '999px', backgroundColor: '#ef4444', color: '#ffffff', fontWeight: 800, fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px', boxShadow: '0 3px 8px rgba(239,68,68,0.35)' }}>
+                {quantityInCart}
+              </span>
+            )}
+            {onToggleFavorite && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleFavorite(item); }}
+                title={item.isFavorite ? 'Remove from favourites' : 'Add to favourites'}
+                style={{ width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: '999px', cursor: 'pointer', padding: 0, backgroundColor: item.isFavorite ? (dm ? 'rgba(239,68,68,0.15)' : '#fef2f2') : 'transparent', color: item.isFavorite ? '#ef4444' : sp.heart }}
+              >
+                <FaHeart size={11} style={{ fill: item.isFavorite ? '#ef4444' : 'none', stroke: 'currentColor', strokeWidth: 40 }} />
+              </button>
+            )}
+          </div>
+        </div>
 
-          {/* Add Button - Hidden if needs customization */}
-          {!needsCustomization && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            backgroundColor: quantityInCart > 0 ? '#ef4444' : (dm ? dm.cardBg : '#f8fafc'),
-            borderRadius: '8px',
-            overflow: 'hidden',
-            border: quantityInCart > 0 ? 'none' : (dm ? '1px solid #334155' : '1px solid #e5e7eb'),
-            boxShadow: quantityInCart > 0 ? '0 2px 4px rgba(239, 68, 68, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)'
+        {/* Name + second-language / description line */}
+        <div style={{ flex: 1, minHeight: 0, marginTop: compact ? '4px' : '6px', overflow: 'hidden' }}>
+          <h3 style={{
+            margin: 0, color: isOutOfStock ? sp.sec : sp.text, fontWeight: 650, lineHeight: 1.28, letterSpacing: '-0.005em',
+            fontSize: large ? '16px' : compact ? (isMobile ? '12.5px' : '14px') : (isMobile ? '13px' : '14.5px'),
+            overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word',
           }}>
-            {quantityInCart > 0 ? (
-              <>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRemoveFromCart(item.id);
-                  }}
-                  style={{
-                    width: '26px',
-                    height: '26px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    borderRadius: '4px',
-                    transition: 'none'
-                  }}
-                >
+            {primaryName}
+          </h3>
+          {subLine && (
+            <p style={{
+              margin: '2px 0 0', color: sp.sec, fontWeight: 500, lineHeight: 1.3,
+              fontSize: large ? '12.5px' : (isMobile ? '10.5px' : '11.5px'),
+              overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+              direction: item.nameAr ? 'rtl' : undefined, textAlign: 'left',
+            }}>
+              {subLine}
+            </p>
+          )}
+          {metaChips.length > 0 && (
+            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '5px' }}>{metaChips}</div>
+          )}
+        </div>
+
+        {/* Footer: price pill · Add / stepper */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px 8px', marginTop: compact ? '6px' : '10px', flexShrink: 0 }}>
+          <span style={{
+            flexShrink: 0, whiteSpace: 'nowrap',
+            backgroundColor: isOutOfStock ? sp.chipBg : sp.priceBg, color: isOutOfStock ? sp.sec : sp.priceText, fontWeight: 750, borderRadius: '999px',
+            padding: compact ? '4px 9px' : '5px 11px', fontSize: large ? '15px' : (isMobile ? '12.5px' : '13.5px'), lineHeight: 1.2,
+          }}>
+            {fromPrice ? (
+              <><span style={{ fontSize: '0.78em', fontWeight: 600, opacity: 0.8, marginRight: '3px' }}>from</span>{priceText.slice(5)}</>
+            ) : priceText}
+          </span>
+
+          {isOutOfStock && !inCart ? (
+            <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '6px', padding: compact ? '5px 11px' : '6px 12px', borderRadius: '999px', backgroundColor: sp.soldOutPillBg, border: `1px solid ${sp.soldOutPillBorder}`, color: sp.soldOutPillText, fontWeight: 700, fontSize: '11.5px', whiteSpace: 'nowrap', letterSpacing: '0.01em' }}>
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: sp.soldOutPillText, opacity: 0.7 }} />
+              Sold out
+            </span>
+          ) : !needsCustomization ? (
+            inCart ? (
+              <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, backgroundColor: '#ef4444', borderRadius: '999px', boxShadow: '0 3px 10px rgba(239,68,68,0.3)' }}>
+                <button onClick={(e) => { e.stopPropagation(); onRemoveFromCart(item.id); }} style={stepBtn} aria-label="Remove one">
                   <FaMinus size={9} />
                 </button>
-                <span style={{
-                  width: '30px',
-                  height: '26px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: '700',
-                  color: 'white',
-                  fontSize: '11px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                  borderRadius: '4px'
-                }}>
-                  {quantityInCart}
-                </span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAddToCart(item);
-                  }}
-                  style={{
-                    width: '26px',
-                    height: '26px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    borderRadius: '4px',
-                    transition: 'none'
-                  }}
-                >
+                <span style={{ minWidth: '18px', textAlign: 'center', fontWeight: 800, color: '#ffffff', fontSize: '12.5px', fontVariantNumeric: 'tabular-nums' }}>{quantityInCart}</span>
+                <button onClick={(e) => { e.stopPropagation(); onAddToCart(item); }} style={stepBtn} aria-label="Add one">
                   <FaPlus size={9} />
                 </button>
-              </>
+              </div>
             ) : (
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onAddToCart(item);
-                }}
-                style={{
-                  padding: '6px 10px',
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  color: dm ? dm.textSec : '#6b7280',
-                  fontWeight: '600',
-                  fontSize: '10px',
-                  transition: 'none'
-                }}
+                onClick={(e) => { e.stopPropagation(); onAddToCart(item); }}
+                style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '5px', padding: compact ? '5px 11px' : '6px 13px', borderRadius: '999px', border: `1px solid ${sp.addBorder}`, backgroundColor: sp.addBg, color: sp.addText, fontWeight: 700, fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' }}
               >
                 <FaPlus size={8} />
                 Add
               </button>
-            )}
-          </div>
+            )
+          ) : (
+            // Visual hint only (not a button) — the click falls through to the card, which opens the options modal.
+            <span style={{ flexShrink: 0, fontSize: '11px', fontWeight: 700, color: sp.sec, whiteSpace: 'nowrap' }}>Options ›</span>
           )}
         </div>
       </div>
     );
+  };
+
+  if (!useModernDesign) {
+    // Compact size — Soft Pill design (no photos in compact mode, same as before)
+    return renderSoftPillCard(true);
   }
 
   // Full Image Overlay Design when image exists
@@ -812,458 +672,8 @@ const MenuItemCard = ({
     );
   }
 
-  // Fallback design for items without images
-  const vegGradient = isVeg
-    ? 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 60%)'
-    : 'linear-gradient(135deg, #fef2f2 0%, #ffffff 60%)';
-  const firstLetter = (item.name || '?')[0].toUpperCase();
-
-  return (
-    <div
-      className="menu-item-card"
-      style={{
-        backgroundColor: dm ? dm.cardBg : '#ffffff',
-        border: dm ? '1px solid #334155' : '1px solid #e5e7eb',
-        borderRadius: cardSize === 'large' ? '14px' : '12px',
-        cursor: 'pointer',
-        minHeight: cardSize === 'large'
-          ? (isMobile ? '160px' : '170px')
-          : (isMobile ? '125px' : '135px'),
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        padding: cardSize === 'large' ? '16px' : '14px',
-        boxShadow: cardSize === 'large' ? (dm ? dm.shadow : '0 2px 8px rgba(0, 0, 0, 0.08)') : (dm ? dm.shadow : '0 1px 4px rgba(0, 0, 0, 0.06)'),
-        position: 'relative',
-        overflow: 'hidden',
-        background: dm ? dm.cardBg : vegGradient,
-        borderTop: `3px solid ${isVeg ? '#22c55e' : '#ef4444'}`,
-        transition: 'all 0.2s ease',
-        filter: isOutOfStock ? 'blur(1.1px)' : 'none',
-        opacity: isOutOfStock ? 0.95 : 1
-      }}
-      onClick={handleCardClick}
-      onMouseEnter={() => {
-        if (isOutOfStock) {
-          setShowOutOfStockLabel(true);
-        }
-      }}
-      onMouseLeave={() => {
-        setShowOutOfStockLabel(false);
-      }}
-    >
-      {/* Watermark Letter */}
-      <div style={{
-        position: 'absolute',
-        bottom: '-8px',
-        right: '-4px',
-        fontSize: cardSize === 'large' ? '90px' : '70px',
-        fontWeight: '900',
-        color: isVeg ? 'rgba(34, 197, 94, 0.06)' : 'rgba(239, 68, 68, 0.06)',
-        lineHeight: 1,
-        pointerEvents: 'none',
-        userSelect: 'none',
-        zIndex: 0
-      }}>
-        {firstLetter}
-      </div>
-
-      {/* Out of Stock Label - On Hover */}
-      {isOutOfStock && showOutOfStockLabel && (
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          backgroundColor: 'rgba(220, 38, 38, 0.95)',
-          color: 'white',
-          padding: '8px 16px',
-          borderRadius: '8px',
-          fontSize: '14px',
-          fontWeight: '700',
-          zIndex: 20,
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-          pointerEvents: 'none',
-          whiteSpace: 'nowrap'
-        }}>
-          Out of Stock
-        </div>
-      )}
-      {/* Content Section */}
-      <div style={{
-        padding: '0',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        flex: 1
-      }}>
-      
-      {/* Top Badges - Compact */}
-      <div style={{
-        position: 'absolute',
-        top: '8px',
-        right: '8px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '4px',
-        zIndex: 10
-      }}>
-        {/* Short Code */}
-        {item.shortCode && (
-          <div style={{
-            backgroundColor: '#6b7280',
-            color: 'white',
-            padding: '2px 6px',
-            borderRadius: '6px',
-            fontSize: '9px',
-            fontWeight: '600',
-            textTransform: 'uppercase',
-            letterSpacing: '0.3px'
-          }}>
-            {item.shortCode}
-          </div>
-        )}
-        
-        {/* Favorite Button (No Image Design) */}
-        {onToggleFavorite && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFavorite(item);
-            }}
-            style={{
-              backgroundColor: item.isFavorite ? '#ef4444' : 'rgba(107, 114, 128, 0.8)',
-              color: 'white',
-              border: 'none',
-              padding: '4px',
-              borderRadius: '50%',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: item.isFavorite ? '0 2px 6px rgba(239, 68, 68, 0.4)' : '0 1px 3px rgba(0, 0, 0, 0.2)',
-              transition: 'all 0.2s ease',
-              width: '22px',
-              height: '22px'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.1)';
-              e.currentTarget.style.backgroundColor = item.isFavorite ? '#dc2626' : '#ef4444';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.backgroundColor = item.isFavorite ? '#ef4444' : 'rgba(107, 114, 128, 0.8)';
-            }}
-          >
-            <FaHeart size={9} fill={item.isFavorite ? 'white' : 'none'} />
-          </button>
-        )}
-        
-        {/* Popular Badge */}
-        {isPopular && (
-          <div style={{
-            backgroundColor: '#f59e0b',
-            color: 'white',
-            padding: '2px 6px',
-            borderRadius: '6px',
-            fontSize: '8px',
-            fontWeight: '600',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '2px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.3px'
-          }}>
-            <FaStar size={6} />
-            HOT
-          </div>
-        )}
-        
-        {/* New Badge */}
-        {isNew && (
-          <div style={{
-            backgroundColor: '#8b5cf6',
-            color: 'white',
-            padding: '2px 6px',
-            borderRadius: '6px',
-            fontSize: '8px',
-            fontWeight: '600',
-            textTransform: 'uppercase',
-            letterSpacing: '0.3px'
-          }}>
-            NEW
-          </div>
-        )}
-      </div>
-
-      {/* Veg/Non-Veg Indicator - On Image */}
-      <div style={{
-        position: 'absolute',
-        top: '8px',
-        left: '8px',
-        width: '20px',
-        height: '20px',
-        borderRadius: '50%',
-        backgroundColor: isVeg ? '#22c55e' : '#ef4444',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 10,
-        boxShadow: '0 1px 4px rgba(0, 0, 0, 0.3)',
-        border: '2px solid white'
-      }}>
-        {isVeg ? (
-          <FaLeaf size={9} color="white" />
-        ) : (
-          <FaDrumstickBite size={8} color="white" />
-        )}
-      </div>
-
-      {/* Spicy Indicator - On Image */}
-      {isSpicy && (
-        <div style={{
-          position: 'absolute',
-          top: '32px',
-          left: '8px',
-          width: '20px',
-          height: '20px',
-          borderRadius: '50%',
-          backgroundColor: '#dc2626',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10,
-          boxShadow: '0 1px 4px rgba(220, 38, 38, 0.3)',
-          border: '2px solid white'
-        }}>
-          <FaFire size={8} color="white" />
-        </div>
-      )}
-
-      {/* Main Content Area - No Image */}
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'flex-start',
-        textAlign: 'left',
-        paddingTop: '6px',
-        paddingBottom: '6px',
-        paddingLeft: '8px',
-        paddingRight: '8px',
-        zIndex: 1,
-        minHeight: 0,
-        overflow: 'hidden',
-      }}>
-        {/* Dish Name */}
-        <h3 style={{
-          fontSize: cardSize === 'large' ? '15px' : (isMobile ? '12px' : '13px'),
-          fontWeight: '600',
-          margin: '0 0 4px 0',
-          color: dm ? dm.text : '#1f2937',
-          lineHeight: '1.3',
-          textAlign: 'left',
-          overflow: 'hidden',
-          display: '-webkit-box',
-          WebkitLineClamp: item.nameAr ? 2 : 2,
-          WebkitBoxOrient: 'vertical',
-          wordWrap: 'break-word',
-        }}>
-          {item.name}
-        </h3>
-
-        {/* Arabic Name */}
-        {item.nameAr && (
-          <p style={{
-            fontSize: cardSize === 'large' ? '12px' : '10px',
-            color: dm ? dm.textSec : '#6b7280',
-            margin: '0',
-            lineHeight: '1.3',
-            overflow: 'hidden',
-            display: '-webkit-box',
-            WebkitLineClamp: 1,
-            WebkitBoxOrient: 'vertical',
-            fontWeight: '500',
-            direction: 'rtl',
-            textAlign: 'left',
-            width: '100%',
-          }}>
-            {item.nameAr}
-          </p>
-        )}
-
-        {/* Description */}
-        {!item.nameAr && item.description && (
-          <p style={{
-            fontSize: '10px',
-            color: dm ? dm.textMuted : '#9ca3af',
-            margin: '0',
-            lineHeight: '1.2',
-            overflow: 'hidden',
-            display: '-webkit-box',
-            WebkitLineClamp: 1,
-            WebkitBoxOrient: 'vertical',
-            fontWeight: '400'
-          }}>
-            {item.description}
-          </p>
-        )}
-      </div>
-      
-      {/* Bottom Section - No Image */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingTop: '8px',
-        borderTop: dm ? '1px solid #334155' : '1px solid #f0f0f0',
-        marginTop: 'auto',
-        zIndex: 1,
-        flexShrink: 0,
-        gap: '8px',
-      }}>
-        {/* Price - Compact */}
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
-          <span style={{
-            fontSize: isMobile ? '14px' : '15px',
-            color: '#ef4444',
-            fontWeight: '700',
-            lineHeight: 1
-          }}>
-            {getDisplayPrice()}
-          </span>
-          {/* Stock/Expiry badges */}
-          {(isLowStock || expiryStatus) && (
-            <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', marginTop: '2px' }}>
-              {isLowStock && (
-                <span style={{
-                  fontSize: '8px', fontWeight: '700',
-                  padding: '1px 4px', borderRadius: '3px',
-                  backgroundColor: '#fef3c7', color: '#92400e',
-                  border: '1px solid #fde68a'
-                }}>
-                  {item.stockQuantity} left
-                </span>
-              )}
-              {expiryStatus && (
-                <span style={{
-                  fontSize: '8px', fontWeight: '700',
-                  padding: '1px 4px', borderRadius: '3px',
-                  backgroundColor: expiryStatus === 'expired' ? '#fee2e2' : '#fef3c7',
-                  color: expiryStatus === 'expired' ? '#dc2626' : '#92400e'
-                }}>
-                  {expiryStatus === 'expired' ? 'EXPIRED' : expiryStatus === 'expiring-soon' ? 'Exp Soon' : 'Exp 7d'}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Add Button - Compact - Hidden if needs customization */}
-        {!needsCustomization && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          flexShrink: 0,
-          backgroundColor: quantityInCart > 0 ? '#ef4444' : (dm ? dm.cardBg : '#f8fafc'),
-          borderRadius: '8px',
-          overflow: 'hidden',
-          border: quantityInCart > 0 ? 'none' : (dm ? '1px solid #334155' : '1px solid #e5e7eb'),
-          boxShadow: quantityInCart > 0
-            ? '0 2px 6px rgba(239, 68, 68, 0.2)'
-            : (dm ? dm.shadow : '0 1px 3px rgba(0, 0, 0, 0.05)')
-        }}>
-          {quantityInCart > 0 ? (
-            <>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemoveFromCart(item.id);
-                }}
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  borderRadius: '6px'
-                }}
-              >
-                <FaMinus size={10} />
-              </button>
-              <span style={{
-                width: '36px',
-                height: '28px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: '700',
-                color: 'white',
-                fontSize: '12px',
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                borderRadius: '6px'
-              }}>
-                {quantityInCart}
-              </span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onAddToCart(item);
-                }}
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  borderRadius: '6px'
-                }}
-              >
-                <FaPlus size={10} />
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddToCart(item);
-              }}
-              style={{
-                padding: '6px 12px',
-                backgroundColor: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                color: dm ? dm.textSec : '#6b7280',
-                fontWeight: '600',
-                fontSize: '11px',
-                borderRadius: '6px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.3px'
-              }}
-            >
-              <FaPlus size={8} />
-              ADD
-            </button>
-          )}
-        </div>
-        )}
-      </div>
-      </div> {/* End Content Section */}
-
-    </div>
-  );
+  // Cards without a photo (Standard / Large) — Soft Pill design
+  return renderSoftPillCard(false);
 };
 
 // Memoize to prevent re-renders during scroll
