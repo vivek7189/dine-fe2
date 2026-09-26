@@ -2941,7 +2941,7 @@ const OrderSummary = ({
   const twoColumn = !!expanded && !billingMode && !isMobile;
 
   return (
-    <div style={{
+    <div className="os-refresh" style={{
       width: isMobile ? '100vw' : '100%',
       height: billingMode ? 'auto' : (isMobile ? (isMobileEmbed ? 'calc(var(--app-height, 100vh) - env(safe-area-inset-bottom, 34px) - 50px)' : '100vh') : '100vh'),
       ...(billingMode ? { flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' } : {}),
@@ -3102,20 +3102,20 @@ const OrderSummary = ({
                     disabled={isDisabled}
                     style={{
                       backgroundColor: orderType === ot.id
-                        ? (billingMode ? '#e2e8f0' : 'rgba(255,255,255,0.5)')
-                        : (billingMode ? 'transparent' : 'rgba(255,255,255,0.1)'),
-                      color: billingMode ? '#334155' : 'white',
+                        ? (billingMode ? '#e2e8f0' : '#ffffff')
+                        : (billingMode ? 'transparent' : 'rgba(255,255,255,0.12)'),
+                      color: billingMode ? '#334155' : (orderType === ot.id ? '#dc2626' : 'white'),
                       border: orderType === ot.id
-                        ? (billingMode ? '2px solid #94a3b8' : '2px solid white')
-                        : (billingMode ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.2)'),
-                      borderRadius: isMobile ? '4px' : '6px',
-                      padding: isMobile ? '4px 6px' : '6px 12px',
-                      fontSize: isMobile ? '9px' : '10px',
-                      fontWeight: '700',
+                        ? (billingMode ? '1.5px solid #94a3b8' : '1px solid #ffffff')
+                        : (billingMode ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.28)'),
+                      borderRadius: isMobile ? '8px' : '9px',
+                      padding: isMobile ? '5px 8px' : '7px 12px',
+                      fontSize: isMobile ? '9.5px' : '10.5px',
+                      fontWeight: '800',
+                      letterSpacing: '0.02em',
                       cursor: isDisabled ? 'not-allowed' : 'pointer',
                       opacity: isDisabled ? 0.4 : 1,
-                      backdropFilter: 'blur(10px)',
-                      boxShadow: orderType === ot.id ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
+                      boxShadow: orderType === ot.id ? '0 2px 6px rgba(0,0,0,0.15)' : 'none',
                       whiteSpace: 'nowrap'
                     }}
                     title={isDisabled ? 'Remove table to switch type' : ot.label}
@@ -3238,13 +3238,13 @@ const OrderSummary = ({
               }}
               style={{
                 flex: 1,
-                border: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0',
-                borderRadius: '6px',
-                padding: isMobile ? '5px 8px' : '6px 10px',
+                border: dm ? '1px solid ' + dm.border : '1px solid #d7dce3',
+                borderRadius: '9px',
+                padding: isMobile ? '5px 9px' : '6px 10px',
                 fontSize: isMobile ? '11px' : '12px',
-                fontFamily: 'monospace',
+                fontFamily: 'inherit',
                 color: dm ? dm.text : '#374151',
-                backgroundColor: dm ? dm.white : 'white',
+                backgroundColor: (dm ? dm.inputBg : '#ffffff'),
                 outline: 'none',
                 minWidth: 0,
               }}
@@ -3535,8 +3535,8 @@ const OrderSummary = ({
         const showInDropdown = areaRules.length > 4 ? areaRules.slice(4) : [];
 
         // Consistent slate background — no color shifts
-        const barBg = '#f1f5f9';
-        const barBorder = '#e2e8f0';
+        const barBg = dm ? dm.card : '#ffffff';
+        const barBorder = dm ? dm.border : '#eef0f4';
 
         return (
           <div style={{
@@ -3589,12 +3589,12 @@ const OrderSummary = ({
                       : 'white',
                     color: isActive ? 'white' : '#475569',
                     border: isActive
-                      ? 'none'
-                      : '1px solid #cbd5e1',
-                    borderRadius: '20px',
-                    padding: isMobile ? '5px 10px' : '5px 14px',
-                    fontSize: isMobile ? '10px' : '11px',
-                    fontWeight: isActive ? '700' : '500',
+                      ? '1px solid transparent'
+                      : '1px solid #e2e8f0',
+                    borderRadius: '999px',
+                    padding: isMobile ? '5px 11px' : '6px 14px',
+                    fontSize: isMobile ? '10.5px' : '11.5px',
+                    fontWeight: isActive ? '700' : '600',
                     cursor: autoSelectedRule ? 'default' : 'pointer',
                     opacity: autoSelectedRule && !isActive ? 0.5 : 1,
                     boxShadow: isActive ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
@@ -4464,28 +4464,33 @@ const OrderSummary = ({
             </div>
           </div>
         ) : cart.length === 0 ? (
-          <div style={{ 
+          <div style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '40px 30px',
+            padding: '40px 24px',
             height: '100%',
             minHeight: '400px'
           }}>
             <style>{`
-              @keyframes floatCart {
-                0%, 100% { transform: translateY(0px); }
-                50% { transform: translateY(-8px); }
+              @keyframes osEmptyFloat {
+                0%, 100% { transform: translateY(0px) rotate(-3deg); }
+                50% { transform: translateY(-8px) rotate(-3deg); }
               }
-              @keyframes pulse {
-                0%, 100% { opacity: 0.4; }
-                50% { opacity: 0.8; }
+              @keyframes osEmptyGlow {
+                0%, 100% { transform: scale(1); opacity: 0.9; }
+                50% { transform: scale(1.06); opacity: 1; }
               }
-              @keyframes slideIn {
-                0% { opacity: 0; transform: translateX(-10px); }
-                100% { opacity: 1; transform: translateX(0); }
+              @keyframes osEmptyIn {
+                0% { opacity: 0; transform: translateY(6px); }
+                100% { opacity: 1; transform: translateY(0); }
               }
+              @keyframes osSpark {
+                0%, 100% { opacity: 0.25; transform: scale(0.8); }
+                50% { opacity: 1; transform: scale(1); }
+              }
+              /* kept from the previous empty state — used by the Area loading skeleton */
               @keyframes shimmer {
                 0% { opacity: 0.5; }
                 50% { opacity: 0.8; }
@@ -4493,127 +4498,102 @@ const OrderSummary = ({
               }
             `}</style>
 
-            {/* Animated Cart Icon */}
-            <div style={{
-              position: 'relative',
-              marginBottom: '32px',
-              animation: 'floatCart 3s ease-in-out infinite'
-            }}>
-              {/* Background circle */}
+            {/* Illustration — floating receipt on a soft red glow */}
+            <div style={{ position: 'relative', width: '168px', height: '150px', marginBottom: '22px' }}>
               <div style={{
-                width: '100px',
-                height: '100px',
+                position: 'absolute', left: '50%', top: '50%', width: '150px', height: '150px', marginLeft: '-75px', marginTop: '-75px',
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #fef2f2 0%, #fff 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '2px dashed #fecaca'
-              }}>
-                {/* Cart SVG */}
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="9" cy="21" r="1"/>
-                  <circle cx="20" cy="21" r="1"/>
-                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                background: dm
+                  ? 'radial-gradient(circle, rgba(239,68,68,0.22) 0%, rgba(239,68,68,0.06) 55%, transparent 72%)'
+                  : 'radial-gradient(circle, #fee2e2 0%, #fff1f1 50%, rgba(255,255,255,0) 72%)',
+                animation: 'osEmptyGlow 4s ease-in-out infinite',
+              }} />
+              <div style={{ position: 'absolute', left: '50%', top: '14px', marginLeft: '-46px', animation: 'osEmptyFloat 4s ease-in-out infinite' }}>
+                <svg width="92" height="118" viewBox="0 0 92 118" fill="none">
+                  <defs>
+                    <filter id="osRcptShadow" x="-30%" y="-20%" width="160%" height="150%">
+                      <feDropShadow dx="0" dy="8" stdDeviation="8" floodColor="#ef4444" floodOpacity="0.18" />
+                    </filter>
+                  </defs>
+                  <path d="M8 4h76a4 4 0 0 1 4 4v100l-8-6-8 6-8-6-8 6-8-6-8 6-8-6-8 6-8-6-8 6V8a4 4 0 0 1 4-4z"
+                    fill={dm ? '#1e293b' : '#ffffff'} stroke={dm ? '#334155' : '#fde2e2'} strokeWidth="1.5" filter="url(#osRcptShadow)" />
+                  <rect x="16" y="16" width="34" height="7" rx="3.5" fill="#ef4444" />
+                  <rect x="16" y="32" width="60" height="5" rx="2.5" fill={dm ? '#334155' : '#f1f3f6'} />
+                  <rect x="16" y="43" width="46" height="5" rx="2.5" fill={dm ? '#334155' : '#f1f3f6'} />
+                  <rect x="16" y="54" width="54" height="5" rx="2.5" fill={dm ? '#334155' : '#f1f3f6'} />
+                  <line x1="16" y1="70" x2="76" y2="70" stroke={dm ? '#334155' : '#eceef2'} strokeWidth="1.5" strokeDasharray="3 3" />
+                  <rect x="16" y="78" width="22" height="6" rx="3" fill={dm ? '#475569' : '#e2e8f0'} />
+                  <rect x="52" y="77" width="24" height="8" rx="4" fill="#fecaca" />
                 </svg>
               </div>
-
-              {/* Decorative dots */}
+              {/* Plus badge */}
               <div style={{
-                position: 'absolute',
-                top: '-5px',
-                right: '-5px',
-                width: '12px',
-                height: '12px',
-                borderRadius: '50%',
-                backgroundColor: dm ? '#7f1d1d' : '#fecaca',
-                animation: 'pulse 2s ease-in-out infinite'
-              }} />
-              <div style={{
-                position: 'absolute',
-                bottom: '5px',
-                left: '-8px',
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                backgroundColor: dm ? dm.redBg : '#fee2e2',
-                animation: 'pulse 2s ease-in-out infinite 0.5s'
-              }} />
+                position: 'absolute', right: '22px', bottom: '14px', width: '34px', height: '34px', borderRadius: '50%',
+                background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#ffffff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 6px 14px rgba(239,68,68,0.35)', border: dm ? '3px solid #0f172a' : '3px solid #ffffff',
+              }}>
+                <FaPlus size={12} />
+              </div>
+              {/* Sparkles */}
+              <span style={{ position: 'absolute', left: '18px', top: '26px', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#fca5a5', animation: 'osSpark 2.4s ease-in-out infinite' }} />
+              <span style={{ position: 'absolute', right: '16px', top: '12px', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#fdba74', animation: 'osSpark 2.4s ease-in-out infinite 0.8s' }} />
+              <span style={{ position: 'absolute', left: '30px', bottom: '18px', width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#fecaca', animation: 'osSpark 2.4s ease-in-out infinite 1.4s' }} />
             </div>
 
             {/* Title */}
             <h2 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: dm ? dm.text : '#374151',
-              margin: '0 0 8px 0',
-              letterSpacing: '-0.3px'
+              fontSize: '17px',
+              fontWeight: '700',
+              color: dm ? dm.text : '#1e293b',
+              margin: '0 0 6px 0',
+              letterSpacing: '-0.01em',
+              animation: 'osEmptyIn 0.4s ease-out both'
             }}>
-              Your cart is empty
+              Ready for a new order
             </h2>
 
             {/* Description */}
             <p style={{
-              color: dm ? dm.textMuted : '#9ca3af',
-              fontSize: '13px',
-              margin: '0 0 24px 0',
-              fontWeight: '400',
+              color: dm ? dm.textMuted : '#94a3b8',
+              fontSize: '12.5px',
+              margin: '0 0 20px 0',
+              fontWeight: '500',
               lineHeight: '1.5',
               textAlign: 'center',
-              maxWidth: '220px'
+              maxWidth: '230px',
+              animation: 'osEmptyIn 0.4s ease-out 0.05s both'
             }}>
-              Add items from the menu to start building your order
+              Your cart is empty — tap any item on the menu to add it here.
             </p>
 
-            {/* Steps indicator */}
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-              width: '100%',
-              maxWidth: '240px'
-            }}>
+            {/* Quick tips */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '6px', maxWidth: '280px' }}>
               {[
-                { num: '1', text: 'Browse menu items' },
-                { num: '2', text: 'Click + ADD to add items' },
-                { num: '3', text: 'Review & place order' }
-              ].map((step, index) => (
-                <div
-                  key={step.num}
+                { icon: '👆', text: 'Tap an item' },
+                { icon: '🔍', text: 'Search or short code' },
+                { icon: '🪑', text: 'Pick a table' },
+              ].map((tip, index) => (
+                <span
+                  key={tip.text}
                   style={{
-                    display: 'flex',
+                    display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '12px',
-                    padding: '10px 14px',
-                    backgroundColor: dm ? dm.inputBg : '#f9fafb',
-                    borderRadius: '8px',
-                    border: '1px solid #f3f4f6',
-                    animation: `slideIn 0.4s ease-out ${index * 0.1}s both`
+                    gap: '6px',
+                    padding: '6px 11px',
+                    backgroundColor: dm ? dm.inputBg : '#ffffff',
+                    border: dm ? '1px solid ' + dm.border : '1px solid #eceef2',
+                    borderRadius: '999px',
+                    fontSize: '11.5px',
+                    fontWeight: 600,
+                    color: dm ? dm.textSec : '#64748b',
+                    boxShadow: dm ? 'none' : '0 1px 2px rgba(15,23,42,0.04)',
+                    animation: `osEmptyIn 0.4s ease-out ${0.1 + index * 0.07}s both`
                   }}
                 >
-                  <div style={{
-                    width: '24px',
-                    height: '24px',
-                    borderRadius: '50%',
-                    backgroundColor: index === 0 ? '#ef4444' : '#e5e7eb',
-                    color: index === 0 ? 'white' : '#6b7280',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    flexShrink: 0
-                  }}>
-                    {step.num}
-                  </div>
-                  <span style={{
-                    fontSize: '12px',
-                    color: dm ? dm.textSec : '#6b7280',
-                    fontWeight: '500'
-                  }}>
-                    {step.text}
-                  </span>
-                </div>
+                  <span style={{ fontSize: '12px' }}>{tip.icon}</span>
+                  {tip.text}
+                </span>
               ))}
             </div>
 
@@ -4628,29 +4608,36 @@ const OrderSummary = ({
                   gap: '10px',
                   width: '100%',
                   maxWidth: '240px',
-                  padding: '14px 20px',
-                  marginTop: '24px',
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '12px',
-                  fontSize: '14px',
-                  fontWeight: '600',
+                  padding: '6px 18px 6px 6px',
+                  marginTop: '26px',
+                  background: dm ? dm.card : '#ffffff',
+                  color: dm ? dm.text : '#1e293b',
+                  border: dm ? '1px solid ' + dm.border : '1px solid #eceef2',
+                  borderRadius: '999px',
+                  fontSize: '13px',
+                  fontWeight: '700',
                   cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
-                  transition: 'all 0.2s ease'
+                  boxShadow: dm ? 'none' : '0 4px 14px rgba(15, 23, 42, 0.06)',
+                  transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                  animation: 'osEmptyIn 0.4s ease-out 0.3s both'
                 }}
                 onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-2px)';
-                  e.target.style.boxShadow = '0 6px 16px rgba(16, 185, 129, 0.4)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 8px 20px rgba(239, 68, 68, 0.15)';
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = dm ? 'none' : '0 4px 14px rgba(15, 23, 42, 0.06)';
                 }}
               >
-                <FaMicrophone size={16} />
-                Start Voice Order
+                <span style={{
+                  width: '34px', height: '34px', borderRadius: '50%', flexShrink: 0,
+                  background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#ffffff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <FaMicrophone size={13} />
+                </span>
+                <span style={{ flex: 1, textAlign: 'left' }}>Start Voice Order</span>
               </button>
             )}
           </div>
@@ -4743,29 +4730,42 @@ const OrderSummary = ({
               <div
                 key={cartLineId(item)}
                 style={{
-                  backgroundColor: dm ? dm.card : '#f8fafc',
-                  borderRadius: '8px',
-                  padding: '8px',
+                  backgroundColor: dm ? dm.card : '#ffffff',
+                  borderRadius: sentQtyFor(item) > 0 ? '0 8px 8px 0' : '0',
+                  padding: isMobile ? '9px 2px 9px 8px' : '12px 2px 12px 10px',
                   // Already-sent lines get a subtle amber left rail (matches the ORIGINAL
                   // badge) so it's obvious which items are locked-in / need a void to remove.
-                  border: dm ? '1px solid ' + dm.border : '1px solid #e2e8f0',
-                  borderLeft: sentQtyFor(item) > 0 ? '3px solid #f59e0b' : (dm ? '1px solid ' + dm.border : '1px solid #e2e8f0'),
-                  boxShadow: dm ? '0 1px 3px rgba(0, 0, 0, 0.2)' : '0 1px 3px rgba(0, 0, 0, 0.04)'
+                  border: 'none',
+                  borderBottom: dm ? '1px solid ' + dm.border : '1px solid #f1f3f6',
+                  borderLeft: sentQtyFor(item) > 0 ? '3px solid #f59e0b' : '3px solid transparent',
+                  boxShadow: 'none'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <h4 style={{
-                      fontWeight: 'bold',
-                      color: dm ? dm.text : '#1f2937',
-                      margin: '0 0 2px 0',
-                      fontSize: isMobile ? '11px' : '12px',
+                      fontWeight: 600,
+                      color: dm ? dm.text : '#1e293b',
+                      margin: '0 0 4px 0',
+                      fontSize: isMobile ? '12px' : '13px',
                       lineHeight: '1.3',
+                      letterSpacing: '-0.005em',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: isMobile ? '3px' : '6px',
+                      gap: isMobile ? '4px' : '6px',
                       flexWrap: 'wrap',
                     }}>
+                      {/* Veg / non-veg mark */}
+                      <span
+                        title={(item.isVeg === true || item.category === 'veg') ? 'Veg' : 'Non-veg'}
+                        style={{
+                          width: '11px', height: '11px', flexShrink: 0, borderRadius: '3px',
+                          border: `1.5px solid ${(item.isVeg === true || item.category === 'veg') ? '#16a34a' : '#dc2626'}`,
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        }}
+                      >
+                        <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: (item.isVeg === true || item.category === 'veg') ? '#16a34a' : '#dc2626' }} />
+                      </span>
                       {item.name}
                       {/* Show indicator for items from original order.
                           Match on the canonical composite key (id/variant/customizations/seat)
@@ -5004,13 +5004,14 @@ const OrderSummary = ({
                     )}
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <span style={{
-                          fontSize: '11px',
-                          fontWeight: '600',
-                          color: dm ? dm.textSec : '#6b7280'
+                          fontSize: isMobile ? '11.5px' : '12.5px',
+                          fontWeight: 600,
+                          color: dm ? dm.textSec : '#475569',
+                          fontVariantNumeric: 'tabular-nums',
                         }}>
-                          Subtotal: {formatCurrency(getItemUnitPrice(item) * item.quantity)}
+                          {formatCurrency(getItemUnitPrice(item) * item.quantity)}
                           {(() => {
                             const s = getItemTaxSplit(item);
                             if (!s) return null;
@@ -5059,39 +5060,32 @@ const OrderSummary = ({
                           />
                         ) : (
                           <span
+                            title={posSettings.allowPriceEdit && isRoleAllowed(billingSettings?.priceEditRoles) ? 'Edit unit price' : 'Unit price'}
                             style={{
-                              fontSize: '12px', fontWeight: 'bold', color: '#ef4444',
+                              fontSize: '11px', fontWeight: 600, color: dm ? dm.textSec : '#94a3b8',
+                              backgroundColor: 'transparent', padding: '0', borderRadius: '0',
                               cursor: posSettings.allowPriceEdit && isRoleAllowed(billingSettings?.priceEditRoles) ? 'pointer' : 'default',
-                              display: 'inline-flex', alignItems: 'center', gap: '3px',
+                              display: 'inline-flex', alignItems: 'center', gap: '4px', fontVariantNumeric: 'tabular-nums',
                             }}
                             onClick={() => {
                               if (posSettings.allowPriceEdit && isRoleAllowed(billingSettings?.priceEditRoles)) setEditingPriceId(cartLineId(item));
                             }}
                           >
-                            {formatCurrency(getItemUnitPrice(item))}
+                            @ {formatCurrency(getItemUnitPrice(item))}
                             {posSettings.allowPriceEdit && isRoleAllowed(billingSettings?.priceEditRoles) && (
                               <FaPencilAlt size={7} style={{ color: '#94a3b8', flexShrink: 0 }} />
                             )}
                           </span>
                         )}
-                        <div style={{
-                          padding: '1px 4px',
-                          borderRadius: '4px',
-                          fontSize: '6px',
-                          fontWeight: 'bold',
-                          backgroundColor: (item.isVeg === true || item.category === 'veg') ? (dm ? dm.greenBg : '#dcfce7') : (dm ? dm.redBg : '#fee2e2'),
-                          color: (item.isVeg === true || item.category === 'veg') ? (dm ? dm.greenText : '#166534') : (dm ? dm.redText : '#dc2626')
-                        }}>
-                          {(item.isVeg === true || item.category === 'veg') ? 'V' : 'N'}
-                        </div>
                       </div>
                     </div>
                   </div>
                   
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '4px'
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                    flexShrink: 0,
                   }}>
                     {/* Seat Assign Toggle — seat-level ordering */}
                     {seatOrderingEnabled && (
@@ -5100,15 +5094,15 @@ const OrderSummary = ({
                           seatPickerItemId === cartLineId(item) ? null : cartLineId(item)
                         )}
                         style={{
-                          width: '20px',
-                          height: '20px',
+                          width: '26px',
+                          height: '26px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: item.seat != null ? (dm ? '#60a5fa' : '#1d4ed8') : '#94a3b8',
+                          color: item.seat != null ? (dm ? '#60a5fa' : '#1d4ed8') : '#60a5fa',
                           backgroundColor: item.seat != null ? (dm ? dm.blueBg : '#eff6ff') : 'transparent',
-                          border: `1px solid ${item.seat != null ? '#93c5fd' : (dm ? dm.border : '#e2e8f0')}`,
-                          borderRadius: '4px',
+                          border: `1px solid ${item.seat != null ? '#bfdbfe' : 'transparent'}`,
+                          borderRadius: '8px',
                           cursor: 'pointer',
                           transition: 'all 0.2s',
                           fontSize: '8px',
@@ -5126,21 +5120,21 @@ const OrderSummary = ({
                         expandedNoteId === cartLineId(item) ? null : cartLineId(item)
                       )}
                       style={{
-                        width: '20px',
-                        height: '20px',
+                        width: '26px',
+                        height: '26px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: item.notes ? '#d97706' : '#94a3b8',
+                        color: item.notes ? '#d97706' : '#f59e0b',
                         backgroundColor: item.notes ? (dm ? 'rgba(245,158,11,0.15)' : '#fffbeb') : 'transparent',
-                        border: `1px solid ${item.notes ? '#fde68a' : (dm ? dm.border : '#e2e8f0')}`,
-                        borderRadius: '4px',
+                        border: `1px solid ${item.notes ? '#fde68a' : 'transparent'}`,
+                        borderRadius: '8px',
                         cursor: 'pointer',
                         transition: 'all 0.2s'
                       }}
                       title="Kitchen note"
                     >
-                      <FaStickyNote size={8} />
+                      <FaStickyNote size={10} />
                     </button>
                     {/* Individual Delete Button */}
                     <button
@@ -5150,37 +5144,37 @@ const OrderSummary = ({
                         setCart(newCart);
                       }}
                       style={{
-                        width: '20px',
-                        height: '20px',
+                        width: '26px',
+                        height: '26px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: '#ef4444',
+                        color: '#f87171',
                         backgroundColor: 'transparent',
-                        border: dm ? '1px solid rgba(239,68,68,0.3)' : '1px solid #fecaca',
-                        borderRadius: '4px',
+                        border: '1px solid transparent',
+                        borderRadius: '8px',
                         cursor: 'pointer',
-                        transition: 'all 0.2s'
+                        transition: 'all 0.15s'
                       }}
                       onMouseEnter={(e) => {
-                        e.target.style.backgroundColor = dm ? dm.redBg : '#fef2f2';
-                        e.target.style.borderColor = '#ef4444';
+                        e.currentTarget.style.backgroundColor = dm ? dm.redBg : '#fef2f2';
+                        e.currentTarget.style.color = '#ef4444';
                       }}
                       onMouseLeave={(e) => {
-                        e.target.style.backgroundColor = 'transparent';
-                        e.target.style.borderColor = dm ? 'rgba(239,68,68,0.3)' : '#fecaca';
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = '#f87171';
                       }}
                       title="Remove item"
                     >
-                      <FaTimes size={8} />
+                      <FaTrash size={10} />
                     </button>
                     
                     {/* Quantity Controls (or weight display for sold-by-weight items) */}
                     {item.soldByWeight ? (
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: '4px',
-                        backgroundColor: dm ? 'rgba(234,179,8,0.15)' : '#fefce8', borderRadius: '6px', border: dm ? '1px solid rgba(234,179,8,0.3)' : '1px solid #fde047',
-                        padding: '2px 8px', fontSize: '11px', fontWeight: '600', color: dm ? '#fbbf24' : '#854d0e',
+                        backgroundColor: dm ? 'rgba(234,179,8,0.15)' : '#fefce8', borderRadius: '999px', border: dm ? '1px solid rgba(234,179,8,0.3)' : '1px solid #fde047',
+                        padding: '4px 10px', fontSize: '11px', fontWeight: '600', color: dm ? '#fbbf24' : '#854d0e',
                       }}>
                         ⚖️ {item.itemWeight || 0} {item.weightUnit || 'kg'}
                       </div>
@@ -5188,32 +5182,34 @@ const OrderSummary = ({
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
-                      backgroundColor: dm ? dm.white : 'white',
-                      borderRadius: '6px',
-                      border: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb',
-                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                      backgroundColor: dm ? dm.inputBg : '#ffffff',
+                      borderRadius: '999px',
+                      border: dm ? '1px solid ' + dm.border : '1px solid #e8ebf0',
+                      padding: '2px',
+                      marginLeft: '6px',
                       gap: '2px'
                     }}>
                       <button
                         onClick={() => handleQtyMinus(item)}
                         style={{
-                          width: '22px',
-                          height: '22px',
+                          width: '24px',
+                          height: '24px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: '#ef4444',
+                          color: dm ? dm.textSec : '#64748b',
                           backgroundColor: 'transparent',
                           border: 'none',
-                          borderRadius: '4px 0 0 4px',
+                          borderRadius: '999px',
+                          boxShadow: 'none',
                           cursor: 'pointer',
-                          transition: 'background-color 0.2s'
+                          transition: 'background-color 0.15s'
                         }}
                         onMouseEnter={(e) => {
-                          e.target.style.backgroundColor = dm ? dm.redBg : '#fef2f2';
+                          e.currentTarget.style.backgroundColor = dm ? dm.redBg : '#fef2f2';
                         }}
                         onMouseLeave={(e) => {
-                          e.target.style.backgroundColor = 'transparent';
+                          e.currentTarget.style.backgroundColor = 'transparent';
                         }}
                       >
                         <FaMinus size={8} />
@@ -5242,38 +5238,41 @@ const OrderSummary = ({
                           }
                         }}
                         style={{
-                          width: '36px',
-                          height: '22px',
+                          width: '28px',
+                          height: '24px',
                           textAlign: 'center',
-                          fontWeight: 'bold',
-                          color: dm ? dm.text : '#1f2937',
+                          fontWeight: 600,
+                          color: dm ? dm.text : '#1e293b',
                           border: 'none',
-                          fontSize: '11px',
-                          backgroundColor: dm ? dm.inputBg : '#f9fafb',
+                          fontSize: '12.5px',
+                          backgroundColor: 'transparent',
                           outline: 'none',
-                          borderRadius: '0'
+                          borderRadius: '0',
+                          fontVariantNumeric: 'tabular-nums',
+                          padding: 0,
                         }}
                       />
                       <button
                         onClick={() => onUpdateCartItemQuantity && onUpdateCartItemQuantity(item.cartId || item.id, (item.quantity || 1) + 1)}
                         style={{
-                          width: '22px',
-                          height: '22px',
+                          width: '24px',
+                          height: '24px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: '#10b981',
-                          backgroundColor: 'transparent',
+                          color: '#dc2626',
+                          backgroundColor: dm ? dm.redBg : '#fef2f2',
                           border: 'none',
-                          borderRadius: '0 4px 4px 0',
+                          borderRadius: '999px',
+                          boxShadow: 'none',
                           cursor: 'pointer',
-                          transition: 'background-color 0.2s'
+                          transition: 'background-color 0.15s'
                         }}
                         onMouseEnter={(e) => {
-                          e.target.style.backgroundColor = dm ? dm.greenBg : '#f0fdf4';
+                          e.currentTarget.style.backgroundColor = dm ? 'rgba(239,68,68,0.25)' : '#fee2e2';
                         }}
                         onMouseLeave={(e) => {
-                          e.target.style.backgroundColor = 'transparent';
+                          e.currentTarget.style.backgroundColor = dm ? dm.redBg : '#fef2f2';
                         }}
                       >
                         <FaPlus size={8} />
@@ -5413,11 +5412,11 @@ const OrderSummary = ({
           {/* Total - Red bar */}
           <div style={{ padding: isMobile ? '2px 8px 4px 8px' : '4px 12px 6px 12px' }}>
             <div style={{
-              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)',
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
               color: 'white',
-              padding: isMobile ? '8px 10px' : '9px 12px',
-              borderRadius: '8px',
-              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+              padding: isMobile ? '10px 12px' : '11px 14px',
+              borderRadius: '14px',
+              boxShadow: '0 4px 14px rgba(220, 38, 38, 0.22)',
               opacity: editPreFillPending ? 0.5 : 1,
               transition: 'opacity 0.2s ease',
             }}>
@@ -5444,7 +5443,7 @@ const OrderSummary = ({
                     )}
                   </div>
                 </div>
-                <span style={{ fontSize: isMobile ? '18px' : '19px', fontWeight: 'bold' }}>{formatCurrency(editPreFillPending && currentOrder?.finalAmount != null ? currentOrder.finalAmount : (settleFinalAmount()))}</span>
+                <span style={{ fontSize: isMobile ? '19px' : '22px', fontWeight: 800, letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(editPreFillPending && currentOrder?.finalAmount != null ? currentOrder.finalAmount : (settleFinalAmount()))}</span>
               </div>
               {useWallet && parseFloat(walletRedeemAmount) > 0 && (
                 <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.25)' }}>
@@ -5655,15 +5654,15 @@ const OrderSummary = ({
                           }}
                           style={{
                             width: '100%',
-                            padding: '4px 6px',
-                            border: `1.5px solid ${assignedStaff?.name ? '#86efac' : '#d1d5db'}`,
-                            borderRadius: '10px',
-                            fontSize: '10px',
+                            padding: isMobile ? '5px 9px' : '6px 10px',
+                            border: `1px solid ${assignedStaff?.name ? '#86efac' : '#d7dce3'}`,
+                            borderRadius: '9px',
+                            fontSize: isMobile ? '11px' : '12px',
                             fontWeight: 500,
                             color: dm ? dm.text : '#1f2937',
                             outline: 'none',
                             boxSizing: 'border-box',
-                            background: assignedStaff?.name ? (dm ? dm.greenBg : '#f0fdf4') : (dm ? dm.inputBg : '#fafafa'),
+                            background: assignedStaff?.name ? (dm ? dm.greenBg : '#f0fdf4') : (dm ? dm.inputBg : '#ffffff'),
                             transition: 'border-color 0.2s',
                             height: '100%',
                           }}
@@ -5728,20 +5727,20 @@ const OrderSummary = ({
                         maxLength={getPhoneMinLength(countryCode) + 3}
                       style={{
                           width: '100%',
-                        padding: isMobile ? '6px 8px' : '8px 10px',
+                        padding: isMobile ? '5px 9px' : '6px 10px',
                         paddingRight: '36px',
-                          border: `1.5px solid ${
+                          border: `1px solid ${
                             lookupStatus === 'error' ? '#ef4444' :
                             lookupStatus === 'found' ? '#22c55e' :
                             lookupStatus === 'not_found' && isValidMobile ? '#f59e0b' :
-                            isValidMobile ? '#22c55e' : '#e5e7eb'
+                            isValidMobile ? '#22c55e' : '#d7dce3'
                           }`,
-                        borderRadius: isMobile ? '6px' : '8px',
+                        borderRadius: '9px',
                         fontSize: isMobile ? '11px' : '12px',
                         outline: 'none',
                         backgroundColor: lookupStatus === 'found' ? (dm ? dm.greenBg : '#f0fdf4') : lookupStatus === 'error' ? (dm ? dm.redBg : '#fef2f2') : (dm ? dm.inputBg : '#ffffff'),
                         transition: 'border-color 0.2s, box-shadow 0.2s, background-color 0.2s',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                        boxShadow: 'none',
                         boxSizing: 'border-box',
                       }}
                       onChange={(e) => {
@@ -5840,12 +5839,12 @@ const OrderSummary = ({
                       onChange={(e) => onCustomerTinChange?.(String(e.target.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15))}
                       style={{
                         width: '100%',
-                        padding: isMobile ? '6px 8px' : '8px 10px',
-                        border: '1.5px solid #e5e7eb',
-                        borderRadius: isMobile ? '6px' : '8px',
+                        padding: isMobile ? '5px 9px' : '6px 10px',
+                        border: '1px solid #d7dce3',
+                        borderRadius: '9px',
                         fontSize: isMobile ? '11px' : '12px',
                         outline: 'none',
-                        backgroundColor: dm ? dm.inputBg : '#ffffff',
+                        backgroundColor: (dm ? dm.inputBg : '#ffffff'),
                         boxSizing: 'border-box',
                         letterSpacing: '0.03em',
                       }}
@@ -5862,15 +5861,15 @@ const OrderSummary = ({
                       value={customerName || ''}
                       style={{
                           width: '100%',
-                        padding: isMobile ? '6px 8px' : '8px 10px',
-                        paddingRight: (lookupStatus === 'found' && customerData) ? '36px' : (isMobile ? '8px' : '10px'),
-                          border: `1.5px solid ${(lookupStatus === 'found' && customerData) ? '#0891b2' : isValidName ? '#22c55e' : '#e5e7eb'}`,
-                        borderRadius: isMobile ? '6px' : '8px',
+                        padding: isMobile ? '5px 9px' : '6px 10px',
+                        paddingRight: (lookupStatus === 'found' && customerData) ? '36px' : (isMobile ? '9px' : '10px'),
+                          border: `1px solid ${(lookupStatus === 'found' && customerData) ? '#0891b2' : isValidName ? '#22c55e' : '#d7dce3'}`,
+                        borderRadius: '9px',
                         fontSize: isMobile ? '11px' : '12px',
                         outline: 'none',
                         backgroundColor: (lookupStatus === 'found' && customerData) ? (dm ? dm.blueBg : '#ecfeff') : (dm ? dm.inputBg : '#ffffff'),
                         transition: 'border-color 0.2s, box-shadow 0.2s',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                        boxShadow: 'none',
                         boxSizing: 'border-box',
                       }}
                       onChange={(e) => {
@@ -6145,14 +6144,14 @@ const OrderSummary = ({
                                 }
                               }}
                               style={{
-                                padding: isMobile ? '10px 12px' : '7px 10px',
-                                borderRadius: '6px 0 0 6px',
-                                border: '2px solid',
+                                padding: isMobile ? '9px 11px' : '6px 11px',
+                                borderRadius: '9px 0 0 9px',
+                                border: '1px solid',
                                 borderRight: 'none',
                                 backgroundColor: locationType === 'table' ? '#ef4444' : 'white',
                                 color: locationType === 'table' ? 'white' : '#374151',
                                 borderColor: locationType === 'table' ? '#ef4444' : '#e5e7eb',
-                                fontWeight: '600',
+                                fontWeight: '700',
                                 fontSize: isMobile ? '12px' : '11px',
                                 cursor: 'pointer',
                                 display: 'flex',
@@ -6176,13 +6175,13 @@ const OrderSummary = ({
                                 }
                               }}
                               style={{
-                                padding: isMobile ? '10px 12px' : '7px 10px',
-                                borderRadius: '0 6px 6px 0',
-                                border: '2px solid',
+                                padding: isMobile ? '9px 11px' : '6px 11px',
+                                borderRadius: '0 9px 9px 0',
+                                border: '1px solid',
                                 backgroundColor: locationType === 'room' ? '#ef4444' : 'white',
                                 color: locationType === 'room' ? 'white' : '#374151',
                                 borderColor: locationType === 'room' ? '#ef4444' : '#e5e7eb',
-                                fontWeight: '600',
+                                fontWeight: '700',
                                 fontSize: isMobile ? '12px' : '11px',
                                 cursor: 'pointer',
                                 display: 'flex',
@@ -6217,13 +6216,14 @@ const OrderSummary = ({
                             style={{
                               flex: 1,
                               minWidth: '60px',
-                              maxWidth: '80px',
-                              padding: isMobile ? '10px 12px' : '7px 10px',
-                              border: `2px solid ${isValidLocation ? '#22c55e' : '#d1d5db'}`,
-                              borderRadius: '6px',
+                              maxWidth: '110px',
+                              padding: isMobile ? '9px 11px' : '6px 10px',
+                              border: `1px solid ${isValidLocation ? '#22c55e' : '#d7dce3'}`,
+                              borderRadius: '9px',
                               fontSize: isMobile ? '14px' : '12px',
+                              fontWeight: 600,
                               outline: 'none',
-                              backgroundColor: dm ? dm.inputBg : '#f9fafb',
+                              backgroundColor: (dm ? dm.inputBg : '#ffffff'),
                               transition: 'border-color 0.2s'
                             }}
                             onChange={(e) => {
@@ -6290,7 +6290,7 @@ const OrderSummary = ({
                   <FaCreditCard size={12} />
                   {t('dashboard.paymentMethod')}
                 </div>
-                <div style={{ display: 'flex', gap: '4px' }}>
+                <div style={{ display: 'flex', gap: '6px' }}>
                   {[
                     ...(Array.isArray(posSettings.paymentMethods)
                       ? posSettings.paymentMethods.filter(pm => pm.enabled)
@@ -6310,19 +6310,19 @@ const OrderSummary = ({
                         onClick={() => setPaymentMethod(method.id)}
                         style={{
                           flex: 1,
-                          padding: '6px 4px',
+                          padding: isMobile ? '6px 4px' : '7px 6px',
                           backgroundColor: isSelected ? '#ef4444' : (dm ? dm.white : 'white'),
-                          color: isSelected ? 'white' : (dm ? dm.textSec : '#6b7280'),
-                          border: isSelected ? '1px solid #ef4444' : (dm ? '1px solid ' + dm.border : '1px solid #e5e7eb'),
-                          borderRadius: '6px',
+                          color: isSelected ? 'white' : (dm ? dm.text : '#334155'),
+                          border: isSelected ? '1px solid #ef4444' : (dm ? '1px solid ' + dm.border : '1px solid #e2e8f0'),
+                          borderRadius: '9px',
                           fontWeight: '600',
-                          fontSize: '9px',
+                          fontSize: isMobile ? '11px' : '12px',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           transition: 'all 0.2s',
-                          boxShadow: isSelected ? '0 2px 6px rgba(239, 68, 68, 0.3)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
+                          boxShadow: 'none',
                           position: 'relative',
                         }}
                         title={showDrawerDot ? 'Cash drawer will auto-open' : undefined}
@@ -6348,8 +6348,8 @@ const OrderSummary = ({
           {/* Billing Features Toolbar */}
           {(() => {
             const billingTools = [
-              billingSettings.cashTenderingEnabled && isRoleAllowed(billingSettings.cashTenderingRoles) && paymentMethod === 'cash' && { id: 'cash', icon: FaMoneyBillWave, label: 'Cash', color: '#10b981' },
-              billingSettings.splitBillEnabled && isRoleAllowed(billingSettings.splitBillRoles) && { id: 'splitBill', icon: FaUsers, label: 'Split Bill', color: '#0ea5e9' },
+              billingSettings.cashTenderingEnabled && isRoleAllowed(billingSettings.cashTenderingRoles) && paymentMethod === 'cash' && { id: 'cash', icon: FaMoneyBillWave, label: 'Cash', color: '#ef4444' },
+              billingSettings.splitBillEnabled && isRoleAllowed(billingSettings.splitBillRoles) && { id: 'splitBill', icon: FaUsers, label: 'Split Bill', color: '#ef4444' },
               billingSettings.splitPaymentEnabled && isRoleAllowed(billingSettings.splitPaymentRoles) && (() => {
                 // Placement gating:
                 // - billingMode=true  → orderhistory Complete flow → show only if settlementShowOnOrderHistory
@@ -6360,10 +6360,10 @@ const OrderSummary = ({
                 const bothOff = !showDash && !showHist;
                 const visible = billingMode ? showHist : (showDash || bothOff);
                 return visible;
-              })() && { id: 'split', icon: FaCreditCard, label: 'Settlement', color: '#3b82f6' },
-              billingSettings.tipsEnabled && isRoleAllowed(billingSettings.tipsRoles) && { id: 'tip', icon: FaHandHoldingUsd, label: 'Tip', color: '#f59e0b' },
-              billingSettings.partialPaymentEnabled && isRoleAllowed(billingSettings.partialPaymentRoles) && { id: 'partial', icon: FaWallet, label: 'Credit', color: '#8b5cf6' },
-              billingSettings.compVoidEnabled && isRoleAllowed(billingSettings.compVoidRoles) && { id: 'comp', icon: FaGift, label: 'Comp', color: '#ec4899' },
+              })() && { id: 'split', icon: FaCreditCard, label: 'Settlement', color: '#ef4444' },
+              billingSettings.tipsEnabled && isRoleAllowed(billingSettings.tipsRoles) && { id: 'tip', icon: FaHandHoldingUsd, label: 'Tip', color: '#ef4444' },
+              billingSettings.partialPaymentEnabled && isRoleAllowed(billingSettings.partialPaymentRoles) && { id: 'partial', icon: FaWallet, label: 'Credit', color: '#ef4444' },
+              billingSettings.compVoidEnabled && isRoleAllowed(billingSettings.compVoidRoles) && { id: 'comp', icon: FaGift, label: 'Comp', color: '#ef4444' },
               billingSettings.compVoidEnabled && isRoleAllowed(billingSettings.compVoidRoles) && { id: 'void', icon: FaBan, label: 'Void', color: dm ? dm.textSec : '#6b7280' },
             ].filter(Boolean);
 
@@ -6408,12 +6408,12 @@ const OrderSummary = ({
                         }}
                         style={{
                           flex: 1,
-                          padding: '6px 4px',
-                          borderRadius: '8px',
-                          border: isActive ? `1.5px solid ${tool.color}` : hasValue ? `1.5px solid ${tool.color}66` : '1px solid #e5e7eb',
-                          background: isActive ? `${tool.color}10` : hasValue ? `${tool.color}08` : 'white',
-                          color: isActive || hasValue ? tool.color : '#9ca3af',
-                          fontSize: '9px',
+                          padding: isMobile ? '5px 4px' : '6px 6px',
+                          borderRadius: '9px',
+                          border: isActive ? `1.5px solid ${tool.color}` : hasValue ? `1.5px solid ${tool.color}66` : (dm ? '1px solid ' + dm.border : '1px solid #e2e8f0'),
+                          background: isActive ? `${tool.color}10` : hasValue ? `${tool.color}08` : (dm ? dm.inputBg : '#f8fafc'),
+                          color: isActive || hasValue ? tool.color : (dm ? dm.textSec : '#475569'),
+                          fontSize: isMobile ? '10px' : '11px',
                           fontWeight: 600,
                           cursor: 'pointer',
                           display: 'flex',
@@ -6439,7 +6439,7 @@ const OrderSummary = ({
                   <div style={{
                     background: dm ? dm.greenBg : '#f0fdf4',
                     border: '1px solid #bbf7d0',
-                    borderRadius: '10px',
+                    borderRadius: '12px',
                     padding: '12px',
                   }}>
                     <div style={{ fontSize: '11px', fontWeight: 700, color: dm ? dm.greenText : '#166534', marginBottom: '8px' }}>Cash Tendering</div>
@@ -6526,16 +6526,16 @@ const OrderSummary = ({
                 {/* Split Bill — compact launcher in the sidebar; the full editor lives in the
                     right-side drawer (setShowSplitBillPopup) to keep the narrow sidebar clean. */}
                 {activeBillingPanel === 'splitBill' && (
-                  <div style={{ background: dm ? dm.blueBg : '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                  <div style={{ background: dm ? dm.blueBg : '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#0369a1' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#b91c1c' }}>
                         Split Bill{splitBillMode ? ` — ${splitBillMode === 'by-item' ? 'By Item' : splitBillMode === 'by-amount' ? 'By Amount' : 'Equal'}` : ''}
                       </div>
-                      <div style={{ fontSize: '10px', color: '#0284c7', marginTop: '2px' }}>Total {formatCurrency(grandTotal)} &middot; tap Open to edit</div>
+                      <div style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>Total {formatCurrency(grandTotal)} &middot; tap Open to edit</div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                       <button onClick={() => setShowSplitBillPopup(true)}
-                        style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', background: '#0ea5e9', color: '#fff', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>
+                        style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>
                         Open
                       </button>
                       {splitBillMode && (
@@ -6554,18 +6554,18 @@ const OrderSummary = ({
                 {/* Full inline split editor — superseded by the right-side drawer above. */}
                 {false && activeBillingPanel === 'splitBill' && (
                   <div style={{
-                    background: dm ? dm.blueBg : '#f0f9ff',
-                    border: '1px solid #bae6fd',
-                    borderRadius: '10px',
+                    background: dm ? dm.blueBg : '#fef2f2',
+                    border: '1px solid #fecaca',
+                    borderRadius: '12px',
                     padding: '12px',
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <div style={{ fontSize: '11px', fontWeight: 700, color: '#0369a1' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 700, color: '#b91c1c' }}>
                           Split Bill — Total: {formatCurrency(grandTotal)}
                         </div>
                         <button onClick={() => setShowSplitBillPopup(true)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0369a1', padding: '2px', lineHeight: 1 }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b91c1c', padding: '2px', lineHeight: 1 }}
                           title="Open in popup"
                         >
                           <FaExpand size={10} />
@@ -6602,8 +6602,8 @@ const OrderSummary = ({
                           style={{
                             flex: 1, padding: '5px 6px', fontSize: '10px', fontWeight: 600, borderRadius: '6px',
                             cursor: 'pointer', border: 'none', transition: 'all 0.15s',
-                            background: splitBillMode === m.id ? '#0ea5e9' : '#e0f2fe',
-                            color: splitBillMode === m.id ? '#fff' : '#0369a1',
+                            background: splitBillMode === m.id ? '#ef4444' : '#fef2f2',
+                            color: splitBillMode === m.id ? '#fff' : '#b91c1c',
                           }}
                         >
                           {m.label}
@@ -6614,7 +6614,7 @@ const OrderSummary = ({
                     {/* One-tap split by seat (seat-level ordering) */}
                     {distinctCartSeats.length >= 2 && (
                       <button onClick={applySplitBySeat}
-                        style={{ width: '100%', marginBottom: '10px', padding: '8px', borderRadius: '8px', border: '1px solid #99f6e4', background: '#f0fdfa', color: '#0d9488', fontSize: '11px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                        style={{ width: '100%', marginBottom: '10px', padding: '8px', borderRadius: '8px', border: '1px solid #fecaca', background: '#fef2f2', color: '#ef4444', fontSize: '11px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                         <FaChair size={11} /> Split by Seat ({distinctCartSeats.length} seats)
                       </button>
                     )}
@@ -6622,14 +6622,14 @@ const OrderSummary = ({
                     {/* Guest count stepper (for equal & by-amount) */}
                     {splitBillMode && splitBillMode !== 'by-item' && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 600, color: '#0369a1' }}>Guests:</span>
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: '#b91c1c' }}>Guests:</span>
                         <button onClick={() => setSplitBillGuests(Math.max(2, splitBillGuests - 1))}
-                          style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid #bae6fd', background: '#e0f2fe', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, color: '#0369a1' }}>
+                          style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fef2f2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, color: '#b91c1c' }}>
                           −
                         </button>
-                        <span style={{ fontSize: '14px', fontWeight: 700, color: '#0c4a6e', minWidth: '20px', textAlign: 'center' }}>{splitBillGuests}</span>
+                        <span style={{ fontSize: '14px', fontWeight: 700, color: '#b91c1c', minWidth: '20px', textAlign: 'center' }}>{splitBillGuests}</span>
                         <button onClick={() => setSplitBillGuests(Math.min(billingSettings.splitBillMaxGuests || 10, splitBillGuests + 1))}
-                          style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid #bae6fd', background: '#e0f2fe', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, color: '#0369a1' }}>
+                          style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fef2f2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, color: '#b91c1c' }}>
                           +
                         </button>
                       </div>
@@ -6645,16 +6645,16 @@ const OrderSummary = ({
                           {Array.from({ length: splitBillGuests }).map((_, i) => {
                             const amt = i === splitBillGuests - 1 ? lastGuest : perGuest;
                             return (
-                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px', background: dm ? dm.white : 'white', borderRadius: '6px', border: '1px solid #e0f2fe' }}>
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px', background: dm ? dm.white : 'white', borderRadius: '6px', border: '1px solid #fef2f2' }}>
                                 <input type="text" placeholder={`Guest ${i + 1}`}
                                   value={splitBillGuestNames[i] || ''}
                                   onChange={(e) => setSplitBillGuestNames(prev => ({ ...prev, [i]: e.target.value }))}
-                                  style={{ border: 'none', borderBottom: '1px dashed #bae6fd', background: 'transparent', fontSize: '11px', fontWeight: 600, color: '#0369a1', width: '80px', outline: 'none', padding: '2px 4px' }}
+                                  style={{ border: 'none', borderBottom: '1px dashed #fecaca', background: 'transparent', fontSize: '11px', fontWeight: 600, color: '#b91c1c', width: '80px', outline: 'none', padding: '2px 4px' }}
                                 />
-                                <span style={{ flex: 1, fontSize: '12px', fontWeight: 700, color: '#0c4a6e' }}>{formatCurrency(amt)}</span>
+                                <span style={{ flex: 1, fontSize: '12px', fontWeight: 700, color: '#b91c1c' }}>{formatCurrency(amt)}</span>
                                 <select value={splitBillPaymentMethods[i] || 'cash'}
                                   onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
-                                  style={{ padding: '3px 6px', border: '1px solid #bae6fd', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}
+                                  style={{ padding: '3px 6px', border: '1px solid #fecaca', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}
                                 >
                                   {(settlementMethodOptions(billingSettings, posSettings))
                                     .filter(m => m.enabled).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
@@ -6671,7 +6671,7 @@ const OrderSummary = ({
                       const maxGuests = billingSettings.splitBillMaxGuests || 10;
                       const guestCount = Math.max(2, ...Object.values(splitBillItemAssignments).map(g => g + 1), splitBillGuests);
                       const cartItems = cart || [];
-                      const guestColors = ['#4f46e5', '#8b5cf6', '#f59e0b', '#10b981', '#ec4899', '#6366f1', '#f97316', '#14b8a6', '#e11d68', '#84cc16'];
+                      const guestColors = ['#ef4444', '#ef4444', '#ef4444', '#10b981', '#ef4444', '#ef4444', '#ef4444', '#ef4444', '#ef4444', '#84cc16'];
                       const guestTotals = {};
                       cartItems.forEach((item, idx) => {
                         const g = splitBillItemAssignments[idx];
@@ -6753,7 +6753,7 @@ const OrderSummary = ({
                                   <span style={{ flex: 1, fontSize: '11px', fontWeight: 500, color: dm ? dm.text : '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                     {item.name} {item.quantity > 1 ? `x${item.quantity}` : ''}
                                   </span>
-                                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#0c4a6e', flexShrink: 0 }}>
+                                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#b91c1c', flexShrink: 0 }}>
                                     {formatCurrency((item.price || 0) * (item.quantity || 1))}
                                   </span>
                                   {isAssigned && (
@@ -6775,7 +6775,7 @@ const OrderSummary = ({
                               cartItems.forEach((_, idx) => { if (splitBillItemAssignments[idx] === undefined) updates[idx] = safeActive; });
                               setSplitBillItemAssignments(prev => ({ ...prev, ...updates }));
                             }}
-                              style={{ marginTop: '6px', width: '100%', padding: '5px', borderRadius: '6px', border: '1px dashed #0ea5e9', background: dm ? dm.blueBg : '#f0f9ff', color: '#0369a1', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}>
+                              style={{ marginTop: '6px', width: '100%', padding: '5px', borderRadius: '6px', border: '1px dashed #ef4444', background: dm ? dm.blueBg : '#fef2f2', color: '#b91c1c', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}>
                               Assign all {unassignedCount} remaining to {splitBillGuestNames[safeActive]?.trim() || `Guest ${safeActive + 1}`}
                             </button>
                           )}
@@ -6789,7 +6789,7 @@ const OrderSummary = ({
                                   </span>
                                   <select value={splitBillPaymentMethods[i] || 'cash'}
                                     onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
-                                    style={{ flex: 1, padding: '3px 6px', border: '1px solid #bae6fd', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}
+                                    style={{ flex: 1, padding: '3px 6px', border: '1px solid #fecaca', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}
                                   >
                                     {(settlementMethodOptions(billingSettings, posSettings))
                                       .filter(m => m.enabled).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
@@ -6811,20 +6811,20 @@ const OrderSummary = ({
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           {Array.from({ length: splitBillGuests }).map((_, i) => (
-                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px', background: dm ? dm.white : 'white', borderRadius: '6px', border: '1px solid #e0f2fe' }}>
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px', background: dm ? dm.white : 'white', borderRadius: '6px', border: '1px solid #fef2f2' }}>
                               <input type="text" placeholder={`Guest ${i + 1}`}
                                 value={splitBillGuestNames[i] || ''}
                                 onChange={(e) => setSplitBillGuestNames(prev => ({ ...prev, [i]: e.target.value }))}
-                                style={{ border: 'none', borderBottom: '1px dashed #bae6fd', background: 'transparent', fontSize: '11px', fontWeight: 600, color: '#0369a1', width: '80px', outline: 'none', padding: '2px 4px' }}
+                                style={{ border: 'none', borderBottom: '1px dashed #fecaca', background: 'transparent', fontSize: '11px', fontWeight: 600, color: '#b91c1c', width: '80px', outline: 'none', padding: '2px 4px' }}
                               />
                               <input type="number" placeholder="Amount" min="0.01" step="0.01"
                                 value={splitBillAmounts[i] || ''}
                                 onChange={(e) => setSplitBillAmounts(prev => ({ ...prev, [i]: e.target.value }))}
-                                style={{ flex: 1, padding: '5px 8px', border: '1px solid #bae6fd', borderRadius: '6px', fontSize: '12px', fontWeight: 600, outline: 'none', background: dm ? dm.white : 'white' }}
+                                style={{ flex: 1, padding: '5px 8px', border: '1px solid #fecaca', borderRadius: '6px', fontSize: '12px', fontWeight: 600, outline: 'none', background: dm ? dm.white : 'white' }}
                               />
                               <select value={splitBillPaymentMethods[i] || 'cash'}
                                 onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
-                                style={{ padding: '3px 6px', border: '1px solid #bae6fd', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}
+                                style={{ padding: '3px 6px', border: '1px solid #fecaca', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}
                               >
                                 {(settlementMethodOptions(billingSettings, posSettings))
                                   .filter(m => m.enabled).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
@@ -6839,7 +6839,7 @@ const OrderSummary = ({
                               const lastAmt = Math.max(0, Math.round((total - othersSum) * 100) / 100);
                               setSplitBillAmounts(prev => ({ ...prev, [lastIdx]: String(lastAmt) }));
                             }}
-                              style={{ fontSize: '10px', color: '#0369a1', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+                              style={{ fontSize: '10px', color: '#b91c1c', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
                               Auto-fill last guest
                             </button>
                             <span style={{ fontSize: '11px', fontWeight: 700, color: isBalanced ? '#16a34a' : '#dc2626' }}>
@@ -6855,12 +6855,12 @@ const OrderSummary = ({
                 {/* Settlement Options Panel */}
                 {activeBillingPanel === 'split' && (
                   <div style={{
-                    background: '#eff6ff',
-                    border: '1px solid #bfdbfe',
-                    borderRadius: '10px',
+                    background: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    borderRadius: '12px',
                     padding: '12px',
                   }}>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#1e40af', marginBottom: '8px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#b91c1c', marginBottom: '8px' }}>
                       Settlement Options — Total: {formatCurrency(grandTotal)}
                     </div>
                     {splitPayments.map((sp, idx) => {
@@ -6881,7 +6881,7 @@ const OrderSummary = ({
                           }}
                           style={{
                             padding: '6px 8px',
-                            border: '1px solid #93c5fd',
+                            border: '1px solid #fecaca',
                             borderRadius: '6px',
                             fontSize: '11px',
                             fontWeight: 600,
@@ -6908,7 +6908,7 @@ const OrderSummary = ({
                           style={{
                             flex: 1,
                             padding: '6px 10px',
-                            border: isOverMax ? '1.5px solid #dc2626' : '1px solid #93c5fd',
+                            border: isOverMax ? '1.5px solid #dc2626' : '1px solid #fecaca',
                             borderRadius: '6px',
                             fontSize: '12px',
                             fontWeight: 600,
@@ -6947,7 +6947,7 @@ const OrderSummary = ({
                         }}
                         style={{
                           fontSize: '10px',
-                          color: allMethodsUsed ? '#9ca3af' : '#2563eb',
+                          color: allMethodsUsed ? '#9ca3af' : '#ef4444',
                           background: 'none',
                           border: 'none',
                           cursor: allMethodsUsed ? 'not-allowed' : 'pointer',
@@ -6980,12 +6980,12 @@ const OrderSummary = ({
                 {/* Tip Panel */}
                 {activeBillingPanel === 'tip' && (
                   <div style={{
-                    background: dm ? dm.orangeBg : '#fffbeb',
-                    border: '1px solid #fde68a',
-                    borderRadius: '10px',
+                    background: dm ? dm.orangeBg : '#fef2f2',
+                    border: '1px solid #fecaca',
+                    borderRadius: '12px',
                     padding: '12px',
                   }}>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#92400e', marginBottom: '8px' }}>Add Tip</div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#b91c1c', marginBottom: '8px' }}>Add Tip</div>
                     <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
                       {(billingSettings.tipPresets || [5, 10, 15, 20]).map(pct => {
                         const isSelected = tipPercentage === pct;
@@ -7006,22 +7006,22 @@ const OrderSummary = ({
                             style={{
                               padding: '6px 14px',
                               borderRadius: '8px',
-                              border: isSelected ? '2px solid #f59e0b' : '1px solid #fcd34d',
-                              background: isSelected ? '#fef3c7' : 'white',
+                              border: isSelected ? '2px solid #ef4444' : '1px solid #fecaca',
+                              background: isSelected ? '#fef2f2' : 'white',
                               fontWeight: isSelected ? 700 : 500,
                               fontSize: '12px',
                               cursor: 'pointer',
-                              color: '#92400e'
+                              color: '#b91c1c'
                             }}
                           >
                             {pct}%
-                            <div style={{ fontSize: '9px', color: '#b45309' }}>{formatCurrency(tipVal)}</div>
+                            <div style={{ fontSize: '9px', color: '#b91c1c' }}>{formatCurrency(tipVal)}</div>
                           </button>
                         );
                       })}
                     </div>
                     <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                      <span style={{ fontSize: '11px', color: '#92400e', fontWeight: 600 }}>Custom:</span>
+                      <span style={{ fontSize: '11px', color: '#b91c1c', fontWeight: 600 }}>Custom:</span>
                       <input
                         type="number"
                         placeholder="0"
@@ -7033,7 +7033,7 @@ const OrderSummary = ({
                         style={{
                           width: '100px',
                           padding: '6px 10px',
-                          border: '1px solid #fcd34d',
+                          border: '1px solid #fecaca',
                           borderRadius: '6px',
                           fontSize: '12px',
                           fontWeight: 600,
@@ -7065,13 +7065,13 @@ const OrderSummary = ({
                 {/* Credit / Due Payment Panel */}
                 {activeBillingPanel === 'partial' && (
                   <div style={{
-                    background: fullDueMode ? '#fef2f2' : '#f5f3ff',
-                    border: `1px solid ${fullDueMode ? '#fecaca' : '#ddd6fe'}`,
+                    background: fullDueMode ? '#fef2f2' : '#fef2f2',
+                    border: `1px solid ${fullDueMode ? '#fecaca' : '#fecaca'}`,
                     borderRadius: '10px',
                     padding: '12px',
                     transition: 'all 0.2s',
                   }}>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: fullDueMode ? '#991b1b' : '#5b21b6', marginBottom: '8px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: fullDueMode ? '#991b1b' : '#b91c1c', marginBottom: '8px' }}>
                       Credit / Udhar — Total: {formatCurrency(grandTotal)}
                     </div>
                     {/* Mode Toggle: Partial vs Full Due */}
@@ -7081,9 +7081,9 @@ const OrderSummary = ({
                         style={{
                           flex: 1, padding: '6px 0', borderRadius: '8px', fontSize: '11px', fontWeight: 700,
                           cursor: 'pointer', border: 'none', transition: 'all 0.2s',
-                          background: !fullDueMode ? '#ede9fe' : '#f3f4f6',
-                          color: !fullDueMode ? '#7c3aed' : '#6b7280',
-                          outline: !fullDueMode ? '2px solid #8b5cf6' : 'none',
+                          background: !fullDueMode ? '#fef2f2' : '#f3f4f6',
+                          color: !fullDueMode ? '#ef4444' : '#6b7280',
+                          outline: !fullDueMode ? '2px solid #ef4444' : 'none',
                         }}
                       >
                         Partial Pay
@@ -7111,7 +7111,7 @@ const OrderSummary = ({
                             value={partialPayAmount}
                             onChange={(e) => setPartialPayAmount(e.target.value)}
                             style={{
-                              flex: 1, padding: '8px 10px', border: '1.5px solid #c4b5fd', borderRadius: '8px',
+                              flex: 1, padding: '8px 10px', border: '1.5px solid #fecaca', borderRadius: '8px',
                               fontSize: '14px', fontWeight: 700, outline: 'none', background: dm ? dm.white : 'white'
                             }}
                             autoFocus
@@ -7120,10 +7120,10 @@ const OrderSummary = ({
                         {parseFloat(partialPayAmount) > 0 && (
                           <div style={{
                             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                            padding: '8px 12px', background: '#ede9fe', borderRadius: '8px', fontWeight: 700
+                            padding: '8px 12px', background: '#fef2f2', borderRadius: '8px', fontWeight: 700
                           }}>
                             <span style={{ fontSize: '12px', color: dm ? dm.text : '#374151' }}>Outstanding (Khata)</span>
-                            <span style={{ fontSize: '16px', color: '#7c3aed' }}>
+                            <span style={{ fontSize: '16px', color: '#ef4444' }}>
                               {formatCurrency(Math.max(0, grandTotal - parseFloat(partialPayAmount)))}
                             </span>
                           </div>
@@ -7154,12 +7154,12 @@ const OrderSummary = ({
                 {/* Comp Panel */}
                 {activeBillingPanel === 'comp' && (
                   <div style={{
-                    background: dm ? dm.redBg : '#fdf2f8',
-                    border: '1px solid #fbcfe8',
-                    borderRadius: '10px',
+                    background: dm ? dm.redBg : '#fef2f2',
+                    border: '1px solid #fecaca',
+                    borderRadius: '12px',
                     padding: '12px',
                   }}>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#9d174d', marginBottom: '8px' }}>Comp Items (Free)</div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#b91c1c', marginBottom: '8px' }}>Comp Items (Free)</div>
                     <div style={{ maxHeight: '120px', overflowY: 'auto', marginBottom: '8px' }}>
                       {cart.map((item, idx) => {
                         const isSelected = compVoidItems.some(cv => cv.index === idx && cv.type === 'comp');
@@ -7178,7 +7178,7 @@ const OrderSummary = ({
                                   setCompVoidItems([...compVoidItems, { index: idx, type: 'comp', name: item.name, quantity: item.quantity, amount: (item.price || 0) * (item.quantity || 1) }]);
                                 }
                               }}
-                              style={{ accentColor: '#ec4899' }}
+                              style={{ accentColor: '#ef4444' }}
                             />
                             <span style={{ flex: 1, fontWeight: isSelected ? 700 : 400 }}>{item.name} x{item.quantity}</span>
                             <span style={{ fontWeight: 600 }}>{formatCurrency((item.price || 0) * (item.quantity || 1))}</span>
@@ -7194,7 +7194,7 @@ const OrderSummary = ({
                       style={{
                         width: '100%',
                         padding: '6px 10px',
-                        border: '1px solid #f9a8d4',
+                        border: '1px solid #fecaca',
                         borderRadius: '6px',
                         fontSize: '11px',
                         outline: 'none',
@@ -7212,7 +7212,7 @@ const OrderSummary = ({
                         style={{
                           width: '100%',
                           padding: '6px 10px',
-                          border: '1px solid #f9a8d4',
+                          border: '1px solid #fecaca',
                           borderRadius: '6px',
                           fontSize: '11px',
                           outline: 'none',
@@ -7229,7 +7229,7 @@ const OrderSummary = ({
                   <div style={{
                     background: dm ? dm.inputBg : '#f9fafb',
                     border: dm ? '1px solid ' + dm.border : '1px solid #e5e7eb',
-                    borderRadius: '10px',
+                    borderRadius: '12px',
                     padding: '12px',
                   }}>
                     <div style={{ fontSize: '11px', fontWeight: 700, color: dm ? dm.text : '#374151', marginBottom: '8px' }}>Void Items (Remove)</div>
@@ -7345,12 +7345,12 @@ const OrderSummary = ({
             <div style={{
               display: 'flex', gap: '6px', marginBottom: '6px',
               padding: '8px 10px', borderRadius: '8px',
-              background: '#eff6ff', border: '1px solid #bfdbfe',
+              background: '#fef2f2', border: '1px solid #fecaca',
               alignItems: 'center',
             }}>
-              <FaCalendarAlt size={11} style={{ color: '#3b82f6', flexShrink: 0 }} />
-              <input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} min={new Date().toISOString().split('T')[0]} style={{ flex: 1, padding: '5px 8px', borderRadius: '6px', border: '1px solid #93c5fd', fontSize: '11px', outline: 'none', background: dm ? dm.white : '#fff', minWidth: 0 }} />
-              <input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} style={{ flex: 1, padding: '5px 8px', borderRadius: '6px', border: '1px solid #93c5fd', fontSize: '11px', outline: 'none', background: dm ? dm.white : '#fff', minWidth: 0 }} />
+              <FaCalendarAlt size={11} style={{ color: '#ef4444', flexShrink: 0 }} />
+              <input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} min={new Date().toISOString().split('T')[0]} style={{ flex: 1, padding: '5px 8px', borderRadius: '6px', border: '1px solid #fecaca', fontSize: '11px', outline: 'none', background: dm ? dm.white : '#fff', minWidth: 0 }} />
+              <input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} style={{ flex: 1, padding: '5px 8px', borderRadius: '6px', border: '1px solid #fecaca', fontSize: '11px', outline: 'none', background: dm ? dm.white : '#fff', minWidth: 0 }} />
               <button onClick={() => { setIsScheduledOrder(false); setScheduledDate(''); setScheduledTime(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '13px', fontWeight: 700, padding: '2px 4px', lineHeight: 1 }}>&times;</button>
             </div>
           )}
@@ -7368,18 +7368,19 @@ const OrderSummary = ({
                   }}
                   style={{
                     width: '40px', flexShrink: 0,
-                    background: isScheduledOrder ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : '#f1f5f9',
+                    background: isScheduledOrder ? '#3b82f6' : '#f1f5f9',
                     color: isScheduledOrder ? 'white' : '#64748b',
                     padding: '8px 0',
-                    borderRadius: '8px',
-                    fontWeight: '600',
+                    borderRadius: '10px',
+                    fontWeight: '700',
+                    letterSpacing: '0.01em',
                     border: isScheduledOrder ? 'none' : '1px solid #e2e8f0',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     transition: 'all 0.2s',
-                    boxShadow: isScheduledOrder ? '0 2px 8px rgba(59,130,246,0.3)' : 'none',
+                    boxShadow: isScheduledOrder ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.16), 0 1px 2px rgba(15,23,42,0.14)',
                   }}
                   title={isScheduledOrder ? 'Cancel scheduling' : 'Schedule for later'}
                 >
@@ -7403,21 +7404,22 @@ const OrderSummary = ({
                   style={{
                     flex: 1,
                     background: orderBusy || cart.length === 0
-                      ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
-                      : 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                      ? '#cbd5e1'
+                      : '#2563eb',
                     color: 'white',
                     padding: isMobile ? '8px 6px' : '10px 8px',
-                    borderRadius: '8px',
-                    fontWeight: '600',
+                    borderRadius: '10px',
+                    fontWeight: '700',
+                    letterSpacing: '0.01em',
                     border: 'none',
                     cursor: orderBusy || cart.length === 0 ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '5px',
-                    fontSize: '11px',
+                    fontSize: isMobile ? '11px' : '12px',
                     transition: 'all 0.2s',
-                    boxShadow: orderBusy || cart.length === 0 ? 'none' : '0 2px 8px rgba(59,130,246,0.3)',
+                    boxShadow: orderBusy || cart.length === 0 ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.16), 0 1px 2px rgba(15,23,42,0.14)',
                     minWidth: 0,
                   }}
                 >
@@ -7468,21 +7470,22 @@ const OrderSummary = ({
                 style={{
                   flex: 1,
                   background: orderBusy || cart.length === 0 || isEditingSavedOrder
-                    ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
-                    : 'linear-gradient(135deg, #f97316, #ea580c)',
+                    ? '#cbd5e1'
+                    : '#ea580c',
                   color: 'white',
                   padding: isMobile ? '8px 6px' : '10px 8px',
-                  borderRadius: '8px',
-                  fontWeight: '600',
+                  borderRadius: '10px',
+                  fontWeight: '700',
+                  letterSpacing: '0.01em',
                   border: 'none',
                   cursor: orderBusy || cart.length === 0 || isEditingSavedOrder ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '5px',
-                  fontSize: '11px',
+                  fontSize: isMobile ? '11px' : '12px',
                   transition: 'all 0.2s',
-                  boxShadow: orderBusy || cart.length === 0 || isEditingSavedOrder ? 'none' : '0 2px 8px rgba(249, 115, 22, 0.3)',
+                  boxShadow: orderBusy || cart.length === 0 || isEditingSavedOrder ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.16), 0 1px 2px rgba(15,23,42,0.14)',
                   minWidth: 0,
                 }}
               >
@@ -7520,12 +7523,13 @@ const OrderSummary = ({
                 style={{
                   flex: 1,
                   background: orderBusy || cart.length === 0 || completedBillingBlocked
-                    ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
-                    : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                    ? '#cbd5e1'
+                    : '#dc2626',
                   color: 'white',
                   padding: isMobile ? '8px 6px' : '10px 8px',
-                  borderRadius: '8px',
-                  fontWeight: '600',
+                  borderRadius: '10px',
+                  fontWeight: '700',
+                  letterSpacing: '0.01em',
                   border: 'none',
                   cursor: orderBusy || cart.length === 0 || completedBillingBlocked ? 'not-allowed' : 'pointer',
                   // #14 — hide the "Save KOT / Place Order" button for roles not in
@@ -7534,9 +7538,9 @@ const OrderSummary = ({
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '5px',
-                  fontSize: '11px',
+                  fontSize: isMobile ? '11px' : '12px',
                   transition: 'all 0.2s',
-                  boxShadow: orderBusy || cart.length === 0 || completedBillingBlocked ? 'none' : '0 2px 8px rgba(239, 68, 68, 0.3)',
+                  boxShadow: orderBusy || cart.length === 0 || completedBillingBlocked ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.16), 0 1px 2px rgba(15,23,42,0.14)',
                   minWidth: 0,
                 }}
               >
@@ -7574,21 +7578,22 @@ const OrderSummary = ({
                     style={{
                       flex: 1,
                       background: orderBusy || cart.length === 0 || completedBillingBlocked
-                        ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
-                        : 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+                        ? '#cbd5e1'
+                        : '#6d28d9',
                       color: 'white',
                       padding: isMobile ? '8px 6px' : '10px 8px',
-                      borderRadius: '8px',
-                      fontWeight: '600',
+                      borderRadius: '10px',
+                      fontWeight: '700',
+                      letterSpacing: '0.01em',
                       border: 'none',
                       cursor: orderBusy || cart.length === 0 || completedBillingBlocked ? 'not-allowed' : 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '5px',
-                      fontSize: '11px',
+                      fontSize: isMobile ? '11px' : '12px',
                       transition: 'all 0.2s',
-                      boxShadow: orderBusy || cart.length === 0 || completedBillingBlocked ? 'none' : '0 2px 8px rgba(124,58,237,0.3)',
+                      boxShadow: orderBusy || cart.length === 0 || completedBillingBlocked ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.16), 0 1px 2px rgba(15,23,42,0.14)',
                       minWidth: 0,
                     }}
                   >
@@ -7619,21 +7624,22 @@ const OrderSummary = ({
                   style={{
                     flex: 1,
                     background: orderBusy || cart.length === 0 || completedBillingBlocked
-                      ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
-                      : 'linear-gradient(135deg, #991b1b, #7f1d1d)',
+                      ? '#cbd5e1'
+                      : '#991b1b',
                     color: 'white',
                     padding: isMobile ? '8px 6px' : '10px 8px',
-                    borderRadius: '8px',
-                    fontWeight: '600',
+                    borderRadius: '10px',
+                    fontWeight: '700',
+                    letterSpacing: '0.01em',
                     border: 'none',
                     cursor: orderBusy || cart.length === 0 || completedBillingBlocked ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '5px',
-                    fontSize: '11px',
+                    fontSize: isMobile ? '11px' : '12px',
                     transition: 'all 0.2s',
-                    boxShadow: orderBusy || cart.length === 0 || completedBillingBlocked ? 'none' : '0 2px 8px rgba(153,27,27,0.3)',
+                    boxShadow: orderBusy || cart.length === 0 || completedBillingBlocked ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.16), 0 1px 2px rgba(15,23,42,0.14)',
                     minWidth: 0,
                   }}
                 >
@@ -7669,18 +7675,19 @@ const OrderSummary = ({
                 width: '100%',
                 marginBottom: isMobile ? '4px' : '8px',
                 background: orderBusy || cart.length === 0 || completedBillingBlocked
-                  ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
-                  : 'linear-gradient(135deg, #0891b2, #0e7490)',
+                  ? '#cbd5e1'
+                  : '#0e7490',
                 color: 'white',
                 padding: isMobile ? '10px 12px' : '10px 14px',
-                borderRadius: '8px',
+                borderRadius: '10px',
                 fontWeight: '700',
+                letterSpacing: '0.01em',
                 border: 'none',
                 cursor: orderBusy || cart.length === 0 || completedBillingBlocked ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                 fontSize: isMobile ? '13px' : '13px',
                 transition: 'all 0.2s',
-                boxShadow: orderBusy || cart.length === 0 || completedBillingBlocked ? 'none' : '0 4px 12px rgba(8,145,178,0.35)',
+                boxShadow: orderBusy || cart.length === 0 || completedBillingBlocked ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.16), 0 1px 2px rgba(15,23,42,0.14)',
               }}
             >
               <FaPrint size={13} /> KOT + Bill
@@ -7704,12 +7711,13 @@ const OrderSummary = ({
               style={{
                 width: printSettings?.enableSaveAndPrint ? '50%' : '100%',
                 background: orderBusy || cart.length === 0 || completedBillingBlocked
-                  ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
-                  : 'linear-gradient(135deg, #10b981, #059669)',
+                  ? '#cbd5e1'
+                  : '#059669',
                 color: 'white',
                 padding: billingMode ? (isMobile ? '10px 12px' : '16px 16px') : (isMobile ? '8px 10px' : '12px 14px'),
-                borderRadius: billingMode ? (isMobile ? '8px' : '10px') : '8px',
+                borderRadius: '10px',
                 fontWeight: '700',
+                letterSpacing: '0.01em',
                 border: 'none',
                 cursor: orderBusy || cart.length === 0 || completedBillingBlocked ? 'not-allowed' : 'pointer',
                 display: 'flex',
@@ -7718,7 +7726,7 @@ const OrderSummary = ({
                 gap: isMobile ? '6px' : '8px',
                 fontSize: billingMode ? (isMobile ? '13px' : '15px') : (isMobile ? '11px' : '12px'),
                 transition: 'all 0.2s',
-                boxShadow: orderBusy || cart.length === 0 || completedBillingBlocked ? 'none' : '0 4px 12px rgba(34, 197, 94, 0.35)'
+                boxShadow: orderBusy || cart.length === 0 || completedBillingBlocked ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.16), 0 1px 2px rgba(15,23,42,0.14)'
               }}
             >
               {processing ? (
@@ -7746,12 +7754,13 @@ const OrderSummary = ({
                   style={{
                     width: '50%',
                     background: orderBusy || cart.length === 0 || completedBillingBlocked
-                      ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
-                      : 'linear-gradient(135deg, #065f46, #064e3b)',
+                      ? '#cbd5e1'
+                      : '#065f46',
                     color: 'white',
                     padding: billingMode ? (isMobile ? '10px 12px' : '16px 16px') : (isMobile ? '8px 10px' : '12px 14px'),
-                    borderRadius: billingMode ? (isMobile ? '8px' : '10px') : '8px',
+                    borderRadius: '10px',
                     fontWeight: '700',
+                    letterSpacing: '0.01em',
                     border: 'none',
                     cursor: orderBusy || cart.length === 0 || completedBillingBlocked ? 'not-allowed' : 'pointer',
                     display: 'flex',
@@ -7760,7 +7769,7 @@ const OrderSummary = ({
                     gap: isMobile ? '6px' : '8px',
                     fontSize: billingMode ? (isMobile ? '13px' : '15px') : (isMobile ? '11px' : '12px'),
                     transition: 'all 0.2s',
-                    boxShadow: orderBusy || cart.length === 0 || completedBillingBlocked ? 'none' : '0 4px 12px rgba(6, 95, 70, 0.35)'
+                    boxShadow: orderBusy || cart.length === 0 || completedBillingBlocked ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.16), 0 1px 2px rgba(15,23,42,0.14)'
                   }}
                 >
                   {processing ? (

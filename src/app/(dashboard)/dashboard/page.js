@@ -6768,7 +6768,7 @@ function RestaurantPOSContent() {
     <div
       className={`page-transition dashboard-full-height ${isLoading ? 'loading' : ''}`}
       style={{
-      backgroundColor: '#f9fafb',
+      backgroundColor: '#ffffff',
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden'
@@ -7861,17 +7861,18 @@ function RestaurantPOSContent() {
             width: '152px',
             height: '100%',
             paddingTop: '66px', // Header (56px) + gap (10px)
-            backgroundColor: 'transparent',
+            backgroundColor: '#ffffff',
+            borderRight: '1px solid #f0f1f4',
             display: 'flex',
             flexDirection: 'column',
             flexShrink: 0,
             overflow: 'hidden'
           }}>
-            {/* Categories List - Modern Tab Style */}
+            {/* Categories List - rounded rows with initial badges */}
             <div style={{
               flex: 1,
               overflowY: 'auto',
-              padding: '8px 0 8px 8px',
+              padding: '10px 8px',
               minHeight: 0
             }} className="hide-scrollbar">
               {(() => {
@@ -7918,31 +7919,40 @@ function RestaurantPOSContent() {
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '6px',
-                      padding: '9px 12px',
-                      paddingLeft: `${12 + depth * 16}px`,
-                      marginBottom: '2px',
-                      backgroundColor: isExact ? 'white' : (isSelected ? 'rgba(255,255,255,0.55)' : 'transparent'),
-                      borderRadius: '10px 0 0 10px',
+                      gap: '8px',
+                      padding: '7px 8px',
+                      paddingLeft: `${8 + depth * 14}px`,
+                      marginBottom: '3px',
+                      backgroundColor: isExact ? '#fef2f2' : (isSelected ? '#fff7f7' : 'transparent'),
+                      borderRadius: '10px',
                       cursor: 'pointer',
-                      transition: 'all 0.2s ease',
+                      transition: 'background-color 0.15s ease',
                       position: 'relative',
-                      borderLeft: isExact ? '3px solid #ef4444' : (isSelected ? '3px solid #fca5a5' : '3px solid transparent'),
-                      boxShadow: isExact ? '2px 0 8px rgba(0,0,0,0.04)' : 'none'
                     }}
                     onMouseEnter={(e) => {
                       if (!isExact) {
-                        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.6)';
-                        e.currentTarget.style.borderLeftColor = '#fca5a5';
+                        e.currentTarget.style.backgroundColor = '#f5f6f8';
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!isExact) {
-                        e.currentTarget.style.backgroundColor = isSelected ? 'rgba(255,255,255,0.55)' : 'transparent';
-                        e.currentTarget.style.borderLeftColor = isSelected ? '#fca5a5' : 'transparent';
+                        e.currentTarget.style.backgroundColor = isSelected ? '#fff7f7' : 'transparent';
                       }
                     }}
                   >
+                    {/* Initial / emoji badge (display only) */}
+                    {depth === 0 && (
+                      <span style={{
+                        width: '24px', height: '24px', borderRadius: '8px', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: (category.id === 'all-items' || category.id === 'favorites') ? '12px' : '11px', fontWeight: 800,
+                        backgroundColor: isSelected ? '#ef4444' : '#f1f3f6',
+                        color: isSelected ? '#ffffff' : '#64748b',
+                        transition: 'background-color 0.15s ease, color 0.15s ease',
+                      }}>
+                        {category.id === 'all-items' ? '▦' : category.id === 'favorites' ? '★' : ((category.name || '?').trim()[0] || '?').toUpperCase()}
+                      </span>
+                    )}
                     {category._hasChildren ? (
                       <span style={{ fontSize: '9px', color: '#9ca3af', width: '10px', flexShrink: 0, transition: 'transform 0.2s', transform: category._expanded ? 'rotate(90deg)' : 'none' }}>▶</span>
                     ) : depth > 0 ? (
@@ -7951,8 +7961,8 @@ function RestaurantPOSContent() {
                     <span style={{
                       flex: 1,
                       fontSize: depth > 0 ? '12.5px' : '13px',
-                      fontWeight: isSelected ? '600' : '500',
-                      color: isSelected ? '#1f2937' : '#6b7280',
+                      fontWeight: isSelected ? '700' : '500',
+                      color: isSelected ? '#dc2626' : '#475569',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
@@ -7961,7 +7971,7 @@ function RestaurantPOSContent() {
                       {capitalizeFirst(category.name)}
                     </span>
                     {category.count > 0 && category.id !== 'all-items' && category.id !== 'favorites' ? (
-                      <span style={{ fontSize: '10px', color: '#9ca3af', flexShrink: 0 }}>{category.count}</span>
+                      <span style={{ fontSize: '10px', fontWeight: 700, flexShrink: 0, minWidth: '20px', textAlign: 'center', padding: '1px 6px', borderRadius: '999px', backgroundColor: isSelected ? '#fee2e2' : '#f1f3f6', color: isSelected ? '#dc2626' : '#94a3b8' }}>{category.count}</span>
                     ) : null}
                     {category._drill ? (
                       <span style={{ fontSize: '11px', color: '#ef4444', flexShrink: 0, fontWeight: 700 }}>›</span>
@@ -7977,7 +7987,7 @@ function RestaurantPOSContent() {
         {/* Menu Items */}
         <div style={{
           flex: 1,
-          backgroundColor: '#f8fafc',
+          backgroundColor: '#ffffff',
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',

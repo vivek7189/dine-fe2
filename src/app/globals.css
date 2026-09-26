@@ -234,6 +234,38 @@ body {
   contain-intrinsic-size: auto 150px;
 }
 
+/* Order panel (OrderSummary) refresh — shape/typography/focus only; colours & states stay inline */
+.os-refresh input[type="text"],
+.os-refresh input[type="tel"],
+.os-refresh input[type="number"],
+.os-refresh input[type="date"],
+.os-refresh input[type="time"],
+.os-refresh select,
+.os-refresh textarea {
+  font-family: inherit;
+  border-radius: 10px;
+}
+.os-refresh input::placeholder,
+.os-refresh textarea::placeholder {
+  color: #6b7280;
+  opacity: 1;
+  font-weight: 500;
+}
+
+.os-refresh input[type="text"]:focus,
+.os-refresh input[type="tel"]:focus,
+.os-refresh input[type="number"]:focus,
+.os-refresh select:focus,
+.os-refresh textarea:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
+}
+.os-refresh button {
+  font-family: inherit;
+}
+.os-refresh button:not(:disabled):active {
+  transform: scale(0.98);
+}
+
 /* Soft Pill menu card — hover lift (colours/ring are inline in MenuItemCard.js) */
 .menu-item-card.soft-pill {
   transition: transform 0.15s ease, box-shadow 0.15s ease;

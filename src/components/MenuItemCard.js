@@ -112,7 +112,7 @@ const MenuItemCard = ({
     const sp = dm ? {
       bg: '#1e293b', inCartBg: 'linear-gradient(180deg, #1e293b 0%, #2b2130 100%)',
       ring: '0 0 0 1px #334155', inCartRing: '0 0 0 1.5px rgba(248,113,113,0.55)',
-      text: '#e2e8f0', sec: '#94a3b8', chipBg: '#0f172a', chipText: '#94a3b8',
+      text: '#e2e8f0', name: '#cbd5e1', sec: '#94a3b8', chipBg: '#0f172a', chipText: '#94a3b8',
       priceBg: 'rgba(239,68,68,0.15)', priceText: '#fca5a5',
       addBg: '#0f172a', addBorder: '#334155', addText: '#e2e8f0', heart: '#64748b',
       soldOutBg: '#1b2536', soldOutPillBg: 'rgba(148,163,184,0.12)', soldOutPillBorder: '#334155', soldOutPillText: '#94a3b8',
@@ -120,7 +120,7 @@ const MenuItemCard = ({
       bg: '#ffffff', inCartBg: 'linear-gradient(180deg, #ffffff 0%, #fff5f5 100%)',
       ring: '0 1px 2px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.07)',
       inCartRing: '0 1px 2px rgba(15,23,42,0.06), 0 0 0 1.5px #fca5a5',
-      text: '#0f172a', sec: '#64748b', chipBg: '#f1f5f9', chipText: '#64748b',
+      text: '#0f172a', name: '#334155', sec: '#64748b', chipBg: '#f1f5f9', chipText: '#64748b',
       priceBg: '#fef2f2', priceText: '#b91c1c',
       addBg: '#ffffff', addBorder: '#e2e8f0', addText: '#0f172a', heart: '#cbd5e1',
       soldOutBg: '#fafafa', soldOutPillBg: '#f1f5f9', soldOutPillBorder: '#e2e8f0', soldOutPillText: '#64748b',
@@ -208,7 +208,7 @@ const MenuItemCard = ({
         {/* Name + second-language / description line */}
         <div style={{ flex: 1, minHeight: 0, marginTop: compact ? '4px' : '6px', overflow: 'hidden' }}>
           <h3 style={{
-            margin: 0, color: isOutOfStock ? sp.sec : sp.text, fontWeight: 650, lineHeight: 1.28, letterSpacing: '-0.005em',
+            margin: 0, color: isOutOfStock ? sp.sec : sp.name, fontWeight: 500, lineHeight: 1.3, letterSpacing: 0,
             fontSize: large ? '16px' : compact ? (isMobile ? '12.5px' : '14px') : (isMobile ? '13px' : '14.5px'),
             overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word',
           }}>
@@ -267,8 +267,12 @@ const MenuItemCard = ({
               </button>
             )
           ) : (
-            // Visual hint only (not a button) — the click falls through to the card, which opens the options modal.
-            <span style={{ flexShrink: 0, fontSize: '11px', fontWeight: 700, color: sp.sec, whiteSpace: 'nowrap' }}>Options ›</span>
+            // Same look as the Add button, but not a button — the click falls through to the card,
+            // which opens the variant/options modal (unchanged behaviour).
+            <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '5px', padding: compact ? '5px 11px' : '6px 13px', borderRadius: '999px', border: `1px solid ${sp.addBorder}`, backgroundColor: sp.addBg, color: sp.addText, fontWeight: 700, fontSize: '12px', whiteSpace: 'nowrap' }}>
+              <FaPlus size={8} />
+              Add
+            </span>
           )}
         </div>
       </div>
