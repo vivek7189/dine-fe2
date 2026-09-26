@@ -74,9 +74,41 @@ const seg = (on) => ({ padding: '7px 12px', fontSize: 12.5, fontWeight: 700, cur
 const input = { width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, boxSizing: 'border-box', background: '#fff' };
 const small = { fontSize: 11, color: '#6b7280', margin: '6px 0 0' };
 
+const NEW_ITEM = '__new__';
+const NEW_UNITS = ['pcs', 'g', 'kg', 'ml', 'l', 'slices', 'packet', 'bottle'];
+
 export default function StockSetupSection({ restaurantId, editingItem, formData, setFormData, value, onChange }) {
   const [inventoryItems, setInventoryItems] = useState([]);
   const [loadError, setLoadError] = useState('');
+  // Inline "+ New stock item…": target = 'sell' or a recipe line index.
+  const [creating, setCreating] = useState(null); // { target, name, unit, stock, busy, error }
+
+  const createStockItem = async () => {
+    if (!creating) return;
+    const name = String(creating.name || '').trim();
+    if (!name) { setCreating(c => ({ ...c, error: 'Enter a name' })); return; }
+    const dup = inventoryItems.find(i => String(i.name).toLowerCase().trim() === name.toLowerCase());
+    let item = dup || null;
+    if (!item) {
+      setCreating(c => ({ ...c, busy: true, error: '' }));
+      try {
+        const res = await apiClient.createInventoryItem(restaurantId, {
+          name, unit: creating.unit || 'pcs', category: 'Ingredients',
+          currentStock: Number(creating.stock) > 0 ? Number(creating.stock) : 0, minStock: 0, costPerUnit: 0,
+        });
+        const created = res.item || res.inventoryItem || res;
+        item = { ...created, id: created.id || created._id || res.id, name, unit: creating.unit || 'pcs', currentStock: Number(creating.stock) || 0 };
+        setInventoryItems(list => [...list, item].sort((a, b) => String(a.name).localeCompare(String(b.name))));
+      } catch (e) {
+        setCreating(c => ({ ...c, busy: false, error: e.message || 'Could not create the stock item' }));
+        return;
+      }
+    }
+    if (creating.target === 'sell') update({ inventoryItemId: item.id });
+    else setLine(creating.target, { inventoryItemId: item.id, unit: item.unit || 'pcs' });
+    setCreating(null);
+  };
+  const startCreate = (target) => setCreating({ target, name: '', unit: 'pcs', stock: '', busy: false, error: '' });
   const setup = value || EMPTY_STOCK_SETUP;
   const update = (patch) => onChange({ ...setup, ...patch, dirty: true });
 
@@ -153,6 +185,31 @@ export default function StockSetupSection({ restaurantId, editingItem, formData,
       </div>
 
       {loadError && <p style={{ ...small, color: '#b91c1c' }}>{loadError}</p>}
+      {!loadError && mode !== 'none' && inventoryItems.length === 0 && !creating && (
+        <p style={{ ...small, color: '#374151' }}>No stock items yet. Pick <b>+ New stock item…</b> in the list to create one here.</p>
+      )}
+      {creating && (
+        <div style={{ margin: '0 0 10px', padding: '10px 12px', border: '1.5px solid #fecaca', background: '#fff', borderRadius: 10, display: 'grid', gap: 8 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: '#111827' }}>New stock item</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(80px, 1fr) minmax(90px, 1fr)', gap: 8 }}>
+            <input id="new-stock-name" autoFocus placeholder="Name, e.g. Milk" value={creating.name} onChange={e => setCreating(c => ({ ...c, name: e.target.value }))} style={input} />
+            <select id="new-stock-unit" aria-label="Counted in" value={creating.unit} onChange={e => setCreating(c => ({ ...c, unit: e.target.value }))} style={input}>
+              {NEW_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+            </select>
+            <input id="new-stock-qty" type="number" min="0" step="any" placeholder="In stock now" value={creating.stock} onChange={e => setCreating(c => ({ ...c, stock: e.target.value }))} style={input} />
+          </div>
+          {creating.error && <p style={{ ...small, color: '#b91c1c', margin: 0 }}>{creating.error}</p>}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" disabled={creating.busy} onClick={createStockItem}
+              style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: '#dc2626', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+              {creating.busy ? 'Creating…' : 'Create and use'}
+            </button>
+            <button type="button" disabled={creating.busy} onClick={() => setCreating(null)}
+              style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          </div>
+          <p style={{ ...small, margin: 0 }}>Counted in: the unit you count this item in Inventory (e.g. Milk in ml, Bread in slices).</p>
+        </div>
+      )}
       {setup.locked && <p style={{ ...small, color: '#b45309', fontWeight: 600 }}>{setup.lockReason}</p>}
 
       {mode === 'none' && (
@@ -175,9 +232,10 @@ export default function StockSetupSection({ restaurantId, editingItem, formData,
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(90px, 1fr)', gap: 10 }}>
               <div>
                 <label htmlFor="stock-sell-item" style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Stock item sold</label>
-                <select id="stock-sell-item" value={setup.inventoryItemId} onChange={e => update({ inventoryItemId: e.target.value })} style={input}>
+                <select id="stock-sell-item" value={setup.inventoryItemId} onChange={e => { if (e.target.value === NEW_ITEM) startCreate('sell'); else update({ inventoryItemId: e.target.value }); }} style={input}>
                   <option value="">Choose a stock item…</option>
                   {inventoryItems.map(i => <option key={i.id} value={i.id}>{i.name} · {i.currentStock ?? 0} {i.unit || 'pcs'}</option>)}
+                  <option value={NEW_ITEM}>+ New stock item…</option>
                 </select>
               </div>
               <div>
@@ -202,9 +260,10 @@ export default function StockSetupSection({ restaurantId, editingItem, formData,
             const bad = inv && !unitsCompatible(unit, inv.unit);
             return (
               <div key={idx} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(70px, 0.8fr) minmax(70px, 0.7fr) 32px', gap: 8, alignItems: 'center' }}>
-                <select aria-label="Ingredient" disabled={setup.locked} value={l.inventoryItemId} onChange={e => { const it = invById.get(e.target.value); setLine(idx, { inventoryItemId: e.target.value, unit: it ? (it.unit || 'pcs') : '' }); }} style={input}>
+                <select aria-label="Ingredient" disabled={setup.locked} value={l.inventoryItemId} onChange={e => { if (e.target.value === NEW_ITEM) { startCreate(idx); return; } const it = invById.get(e.target.value); setLine(idx, { inventoryItemId: e.target.value, unit: it ? (it.unit || 'pcs') : '' }); }} style={input}>
                   <option value="">Stock item…</option>
                   {inventoryItems.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                  <option value={NEW_ITEM}>+ New stock item…</option>
                 </select>
                 <input aria-label="Quantity per plate" disabled={setup.locked} type="number" min="0" step="any" placeholder="Qty" value={l.quantity} onChange={e => setLine(idx, { quantity: e.target.value })} style={input} />
                 <select aria-label="Unit" disabled={setup.locked || !inv} value={unit} onChange={e => setLine(idx, { unit: e.target.value })} style={{ ...input, borderColor: bad ? '#dc2626' : '#d1d5db' }}>
