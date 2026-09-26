@@ -25,6 +25,7 @@ import { generateBillHTML } from '../../../utils/printHtmlGenerator';
 import { buildBillIdentity } from '../../../utils/printTemplates/helpers';
 import { orderDisplayNumber } from '../../../utils/orderNumber';
 import { useEtimsBillPrint } from '../../../hooks/useEtimsBillPrint';
+import { getCartSubtotal } from '../../../utils/billingPrice';
 import { etimsActiveFor } from '../../../lib/etimsDecision';
 import { fiscaliseCreditNote, fiscaliseOrder, isEtimsCapable } from '../../../lib/etims';
 // KRA §4.16 Credit Note Reason Codes (rfdRsnCd) — shown in the refund dialog for Kenya eTIMS.
@@ -878,10 +879,21 @@ const OrderHistory = () => {
   useEffect(() => {
     if (!restaurantId) return;
     const loadTaxSettings = async () => {
+      // Same localStorage cache the dashboard writes (dine_tax_<rid>) — instant, and a fallback
+      // if the API call fails, so the billing modal never computes a bill without tax.
+      const cacheKey = `dine_tax_${restaurantId}`;
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const { data } = JSON.parse(cached);
+          if (data) setTaxSettings(data);
+        }
+      } catch (_) {}
       try {
         const response = await apiClient.getTaxSettings(restaurantId);
-        if (response?.success) {
+        if (response?.success && response.taxSettings) {
           setTaxSettings(response.taxSettings);
+          try { localStorage.setItem(cacheKey, JSON.stringify({ data: response.taxSettings, timestamp: Date.now() })); } catch (_) {}
         }
       } catch (e) {
         console.log('Tax settings load error:', e.message);
@@ -1327,6 +1339,9 @@ const OrderHistory = () => {
       const refreshedPrice = item.selectedVariant?.price != null
         ? item.selectedVariant.price
         : (menuItem?.price ?? item.price ?? 0);
+      // Same as the dashboard's saved-order → cart mapping: a manually edited price is kept as
+      // saved (never refreshed from the menu), otherwise the variant/menu price is used.
+      const savedPrice = (item.price != null && !isNaN(parseFloat(item.price))) ? parseFloat(item.price) : 0;
       // basePrice should use variant price when variant is selected
       const variantPriceVal = item.selectedVariant?.price;
       const itemBasePrice = variantPriceVal != null
@@ -1335,11 +1350,13 @@ const OrderHistory = () => {
       return {
         id: item.menuItemId || item.id,
         name: menuItem?.name || item.name,
-        price: refreshedPrice,
+        price: item.priceEdited === true ? savedPrice : refreshedPrice,
         quantity: item.quantity || 1,
         selectedVariant: item.selectedVariant,
         selectedCustomizations: item.selectedCustomizations,
         basePrice: itemBasePrice,
+        priceEdited: item.priceEdited === true,
+        menuPrice: typeof item.menuPrice === 'number' ? item.menuPrice : null,
         isCustomItem: item.isCustomItem || false,
         pricingRules: menuItem?.pricingRules || item.pricingRules || {},
         category: item.category || menuItem?.category || '',
@@ -1369,9 +1386,11 @@ const OrderHistory = () => {
     setBillingTableNumber('');
   };
 
-  const getBillingModalTotalAmount = () => {
-    return billingModalCart.reduce((total, item) => total + (item.price * item.quantity), 0);
-  };
+  // Billing-modal subtotal — the SAME logic as the main POS (utils/billingPrice mirrors
+  // dashboard getEffectiveItemPrice/getTotalAmount): variant/zone price + toppings (× weight).
+  // Previously summed item.price × qty only, which dropped toppings from subtotal, tax and totals.
+  const getBillingModalTotalAmount = () =>
+    getCartSubtotal(billingModalCart, { multiPricingEnabled, activePricingRuleId, pricingRules, menuItems });
 
   const handleBillingProcessOrder = async (taxData = {}) => {
     if (!billingModalOrder || !restaurantId || billingModalProcessing) return;

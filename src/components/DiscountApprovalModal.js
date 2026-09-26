@@ -242,7 +242,8 @@ const DiscountApprovalModal = ({ isOpen, onClose, onApproved, restaurantId, disc
     overlay: {
       position: 'fixed',
       inset: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      backgroundColor: 'rgba(15, 23, 42, 0.45)',
+      backdropFilter: 'blur(3px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -250,13 +251,15 @@ const DiscountApprovalModal = ({ isOpen, onClose, onApproved, restaurantId, disc
       padding: '16px',
     },
     card: {
-      backgroundColor: '#1f2937',
-      borderRadius: '12px',
-      padding: '28px',
+      backgroundColor: '#ffffff',
+      borderRadius: '18px',
+      padding: '28px 26px 24px',
       width: '100%',
       maxWidth: '400px',
       position: 'relative',
-      boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)',
+      boxShadow: '0 24px 60px rgba(15, 23, 42, 0.22)',
+      border: '1px solid #eef0f4',
+      borderTop: '4px solid #ef4444',
     },
     closeButton: {
       position: 'absolute',
@@ -264,24 +267,24 @@ const DiscountApprovalModal = ({ isOpen, onClose, onApproved, restaurantId, disc
       right: '12px',
       background: 'none',
       border: 'none',
-      color: '#9ca3af',
+      color: '#94a3b8',
       fontSize: '20px',
       cursor: 'pointer',
       padding: '4px 8px',
-      borderRadius: '4px',
+      borderRadius: '8px',
       lineHeight: 1,
     },
     title: {
       fontSize: '18px',
-      fontWeight: '600',
-      color: '#f9fafb',
+      fontWeight: '700',
+      color: '#0f172a',
       marginBottom: '4px',
       marginTop: 0,
     },
     subtitle: {
-      fontSize: '14px',
-      color: '#9ca3af',
-      marginBottom: '24px',
+      fontSize: '13px',
+      color: '#64748b',
+      marginBottom: '20px',
       marginTop: 0,
     },
     digitInput: {
@@ -290,10 +293,10 @@ const DiscountApprovalModal = ({ isOpen, onClose, onApproved, restaurantId, disc
       textAlign: 'center',
       fontSize: '22px',
       fontWeight: '600',
-      color: '#f9fafb',
-      backgroundColor: '#111827',
-      border: '2px solid #374151',
-      borderRadius: '8px',
+      color: '#0f172a',
+      backgroundColor: '#f8fafc',
+      border: '1.5px solid #d7dce3',
+      borderRadius: '12px',
       outline: 'none',
       caretColor: '#ef4444',
     },
@@ -303,12 +306,12 @@ const DiscountApprovalModal = ({ isOpen, onClose, onApproved, restaurantId, disc
     submitButton: {
       width: '100%',
       padding: '12px',
-      backgroundColor: '#ef4444',
+      backgroundColor: '#dc2626',
       color: '#ffffff',
       border: 'none',
-      borderRadius: '8px',
+      borderRadius: '12px',
       fontSize: '15px',
-      fontWeight: '600',
+      fontWeight: '700',
       cursor: 'pointer',
       marginTop: '20px',
     },
@@ -317,8 +320,9 @@ const DiscountApprovalModal = ({ isOpen, onClose, onApproved, restaurantId, disc
       cursor: 'not-allowed',
     },
     errorText: {
-      color: '#ef4444',
+      color: '#dc2626',
       fontSize: '13px',
+      fontWeight: 600,
       marginTop: '12px',
       textAlign: 'center',
     },
@@ -339,13 +343,13 @@ const DiscountApprovalModal = ({ isOpen, onClose, onApproved, restaurantId, disc
       textDecoration: 'underline',
     },
     resendButtonDisabled: {
-      color: '#6b7280',
+      color: '#94a3b8',
       cursor: 'not-allowed',
       textDecoration: 'none',
     },
     timer: {
-      fontSize: '13px',
-      color: '#9ca3af',
+      fontSize: '12.5px',
+      color: '#64748b',
       textAlign: 'center',
       marginTop: '12px',
     },
@@ -355,25 +359,26 @@ const DiscountApprovalModal = ({ isOpen, onClose, onApproved, restaurantId, disc
       alignItems: 'center',
       justifyContent: 'center',
       padding: '40px 0',
-      color: '#9ca3af',
+      color: '#64748b',
       fontSize: '14px',
       gap: '12px',
     },
     spinner: {
       width: '32px',
       height: '32px',
-      border: '3px solid #374151',
+      border: '3px solid #fee2e2',
       borderTopColor: '#ef4444',
       borderRadius: '50%',
       animation: 'spin 0.8s linear infinite',
     },
     discountInfo: {
-      backgroundColor: '#111827',
-      borderRadius: '8px',
+      backgroundColor: '#fff5f5',
+      border: '1px solid #fee2e2',
+      borderRadius: '12px',
       padding: '12px 16px',
       marginBottom: '20px',
       fontSize: '13px',
-      color: '#d1d5db',
+      color: '#475569',
     },
   };
 
@@ -394,7 +399,7 @@ const DiscountApprovalModal = ({ isOpen, onClose, onApproved, restaurantId, disc
             e.target.style.borderColor = '#ef4444';
           }}
           onBlur={(e) => {
-            e.target.style.borderColor = '#374151';
+            e.target.style.borderColor = '#d7dce3';
           }}
           style={styles.digitInput}
           autoComplete="off"
@@ -447,7 +452,7 @@ const DiscountApprovalModal = ({ isOpen, onClose, onApproved, restaurantId, disc
               <div style={styles.discountInfo}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>Discount</span>
-                  <span style={{ color: '#f9fafb', fontWeight: '500' }}>
+                  <span style={{ color: '#0f172a', fontWeight: '700' }}>
                     {discountData.discountType === 'percentage'
                       ? `${discountData.discountValue}%`
                       : formatCurrency(discountData.discountAmount)}
@@ -489,7 +494,7 @@ const DiscountApprovalModal = ({ isOpen, onClose, onApproved, restaurantId, disc
               <div style={styles.discountInfo}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>Discount</span>
-                  <span style={{ color: '#f9fafb', fontWeight: '500' }}>
+                  <span style={{ color: '#0f172a', fontWeight: '700' }}>
                     {discountData.discountType === 'percentage'
                       ? `${discountData.discountValue}%`
                       : formatCurrency(discountData.discountAmount)}

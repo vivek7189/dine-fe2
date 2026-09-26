@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { FaReceipt, FaTimes, FaSpinner, FaBed } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
+import { getCartSubtotal } from '../utils/billingPrice';
 import dynamic from 'next/dynamic';
 // Hotel feature — code-split so it isn't downloaded by non-hotel restaurants and
 // stays isolated (only loaded when a hotel account opens the charge-to-room modal).
@@ -84,6 +85,9 @@ export default function TableBillingModal({
             const refreshedPrice = item.selectedVariant?.price != null
               ? item.selectedVariant.price
               : (menuItem?.price ?? item.price ?? 0);
+            // Same as the dashboard's saved-order → cart mapping: a manually edited price is kept
+            // as saved (never refreshed from the menu).
+            const savedPrice = (item.price != null && !isNaN(parseFloat(item.price))) ? parseFloat(item.price) : 0;
             // basePrice should use variant price when variant is selected
             const variantPriceVal = item.selectedVariant?.price;
             const itemBasePrice = variantPriceVal != null
@@ -92,11 +96,13 @@ export default function TableBillingModal({
             return {
               id: item.menuItemId || item.id,
               name: menuItem?.name || item.name,
-              price: refreshedPrice,
+              price: item.priceEdited === true ? savedPrice : refreshedPrice,
               quantity: item.quantity || 1,
               selectedVariant: item.selectedVariant,
               selectedCustomizations: item.selectedCustomizations,
               basePrice: itemBasePrice,
+              priceEdited: item.priceEdited === true,
+              menuPrice: typeof item.menuPrice === 'number' ? item.menuPrice : null,
               isCustomItem: item.isCustomItem || false,
               pricingRules: menuItem?.pricingRules || item.pricingRules || {},
               category: item.category || menuItem?.category || '',
@@ -137,9 +143,11 @@ export default function TableBillingModal({
     onClose();
   };
 
-  const getModalTotalAmount = () => {
-    return modalCart.reduce((total, item) => total + (item.price * item.quantity), 0);
-  };
+  // Same subtotal logic as the main POS (utils/billingPrice mirrors dashboard
+  // getEffectiveItemPrice/getTotalAmount): variant/zone price + toppings (× weight). Previously
+  // summed item.price × qty only, which dropped toppings from the subtotal, tax and saved totals.
+  const getModalTotalAmount = () =>
+    getCartSubtotal(modalCart, { multiPricingEnabled, activePricingRuleId, pricingRules, menuItems });
 
   const isManualPrintEnabled = () => {
     return printSettings?.manualPrintEnabled !== false;
