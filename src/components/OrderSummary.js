@@ -538,6 +538,9 @@ const OrderSummary = ({
   const [walletBalance, setWalletBalance] = useState(0);
   const [walletLoading, setWalletLoading] = useState(false);
   const [walletRedeemAmount, setWalletRedeemAmount] = useState('');
+  // true = "Use" means "cover the bill" → the amount follows the bill as items change;
+  // false = the cashier typed an amount by hand → keep it (only clamped to the bill).
+  const walletAutoAmountRef = useRef(true);
   const [useWallet, setUseWallet] = useState(false);
 
   // Voice Assistant State
@@ -1987,6 +1990,7 @@ const OrderSummary = ({
     if (Number(currentOrder.walletRedeemAmount) > 0) {
       setUseWallet(true);
       setWalletRedeemAmount(String(currentOrder.walletRedeemAmount));
+      walletAutoAmountRef.current = Number(currentOrder.walletRedeemAmount) >= (Number(currentOrder.finalAmount) || 0) - 0.01;
     }
 
     // Split payments — restore if order was completed with split settlement
@@ -2743,6 +2747,22 @@ const OrderSummary = ({
       return (gt > ceiling + 0.5) ? ceiling : gt;
     } catch (_) { return gt; }
   };
+
+  // Wallet "Use" = cover the bill: when items/discounts change the bill after "Use" (e.g. more
+  // items added to a KOT in edit mode), move the wallet amount with it — min(balance, bill).
+  // A hand-typed amount is left alone (buildTaxData still clamps it to the bill). The server
+  // charges the wallet once, at billing, from the amount sent here.
+  useEffect(() => {
+    // Re-billing an already-billed order: its wallet payment is already out of the balance,
+    // so it is still available to this same order.
+    const alreadyTaken = (currentOrder && ['completed', 'paid', 'settled'].includes(currentOrder.status))
+      ? (Number(currentOrder.walletRedeemAmount) || 0) : 0;
+    const available = (walletBalance || 0) + alreadyTaken;
+    if (!useWallet || !walletAutoAmountRef.current || !(available > 0)) return;
+    const bill = settleFinalAmount();
+    const next = Math.round(Math.min(available, Math.max(0, bill)) * 100) / 100;
+    if (Math.abs(next - (parseFloat(walletRedeemAmount) || 0)) > 0.009) setWalletRedeemAmount(String(next));
+  }, [useWallet, walletBalance, grandTotal, cart]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Build tax data helper (shared by Place Order, Complete Billing, and UPI confirm)
   const buildTaxData = () => {
@@ -6078,7 +6098,7 @@ const OrderSummary = ({
                                 // so remaining is clamped at 0 and never shows negative.
                                 const remaining = Math.max(0, Math.round((walletBalance - (parseFloat(walletRedeemAmount) || 0)) * 100) / 100);
                                 return useWallet
-                                  ? (<>{formatCurrency(remaining)} <span style={{ fontSize: isMobile ? '9px' : '8.5px', fontWeight: 600, color: dm ? '#93c5fd' : '#3b82f6' }}>left</span></>)
+                                  ? (<>{formatCurrency(remaining)} <span style={{ fontSize: isMobile ? '9px' : '8.5px', fontWeight: 600, color: dm ? '#93c5fd' : '#3b82f6' }}>after bill</span></>)
                                   : formatCurrency(walletBalance);
                               })()}
                             </span>
@@ -6089,6 +6109,7 @@ const OrderSummary = ({
                               e.stopPropagation();
                               const next = !useWallet;
                               setUseWallet(next);
+                              walletAutoAmountRef.current = true;
                               if (next) {
                                 const billAmount = settleFinalAmount();
                                 setWalletRedeemAmount(String(Math.round(Math.min(walletBalance, Math.max(0, billAmount)) * 100) / 100));
@@ -8121,6 +8142,7 @@ const OrderSummary = ({
                               onClick={() => {
                                 const next = !useWallet;
                                 setUseWallet(next);
+                                walletAutoAmountRef.current = true;
                                 if (next) {
                                   const billAmount = settleFinalAmount();
                                   setWalletRedeemAmount(String(Math.round(Math.min(walletBalance, Math.max(0, billAmount)) * 100) / 100));
@@ -8149,7 +8171,7 @@ const OrderSummary = ({
                                 const v = e.target.value;
                                 if (v === '' || /^\d*\.?\d{0,2}$/.test(v)) {
                                   const num = parseFloat(v) || 0;
-                                  if (num <= walletBalance) setWalletRedeemAmount(v);
+                                  if (num <= walletBalance) { walletAutoAmountRef.current = false; setWalletRedeemAmount(v); }
                                 }
                               }}
                               style={{

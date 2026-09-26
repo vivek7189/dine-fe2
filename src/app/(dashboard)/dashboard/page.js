@@ -4277,19 +4277,8 @@ function RestaurantPOSContent() {
             paymentStatus: partialPay != null ? (partialPay === 0 ? 'due' : 'partial') : 'completed'
           });
 
-          // Redeem wallet balance if used
-          if (walletRedeem && walletRedeem > 0 && walletCustId) {
-            try {
-              await apiClient.redeemCustomerWallet(walletCustId, {
-                amount: walletRedeem,
-                orderId: currentOrder.id,
-                notes: `Redeemed during billing for order #${orderDisplayNumber(currentOrder)}`
-              });
-              console.log('💰 Wallet redeemed:', walletRedeem);
-            } catch (walletErr) {
-              console.error('Wallet redemption failed (non-blocking):', walletErr);
-            }
-          }
+          // Wallet is charged by the server when the bill is COMPLETED (one ledger-based
+          // settlement per order) — the POS only sends walletRedeemAmount/walletCustomerId.
 
           // Show notification for order completion
           setNotification({
@@ -4619,19 +4608,8 @@ function RestaurantPOSContent() {
           console.log('✅ Custom-method payment verified:', paymentMethod, paymentResult);
         }
 
-        // Redeem wallet balance if used
-        if (walletRedeem && walletRedeem > 0 && walletCustId) {
-          try {
-            await apiClient.redeemCustomerWallet(walletCustId, {
-              amount: walletRedeem,
-              orderId: orderId,
-              notes: `Redeemed during billing for order #${orderDisplayNumber(orderResponse.order)}`
-            });
-            console.log('💰 Wallet redeemed:', walletRedeem);
-          } catch (walletErr) {
-            console.error('Wallet redemption failed (non-blocking):', walletErr);
-          }
-        }
+        // Wallet is charged by the server when the bill is COMPLETED (one ledger-based
+        // settlement per order) — the POS only sends walletRedeemAmount/walletCustomerId.
 
         // Note: Table status management is now handled by backend
         console.log(`🪑 Table ${tableNumber || 'N/A'} - status managed by backend`);
@@ -6002,19 +5980,8 @@ function RestaurantPOSContent() {
 
             fetchSavedOrders();
 
-            // Redeem wallet balance if used
-            if (walletRedeem && walletRedeem > 0 && walletCustId) {
-              try {
-                await apiClient.redeemCustomerWallet(walletCustId, {
-                  amount: walletRedeem,
-                  orderId: _orderId,
-                  notes: `Redeemed during billing for order #${orderDisplayNumber(_orderObj)}`
-                });
-                console.log('💰 Wallet redeemed:', walletRedeem);
-              } catch (walletErr) {
-                console.error('Wallet redemption failed (non-blocking):', walletErr);
-              }
-            }
+            // Wallet is charged by the server when the bill is COMPLETED (one ledger-based
+            // settlement per order) — the POS only sends walletRedeemAmount/walletCustomerId.
 
             setTimeout(() => setNotification(null), 4000);
 

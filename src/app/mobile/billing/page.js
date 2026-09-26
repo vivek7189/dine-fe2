@@ -379,13 +379,14 @@ export default function MobileBillingPage() {
       splitPayments: splitPay = null, roundOffAmount: roundOff = null,
       partialPayAmount: partialPay = null,
       compItems: compData = null, voidItems: voidData = null,
+      walletRedeemAmount: walletRedeem = null, walletCustomerId: walletCustId = null,
     } = taxData;
     return {
       taxBreakdown, totalTax, finalAmount, subtotal, specialInstructions,
       offerIds, manualDiscount, offerDiscountAmt, offerName, discountTotal,
       redeemLoyaltyPoints, loyaltyDiscAmt, serviceChargeRate, scAmount,
       tipAmt, tipPct, cashReceived, changeReturned, splitPay, roundOff,
-      partialPay, compData, voidData,
+      partialPay, compData, voidData, walletRedeem, walletCustId,
     };
   };
 
@@ -430,6 +431,10 @@ export default function MobileBillingPage() {
       // Loyalty fields
       redeemLoyaltyPoints: d.redeemLoyaltyPoints || 0,
       loyaltyDiscount: d.loyaltyDiscAmt || 0,
+      // Wallet — always explicit: exactly what this screen applied (null = not used here), so
+      // the server charges the wallet (once, at billing) only for what the cashier saw.
+      walletRedeemAmount: d.walletRedeem || null,
+      walletCustomerId: d.walletRedeem ? (d.walletCustId || null) : null,
       // Customer & staff
       customerInfo: {
         name: customerName || order?.customerInfo?.name || '',
