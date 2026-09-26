@@ -108,7 +108,7 @@ export default function StockSetupSection({ restaurantId, editingItem, formData,
     else setLine(creating.target, { inventoryItemId: item.id, unit: item.unit || 'pcs' });
     setCreating(null);
   };
-  const startCreate = (target) => setCreating({ target, name: '', unit: 'pcs', stock: '', busy: false, error: '' });
+  const startCreate = (target) => setCreating({ target, name: target === 'sell' ? String(formData.name || '').trim() : '', unit: 'pcs', stock: '', busy: false, error: '' });
   const setup = value || EMPTY_STOCK_SETUP;
   const update = (patch) => onChange({ ...setup, ...patch, dirty: true });
 
@@ -218,16 +218,17 @@ export default function StockSetupSection({ restaurantId, editingItem, formData,
 
       {mode === 'sell_through' && (
         <div style={{ display: 'grid', gap: 10 }}>
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: 12.5, color: '#374151' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-              <input type="radio" name="stock-source" checked={!ownCount} onChange={() => { setFormData(prev => ({ ...prev, isStockManaged: false })); update({}); }} />
-              Use an existing stock item
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-              <input type="radio" name="stock-source" checked={ownCount} onChange={() => { setFormData(prev => ({ ...prev, isStockManaged: true, deductionQuantity: prev.deductionQuantity || 1 })); update({}); }} />
-              Create a stock item for this dish
-            </label>
-          </div>
+          {ownCount ? (
+            <p style={{ ...small, marginTop: 0 }}>
+              This dish keeps its own stock count (set below).{' '}
+              <button type="button" onClick={() => { setFormData(prev => ({ ...prev, isStockManaged: false })); update({}); }}
+                style={{ border: 'none', background: 'none', padding: 0, color: '#dc2626', fontWeight: 700, cursor: 'pointer', fontSize: 11 }}>
+                Use a stock item from Inventory instead
+              </button>
+            </p>
+          ) : (
+            <p style={{ ...small, marginTop: 0 }}>For things you sell as they are: bottles, cans, packed items. Each sale reduces the stock item you pick.</p>
+          )}
           {!ownCount ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(90px, 1fr)', gap: 10 }}>
               <div>
@@ -243,9 +244,7 @@ export default function StockSetupSection({ restaurantId, editingItem, formData,
                 <input id="stock-sell-qty" type="number" min="0" step="any" value={setup.quantity} onChange={e => update({ quantity: e.target.value })} style={input} />
               </div>
             </div>
-          ) : (
-            <p style={small}>A stock item is kept for this dish with its own count (set below). Receive stock through Inventory; this form only changes the count if you type a new one.</p>
-          )}
+          ) : null}
           {!ownCount && selected && Number(setup.quantity) > 0 && (
             <p style={small}>Each sale takes {setup.quantity} {selected.unit || 'pcs'} of {selected.name} ({Math.floor((Number(selected.currentStock) || 0) / Number(setup.quantity))} sales possible now).</p>
           )}

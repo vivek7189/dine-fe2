@@ -6372,7 +6372,7 @@ const MenuManagement = () => {
                 )}
 
                 {/* AI Stock Suggestion Banner */}
-                {stockTrackSuggestion && !formData.isStockManaged && (
+                {stockTrackSuggestion && !formData.isStockManaged && stockSetup.mode !== 'sell_through' && (
                   <div style={{
                     marginBottom: '12px', padding: '10px 14px', backgroundColor: '#fefce8', borderRadius: '10px',
                     border: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: '10px',
@@ -6389,12 +6389,7 @@ const MenuManagement = () => {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setFormData(prev => ({
-                        ...prev,
-                        isStockManaged: true,
-                        stockUnit: stockTrackSuggestion.unit || 'pcs',
-                        deductionQuantity: 1
-                      }))}
+                      onClick={() => setStockSetup(prev => ({ ...prev, mode: 'sell_through', dirty: true }))}
                       style={{
                         padding: '6px 14px', backgroundColor: '#f59e0b', color: 'white', border: 'none',
                         borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer',
