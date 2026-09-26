@@ -3081,6 +3081,10 @@ class ApiClient {
     return this.request(`/api/recipes/${restaurantId}/mapping/item/${menuItemId}`);
   }
 
+  async setExactRecipeMatching(restaurantId, enabled) {
+    return this.request(`/api/recipes/${restaurantId}/mapping/exact-matching`, { method: 'POST', body: JSON.stringify({ enabled: !!enabled }) });
+  }
+
   async applyStockMappingAction(restaurantId, body) {
     return this.request(`/api/recipes/${restaurantId}/mapping/action`, { method: 'POST', body: JSON.stringify(body) });
   }

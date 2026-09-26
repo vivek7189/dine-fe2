@@ -23,6 +23,7 @@ const FILTERS = [
   { id: 'not_mapped', label: 'Not mapped' },
   { id: 'not_tracked', label: 'Not tracked' },
   { id: 'problems', label: 'Has problems' },
+  { id: 'loose', label: 'Similar-name recipe' },
 ];
 const PROBLEM_TEXT = {
   unit_mismatch: 'Unit does not match the stock item',
@@ -114,6 +115,7 @@ export default function RecipeMappingTab({ currentRestaurant, isMobile, canUpdat
     const q = search.trim().toLowerCase();
     return items.filter(r => {
       if (filter === 'problems') { if (!(r.unitProblems > 0 || r.borrowed)) return false; }
+      else if (filter === 'loose') { if (!(r.borrowed && r.borrowed.kind === 'loose')) return false; }
       else if (filter !== 'all' && r.status !== filter) return false;
       if (q && !(`${r.name} ${r.category}`.toLowerCase().includes(q))) return false;
       return true;
@@ -121,7 +123,22 @@ export default function RecipeMappingTab({ currentRestaurant, isMobile, canUpdat
   }, [data, filter, search]);
 
   const s = data?.summary || {};
-  const countFor = (id) => id === 'all' ? s.total : id === 'problems' ? (data?.items || []).filter(r => r.unitProblems > 0 || r.borrowed).length : s[id];
+  const countFor = (id) => id === 'all' ? s.total
+    : id === 'problems' ? (data?.items || []).filter(r => r.unitProblems > 0 || r.borrowed).length
+    : id === 'loose' ? (data?.items || []).filter(r => r.borrowed && r.borrowed.kind === 'loose').length
+    : s[id];
+  const [confirmExact, setConfirmExact] = useState(false);
+  const setExact = async (enabled) => {
+    setBusy(true); setNotice(null);
+    try {
+      const res = await apiClient.setExactRecipeMatching(currentRestaurant.id, enabled);
+      setNotice({ ok: true, text: res.message || 'Saved' });
+      setConfirmExact(false);
+      await load();
+    } catch (e) {
+      setNotice({ ok: false, text: e.message || 'Could not change the setting' });
+    } finally { setBusy(false); }
+  };
 
   return (
     <div>
@@ -157,6 +174,38 @@ export default function RecipeMappingTab({ currentRestaurant, isMobile, canUpdat
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '11px 14px', borderRadius: 10, background: '#fffbeb', color: '#78350f', fontSize: 13, marginBottom: 14 }}>
           <FaExclamationTriangle style={{ marginTop: 2, flexShrink: 0 }} />
           <span><b>{s.draft} recipe{s.draft === 1 ? '' : 's'} made by AI.</b> They keep deducting exactly as today. Open one with Review to confirm it or switch it off.</span>
+        </div>
+      )}
+
+      {data && (data.strictMode || (s.wouldStopInExactMode || 0) > 0) && (
+        <div style={{ padding: '12px 14px', borderRadius: 10, marginBottom: 14, fontSize: 13, border: '1px solid #e5e7eb', background: data.strictMode ? '#ecfdf5' : '#fff7ed', color: '#1f2937' }}>
+          {data.strictMode ? (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span><b>Exact matching is on.</b> A dish without its own recipe only uses a recipe with exactly its name.</span>
+              {canUpdate && <button type="button" style={btn()} disabled={busy} onClick={() => setExact(false)}>Turn off</button>}
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: 8 }}>
+              <span>
+                <b>{s.wouldStopInExactMode} dish{s.wouldStopInExactMode === 1 ? '' : 'es'} use a similar-named recipe</b> (for example a
+                &quot;Beef Pasta&quot; using the &quot;Pasta&quot; recipe of another dish). Link the right ones above, then turn on exact matching so
+                similar names are no longer guessed.
+              </span>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button type="button" style={btn()} onClick={() => setFilter('loose')}>Show them</button>
+                {canUpdate && !confirmExact && <button type="button" style={btn('primary')} disabled={busy} onClick={() => setConfirmExact(true)}>Turn on exact matching</button>}
+              </div>
+              {confirmExact && (
+                <div style={{ padding: '10px 12px', border: '1.5px solid #fecaca', background: '#fff', borderRadius: 10, display: 'grid', gap: 8 }}>
+                  <span>After this, the {s.wouldStopInExactMode} dish{s.wouldStopInExactMode === 1 ? '' : 'es'} listed under &quot;Similar-name recipe&quot; will stop changing stock until they get their own setup. Dishes with their own recipe or an exactly-named recipe are not affected. You can turn it off again at any time.</span>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="button" style={btn('primary')} disabled={busy} onClick={() => setExact(true)}>{busy ? 'Saving…' : 'Turn on'}</button>
+                    <button type="button" style={btn()} disabled={busy} onClick={() => setConfirmExact(false)}>Cancel</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -220,6 +269,7 @@ export default function RecipeMappingTab({ currentRestaurant, isMobile, canUpdat
                     {r.borrowed && (
                       <div style={{ fontSize: 12, color: '#b45309', fontWeight: 600 }}>
                         Today this deducts the recipe &quot;{r.borrowed.name || '(no name)'}&quot;{r.borrowed.ownedBy ? ` of ${r.borrowed.ownedBy}` : ''}
+                        {r.borrowed.kind === 'exact' ? ' (exact name — kept)' : ' (similar name — stops with exact matching)'}
                       </div>
                     )}
                   </td>
