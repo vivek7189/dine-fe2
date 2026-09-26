@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { FaTimes, FaSearch, FaSpinner, FaUtensils } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
+import { getCartSubtotal, getEffectiveItemPrice } from '../utils/billingPrice';
 import CategorySubRow from './CategorySubRow';
 import { buildCategoryIndex, isAncestorOrSelf } from '../utils/categoryTree';
 import MenuItemCard from './MenuItemCard';
@@ -146,12 +147,28 @@ const OrderEditModal = ({
             // revert a manually price-edited line). Variant price from the order,
             // then the stored line price, and menu price only as a last resort.
             const variantPriceVal = item.selectedVariant?.price;
-            const refreshedPrice = variantPriceVal != null
-              ? variantPriceVal
-              : (item.price != null ? item.price : (menuItem?.price ?? 0));
-            const itemBasePrice = variantPriceVal != null
-              ? variantPriceVal
-              : (item.basePrice != null ? item.basePrice : (item.price != null ? item.price : (menuItem?.price ?? 0)));
+            // The server stores a line as price = billed base (variant / zone / edited) + topping
+            // prices. The cart keeps the BASE here (toppings stay in selectedCustomizations and are
+            // added by getEffectiveItemPrice) — so the billed base is preserved and toppings are
+            // counted exactly once (previously variant lines lost their toppings and non-variant
+            // lines showed them twice on the item row).
+            const toppingsTotal = Array.isArray(item.selectedCustomizations)
+              ? item.selectedCustomizations.reduce((sum, c) => sum + (typeof c?.price === 'number' ? c.price : 0), 0)
+              : 0;
+            const savedUnit = typeof item.price === 'number' ? item.price
+              : (item.price != null && !isNaN(parseFloat(item.price)) ? parseFloat(item.price) : null);
+            const refreshedPrice = savedUnit != null
+              ? Math.max(0, Math.round((savedUnit - toppingsTotal) * 100) / 100)
+              : (variantPriceVal != null ? variantPriceVal : (menuItem?.price ?? 0));
+            // basePrice is what the server uses as the line base for settled / price-edit lines
+            // (it then ADDS the toppings). Orders created normally don't store a basePrice, so the
+            // old fallback to item.price (which already includes toppings) made the server count
+            // toppings twice on save. Derive it from the server's own stored line price instead.
+            const itemBasePrice = savedUnit != null
+              ? refreshedPrice
+              : (variantPriceVal != null
+                ? variantPriceVal
+                : (item.basePrice != null ? item.basePrice : (menuItem?.price ?? 0)));
             return {
               id: item.menuItemId || item.id,
               name: menuItem?.name || item.name,
@@ -274,11 +291,16 @@ const OrderEditModal = ({
   const getItemQuantityInCart = (itemId) =>
     modalCart.filter(ci => ci.id === itemId).reduce((sum, ci) => sum + (ci.quantity || 0), 0);
 
-  const getModalTotalAmount = () =>
-    modalCart.reduce((total, item) => total + (item.price * item.quantity), 0);
+  // Same line logic as the main POS (utils/billingPrice): base + toppings (× weight). No zone
+  // re-pricing here on purpose — this modal preserves the billed base of existing lines.
+  // No menuItems passed on purpose: no ₹0 → menu-price fallback (a ₹0 line on a settled bill can be
+  // intentional, and the server keeps it at ₹0), so this total matches what the server saves.
+  const getModalTotalAmount = () => getCartSubtotal(modalCart, {});
 
   const buildModalItemPayload = (item) => {
-    const price = typeof item.price === 'number' ? item.price : parseFloat(item.price) || 0;
+    // Unit price INCLUDING toppings — the same convention the server stores (it re-derives the
+    // line price server-side anyway).
+    const price = getEffectiveItemPrice(item, {});
     const total = price * (item.quantity || 1);
     return {
       menuItemId: item.id || item.menuItemId,
