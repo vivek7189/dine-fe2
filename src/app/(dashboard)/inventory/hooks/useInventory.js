@@ -453,7 +453,10 @@ export default function useInventory() {
       currentStock: item.currentStock, minStock: item.minStock, maxStock: item.maxStock,
       costPerUnit: item.costPerUnit, supplier: item.supplier, description: item.description,
       barcode: item.barcode, mfgDate: item.mfgDate || '', expiryDays: item.expiryDays || '', expiryDate: item.expiryDate || '',
-      expiryMethod: item.expiryDays ? 'days' : (item.expiryDate ? 'date' : 'days'), location: item.location
+      expiryMethod: item.expiryDays ? 'days' : (item.expiryDate ? 'date' : 'days'), location: item.location,
+      // The stock this form started from: the server applies only the change the user makes
+      // (currentStock − baseStock) to the LIVE stock, so sales made while the form is open are kept.
+      baseStock: item.currentStock,
     });
     setShowEditModal(true);
   };
@@ -537,10 +540,9 @@ export default function useInventory() {
         if (update.adjustment !== 0) {
           const item = inventoryItems.find(i => i.id === update.itemId);
           if (item) {
-            const updateData = {
-              ...item,
-              currentStock: Math.max(0, item.currentStock + update.adjustment)
-            };
+            // Send only the change: the server adds it to the LIVE stock (the list may be minutes
+            // old — sending an absolute number would erase sales made since it loaded).
+            const updateData = { stockAdjustment: update.adjustment };
             // Include batch info if provided
             if (update.mfgDate) updateData.mfgDate = update.mfgDate;
             if (update.expiryDays) updateData.expiryDays = update.expiryDays;
