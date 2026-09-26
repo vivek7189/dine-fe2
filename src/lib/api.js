@@ -3072,6 +3072,12 @@ class ApiClient {
     });
   }
 
+  async deleteSupplierInvoice(restaurantId, invoiceId) {
+    return this.request(`/api/supplier-invoices/${restaurantId}/${invoiceId}`, {
+      method: 'DELETE',
+    });
+  }
+
   async updateSupplierInvoice(restaurantId, invoiceId, updateData) {
     return this.request(`/api/supplier-invoices/${restaurantId}/${invoiceId}`, {
       method: 'PATCH',

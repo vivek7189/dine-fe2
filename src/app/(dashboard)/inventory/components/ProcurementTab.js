@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import apiClient from '../../../../lib/api';
+import { toJsDate } from '../../../../utils/dateParse';
 import { FaPlus, FaEnvelope, FaMicrophone, FaStop, FaCheck, FaTimes, FaArrowRight, FaTruck, FaFileInvoice, FaExchangeAlt, FaUndoAlt, FaClipboardCheck, FaBoxes, FaWarehouse, FaIndustry, FaSpinner, FaEdit } from 'react-icons/fa';
 
 const BASE_SUB_TABS = [
@@ -82,6 +83,10 @@ const returnTypeColor = (t) => {
   return map[t] || { bg: '#f3f4f6', text: '#374151' };
 };
 
+// Dates arrive as strings (Firestore backend) or {_seconds} objects (Postgres backend) —
+// `new Date(obj)` renders "Invalid Date", so always go through toJsDate.
+const fmtDate = (v) => { const d = toJsDate(v); return d ? d.toLocaleDateString() : '-'; };
+
 export default function ProcurementTab({
   procurementSubTab, setProcurementSubTab,
   suppliers = [], purchaseOrders = [], grns = [], purchaseRequisitions = [],
@@ -90,7 +95,7 @@ export default function ProcurementTab({
   isMobile, formatCurrency,
   setShowAddSupplierModal, setShowAddPurchaseOrderModal, setShowAddGRNModal,
   setShowAddRequisitionModal, setShowAddInvoiceModal, setShowAddReturnModal, setShowAddTransferModal,
-  handleDeleteSupplier, handleUpdateOrderStatus, handleEditPurchaseOrder, handleEmailPurchaseOrder,
+  handleDeleteSupplier, handleDeleteSupplierInvoice, handleUpdateOrderStatus, handleEditPurchaseOrder, handleEmailPurchaseOrder,
   getOrderStatusColor,
   startVoiceListeningPO, isListeningVoice, voiceTranscript, processingVoice, voiceError,
   smartSuggestions, loadingSuggestions,
@@ -398,7 +403,7 @@ export default function ProcurementTab({
                   <td style={td}>{po.items?.length || 0}</td>
                   <td style={td}>{formatCurrency(po.totalAmount || po.total || 0)}</td>
                   <td style={td}>{statusBadge(po.status, getOrderStatusColor)}</td>
-                  <td style={td}>{po.date ? new Date(po.date).toLocaleDateString() : '-'}</td>
+                  <td style={td}>{fmtDate(po.date)}</td>
                   <td style={td}>
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                       {statusActions(po).map((a, i) => (
@@ -443,7 +448,7 @@ export default function ProcurementTab({
                   <td style={td}>{r.items?.length || 0}</td>
                   <td style={td}>{priorityBadge(r.priority || 'low')}</td>
                   <td style={td}>{statusBadge(r.status, getOrderStatusColor)}</td>
-                  <td style={td}>{r.date ? new Date(r.date).toLocaleDateString() : '-'}</td>
+                  <td style={td}>{fmtDate(r.date)}</td>
                 </tr>
               ))}
             </tbody>
@@ -468,7 +473,7 @@ export default function ProcurementTab({
                 <tr key={g.id || g._id}>
                   <td style={{ ...td, fontWeight: 600 }}>{g.grnNumber || g.id || g._id}</td>
                   <td style={td}>{g.poReference || g.purchaseOrderId || '-'}</td>
-                  <td style={td}>{g.receivedDate ? new Date(g.receivedDate).toLocaleDateString() : '-'}</td>
+                  <td style={td}>{fmtDate(g.receivedDate)}</td>
                   <td style={td}>{g.items?.length || 0}</td>
                   <td style={td}>{statusBadge(g.status || 'received', getOrderStatusColor)}</td>
                 </tr>
@@ -489,19 +494,30 @@ export default function ProcurementTab({
             <thead><tr>
               <th style={th}>Invoice #</th><th style={th}>Supplier</th><th style={th}>Date</th>
               <th style={th}>Amount</th><th style={th}>Status</th>
+              {permissions.delete && handleDeleteSupplierInvoice && <th style={th}></th>}
             </tr></thead>
             <tbody>
               {supplierInvoices.map(inv => (
                 <tr key={inv.id || inv._id}>
                   <td style={{ ...td, fontWeight: 600 }}>{inv.invoiceNumber || inv.id || inv._id}</td>
                   <td style={td}>{inv.supplierName || inv.supplier || (suppliers.find(s => (s.id || s._id) === (inv.supplierId || inv.supplier_id))?.name) || '-'}</td>
-                  <td style={td}>{(() => { const d = inv.invoiceDate || inv.date || inv.invoice_date || inv.receivedDate || inv.createdAt; return d ? new Date(d).toLocaleDateString() : '-'; })()}</td>
+                  <td style={td}>{fmtDate(inv.invoiceDate || inv.date || inv.invoice_date || inv.receivedDate || inv.createdAt)}</td>
                   <td style={td}>{formatCurrency(inv.totalAmount || inv.amount || inv.total || inv.subtotal || 0)}</td>
                   <td style={td}>
                     <span style={badge(...Object.values(invoiceStatusColor(inv.status)))}>
                       {inv.status || 'unmatched'}
                     </span>
                   </td>
+                  {permissions.delete && handleDeleteSupplierInvoice && (
+                    <td style={td}>
+                      {/* Only unpaid invoices can be deleted (server enforces the same rule). */}
+                      {!((Number(inv.paidAmount) || 0) > 0 || ['paid', 'partial'].includes(inv.paymentStatus) || inv.status === 'paid') && (
+                        <button style={btnSmall('#fef2f2', '#991b1b')} onClick={() => handleDeleteSupplierInvoice(inv)}>
+                          <FaTimes size={10} /> Delete
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

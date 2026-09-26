@@ -126,6 +126,7 @@ export default function useInventory() {
   const [smartSuggestions, setSmartSuggestions] = useState(null);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [processingInvoiceOCR, setProcessingInvoiceOCR] = useState(false);
+  const [savingInvoice, setSavingInvoice] = useState(false);
   const invoiceFileInputRef = useRef(null);
   const [selectedPOForGRN, setSelectedPOForGRN] = useState(null);
   const [selectedRequisition, setSelectedRequisition] = useState(null);
@@ -1194,8 +1195,10 @@ export default function useInventory() {
     // Validate all items have inventoryItemId
     const invalidItem = invoiceFormData.items.find(it => !it.inventoryItemId);
     if (invalidItem) { setError('Please select an inventory item for each line'); return; }
+    if (savingInvoice) return; // a save is already in flight — never submit the same invoice twice
 
     try {
+      setSavingInvoice(true);
       setError(null);
       // Enrich items with names and compute totals
       const enrichedItems = invoiceFormData.items.map(it => {
@@ -1249,6 +1252,26 @@ export default function useInventory() {
     } catch (error) {
       console.error('Save invoice error:', error);
       setError(error.message || 'Failed to save supplier invoice');
+    } finally {
+      setSavingInvoice(false);
+    }
+  };
+
+  // Delete a supplier invoice (e.g. an accidental duplicate). The server only allows it when no
+  // payment is recorded against the invoice.
+  const handleDeleteSupplierInvoice = async (invoice) => {
+    if (!currentRestaurant || !invoice) return;
+    const invoiceId = invoice.id || invoice._id;
+    if (!invoiceId) return;
+    if (!confirm(`Delete invoice ${invoice.invoiceNumber || ''}? This cannot be undone.`)) return;
+    try {
+      setError(null);
+      await apiClient.deleteSupplierInvoice(currentRestaurant.id, invoiceId);
+      setSupplierInvoices(prev => prev.filter(inv => (inv.id || inv._id) !== invoiceId));
+      setSuccess('Invoice deleted');
+    } catch (error) {
+      console.error('Delete invoice error:', error);
+      setError(error.message || 'Failed to delete invoice');
     }
   };
 
@@ -1332,7 +1355,7 @@ export default function useInventory() {
     addRecipeInstruction, removeRecipeInstruction, updateRecipeInstruction, handleDeleteRecipe,
     handleEditRecipe, handleUpdateRecipe, handleViewRecipe, handleGenerateRecipeSteps, handleGenerateFullRecipe,
     handleEmailPurchaseOrder, handleUpdateOrderStatus,
-    startVoiceListeningPO, generateReport, handleInvoiceOCR, handleSaveInvoice,
+    startVoiceListeningPO, generateReport, handleInvoiceOCR, handleSaveInvoice, savingInvoice, handleDeleteSupplierInvoice,
     loadInventoryData, loadSCMData,
     handleParseQuickOrderText, handleParseQuickOrderImage, handleConfirmQuickOrder,
 

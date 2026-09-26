@@ -1395,7 +1395,7 @@ function AddInvoiceModal(props) {
     showAddInvoiceModal, setShowAddInvoiceModal,
     invoiceFormData, setInvoiceFormData,
     handleInvoiceOCR, processingInvoiceOCR, invoiceFileInputRef,
-    handleSaveInvoice,
+    handleSaveInvoice, savingInvoice,
     suppliers, inventoryItems, getModalStyles, getModalContentStyles
   } = props;
 
@@ -1427,7 +1427,9 @@ function AddInvoiceModal(props) {
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
           <button style={secondaryBtn} onClick={() => setShowAddInvoiceModal(false)}>Cancel</button>
-          <button style={primaryBtn} onClick={handleSaveInvoice}><FaSave /> Save Invoice</button>
+          <button style={{ ...primaryBtn, ...(savingInvoice ? { opacity: 0.6, cursor: 'not-allowed' } : {}) }} onClick={handleSaveInvoice} disabled={!!savingInvoice}>
+            <FaSave /> {savingInvoice ? 'Saving…' : 'Save Invoice'}
+          </button>
         </div>
       }>
 
