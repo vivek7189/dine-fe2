@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { FaTimes, FaTrash, FaBoxOpen, FaSearch, FaUtensils, FaCubes } from 'react-icons/fa';
+import { fmtQty } from '../utils/formatQty';
 
 const inputStyle = {
   width: '100%', padding: '11px 14px', borderRadius: '10px', border: '1.5px solid #e8ecf1',
@@ -442,7 +443,7 @@ function QuickWasteModal({ waste, inventoryItems, recipes, formatCurrency }) {
             padding: '10px 14px', backgroundColor: '#fefce8', borderBottom: '1px solid #fef08a',
             fontSize: '12px', fontWeight: 700, color: '#854d0e', display: 'flex', alignItems: 'center', gap: '6px',
           }}>
-            <FaUtensils size={10} /> Ingredient Breakdown ({wasteFormData.quantity} {wasteFormData.quantity === 1 ? 'serving' : 'servings'})
+            <FaUtensils size={10} /> Ingredient Breakdown ({fmtQty(wasteFormData.quantity)} {wasteFormData.quantity === 1 ? 'serving' : 'servings'})
           </div>
           <div style={{ padding: '8px 14px' }}>
             {ingredientBreakdown.map((ing, idx) => (
@@ -648,7 +649,7 @@ function LeftoverAnalysisModal({ waste, formatCurrency }) {
                   {item.name}
                 </div>
                 <div style={{ fontSize: '12px', color: '#64748b', marginTop: '3px' }}>
-                  {item.quantity} {item.unit} &middot; {item.recipeId ? item.recipeName : 'AI estimated'}
+                  {fmtQty(item.quantity)} {item.unit} &middot; {item.recipeId ? item.recipeName : 'AI estimated'}
                   {item.estimatedServings ? ` &middot; ~${item.estimatedServings} servings` : ''}
                 </div>
               </div>

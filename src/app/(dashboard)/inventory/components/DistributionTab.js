@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import apiClient from '../../../../lib/api';
 import { FaRoute, FaPlus, FaTruck, FaCheck, FaTimes, FaSpinner, FaBoxes, FaStore, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { fmtQty } from '../utils/formatQty';
 
 const SUB_TABS = [
   { key: 'plans', label: 'Plans' },
@@ -417,7 +418,7 @@ export default function DistributionTab({ currentRestaurant, isMobile, permissio
                                     <FaStore size={11} style={{ marginRight: 4, color: '#9ca3af', verticalAlign: 'middle' }} />
                                     {alloc.outletName || alloc.outletId || '-'}
                                   </td>
-                                  <td style={tdStyle}>{alloc.quantity} {plan.unit || ''}</td>
+                                  <td style={tdStyle}>{fmtQty(alloc.quantity)} {plan.unit || ''}</td>
                                   <td style={tdStyle}>
                                     <span style={badge(ac.bg, ac.text)}>{(alloc.status || 'planned').replace(/_/g, ' ')}</span>
                                   </td>

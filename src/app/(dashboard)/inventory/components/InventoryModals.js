@@ -6,6 +6,7 @@ import { FaTimes, FaPlus, FaTrash, FaSave, FaCamera, FaMinus, FaClipboardList, F
 import SmartImportModalInline from './SmartImportModal';
 import apiClient from '@/lib/api';
 import { convertUnits } from '../utils/unitConversion';
+import { fmtQty } from '../utils/formatQty';
 
 // AI-made recipes are off: the owner writes every recipe (flip to bring the generator back).
 const SHOW_AI_RECIPE = false;
@@ -1191,7 +1192,7 @@ function QuickStockModal(props) {
                     Current: {item.currentStock || 0} {item.unit || ''}
                     {hasChange && (
                       <span style={{ color: '#059669', fontWeight: 600, marginLeft: '8px' }}>
-                        New: {newStock} {item.unit || ''}
+                        New: {fmtQty(newStock)} {item.unit || ''}
                       </span>
                     )}
                   </div>
@@ -2378,7 +2379,7 @@ function ViewRecipeModal(props) {
                       <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#059669', flexShrink: 0 }} />
                     )}
                     <span style={{ fontWeight: 600, color: isSubRecipe ? '#7c3aed' : '#374151' }}>
-                      {ing.quantity} {isSubRecipe ? 'srv' : ing.unit}
+                      {fmtQty(ing.quantity)} {isSubRecipe ? 'srv' : ing.unit}
                     </span>
                     <span style={{ color: isSubRecipe ? '#7c3aed' : '#6b7280' }}>
                       {ing.inventoryItemName || 'Unknown'}
@@ -2461,7 +2462,7 @@ function UsedInSection({ restaurantId, itemId }) {
                 {u.menuItemName || u.recipeName}{u.mode === 'sell_through' ? ' · sell-through' : ''}
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0, color: '#4b5563', fontVariantNumeric: 'tabular-nums' }}>
-                <span>{u.quantity} {u.unit} / plate</span>
+                <span>{fmtQty(u.quantity)} {u.unit} / plate</span>
                 <span style={{ color: u.unitProblem ? '#b91c1c' : '#6b7280' }}>{u.unitProblem ? 'unit mismatch' : `${u.platesPossible ?? '–'} possible`}</span>
                 <span style={tagStyle(u.status)}>{u.status === 'draft' ? 'Draft (AI)' : 'Mapped'}</span>
               </span>
@@ -2660,7 +2661,7 @@ function StockHistoryModal({ showStockHistoryModal, setShowStockHistoryModal, st
                   </div>
                   {(tx.previousStock != null && tx.newStock != null) && (
                     <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '2px' }}>
-                      Stock: {tx.previousStock} → {tx.newStock}
+                      Stock: {fmtQty(tx.previousStock)} → {fmtQty(tx.newStock)}
                     </div>
                   )}
                   {/* Price info */}
@@ -2724,7 +2725,7 @@ function StockHistoryModal({ showStockHistoryModal, setShowStockHistoryModal, st
                         </div>
                       </td>
                       <td style={{ padding: '8px 10px' }}>
-                        <span style={{ fontWeight: 600 }}>{batch.remainingQty}</span>
+                        <span style={{ fontWeight: 600 }}>{fmtQty(batch.remainingQty)}</span>
                         <span style={{ color: '#9ca3af' }}> / {batch.quantity || batch.originalQty}</span>
                         <span style={{ color: '#9ca3af', marginLeft: '4px' }}>{batch.unit || stockHistoryItem?.unit || ''}</span>
                       </td>

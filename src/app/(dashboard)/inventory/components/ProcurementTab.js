@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import apiClient from '../../../../lib/api';
 import { toJsDate } from '../../../../utils/dateParse';
 import { FaPlus, FaEnvelope, FaMicrophone, FaStop, FaCheck, FaTimes, FaArrowRight, FaTruck, FaFileInvoice, FaExchangeAlt, FaUndoAlt, FaClipboardCheck, FaBoxes, FaWarehouse, FaIndustry, FaSpinner, FaEdit } from 'react-icons/fa';
+import { fmtQty } from '../utils/formatQty';
 
 const BASE_SUB_TABS = [
   { key: 'suppliers', label: 'Suppliers' },
@@ -726,7 +727,7 @@ export default function ProcurementTab({
                     style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 13 }}
                   />
                   <datalist id={`wh-stock-${idx}`}>
-                    {warehouseStock.map(s => <option key={s.id} value={s.name}>{s.name} ({s.currentStock} {s.unit})</option>)}
+                    {warehouseStock.map(s => <option key={s.id} value={s.name}>{s.name} ({fmtQty(s.currentStock)} {s.unit})</option>)}
                   </datalist>
                 </div>
                 <input
@@ -811,7 +812,7 @@ export default function ProcurementTab({
                   <tr key={plan.id}>
                     <td style={{ ...td, fontWeight: 600 }}>{plan.itemName || '-'}</td>
                     <td style={td}>{plan.centralKitchenName || plan.centralKitchenId || '-'}</td>
-                    <td style={td}>{alloc.quantity} {plan.unit || ''}</td>
+                    <td style={td}>{fmtQty(alloc.quantity)} {plan.unit || ''}</td>
                     <td style={td}>
                       <span style={badge(`${color}18`, color)}>{alloc.status}</span>
                     </td>

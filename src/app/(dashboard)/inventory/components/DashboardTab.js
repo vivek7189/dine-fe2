@@ -6,6 +6,7 @@ import {
   FaPlus, FaBoxes, FaExclamationTriangle, FaWarehouse,
   FaBolt, FaArrowRight, FaClipboardList, FaTrash, FaTimes, FaClock
 } from 'react-icons/fa';
+import { fmtQty } from '../utils/formatQty';
 
 export default function DashboardTab({
   inventoryItems, dashboardStats, suppliers, purchaseOrders,
@@ -220,7 +221,7 @@ export default function DashboardTab({
                         {item.name}
                       </span>
                       <span style={{ fontSize: '11px', color: '#9ca3af', flexShrink: 0 }}>
-                        {item.currentStock}/{item.minStock} {item.unit || ''}
+                        {fmtQty(item.currentStock)}/{fmtQty(item.minStock)} {item.unit || ''}
                       </span>
                     </div>
                     <div style={{ height: '5px', borderRadius: '3px', backgroundColor: '#e5e7eb', overflow: 'hidden' }}>
@@ -369,10 +370,10 @@ export default function DashboardTab({
                               <div style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 400 }}>{item.category}</div>
                             </td>
                             <td style={{ textAlign: 'center', padding: '10px 12px', fontSize: '13px', fontWeight: 600, color: '#ef4444' }}>
-                              {item.currentStock} {item.unit}
+                              {fmtQty(item.currentStock)} {item.unit}
                             </td>
                             <td style={{ textAlign: 'center', padding: '10px 12px', fontSize: '13px', color: '#6b7280' }}>
-                              {item.minStock} {item.unit}
+                              {fmtQty(item.minStock)} {item.unit}
                             </td>
                             <td style={{ textAlign: 'center', padding: '10px 12px' }}>
                               <button onClick={() => { setShowAlertModal(false); setShowQuickStockModal(true); }} style={{
@@ -415,7 +416,7 @@ export default function DashboardTab({
                           <tr key={item.id} style={{ borderTop: '1px solid #fee2e2' }}>
                             <td style={{ padding: '10px 12px', fontSize: '13px', fontWeight: 600, color: '#1f2937' }}>{item.name}</td>
                             <td style={{ textAlign: 'center', padding: '10px 12px', fontSize: '13px', color: '#ef4444', fontWeight: 600 }}>
-                              {item.currentStock} {item.unit}
+                              {fmtQty(item.currentStock)} {item.unit}
                             </td>
                             <td style={{ textAlign: 'center', padding: '10px 12px', fontSize: '12px', color: '#991b1b' }}>
                               {new Date(item.expiryDate).toLocaleDateString()}
@@ -457,7 +458,7 @@ export default function DashboardTab({
                             <tr key={item.id} style={{ borderTop: '1px solid #fef3c7' }}>
                               <td style={{ padding: '10px 12px', fontSize: '13px', fontWeight: 600, color: '#1f2937' }}>{item.name}</td>
                               <td style={{ textAlign: 'center', padding: '10px 12px', fontSize: '13px', color: '#6b7280' }}>
-                                {item.currentStock} {item.unit}
+                                {fmtQty(item.currentStock)} {item.unit}
                               </td>
                               <td style={{ textAlign: 'center', padding: '10px 12px', fontSize: '12px', color: '#92400e' }}>
                                 {new Date(item.expiryDate).toLocaleDateString()}

@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { FaExclamationTriangle, FaPlus, FaSync, FaCheckCircle, FaMagic, FaTrash } from 'react-icons/fa';
+import { fmtQty } from '../utils/formatQty';
 
 const InventoryDownloadPDFButton = dynamic(() => import('./pdf/InventoryDownloadPDFButton'), { ssr: false });
 
@@ -251,7 +252,7 @@ export default function WasteTab({ waste, inventoryItems, isMobile, formatCurren
                           {entry.itemName || '-'}
                         </td>
                         <td style={{ ...tdStyle, textAlign: 'center', whiteSpace: 'nowrap' }}>
-                          {entry.quantity} {entry.unit || ''}
+                          {fmtQty(entry.quantity)} {entry.unit || ''}
                         </td>
                         <td style={{ ...tdStyle, textAlign: 'center' }}>
                           <span style={{

@@ -2,6 +2,7 @@
 
 import { FaRobot, FaChartLine, FaExclamationTriangle, FaRecycle, FaDownload, FaTimes, FaBoxes, FaClock, FaWarehouse, FaClipboardList } from 'react-icons/fa';
 import { printDocument } from '../../../../utils/printBridge';
+import { fmtQty } from '../utils/formatQty';
 
 const urgencyColors = {
   high: { bg: '#fee2e2', text: '#991b1b', border: '#ef4444' },
@@ -123,8 +124,8 @@ export default function InsightsTab({
                     </span>
                   </div>
                   <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: '#6b7280' }}>
-                    <span>Current: <strong style={{ color: '#374151' }}>{s.currentStock}</strong></span>
-                    <span>Min: <strong style={{ color: '#374151' }}>{s.minStock}</strong></span>
+                    <span>Current: <strong style={{ color: '#374151' }}>{fmtQty(s.currentStock)}</strong></span>
+                    <span>Min: <strong style={{ color: '#374151' }}>{fmtQty(s.minStock)}</strong></span>
                     <span>Order: <strong style={{ color: '#059669' }}>{s.suggestedQuantity}</strong></span>
                   </div>
                   {s.estimatedCost != null && (

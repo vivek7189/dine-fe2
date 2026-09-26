@@ -3,6 +3,7 @@
 import { FaSearch, FaPlus, FaEdit, FaTrash, FaSortAmountDown, FaSortAmountUp, FaBoxes, FaExclamationTriangle, FaCheckCircle, FaFireAlt, FaClock, FaFileCsv, FaFileExcel } from 'react-icons/fa';
 import dynamic from 'next/dynamic';
 import { exportInventoryCSV, exportInventoryExcel } from '../utils/inventoryExport';
+import { fmtQty } from '../utils/formatQty';
 const InventoryDownloadPDFButton = dynamic(() => import('./pdf/InventoryDownloadPDFButton'), { ssr: false });
 
 export default function StockTab({
@@ -260,9 +261,9 @@ export default function StockTab({
                 <div style={{ marginLeft: 20 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: barColor }}>
-                      {item.currentStock} {item.unit}
+                      {fmtQty(item.currentStock)} {item.unit}
                     </span>
-                    <span style={{ fontSize: 11, color: '#9ca3af' }}>of {item.maxStock} {item.unit}</span>
+                    <span style={{ fontSize: 11, color: '#9ca3af' }}>of {fmtQty(item.maxStock)} {item.unit}</span>
                   </div>
                   <div style={{ height: 8, background: '#f3f4f6', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
                     <div style={{
@@ -275,7 +276,7 @@ export default function StockTab({
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
                       <FaFireAlt size={10} color="#f59e0b" />
                       <span style={{ fontSize: 11, color: '#92400e', fontWeight: 500 }}>
-                        {consumed} {item.unit} used today
+                        {fmtQty(consumed)} {item.unit} used today
                       </span>
                     </div>
                   )}
@@ -283,7 +284,7 @@ export default function StockTab({
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
                       <FaExclamationTriangle size={10} color="#ea580c" />
                       <span style={{ fontSize: 11, color: '#ea580c', fontWeight: 500 }}>
-                        {item.wastedQty} {item.unit} wasted today{item.wastedValue > 0 ? ` · ${formatCurrency(item.wastedValue)}` : ''}
+                        {fmtQty(item.wastedQty)} {item.unit} wasted today{item.wastedValue > 0 ? ` · ${formatCurrency(item.wastedValue)}` : ''}
                       </span>
                     </div>
                   )}
@@ -359,7 +360,7 @@ export default function StockTab({
                       <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
                           <span style={{ fontSize: 14, fontWeight: 700, color: barColor }}>
-                            {item.currentStock} {item.unit}
+                            {fmtQty(item.currentStock)} {item.unit}
                           </span>
                           <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 500 }}>
                             {stockPercent}%
@@ -376,12 +377,12 @@ export default function StockTab({
                           }} />
                         </div>
                         <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 2 }}>
-                          capacity: {item.maxStock} {item.unit}
+                          capacity: {fmtQty(item.maxStock)} {item.unit}
                         </div>
                       </div>
                     </td>
                     <td style={{ ...tdStyle, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>
-                      {item.minStock} / {item.maxStock}
+                      {fmtQty(item.minStock)} / {fmtQty(item.maxStock)}
                     </td>
                     {/* Today's Usage Column */}
                     <td style={{ ...tdStyle, textAlign: 'center' }}>
@@ -391,7 +392,7 @@ export default function StockTab({
                         }}>
                           <FaFireAlt size={10} color="#d97706" />
                           <span style={{ fontSize: 12, fontWeight: 600, color: '#92400e' }}>
-                            {consumed} {item.unit}
+                            {fmtQty(consumed)} {item.unit}
                           </span>
                         </div>
                       ) : (
@@ -403,7 +404,7 @@ export default function StockTab({
                       {item.wastedQty > 0 ? (
                         <div>
                           <div style={{ fontSize: 12, fontWeight: 600, color: '#ea580c' }}>
-                            {item.wastedQty} {item.unit}
+                            {fmtQty(item.wastedQty)} {item.unit}
                           </div>
                           {item.wastedValue > 0 && (
                             <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 1 }}>
