@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { FaLink, FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle, FaHistory, FaRecycle, FaMagic, FaTruck, FaIndustry, FaRoute, FaBalanceScale } from 'react-icons/fa';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { resolveFeaturePermissions } from '@/lib/permissions';
@@ -56,8 +57,14 @@ function HowItWorks({ isMobile, onAddItem, onLinkDish, canAdd }) {
               <span style={{ fontSize: 12.5, color: '#4b5563' }}>Every bill reduces inventory automatically. Cancelled or returned items go back. Low stock shows an alert.</span>
             </div>
           </div>
-          <div style={{ marginTop: 10, fontSize: 12, color: '#065f46' }}>
-            Selling something as-is (a bottle of Coke, water, a packet)? No recipe needed — on the <b>Menu</b> page open the item and turn on <b>Track inventory</b>. Dishes that are not linked simply don&apos;t reduce inventory.
+          <div style={{ marginTop: 10, padding: '10px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, fontSize: 12.5, color: '#78350f', lineHeight: 1.55 }}>
+            <b>Important — items you sell as-is</b> (Coke, water bottle, chips packet, beer): they do <b>not</b> reduce inventory just because the names match.
+            Open the item on the <b>Menu</b> page and tick <b>Track inventory</b> (no recipe needed), or link it in <b>Link dishes</b>.
+            Any menu item that is not linked does not change inventory when sold.
+            <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <Link href="/menu" style={{ padding: '5px 12px', borderRadius: 8, border: '1.5px solid #d97706', color: '#92400e', fontWeight: 700, fontSize: 12, textDecoration: 'none', background: '#fff' }}>Go to Menu</Link>
+              {canAdd && <button type="button" onClick={onLinkDish} style={{ padding: '5px 12px', borderRadius: 8, border: '1.5px solid #d97706', color: '#92400e', fontWeight: 700, fontSize: 12, background: '#fff', cursor: 'pointer' }}>Link a dish</button>}
+            </div>
           </div>
         </>
       )}

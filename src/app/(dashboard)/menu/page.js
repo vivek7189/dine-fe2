@@ -6401,7 +6401,7 @@ const MenuManagement = () => {
                         {t('menu.trackStockCount')}
                       </label>
                       <p style={{ fontSize: '11px', color: formData.isStockManaged ? '#15803d' : '#0369a1', margin: '2px 0 0 0' }}>
-                        {formData.isStockManaged ? 'Inventory will auto-deduct when this item is sold' : t('menu.stockSynced')}
+                        {formData.isStockManaged ? 'Inventory will auto-deduct when this item is sold' : 'Off — selling this item does not reduce inventory.'}
                       </p>
                     </div>
                     {formData.isStockManaged && (
@@ -6469,6 +6469,12 @@ const MenuManagement = () => {
                       <p style={{ fontSize: '10px', color: '#6b7280', margin: '8px 0 0 0' }}>
                         Each sale of this item will deduct {formData.deductionQuantity || 1} {formData.stockUnit || 'pcs'} from inventory. No recipe needed for direct items.
                       </p>
+                    </div>
+                  )}
+                  {!formData.isStockManaged && (
+                    <div style={{ marginTop: '10px', padding: '8px 10px', background: '#fff', border: '1px dashed #bae6fd', borderRadius: '8px', fontSize: '11px', color: '#0c4a6e', lineHeight: 1.5 }}>
+                      <b>Sold as-is?</b> (Coke, water bottle, chips packet, beer) — tick this box so each sale reduces its inventory.
+                      Having an inventory item with the same name is <b>not</b> enough; it only reduces when this box is on or the item is linked.
                     </div>
                   )}
                   {!isBarMode && (

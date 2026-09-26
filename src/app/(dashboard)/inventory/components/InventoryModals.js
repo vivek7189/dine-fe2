@@ -343,7 +343,8 @@ function ManualItemForm({ formData, setFormData, categories, suppliers, simple =
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 16px' }}>
       {simple && (
         <div style={{ gridColumn: '1 / -1', padding: '10px 12px', borderRadius: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', fontSize: 12.5, color: '#065f46', lineHeight: 1.5 }}>
-          Add something you <b>buy</b> — e.g. Chicken, Rice, Milk, Coke bottles. After adding, link it to your dishes in <b>Recipes</b> so it reduces automatically when those dishes are sold.
+          Add something you <b>buy</b> — e.g. Chicken, Rice, Milk, Coke bottles. After adding, link it to your dishes in <b>Link dishes</b> so it reduces automatically when those dishes are sold.
+          If you sell it as-is (e.g. a Coke bottle), also tick <b>Track inventory</b> on that menu item — the same name alone does not link them.
         </div>
       )}
       <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
