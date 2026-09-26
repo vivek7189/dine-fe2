@@ -26,6 +26,7 @@ import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { DndContext, PointerSensor, TouchSensor, KeyboardSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, rectSortingStrategy, verticalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import StockSetupSection, { EMPTY_STOCK_SETUP, stockSetupPayload } from './components/StockSetupSection';
 import { 
   FaPlus,
   FaEdit,
@@ -2474,6 +2475,8 @@ const MenuManagement = () => {
   const moreActionsRef = useRef(null);
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  // Stock section of the item form (StockSetupSection) — saved via set_setup, separate from the item.
+  const [stockSetup, setStockSetup] = useState(EMPTY_STOCK_SETUP);
   const [loading, setLoading] = useState(true); // Start as true to show loading on first load
   const [backgroundLoading, setBackgroundLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -3193,6 +3196,8 @@ const MenuManagement = () => {
     e.preventDefault();
     if (!isOnline && !editingItem) { setError('You are offline. Go online to add new items.'); return; }
     if (!currentRestaurant) return;
+    if (stockSetup.clientError) { setError(stockSetup.clientError); setTimeout(() => setError(''), 5000); return; }
+    const stockPayload = isOnline ? stockSetupPayload(stockSetup, formData) : null;
 
     try {
       setProcessing(true);
@@ -3320,7 +3325,10 @@ const MenuManagement = () => {
         variants: cleanedVariants,
         customizations: cleanedCustomizations,
         modifierGroups: cleanedModifierGroups,
-        pricingRules: cleanedPricingRules
+        pricingRules: cleanedPricingRules,
+        // Classic "Track stock" count: the value this form opened with, so the server applies only
+        // the owner's change to the live stock (never resets it to a stale number).
+        ...(editingItem && editingItem.isStockManaged ? { baseStockQuantity: editingItem.stockQuantity ?? null } : {}),
       };
 
       if (editingItem) {
@@ -3356,6 +3364,9 @@ const MenuManagement = () => {
           });
           updateMenuItemInAllCaches(currentRestaurant.id, editingItem.id, updateFields).catch(() => {});
         } else {
+          if (stockPayload) {
+            await apiClient.applyStockMappingAction(currentRestaurant.id, { ...stockPayload, menuItemId: editingItem.id });
+          }
           await apiClient.updateMenuItem(editingItem.id, itemData, currentRestaurant?.id);
         }
         setMenuItems(items => items.map(item =>
@@ -3391,6 +3402,14 @@ const MenuManagement = () => {
         const response = await apiClient.createMenuItem(currentRestaurant.id, itemData);
         const newItem = response.menuItem;
         setMenuItems(items => [...items, newItem]);
+        if (stockPayload && newItem?.id) {
+          try {
+            await apiClient.applyStockMappingAction(currentRestaurant.id, { ...stockPayload, menuItemId: newItem.id });
+          } catch (stockErr) {
+            setError(`${formData.name} was saved, but its stock setup was not: ${stockErr.message || stockErr}. Set it in Inventory → Recipe mapping.`);
+            setTimeout(() => setError(''), 8000);
+          }
+        }
 
         // If there are temporary images, upload them now
         if (formData.tempImages && formData.tempImages.length > 0) {
@@ -3625,7 +3644,7 @@ const MenuManagement = () => {
       image: item.image || '',
       images: item.images || [],
       isAvailable: item.isAvailable !== false,
-      stockQuantity: item.stockQuantity || null,
+      stockQuantity: item.stockQuantity ?? null,
       isStockManaged: item.isStockManaged || false,
       lowStockThreshold: item.lowStockThreshold ?? 5,
       stockUnit: item.stockUnit || 'pcs',
@@ -3668,6 +3687,7 @@ const MenuManagement = () => {
         return rule && item.pricingRules?.[rule.id] != null ? String(item.pricingRules[rule.id]) : '';
       })(),
     });
+    setStockSetup(EMPTY_STOCK_SETUP);
     setEditingItem(item);
     setShowAddForm(true);
     setShowAdvancedOptions(false); // Collapse advanced options when editing
@@ -4262,6 +4282,7 @@ const MenuManagement = () => {
   }, []);
 
   const resetForm = () => {
+    setStockSetup(EMPTY_STOCK_SETUP);
     setFormData({
       name: '',
       description: '',
@@ -6385,7 +6406,20 @@ const MenuManagement = () => {
                   </div>
                 )}
 
-                {/* Stock Tracking */}
+                {/* Stock — how selling this item uses stock (Not tracked / Sell-through / Recipe) */}
+                {!isBarMode && (
+                  <StockSetupSection
+                    restaurantId={currentRestaurant?.id}
+                    editingItem={editingItem}
+                    formData={formData}
+                    setFormData={setFormData}
+                    value={stockSetup}
+                    onChange={setStockSetup}
+                  />
+                )}
+
+                {/* Stock Tracking — the classic own count ("Sell-through → Create a stock item for this dish") */}
+                {(isBarMode || formData.isStockManaged) && (
                 <div style={{ marginBottom: '16px', padding: '12px 14px', backgroundColor: formData.isStockManaged ? '#ecfdf5' : '#f0f9ff', borderRadius: '10px', border: `1px solid ${formData.isStockManaged ? '#86efac' : '#bae6fd'}`, transition: 'all 0.2s ease' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: formData.isStockManaged ? '12px' : '0' }}>
                     <input
@@ -6471,6 +6505,7 @@ const MenuManagement = () => {
                     </div>
                   )}
                 </div>
+                )}
 
               {/* Sold by Weight */}
                 <div style={{ marginBottom: '16px', padding: '12px 14px', backgroundColor: formData.soldByWeight ? '#fefce8' : '#f0f9ff', borderRadius: '10px', border: `1px solid ${formData.soldByWeight ? '#fde047' : '#bae6fd'}`, transition: 'all 0.2s ease' }}>
@@ -6707,8 +6742,9 @@ const MenuManagement = () => {
                   </div>
                 )}
 
-              {/* AI Recipe Generation Toggle — hide for bar */}
-              {!editingItem && !isBarMode && (
+              {/* AI Recipe Generation Toggle — replaced by the Stock section above (it created recipes that
+                  deducted even when the item was meant to be Not tracked). AI stays in Inventory → Recipes. */}
+              {false && !editingItem && !isBarMode && (
                 <div style={{ marginBottom: '16px', padding: '10px 12px', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <input
                     type="checkbox"

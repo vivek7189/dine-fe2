@@ -3077,6 +3077,10 @@ class ApiClient {
     return this.request(`/api/recipes/${restaurantId}/mapping`);
   }
 
+  async getMenuItemStockSetup(restaurantId, menuItemId) {
+    return this.request(`/api/recipes/${restaurantId}/mapping/item/${menuItemId}`);
+  }
+
   async applyStockMappingAction(restaurantId, body) {
     return this.request(`/api/recipes/${restaurantId}/mapping/action`, { method: 'POST', body: JSON.stringify(body) });
   }
