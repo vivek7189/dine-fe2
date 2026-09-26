@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import apiClient from '@/lib/api';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 const DiscountApprovalModal = ({ isOpen, onClose, onApproved, restaurantId, discountData }) => {
+  const { formatCurrency } = useCurrency();
   const [step, setStep] = useState('loading'); // loading | approved | pin | otp | verifying | error
   const [approvalId, setApprovalId] = useState(null);
   const [method, setMethod] = useState(null);
@@ -448,7 +450,7 @@ const DiscountApprovalModal = ({ isOpen, onClose, onApproved, restaurantId, disc
                   <span style={{ color: '#f9fafb', fontWeight: '500' }}>
                     {discountData.discountType === 'percentage'
                       ? `${discountData.discountValue}%`
-                      : `${discountData.discountAmount}`}
+                      : formatCurrency(discountData.discountAmount)}
                   </span>
                 </div>
               </div>
@@ -490,7 +492,7 @@ const DiscountApprovalModal = ({ isOpen, onClose, onApproved, restaurantId, disc
                   <span style={{ color: '#f9fafb', fontWeight: '500' }}>
                     {discountData.discountType === 'percentage'
                       ? `${discountData.discountValue}%`
-                      : `${discountData.discountAmount}`}
+                      : formatCurrency(discountData.discountAmount)}
                   </span>
                 </div>
               </div>

@@ -186,9 +186,14 @@ const AdminTabSkeleton = ({ variant = 'single' }) => (
 );
 
 // Tax & Business Identity Combined Component
-const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRestaurant, initialLoading }) => {
+const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRestaurant, initialLoading, currentUserRole }) => {
   const { showSuccess, showError, NotificationContainer: TaxNotifications } = useNotification();
   const allRoles = ['owner', 'manager', 'admin', 'waiter', 'cashier', 'employee'];
+  // Discount WhatsApp-OTP approval settings are owner/admin-only (the server enforces this too).
+  const canManageDiscountOtp = ['owner', 'admin'].includes(String(currentUserRole || '').toLowerCase());
+  const currencySymbol = selectedRestaurant?.currencySettings?.currencySymbol
+    || getCurrencyByCountryCode(selectedRestaurant?.currencySettings?.countryCode || selectedRestaurant?.countryCode || 'IN')?.currencySymbol
+    || '';
   const taxLabel = selectedRestaurant?.currencySettings?.taxLabel || getCurrencyByCountryCode(selectedRestaurant?.currencySettings?.countryCode || 'IN')?.taxLabel || 'Tax';
   // --- Tax state ---
   const [taxSettings, setTaxSettings] = useState({
@@ -990,12 +995,69 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
                         </div>
                         <div>
                           <p style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', margin: '0 0 4px 0' }}>Max Flat Discount</p>
-                          <input type="number" min="0" step="1" placeholder="No limit"
-                            value={taxSettings.discountSettings?.maxDiscountAmount || ''}
-                            onChange={(e) => setTaxSettings(prev => ({ ...prev, discountSettings: { ...prev.discountSettings, maxDiscountAmount: e.target.value ? parseInt(e.target.value) : null } }))}
-                            style={{ width: '90px', padding: '5px 6px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', textAlign: 'center' }} />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            {currencySymbol && <span style={{ fontSize: '12px', color: '#6b7280' }}>{currencySymbol}</span>}
+                            <input type="number" min="0" step="1" placeholder="No limit"
+                              value={taxSettings.discountSettings?.maxDiscountAmount || ''}
+                              onChange={(e) => setTaxSettings(prev => ({ ...prev, discountSettings: { ...prev.discountSettings, maxDiscountAmount: e.target.value ? parseInt(e.target.value) : null } }))}
+                              style={{ width: '90px', padding: '5px 6px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', textAlign: 'center' }} />
+                          </div>
                         </div>
                       </div>
+
+                      {/* WhatsApp OTP approval for manual discounts (owner/admin only) */}
+                      {taxSettings.discountSettings?.allowManualDiscount !== false && (() => {
+                        const ds = taxSettings.discountSettings || {};
+                        const on = ds.requireOtpApproval === true;
+                        const setDs = (patch) => setTaxSettings(prev => ({ ...prev, discountSettings: { ...prev.discountSettings, ...patch } }));
+                        const inputStyle = { width: '100%', maxWidth: '320px', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '12px', outline: 'none', backgroundColor: canManageDiscountOtp ? '#fff' : '#f3f4f6' };
+                        return (
+                          <div style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '12px' }}>
+                            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '12px', fontWeight: 600, color: '#374151', cursor: canManageDiscountOtp ? 'pointer' : 'not-allowed' }}>
+                              <input type="checkbox" checked={on} disabled={!canManageDiscountOtp}
+                                onChange={(e) => setDs({ requireOtpApproval: e.target.checked })}
+                                style={{ width: '15px', height: '15px', marginTop: '1px' }} />
+                              <span>
+                                Require WhatsApp OTP approval for manual discounts
+                                <span style={{ display: 'block', fontSize: '11px', fontWeight: 500, color: '#6b7280', marginTop: '2px' }}>
+                                  When staff enter a manual discount, a one-time code is sent to the number below. The discount is applied to the bill only after the code is entered. Owner &amp; Admin don&apos;t need a code.
+                                </span>
+                              </span>
+                            </label>
+                            {on && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px', paddingLeft: '23px' }}>
+                                <div>
+                                  <p style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', margin: '0 0 4px 0' }}>Approval WhatsApp number</p>
+                                  <input type="tel" placeholder="e.g. +919876543210 (with country code)" disabled={!canManageDiscountOtp}
+                                    value={ds.otpApprovalWhatsapp || ''}
+                                    onChange={(e) => setDs({ otpApprovalWhatsapp: e.target.value.replace(/[^\d+]/g, '') })}
+                                    style={inputStyle} />
+                                </div>
+                                <div>
+                                  <p style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', margin: '0 0 4px 0' }}>Approval email (fallback, optional)</p>
+                                  <input type="email" placeholder="manager@example.com" disabled={!canManageDiscountOtp}
+                                    value={ds.otpApprovalEmail || ''}
+                                    onChange={(e) => setDs({ otpApprovalEmail: e.target.value.trim() })}
+                                    style={inputStyle} />
+                                </div>
+                                {!ds.otpApprovalWhatsapp && !ds.otpApprovalEmail && (
+                                  <p style={{ fontSize: '11px', fontWeight: 600, color: '#dc2626', margin: 0 }}>
+                                    ⚠ Add a WhatsApp number (or email) — otherwise no approval code can be sent and staff can&apos;t apply manual discounts.
+                                  </p>
+                                )}
+                                {ds.otpApprovalWhatsapp && !/^\+\d{8,15}$/.test(ds.otpApprovalWhatsapp) && (
+                                  <p style={{ fontSize: '11px', fontWeight: 600, color: '#d97706', margin: 0 }}>
+                                    Include the country code, e.g. +91… or +974…
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            {!canManageDiscountOtp && (
+                              <p style={{ fontSize: '11px', color: '#9ca3af', margin: '8px 0 0 23px' }}>Only the Owner or Admin can change discount approval settings.</p>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
 
@@ -14564,6 +14626,7 @@ const Admin = () => {
           border: '1px solid #f1f5f9'
         }}>
           <TaxAndBusinessIdentity
+            currentUserRole={currentUserRole}
             restaurants={restaurants}
             selectedRestaurant={selectedRestaurant}
             setSelectedRestaurant={setSelectedRestaurant}

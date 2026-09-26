@@ -665,6 +665,12 @@ const OrderSummary = ({
   const [pendingDiscountAction, setPendingDiscountAction] = useState(null); // 'place' | 'complete' | 'placeAndPrint'
   const [discountApproved, setDiscountApproved] = useState(false);
   const [discountApprovalSettings, setDiscountApprovalSettings] = useState(null);
+  // Tax-tab "Require WhatsApp OTP for manual discounts": the manual discount counts toward the bill
+  // ONLY once a code sent to the configured approver number has been verified for this exact
+  // discount (type + value). Key of the verified discount, or null.
+  const [discountOtpApprovedKey, setDiscountOtpApprovedKey] = useState(null);
+  const [showDiscountOtp, setShowDiscountOtp] = useState(false);
+  const [discountOtpRequestKey, setDiscountOtpRequestKey] = useState(null);
 
   // Load discount approval settings
   useEffect(() => {
@@ -1460,8 +1466,22 @@ const OrderSummary = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Calculate manual discount amount (must be defined before calculateTax which depends on it)
-  const getManualDiscountAmount = useCallback(() => {
+  // WhatsApp-OTP gate for manual discounts (Admin → Tax → Discount Settings). Owner/admin are the
+  // approvers and never need a code. While a discount is awaiting its code it counts as 0 everywhere
+  // (totals, tax, every order button and the order payload), so it can't reach an order unapproved.
+  const _discOtpSettings = taxSettings?.discountSettings || {};
+  const _discOtpRole = String(userRole || '').toLowerCase().trim();
+  const discountOtpRequired = _discOtpSettings.enabled === true &&
+    _discOtpSettings.allowManualDiscount !== false &&
+    _discOtpSettings.requireOtpApproval === true &&
+    _discOtpRole !== 'owner' && _discOtpRole !== 'admin';
+  const manualDiscountKey = `${manualDiscountTypeState}:${parseFloat(manualDiscountValue) || 0}`;
+  const manualDiscountPendingOtp = discountOtpRequired &&
+    (parseFloat(manualDiscountValue) || 0) > 0 &&
+    discountOtpApprovedKey !== manualDiscountKey;
+
+  // Manual discount as entered (before the OTP gate) — used only for the pending display + approval request.
+  const getRawManualDiscountAmount = useCallback(() => {
     const val = parseFloat(manualDiscountValue) || 0;
     const subtotal = getTotalAmount();
     if (manualDiscountTypeState === 'percentage') {
@@ -1469,6 +1489,18 @@ const OrderSummary = ({
     }
     return Math.round(Math.min(val, subtotal) * 100) / 100;
   }, [manualDiscountValue, manualDiscountTypeState, getTotalAmount]);
+
+  // Calculate manual discount amount (must be defined before calculateTax which depends on it)
+  const getManualDiscountAmount = useCallback(() => {
+    if (manualDiscountPendingOtp) return 0;
+    return getRawManualDiscountAmount();
+  }, [manualDiscountPendingOtp, getRawManualDiscountAmount]);
+
+  // A verified approval belongs to the current cart only — clear it once the cart is emptied
+  // (order placed / billed / cleared) so the next order needs its own code.
+  useEffect(() => {
+    if (cart.length === 0) setDiscountOtpApprovedKey(null);
+  }, [cart.length]);
 
   // Loyalty discount calculation — points / redemptionRate = discount amount
   // redemptionRate=1 → 1pt=₹1, redemptionRate=10 → 10pts=₹1, redemptionRate=100 → 100pts=₹1
@@ -1917,10 +1949,13 @@ const OrderSummary = ({
     if (currentOrder.manualDiscountValue != null && currentOrder.manualDiscountValue > 0) {
       setManualDiscountValue(String(currentOrder.manualDiscountValue));
       setManualDiscountTypeState(currentOrder.manualDiscountType || 'flat');
+      // Already saved on this order → keep it applied (don't ask for a new OTP just to reopen it).
+      setDiscountOtpApprovedKey(`${currentOrder.manualDiscountType || 'flat'}:${parseFloat(currentOrder.manualDiscountValue) || 0}`);
     } else if (currentOrder.manualDiscount > 0) {
       // Backward compat: old orders only have the computed amount, restore as flat
       setManualDiscountValue(String(currentOrder.manualDiscount));
       setManualDiscountTypeState(currentOrder.manualDiscountType || 'flat');
+      setDiscountOtpApprovedKey(`${currentOrder.manualDiscountType || 'flat'}:${parseFloat(currentOrder.manualDiscount) || 0}`);
     }
     if (currentOrder.discountReason) {
       setDiscountReason(currentOrder.discountReason);
@@ -2766,7 +2801,7 @@ const OrderSummary = ({
       serviceChargeAmount: serviceChargeAmount > 0 ? serviceChargeAmount : null,
       serviceChargeEnabled: serviceChargeOverride,
       manualDiscountType: manualDiscountTypeState,
-      manualDiscountValue: manualDiscountValue !== '' ? parseFloat(manualDiscountValue) : null,
+      manualDiscountValue: manualDiscountValue !== '' && !manualDiscountPendingOtp ? parseFloat(manualDiscountValue) : null,
       discountReason: discountReason.trim() || null,
       tipAmount: tipAmount > 0 ? tipAmount : null,
       tipPercentage: tipPercentage || null,
@@ -2825,6 +2860,7 @@ const OrderSummary = ({
 
   // Discount approval gating
   const needsDiscountApproval = useCallback(() => {
+    if (discountOtpRequired) return false; // Tax-tab WhatsApp-OTP approval already gates the discount
     if (!discountApprovalSettings?.enabled) return false;
     if (getManualDiscountAmount() <= 0) return false;
     if (discountApproved) return false;
@@ -2834,7 +2870,7 @@ const OrderSummary = ({
     if (!config?.requireApproval) return false;
     if (config.maxDiscountWithoutApproval > 0 && getManualDiscountAmount() <= config.maxDiscountWithoutApproval) return false;
     return true;
-  }, [discountApprovalSettings, discountApproved, userRole]);
+  }, [discountApprovalSettings, discountApproved, userRole, discountOtpRequired]);
 
   const handleDiscountApproved = () => {
     setShowDiscountApproval(false);
@@ -5569,14 +5605,31 @@ const OrderSummary = ({
                           <option value="flat">{getCurrencySymbol()}</option>
                           <option value="percentage">%</option>
                         </select>
-                        {getManualDiscountAmount() > 0 && (
+                        {manualDiscountPendingOtp ? (
+                          <>
+                            <span title="Not applied yet — needs an approval code" style={{ fontSize: '10px', fontWeight: 600, color: '#b45309', whiteSpace: 'nowrap' }}>
+                              -{formatCurrency(getRawManualDiscountAmount())} · needs OTP
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => { setDiscountOtpRequestKey(manualDiscountKey); setShowDiscountOtp(true); }}
+                              style={{
+                                flexShrink: 0, padding: '3px 9px', borderRadius: '999px', border: 'none',
+                                background: '#dc2626', color: '#fff', fontSize: '10px', fontWeight: 700,
+                                cursor: 'pointer', whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Verify OTP
+                            </button>
+                          </>
+                        ) : getManualDiscountAmount() > 0 && (
                           <span style={{ fontSize: '10px', fontWeight: 600, color: '#16a34a', whiteSpace: 'nowrap' }}>
-                            -{formatCurrency(getManualDiscountAmount())}
+                            -{formatCurrency(getManualDiscountAmount())}{discountOtpRequired ? ' ✓' : ''}
                           </span>
                         )}
                       </div>
                     )}
-                    {getManualDiscountAmount() > 0 && (
+                    {getRawManualDiscountAmount() > 0 && (
                       <div style={{ marginTop: '4px', flexBasis: '100%' }}>
                         <input
                           type="text"
@@ -8820,6 +8873,24 @@ const OrderSummary = ({
             discountValue: parseFloat(manualDiscountValue) || 0,
             discountAmount: getManualDiscountAmount(),
             subtotal: getTotalAmount(),
+          }}
+          userRole={userRole}
+          userName=""
+        />
+      )}
+      {/* WhatsApp-OTP approval for a manual discount (Admin → Tax → Discount Settings) */}
+      {showDiscountOtp && (
+        <DiscountApprovalModal
+          isOpen={showDiscountOtp}
+          onClose={() => setShowDiscountOtp(false)}
+          onApproved={() => { setDiscountOtpApprovedKey(discountOtpRequestKey); setShowDiscountOtp(false); }}
+          restaurantId={restaurantId}
+          discountData={{
+            discountType: manualDiscountTypeState,
+            discountValue: parseFloat(manualDiscountValue) || 0,
+            discountAmount: getRawManualDiscountAmount(),
+            subtotal: getTotalAmount(),
+            orderId: currentOrder?.id || null,
           }}
           userRole={userRole}
           userName=""
