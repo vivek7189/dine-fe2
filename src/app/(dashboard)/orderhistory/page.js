@@ -251,6 +251,8 @@ const OrderHistory = () => {
   const [cancelError, setCancelError] = useState(null);
   // Refund modal state
   const [refundModalOrder, setRefundModalOrder] = useState(null);
+  // Partial refund: how many of each order line the customer handed back (goes back to stock).
+  const [refundReturnQty, setRefundReturnQty] = useState({});
   const [refundAmount, setRefundAmount] = useState('');
   const [refundReason, setRefundReason] = useState('');
   const [refundRfdRsnCd, setRefundRfdRsnCd] = useState('06'); // KRA §4.16 credit-note reason (Kenya eTIMS)
@@ -1243,6 +1245,7 @@ const OrderHistory = () => {
   const handleOpenRefund = (order) => {
     const amount = order.finalAmount || order.totalAmount || 0;
     setRefundModalOrder(order);
+    setRefundReturnQty({});
     setRefundAmount(String(amount));
     setRefundType('full');
     setRefundReason('');
@@ -1278,10 +1281,16 @@ const OrderHistory = () => {
     setRefundError(null);
     const order = refundModalOrder;
     try {
+      // Items handed back on a partial refund go back to stock (a full refund returns everything).
+      const returnedItems = amount >= maxAmount ? [] : (order.items || [])
+        .map((it, idx) => ({ it, q: Number(refundReturnQty[idx]) || 0 }))
+        .filter(({ q }) => q > 0)
+        .map(({ it, q }) => ({ menuItemId: it.menuItemId || it.id, name: it.name, quantity: q, selectedVariant: it.selectedVariant || null }));
       await apiClient.processRefund(order.id, {
         refundAmount: amount,
         refundReason: refundReason.trim(),
-        refundType: amount >= maxAmount ? 'full' : 'partial'
+        refundType: amount >= maxAmount ? 'full' : 'partial',
+        ...(returnedItems.length ? { returnedItems } : {}),
       });
       const isFullRefund = amount >= maxAmount;
 
@@ -5298,6 +5307,38 @@ const OrderHistory = () => {
                   placeholder="Enter refund amount"
                   className="w-full px-3 py-2.5 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 disabled:bg-gray-50 mb-3"
                 />
+
+                {/* Partial refund: which items came back (optional) — those go back to stock */}
+                {refundType === 'partial' && (refundModalOrder.items || []).length > 0 && (
+                  <div className="mb-3">
+                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                      Items returned to stock <span className="font-normal normal-case text-gray-400">(optional)</span>
+                    </label>
+                    <p className="text-[11px] text-gray-400 mb-2">Only if the customer handed items back unused. Leave at 0 for a price adjustment.</p>
+                    <div className="border border-gray-200 rounded-lg divide-y divide-gray-100">
+                      {(refundModalOrder.items || []).map((it, idx) => {
+                        const max = Number(it.quantity) || 0;
+                        const q = Number(refundReturnQty[idx]) || 0;
+                        const setQ = (v) => setRefundReturnQty(prev => ({ ...prev, [idx]: Math.max(0, Math.min(max, v)) }));
+                        return (
+                          <div key={idx} className="flex items-center justify-between gap-2 px-3 py-2">
+                            <span className="text-sm text-gray-700 truncate">
+                              {it.name}{it.selectedVariant?.name ? ` (${it.selectedVariant.name})` : ''}
+                              <span className="text-gray-400"> × {max}</span>
+                            </span>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <button type="button" disabled={refundSubmitting || q <= 0} onClick={() => setQ(q - 1)}
+                                className="w-7 h-7 rounded-md border border-gray-200 text-gray-600 disabled:opacity-40" aria-label={`Return one less ${it.name}`}>−</button>
+                              <span className="w-6 text-center text-sm font-semibold tabular-nums">{q}</span>
+                              <button type="button" disabled={refundSubmitting || q >= max} onClick={() => setQ(q + 1)}
+                                className="w-7 h-7 rounded-md border border-gray-200 text-gray-600 disabled:opacity-40" aria-label={`Return one more ${it.name}`}>+</button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {/* KRA credit-note reason (Kenya eTIMS) — sent to KRA as rfdRsnCd (§4.16) on the credit note */}
                 {etimsActiveFor(restaurant) && (
