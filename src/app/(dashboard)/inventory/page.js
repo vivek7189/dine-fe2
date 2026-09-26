@@ -22,6 +22,48 @@ import DistributionTab from './components/DistributionTab';
 import InventoryModals from './components/InventoryModals';
 import WasteModals from './components/WasteModals';
 import SmartImportModal from './components/SmartImportModal';
+import LinkRecipeModal from './components/LinkRecipeModal';
+
+// Always-visible 3-step explainer: what inventory is, how dishes connect, what happens on a sale.
+function HowItWorks({ isMobile, onAddItem, onLinkDish, canAdd }) {
+  const [open, setOpen] = useState(true);
+  useEffect(() => { try { if (localStorage.getItem('inv_howto_closed') === '1') setOpen(false); } catch {} }, []);
+  const toggle = () => setOpen(o => { const n = !o; try { localStorage.setItem('inv_howto_closed', n ? '0' : '1'); } catch {} return n; });
+  const card = { flex: 1, minWidth: isMobile ? '100%' : 200, background: '#fff', border: '1px solid #d1fae5', borderRadius: 12, padding: '12px 14px', display: 'grid', gap: 6, alignContent: 'start' };
+  const num = { width: 24, height: 24, borderRadius: 999, background: '#059669', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800 };
+  const act = { justifySelf: 'start', marginTop: 2, padding: '6px 12px', borderRadius: 8, border: '1.5px solid #059669', background: '#fff', color: '#047857', fontSize: 12, fontWeight: 700, cursor: 'pointer' };
+  return (
+    <div style={{ marginBottom: 16, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 14, padding: open ? '14px 16px' : '10px 16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+        <span style={{ fontSize: 14, fontWeight: 800, color: '#065f46' }}>How inventory works</span>
+        <button type="button" onClick={toggle} style={{ background: 'none', border: 'none', color: '#047857', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{open ? 'Hide' : 'Show'}</button>
+      </div>
+      {open && (
+        <>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
+            <div style={card}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={num}>1</span><b style={{ fontSize: 13.5, color: '#111827' }}>Add what you buy</b></div>
+              <span style={{ fontSize: 12.5, color: '#4b5563' }}>Chicken, rice, milk, oil, Coke bottles… with how much you have.</span>
+              {canAdd && <button type="button" style={act} onClick={onAddItem}>+ Add inventory item</button>}
+            </div>
+            <div style={card}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={num}>2</span><b style={{ fontSize: 13.5, color: '#111827' }}>Link each dish</b></div>
+              <span style={{ fontSize: 12.5, color: '#4b5563' }}>Pick a menu item and say what one plate uses (e.g. Biryani = 200 g chicken + 150 g rice).</span>
+              {canAdd && <button type="button" style={act} onClick={onLinkDish}>Link a dish</button>}
+            </div>
+            <div style={card}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={num}>3</span><b style={{ fontSize: 13.5, color: '#111827' }}>Sell as usual</b></div>
+              <span style={{ fontSize: 12.5, color: '#4b5563' }}>Every bill reduces inventory automatically. Cancelled or returned items go back. Low stock shows an alert.</span>
+            </div>
+          </div>
+          <div style={{ marginTop: 10, fontSize: 12, color: '#065f46' }}>
+            Selling something as-is (a bottle of Coke, water, a packet)? No recipe needed — on the <b>Menu</b> page open the item and turn on <b>Track inventory</b>. Dishes that are not linked simply don&apos;t reduce inventory.
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 // SmartImportModal is now integrated into AddEditItemModal (InventoryModals.js)
 
 export default function InventoryManagement() {
@@ -35,6 +77,10 @@ export default function InventoryManagement() {
   const success = invSuccess || waste.success;
   const setSuccess = invSuccess ? setInvSuccess : (v) => {};
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
+  // "Link a dish" flow (pick menu item → ingredients → linked); used by the guide, Recipes and Link dishes tabs.
+  const [linkDish, setLinkDish] = useState({ open: false, menuItemId: null });
+  const [mappingRefresh, setMappingRefresh] = useState(0);
+  const openLinkDish = (menuItemId = null) => setLinkDish({ open: true, menuItemId: typeof menuItemId === 'string' ? menuItemId : null });
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -62,7 +108,7 @@ export default function InventoryManagement() {
     { id: 'dashboard', name: 'Dashboard', icon: FaBolt },
     { id: 'stock', name: 'Stock', icon: FaBoxes },
     ...(outletType !== 'warehouse' ? [{ id: 'recipes', name: 'Recipes', icon: FaClipboardList }] : []),
-    ...(outletType !== 'warehouse' ? [{ id: 'mapping', name: 'Recipe mapping', icon: FaLink }] : []),
+    ...(outletType !== 'warehouse' ? [{ id: 'mapping', name: 'Link dishes', icon: FaLink }] : []),
     { id: 'usage', name: 'Usage', icon: FaHistory },
     ...(outletType !== 'warehouse' ? [{ id: 'variance', name: 'Variance', icon: FaBalanceScale }] : []),
     { id: 'procurement', name: 'Procurement', icon: FaShoppingCart },
@@ -225,6 +271,11 @@ export default function InventoryManagement() {
           </div>
         )}
 
+        {outletType !== 'warehouse' && (
+          <HowItWorks isMobile={isMobile} canAdd={!!permissions?.add}
+            onAddItem={() => inventory.setShowAddModal(true)} onLinkDish={() => openLinkDish()} />
+        )}
+
         {/* Tab Navigation */}
         <div style={{
           marginBottom: isMobile ? '16px' : '20px', display: 'flex', gap: '2px',
@@ -316,11 +367,13 @@ export default function InventoryManagement() {
             permissions={permissions}
             currentRestaurant={inventory.currentRestaurant}
             onBulkImport={() => setShowBulkImportModal(true)}
+            onLinkDish={() => openLinkDish()}
           />
         )}
 
         {activeTab === 'mapping' && (
-          <RecipeMappingTab currentRestaurant={inventory.currentRestaurant} isMobile={isMobile} canUpdate={!!permissions?.update} />
+          <RecipeMappingTab currentRestaurant={inventory.currentRestaurant} isMobile={isMobile} canUpdate={!!permissions?.update}
+            onLinkDish={permissions?.add ? openLinkDish : null} refreshKey={mappingRefresh} />
         )}
 
         {activeTab === 'usage' && (
@@ -442,6 +495,15 @@ export default function InventoryManagement() {
 
       {/* All Modals */}
       <InventoryModals {...inventory} formatCurrency={formatCurrency} />
+      <LinkRecipeModal
+        open={linkDish.open}
+        preselectMenuItemId={linkDish.menuItemId}
+        onClose={() => setLinkDish({ open: false, menuItemId: null })}
+        restaurantId={inventory.currentRestaurant?.id}
+        inventoryItems={inventory.inventoryItems}
+        recipes={inventory.recipes}
+        onSaved={() => { setMappingRefresh(k => k + 1); inventory.loadInventoryData && inventory.loadInventoryData(); }}
+      />
       <WasteModals waste={waste} inventoryItems={inventory.inventoryItems} recipes={inventory.recipes} formatCurrency={formatCurrency} />
       {showBulkImportModal && inventory.currentRestaurant && (
         <SmartImportModal

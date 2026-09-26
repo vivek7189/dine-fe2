@@ -28,6 +28,7 @@ export default function RecipesTab({
   permissions = { read: true, add: true, update: true, delete: true },
   currentRestaurant,
   onBulkImport,
+  onLinkDish,
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -105,13 +106,13 @@ export default function RecipesTab({
         <div>
           <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#1f2937' }}>Recipes</h2>
           <p style={{ margin: '4px 0 0', fontSize: 14, color: '#6b7280' }}>
-            {filteredRecipes.length} of {recipes.length} recipe{recipes.length !== 1 ? 's' : ''}
+            {filteredRecipes.length} of {recipes.length} recipe{recipes.length !== 1 ? 's' : ''} · a recipe tells inventory what one plate of a dish uses
           </p>
         </div>
         {permissions.add && (
           <div style={{ display: 'flex', gap: 8 }}>
             <button
-              onClick={() => setShowAddRecipeModal(true)}
+              onClick={() => (onLinkDish ? onLinkDish() : setShowAddRecipeModal(true))}
               style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '10px 20px', background: 'linear-gradient(135deg, #059669, #10b981)', color: '#fff',
@@ -119,8 +120,20 @@ export default function RecipesTab({
                 cursor: 'pointer', boxShadow: '0 2px 8px rgba(5,150,105,0.3)',
               }}
             >
-              <FaPlus size={13} /> Add Recipe
+              <FaPlus size={13} /> Add recipe for a dish
             </button>
+            {onLinkDish && (
+              <button
+                onClick={() => setShowAddRecipeModal(true)}
+                title="A recipe used inside other recipes, not sold on its own (e.g. gravy, dough, sauce)"
+                style={{
+                  padding: '10px 16px', background: '#fff', color: '#374151',
+                  border: '1.5px solid #e5e7eb', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                Base recipe (gravy, dough…)
+              </button>
+            )}
             {onBulkImport && (
               <button
                 onClick={onBulkImport}
@@ -214,18 +227,18 @@ export default function RecipesTab({
           <p style={{ margin: 0, fontSize: 14, color: '#9ca3af' }}>
             {searchTerm || selectedCategory !== 'all'
               ? 'Try a different search or category.'
-              : 'Create your first recipe to track ingredient costs.'}
+              : 'Pick a dish from your menu and add what one plate uses. After that, every sale reduces inventory automatically.'}
           </p>
           {!searchTerm && selectedCategory === 'all' && (
             <button
-              onClick={() => setShowAddRecipeModal(true)}
+              onClick={() => (onLinkDish ? onLinkDish() : setShowAddRecipeModal(true))}
               style={{
                 marginTop: 16, padding: '10px 24px', background: 'linear-gradient(135deg, #059669, #10b981)',
                 color: '#fff', border: 'none', borderRadius: 10, fontSize: 14,
                 fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(5,150,105,0.3)',
               }}
             >
-              <FaPlus size={12} style={{ marginRight: 6 }} /> Add Recipe
+              <FaPlus size={12} style={{ marginRight: 6 }} /> Add recipe for a dish
             </button>
           )}
         </div>

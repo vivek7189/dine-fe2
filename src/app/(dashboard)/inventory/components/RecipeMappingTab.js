@@ -1,6 +1,6 @@
 'use client';
 
-// Recipe mapping — how every menu item uses stock (read-only view).
+// Link dishes — every menu item and what it takes from inventory when sold.
 // Data: GET /api/recipes/:restaurantId/mapping (backend services/stockMappingService.js).
 //   Sell-through = one stock item per sale · Recipe = ingredients per plate
 //   Draft = AI-made recipe not yet reviewed (still deducts as before)
@@ -11,18 +11,19 @@ import { FaSearch, FaSync, FaChevronDown, FaChevronRight, FaExclamationTriangle 
 import apiClient from '@/lib/api';
 
 const STATUS = {
-  mapped: { label: 'Mapped', color: '#047857', bg: '#ecfdf5' },
-  draft: { label: 'Draft (AI)', color: '#b45309', bg: '#fffbeb' },
-  not_mapped: { label: 'Not mapped', color: '#b91c1c', bg: '#fef2f2' },
-  not_tracked: { label: 'Not tracked', color: '#6b7280', bg: '#f3f4f6' },
+  mapped: { label: 'Linked', color: '#047857', bg: '#ecfdf5' },
+  draft: { label: 'AI draft', color: '#b45309', bg: '#fffbeb' },
+  not_mapped: { label: 'Check', color: '#b91c1c', bg: '#fef2f2' },
+  not_tracked: { label: 'Not linked', color: '#6b7280', bg: '#f3f4f6' },
 };
+// `always` chips stay visible; the others only show when something is in them.
 const FILTERS = [
-  { id: 'all', label: 'All menu items' },
-  { id: 'mapped', label: 'Mapped' },
-  { id: 'draft', label: 'Draft (AI)' },
-  { id: 'not_mapped', label: 'Not mapped' },
-  { id: 'not_tracked', label: 'Not tracked' },
-  { id: 'problems', label: 'Has problems' },
+  { id: 'all', label: 'All dishes', always: true },
+  { id: 'mapped', label: 'Linked', always: true },
+  { id: 'not_tracked', label: 'Not linked', always: true },
+  { id: 'draft', label: 'AI draft' },
+  { id: 'not_mapped', label: 'Check' },
+  { id: 'problems', label: 'Needs a fix' },
   { id: 'loose', label: 'Similar-name recipe' },
 ];
 const PROBLEM_TEXT = {
@@ -45,9 +46,12 @@ function Tag({ status }) {
 function setupText(row) {
   if (row.mode === 'sell_through') {
     const ing = row.ingredients.find(i => i.kind === 'stock');
-    return ing ? `Sell-through · ${ing.name} × ${fmtQty(ing.quantity)} ${ing.unit || ''}`.trim() : 'Sell-through';
+    return ing ? `${fmtQty(ing.quantity)} ${ing.unit || ''} ${ing.name} (direct)`.replace(/\s+/g, ' ').trim() : 'Direct item';
   }
-  if (row.mode === 'recipe') return `Recipe · ${row.ingredients.length} ingredient${row.ingredients.length === 1 ? '' : 's'}`;
+  if (row.mode === 'recipe') {
+    const names = row.ingredients.map(i => i.name || '(unnamed)');
+    return names.length <= 3 ? names.join(', ') : `${names.slice(0, 3).join(', ')} +${names.length - 3} more`;
+  }
   return '—';
 }
 
@@ -60,13 +64,13 @@ const btn = (kind) => ({
 // What the owner can do on a row, and the sentence shown before it is applied.
 function actionFor(r) {
   if (r.switchedOff) return { type: 'switch_on', label: 'Switch on', confirm: `Selling ${r.name} will use its stock setup again.` };
-  if (r.status === 'not_mapped' && r.suggestion) return { type: 'link_sell_through', label: 'Link as sell-through' };
+  if (r.status === 'not_mapped' && r.suggestion) return { type: 'link_sell_through', label: 'Link as direct item' };
   if (r.status === 'not_mapped' && r.borrowed) return { type: 'switch_off', label: 'Stop borrowing', confirm: `${r.name} will stop deducting the recipe "${r.borrowed.name || '(no name)'}". Selling it will not change stock until you set it up.` };
   if (r.status === 'draft') return { type: 'review', label: 'Review' };
   return null;
 }
 
-export default function RecipeMappingTab({ currentRestaurant, isMobile, canUpdate = true }) {
+export default function RecipeMappingTab({ currentRestaurant, isMobile, canUpdate = true, onLinkDish = null, refreshKey = 0 }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -88,7 +92,7 @@ export default function RecipeMappingTab({ currentRestaurant, isMobile, canUpdat
     } finally { setLoading(false); }
   }, [currentRestaurant?.id]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, refreshKey]);
 
   const apply = async (row, body) => {
     setBusy(true); setNotice(null);
@@ -144,15 +148,23 @@ export default function RecipeMappingTab({ currentRestaurant, isMobile, canUpdat
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#1f2937' }}>Recipe mapping</h2>
+          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#1f2937' }}>Link dishes</h2>
           <p style={{ margin: '4px 0 0', fontSize: 14, color: '#6b7280', maxWidth: 640 }}>
-            How each menu item uses stock when it is sold. This page only shows the current setup; nothing here changes stock.
+            Every dish on your menu. <b>Linked</b> dishes reduce inventory when sold. <b>Not linked</b> dishes don&apos;t — click <b>Link</b> and add what one plate uses.
           </p>
         </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+        {onLinkDish && (
+          <button type="button" onClick={() => onLinkDish()}
+            style={{ padding: '9px 16px', background: '#059669', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            + Link a dish
+          </button>
+        )}
         <button onClick={load} disabled={loading}
           style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', background: '#fff', color: '#374151', border: '1.5px solid #e5e7eb', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: loading ? 'wait' : 'pointer' }}>
           <FaSync size={12} style={loading ? { animation: 'spin 1s linear infinite' } : undefined} /> Refresh
         </button>
+        </div>
       </div>
 
       {notice && (
@@ -213,6 +225,7 @@ export default function RecipeMappingTab({ currentRestaurant, isMobile, canUpdat
         {FILTERS.map(f => {
           const active = filter === f.id;
           const n = countFor(f.id);
+          if (!f.always && !active && !(n > 0)) return null;
           return (
             <button key={f.id} onClick={() => setFilter(f.id)}
               style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '8px 12px', borderRadius: 10, cursor: 'pointer', background: active ? '#fef2f2' : '#fff', border: `1.5px solid ${active ? '#dc2626' : '#e5e7eb'}` }}>
@@ -233,7 +246,7 @@ export default function RecipeMappingTab({ currentRestaurant, isMobile, canUpdat
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5, minWidth: isMobile ? 640 : 0 }}>
           <thead>
             <tr style={{ background: '#f9fafb' }}>
-              {['', 'Menu item', 'Stock setup', 'Status', 'Plates from stock', ''].map(h => (
+              {['', 'Dish', 'Uses from inventory', 'Status', 'Can make', ''].map(h => (
                 <th key={h} style={{ textAlign: 'left', padding: '10px 12px', fontSize: 11.5, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>{h}</th>
               ))}
             </tr>
@@ -278,7 +291,14 @@ export default function RecipeMappingTab({ currentRestaurant, isMobile, canUpdat
                     {r.platesPossible == null ? '—' : r.platesPossible}
                   </td>
                   <td style={{ padding: '10px 12px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
-                    {a && <button type="button" style={btn(a.type === 'link_sell_through' ? 'primary' : 'default')} disabled={busy} onClick={() => startAction(r, a)}>{a.label}</button>}
+                    <div style={{ display: 'inline-flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                      {a && <button type="button" style={btn(a.type === 'link_sell_through' ? 'primary' : 'default')} disabled={busy} onClick={() => startAction(r, a)}>{a.label}</button>}
+                      {onLinkDish && !r.switchedOff && (
+                        <button type="button" style={btn(r.status === 'not_tracked' ? 'primary' : 'default')} disabled={busy} onClick={() => onLinkDish(r.menuItemId)}>
+                          {r.status === 'mapped' || r.status === 'draft' ? 'Edit' : 'Link'}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>,
                 isOpen && (
@@ -288,7 +308,7 @@ export default function RecipeMappingTab({ currentRestaurant, isMobile, canUpdat
                       {r.ingredients.length > 0 ? (
                         <table style={{ borderCollapse: 'collapse', fontSize: 13, width: '100%' }}>
                           <thead>
-                            <tr>{['Stock item', 'Per plate', 'In stock', ''].map(h => (
+                            <tr>{['Inventory item', 'Per plate', 'In stock', ''].map(h => (
                               <th key={h} style={{ textAlign: 'left', padding: '6px 8px', fontSize: 11, color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase' }}>{h}</th>
                             ))}</tr>
                           </thead>
@@ -305,7 +325,7 @@ export default function RecipeMappingTab({ currentRestaurant, isMobile, canUpdat
                         </table>
                       ) : (
                         <div style={{ fontSize: 13, color: '#6b7280' }}>
-                          {r.switchedOff ? 'Switched off.' : 'No stock setup yet.'}{r.suggestion ? ` Stock item "${r.suggestion.name}" (${fmtQty(r.suggestion.inStock)} ${r.suggestion.unit}) has the same name.` : ''}
+                          {r.switchedOff ? 'Switched off.' : 'Not linked yet — selling it does not change inventory.'}{r.suggestion ? ` Stock item "${r.suggestion.name}" (${fmtQty(r.suggestion.inStock)} ${r.suggestion.unit}) has the same name.` : ''}
                         </div>
                       )}
 

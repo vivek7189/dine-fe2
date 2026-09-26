@@ -7,6 +7,8 @@ import SmartImportModalInline from './SmartImportModal';
 import apiClient from '@/lib/api';
 import { convertUnits } from '../utils/unitConversion';
 
+// AI-made recipes are off: the owner writes every recipe (flip to bring the generator back).
+const SHOW_AI_RECIPE = false;
 const units = ['kg', 'g', 'mg', 'L', 'ml', 'cl', 'fl oz', 'oz', 'lb', 'pcs', 'dozen', 'bunch', 'bottle', 'can', 'bag', 'box', 'pack', 'case', 'keg', 'scoop', 'tub', 'peg', 'shot'];
 
 const inputStyle = {
@@ -312,7 +314,9 @@ function SectionHeader({ icon, title }) {
 }
 
 // ─── Manual Item Form (shared between Add & Edit) ───────────────────────────
-function ManualItemForm({ formData, setFormData, categories, suppliers }) {
+function ManualItemForm({ formData, setFormData, categories, suppliers, simple = false }) {
+  // Add form shows only what is needed to start; the rest sits under "More options".
+  const [more, setMore] = useState(!simple);
   const update = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
 
   // Picking a purchase + stock unit that are a known same-dimension pair (kg↔g, L↔ml,
@@ -334,20 +338,50 @@ function ManualItemForm({ formData, setFormData, categories, suppliers }) {
   const unitOptions = units.map(u => ({ value: u, label: u }));
   const supplierOptions = suppliers.map(s => ({ value: s.name || s.id, label: s.name }));
 
+  const u = formData.unit || 'unit';
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 16px' }}>
-      <SectionHeader icon={<FaBoxes size={10} color="white" />} title="Basic Info" />
+      {simple && (
+        <div style={{ gridColumn: '1 / -1', padding: '10px 12px', borderRadius: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', fontSize: 12.5, color: '#065f46', lineHeight: 1.5 }}>
+          Add something you <b>buy</b> — e.g. Chicken, Rice, Milk, Coke bottles. After adding, link it to your dishes in <b>Recipes</b> so it reduces automatically when those dishes are sold.
+        </div>
+      )}
       <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
-        <label style={labelStyle}>Name *</label>
-        <FocusInput value={formData.name} onChange={e => update('name', e.target.value)} placeholder="e.g. Tomatoes, Olive Oil, Flour" />
+        <label style={labelStyle}>Item name *</label>
+        <FocusInput value={formData.name} onChange={e => update('name', e.target.value)} placeholder="e.g. Chicken, Basmati Rice, Milk" />
       </div>
+      <div style={fieldWrap}>
+        <label style={labelStyle}>Counted in (unit) *</label>
+        <CustomSelect value={formData.unit} onChange={v => updateUnitField('unit', v)} options={unitOptions} placeholder="kg, L, pcs…" />
+        <span style={{ fontSize: 11, color: '#6b7280' }}>How you measure it: kg, L, pcs, bottle…</span>
+      </div>
+      <div style={fieldWrap}>
+        <label style={labelStyle}>How much you have now</label>
+        <FocusInput type="number" value={formData.currentStock} onChange={e => update('currentStock', parseFloat(e.target.value) || 0)} />
+        <span style={{ fontSize: 11, color: '#6b7280' }}>In {u}. Leave 0 if you will add it later.</span>
+      </div>
+      <div style={fieldWrap}>
+        <label style={labelStyle}>Low-stock alert at</label>
+        <FocusInput type="number" value={formData.minStock} onChange={e => update('minStock', parseFloat(e.target.value) || 0)} placeholder="e.g. 5" />
+        <span style={{ fontSize: 11, color: '#6b7280' }}>We warn you when it falls below this ({u}).</span>
+      </div>
+      <div style={fieldWrap}>
+        <label style={labelStyle}>Cost per {u}</label>
+        <FocusInput type="number" step="0.01" value={formData.costPerUnit} onChange={e => update('costPerUnit', parseFloat(e.target.value) || 0)} />
+        <span style={{ fontSize: 11, color: '#6b7280' }}>Optional — used for food-cost reports.</span>
+      </div>
+      <button type="button" onClick={() => setMore(m => !m)}
+        style={{ gridColumn: '1 / -1', justifySelf: 'start', background: 'none', border: 'none', color: '#059669', fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: 0 }}>
+        {more ? '▾ Hide more options' : '▸ More options (category, purchase unit, supplier, expiry…)'}
+      </button>
+      {more && (<>
       <div style={fieldWrap}>
         <label style={labelStyle}>Category</label>
         <CustomSelect value={formData.category} onChange={v => update('category', v)} options={categoryOptions} placeholder="Select category" creatable />
       </div>
       <div style={fieldWrap}>
-        <label style={labelStyle}>Stock / Usage Unit</label>
-        <CustomSelect value={formData.unit} onChange={v => updateUnitField('unit', v)} options={unitOptions} placeholder="Select unit" />
+        <label style={labelStyle}>Max Stock</label>
+        <FocusInput type="number" value={formData.maxStock} onChange={e => update('maxStock', parseFloat(e.target.value) || 0)} placeholder="Maximum capacity" />
       </div>
       <div style={fieldWrap}>
         <label style={labelStyle}>Purchase Unit (optional)</label>
@@ -365,23 +399,6 @@ function ManualItemForm({ formData, setFormData, categories, suppliers }) {
           </span>
         </div>
       )}
-      <SectionHeader icon={<FaClipboardList size={10} color="white" />} title="Stock & Pricing" />
-      <div style={fieldWrap}>
-        <label style={labelStyle}>Current Stock</label>
-        <FocusInput type="number" value={formData.currentStock} onChange={e => update('currentStock', parseFloat(e.target.value) || 0)} />
-      </div>
-      <div style={fieldWrap}>
-        <label style={labelStyle}>Cost Per {formData.unit || 'Unit'}</label>
-        <FocusInput type="number" step="0.01" value={formData.costPerUnit} onChange={e => update('costPerUnit', parseFloat(e.target.value) || 0)} />
-      </div>
-      <div style={fieldWrap}>
-        <label style={labelStyle}>Min Stock</label>
-        <FocusInput type="number" value={formData.minStock} onChange={e => update('minStock', parseFloat(e.target.value) || 0)} placeholder="Low stock alert" />
-      </div>
-      <div style={fieldWrap}>
-        <label style={labelStyle}>Max Stock</label>
-        <FocusInput type="number" value={formData.maxStock} onChange={e => update('maxStock', parseFloat(e.target.value) || 0)} placeholder="Maximum capacity" />
-      </div>
       <SectionHeader icon={<FaReceipt size={10} color="white" />} title="Tracking" />
       <div style={fieldWrap}>
         <label style={labelStyle}>Supplier</label>
@@ -445,6 +462,7 @@ function ManualItemForm({ formData, setFormData, categories, suppliers }) {
         <label style={labelStyle}>Description</label>
         <FocusTextarea value={formData.description} onChange={e => update('description', e.target.value)} placeholder="Optional notes about this item" />
       </div>
+      </>)}
     </div>
   );
 }
@@ -546,7 +564,7 @@ function AddEditItemModal(props) {
 
         {/* Tab content */}
         {addTab === 'manual' && (
-          <ManualItemForm formData={formData} setFormData={setFormData} categories={categories} suppliers={suppliers} />
+          <ManualItemForm formData={formData} setFormData={setFormData} categories={categories} suppliers={suppliers} simple />
         )}
 
         {addTab === 'invoice' && (
@@ -789,8 +807,8 @@ function RecipeFormBody({ recipeFormData, setRecipeFormData, inventoryItems,
 
   return (
     <>
-      {/* AI Generation Section */}
-      {handleGenerateFullRecipe && (
+      {/* AI Generation Section — off: recipes are made by the owner only */}
+      {SHOW_AI_RECIPE && handleGenerateFullRecipe && (
         <div style={{
           padding: '14px 16px', marginBottom: 16, borderRadius: 12,
           background: 'linear-gradient(135deg, #f0fdf4, #ecfdf5)',
@@ -835,7 +853,7 @@ function RecipeFormBody({ recipeFormData, setRecipeFormData, inventoryItems,
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        {!handleGenerateFullRecipe && (
+        {!(SHOW_AI_RECIPE && handleGenerateFullRecipe) && (
           <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
             <label style={labelStyle}>Recipe Name *</label>
             <FocusInput value={recipeFormData.name} onChange={e => update('name', e.target.value)} placeholder="Recipe name" />
