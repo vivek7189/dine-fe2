@@ -3072,6 +3072,15 @@ class ApiClient {
     });
   }
 
+  // Recipe mapping (read-only): how every menu item uses stock; and where a stock item is used.
+  async getStockMapping(restaurantId) {
+    return this.request(`/api/recipes/${restaurantId}/mapping`);
+  }
+
+  async getStockItemUsage(restaurantId, itemId) {
+    return this.request(`/api/inventory/${restaurantId}/${itemId}/used-in`);
+  }
+
   async deleteSupplierInvoice(restaurantId, invoiceId) {
     return this.request(`/api/supplier-invoices/${restaurantId}/${invoiceId}`, {
       method: 'DELETE',

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle, FaHistory, FaRecycle, FaMagic, FaTruck, FaIndustry, FaRoute, FaBalanceScale } from 'react-icons/fa';
+import { FaLink, FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle, FaHistory, FaRecycle, FaMagic, FaTruck, FaIndustry, FaRoute, FaBalanceScale } from 'react-icons/fa';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { resolveFeaturePermissions } from '@/lib/permissions';
 import useInventory from './hooks/useInventory';
@@ -10,6 +10,7 @@ import useWaste from './hooks/useWaste';
 import DashboardTab from './components/DashboardTab';
 import StockTab from './components/StockTab';
 import RecipesTab from './components/RecipesTab';
+import RecipeMappingTab from './components/RecipeMappingTab';
 import UsageTab from './components/UsageTab';
 import VarianceTab from './components/VarianceTab';
 import ProcurementTab from './components/ProcurementTab';
@@ -61,6 +62,7 @@ export default function InventoryManagement() {
     { id: 'dashboard', name: 'Dashboard', icon: FaBolt },
     { id: 'stock', name: 'Stock', icon: FaBoxes },
     ...(outletType !== 'warehouse' ? [{ id: 'recipes', name: 'Recipes', icon: FaClipboardList }] : []),
+    ...(outletType !== 'warehouse' ? [{ id: 'mapping', name: 'Recipe mapping', icon: FaLink }] : []),
     { id: 'usage', name: 'Usage', icon: FaHistory },
     ...(outletType !== 'warehouse' ? [{ id: 'variance', name: 'Variance', icon: FaBalanceScale }] : []),
     { id: 'procurement', name: 'Procurement', icon: FaShoppingCart },
@@ -315,6 +317,10 @@ export default function InventoryManagement() {
             currentRestaurant={inventory.currentRestaurant}
             onBulkImport={() => setShowBulkImportModal(true)}
           />
+        )}
+
+        {activeTab === 'mapping' && (
+          <RecipeMappingTab currentRestaurant={inventory.currentRestaurant} isMobile={isMobile} />
         )}
 
         {activeTab === 'usage' && (

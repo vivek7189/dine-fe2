@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { FaTimes, FaPlus, FaTrash, FaSave, FaCamera, FaMinus, FaClipboardList, FaImage, FaCheckCircle, FaExclamationTriangle, FaSearch, FaMagic, FaEye, FaBoxes, FaArrowDown, FaKeyboard, FaPaste, FaReceipt, FaHistory, FaChevronDown, FaCheck, FaFileImage, FaCloudUploadAlt, FaLink } from 'react-icons/fa';
 import SmartImportModalInline from './SmartImportModal';
+import apiClient from '@/lib/api';
 import { convertUnits } from '../utils/unitConversion';
 
 const units = ['kg', 'g', 'mg', 'L', 'ml', 'cl', 'fl oz', 'oz', 'lb', 'pcs', 'dozen', 'bunch', 'bottle', 'can', 'bag', 'box', 'pack', 'case', 'keg', 'scoop', 'tub', 'peg', 'shot'];
@@ -2408,7 +2409,52 @@ function ViewRecipeModal(props) {
 }
 
 // ─── Stock History Modal ─────────────────────────────────────────────────────
-function StockHistoryModal({ showStockHistoryModal, setShowStockHistoryModal, stockHistoryItem, stockHistoryData, getModalStyles, getModalContentStyles, formatCurrency }) {
+// "Used in": which menu items consume this stock item (read-only, GET …/used-in).
+function UsedInSection({ restaurantId, itemId }) {
+  const [state, setState] = useState({ loading: true, data: null, error: null });
+  useEffect(() => {
+    let alive = true;
+    if (!restaurantId || !itemId) return undefined;
+    setState({ loading: true, data: null, error: null });
+    apiClient.getStockItemUsage(restaurantId, itemId)
+      .then(d => { if (alive) setState({ loading: false, data: d, error: null }); })
+      .catch(e => { if (alive) setState({ loading: false, data: null, error: e.message || 'Could not load' }); });
+    return () => { alive = false; };
+  }, [restaurantId, itemId]);
+  const used = state.data?.usedIn || [];
+  const tagStyle = (st) => ({ fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', whiteSpace: 'nowrap',
+    color: st === 'draft' ? '#b45309' : '#047857', background: st === 'draft' ? '#fffbeb' : '#ecfdf5' });
+  return (
+    <div style={{ marginBottom: '20px', padding: '14px 16px', borderRadius: '12px', background: '#fafafa', border: '1px solid #e5e7eb' }}>
+      <label style={{ ...labelStyle, fontSize: '13px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <FaLink size={11} /> Used in {state.data ? `${used.length} menu item${used.length === 1 ? '' : 's'}` : ''}
+      </label>
+      {state.loading && <div style={{ fontSize: '12.5px', color: '#9ca3af' }}>Loading…</div>}
+      {state.error && <div style={{ fontSize: '12.5px', color: '#b91c1c' }}>{state.error}</div>}
+      {state.data && used.length === 0 && (
+        <div style={{ fontSize: '12.5px', color: '#6b7280' }}>No menu item uses this stock item, so sales don&apos;t change its stock. Link it from Inventory → Recipe mapping or a recipe.</div>
+      )}
+      {used.length > 0 && (
+        <div style={{ display: 'grid', gap: '6px' }}>
+          {used.map(u => (
+            <div key={u.recipeId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', fontSize: '12.5px', padding: '6px 10px', background: 'white', border: '1px solid #eef0f3', borderRadius: '8px' }}>
+              <span style={{ color: '#111827', fontWeight: 600, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {u.menuItemName || u.recipeName}{u.mode === 'sell_through' ? ' · sell-through' : ''}
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0, color: '#4b5563', fontVariantNumeric: 'tabular-nums' }}>
+                <span>{u.quantity} {u.unit} / plate</span>
+                <span style={{ color: u.unitProblem ? '#b91c1c' : '#6b7280' }}>{u.unitProblem ? 'unit mismatch' : `${u.platesPossible ?? '–'} possible`}</span>
+                <span style={tagStyle(u.status)}>{u.status === 'draft' ? 'Draft (AI)' : 'Mapped'}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StockHistoryModal({ showStockHistoryModal, setShowStockHistoryModal, stockHistoryItem, stockHistoryData, getModalStyles, getModalContentStyles, formatCurrency, currentRestaurant }) {
   const transactions = stockHistoryData?.transactions || [];
   const batches = stockHistoryData?.batches || [];
 
@@ -2500,6 +2546,10 @@ function StockHistoryModal({ showStockHistoryModal, setShowStockHistoryModal, st
         </div>
       }
     >
+      {showStockHistoryModal && stockHistoryItem?.id && (
+        <UsedInSection restaurantId={currentRestaurant?.id} itemId={stockHistoryItem.id} />
+      )}
+
       {/* ── Price Trend Summary ── */}
       {priceHistory.length > 0 && (
         <div style={{ marginBottom: '20px', padding: '14px 16px', borderRadius: '12px', background: 'linear-gradient(135deg, #f0f9ff, #eff6ff)', border: '1px solid #bfdbfe' }}>
