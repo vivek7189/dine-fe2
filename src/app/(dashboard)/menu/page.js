@@ -26,7 +26,6 @@ import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { DndContext, PointerSensor, TouchSensor, KeyboardSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, rectSortingStrategy, verticalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import StockSetupSection, { EMPTY_STOCK_SETUP, stockSetupPayload } from './components/StockSetupSection';
 import { 
   FaPlus,
   FaEdit,
@@ -2475,8 +2474,6 @@ const MenuManagement = () => {
   const moreActionsRef = useRef(null);
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  // Stock section of the item form (StockSetupSection) — saved via set_setup, separate from the item.
-  const [stockSetup, setStockSetup] = useState(EMPTY_STOCK_SETUP);
   const [loading, setLoading] = useState(true); // Start as true to show loading on first load
   const [backgroundLoading, setBackgroundLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -3196,8 +3193,6 @@ const MenuManagement = () => {
     e.preventDefault();
     if (!isOnline && !editingItem) { setError('You are offline. Go online to add new items.'); return; }
     if (!currentRestaurant) return;
-    if (stockSetup.clientError) { setError(stockSetup.clientError); setTimeout(() => setError(''), 5000); return; }
-    const stockPayload = isOnline ? stockSetupPayload(stockSetup, formData) : null;
 
     try {
       setProcessing(true);
@@ -3364,9 +3359,6 @@ const MenuManagement = () => {
           });
           updateMenuItemInAllCaches(currentRestaurant.id, editingItem.id, updateFields).catch(() => {});
         } else {
-          if (stockPayload) {
-            await apiClient.applyStockMappingAction(currentRestaurant.id, { ...stockPayload, menuItemId: editingItem.id });
-          }
           await apiClient.updateMenuItem(editingItem.id, itemData, currentRestaurant?.id);
         }
         setMenuItems(items => items.map(item =>
@@ -3402,14 +3394,6 @@ const MenuManagement = () => {
         const response = await apiClient.createMenuItem(currentRestaurant.id, itemData);
         const newItem = response.menuItem;
         setMenuItems(items => [...items, newItem]);
-        if (stockPayload && newItem?.id) {
-          try {
-            await apiClient.applyStockMappingAction(currentRestaurant.id, { ...stockPayload, menuItemId: newItem.id });
-          } catch (stockErr) {
-            setError(`${formData.name} was saved, but its stock setup was not: ${stockErr.message || stockErr}. Set it in Inventory → Recipe mapping.`);
-            setTimeout(() => setError(''), 8000);
-          }
-        }
 
         // If there are temporary images, upload them now
         if (formData.tempImages && formData.tempImages.length > 0) {
@@ -3687,7 +3671,6 @@ const MenuManagement = () => {
         return rule && item.pricingRules?.[rule.id] != null ? String(item.pricingRules[rule.id]) : '';
       })(),
     });
-    setStockSetup(EMPTY_STOCK_SETUP);
     setEditingItem(item);
     setShowAddForm(true);
     setShowAdvancedOptions(false); // Collapse advanced options when editing
@@ -4282,7 +4265,6 @@ const MenuManagement = () => {
   }, []);
 
   const resetForm = () => {
-    setStockSetup(EMPTY_STOCK_SETUP);
     setFormData({
       name: '',
       description: '',
@@ -6372,7 +6354,7 @@ const MenuManagement = () => {
                 )}
 
                 {/* AI Stock Suggestion Banner */}
-                {stockTrackSuggestion && !formData.isStockManaged && stockSetup.mode !== 'sell_through' && (
+                {stockTrackSuggestion && !formData.isStockManaged && (
                   <div style={{
                     marginBottom: '12px', padding: '10px 14px', backgroundColor: '#fefce8', borderRadius: '10px',
                     border: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: '10px',
@@ -6389,7 +6371,12 @@ const MenuManagement = () => {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setStockSetup(prev => ({ ...prev, mode: 'sell_through', dirty: true }))}
+                      onClick={() => setFormData(prev => ({
+                        ...prev,
+                        isStockManaged: true,
+                        stockUnit: stockTrackSuggestion.unit || 'pcs',
+                        deductionQuantity: 1
+                      }))}
                       style={{
                         padding: '6px 14px', backgroundColor: '#f59e0b', color: 'white', border: 'none',
                         borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer',
@@ -6401,20 +6388,8 @@ const MenuManagement = () => {
                   </div>
                 )}
 
-                {/* Stock — how selling this item uses stock (Not tracked / Sell-through / Recipe) */}
-                {!isBarMode && (
-                  <StockSetupSection
-                    restaurantId={currentRestaurant?.id}
-                    editingItem={editingItem}
-                    formData={formData}
-                    setFormData={setFormData}
-                    value={stockSetup}
-                    onChange={setStockSetup}
-                  />
-                )}
-
-                {/* Stock Tracking — the classic own count ("Sell-through → Create a stock item for this dish") */}
-                {(isBarMode || formData.isStockManaged) && (
+                {/* Stock Tracking — direct-sale items (bottles, packets): own count, kept in Inventory too */}
+                {(
                 <div style={{ marginBottom: '16px', padding: '12px 14px', backgroundColor: formData.isStockManaged ? '#ecfdf5' : '#f0f9ff', borderRadius: '10px', border: `1px solid ${formData.isStockManaged ? '#86efac' : '#bae6fd'}`, transition: 'all 0.2s ease' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: formData.isStockManaged ? '12px' : '0' }}>
                     <input
@@ -6498,6 +6473,14 @@ const MenuManagement = () => {
                         Each sale of this item will deduct {formData.deductionQuantity || 1} {formData.stockUnit || 'pcs'} from inventory. No recipe needed for direct items.
                       </p>
                     </div>
+                  )}
+                  {!isBarMode && (
+                    <p style={{ fontSize: '11px', color: '#6b7280', margin: '10px 0 0 0' }}>
+                      Made from ingredients (a cooked dish)?{' '}
+                      <a href="/inventory?tab=recipes" target="_blank" rel="noopener noreferrer" style={{ color: '#dc2626', fontWeight: 700, textDecoration: 'none' }}>
+                        Create its recipe in Inventory →
+                      </a>
+                    </p>
                   )}
                 </div>
                 )}
