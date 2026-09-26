@@ -246,8 +246,8 @@ export default function RecipeMappingTab({ currentRestaurant, isMobile, canUpdat
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5, minWidth: isMobile ? 640 : 0 }}>
           <thead>
             <tr style={{ background: '#f9fafb' }}>
-              {['', 'Dish', 'Uses from inventory', 'Status', 'Can make', ''].map(h => (
-                <th key={h} style={{ textAlign: 'left', padding: '10px 12px', fontSize: 11.5, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>{h}</th>
+              {['', 'Dish', 'Uses from inventory', 'Status', 'Can make', ''].map((h, hi) => (
+                <th key={hi} style={{ textAlign: 'left', padding: '10px 12px', fontSize: 11.5, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>{h}</th>
               ))}
             </tr>
           </thead>

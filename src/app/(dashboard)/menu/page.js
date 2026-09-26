@@ -6471,6 +6471,16 @@ const MenuManagement = () => {
                       </p>
                     </div>
                   )}
+                  {(() => {
+                    // A dish that already has a real recipe: its sales reduce the recipe's ingredients; this box won't change that.
+                    const rec = editingItem ? menuItemRecipes[editingItem.id] : null;
+                    const realRecipe = rec && !rec.isDirectLink && !/\(stock-linked\)/i.test(rec.name || '') && (rec.ingredients || []).length > 0;
+                    return realRecipe ? (
+                      <div style={{ marginTop: '10px', padding: '8px 10px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '11px', color: '#78350f', lineHeight: 1.5 }}>
+                        This item already has a <b>recipe</b> in Inventory ({(rec.ingredients || []).length} ingredient{(rec.ingredients || []).length === 1 ? '' : 's'}) — each sale reduces those ingredients. You don&apos;t need this box for it.
+                      </div>
+                    ) : null;
+                  })()}
                   {!formData.isStockManaged && (
                     <div style={{ marginTop: '10px', padding: '8px 10px', background: '#fff', border: '1px dashed #bae6fd', borderRadius: '8px', fontSize: '11px', color: '#0c4a6e', lineHeight: 1.5 }}>
                       <b>Sold as-is?</b> (Coke, water bottle, chips packet, beer) — tick this box so each sale reduces its inventory.

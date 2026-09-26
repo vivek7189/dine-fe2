@@ -13,9 +13,14 @@ import apiClient from '@/lib/api';
 const WEIGHT = ['kg', 'g', 'mg', 'lb', 'oz'];
 const VOLUME = ['L', 'ml', 'cl', 'fl oz'];
 const NEW_ITEM_UNITS = ['kg', 'g', 'L', 'ml', 'pcs', 'dozen', 'bottle', 'can', 'pack', 'box'];
-const unitsFor = (u) => (WEIGHT.includes(u) ? WEIGHT : VOLUME.includes(u) ? VOLUME : [u || 'pcs']);
+// Stock items carry many spellings (gram, gms, liter, Kg…); map them to one name before choosing options.
+const ALIAS = { g: 'g', gm: 'g', gms: 'g', gram: 'g', grams: 'g', gr: 'g', kg: 'kg', kgs: 'kg', kilo: 'kg', kilogram: 'kg', kilograms: 'kg',
+  mg: 'mg', lb: 'lb', lbs: 'lb', oz: 'oz', l: 'L', lt: 'L', ltr: 'L', litre: 'L', liter: 'L', litres: 'L', liters: 'L',
+  ml: 'ml', millilitre: 'ml', milliliter: 'ml', cl: 'cl', 'fl oz': 'fl oz' };
+const canon = (u) => ALIAS[String(u || '').trim().toLowerCase()] || String(u || '').trim();
+const unitsFor = (u) => { const c = canon(u); return WEIGHT.includes(c) ? WEIGHT : VOLUME.includes(c) ? VOLUME : [u || 'pcs']; };
 // A plate usually uses a small amount: suggest g / ml when the item is bought in kg / L.
-const defaultUnitFor = (u) => (u === 'kg' ? 'g' : u === 'L' ? 'ml' : (u || 'pcs'));
+const defaultUnitFor = (u) => { const c = canon(u); return c === 'kg' ? 'g' : c === 'L' ? 'ml' : (WEIGHT.includes(c) || VOLUME.includes(c) ? c : (u || 'pcs')); };
 
 const emptyLine = () => ({ key: Math.random().toString(36).slice(2), inventoryItemId: '', name: '', quantity: '', unit: '', type: 'inventory' });
 
@@ -101,6 +106,9 @@ export default function LinkRecipeModal({ open, onClose, restaurantId, inventory
   const [creating, setCreating] = useState(null); // { lineKey, name, unit }
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
+  const [sharedFrom, setSharedFrom] = useState(null);
+  const [missingRecipe, setMissingRecipe] = useState(false); // the dish's recipe could not be loaded → don't overwrite it
+  const preselectUsed = useRef(false);
 
   useEffect(() => { setItems(inventoryItems); }, [inventoryItems]);
 
@@ -108,9 +116,10 @@ export default function LinkRecipeModal({ open, onClose, restaurantId, inventory
   useEffect(() => {
     if (!open || !restaurantId) return;
     setStep(1); setDish(null); setLines([emptyLine()]); setKeep({}); setSearch(''); setErr(null); setCreating(null); setLoadErr(null); setDishes(null);
+    setMissingRecipe(false); setSharedFrom(null); preselectUsed.current = false;
     let alive = true;
     apiClient.getStockMapping(restaurantId)
-      .then(d => { if (!alive) return; setDishes(d?.items || []); })
+      .then(d => { if (!alive) return; setSharedFrom(d?.sharedFrom || null); setDishes(d?.items || []); })
       .catch(e => { if (alive) setLoadErr(e.message || 'Could not load menu items'); });
     return () => { alive = false; };
   }, [open, restaurantId]);
@@ -118,17 +127,21 @@ export default function LinkRecipeModal({ open, onClose, restaurantId, inventory
   const pickDish = (row) => {
     setDish(row); setErr(null);
     const own = row.recipeId ? recipes.find(r => (r.id || r._id) === row.recipeId) : null;
+    setMissingRecipe(!!row.recipeId && !own);
     const src = own && Array.isArray(own.ingredients) && own.ingredients.length
       ? own.ingredients.map(i => ({ inventoryItemId: i.inventoryItemId || '', name: i.inventoryItemName || i.name || '', quantity: i.quantity, unit: i.unit || '', type: i.type || 'inventory', subRecipeId: i.subRecipeId || null }))
       : (row.ingredients || []).filter(i => i.kind === 'stock' && i.inventoryItemId)
         .map(i => ({ inventoryItemId: i.inventoryItemId, name: i.name, quantity: i.quantity, unit: i.unit || i.stockUnit || '', type: 'inventory' }));
     setLines(src.length ? src.map(l => ({ ...emptyLine(), ...l })) : [emptyLine()]);
-    setKeep(own ? { description: own.description || '', instructions: own.instructions || [], prepTime: own.prepTime || 0, cookTime: own.cookTime || 0, servings: Number(own.servings) || 1 } : {});
+    // A direct (1 item per sale) link's auto description would keep it looking "direct" — don't carry it over.
+    const keepDesc = own && row.mode !== 'sell_through' ? (own.description || '') : '';
+    setKeep(own ? { description: keepDesc, instructions: own.instructions || [], prepTime: own.prepTime || 0, cookTime: own.cookTime || 0, servings: Number(own.servings) || 1 } : {});
     setStep(2);
   };
 
   useEffect(() => {
-    if (!open || !dishes || !preselectMenuItemId || dish) return;
+    if (!open || !dishes || !preselectMenuItemId || dish || preselectUsed.current) return;
+    preselectUsed.current = true; // only once — "Link another dish" must not jump back to it
     const row = dishes.find(d => d.menuItemId === preselectMenuItemId);
     if (row) pickDish(row);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -163,7 +176,7 @@ export default function LinkRecipeModal({ open, onClose, restaurantId, inventory
     if (!(Number(l.quantity) > 0)) return 'Enter how much one plate uses';
     return null;
   };
-  const canSave = filled.length > 0 && lines.every(l => !lineProblem(l));
+  const canSave = !missingRecipe && !sharedFrom && filled.length > 0 && lines.every(l => !lineProblem(l));
 
   const save = async () => {
     if (!dish || !canSave) return;
@@ -210,10 +223,16 @@ export default function LinkRecipeModal({ open, onClose, restaurantId, inventory
                 <input id="link-dish-search" autoFocus value={search} onChange={e => setSearch(e.target.value)} placeholder="Search menu items" style={{ ...S.input, paddingLeft: 34 }} />
               </div>
               {loadErr && <div style={{ color: '#b91c1c', fontSize: 13 }}>{loadErr}</div>}
+              {sharedFrom && (
+                <div style={{ padding: '10px 12px', borderRadius: 10, background: '#eff6ff', color: '#1e3a8a', fontSize: 13 }}>
+                  This outlet uses another outlet&apos;s inventory. Link dishes from that outlet&apos;s Inventory page.
+                </div>
+              )}
               {!dishes && !loadErr && <div style={{ color: '#6b7280', fontSize: 13 }}>Loading menu…</div>}
               <div style={{ display: 'grid', gap: 6 }}>
                 {shownDishes.map(d => {
                   const linked = d.status === 'mapped' || d.status === 'draft';
+                  const tag = d.switchedOff ? 'Switched off' : linked ? 'Linked · edit' : 'Not linked';
                   return (
                     <button key={d.menuItemId} type="button" onClick={() => pickDish(d)}
                       style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: 10, background: '#fff', cursor: 'pointer', textAlign: 'left' }}>
@@ -222,7 +241,7 @@ export default function LinkRecipeModal({ open, onClose, restaurantId, inventory
                         {d.category && <span style={{ fontSize: 12, color: '#9ca3af' }}>{d.category}</span>}
                       </span>
                       <span style={{ fontSize: 11.5, fontWeight: 700, padding: '3px 9px', borderRadius: 999, whiteSpace: 'nowrap', color: linked ? '#047857' : '#6b7280', background: linked ? '#ecfdf5' : '#f3f4f6' }}>
-                        {linked ? 'Linked · edit' : 'Not linked'}
+                        {tag}
                       </span>
                     </button>
                   );
@@ -238,6 +257,16 @@ export default function LinkRecipeModal({ open, onClose, restaurantId, inventory
                 <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>What does {perPlate} of <span style={{ color: '#047857' }}>{dish.name}</span> use?</div>
                 <p style={S.hint}>Add each ingredient from your inventory and how much goes into {perPlate}. When this dish is sold, these amounts are taken out of inventory.</p>
               </div>
+              {missingRecipe && (
+                <div style={{ padding: '10px 12px', borderRadius: 10, background: '#fef2f2', color: '#b91c1c', fontSize: 12.5 }}>
+                  Couldn&apos;t load this dish&apos;s current recipe, so saving is paused to keep it safe. Close this window, refresh the page and try again.
+                </div>
+              )}
+              {dish.switchedOff && !missingRecipe && (
+                <div style={{ padding: '10px 12px', borderRadius: 10, background: '#f3f4f6', color: '#374151', fontSize: 12.5 }}>
+                  This dish is switched off (sales don&apos;t change inventory). Saving here switches it back on with these ingredients.
+                </div>
+              )}
               {dish.mode === 'sell_through' && (
                 <div style={{ padding: '10px 12px', borderRadius: 10, background: '#fffbeb', color: '#78350f', fontSize: 12.5 }}>
                   This dish is currently counted as a direct item (one inventory item per sale). Saving here replaces that with this recipe.
@@ -246,7 +275,8 @@ export default function LinkRecipeModal({ open, onClose, restaurantId, inventory
 
               {lines.map((l, idx) => {
                 const inv = items.find(i => i.id === l.inventoryItemId);
-                const units = inv ? unitsFor(inv.unit) : [];
+                const base = inv ? unitsFor(inv.unit) : [];
+                const units = l.unit && !base.includes(l.unit) ? [l.unit, ...base] : base; // never show a unit that isn't saved
                 const problem = lineProblem(l);
                 if (l.type === 'recipe') {
                   return (
