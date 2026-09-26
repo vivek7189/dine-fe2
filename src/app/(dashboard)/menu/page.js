@@ -6437,9 +6437,10 @@ const MenuManagement = () => {
                           <input
                             type="number"
                             value={formData.stockQuantity ?? ''}
-                            onChange={(e) => setFormData(prev => ({...prev, stockQuantity: e.target.value === '' ? null : parseInt(e.target.value)}))}
+                            onChange={(e) => setFormData(prev => ({...prev, stockQuantity: e.target.value === '' ? null : (Number.isFinite(parseFloat(e.target.value)) ? parseFloat(e.target.value) : null)}))}
                             placeholder="e.g., 100"
                             min="0"
+                            step="any"
                             style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                           />
                         </div>
@@ -6448,9 +6449,10 @@ const MenuManagement = () => {
                           <input
                             type="number"
                             value={formData.lowStockThreshold ?? 5}
-                            onChange={(e) => setFormData(prev => ({...prev, lowStockThreshold: parseInt(e.target.value) || 5}))}
+                            onChange={(e) => setFormData(prev => ({...prev, lowStockThreshold: e.target.value === '' ? 0 : (parseFloat(e.target.value) || 0)}))}
                             placeholder={t('menu.lowAlertPlaceholder')}
-                            min="1"
+                            min="0"
+                            step="any"
                             style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                           />
                         </div>
@@ -6459,9 +6461,10 @@ const MenuManagement = () => {
                           <input
                             type="number"
                             value={formData.deductionQuantity ?? 1}
-                            onChange={(e) => setFormData(prev => ({...prev, deductionQuantity: parseInt(e.target.value) || 1}))}
+                            onChange={(e) => setFormData(prev => ({...prev, deductionQuantity: parseFloat(e.target.value) || 1}))}
                             placeholder="1"
-                            min="1"
+                            min="0.001"
+                            step="any"
                             style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                           />
                         </div>

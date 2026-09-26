@@ -176,7 +176,7 @@ export default function LinkRecipeModal({ open, onClose, restaurantId, inventory
     if (!(Number(l.quantity) > 0)) return 'Enter how much one plate uses';
     return null;
   };
-  const canSave = !missingRecipe && !sharedFrom && filled.length > 0 && lines.every(l => !lineProblem(l));
+  const canSave = !missingRecipe && filled.length > 0 && lines.every(l => !lineProblem(l));
 
   const save = async () => {
     if (!dish || !canSave) return;
@@ -225,7 +225,7 @@ export default function LinkRecipeModal({ open, onClose, restaurantId, inventory
               {loadErr && <div style={{ color: '#b91c1c', fontSize: 13 }}>{loadErr}</div>}
               {sharedFrom && (
                 <div style={{ padding: '10px 12px', borderRadius: 10, background: '#eff6ff', color: '#1e3a8a', fontSize: 13 }}>
-                  This outlet uses another outlet&apos;s inventory. Link dishes from that outlet&apos;s Inventory page.
+                  This outlet uses another outlet&apos;s inventory, so recipes you make here are kept with that inventory.
                 </div>
               )}
               {!dishes && !loadErr && <div style={{ color: '#6b7280', fontSize: 13 }}>Loading menu…</div>}
