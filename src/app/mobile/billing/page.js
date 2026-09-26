@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import apiClient from '../../../lib/api';
+import { getCartSubtotal, getEffectiveItemPrice } from '../../../utils/billingPrice';
 
 // Force mobile embed + billing mode flags before anything renders
 if (typeof window !== 'undefined') {
@@ -80,6 +81,70 @@ function ErrorView({ message, onRetry, onClose }) {
       }}>Go Back</button>
     </div>
   );
+}
+
+
+// Saved/app order line → billing cart line. Order lines (from the server, or from the native app's
+// buildItemPayload) carry price = base + topping prices, plus the variant/toppings/notes/seat/tax
+// fields. Keep ALL of them — previously only id/name/price/qty survived, so completing a bill sent
+// the items back WITHOUT variant/toppings/notes: the server then re-priced variant lines at the
+// plain menu price, marked the originals removed (kitchen update) and wiped kitchen notes. The cart
+// stores the BASE (price − toppings); toppings are added back once by getEffectiveItemPrice, so
+// base + toppings === the incoming price exactly (displayed totals are unchanged).
+function orderLineToBillingCartItem(item, idx, menuItem) {
+  const toppings = Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [];
+  const toppingsTotal = toppings.reduce((sum, c) => sum + (typeof c?.price === 'number' ? c.price : 0), 0);
+  const unit = typeof item.price === 'number' ? item.price
+    : (item.price != null && !isNaN(parseFloat(item.price)) ? parseFloat(item.price) : 0);
+  const base = Math.max(0, Math.round((unit - toppingsTotal) * 100) / 100);
+  return {
+    id: item.menuItemId || item.id || `item-${idx}`,
+    cartId: `${item.menuItemId || item.id}-${idx}`,
+    menuItemId: item.menuItemId || item.id,
+    name: item.name,
+    price: base,
+    basePrice: base,
+    quantity: item.quantity || 1,
+    originalPrice: base,
+    pricingRules: menuItem?.pricingRules || item.pricingRules || {},
+    selectedVariant: item.selectedVariant || null,
+    selectedCustomizations: toppings,
+    notes: item.notes || '',
+    category: item.category || menuItem?.category || '',
+    categoryId: item.categoryId || null,
+    taxGroupId: item.taxGroupId || menuItem?.taxGroupId || null,
+    ...(item.taxInclusive != null ? { taxInclusive: item.taxInclusive } : {}),
+    ...(item.hsnCode ? { hsnCode: item.hsnCode } : {}),
+    ...(item.seat != null ? { seat: item.seat } : {}),
+    ...(item.isCustomItem ? { isCustomItem: true } : {}),
+    ...(item.priceEdited === true ? { priceEdited: true } : {}),
+    ...(typeof item.menuPrice === 'number' ? { menuPrice: item.menuPrice } : {}),
+  };
+}
+
+// Billing cart line → order line for PATCH — the same shape the web POS / native app send.
+function billingCartItemToOrderLine(item) {
+  const unit = getEffectiveItemPrice(item, {});
+  const qty = item.quantity || 1;
+  return {
+    menuItemId: item.menuItemId || item.id,
+    name: item.name,
+    price: unit,
+    quantity: qty,
+    total: unit * qty,
+    notes: item.notes || '',
+    category: item.category || '',
+    categoryId: item.categoryId || null,
+    taxGroupId: item.taxGroupId || null,
+    ...(item.taxInclusive != null ? { taxInclusive: item.taxInclusive } : {}),
+    ...(item.hsnCode ? { hsnCode: item.hsnCode } : {}),
+    selectedVariant: item.selectedVariant || null,
+    selectedCustomizations: Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [],
+    basePrice: typeof item.basePrice === 'number' ? item.basePrice : item.price,
+    ...(item.seat != null ? { seat: item.seat } : {}),
+    ...(item.isCustomItem ? { isCustomItem: true } : {}),
+    ...(item.priceEdited === true ? { priceEdited: true } : {}),
+  };
 }
 
 export default function MobileBillingPage() {
@@ -175,16 +240,7 @@ export default function MobileBillingPage() {
 
         // Build cart
         const items = d.cart || [];
-        setCart(items.map((item, idx) => ({
-          id: item.menuItemId || item.id || `item-${idx}`,
-          cartId: `${item.menuItemId || item.id}-${idx}`,
-          menuItemId: item.menuItemId || item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity || 1,
-          originalPrice: item.originalPrice || item.price,
-          pricingRules: item.pricingRules || {},
-        })));
+        setCart(items.map((item, idx) => orderLineToBillingCartItem(item, idx, null)));
 
         // Pre-fill customer/table
         setCustomerName(d.customerName || '');
@@ -283,16 +339,7 @@ export default function MobileBillingPage() {
       const allMenuItems = menuRes.status === 'fulfilled' ? (menuRes.value?.menuItems || []) : [];
       setCart(items.map((item, idx) => {
         const menuItem = allMenuItems.find(m => m.id === (item.menuItemId || item.id));
-        return {
-          id: item.menuItemId || item.id || `item-${idx}`,
-          cartId: `${item.menuItemId || item.id}-${idx}`,
-          menuItemId: item.menuItemId || item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity || 1,
-          originalPrice: item.originalPrice || item.price,
-          pricingRules: menuItem?.pricingRules || item.pricingRules || {},
-        };
+        return orderLineToBillingCartItem(item, idx, menuItem);
       }));
 
       setCustomerName(orderData.customerInfo?.name || orderData.customerName || '');
@@ -346,17 +393,11 @@ export default function MobileBillingPage() {
   const buildUpdateData = (taxData, status) => {
     const d = extractTaxData(taxData);
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-    const totalAmount = d.subtotal || cart.reduce((t, i) => t + i.price * i.quantity, 0);
+    const totalAmount = d.subtotal || getCartSubtotal(cart, {});
     const computedFinal = d.finalAmount || totalAmount + d.totalTax;
 
     const updateData = {
-      items: cart.map(item => ({
-        menuItemId: item.menuItemId || item.id,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        notes: '',
-      })),
+      items: cart.map(billingCartItemToOrderLine),
       orderType: order?.orderType || 'dine-in',
       paymentMethod: d.splitPay && d.splitPay.length > 1 ? 'split' : paymentMethod,
       totalAmount,
@@ -540,7 +581,7 @@ export default function MobileBillingPage() {
         orderSuccess={false}
         setOrderSuccess={() => {}}
         error={error}
-        getTotalAmount={() => cart.reduce((t, i) => t + i.price * i.quantity, 0)}
+        getTotalAmount={() => getCartSubtotal(cart, {})}
         tableNumber={tableNumber}
         selectedTable={tableNumber ? { name: tableNumber } : null}
         customerName={customerName}
