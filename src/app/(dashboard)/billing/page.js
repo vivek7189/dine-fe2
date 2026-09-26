@@ -21,6 +21,12 @@ import {
   FaHistory
 } from 'react-icons/fa';
 
+// Tell the account/billing gate (AccountNoticeGate) that payment just succeeded so it
+// re-checks immediately and lifts any "activate your plan" notice without waiting to poll.
+const notifyBillingGatePaid = () => {
+  try { window.dispatchEvent(new Event('billingPaymentSuccess')); } catch (_) {}
+};
+
 function BillingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -104,6 +110,7 @@ function BillingContent() {
 
       if (data.success && data.status === 'active') {
         showNotification('success', data.message || 'Subscription activated!');
+        notifyBillingGatePaid();
         // Reload to get fresh data
         setTimeout(() => window.location.reload(), 1500);
       } else {
@@ -129,6 +136,7 @@ function BillingContent() {
       const data = await response.json();
       if (data.success && data.synced) {
         showNotification('success', data.message || 'Subscription restored!');
+        notifyBillingGatePaid();
         setTimeout(() => window.location.reload(), 1500);
       }
     } catch (error) {
@@ -145,6 +153,7 @@ function BillingContent() {
       if (data.success && data.synced && data.subscription) {
         console.log('Razorpay sync recovered payment:', data.payment);
         showNotification('success', 'Payment recovered! Your plan has been activated.');
+        notifyBillingGatePaid();
 
         const sub = data.subscription;
         const subPlanId = (sub.planId || '').toLowerCase();
@@ -907,6 +916,7 @@ function BillingContent() {
 
       if (data.success) {
         showNotification('success', 'Payment successful! Your plan has been upgraded.');
+        notifyBillingGatePaid();
         // Immediately update subscription state so UI reflects the new plan
         const userId = user?.uid || user?.id;
         if (userId) {

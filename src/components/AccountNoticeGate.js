@@ -9,10 +9,17 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { usePathname, useRouter } from 'next/navigation';
 import { FaExclamationTriangle, FaTimes, FaLock, FaArrowRight } from 'react-icons/fa';
 import apiClient from '../lib/api';
 
 const POLL_MS = 90 * 1000;
+// On the Billing page we re-check much faster so the gate lifts right after payment
+// (the server check is live — only this client poll/cache adds delay).
+const BILLING_PAGE_POLL_MS = 15 * 1000;
+const BILLING_PATH = '/billing';
+// Fired by the Billing page after a successful payment/activation → re-check immediately.
+export const BILLING_PAYMENT_SUCCESS_EVENT = 'billingPaymentSuccess';
 
 const THEME = {
   info:     { bar: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', text: '#1e3a8a', icon: '#2563eb' },
@@ -21,6 +28,9 @@ const THEME = {
 };
 
 export default function AccountNoticeGate() {
+  const pathname = usePathname() || '';
+  const router = useRouter();
+  const onBillingPage = pathname === BILLING_PATH || pathname.startsWith(BILLING_PATH + '/');
   const [mounted, setMounted] = useState(false);
   const [rid, setRid] = useState(null);
   const [notice, setNotice] = useState(null);
@@ -38,19 +48,40 @@ export default function AccountNoticeGate() {
     return () => window.removeEventListener('restaurantChanged', onChange);
   }, []);
 
-  const fetchNotice = useCallback(async () => {
+  // fresh=true bypasses the 90s client cache (used after payment / on focus / route change).
+  const fetchNotice = useCallback(async (fresh = false) => {
     if (!rid) { setNotice(null); return; }
     try {
+      if (fresh) apiClient.invalidateCache(`/api/restaurants/${rid}/billing-notice`);
       const res = await apiClient.getBillingNotice(rid);
       setNotice((res && res.billingNotice) || null);
     } catch (_) { /* keep last state — a failed poll must never gate the app */ }
   }, [rid]);
 
+  // Regular poll — faster while the user is on the Billing page completing payment.
+  const hasNotice = !!notice;
   useEffect(() => {
     if (!rid) return;
-    fetchNotice();
-    const t = setInterval(fetchNotice, POLL_MS);
+    fetchNotice(onBillingPage);
+    const fast = onBillingPage && hasNotice;
+    const t = setInterval(() => fetchNotice(fast), fast ? BILLING_PAGE_POLL_MS : POLL_MS);
     return () => clearInterval(t);
+  }, [rid, fetchNotice, onBillingPage, hasNotice]);
+
+  // Immediate re-check: after a successful payment (event from the Billing page), and
+  // whenever the window regains focus (e.g. returning from a hosted checkout tab).
+  useEffect(() => {
+    if (typeof window === 'undefined' || !rid) return;
+    const recheck = () => fetchNotice(true);
+    const onVisible = () => { if (document.visibilityState === 'visible') recheck(); };
+    window.addEventListener(BILLING_PAYMENT_SUCCESS_EVENT, recheck);
+    window.addEventListener('focus', recheck);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener(BILLING_PAYMENT_SUCCESS_EVENT, recheck);
+      window.removeEventListener('focus', recheck);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [rid, fetchNotice]);
 
   // A dismiss is remembered per notice version (updatedAt) so editing/re-issuing a
@@ -73,19 +104,49 @@ export default function AccountNoticeGate() {
     try { localStorage.setItem(dismissKey, '1'); } catch (_) {}
     setDismissed(true);
   };
+  // ── On the Billing page: never cover the page with the popup/overlay — the user must be
+  // able to pay. Show a slim, non-blocking note instead (it disappears once paid).
+  if (onBillingPage) {
+    if (level === 'info' && dismissed && canDismiss) return null;
+    return createPortal(
+      <div style={{
+        position: 'fixed', left: '50%', bottom: 16, transform: 'translateX(-50%)', zIndex: 100000,
+        maxWidth: 'calc(100vw - 32px)', background: '#ffffff', border: `1px solid ${t.border}`,
+        borderLeft: `4px solid ${t.bar}`, borderRadius: 12, boxShadow: '0 10px 30px rgba(15,23,42,0.15)',
+        padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10, color: t.text,
+      }}>
+        {level === 'blocking' ? <FaLock color={t.icon} size={14} style={{ flexShrink: 0 }} /> : <FaExclamationTriangle color={t.icon} size={14} style={{ flexShrink: 0 }} />}
+        <span style={{ fontSize: 13, fontWeight: 600 }}>
+          Choose a plan and complete the payment below — your account unlocks automatically.
+        </span>
+      </div>,
+      document.body
+    );
+  }
+
+  // CTA always leads somewhere: the admin-set URL, or the in-app Billing page by default.
+  const ctaUrl = notice.ctaUrl || BILLING_PATH;
+  const isExternalCta = /^https?:\/\//i.test(ctaUrl);
   const onCta = () => {
-    const url = notice.ctaUrl;
-    if (!url) return;
-    if (/^https?:\/\//i.test(url)) window.open(url, '_blank', 'noopener');
-    else window.location.href = url;
+    if (isExternalCta) window.open(ctaUrl, '_blank', 'noopener');
+    else router.push(ctaUrl);
   };
+  const goBilling = () => router.push(BILLING_PATH);
+  const ctaLabel = notice.ctaLabel || (level === 'blocking' ? 'Pay Now' : 'Go to Billing');
   const title = notice.title || (level === 'blocking' ? 'Account suspended' : 'Action required');
-  const ctaBtn = notice.ctaLabel ? (
+  const ctaBtn = (
     <button onClick={onCta} style={{
       display: 'inline-flex', alignItems: 'center', gap: 8, padding: level === 'info' ? '6px 14px' : '10px 20px',
       borderRadius: 8, border: 'none', background: t.bar, color: '#fff', fontWeight: 700,
       fontSize: level === 'info' ? 13 : 14, cursor: 'pointer', whiteSpace: 'nowrap',
-    }}>{notice.ctaLabel} <FaArrowRight size={11} /></button>
+    }}>{ctaLabel} <FaArrowRight size={11} /></button>
+  );
+  // When the admin CTA points elsewhere (external link), still offer the in-app Billing page.
+  const billingLink = isExternalCta ? (
+    <button onClick={goBilling} style={{
+      background: 'transparent', border: 'none', color: t.bar, fontSize: 13, fontWeight: 700,
+      cursor: 'pointer', padding: 4, textDecoration: 'underline',
+    }}>Open Billing page</button>
   ) : null;
 
   // ── INFO — slim bottom banner (never hides the header / nav) ──────────────
@@ -134,7 +195,8 @@ export default function AccountNoticeGate() {
             <p style={{ margin: '0 0 20px', fontSize: 15, lineHeight: 1.55, color: '#475569', whiteSpace: 'pre-wrap' }}>{notice.message}</p>
           ) : null}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'stretch' }}>
-            {ctaBtn ? <div style={{ display: 'flex', justifyContent: 'center' }}>{ctaBtn}</div> : null}
+            <div style={{ display: 'flex', justifyContent: 'center' }}>{ctaBtn}</div>
+            {billingLink ? <div style={{ display: 'flex', justifyContent: 'center' }}>{billingLink}</div> : null}
             {canDismiss ? (
               <button onClick={doDismiss} style={{
                 background: 'transparent', border: 'none', color: '#64748b', fontSize: 13, fontWeight: 600,
