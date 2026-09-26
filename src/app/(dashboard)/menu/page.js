@@ -1503,22 +1503,19 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
                   {onGenerateRecipe && (
                     <button
                       type="button"
-                      disabled={generatingRecipeFor === item.id}
-                      onClick={(e) => { e.stopPropagation(); setShowMoreMenu(false); if (!hasRecipe) onGenerateRecipe(item); }}
+                      // Recipes are made by the owner in Inventory → Link dishes (no AI): open it on this dish.
+                      onClick={(e) => { e.stopPropagation(); setShowMoreMenu(false); window.location.href = `/inventory?tab=mapping&link=${encodeURIComponent(item.id)}`; }}
                       style={{
                         display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
                         padding: '8px 10px', border: 'none', background: 'none', borderRadius: '6px',
-                        cursor: generatingRecipeFor === item.id ? 'wait' : 'pointer', fontSize: '12px',
+                        cursor: 'pointer', fontSize: '12px',
                         color: hasRecipe ? '#059669' : '#374151', textAlign: 'left',
-                        opacity: generatingRecipeFor === item.id ? 0.6 : 1,
                       }}
                       onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
                     >
-                      {generatingRecipeFor === item.id
-                        ? <FaSpinner size={11} style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }} />
-                        : hasRecipe ? <FaCheckCircle size={11} style={{ flexShrink: 0 }} /> : <FaFlask size={11} style={{ color: '#6b7280', flexShrink: 0 }} />}
-                      {generatingRecipeFor === item.id ? t('menu.generating') : hasRecipe ? t('menu.recipeLinkedAction') : t('menu.generateRecipe')}
+                      {hasRecipe ? <FaCheckCircle size={11} style={{ flexShrink: 0 }} /> : <FaFlask size={11} style={{ color: '#6b7280', flexShrink: 0 }} />}
+                      {hasRecipe ? 'Edit recipe' : 'Add recipe'}
                     </button>
                   )}
                   {/* Delete */}
@@ -6477,7 +6474,7 @@ const MenuManagement = () => {
                   {!isBarMode && (
                     <p style={{ fontSize: '11px', color: '#6b7280', margin: '10px 0 0 0' }}>
                       Made from ingredients (a cooked dish)?{' '}
-                      <a href="/inventory?tab=recipes" target="_blank" rel="noopener noreferrer" style={{ color: '#dc2626', fontWeight: 700, textDecoration: 'none' }}>
+                      <a href={editingItem?.id ? `/inventory?tab=mapping&link=${encodeURIComponent(editingItem.id)}` : '/inventory?tab=mapping'} target="_blank" rel="noopener noreferrer" style={{ color: '#dc2626', fontWeight: 700, textDecoration: 'none' }}>
                         Create its recipe in Inventory →
                       </a>
                     </p>

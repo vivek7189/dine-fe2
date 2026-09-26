@@ -82,6 +82,11 @@ export default function InventoryManagement() {
   const [mappingRefresh, setMappingRefresh] = useState(0);
   const openLinkDish = (menuItemId = null) => setLinkDish({ open: true, menuItemId: typeof menuItemId === 'string' ? menuItemId : null });
   const searchParams = useSearchParams();
+  // Deep link from the Menu page (?link=<menuItemId>) opens "Link a dish" straight on that dish.
+  const linkParam = searchParams.get('link');
+  useEffect(() => {
+    if (linkParam) setLinkDish({ open: true, menuItemId: linkParam });
+  }, [linkParam]);
   const router = useRouter();
 
   // Compute inventory permissions from cached pageAccess
