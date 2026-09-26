@@ -431,9 +431,12 @@ export default function useInventory() {
   // CRUD handlers
   const handleAddItem = async () => {
     if (!currentRestaurant) return;
+    if (!(formData.name || '').trim()) { setError('Enter the item name'); return; }
+    if (!formData.unit) { setError('Pick the unit you count it in (kg, L, pcs…)'); return; }
     try {
       setLoading(true); setError(null);
-      const response = await apiClient.createInventoryItem(currentRestaurant.id, formData);
+      // Category sits under "More options" on the simple Add form; the API requires one.
+      const response = await apiClient.createInventoryItem(currentRestaurant.id, { ...formData, category: (formData.category || '').trim() || 'General' });
       if (response.item) {
         setSuccess('Item added successfully!');
         setShowAddModal(false);
