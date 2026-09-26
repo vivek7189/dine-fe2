@@ -320,7 +320,7 @@ export default function InventoryManagement() {
         )}
 
         {activeTab === 'mapping' && (
-          <RecipeMappingTab currentRestaurant={inventory.currentRestaurant} isMobile={isMobile} />
+          <RecipeMappingTab currentRestaurant={inventory.currentRestaurant} isMobile={isMobile} canUpdate={!!permissions?.update} />
         )}
 
         {activeTab === 'usage' && (

@@ -50,13 +50,32 @@ function setupText(row) {
   return '—';
 }
 
-export default function RecipeMappingTab({ currentRestaurant, isMobile }) {
+const btn = (kind) => ({
+  padding: '6px 11px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+  border: kind === 'primary' ? '1.5px solid #dc2626' : '1.5px solid #e5e7eb',
+  background: kind === 'primary' ? '#dc2626' : '#fff', color: kind === 'primary' ? '#fff' : '#374151',
+});
+
+// What the owner can do on a row, and the sentence shown before it is applied.
+function actionFor(r) {
+  if (r.switchedOff) return { type: 'switch_on', label: 'Switch on', confirm: `Selling ${r.name} will use its stock setup again.` };
+  if (r.status === 'not_mapped' && r.suggestion) return { type: 'link_sell_through', label: 'Link as sell-through' };
+  if (r.status === 'not_mapped' && r.borrowed) return { type: 'switch_off', label: 'Stop borrowing', confirm: `${r.name} will stop deducting the recipe "${r.borrowed.name || '(no name)'}". Selling it will not change stock until you set it up.` };
+  if (r.status === 'draft') return { type: 'review', label: 'Review' };
+  return null;
+}
+
+export default function RecipeMappingTab({ currentRestaurant, isMobile, canUpdate = true }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState({});
+  const [pending, setPending] = useState(null); // { menuItemId, type, recipeId?, confirm? }
+  const [qty, setQty] = useState('1');
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState(null); // { ok, text }
 
   const load = useCallback(async () => {
     if (!currentRestaurant?.id) return;
@@ -69,6 +88,26 @@ export default function RecipeMappingTab({ currentRestaurant, isMobile }) {
   }, [currentRestaurant?.id]);
 
   useEffect(() => { load(); }, [load]);
+
+  const apply = async (row, body) => {
+    setBusy(true); setNotice(null);
+    try {
+      const res = await apiClient.applyStockMappingAction(currentRestaurant.id, { menuItemId: row.menuItemId, ...body });
+      setNotice({ ok: true, text: res.message || 'Saved' });
+      setPending(null);
+      await load();
+    } catch (e) {
+      setNotice({ ok: false, text: e.message || 'Could not save the change' });
+    } finally { setBusy(false); }
+  };
+
+  const startAction = (row, a) => {
+    setNotice(null);
+    if (a.type === 'review') { setOpen(o => ({ ...o, [row.menuItemId]: true })); return; }
+    if (a.type === 'link_sell_through') setQty('1');
+    setPending({ menuItemId: row.menuItemId, type: a.type, confirm: a.confirm });
+    setOpen(o => ({ ...o, [row.menuItemId]: true }));
+  };
 
   const rows = useMemo(() => {
     const items = data?.items || [];
@@ -99,6 +138,11 @@ export default function RecipeMappingTab({ currentRestaurant, isMobile }) {
         </button>
       </div>
 
+      {notice && (
+        <div style={{ padding: '11px 14px', borderRadius: 10, marginBottom: 14, fontSize: 13.5, fontWeight: 600,
+          background: notice.ok ? '#ecfdf5' : '#fef2f2', color: notice.ok ? '#047857' : '#b91c1c' }}>{notice.text}</div>
+      )}
+
       {error && (
         <div style={{ padding: '12px 14px', borderRadius: 10, background: '#fef2f2', color: '#b91c1c', fontSize: 14, marginBottom: 14 }}>{error}</div>
       )}
@@ -112,7 +156,7 @@ export default function RecipeMappingTab({ currentRestaurant, isMobile }) {
       {(s.draft > 0) && (
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '11px 14px', borderRadius: 10, background: '#fffbeb', color: '#78350f', fontSize: 13, marginBottom: 14 }}>
           <FaExclamationTriangle style={{ marginTop: 2, flexShrink: 0 }} />
-          <span><b>{s.draft} recipe{s.draft === 1 ? '' : 's'} made by AI.</b> They keep deducting exactly as today. Reviewing and confirming them is coming next.</span>
+          <span><b>{s.draft} recipe{s.draft === 1 ? '' : 's'} made by AI.</b> They keep deducting exactly as today. Open one with Review to confirm it or switch it off.</span>
         </div>
       )}
 
@@ -140,21 +184,23 @@ export default function RecipeMappingTab({ currentRestaurant, isMobile }) {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5, minWidth: isMobile ? 640 : 0 }}>
           <thead>
             <tr style={{ background: '#f9fafb' }}>
-              {['', 'Menu item', 'Stock setup', 'Status', 'Plates from stock'].map(h => (
+              {['', 'Menu item', 'Stock setup', 'Status', 'Plates from stock', ''].map(h => (
                 <th key={h} style={{ textAlign: 'left', padding: '10px 12px', fontSize: 11.5, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {loading && !data && (
-              <tr><td colSpan={5} style={{ padding: 24, textAlign: 'center', color: '#6b7280' }}>Loading…</td></tr>
+              <tr><td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#6b7280' }}>Loading…</td></tr>
             )}
             {data && rows.length === 0 && (
-              <tr><td colSpan={5} style={{ padding: 24, textAlign: 'center', color: '#6b7280' }}>No menu items match.</td></tr>
+              <tr><td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#6b7280' }}>No menu items match.</td></tr>
             )}
             {rows.map(r => {
-              const expandable = r.ingredients.length > 0 || r.suggestion || r.borrowed;
+              const a = canUpdate ? actionFor(r) : null;
+              const expandable = r.ingredients.length > 0 || r.suggestion || r.borrowed || r.switchedOff;
               const isOpen = !!open[r.menuItemId];
+              const pend = pending && pending.menuItemId === r.menuItemId ? pending : null;
               return [
                 <tr key={r.menuItemId} onClick={() => expandable && setOpen(o => ({ ...o, [r.menuItemId]: !o[r.menuItemId] }))}
                   style={{ borderBottom: '1px solid #f1f5f9', cursor: expandable ? 'pointer' : 'default' }}>
@@ -169,6 +215,8 @@ export default function RecipeMappingTab({ currentRestaurant, isMobile }) {
                     {setupText(r)}
                     {r.unitProblems > 0 && <div style={{ fontSize: 12, color: '#b91c1c', fontWeight: 600 }}>{r.unitProblems} problem line{r.unitProblems === 1 ? '' : 's'}</div>}
                     {r.suggestion && <div style={{ fontSize: 12, color: '#374151' }}>Same-named stock item: <b>{r.suggestion.name}</b></div>}
+                    {r.switchedOff && <div style={{ fontSize: 12, color: '#6b7280', fontWeight: 600 }}>Switched off by you — selling it does not change stock</div>}
+                    {r.inactiveButDeducting && <div style={{ fontSize: 12, color: '#b45309', fontWeight: 600 }}>Marked inactive, but still deducts. Switch it off to stop.</div>}
                     {r.borrowed && (
                       <div style={{ fontSize: 12, color: '#b45309', fontWeight: 600 }}>
                         Today this deducts the recipe &quot;{r.borrowed.name || '(no name)'}&quot;{r.borrowed.ownedBy ? ` of ${r.borrowed.ownedBy}` : ''}
@@ -179,11 +227,14 @@ export default function RecipeMappingTab({ currentRestaurant, isMobile }) {
                   <td style={{ padding: '10px 12px', fontVariantNumeric: 'tabular-nums', color: r.platesPossible === 0 ? '#b91c1c' : '#374151', fontWeight: r.platesPossible === 0 ? 700 : 500 }}>
                     {r.platesPossible == null ? '—' : r.platesPossible}
                   </td>
+                  <td style={{ padding: '10px 12px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                    {a && <button type="button" style={btn(a.type === 'link_sell_through' ? 'primary' : 'default')} disabled={busy} onClick={() => startAction(r, a)}>{a.label}</button>}
+                  </td>
                 </tr>,
                 isOpen && (
                   <tr key={`${r.menuItemId}-d`} style={{ background: '#fafafa', borderBottom: '1px solid #f1f5f9' }}>
                     <td />
-                    <td colSpan={4} style={{ padding: '8px 12px 14px' }}>
+                    <td colSpan={5} style={{ padding: '8px 12px 14px' }} onClick={e => e.stopPropagation()}>
                       {r.ingredients.length > 0 ? (
                         <table style={{ borderCollapse: 'collapse', fontSize: 13, width: '100%' }}>
                           <thead>
@@ -204,7 +255,46 @@ export default function RecipeMappingTab({ currentRestaurant, isMobile }) {
                         </table>
                       ) : (
                         <div style={{ fontSize: 13, color: '#6b7280' }}>
-                          No stock setup yet.{r.suggestion ? ` Stock item "${r.suggestion.name}" (${fmtQty(r.suggestion.inStock)} ${r.suggestion.unit}) has the same name.` : ''}
+                          {r.switchedOff ? 'Switched off.' : 'No stock setup yet.'}{r.suggestion ? ` Stock item "${r.suggestion.name}" (${fmtQty(r.suggestion.inStock)} ${r.suggestion.unit}) has the same name.` : ''}
+                        </div>
+                      )}
+
+                      {canUpdate && r.status === 'draft' && !pend && r.recipeId && (
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                          <button type="button" style={btn('primary')} disabled={busy}
+                            onClick={() => setPending({ menuItemId: r.menuItemId, type: 'confirm', recipeId: r.recipeId, confirm: `Confirm this recipe for ${r.name}? It keeps deducting these ingredients per plate.` })}>Confirm recipe</button>
+                          <button type="button" style={btn()} disabled={busy}
+                            onClick={() => setPending({ menuItemId: r.menuItemId, type: 'switch_off', recipeId: r.recipeId, confirm: `Switch off this recipe? Selling ${r.name} will no longer change stock.` })}>Switch off</button>
+                        </div>
+                      )}
+                      {canUpdate && r.status === 'mapped' && !r.switchedOff && r.recipeId && !pend && (
+                        <div style={{ marginTop: 10 }}>
+                          <button type="button" style={btn()} disabled={busy}
+                            onClick={() => setPending({ menuItemId: r.menuItemId, type: 'switch_off', recipeId: r.recipeId, confirm: `Switch off? Selling ${r.name} will no longer change stock.` })}>Switch off</button>
+                        </div>
+                      )}
+
+                      {pend && (
+                        <div style={{ marginTop: 12, padding: '12px 14px', border: '1.5px solid #fecaca', background: '#fff', borderRadius: 10, display: 'grid', gap: 10 }}>
+                          {pend.type === 'link_sell_through' && r.suggestion ? (
+                            <div style={{ fontSize: 13.5, color: '#111827', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                              Each sale of <b>{r.name}</b> takes
+                              <input id={`mapping-qty-${r.menuItemId}`} type="number" min="0.001" step="any" value={qty} onChange={e => setQty(e.target.value)}
+                                style={{ width: 80, padding: '6px 8px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 14 }} />
+                              <b>{r.suggestion.unit || 'pcs'}</b> of <b>{r.suggestion.name}</b>
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: 13.5, color: '#111827' }}>{pend.confirm}</div>
+                          )}
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button type="button" style={btn('primary')} disabled={busy || (pend.type === 'link_sell_through' && !(Number(qty) > 0))}
+                              onClick={() => apply(r, pend.type === 'link_sell_through'
+                                ? { action: 'link_sell_through', inventoryItemId: r.suggestion.inventoryItemId, quantity: Number(qty) }
+                                : { action: pend.type, recipeId: pend.recipeId })}>
+                              {busy ? 'Saving…' : 'Confirm'}
+                            </button>
+                            <button type="button" style={btn()} disabled={busy} onClick={() => setPending(null)}>Cancel</button>
+                          </div>
                         </div>
                       )}
                     </td>
