@@ -436,6 +436,10 @@ export default function InventoryManagement() {
             setShowAddTransferModal={inventory.setShowAddTransferModal}
             handleDeleteSupplier={inventory.handleDeleteSupplier}
             handleDeleteSupplierInvoice={inventory.handleDeleteSupplierInvoice}
+            handleUpdateReturnStatus={inventory.handleUpdateReturnStatus}
+            handleDeleteReturn={inventory.handleDeleteReturn}
+            handleUpdateTransferStatus={inventory.handleUpdateTransferStatus}
+            handleDeleteTransfer={inventory.handleDeleteTransfer}
             handleUpdateOrderStatus={inventory.handleUpdateOrderStatus}
             handleEditPurchaseOrder={inventory.handleEditPurchaseOrder}
             handleEmailPurchaseOrder={inventory.handleEmailPurchaseOrder}

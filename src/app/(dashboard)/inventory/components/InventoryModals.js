@@ -1615,100 +1615,128 @@ function AddInvoiceModal(props) {
   );
 }
 
-// ─── Add Return Modal ────────────────────────────────────────────────────────
+// Shared line editor for returns / transfers: pick an item, enter a quantity (decimals ok), see stock.
+function StockLines({ items, setItems, inventoryItems, emptyText }) {
+  const byId = (id) => inventoryItems.find(inv => inv.id === id);
+  const update = (index, patch) => { const next = [...items]; next[index] = { ...next[index], ...patch }; setItems(next); };
+  return (
+    <div style={{ marginBottom: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+        <label style={{ ...labelStyle, marginBottom: 0 }}>Items</label>
+        <button style={secondaryBtn} onClick={() => setItems([...items, { inventoryItemId: '', quantity: '' }])}><FaPlus /> Add Item</button>
+      </div>
+      {items.map((item, index) => {
+        const inv = byId(item.inventoryItemId);
+        const qty = parseFloat(item.quantity) || 0;
+        const over = inv && qty > (Number(inv.currentStock) || 0) + 1e-9;
+        return (
+          <div key={index} style={{ marginBottom: '10px' }}>
+            <div style={rowStyle}>
+              <FocusSelect style={{ ...inputStyle, flex: 2 }} value={item.inventoryItemId}
+                onChange={e => update(index, { inventoryItemId: e.target.value })}>
+                <option value="">Select item</option>
+                {inventoryItems.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+              </FocusSelect>
+              <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" placeholder={inv?.unit ? `Qty (${inv.unit})` : 'Qty'}
+                value={item.quantity} onChange={e => update(index, { quantity: e.target.value })} />
+              <button style={dangerBtn} onClick={() => setItems(items.filter((_, i) => i !== index))}><FaTrash /></button>
+            </div>
+            {inv && (
+              <div style={{ fontSize: '11.5px', marginTop: '3px', color: over ? '#b91c1c' : '#64748b' }}>
+                In stock: {fmtQty(inv.currentStock)} {inv.unit || ''}{inv.location ? ` · at ${inv.location}` : ''}{over ? ' — more than you have' : ''}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {items.length === 0 && (
+        <p style={{ textAlign: 'center', color: '#9ca3af', padding: '16px', fontSize: '13px' }}>{emptyText}</p>
+      )}
+    </div>
+  );
+}
+
+function ModalFooter({ error, saving, onCancel, onSave, label }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+      {error && <span style={{ flex: '1 1 200px', fontSize: '12.5px', color: '#b91c1c' }}>{error}</span>}
+      <button style={secondaryBtn} onClick={onCancel} disabled={saving}>Cancel</button>
+      <button style={{ ...primaryBtn, opacity: saving ? 0.6 : 1 }} disabled={saving} onClick={onSave}>
+        <FaSave /> {saving ? 'Saving…' : label}
+      </button>
+    </div>
+  );
+}
+
+// ─── Add Supplier Return Modal ───────────────────────────────────────────────
 function AddReturnModal(props) {
   const {
     showAddReturnModal, setShowAddReturnModal,
     returnFormData, setReturnFormData,
     suppliers, purchaseOrders, inventoryItems,
+    handleCreateReturn, savingReturn, error, setError,
     getModalStyles, getModalContentStyles
   } = props;
 
   const update = (field, value) => setReturnFormData({ ...returnFormData, [field]: value });
+  const close = () => { if (!savingReturn) { setShowAddReturnModal(false); if (setError) setError(null); } };
 
-  const addItem = () => {
+  // Picking a PO fills the supplier and its items (qty left blank — enter only what goes back).
+  const pickPO = (poId) => {
+    const po = purchaseOrders.find(p => p.id === poId);
     setReturnFormData({
       ...returnFormData,
-      items: [...returnFormData.items, { inventoryItemId: '', quantity: 1 }]
+      purchaseOrderId: poId,
+      supplierId: po?.supplierId || returnFormData.supplierId,
+      items: po && returnFormData.items.length === 0
+        ? (po.items || []).filter(i => i.inventoryItemId).map(i => ({ inventoryItemId: i.inventoryItemId, quantity: '' }))
+        : returnFormData.items,
     });
   };
-
-  const removeItem = (index) => {
-    setReturnFormData({
-      ...returnFormData,
-      items: returnFormData.items.filter((_, i) => i !== index)
-    });
-  };
-
-  const updateItem = (index, field, value) => {
-    const newItems = [...returnFormData.items];
-    newItems[index] = { ...newItems[index], [field]: value };
-    setReturnFormData({ ...returnFormData, items: newItems });
-  };
+  const supplierPOs = purchaseOrders.filter(po => po.status !== 'cancelled' && (!returnFormData.supplierId || po.supplierId === returnFormData.supplierId));
 
   return (
-    <ModalShell show={showAddReturnModal} onClose={() => setShowAddReturnModal(false)} title="Add Supplier Return"
+    <ModalShell show={showAddReturnModal} onClose={close} title="Return Goods to Supplier"
       getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
-      footer={
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-          <button style={secondaryBtn} onClick={() => setShowAddReturnModal(false)}>Cancel</button>
-          <button style={primaryBtn} onClick={() => setShowAddReturnModal(false)}><FaSave /> Create Return</button>
-        </div>
-      }>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+      footer={<ModalFooter error={error} saving={savingReturn} onCancel={close} onSave={() => handleCreateReturn && handleCreateReturn()} label="Create Return" />}>
+      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px', fontSize: '12.5px', color: '#475569', marginBottom: '14px', lineHeight: 1.5 }}>
+        Stock is not changed yet. When the goods actually leave, press <b>Mark sent</b> on the return — that takes them out of stock.
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0 16px' }}>
         <div style={fieldWrap}>
-          <label style={labelStyle}>Purchase Order</label>
-          <FocusSelect value={returnFormData.purchaseOrderId} onChange={e => update('purchaseOrderId', e.target.value)}>
-            <option value="">Select PO (optional)</option>
-            {purchaseOrders.map(po => (
-              <option key={po.id} value={po.id}>PO #{po.id?.slice(-6)}</option>
-            ))}
-          </FocusSelect>
-        </div>
-        <div style={fieldWrap}>
-          <label style={labelStyle}>Supplier</label>
+          <label style={labelStyle}>Supplier *</label>
           <FocusSelect value={returnFormData.supplierId} onChange={e => update('supplierId', e.target.value)}>
             <option value="">Select supplier</option>
             {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </FocusSelect>
         </div>
         <div style={fieldWrap}>
-          <label style={labelStyle}>Return Type</label>
-          <FocusSelect value={returnFormData.returnType} onChange={e => update('returnType', e.target.value)}>
-            <option value="damaged">Damaged</option>
-            <option value="expired">Expired</option>
-            <option value="wrong_item">Wrong Item</option>
-            <option value="quality">Quality Issue</option>
-            <option value="excess">Excess Stock</option>
+          <label style={labelStyle}>Purchase Order (optional)</label>
+          <FocusSelect value={returnFormData.purchaseOrderId} onChange={e => pickPO(e.target.value)}>
+            <option value="">None</option>
+            {supplierPOs.map(po => (
+              <option key={po.id} value={po.id}>{po.orderNumber || `PO #${po.id?.slice(-6)}`}{po.supplierName ? ` - ${po.supplierName}` : ''}</option>
+            ))}
           </FocusSelect>
         </div>
         <div style={fieldWrap}>
-          <label style={labelStyle}>Reason</label>
-          <FocusInput value={returnFormData.reason} onChange={e => update('reason', e.target.value)} placeholder="Reason for return" />
+          <label style={labelStyle}>Why</label>
+          <FocusSelect value={returnFormData.returnType} onChange={e => update('returnType', e.target.value)}>
+            <option value="damaged">Damaged</option>
+            <option value="expired">Expired</option>
+            <option value="wrong_item">Wrong item</option>
+            <option value="quality">Quality issue</option>
+            <option value="excess">Excess / not needed</option>
+          </FocusSelect>
+        </div>
+        <div style={fieldWrap}>
+          <label style={labelStyle}>Details</label>
+          <FocusInput value={returnFormData.reason} onChange={e => update('reason', e.target.value)} placeholder="e.g. 3 packets torn" />
         </div>
       </div>
 
-      <div style={{ marginBottom: '16px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <label style={{ ...labelStyle, marginBottom: 0 }}>Items to Return</label>
-          <button style={secondaryBtn} onClick={addItem}><FaPlus /> Add Item</button>
-        </div>
-        {returnFormData.items.map((item, index) => (
-          <div key={index} style={rowStyle}>
-            <FocusSelect style={{ ...inputStyle, flex: 2 }} value={item.inventoryItemId}
-              onChange={e => updateItem(index, 'inventoryItemId', e.target.value)}>
-              <option value="">Select item</option>
-              {inventoryItems.map(inv => <option key={inv.id} value={inv.id}>{inv.name}</option>)}
-            </FocusSelect>
-            <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" min="1" placeholder="Qty"
-              value={item.quantity} onChange={e => updateItem(index, 'quantity', parseInt(e.target.value) || 1)} />
-            <button style={dangerBtn} onClick={() => removeItem(index)}><FaTrash /></button>
-          </div>
-        ))}
-        {returnFormData.items.length === 0 && (
-          <p style={{ textAlign: 'center', color: '#9ca3af', padding: '20px', fontSize: '14px' }}>No items added yet</p>
-        )}
-      </div>
+      <StockLines items={returnFormData.items} setItems={items => update('items', items)}
+        inventoryItems={inventoryItems} emptyText="Add the items going back" />
 
       <div style={fieldWrap}>
         <label style={labelStyle}>Notes</label>
@@ -1718,81 +1746,45 @@ function AddReturnModal(props) {
   );
 }
 
-// ─── Add Transfer Modal ──────────────────────────────────────────────────────
+// ─── Add Stock Transfer Modal ────────────────────────────────────────────────
 function AddTransferModal(props) {
   const {
     showAddTransferModal, setShowAddTransferModal,
     transferFormData, setTransferFormData,
-    inventoryItems, getModalStyles, getModalContentStyles
+    inventoryItems, handleCreateTransfer, savingTransfer, error, setError,
+    getModalStyles, getModalContentStyles
   } = props;
 
   const update = (field, value) => setTransferFormData({ ...transferFormData, [field]: value });
-
-  const addItem = () => {
-    setTransferFormData({
-      ...transferFormData,
-      items: [...transferFormData.items, { inventoryItemId: '', quantity: 1 }]
-    });
-  };
-
-  const removeItem = (index) => {
-    setTransferFormData({
-      ...transferFormData,
-      items: transferFormData.items.filter((_, i) => i !== index)
-    });
-  };
-
-  const updateItem = (index, field, value) => {
-    const newItems = [...transferFormData.items];
-    newItems[index] = { ...newItems[index], [field]: value };
-    setTransferFormData({ ...transferFormData, items: newItems });
-  };
+  const close = () => { if (!savingTransfer) { setShowAddTransferModal(false); if (setError) setError(null); } };
+  const knownLocations = [...new Set(inventoryItems.map(i => (i.location || '').trim()).filter(Boolean))].sort();
 
   return (
-    <ModalShell show={showAddTransferModal} onClose={() => setShowAddTransferModal(false)} title="Add Stock Transfer"
+    <ModalShell show={showAddTransferModal} onClose={close} title="Move Stock Between Areas"
       getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
-      footer={
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-          <button style={secondaryBtn} onClick={() => setShowAddTransferModal(false)}>Cancel</button>
-          <button style={primaryBtn} onClick={() => setShowAddTransferModal(false)}><FaSave /> Create Transfer</button>
-        </div>
-      }>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+      footer={<ModalFooter error={error} saving={savingTransfer} onCancel={close} onSave={() => handleCreateTransfer && handleCreateTransfer()} label="Create Transfer" />}>
+      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px', fontSize: '12.5px', color: '#475569', marginBottom: '14px', lineHeight: 1.5 }}>
+        For moves inside this outlet (Store → Kitchen, Store → Bar). Total stock stays the same; the move is logged in each item&apos;s history.
+        To send stock to another outlet, use Indents / Warehouse instead.
+      </div>
+      <datalist id="inv-locations">{knownLocations.map(l => <option key={l} value={l} />)}</datalist>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0 16px' }}>
         <div style={fieldWrap}>
-          <label style={labelStyle}>From Location *</label>
-          <FocusInput value={transferFormData.fromLocation} onChange={e => update('fromLocation', e.target.value)} placeholder="e.g. Main Kitchen" />
+          <label style={labelStyle}>From *</label>
+          <FocusInput list="inv-locations" value={transferFormData.fromLocation} onChange={e => update('fromLocation', e.target.value)} placeholder="e.g. Main Store" />
         </div>
         <div style={fieldWrap}>
-          <label style={labelStyle}>To Location *</label>
-          <FocusInput value={transferFormData.toLocation} onChange={e => update('toLocation', e.target.value)} placeholder="e.g. Bar Storage" />
+          <label style={labelStyle}>To *</label>
+          <FocusInput list="inv-locations" value={transferFormData.toLocation} onChange={e => update('toLocation', e.target.value)} placeholder="e.g. Bar" />
         </div>
       </div>
 
-      <div style={{ marginBottom: '16px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <label style={{ ...labelStyle, marginBottom: 0 }}>Items to Transfer</label>
-          <button style={secondaryBtn} onClick={addItem}><FaPlus /> Add Item</button>
-        </div>
-        {transferFormData.items.map((item, index) => (
-          <div key={index} style={rowStyle}>
-            <FocusSelect style={{ ...inputStyle, flex: 2 }} value={item.inventoryItemId}
-              onChange={e => updateItem(index, 'inventoryItemId', e.target.value)}>
-              <option value="">Select item</option>
-              {inventoryItems.map(inv => <option key={inv.id} value={inv.id}>{inv.name}</option>)}
-            </FocusSelect>
-            <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" min="1" placeholder="Qty"
-              value={item.quantity} onChange={e => updateItem(index, 'quantity', parseInt(e.target.value) || 1)} />
-            <button style={dangerBtn} onClick={() => removeItem(index)}><FaTrash /></button>
-          </div>
-        ))}
-        {transferFormData.items.length === 0 && (
-          <p style={{ textAlign: 'center', color: '#9ca3af', padding: '20px', fontSize: '14px' }}>No items added yet</p>
-        )}
-      </div>
+      <StockLines items={transferFormData.items} setItems={items => update('items', items)}
+        inventoryItems={inventoryItems} emptyText="Add the items being moved" />
 
       <div style={fieldWrap}>
         <label style={labelStyle}>Reason</label>
-        <FocusInput value={transferFormData.reason} onChange={e => update('reason', e.target.value)} placeholder="Reason for transfer" />
+        <FocusInput value={transferFormData.reason} onChange={e => update('reason', e.target.value)} placeholder="e.g. Bar restock for the weekend" />
       </div>
       <div style={fieldWrap}>
         <label style={labelStyle}>Notes</label>
@@ -2577,6 +2569,9 @@ function StockHistoryModal({ showStockHistoryModal, setShowStockHistoryModal, st
       ADDITION: { bg: '#dcfce7', color: '#166534', label: 'Addition' },
       DEDUCTION: { bg: '#fef2f2', color: '#991b1b', label: 'Deduction' },
       ADJUSTMENT: { bg: '#dbeafe', color: '#1e40af', label: 'Adjustment' },
+      SUPPLIER_RETURN: { bg: '#fef3c7', color: '#92400e', label: 'Returned to supplier' },
+      TRANSFER: { bg: '#ede9fe', color: '#5b21b6', label: 'Moved' },
+      WASTE: { bg: '#fef2f2', color: '#991b1b', label: 'Waste' },
       MANUAL: { bg: '#f3f4f6', color: '#374151', label: 'Manual' },
     };
     const s = map[type] || map.MANUAL;
@@ -2727,11 +2722,14 @@ function StockHistoryModal({ showStockHistoryModal, setShowStockHistoryModal, st
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
             {transactions.map((tx, i) => {
-              const isAdd = tx.type === 'ADDITION';
-              const isDeduct = tx.type === 'DEDUCTION';
-              const qtyColor = isDeduct ? '#ef4444' : '#059669';
-              const qtyPrefix = isDeduct ? '' : '+';
-              const qty = tx.quantityChange != null ? Math.abs(tx.quantityChange) : tx.quantity;
+              const isMove = tx.type === 'TRANSFER';
+              const signed = Number(tx.quantityChange);
+              // Sign from the row itself where it has one (audit/return rows are negative, not "+").
+              const isDeduct = !isMove && (tx.type === 'DEDUCTION' || tx.type === 'WASTE' || (Number.isFinite(signed) && signed < 0));
+              const isAdd = !isMove && !isDeduct;
+              const qtyColor = isMove ? '#5b21b6' : isDeduct ? '#ef4444' : '#059669';
+              const qtyPrefix = isMove ? '⇄ ' : isDeduct ? '−' : '+';
+              const qty = fmtQty(isMove ? (tx.transferQuantity ?? tx.quantity) : (tx.quantityChange != null ? Math.abs(tx.quantityChange) : tx.quantity));
               return (
                 <div key={tx._id || tx.id || i} style={{
                   padding: '12px 14px', borderLeft: '3px solid #e5e7eb',

@@ -67,11 +67,11 @@ const priorityBadge = (priority) => {
   return <span style={badge(bg, color)}>{priority}</span>;
 };
 
-const statusBadge = (status, colorFn) => {
+const statusBadge = (status, colorFn, label) => {
   const c = colorFn ? colorFn(status) : '#6b7280';
   const color = typeof c === 'string' ? c : (c.text || '#374151');
   const bg = typeof c === 'string' ? `${c}18` : (c.bg || '#f3f4f6');
-  return <span style={badge(bg, color)}>{status}</span>;
+  return <span style={badge(bg, color)}>{label || status}</span>;
 };
 
 const invoiceStatusColor = (s) => {
@@ -96,6 +96,7 @@ export default function ProcurementTab({
   isMobile, formatCurrency,
   setShowAddSupplierModal, setShowAddPurchaseOrderModal, setShowAddGRNModal,
   setShowAddRequisitionModal, setShowAddInvoiceModal, setShowAddReturnModal, setShowAddTransferModal,
+  handleUpdateReturnStatus, handleDeleteReturn, handleUpdateTransferStatus, handleDeleteTransfer,
   handleDeleteSupplier, handleDeleteSupplierInvoice, handleUpdateOrderStatus, handleEditPurchaseOrder, handleEmailPurchaseOrder,
   getOrderStatusColor,
   startVoiceListeningPO, isListeningVoice, voiceTranscript, processingVoice, voiceError,
@@ -528,30 +529,59 @@ export default function ProcurementTab({
     </div>
   );
 
+  const itemsSummary = (items = []) => items.map(i => `${i.inventoryItemName || 'Item'} ${fmtQty(i.quantity)}${i.unit ? ' ' + i.unit : ''}`).join(', ') || '-';
+  const RETURN_LABEL = { pending: 'Pending', approved: 'Approved', returned: 'Sent', credited: 'Credited', rejected: 'Rejected' };
+  const TRANSFER_LABEL = { pending: 'Pending', approved: 'Approved', in_transit: 'In transit', completed: 'Moved', cancelled: 'Cancelled' };
+
   const renderReturns = () => (
     <div>
       {sectionHeader('Supplier Returns', 'New Return', () => setShowAddReturnModal(true), null, permissions.add)}
+      <div style={{ fontSize: 12.5, color: '#64748b', marginBottom: 12 }}>
+        Send damaged, expired or wrong goods back. Stock is taken out only when you mark a return <b>Sent</b>; mark it <b>Credited</b> once the supplier gives the credit.
+      </div>
       {supplierReturns.length === 0 ? emptyState('No returns recorded') : (
         <div style={tableWrap}>
           <table style={table}>
             <thead><tr>
-              <th style={th}>ID</th><th style={th}>Type</th><th style={th}>Supplier</th>
-              <th style={th}>Items</th><th style={th}>Status</th>
+              <th style={th}>Date</th><th style={th}>Supplier</th><th style={th}>Type</th>
+              <th style={th}>Items</th><th style={th}>Value</th><th style={th}>Status</th><th style={th}></th>
             </tr></thead>
             <tbody>
-              {supplierReturns.map(r => (
-                <tr key={r.id || r._id}>
-                  <td style={{ ...td, fontWeight: 600 }}>{r.returnNumber || r.id || r._id}</td>
-                  <td style={td}>
-                    <span style={badge(...Object.values(returnTypeColor(r.type || r.reason)))}>
-                      {r.type || r.reason || '-'}
-                    </span>
-                  </td>
-                  <td style={td}>{r.supplierName || r.supplier || '-'}</td>
-                  <td style={td}>{r.items?.length || 0}</td>
-                  <td style={td}>{statusBadge(r.status || 'pending', getOrderStatusColor)}</td>
-                </tr>
-              ))}
+              {supplierReturns.map(r => {
+                const st = r.status || 'pending';
+                const open = st === 'pending' || st === 'approved';
+                const supplierName = r.supplierName || suppliers.find(x => (x.id || x._id) === r.supplierId)?.name || '-';
+                return (
+                  <tr key={r.id || r._id}>
+                    <td style={td}>{fmtDate(r.createdAt)}</td>
+                    <td style={{ ...td, fontWeight: 600 }}>{supplierName}</td>
+                    <td style={td}>
+                      <span style={badge(...Object.values(returnTypeColor(r.returnType || r.type)))}>
+                        {String(r.returnType || r.type || '-').replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td style={{ ...td, maxWidth: 260 }}>{itemsSummary(r.items)}{r.reason ? <div style={{ fontSize: 11, color: '#6b7280' }}>{r.reason}</div> : null}</td>
+                    <td style={td}>{r.totalAmount > 0 ? formatCurrency(r.totalAmount) : '-'}</td>
+                    <td style={td}>{statusBadge(st, getOrderStatusColor, RETURN_LABEL[st])}</td>
+                    <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {permissions.update && handleUpdateReturnStatus && open && (
+                          <>
+                            <button style={btnSmall('#ecfdf5', '#047857')} onClick={() => handleUpdateReturnStatus(r, 'returned')}><FaTruck size={10} /> Mark sent</button>
+                            <button style={btnSmall('#fef2f2', '#991b1b')} onClick={() => handleUpdateReturnStatus(r, 'rejected')}><FaTimes size={10} /> Reject</button>
+                          </>
+                        )}
+                        {permissions.update && handleUpdateReturnStatus && st === 'returned' && (
+                          <button style={btnSmall('#eff6ff', '#1d4ed8')} onClick={() => handleUpdateReturnStatus(r, 'credited')}><FaCheck size={10} /> Credited</button>
+                        )}
+                        {permissions.delete && handleDeleteReturn && (open || st === 'rejected') && !r.stockDeducted && (
+                          <button style={btnSmall()} onClick={() => handleDeleteReturn(r)}>Delete</button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -562,23 +592,43 @@ export default function ProcurementTab({
   const renderTransfers = () => (
     <div>
       {sectionHeader('Stock Transfers', 'New Transfer', () => setShowAddTransferModal(true), null, permissions.add)}
+      <div style={{ fontSize: 12.5, color: '#64748b', marginBottom: 12 }}>
+        Move stock between storage areas of this outlet (e.g. Store → Bar). Total stock does not change — the move is logged in each item&apos;s history.
+      </div>
       {stockTransfers.length === 0 ? emptyState('No transfers recorded') : (
         <div style={tableWrap}>
           <table style={table}>
             <thead><tr>
-              <th style={th}>ID</th><th style={th}>From</th><th style={th}>To</th>
-              <th style={th}>Items</th><th style={th}>Status</th>
+              <th style={th}>Date</th><th style={th}>From</th><th style={th}>To</th>
+              <th style={th}>Items</th><th style={th}>Status</th><th style={th}></th>
             </tr></thead>
             <tbody>
-              {stockTransfers.map(t => (
-                <tr key={t.id || t._id}>
-                  <td style={{ ...td, fontWeight: 600 }}>{t.transferNumber || t.id || t._id}</td>
-                  <td style={td}>{t.fromLocation || t.from || '-'}</td>
-                  <td style={td}>{t.toLocation || t.to || '-'}</td>
-                  <td style={td}>{t.items?.length || 0}</td>
-                  <td style={td}>{statusBadge(t.status || 'pending', getOrderStatusColor)}</td>
-                </tr>
-              ))}
+              {stockTransfers.map(t => {
+                const st = t.status || 'pending';
+                const open = st === 'pending' || st === 'approved' || st === 'in_transit';
+                return (
+                  <tr key={t.id || t._id}>
+                    <td style={td}>{fmtDate(t.createdAt)}</td>
+                    <td style={{ ...td, fontWeight: 600 }}>{t.fromLocation || t.from || '-'}</td>
+                    <td style={{ ...td, fontWeight: 600 }}>{t.toLocation || t.to || '-'}</td>
+                    <td style={{ ...td, maxWidth: 260 }}>{itemsSummary(t.items)}</td>
+                    <td style={td}>{statusBadge(st, getOrderStatusColor, TRANSFER_LABEL[st])}</td>
+                    <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {permissions.update && handleUpdateTransferStatus && open && (
+                          <>
+                            <button style={btnSmall('#ecfdf5', '#047857')} onClick={() => handleUpdateTransferStatus(t, 'completed')}><FaCheck size={10} /> Mark moved</button>
+                            <button style={btnSmall('#fef2f2', '#991b1b')} onClick={() => handleUpdateTransferStatus(t, 'cancelled')}><FaTimes size={10} /> Cancel</button>
+                          </>
+                        )}
+                        {permissions.delete && handleDeleteTransfer && (st === 'pending' || st === 'cancelled') && (
+                          <button style={btnSmall()} onClick={() => handleDeleteTransfer(t)}>Delete</button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

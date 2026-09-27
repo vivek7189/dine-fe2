@@ -128,6 +128,8 @@ export default function useInventory() {
   const [processingInvoiceOCR, setProcessingInvoiceOCR] = useState(false);
   const [savingInvoice, setSavingInvoice] = useState(false);
   const [savingGRN, setSavingGRN] = useState(false);
+  const [savingReturn, setSavingReturn] = useState(false);
+  const [savingTransfer, setSavingTransfer] = useState(false);
   const invoiceFileInputRef = useRef(null);
   const [selectedPOForGRN, setSelectedPOForGRN] = useState(null);
   const [selectedRequisition, setSelectedRequisition] = useState(null);
@@ -407,6 +409,10 @@ export default function useInventory() {
       case 'received': return '#10b981';
       case 'delivered': return '#059669';
       case 'cancelled': return '#ef4444';
+      case 'returned': return '#8b5cf6';
+      case 'credited': return '#059669';
+      case 'completed': return '#059669';
+      case 'rejected': return '#ef4444';
       default: return '#6b7280';
     }
   };
@@ -1322,6 +1328,103 @@ export default function useInventory() {
     }
   };
 
+  // ── Supplier returns ──
+  const reloadReturns = async () => {
+    try { const d = await apiClient.getSupplierReturns(currentRestaurant.id); setSupplierReturns(d.returns || []); } catch (_) {}
+  };
+  const cleanLines = (items = []) => items
+    .map(it => ({ inventoryItemId: it.inventoryItemId, quantity: parseFloat(it.quantity) || 0 }))
+    .filter(it => it.inventoryItemId && it.quantity > 0);
+
+  const handleCreateReturn = async () => {
+    if (!currentRestaurant || savingReturn) return;
+    const f = returnFormData;
+    if (!f.supplierId) { setError('Please select the supplier'); return; }
+    const items = cleanLines(f.items);
+    if (items.length === 0) { setError('Add at least one item with a quantity'); return; }
+    try {
+      setSavingReturn(true); setError(null);
+      await apiClient.createSupplierReturn(currentRestaurant.id, {
+        supplierId: f.supplierId, purchaseOrderId: f.purchaseOrderId || null,
+        returnType: f.returnType || 'damaged', reason: f.reason || '', notes: f.notes || '', items,
+      });
+      setSuccess('Return created — mark it Sent when the goods leave to take them out of stock');
+      setShowAddReturnModal(false);
+      setReturnFormData({ purchaseOrderId: '', supplierId: '', items: [], returnType: 'damaged', reason: '', notes: '' });
+      reloadReturns();
+    } catch (error) {
+      setError(error.message || 'Failed to create return');
+    } finally { setSavingReturn(false); }
+  };
+
+  const handleUpdateReturnStatus = async (ret, status, extra = {}) => {
+    if (!currentRestaurant || !ret) return;
+    if (status === 'returned' && !confirm('Mark as sent to the supplier? The quantities will be taken out of stock.')) return;
+    if (status === 'rejected' && !confirm('Reject this return? Stock stays as it is.')) return;
+    try {
+      setError(null);
+      await apiClient.updateSupplierReturn(currentRestaurant.id, ret.id || ret._id, { status, ...extra });
+      setSuccess(status === 'returned' ? 'Return sent — stock updated' : `Return ${status}`);
+      reloadReturns();
+      if (status === 'returned' || status === 'credited') loadInventoryData();
+    } catch (error) { setError(error.message || 'Failed to update return'); }
+  };
+
+  const handleDeleteReturn = async (ret) => {
+    if (!currentRestaurant || !ret || !confirm('Delete this return?')) return;
+    try {
+      setError(null);
+      await apiClient.deleteSupplierReturn(currentRestaurant.id, ret.id || ret._id);
+      setSuccess('Return deleted'); reloadReturns();
+    } catch (error) { setError(error.message || 'Failed to delete return'); }
+  };
+
+  // ── Stock transfers (between storage areas of this outlet) ──
+  const reloadTransfers = async () => {
+    try { const d = await apiClient.getStockTransfers(currentRestaurant.id); setStockTransfers(d.transfers || []); } catch (_) {}
+  };
+
+  const handleCreateTransfer = async () => {
+    if (!currentRestaurant || savingTransfer) return;
+    const f = transferFormData;
+    if (!f.fromLocation?.trim() || !f.toLocation?.trim()) { setError('Enter where the stock moves from and to'); return; }
+    const items = cleanLines(f.items);
+    if (items.length === 0) { setError('Add at least one item with a quantity'); return; }
+    try {
+      setSavingTransfer(true); setError(null);
+      await apiClient.createStockTransfer(currentRestaurant.id, {
+        fromLocation: f.fromLocation.trim(), toLocation: f.toLocation.trim(), reason: f.reason || '', notes: f.notes || '', items,
+      });
+      setSuccess('Transfer created — mark it Moved once the stock is in its new place');
+      setShowAddTransferModal(false);
+      setTransferFormData({ fromLocation: '', toLocation: '', items: [], reason: '', notes: '' });
+      reloadTransfers();
+    } catch (error) {
+      setError(error.message || 'Failed to create transfer');
+    } finally { setSavingTransfer(false); }
+  };
+
+  const handleUpdateTransferStatus = async (t, status) => {
+    if (!currentRestaurant || !t) return;
+    if (status === 'cancelled' && !confirm('Cancel this transfer?')) return;
+    try {
+      setError(null);
+      await apiClient.updateStockTransfer(currentRestaurant.id, t.id || t._id, { status });
+      setSuccess(status === 'completed' ? 'Transfer done — logged in stock history' : `Transfer ${status}`);
+      reloadTransfers();
+      if (status === 'completed') loadInventoryData();
+    } catch (error) { setError(error.message || 'Failed to update transfer'); }
+  };
+
+  const handleDeleteTransfer = async (t) => {
+    if (!currentRestaurant || !t || !confirm('Delete this transfer?')) return;
+    try {
+      setError(null);
+      await apiClient.deleteStockTransfer(currentRestaurant.id, t.id || t._id);
+      setSuccess('Transfer deleted'); reloadTransfers();
+    } catch (error) { setError(error.message || 'Failed to delete transfer'); }
+  };
+
   // Modal style helpers
   const getModalStyles = () => ({
     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -1403,6 +1506,8 @@ export default function useInventory() {
     handleEditRecipe, handleUpdateRecipe, handleViewRecipe, handleGenerateRecipeSteps, handleGenerateFullRecipe,
     handleEmailPurchaseOrder, handleUpdateOrderStatus,
     startVoiceListeningPO, generateReport, handleInvoiceOCR, handleSaveInvoice, savingInvoice, handleDeleteSupplierInvoice, handleCreateGRN, savingGRN,
+    handleCreateReturn, handleUpdateReturnStatus, handleDeleteReturn, savingReturn,
+    handleCreateTransfer, handleUpdateTransferStatus, handleDeleteTransfer, savingTransfer,
     loadInventoryData, loadSCMData,
     handleParseQuickOrderText, handleParseQuickOrderImage, handleConfirmQuickOrder,
 
