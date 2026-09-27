@@ -125,7 +125,7 @@ const MenuItemCard = ({
         position: 'relative',
         overflow: 'hidden',
         transition: 'none',
-        filter: isOutOfStock ? 'blur(1.1px)' : 'none',
+        filter: item.timingClosed ? 'grayscale(0.75)' : (isOutOfStock ? 'blur(1.1px)' : 'none'),
         opacity: isOutOfStock ? 0.95 : 1
       }}
         onClick={handleCardClick}
@@ -138,6 +138,12 @@ const MenuItemCard = ({
           setShowOutOfStockLabel(false);
         }}
       >
+        {/* Menu timings: always-visible "not available right now" strip */}
+        {item.timingClosed && (
+          <div style={{ position: 'absolute', left: 6, right: 6, bottom: 6, background: 'rgba(17,24,39,0.92)', color: '#fff', fontSize: '10.5px', fontWeight: 700, borderRadius: 6, padding: '3px 6px', textAlign: 'center', zIndex: 15, lineHeight: 1.3, pointerEvents: 'none' }}>
+            Not available now{item.timingText ? ` · ${item.timingText}` : ''}
+          </div>
+        )}
         {/* Out of Stock Label - On Hover */}
         {isOutOfStock && showOutOfStockLabel && (
           <div style={{
@@ -156,7 +162,7 @@ const MenuItemCard = ({
             pointerEvents: 'none',
             whiteSpace: 'nowrap'
           }}>
-            Out of Stock
+            {item.timingClosed ? 'Not available now' : 'Out of Stock'}
           </div>
         )}
         {/* Short Code - Top Left Corner */}
@@ -439,7 +445,7 @@ const MenuItemCard = ({
           position: 'relative',
           overflow: 'hidden',
           border: 'none',
-          filter: isOutOfStock ? 'blur(1.1px)' : 'none',
+          filter: item.timingClosed ? 'grayscale(0.75)' : (isOutOfStock ? 'blur(1.1px)' : 'none'),
           opacity: isOutOfStock ? 0.95 : 1
         }}
         onClick={handleCardClick}
@@ -452,6 +458,12 @@ const MenuItemCard = ({
           setShowOutOfStockLabel(false);
         }}
       >
+        {/* Menu timings: always-visible "not available right now" strip */}
+        {item.timingClosed && (
+          <div style={{ position: 'absolute', left: 6, right: 6, bottom: 6, background: 'rgba(17,24,39,0.92)', color: '#fff', fontSize: '10.5px', fontWeight: 700, borderRadius: 6, padding: '3px 6px', textAlign: 'center', zIndex: 15, lineHeight: 1.3, pointerEvents: 'none' }}>
+            Not available now{item.timingText ? ` · ${item.timingText}` : ''}
+          </div>
+        )}
         {/* Out of Stock Label - On Hover */}
         {isOutOfStock && showOutOfStockLabel && (
           <div style={{
@@ -470,7 +482,7 @@ const MenuItemCard = ({
             pointerEvents: 'none',
             whiteSpace: 'nowrap'
           }}>
-            Out of Stock
+            {item.timingClosed ? 'Not available now' : 'Out of Stock'}
           </div>
         )}
         
@@ -839,7 +851,7 @@ const MenuItemCard = ({
         background: dm ? dm.cardBg : vegGradient,
         borderTop: `3px solid ${isVeg ? '#22c55e' : '#ef4444'}`,
         transition: 'all 0.2s ease',
-        filter: isOutOfStock ? 'blur(1.1px)' : 'none',
+        filter: item.timingClosed ? 'grayscale(0.75)' : (isOutOfStock ? 'blur(1.1px)' : 'none'),
         opacity: isOutOfStock ? 0.95 : 1
       }}
       onClick={handleCardClick}
@@ -868,7 +880,13 @@ const MenuItemCard = ({
         {firstLetter}
       </div>
 
-      {/* Out of Stock Label - On Hover */}
+      {/* Menu timings: always-visible "not available right now" strip */}
+        {item.timingClosed && (
+          <div style={{ position: 'absolute', left: 6, right: 6, bottom: 6, background: 'rgba(17,24,39,0.92)', color: '#fff', fontSize: '10.5px', fontWeight: 700, borderRadius: 6, padding: '3px 6px', textAlign: 'center', zIndex: 15, lineHeight: 1.3, pointerEvents: 'none' }}>
+            Not available now{item.timingText ? ` · ${item.timingText}` : ''}
+          </div>
+        )}
+        {/* Out of Stock Label - On Hover */}
       {isOutOfStock && showOutOfStockLabel && (
         <div style={{
           position: 'absolute',
@@ -886,7 +904,7 @@ const MenuItemCard = ({
           pointerEvents: 'none',
           whiteSpace: 'nowrap'
         }}>
-          Out of Stock
+          {item.timingClosed ? 'Not available now' : 'Out of Stock'}
         </div>
       )}
       {/* Content Section */}

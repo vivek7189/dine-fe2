@@ -210,6 +210,17 @@ const tierInfo = {
   platinum: { color: '#E5E4E2', bgColor: '#f8f8ff', label: 'Platinum', icon: '💎', multiplier: 2 }
 };
 
+// Short notice for the customer (works in every menu theme — attached to the page body).
+function showMenuNotice(text) {
+  if (typeof document === 'undefined' || !text) return;
+  const el = document.createElement('div');
+  el.textContent = text;
+  el.setAttribute('role', 'status');
+  el.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:99999;background:rgba(17,24,39,0.95);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;font-weight:600;max-width:90vw;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,0.25)';
+  document.body.appendChild(el);
+  setTimeout(() => { try { el.remove(); } catch (_) {} }, 3500);
+}
+
 const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tableNumberProp = null, orderTypeProp = null }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -688,6 +699,11 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   // Cart functions
   const addToCart = (item) => {
     if (customerAppSettings?.pageSettings?.publicMenuOnly === true) return;
+    // Menu timings: outside its hours an item can't be added (the backend refuses it too)
+    if (item && item.availableNow === false) {
+      showMenuNotice(`${item.name} is not available right now${item.availableText ? ` · available ${item.availableText}` : ''}`);
+      return;
+    }
     setCart(prev => {
       const existingItem = prev.find(cartItem => cartItem.id === item.id);
       if (existingItem) {
@@ -2804,6 +2820,8 @@ const FeaturedCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
               <span style={{ minWidth: '20px', textAlign: 'center', fontSize: '13px', fontWeight: 700, color: '#fff' }}>{cartQuantity}</span>
               <button onClick={() => onAddToCart(item)} style={{ background: 'transparent', border: 'none', color: '#fff', width: '26px', height: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaPlus size={9} /></button>
             </div>
+          ) : item.availableNow === false ? (
+            <span style={{ fontSize: '11px', fontWeight: 700, color: '#b91c1c', background: '#fee2e2', borderRadius: '8px', padding: '5px 8px', textAlign: 'center', lineHeight: 1.3, maxWidth: '130px' }}>Not available now{item.availableText ? <><br /><span style={{ fontWeight: 600, color: '#7f1d1d' }}>{item.availableText}</span></> : null}</span>
           ) : (
             <button onClick={() => onAddToCart(item)} style={{ background: 'white', border: '1.5px solid #22c55e', color: '#22c55e', borderRadius: '8px', padding: '5px 16px', fontSize: '13px', fontWeight: 700, letterSpacing: '0.5px', cursor: 'pointer', height: '30px' }}>ADD</button>
           )}
@@ -2830,6 +2848,7 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
         backgroundColor: 'white',
         borderRadius: '16px',
         padding: '16px',
+        ...(item.availableNow === false ? { opacity: 0.6, filter: 'grayscale(0.6)' } : {}),
         boxShadow: isHovered ? '0 6px 20px rgba(0,0,0,0.1)' : '0 1px 3px rgba(0,0,0,0.06)',
         display: 'flex',
         gap: '14px',
@@ -3000,6 +3019,8 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
                 <FaPlus size={10} />
               </button>
             </div>
+          ) : item.availableNow === false ? (
+            <span style={{ fontSize: '11px', fontWeight: 700, color: '#b91c1c', background: '#fee2e2', borderRadius: '8px', padding: '5px 8px', textAlign: 'center', lineHeight: 1.3, maxWidth: '130px' }}>Not available now{item.availableText ? <><br /><span style={{ fontWeight: 600, color: '#7f1d1d' }}>{item.availableText}</span></> : null}</span>
           ) : (
             /* ADD button */
             <button

@@ -96,6 +96,7 @@ import { useDineBot } from '../../../components/DineBotProvider';
 import { parseScaleBarcode, isScaleBarcode } from '../../../utils/scaleBarcode';
 import { printDocument } from '../../../utils/printBridge';
 import { resolveVariantTierPrice, resolveItemTierPrice } from '../../../utils/variantPricing';
+import useTimedMenu from '../../../hooks/useTimedMenu';
 
 // Safe wrappers for contexts that may not be available in mobile embed mode
 function useSafeLoading() {
@@ -190,12 +191,15 @@ function RestaurantPOSContent() {
   const findDineInRule = (rules) => (rules || []).find(r => r.isActive && DINEIN_NAMES.includes((r.name || '').toLowerCase().trim()));
 
   // API state
-  const [menuItems, setMenuItems] = useState([]);
+  const [menuItemsRaw, setMenuItems] = useState([]);
   // Real category tree (id, name, emoji, parentId, displayOrder) from GET /api/menus.
   // Drives sub-category drill-down. Empty/flat => POS behaves exactly as before.
   const [menuCategories, setMenuCategories] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+  // Menu timings: items outside their hours show as unavailable (display copy — never saved back)
+  const menuItems = useTimedMenu(menuItemsRaw, selectedRestaurant);
+
   // Completed-order-edit approval gate (dashboard "Edit" path from Order History).
   // When posSettings.requirePinForCompletedOrderEdit is on, a completed order can't be
   // edited here until a manager PIN/OTP is verified server-side. approvedEditsRef keeps
@@ -2719,7 +2723,9 @@ function RestaurantPOSContent() {
 
     // Block out-of-stock items
     if (itemRaw?.isAvailable === false) {
-      setNotification({ type: 'error', title: t('dashboard.outOfStock'), message: `"${itemRaw.name}" is currently out of stock`, show: true });
+      setNotification(itemRaw.timingClosed
+        ? { type: 'error', title: 'Not available right now', message: `"${itemRaw.name}" is available ${itemRaw.timingText || 'only at set times'}`, show: true }
+        : { type: 'error', title: t('dashboard.outOfStock'), message: `"${itemRaw.name}" is currently out of stock`, show: true });
       return;
     }
     // Check stock limit if stock managed

@@ -104,7 +104,7 @@ function FastItemCard({ item, color, qty, onAddToCart, onItemClick }) {
         <span className="fbb-name">{item.name}</span>
       </div>
       <div className="fbb-price">{priceText}{hasVariants ? <small style={{ fontWeight: 600, fontSize: 11, color: 'var(--fbb-faint)' }}> onwards</small> : null}</div>
-      {oos ? <span className="fbb-oos">OUT OF STOCK</span> : null}
+      {oos ? <span className="fbb-oos" title={item.timingClosed && item.timingText ? `Available ${item.timingText}` : undefined}>{item.timingClosed ? 'NOT AVAILABLE NOW' : 'OUT OF STOCK'}</span> : null}
     </button>
   );
 }

@@ -41,6 +41,7 @@ import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/d
 import { database } from '../../../../firebase';
 import { subscribeRestaurantEvents } from '../../../lib/realtimeSubscribe';
 import { isLocalServerMode } from '../../../lib/localServer';
+import useTimedMenu from '../../../hooks/useTimedMenu';
 
 const DeliveryTakeawayPanel = dynamic(
   () => import('../../../components/DeliveryTakeawayPanel'),
@@ -587,7 +588,10 @@ const TableManagement = () => {
 
   // Billing modal data (loaded lazily when modal opens)
   const [taxSettings, setTaxSettings] = useState(null);
-  const [menuItems, setMenuItems] = useState(null);
+  const [menuItemsRaw, setMenuItems] = useState(null);
+  // Menu timings: items outside their hours show as unavailable (display copy — never saved back)
+  const menuItems = useTimedMenu(menuItemsRaw, selectedRestaurant);
+
 
   // Floor filter
   const [selectedFloorId, setSelectedFloorId] = useState('all');

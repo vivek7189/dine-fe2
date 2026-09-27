@@ -26,6 +26,25 @@ import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { DndContext, PointerSensor, TouchSensor, KeyboardSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, rectSortingStrategy, verticalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import AvailabilityScheduleEditor from './components/AvailabilityScheduleEditor';
+import { describeSchedule, isScheduleOpen } from '@/lib/menuSchedule';
+
+// Timings pill on menu cards: "🕐 12 PM–3 PM", red "Not available now · 12 PM–3 PM" while closed.
+const MenuTimingBadge = ({ item }) => {
+  const s = item && item.availabilitySchedule;
+  const when = describeSchedule(s);
+  if (!when) return null;
+  const open = isScheduleOpen(s, new Date());
+  return (
+    <span title={`Can be ordered: ${when}`} style={{
+      fontSize: '10px', fontWeight: '700', padding: '2px 6px', borderRadius: '4px',
+      backgroundColor: open ? '#eef2ff' : '#fee2e2', color: open ? '#3730a3' : '#b91c1c',
+      border: `1px solid ${open ? '#c7d2fe' : '#fca5a5'}`,
+    }}>
+      {open ? `🕐 ${when}` : `Not available now · ${when}`}
+    </span>
+  );
+};
 import { 
   FaPlus,
   FaEdit,
@@ -266,7 +285,8 @@ const CategoryDropdown = ({
       name: category.name,
       emoji: category.emoji || '🍽️',
       description: category.description || '',
-      parentId: category.parentId || ''
+      parentId: category.parentId || '',
+      availabilitySchedule: category.availabilitySchedule || null,
     });
     setShowEditForm(true);
     // Scroll dropdown to top so edit form is visible
@@ -393,6 +413,9 @@ const CategoryDropdown = ({
                     ))}
                   </select>
                 </div>
+                <AvailabilityScheduleEditor compact label="Category available only at certain times"
+                  value={newCategory.availabilitySchedule || null}
+                  onChange={(v) => setNewCategory({ ...newCategory, availabilitySchedule: v })} />
                   <div className="flex gap-2">
                 <button
                       type="button"
@@ -463,6 +486,9 @@ const CategoryDropdown = ({
                     ))}
                   </select>
                 </div>
+                <AvailabilityScheduleEditor compact label="Category available only at certain times"
+                  value={newCategory.availabilitySchedule || null}
+                  onChange={(v) => setNewCategory({ ...newCategory, availabilitySchedule: v })} />
                   <div className="flex gap-2">
                     <button
                              type="button"
@@ -1299,6 +1325,7 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
 
         {/* Stock & Expiry Badges */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
+          <MenuTimingBadge item={item} />
           {isStockManaged && (
             <span style={{
               fontSize: '10px', fontWeight: '600',
@@ -1696,9 +1723,10 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
         </div>
       </div>
 
-      {/* Stock & Expiry Badges */}
-      {(isStockManaged || expiryStatus) && (
+      {/* Stock, Expiry & Timing Badges */}
+      {(isStockManaged || expiryStatus || describeSchedule(item.availabilitySchedule)) && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px', paddingLeft: '68px' }}>
+          <MenuTimingBadge item={item} />
           {isStockManaged && (
             <span style={{
               fontSize: '9px', fontWeight: '600',
@@ -2542,6 +2570,7 @@ const MenuManagement = () => {
     stockQuantity: null,
     isStockManaged: false,
     lowStockThreshold: 5,
+    availabilitySchedule: null,
     stockUnit: 'pcs',
     soldByWeight: false,
     priceUnit: 'per_kg',
@@ -3628,6 +3657,7 @@ const MenuManagement = () => {
       stockQuantity: item.stockQuantity ?? null,
       isStockManaged: item.isStockManaged || false,
       lowStockThreshold: item.lowStockThreshold ?? 5,
+      availabilitySchedule: item.availabilitySchedule || null,
       stockUnit: item.stockUnit || 'pcs',
       deductionQuantity: item.deductionQuantity ?? 1,
       soldByWeight: item.soldByWeight || false,
@@ -4280,6 +4310,7 @@ const MenuManagement = () => {
       stockQuantity: null,
       isStockManaged: false,
       lowStockThreshold: 5,
+      availabilitySchedule: null,
       stockUnit: 'pcs',
       soldByWeight: false,
       priceUnit: 'per_kg',
@@ -6384,6 +6415,11 @@ const MenuManagement = () => {
                     </button>
                   </div>
                 )}
+
+                {/* Menu timings — e.g. lunch-only items (enforced by the backend on every order) */}
+                <AvailabilityScheduleEditor
+                  value={formData.availabilitySchedule || null}
+                  onChange={(v) => setFormData(prev => ({ ...prev, availabilitySchedule: v }))} />
 
                 {/* Stock Tracking — direct-sale items (bottles, packets): own count, kept in Inventory too */}
                 {(

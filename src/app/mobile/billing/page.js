@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import apiClient from '../../../lib/api';
 import { getCartSubtotal, getEffectiveItemPrice } from '../../../utils/billingPrice';
+import useTimedMenu from '../../../hooks/useTimedMenu';
 
 // Force mobile embed + billing mode flags before anything renders
 if (typeof window !== 'undefined') {
@@ -161,7 +162,10 @@ export default function MobileBillingPage() {
   // Order and restaurant data
   const [order, setOrder] = useState(null);
   const [restaurant, setRestaurant] = useState(null);
-  const [menuItems, setMenuItems] = useState([]);
+  const [menuItemsRaw, setMenuItems] = useState([]);
+  // Menu timings: items outside their hours show as unavailable (display copy — never saved back)
+  const menuItems = useTimedMenu(menuItemsRaw, restaurant);
+
   const [taxSettings, setTaxSettings] = useState({ enabled: false, rate: 0, taxes: [] });
   const [billingSettings, setBillingSettings] = useState({});
   const [multiPricingEnabled, setMultiPricingEnabled] = useState(false);

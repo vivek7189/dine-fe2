@@ -37,6 +37,7 @@ import {
   FaFire,
   FaUsers
 } from 'react-icons/fa';
+import useTimedMenu from '../../../../hooks/useTimedMenu';
 
 // Capitalize first character, keep rest as-is
 const capitalizeFirst = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
@@ -56,7 +57,10 @@ function BarPOSContent() {
   const [loadingTabs, setLoadingTabs] = useState(false);
 
   // Menu
-  const [menuItems, setMenuItems] = useState([]);
+  const [menuItemsRaw, setMenuItems] = useState([]);
+  // Menu timings: items outside their hours show as unavailable (display copy — never saved back)
+  const menuItems = useTimedMenu(menuItemsRaw, selectedRestaurant);
+
   const [selectedCategory, setSelectedCategory] = useState('all-items');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -392,7 +396,7 @@ function BarPOSContent() {
     }
     // Block out-of-stock items
     if (menuItem.isAvailable === false) {
-      showNotification(`"${menuItem.name}" is out of stock`, 'error');
+      showNotification(menuItem.timingClosed ? `"${menuItem.name}" is not available right now (available ${menuItem.timingText || 'at set times'})` : `"${menuItem.name}" is out of stock`, 'error');
       return;
     }
     const tab = currentTabs.find(t => t.id === currentTabId);

@@ -100,6 +100,7 @@ import {
   FaFileCsv,
   FaFileExcel,
 } from 'react-icons/fa';
+import useTimedMenu from '../../../hooks/useTimedMenu';
 const BookingList = dynamic(() => import('../../../components/bookings/BookingList'), { ssr: false });
 const BookingDetail = dynamic(() => import('../../../components/bookings/BookingDetail'), { ssr: false });
 const BookingForm = dynamic(() => import('../../../components/bookings/BookingForm'), { ssr: false });
@@ -293,7 +294,10 @@ const OrderHistory = () => {
   const [analyticsStats, setAnalyticsStats] = useState(null);
   const [taxSettings, setTaxSettings] = useState(null);
   // Menu items & multi-tier pricing for billing modal
-  const [menuItems, setMenuItems] = useState([]);
+  const [menuItemsRaw, setMenuItems] = useState([]);
+  // Menu timings: items outside their hours show as unavailable (display copy — never saved back)
+  const menuItems = useTimedMenu(menuItemsRaw, restaurant);
+
   const [multiPricingEnabled, setMultiPricingEnabled] = useState(false);
   const [pricingRules, setPricingRules] = useState([]);
   const [activePricingRuleId, setActivePricingRuleId] = useState(null);
