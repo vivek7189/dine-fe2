@@ -2818,6 +2818,27 @@ class ApiClient {
     return this.request(`/api/inventory/${restaurantId}/stock-audits`);
   }
 
+  // Stock count (stock take): draft → submitted → posted
+  async getStockCounts(restaurantId) {
+    return this.request(`/api/inventory/${restaurantId}/stock-counts`);
+  }
+
+  async getStockCount(restaurantId, countId) {
+    return this.request(`/api/inventory/${restaurantId}/stock-counts/${countId}`);
+  }
+
+  async createStockCount(restaurantId, data) {
+    return this.request(`/api/inventory/${restaurantId}/stock-counts`, { method: 'POST', body: JSON.stringify(data || {}) });
+  }
+
+  async saveStockCountLines(restaurantId, countId, lines) {
+    return this.request(`/api/inventory/${restaurantId}/stock-counts/${countId}/lines`, { method: 'PATCH', body: JSON.stringify({ lines }) });
+  }
+
+  async stockCountAction(restaurantId, countId, action) {
+    return this.request(`/api/inventory/${restaurantId}/stock-counts/${countId}/${action}`, { method: 'POST', body: JSON.stringify({}) });
+  }
+
   async createProductionEntry(restaurantId, data) {
     return this.request(`/api/inventory/${restaurantId}/production-entries`, {
       method: 'POST',

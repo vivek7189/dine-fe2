@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaLink, FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle, FaHistory, FaRecycle, FaMagic, FaTruck, FaIndustry, FaRoute, FaBalanceScale } from 'react-icons/fa';
+import { FaLink, FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle, FaHistory, FaRecycle, FaMagic, FaTruck, FaIndustry, FaRoute, FaBalanceScale, FaClipboardCheck } from 'react-icons/fa';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { resolveFeaturePermissions } from '@/lib/permissions';
 import useInventory from './hooks/useInventory';
@@ -14,6 +14,7 @@ import RecipesTab from './components/RecipesTab';
 import RecipeMappingTab from './components/RecipeMappingTab';
 import UsageTab from './components/UsageTab';
 import VarianceTab from './components/VarianceTab';
+import StockCountTab from './components/StockCountTab';
 import ProcurementTab from './components/ProcurementTab';
 import InsightsTab from './components/InsightsTab';
 import WasteTab from './components/WasteTab';
@@ -122,6 +123,7 @@ export default function InventoryManagement() {
     ...(outletType !== 'warehouse' ? [{ id: 'recipes', name: 'Recipes', icon: FaClipboardList }] : []),
     ...(outletType !== 'warehouse' ? [{ id: 'mapping', name: 'Link dishes', icon: FaLink }] : []),
     { id: 'usage', name: 'Usage', icon: FaHistory },
+    { id: 'count', name: 'Stock Count', icon: FaClipboardCheck },
     ...(outletType !== 'warehouse' ? [{ id: 'variance', name: 'Variance', icon: FaBalanceScale }] : []),
     { id: 'procurement', name: 'Procurement', icon: FaShoppingCart },
     ...(outletType === 'warehouse' ? [{ id: 'indent-queue', name: 'Indent Queue', icon: FaTruck }] : []),
@@ -402,6 +404,16 @@ export default function InventoryManagement() {
             loadingUsage={inventory.loadingUsage}
             isMobile={isMobile}
             formatCurrency={formatCurrency}
+          />
+        )}
+
+        {activeTab === 'count' && (
+          <StockCountTab
+            currentRestaurant={inventory.currentRestaurant}
+            inventoryItems={inventory.inventoryItems}
+            isMobile={isMobile}
+            formatCurrency={formatCurrency}
+            onPosted={inventory.loadInventoryData}
           />
         )}
 
