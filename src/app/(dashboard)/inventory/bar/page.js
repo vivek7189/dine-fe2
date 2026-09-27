@@ -1048,6 +1048,8 @@ export default function BarInventoryPage() {
                 <option value="expired">Expired</option>
                 <option value="staff_consumption">Staff Consumption</option>
                 <option value="complimentary">Complimentary</option>
+                <option value="staff_meal">Staff meal</option>
+                <option value="complimentary">Complimentary (given free)</option>
                 <option value="other">Other</option>
               </select>
             </div>

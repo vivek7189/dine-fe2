@@ -9,6 +9,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { FaSearch, FaSync, FaChevronDown, FaChevronRight, FaExclamationTriangle } from 'react-icons/fa';
 import apiClient from '@/lib/api';
+import { useCurrency } from '../../../../contexts/CurrencyContext';
+
+// Food cost % bands most restaurants aim for: ≤30% good, ≤40% watch, above that too high.
+const foodCostColor = (pct) => (pct == null ? '#6b7280' : pct <= 30 ? '#047857' : pct <= 40 ? '#b45309' : '#b91c1c');
 
 const STATUS = {
   mapped: { label: 'Linked', color: '#047857', bg: '#ecfdf5' },
@@ -71,6 +75,7 @@ function actionFor(r) {
 }
 
 export default function RecipeMappingTab({ currentRestaurant, isMobile, canUpdate = true, onLinkDish = null, refreshKey = 0 }) {
+  const { formatCurrency } = useCurrency();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -246,17 +251,17 @@ export default function RecipeMappingTab({ currentRestaurant, isMobile, canUpdat
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5, minWidth: isMobile ? 640 : 0 }}>
           <thead>
             <tr style={{ background: '#f9fafb' }}>
-              {['', 'Dish', 'Uses from inventory', 'Status', 'Can make', ''].map((h, hi) => (
+              {['', 'Dish', 'Uses from inventory', 'Status', 'Food cost', 'Can make', ''].map((h, hi) => (
                 <th key={hi} style={{ textAlign: 'left', padding: '10px 12px', fontSize: 11.5, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {loading && !data && (
-              <tr><td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#6b7280' }}>Loading…</td></tr>
+              <tr><td colSpan={7} style={{ padding: 24, textAlign: 'center', color: '#6b7280' }}>Loading…</td></tr>
             )}
             {data && rows.length === 0 && (
-              <tr><td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#6b7280' }}>No menu items match.</td></tr>
+              <tr><td colSpan={7} style={{ padding: 24, textAlign: 'center', color: '#6b7280' }}>No menu items match.</td></tr>
             )}
             {rows.map(r => {
               const a = canUpdate ? actionFor(r) : null;
@@ -287,6 +292,15 @@ export default function RecipeMappingTab({ currentRestaurant, isMobile, canUpdat
                     )}
                   </td>
                   <td style={{ padding: '10px 12px' }}><Tag status={r.status} /></td>
+                  <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }} title={r.costIncomplete ? 'Some ingredients have no cost price yet — add it in Stock for an exact figure' : (r.sellingPrice ? `Selling price ${formatCurrency(r.sellingPrice)}` : '')}>
+                    {r.costPerPlate > 0 ? (
+                      <>
+                        <span style={{ fontWeight: 700, color: '#111827' }}>{formatCurrency(r.costPerPlate)}</span>
+                        {r.foodCostPct != null && <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 800, color: foodCostColor(r.foodCostPct) }}>{r.foodCostPct}%</span>}
+                        {r.costIncomplete && <span style={{ marginLeft: 2, color: '#9ca3af' }}>*</span>}
+                      </>
+                    ) : <span style={{ color: '#9ca3af' }}>—</span>}
+                  </td>
                   <td style={{ padding: '10px 12px', fontVariantNumeric: 'tabular-nums', color: r.platesPossible === 0 ? '#b91c1c' : '#374151', fontWeight: r.platesPossible === 0 ? 700 : 500 }}>
                     {r.platesPossible == null ? '—' : r.platesPossible}
                   </td>
@@ -304,7 +318,7 @@ export default function RecipeMappingTab({ currentRestaurant, isMobile, canUpdat
                 isOpen && (
                   <tr key={`${r.menuItemId}-d`} style={{ background: '#fafafa', borderBottom: '1px solid #f1f5f9' }}>
                     <td />
-                    <td colSpan={5} style={{ padding: '8px 12px 14px' }} onClick={e => e.stopPropagation()}>
+                    <td colSpan={6} style={{ padding: '8px 12px 14px' }} onClick={e => e.stopPropagation()}>
                       {r.ingredients.length > 0 ? (
                         <table style={{ borderCollapse: 'collapse', fontSize: 13, width: '100%' }}>
                           <thead>

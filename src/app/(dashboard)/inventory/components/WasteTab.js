@@ -13,6 +13,8 @@ const reasonColorMap = {
   damaged: { bg: '#f5f3ff', color: '#8b5cf6' },
   leftover: { bg: '#eff6ff', color: '#3b82f6' },
   shrinkage: { bg: '#fdf2f8', color: '#ec4899' },
+  staff_meal: { bg: '#ecfdf5', color: '#059669' },
+  complimentary: { bg: '#fff7ed', color: '#ea580c' },
   other: { bg: '#f3f4f6', color: '#6b7280' },
 };
 
@@ -37,6 +39,8 @@ const reasonOptions = [
   { value: 'damaged', label: 'Damaged' },
   { value: 'leftover', label: 'Leftover' },
   { value: 'shrinkage', label: 'Shrinkage' },
+  { value: 'staff_meal', label: 'Staff meal' },
+  { value: 'complimentary', label: 'Complimentary' },
   { value: 'other', label: 'Other' },
 ];
 

@@ -493,6 +493,8 @@ function QuickWasteModal({ waste, inventoryItems, recipes, formatCurrency }) {
           <option value="expired">Expired</option>
           <option value="leftover">End-of-day Leftover</option>
           <option value="returned">Customer Return</option>
+          <option value="staff_meal">Staff meal</option>
+          <option value="complimentary">Complimentary (given free)</option>
           <option value="other">Other</option>
         </select>
       </div>
