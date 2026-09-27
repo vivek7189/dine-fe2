@@ -4311,6 +4311,14 @@ class ApiClient {
     return this.request(`/api/customers/${customerId}/wallet`);
   }
 
+  // Owner/admin only: { mode: 'deduct' | 'reset', amount, comment, cashReturned }
+  async adjustCustomerWallet(customerId, data) {
+    return this.request(`/api/customers/${customerId}/wallet/adjust`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async addCustomerWalletCredit(customerId, data) {
     return this.request(`/api/customers/${customerId}/wallet/credit`, {
       method: 'POST',
