@@ -25,7 +25,7 @@ const defaultUnitFor = (u) => { const c = canon(u); return c === 'kg' ? 'g' : c 
 const emptyLine = () => ({ key: Math.random().toString(36).slice(2), inventoryItemId: '', name: '', quantity: '', unit: '', type: 'inventory' });
 
 const S = {
-  overlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 },
+  overlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 },
   box: { background: '#fff', borderRadius: 16, width: '100%', maxWidth: 620, maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 50px rgba(0,0,0,.25)' },
   input: { width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: 10, fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' },
   btn: (primary) => ({
@@ -54,7 +54,7 @@ function StepDots({ step }) {
 }
 
 // Text box that searches inventory items; pick one from the list.
-function InventoryPicker({ line, items, onPick, onCreate, inputId }) {
+function InventoryPicker({ line, items, onPick, onCreate, onType, inputId }) {
   const [q, setQ] = useState(line.name || '');
   const [open, setOpen] = useState(false);
   const wrap = useRef(null);
@@ -71,7 +71,7 @@ function InventoryPicker({ line, items, onPick, onCreate, inputId }) {
     <div ref={wrap} style={{ position: 'relative', flex: 1, minWidth: 0 }}>
       <input id={inputId} value={q} placeholder="Search inventory (e.g. Chicken)" style={S.input}
         onFocus={() => setOpen(true)}
-        onChange={e => { setQ(e.target.value); setOpen(true); if (line.inventoryItemId) onPick(null); }} />
+        onChange={e => { setQ(e.target.value); setOpen(true); if (onType) onType(e.target.value); if (line.inventoryItemId) onPick(null); }} />
       {open && (
         <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 5, marginTop: 4, background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,.12)', maxHeight: 240, overflowY: 'auto' }}>
           {matches.map(i => (
@@ -139,6 +139,13 @@ export default function LinkRecipeModal({ open, onClose, restaurantId, inventory
     setStep(2);
   };
 
+  // The dish was opened before recipes finished loading → load its recipe as soon as they arrive.
+  useEffect(() => {
+    if (!missingRecipe || !dish || !dish.recipeId) return;
+    if (recipes.some(r => (r.id || r._id) === dish.recipeId)) pickDish(dish);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recipes]);
+
   useEffect(() => {
     if (!open || !dishes || !preselectMenuItemId || dish || preselectUsed.current) return;
     preselectUsed.current = true; // only once — "Link another dish" must not jump back to it
@@ -172,7 +179,8 @@ export default function LinkRecipeModal({ open, onClose, restaurantId, inventory
   const filled = lines.filter(l => l.type === 'recipe' ? l.subRecipeId : l.inventoryItemId);
   const lineProblem = (l) => {
     if (l.type === 'recipe') return null;
-    if (!l.inventoryItemId) return l.name ? 'Pick an item from the list' : null;
+    // Typed but not picked from the list (or a quantity with no item) must not be saved silently.
+    if (!l.inventoryItemId) return (l.name || (l.typed || '').trim() || String(l.quantity || '').trim()) ? 'Pick an item from the list' : null;
     if (!(Number(l.quantity) > 0)) return 'Enter how much one plate uses';
     return null;
   };
@@ -184,7 +192,8 @@ export default function LinkRecipeModal({ open, onClose, restaurantId, inventory
     try {
       const ingredients = filled.map(l => l.type === 'recipe'
         ? { type: 'recipe', subRecipeId: l.subRecipeId, inventoryItemName: l.name, quantity: Number(l.quantity) || 1, unit: l.unit || 'portion' }
-        : { type: 'inventory', inventoryItemId: l.inventoryItemId, inventoryItemName: l.name, quantity: Number(l.quantity), unit: l.unit || 'pcs' });
+        : { type: 'inventory', inventoryItemId: l.inventoryItemId, inventoryItemName: l.name, quantity: Number(l.quantity),
+            unit: l.unit || defaultUnitFor((items.find(i => i.id === l.inventoryItemId) || {}).unit) || 'pcs' });
       await apiClient.createRecipe(restaurantId, {
         name: dish.name, menuItemId: dish.menuItemId, menuItemName: dish.name, category: dish.category || '',
         servings: keep.servings || 1, description: keep.description || '', instructions: keep.instructions || [],
@@ -290,11 +299,12 @@ export default function LinkRecipeModal({ open, onClose, restaurantId, inventory
                   <div key={l.key} style={{ display: 'grid', gap: 4 }}>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                       <InventoryPicker line={l} items={items} inputId={`link-ing-${idx}`}
-                        onPick={(i) => setLine(l.key, i ? { inventoryItemId: i.id, name: i.name, unit: defaultUnitFor(i.unit) } : { inventoryItemId: '' })}
+                        onPick={(i) => setLine(l.key, i ? { inventoryItemId: i.id, name: i.name, unit: defaultUnitFor(i.unit), typed: '' } : { inventoryItemId: '' })}
+                        onType={(v) => setLine(l.key, { typed: v })}
                         onCreate={(name) => setCreating({ lineKey: l.key, name, unit: 'g' })} />
                       <input id={`link-qty-${idx}`} type="number" min="0" step="any" placeholder="Qty" value={l.quantity}
                         onChange={e => setLine(l.key, { quantity: e.target.value })} style={{ ...S.input, width: 90 }} />
-                      <select id={`link-unit-${idx}`} value={l.unit} disabled={!inv} onChange={e => setLine(l.key, { unit: e.target.value })}
+                      <select id={`link-unit-${idx}`} value={l.unit || (inv ? defaultUnitFor(inv.unit) : '')} disabled={!inv} onChange={e => setLine(l.key, { unit: e.target.value })}
                         style={{ ...S.input, width: 92, background: inv ? '#fff' : '#f9fafb' }}>
                         {!inv && <option value="">unit</option>}
                         {units.map(u => <option key={u} value={u}>{u}</option>)}
@@ -358,7 +368,7 @@ export default function LinkRecipeModal({ open, onClose, restaurantId, inventory
           {step === 3 && (
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="button" style={S.btn(false)} onClick={() => {
-                setDish(null); setLines([emptyLine()]); setKeep({}); setSearch(''); setStep(1); setDishes(null);
+                setDish(null); setLines([emptyLine()]); setKeep({}); setSearch(''); setStep(1); setDishes(null); setErr(null); setLoadErr(null); setMissingRecipe(false);
                 apiClient.getStockMapping(restaurantId).then(d => setDishes(d?.items || [])).catch(e => setLoadErr(e.message || 'Could not load menu items'));
               }}>Link another dish</button>
               <button type="button" style={S.btn(true)} onClick={onClose}>Done</button>

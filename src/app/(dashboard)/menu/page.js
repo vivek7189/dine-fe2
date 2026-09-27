@@ -3360,6 +3360,8 @@ const MenuManagement = () => {
         customizations: cleanedCustomizations,
         modifierGroups: cleanedModifierGroups,
         pricingRules: cleanedPricingRules,
+        // Per-sale amount is typed as text (so "0.25" can be typed); save a number, default 1.
+        deductionQuantity: parseFloat(formData.deductionQuantity) > 0 ? parseFloat(formData.deductionQuantity) : 1,
         // Classic "Track stock" count: the value this form opened with, so the server applies only
         // the owner's change to the live stock (never resets it to a stale number).
         ...(editingItem && editingItem.isStockManaged ? { baseStockQuantity: editingItem.stockQuantity ?? null } : {}),
@@ -6510,7 +6512,7 @@ const MenuManagement = () => {
                           <input
                             type="number"
                             value={formData.deductionQuantity ?? 1}
-                            onChange={(e) => setFormData(prev => ({...prev, deductionQuantity: parseFloat(e.target.value) || 1}))}
+                            onChange={(e) => setFormData(prev => ({...prev, deductionQuantity: e.target.value }))}
                             placeholder="1"
                             min="0.001"
                             step="any"

@@ -475,8 +475,9 @@ function AddEditItemModal(props) {
     showAddModal, setShowAddModal, showEditModal, setShowEditModal,
     formData, setFormData, categories, suppliers, editingItem,
     handleAddItem, handleUpdateItem, getModalStyles, getModalContentStyles,
-    currentRestaurant, loadInventoryData,
+    currentRestaurant, loadInventoryData, error,
   } = props;
+  const footerError = error ? <span style={{ flex: 1, alignSelf: 'center', color: '#b91c1c', fontSize: '13px', fontWeight: 600 }}>{error}</span> : null;
 
   const [addTab, setAddTab] = useState('manual');
   const [smartImportOpen, setSmartImportOpen] = useState(false);
@@ -497,6 +498,7 @@ function AddEditItemModal(props) {
         getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
         footer={
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            {footerError}
             <button style={secondaryBtn} onClick={close}>Cancel</button>
             <button style={primaryBtn} onClick={handleUpdateItem}>
               <FaSave /> Update Item
@@ -527,6 +529,7 @@ function AddEditItemModal(props) {
         footer={
           addTab === 'manual' ? (
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              {footerError}
               <button style={secondaryBtn} onClick={close}>Cancel</button>
               <button style={primaryBtn} onClick={handleAddItem}>
                 <FaSave /> Add Item

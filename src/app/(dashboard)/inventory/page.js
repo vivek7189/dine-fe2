@@ -92,7 +92,7 @@ export default function InventoryManagement() {
   // Deep link from the Menu page (?link=<menuItemId>) opens "Link a dish" straight on that dish.
   const linkParam = searchParams.get('link');
   useEffect(() => {
-    if (linkParam) setLinkDish({ open: true, menuItemId: linkParam });
+    if (linkParam && permissions?.add) setLinkDish({ open: true, menuItemId: linkParam });
   }, [linkParam]);
   const router = useRouter();
 
