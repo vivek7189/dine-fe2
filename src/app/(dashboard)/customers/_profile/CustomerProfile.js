@@ -35,6 +35,45 @@ import {
   FaFilePdf
 } from 'react-icons/fa';
 
+// Wallet popup + history row (module level so inputs keep focus while typing).
+function WalletModal(props) {
+  if (typeof document === 'undefined') return null;
+  return createPortal(
+    <div onMouseDown={function(e) { if (e.target === e.currentTarget) props.onClose(); }}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+      <div style={{ background: '#fff', borderRadius: '16px', width: '100%', maxWidth: props.maxWidth || '440px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.25)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #f1f5f9' }}>
+          <div>
+            <div style={{ fontSize: '16px', fontWeight: 800, color: '#111827' }}>{props.title}</div>
+            {props.subtitle && <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>{props.subtitle}</div>}
+          </div>
+          <button type="button" onClick={props.onClose} aria-label="Close" style={{ border: 'none', background: '#f3f4f6', borderRadius: '8px', width: '32px', height: '32px', cursor: 'pointer', fontSize: '18px', lineHeight: 1 }}>×</button>
+        </div>
+        <div style={{ padding: '18px 20px' }}>{props.children}</div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function WalletTxnRow(props) {
+  var r = props.row; var plus = r.delta >= 0; var fc = props.formatCurrency;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '9px 0', borderTop: '1px solid #f1f5f9' }}>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827' }}>{r.label}</div>
+        <div style={{ fontSize: '11.5px', color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: props.wide ? '420px' : '190px' }} title={r.note}>
+          {r.when}{r.note ? ' · ' + r.note : ''}
+        </div>
+      </div>
+      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+        <div style={{ fontSize: '13.5px', fontWeight: 800, color: plus ? '#059669' : '#dc2626' }}>{(plus ? '+' : '−') + fc(Math.abs(r.delta))}</div>
+        {r.bal != null && <div style={{ fontSize: '11px', color: '#9ca3af' }}>Bal {fc(r.bal)}</div>}
+      </div>
+    </div>
+  );
+}
+
 var CustomerDetail = function() {
   var router = useRouter();
   var params = useParams();
@@ -69,6 +108,7 @@ var CustomerDetail = function() {
   var [adjustForm, setAdjustForm] = useState({ mode: 'deduct', amount: '', comment: '', cashReturned: false });
   var [adjusting, setAdjusting] = useState(false);
   var [adjustError, setAdjustError] = useState('');
+  var [showWalletHistory, setShowWalletHistory] = useState(false);
   var canAdjustWallet = (function() {
     if (typeof window === 'undefined') return false;
     try { var r = String((JSON.parse(localStorage.getItem('user') || '{}').role) || '').toLowerCase(); return r === 'owner' || r === 'admin'; } catch (e) { return false; }
@@ -990,252 +1030,171 @@ var CustomerDetail = function() {
               </div>
             )}
 
-            {/* Wallet Section */}
-            <div style={{
-              backgroundColor: 'white', borderRadius: '16px', border: '1px solid #e5e7eb',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: isMobile ? '16px' : '24px',
-              marginTop: '16px'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <FaWallet style={{ color: '#06b6d4' }} /> Wallet
-                  <span style={{ fontSize: '14px', fontWeight: '800', color: '#06b6d4', marginLeft: '8px' }}>
-                    {formatCurrency(walletData.walletBalance)}
-                  </span>
-                </h3>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {canAdjustWallet && (Number(walletData.walletBalance) || 0) > 0 && (
-                    <button
-                      onClick={function() { setShowAdjust(!showAdjust); setShowAddCredit(false); setAdjustError(''); }}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '6px',
-                        padding: '8px 14px', borderRadius: '10px', background: 'white',
-                        border: '1.5px solid #fecaca', color: '#b91c1c', fontSize: '13px', fontWeight: '600', cursor: 'pointer'
-                      }}
-                    >
-                      Deduct / Reset
-                    </button>
-                  )}
-                  <button
-                    onClick={function() { setShowAddCredit(!showAddCredit); setShowAdjust(false); }}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '6px',
-                      padding: '8px 16px', borderRadius: '10px',
-                      background: 'linear-gradient(135deg, #06b6d4, #0891b2)',
-                      border: 'none', color: 'white', fontSize: '13px', fontWeight: '600', cursor: 'pointer'
-                    }}
-                  >
-                    <FaHandHoldingUsd size={12} /> Add Credit
-                  </button>
-                </div>
-              </div>
-
-              {showAdjust && canAdjustWallet && (function() {
-                var bal = Number(walletData.walletBalance) || 0;
-                var amt = adjustForm.mode === 'reset' ? bal : (parseFloat(adjustForm.amount) || 0);
-                var after = Math.max(0, Math.round((bal - amt) * 100) / 100);
-                var set = function(patch) { setAdjustForm(function(p) { return Object.assign({}, p, patch); }); setAdjustError(''); };
-                return (
-                  <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px', padding: '16px', marginBottom: '16px', display: 'grid', gap: '12px' }}>
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                      {[['deduct', 'Deduct an amount'], ['reset', 'Reset to 0']].map(function(m) {
-                        var active = adjustForm.mode === m[0];
-                        return (
-                          <button key={m[0]} type="button" onClick={function() { set({ mode: m[0] }); }}
-                            style={{ padding: '7px 14px', borderRadius: '8px', border: '1.5px solid ' + (active ? '#dc2626' : '#fecaca'), background: active ? '#fee2e2' : 'white', color: '#b91c1c', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}>
-                            {m[1]}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : (adjustForm.mode === 'deduct' ? '140px 1fr' : '1fr'), gap: '10px' }}>
-                      {adjustForm.mode === 'deduct' && (
-                        <div>
-                          <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#991b1b', marginBottom: '4px' }}>Amount *</label>
-                          <input type="text" inputMode="decimal" value={adjustForm.amount} placeholder="0"
-                            onChange={function(e) { set({ amount: e.target.value.replace(/[^0-9.]/g, '') }); }}
-                            style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1.5px solid #fecaca', fontSize: '14px', boxSizing: 'border-box' }} />
-                        </div>
-                      )}
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#991b1b', marginBottom: '4px' }}>Comment * (why)</label>
-                        <input type="text" value={adjustForm.comment} placeholder="e.g. Credit added by mistake / test entry / paid back to customer"
-                          onChange={function(e) { set({ comment: e.target.value }); }}
-                          style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1.5px solid #fecaca', fontSize: '13px', boxSizing: 'border-box' }} />
-                      </div>
-                    </div>
-                    <label style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', fontSize: '12.5px', color: '#374151', cursor: 'pointer' }}>
-                      <input type="checkbox" checked={adjustForm.cashReturned} onChange={function(e) { set({ cashReturned: e.target.checked }); }} style={{ marginTop: '2px' }} />
-                      <span>Cash leaves the drawer — the money is paid back in cash, or a <b>cash</b> top-up was entered by mistake. This amount is taken out of the open shift&apos;s cash.</span>
-                    </label>
-                    <div style={{ fontSize: '13px', color: '#374151' }}>
-                      Wallet: <b>{formatCurrency(bal)}</b> → <b>{formatCurrency(after)}</b>
-                    </div>
-                    {adjustError && <div style={{ fontSize: '12.5px', color: '#b91c1c', fontWeight: 600 }}>{adjustError}</div>}
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button onClick={handleAdjustWallet} disabled={adjusting}
-                        style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: adjusting ? '#94a3b8' : '#dc2626', color: 'white', fontSize: '13px', fontWeight: '700', cursor: adjusting ? 'default' : 'pointer' }}>
-                        {adjusting ? 'Saving…' : (adjustForm.mode === 'reset' ? 'Reset wallet to 0' : 'Deduct')}
-                      </button>
-                      <button onClick={function() { setShowAdjust(false); setAdjustError(''); setAdjustForm({ mode: 'deduct', amount: '', comment: '', cashReturned: false }); }}
-                        style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #e5e7eb', background: 'white', color: '#374151', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {showAddCredit && (
+            {/* Wallet Section — compact card; Add Credit and Deduct / Reset open in a popup */}
+            {(function() {
+              var bal = Number(walletData.walletBalance) || 0;
+              var history = (walletData.walletHistory || []).slice().reverse();
+              var typeLabels = { credit: 'Credit', redeem: 'Paid with wallet', refund_reversal: 'Refund', partial_refund_reversal: 'Partial refund', restore_redebit: 'Re-charge' };
+              var rowOf = function(txn) {
+                var delta = (txn.type === 'redeem' || txn.type === 'restore_redebit' || txn.type === 'adjustment')
+                  ? -Math.abs(Number(txn.amount) || 0) : (Number(txn.amount) || 0);
+                var label = txn.type === 'adjustment' ? (txn.reason === 'wallet_reset' ? 'Reset' : 'Deduction') : (typeLabels[txn.type] || (delta >= 0 ? 'Credit' : 'Debit'));
+                return { delta: delta, label: label, note: txn.notes || (txn.reason || '').replace(/_/g, ' '), when: txn.createdAt ? new Date(txn.createdAt).toLocaleDateString() : '-', bal: txn.balanceAfter };
+              };
+              var label = { display: 'block', fontSize: '12px', fontWeight: 700, color: '#374151', marginBottom: '5px' };
+              var input = { width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1.5px solid #e5e7eb', fontSize: '14px', boxSizing: 'border-box', background: '#fff' };
+              var closeCredit = function() { setShowAddCredit(false); setCreditForm({ amount: '', reason: 'advance_payment', notes: '', paymentMethod: 'cash' }); };
+              var closeAdjust = function() { setShowAdjust(false); setAdjustError(''); setAdjustForm({ mode: 'deduct', amount: '', comment: '', cashReturned: false }); };
+              var adjAmt = adjustForm.mode === 'reset' ? bal : (parseFloat(adjustForm.amount) || 0);
+              var adjAfter = Math.max(0, Math.round((bal - adjAmt) * 100) / 100);
+              var setAdj = function(patch) { setAdjustForm(function(p) { return Object.assign({}, p, patch); }); setAdjustError(''); };
+              return (
                 <div style={{
-                  backgroundColor: '#ecfeff', border: '1px solid #a5f3fc', borderRadius: '12px',
-                  padding: '16px', marginBottom: '16px'
+                  backgroundColor: 'white', borderRadius: '16px', border: '1px solid #e5e7eb',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: isMobile ? '16px' : '20px', marginTop: '16px'
                 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '120px 1fr 1fr', gap: '10px', alignItems: 'end' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#0e7490', marginBottom: '4px' }}>Amount *</label>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={creditForm.amount}
-                        onChange={function(e) { var v = e.target.value.replace(/[^0-9.]/g, ''); setCreditForm(function(p) { return Object.assign({}, p, { amount: v }); }); }}
-                        placeholder="0"
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1.5px solid #a5f3fc', fontSize: '14px', boxSizing: 'border-box' }}
-                      />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 700, color: '#6b7280' }}>
+                    <FaWallet style={{ color: '#06b6d4' }} /> Wallet balance
+                  </div>
+                  <div style={{ fontSize: '28px', fontWeight: 800, color: '#0e7490', margin: '4px 0 14px' }}>{formatCurrency(bal)}</div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button type="button" onClick={function() { setShowAddCredit(true); setShowAdjust(false); }}
+                      style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px 12px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #06b6d4, #0891b2)', color: 'white', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+                      <FaHandHoldingUsd size={12} /> Add credit
+                    </button>
+                    {canAdjustWallet && bal > 0 && (
+                      <button type="button" onClick={function() { setShowAdjust(true); setShowAddCredit(false); setAdjustError(''); }}
+                        style={{ flex: 1, padding: '10px 12px', borderRadius: '10px', background: 'white', border: '1.5px solid #fecaca', color: '#b91c1c', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+                        Deduct / Reset
+                      </button>
+                    )}
+                  </div>
+
+                  <div style={{ marginTop: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Recent activity</span>
+                      {history.length > 4 && (
+                        <button type="button" onClick={function() { setShowWalletHistory(true); }} style={{ border: 'none', background: 'none', color: '#0891b2', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', padding: 0 }}>
+                          View all ({history.length})
+                        </button>
+                      )}
                     </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#0e7490', marginBottom: '4px' }}>Reason</label>
-                      <select
-                        value={creditForm.reason}
-                        onChange={function(e) { setCreditForm(function(p) { return Object.assign({}, p, { reason: e.target.value }); }); }}
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1.5px solid #a5f3fc', fontSize: '13px', boxSizing: 'border-box', backgroundColor: 'white' }}
-                      >
-                        <option value="advance_payment">Advance Payment</option>
-                        <option value="refund">Refund</option>
-                        <option value="compensation">Compensation</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-                    {creditForm.reason === 'advance_payment' && (
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#0e7490', marginBottom: '4px' }}>Paid via</label>
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          {['cash', 'card', 'upi'].map(function(m) {
-                            var active = creditForm.paymentMethod === m;
+                    {walletLoading ? (
+                      <div style={{ textAlign: 'center', padding: '14px', color: '#6b7280', fontSize: '13px' }}>
+                        <FaSpinner style={{ animation: 'spin 1s linear infinite' }} /> Loading wallet...
+                      </div>
+                    ) : history.length === 0 ? (
+                      <p style={{ color: '#9ca3af', fontSize: '13px', padding: '10px 0', margin: 0 }}>No wallet transactions yet</p>
+                    ) : (
+                      history.slice(0, 4).map(function(txn, i) { return <WalletTxnRow key={txn.id || i} row={rowOf(txn)} formatCurrency={formatCurrency} />; })
+                    )}
+                  </div>
+
+                  {showWalletHistory && (
+                    <WalletModal subtitle={(customer?.name || 'Customer') + ' · Wallet ' + formatCurrency(bal)} title="Wallet history" maxWidth="560px" onClose={function() { setShowWalletHistory(false); }}>
+                      {history.map(function(txn, i) { return <WalletTxnRow key={txn.id || i} row={rowOf(txn)} formatCurrency={formatCurrency} wide />; })}
+                    </WalletModal>
+                  )}
+
+                  {showAddCredit && (
+                    <WalletModal subtitle={(customer?.name || 'Customer') + ' · Wallet ' + formatCurrency(bal)} title="Add credit" onClose={closeCredit}>
+                      <div style={{ display: 'grid', gap: '14px' }}>
+                        <div>
+                          <label style={label}>Amount *</label>
+                          <input type="text" inputMode="decimal" autoFocus value={creditForm.amount} placeholder="0" style={input}
+                            onChange={function(e) { var v = e.target.value.replace(/[^0-9.]/g, ''); setCreditForm(function(p) { return Object.assign({}, p, { amount: v }); }); }} />
+                        </div>
+                        <div>
+                          <label style={label}>Reason</label>
+                          <select value={creditForm.reason} style={input}
+                            onChange={function(e) { setCreditForm(function(p) { return Object.assign({}, p, { reason: e.target.value }); }); }}>
+                            <option value="advance_payment">Advance payment</option>
+                            <option value="refund">Refund</option>
+                            <option value="compensation">Compensation</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </div>
+                        {creditForm.reason === 'advance_payment' && (
+                          <div>
+                            <label style={label}>Paid via</label>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              {['cash', 'card', 'upi'].map(function(m) {
+                                var active = creditForm.paymentMethod === m;
+                                return (
+                                  <button key={m} type="button" onClick={function() { setCreditForm(function(p) { return Object.assign({}, p, { paymentMethod: m }); }); }}
+                                    style={{ flex: 1, padding: '9px', borderRadius: '10px', border: '1.5px solid ' + (active ? '#0891b2' : '#e5e7eb'), background: active ? '#ecfeff' : 'white', color: '#0e7490', fontSize: '13px', fontWeight: 700, cursor: 'pointer', textTransform: m === 'upi' ? 'uppercase' : 'capitalize' }}>
+                                    {m}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <div style={{ fontSize: '11.5px', color: '#6b7280', marginTop: '5px' }}>Cash top-ups are added to the open shift&apos;s cash.</div>
+                          </div>
+                        )}
+                        <div>
+                          <label style={label}>Notes</label>
+                          <input type="text" value={creditForm.notes} placeholder="Optional" style={input}
+                            onChange={function(e) { setCreditForm(function(p) { return Object.assign({}, p, { notes: e.target.value }); }); }} />
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button type="button" onClick={closeCredit} style={{ padding: '10px 16px', borderRadius: '10px', border: '1.5px solid #e5e7eb', background: 'white', color: '#374151', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+                          <button type="button" onClick={handleAddCredit} disabled={addingCredit || !(parseFloat(creditForm.amount) > 0)}
+                            style={{ padding: '10px 18px', borderRadius: '10px', border: 'none', background: addingCredit || !(parseFloat(creditForm.amount) > 0) ? '#94a3b8' : 'linear-gradient(135deg, #06b6d4, #0891b2)', color: 'white', fontSize: '13px', fontWeight: 700, cursor: addingCredit ? 'default' : 'pointer' }}>
+                            {addingCredit ? 'Adding…' : 'Add credit'}
+                          </button>
+                        </div>
+                      </div>
+                    </WalletModal>
+                  )}
+
+                  {showAdjust && canAdjustWallet && (
+                    <WalletModal subtitle={(customer?.name || 'Customer') + ' · Wallet ' + formatCurrency(bal)} title="Deduct or reset wallet" onClose={closeAdjust}>
+                      <div style={{ display: 'grid', gap: '14px' }}>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          {[['deduct', 'Deduct an amount'], ['reset', 'Reset to 0']].map(function(m) {
+                            var active = adjustForm.mode === m[0];
                             return (
-                              <button
-                                key={m}
-                                type="button"
-                                onClick={function() { setCreditForm(function(p) { return Object.assign({}, p, { paymentMethod: m }); }); }}
-                                style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1.5px solid ' + (active ? '#0891b2' : '#a5f3fc'), background: active ? '#cffafe' : 'white', color: '#0e7490', fontSize: '12px', fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize' }}
-                              >
-                                {m}
+                              <button key={m[0]} type="button" onClick={function() { setAdj({ mode: m[0] }); }}
+                                style={{ flex: 1, padding: '9px', borderRadius: '10px', border: '1.5px solid ' + (active ? '#dc2626' : '#fecaca'), background: active ? '#fee2e2' : 'white', color: '#b91c1c', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+                                {m[1]}
                               </button>
                             );
                           })}
                         </div>
-                        <div style={{ fontSize: '10px', color: '#64748b', marginTop: '4px' }}>Cash top-ups are added to the open shift drawer.</div>
+                        {adjustForm.mode === 'deduct' && (
+                          <div>
+                            <label style={label}>Amount *</label>
+                            <input type="text" inputMode="decimal" value={adjustForm.amount} placeholder="0" style={input}
+                              onChange={function(e) { setAdj({ amount: e.target.value.replace(/[^0-9.]/g, '') }); }} />
+                          </div>
+                        )}
+                        <div>
+                          <label style={label}>Comment * <span style={{ fontWeight: 500, color: '#9ca3af' }}>(why this change)</span></label>
+                          <input type="text" value={adjustForm.comment} placeholder="e.g. Credit added by mistake / paid back to customer" style={input}
+                            onChange={function(e) { setAdj({ comment: e.target.value }); }} />
+                        </div>
+                        <label style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', fontSize: '13px', color: '#374151', cursor: 'pointer', padding: '10px 12px', borderRadius: '10px', background: '#f9fafb', border: '1px solid #e5e7eb' }}>
+                          <input type="checkbox" checked={adjustForm.cashReturned} onChange={function(e) { setAdj({ cashReturned: e.target.checked }); }} style={{ marginTop: '2px', width: '16px', height: '16px' }} />
+                          <span><b>Cash leaves the drawer</b> — paid back in cash, or a cash top-up was entered by mistake. Also taken out of the open shift&apos;s cash.</span>
+                        </label>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderRadius: '10px', background: '#fef2f2', fontSize: '13.5px', color: '#374151' }}>
+                          <span>Wallet</span>
+                          <span><b>{formatCurrency(bal)}</b> → <b style={{ color: '#b91c1c' }}>{formatCurrency(adjAfter)}</b></span>
+                        </div>
+                        {adjustError && <div style={{ fontSize: '13px', color: '#b91c1c', fontWeight: 600 }}>{adjustError}</div>}
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button type="button" onClick={closeAdjust} style={{ padding: '10px 16px', borderRadius: '10px', border: '1.5px solid #e5e7eb', background: 'white', color: '#374151', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+                          <button type="button" onClick={handleAdjustWallet} disabled={adjusting}
+                            style={{ padding: '10px 18px', borderRadius: '10px', border: 'none', background: adjusting ? '#94a3b8' : '#dc2626', color: 'white', fontSize: '13px', fontWeight: 700, cursor: adjusting ? 'default' : 'pointer' }}>
+                            {adjusting ? 'Saving…' : (adjustForm.mode === 'reset' ? 'Reset wallet to 0' : 'Deduct')}
+                          </button>
+                        </div>
                       </div>
-                    )}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#0e7490', marginBottom: '4px' }}>Notes</label>
-                      <input
-                        type="text"
-                        value={creditForm.notes}
-                        onChange={function(e) { setCreditForm(function(p) { return Object.assign({}, p, { notes: e.target.value }); }); }}
-                        placeholder="Optional notes"
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1.5px solid #a5f3fc', fontSize: '13px', boxSizing: 'border-box' }}
-                      />
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                    <button
-                      onClick={handleAddCredit}
-                      disabled={addingCredit || !creditForm.amount || parseFloat(creditForm.amount) <= 0}
-                      style={{
-                        padding: '8px 16px', borderRadius: '8px', border: 'none',
-                        background: addingCredit || !creditForm.amount ? '#94a3b8' : 'linear-gradient(135deg, #06b6d4, #0891b2)',
-                        color: 'white', fontSize: '13px', fontWeight: '600', cursor: addingCredit ? 'default' : 'pointer'
-                      }}
-                    >
-                      {addingCredit ? 'Adding...' : 'Add Credit'}
-                    </button>
-                    <button
-                      onClick={function() { setShowAddCredit(false); setCreditForm({ amount: '', reason: 'advance_payment', notes: '' }); }}
-                      style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #e5e7eb', background: 'white', color: '#374151', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
+                    </WalletModal>
+                  )}
                 </div>
-              )}
-
-              {walletLoading ? (
-                <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
-                  <FaSpinner style={{ animation: 'spin 1s linear infinite' }} /> Loading wallet...
-                </div>
-              ) : walletData.walletHistory.length === 0 ? (
-                <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: '13px', padding: '20px 0' }}>No wallet transactions yet</p>
-              ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr>
-                        <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', borderBottom: '2px solid #f3f4f6' }}>Date</th>
-                        <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', borderBottom: '2px solid #f3f4f6' }}>Type</th>
-                        <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', borderBottom: '2px solid #f3f4f6' }}>Amount</th>
-                        <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', borderBottom: '2px solid #f3f4f6' }}>Reason</th>
-                        <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', borderBottom: '2px solid #f3f4f6' }}>Balance</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {walletData.walletHistory.map(function(txn, idx) {
-                        // Signed balance effect drives the credit/debit display so
-                        // refunds/re-charges never show with the wrong sign.
-                        var delta = (txn.type === 'redeem' || txn.type === 'restore_redebit' || txn.type === 'adjustment')
-                          ? -Math.abs(Number(txn.amount) || 0)
-                          : (Number(txn.amount) || 0); // credit / refund_reversal / partial_refund_reversal (signed)
-                        var isCredit = delta >= 0;
-                        var typeLabels = {
-                          credit: 'Credit', redeem: 'Redeem', refund_reversal: 'Refund',
-                          partial_refund_reversal: 'Partial Refund', restore_redebit: 'Re-charge'
-                        };
-                        var label = txn.type === 'adjustment'
-                          ? (txn.reason === 'wallet_reset' ? 'Reset' : 'Deduction')
-                          : (typeLabels[txn.type] || (isCredit ? 'Credit' : 'Debit'));
-                        return (
-                          <tr key={txn.id || idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                            <td style={{ padding: '10px 12px', fontSize: '13px', color: '#374151' }}>
-                              {txn.createdAt ? new Date(txn.createdAt).toLocaleDateString() : '-'}
-                            </td>
-                            <td style={{ padding: '10px 12px' }}>
-                              <span style={{
-                                display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '600',
-                                backgroundColor: isCredit ? '#ecfdf5' : '#fef2f2',
-                                color: isCredit ? '#059669' : '#dc2626'
-                              }}>
-                                {(isCredit ? '+ ' : '- ') + label}
-                              </span>
-                            </td>
-                            <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: '13px', fontWeight: '600', color: isCredit ? '#059669' : '#dc2626' }}>
-                              {(isCredit ? '+' : '-')}{formatCurrency(Math.abs(delta))}
-                            </td>
-                            <td style={{ padding: '10px 12px', fontSize: '12px', color: '#6b7280' }}>
-                              {(txn.reason || '').replace(/_/g, ' ')}
-                              {txn.notes ? (' — ' + txn.notes) : ''}
-                            </td>
-                            <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: '13px', fontWeight: '600', color: '#374151' }}>
-                              {formatCurrency(txn.balanceAfter != null ? txn.balanceAfter : 0)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
+              );
+            })()}
 
             {/* Details Card */}
             <div style={{

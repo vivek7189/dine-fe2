@@ -27,21 +27,32 @@ import { DndContext, PointerSensor, TouchSensor, KeyboardSensor, useSensor, useS
 import { SortableContext, useSortable, arrayMove, rectSortingStrategy, verticalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import AvailabilityScheduleEditor from './components/AvailabilityScheduleEditor';
-import { describeSchedule, isScheduleOpen } from '@/lib/menuSchedule';
+import { describeSchedule, itemAvailability } from '@/lib/menuSchedule';
 
 // Timings pill on menu cards: "🕐 12 PM–3 PM", red "Not available now · 12 PM–3 PM" while closed.
-const MenuTimingBadge = ({ item }) => {
-  const s = item && item.availabilitySchedule;
-  const when = describeSchedule(s);
+// Includes the category's timing (e.g. a Breakfast category 7–11 AM) — same rule the POS and backend use.
+const timingForItem = (item, categories) => {
+  if (!item) return null;
+  const cats = Array.isArray(categories) ? categories : [];
+  const cat = cats.find(c => c && (c.id === item.category || c.name === item.category));
+  const sub = item.subCategory ? cats.find(c => c && (c.id === item.subCategory || c.name === item.subCategory)) : null;
+  const own = describeSchedule(item.availabilitySchedule);
+  const catWhen = describeSchedule(sub && sub.availabilitySchedule) || describeSchedule(cat && cat.availabilitySchedule);
+  const when = own || catWhen;
   if (!when) return null;
-  const open = isScheduleOpen(s, new Date());
+  const a = itemAvailability(item, cats, new Date());
+  return { open: a.available, when: a.available ? when : (a.when || when), fromCategory: !own };
+};
+const MenuTimingBadge = ({ item, categories }) => {
+  const t = timingForItem(item, categories);
+  if (!t) return null;
   return (
-    <span title={`Can be ordered: ${when}`} style={{
+    <span title={`Can be ordered: ${t.when}${t.fromCategory ? ' (category timing)' : ''}`} style={{
       fontSize: '10px', fontWeight: '700', padding: '2px 6px', borderRadius: '4px',
-      backgroundColor: open ? '#eef2ff' : '#fee2e2', color: open ? '#3730a3' : '#b91c1c',
-      border: `1px solid ${open ? '#c7d2fe' : '#fca5a5'}`,
+      backgroundColor: t.open ? '#eef2ff' : '#fee2e2', color: t.open ? '#3730a3' : '#b91c1c',
+      border: `1px solid ${t.open ? '#c7d2fe' : '#fca5a5'}`,
     }}>
-      {open ? `🕐 ${when}` : `Not available now · ${when}`}
+      {t.open ? `🕐 ${t.when}` : `Not available now · ${t.when}`}
     </span>
   );
 };
@@ -871,6 +882,7 @@ const CustomDropdown = ({ value, onChange, options, placeholder, style = {} }) =
 
 // Ultra Compact Menu Item Card Component
 const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onToggleHideImage, onGenerateRecipe, generatingRecipeFor, hasRecipe, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, taxInclusiveGlobal, taxLabel = 'Tax', compact, scaleBarcodeFlag, scalePluDigits, globalHideImages = false }) => {
+  const categoryList = categoryMap ? Array.from(categoryMap.values()) : [];
   const { formatCurrency: formatCurrencyHook } = useCurrency();
   const formatCurrency = formatCurrencyProp || formatCurrencyHook;
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -983,7 +995,7 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
               })()}
             </span>
           </div>
-          {item.availabilitySchedule && <div style={{ marginTop: '5px' }}><MenuTimingBadge item={item} /></div>}
+          {timingForItem(item, categoryList) && <div style={{ marginTop: '5px' }}><MenuTimingBadge item={item} categories={categoryList} /></div>}
           {/* Price + actions */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #f3f4f6' }}>
             <span style={{ fontSize: '14px', fontWeight: '700', color: '#111' }}>
@@ -1326,7 +1338,7 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
 
         {/* Stock & Expiry Badges */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
-          <MenuTimingBadge item={item} />
+          <MenuTimingBadge item={item} categories={categoryList} />
           {isStockManaged && (
             <span style={{
               fontSize: '10px', fontWeight: '600',
@@ -1725,9 +1737,9 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
       </div>
 
       {/* Stock, Expiry & Timing Badges */}
-      {(isStockManaged || expiryStatus || describeSchedule(item.availabilitySchedule)) && (
+      {(isStockManaged || expiryStatus || timingForItem(item, categories)) && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px', paddingLeft: '68px' }}>
-          <MenuTimingBadge item={item} />
+          <MenuTimingBadge item={item} categories={categories} />
           {isStockManaged && (
             <span style={{
               fontSize: '9px', fontWeight: '600',
