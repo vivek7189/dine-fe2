@@ -1033,7 +1033,10 @@ var CustomerDetail = function() {
             {/* Wallet Section — compact card; Add Credit and Deduct / Reset open in a popup */}
             {(function() {
               var bal = Number(walletData.walletBalance) || 0;
-              var history = (walletData.walletHistory || []).slice().reverse();
+              // Newest first, whatever order the API returns
+              var history = (walletData.walletHistory || []).slice().sort(function(a, b) {
+                return (Date.parse(b && b.createdAt) || 0) - (Date.parse(a && a.createdAt) || 0);
+              });
               var typeLabels = { credit: 'Credit', redeem: 'Paid with wallet', refund_reversal: 'Refund', partial_refund_reversal: 'Partial refund', restore_redebit: 'Re-charge' };
               var rowOf = function(txn) {
                 var delta = (txn.type === 'redeem' || txn.type === 'restore_redebit' || txn.type === 'adjustment')
