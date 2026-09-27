@@ -127,6 +127,7 @@ export default function useInventory() {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [processingInvoiceOCR, setProcessingInvoiceOCR] = useState(false);
   const [savingInvoice, setSavingInvoice] = useState(false);
+  const [savingGRN, setSavingGRN] = useState(false);
   const invoiceFileInputRef = useRef(null);
   const [selectedPOForGRN, setSelectedPOForGRN] = useState(null);
   const [selectedRequisition, setSelectedRequisition] = useState(null);
@@ -1280,6 +1281,47 @@ export default function useInventory() {
     }
   };
 
+  // Record goods received against a PO (GRN). Accepted qty goes into stock on the server.
+  const handleCreateGRN = async () => {
+    if (!currentRestaurant || savingGRN) return;
+    const { purchaseOrderId, items = [], notes } = grnFormData;
+    if (!purchaseOrderId) { setError('Please select a purchase order'); return; }
+    const lines = items
+      .map(it => {
+        const received = parseFloat(it.receivedQuantity) || 0;
+        const rejected = Math.min(parseFloat(it.rejectedQuantity) || 0, received);
+        return {
+          inventoryItemId: it.inventoryItemId,
+          inventoryItemName: it.inventoryItemName,
+          receivedQuantity: received,
+          rejectedQuantity: rejected,
+          acceptedQuantity: Math.max(0, received - rejected),
+          batchNumber: (it.batchNumber || '').trim(),
+          expiryDate: it.expiryDate || null,
+          qualityStatus: rejected > 0 ? 'damaged' : 'good',
+        };
+      })
+      .filter(it => it.receivedQuantity > 0);
+    if (lines.length === 0) { setError('Enter the quantity received for at least one item'); return; }
+    try {
+      setSavingGRN(true); setError(null);
+      await apiClient.createGRN(currentRestaurant.id, { purchaseOrderId, items: lines, notes: notes || '' });
+      setSuccess('Goods received — stock updated');
+      setShowAddGRNModal(false);
+      setGrnFormData({ purchaseOrderId: '', items: [] });
+      try {
+        const grnsData = await apiClient.getGRNs(currentRestaurant.id);
+        setGrns(grnsData.grns || []);
+      } catch (_) {}
+      loadInventoryData();
+    } catch (error) {
+      console.error('Create GRN error:', error);
+      setError(error.message || 'Failed to record goods received');
+    } finally {
+      setSavingGRN(false);
+    }
+  };
+
   // Modal style helpers
   const getModalStyles = () => ({
     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -1360,7 +1402,7 @@ export default function useInventory() {
     addRecipeInstruction, removeRecipeInstruction, updateRecipeInstruction, handleDeleteRecipe,
     handleEditRecipe, handleUpdateRecipe, handleViewRecipe, handleGenerateRecipeSteps, handleGenerateFullRecipe,
     handleEmailPurchaseOrder, handleUpdateOrderStatus,
-    startVoiceListeningPO, generateReport, handleInvoiceOCR, handleSaveInvoice, savingInvoice, handleDeleteSupplierInvoice,
+    startVoiceListeningPO, generateReport, handleInvoiceOCR, handleSaveInvoice, savingInvoice, handleDeleteSupplierInvoice, handleCreateGRN, savingGRN,
     loadInventoryData, loadSCMData,
     handleParseQuickOrderText, handleParseQuickOrderImage, handleConfirmQuickOrder,
 

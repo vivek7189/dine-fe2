@@ -1266,65 +1266,156 @@ function QuickStockModal(props) {
 }
 
 // ─── Add GRN Modal ───────────────────────────────────────────────────────────
+// Record goods that actually arrived against a purchase order: partial deliveries, rejected
+// (damaged) quantity, and batch # / expiry so perishables rotate first-expiry-first-out.
+// Accepted quantity is added to stock; the PO moves to "partially received" / "received".
+const GRN_OPEN_STATUSES = ['approved', 'sent', 'partially_received'];
+
 function AddGRNModal(props) {
   const {
     showAddGRNModal, setShowAddGRNModal,
     grnFormData, setGrnFormData,
-    purchaseOrders, getModalStyles, getModalContentStyles
+    purchaseOrders, grns = [], handleCreateGRN, savingGRN, error, setError,
+    getModalStyles, getModalContentStyles
   } = props;
 
-  const selectedPO = purchaseOrders.find(po => po.id === grnFormData.purchaseOrderId);
+  // Only POs that can still receive goods. A PO already received with the Receive button has its
+  // stock added — a GRN there would add it twice (the server refuses it too).
+  const openPOs = (purchaseOrders || []).filter(po =>
+    GRN_OPEN_STATUSES.includes(po.status) && !(po.stockReceived && !po.receivedViaGrn));
+
+  // Quantity already received per item on earlier GRNs of this PO (partial deliveries).
+  const receivedBefore = (poId) => {
+    const map = {};
+    grns.filter(g => g.purchaseOrderId === poId).forEach(g => (g.items || []).forEach(i => {
+      if (i.inventoryItemId) map[i.inventoryItemId] = (map[i.inventoryItemId] || 0) + (parseFloat(i.receivedQuantity) || 0);
+    }));
+    return map;
+  };
 
   const handlePOChange = (poId) => {
-    const po = purchaseOrders.find(p => p.id === poId);
+    if (setError) setError(null);
+    const po = openPOs.find(p => p.id === poId);
+    const before = receivedBefore(poId);
     setGrnFormData({
       purchaseOrderId: poId,
-      items: po?.items?.map(item => ({ ...item, receivedQuantity: item.quantity || 0 })) || [],
+      items: (po?.items || []).filter(item => item.inventoryItemId).map(item => {
+        const ordered = parseFloat(item.quantity) || 0;
+        const prev = before[item.inventoryItemId] || 0;
+        const remaining = Math.max(0, Math.round((ordered - prev) * 1000) / 1000);
+        return {
+          inventoryItemId: item.inventoryItemId,
+          inventoryItemName: item.inventoryItemName || item.name || 'Item',
+          unit: item.purchaseUnit || item.unit || '',
+          orderedQuantity: ordered,
+          previouslyReceived: prev,
+          receivedQuantity: remaining,
+          rejectedQuantity: 0,
+          batchNumber: '',
+          expiryDate: '',
+        };
+      }),
       notes: ''
     });
   };
 
+  const setLine = (index, patch) => {
+    const items = [...grnFormData.items];
+    items[index] = { ...items[index], ...patch };
+    setGrnFormData({ ...grnFormData, items });
+  };
+
+  const close = () => { if (!savingGRN) setShowAddGRNModal(false); };
+  const cell = { ...inputStyle, padding: '8px 10px', fontSize: '13px' };
+  const small = { fontSize: '11px', color: '#64748b', marginBottom: '4px', fontWeight: 600 };
+
   return (
-    <ModalShell show={showAddGRNModal} onClose={() => setShowAddGRNModal(false)} title="Add Goods Received Note"
+    <ModalShell show={showAddGRNModal} onClose={close} title="Record Goods Received"
       getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
       footer={
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-          <button style={secondaryBtn} onClick={() => setShowAddGRNModal(false)}>Cancel</button>
-          <button style={primaryBtn} onClick={() => setShowAddGRNModal(false)}><FaSave /> Create GRN</button>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {error && <span style={{ flex: '1 1 200px', fontSize: '12.5px', color: '#b91c1c' }}>{error}</span>}
+          <button style={secondaryBtn} onClick={close} disabled={savingGRN}>Cancel</button>
+          <button style={{ ...primaryBtn, opacity: savingGRN || !grnFormData.purchaseOrderId ? 0.6 : 1 }}
+            disabled={savingGRN || !grnFormData.purchaseOrderId}
+            onClick={() => handleCreateGRN && handleCreateGRN()}>
+            <FaSave /> {savingGRN ? 'Saving…' : 'Save & add to stock'}
+          </button>
         </div>
       }>
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '10px 12px', fontSize: '12.5px', color: '#166534', marginBottom: '14px', lineHeight: 1.5 }}>
+        Enter what actually arrived. <b>Accepted</b> quantity (received − rejected) is added to stock.
+        Short delivery? Save now and record the rest later — the order stays <b>partially received</b>.
+        Add a batch # or expiry for perishables so the oldest stock is used first.
+      </div>
+
       <div style={fieldWrap}>
         <label style={labelStyle}>Purchase Order *</label>
         <FocusSelect value={grnFormData.purchaseOrderId} onChange={e => handlePOChange(e.target.value)}>
           <option value="">Select purchase order</option>
-          {purchaseOrders.filter(po => po.status !== 'cancelled').map(po => (
-            <option key={po.id} value={po.id}>PO #{po.id?.slice(-6)} - {po.supplierName || 'Supplier'}</option>
+          {openPOs.map(po => (
+            <option key={po.id} value={po.id}>
+              {po.orderNumber || `PO #${po.id?.slice(-6)}`} - {po.supplierName || 'Supplier'}{po.status === 'partially_received' ? ' (partly received)' : ''}
+            </option>
           ))}
         </FocusSelect>
+        {openPOs.length === 0 && (
+          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '6px' }}>
+            No orders waiting for delivery. A purchase order must be approved or sent first.
+          </div>
+        )}
       </div>
 
       {grnFormData.items.length > 0 && (
         <div style={{ marginBottom: '16px' }}>
-          <label style={labelStyle}>Items Received</label>
-          {grnFormData.items.map((item, index) => (
-            <div key={index} style={rowStyle}>
-              <span style={{ flex: 2, fontSize: '14px', fontWeight: 500 }}>{item.inventoryItemName || item.name || 'Item'}</span>
-              <span style={{ fontSize: '13px', color: '#6b7280', flex: 1 }}>Ordered: {item.quantity || 0}</span>
-              <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" min="0" placeholder="Received"
-                value={item.receivedQuantity || ''}
-                onChange={e => {
-                  const newItems = [...grnFormData.items];
-                  newItems[index] = { ...newItems[index], receivedQuantity: parseInt(e.target.value) || 0 };
-                  setGrnFormData({ ...grnFormData, items: newItems });
-                }} />
-            </div>
-          ))}
+          <label style={labelStyle}>Items</label>
+          {grnFormData.items.map((item, index) => {
+            const received = parseFloat(item.receivedQuantity) || 0;
+            const rejected = Math.min(parseFloat(item.rejectedQuantity) || 0, received);
+            const accepted = Math.max(0, received - rejected);
+            return (
+              <div key={item.inventoryItemId || index} style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>{item.inventoryItemName}</span>
+                  <span style={{ fontSize: '12px', color: '#64748b' }}>
+                    Ordered {fmtQty(item.orderedQuantity)} {item.unit}
+                    {item.previouslyReceived > 0 && <> · already received {fmtQty(item.previouslyReceived)}</>}
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '8px' }}>
+                  <div>
+                    <div style={small}>Received</div>
+                    <FocusInput style={cell} type="number" value={item.receivedQuantity}
+                      onChange={e => setLine(index, { receivedQuantity: e.target.value })} />
+                  </div>
+                  <div>
+                    <div style={small}>Rejected</div>
+                    <FocusInput style={cell} type="number" value={item.rejectedQuantity}
+                      onChange={e => setLine(index, { rejectedQuantity: e.target.value })} />
+                  </div>
+                  <div>
+                    <div style={small}>Batch # (optional)</div>
+                    <FocusInput style={cell} value={item.batchNumber}
+                      onChange={e => setLine(index, { batchNumber: e.target.value })} />
+                  </div>
+                  <div>
+                    <div style={small}>Expiry (optional)</div>
+                    <FocusInput style={cell} type="date" value={item.expiryDate}
+                      onChange={e => setLine(index, { expiryDate: e.target.value })} />
+                  </div>
+                </div>
+                <div style={{ fontSize: '12px', color: accepted > 0 ? '#047857' : '#94a3b8', marginTop: '6px' }}>
+                  {accepted > 0 ? `+${fmtQty(accepted)} ${item.unit} will be added to stock` : 'Nothing added for this item'}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
       <div style={fieldWrap}>
         <label style={labelStyle}>Notes</label>
-        <FocusTextarea value={grnFormData.notes || ''} onChange={e => setGrnFormData({ ...grnFormData, notes: e.target.value })} placeholder="Notes" />
+        <FocusTextarea value={grnFormData.notes || ''} onChange={e => setGrnFormData({ ...grnFormData, notes: e.target.value })} placeholder="e.g. 2 packets damaged, rest short — coming tomorrow" />
       </div>
     </ModalShell>
   );
@@ -2720,7 +2811,7 @@ function StockHistoryModal({ showStockHistoryModal, setShowStockHistoryModal, st
                   return (
                     <tr key={batch._id || batch.id || i} style={{ borderBottom: '1px solid #f3f4f6' }}>
                       <td style={{ padding: '8px 10px', fontWeight: 600 }}>{batches.length - i}</td>
-                      <td style={{ padding: '8px 10px' }}>{fmtShortDate(batch.createdAt)}</td>
+                      <td style={{ padding: '8px 10px' }}>{fmtShortDate(batch.createdAt)}{batch.batchNumber && <div style={{ fontSize: '11px', color: '#64748b' }}>#{batch.batchNumber}</div>}</td>
                       <td style={{ padding: '8px 10px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                           <span style={{ fontWeight: 700 }}>{batch.costPerUnit ? formatCurrency(batch.costPerUnit) : '—'}</span>
