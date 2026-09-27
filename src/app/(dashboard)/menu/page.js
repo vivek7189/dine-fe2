@@ -2560,10 +2560,10 @@ const MenuManagement = () => {
   // Permission gating
   const menuUserData = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
   const menuPageAccess = menuUserData.pageAccess;
-  const canAddMenuItem = canPerform(menuUserData, menuPageAccess, 'menu', 'add');
-  const canEditMenuItem = canPerform(menuUserData, menuPageAccess, 'menu', 'update');
-  const canDeleteMenuItem = canPerform(menuUserData, menuPageAccess, 'menu', 'delete');
-  const canMarkOutOfStock = canPerform(menuUserData, menuPageAccess, 'menu', 'markOutOfStock');
+  const canAddMenuItem = canPerform(menuUserData, menuPageAccess, 'menu', 'add', currentRestaurant?.posSettings?.waiterAppConfig);
+  const canEditMenuItem = canPerform(menuUserData, menuPageAccess, 'menu', 'update', currentRestaurant?.posSettings?.waiterAppConfig);
+  const canDeleteMenuItem = canPerform(menuUserData, menuPageAccess, 'menu', 'delete', currentRestaurant?.posSettings?.waiterAppConfig);
+  const canMarkOutOfStock = canPerform(menuUserData, menuPageAccess, 'menu', 'markOutOfStock', currentRestaurant?.posSettings?.waiterAppConfig);
   const isOwnerOrAdmin = ['owner', 'admin'].includes(menuUserData.role);
 
   const [formData, setFormData] = useState({

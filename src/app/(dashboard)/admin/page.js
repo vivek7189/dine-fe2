@@ -15568,6 +15568,42 @@ const Admin = () => {
             ))}
           </div>
 
+          {/* Menu permissions for waiters (enforced by the backend) */}
+          <div style={{ background: '#fff', border: '1px solid #f3f4f6', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Menu Permissions</span>
+            <div style={{ fontSize: '11.5px', color: '#6b7280', marginBottom: '12px', lineHeight: 1.5 }}>
+              What waiters, captains and kitchen staff can change on the menu (app and web). They can always view it and take orders.
+              Cashiers, managers and owners are not affected. A staff member&apos;s own permissions in <b>Staff</b> override these.
+            </div>
+            {[
+              { key: 'menuCanMarkOutOfStock', label: 'Mark out of stock / hide', desc: 'Hide an item or mark it out of stock', defaultOn: true },
+              { key: 'menuCanEdit', label: 'Edit items', desc: 'Change price, name, details of an item', defaultOn: false },
+              { key: 'menuCanAdd', label: 'Add items', desc: 'Create new menu items', defaultOn: false },
+              { key: 'menuCanDelete', label: 'Delete items', desc: 'Remove items from the menu', defaultOn: false },
+            ].map(item => {
+              const on = item.defaultOn ? posSettings.waiterAppConfig?.[item.key] !== false : posSettings.waiterAppConfig?.[item.key] === true;
+              return (
+                <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setPosSettings(prev => ({
+                      ...prev,
+                      waiterAppConfig: { ...(prev.waiterAppConfig || {}), [item.key]: !on }
+                    }))}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                    aria-label={item.label}
+                  >
+                    {on ? <FaToggleOn size={26} color="#6366f1" /> : <FaToggleOff size={26} color="#d1d5db" />}
+                  </button>
+                  <div>
+                    <span style={{ fontSize: '13px', color: '#374151' }}>{item.label}</span>
+                    <div style={{ fontSize: '11px', color: '#9ca3af' }}>{item.desc}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
           {/* More Tab Items */}
           <div style={{ background: '#fff', border: '1px solid #f3f4f6', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
             <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '12px' }}>More Tab Items</span>

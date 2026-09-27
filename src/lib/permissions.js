@@ -92,9 +92,25 @@ export function resolveFeaturePermissions(pageAccess, feature) {
  * Check if a user can perform a specific operation on a feature.
  * Owner/admin always can. All other roles checked against pageAccess.
  */
-export function canPerform(user, pageAccess, feature, operation) {
+// Floor / waiter-app roles: a plain `menu: true` means "use the menu"; what they may change comes from
+// Admin → Waiter App → Menu permissions (restaurant.posSettings.waiterAppConfig). Same rule as the backend.
+export const WAITER_APP_MENU_ROLES = ['waiter', 'captain', 'employee', 'chef', 'cook', 'kitchen', 'parcel', 'delivery', 'steward', 'runner', 'helper'];
+
+export function canPerform(user, pageAccess, feature, operation, waiterAppConfig) {
   const role = user?.role?.toLowerCase();
   if (role === 'owner' || role === 'admin') return true;
+
+  if (feature === 'menu' && WAITER_APP_MENU_ROLES.includes(role)
+      && !(pageAccess?.menu && typeof pageAccess.menu === 'object')) {
+    if (!pageAccess?.menu) return false;
+    const cfg = waiterAppConfig || {};
+    if (operation === 'read') return true;
+    if (operation === 'markOutOfStock') return cfg.menuCanMarkOutOfStock !== false;
+    if (operation === 'update') return cfg.menuCanEdit === true;
+    if (operation === 'add') return cfg.menuCanAdd === true;
+    if (operation === 'delete') return cfg.menuCanDelete === true;
+    return false;
+  }
 
   // Legacy standalone boolean fallbacks
   if (feature === 'orders' && operation === 'completeBill' && pageAccess?.completeBill !== undefined) {
