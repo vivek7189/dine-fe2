@@ -983,6 +983,7 @@ const MenuItemCardBase = ({ item, categoryMap, onEdit, onDelete, onToggleAvailab
               })()}
             </span>
           </div>
+          {item.availabilitySchedule && <div style={{ marginTop: '5px' }}><MenuTimingBadge item={item} /></div>}
           {/* Price + actions */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #f3f4f6' }}>
             <span style={{ fontSize: '14px', fontWeight: '700', color: '#111' }}>
