@@ -1283,6 +1283,8 @@ const Login = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            // Signed Firebase ID token — the backend verifies it instead of trusting uid/phone.
+            idToken: await result.user.getIdToken(),
             uid: result.user.uid,
             phoneNumber: result.user.phoneNumber,
             email: result.user.email,
@@ -1800,6 +1802,8 @@ const Login = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            // Signed Firebase ID token — the backend verifies it instead of trusting uid/email.
+            idToken: await result.user.getIdToken(),
             uid: result.user.uid,
             email: result.user.email,
             name: result.user.displayName,

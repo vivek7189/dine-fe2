@@ -201,6 +201,7 @@ export default function DesktopAuthPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          idToken: await result.user.getIdToken(), // verified by the backend
           uid: result.user.uid,
           phoneNumber: result.user.phoneNumber,
           email: result.user.email,
@@ -240,6 +241,7 @@ export default function DesktopAuthPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          idToken: await result.user.getIdToken(), // verified by the backend
           uid: result.user.uid,
           email: result.user.email,
           name: result.user.displayName,
