@@ -4861,7 +4861,8 @@ const MenuManagement = () => {
                 {action.icon} {action.label}
               </button>
             ))}
-            {menuItems.filter(item => item.status !== 'deleted').length > 0 && (
+            {/* Wiping the whole menu: owner / admin only (the server enforces the same). */}
+            {['owner', 'co-owner', 'admin'].includes(String(menuUserData.role || '').toLowerCase()) && menuItems.filter(item => item.status !== 'deleted').length > 0 && (
               <button
                 onClick={handleBulkDeleteClick}
                 disabled={operationLoading}
