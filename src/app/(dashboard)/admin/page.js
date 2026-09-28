@@ -3869,7 +3869,6 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
       if (userData) {
         const user = JSON.parse(userData);
         setIsOwner(user.role === 'owner');
-        setCurrentUserId(user.id || user.userId || user._id || null);
       }
     } catch (_) {}
     let cancelled = false;
@@ -4944,10 +4943,10 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                           key={opt.value}
                           onClick={() => {
                             setPrintSettings(prev => ({ ...prev, printLanguage: opt.value }));
-                            if ((opt.value === 'ar' || opt.value === 'dual') && !generatingArabicNames) {
+                            if ((opt.value === 'ar' || opt.value === 'dual') && !generatingArabicNames && selectedRestaurant?.id) {
                               setGeneratingArabicNames(true);
                               setArabicNamesStatus(null);
-                              apiClient.generateArabicNames(restaurantId).then(resp => {
+                              apiClient.generateArabicNames(selectedRestaurant.id).then(resp => {
                                 setArabicNamesStatus(resp.success ? (resp.updatedCount > 0 ? `✓ Generated Arabic names for ${resp.updatedCount} menu items` : '✓ All menu items already have Arabic names') : 'Failed to generate Arabic names');
                               }).catch(() => {
                                 setArabicNamesStatus('Failed to generate Arabic names');
@@ -5790,6 +5789,9 @@ const Admin = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [restaurants, setRestaurants] = useState([]);
   const [staff, setStaff] = useState([]);
+  // Floors for the captain-assignment section of a staff member (was never declared here →
+  // opening a captain crashed the whole page with "floors is not defined").
+  const [floors, setFloors] = useState([]);
   // Derive unique roles from staff + predefined roles (supports dynamically added roles)
   const allRoles = useMemo(() => {
     const base = ['owner', 'manager', 'admin', 'waiter', 'cashier', 'employee'];
@@ -5833,6 +5835,7 @@ const Admin = () => {
   const [feedbackForms, setFeedbackForms] = useState([]);
   const [loadingFeedbackSettings, setLoadingFeedbackSettings] = useState(false);
   const [savingFeedbackSettings, setSavingFeedbackSettings] = useState(false);
+  const [feedbackSaveMsg, setFeedbackSaveMsg] = useState(null);
   const [loadingSubRestaurants, setLoadingSubRestaurants] = useState(false);
   const [showAddSubRestaurantModal, setShowAddSubRestaurantModal] = useState(false);
   const [editingSubRestaurant, setEditingSubRestaurant] = useState(null);
@@ -6867,6 +6870,15 @@ const Admin = () => {
     }
   };
 
+  // Viewing a captain shows their assigned floors by name → make sure floors are loaded.
+  useEffect(() => {
+    if (selectedStaff?.role !== 'captain' || !selectedRestaurant?.id || floors.length > 0) return;
+    apiClient.getFloors(selectedRestaurant.id).then(res => {
+      setFloors(res?.floors || (Array.isArray(res) ? res : []));
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStaff?.id, selectedStaff?.role, selectedRestaurant?.id]);
+
   const handleEditStaff = () => {
     if (!selectedStaff) return;
     setEditStaffForm({
@@ -6883,7 +6895,7 @@ const Admin = () => {
     // Ensure floors are loaded for captain assignment UI
     if ((selectedStaff.role === 'captain' || !floors || floors.length === 0) && selectedRestaurant?.id) {
       apiClient.getFloors(selectedRestaurant.id).then(res => {
-        setFloors(res?.floors || res || []);
+        setFloors(res?.floors || (Array.isArray(res) ? res : []));
       }).catch(() => {});
     }
   };
@@ -7072,11 +7084,11 @@ const Admin = () => {
     setSavingFeedbackSettings(true);
     try {
       await apiClient.request(`/api/restaurants/${selectedRestaurant.id}`, { method: 'PUT', body: JSON.stringify({ feedbackSettings }), headers: { 'Content-Type': 'application/json' } });
-      showNotification?.('Feedback settings saved', 'success');
+      setFeedbackSaveMsg({ type: 'success', text: 'Feedback settings saved' });
     } catch (err) {
       console.error('Error saving feedback settings:', err);
-      showNotification?.('Failed to save settings', 'error');
-    } finally { setSavingFeedbackSettings(false); }
+      setFeedbackSaveMsg({ type: 'error', text: 'Failed to save settings' });
+    } finally { setSavingFeedbackSettings(false); setTimeout(() => setFeedbackSaveMsg(null), 3000); }
   };
 
   const filteredRestaurants = restaurants.filter(restaurant =>
@@ -15323,6 +15335,9 @@ const Admin = () => {
               <button onClick={handleSaveFeedbackSettings} disabled={savingFeedbackSettings} style={{ alignSelf: 'flex-start', padding: '10px 24px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white', fontSize: '14px', fontWeight: 600, cursor: 'pointer', opacity: savingFeedbackSettings ? 0.6 : 1 }}>
                 {savingFeedbackSettings ? 'Saving...' : 'Save Settings'}
               </button>
+              {feedbackSaveMsg && (
+                <span style={{ fontSize: '13px', fontWeight: 600, color: feedbackSaveMsg.type === 'success' ? '#059669' : '#dc2626' }}>{feedbackSaveMsg.text}</span>
+              )}
             </div>
           )}
         </div>
