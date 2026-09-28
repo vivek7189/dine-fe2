@@ -3,13 +3,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import apiClient from '../../../lib/api';
 import {
-  FaCalendarAlt, FaUsers, FaClock, FaUmbrellaBeach, FaCog, FaSpinner, FaStore
+  FaCalendarAlt, FaUsers, FaClock, FaCog, FaSpinner, FaStore, FaInbox, FaChartBar
 } from 'react-icons/fa';
 import { DEFAULT_SHIFT_SETTINGS, getWeekStart, getWeekEnd, formatDateISO } from '../../../components/shifts/constants';
 import WeeklyScheduleGrid from '../../../components/shifts/WeeklyScheduleGrid';
 import TeamTab from '../../../components/shifts/TeamTab';
 import AvailabilityTab from '../../../components/shifts/AvailabilityTab';
-import TimeOffTab from '../../../components/shifts/TimeOffTab';
+import RequestsTab from '../../../components/shifts/RequestsTab';
+import HoursTab from '../../../components/shifts/HoursTab';
 import SettingsTab from '../../../components/shifts/SettingsTab';
 
 export default function ShiftsPage() {
@@ -22,6 +23,14 @@ export default function ShiftsPage() {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [availability, setAvailability] = useState({}); // staffId → { availability, unavailableDates }
+
+  const loadAvailability = useCallback(async () => {
+    if (!restaurantId) return;
+    try { const r = await apiClient.getAllStaffAvailability(restaurantId); setAvailability(r?.availability || {}); }
+    catch { setAvailability({}); }
+  }, [restaurantId]);
+  useEffect(() => { loadAvailability(); }, [loadAvailability]);
 
   // Responsive
   useEffect(() => {
@@ -103,7 +112,8 @@ export default function ShiftsPage() {
     { id: 'schedule', label: 'Schedule', mobileLabel: 'Schedule', icon: FaCalendarAlt },
     { id: 'team', label: 'Team', mobileLabel: 'Team', icon: FaUsers },
     { id: 'availability', label: 'Availability', mobileLabel: 'Avail', icon: FaClock },
-    { id: 'time-off', label: 'Time Off', mobileLabel: 'Off', icon: FaUmbrellaBeach },
+    { id: 'requests', label: 'Requests', mobileLabel: 'Requests', icon: FaInbox },
+    { id: 'hours', label: 'Hours', mobileLabel: 'Hours', icon: FaChartBar },
     { id: 'settings', label: 'Settings', mobileLabel: 'Settings', icon: FaCog },
   ];
 
@@ -202,7 +212,16 @@ export default function ShiftsPage() {
               onReloadShifts={loadShifts}
               shiftSettings={shiftSettings}
               isMobile={isMobile}
+              availability={availability}
             />
+          )}
+
+          {activeTab === 'requests' && (
+            <RequestsTab restaurantId={restaurantId} onChanged={loadShifts} isMobile={isMobile} />
+          )}
+
+          {activeTab === 'hours' && (
+            <HoursTab restaurantId={restaurantId} isMobile={isMobile} />
           )}
 
           {activeTab === 'team' && (
@@ -219,16 +238,7 @@ export default function ShiftsPage() {
               restaurantId={restaurantId}
               staff={staff}
               isMobile={isMobile}
-            />
-          )}
-
-          {activeTab === 'time-off' && (
-            <TimeOffTab
-              restaurantId={restaurantId}
-              staff={staff}
-              shiftSettings={shiftSettings}
-              setShiftSettings={setShiftSettings}
-              isMobile={isMobile}
+              onAvailabilityChanged={loadAvailability}
             />
           )}
 
@@ -238,6 +248,7 @@ export default function ShiftsPage() {
               shiftSettings={shiftSettings}
               setShiftSettings={setShiftSettings}
               isMobile={isMobile}
+              staff={staff}
             />
           )}
         </>

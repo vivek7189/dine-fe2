@@ -10,7 +10,7 @@ const DEFAULT_AVAILABILITY = DAYS_FULL.reduce((acc, day) => {
   return acc;
 }, {});
 
-export default function AvailabilityTab({ restaurantId, staff, isMobile }) {
+export default function AvailabilityTab({ restaurantId, staff, isMobile, onAvailabilityChanged }) {
   const [availability, setAvailability] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(null);
@@ -21,21 +21,41 @@ export default function AvailabilityTab({ restaurantId, staff, isMobile }) {
 
   useEffect(() => {
     loadAvailability();
-  }, [staff]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [staff, restaurantId]);
 
+  // One call for everyone (was one per person, and read the wrong field so saved values never showed).
+  const [unavailable, setUnavailable] = useState({}); // staffId → ['YYYY-MM-DD']
   const loadAvailability = async () => {
+    if (!restaurantId) return;
     setLoading(true);
     const avail = {};
-    for (const member of activeStaff) {
-      try {
-        const res = await apiClient.getStaffAvailability(member.id);
-        avail[member.id] = res.preferences || res.availability || DEFAULT_AVAILABILITY;
-      } catch {
-        avail[member.id] = { ...DEFAULT_AVAILABILITY };
+    const off = {};
+    try {
+      const res = await apiClient.getAllStaffAvailability(restaurantId);
+      const all = res?.availability || {};
+      for (const member of activeStaff) {
+        avail[member.id] = { ...DEFAULT_AVAILABILITY, ...(all[member.id]?.availability || {}) };
+        off[member.id] = all[member.id]?.unavailableDates || [];
       }
+    } catch {
+      for (const member of activeStaff) { avail[member.id] = { ...DEFAULT_AVAILABILITY }; off[member.id] = []; }
     }
     setAvailability(avail);
+    setUnavailable(off);
     setLoading(false);
+    if (onAvailabilityChanged) onAvailabilityChanged();
+  };
+
+  const saveDates = async (staffId, dates) => {
+    setSaving(staffId);
+    try {
+      await apiClient.updateStaffAvailability(staffId, { unavailableDates: dates });
+      setUnavailable(prev => ({ ...prev, [staffId]: dates }));
+      if (onAvailabilityChanged) onAvailabilityChanged();
+    } catch (err) {
+      alert(err?.message || 'Could not save');
+    } finally { setSaving(null); }
   };
 
   const openEdit = (staffId, day) => {
@@ -50,9 +70,10 @@ export default function AvailabilityTab({ restaurantId, staff, isMobile }) {
     setSaving(staffId);
     try {
       const updated = { ...(availability[staffId] || DEFAULT_AVAILABILITY), [day]: editForm };
-      await apiClient.updateStaffAvailability(staffId, updated);
+      await apiClient.updateStaffAvailability(staffId, { availability: updated });
       setAvailability(prev => ({ ...prev, [staffId]: updated }));
       setEditingCell(null);
+      if (onAvailabilityChanged) onAvailabilityChanged();
     } catch (err) {
       console.error('Error saving availability:', err);
     } finally {
@@ -68,6 +89,27 @@ export default function AvailabilityTab({ restaurantId, staff, isMobile }) {
       </div>
     );
   }
+
+  const todayKey = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
+  // "Can't work on" dates: chips (× removes) + a date picker to add.
+  const renderDates = (member) => {
+    const dates = (unavailable[member.id] || []).filter(d => d >= todayKey);
+    return (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center' }}>
+        {dates.map(d => (
+          <span key={d} style={{ padding: '3px 8px', borderRadius: '10px', background: '#fee2e2', color: '#991b1b', fontSize: '11px', fontWeight: 600, display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
+            {new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+            <button type="button" disabled={saving === member.id} onClick={() => saveDates(member.id, (unavailable[member.id] || []).filter(x => x !== d))}
+              style={{ border: 'none', background: 'none', color: '#991b1b', cursor: 'pointer', padding: 0, fontSize: '12px' }}>×</button>
+          </span>
+        ))}
+        <input type="date" min={todayKey} value="" disabled={saving === member.id}
+          onChange={e => { const v = e.target.value; if (v && !(unavailable[member.id] || []).includes(v)) saveDates(member.id, [...(unavailable[member.id] || []), v].sort()); }}
+          title="Add a date they can't work"
+          style={{ padding: '3px 6px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '11px', color: '#6b7280', width: '120px' }} />
+      </div>
+    );
+  };
 
   // Mobile: list view
   if (isMobile) {
@@ -112,6 +154,10 @@ export default function AvailabilityTab({ restaurantId, staff, isMobile }) {
                     </button>
                   );
                 })}
+              </div>
+              <div style={{ marginTop: '10px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#6b7280', marginBottom: '4px' }}>CAN&apos;T WORK ON</div>
+                {renderDates(member)}
               </div>
             </div>
           );
@@ -222,6 +268,7 @@ export default function AvailabilityTab({ restaurantId, staff, isMobile }) {
                   minWidth: '100px'
                 }}>{day}</th>
               ))}
+              <th style={{ padding: '14px 12px', textAlign: 'left', fontSize: '13px', fontWeight: 700, color: '#374151', borderBottom: '1px solid #f1f5f9', backgroundColor: '#fafafa', minWidth: '200px' }}>Can&apos;t work on</th>
             </tr>
           </thead>
           <tbody>
@@ -276,6 +323,7 @@ export default function AvailabilityTab({ restaurantId, staff, isMobile }) {
                       </td>
                     );
                   })}
+                  <td style={{ padding: '8px', borderBottom: '1px solid #f9fafb' }}>{renderDates(member)}</td>
                 </tr>
               );
             })}

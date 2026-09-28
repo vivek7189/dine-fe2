@@ -2555,11 +2555,39 @@ class ApiClient {
     return this.request(`/api/shift-scheduling/availability/${staffId}`);
   }
 
-  async updateStaffAvailability(staffId, preferences) {
-    return this.request(`/api/shift-scheduling/availability/${staffId}`, {
-      method: 'POST',
-      body: { preferences },
-    });
+  // payload = { availability, unavailableDates, preferences } (a bare object is treated as legacy preferences)
+  async updateStaffAvailability(staffId, payload) {
+    const body = payload && (payload.availability !== undefined || payload.unavailableDates !== undefined || payload.preferences !== undefined)
+      ? payload : { preferences: payload };
+    return this.request(`/api/shift-scheduling/availability/${staffId}`, { method: 'POST', body });
+  }
+
+  async getAllStaffAvailability(restaurantId) {
+    return this.request(`/api/shift-scheduling/availability-all/${restaurantId}`);
+  }
+
+  // Publish every draft in the range and send each staff member their schedule.
+  async publishShifts(restaurantId, startDate, endDate, notify = true) {
+    return this.request(`/api/shift-scheduling/shifts/${restaurantId}/publish`, { method: 'POST', body: { startDate, endDate, notify } });
+  }
+
+  async getMyShifts(restaurantId, startDate, endDate) {
+    const q = new URLSearchParams();
+    if (startDate) q.append('startDate', startDate);
+    if (endDate) q.append('endDate', endDate);
+    return this.request(`/api/shift-scheduling/my-shifts/${restaurantId}${q.toString() ? '?' + q.toString() : ''}`);
+  }
+
+  async decideShiftClaim(restaurantId, shiftId, staffId, approve) {
+    return this.request(`/api/shift-scheduling/shifts/${restaurantId}/${shiftId}/claims/${staffId}/decide`, { method: 'POST', body: { approve } });
+  }
+
+  async decideShiftSwap(restaurantId, shiftId, approve) {
+    return this.request(`/api/shift-scheduling/shifts/${restaurantId}/${shiftId}/swap/decide`, { method: 'POST', body: { approve } });
+  }
+
+  async getShiftHoursReport(restaurantId, startDate, endDate) {
+    return this.request(`/api/shift-scheduling/report/${restaurantId}?startDate=${startDate}&endDate=${endDate}`);
   }
 
   async getShiftSettings(restaurantId) {

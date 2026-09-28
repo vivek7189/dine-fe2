@@ -3,16 +3,19 @@
 import { useState, useMemo } from 'react';
 import {
   FaChevronLeft, FaChevronRight, FaCopy, FaPaperPlane, FaRobot, FaPlus,
-  FaTrash, FaEdit, FaSpinner, FaCalendarAlt, FaClock
+  FaTrash, FaEdit, FaSpinner, FaCalendarAlt, FaClock, FaUserPlus, FaCheckCircle, FaExclamationTriangle
 } from 'react-icons/fa';
 import apiClient from '../../lib/api';
-import { getRoleColor, DAYS_OF_WEEK, formatTime, getWeekStart, getWeekEnd, getWeekDates, formatDateISO, isSameDay } from './constants';
+import { getRoleColor, DAYS_OF_WEEK, formatTime, getWeekStart, getWeekEnd, getWeekDates, formatDateISO, isSameDay, shiftMatchesType, availabilityOn, titleCase } from './constants';
 import ShiftFormModal from './ShiftFormModal';
 
 export default function WeeklyScheduleGrid({
   restaurantId, staff, shifts, setShifts, currentWeek, setCurrentWeek,
-  onReloadShifts, shiftSettings, isMobile
+  onReloadShifts, shiftSettings, isMobile, availability = {}
 }) {
+  const [notice, setNotice] = useState(null); // { type, text }
+  const [prefill, setPrefill] = useState(null);
+  const showNotice = (type, text) => { setNotice({ type, text }); setTimeout(() => setNotice(null), 6000); };
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingShift, setEditingShift] = useState(null);
   const [modalDate, setModalDate] = useState(null);
@@ -35,7 +38,7 @@ export default function WeeklyScheduleGrid({
     const map = {};
     (shifts || []).forEach(s => {
       const dateKey = formatDateISO(s.date);
-      const key = `${s.staffId}_${dateKey}`;
+      const key = `${s.staffId || 'OPEN'}_${dateKey}`;
       if (!map[key]) map[key] = [];
       map[key].push(s);
     });
@@ -43,12 +46,35 @@ export default function WeeklyScheduleGrid({
   }, [shifts]);
 
   const draftCount = (shifts || []).filter(s => s.status === 'draft').length;
-  const totalHours = (shifts || []).reduce((sum, s) => {
+  const totalHours = (shifts || []).filter(s => s.staffId).reduce((sum, s) => {
     if (!s.startTime || !s.endTime) return sum;
     const [sh, sm] = s.startTime.split(':').map(Number);
     const [eh, em] = s.endTime.split(':').map(Number);
-    return sum + (eh + em / 60) - (sh + sm / 60) - ((s.breakMinutes || 0) / 60);
+    let h = (eh + em / 60) - (sh + sm / 60);
+    if (h <= 0) h += 24; // past midnight
+    return sum + h - ((s.breakMinutes || 0) / 60);
   }, 0);
+  const pendingRequests = (shifts || []).reduce((n, s) => n + (s.claims || []).filter(c => c.status === 'pending').length + (s.swapRequest?.status === 'pending_approval' ? 1 : 0), 0);
+
+  // Coverage: for every shift type × day, staff needed per role vs assigned (drafts included).
+  const shiftTypes = (shiftSettings?.shiftTypes || []).filter(t => t && t.name);
+  const coverageFor = (dateKey, type) => {
+    const onType = (shifts || []).filter(s => formatDateISO(s.date) === dateKey && s.staffId && shiftMatchesType(s, type));
+    const req = type.requiredRoles || {};
+    const roles = Object.keys(req).filter(r => req[r] > 0);
+    const rows = roles.map(r => {
+      const have = onType.filter(s => String(s.role || '').toLowerCase() === r).length;
+      return { role: r, need: req[r], have, short: Math.max(0, req[r] - have) };
+    });
+    const needTotal = Number(type.requiredEmployees) || rows.reduce((a, x) => a + x.need, 0);
+    return { rows, needTotal, haveTotal: onType.length, short: rows.reduce((a, x) => a + x.short, 0) + (roles.length ? 0 : Math.max(0, needTotal - onType.length)) };
+  };
+  const weekShort = shiftTypes.length ? weekDates.reduce((n, d) => n + shiftTypes.reduce((m, t) => m + coverageFor(formatDateISO(d), t).short, 0), 0) : 0;
+  const openGap = (date, type, role) => {
+    setEditingShift(null); setModalStaffId(null); setModalDate(date);
+    setPrefill({ shiftType: type, role, isOpen: false });
+    setShowAddModal(true);
+  };
 
   // Navigate week
   const navigateWeek = (dir) => {
@@ -61,6 +87,7 @@ export default function WeeklyScheduleGrid({
 
   // Add shift
   const handleCellClick = (staffId, date) => {
+    setPrefill(null);
     setEditingShift(null);
     setModalStaffId(staffId);
     setModalDate(date);
@@ -68,6 +95,7 @@ export default function WeeklyScheduleGrid({
   };
 
   const handleAddClick = () => {
+    setPrefill(null);
     setEditingShift(null);
     setModalStaffId(null);
     setModalDate(weekDates[0]);
@@ -82,37 +110,29 @@ export default function WeeklyScheduleGrid({
   };
 
   const handleSaveShift = async (formData) => {
-    if (formData.id) {
-      // Edit: delete old + create new (API may not have update endpoint)
-      try {
-        await apiClient.deleteShift(formData.id);
-      } catch {}
-      await apiClient.createShift(restaurantId, {
-        staffId: formData.staffId,
-        date: formData.date,
-        startTime: formData.startTime,
-        endTime: formData.endTime,
-        breakMinutes: formData.breakMinutes,
-        role: formData.role,
-        notes: formData.notes,
-        status: formData.status,
-      });
-    } else {
-      await apiClient.createShift(restaurantId, {
-        staffId: formData.staffId,
-        date: formData.date,
-        startTime: formData.startTime,
-        endTime: formData.endTime,
-        breakMinutes: formData.breakMinutes,
-        role: formData.role,
-        notes: formData.notes,
-        status: formData.status,
-      });
-    }
+    // One call: the server updates in place when `id` is set (was delete + create, which lost the
+    // history and would notify staff twice). Errors (e.g. overlapping shift) surface in the form.
+    await apiClient.createShift(restaurantId, {
+      id: formData.id || undefined,
+      staffId: formData.isOpen ? null : formData.staffId,
+      isOpen: !!formData.isOpen,
+      date: formData.date,
+      startTime: formData.startTime,
+      endTime: formData.endTime,
+      breakMinutes: formData.breakMinutes,
+      role: formData.role,
+      notes: formData.notes,
+      status: formData.status,
+      shiftName: formData.shiftName || null,
+      color: formData.color || null,
+    });
+    setPrefill(null);
     onReloadShifts();
   };
 
   const handleDeleteShift = async (shiftId) => {
+    const sh = (shifts || []).find(x => (x.id || x._id) === shiftId);
+    if (sh && sh.staffId && sh.status !== 'draft' && !confirm(`Delete this shift? ${sh.staffName || 'The staff member'} will be told it's cancelled.`)) return;
     try {
       await apiClient.deleteShift(shiftId);
       onReloadShifts();
@@ -136,20 +156,24 @@ export default function WeeklyScheduleGrid({
         return;
       }
       const mapped = prevShifts.map(s => {
-        const oldDate = new Date(s.date);
-        oldDate.setDate(oldDate.getDate() + 7);
+        const [yy, mm, dd] = formatDateISO(s.date).split('-').map(Number);
+        const oldDate = new Date(yy, mm - 1, dd + 7);
         return {
-          staffId: s.staffId,
+          staffId: s.isOpen ? null : s.staffId,
+          isOpen: !!s.isOpen && !s.staffId,
           date: formatDateISO(oldDate),
           startTime: s.startTime,
           endTime: s.endTime,
           breakMinutes: s.breakMinutes || 0,
           role: s.role,
           notes: s.notes || '',
+          shiftName: s.shiftName || null,
+          color: s.color || null,
           status: 'draft',
         };
       });
-      await apiClient.bulkCreateShifts(restaurantId, mapped);
+      const r = await apiClient.bulkCreateShifts(restaurantId, mapped);
+      showNotice('success', `Copied ${r?.count ?? mapped.length} shift(s) as drafts${r?.skipped ? ` · ${r.skipped} skipped (already on a shift then)` : ''}. Review, then Publish.`);
       onReloadShifts();
     } catch (err) {
       console.error('Error copying week:', err);
@@ -159,24 +183,18 @@ export default function WeeklyScheduleGrid({
     }
   };
 
-  // Publish Week
+  // Publish Week: drafts → published on the server, and each staff member gets their schedule.
   const handlePublish = async () => {
+    if (weekShort > 0 && !confirm(`${weekShort} role slot(s) are still unfilled this week. Publish anyway?`)) return;
     setPublishing(true);
     try {
-      const drafts = (shifts || []).filter(s => s.status === 'draft');
-      for (const draft of drafts) {
-        try { await apiClient.deleteShift(draft.id || draft._id); } catch {}
-      }
-      const publishedShifts = drafts.map(s => ({
-        staffId: s.staffId, date: s.date, startTime: s.startTime, endTime: s.endTime,
-        breakMinutes: s.breakMinutes || 0, role: s.role, notes: s.notes || '', status: 'published',
-      }));
-      if (publishedShifts.length > 0) {
-        await apiClient.bulkCreateShifts(restaurantId, publishedShifts);
-      }
+      const r = await apiClient.publishShifts(restaurantId, formatDateISO(weekStart), formatDateISO(weekEnd));
+      const n = r?.notified || {};
+      const ch = [n.push ? `${n.push} by app notification` : null, n.whatsapp ? `${n.whatsapp} on WhatsApp` : null].filter(Boolean).join(', ');
+      showNotice('success', `Published ${r?.published || 0} shift(s). ${n.staff || 0} staff sent their schedule${ch ? ` (${ch})` : ''}.` + (n.staff && !n.push && !n.whatsapp ? ' Staff will see it in the DineOpen app → My Shifts (notifications reach phones once they open the updated app).' : ''));
       onReloadShifts();
     } catch (err) {
-      console.error('Error publishing:', err);
+      showNotice('error', err?.message || 'Failed to publish');
     } finally {
       setPublishing(false);
     }
@@ -193,6 +211,7 @@ export default function WeeklyScheduleGrid({
         { maxHoursPerWeek: shiftSettings?.maxHoursPerWeek || 40, maxHoursPerDay: shiftSettings?.maxHoursPerDay || 8 },
         shiftSettings?.shiftTypes || []
       );
+      showNotice('success', 'AI created a draft schedule. Check it, then press Publish.');
       onReloadShifts();
     } catch (err) {
       console.error('AI generate error:', err);
@@ -241,6 +260,15 @@ export default function WeeklyScheduleGrid({
         <div style={{ fontSize: '12px', fontWeight: 600, color: rc.text }}>
           {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
         </div>
+        {(shift.shiftName || shift.isOpen) && (
+          <div style={{ fontSize: '10px', color: rc.text, opacity: 0.85 }}>{shift.isOpen ? `Open · ${titleCase(shift.role)}` : shift.shiftName}</div>
+        )}
+        {(shift.claims || []).some(c => c.status === 'pending') && (
+          <div style={{ fontSize: '10px', fontWeight: 700, color: '#1d4ed8' }}>{(shift.claims || []).filter(c => c.status === 'pending').length} request(s)</div>
+        )}
+        {['pending_colleague', 'pending_approval'].includes(shift.swapRequest?.status) && (
+          <div style={{ fontSize: '10px', fontWeight: 700, color: '#7c3aed' }}>Swap → {shift.swapRequest.toName}{shift.swapRequest.status === 'pending_approval' ? ' (approve)' : ''}</div>
+        )}
         {shift.breakMinutes > 0 && (
           <div style={{ fontSize: '10px', color: rc.text, opacity: 0.7 }}>{shift.breakMinutes}m break</div>
         )}
@@ -263,6 +291,65 @@ export default function WeeklyScheduleGrid({
       </div>
     );
   };
+
+  const noticeBar = notice && (
+    <div style={{ marginBottom: '14px', padding: '10px 14px', borderRadius: '12px', fontSize: '13px', lineHeight: 1.5,
+      background: notice.type === 'error' ? '#fef2f2' : '#f0fdf4', color: notice.type === 'error' ? '#b91c1c' : '#166534',
+      border: `1px solid ${notice.type === 'error' ? '#fecaca' : '#bbf7d0'}` }}>{notice.text}</div>
+  );
+
+  // Coverage chips for one shift type on one day.
+  const coverageChips = (date, type) => {
+    const dk = formatDateISO(date);
+    const c = coverageFor(dk, type);
+    if (!c.rows.length && !c.needTotal) return <span style={{ fontSize: '11px', color: '#d1d5db' }}>—</span>;
+    const chips = c.rows.length ? c.rows : [{ role: null, need: c.needTotal, have: c.haveTotal, short: Math.max(0, c.needTotal - c.haveTotal) }];
+    return (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', justifyContent: 'center' }}>
+        {chips.map(x => (
+          <button key={x.role || 'all'} type="button" title={x.short ? `Add ${x.role ? titleCase(x.role) : 'staff'} for ${type.name}` : 'Covered'}
+            onClick={(e) => { e.stopPropagation(); if (x.short) openGap(date, type, x.role || undefined); }}
+            style={{ border: 'none', cursor: x.short ? 'pointer' : 'default', padding: '2px 6px', borderRadius: '6px', fontSize: '10.5px', fontWeight: 700,
+              background: x.short ? '#fee2e2' : '#dcfce7', color: x.short ? '#b91c1c' : '#166534' }}>
+            {x.role ? `${titleCase(x.role)} ` : ''}{x.have}/{x.need}
+          </button>
+        ))}
+      </div>
+    );
+  };
+
+  const hasCoverageTargets = shiftTypes.some(t => Object.values(t.requiredRoles || {}).some(v => v > 0) || Number(t.requiredEmployees) > 0);
+  const coveragePanel = hasCoverageTargets && !isMobile && (
+    <div style={{ backgroundColor: 'white', borderRadius: '16px', border: '1px solid #f1f5f9', marginBottom: '16px', overflow: 'auto' }}>
+      <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f9fafb' }}>
+        <div style={{ fontSize: '14px', fontWeight: 700, color: '#111827' }}>Staff needed per shift</div>
+        <div style={{ fontSize: '12px', fontWeight: 600, color: weekShort ? '#b91c1c' : '#166534', display: 'flex', alignItems: 'center', gap: '5px' }}>
+          {weekShort ? <><FaExclamationTriangle size={11} /> {weekShort} slot(s) unfilled — click a red chip to fill it</> : <><FaCheckCircle size={11} /> Every shift is covered</>}
+        </div>
+      </div>
+      <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+        <tbody>
+          {shiftTypes.map(t => (
+            <tr key={t.name}>
+              <td style={{ width: '180px', padding: '8px 16px', fontSize: '12.5px', fontWeight: 600, color: '#374151', borderBottom: '1px solid #f9fafb' }}>
+                <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '4px', background: t.color || '#9ca3af', marginRight: '6px' }} />
+                {t.name} <span style={{ color: '#9ca3af', fontWeight: 500 }}>{t.startTime}–{t.endTime}</span>
+              </td>
+              {weekDates.map((d, i) => (
+                <td key={i} style={{ padding: '6px 4px', borderBottom: '1px solid #f9fafb', textAlign: 'center' }}>{coverageChips(d, t)}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  const openCell = (date) => {
+    const list = shiftMap[`OPEN_${formatDateISO(date)}`] || [];
+    return list.map(sh => renderShiftBlock(sh));
+  };
+  const hasOpenShifts = (shifts || []).some(sh => sh.isOpen && !sh.staffId);
 
   // ─── MOBILE VIEW ───────────────────────────────────────
   if (isMobile) {
@@ -294,6 +381,7 @@ export default function WeeklyScheduleGrid({
           }}><FaPlus size={10} /> Add</button>
         </div>
 
+        {noticeBar}
         {/* Day nav */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -330,6 +418,23 @@ export default function WeeklyScheduleGrid({
           ))}
         </div>
 
+        {hasCoverageTargets && (
+          <div style={{ backgroundColor: 'white', borderRadius: '14px', padding: '12px 14px', border: '1px solid #f1f5f9', marginBottom: '12px' }}>
+            <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#374151', marginBottom: '8px' }}>Staff needed</div>
+            {shiftTypes.map(t => (
+              <div key={t.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '4px 0' }}>
+                <span style={{ fontSize: '12px', color: '#4b5563' }}>{t.name}</span>
+                {coverageChips(currentDate, t)}
+              </div>
+            ))}
+          </div>
+        )}
+        {(shiftMap[`OPEN_${dateKey}`] || []).length > 0 && (
+          <div style={{ backgroundColor: '#eff6ff', borderRadius: '14px', padding: '12px 14px', marginBottom: '12px' }}>
+            <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#1e40af', marginBottom: '6px' }}>Open shifts</div>
+            {openCell(currentDate)}
+          </div>
+        )}
         {/* Shifts for the day */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {activeStaff.map(member => {
@@ -398,13 +503,17 @@ export default function WeeklyScheduleGrid({
 
         <ShiftFormModal
           isOpen={showAddModal}
-          onClose={() => { setShowAddModal(false); setEditingShift(null); }}
+          onClose={() => { setShowAddModal(false); setEditingShift(null); setPrefill(null); }}
           onSave={handleSaveShift}
           shift={editingShift}
           staff={staff}
           date={modalDate || currentDate}
           staffId={modalStaffId}
           isMobile={isMobile}
+          shiftTypes={shiftTypes}
+          extraRoles={shiftSettings?.extraRoles || []}
+          availability={availability}
+          prefill={prefill}
         />
       </div>
     );
@@ -472,7 +581,7 @@ export default function WeeklyScheduleGrid({
               padding: '8px 14px', borderRadius: '10px', border: 'none',
               backgroundColor: '#dcfce7', color: '#166534', fontSize: '13px', fontWeight: 600,
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
-            }}>{publishing ? <FaSpinner size={11} className="animate-spin" /> : <FaPaperPlane size={11} />} Publish</button>
+            }}>{publishing ? <FaSpinner size={11} className="animate-spin" /> : <FaPaperPlane size={11} />} Publish ({draftCount})</button>
           )}
           <button onClick={handleAddClick} style={{
             padding: '8px 14px', borderRadius: '10px', border: 'none',
@@ -484,6 +593,13 @@ export default function WeeklyScheduleGrid({
         </div>
       </div>
 
+      {noticeBar}
+      {pendingRequests > 0 && (
+        <div style={{ marginBottom: '14px', padding: '10px 14px', borderRadius: '12px', fontSize: '13px', background: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe' }}>
+          {pendingRequests} staff request(s) waiting — open the <b>Requests</b> tab to approve.
+        </div>
+      )}
+      {coveragePanel}
       {/* Schedule Grid */}
       <div style={{
         backgroundColor: 'white', borderRadius: '16px', border: '1px solid #f1f5f9',
@@ -518,6 +634,17 @@ export default function WeeklyScheduleGrid({
             </tr>
           </thead>
           <tbody>
+            {hasOpenShifts && (
+              <tr>
+                <td style={{ position: 'sticky', left: 0, zIndex: 1, backgroundColor: '#eff6ff', padding: '10px 12px', borderBottom: '1px solid #dbeafe', width: '180px', minWidth: '180px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700, color: '#1e40af' }}><FaUserPlus size={12} /> Open shifts</div>
+                  <div style={{ fontSize: '10.5px', color: '#3b82f6' }}>Staff can ask for these</div>
+                </td>
+                {weekDates.map((date, i) => (
+                  <td key={i} style={{ padding: '6px', borderBottom: '1px solid #dbeafe', backgroundColor: '#f8fbff', verticalAlign: 'top' }}>{openCell(date)}</td>
+                ))}
+              </tr>
+            )}
             {activeStaff.length === 0 ? (
               <tr>
                 <td colSpan={8} style={{ padding: '60px', textAlign: 'center', color: '#9ca3af' }}>
@@ -561,20 +688,26 @@ export default function WeeklyScheduleGrid({
                     const key = `${member.id}_${dateKey}`;
                     const cellShifts = shiftMap[key] || [];
                     const isCurrentDay = isSameDay(date, today);
+                    const av = availabilityOn(availability[member.id], dateKey);
+                    const cellBg = !av.available ? '#f3f4f6' : isCurrentDay ? '#fffbfb' : 'white';
                     return (
                       <td
                         key={i}
+                        title={!av.available ? av.reason : (av.startTime ? `Available ${av.startTime}–${av.endTime}` : undefined)}
                         onClick={() => handleCellClick(member.id, date)}
                         style={{
                           padding: '6px', borderBottom: '1px solid #f9fafb',
-                          backgroundColor: isCurrentDay ? '#fffbfb' : 'white',
+                          backgroundColor: cellBg,
                           cursor: 'pointer', verticalAlign: 'top',
                           transition: 'background-color 0.15s'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isCurrentDay ? '#fffbfb' : 'white'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = cellBg}
                       >
-                        {cellShifts.length > 0 ? (
+                        {!av.available && cellShifts.length === 0 && (
+                          <div style={{ fontSize: '10px', color: '#9ca3af', textAlign: 'center', paddingTop: '12px' }}>Unavailable</div>
+                        )}
+                        {!av.available && cellShifts.length === 0 ? null : cellShifts.length > 0 ? (
                           cellShifts.map(s => renderShiftBlock(s))
                         ) : (
                           <div style={{
@@ -600,13 +733,17 @@ export default function WeeklyScheduleGrid({
 
       <ShiftFormModal
         isOpen={showAddModal}
-        onClose={() => { setShowAddModal(false); setEditingShift(null); }}
+        onClose={() => { setShowAddModal(false); setEditingShift(null); setPrefill(null); }}
         onSave={handleSaveShift}
         shift={editingShift}
         staff={staff}
         date={modalDate}
         staffId={modalStaffId}
         isMobile={isMobile}
+        shiftTypes={shiftTypes}
+        extraRoles={shiftSettings?.extraRoles || []}
+        availability={availability}
+        prefill={prefill}
       />
     </div>
   );
