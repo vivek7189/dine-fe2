@@ -1131,6 +1131,7 @@ ${s.closingCash !== undefined ? `<div class="row bold"><span>Difference</span><s
           {showCloseModal && (
             <CloseRegisterModal
               register={register}
+              handlePrintReport={handlePrintReport}
               closingCash={closingCash}
               setClosingCash={setClosingCash}
               cashTips={cashTips}
@@ -1470,7 +1471,7 @@ function CloseRegisterModal({
   closeNotes, setCloseNotes, closeSummary, closing, expectedCash,
   showDenom, setShowDenom, denoms, setDenoms, denomTotal,
   handleCloseRegister, handleCloseModalDone, onCancel, formatCurrency, isMobile, posSettings,
-  currencySymbol, denominationLabels, emptyDenomState,
+  currencySymbol, denominationLabels, emptyDenomState, handlePrintReport,
 }) {
   const handleDenomChange = (key, count) => {
     const parsed = Math.max(0, parseInt(count) || 0);

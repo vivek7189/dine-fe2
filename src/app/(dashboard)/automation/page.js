@@ -494,6 +494,7 @@ const TemplatesTab = ({ templates, restaurantId }) => {
 
 // Customers Tab Component
 const CustomersTab = ({ customers, restaurantId }) => {
+  const { formatCurrency } = useCurrency();
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -550,6 +551,7 @@ const CustomersTab = ({ customers, restaurantId }) => {
 
 // Coupons Tab Component
 const CouponsTab = ({ coupons, restaurantId }) => {
+  const { formatCurrency } = useCurrency();
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -599,6 +601,7 @@ const CouponsTab = ({ coupons, restaurantId }) => {
 
 // Analytics Tab Component
 const AnalyticsTab = ({ analytics }) => {
+  const { formatCurrency } = useCurrency();
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-gray-900">Analytics Dashboard</h2>

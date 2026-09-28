@@ -7021,6 +7021,7 @@ const KOTPrinterNote = ({ restaurantId }) => {
 
 // Invoice Modal Component
 const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrderTotal, formatDate }) => {
+  const { formatCurrency } = useCurrency();
   // Fetch unified bill render payload so on-screen invoice matches exactly
   // what android/electron thermal printers show — same endpoint, same fields,
   // same labels, same totals. Falls back to local computation on failure.

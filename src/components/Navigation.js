@@ -123,14 +123,8 @@ function NavigationContent({ isHidden = false }) {
     const handleMenuLoading = (event) => {
       setMenuBackgroundLoading(event.detail.loading);
     };
-    const handleAnalyticsLoading = (event) => {
-      setAnalyticsBackgroundLoading(event.detail.loading);
-    };
     const handleKotLoading = (event) => {
       setKotBackgroundLoading(event.detail.loading);
-    };
-    const handleAutomationLoading = (event) => {
-      setAutomationBackgroundLoading(event.detail.loading);
     };
     
     window.addEventListener('dashboardBackgroundLoading', handleDashboardLoading);

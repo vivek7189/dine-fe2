@@ -374,7 +374,7 @@ class ApiClient {
       // Tauri desktop: route through Rust proxy for offline SQLite cache.
       // Race the IPC against the timeout so a hung main process can't wedge the UI.
       if (typeof window !== 'undefined' && window.__TAURI_INTERNALS__) {
-        return await withTimeout(this._tauriRequest(endpoint, config), timeoutForMethod(config.method), endpoint);
+        return await withTimeout(this._tauriRequest(endpoint, config, isRetry), timeoutForMethod(config.method), endpoint);
       }
 
       // Electron desktop (CLOUD app only): route through Node.js main process for the legacy
@@ -391,7 +391,7 @@ class ApiClient {
       const isEtimsCall = typeof endpoint === 'string' && endpoint.includes('/api/etims/');
       if (typeof window !== 'undefined' && window.electronAPI?.apiRequest
           && !(config.body instanceof FormData) && !getLocalServerUrl() && !isServerApp() && !isEtimsCall) {
-        return await withTimeout(this._electronRequest(endpoint, config), timeoutForMethod(config.method), endpoint);
+        return await withTimeout(this._electronRequest(endpoint, config, isRetry), timeoutForMethod(config.method), endpoint);
       }
 
       // KRA eTIMS bypasses the IPC proxy (must be real-time, never offline-queued). For a
@@ -574,7 +574,8 @@ class ApiClient {
   }
 
   // Tauri proxy: route API calls through Rust for SQLite offline cache
-  async _tauriRequest(endpoint, config) {
+  // isRetry: this call is the one retry after a token refresh (stops a refresh loop).
+  async _tauriRequest(endpoint, config, isRetry = false) {
     const method = (config.method || 'GET').toUpperCase();
     const headers = {};
     if (config.headers) {
@@ -655,7 +656,7 @@ class ApiClient {
   }
 
   // Electron proxy: route API calls through Node.js main process for SQLite offline cache
-  async _electronRequest(endpoint, config) {
+  async _electronRequest(endpoint, config, isRetry = false) {
     const method = (config.method || 'GET').toUpperCase();
     const headers = {};
     if (config.headers) {

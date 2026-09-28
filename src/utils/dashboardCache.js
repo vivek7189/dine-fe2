@@ -49,12 +49,12 @@ export function getCachedDashboardData(restaurantId) {
  * @param {Object} data - Data to cache
  */
 export function setCachedDashboardData(restaurantId, data) {
+  const cacheKey = `${CACHE_PREFIX}${restaurantId}`;
+  const cacheData = {
+    data,
+    timestamp: Date.now()
+  };
   try {
-    const cacheKey = `${CACHE_PREFIX}${restaurantId}`;
-    const cacheData = {
-      data,
-      timestamp: Date.now()
-    };
     localStorage.setItem(cacheKey, JSON.stringify(cacheData));
     console.log('✅ Dashboard data cached for restaurant:', restaurantId);
   } catch (error) {
@@ -151,12 +151,12 @@ export function getCachedTablesData(restaurantId) {
 }
 
 export function setCachedTablesData(restaurantId, data) {
+  const cacheKey = `${TABLES_CACHE_PREFIX}${restaurantId}`;
+  const cacheData = {
+    data,
+    timestamp: Date.now()
+  };
   try {
-    const cacheKey = `${TABLES_CACHE_PREFIX}${restaurantId}`;
-    const cacheData = {
-      data,
-      timestamp: Date.now()
-    };
     localStorage.setItem(cacheKey, JSON.stringify(cacheData));
     console.log('✅ Tables data cached for restaurant:', restaurantId);
   } catch (error) {
@@ -206,12 +206,12 @@ export function getCachedOrderHistoryData(restaurantId, cacheKey = 'default') {
 }
 
 export function setCachedOrderHistoryData(restaurantId, data, cacheKey = 'default') {
+  const fullCacheKey = `${ORDERHISTORY_CACHE_PREFIX}${restaurantId}_${cacheKey}`;
+  const cacheData = {
+    data,
+    timestamp: Date.now()
+  };
   try {
-    const fullCacheKey = `${ORDERHISTORY_CACHE_PREFIX}${restaurantId}_${cacheKey}`;
-    const cacheData = {
-      data,
-      timestamp: Date.now()
-    };
     localStorage.setItem(fullCacheKey, JSON.stringify(cacheData));
     console.log('✅ Order history data cached for restaurant:', restaurantId);
   } catch (error) {
@@ -268,12 +268,12 @@ export function getCachedCustomersData(restaurantId) {
 }
 
 export function setCachedCustomersData(restaurantId, data) {
+  const cacheKey = `${CUSTOMERS_CACHE_PREFIX}${restaurantId}`;
+  const cacheData = {
+    data,
+    timestamp: Date.now()
+  };
   try {
-    const cacheKey = `${CUSTOMERS_CACHE_PREFIX}${restaurantId}`;
-    const cacheData = {
-      data,
-      timestamp: Date.now()
-    };
     localStorage.setItem(cacheKey, JSON.stringify(cacheData));
     console.log('✅ Customers data cached for restaurant:', restaurantId);
   } catch (error) {
@@ -323,12 +323,12 @@ export function getCachedMenuData(restaurantId) {
 }
 
 export function setCachedMenuData(restaurantId, data) {
+  const cacheKey = `${MENU_CACHE_PREFIX}${restaurantId}`;
+  const cacheData = {
+    data,
+    timestamp: Date.now()
+  };
   try {
-    const cacheKey = `${MENU_CACHE_PREFIX}${restaurantId}`;
-    const cacheData = {
-      data,
-      timestamp: Date.now()
-    };
     localStorage.setItem(cacheKey, JSON.stringify(cacheData));
     console.log('✅ Menu data cached for restaurant:', restaurantId);
   } catch (error) {
@@ -378,12 +378,12 @@ export function getCachedAnalyticsData(restaurantId, period = 'today') {
 }
 
 export function setCachedAnalyticsData(restaurantId, data, period = 'today') {
+  const cacheKey = `${ANALYTICS_CACHE_PREFIX}${restaurantId}_${period}`;
+  const cacheData = {
+    data,
+    timestamp: Date.now()
+  };
   try {
-    const cacheKey = `${ANALYTICS_CACHE_PREFIX}${restaurantId}_${period}`;
-    const cacheData = {
-      data,
-      timestamp: Date.now()
-    };
     localStorage.setItem(cacheKey, JSON.stringify(cacheData));
     console.log('✅ Analytics data cached for restaurant:', restaurantId, 'period:', period);
   } catch (error) {
@@ -440,12 +440,12 @@ export function getCachedKotData(restaurantId) {
 }
 
 export function setCachedKotData(restaurantId, data) {
+  const cacheKey = `${KOT_CACHE_PREFIX}${restaurantId}`;
+  const cacheData = {
+    data,
+    timestamp: Date.now()
+  };
   try {
-    const cacheKey = `${KOT_CACHE_PREFIX}${restaurantId}`;
-    const cacheData = {
-      data,
-      timestamp: Date.now()
-    };
     localStorage.setItem(cacheKey, JSON.stringify(cacheData));
     console.log('✅ KOT data cached for restaurant:', restaurantId);
   } catch (error) {
@@ -495,12 +495,12 @@ export function getCachedAutomationData(restaurantId) {
 }
 
 export function setCachedAutomationData(restaurantId, data) {
+  const cacheKey = `${AUTOMATION_CACHE_PREFIX}${restaurantId}`;
+  const cacheData = {
+    data,
+    timestamp: Date.now()
+  };
   try {
-    const cacheKey = `${AUTOMATION_CACHE_PREFIX}${restaurantId}`;
-    const cacheData = {
-      data,
-      timestamp: Date.now()
-    };
     localStorage.setItem(cacheKey, JSON.stringify(cacheData));
     console.log('✅ Automation data cached for restaurant:', restaurantId);
   } catch (error) {

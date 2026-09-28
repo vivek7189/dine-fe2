@@ -1607,7 +1607,7 @@ const getCategoryColor = (category, opacity = 1) => {
 };
 
 // List View Item Component
-const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onToggleHideImage, getCategoryEmoji }) => {
+const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onToggleHideImage, getCategoryEmoji, onItemClick = () => {} }) => {
   const { formatCurrency } = useCurrency();
 
   // Stock & expiry computed values

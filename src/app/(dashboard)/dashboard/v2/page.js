@@ -3579,6 +3579,8 @@ function RestaurantPOSContent() {
       return;
     }
 
+    // Table this bill is for — kept outside the try so the error handler can revert the table.
+    let tableForRevert = null;
     try {
       setProcessing(true);
       setError('');
@@ -3593,6 +3595,7 @@ function RestaurantPOSContent() {
         ? (inRoomDiningEnabled && locationType === 'room' ? manualRoomNumber : (selectedTable?.name || tableNumber))
         : null;
       const tableToUse = !isRoomOrder ? (tableNumber || selectedTable?.number || selectedTable?.name) : null;
+      tableForRevert = tableToUse;
       let tableChanged = false;
       
       if (currentOrder && !isRoomOrder && tableToUse && tableToUse !== currentOrder.tableNumber) {
@@ -3717,7 +3720,7 @@ function RestaurantPOSContent() {
           if (!offlineEnabled) {
             setNotification({ type: 'error', title: t('dashboard.noInternet'), message: t('dashboard.offlineMsg'), show: true });
             setTimeout(() => setNotification(null), 4000);
-            setBillingLoading(false);
+            setProcessing(false);
             return;
           }
           try {
@@ -3994,7 +3997,7 @@ function RestaurantPOSContent() {
           if (!offlineEnabled) {
             setNotification({ type: 'error', title: t('dashboard.noInternet'), message: t('dashboard.offlineMsg'), show: true });
             setTimeout(() => setNotification(null), 4000);
-            setBillingLoading(false);
+            setProcessing(false);
             return;
           }
           try {
@@ -4206,7 +4209,7 @@ function RestaurantPOSContent() {
       console.error('Order processing error:', error);
 
       // Revert optimistic table status — mark back as occupied since billing failed
-      const revertTableName = tableToUse || currentOrder?.tableNumber || selectedTable?.name;
+      const revertTableName = tableForRevert || currentOrder?.tableNumber || selectedTable?.name;
       if (revertTableName) {
         optimisticTableStatus(
           selectedTable?.id
@@ -4514,6 +4517,8 @@ function RestaurantPOSContent() {
 
     const { specialInstructions = null } = taxData;
 
+    // Built inside the try; kept here so the offline fallback in catch can queue it.
+    let cartDataForQueue = null;
     try {
       setSavingOrder(true);
       setError(null);
@@ -4544,6 +4549,7 @@ function RestaurantPOSContent() {
         paymentMethod,
         notes: specialInstructions || (isRoomOrder ? `Room order for Room ${roomNumber}` : '')
       };
+      cartDataForQueue = cartData;
 
       // OFFLINE PATH: Queue to IndexedDB
       if ((!isOnline || !navigator.onLine) && !isLocalServerMode()) {
@@ -4605,14 +4611,14 @@ function RestaurantPOSContent() {
     } catch (error) {
       console.error('Save cart error:', error);
       // Fallback: try to queue offline if API failed
-      if (!offlineEnabled) {
+      if (!offlineEnabled || !cartDataForQueue) {
         setNotification({ type: 'error', title: t('dashboard.saveFailedPlain'), message: error.message || t('dashboard.saveFailedConnectionMsg'), show: true });
         setTimeout(() => setNotification(null), 4000);
         return;
       }
       try {
         await queueOfflineOrder({
-          ...cartData,
+          ...cartDataForQueue,
           _offlineAction: 'create_saved_cart',
           idempotencyKey: generateIdempotencyKey(),
         });
@@ -9204,7 +9210,7 @@ function RestaurantPOSContent() {
                         border: '1px solid #1e293b'
                       }}>
                         <button
-                          onClick={() => updateCartQuantity(index, Math.max(0, item.quantity - 1))}
+                          onClick={() => removeFromCart(item.cartId || item.id)}
                           style={{
                             width: '32px',
                             height: '32px',
