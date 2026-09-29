@@ -5902,6 +5902,24 @@ const Admin = () => {
   });
   const [showPassword, setShowPassword] = useState({});
   const [customRoles, setCustomRoles] = useState(['employee', 'waiter', 'captain', 'cashier', 'manager', 'sales', 'admin']);
+  const [shiftExtraRoles, setShiftExtraRoles] = useState([]);
+  // Role picker options: built-ins + roles added this session (customRoles), then every role the
+  // restaurant's staff already have (chef, parcel, …) and the Shifts → Roles list — so a custom role
+  // no longer vanishes after a reload. Platform / owner roles are never offered.
+  const staffRoleOptions = useMemo(() => {
+    const norm = (r) => String(r || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const blocked = (r) => ['owner', 'co-owner', 'customer', 'custom'].includes(r) || /(super|sub)[-_ ]?admin/.test(r);
+    const seen = new Set();
+    const out = [];
+    const add = (r) => { const x = norm(r); if (x && !blocked(x) && !seen.has(x)) { seen.add(x); out.push(x); } };
+    customRoles.forEach(add);
+    const extra = [];
+    (staff || []).forEach(m => extra.push(m && m.role));
+    (shiftExtraRoles || []).forEach(r => extra.push(r));
+    extra.map(norm).filter(Boolean).sort().forEach(add);
+    return out;
+  }, [customRoles, staff, shiftExtraRoles]);
+  const roleLabel = (r) => String(r || '').replace(/\b\w/g, c => c.toUpperCase());
   const [newCustomRole, setNewCustomRole] = useState('');
   const [currentUserRole, setCurrentUserRole] = useState('owner');
   const [copiedCredentials, setCopiedCredentials] = useState({});
@@ -6518,6 +6536,10 @@ const Admin = () => {
         setLoading(true);
         const response = await apiClient.getStaff(selectedRestaurant.id);
         setStaff(response.staff || []);
+        // Roles added under Shifts → Settings → Roles are offered in the staff role picker too.
+        apiClient.getShiftSettings?.(selectedRestaurant.id)
+          .then(r => setShiftExtraRoles(Array.isArray(r?.settings?.extraRoles) ? r.settings.extraRoles : []))
+          .catch(() => {});
       } catch (error) {
         console.error('Error fetching staff:', error);
         // Don't redirect on API failure - just show empty state
@@ -9576,11 +9598,11 @@ const Admin = () => {
                       }}
                       style={{ cursor: 'pointer' }}
                     >
-                      {customRoles.map(role => {
+                      {staffRoleOptions.map(role => {
                         if (role === 'admin' && currentUserRole !== 'owner') return null;
                         return (
                           <option key={role} value={role}>
-                            {role.charAt(0).toUpperCase() + role.slice(1)}
+                            {roleLabel(role)}
                           </option>
                         );
                       })}
@@ -9612,7 +9634,7 @@ const Admin = () => {
                         type="text"
                         value={newCustomRole}
                         onChange={(e) => {
-                          const value = e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '');
+                          const value = e.target.value.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').replace(/^\s+/, '');
                           if (!['owner', 'admin'].includes(value)) {
                             setNewCustomRole(value);
                           }
@@ -9623,19 +9645,20 @@ const Admin = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          if (newCustomRole && !customRoles.includes(newCustomRole)) {
-                            setCustomRoles([...customRoles, newCustomRole]);
-                            setNewStaff({ ...newStaff, role: newCustomRole });
+                          const r = newCustomRole.trim();
+                          if (r && !['owner', 'admin', 'custom'].includes(r)) {
+                            if (!staffRoleOptions.includes(r)) setCustomRoles([...customRoles, r]);
+                            setNewStaff({ ...newStaff, role: r });
                             setNewCustomRole('');
                           }
                         }}
-                        disabled={!newCustomRole || customRoles.includes(newCustomRole)}
+                        disabled={!newCustomRole.trim()}
                         style={{
                           padding: '10px 18px',
-                          backgroundColor: newCustomRole && !customRoles.includes(newCustomRole) ? '#10b981' : '#e5e7eb',
-                          color: newCustomRole && !customRoles.includes(newCustomRole) ? 'white' : '#9ca3af',
+                          backgroundColor: newCustomRole.trim() ? '#10b981' : '#e5e7eb',
+                          color: newCustomRole.trim() ? 'white' : '#9ca3af',
                           border: 'none', borderRadius: '10px', fontWeight: '600', fontSize: '13px',
-                          cursor: newCustomRole && !customRoles.includes(newCustomRole) ? 'pointer' : 'not-allowed',
+                          cursor: newCustomRole.trim() ? 'pointer' : 'not-allowed',
                           transition: 'all 0.15s'
                         }}
                       >
@@ -10632,7 +10655,7 @@ const Admin = () => {
                       <div style={{ marginBottom: '4px' }}>
                         <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#374151' }}>Role</label>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                          {customRoles.map(role => {
+                          {staffRoleOptions.map(role => {
                             // Only owner can assign admin role
                             if (role === 'admin' && currentUserRole !== 'owner') return null;
                             // Can only assign roles below your level
