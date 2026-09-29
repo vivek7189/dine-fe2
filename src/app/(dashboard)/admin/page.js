@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import apiClient from '../../../lib/api';
+import StaffActivityPanel from '../../../components/staff/StaffActivityPanel';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import AdditionalChargesSettings from '../../../components/AdditionalChargesSettings';
 import StaffDocuments from '../../../components/StaffDocuments';
@@ -5903,6 +5904,7 @@ const Admin = () => {
   const [showPassword, setShowPassword] = useState({});
   const [customRoles, setCustomRoles] = useState(['employee', 'waiter', 'captain', 'cashier', 'manager', 'sales', 'admin']);
   const [shiftExtraRoles, setShiftExtraRoles] = useState([]);
+  const [showStaffActivity, setShowStaffActivity] = useState(false);
   // Role picker options: built-ins + roles added this session (customRoles), then every role the
   // restaurant's staff already have (chef, parcel, …) and the Shifts → Roles list — so a custom role
   // no longer vanishes after a reload. Platform / owner roles are never offered.
@@ -7629,7 +7631,21 @@ const Admin = () => {
                 </button>
               )}
               {activeTab === 'staff' && (
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {['owner', 'co-owner', 'admin', 'manager'].includes(String(currentUserRole || '').toLowerCase()) && selectedRestaurant && (
+                    <button onClick={function() { setShowStaffActivity(true); }}
+                      style={{
+                        background: 'linear-gradient(135deg, #16a34a, #15803d)',
+                        color: 'white', padding: '10px 20px', borderRadius: '10px',
+                        fontWeight: 600, fontSize: '13px', border: 'none', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '8px',
+                        boxShadow: '0 2px 8px rgba(22,163,74,0.25)'
+                      }}
+                    >
+                      <FaUsers size={13} />
+                      Staff Activity
+                    </button>
+                  )}
                   <button onClick={function() { setShowBulkStaffUpload(true); }}
                     style={{
                       background: 'linear-gradient(135deg, #f97316, #ea580c)',
@@ -10370,6 +10386,13 @@ const Admin = () => {
       )}
 
       {/* Staff Detail Modal — only when Staff tab is active */}
+      {showStaffActivity && selectedRestaurant && (
+        <StaffActivityPanel
+          restaurantId={selectedRestaurant.id}
+          restaurantName={selectedRestaurant.name}
+          onClose={() => setShowStaffActivity(false)}
+        />
+      )}
       {selectedStaff && activeTab === 'staff' && typeof document !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed',

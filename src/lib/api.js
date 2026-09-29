@@ -2590,6 +2590,12 @@ class ApiClient {
     return this.request(`/api/shift-scheduling/report/${restaurantId}?startDate=${startDate}&endDate=${endDate}`);
   }
 
+  // Staff → Activity: active now / used app on a date / login history (owner, admin, manager)
+  async getStaffActivity(restaurantId, date) {
+    const qs = date ? `?date=${encodeURIComponent(date)}` : '';
+    return this.request(`/api/staff-activity/${restaurantId}${qs}`);
+  }
+
   async getShiftSettings(restaurantId) {
     return this.request(`/api/shift-scheduling/settings/${restaurantId}`);
   }
