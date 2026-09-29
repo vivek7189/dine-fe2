@@ -111,6 +111,10 @@ class ApiClient {
     // Restaurant's IANA timezone (e.g. 'Asia/Kolkata', 'Asia/Qatar')
     // When set, API calls use this instead of browser's OS timezone
     this._restaurantTimezone = null;
+    // Whether the two values above were set (by the dashboard layout) or loaded from the saved
+    // restaurant. React runs a page's effects BEFORE the layout's, so on a fresh load the first
+    // report request would otherwise go out with the DEVICE timezone.
+    this._restaurantClockReady = false;
 
     // Periodic cleanup: prune expired entries every 5 minutes
     // Prevents memory growth in long-running POS sessions (12-16 hours)
@@ -317,6 +321,7 @@ class ApiClient {
     // can compute correct date boundaries regardless of server timezone.
     // Uses restaurant's stored timezone when available, falls back to browser OS timezone.
     // tz = minutes from UTC (e.g. -180 for UTC+3, -330 for IST UTC+5:30)
+    this._ensureRestaurantClock();
     if (!endpoint.includes('tz=')) {
       const sep = endpoint.includes('?') ? '&' : '?';
       const tzOffset = this._restaurantTimezone
@@ -846,7 +851,26 @@ class ApiClient {
     }
   }
 
+  // First use before the layout has set them: read the timezone / business-day start of the
+  // restaurant saved in localStorage (the same record the layout reads). Runs once.
+  _ensureRestaurantClock() {
+    if (this._restaurantClockReady) return;
+    this._restaurantClockReady = true;
+    if (typeof window === 'undefined') return;
+    try {
+      const saved = JSON.parse(localStorage.getItem('selectedRestaurant') || 'null');
+      const ps = saved && saved.posSettings;
+      if (!ps) return;
+      if (!this._restaurantTimezone && ps.timezone) this._restaurantTimezone = ps.timezone;
+      if (!this._businessDayStartHour && ps.businessDayStartHour) {
+        const n = Number(ps.businessDayStartHour);
+        this._businessDayStartHour = (isNaN(n) || n < 0 || n > 23) ? 0 : Math.floor(n);
+      }
+    } catch { /* no saved restaurant → device timezone (unchanged) */ }
+  }
+
   setBusinessDayStartHour(hour) {
+    this._restaurantClockReady = true;
     const n = Number(hour);
     this._businessDayStartHour = (isNaN(n) || n < 0 || n > 23) ? 0 : Math.floor(n);
   }
@@ -854,10 +878,12 @@ class ApiClient {
   // Business-day start hour (0..23) — the same value sent to the backend as ?dayStart, so the
   // frontend date-range presets can align to the business day too.
   getBusinessDayStartHour() {
+    this._ensureRestaurantClock();
     return this._businessDayStartHour || 0;
   }
 
   setRestaurantTimezone(iana) {
+    this._restaurantClockReady = true;
     this._restaurantTimezone = iana || null;
   }
 
@@ -865,6 +891,7 @@ class ApiClient {
   // Single source of truth for rendering order times/dates the same for every viewer
   // regardless of where they sign in from (e.g. an owner abroad sees restaurant-local time).
   getRestaurantTimezone() {
+    this._ensureRestaurantClock();
     return this._restaurantTimezone || null;
   }
 

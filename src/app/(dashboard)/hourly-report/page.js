@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
+import { restaurantToday, ymd } from '../../../lib/restaurantTime';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t } from '../../../lib/i18n';
 import {
@@ -111,7 +112,7 @@ export default function HourlySalesPage() {
 
   // Compute date range from active period
   const getDateRange = useCallback(() => {
-    const today = new Date();
+    const today = restaurantToday(); // the restaurant's business date, not the viewer's device date
     // Local calendar date (toISOString() is UTC, which is "yesterday" before 05:30 in India).
     const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 

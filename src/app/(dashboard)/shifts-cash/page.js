@@ -30,6 +30,7 @@ import {
 } from 'react-icons/lu';
 import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '@/utils/printBridge';
 import { buildShiftSummaryHtml } from '@/utils/printTemplates/shift/summary';
+import { fmtTime, fmtDate } from '../../../lib/restaurantTime';
 
 // ── Styles ──────────────────────────────────────────────────────────────────
 
@@ -87,20 +88,20 @@ function formatDuration(ms) {
 
 function formatTime(dateStr) {
   if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleTimeString('en-IN', {
+  return fmtTime(dateStr, 'en-IN', { // restaurant's timezone
     hour: '2-digit',
     minute: '2-digit',
     hour12: true,
-  });
+  }, '-');
 }
 
 function formatDate(dateStr) {
   if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString('en-IN', {
+  return fmtDate(dateStr, 'en-IN', { // restaurant's timezone
     day: '2-digit',
     month: 'short',
     year: 'numeric',
-  });
+  }, '-');
 }
 
 function formatDateTime(dateStr) {

@@ -9,6 +9,7 @@ import { database } from '../../../../firebase';
 import { subscribeRestaurantEvents } from '../../../lib/realtimeSubscribe';
 import { isLocalServerMode } from '../../../lib/localServer';
 import apiClient from '../../../lib/api';
+import { fmtTime, fmtDate, fmtDateTime, restaurantDateKey } from '../../../lib/restaurantTime';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
 import { getCachedOrderHistoryData, setCachedOrderHistoryData } from '../../../utils/dashboardCache';
 import { setCachedData, getCachedData } from '../../../lib/offlineDb';
@@ -2003,8 +2004,8 @@ const OrderHistory = () => {
     const customerName = order.customerDisplay?.name || order.customerInfo?.name || null;
     const orderType = order.orderType || null;
     const items = order.items || [];
-    const formattedTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-    const formattedDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    const formattedTime = fmtTime(new Date(), 'en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }); // restaurant's timezone
+    const formattedDate = fmtDate(new Date(), 'en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
     const totalItems = items.reduce((sum, i) => sum + (i.quantity || 1), 0);
     const specialInstructions = order.specialInstructions || '';
     const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${orderNum}</title><style>${getKOTPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily, printSettings?.printerWidth, printSettings)}</style></head><body><div class="kot-header"><div class="restaurant-name">${restaurantName.replace(/</g,'&lt;')}</div><div class="kot-title">--- KITCHEN ORDER ---</div></div><div class="divider">--------------------------------</div><div class="kot-info"><div><strong>Order#:</strong> ${orderNum}</div>${tableNum ? `<div><strong>Table:</strong> ${tableNum}</div>` : ''}${roomNum ? `<div><strong>Room:</strong> ${roomNum}</div>` : ''}<div><strong>Time:</strong> ${formattedTime}</div><div><strong>Date:</strong> ${formattedDate}</div>${customerName ? `<div><strong>Customer:</strong> ${String(customerName).replace(/</g,'&lt;')}</div>` : ''}${orderType ? `<div><strong>Type:</strong> ${orderType}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${items.map(i => `<div class="item"><div class="item-main"><span class="item-qty">${i.quantity || 1}x</span><span class="item-name">${(i.name || '').replace(/</g,'&lt;')}</span></div>${i.selectedVariant?.name ? `<div class="item-detail">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${(c.name || c || '').toString().replace(/</g,'&lt;')}</div>`).join('')}${i.notes ? `<div class="item-note">Note: ${(i.notes || '').replace(/</g,'&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div>${specialInstructions ? `<div class="special-instructions"><strong>*** SPECIAL INSTRUCTIONS ***</strong><div>${specialInstructions.replace(/</g,'&lt;')}</div></div><div class="divider">--------------------------------</div>` : ''}<div class="kot-footer">Total Items: ${totalItems}</div><div class="divider">================================</div></body></html>`;
@@ -3404,8 +3405,8 @@ const OrderHistory = () => {
                       const d = toDate(o);
                       rows.push([
                         orderDisplayNumber(o),
-                        d ? d.toLocaleDateString('en-IN') : '',
-                        d ? d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '',
+                        d ? fmtDate(d, 'en-IN') : '', // restaurant's timezone (an owner abroad downloads restaurant times)
+                        d ? fmtTime(d, 'en-IN', { hour: '2-digit', minute: '2-digit' }) : '',
                         o.orderType || 'dine_in',
                         o.tableNumber || '',
                         o.customerInfo?.name || o.customerName || '',
@@ -5841,7 +5842,7 @@ const OrderHistory = () => {
                               {entry.editedBy?.name || 'Unknown'} ({entry.editedBy?.role})
                             </span>
                             <span className="text-xs text-amber-600">
-                              {entry.editedAt ? new Date(entry.editedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
+                              {fmtDateTime(entry.editedAt, 'en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
                           <div className="space-y-0.5">
@@ -6435,7 +6436,7 @@ const OrderHistory = () => {
             // Group by date for calendar view
             const groupedByDate = {};
             filtered.forEach(order => {
-              const dateKey = (parseTs(order.scheduledFor) || parseTs(order.createdAt) || new Date(0)).toLocaleDateString('en-CA'); // YYYY-MM-DD
+              const dateKey = restaurantDateKey(parseTs(order.scheduledFor) || parseTs(order.createdAt) || new Date(0)); // YYYY-MM-DD, restaurant's calendar
               if (!groupedByDate[dateKey]) groupedByDate[dateKey] = [];
               groupedByDate[dateKey].push(order);
             });
@@ -6515,7 +6516,7 @@ const OrderHistory = () => {
                                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                                     isPast ? 'bg-gray-100 text-gray-500' : isToday ? 'bg-blue-100 text-blue-700' : 'bg-indigo-50 text-indigo-600'
                                   }`}>
-                                    {isPast ? 'Past' : isToday ? 'Today' : schDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                                    {isPast ? 'Past' : isToday ? 'Today' : fmtDate(schDate, 'en-IN', { month: 'short', day: 'numeric' })}
                                   </span>
                                   <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
                                     order.status === 'completed' ? 'bg-green-100 text-green-700' :
@@ -6527,8 +6528,8 @@ const OrderHistory = () => {
                                   </span>
                                 </div>
                                 <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-2">
-                                  <span><FaClock className="inline mr-1 text-[10px]" />{schDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
-                                  <span>{schDate.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                                  <span><FaClock className="inline mr-1 text-[10px]" />{fmtTime(schDate, 'en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                  <span>{fmtDate(schDate, 'en-IN', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
                                   {order.customerInfo?.name && <span><FaUser className="inline mr-1 text-[10px]" />{order.customerInfo.name}</span>}
                                 </div>
                               </div>
@@ -6583,7 +6584,7 @@ const OrderHistory = () => {
                     {sortedDates.map(dateKey => {
                       const dayOrders = groupedByDate[dateKey];
                       const dateObj = new Date(dateKey + 'T00:00:00');
-                      const isToday = dateKey === new Date().toLocaleDateString('en-CA');
+                      const isToday = dateKey === restaurantDateKey(new Date());
                       const isPast = dateObj < todayStart;
                       const dayTotal = dayOrders.reduce((s, o) => s + (o.finalAmount || o.totalAmount || 0), 0);
 
@@ -6616,7 +6617,7 @@ const OrderHistory = () => {
                                   <div key={order.id} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
                                     <div className="flex items-center gap-3 min-w-0">
                                       <span className="text-sm font-mono font-bold text-gray-700 w-16 flex-shrink-0">
-                                        {schTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                        {fmtTime(schTime, 'en-IN', { hour: '2-digit', minute: '2-digit' })}
                                       </span>
                                       <div className="min-w-0">
                                         <div className="flex items-center gap-1.5">

@@ -54,6 +54,7 @@ import {
   FaFilePdf,
   FaFileCsv
 } from 'react-icons/fa';
+import { fmtDate, fmtTime } from '../../../lib/restaurantTime';
 
 // Reuse full-page content as embedded tabs (standalone /offers and /customer-app remain live)
 const OffersManagement = dynamic(() => import('../offers/page'), { ssr: false });
@@ -2135,7 +2136,7 @@ const Customers = () => {
                         )}
                       </div>
                       <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#6b7280' }}>
-                        {new Date(order.orderDate).toLocaleDateString()} at {new Date(order.orderDate).toLocaleTimeString()}
+                        {fmtDate(order.orderDate)} at {fmtTime(order.orderDate)}
                       </p>
                     </div>
                     <div style={{ textAlign: 'right' }}>
@@ -3227,7 +3228,7 @@ const Customers = () => {
                         if (!d || isNaN(d.getTime())) return null;
                         return (
                           <div style={{ textAlign: 'center' }}>
-                            <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>{d.toLocaleDateString()}</p>
+                            <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>{fmtDate(d)}</p>
                             <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>{t('customers.stats.lastOrder')}</p>
                           </div>
                         );

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, Fragment } from 'react';
 import { orderDisplayNumber } from '../../../utils/orderNumber';
 import { useSearchParams, useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
+import { restaurantToday, ymd, fmtDate } from '../../../lib/restaurantTime';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t } from '../../../lib/i18n';
 import {
@@ -126,8 +127,10 @@ export default function SplitBillsPage() {
 
   // Compute date range from active period
   const getDateRange = useCallback(() => {
-    const today = new Date();
-    const fmt = (d) => d.toISOString().split('T')[0];
+    // The restaurant's business date — not the viewer's device date, and not the UTC date
+    // toISOString() gave (yesterday before 5:30 AM in India).
+    const today = restaurantToday();
+    const fmt = ymd;
 
     switch (activePeriod) {
       case 'today':
@@ -255,8 +258,7 @@ export default function SplitBillsPage() {
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
     try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      return fmtDate(dateStr, 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }, dateStr); // restaurant's timezone
     } catch {
       return dateStr;
     }

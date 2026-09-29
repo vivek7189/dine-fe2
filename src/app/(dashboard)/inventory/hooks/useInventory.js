@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import apiClient from '../../../../lib/api';
+import { restaurantToday, ymd } from '../../../../lib/restaurantTime';
 
 export default function useInventory() {
   const [loading, setLoading] = useState(true);
@@ -220,7 +221,7 @@ export default function useInventory() {
 
       const [txResult, summaryResult] = await Promise.allSettled([
         apiClient.getInventoryTransactions(currentRestaurant.id, {
-          ...(period === 'today' ? { date: new Date().toISOString().split('T')[0] } : {}),
+          ...(period === 'today' ? { date: ymd(restaurantToday()) } : {}), // restaurant's date (was the UTC date)
           limit: 100,
         }),
         apiClient.getInventoryUsageSummary(currentRestaurant.id, params),

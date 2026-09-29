@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { FaTimes, FaUser, FaShoppingBag, FaStar, FaCalendarAlt, FaPhone, FaEnvelope, FaMapMarkerAlt, FaBirthdayCake, FaArrowUp, FaArrowDown } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import { useCurrency } from '../contexts/CurrencyContext';
+import { fmtDate } from '../lib/restaurantTime';
 
 const CustomerDetailModal = ({ customerId, restaurantId, onClose }) => {
   const { formatCurrency } = useCurrency();
@@ -66,12 +67,8 @@ const CustomerDetailModal = ({ customerId, restaurantId, onClose }) => {
     return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
-  const formatDateTime = (date) => {
-    if (!date) return '—';
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return '—';
-    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-  };
+  // order / transaction moments: restaurant's timezone
+  const formatDateTime = (date) => fmtDate(date, 'en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }, '—');
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: FaUser },

@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import * as XLSX from 'xlsx';
 import apiClient from '../../../../lib/api';
+import { fmtDate, fmtTime } from '../../../../lib/restaurantTime'; // order / payment moments in the restaurant's timezone
 import { useCurrency } from '../../../../contexts/CurrencyContext';
 import {
   FaArrowLeft,
@@ -444,7 +445,7 @@ var CustomerDetail = function() {
     var dataRows = filteredOrders.map(function(o) {
       var d = parseDate(o.orderDate);
       return [
-        d ? d.toLocaleDateString() + ' ' + d.toLocaleTimeString() : '',
+        d ? fmtDate(d) + ' ' + fmtTime(d) : '',
         o.orderNumber || o.orderId || '',
         (o.subtotal || o.totalAmount || 0).toFixed(2),
         (o.discountAmount || o.offerDiscount || 0).toFixed(2),
@@ -906,7 +907,7 @@ var CustomerDetail = function() {
                         <div>
                           <span style={{ fontWeight: '600', color: '#1e293b' }}>{order.orderNumber}</span>
                           <span style={{ color: '#9ca3af', marginLeft: '6px', fontSize: '11px' }}>
-                            {parseDate(order.orderDate) ? parseDate(order.orderDate).toLocaleDateString() : ''}
+                            {fmtDate(parseDate(order.orderDate))}
                           </span>
                         </div>
                         <span style={{ fontWeight: '700', color: '#dc2626', fontSize: '12px' }}>
@@ -949,7 +950,7 @@ var CustomerDetail = function() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                           <span style={{ fontWeight: '600', color: '#1e293b' }}>{entry.orderNumber}</span>
                           <span style={{ fontSize: '11px', color: '#9ca3af' }}>
-                            {new Date(entry.date).toLocaleDateString()}
+                            {fmtDate(entry.date)}
                           </span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
@@ -1013,7 +1014,7 @@ var CustomerDetail = function() {
                             {formatCurrency(entry.amount || entry.settledAmount)}
                           </span>
                           <span style={{ fontSize: '11px', color: '#9ca3af' }}>
-                            {entryDate.toLocaleDateString()}
+                            {fmtDate(entryDate)}
                           </span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
@@ -1042,7 +1043,7 @@ var CustomerDetail = function() {
                 var delta = (txn.type === 'redeem' || txn.type === 'restore_redebit' || txn.type === 'adjustment')
                   ? -Math.abs(Number(txn.amount) || 0) : (Number(txn.amount) || 0);
                 var label = txn.type === 'adjustment' ? (txn.reason === 'wallet_reset' ? 'Reset' : 'Deduction') : (typeLabels[txn.type] || (delta >= 0 ? 'Credit' : 'Debit'));
-                return { delta: delta, label: label, note: txn.notes || (txn.reason || '').replace(/_/g, ' '), when: txn.createdAt ? new Date(txn.createdAt).toLocaleDateString() : '-', bal: txn.balanceAfter };
+                return { delta: delta, label: label, note: txn.notes || (txn.reason || '').replace(/_/g, ' '), when: txn.createdAt ? fmtDate(txn.createdAt, undefined, undefined, '-') : '-', bal: txn.balanceAfter };
               };
               var label = { display: 'block', fontSize: '12px', fontWeight: 700, color: '#374151', marginBottom: '5px' };
               var input = { width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1.5px solid #e5e7eb', fontSize: '14px', boxSizing: 'border-box', background: '#fff' };
@@ -1372,7 +1373,7 @@ var CustomerDetail = function() {
                               )}
                             </div>
                             <p style={{ margin: '3px 0 0', fontSize: isMobile ? '11px' : '12px', color: '#94a3b8' }}>
-                              {orderDate ? orderDate.toLocaleDateString() : ''}{orderDate ? ' at ' + orderDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                              {orderDate ? fmtDate(orderDate) : ''}{orderDate ? ' at ' + fmtTime(orderDate, [], { hour: '2-digit', minute: '2-digit' }) : ''}
                               {order.tableNumber ? ' \u00B7 Table ' + order.tableNumber : ''}
                               {order.itemsCount ? ' \u00B7 ' + order.itemsCount + ' items' : ''}
                             </p>
@@ -1739,7 +1740,7 @@ var CustomerDetail = function() {
                                 </span>
                               </div>
                               <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>
-                                {entryDate.toLocaleDateString()}
+                                {fmtDate(entryDate)}
                                 {entry.paidAmount > 0 ? ' \u00B7 Paid ' + formatCurrency(entry.paidAmount) + ' of ' + formatCurrency(entry.totalAmount) : ' \u00B7 Full due'}
                               </div>
                             </div>

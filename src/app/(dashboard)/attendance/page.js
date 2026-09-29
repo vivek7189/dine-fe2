@@ -15,6 +15,7 @@ import {
   FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaPlus, FaChevronLeft,
   FaChevronRight, FaSave, FaTrash, FaEdit, FaUserClock, FaMapMarkerAlt
 } from 'react-icons/fa';
+import { fmtTime, fmtDate } from '../../../lib/restaurantTime';
 
 // Leaflet doesn't support SSR — dynamic import
 const StaffTrackingMap = dynamic(() => import('../../../components/StaffTrackingMap'), { ssr: false });
@@ -29,9 +30,7 @@ function formatDate(d) {
 
 function formatTime(d) {
   if (!d) return '-';
-  const dt = new Date(d);
-  if (isNaN(dt.getTime())) return '-';
-  return dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+  return fmtTime(d, 'en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }, '-'); // clock-in/out: restaurant's timezone
 }
 
 function formatMonthYear(d) {
@@ -849,8 +848,7 @@ export default function AttendancePage() {
   // ══════════════════════════════════════════════════════════════════════════
 
   function renderTodayTab() {
-    const today = new Date();
-    const dateStr = today.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const dateStr = fmtDate(new Date(), 'en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); // restaurant's today
     const attendance = isAdmin ? todayData.attendance : todayData.attendance.filter(a => a.staffId === userId);
 
     return (

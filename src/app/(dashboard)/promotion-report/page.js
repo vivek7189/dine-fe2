@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
+import { restaurantToday, ymd } from '../../../lib/restaurantTime';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t } from '../../../lib/i18n';
 import {
@@ -119,8 +120,10 @@ export default function PromotionReportPage() {
 
   // Compute date range from active period
   const getDateRange = useCallback(() => {
-    const today = new Date();
-    const fmt = (d) => d.toISOString().split('T')[0];
+    // The restaurant's business date — not the viewer's device date, and not the UTC date
+    // toISOString() gave (yesterday before 5:30 AM in India).
+    const today = restaurantToday();
+    const fmt = ymd;
 
     switch (activePeriod) {
       case 'today':

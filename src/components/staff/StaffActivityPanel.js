@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { FaTimes, FaSyncAlt, FaSpinner, FaCircle, FaSearch } from 'react-icons/fa';
 import apiClient from '../../lib/api';
+import { fmtTime, fmtDateTime } from '../../lib/restaurantTime';
 
 const PLATFORM_LABEL = {
   'dine-app': 'Waiter app', 'mobile-app': 'Mobile app', desktop: 'Desktop POS', web: 'Web',
@@ -31,10 +32,9 @@ function ago(iso) {
   const d = Math.floor(h / 24);
   return d === 1 ? 'yesterday' : `${d} days ago`;
 }
-const timeOf = (iso) => (iso ? new Date(iso).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) : '—');
-const dateTimeOf = (iso) => (iso
-  ? new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
-  : '—');
+// Login / activity moments in the restaurant's timezone (an owner abroad sees restaurant time).
+const timeOf = (iso) => fmtTime(iso, 'en-IN', { hour: 'numeric', minute: '2-digit' }, '—');
+const dateTimeOf = (iso) => fmtDateTime(iso, 'en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }, '—');
 
 const card = { background: 'white', border: '1px solid #eef0f3', borderRadius: '14px', padding: '14px 16px' };
 const th = { padding: '9px 12px', textAlign: 'left', fontSize: '11.5px', fontWeight: 700, color: '#6b7280', borderBottom: '1px solid #f1f5f9', whiteSpace: 'nowrap' };

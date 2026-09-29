@@ -113,6 +113,7 @@ import {
   FaExpand,
   FaCompress
 } from 'react-icons/fa';
+import { fmtDateTime } from '../lib/restaurantTime';
 
 const OrderSummary = ({
   cart,
@@ -4101,7 +4102,7 @@ const OrderSummary = ({
                     <div style={{ textAlign: 'left', marginBottom: '8px', fontSize: '13px' }}>
                       <div><strong>{t('invoice.orderHash')}:</strong> {orderDisplayNumber(orderSuccess.kotData)}</div>
                       {orderSuccess.kotData.orderId && <div><strong>{t('invoice.id')}:</strong> {String(orderSuccess.kotData.orderId).slice(-8).toUpperCase()}</div>}
-                      <div><strong>{t('invoice.date')}:</strong> {new Date().toLocaleString()}</div>
+                      <div><strong>{t('invoice.date')}:</strong> {fmtDateTime(new Date())}</div>
                       {(orderSuccess.kotData.roomNumber || orderSuccess.kotData.tableNumber) && (
                         <div><strong>{orderSuccess.kotData.roomNumber ? t('invoice.room') : t('invoice.table')}:</strong> {orderSuccess.kotData.roomNumber || orderSuccess.kotData.tableNumber}{orderSuccess.kotData.floorName ? ` · ${orderSuccess.kotData.floorName}` : ''}</div>
                       )}
@@ -4248,7 +4249,7 @@ const OrderSummary = ({
                     <div style={{ textAlign: 'left', marginBottom: '8px', fontSize: '13px', marginTop: '6px' }}>
                       {invoice?.dailyOrderId != null && <div><strong>{bLabels.billLabel} #:</strong> {orderDisplayNumber(invoice)}</div>}
                       {invoice?.orderId && <div><strong>{t('invoice.id')}:</strong> {String(invoice.orderId).slice(-8).toUpperCase()}</div>}
-                      <div><strong>{t('invoice.date')}:</strong> {invoice?.generatedAt ? new Date(invoice.generatedAt).toLocaleString() : (invoice?.invoiceDate ? new Date(invoice.invoiceDate).toLocaleString() : 'N/A')}</div>
+                      <div><strong>{t('invoice.date')}:</strong> {invoice?.generatedAt ? fmtDateTime(invoice.generatedAt) : (invoice?.invoiceDate ? new Date(invoice.invoiceDate).toLocaleString() : 'N/A')}</div>
                       {invoice?.tableNumber && <div><strong>{t('invoice.table')}:</strong> {invoice.tableNumber}{invoice?.floorName ? ` · ${invoice.floorName}` : ''}</div>}
                       {invoice?.customerName && <div><strong>{bLabels.customerLabel}:</strong> {invoice.customerName}</div>}
                       {printSettings?.billLayout?.showCustomerPhone && invoice?.customerPhone && <div><strong>{t('invoice.phone') || 'Phone'}:</strong> {invoice.customerPhone}</div>}

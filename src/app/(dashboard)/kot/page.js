@@ -41,6 +41,7 @@ import { t } from '../../../lib/i18n';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { seatLabel } from '../../../utils/orderItemKey';
+import { fmtTime } from '../../../lib/restaurantTime';
 
 // ─── Tab Definitions ───
 const TABS = [
@@ -512,7 +513,7 @@ const KitchenOrderTicket = () => {
 
   const formatTime = (timeString) => {
     try {
-      return new Date(timeString).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      return fmtTime(timeString, 'en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }, '--:--'); // restaurant's timezone
     } catch (e) { return '--:--'; }
   };
 
@@ -1259,7 +1260,7 @@ const KitchenOrderTicket = () => {
                           const removedItems = hasUpdateHistory ? (kot.removedItems || []) : [];
                           const firstChangedItem = [...newItems, ...updatedItems][0];
                           const addedTime = (firstChangedItem?.addedAt || firstChangedItem?.updatedAt)
-                            ? new Date(firstChangedItem.addedAt || firstChangedItem.updatedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+                            ? fmtTime(firstChangedItem.addedAt || firstChangedItem.updatedAt, 'en-IN', { hour: '2-digit', minute: '2-digit' })
                             : '';
 
                           const renderItem = (item, index, totalCount, options = {}) => {

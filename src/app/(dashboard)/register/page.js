@@ -32,6 +32,7 @@ import {
   LuHandCoins,
   LuPrinter,
 } from 'react-icons/lu';
+import { fmtTime, fmtDate, fmtDateTime } from '../../../lib/restaurantTime';
 
 // ── Styles ──────────────────────────────────────────────────────────────────
 
@@ -88,20 +89,20 @@ function formatDuration(seconds) {
 
 function formatTime(dateStr) {
   if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleTimeString('en-IN', {
+  return fmtTime(dateStr, 'en-IN', { // restaurant's timezone
     hour: '2-digit',
     minute: '2-digit',
     hour12: true,
-  });
+  }, '-');
 }
 
 function formatDate(dateStr) {
   if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString('en-IN', {
+  return fmtDate(dateStr, 'en-IN', { // restaurant's timezone
     day: '2-digit',
     month: 'short',
     year: 'numeric',
-  });
+  }, '-');
 }
 
 function formatDateTime(dateStr) {
@@ -419,7 +420,7 @@ body{font-family:'Courier New',monospace;width:300px;margin:0 auto;padding:16px;
 </style></head><body>
 <div class="center bold">${reportTitle}</div>
 <div class="center">${restaurantName}</div>
-<div class="center">${s.closedAt ? new Date(s.closedAt).toLocaleString() : s.reportGeneratedAt ? new Date(s.reportGeneratedAt).toLocaleString() : new Date().toLocaleString()}</div>
+<div class="center">${fmtDateTime(s.closedAt || s.reportGeneratedAt || new Date())}</div>
 <div class="center">Operator: ${s.operatorName || register?.operatorName || register?.openedByName || '-'}</div>
 <div class="line"></div>
 <div class="bold">SALES</div>

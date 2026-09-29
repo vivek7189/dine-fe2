@@ -42,6 +42,7 @@ import { database } from '../../../../firebase';
 import { subscribeRestaurantEvents } from '../../../lib/realtimeSubscribe';
 import { isLocalServerMode } from '../../../lib/localServer';
 import useTimedMenu from '../../../hooks/useTimedMenu';
+import { fmtTime, fmtDate } from '../../../lib/restaurantTime';
 
 const DeliveryTakeawayPanel = dynamic(
   () => import('../../../components/DeliveryTakeawayPanel'),
@@ -2115,8 +2116,8 @@ const TableManagement = () => {
 
       const items = order.items || [];
       const restaurantName = selectedRestaurant?.name || 'Restaurant';
-      const formattedTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-      const formattedDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      const formattedTime = fmtTime(new Date(), 'en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }); // restaurant's timezone
+      const formattedDate = fmtDate(new Date(), 'en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
       const totalItems = items.reduce((sum, i) => sum + (i.quantity || 1), 0);
 
       const kotHtml = `<!DOCTYPE html><html><head><title>KOT</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily, printSettings?.printerWidth, printSettings)}</style></head><body><div style="text-align:center;font-weight:bold;font-size:16px;">${restaurantName.replace(/</g, '&lt;')}</div><div style="text-align:center;font-weight:bold;margin:6px 0;">--- KITCHEN ORDER ---</div><div class="divider">--------------------------------</div><div class="bill-info"><div>Order# ${orderDisplayNumber(order)}</div>${order.tableNumber ? `<div>Table: ${order.tableNumber}${order.floorName ? ` · ${order.floorName}` : ''}</div>` : ''}${order.roomNumber ? `<div>Room: ${order.roomNumber}</div>` : ''}<div>Time: ${formattedTime}</div><div>Date: ${formattedDate}</div>${order.customerDisplay?.name || order.customerInfo?.name ? `<div>Customer: ${(order.customerDisplay?.name || order.customerInfo?.name).replace(/</g, '&lt;')}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${items.map(i => `<div style="margin:4px 0;"><span style="font-weight:bold;">${i.quantity || 1}x</span> ${(i.name || '').replace(/</g, '&lt;')}${i.selectedVariant?.name ? `<div style="padding-left:20px;font-size:11px;color:#666;">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div style="padding-left:20px;font-size:11px;color:#666;">+ ${(c.name || c || '').toString().replace(/</g, '&lt;')}</div>`).join('')}${i.notes ? `<div style="padding-left:20px;font-size:10px;font-style:italic;">Note: ${i.notes.replace(/</g, '&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div><div style="font-weight:bold;text-align:center;">Total Items: ${totalItems}</div><div class="divider">================================</div></body></html>`;
