@@ -177,6 +177,17 @@ export function useAutoPrint(restaurantId, printSettings) {
     return mainId === myId;                                    // origin-less → only the Main terminal
   }, [printSettings]);
 
+  // A dine-app phone that printed this ticket itself (its user opted in: "this phone's prints
+  // replace the desktop's") tags the event with kotPrintedBy / billPrintedBy. Skip those so the
+  // ticket isn't printed twice. Reprints / forced prints always print; printSettings
+  // .honorAppLocalPrint === false turns this off for the restaurant. If the phone's print fails,
+  // the phone asks for a forced print, which lands here untagged.
+  const printedByApp = useCallback((data, kind) => {
+    if (!data || printSettings?.honorAppLocalPrint === false) return false;
+    if (data.forcePrint || data.isReprint || data.isPreBill) return false;
+    return !!(kind === 'bill' ? data.billPrintedBy : data.kotPrintedBy);
+  }, [printSettings]);
+
   // Report a remote-print diagnostic to the server (fire-and-forget). Only sends when the
   // restaurant has opted in (printSettings.printDiagnostics) OR the event is a failure — so
   // we can debug a specific terminal remotely without write-amplifying every print.
@@ -302,6 +313,11 @@ export function useAutoPrint(restaurantId, printSettings) {
       return;
     }
     if (!orderId || wasPrinted(orderId, 'kot')) return;
+    if (printedByApp(data, 'kot')) {
+      markPrinted(orderId, 'kot'); // also silences this order's first-KOT station events
+      logDiag({ phase: 'skipped', kind: 'kot', orderId, reason: `printed-by-app (${data.kotPrintedBy})` });
+      return;
+    }
 
     // Mark IMMEDIATELY (before any async work) so that concurrent
     // kot-print-request events from the /kot Firebase path are deduped.
@@ -398,6 +414,10 @@ export function useAutoPrint(restaurantId, printSettings) {
     const orderId = data.orderId || data.id;
     if (!orderId) return true;
     const stationId = data.printStationId || null;
+    if (printedByApp(data, 'kot')) {
+      logDiag({ phase: 'skipped', kind: 'kot-request', orderId, stationId, reason: `printed-by-app (${data.kotPrintedBy})` });
+      return true;
+    }
 
     // For the initial KOT (not incremental/reprint/force), check if the base
     // orderId was already printed by handleKotCreated (via the /orders path).
@@ -462,6 +482,16 @@ export function useAutoPrint(restaurantId, printSettings) {
     // receipt. Skip the normal final-bill print here (a pre-bill still prints).
     if (!isPreBill && typeof window !== 'undefined' && window.__etimsFiscalActive) {
       console.log('🖨️ AutoPrint: Billing print skipped — eTIMS fiscal receipt handles it');
+      return;
+    }
+    if (printedByApp(data, 'bill')) {
+      console.log(`🖨️ AutoPrint: Billing print skipped — printed by app (${data.billPrintedBy})`);
+      // the phone prints only the bill — token slips still come from here
+      const oid = data.orderId || data.id;
+      if (oid && printSettings?.autoPrintOnBilling && (data.tokenBillingEnabled || printSettings?.tokenBillingEnabled) && !wasPrinted(`tok-${oid}`, 'bill')) {
+        markPrinted(`tok-${oid}`, 'bill');
+        setTimeout(() => printTokensForOrder(oid, printSettings), 900);
+      }
       return;
     }
     // Pre-bill requests always print (user explicitly tapped Pre-Bill on mobile).
