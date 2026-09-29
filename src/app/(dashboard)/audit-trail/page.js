@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
+import { adaptAuditTrail } from '../../../lib/reportAdapters';
 import { restaurantToday, ymd, fmtDateTime } from '../../../lib/restaurantTime';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t } from '../../../lib/i18n';
@@ -207,7 +208,7 @@ export default function AuditTrailPage() {
       }
       const res = await apiClient.getAuditTrail(restaurantId, options);
       if (res?.success) {
-        setData(res);
+        setData(adaptAuditTrail(res)); // API → this page's shape
       } else {
         setData(res || null);
       }

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
+import { adaptPromotionReport } from '../../../lib/reportAdapters';
 import { restaurantToday, ymd } from '../../../lib/restaurantTime';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t } from '../../../lib/i18n';
@@ -169,7 +170,7 @@ export default function PromotionReportPage() {
       }
       const res = await apiClient.getPromotionReport(restaurantId, options);
       if (res?.success) {
-        setData(res);
+        setData(adaptPromotionReport(res)); // API → this page's shape
       } else {
         setData(res || null);
       }

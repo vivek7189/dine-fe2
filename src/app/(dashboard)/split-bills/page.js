@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, Fragment } from 'react';
 import { orderDisplayNumber } from '../../../utils/orderNumber';
 import { useSearchParams, useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
+import { adaptSplitBills } from '../../../lib/reportAdapters';
 import { restaurantToday, ymd, fmtDate } from '../../../lib/restaurantTime';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t } from '../../../lib/i18n';
@@ -176,7 +177,7 @@ export default function SplitBillsPage() {
       }
       const res = await apiClient.getSplitBills(restaurantId, options);
       if (res?.success) {
-        setData(res);
+        setData(adaptSplitBills(res)); // API → this page's shape
       } else {
         setData(res || null);
       }

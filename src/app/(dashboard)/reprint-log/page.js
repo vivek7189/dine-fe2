@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, Fragment } from 'react';
 import { orderDisplayNumber } from '../../../utils/orderNumber';
 import { useSearchParams, useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
+import { adaptReprintLog } from '../../../lib/reportAdapters';
 import { restaurantToday, ymd, fmtDateTime } from '../../../lib/restaurantTime';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t } from '../../../lib/i18n';
@@ -187,7 +188,7 @@ export default function ReprintLogPage() {
       }
       const res = await apiClient.getReprintLog(restaurantId, options);
       if (res?.success) {
-        setData(res);
+        setData(adaptReprintLog(res)); // API → this page's shape
       } else {
         setData(res || null);
       }
