@@ -25,6 +25,8 @@ import {
   FaCut,
   FaGift,
   FaHistory,
+  FaSearch,
+  FaTimes,
 } from 'react-icons/fa';
 
 const features = [
@@ -218,6 +220,7 @@ export default function MorePage() {
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
   const [notAllowedPages, setNotAllowedPages] = useState([]);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     // Electron is always a desktop POS terminal — never use mobile layout
@@ -240,7 +243,15 @@ export default function MorePage() {
     } catch {}
   }, []);
 
-  const visibleFeatures = features.filter(f => !notAllowedPages.includes(f.id));
+  const allowedFeatures = features.filter(f => !notAllowedPages.includes(f.id));
+  // Search: every typed word must appear in the card's name or description ("staff sales", "audit")
+  const words = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const visibleFeatures = words.length
+    ? allowedFeatures.filter(f => {
+        const text = `${f.name} ${f.description} ${f.id}`.toLowerCase();
+        return words.every(w => text.includes(w));
+      })
+    : allowedFeatures;
 
   return (
     <div style={{
@@ -267,7 +278,13 @@ export default function MorePage() {
       <div style={{
         marginBottom: '32px',
         animation: 'fadeInUp 0.4s ease',
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'flex-end',
+        justifyContent: 'space-between',
+        gap: '16px',
       }}>
+        <div>
         <h1 style={{
           fontSize: isMobile ? '24px' : '28px',
           fontWeight: '700',
@@ -283,7 +300,50 @@ export default function MorePage() {
         }}>
           Advanced tools and integrations for your restaurant
         </p>
+        </div>
+        <div style={{ position: 'relative', width: isMobile ? '100%' : '340px' }}>
+          <FaSearch size={14} color="#94a3b8" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Escape') setSearch(''); }}
+            placeholder="Search features — audit, reprint, staff sales…"
+            aria-label="Search features"
+            autoFocus={!isMobile}
+            style={{
+              width: '100%',
+              padding: '11px 38px 11px 38px',
+              borderRadius: '12px',
+              border: '1.5px solid #e2e8f0',
+              background: 'white',
+              fontSize: '14px',
+              color: '#0f172a',
+              outline: 'none',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+            }}
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              aria-label="Clear search"
+              style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex' }}
+            >
+              <FaTimes size={13} color="#94a3b8" />
+            </button>
+          )}
+        </div>
       </div>
+
+      {visibleFeatures.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '48px 16px', color: '#64748b', fontSize: '14px' }}>
+          No features match &ldquo;{search.trim()}&rdquo;.{' '}
+          <button type="button" onClick={() => setSearch('')} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '14px', padding: 0 }}>
+            Show all
+          </button>
+        </div>
+      )}
 
       {/* Cards Grid */}
       <div style={{

@@ -266,7 +266,7 @@ export default function AuditTrailPage() {
   const filteredEvents = searchTerm
     ? events.filter(e => {
         const term = searchTerm.toLowerCase();
-        const orderNum = (e.orderNumber || `#${e.dailyOrderId || ''}` || '').toLowerCase();
+        const orderNum = `${e.orderLabel || ''} ${e.orderNumber || ''}`.toLowerCase(); // short # or long id
         const staff = (e.staffName || '').toLowerCase();
         const details = (e.details || '').toLowerCase();
         return orderNum.includes(term) || staff.includes(term) || details.includes(term);
@@ -287,7 +287,7 @@ export default function AuditTrailPage() {
       ...filteredEvents.map(e => [
         formatEventTime(e.timestamp),
         getActionConfig(e.action).label,
-        e.orderNumber || `#${e.dailyOrderId || ''}`,
+        e.orderLabel || e.orderNumber || '',
         e.staffName || '',
         e.details || '',
         e.totalAmount || 0,
@@ -538,7 +538,7 @@ export default function AuditTrailPage() {
                                     {config.label}
                                   </span>
                                   <span className="font-bold text-gray-900 text-sm">
-                                    Order {event.orderNumber || `#${event.dailyOrderId || ''}`}
+                                    Order {event.orderLabel || event.orderNumber || ''}
                                   </span>
                                   {event.staffName && (
                                     <>
@@ -594,7 +594,7 @@ export default function AuditTrailPage() {
                               </td>
                               <td className="px-4 py-3">
                                 <span className="font-bold text-gray-900 text-sm">
-                                  {event.orderNumber || `#${event.dailyOrderId || ''}`}
+                                  {event.orderLabel || event.orderNumber || ''}
                                 </span>
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-600">{event.staffName || '-'}</td>

@@ -3,6 +3,8 @@
 // Promotions, Comps, Split Bills, Audit Trail and Reprint Log always showed 0 / empty.
 // Each adapter maps the API response to the shape its page reads. A response that is already in the
 // page's shape (no `data` object) is returned unchanged.
+import { orderDisplayNumber } from '../utils/orderNumber';
+
 const body = (res) => (res && res.data && typeof res.data === 'object' && !Array.isArray(res.data) ? res.data : null);
 const arr = (v) => (Array.isArray(v) ? v : []);
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
@@ -113,7 +115,11 @@ export function adaptAuditTrail(res) {
   return {
     success: res.success,
     dateRange: d.dateRange,
-    events: arr(d.events),
+    // orderLabel: the short order number (#152) when the event carries it, else the long order id
+    events: arr(d.events).map((e) => ({
+      ...e,
+      orderLabel: (e.dailyOrderId != null || e.orderNumberDisplay != null) ? `#${orderDisplayNumber(e)}` : (e.orderNumber || ''),
+    })),
     summary: {
       ...s,
       totalEvents: num(d.totalEvents),
