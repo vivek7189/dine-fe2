@@ -162,6 +162,8 @@ export default function EtimsSettings({ restaurantId }) {
     try {
       const res = await apiClient.request(`/api/etims/${restaurantId}/config`, { method: 'PUT', body: { ...form, askPerBill: next } });
       setCfg(res.config);
+      // the server switches phone/browser reporting off while ask-per-bill is on — reflect it
+      if (res.config) setForm((f) => ({ ...f, fiscaliseAllSales: !!res.config.fiscaliseAllSales }));
     } catch (e) {
       setForm((f) => ({ ...f, askPerBill: !next })); // revert on failure
       setMsg({ type: 'error', text: e.message || 'Could not update the setting' });
