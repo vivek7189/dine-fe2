@@ -67,29 +67,42 @@ const Profile = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Initialize reCAPTCHA for phone verification
-  const setupRecaptcha = useCallback(() => {
-    if (typeof window !== 'undefined' && !window.recaptchaVerifierProfile) {
-      try {
-        window.recaptchaVerifierProfile = new RecaptchaVerifier(auth, 'recaptcha-container-profile', {
-          size: 'invisible',
-          callback: () => {
-            console.log('reCAPTCHA verified for profile phone linking');
-          },
-          'expired-callback': () => {
-            console.log('reCAPTCHA expired');
-            if (window.recaptchaVerifierProfile) {
-              window.recaptchaVerifierProfile.clear();
-              window.recaptchaVerifierProfile = null;
-            }
-          }
-        });
-        window.recaptchaVerifierProfile.render();
-      } catch (error) {
-        console.error('Error setting up reCAPTCHA:', error);
-      }
-    }
+  // Tear down the invisible reCAPTCHA completely. Firebase/grecaptcha remember the DOM element a
+  // widget was rendered into, so re-creating a verifier on the SAME element after clear() throws
+  // "reCAPTCHA has already been rendered in this element" — we therefore also empty the host.
+  const resetRecaptcha = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    try { if (window.recaptchaVerifierProfile) window.recaptchaVerifierProfile.clear(); } catch (e) { /* already gone */ }
+    window.recaptchaVerifierProfile = null;
+    const host = document.getElementById('recaptcha-container-profile');
+    if (host) host.innerHTML = '';
   }, []);
+
+  // Initialize reCAPTCHA for phone verification — always into a brand-new child element.
+  const setupRecaptcha = useCallback(() => {
+    if (typeof window === 'undefined' || window.recaptchaVerifierProfile) return;
+    const host = document.getElementById('recaptcha-container-profile');
+    if (!host) return;
+    try {
+      host.innerHTML = '';
+      const el = document.createElement('div');
+      host.appendChild(el);
+      window.recaptchaVerifierProfile = new RecaptchaVerifier(auth, el, {
+        size: 'invisible',
+        callback: () => {
+          console.log('reCAPTCHA verified for profile phone linking');
+        },
+        'expired-callback': () => {
+          console.log('reCAPTCHA expired');
+          resetRecaptcha();
+        }
+      });
+      window.recaptchaVerifierProfile.render().catch(() => resetRecaptcha());
+    } catch (error) {
+      console.error('Error setting up reCAPTCHA:', error);
+      resetRecaptcha();
+    }
+  }, [resetRecaptcha]);
 
   // Setup recaptcha when phone linking starts
   useEffect(() => {
@@ -98,16 +111,9 @@ const Profile = () => {
     }
     return () => {
       // Cleanup recaptcha when unmounting or stopping phone linking
-      if (window.recaptchaVerifierProfile && !linkingPhone) {
-        try {
-          window.recaptchaVerifierProfile.clear();
-          window.recaptchaVerifierProfile = null;
-        } catch (e) {
-          console.log('Error clearing recaptcha:', e);
-        }
-      }
+      if (!linkingPhone) resetRecaptcha();
     };
-  }, [linkingPhone, isClient, setupRecaptcha]);
+  }, [linkingPhone, isClient, setupRecaptcha, resetRecaptcha]);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -404,15 +410,8 @@ const Profile = () => {
         setLinkError(err.message || 'Failed to send OTP');
       }
 
-      // Reset recaptcha on error
-      if (window.recaptchaVerifierProfile) {
-        try {
-          window.recaptchaVerifierProfile.clear();
-          window.recaptchaVerifierProfile = null;
-        } catch (e) {
-          console.log('Error clearing recaptcha:', e);
-        }
-      }
+      // Reset recaptcha on error so the next "Send OTP" gets a fresh widget
+      resetRecaptcha();
     } finally {
       setLinkLoading(false);
     }

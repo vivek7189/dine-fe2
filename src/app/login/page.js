@@ -1064,9 +1064,12 @@ const Login = () => {
     }
     return () => {
       if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
+        try { window.recaptchaVerifier.clear(); } catch (_) { /* already gone */ }
         window.recaptchaVerifier = null;
       }
+      // grecaptcha remembers the element it rendered into — empty it so the next verifier can render.
+      const host = document.getElementById('recaptcha-container');
+      if (host) host.innerHTML = '';
     };
   }, [step, isCheckingAuth]);
 
@@ -1102,7 +1105,12 @@ const Login = () => {
       }
 
       if (!window.recaptchaVerifier) {
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        // Render into a fresh child element: re-using an element a cleared widget lived in throws
+        // "reCAPTCHA has already been rendered in this element".
+        container.innerHTML = '';
+        const el = document.createElement('div');
+        container.appendChild(el);
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, el, {
           size: 'invisible',
           callback: () => {},
           'expired-callback': () => {
