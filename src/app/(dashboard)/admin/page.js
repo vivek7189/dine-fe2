@@ -15536,6 +15536,41 @@ const Admin = () => {
             </div>
           )}
 
+          {/* Which roles these settings apply to (waiters always) */}
+          <div style={{ background: '#fff', border: '1px solid #f3f4f6', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Apply these settings to</span>
+            <span style={{ fontSize: '11px', color: '#9ca3af', display: 'block', marginBottom: '12px' }}>
+              Waiters always follow them. Tick other roles to apply the same tabs, More-menu items and table buttons to them in the app (the Home Screen buttons are on the waiter home only). Owner, admin and manager are never limited here.
+            </span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              <span style={{ padding: '6px 12px', borderRadius: '999px', fontSize: '12px', fontWeight: 600, background: '#4f46e5', color: '#fff', opacity: 0.8 }}>Waiter ✓</span>
+              {[...new Set(['captain', 'supervisor', 'employee', 'cashier', ...allRoles.map(r => String(r).toLowerCase())])]
+                .filter(r => r && !['owner', 'admin', 'co-owner', 'manager', 'waiter', 'super-admin', 'super_admin', 'customer'].includes(r))
+                .map(r => {
+                  const list = Array.isArray(posSettings.waiterAppConfig?.applyToRoles) ? posSettings.waiterAppConfig.applyToRoles.map(x => String(x).toLowerCase()) : [];
+                  const on = list.includes(r);
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setPosSettings(prev => {
+                        const cur = Array.isArray(prev.waiterAppConfig?.applyToRoles) ? prev.waiterAppConfig.applyToRoles.map(x => String(x).toLowerCase()) : [];
+                        const next = on ? cur.filter(x => x !== r) : [...cur, r];
+                        return { ...prev, waiterAppConfig: { ...(prev.waiterAppConfig || {}), applyToRoles: next } };
+                      })}
+                      style={{
+                        padding: '6px 12px', borderRadius: '999px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                        border: on ? '1px solid #4f46e5' : '1px solid #e5e7eb',
+                        background: on ? '#eef2ff' : '#fff', color: on ? '#4338ca' : '#6b7280', textTransform: 'capitalize',
+                      }}
+                    >
+                      {on ? '✓ ' : ''}{r}
+                    </button>
+                  );
+                })}
+            </div>
+          </div>
+
           {/* Home Screen Quick Actions */}
           <div style={{ background: '#fff', border: '1px solid #f3f4f6', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
             <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '12px' }}>Home Screen</span>

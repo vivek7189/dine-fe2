@@ -214,6 +214,16 @@ function formatTime(dateStr) {
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, ...(tz ? { timeZone: tz } : {}) });
 }
 
+// Restaurant-wide money (yesterday's sales, unsettled orders) is for the people who run the
+// business: owner / admin / co-owner / manager, or a staff member given Analytics access. Waiters,
+// cashiers, supervisors… don't see other people's sales on their home screen (web + app WebView).
+function canSeeBusinessTotals(user, pageAccess) {
+  const role = String(user?.role || '').toLowerCase();
+  if (['owner', 'admin', 'co-owner', 'manager', 'super-admin', 'super_admin'].includes(role)) return true;
+  const a = pageAccess && pageAccess.analytics;
+  return a === true || !!(a && typeof a === 'object' && Object.values(a).some(Boolean));
+}
+
 // Yesterday's-sales recap — the retention reward. When an owner comes back and
 // yesterday had sales, greet them with the RESULT ("Yesterday you made ₹X") — this
 // reinforces the habit loop that brings them back on day 2+. Read-only, self-gating
@@ -300,7 +310,9 @@ export default function HomePage() {
     const parsed = apiClient.getUser();
     setUser(parsed);
     const cachedAccess = localStorage.getItem('navPageAccess');
-    if (cachedAccess) setPageAccess(JSON.parse(cachedAccess));
+    let accessNow = null;
+    try { accessNow = cachedAccess ? JSON.parse(cachedAccess) : null; } catch (_) { accessNow = null; }
+    if (accessNow) setPageAccess(accessNow);
     const cachedNotAllowed = localStorage.getItem('navNotAllowedPages');
     if (cachedNotAllowed) setNotAllowedPages(JSON.parse(cachedNotAllowed));
     const savedRestaurant = localStorage.getItem('selectedRestaurant');
@@ -321,7 +333,7 @@ export default function HomePage() {
       loadRecentOrders(parsed);
       loadTables(parsed);
     }
-    loadOpenSummary(parsed);
+    if (canSeeBusinessTotals(parsed, accessNow)) loadOpenSummary(parsed);
   }, []);
 
   const loadOpenSummary = async (userData) => {
@@ -532,10 +544,10 @@ export default function HomePage() {
       <UpdateBanner />
 
       {/* Yesterday's-sales recap — retention reward when they come back */}
-      <YesterdayRecap currencySymbol={currencySymbol} />
+      {canSeeBusinessTotals(user, pageAccess) && <YesterdayRecap currencySymbol={currencySymbol} />}
 
       {/* Open (unsettled) orders indicator — tap to resolve on the Open Orders page */}
-      {openSummary && openSummary.count > 0 && (
+      {openSummary && openSummary.count > 0 && canSeeBusinessTotals(user, pageAccess) && (
         <div onClick={() => navigateTo('/open-orders')} className="animate-in" style={{ cursor: 'pointer', marginBottom: '20px', borderRadius: '14px', border: '1px solid #fde68a', background: 'linear-gradient(135deg,#fffbeb,#fef3c7)', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
             <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '18px' }}>⚠️</div>
