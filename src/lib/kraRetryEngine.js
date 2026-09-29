@@ -31,6 +31,9 @@ const PER_RUN_MAX = 25;       // cap orders processed per cycle (keeps a cycle b
 // All delays get ±15% jitter so multiple tills never retry in lockstep.
 const FAST_MS = 30 * 1000;
 const SAFETY_NET_MS = 20 * 60 * 1000;
+// When the store reports phone / browser sales through this desktop (etimsConfig.fiscaliseAllSales),
+// those arrive with no bill-time event here — check every ~5 min instead of 20 so they reach KRA soon.
+const QUEUE_IDLE_MS = 5 * 60 * 1000;
 const BACKOFF_MS = [60 * 1000, 2 * 60 * 1000, 5 * 60 * 1000, 10 * 60 * 1000];
 
 /**
@@ -45,7 +48,7 @@ export function nextDelayMs(outcome, backoffIdx = 0) {
   if (outcome.fetchFailed) return jitter(BACKOFF_MS[0]);        // cloud blip fetching /pending → ~1 min
   if (outcome.pending > 0 && outcome.progressed) return jitter(FAST_MS); // draining, keep going
   if (outcome.pending > 0) return jitter(step);                 // stuck backlog → back off
-  return jitter(SAFETY_NET_MS);                                 // all clear → slow backstop
+  return jitter(outcome.queueOn ? QUEUE_IDLE_MS : SAFETY_NET_MS); // all clear → slow backstop
 }
 
 let state = {
@@ -130,7 +133,7 @@ export async function runKraRetryOnce({ restaurantId, apiClient, fiscaliseOrder,
     if (!items.length) {
       // Nothing pending → healthy. Close the circuit.
       state.circuit = 'closed'; state.consecutiveFails = 0; state.cooldownIdx = 0; state.lastError = null;
-      return { ran: true, pending: 0, progressed: false };
+      return { ran: true, pending: 0, progressed: false, queueOn: !!(res && res.queueOn) };
     }
     let processed = 0;
     let progressed = false;
@@ -169,7 +172,7 @@ export async function runKraRetryOnce({ restaurantId, apiClient, fiscaliseOrder,
         notify();
       }
     }
-    return { ran: true, pending: state.pending, progressed, circuitOpen: state.circuit === 'open' };
+    return { ran: true, pending: state.pending, progressed, circuitOpen: state.circuit === 'open', queueOn: !!(res && res.queueOn) };
   } finally {
     state.running = false; notify();
   }
