@@ -1,7 +1,7 @@
 'use client';
 import { Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 import { formatCurrency, formatDate, getTypeFields } from '../pdfHelpers';
-import '../../../../../../utils/pdfFonts';
+import { PDF_FONT_STACK } from '../../../../../../utils/pdfFonts';
 
 export default function BoldTemplate({ data, type = 'invoice', org = {}, colors = {} }) {
   const bg = colors.background || '#ffffff';
@@ -11,14 +11,14 @@ export default function BoldTemplate({ data, type = 'invoice', org = {}, colors 
   const items = data.items || [];
 
   const styles = StyleSheet.create({
-    page: { padding: 30, fontSize: 10, fontFamily: 'NotoSans', color: font, backgroundColor: bg },
-    title: { fontSize: 22, fontFamily: 'NotoSans', fontWeight: 700, color: font, marginBottom: 4 },
+    page: { padding: 30, fontSize: 10, fontFamily: PDF_FONT_STACK, color: font, backgroundColor: bg },
+    title: { fontSize: 22, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: font, marginBottom: 4 },
     titleUnderline: { width: '100%', height: 2, backgroundColor: label, marginBottom: 16 },
-    orgLine: { fontSize: 9, fontFamily: 'NotoSans', color: label, marginBottom: 12 },
+    orgLine: { fontSize: 9, fontFamily: PDF_FONT_STACK, color: label, marginBottom: 12 },
     infoSection: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
     infoBlock: { width: '48%' },
-    label: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: label, textTransform: 'uppercase', marginBottom: 2 },
-    value: { fontSize: 9, fontFamily: 'NotoSans', color: font, marginBottom: 6 },
+    label: { fontSize: 8, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: label, textTransform: 'uppercase', marginBottom: 2 },
+    value: { fontSize: 9, fontFamily: PDF_FONT_STACK, color: font, marginBottom: 6 },
     table: { marginBottom: 20 },
     tableHeader: {
       flexDirection: 'row',
@@ -26,10 +26,10 @@ export default function BoldTemplate({ data, type = 'invoice', org = {}, colors 
       paddingVertical: 6,
       paddingHorizontal: 4,
     },
-    headerText: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' },
+    headerText: { fontSize: 8, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' },
     tableRow: { flexDirection: 'row', paddingVertical: 6, paddingHorizontal: 4 },
     cell: { borderWidth: 1, borderColor: font, paddingVertical: 5, paddingHorizontal: 4 },
-    cellText: { fontSize: 8, fontFamily: 'NotoSans', color: font },
+    cellText: { fontSize: 8, fontFamily: PDF_FONT_STACK, color: font },
     colNum: { width: '6%' },
     colDesc: { width: '34%' },
     colQty: { width: '10%', textAlign: 'right' },
@@ -58,8 +58,8 @@ export default function BoldTemplate({ data, type = 'invoice', org = {}, colors 
       paddingVertical: 4,
       paddingHorizontal: 6,
     },
-    totalLabel: { fontSize: 9, fontFamily: 'NotoSans', color: font },
-    totalValue: { fontSize: 9, fontFamily: 'NotoSans', fontWeight: 700, color: font },
+    totalLabel: { fontSize: 9, fontFamily: PDF_FONT_STACK, color: font },
+    totalValue: { fontSize: 9, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: font },
     grandTotalRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -70,12 +70,12 @@ export default function BoldTemplate({ data, type = 'invoice', org = {}, colors 
       paddingHorizontal: 6,
       backgroundColor: label + '1A',
     },
-    grandTotalLabel: { fontSize: 11, fontFamily: 'NotoSans', fontWeight: 700, color: font },
-    grandTotalValue: { fontSize: 11, fontFamily: 'NotoSans', fontWeight: 700, color: font },
+    grandTotalLabel: { fontSize: 11, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: font },
+    grandTotalValue: { fontSize: 11, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: font },
     notesSection: { marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: font },
-    notesTitle: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: label, textTransform: 'uppercase', marginBottom: 3 },
-    notesText: { fontSize: 8, fontFamily: 'NotoSans', color: font, lineHeight: 1.5 },
-    footer: { position: 'absolute', bottom: 24, left: 30, right: 30, textAlign: 'center', fontSize: 7, fontFamily: 'NotoSans', color: label },
+    notesTitle: { fontSize: 8, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: label, textTransform: 'uppercase', marginBottom: 3 },
+    notesText: { fontSize: 8, fontFamily: PDF_FONT_STACK, color: font, lineHeight: 1.5 },
+    footer: { position: 'absolute', bottom: 24, left: 30, right: 30, textAlign: 'center', fontSize: 7, fontFamily: PDF_FONT_STACK, color: label },
   });
 
   const showTax = type !== 'challan';
@@ -119,7 +119,7 @@ export default function BoldTemplate({ data, type = 'invoice', org = {}, colors 
             </>
           )}
           <Text style={styles.label}>Status</Text>
-          <Text style={[styles.value, { fontFamily: 'NotoSans', fontWeight: 700 }]}>{(data.status || 'draft').toUpperCase()}</Text>
+          <Text style={[styles.value, { fontFamily: PDF_FONT_STACK, fontWeight: 700 }]}>{(data.status || 'draft').toUpperCase()}</Text>
         </View>
       </View>
 
@@ -210,7 +210,7 @@ export default function BoldTemplate({ data, type = 'invoice', org = {}, colors 
           </View>
           {type === 'invoice' && data.balanceDue !== undefined && data.balanceDue !== data.total && (
             <View style={[styles.totalRow, { borderTopWidth: 0 }]}>
-              <Text style={[styles.totalLabel, { fontFamily: 'NotoSans', fontWeight: 700 }]}>Balance Due</Text>
+              <Text style={[styles.totalLabel, { fontFamily: PDF_FONT_STACK, fontWeight: 700 }]}>Balance Due</Text>
               <Text style={[styles.totalValue, { color: '#2563eb' }]}>{formatCurrency(data.balanceDue, data.currencySymbol)}</Text>
             </View>
           )}

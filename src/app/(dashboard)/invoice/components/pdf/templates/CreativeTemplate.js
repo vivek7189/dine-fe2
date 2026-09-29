@@ -1,7 +1,7 @@
 'use client';
 import { Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 import { formatCurrency, formatDate, getTypeFields } from '../pdfHelpers';
-import '../../../../../../utils/pdfFonts';
+import { PDF_FONT_STACK } from '../../../../../../utils/pdfFonts';
 
 export default function CreativeTemplate({ data, type = 'invoice', org = {}, colors = {} }) {
   const bg = colors.background || '#ffffff';
@@ -13,7 +13,7 @@ export default function CreativeTemplate({ data, type = 'invoice', org = {}, col
   const labelBg15 = label + '26'; // 15% opacity
 
   const styles = StyleSheet.create({
-    page: { padding: 40, fontSize: 10, fontFamily: 'NotoSans', color: font, backgroundColor: bg },
+    page: { padding: 40, fontSize: 10, fontFamily: PDF_FONT_STACK, color: font, backgroundColor: bg },
     decorativeCircle: {
       position: 'absolute',
       top: -40,
@@ -25,10 +25,10 @@ export default function CreativeTemplate({ data, type = 'invoice', org = {}, col
     },
     topSection: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
     orgBlock: { maxWidth: '50%' },
-    orgName: { fontSize: 12, fontFamily: 'NotoSans', fontWeight: 700, color: font, marginBottom: 2 },
+    orgName: { fontSize: 12, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: font, marginBottom: 2 },
     orgDetail: { fontSize: 8, color: label, marginBottom: 1 },
     titleBlock: { alignItems: 'flex-end' },
-    invoiceTitle: { fontSize: 28, fontFamily: 'NotoSans', fontWeight: 700, color: font },
+    invoiceTitle: { fontSize: 28, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: font },
     invoiceNumber: { fontSize: 10, color: label, marginTop: 4 },
     invoiceDate: { fontSize: 9, color: label, marginTop: 2 },
     accentLine: { height: 3, backgroundColor: label, marginVertical: 16 },
@@ -36,7 +36,7 @@ export default function CreativeTemplate({ data, type = 'invoice', org = {}, col
     fromToBlock: { width: '48%' },
     fromToLabel: {
       fontSize: 8,
-      fontFamily: 'NotoSans', fontWeight: 700,
+      fontFamily: PDF_FONT_STACK, fontWeight: 700,
       color: label,
       textTransform: 'uppercase',
       letterSpacing: 1,
@@ -45,7 +45,7 @@ export default function CreativeTemplate({ data, type = 'invoice', org = {}, col
       borderBottomWidth: 1.5,
       borderBottomColor: label,
     },
-    fromToName: { fontSize: 10, fontFamily: 'NotoSans', fontWeight: 700, color: font, marginTop: 6, marginBottom: 2 },
+    fromToName: { fontSize: 10, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: font, marginTop: 6, marginBottom: 2 },
     fromToDetail: { fontSize: 9, color: label, marginBottom: 1 },
     table: { marginBottom: 20 },
     tableHeader: {
@@ -55,7 +55,7 @@ export default function CreativeTemplate({ data, type = 'invoice', org = {}, col
       borderBottomWidth: 0.5,
       borderBottomColor: label + '40',
     },
-    headerText: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: label, textTransform: 'uppercase', letterSpacing: 0.5 },
+    headerText: { fontSize: 8, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: label, textTransform: 'uppercase', letterSpacing: 0.5 },
     tableRow: {
       flexDirection: 'row',
       paddingVertical: 8,
@@ -72,7 +72,7 @@ export default function CreativeTemplate({ data, type = 'invoice', org = {}, col
     totalsBox: { width: 230 },
     totalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
     totalLabel: { fontSize: 10, color: label },
-    totalValue: { fontSize: 10, fontFamily: 'NotoSans', fontWeight: 700, color: font },
+    totalValue: { fontSize: 10, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: font },
     grandTotalRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -81,10 +81,10 @@ export default function CreativeTemplate({ data, type = 'invoice', org = {}, col
       backgroundColor: label,
       marginTop: 6,
     },
-    grandTotalLabel: { fontSize: 12, fontFamily: 'NotoSans', fontWeight: 700, color: '#ffffff' },
-    grandTotalValue: { fontSize: 12, fontFamily: 'NotoSans', fontWeight: 700, color: '#ffffff' },
+    grandTotalLabel: { fontSize: 12, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: '#ffffff' },
+    grandTotalValue: { fontSize: 12, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: '#ffffff' },
     notesSection: { marginTop: 20 },
-    notesTitle: { fontSize: 9, fontFamily: 'NotoSans', fontWeight: 700, color: label, textTransform: 'uppercase', marginBottom: 4, letterSpacing: 0.5 },
+    notesTitle: { fontSize: 9, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: label, textTransform: 'uppercase', marginBottom: 4, letterSpacing: 0.5 },
     notesText: { fontSize: 9, color: font, lineHeight: 1.5 },
     footerLine: {
       position: 'absolute',
@@ -197,7 +197,7 @@ export default function CreativeTemplate({ data, type = 'invoice', org = {}, col
           </View>
           {type === 'invoice' && data.balanceDue !== undefined && data.balanceDue !== data.total && (
             <View style={[styles.totalRow, { marginTop: 6 }]}>
-              <Text style={[styles.totalLabel, { fontFamily: 'NotoSans', fontWeight: 700 }]}>Balance Due</Text>
+              <Text style={[styles.totalLabel, { fontFamily: PDF_FONT_STACK, fontWeight: 700 }]}>Balance Due</Text>
               <Text style={[styles.totalValue, { color: '#2563eb' }]}>{formatCurrency(data.balanceDue, data.currencySymbol)}</Text>
             </View>
           )}

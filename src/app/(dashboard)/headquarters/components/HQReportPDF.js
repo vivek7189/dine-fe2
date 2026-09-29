@@ -1,7 +1,7 @@
 'use client';
 
 import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
-import '../../../../utils/pdfFonts';
+import { PDF_FONT_STACK } from '../../../../utils/pdfFonts';
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -56,36 +56,36 @@ const C = {
 // ── Styles ───────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  page: { padding: 36, fontSize: 9, fontFamily: 'NotoSans', color: C.gray900, position: 'relative' },
+  page: { padding: 36, fontSize: 9, fontFamily: PDF_FONT_STACK, color: C.gray900, position: 'relative' },
   // Header
   headerBar: { height: 4, backgroundColor: C.primary, marginBottom: 12, borderRadius: 2 },
   headerBrand: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 10 },
   logo: { width: 40, height: 40, objectFit: 'contain', borderRadius: 4 },
-  orgName: { fontSize: 16, fontFamily: 'NotoSans', fontWeight: 700, color: C.gray900 },
+  orgName: { fontSize: 16, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: C.gray900 },
   reportTitleRow: { marginBottom: 4 },
-  reportTitle: { fontSize: 13, fontFamily: 'NotoSans', fontWeight: 700, color: C.primary, marginBottom: 2 },
+  reportTitle: { fontSize: 13, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: C.primary, marginBottom: 2 },
   dateRange: { fontSize: 9, color: C.gray500 },
   genDate: { fontSize: 8, color: C.gray500, marginTop: 2, marginBottom: 14 },
   // Section
-  sectionTitle: { fontSize: 12, fontFamily: 'NotoSans', fontWeight: 700, color: C.gray900, marginTop: 18, marginBottom: 10, paddingBottom: 4, borderBottomWidth: 2, borderBottomColor: C.primary },
-  subTitle: { fontSize: 10, fontFamily: 'NotoSans', fontWeight: 700, color: C.gray700, marginTop: 12, marginBottom: 6 },
+  sectionTitle: { fontSize: 12, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: C.gray900, marginTop: 18, marginBottom: 10, paddingBottom: 4, borderBottomWidth: 2, borderBottomColor: C.primary },
+  subTitle: { fontSize: 10, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: C.gray700, marginTop: 12, marginBottom: 6 },
   // Summary cards
   statsRow: { flexDirection: 'row', gap: 8, marginBottom: 14, flexWrap: 'wrap' },
   statBox: { flex: 1, minWidth: 100, padding: 10, borderRadius: 6, borderWidth: 1 },
-  statLabel: { fontSize: 7, fontFamily: 'NotoSans', fontWeight: 700, color: C.gray500, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
-  statValue: { fontSize: 14, fontFamily: 'NotoSans', fontWeight: 700 },
+  statLabel: { fontSize: 7, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: C.gray500, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
+  statValue: { fontSize: 14, fontFamily: PDF_FONT_STACK, fontWeight: 700 },
   statSub: { fontSize: 7, color: C.gray500, marginTop: 2 },
   // Tables
   table: { marginBottom: 12 },
   tHead: { flexDirection: 'row', backgroundColor: C.gray100, borderBottomWidth: 1, borderBottomColor: C.gray200, paddingVertical: 6, paddingHorizontal: 6 },
   tRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: C.gray100, paddingVertical: 5, paddingHorizontal: 6 },
   tRowAlt: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: C.gray100, paddingVertical: 5, paddingHorizontal: 6, backgroundColor: C.gray50 },
-  th: { fontSize: 7, fontFamily: 'NotoSans', fontWeight: 700, color: C.gray500, textTransform: 'uppercase', letterSpacing: 0.5 },
+  th: { fontSize: 7, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: C.gray500, textTransform: 'uppercase', letterSpacing: 0.5 },
   td: { fontSize: 8, color: C.gray900 },
-  tdBold: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: C.gray900 },
+  tdBold: { fontSize: 8, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: C.gray900 },
   tdRight: { fontSize: 8, color: C.gray900, textAlign: 'right' },
-  tdGreen: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: C.primary },
-  tdRed: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: C.red },
+  tdGreen: { fontSize: 8, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: C.primary },
+  tdRed: { fontSize: 8, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: C.red },
   // Progress bar
   barBg: { height: 6, backgroundColor: C.gray100, borderRadius: 3, flex: 1 },
   barFill: { height: 6, borderRadius: 3 },
@@ -96,7 +96,7 @@ const s = StyleSheet.create({
   pageNum: { fontSize: 7, color: C.gray500 },
   // Rank badge
   rankBadge: { width: 20, height: 20, borderRadius: 10, backgroundColor: C.amberLight, justifyContent: 'center', alignItems: 'center' },
-  rankText: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: C.amber },
+  rankText: { fontSize: 8, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: C.amber },
   // Misc
   noData: { fontSize: 9, color: C.gray500, textAlign: 'center', paddingVertical: 20 },
   divider: { height: 1, backgroundColor: C.gray200, marginVertical: 12 },
@@ -287,16 +287,27 @@ function SalesSummaryPDF({ data }) {
 // ── Menu Performance ────────────────────────────────────────────
 
 function MenuPerformancePDF({ data }) {
-  const sm = data?.summary || {};
+  // API (/hq-reports/:orgId/menu-performance) sends items as { itemName, totalSalesCount, totalRevenue }
+  // with no summary block, so qty and all totals are derived here (older shapes still accepted).
+  const itemQty = (it) => Number(it.qtySold ?? it.quantity ?? it.totalSalesCount ?? it.salesCount ?? 0) || 0;
+  const itemRev = (it) => Number(it.revenue ?? it.totalRevenue ?? 0) || 0;
   const items = data?.items || data?.breakdown || [];
-  const topItems = [...items].sort((a, b) => (b.revenue || b.totalRevenue || 0) - (a.revenue || a.totalRevenue || 0));
-  const maxRev = topItems[0]?.revenue || topItems[0]?.totalRevenue || 1;
+  const topItems = [...items].sort((a, b) => itemRev(b) - itemRev(a));
+  const totalQty = data?.summary?.totalQtySold ?? items.reduce((t, it) => t + itemQty(it), 0);
+  const totalRevenue = data?.summary?.totalRevenue ?? items.reduce((t, it) => t + itemRev(it), 0);
+  const sm = {
+    totalUniqueItems: data?.summary?.totalUniqueItems ?? data?.totalUniqueItems ?? items.length,
+    totalQtySold: totalQty,
+    totalRevenue,
+    avgPrice: data?.summary?.avgPrice ?? (totalQty > 0 ? totalRevenue / totalQty : 0),
+  };
+  const maxRev = itemRev(topItems[0] || {}) || 1;
 
   return (
     <View>
       <Text style={s.sectionTitle}>Summary</Text>
       <View style={s.statsRow}>
-        <StatBox label="Unique Items" value={fmtNum(sm.totalUniqueItems || items.length)} color={C.primary} />
+        <StatBox label="Unique Items" value={fmtNum(sm.totalUniqueItems)} color={C.primary} />
         <StatBox label="Total Qty Sold" value={fmtNum(sm.totalQtySold)} color={C.blue} />
         <StatBox label="Total Revenue" value={fmtCurrency(sm.totalRevenue)} color={C.purple} />
         <StatBox label="Avg Price" value={fmtCurrency(sm.avgPrice)} color={C.amber} />
@@ -304,27 +315,28 @@ function MenuPerformancePDF({ data }) {
 
       {topItems.length > 0 && (
         <View>
-          <Text style={s.subTitle}>Top Items by Revenue</Text>
+          <Text style={s.subTitle}>Items by Revenue</Text>
           <View style={s.table}>
             <View style={s.tHead}>
               <Text style={[s.th, { width: '5%' }]}>#</Text>
               <Text style={[s.th, { width: '30%' }]}>Item</Text>
               <Text style={[s.th, { width: '15%', textAlign: 'right' }]}>Qty</Text>
               <Text style={[s.th, { width: '25%', textAlign: 'right' }]}>Revenue</Text>
-              <Text style={[s.th, { width: '25%' }]}>Share</Text>
+              <Text style={[s.th, { width: '25%', paddingLeft: 10 }]}>Share</Text>
             </View>
-            {topItems.slice(0, 30).map((item, i) => {
-              const rev = item.revenue || item.totalRevenue || 0;
+            {topItems.map((item, i) => {
+              const rev = itemRev(item);
               const pct = maxRev > 0 ? (rev / maxRev) * 100 : 0;
+              const share = item.revenuePercentage ?? (sm.totalRevenue > 0 ? (rev / sm.totalRevenue) * 100 : 0);
               return (
-                <View key={i} style={i % 2 ? s.tRowAlt : s.tRow}>
+                <View key={i} style={i % 2 ? s.tRowAlt : s.tRow} wrap={false}>
                   <Text style={[s.td, { width: '5%' }]}>{i + 1}</Text>
                   <Text style={[s.tdBold, { width: '30%' }]}>{item.itemName || item.name}</Text>
-                  <Text style={[s.tdRight, { width: '15%' }]}>{item.qtySold || item.quantity || 0}</Text>
+                  <Text style={[s.tdRight, { width: '15%' }]}>{fmtNum(itemQty(item))}</Text>
                   <Text style={[s.tdGreen, { width: '25%', textAlign: 'right' }]}>{fmtCurrency(rev)}</Text>
-                  <View style={[{ width: '25%' }, s.barRow]}>
+                  <View style={[{ width: '25%', paddingLeft: 10 }, s.barRow]}>
                     <View style={s.barBg}><View style={[s.barFill, { width: `${pct}%`, backgroundColor: C.primary }]} /></View>
-                    <Text style={{ fontSize: 7, color: C.gray500 }}>{fmtPct(item.revenuePercentage || (sm.totalRevenue > 0 ? (rev / sm.totalRevenue) * 100 : 0))}</Text>
+                    <Text style={{ fontSize: 7, color: C.gray500 }}>{fmtPct(share)}</Text>
                   </View>
                 </View>
               );

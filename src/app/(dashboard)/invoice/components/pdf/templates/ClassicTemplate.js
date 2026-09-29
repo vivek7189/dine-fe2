@@ -1,7 +1,7 @@
 'use client';
 import { Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 import { formatCurrency, formatDate, getTypeFields } from '../pdfHelpers';
-import '../../../../../../utils/pdfFonts';
+import { PDF_FONT_STACK } from '../../../../../../utils/pdfFonts';
 
 export default function ClassicTemplate({ data, type = 'invoice', org = {}, colors = {} }) {
   const bg = colors.background || '#ffffff';
@@ -13,14 +13,14 @@ export default function ClassicTemplate({ data, type = 'invoice', org = {}, colo
   const labelBg12 = label + '1F'; // ~12% opacity
 
   const styles = StyleSheet.create({
-    page: { padding: 40, fontSize: 10, fontFamily: 'NotoSans', color: font, backgroundColor: bg },
+    page: { padding: 40, fontSize: 10, fontFamily: PDF_FONT_STACK, color: font, backgroundColor: bg },
     headerBlock: {
       backgroundColor: labelBg12,
       paddingVertical: 14,
       paddingHorizontal: 18,
       marginBottom: 20,
     },
-    orgName: { fontSize: 16, fontFamily: 'NotoSans', fontWeight: 700, color: font },
+    orgName: { fontSize: 16, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: font },
     orgDetail: { fontSize: 9, color: label, marginTop: 2 },
     infoSection: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
     infoBox: {
@@ -31,7 +31,7 @@ export default function ClassicTemplate({ data, type = 'invoice', org = {}, colo
     },
     infoBoxLabel: {
       fontSize: 8,
-      fontFamily: 'NotoSans', fontWeight: 700,
+      fontFamily: PDF_FONT_STACK, fontWeight: 700,
       color: label,
       textTransform: 'uppercase',
       marginBottom: 6,
@@ -40,7 +40,7 @@ export default function ClassicTemplate({ data, type = 'invoice', org = {}, colo
     infoBoxValue: { fontSize: 10, color: font, marginBottom: 3 },
     infoBoxSubValue: { fontSize: 9, color: label, marginBottom: 2 },
     metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 },
-    metaLabel: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: label },
+    metaLabel: { fontSize: 8, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: label },
     metaValue: { fontSize: 9, color: font },
     table: { marginBottom: 20 },
     tableHeader: {
@@ -49,7 +49,7 @@ export default function ClassicTemplate({ data, type = 'invoice', org = {}, colo
       paddingVertical: 7,
       paddingHorizontal: 8,
     },
-    headerText: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' },
+    headerText: { fontSize: 8, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' },
     tableRow: {
       flexDirection: 'row',
       paddingVertical: 7,
@@ -74,7 +74,7 @@ export default function ClassicTemplate({ data, type = 'invoice', org = {}, colo
       borderBottomColor: label + '20',
     },
     totalLabel: { fontSize: 9, color: label },
-    totalValue: { fontSize: 9, fontFamily: 'NotoSans', fontWeight: 700, color: font },
+    totalValue: { fontSize: 9, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: font },
     grandTotalRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -82,18 +82,18 @@ export default function ClassicTemplate({ data, type = 'invoice', org = {}, colo
       paddingHorizontal: 10,
       backgroundColor: labelBg12,
     },
-    grandTotalLabel: { fontSize: 11, fontFamily: 'NotoSans', fontWeight: 700, color: font },
-    grandTotalValue: { fontSize: 11, fontFamily: 'NotoSans', fontWeight: 700, color: font },
+    grandTotalLabel: { fontSize: 11, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: font },
+    grandTotalValue: { fontSize: 11, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: font },
     bankSection: {
       marginTop: 16,
       paddingTop: 10,
       borderTopWidth: 1,
       borderTopColor: label + '40',
     },
-    bankTitle: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: label, textTransform: 'uppercase', marginBottom: 4 },
+    bankTitle: { fontSize: 8, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: label, textTransform: 'uppercase', marginBottom: 4 },
     bankText: { fontSize: 8, color: label },
     notesSection: { marginTop: 14, paddingTop: 10, borderTopWidth: 1, borderTopColor: label + '40' },
-    notesTitle: { fontSize: 8, fontFamily: 'NotoSans', fontWeight: 700, color: label, textTransform: 'uppercase', marginBottom: 3 },
+    notesTitle: { fontSize: 8, fontFamily: PDF_FONT_STACK, fontWeight: 700, color: label, textTransform: 'uppercase', marginBottom: 3 },
     notesText: { fontSize: 8, color: font, lineHeight: 1.4 },
     thankYou: {
       position: 'absolute',
@@ -102,7 +102,7 @@ export default function ClassicTemplate({ data, type = 'invoice', org = {}, colo
       right: 40,
       textAlign: 'center',
       fontSize: 10,
-      fontFamily: 'NotoSans', fontStyle: 'italic',
+      fontFamily: PDF_FONT_STACK, fontStyle: 'italic',
       color: label,
     },
     footer: { position: 'absolute', bottom: 28, left: 40, right: 40, textAlign: 'center', fontSize: 8, color: label },
@@ -124,7 +124,7 @@ export default function ClassicTemplate({ data, type = 'invoice', org = {}, colo
       <View style={styles.infoSection}>
         <View style={styles.infoBox}>
           <Text style={styles.infoBoxLabel}>Bill To</Text>
-          <Text style={[styles.infoBoxValue, { fontFamily: 'NotoSans', fontWeight: 700 }]}>
+          <Text style={[styles.infoBoxValue, { fontFamily: PDF_FONT_STACK, fontWeight: 700 }]}>
             {data.customer?.name || data.customerName || '-'}
           </Text>
           {data.customer?.email && <Text style={styles.infoBoxSubValue}>{data.customer.email}</Text>}
@@ -155,7 +155,7 @@ export default function ClassicTemplate({ data, type = 'invoice', org = {}, colo
           )}
           <View style={styles.metaRow}>
             <Text style={styles.metaLabel}>Status:</Text>
-            <Text style={[styles.metaValue, { fontFamily: 'NotoSans', fontWeight: 700, textTransform: 'uppercase' }]}>
+            <Text style={[styles.metaValue, { fontFamily: PDF_FONT_STACK, fontWeight: 700, textTransform: 'uppercase' }]}>
               {(data.status || 'draft').toUpperCase()}
             </Text>
           </View>
@@ -217,7 +217,7 @@ export default function ClassicTemplate({ data, type = 'invoice', org = {}, colo
           </View>
           {type === 'invoice' && data.balanceDue !== undefined && data.balanceDue !== data.total && (
             <View style={[styles.totalRow, { borderBottomWidth: 0 }]}>
-              <Text style={[styles.totalLabel, { fontFamily: 'NotoSans', fontWeight: 700 }]}>Balance Due</Text>
+              <Text style={[styles.totalLabel, { fontFamily: PDF_FONT_STACK, fontWeight: 700 }]}>Balance Due</Text>
               <Text style={[styles.totalValue, { color: '#2563eb' }]}>{formatCurrency(data.balanceDue, data.currencySymbol)}</Text>
             </View>
           )}

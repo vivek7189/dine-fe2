@@ -1892,9 +1892,15 @@ function getExcelSheetData(reportType, data, formatCurrency) {
     }
     case REPORT_TYPES.MENU: {
       const items = data?.items || data?.breakdown || [];
+      // The API sends no revenuePercentage — derive each item's share of total revenue.
+      const menuRevTotal = items.reduce((t, it) => t + (Number(it.revenue || it.totalRevenue) || 0), 0);
       sheets.push({ name: 'Menu Performance', data: [
         ['#', 'Item', 'Qty Sold', 'Revenue', 'Revenue %'],
-        ...items.map((item, i) => [i + 1, item.itemName || item.name, item.qtySold || item.quantity || item.totalSalesCount || item.totalSales || 0, item.revenue || item.totalRevenue || 0, `${(item.revenuePercentage || 0).toFixed(1)}%`])
+        ...items.map((item, i) => {
+          const rev = item.revenue || item.totalRevenue || 0;
+          const pct = item.revenuePercentage ?? (menuRevTotal > 0 ? (rev / menuRevTotal) * 100 : 0);
+          return [i + 1, item.itemName || item.name, item.qtySold || item.quantity || item.totalSalesCount || item.totalSales || 0, rev, `${pct.toFixed(1)}%`];
+        })
       ]});
       break;
     }
