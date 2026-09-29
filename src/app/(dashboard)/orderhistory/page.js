@@ -181,6 +181,9 @@ const OrderHistory = () => {
   const [summarySortDir, setSummarySortDir] = useState('desc');
   const [summarySearch, setSummarySearch] = useState('');
   const [displaySummarySearch, setDisplaySummarySearch] = useState('');
+  // Item-wise Sales: filter by menu category ('' = all) and show items or category totals
+  const [summaryCategory, setSummaryCategory] = useState('');
+  const [summaryGroupBy, setSummaryGroupBy] = useState('item');
   const summarySearchDebounceRef = useRef(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -2527,12 +2530,31 @@ const OrderHistory = () => {
     }
   };
 
+  const summaryCatOf = (i) => i.category || 'Uncategorized';
+  // Categories present in this period (for the filter), biggest revenue first
+  const summaryCategoryOptions = useMemo(() => {
+    const m = {};
+    (summaryData?.items || []).forEach(i => {
+      const c = summaryCatOf(i);
+      if (!m[c]) m[c] = { name: c, items: 0, revenue: 0 };
+      m[c].items += 1;
+      m[c].revenue += i.revenue || 0;
+    });
+    return Object.values(m).sort((a, b) => b.revenue - a.revenue);
+  }, [summaryData?.items]);
+
+  // A category that isn't in the newly loaded period → back to All
+  useEffect(() => {
+    if (summaryCategory && !summaryCategoryOptions.some(c => c.name === summaryCategory)) setSummaryCategory('');
+  }, [summaryCategoryOptions, summaryCategory]);
+
   const filteredSummaryItems = useMemo(() => {
     if (!summaryData?.items) return [];
     let items = [...summaryData.items];
+    if (summaryCategory) items = items.filter(i => summaryCatOf(i) === summaryCategory);
     if (summarySearch) {
       const term = summarySearch.toLowerCase();
-      items = items.filter(i => i.name.toLowerCase().includes(term));
+      items = items.filter(i => i.name.toLowerCase().includes(term) || summaryCatOf(i).toLowerCase().includes(term));
     }
     items.sort((a, b) => {
       let cmp = 0;
@@ -2542,7 +2564,43 @@ const OrderHistory = () => {
       return summarySortDir === 'desc' ? -cmp : cmp;
     });
     return items;
-  }, [summaryData?.items, summarySearch, summarySortBy, summarySortDir]);
+  }, [summaryData?.items, summarySearch, summarySortBy, summarySortDir, summaryCategory]);
+
+  // Category totals of the items shown (same filter/search), for the "Categories" view + export
+  const summaryCategoryRows = useMemo(() => {
+    const m = {};
+    filteredSummaryItems.forEach(i => {
+      const c = summaryCatOf(i);
+      if (!m[c]) m[c] = { name: c, items: 0, quantity: 0, revenue: 0 };
+      m[c].items += 1;
+      m[c].quantity += i.quantity || 0;
+      m[c].revenue += i.revenue || 0;
+    });
+    const rows = Object.values(m);
+    rows.sort((a, b) => {
+      let cmp = 0;
+      if (summarySortBy === 'quantity') cmp = a.quantity - b.quantity;
+      else if (summarySortBy === 'revenue') cmp = a.revenue - b.revenue;
+      else cmp = a.name.localeCompare(b.name);
+      return summarySortDir === 'desc' ? -cmp : cmp;
+    });
+    return rows;
+  }, [filteredSummaryItems, summarySortBy, summarySortDir]);
+
+  // Rows for CSV / Excel: items (with Category) + category totals
+  const buildItemSalesExport = () => {
+    const items = filteredSummaryItems;
+    const totalRev = items.reduce((s, i) => s + i.revenue, 0);
+    const pct = (v) => (totalRev > 0 ? ((v / totalRev) * 100).toFixed(1) : '0.0') + '%';
+    const itemRows = [['#', 'Item', 'Category', 'Qty', 'Revenue', '% of Total']];
+    items.forEach((item, idx) => itemRows.push([idx + 1, item.name, summaryCatOf(item), item.quantity, item.revenue, pct(item.revenue)]));
+    itemRows.push(['', 'Total', '', items.reduce((s, i) => s + i.quantity, 0), totalRev, '100%']);
+    const catRows = [['#', 'Category', 'Items', 'Qty', 'Revenue', '% of Total']];
+    summaryCategoryRows.forEach((c, idx) => catRows.push([idx + 1, c.name, c.items, c.quantity, Math.round(c.revenue * 100) / 100, pct(c.revenue)]));
+    catRows.push(['', 'Total', items.length, items.reduce((s, i) => s + i.quantity, 0), totalRev, '100%']);
+    const suffix = `${summaryPeriod}${summaryCategory ? '-' + summaryCategory.toLowerCase().replace(/[^a-z0-9]+/g, '-') : ''}`;
+    return { itemRows, catRows, suffix };
+  };
 
   const summaryPeriods = [
     { key: 'today', label: t('orderHistory.summaryToday') },
@@ -6255,22 +6313,43 @@ const OrderHistory = () => {
                     {t('orderHistory.itemWiseSales')}
                     <span className="text-xs text-gray-400 font-normal ml-2">({summaryData.items?.length || 0} {t('orderHistory.items')})</span>
                   </h3>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Category filter + Items / Categories view */}
+                    {summaryCategoryOptions.length > 0 && (
+                      <select
+                        value={summaryCategory}
+                        onChange={e => setSummaryCategory(e.target.value)}
+                        aria-label="Filter by category"
+                        className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 bg-white max-w-[180px] focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none"
+                      >
+                        <option value="">All categories</option>
+                        {summaryCategoryOptions.map(c => (
+                          <option key={c.name} value={c.name}>{c.name} ({c.items})</option>
+                        ))}
+                      </select>
+                    )}
+                    <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs font-semibold">
+                      {[['item', 'Items'], ['category', 'Categories']].map(([key, label]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setSummaryGroupBy(key)}
+                          className={`px-2.5 py-1.5 ${summaryGroupBy === key ? 'bg-rose-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                     {/* Download buttons */}
                     <button
                       onClick={() => {
-                        const items = filteredSummaryItems;
-                        const totalRev = items.reduce((s, i) => s + i.revenue, 0);
-                        const rows = [['#', 'Item', 'Qty', 'Revenue', '% of Total']];
-                        items.forEach((item, idx) => {
-                          const pct = totalRev > 0 ? ((item.revenue / totalRev) * 100).toFixed(1) : '0.0';
-                          rows.push([idx + 1, item.name, item.quantity, item.revenue, `${pct}%`]);
-                        });
-                        rows.push(['', 'Total', items.reduce((s, i) => s + i.quantity, 0), totalRev, '100%']);
-                        const csv = rows.map(r => r.map(c => typeof c === 'string' && c.includes(',') ? `"${c}"` : c).join(',')).join('\n');
+                        // CSV = what is on screen: items (with Category) or, in Categories view, category totals
+                        const { itemRows, catRows, suffix } = buildItemSalesExport();
+                        const rows = summaryGroupBy === 'category' ? catRows : itemRows;
+                        const csv = rows.map(r => r.map(c => typeof c === 'string' && /[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c).join(',')).join('\n');
                         const blob = new Blob([csv], { type: 'text/csv' });
                         const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a'); a.href = url; a.download = `item-wise-sales-${summaryPeriod}.csv`;
+                        const a = document.createElement('a'); a.href = url; a.download = `${summaryGroupBy === 'category' ? 'category-wise' : 'item-wise'}-sales-${suffix}.csv`;
                         document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
                       }}
                       className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-green-50 hover:text-green-700 hover:border-green-300 transition-all"
@@ -6282,18 +6361,12 @@ const OrderHistory = () => {
                       onClick={async () => {
                         try {
                           const XLSX = await import('xlsx');
-                          const items = filteredSummaryItems;
-                          const totalRev = items.reduce((s, i) => s + i.revenue, 0);
-                          const rows = [['#', 'Item', 'Qty', 'Revenue', '% of Total']];
-                          items.forEach((item, idx) => {
-                            const pct = totalRev > 0 ? ((item.revenue / totalRev) * 100).toFixed(1) : '0.0';
-                            rows.push([idx + 1, item.name, item.quantity, item.revenue, `${pct}%`]);
-                          });
-                          rows.push(['', 'Total', items.reduce((s, i) => s + i.quantity, 0), totalRev, '100%']);
+                          // Two sheets: every item with its Category, and the category totals
+                          const { itemRows, catRows, suffix } = buildItemSalesExport();
                           const wb = XLSX.utils.book_new();
-                          const ws = XLSX.utils.aoa_to_sheet(rows);
-                          XLSX.utils.book_append_sheet(wb, ws, 'Item-wise Sales');
-                          XLSX.writeFile(wb, `item-wise-sales-${summaryPeriod}.xlsx`);
+                          XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(itemRows), 'Item-wise Sales');
+                          XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(catRows), 'Category-wise Sales');
+                          XLSX.writeFile(wb, `item-wise-sales-${suffix}.xlsx`);
                         } catch (err) { console.error('Excel export failed:', err); }
                       }}
                       className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-green-50 hover:text-green-700 hover:border-green-300 transition-all"
@@ -6314,7 +6387,72 @@ const OrderHistory = () => {
                     </div>
                   </div>
                 </div>
-                {(() => {
+                {summaryGroupBy === 'category' && (() => {
+                  const rows = summaryCategoryRows;
+                  const totalQty = rows.reduce((s, c) => s + c.quantity, 0);
+                  const totalRev = rows.reduce((s, c) => s + c.revenue, 0);
+                  const totalItems = rows.reduce((s, c) => s + c.items, 0);
+                  return rows.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase">
+                            <th className="px-4 py-2.5 font-semibold w-10">#</th>
+                            <th className="px-4 py-2.5 font-semibold cursor-pointer hover:text-gray-700" onClick={() => toggleSummarySort('name')}>Category</th>
+                            <th className="px-4 py-2.5 font-semibold text-center">Items</th>
+                            <th className="px-4 py-2.5 font-semibold text-center cursor-pointer hover:text-gray-700" onClick={() => toggleSummarySort('quantity')}>{t('orderHistory.qty')}</th>
+                            <th className="px-4 py-2.5 font-semibold text-right cursor-pointer hover:text-gray-700" onClick={() => toggleSummarySort('revenue')}>{t('orderHistory.revenue')}</th>
+                            <th className="px-4 py-2.5 font-semibold text-right">{t('orderHistory.percentOfTotal')}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {rows.map((c, idx) => {
+                            const revPct = totalRev > 0 ? ((c.revenue / totalRev) * 100) : 0;
+                            return (
+                              <tr
+                                key={c.name}
+                                onClick={() => { setSummaryCategory(c.name); setSummaryGroupBy('item'); }}
+                                title="Show this category's items"
+                                className="hover:bg-rose-50/60 transition-colors cursor-pointer"
+                              >
+                                <td className="px-4 py-3 text-xs text-gray-400">{idx + 1}</td>
+                                <td className="px-4 py-3 font-medium text-gray-800 text-sm">{c.name}</td>
+                                <td className="px-4 py-3 text-center text-sm text-gray-600">{c.items}</td>
+                                <td className="px-4 py-3 text-center">
+                                  <span className="inline-flex items-center justify-center bg-blue-50 text-blue-700 font-bold text-sm px-3 py-0.5 rounded-full min-w-[40px]">{c.quantity}</span>
+                                </td>
+                                <td className="px-4 py-3 text-right font-semibold text-gray-800 text-sm">{formatCurrency(c.revenue)}</td>
+                                <td className="px-4 py-3 text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <div className="w-16 bg-gray-100 rounded-full h-1.5">
+                                      <div className="h-1.5 rounded-full bg-rose-400" style={{ width: `${Math.min(revPct, 100)}%` }} />
+                                    </div>
+                                    <span className="text-xs text-gray-500 w-10 text-right">{revPct.toFixed(1)}%</span>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                        <tfoot>
+                          <tr className="bg-gray-50 border-t-2 border-gray-200 font-bold">
+                            <td className="px-4 py-3"></td>
+                            <td className="px-4 py-3 text-gray-800">{t('orderHistory.total')}</td>
+                            <td className="px-4 py-3 text-center text-sm text-gray-700">{totalItems}</td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="inline-flex items-center justify-center bg-blue-100 text-blue-800 font-bold text-sm px-3 py-0.5 rounded-full">{totalQty}</span>
+                            </td>
+                            <td className="px-4 py-3 text-right text-emerald-700 text-sm">{formatCurrency(totalRev)}</td>
+                            <td className="px-4 py-3 text-right text-xs text-gray-500">100%</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-gray-400">{summarySearch ? t('orderHistory.noItemsMatchSearch') : t('orderHistory.noSalesDataPeriod')}</div>
+                  );
+                })()}
+                {summaryGroupBy === 'item' && (() => {
                   const items = filteredSummaryItems;
                   const totalQty = items.reduce((s, i) => s + i.quantity, 0);
                   const totalRev = items.reduce((s, i) => s + i.revenue, 0);
@@ -6327,6 +6465,7 @@ const OrderHistory = () => {
                             <th className="px-4 py-2.5 font-semibold cursor-pointer hover:text-gray-700" onClick={() => toggleSummarySort('name')}>
                               <span className="flex items-center gap-1">{t('orderHistory.item')} {summarySortBy === 'name' && (summarySortDir === 'desc' ? <FaSortAmountDown className="text-[10px]" /> : <FaSortAmountUp className="text-[10px]" />)}</span>
                             </th>
+                            <th className="px-4 py-2.5 font-semibold">Category</th>
                             <th className="px-4 py-2.5 font-semibold text-center cursor-pointer hover:text-gray-700" onClick={() => toggleSummarySort('quantity')}>
                               <span className="flex items-center justify-center gap-1">{t('orderHistory.qty')} {summarySortBy === 'quantity' && (summarySortDir === 'desc' ? <FaSortAmountDown className="text-[10px]" /> : <FaSortAmountUp className="text-[10px]" />)}</span>
                             </th>
@@ -6353,6 +6492,16 @@ const OrderHistory = () => {
                                     <span className="font-medium text-gray-800 text-sm">{item.name}</span>
                                   </div>
                                 </td>
+                                <td className="px-4 py-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => setSummaryCategory(summaryCatOf(item))}
+                                    title="Show only this category"
+                                    className="text-xs text-gray-600 bg-gray-100 hover:bg-rose-50 hover:text-rose-700 px-2 py-0.5 rounded-full whitespace-nowrap"
+                                  >
+                                    {summaryCatOf(item)}
+                                  </button>
+                                </td>
                                 <td className="px-4 py-3 text-center">
                                   <span className="inline-flex items-center justify-center bg-blue-50 text-blue-700 font-bold text-sm px-3 py-0.5 rounded-full min-w-[40px]">{item.quantity}</span>
                                 </td>
@@ -6373,6 +6522,7 @@ const OrderHistory = () => {
                           <tr className="bg-gray-50 border-t-2 border-gray-200 font-bold">
                             <td className="px-4 py-3"></td>
                             <td className="px-4 py-3 text-gray-800">{t('orderHistory.total')}</td>
+                            <td className="px-4 py-3 text-xs text-gray-500 font-semibold">{summaryCategory || ''}</td>
                             <td className="px-4 py-3 text-center">
                               <span className="inline-flex items-center justify-center bg-blue-100 text-blue-800 font-bold text-sm px-3 py-0.5 rounded-full">{totalQty}</span>
                             </td>
