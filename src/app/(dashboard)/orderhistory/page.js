@@ -161,6 +161,66 @@ const paymentDisplayLabel = (order, fallback) => {
   return (order && order.paymentMethod) || fallback || '';
 };
 
+// ── Sales sheets for the downloads (category-wise + item-wise) ─────────────────────────────────
+// items: [{ name, category, quantity, revenue }] → rows for "Item-wise Sales" (with Category) and
+// "Category-wise Sales" (one row per category), both biggest revenue first, with a Total row.
+function salesSheetRows(items) {
+  const list = (items || []).filter(i => i && i.name);
+  const totalRev = list.reduce((s, i) => s + (Number(i.revenue) || 0), 0);
+  const totalQty = list.reduce((s, i) => s + (Number(i.quantity) || 0), 0);
+  const pct = (v) => (totalRev > 0 ? ((v / totalRev) * 100).toFixed(1) : '0.0') + '%';
+  const r2 = (v) => Math.round((Number(v) || 0) * 100) / 100;
+  const cats = {};
+  list.forEach(i => {
+    const c = i.category || 'Uncategorized';
+    if (!cats[c]) cats[c] = { name: c, items: 0, quantity: 0, revenue: 0 };
+    cats[c].items += 1;
+    cats[c].quantity += Number(i.quantity) || 0;
+    cats[c].revenue += Number(i.revenue) || 0;
+  });
+  const catRows = [['#', 'Category', 'Items', 'Qty', 'Revenue', '% of Total']];
+  Object.values(cats).sort((a, b) => b.revenue - a.revenue)
+    .forEach((c, idx) => catRows.push([idx + 1, c.name, c.items, c.quantity, r2(c.revenue), pct(c.revenue)]));
+  catRows.push(['', 'Total', list.length, totalQty, r2(totalRev), '100%']);
+  const itemRows = [['#', 'Item', 'Category', 'Qty', 'Revenue', '% of Total']];
+  [...list].sort((a, b) => (b.revenue || 0) - (a.revenue || 0))
+    .forEach((i, idx) => itemRows.push([idx + 1, i.name, i.category || 'Uncategorized', Number(i.quantity) || 0, r2(i.revenue), pct(Number(i.revenue) || 0)]));
+  itemRows.push(['', 'Total', '', totalQty, r2(totalRev), '100%']);
+  return { itemRows, catRows };
+}
+
+// Item/category sales of a list of orders (billed orders only, like the Sales Summary). Order items
+// store the category key (usually the id); `categories` (the restaurant's list) gives the name.
+function itemSalesFromOrders(orders, categories) {
+  const byKey = {};
+  (categories || []).forEach(c => {
+    if (!c) return;
+    if (c.id != null) byKey[String(c.id).trim().toLowerCase()] = c.name || String(c.id);
+    if (c.name) { const k = String(c.name).trim().toLowerCase(); if (!byKey[k]) byKey[k] = c.name; }
+  });
+  const catName = (key) => {
+    if (!key) return 'Uncategorized';
+    const hit = byKey[String(key).trim().toLowerCase()];
+    if (hit) return hit;
+    return String(key).toLowerCase() === 'custom' ? 'Custom Items' : String(key);
+  };
+  const m = {};
+  (orders || []).forEach(o => {
+    if (!['completed', 'paid', 'settled'].includes(o?.status)) return;
+    (o.items || []).forEach(it => {
+      const name = it?.name || it?.itemName;
+      if (!name) return;
+      const qty = Number(it.quantity) || 1;
+      const cat = catName(it.subCategory || it.category);
+      const key = `${name}\u0000${cat}`;
+      if (!m[key]) m[key] = { name, category: cat, quantity: 0, revenue: 0 };
+      m[key].quantity += qty;
+      m[key].revenue += (Number(it.price) || 0) * qty;
+    });
+  });
+  return Object.values(m);
+}
+
 const OrderHistory = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -3423,6 +3483,49 @@ const OrderHistory = () => {
                   setExporting(true);
                   try {
                     const XLSX = await import('xlsx');
+                    // Sales Summary tab → the full sales report of the period on screen
+                    if (activeView === 'summary' && summaryData) {
+                      const sd = summaryData;
+                      const r2 = (v) => Math.round((Number(v) || 0) * 100) / 100;
+                      const period = sd.dateRange ? (sd.dateRange.start === sd.dateRange.end ? sd.dateRange.start : `${sd.dateRange.start} to ${sd.dateRange.end}`) : summaryPeriod;
+                      const itemsSold = (sd.items || []).reduce((s, i) => s + (Number(i.quantity) || 0), 0);
+                      const { itemRows, catRows } = salesSheetRows(sd.items || []);
+                      const wb = XLSX.utils.book_new();
+                      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+                        ['Sales Summary', restaurant?.name || ''],
+                        ['Period', period],
+                        [],
+                        ['Revenue (incl. tax)', r2(sd.totalRevenueWithTax || sd.totalRevenue)],
+                        ['Revenue (before tax)', r2(sd.totalRevenue)],
+                        ['Orders', sd.totalOrders || 0],
+                        ['Average order value', r2(sd.avgOrderValue)],
+                        ['Items sold', itemsSold],
+                        ['Customers', sd.uniqueCustomers || 0],
+                        ...(sd.openOrders && sd.openOrders.count ? [['Open (unbilled) orders', sd.openOrders.count], ['Open orders amount', r2(sd.openOrders.amount)]] : []),
+                      ]), 'Summary');
+                      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(catRows), 'Category-wise Sales');
+                      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(itemRows), 'Item-wise Sales');
+                      if (Array.isArray(sd.paymentBreakdown) && sd.paymentBreakdown.length) {
+                        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+                          ['Payment method', 'Transactions', 'Amount', '% of Revenue'],
+                          ...sd.paymentBreakdown.map(p => [p.method, p.transactions, r2(p.amount), `${p.percentage || 0}%`]),
+                        ]), 'Payment Methods');
+                      }
+                      if (sd.ordersByType && Object.keys(sd.ordersByType).length) {
+                        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+                          ['Order type', 'Orders'],
+                          ...Object.entries(sd.ordersByType).sort((a, b) => b[1] - a[1]),
+                        ]), 'Order Types');
+                      }
+                      if (Array.isArray(sd.dailyRevenue) && sd.dailyRevenue.length) {
+                        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+                          ['Date', 'Orders', 'Revenue'],
+                          ...sd.dailyRevenue.map(d => [d.date, d.orders || 0, r2(d.revenue)]),
+                        ]), 'Daily Revenue');
+                      }
+                      XLSX.writeFile(wb, `sales-summary-${String(period).replace(/\s+to\s+/, '_to_')}.xlsx`);
+                      return;
+                    }
                     // The on-screen `orders` is only the current page (limit 10/20). For the export
                     // we re-fetch ALL orders that match the active filters/date range so the Excel
                     // contains every order in the report — not just the visible page.
@@ -3480,12 +3583,16 @@ const OrderHistory = () => {
                     const wb = XLSX.utils.book_new();
                     const ws = XLSX.utils.aoa_to_sheet(rows);
                     XLSX.utils.book_append_sheet(wb, ws, 'Orders');
+                    // + category-wise and item-wise sales of the same orders (billed ones)
+                    const sales = salesSheetRows(itemSalesFromOrders(exportOrders, restaurant?.categories));
+                    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sales.catRows), 'Category-wise Sales');
+                    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sales.itemRows), 'Item-wise Sales');
                     XLSX.writeFile(wb, `order-history-${new Date().toISOString().split('T')[0]}.xlsx`);
                   } catch (err) { console.error('Order export failed:', err); }
                   finally { setExporting(false); }
                 }}
                 className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-green-50 hover:text-green-700 hover:border-green-300 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                title="Export orders to Excel"
+                title={activeView === 'summary' ? 'Download the sales summary report (Excel: summary, category-wise, item-wise, payments)' : 'Export orders to Excel (+ category-wise and item-wise sales)'}
               >
                 <FaFileExcel className="text-green-600" /> {exporting ? 'Exporting…' : 'Export'}
               </button>

@@ -229,6 +229,15 @@ export default function SalesSummaryPage() {
     }
     const ws = XLSX.utils.aoa_to_sheet(data);
     XLSX.utils.book_append_sheet(wb, ws, tabType);
+    if (tabType === 'category' && Array.isArray(summary?.items) && summary.items.length) {
+      // + every item with its category (which items make up each category)
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+        ['Item', 'Category', 'Qty', 'Revenue'],
+        ...[...summary.items]
+          .sort((a, b) => String(a.category || '').localeCompare(String(b.category || '')) || (b.revenue || 0) - (a.revenue || 0))
+          .map(i => [i.name, i.category || 'Uncategorized', i.quantity || 0, i.revenue || 0]),
+      ]), 'items by category');
+    }
     XLSX.writeFile(wb, `sales-${tabType}-report.xlsx`);
   };
 
