@@ -29,6 +29,7 @@ export default function TableActionsSheet({
   onAddParty,
   onOpenParty,
   onAssignServer,
+  onTransfer,
   onBook,
   onEdit,
   onSplit,
@@ -62,6 +63,8 @@ export default function TableActionsSheet({
   // Build the Manage + Status actions as a flat list → rendered in a 2-col grid.
   const actions = [];
   if (canEditTable && waitersCount > 0) actions.push({ icon: <FaUser size={13} />, color: '#0d9488', label: table.waiterName ? `Server: ${table.waiterName}` : 'Assign Server', onClick: () => run(onAssignServer) });
+  // Hand the running order (and table) to another server — the backend decides who may (Staff Access).
+  if (table.currentOrderId && typeof onTransfer === 'function' && waitersCount > 0) actions.push({ icon: <FaUser size={13} />, color: '#7c3aed', label: 'Transfer to another server', onClick: () => run(onTransfer) });
   if (isAvailable) actions.push({ icon: <FaCalendarAlt size={13} />, color: '#d97706', label: t?.('tables.book') || 'Book Table', onClick: () => run(onBook) });
   if (isAvailable && canEditTableConfig) actions.push({ icon: <FaEdit size={13} />, color: '#2563eb', label: 'Edit Table', onClick: () => run(onEdit) });
   if (isAvailable && canEditTableConfig && onSplit && !table.isSubTable) actions.push({ icon: <FaColumns size={13} />, color: '#dc2626', label: t?.('tables.split') || 'Split table', sub: 'A/B/C children', onClick: () => run(onSplit) });

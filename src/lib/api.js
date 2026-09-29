@@ -464,6 +464,11 @@ class ApiClient {
       }
 
       if (!response.ok) {
+        // Staff Access Rules: not clocked in / on leave / shift over → the dashboard shows the
+        // clock-in screen (StaffAccessGate listens for this). The request still fails as before.
+        if (response.status === 423 && data && String(data.code || '').startsWith('STAFF_ACCESS_') && typeof window !== 'undefined') {
+          try { window.dispatchEvent(new CustomEvent('staffAccessBlocked', { detail: data })); } catch (_) { /* ignore */ }
+        }
         // Staff/employee deactivated: clear auth and redirect to login (web + app)
         if (response.status === 401 && data && data.inactive === true) {
           this.forceLogout();
@@ -541,7 +546,11 @@ class ApiClient {
         if (response.status === 404) {
           throw new Error(data.message || data.error || `Endpoint ${endpoint} not found`);
         }
-        throw new Error(data.message || data.error || `API request failed (${response.status})`);
+        const apiErr = new Error(data.message || data.error || `API request failed (${response.status})`);
+        apiErr.status = response.status; // e.g. 423 / 403 with data.code 'STAFF_ACCESS_…'
+        apiErr.code = data && data.code;
+        apiErr.data = data;
+        throw apiErr;
       }
 
       // Cache successful GET responses to IndexedDB for offline fallback (all pages)
@@ -1853,6 +1862,23 @@ class ApiClient {
 
   async logReprint(orderId) {
     return this.request(`/api/orders/${orderId}/reprint-log`, { method: 'POST' });
+  }
+
+  // ── Staff Access Rules ──
+  // Latest rules for the logged-in staff (kept by StaffAccessGate; null / restricted:false = none)
+  setStaffAccess(v) { this._staffAccess = v || null; }
+  getStaffAccess() { return this._staffAccess || null; }
+  async getStaffAccessMe(restaurantId, { fresh = false } = {}) {
+    return this.request(`/api/staff-access/${restaurantId}/me${fresh ? '?fresh=1' : ''}`);
+  }
+  async staffAccessOverride(restaurantId, { staffId, pin, minutes } = {}) {
+    return this.request(`/api/staff-access/${restaurantId}/override`, { method: 'POST', body: JSON.stringify({ staffId, pin, minutes }) });
+  }
+  async getMySales(restaurantId, period = 'today') {
+    return this.request(`/api/staff-access/${restaurantId}/my-sales?period=${encodeURIComponent(period)}`);
+  }
+  async transferOrder(orderId, toStaffId) {
+    return this.request(`/api/orders/${orderId}/transfer`, { method: 'POST', body: JSON.stringify({ toStaffId }) });
   }
 
   async getDailySummary(restaurantId, options = {}) {

@@ -224,6 +224,34 @@ function canSeeBusinessTotals(user, pageAccess) {
   return a === true || !!(a && typeof a === 'object' && Object.values(a).some(Boolean));
 }
 
+// "Your sales today" — a staff member's OWN billed sales (the server checkout figures), shown to
+// staff who don't see the restaurant's totals. Server-side: only orders they took.
+function MySalesCard({ currencySymbol = '₹' }) {
+  const [d, setD] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    const rid = (() => { try { return localStorage.getItem('selectedRestaurantId'); } catch { return null; } })();
+    if (!rid) return undefined;
+    apiClient.getMySales(rid, 'today').then(r => { if (!cancelled && r && r.success) setD(r); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+  if (!d) return null;
+  const money = `${currencySymbol}${Math.round(d.sales || 0).toLocaleString()}`;
+  return (
+    <div className="animate-in" style={{ marginBottom: '20px', borderRadius: '14px', padding: '14px 16px', background: 'linear-gradient(135deg,#eef2ff,#f5f3ff)', border: '1px solid #e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+      <div>
+        <div style={{ fontSize: '12px', fontWeight: 700, color: '#4338ca', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Your sales today</div>
+        <div style={{ fontSize: '20px', fontWeight: 800, color: '#1e1b4b', marginTop: '2px' }}>{money}</div>
+      </div>
+      <div style={{ fontSize: '12px', color: '#4c1d95', textAlign: 'right' }}>
+        <div><strong>{d.orders || 0}</strong> billed order{d.orders === 1 ? '' : 's'}</div>
+        {d.openOrders > 0 && <div><strong>{d.openOrders}</strong> still open · {currencySymbol}{Math.round(d.openAmount || 0).toLocaleString()}</div>}
+        {d.tips > 0 && <div>Tips {currencySymbol}{Math.round(d.tips).toLocaleString()}</div>}
+      </div>
+    </div>
+  );
+}
+
 // Yesterday's-sales recap — the retention reward. When an owner comes back and
 // yesterday had sales, greet them with the RESULT ("Yesterday you made ₹X") — this
 // reinforces the habit loop that brings them back on day 2+. Read-only, self-gating
@@ -545,6 +573,7 @@ export default function HomePage() {
 
       {/* Yesterday's-sales recap — retention reward when they come back */}
       {canSeeBusinessTotals(user, pageAccess) && <YesterdayRecap currencySymbol={currencySymbol} />}
+      {user && !canSeeBusinessTotals(user, pageAccess) && <MySalesCard currencySymbol={currencySymbol} />}
 
       {/* Open (unsettled) orders indicator — tap to resolve on the Open Orders page */}
       {openSummary && openSummary.count > 0 && canSeeBusinessTotals(user, pageAccess) && (

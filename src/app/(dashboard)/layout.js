@@ -21,6 +21,7 @@ import SyncStatusDot from '../../components/SyncStatusDot';
 // Local-first: no online/offline routing switch. A read-only SyncStatusDot floats top-right.
 import OfflineFallback from '../../components/OfflineFallback';
 import AccountNoticeGate from '../../components/AccountNoticeGate';
+import StaffAccessGate from '../../components/StaffAccessGate';
 import { useKraRetryQueue } from '../../hooks/useKraRetryQueue';
 import { KraStatusContext } from '../../contexts/KraStatusContext';
 import { isWeb, isTauri, isElectron } from '../../utils/platform';
@@ -634,6 +635,9 @@ function DashboardLayoutContent({ children }) {
             {/* Per-restaurant account/billing gate banner (super-admin controlled).
                 Self-portals to <body>; info→bottom banner, warning→popup, blocking→full-screen. */}
             <AccountNoticeGate />
+
+            {/* Staff Access Rules: 'Clock in to start' screen for staff who must clock in (off shift / on leave) */}
+            <StaffAccessGate />
 
             {/* KRA eTIMS health banner is no longer floated on every page — the auto-retry WORKER
                 still runs here (useKraRetryQueue above, draining pending sales in the background on

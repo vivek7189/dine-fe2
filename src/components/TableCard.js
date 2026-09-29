@@ -56,6 +56,7 @@ export default function TableCard({
   onEditTable,
   onDeleteTable,
   onAssignServer,
+  onLockedTap,
   onUnmerge,
   onSplitTable,
   onOpenBilling,
@@ -140,6 +141,26 @@ export default function TableCard({
        }}
        onMouseEnter={() => setHoveredTableId(table.id)}
        onMouseLeave={() => setHoveredTableId(null)}>
+
+      {/* Staff Access Rules: another server's table (assigned, or being served by them) — dimmed,
+          lock + owner name, and every tap stops here with an explanation. Manager views never
+          get accessLocked from the server. */}
+      {table.accessLocked && (
+        <div
+          role="note"
+          onClick={(e) => {
+            e.stopPropagation();
+            const who = table.accessOwnerName ? ` (${table.accessOwnerName})` : '';
+            const why = table.accessLockedReason === 'occupied' ? 'Another server is serving this table' : 'This table is assigned to another server';
+            if (typeof onLockedTap === 'function') onLockedTap(table, `${why}${who}. Ask a manager to transfer it.`);
+          }}
+          style={{ position: 'absolute', inset: 0, zIndex: 5, background: 'rgba(248,250,252,0.72)', borderRadius: 'inherit', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: '8px', cursor: 'not-allowed' }}
+        >
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569', background: '#e2e8f0', borderRadius: '999px', padding: '3px 10px', maxWidth: '90%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            🔒 {table.accessOwnerName || 'Other server'}
+          </span>
+        </div>
+      )}
 
       {/* ⋮ Management kebab — the ONLY trigger for edit/split/assign/clean/delete. Keeps the card
           body a clean primary tap target (matches Toast/Square/Petpooja). */}

@@ -142,6 +142,7 @@ import { FEATURE_OPS, OP_LABELS, ADMIN_TAB_LABELS, ADMIN_TAB_ID_TO_KEY, resolveF
 import { PAGE_ACCESS_CONFIG } from '@/lib/pageAccessConfig';
 import { getPrintFontSizes, getPrintFontFamily, PRINT_FONTS, getContentWidthRange } from '../../../utils/printFontSizes';
 import { KOT_TEMPLATE_LIST, BILL_TEMPLATE_LIST, renderKOT, renderBill } from '../../../utils/printTemplates/index';
+import StaffAccessSettings from '../../../components/admin/StaffAccessSettings';
 
 // Reusable shimmer skeleton for tab content while restaurants load
 const AdminTabSkeleton = ({ variant = 'single' }) => (
@@ -6268,6 +6269,7 @@ const Admin = () => {
     { label: 'MANAGE', items: [
       { id: 'restaurants', label: 'Restaurants', icon: FaStore },
       { id: 'staff', label: 'Staff', icon: FaUsers },
+      { id: 'staff-access', label: 'Staff Access', icon: FaUsers },
     ]},
     { label: 'OPERATIONS', items: [
       { id: 'order-management', label: 'Order Management', icon: FaReceipt },
@@ -15470,6 +15472,17 @@ const Admin = () => {
       )}
 
       {/* ==================== WAITER APP SETTINGS TAB ==================== */}
+      {activeTab === 'staff-access' && !(loading && restaurants.length === 0) && (
+        <StaffAccessSettings
+          restaurant={selectedRestaurant}
+          posSettings={posSettings}
+          setPosSettings={setPosSettings}
+          roles={allRoles}
+          onSave={handleSaveDashboardSettings}
+          saving={posSettingsSaving}
+        />
+      )}
+
       {activeTab === 'waiter-app' && !(loading && restaurants.length === 0) && (
         <div>
           {/* Header */}

@@ -114,6 +114,7 @@ import {
   FaCompress
 } from 'react-icons/fa';
 import { fmtDateTime } from '../lib/restaurantTime';
+import { filterAllowedOrderTypes } from '../lib/staffAccessClient';
 
 const OrderSummary = ({
   cart,
@@ -3147,10 +3148,11 @@ const OrderSummary = ({
                     { id: 'delivery', label: 'Delivery', enabled: true, builtIn: true },
                   ]
               ).filter(ot => ot.enabled);
+              const allowedTypes = filterAllowedOrderTypes(enabledTypes); // Staff Access: e.g. waiters dine-in only
               const i18nMap = { 'dine-in': t('dashboard.dineIn'), 'takeaway': t('dashboard.takeaway') };
               return (
             <div style={{ display: 'flex', gap: isMobile ? '3px' : '4px', flexWrap: 'wrap' }}>
-              {enabledTypes.map((ot) => {
+              {allowedTypes.map((ot) => {
                 const isDisabled = hasTable && ot.id !== 'dine-in';
                 return (
                   <button

@@ -623,6 +623,7 @@ const TableManagement = () => {
   // Server assignment
   const [waiters, setWaiters] = useState([]);
   const [assignServerTable, setAssignServerTable] = useState(null); // table being assigned
+  const [assignMode, setAssignMode] = useState('assign'); // 'assign' | 'transfer' (hand the running order to another server)
   const [assignSaving, setAssignSaving] = useState(false);
   const [myTablesOnly, setMyTablesOnly] = useState(false);
   // Floor-plan view
@@ -1781,12 +1782,33 @@ const TableManagement = () => {
 
   // ── Assign server to a table ──────────────────────────
   const openAssignServer = (table) => {
+    setAssignMode('assign');
+    setAssignServerTable(table);
+    setActiveDropdown(null);
+  };
+  // Transfer the running order (and the table) to another server — Staff Access "transfer check".
+  const openTransfer = (table) => {
+    setAssignMode('transfer');
     setAssignServerTable(table);
     setActiveDropdown(null);
   };
   const assignServer = async (waiter) => {
     if (!assignServerTable || !selectedRestaurant?.id) return;
     setAssignSaving(true);
+    if (assignMode === 'transfer') {
+      try {
+        if (!waiter?.id || !assignServerTable.currentOrderId) throw new Error('Choose who to transfer to.');
+        await apiClient.transferOrder(assignServerTable.currentOrderId, waiter.id);
+        showSuccess(`Transferred to ${waiter.name}`);
+        setAssignServerTable(null);
+        await loadFloorsAndTables(selectedRestaurant.id, true);
+      } catch (err) {
+        showError(err?.message || 'Failed to transfer');
+      } finally {
+        setAssignSaving(false);
+      }
+      return;
+    }
     try {
       await apiClient.assignTableServer(assignServerTable.id, {
         restaurantId: selectedRestaurant.id,
@@ -2826,6 +2848,7 @@ const TableManagement = () => {
                           onEditTable={openEditTable}
                           onDeleteTable={(tbl) => deleteTable(tbl.id)}
                           onAssignServer={openAssignServer}
+                          onLockedTap={(tbl, msg) => showWarning(msg)}
                           onSplitTable={openSplitTable}
                           onUnmerge={(tbl) => setUnmergeConfirm({ primaryTableId: tbl.mergePrimary ? tbl.id : tbl.mergedInto, name: tbl.mergePrimary ? tbl.name : (tbl.mergedIntoName || tbl.name) })}
                           onOpenBilling={(tbl) => {
@@ -3996,6 +4019,7 @@ const TableManagement = () => {
               handleTableAction(pst === 'available' ? 'take-order' : 'view-order', pt);
             }}
             onAssignServer={(x) => openAssignServer(x)}
+            onTransfer={(x) => openTransfer(x)}
             onBook={(x) => {
               setSelectedTable(x);
               setReserveTableIds([x.id]); // pre-select the tapped table
@@ -4046,13 +4070,13 @@ const TableManagement = () => {
           <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '420px', maxHeight: '82vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid #f1f5f9' }}>
               <div>
-                <div style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>Assign Server</div>
-                <div style={{ fontSize: '12px', color: '#64748b' }}>{assignServerTable.name}{assignServerTable.currentOrderId ? ' · updates the running order' : ''}</div>
+                <div style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>{assignMode === 'transfer' ? 'Transfer to…' : 'Assign Server'}</div>
+                <div style={{ fontSize: '12px', color: '#64748b' }}>{assignServerTable.name}{assignMode === 'transfer' ? ' · the running order and the table move to them' : (assignServerTable.currentOrderId ? ' · updates the running order' : '')}</div>
               </div>
               <button onClick={() => !assignSaving && setAssignServerTable(null)} style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', backgroundColor: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaTimes size={14} color="#6b7280" /></button>
             </div>
             <div style={{ padding: '10px 14px', overflowY: 'auto', flex: 1 }}>
-              {assignServerTable.waiterId && (
+              {assignMode !== 'transfer' && assignServerTable.waiterId && (
                 <button type="button" disabled={assignSaving} onClick={() => assignServer(null)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 12px', marginBottom: '6px', borderRadius: '10px', textAlign: 'left', cursor: 'pointer', border: '1px solid #fecaca', background: '#fef2f2', color: '#b91c1c', fontWeight: 600, fontSize: '13px' }}>
                   <FaBan size={13} /> Unassign current server
                 </button>
