@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { FaMoneyBillWave, FaCreditCard, FaUtensils, FaArrowUp, FaArrowDown } from 'react-icons/fa';
+import { FaMoneyBillWave, FaCreditCard, FaUtensils, FaArrowUp, FaArrowDown, FaDownload } from 'react-icons/fa';
+import { useCurrency } from '../../../../contexts/CurrencyContext';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid, Cell } from 'recharts';
 
 const cardStyle = {
@@ -49,8 +50,9 @@ function groupBreakdown(dailyBreakdown, view) {
   return Object.values(map);
 }
 
-export default function RevenueTab({ revenueData, loadingRevenue, isMobile, formatCurrency }) {
+export default function RevenueTab({ revenueData, loadingRevenue, isMobile, formatCurrency, period }) {
   const [breakdownView, setBreakdownView] = useState('daily');
+  const { currencySettings } = useCurrency();
   if (loadingRevenue && !revenueData) {
     return (
       <div style={{ textAlign: 'center', padding: '60px 20px', color: '#9ca3af' }}>
@@ -71,8 +73,40 @@ export default function RevenueTab({ revenueData, loadingRevenue, isMobile, form
   const maxPayment = paymentData.length ? Math.max(...paymentData.map(d => d.value)) : 0;
   const maxOrderType = orderTypeData.length ? Math.max(...orderTypeData.map(d => d.value)) : 0;
 
+  // Excel export of exactly what this tab shows (summary, day/week/month rows, payment + order types)
+  const exportExcel = async () => {
+    const XLSX = await import('xlsx');
+    const code = String(currencySettings?.currencyCode || '').toUpperCase();
+    const cur = code ? ` (${code})` : '';
+    const n = (v) => Math.round((Number(v) || 0) * 100) / 100;
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+      ['Revenue report', String(period || '').replace(/_/g, ' ')],
+      [],
+      [`Total revenue${cur}`, n(totalRevenue)],
+      ['Orders', orderCount || 0],
+      [`Average order value${cur}`, n(avgOrderValue)],
+      [`Tax collected${cur}`, n(totalTax)],
+      [`Discounts${cur}`, n(totalDiscounts)],
+      [`Refunds${cur}`, n(refunds)],
+    ]), 'Summary');
+    const rows = groupBreakdown(dailyBreakdown, breakdownView) || [];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+      [breakdownView === 'daily' ? 'Date' : breakdownView === 'weekly' ? 'Week' : 'Month', 'Orders', `Revenue${cur}`, `Tax${cur}`],
+      ...rows.map(r => [r.date, r.orders || 0, n(r.revenue), n(r.tax)]),
+    ]), 'Breakdown');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Payment method', `Amount${cur}`], ...paymentData.map(p => [p.name, n(p.value)])]), 'Payment methods');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Order type', `Amount${cur}`], ...orderTypeData.map(o => [o.name, n(o.value)])]), 'Order types');
+    XLSX.writeFile(wb, `revenue-${String(period || 'report')}-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <button onClick={exportExcel} style={{ padding: '8px 16px', background: 'linear-gradient(135deg, #2563eb, #3b82f6)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 8px rgba(37,99,235,0.3)' }}>
+          <FaDownload size={10} /> Export Excel
+        </button>
+      </div>
       {/* Summary Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: '12px' }}>
         {[

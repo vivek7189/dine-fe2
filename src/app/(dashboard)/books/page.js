@@ -15,10 +15,11 @@ import AdvancesTab from './components/AdvancesTab';
 import BonusTab from './components/BonusTab';
 import AppraisalsTab from './components/AppraisalsTab';
 import GSTReportsTab from './components/GSTReportsTab';
+import TaxSummaryTab from './components/TaxSummaryTab';
 import LedgerTab from './components/LedgerTab';
 import BooksModals from './components/BooksModals';
 
-const tabs = [
+const TABS = [
   { id: 'overview', name: 'Overview', icon: FaChartLine },
   { id: 'revenue', name: 'Revenue', icon: FaMoneyBillWave },
   { id: 'expenses', name: 'Expenses', icon: FaReceipt },
@@ -32,10 +33,17 @@ const tabs = [
   { id: 'ledger', name: 'Ledger', icon: FaListAlt },
 ];
 
-const validTabIds = tabs.map(t => t.id);
+const validTabIds = TABS.map(t => t.id);
 
 export default function BooksPage() {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency, currencySettings } = useCurrency();
+  // India files GST (GSTR-1/3B, CGST+SGST); every other country gets a plain tax report by the
+  // tax's own name (e.g. Kenya VAT 16% + Catering Levy 2%). Unknown settings → India (unchanged).
+  const cc = String(currencySettings?.countryCode || '').toUpperCase();
+  const cur = String(currencySettings?.currencyCode || '').toUpperCase();
+  const isIndia = cc ? cc === 'IN' : (!cur || cur === 'INR');
+  const taxLabel = currencySettings?.taxLabel && currencySettings.taxLabel !== 'GST' ? currencySettings.taxLabel : 'Tax';
+  const tabs = isIndia ? TABS : TABS.map(t => (t.id === 'gst' ? { ...t, name: `${taxLabel} Report` } : t));
   const books = useBooks();
   const { isMobile, activeTab, setActiveTab, error, setError, success, setSuccess, period, setPeriod, PERIODS, customStart, setCustomStart, customEnd, setCustomEnd } = books;
   const isMobileEmbed = typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
@@ -192,7 +200,17 @@ export default function BooksPage() {
             formatCurrency={formatCurrency}
           />
         )}
-        {activeTab === 'gst' && (
+        {activeTab === 'gst' && !isIndia && (
+          <TaxSummaryTab
+            restaurantId={books.restaurantId}
+            apiClient={books.apiClient}
+            isMobile={books.isMobile}
+            formatCurrency={formatCurrency}
+            taxLabel={taxLabel}
+            currencyCode={cur}
+          />
+        )}
+        {activeTab === 'gst' && isIndia && (
           <GSTReportsTab
             restaurantId={books.restaurantId}
             apiClient={books.apiClient}

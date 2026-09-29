@@ -4675,6 +4675,10 @@ class ApiClient {
   }
 
   // ─── GST Reports ──────────────────────────────────────────────────────
+  // Tax report for any country (each tax by name + rate) — non-India Books tab
+  async getTaxSummary(restaurantId, month) {
+    return this.request(`/api/books/${restaurantId}/tax-summary?month=${encodeURIComponent(month)}`);
+  }
   async getGSTR1(restaurantId, month) {
     return this.request(`/api/gst/${restaurantId}/gstr1?month=${month}`);
   }
