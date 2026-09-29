@@ -29,6 +29,7 @@ export default function EtimsSettings({ restaurantId }) {
   const [saving, setSaving] = useState(false);
   const [togglingEnabled, setTogglingEnabled] = useState(false);
   const [togglingAsk, setTogglingAsk] = useState(false);
+  const [togglingAll, setTogglingAll] = useState(false);
   const [initing, setIniting] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [msg, setMsg] = useState(null);
@@ -51,7 +52,7 @@ export default function EtimsSettings({ restaurantId }) {
       const res = await apiClient.request(`/api/etims/${restaurantId}/config`);
       const c = res.config || {};
       setCfg(c);
-      setForm((f) => ({ ...f, enabled: c.enabled, askPerBill: !!c.askPerBill, tin: c.tin || '', bhfId: c.bhfId || '00', dvcSrlNo: c.dvcSrlNo || '', vscuUrl: c.vscuUrl || 'http://localhost:8088', defaultItemClassCode: c.defaultItemClassCode || '', receiptBottomMsg: c.receiptBottomMsg || '', trdeNm: c.trdeNm || '' }));
+      setForm((f) => ({ ...f, enabled: c.enabled, askPerBill: !!c.askPerBill, fiscaliseAllSales: !!c.fiscaliseAllSales, tin: c.tin || '', bhfId: c.bhfId || '00', dvcSrlNo: c.dvcSrlNo || '', vscuUrl: c.vscuUrl || 'http://localhost:8088', defaultItemClassCode: c.defaultItemClassCode || '', receiptBottomMsg: c.receiptBottomMsg || '', trdeNm: c.trdeNm || '' }));
     } catch (e) { setMsg({ type: 'error', text: e.message || 'Failed to load' }); }
     finally { setLoading(false); }
   }, [restaurantId]);
@@ -165,6 +166,23 @@ export default function EtimsSettings({ restaurantId }) {
       setForm((f) => ({ ...f, askPerBill: !next })); // revert on failure
       setMsg({ type: 'error', text: e.message || 'Could not update the setting' });
     } finally { setTogglingAsk(false); }
+  };
+
+  // "Also report sales closed on phones / browsers" — they can't reach the VSCU (it's on this PC), so
+  // this desktop reports them in the background (a few minutes after the sale). Only sales completed
+  // after it's switched on. Not available with "Ask per bill" (a missing record there = cashier said No).
+  const toggleFiscaliseAll = async () => {
+    if (togglingAll) return;
+    const next = !form.fiscaliseAllSales;
+    setForm((f) => ({ ...f, fiscaliseAllSales: next }));
+    setTogglingAll(true); setMsg(null);
+    try {
+      const res = await apiClient.request(`/api/etims/${restaurantId}/config`, { method: 'PUT', body: { ...form, fiscaliseAllSales: next } });
+      setCfg(res.config);
+    } catch (e) {
+      setForm((f) => ({ ...f, fiscaliseAllSales: !next })); // revert on failure
+      setMsg({ type: 'error', text: e.message || 'Could not update the setting' });
+    } finally { setTogglingAll(false); }
   };
 
   const initDevice = async () => {
@@ -305,6 +323,22 @@ export default function EtimsSettings({ restaurantId }) {
         </div>
         <p style={{ fontSize: 11.5, color: '#b45309', margin: '8px 0 0', lineHeight: 1.5 }}>
           When on, the cashier is asked Yes/No before each bill. <b>Yes</b> reports the sale to KRA and prints the fiscal receipt; <b>No</b> prints a normal bill only. Leave <b>off</b> to auto-report every sale (recommended for full compliance).
+        </p>
+      </div>
+      {/* Sales closed on phones (DineOpen app) / web browsers can't reach the VSCU on this PC. When
+          ON, this desktop reports them to KRA in the background. OFF (default) = unchanged. */}
+      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '12px 14px', marginBottom: 16, opacity: form.askPerBill ? 0.6 : 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button type="button" role="switch" aria-checked={!!form.fiscaliseAllSales} onClick={toggleFiscaliseAll} disabled={togglingAll || form.askPerBill}
+            style={{ width: 42, height: 24, borderRadius: 999, border: 'none', cursor: (togglingAll || form.askPerBill) ? 'default' : 'pointer', padding: 2, background: form.fiscaliseAllSales && !form.askPerBill ? '#2563eb' : '#d1d5db', flexShrink: 0, opacity: togglingAll ? 0.6 : 1 }}>
+            <span style={{ display: 'block', width: 20, height: 20, borderRadius: '50%', background: '#fff', transform: form.fiscaliseAllSales && !form.askPerBill ? 'translateX(18px)' : 'translateX(0)', transition: 'transform .15s' }} />
+          </button>
+          <label onClick={form.askPerBill ? undefined : toggleFiscaliseAll} style={{ fontSize: 13, fontWeight: 600, cursor: form.askPerBill ? 'default' : 'pointer', color: '#1e40af' }}>Also report sales closed on phones &amp; browsers</label>
+        </div>
+        <p style={{ fontSize: 11.5, color: '#1d4ed8', margin: '8px 0 0', lineHeight: 1.5 }}>
+          {form.askPerBill
+            ? 'Not available while “Ask Send to KRA?” is on.'
+            : <>Bills completed in the DineOpen phone app or a web browser can&apos;t reach the KRA device on this PC. When on, <b>this desktop</b> reports them to KRA in the background a few minutes after the sale (keep it running). Only sales completed after you switch this on.</>}
         </p>
       </div>
       {field('KRA PIN (TIN)', 'tin', { placeholder: 'P000000000X', hint: '11 characters' })}
