@@ -1729,8 +1729,8 @@ class ApiClient {
     if (options.date) params.append('date', options.date);
     if (options.startDate) params.append('startDate', options.startDate);
     if (options.endDate) params.append('endDate', options.endDate);
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (tz) params.append('tz', tz);
+    // tz: added by request() as the numeric offset the backend's parseTZ reads (restaurant timezone
+    // aware). An IANA name here ("Asia/Kolkata") was ignored → report bucketed by the server clock.
     const qs = params.toString();
     return this.request(`/api/tables/${restaurantId}/analytics${qs ? '?' + qs : ''}`);
   }
@@ -1740,8 +1740,8 @@ class ApiClient {
     if (options.startDate) params.append('startDate', options.startDate);
     if (options.endDate) params.append('endDate', options.endDate);
     if (options.subRestaurantId) params.append('subRestaurantId', options.subRestaurantId);
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (tz) params.append('tz', tz);
+    // tz: added by request() as the numeric offset the backend's parseTZ reads (restaurant timezone
+    // aware). An IANA name here ("Asia/Kolkata") was ignored → report bucketed by the server clock.
     const qs = params.toString();
     return this.request(`/api/analytics/${restaurantId}/hourly-sales${qs ? '?' + qs : ''}`);
   }
@@ -1751,8 +1751,8 @@ class ApiClient {
     if (options.startDate) params.append('startDate', options.startDate);
     if (options.endDate) params.append('endDate', options.endDate);
     if (options.subRestaurantId) params.append('subRestaurantId', options.subRestaurantId);
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (tz) params.append('tz', tz);
+    // tz: added by request() as the numeric offset the backend's parseTZ reads (restaurant timezone
+    // aware). An IANA name here ("Asia/Kolkata") was ignored → report bucketed by the server clock.
     const qs = params.toString();
     return this.request(`/api/analytics/${restaurantId}/menu-engineering${qs ? '?' + qs : ''}`);
   }
@@ -1762,8 +1762,8 @@ class ApiClient {
     if (options.startDate) params.append('startDate', options.startDate);
     if (options.endDate) params.append('endDate', options.endDate);
     if (options.subRestaurantId) params.append('subRestaurantId', options.subRestaurantId);
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (tz) params.append('tz', tz);
+    // tz: added by request() as the numeric offset the backend's parseTZ reads (restaurant timezone
+    // aware). An IANA name here ("Asia/Kolkata") was ignored → report bucketed by the server clock.
     const qs = params.toString();
     return this.request(`/api/analytics/${restaurantId}/reprint-log${qs ? '?' + qs : ''}`);
   }
@@ -1773,8 +1773,8 @@ class ApiClient {
     if (options.startDate) params.append('startDate', options.startDate);
     if (options.endDate) params.append('endDate', options.endDate);
     if (options.subRestaurantId) params.append('subRestaurantId', options.subRestaurantId);
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (tz) params.append('tz', tz);
+    // tz: added by request() as the numeric offset the backend's parseTZ reads (restaurant timezone
+    // aware). An IANA name here ("Asia/Kolkata") was ignored → report bucketed by the server clock.
     const qs = params.toString();
     return this.request(`/api/analytics/${restaurantId}/staff-sales${qs ? '?' + qs : ''}`);
   }
@@ -1784,8 +1784,8 @@ class ApiClient {
     if (options.startDate) params.append('startDate', options.startDate);
     if (options.endDate) params.append('endDate', options.endDate);
     if (options.subRestaurantId) params.append('subRestaurantId', options.subRestaurantId);
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (tz) params.append('tz', tz);
+    // tz: added by request() as the numeric offset the backend's parseTZ reads (restaurant timezone
+    // aware). An IANA name here ("Asia/Kolkata") was ignored → report bucketed by the server clock.
     const qs = params.toString();
     return this.request(`/api/analytics/${restaurantId}/promotion-report${qs ? '?' + qs : ''}`);
   }
@@ -1795,8 +1795,8 @@ class ApiClient {
     if (options.startDate) params.append('startDate', options.startDate);
     if (options.endDate) params.append('endDate', options.endDate);
     if (options.subRestaurantId) params.append('subRestaurantId', options.subRestaurantId);
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (tz) params.append('tz', tz);
+    // tz: added by request() as the numeric offset the backend's parseTZ reads (restaurant timezone
+    // aware). An IANA name here ("Asia/Kolkata") was ignored → report bucketed by the server clock.
     const qs = params.toString();
     return this.request(`/api/analytics/${restaurantId}/split-bills${qs ? '?' + qs : ''}`);
   }
@@ -1806,8 +1806,8 @@ class ApiClient {
     if (options.startDate) params.append('startDate', options.startDate);
     if (options.endDate) params.append('endDate', options.endDate);
     if (options.subRestaurantId) params.append('subRestaurantId', options.subRestaurantId);
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (tz) params.append('tz', tz);
+    // tz: added by request() as the numeric offset the backend's parseTZ reads (restaurant timezone
+    // aware). An IANA name here ("Asia/Kolkata") was ignored → report bucketed by the server clock.
     const qs = params.toString();
     return this.request(`/api/analytics/${restaurantId}/comp-report${qs ? '?' + qs : ''}`);
   }
@@ -1818,8 +1818,8 @@ class ApiClient {
     if (options.endDate) params.append('endDate', options.endDate);
     if (options.subRestaurantId) params.append('subRestaurantId', options.subRestaurantId);
     if (options.actionType) params.append('actionType', options.actionType);
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (tz) params.append('tz', tz);
+    // tz: added by request() as the numeric offset the backend's parseTZ reads (restaurant timezone
+    // aware). An IANA name here ("Asia/Kolkata") was ignored → report bucketed by the server clock.
     const qs = params.toString();
     return this.request(`/api/analytics/${restaurantId}/audit-trail${qs ? '?' + qs : ''}`);
   }

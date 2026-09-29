@@ -4,6 +4,7 @@
 // and the login history. Data: GET /api/staff-activity/:restaurantId (owner / admin / manager).
 // "Active now" = the person's app/POS talked to the server in the last 15 minutes.
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { FaTimes, FaSyncAlt, FaSpinner, FaCircle, FaSearch } from 'react-icons/fa';
 import apiClient from '../../lib/api';
 
@@ -95,10 +96,12 @@ export default function StaffActivityPanel({ restaurantId, restaurantName, onClo
   const sm = data?.summary || { total: 0, activeNow: 0, usedAppOnDate: 0, neverLoggedIn: 0 };
   const dayWord = isToday ? 'today' : new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 
-  return (
+  // Portal to <body> above the sidebar (z 10000/10001), like the other dashboard modals.
+  if (typeof document === 'undefined') return null;
+  return createPortal(
     <div
       onClick={onClose}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '24px 12px', overflowY: 'auto' }}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 10002, display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '24px 12px', overflowY: 'auto' }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -268,6 +271,7 @@ export default function StaffActivityPanel({ restaurantId, restaurantName, onClo
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
