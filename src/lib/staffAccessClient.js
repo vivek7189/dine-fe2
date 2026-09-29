@@ -7,7 +7,7 @@ import apiClient from './api';
 export function normOrderType(t) {
   const s = String(t || 'dine_in').trim().toLowerCase().replace(/[\s-]+/g, '_');
   if (['takeaway', 'take_away', 'parcel', 'pickup', 'pick_up', 'to_go', 'togo'].includes(s)) return 'takeaway';
-  if (['dine_in', 'dinein', 'dine'].includes(s)) return 'dine_in';
+  if (['dine_in', 'dinein', 'dine', 'counter'].includes(s)) return 'dine_in'; // counter = in-store
   if (['delivery', 'home_delivery'].includes(s)) return 'delivery';
   return s;
 }
