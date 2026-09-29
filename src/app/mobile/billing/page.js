@@ -420,9 +420,11 @@ export default function MobileBillingPage() {
       changeReturned: d.changeReturned || null,
       splitPayments: d.splitPay || null,
       roundOffAmount: d.roundOff || null,
-      partialPayAmount: d.partialPay || null,
-      paidAmount: d.partialPay ? Math.round(Number(d.partialPay) * 100) / 100 : null,
-      outstandingAmount: d.partialPay ? Math.round((computedFinal - Number(d.partialPay)) * 100) / 100 : null,
+      // `!= null` (not truthiness): a Full Due bill sends partialPay = 0, which the old check
+      // treated as "no partial payment" and saved the bill as fully paid. Mirrors dashboard processOrder.
+      partialPayAmount: d.partialPay != null ? d.partialPay : null,
+      paidAmount: d.partialPay != null ? Math.round(Number(d.partialPay) * 100) / 100 : null,
+      outstandingAmount: d.partialPay != null ? Math.round((computedFinal - Number(d.partialPay)) * 100) / 100 : null,
       compItems: d.compData || null,
       voidItems: d.voidData || null,
       // Discount/offer fields
@@ -459,7 +461,9 @@ export default function MobileBillingPage() {
     // Status-specific fields
     if (status === 'completed') {
       updateData.status = 'completed';
-      updateData.paymentStatus = d.partialPay ? 'partial' : 'paid';
+      updateData.paymentStatus = d.partialPay != null
+        ? (Number(d.partialPay) === 0 ? 'due' : (Number(d.partialPay) < computedFinal ? 'partial' : 'paid'))
+        : 'paid';
       updateData.completedAt = new Date().toISOString();
     } else {
       updateData.status = status;
@@ -482,10 +486,12 @@ export default function MobileBillingPage() {
       await apiClient.verifyPayment({
         orderId: order.id,
         paymentMethod: d.splitPay && d.splitPay.length > 1 ? 'split' : paymentMethod,
-        amount: d.partialPay ? Math.round(Number(d.partialPay) * 100) / 100 : computedFinal,
+        // Partial: the amount actually collected. Full Due (0) / fully paid: the bill amount with a
+        // due/completed status — same as dashboard processOrder.
+        amount: d.partialPay != null && Number(d.partialPay) > 0 ? Math.round(Number(d.partialPay) * 100) / 100 : computedFinal,
         userId: currentUser.id,
         restaurantId: order.restaurantId,
-        paymentStatus: d.partialPay ? 'partial' : 'completed',
+        paymentStatus: d.partialPay != null ? (Number(d.partialPay) === 0 ? 'due' : 'partial') : 'completed',
       });
 
       if (typeof window !== 'undefined' && window.ReactNativeWebView) {
