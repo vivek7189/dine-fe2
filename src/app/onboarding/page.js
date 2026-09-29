@@ -9,7 +9,7 @@ import apiClient from '../../lib/api';
 import { getDefaultMenu, getDefaultCategories } from '../../lib/defaultMenus';
 import OnboardingConcierge from '../../components/OnboardingConcierge';
 import { getCurrencyByCountryCode } from '../../lib/currencyData';
-import { detectAndSetCountry, formatPriceWithCurrency } from '../../lib/detectCountry';
+import { detectAndSetCountry, formatPriceWithCurrency, restaurantTimezoneForCountry } from '../../lib/detectCountry';
 import { getTaxRegime } from '../../config/taxRegimes';
 import { t, getCurrentLanguage, setLanguage, getAvailableLanguages } from '../../lib/i18n';
 
@@ -511,9 +511,10 @@ function OnboardingContent() {
         const currencyData = getCurrencyByCountryCode(countryCode);
         await apiClient.updateCurrencySettings(rid, currencyData);
       } catch {}
-      // Auto-detect and save restaurant timezone from browser
+      // Save the restaurant's timezone: the chosen country's zone (the browser's zone only when it is
+      // in that country — a Qatar restaurant set up from India must not get India time).
       try {
-        const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const detectedTz = restaurantTimezoneForCountry(countryCode);
         if (detectedTz) await apiClient.updateRestaurant(rid, { posSettings: { timezone: detectedTz } });
       } catch {}
       // Auto-seed sample menu in background so the preview works immediately

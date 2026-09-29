@@ -132,6 +132,42 @@ const COUNTRY_FLAGS = {
   HK: '\u{1F1ED}\u{1F1F0}', TW: '\u{1F1F9}\u{1F1FC}',
 };
 
+// Main timezone per country = the first zone listed for it above (capital / largest city), plus the
+// other supported countries (used only to pick a new restaurant's timezone, not for detection).
+const PRIMARY_TIMEZONE = {
+  GH: 'Africa/Accra', TZ: 'Africa/Dar_es_Salaam', UG: 'Africa/Kampala', ET: 'Africa/Addis_Ababa',
+  MA: 'Africa/Casablanca', CI: 'Africa/Abidjan', CM: 'Africa/Douala', MM: 'Asia/Yangon', KH: 'Asia/Phnom_Penh',
+  LA: 'Asia/Vientiane', JO: 'Asia/Amman', LB: 'Asia/Beirut', IQ: 'Asia/Baghdad', IR: 'Asia/Tehran',
+  MV: 'Indian/Maldives', BN: 'Asia/Brunei', CO: 'America/Bogota', CL: 'America/Santiago', PE: 'America/Lima',
+  EC: 'America/Guayaquil', CR: 'America/Costa_Rica', PA: 'America/Panama', JM: 'America/Jamaica',
+  TT: 'America/Port_of_Spain', HR: 'Europe/Zagreb', BG: 'Europe/Sofia', RS: 'Europe/Belgrade', UA: 'Europe/Kiev',
+  IS: 'Atlantic/Reykjavik', LT: 'Europe/Vilnius', LV: 'Europe/Riga', EE: 'Europe/Tallinn', MT: 'Europe/Malta',
+  CY: 'Asia/Nicosia', LU: 'Europe/Luxembourg', FJ: 'Pacific/Fiji', PG: 'Pacific/Port_Moresby',
+};
+for (const [tz, cc] of Object.entries(TIMEZONE_TO_COUNTRY)) {
+  if (!PRIMARY_TIMEZONE[cc]) PRIMARY_TIMEZONE[cc] = tz;
+}
+// Old names some browsers still report → the current name (same zone; matches the settings list).
+const TZ_ALIASES = { 'Asia/Calcutta': 'Asia/Kolkata', 'Asia/Katmandu': 'Asia/Kathmandu', 'Asia/Saigon': 'Asia/Ho_Chi_Minh', 'Asia/Rangoon': 'Asia/Yangon' };
+
+/**
+ * The timezone to save for a new restaurant in `countryCode`.
+ * The browser's own zone when it belongs to that country (keeps e.g. Los Angeles vs New York),
+ * otherwise the country's main zone — so a restaurant set up from a laptop in another country
+ * (support team, VPN) still gets its own local time. Countries not in the table keep the browser
+ * zone unless that zone belongs to a different country; null = don't save (the backend then
+ * derives the zone from the country).
+ */
+export function restaurantTimezoneForCountry(countryCode) {
+  const cc = String(countryCode || '').toUpperCase();
+  let browserTz = null;
+  try { browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone || null; } catch { browserTz = null; }
+  if (browserTz && TIMEZONE_TO_COUNTRY[browserTz] === cc) return TZ_ALIASES[browserTz] || browserTz;
+  if (PRIMARY_TIMEZONE[cc]) return PRIMARY_TIMEZONE[cc];
+  if (browserTz && !TIMEZONE_TO_COUNTRY[browserTz]) return browserTz;
+  return null;
+}
+
 function getCookie(name) {
   if (typeof document === 'undefined') return null;
   const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
