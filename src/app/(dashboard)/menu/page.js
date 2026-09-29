@@ -11,6 +11,7 @@ const BulkMenuUpload = dynamic(() => import('../../../components/BulkMenuUpload'
 const BulkModifierGroupModal = dynamic(() => import('../../../components/BulkModifierGroupModal'), { ssr: false });
 const QRCodeModal = dynamic(() => import('../../../components/QRCodeModal'), { ssr: false });
 const BarcodeTab = dynamic(() => import('./components/BarcodeTab'), { ssr: false });
+const HiddenItemsModal = dynamic(() => import('./components/HiddenItemsModal'), { ssr: false });
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t } from '../../../lib/i18n';
@@ -60,6 +61,7 @@ import {
   FaPlus,
   FaEdit,
   FaTrash,
+  FaUndo,
   FaEllipsisH,
   FaHeart,
   FaSearch, 
@@ -2541,6 +2543,7 @@ const MenuManagement = () => {
   const [isClient, setIsClient] = useState(false);
   const [collapsedCategories, setCollapsedCategories] = useState({});
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [showHiddenItems, setShowHiddenItems] = useState(false);
   const [bulkDeleteReason, setBulkDeleteReason] = useState('');
   const [deleteConfirmItem, setDeleteConfirmItem] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -4861,6 +4864,31 @@ const MenuManagement = () => {
                 {action.icon} {action.label}
               </button>
             ))}
+            {/* Deleted items → view + restore (menu edit permission; the server checks it too) */}
+            {canEditMenuItem && currentRestaurant?.id && (
+              <button
+                onClick={() => setShowHiddenItems(true)}
+                style={{
+                  padding: isMobileEmbed ? '4px 8px' : '6px 12px',
+                  backgroundColor: '#f8fafc',
+                  color: '#475569',
+                  border: 'none',
+                  borderRadius: isMobileEmbed ? '6px' : '8px',
+                  fontWeight: '600',
+                  fontSize: isMobileEmbed ? '10px' : '12px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: isMobileEmbed ? '3px' : '5px',
+                  transition: 'all 0.2s',
+                  whiteSpace: 'nowrap'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                <FaUndo size={isMobileEmbed ? 9 : 11} /> Deleted items
+              </button>
+            )}
             {/* Wiping the whole menu: owner / admin only (the server enforces the same). */}
             {['owner', 'co-owner', 'admin'].includes(String(menuUserData.role || '').toLowerCase()) && menuItems.filter(item => item.status !== 'deleted').length > 0 && (
               <button
@@ -7631,6 +7659,14 @@ const MenuManagement = () => {
           </div>
         </div>,
         document.body
+      )}
+
+      {showHiddenItems && currentRestaurant?.id && (
+        <HiddenItemsModal
+          restaurantId={currentRestaurant.id}
+          onClose={() => setShowHiddenItems(false)}
+          onRestored={() => loadMenuData(currentRestaurant.id, false)}
+        />
       )}
 
       {/* Bulk Delete Confirmation Modal — portal to render above sidebar */}

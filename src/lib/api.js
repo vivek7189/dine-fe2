@@ -1362,6 +1362,15 @@ class ApiClient {
     return result;
   }
 
+  // Deleted / hidden menu items (the menu API returns active ones only) + restore
+  async getHiddenMenuItems(restaurantId) {
+    return this.request(`/api/menus/${restaurantId}/hidden`, { method: 'GET' });
+  }
+
+  async restoreMenuItem(itemId, restaurantId) {
+    return this.updateMenuItem(itemId, { status: 'active' }, restaurantId);
+  }
+
   async deleteMenuItem(itemId, restaurantId) {
     const query = restaurantId ? `?restaurantId=${restaurantId}` : '';
     const result = await this.request(`/api/menus/item/${itemId}${query}`, {
