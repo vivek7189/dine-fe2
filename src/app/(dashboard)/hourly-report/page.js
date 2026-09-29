@@ -112,7 +112,8 @@ export default function HourlySalesPage() {
   // Compute date range from active period
   const getDateRange = useCallback(() => {
     const today = new Date();
-    const fmt = (d) => d.toISOString().split('T')[0];
+    // Local calendar date (toISOString() is UTC, which is "yesterday" before 05:30 in India).
+    const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
     switch (activePeriod) {
       case 'today':
@@ -198,11 +199,18 @@ export default function HourlySalesPage() {
 
   // Derive hourly data array (24 entries for hours 0-23)
   const hourlyData = (() => {
-    if (!data?.hourlyBreakdown) return [];
+    // API returns { success, data: { hours: [ {hour, orders, revenue, topItems} ×24 ], ... } }.
+    // Older shapes used `hourlyBreakdown` (object or array) at the top level — accept both.
+    const payload = data?.data || data;
+    const raw = payload?.hours || payload?.hourlyBreakdown;
+    if (!raw) return [];
+    const byHour = Array.isArray(raw)
+      ? raw.reduce((m, e, i) => { m[e && e.hour !== undefined ? e.hour : i] = e; return m; }, {})
+      : raw;
     // Normalize to array of 24 entries
     const hours = [];
     for (let h = 0; h < 24; h++) {
-      const entry = data.hourlyBreakdown[h] || data.hourlyBreakdown[String(h)] || {};
+      const entry = byHour[h] || byHour[String(h)] || {};
       hours.push({
         hour: h,
         orders: entry.orders || entry.count || 0,
