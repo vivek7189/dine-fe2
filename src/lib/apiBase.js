@@ -38,6 +38,16 @@ export const DEFAULT_API_BASE =
 export const PG_API_BASE =
   process.env.NEXT_PUBLIC_PG_API_URL || 'https://34-93-129-104.sslip.io';
 
+// The cloud backend is ONLY our own GCP box. A saved per-user pin or remote config pointing anywhere
+// else (the retired Vercel / Cloud Run backends — old pins survive in localStorage) → the GCP box.
+// api.dineopen.com = same box behind our domain. The build's own bases stay allowed (dev localhost).
+const _hostOf = (u) => { try { return new URL(u).hostname.toLowerCase(); } catch (_) { return ''; } };
+const ALLOWED_CLOUD_HOSTS = new Set(['34-93-129-104.sslip.io', 'api.dineopen.com', _hostOf(DEFAULT_API_BASE), _hostOf(PG_API_BASE)].filter(Boolean));
+function ownCloudBase(url) {
+  const h = _hostOf(url);
+  return h && ALLOWED_CLOUD_HOSTS.has(h) ? url : PG_API_BASE;
+}
+
 // ── Remote backend config (for a one-flip, zero-rebuild cutover) ──────────────
 // A tiny always-up JSON (hosted OFF Vercel, e.g. Google Cloud Storage) that says
 // which default backend all clients should use. Baked ONCE here; the file's
@@ -58,7 +68,7 @@ const norm = (u) => (u ? String(u).replace(/\/+$/, '') : u); // strip trailing s
 // stored in localStorage/cookie, so it can never clobber a logged-in staff member's real
 // pin and it resets on reload/unmount. Cleared with setPublicBackend('').
 let _publicBackend = null;
-export function setPublicBackend(url) { _publicBackend = url ? norm(url) : null; }
+export function setPublicBackend(url) { _publicBackend = url ? norm(ownCloudBase(url)) : null; }
 export function getPublicBackend() { return _publicBackend; }
 
 // NOTE: isServerApp() (NEXT_PUBLIC_APP_KIND === 'server') lives in ./localServer and is
@@ -104,10 +114,10 @@ export function getCloudApiBase() {
   try {
     // per-user / pgBackendUrl pin wins over the remote default
     const persisted = window.localStorage.getItem(BACKEND_URL_KEY);
-    if (persisted) return norm(persisted);
+    if (persisted) return norm(ownCloudBase(persisted));
     // remote-config default (cached from BACKEND_CONFIG_URL at startup) — the cutover switch.
     const remote = window.localStorage.getItem(REMOTE_DEFAULT_KEY);
-    if (remote && !/localhost|127\.0\.0\.1/.test(DEFAULT_API_BASE)) return norm(remote);
+    if (remote && !/localhost|127\.0\.0\.1/.test(DEFAULT_API_BASE)) return norm(ownCloudBase(remote));
   } catch (_) { /* private mode / storage disabled */ }
   // Local-server (offline-first) POS app: its accounts live on GCP/Postgres.
   if (isServerApp()) return norm(PG_API_BASE);
@@ -127,7 +137,7 @@ export function getGcpBackend() {
   if (typeof window !== 'undefined') {
     try {
       const r = window.localStorage.getItem(REMOTE_DEFAULT_KEY);
-      if (r && /^https?:\/\//.test(r)) return norm(r);
+      if (r && /^https?:\/\//.test(r)) return norm(ownCloudBase(r));
     } catch (_) { /* private mode / storage disabled */ }
   }
   return norm(PG_API_BASE);
