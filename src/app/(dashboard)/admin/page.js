@@ -5922,6 +5922,9 @@ const Admin = () => {
     return out;
   }, [customRoles, staff, shiftExtraRoles]);
   const roleLabel = (r) => String(r || '').replace(/\b\w/g, c => c.toUpperCase());
+  // Role options are lowercase; a staff member saved as "Chef" must still show as selected and keep
+  // their spelling when re-picked (was: no chip selected, and saving changed it to "chef").
+  const sameRole = (a, b) => String(a || '').trim().toLowerCase().replace(/\s+/g, ' ') === String(b || '').trim().toLowerCase().replace(/\s+/g, ' ');
   const [newCustomRole, setNewCustomRole] = useState('');
   const [currentUserRole, setCurrentUserRole] = useState('owner');
   const [copiedCredentials, setCopiedCredentials] = useState({});
@@ -10682,11 +10685,11 @@ const Admin = () => {
                             // Only owner can assign admin role
                             if (role === 'admin' && currentUserRole !== 'owner') return null;
                             // Can only assign roles below your level
-                            if (!canManageStaff(role) && role !== editStaffForm.role) return null;
+                            if (!canManageStaff(role) && !sameRole(role, editStaffForm.role)) return null;
                             const info = getRoleInfo(role);
-                            const isSelected = editStaffForm.role === role;
+                            const isSelected = sameRole(editStaffForm.role, role);
                             return (
-                              <button key={role} type="button" onClick={() => setEditStaffForm(f => ({ ...f, role, pageAccess: JSON.parse(JSON.stringify(ROLE_DEFAULT_PAGE_ACCESS[role] || ROLE_DEFAULT_PAGE_ACCESS.employee)) }))}
+                              <button key={role} type="button" onClick={() => setEditStaffForm(f => ({ ...f, role: sameRole(f.role, role) ? f.role : role, pageAccess: JSON.parse(JSON.stringify(ROLE_DEFAULT_PAGE_ACCESS[role] || ROLE_DEFAULT_PAGE_ACCESS.employee)) }))}
                                 style={{
                                   padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '600',
                                   border: isSelected ? `2px solid ${info.color}` : '2px solid #e5e7eb',
