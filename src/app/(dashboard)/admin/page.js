@@ -6287,7 +6287,7 @@ const Admin = () => {
       { id: 'staff', label: 'Staff', icon: FaUsers },
       { id: 'staff-access', label: 'Staff Access', icon: FaUsers },
       // Roles: only for restaurants switched to roles, and only the owner / co-owner
-      ...(selectedRestaurant?.rolesV2 === true && (currentUserRole === 'owner' || currentUserRole === 'admin') ? [{ id: 'roles', label: 'Roles', icon: FaUsers }] : []),
+      ...((selectedRestaurant?.rolesV2 === true || selectedRestaurant?.rolesV2Allowed === true) && (currentUserRole === 'owner' || currentUserRole === 'admin') ? [{ id: 'roles', label: 'Roles', icon: FaUsers }] : []),
     ]},
     { label: 'OPERATIONS', items: [
       { id: 'order-management', label: 'Order Management', icon: FaReceipt },
@@ -15520,7 +15520,7 @@ const Admin = () => {
       )}
 
       {/* ==================== WAITER APP SETTINGS TAB ==================== */}
-      {activeTab === 'roles' && selectedRestaurant?.rolesV2 === true && (currentUserRole === 'owner' || currentUserRole === 'admin') && (
+      {activeTab === 'roles' && (selectedRestaurant?.rolesV2 === true || selectedRestaurant?.rolesV2Allowed === true) && (currentUserRole === 'owner' || currentUserRole === 'admin') && (
         <RolesSettings restaurant={selectedRestaurant} currentUserRole={currentUserRole} />
       )}
 
