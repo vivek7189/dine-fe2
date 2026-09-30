@@ -88,7 +88,10 @@ export default function RevenueTab({ revenueData, loadingRevenue, isMobile, form
   const bCols = breakdownColumns(taxColumns);
   const taxTotals = (Array.isArray(taxColumns) ? taxColumns : []).map(t => ({ label: t.label || t.name, amount: (dailyBreakdown || []).reduce((sum, d) => sum + ((d.taxes || {})[t.key] || 0), 0) }));
 
-  const paymentData = Object.entries(byPaymentMethod || {}).map(([key, val]) => ({ name: key, value: val })).sort((a, b) => b.value - a.value);
+  // Readable method names ("company_cheque" → "company cheque"); bills not paid yet get their own line
+  // so the methods add up to revenue.
+  const methodLabel = (k) => (k === 'open_bills' ? 'Open bills (not paid yet)' : k === 'due' ? 'Due (credit, unpaid)' : String(k).replace(/_/g, ' '));
+  const paymentData = Object.entries(byPaymentMethod || {}).map(([key, val]) => ({ name: methodLabel(key), value: val })).sort((a, b) => b.value - a.value);
   const orderTypeData = Object.entries(byOrderType || {}).map(([key, val]) => ({ name: key, value: val })).sort((a, b) => b.value - a.value);
   const maxPayment = paymentData.length ? Math.max(...paymentData.map(d => d.value)) : 0;
   const maxOrderType = orderTypeData.length ? Math.max(...orderTypeData.map(d => d.value)) : 0;
