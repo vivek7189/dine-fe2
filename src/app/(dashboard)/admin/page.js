@@ -143,6 +143,7 @@ import { PAGE_ACCESS_CONFIG } from '@/lib/pageAccessConfig';
 import { getPrintFontSizes, getPrintFontFamily, PRINT_FONTS, getContentWidthRange } from '../../../utils/printFontSizes';
 import { KOT_TEMPLATE_LIST, BILL_TEMPLATE_LIST, renderKOT, renderBill } from '../../../utils/printTemplates/index';
 import StaffAccessSettings from '../../../components/admin/StaffAccessSettings';
+import RolesSettings from '../../../components/admin/RolesSettings';
 
 // Reusable shimmer skeleton for tab content while restaurants load
 const AdminTabSkeleton = ({ variant = 'single' }) => (
@@ -6285,6 +6286,8 @@ const Admin = () => {
       { id: 'restaurants', label: 'Restaurants', icon: FaStore },
       { id: 'staff', label: 'Staff', icon: FaUsers },
       { id: 'staff-access', label: 'Staff Access', icon: FaUsers },
+      // Roles: only for restaurants switched to roles, and only the owner / co-owner
+      ...(selectedRestaurant?.rolesV2 === true && (currentUserRole === 'owner' || currentUserRole === 'admin') ? [{ id: 'roles', label: 'Roles', icon: FaUsers }] : []),
     ]},
     { label: 'OPERATIONS', items: [
       { id: 'order-management', label: 'Order Management', icon: FaReceipt },
@@ -6321,6 +6324,8 @@ const Admin = () => {
   // Auto-select first permitted tab if current tab is not in filtered list
   const allFilteredItems = filteredNavGroups.flatMap(g => g.items);
   useEffect(() => {
+    // The Roles tab appears only once the restaurant has loaded — don't bounce a ?tab=roles link before that.
+    if (activeTab === 'roles' && !selectedRestaurant) return;
     if (allFilteredItems.length > 0 && !allFilteredItems.find(i => i.id === activeTab)) {
       setActiveTab(allFilteredItems[0].id);
     }
@@ -6829,6 +6834,11 @@ const Admin = () => {
       };
 
       const response = await apiClient.addStaff(selectedRestaurant.id, staffData);
+      // Roles on: the new person gets exactly their role's permissions (the picker is not used).
+      if (selectedRestaurant?.rolesV2 === true && response?.staff?.id && staffData.role && staffData.role !== 'admin') {
+        try { await apiClient.saveStaffRoleAccess(selectedRestaurant.id, response.staff.id, staffData.role, {}); }
+        catch (err) { console.warn('Could not apply role to new staff:', err.message); }
+      }
 
       // Assign additional restaurants if selected
       if (additionalRestaurantIds && additionalRestaurantIds.length > 0) {
@@ -9714,6 +9724,11 @@ const Admin = () => {
                   fontSize: '11px', fontWeight: '700', color: '#9ca3af',
                   textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '12px'
                 }}>Page Access Permissions</div>
+                {selectedRestaurant?.rolesV2 === true && (
+                  <div role="note" style={{ background: '#eef2ff', border: '1px solid #c7d2fe', color: '#3730a3', borderRadius: '10px', padding: '10px 12px', fontSize: '12.5px', marginBottom: '12px' }}>
+                    Roles are on for this restaurant: access comes from the role you pick above. Change what a role can do in Admin → Roles.
+                  </div>
+                )}
 
                 {/* #5 Copy powers — clone another staff member's permissions into this one */}
                 {Array.isArray(staff) && staff.length > 0 && (
@@ -10985,6 +11000,15 @@ const Admin = () => {
                       <FaShieldAlt size={14} style={{ color: '#166534' }} />
                       <h3 style={{ fontWeight: '600', color: '#1f2937', fontSize: isClient && isMobile ? '14px' : '16px', margin: 0 }}>Page Access Permissions</h3>
                     </div>
+                    {selectedRestaurant?.rolesV2 === true && (
+                      <div role="note" style={{ background: '#eef2ff', border: '1px solid #c7d2fe', color: '#3730a3', borderRadius: '10px', padding: '10px 12px', fontSize: '12.5px', marginBottom: '12px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <span style={{ flex: 1, minWidth: '200px' }}>Roles are on: this person gets their role’s access. Changes here are saved as personal exceptions for this person only.</span>
+                        {(currentUserRole === 'owner' || currentUserRole === 'admin') && (
+                          <button type="button" onClick={() => { setEditingStaff(false); setSelectedStaff(null); setActiveTab('roles'); }}
+                            style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: '#4f46e5', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Open Roles</button>
+                        )}
+                      </div>
+                    )}
 
                     {/* Search dropdown */}
                     <div ref={editPermDropdownRef} style={{ position: 'relative', marginBottom: '12px' }}>
@@ -15496,6 +15520,10 @@ const Admin = () => {
       )}
 
       {/* ==================== WAITER APP SETTINGS TAB ==================== */}
+      {activeTab === 'roles' && selectedRestaurant?.rolesV2 === true && (currentUserRole === 'owner' || currentUserRole === 'admin') && (
+        <RolesSettings restaurant={selectedRestaurant} currentUserRole={currentUserRole} />
+      )}
+
       {activeTab === 'staff-access' && !(loading && restaurants.length === 0) && (
         <StaffAccessSettings
           restaurant={selectedRestaurant}

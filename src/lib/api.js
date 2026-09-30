@@ -4451,6 +4451,40 @@ class ApiClient {
     });
   }
 
+  // ── Roles (only for restaurants switched to roles) ──
+  async getRoles(restaurantId) {
+    this.invalidateCache(`/api/roles/${restaurantId}`);
+    return this.request(`/api/roles/${restaurantId}`);
+  }
+
+  async _rolesWrite(restaurantId, path, method, body) {
+    try {
+      return await this.request(`/api/roles/${restaurantId}${path}`, { method, ...(body ? { body } : {}) });
+    } finally {
+      this.invalidateCache(`/api/roles/${restaurantId}`);
+    }
+  }
+
+  async saveRolePermissions(restaurantId, roleName, permissions) {
+    return this._rolesWrite(restaurantId, `/role/${encodeURIComponent(roleName)}`, 'PUT', { permissions });
+  }
+
+  async createRole(restaurantId, name, copyFrom) {
+    return this._rolesWrite(restaurantId, '/role', 'POST', { name, copyFrom: copyFrom || null });
+  }
+
+  async deleteRole(restaurantId, roleName) {
+    return this._rolesWrite(restaurantId, `/role/${encodeURIComponent(roleName)}`, 'DELETE');
+  }
+
+  async saveStaffRoleAccess(restaurantId, staffId, role, exceptions) {
+    return this._rolesWrite(restaurantId, `/staff/${staffId}`, 'PUT', { role, exceptions });
+  }
+
+  async setRolesEnabled(restaurantId, enabled, dryRun = false) {
+    return this._rolesWrite(restaurantId, enabled ? `/enable${dryRun ? '?dryRun=1' : ''}` : '/disable', 'POST', {});
+  }
+
   async getStaffTips(userId) {
     return this.request(`/api/staff/${userId}/tips`);
   }
