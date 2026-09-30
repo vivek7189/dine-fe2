@@ -42,13 +42,31 @@ function groupBreakdown(dailyBreakdown, view) {
     } else {
       key = d.toLocaleString('en-IN', { month: 'short', year: 'numeric' });
     }
-    if (!map[key]) map[key] = { date: key, orders: 0, revenue: 0, tax: 0 };
+    if (!map[key]) map[key] = { date: key, orders: 0, revenue: 0, tax: 0, discount: 0, taxes: {} };
     map[key].orders += day.orders || 0;
     map[key].revenue += day.revenue || 0;
     map[key].tax += day.tax || 0;
+    map[key].discount += day.discount || 0;
+    Object.entries(day.taxes || {}).forEach(([k, v]) => { map[key].taxes[k] = (map[key].taxes[k] || 0) + (v || 0); });
   });
   return Object.values(map);
 }
+
+// Breakdown columns. Each tax gets its own column under its own name and rate (VAT 16%, Catering
+// Levy 2%, CGST 2.5%…) when the restaurant charges more than one; a single tax just names the Tax
+// column. Discount is always shown.
+function breakdownColumns(taxColumns) {
+  const taxes = Array.isArray(taxColumns) ? taxColumns : [];
+  const cols = [{ id: 'orders', label: 'Orders' }, { id: 'revenue', label: 'Revenue', money: true, strong: true }, { id: 'discount', label: 'Discount', money: true }];
+  if (taxes.length > 1) {
+    taxes.forEach(t => cols.push({ id: `tax:${t.key}`, label: t.label || t.name, money: true, taxKey: t.key }));
+    cols.push({ id: 'tax', label: 'Total tax', money: true });
+  } else {
+    cols.push({ id: 'tax', label: taxes[0] ? (taxes[0].label || taxes[0].name) : 'Tax', money: true });
+  }
+  return cols;
+}
+const cellValue = (row, col) => (col.taxKey ? (row.taxes || {})[col.taxKey] || 0 : row[col.id] || 0);
 
 export default function RevenueTab({ revenueData, loadingRevenue, isMobile, formatCurrency, period }) {
   const [breakdownView, setBreakdownView] = useState('daily');
@@ -66,7 +84,9 @@ export default function RevenueTab({ revenueData, loadingRevenue, isMobile, form
     return <div style={{ textAlign: 'center', padding: '60px 20px', color: '#9ca3af', fontSize: '14px' }}>No revenue data available.</div>;
   }
 
-  const { totalRevenue, totalTax, totalDiscounts, refunds, orderCount, avgOrderValue, byPaymentMethod, byOrderType, dailyBreakdown, changePercent } = revenueData;
+  const { totalRevenue, totalTax, totalDiscounts, refunds, orderCount, avgOrderValue, byPaymentMethod, byOrderType, dailyBreakdown, changePercent, taxColumns } = revenueData;
+  const bCols = breakdownColumns(taxColumns);
+  const taxTotals = (Array.isArray(taxColumns) ? taxColumns : []).map(t => ({ label: t.label || t.name, amount: (dailyBreakdown || []).reduce((sum, d) => sum + ((d.taxes || {})[t.key] || 0), 0) }));
 
   const paymentData = Object.entries(byPaymentMethod || {}).map(([key, val]) => ({ name: key, value: val })).sort((a, b) => b.value - a.value);
   const orderTypeData = Object.entries(byOrderType || {}).map(([key, val]) => ({ name: key, value: val })).sort((a, b) => b.value - a.value);
@@ -87,13 +107,15 @@ export default function RevenueTab({ revenueData, loadingRevenue, isMobile, form
       ['Orders', orderCount || 0],
       [`Average order value${cur}`, n(avgOrderValue)],
       [`Tax collected${cur}`, n(totalTax)],
+      ...(taxTotals.length > 1 ? taxTotals.map(t => [`  ${t.label}${cur}`, n(t.amount)]) : []),
       [`Discounts${cur}`, n(totalDiscounts)],
       [`Refunds${cur}`, n(refunds)],
     ]), 'Summary');
     const rows = groupBreakdown(dailyBreakdown, breakdownView) || [];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
-      [breakdownView === 'daily' ? 'Date' : breakdownView === 'weekly' ? 'Week' : 'Month', 'Orders', `Revenue${cur}`, `Tax${cur}`],
-      ...rows.map(r => [r.date, r.orders || 0, n(r.revenue), n(r.tax)]),
+      [breakdownView === 'daily' ? 'Date' : breakdownView === 'weekly' ? 'Week' : 'Month', ...bCols.map(c => (c.money ? `${c.label}${cur}` : c.label))],
+      ...rows.map(r => [r.date, ...bCols.map(c => (c.money ? n(cellValue(r, c)) : (cellValue(r, c) || 0)))]),
+      ['Total', ...bCols.map(c => { const v = rows.reduce((sum, r) => sum + (Number(cellValue(r, c)) || 0), 0); return c.money ? n(v) : v; })],
     ]), 'Breakdown');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Payment method', `Amount${cur}`], ...paymentData.map(p => [p.name, n(p.value)])]), 'Payment methods');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Order type', `Amount${cur}`], ...orderTypeData.map(o => [o.name, n(o.value)])]), 'Order types');
@@ -235,8 +257,8 @@ export default function RevenueTab({ revenueData, loadingRevenue, isMobile, form
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-                  {['Date', 'Orders', 'Revenue', 'Tax'].map(h => (
-                    <th key={h} style={{ padding: '10px 12px', textAlign: h === 'Date' ? 'left' : 'right', fontWeight: 600, color: '#6b7280', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
+                  {[{ id: 'date', label: 'Date' }, ...bCols].map(c => (
+                    <th key={c.id} style={{ padding: '10px 12px', textAlign: c.id === 'date' ? 'left' : 'right', fontWeight: 600, color: '#6b7280', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>{c.label}</th>
                   ))}
                 </tr>
               </thead>
@@ -246,9 +268,11 @@ export default function RevenueTab({ revenueData, loadingRevenue, isMobile, form
                     <td style={{ padding: '10px 12px', fontWeight: 600, color: '#374151' }}>
                       {breakdownView === 'daily' ? new Date(day.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : day.date}
                     </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', color: '#374151' }}>{day.orders || 0}</td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: '#111827' }}>{formatCurrency(day.revenue || 0)}</td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', color: '#6b7280' }}>{formatCurrency(day.tax || 0)}</td>
+                    {bCols.map(c => (
+                      <td key={c.id} style={{ padding: '10px 12px', textAlign: 'right', whiteSpace: 'nowrap', fontWeight: c.strong ? 700 : 400, color: c.strong ? '#111827' : (c.id === 'orders' ? '#374151' : '#6b7280') }}>
+                        {c.money ? formatCurrency(cellValue(day, c)) : (cellValue(day, c) || 0)}
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
