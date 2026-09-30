@@ -1330,9 +1330,9 @@ function ProductCostPDF({ data }) {
                 <Text style={[s.td, { width: '16%' }]}>{it.category}</Text>
                 <Text style={[s.tdRight, { width: '9%' }]}>{it.qtySold}</Text>
                 <Text style={[s.tdRight, { width: '15%' }]}>{fmtCurrency(it.revenue)}</Text>
-                <Text style={[s.tdRight, { width: '13%' }]}>{fmtCurrency(it.totalCost)}</Text>
-                <Text style={[s.tdGreen, { width: '13%', textAlign: 'right' }]}>{fmtCurrency(it.margin)}</Text>
-                <Text style={[s.tdRight, { width: '8%' }]}>{(it.marginPercent || 0).toFixed(1)}</Text>
+                <Text style={[s.tdRight, { width: '13%' }]}>{it.costSource === 'missing' ? '-' : fmtCurrency(it.totalCost)}</Text>
+                <Text style={[s.tdGreen, { width: '13%', textAlign: 'right' }]}>{it.costSource === 'missing' ? '-' : fmtCurrency(it.margin)}</Text>
+                <Text style={[s.tdRight, { width: '8%' }]}>{it.costSource === 'missing' ? '-' : (it.marginPercent || 0).toFixed(1)}</Text>
               </View>
             ))}
           </View>

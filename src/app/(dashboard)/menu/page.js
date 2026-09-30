@@ -2573,6 +2573,7 @@ const MenuManagement = () => {
     name: '',
     description: '',
     price: '',
+    costPrice: '',
     category: '',
     subCategory: '',
     kraItemClassCode: '',
@@ -3245,7 +3246,10 @@ const MenuManagement = () => {
         const out = {
           name: v.name,
           price: parseFloat(v.price) || 0,
-          description: v.description || ''
+          description: v.description || '',
+          // Cost to make this variant (optional, gross-margin reports). Sent even when empty so
+          // clearing it in the form really clears it.
+          costPrice: v.costPrice === undefined || v.costPrice === null ? '' : v.costPrice,
         };
         // Per-variant multi-tier prices — keep only numeric ≥ 0; omit when none set.
         const prEntries = Object.entries(v.pricingRules || {})
@@ -3663,6 +3667,7 @@ const MenuManagement = () => {
       name: item.name || '',
       description: item.description || '',
       price: item.price?.toString() || '',
+      costPrice: item.costPrice != null ? String(item.costPrice) : '',
       category: item.category || '',
       subCategory: item.subCategory || '',
       kraItemClassCode: item.kraItemClassCode || '',
@@ -3770,6 +3775,7 @@ const MenuManagement = () => {
           'Name': item.name || '',
           'Category': catMap[item.category] || item.category || '',
           'Price': item.price || 0,
+          'Cost Price': item.costPrice != null ? item.costPrice : '',
           'Description': item.description || '',
           'Veg/Non-Veg': item.isVeg === true ? 'Veg' : item.isVeg === false ? 'Non-Veg' : '',
           'Available': item.isAvailable !== false ? 'Yes' : 'No',
@@ -4314,6 +4320,7 @@ const MenuManagement = () => {
       name: '',
       description: '',
       price: '',
+      costPrice: '',
       category: categories[0]?.id || '',
       subCategory: '',
       kraItemClassCode: '',
@@ -6058,6 +6065,36 @@ const MenuManagement = () => {
                   )}
                 </div>
 
+                {/* Cost to make (optional) — only for the Product Cost & Margin report; never changes prices,
+                    bills or tax. A recipe linked to the item, when there is one, takes priority. */}
+                <div>
+                  <label style={{ display: 'block', marginBottom: '6px', fontWeight: '600', fontSize: '13px', color: '#374151' }}>
+                    Cost to make <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional · {getCurrencySymbol()})</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.costPrice ?? ''}
+                    onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
+                    placeholder="e.g. 35"
+                    style={{ width: '100%', padding: '10px 14px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '14px', outline: 'none', backgroundColor: 'white' }}
+                  />
+                  {(() => {
+                    const cost = parseFloat(formData.costPrice);
+                    const price = parseFloat(formData.price);
+                    if (!(cost >= 0) || !(price > 0) || formData.costPrice === '') {
+                      return <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>What one portion costs you (ingredients). Used for gross-margin reports. Variants can have their own cost.</div>;
+                    }
+                    const m = price - cost;
+                    return (
+                      <div style={{ fontSize: '12px', marginTop: '4px', color: m >= 0 ? '#047857' : '#b91c1c', fontWeight: 600 }}>
+                        Margin {getCurrencySymbol()}{m.toFixed(2)} ({((m / price) * 100).toFixed(1)}%)
+                      </div>
+                    );
+                  })()}
+                </div>
+
                 {/* Tax Inclusive Override */}
                 <div>
                   <label style={{
@@ -6977,6 +7014,22 @@ const MenuManagement = () => {
                               width: '80px',
                               padding: '8px 10px',
                               border: '1px solid #e5e7eb',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              outline: 'none'
+                            }}
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="Cost"
+                            title="Cost to make this variant (optional) — used only for gross-margin reports"
+                            value={variant.costPrice ?? ''}
+                            onChange={(e) => updateVariant(index, 'costPrice', e.target.value)}
+                            style={{
+                              width: '72px',
+                              padding: '8px 10px',
+                              border: '1px dashed #d1d5db',
                               borderRadius: '6px',
                               fontSize: '12px',
                               outline: 'none'

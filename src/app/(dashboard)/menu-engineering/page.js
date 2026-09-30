@@ -19,6 +19,7 @@ import {
 
 const CLASSIFICATION_STYLES = {
   Star: { bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-200' },
+  'No cost': { bg: 'bg-gray-100', text: 'text-gray-500', border: 'border-gray-200' },
   'Plow Horse': { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-200' },
   Puzzle: { bg: 'bg-purple-100', text: 'text-purple-800', border: 'border-purple-200' },
   Dog: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-200' },
@@ -241,22 +242,31 @@ export default function MenuEngineeringPage() {
   });
 
   // BCG Scatter - compute positions
-  const maxQty = Math.max(...items.map(i => i.qtySold || 0), 1);
-  const maxMargin = Math.max(...items.map(i => i.marginPercent || 0), 1);
+  // Items with no cost ("cost to make" or recipe) can't have a margin — they're listed, marked
+  // "No cost", and left out of the chart and the averages.
+  const costedItems = items.filter(i => i.costSource !== 'missing');
+  const missingCount = items.length - costedItems.length;
+  const grossMarginPercent = summary.grossMarginPercent;
+  const maxQty = Math.max(...costedItems.map(i => i.qtySold || 0), 1);
+  const maxMargin = Math.max(...costedItems.map(i => i.marginPercent || 0), 1);
+  const isMissing = (i) => i.costSource === 'missing';
+  const SOURCE_LABEL = { recipe: 'Recipe', 'cost price': 'Cost to make', missing: 'No cost' };
 
   const handleExcelDownload = async () => {
     const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
     const sheetData = [
-      ['Item', 'Category', 'Qty Sold', 'Revenue', 'Total Cost', 'Margin', 'Margin %', 'Classification'],
+      ['Item', 'Category', 'Qty Sold', 'Revenue', 'Cost / unit', 'Total Cost', 'Margin', 'Margin %', 'Cost source', 'Classification'],
       ...items.map(item => [
         item.name,
         item.category,
         item.qtySold,
         item.revenue,
-        item.totalCost,
-        item.margin,
-        item.marginPercent,
+        isMissing(item) ? '' : item.unitCost,
+        isMissing(item) ? '' : item.totalCost,
+        isMissing(item) ? '' : item.margin,
+        isMissing(item) ? '' : item.marginPercent,
+        SOURCE_LABEL[item.costSource] || '',
         item.classification,
       ]),
     ];
@@ -382,9 +392,12 @@ export default function MenuEngineeringPage() {
                   <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
                     <FaPercent className="text-emerald-600 text-sm" />
                   </div>
-                  <span className="text-xs text-gray-500 font-medium uppercase">Avg Margin%</span>
+                  <span className="text-xs text-gray-500 font-medium uppercase">Gross Margin%</span>
                 </div>
-                <div className="text-xl sm:text-2xl font-bold text-gray-900">{avgMarginPercent.toFixed(1)}%</div>
+                <div className="text-xl sm:text-2xl font-bold text-gray-900">{grossMarginPercent != null ? `${Number(grossMarginPercent).toFixed(1)}%` : `${avgMarginPercent.toFixed(1)}%`}</div>
+                {missingCount > 0 && (
+                  <div className="text-[11px] text-amber-600 mt-1">{missingCount} item{missingCount === 1 ? '' : 's'} without a cost — add “Cost to make” in Menu</div>
+                )}
               </div>
 
               <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
@@ -482,7 +495,7 @@ export default function MenuEngineeringPage() {
                     )}
 
                     {/* Item dots */}
-                    {items.map((item, idx) => {
+                    {costedItems.map((item, idx) => {
                       const x = maxQty > 0 ? ((item.qtySold || 0) / maxQty) * 100 : 0;
                       const y = maxMargin > 0 ? 100 - ((item.marginPercent || 0) / maxMargin) * 100 : 100;
                       const style = CLASSIFICATION_STYLES[item.classification] || CLASSIFICATION_STYLES.Dog;
@@ -620,9 +633,12 @@ export default function MenuEngineeringPage() {
                               </span>
                             </td>
                             <td className="px-4 py-3 text-right font-semibold text-gray-800 text-sm">{formatCurrency(item.revenue)}</td>
-                            <td className="px-4 py-3 text-right text-sm text-gray-600">{formatCurrency(item.totalCost)}</td>
-                            <td className="px-4 py-3 text-right font-semibold text-emerald-700 text-sm">{formatCurrency(item.margin)}</td>
-                            <td className="px-4 py-3 text-right text-sm text-gray-800 font-medium">{item.marginPercent?.toFixed(1)}%</td>
+                            <td className="px-4 py-3 text-right text-sm text-gray-600">
+                              {isMissing(item) ? '—' : formatCurrency(item.totalCost)}
+                              {!isMissing(item) && item.costSource && <div className="text-[10px] text-gray-400">{SOURCE_LABEL[item.costSource]}{item.unitCost != null ? ` · ${formatCurrency(item.unitCost)}/unit` : ''}</div>}
+                            </td>
+                            <td className="px-4 py-3 text-right font-semibold text-emerald-700 text-sm">{isMissing(item) ? '—' : formatCurrency(item.margin)}</td>
+                            <td className="px-4 py-3 text-right text-sm text-gray-800 font-medium">{isMissing(item) ? '—' : `${item.marginPercent?.toFixed(1)}%`}</td>
                             <td className="px-4 py-3 text-center">
                               <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${style.bg} ${style.text} border ${style.border}`}>
                                 {item.classification === 'Star' && <FaStar className="text-[9px]" />}

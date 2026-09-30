@@ -2009,7 +2009,7 @@ function getExcelSheetData(reportType, data, formatCurrency) {
       const items = data?.items || [];
       sheets.push({ name: 'Product Cost & Margin', data: [
         ['Item', 'Category', 'Qty Sold', 'Revenue', 'Cost', 'Margin', 'Margin %', 'Classification'],
-        ...items.map(it => [it.name, it.category, it.qtySold, it.revenue, it.totalCost, it.margin, `${(it.marginPercent || 0).toFixed(1)}%`, it.classification]),
+        ...items.map(it => [it.name, it.category, it.qtySold, it.revenue, it.costSource === 'missing' ? '' : it.totalCost, it.costSource === 'missing' ? '' : it.margin, it.costSource === 'missing' ? '' : `${(it.marginPercent || 0).toFixed(1)}%`, it.classification]),
       ]});
       break;
     }
@@ -2057,16 +2057,16 @@ const ProductCostView = ({ data, formatCurrency }) => {
                 <td style={{ padding: '8px 12px', color: '#64748b' }}>{it.category}</td>
                 <td style={{ padding: '8px 12px', textAlign: 'right' }}>{it.qtySold}</td>
                 <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600 }}>{formatCurrency(it.revenue)}</td>
-                <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748b' }}>{formatCurrency(it.totalCost)}</td>
-                <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: '#059669' }}>{formatCurrency(it.margin)}</td>
-                <td style={{ padding: '8px 12px', textAlign: 'right' }}>{(it.marginPercent || 0).toFixed(1)}%</td>
+                <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748b' }}>{it.costSource === 'missing' ? '—' : formatCurrency(it.totalCost)}</td>
+                <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: '#059669' }}>{it.costSource === 'missing' ? '—' : formatCurrency(it.margin)}</td>
+                <td style={{ padding: '8px 12px', textAlign: 'right' }}>{it.costSource === 'missing' ? '—' : `${(it.marginPercent || 0).toFixed(1)}%`}</td>
                 <td style={{ padding: '8px 12px', color: '#475569' }}>{it.classification}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      {(items.some(i => i.totalCost === 0)) && <div style={{ marginTop: 10, fontSize: 12, color: '#d97706' }}>Tip: items showing 0 cost have no recipe or no ingredient cost entered.</div>}
+      {(items.some(i => i.costSource === 'missing' || i.totalCost === 0)) && <div style={{ marginTop: 10, fontSize: 12, color: '#d97706' }}>Tip: items marked “No cost” have no recipe and no “Cost to make” — add it in Menu to include them in the margin.</div>}
     </div>
   );
 };
@@ -2290,23 +2290,29 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
           const rids = (selectedRestaurants?.length ? selectedRestaurants : (allRestaurants || []).map(r => r.id)).filter(Boolean);
           const per = await Promise.all(rids.map(rid => apiClient.getMenuEngineering(rid, { startDate, endDate }).catch(() => ({ items: [] }))));
           const agg = {};
+          // Margin only from sales that HAVE a cost (recipe or "cost to make"); items with no cost
+          // anywhere are marked "No cost" and left out of the averages.
           per.forEach(r => (r.items || []).forEach(it => {
             const k = `${it.name || ''}||${it.category || ''}`;
-            const a = agg[k] || { name: it.name, category: it.category, qtySold: 0, revenue: 0, totalCost: 0 };
-            a.qtySold += it.qtySold || 0; a.revenue += it.revenue || 0; a.totalCost += it.totalCost || 0;
+            const a = agg[k] || { name: it.name, category: it.category, qtySold: 0, revenue: 0, totalCost: 0, costedRevenue: 0, costed: false };
+            a.qtySold += it.qtySold || 0; a.revenue += it.revenue || 0;
+            if (it.costSource !== 'missing') { a.totalCost += it.totalCost || 0; a.costedRevenue += it.revenue || 0; a.costed = true; }
             agg[k] = a;
           }));
           const items = Object.values(agg).map(a => {
             const revenue = Math.round(a.revenue * 100) / 100;
+            if (!a.costed) return { ...a, qtySold: Math.round(a.qtySold * 100) / 100, revenue, totalCost: null, margin: null, marginPercent: 0, costSource: 'missing' };
             const totalCost = Math.round(a.totalCost * 100) / 100;
-            const margin = Math.round((revenue - totalCost) * 100) / 100;
-            return { ...a, qtySold: Math.round(a.qtySold * 100) / 100, revenue, totalCost, margin, marginPercent: revenue > 0 ? Math.round((margin / revenue) * 1000) / 10 : 0 };
+            const margin = Math.round((a.costedRevenue - totalCost) * 100) / 100;
+            return { ...a, qtySold: Math.round(a.qtySold * 100) / 100, revenue, totalCost, margin, marginPercent: a.costedRevenue > 0 ? Math.round((margin / a.costedRevenue) * 1000) / 10 : 0 };
           });
-          const n = items.length || 1;
-          const avgQty = items.reduce((s, r) => s + r.qtySold, 0) / n;
-          const avgM = items.reduce((s, r) => s + r.marginPercent, 0) / n;
-          const summary = { stars: 0, plowHorses: 0, puzzles: 0, dogs: 0, totalItems: items.length };
+          const costedItems = items.filter(r => r.costSource !== 'missing');
+          const n = costedItems.length || 1;
+          const avgQty = costedItems.reduce((s, r) => s + r.qtySold, 0) / n;
+          const avgM = costedItems.reduce((s, r) => s + r.marginPercent, 0) / n;
+          const summary = { stars: 0, plowHorses: 0, puzzles: 0, dogs: 0, totalItems: items.length, itemsMissingCost: items.length - costedItems.length };
           items.forEach(r => {
+            if (r.costSource === 'missing') { r.classification = 'No cost'; return; }
             const pop = r.qtySold >= avgQty, hi = r.marginPercent >= avgM;
             r.classification = pop && hi ? 'Star' : pop && !hi ? 'Plow Horse' : !pop && hi ? 'Puzzle' : 'Dog';
             summary[r.classification === 'Star' ? 'stars' : r.classification === 'Plow Horse' ? 'plowHorses' : r.classification === 'Puzzle' ? 'puzzles' : 'dogs']++;
