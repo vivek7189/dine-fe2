@@ -46,6 +46,13 @@ export const BILL_TEMPLATE_LIST = Object.values(BILL_TEMPLATES).map(t => ({
 export function renderKOT(kotData, printSettings = {}, labels = {}) {
   const templateId = printSettings.kotTemplate || 'classic';
   const template = KOT_TEMPLATES[templateId] || KOT_TEMPLATES.classic;
+  // KOT item-name language — same as the bill's, set separately (e.g. English bill for guests, Tamil
+  // KOT for the kitchen). 'both'/unset = unchanged. Clone: the caller's KOT data is never mutated.
+  const _nameLang = printSettings.kotNameLanguage;
+  if ((_nameLang === 'english' || _nameLang === 'local') && kotData) {
+    const pick = (list) => (Array.isArray(list) ? list.map((it) => (it && it.name ? { ...it, name: pickNameLang(it.name, _nameLang) } : it)) : list);
+    kotData = { ...kotData, items: pick(kotData.items), ...(Array.isArray(kotData.removedItems) ? { removedItems: pick(kotData.removedItems) } : {}) };
+  }
   return template.render(kotData, printSettings, labels);
 }
 

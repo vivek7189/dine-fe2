@@ -523,7 +523,10 @@ export function dualTitle(en, ar, showAr) {
 export function pickNameLang(name, mode) {
   if (!name || (mode !== 'english' && mode !== 'local') || !String(name).includes('/')) return name;
   const parts = String(name).split('/').map((s) => s.trim()).filter(Boolean);
-  const hasLocal = (s) => Array.from(String(s)).some((ch) => ch.charCodeAt(0) > 127);
+  // A part is "local" when it has a real letter from a non-Latin script (Tamil, Hindi, Arabic…).
+  // Symbols (│, ₹, emoji) and accented Latin (Café) don't count — they used to make the English part
+  // look local, so nothing matched and the full name printed.
+  const hasLocal = (s) => /(?=\p{L})\P{Script=Latin}/u.test(String(s));
   const picked = mode === 'english' ? parts.filter((p) => !hasLocal(p)) : parts.filter(hasLocal);
   return picked.length ? picked.join(' / ') : name;
 }

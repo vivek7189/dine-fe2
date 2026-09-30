@@ -4994,12 +4994,27 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
 
                   {/* Bill Item Name — language for bilingual "English / local-script" names (e.g. Tamil).
                       Default 'both' = unchanged; English/Local trims to one script so long dual-language
-                      names don't wrap. Affects the printed BILL only (KOT keeps the full name). */}
+                      names don't wrap. Affects the printed BILL only (the KOT has its own setting below). */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>Bill Item Name</span>
                     <select
                       value={printSettings.billNameLanguage || 'both'}
                       onChange={(e) => setPrintSettings(prev => ({ ...prev, billNameLanguage: e.target.value }))}
+                      style={{ fontSize: '12px', padding: '5px 28px 5px 10px', borderRadius: '6px', border: '1px solid #d1d5db', background: 'white', color: '#111827', fontWeight: '600', cursor: 'pointer', appearance: 'auto' }}
+                    >
+                      <option value="both">Both (English + local)</option>
+                      <option value="english">English only</option>
+                      <option value="local">Local only</option>
+                    </select>
+                  </div>
+
+                  {/* KOT Item Name — same choice for the kitchen ticket, set separately from the bill
+                      (e.g. English bill for guests, Tamil KOT for the kitchen). Default 'both' = unchanged. */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>KOT Item Name</span>
+                    <select
+                      value={printSettings.kotNameLanguage || 'both'}
+                      onChange={(e) => setPrintSettings(prev => ({ ...prev, kotNameLanguage: e.target.value }))}
                       style={{ fontSize: '12px', padding: '5px 28px 5px 10px', borderRadius: '6px', border: '1px solid #d1d5db', background: 'white', color: '#111827', fontWeight: '600', cursor: 'pointer', appearance: 'auto' }}
                     >
                       <option value="both">Both (English + local)</option>
