@@ -293,7 +293,8 @@ export default function useBooks() {
       await apiClient.updatePayrollRun(restaurantId, runId, { ...extra, status });
       setSuccess(`Payroll run ${status}`);
       fetchPayroll();
-    } catch (err) { setError('Failed to update payroll run'); }
+      return true;
+    } catch (err) { setError(err?.message || 'Failed to update payroll run'); return false; }
   };
 
   // One-off earnings / deductions on a payslip (gift, compensation, penalty…) before paying.

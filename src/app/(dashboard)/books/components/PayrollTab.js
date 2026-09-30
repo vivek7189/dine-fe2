@@ -51,6 +51,8 @@ export default function PayrollTab({
     const list = kind === 'deduction' ? deductionTypes : earningTypes;
     return (list.find(x => x.key === key) || {}).name || (saved && saved[key]) || key;
   };
+  // A payslip is a record: print the name it was generated with, even if renamed since.
+  const slipLabel = (kind, key, saved) => (saved && saved[key]) || labelFor(kind, key);
   // Components to show in the salary form: the settings list, plus any key already saved on this
   // salary that is no longer in the list (so nothing is silently dropped).
   const formKeys = (kind, values) => {
@@ -90,11 +92,11 @@ export default function PayrollTab({
     const rows = [];
     const adj = (slip.adjustments && Array.isArray(slip.adjustments.items)) ? slip.adjustments.items : [];
     rows.push(['Basic salary', fc(slip.baseSalary), '']);
-    Object.entries(allow).forEach(([k, v]) => { if (Number(v) > 0) rows.push([labelFor('earning', k, slip.componentLabels), '+' + fc(v), '']); });
+    Object.entries(allow).forEach(([k, v]) => { if (Number(v) > 0) rows.push([slipLabel('earning', k, slip.componentLabels), '+' + fc(v), '']); });
     if (slip.bonusPay > 0) rows.push(['Bonus / incentive', '+' + fc(slip.bonusPay), '']);
     if (slip.overtimePay > 0) rows.push(['Overtime pay', '+' + fc(slip.overtimePay), '']);
     adj.filter(a => a.kind === 'earning').forEach(a => rows.push([a.name + (a.reason ? ` — ${a.reason}` : ''), '+' + fc(a.amount), '']));
-    Object.entries(deduct).forEach(([k, v]) => { if (Number(v) > 0) rows.push([labelFor('deduction', k, slip.componentLabels), '', '-' + fc(v)]); });
+    Object.entries(deduct).forEach(([k, v]) => { if (Number(v) > 0) rows.push([slipLabel('deduction', k, slip.componentLabels), '', '-' + fc(v)]); });
     if (slip.lopDeduction > 0) rows.push(['Loss of pay (LOP)', '', '-' + fc(slip.lopDeduction)]);
     if (slip.advanceRecovery > 0) rows.push(['Advance recovery', '', '-' + fc(slip.advanceRecovery)]);
     adj.filter(a => a.kind === 'deduction').forEach(a => rows.push([a.name + (a.reason ? ` — ${a.reason}` : ''), '', '-' + fc(a.amount)]));
@@ -562,7 +564,7 @@ export default function PayrollTab({
           formatCurrency={formatCurrency}
           loadSlips={onViewSlips}
           onClose={() => setPayRun(null)}
-          onConfirm={async (extra) => { await onUpdateRun(payRun.id, 'paid', extra); setPayRun(null); }}
+          onConfirm={async (extra) => { if (await onUpdateRun(payRun.id, 'paid', extra)) setPayRun(null); }}
         />,
         document.body
       )}
