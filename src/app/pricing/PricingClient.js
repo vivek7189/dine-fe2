@@ -19,7 +19,6 @@ const COUNTRIES = [
   { code: 'GB', name: 'United Kingdom', flag: '\u{1F1EC}\u{1F1E7}', currency: 'GBP' },
   { code: 'AE', name: 'UAE', flag: '\u{1F1E6}\u{1F1EA}', currency: 'AED' },
   { code: 'SA', name: 'Saudi Arabia', flag: '\u{1F1F8}\u{1F1E6}', currency: 'SAR' },
-  { code: 'QA', name: 'Qatar', flag: '\u{1F1F6}\u{1F1E6}', currency: 'QAR' },
   { code: 'KW', name: 'Kuwait', flag: '\u{1F1F0}\u{1F1FC}', currency: 'KWD' },
   { code: 'BH', name: 'Bahrain', flag: '\u{1F1E7}\u{1F1ED}', currency: 'BHD' },
   { code: 'OM', name: 'Oman', flag: '\u{1F1F4}\u{1F1F2}', currency: 'OMR' },
@@ -28,10 +27,10 @@ const COUNTRIES = [
 ];
 // Visitors in these time zones start on their own country (others keep the USD default).
 const TZ_COUNTRY = {
-  'Asia/Dubai': 'AE', 'Asia/Riyadh': 'SA', 'Asia/Qatar': 'QA',
+  'Asia/Dubai': 'AE', 'Asia/Riyadh': 'SA',
   'Asia/Kuwait': 'KW', 'Asia/Bahrain': 'BH', 'Asia/Muscat': 'OM',
 };
-const VAT_CURRENCIES = ['GBP', 'AED', 'SAR', 'QAR', 'KWD', 'BHD', 'OMR'];
+const VAT_CURRENCIES = ['GBP', 'AED', 'SAR', 'KWD', 'BHD', 'OMR'];
 const fmt = (n) => Number(n).toLocaleString('en-US', { maximumFractionDigits: 1 });
 
 export default function PricingClient() {
@@ -125,12 +124,6 @@ export default function PricingClient() {
       starter:  { monthly: 75,  annual: 67,  annualBilled: 805 },
       growth:   { monthly: 190, annual: 172, annualBilled: 2065 },
       pro:      { monthly: 370, annual: 312, annualBilled: 3745 },
-    },
-    QAR: {
-      symbol: 'QAR ',
-      starter:  { monthly: 75,  annual: 65,  annualBilled: 785 },
-      growth:   { monthly: 180, annual: 167, annualBilled: 2000 },
-      pro:      { monthly: 360, annual: 303, annualBilled: 3635 },
     },
     KWD: {
       symbol: 'KWD ',
