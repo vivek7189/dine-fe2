@@ -10691,7 +10691,16 @@ const Admin = () => {
                             const info = getRoleInfo(role);
                             const isSelected = sameRole(editStaffForm.role, role);
                             return (
-                              <button key={role} type="button" onClick={() => setEditStaffForm(f => ({ ...f, role: sameRole(f.role, role) ? f.role : role, pageAccess: JSON.parse(JSON.stringify(ROLE_DEFAULT_PAGE_ACCESS[role] || ROLE_DEFAULT_PAGE_ACCESS.employee)) }))}
+                              <button key={role} type="button" onClick={() => {
+                                // Changing the role used to silently replace this person's hand-set page
+                                // access with the role defaults — even when clicking the role they already
+                                // had. Same role → no change; a built-in role → ask; custom role → keep access.
+                                if (sameRole(editStaffForm.role, role)) return;
+                                const defaults = ROLE_DEFAULT_PAGE_ACCESS[role];
+                                const reset = !!defaults && typeof window !== 'undefined' && window.confirm(
+                                  `Change role to "${info.label || role}".\n\nAlso reset this person's page access to the ${info.label || role} defaults?\n\nOK = reset to defaults\nCancel = keep their current page access`);
+                                setEditStaffForm(f => ({ ...f, role, ...(reset ? { pageAccess: JSON.parse(JSON.stringify(defaults)) } : {}) }));
+                              }}
                                 style={{
                                   padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '600',
                                   border: isSelected ? `2px solid ${info.color}` : '2px solid #e5e7eb',
