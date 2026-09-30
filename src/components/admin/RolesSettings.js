@@ -42,6 +42,8 @@ export default function RolesSettings({ restaurant, currentUserRole }) {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [draft, setDraft] = useState(null);
+  const [draftPin, setDraftPin] = useState({}); // "Needs manager PIN" per permission
+  const [approvals, setApprovals] = useState(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
   const [newName, setNewName] = useState('');
@@ -62,6 +64,7 @@ export default function RolesSettings({ restaurant, currentUserRole }) {
       const pick = (keepSelected && roles.find(r => r.id === keepSelected)) || roles.find(r => r.members.length) || roles[0] || null;
       setSelected(pick ? pick.id : null);
       setDraft(pick ? { ...pick.permissions } : null);
+      setDraftPin(pick ? { ...(pick.pinRequired || {}) } : {});
     } catch (e) {
       setMsg({ kind: 'error', text: e.message || 'Could not load roles' });
     } finally { setLoading(false); }
@@ -69,7 +72,9 @@ export default function RolesSettings({ restaurant, currentUserRole }) {
   useEffect(() => { setMsg(null); setPerson(null); setCheck(null); load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [rid]);
 
   const role = (data?.roles || []).find(r => r.id === selected) || null;
-  const dirty = role && draft && Object.keys(draft).some(k => !!draft[k] !== !!role.permissions[k]);
+  const pinKeys = data?.pinKeys || [];
+  const dirty = role && draft && (Object.keys(draft).some(k => !!draft[k] !== !!role.permissions[k])
+    || pinKeys.some(k => !!draftPin[k] !== !!(role.pinRequired || {})[k]));
   const groups = useMemo(() => {
     const g = {};
     for (const e of data?.catalogue || []) (g[e.group] = g[e.group] || []).push(e);
@@ -78,7 +83,7 @@ export default function RolesSettings({ restaurant, currentUserRole }) {
 
   const selectRole = (id) => {
     const r = (data?.roles || []).find(x => x.id === id);
-    setSelected(id); setDraft(r ? { ...r.permissions } : null); setPerson(null);
+    setSelected(id); setDraft(r ? { ...r.permissions } : null); setDraftPin(r ? { ...(r.pinRequired || {}) } : {}); setPerson(null);
   };
 
   const describeSwitched = (list) => (list || []).map(x => `${labelOf[x.key] || x.key} ${x.now ? 'on' : 'off'}`).join(', ');
@@ -91,7 +96,8 @@ export default function RolesSettings({ restaurant, currentUserRole }) {
     if (!role || !draft) return;
     setBusy(true); setMsg(null);
     try {
-      const r = await apiClient.saveRolePermissions(rid, role.name, draft);
+      const pinOut = Object.fromEntries(pinKeys.map(k => [k, !!draftPin[k] && !!draft[k]]));
+      const r = await apiClient.saveRolePermissions(rid, role.name, draft, pinOut);
       const parts = [`Saved ${role.name}.`];
       if (r.updatedStaff) parts.push(`${r.updatedStaff} staff updated.`);
       if (r.autoSwitched && r.autoSwitched.length) parts.push(`Linked permissions also switched: ${describeSwitched(r.autoSwitched)}.`);
@@ -240,7 +246,7 @@ export default function RolesSettings({ restaurant, currentUserRole }) {
                 <h3 style={{ ...h, margin: 0, textTransform: 'capitalize' }}>{role.name}</h3>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {!role.builtIn && role.members.length === 0 && <button type="button" style={btn(false)} disabled={busy} onClick={deleteRole}><FaTrash style={{ marginRight: 6 }} />Delete role</button>}
-                  <button type="button" style={btn(false, false, !dirty || busy)} disabled={!dirty || busy} onClick={() => setDraft({ ...role.permissions })}>Discard</button>
+                  <button type="button" style={btn(false, false, !dirty || busy)} disabled={!dirty || busy} onClick={() => { setDraft({ ...role.permissions }); setDraftPin({ ...(role.pinRequired || {}) }); }}>Discard</button>
                   <button type="button" style={btn(true, false, !dirty || busy)} disabled={!dirty || busy} onClick={saveRole}>{busy ? 'Saving…' : 'Save role'}</button>
                 </div>
               </div>
@@ -256,12 +262,37 @@ export default function RolesSettings({ restaurant, currentUserRole }) {
                           {e.fromBillingSettings && <span style={{ marginLeft: 6, fontSize: 10, color: '#4f46e5', background: '#eef2ff', padding: '1px 6px', borderRadius: 999 }}>Billing Settings</span>}
                           {!!draft[e.key] !== !!role.permissions[e.key] && <span style={{ marginLeft: 6, fontSize: 10, color: '#b45309' }}>changed</span>}
                         </span>
-                        <Toggle on={!!draft[e.key]} label={e.label} onClick={() => setDraft({ ...draft, [e.key]: !draft[e.key] })} />
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {pinKeys.includes(e.key) && draft[e.key] && (
+                            <label style={{ fontSize: 11, color: draftPin[e.key] ? '#b45309' : '#6b7280', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', whiteSpace: 'nowrap' }} title="Staff with this role need a manager PIN each time">
+                              <input type="checkbox" checked={!!draftPin[e.key]} onChange={() => setDraftPin({ ...draftPin, [e.key]: !draftPin[e.key] })} />
+                              Needs PIN
+                            </label>
+                          )}
+                          <Toggle on={!!draft[e.key]} label={e.label} onClick={() => setDraft({ ...draft, [e.key]: !draft[e.key] })} />
+                        </span>
                       </div>
                     ))}
                   </div>
                 </div>
               ))}
+            </div>
+
+            <div style={card}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <h3 style={{ ...h, margin: 0 }}>Recent manager-PIN approvals</h3>
+                <button type="button" style={btn(false)} onClick={async () => { try { setApprovals((await apiClient.getPinApprovals(rid)).approvals || []); } catch (e) { setMsg({ kind: 'error', text: e.message }); } }}>{approvals ? 'Refresh' : 'Show'}</button>
+              </div>
+              {approvals && (approvals.length === 0
+                ? <p style={{ ...sub, margin: '10px 0 0' }}>No PIN approvals yet.</p>
+                : <div style={{ display: 'grid', gap: 4, marginTop: 10 }}>
+                    {approvals.slice(0, 30).map((a, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 12.5, padding: '4px 0', borderBottom: '1px solid #f9fafb', flexWrap: 'wrap' }}>
+                        <span>{labelOf[a.perm_key] || a.perm_key} · {a.staff_name || 'Staff'} <span style={{ color: '#6b7280' }}>({a.role})</span></span>
+                        <span style={{ color: '#6b7280' }}>{new Date(a.created_at).toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>)}
             </div>
 
             <div style={card}>

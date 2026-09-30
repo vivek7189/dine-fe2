@@ -7,6 +7,7 @@ import { isReactNativeWebView } from '../../utils/platform';
 import apiClient from '../../lib/api';
 import { usePathname } from 'next/navigation';
 import { rolesAllowsPath } from '../../lib/rolesRouteMap';
+import ManagerPinPrompt from '../../components/ManagerPinPrompt';
 
 // Set mobile embed flag IMMEDIATELY at module level (before any useEffect/render)
 // This ensures pages that check this flag during their initial render won't redirect to /login
@@ -184,6 +185,7 @@ export default function MobileLayout({ children }) {
           html { touch-action: manipulation; }
           * { -webkit-text-size-adjust: 100%; }
         `}</style>
+        <ManagerPinPrompt />
         {roleBlocked ? (
           <div role="alert" style={{ padding: '48px 24px', textAlign: 'center', color: '#374151', fontSize: 15 }}>
             <div style={{ fontWeight: 700, marginBottom: 6 }}>You don’t have access to this page</div>

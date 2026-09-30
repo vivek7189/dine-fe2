@@ -464,6 +464,18 @@ class ApiClient {
       }
 
       if (!response.ok) {
+        // Roles "Needs manager PIN": ask for the PIN (ManagerPinPrompt) and retry with it; a wrong PIN
+        // asks again. Cancel → the action fails with a clear message. Only when a prompt is mounted.
+        if ((data?.code === 'MANAGER_PIN_REQUIRED' || data?.code === 'MANAGER_PIN_INVALID')
+            && typeof window !== 'undefined' && typeof window.__dineRequestManagerPin === 'function') {
+          const pin = await window.__dineRequestManagerPin({ message: data.error, wrong: data.code === 'MANAGER_PIN_INVALID' });
+          if (pin) {
+            return this.request(endpoint, { ...options, headers: { ...(options.headers || {}), 'X-Manager-Pin': String(pin) } }, isRetry);
+          }
+          const cancelled = new Error('Cancelled — a manager PIN is needed for this.');
+          cancelled.status = response.status; cancelled.code = 'MANAGER_PIN_CANCELLED'; cancelled.data = data;
+          throw cancelled;
+        }
         // Staff Access Rules: not clocked in / on leave / shift over → the dashboard shows the
         // clock-in screen (StaffAccessGate listens for this). The request still fails as before.
         if (response.status === 423 && data && String(data.code || '').startsWith('STAFF_ACCESS_') && typeof window !== 'undefined') {
@@ -4477,8 +4489,13 @@ class ApiClient {
     }
   }
 
-  async saveRolePermissions(restaurantId, roleName, permissions) {
-    return this._rolesWrite(restaurantId, `/role/${encodeURIComponent(roleName)}`, 'PUT', { permissions });
+  async saveRolePermissions(restaurantId, roleName, permissions, pinRequired) {
+    return this._rolesWrite(restaurantId, `/role/${encodeURIComponent(roleName)}`, 'PUT', { permissions, ...(pinRequired ? { pinRequired } : {}) });
+  }
+
+  async getPinApprovals(restaurantId) {
+    this.invalidateCache(`/api/roles/${restaurantId}/approvals`);
+    return this.request(`/api/roles/${restaurantId}/approvals`);
   }
 
   async createRole(restaurantId, name, copyFrom) {

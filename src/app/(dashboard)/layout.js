@@ -32,6 +32,7 @@ import { reconnectLan } from '../../lib/lanRealtime';
 import { initPrintDiagnostics } from '../../lib/printDiagnostics';
 import { ROUTE_TO_ACCESS_KEY, ALWAYS_ACCESSIBLE, WAITER_ENFORCEABLE_KEYS } from '../../lib/pageAccessConfig';
 import { rolesAllowsPath } from '../../lib/rolesRouteMap';
+import ManagerPinPrompt from '../../components/ManagerPinPrompt';
 import { FaCloudUploadAlt, FaArrowRight, FaUtensils, FaSyncAlt } from 'react-icons/fa';
 import { DineBotProvider } from '../../components/DineBotProvider';
 
@@ -658,6 +659,7 @@ function DashboardLayoutContent({ children }) {
 
             {/* Staff Access Rules: 'Clock in to start' screen for staff who must clock in (off shift / on leave) */}
             <StaffAccessGate />
+            <ManagerPinPrompt />
 
             {/* KRA eTIMS health banner is no longer floated on every page — the auto-retry WORKER
                 still runs here (useKraRetryQueue above, draining pending sales in the background on
