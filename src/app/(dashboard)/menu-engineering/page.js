@@ -510,7 +510,8 @@ export default function MenuEngineeringPage() {
                       return (
                         <div
                           key={idx}
-                          className={`absolute w-3 h-3 rounded-full ${dotColor} border-2 border-white shadow-sm cursor-pointer group z-[5] hover:z-20 hover:scale-150 transition-transform`}
+                          className={`absolute w-3 h-3 rounded-full ${dotColor} border-2 ${(item.marginPercent || 0) < 0 ? 'border-red-700 ring-2 ring-red-300' : 'border-white'} shadow-sm cursor-pointer group z-[5] hover:z-20 hover:scale-150 transition-transform`}
+                          title={(item.marginPercent || 0) < 0 ? 'Loss-making: costs more than it sells for' : undefined}
                           style={{
                             left: `calc(${Math.min(Math.max(x, 2), 98)}% - 6px)`,
                             top: `calc(${Math.min(Math.max(y, 2), 98)}% - 6px)`,

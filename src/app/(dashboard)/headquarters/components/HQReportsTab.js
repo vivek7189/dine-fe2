@@ -2057,7 +2057,10 @@ const ProductCostView = ({ data, formatCurrency }) => {
                 <td style={{ padding: '8px 12px', color: '#64748b' }}>{it.category}</td>
                 <td style={{ padding: '8px 12px', textAlign: 'right' }}>{it.qtySold}</td>
                 <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600 }}>{formatCurrency(it.revenue)}</td>
-                <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748b' }}>{it.costSource === 'missing' ? '—' : formatCurrency(it.totalCost)}</td>
+                <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748b' }}>
+                  {it.costSource === 'missing' ? '—' : formatCurrency(it.totalCost)}
+                  {it.partialCost && <div style={{ fontSize: 10, color: '#d97706' }} title={`Cost known for ${formatCurrency(it.costedRevenue)} of ${formatCurrency(it.revenue)} sales — margin uses that part only`}>partial</div>}
+                </td>
                 <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: '#059669' }}>{it.costSource === 'missing' ? '—' : formatCurrency(it.margin)}</td>
                 <td style={{ padding: '8px 12px', textAlign: 'right' }}>{it.costSource === 'missing' ? '—' : `${(it.marginPercent || 0).toFixed(1)}%`}</td>
                 <td style={{ padding: '8px 12px', color: '#475569' }}>{it.classification}</td>
@@ -2067,6 +2070,7 @@ const ProductCostView = ({ data, formatCurrency }) => {
         </table>
       </div>
       {(items.some(i => i.costSource === 'missing' || i.totalCost === 0)) && <div style={{ marginTop: 10, fontSize: 12, color: '#d97706' }}>Tip: items marked “No cost” have no recipe and no “Cost to make” — add it in Menu to include them in the margin.</div>}
+      {items.some(i => i.partialCost) && <div style={{ marginTop: 4, fontSize: 12, color: '#d97706' }}>“partial”: the item has a cost in some outlets only — its margin is worked out on those outlets’ sales.</div>}
     </div>
   );
 };
@@ -2304,7 +2308,9 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
             if (!a.costed) return { ...a, qtySold: Math.round(a.qtySold * 100) / 100, revenue, totalCost: null, margin: null, marginPercent: 0, costSource: 'missing' };
             const totalCost = Math.round(a.totalCost * 100) / 100;
             const margin = Math.round((a.costedRevenue - totalCost) * 100) / 100;
-            return { ...a, qtySold: Math.round(a.qtySold * 100) / 100, revenue, totalCost, margin, marginPercent: a.costedRevenue > 0 ? Math.round((margin / a.costedRevenue) * 1000) / 10 : 0 };
+            // Costed in some outlets only: margin is on the sales that have a cost (flagged "partial").
+            const partialCost = a.costedRevenue < a.revenue - 0.005;
+            return { ...a, qtySold: Math.round(a.qtySold * 100) / 100, revenue, totalCost, margin, partialCost, costedRevenue: Math.round(a.costedRevenue * 100) / 100, marginPercent: a.costedRevenue > 0 ? Math.round((margin / a.costedRevenue) * 1000) / 10 : 0 };
           });
           const costedItems = items.filter(r => r.costSource !== 'missing');
           const n = costedItems.length || 1;
