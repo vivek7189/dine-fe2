@@ -23,13 +23,15 @@ const COUNTRIES = [
   { code: 'BH', name: 'Bahrain', flag: '\u{1F1E7}\u{1F1ED}', currency: 'BHD' },
   { code: 'OM', name: 'Oman', flag: '\u{1F1F4}\u{1F1F2}', currency: 'OMR' },
   { code: 'IN', name: 'India', flag: '\u{1F1EE}\u{1F1F3}', currency: 'INR' },
-  { code: 'OTHER', name: 'Other countries', flag: '\u{1F30D}', currency: 'USD' },
 ];
 // Visitors in these time zones start on their own country (others keep the USD default).
 const TZ_COUNTRY = {
   'Asia/Dubai': 'AE', 'Asia/Riyadh': 'SA',
   'Asia/Kuwait': 'KW', 'Asia/Bahrain': 'BH', 'Asia/Muscat': 'OM',
 };
+// USD / GBP / INR keep their tabs; the Gulf countries sit in a separate dropdown.
+const TAB_COUNTRIES = [['US', 'USD'], ['GB', 'GBP'], ['IN', 'INR']];
+const GULF_COUNTRIES = COUNTRIES.filter((c) => !TAB_COUNTRIES.some(([code]) => code === c.code));
 const VAT_CURRENCIES = ['GBP', 'AED', 'SAR', 'KWD', 'BHD', 'OMR'];
 const fmt = (n) => Number(n).toLocaleString('en-US', { maximumFractionDigits: 1 });
 
@@ -373,24 +375,46 @@ export default function PricingClient() {
           {/* Currency + Billing Toggle */}
           <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: 'white', padding: '6px', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
-              <label htmlFor="pricing-country" style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', padding: '0 6px 0 10px' }}>Country</label>
+              {TAB_COUNTRIES.map(([code, label]) => (
+                <button
+                  key={code}
+                  onClick={() => setCountry(code)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    backgroundColor: country === code ? '#ef4444' : 'transparent',
+                    color: country === code ? 'white' : '#374151',
+                    fontWeight: '700',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'white', padding: '6px', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
               <select
-                id="pricing-country"
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
+                aria-label="Middle East country"
+                value={GULF_COUNTRIES.some((c) => c.code === country) ? country : ''}
+                onChange={(e) => e.target.value && setCountry(e.target.value)}
                 style={{
                   padding: '8px 12px',
                   borderRadius: '8px',
                   border: 'none',
-                  backgroundColor: '#ef4444',
-                  color: 'white',
+                  backgroundColor: GULF_COUNTRIES.some((c) => c.code === country) ? '#ef4444' : 'transparent',
+                  color: GULF_COUNTRIES.some((c) => c.code === country) ? 'white' : '#374151',
                   fontWeight: '700',
                   fontSize: '14px',
                   cursor: 'pointer',
                   outline: 'none',
                 }}
               >
-                {COUNTRIES.map((c) => (
+                <option value="" disabled>{'\u{1F30D}'} Middle East</option>
+                {GULF_COUNTRIES.map((c) => (
                   <option key={c.code} value={c.code} style={{ backgroundColor: 'white', color: '#111827' }}>
                     {c.flag} {c.name} ({c.currency})
                   </option>
