@@ -5,6 +5,8 @@ import { CurrencyProvider } from '../../contexts/CurrencyContext';
 import { useAutoPrint } from '../../hooks/useAutoPrint';
 import { isReactNativeWebView } from '../../utils/platform';
 import apiClient from '../../lib/api';
+import { usePathname } from 'next/navigation';
+import { rolesAllowsPath } from '../../lib/rolesRouteMap';
 
 // Set mobile embed flag IMMEDIATELY at module level (before any useEffect/render)
 // This ensures pages that check this flag during their initial render won't redirect to /login
@@ -21,7 +23,19 @@ if (typeof window !== 'undefined') {
  * - Sets window.__DINEOPEN_MOBILE_EMBED__ flag so pages skip login redirects
  * - Full-width, mobile-optimized
  */
+// Roles on (rolesV2): /mobile pages follow the person's role (owner / co-owner always allowed).
+function roleBlockedFromCache(pathname) {
+  try {
+    const rp = JSON.parse(localStorage.getItem('navRolePermissions') || 'null');
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (!rp || !user || rp.rid !== localStorage.getItem('selectedRestaurantId')) return false;
+    return !rolesAllowsPath(pathname, user.role, rp.permissions, { mobile: true });
+  } catch { return false; }
+}
+
 export default function MobileLayout({ children }) {
+  const pathname = usePathname();
+  const [roleBlocked, setRoleBlocked] = useState(false);
   const [ready, setReady] = useState(false);
   const [restaurantId, setRestaurantId] = useState(null);
   const [printSettings, setPrintSettings] = useState(null);
@@ -98,6 +112,24 @@ export default function MobileLayout({ children }) {
       .catch(() => {});
   }, [restaurantId]);
 
+  useEffect(() => {
+    if (!ready) return;
+    setRoleBlocked(roleBlockedFromCache(pathname));
+    let cancelled = false;
+    apiClient.getUserPageAccess?.()
+      .then((res) => {
+        if (cancelled || !res) return;
+        if (res.rolesV2 === true && res.permissions) {
+          localStorage.setItem('navRolePermissions', JSON.stringify({ rid: localStorage.getItem('selectedRestaurantId'), permissions: res.permissions }));
+        } else {
+          localStorage.removeItem('navRolePermissions');
+        }
+        setRoleBlocked(roleBlockedFromCache(pathname));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [ready, pathname]);
+
   // Auto-print: listen for Firebase RTDB events and print via postMessage bridge
   // This enables background auto-printing for orders from other devices
   useAutoPrint(restaurantId, printSettings);
@@ -152,7 +184,12 @@ export default function MobileLayout({ children }) {
           html { touch-action: manipulation; }
           * { -webkit-text-size-adjust: 100%; }
         `}</style>
-        {children}
+        {roleBlocked ? (
+          <div role="alert" style={{ padding: '48px 24px', textAlign: 'center', color: '#374151', fontSize: 15 }}>
+            <div style={{ fontWeight: 700, marginBottom: 6 }}>You don’t have access to this page</div>
+            <div style={{ color: '#6b7280', fontSize: 13 }}>Ask the owner to allow it for your role in Admin → Roles.</div>
+          </div>
+        ) : children}
       </div>
     </CurrencyProvider>
   );

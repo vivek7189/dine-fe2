@@ -31,6 +31,7 @@ import { preferLoopbackIfLocal } from '../../lib/localServer';
 import { reconnectLan } from '../../lib/lanRealtime';
 import { initPrintDiagnostics } from '../../lib/printDiagnostics';
 import { ROUTE_TO_ACCESS_KEY, ALWAYS_ACCESSIBLE, WAITER_ENFORCEABLE_KEYS } from '../../lib/pageAccessConfig';
+import { rolesAllowsPath } from '../../lib/rolesRouteMap';
 import { FaCloudUploadAlt, FaArrowRight, FaUtensils, FaSyncAlt } from 'react-icons/fa';
 import { DineBotProvider } from '../../components/DineBotProvider';
 
@@ -275,6 +276,15 @@ function DashboardLayoutContent({ children }) {
         }
       }
 
+      // Roles on (rolesV2): pages with no pageAccess key (reports…) follow the person's role.
+      try {
+        const rp = JSON.parse(localStorage.getItem('navRolePermissions') || 'null');
+        if (rp && rp.rid === localStorage.getItem('selectedRestaurantId') && !rolesAllowsPath(pathname, user.role, rp.permissions)) {
+          router.replace('/home');
+          return;
+        }
+      } catch {}
+
       // Async: re-check with fresh data from API (covers cache staleness)
       apiClient.getUserPageAccess?.()
         .then(res => {
@@ -285,6 +295,16 @@ function DashboardLayoutContent({ children }) {
           if (navId && freshSA.includes(navId)) {
             router.replace('/home');
             return;
+          }
+          // Roles on → keep the person's permissions for page checks; roles off → forget them.
+          if (res.rolesV2 === true && res.permissions) {
+            localStorage.setItem('navRolePermissions', JSON.stringify({ rid: localStorage.getItem('selectedRestaurantId'), permissions: res.permissions }));
+            if (!rolesAllowsPath(pathname, user.role, res.permissions)) {
+              router.replace('/home');
+              return;
+            }
+          } else {
+            localStorage.removeItem('navRolePermissions');
           }
           // Update pageAccess cache and re-check for non-owner roles
           if (res.pageAccess) {
