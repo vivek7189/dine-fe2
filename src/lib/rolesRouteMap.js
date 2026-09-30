@@ -18,6 +18,7 @@ export const ROLES_ROUTE_PERMISSION = {
   '/split-bills': 'orders.view',
   '/customer-app': 'settings.features',
   '/settings': 'settings.settings',
+  '/my-pay': 'page.myPay',
 };
 
 // /mobile/<page> (opened inside the dine-app)
@@ -36,6 +37,7 @@ export const ROLES_MOBILE_PERMISSION = {
   orderhistory: 'page.history',
   'sales-summary': 'page.analytics',
   tables: 'tables.view',
+  'my-pay': 'page.myPay',
 };
 
 const FULL_ACCESS = ['owner', 'admin', 'co-owner'];

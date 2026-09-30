@@ -31,6 +31,14 @@ import {
 
 const features = [
   {
+    id: 'my-pay',
+    name: 'My Pay',
+    description: 'Your payslips, advances, bonuses and appraisals',
+    icon: FaCashRegister,
+    gradient: 'linear-gradient(135deg, #059669, #10b981)',
+    href: '/my-pay',
+  },
+  {
     id: 'shifts',
     name: 'Shifts',
     description: 'Staff shift scheduling and management',
@@ -243,7 +251,13 @@ export default function MorePage() {
     } catch {}
   }, []);
 
-  const allowedFeatures = features.filter(f => !notAllowedPages.includes(f.id));
+  // My Pay: only when the person's role has it (restaurants with roles on)
+  let myPayAllowed = false;
+  try {
+    const rp = JSON.parse(localStorage.getItem('navRolePermissions') || 'null');
+    myPayAllowed = !!(rp && rp.rid === localStorage.getItem('selectedRestaurantId') && rp.permissions && rp.permissions['page.myPay'] === 'allow');
+  } catch {}
+  const allowedFeatures = features.filter(f => !notAllowedPages.includes(f.id) && (f.id !== 'my-pay' || myPayAllowed));
   // Search: every typed word must appear in the card's name or description ("staff sales", "audit")
   const words = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const visibleFeatures = words.length

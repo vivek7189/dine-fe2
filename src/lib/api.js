@@ -4451,6 +4451,18 @@ class ApiClient {
     });
   }
 
+  // ── My Pay (a staff member's own pay records) ──
+  async getMyPay(restaurantId) {
+    this.invalidateCache(`/api/my-pay/${restaurantId}`);
+    return this.request(`/api/my-pay/${restaurantId}`);
+  }
+
+  async acknowledgeMyAppraisal(restaurantId, appraisalId) {
+    try {
+      return await this.request(`/api/my-pay/${restaurantId}/appraisals/${appraisalId}/acknowledge`, { method: 'POST', body: {} });
+    } finally { this.invalidateCache(`/api/my-pay/${restaurantId}`); }
+  }
+
   // ── Roles (only for restaurants switched to roles) ──
   async getRoles(restaurantId) {
     this.invalidateCache(`/api/roles/${restaurantId}`);
