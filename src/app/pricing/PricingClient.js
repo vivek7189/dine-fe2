@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import CommonHeader from '../../components/CommonHeader';
 import Footer from '../../components/Footer';
@@ -12,8 +12,41 @@ const INDIA_WHATSAPP = '919004459951';
 const INDIA_EMAIL = 'info@dineopen.com';
 const INDIA_WA_LINK = `https://wa.me/${INDIA_WHATSAPP}?text=${encodeURIComponent("Hi DineOpen! I'd like custom pricing & offers for my restaurant in India.")}`;
 
+// Country switcher: each country shows the plans in its local currency. Gulf currencies are
+// pegged to USD, so their prices are the USD plans converted at the peg and rounded.
+const COUNTRIES = [
+  { code: 'US', name: 'United States', flag: '\u{1F1FA}\u{1F1F8}', currency: 'USD' },
+  { code: 'GB', name: 'United Kingdom', flag: '\u{1F1EC}\u{1F1E7}', currency: 'GBP' },
+  { code: 'AE', name: 'UAE', flag: '\u{1F1E6}\u{1F1EA}', currency: 'AED' },
+  { code: 'SA', name: 'Saudi Arabia', flag: '\u{1F1F8}\u{1F1E6}', currency: 'SAR' },
+  { code: 'QA', name: 'Qatar', flag: '\u{1F1F6}\u{1F1E6}', currency: 'QAR' },
+  { code: 'KW', name: 'Kuwait', flag: '\u{1F1F0}\u{1F1FC}', currency: 'KWD' },
+  { code: 'BH', name: 'Bahrain', flag: '\u{1F1E7}\u{1F1ED}', currency: 'BHD' },
+  { code: 'OM', name: 'Oman', flag: '\u{1F1F4}\u{1F1F2}', currency: 'OMR' },
+  { code: 'IN', name: 'India', flag: '\u{1F1EE}\u{1F1F3}', currency: 'INR' },
+  { code: 'OTHER', name: 'Other countries', flag: '\u{1F30D}', currency: 'USD' },
+];
+// Visitors in these time zones start on their own country (others keep the USD default).
+const TZ_COUNTRY = {
+  'Asia/Dubai': 'AE', 'Asia/Riyadh': 'SA', 'Asia/Qatar': 'QA',
+  'Asia/Kuwait': 'KW', 'Asia/Bahrain': 'BH', 'Asia/Muscat': 'OM',
+};
+const VAT_CURRENCIES = ['GBP', 'AED', 'SAR', 'QAR', 'KWD', 'BHD', 'OMR'];
+const fmt = (n) => Number(n).toLocaleString('en-US', { maximumFractionDigits: 1 });
+
 export default function PricingClient() {
-  const [currency, setCurrency] = useState('USD');
+  const [country, setCountry] = useState('US');
+  const currency = (COUNTRIES.find((c) => c.code === country) || COUNTRIES[0]).currency;
+
+  // ?country=ae in the URL wins (for sharing links); otherwise pre-select Gulf visitors by time zone.
+  useEffect(() => {
+    try {
+      const fromUrl = (new URLSearchParams(window.location.search).get('country') || '').toUpperCase();
+      if (COUNTRIES.some((c) => c.code === fromUrl)) return setCountry(fromUrl);
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (TZ_COUNTRY[tz]) setCountry(TZ_COUNTRY[tz]);
+    } catch { /* keep default */ }
+  }, []);
   const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' | 'annual'
 
   // Demo Modal State
@@ -81,6 +114,42 @@ export default function PricingClient() {
       growth:   { monthly: 40, annual: 37, annualBilled: 440 },
       pro:      { monthly: 79, annual: 67, annualBilled: 799 },
     },
+    AED: {
+      symbol: 'AED ',
+      starter:  { monthly: 75,  annual: 66,  annualBilled: 790 },
+      growth:   { monthly: 185, annual: 168, annualBilled: 2020 },
+      pro:      { monthly: 365, annual: 306, annualBilled: 3670 },
+    },
+    SAR: {
+      symbol: 'SAR ',
+      starter:  { monthly: 75,  annual: 67,  annualBilled: 805 },
+      growth:   { monthly: 190, annual: 172, annualBilled: 2065 },
+      pro:      { monthly: 370, annual: 312, annualBilled: 3745 },
+    },
+    QAR: {
+      symbol: 'QAR ',
+      starter:  { monthly: 75,  annual: 65,  annualBilled: 785 },
+      growth:   { monthly: 180, annual: 167, annualBilled: 2000 },
+      pro:      { monthly: 360, annual: 303, annualBilled: 3635 },
+    },
+    KWD: {
+      symbol: 'KWD ',
+      starter:  { monthly: 6,  annual: 5.5,  annualBilled: 66 },
+      growth:   { monthly: 15, annual: 14.1, annualBilled: 169 },
+      pro:      { monthly: 30, annual: 25.6, annualBilled: 307 },
+    },
+    BHD: {
+      symbol: 'BHD ',
+      starter:  { monthly: 8,  annual: 6.8,  annualBilled: 81 },
+      growth:   { monthly: 19, annual: 17.3, annualBilled: 207 },
+      pro:      { monthly: 37, annual: 31.3, annualBilled: 376 },
+    },
+    OMR: {
+      symbol: 'OMR ',
+      starter:  { monthly: 8,  annual: 6.9,  annualBilled: 83 },
+      growth:   { monthly: 19, annual: 17.6, annualBilled: 211 },
+      pro:      { monthly: 38, annual: 32,   annualBilled: 384 },
+    },
   };
 
   const currentPrice = prices[currency];
@@ -90,11 +159,11 @@ export default function PricingClient() {
 
   // For INR annual: show yearly total directly (₹3000/year instead of ₹250/month)
   const showYearlyTotal = currency === 'INR' && cycle === 'annual';
-  const getPrice = (planKey) => showYearlyTotal ? currentPrice[planKey].annualBilled : currentPrice[planKey][cycle];
+  const getPrice = (planKey) => fmt(showYearlyTotal ? currentPrice[planKey].annualBilled : currentPrice[planKey][cycle]);
   const getPriceSuffix = () => showYearlyTotal ? '/year' : '/month';
   const getBilledNote = (planKey) => {
     if (showYearlyTotal) return '';
-    if (cycle === 'annual') return `Billed ${currentPrice.symbol}${currentPrice[planKey].annualBilled}/year`;
+    if (cycle === 'annual') return `Billed ${currentPrice.symbol}${fmt(currentPrice[planKey].annualBilled)}/year`;
     return 'Billed monthly';
   };
 
@@ -113,7 +182,7 @@ export default function PricingClient() {
         'Cloud POS (web + Android tablet)',
         'KOT thermal printing (Bluetooth/USB/network)',
         'QR menu & QR ordering',
-        'Bill printing with GST',
+        VAT_CURRENCIES.includes(currency) ? 'Bill printing with VAT' : 'Bill printing with GST',
         'Basic inventory tracking',
         'Daily sales reports',
         'WhatsApp & email support',
@@ -265,7 +334,7 @@ export default function PricingClient() {
 
   // Competitor comparison row (India)
   const compare = [
-    { name: 'DineOpen Growth',     price: isIndia ? 'Custom' : `${currentPrice.symbol}${currentPrice.growth.monthly}/mo`, ai: true,  txn: '0%',     setup: 'Free',    kds: true,  captainApp: true },
+    { name: 'DineOpen Growth',     price: isIndia ? 'Custom' : `${currentPrice.symbol}${fmt(currentPrice.growth.monthly)}/mo`, ai: true,  txn: '0%',     setup: 'Free',    kds: true,  captainApp: true },
     { name: 'Petpooja (real cost)', price: '₹1,800-3,500/mo', ai: false, txn: '0%',     setup: '₹3,000+', kds: 'Paid', captainApp: 'Paid' },
     { name: 'Restroworks (POSist)', price: '₹2,000-4,000/mo', ai: false, txn: '0%',     setup: '₹5,000+', kds: 'Paid', captainApp: 'Paid' },
     { name: 'PosBytz Pro',          price: '₹1,499/mo',       ai: false, txn: '0%',     setup: 'Paid',    kds: 'Paid', captainApp: true },
@@ -304,32 +373,36 @@ export default function PricingClient() {
             {isIndia ? (
               <>🇮🇳 <strong style={{ color: '#ef4444' }}>Custom pricing & exclusive offers</strong> for restaurants in India. Talk to us for the best deal.</>
             ) : (
-              <>Plans start from <strong style={{ color: '#ef4444' }}>{currentPrice.symbol}{showYearlyTotal ? currentPrice.starter.annualBilled : currentPrice.starter[cycle]}{getPriceSuffix()}</strong>. AI features included. Zero transaction fees. No hidden costs. Cancel anytime.</>
+              <>Plans start from <strong style={{ color: '#ef4444' }}>{currentPrice.symbol}{fmt(showYearlyTotal ? currentPrice.starter.annualBilled : currentPrice.starter[cycle])}{getPriceSuffix()}</strong>. AI features included. Zero transaction fees. No hidden costs. Cancel anytime.</>
             )}
           </p>
 
           {/* Currency + Billing Toggle */}
           <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: 'white', padding: '6px', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
-              {['USD', 'GBP', 'INR'].map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setCurrency(c)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    backgroundColor: currency === c ? '#ef4444' : 'transparent',
-                    color: currency === c ? 'white' : '#374151',
-                    fontWeight: '700',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  {c}
-                </button>
-              ))}
+              <label htmlFor="pricing-country" style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', padding: '0 6px 0 10px' }}>Country</label>
+              <select
+                id="pricing-country"
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: '#ef4444',
+                  color: 'white',
+                  fontWeight: '700',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
+              >
+                {COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code} style={{ backgroundColor: 'white', color: '#111827' }}>
+                    {c.flag} {c.name} ({c.currency})
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div style={{ display: isIndia ? 'none' : 'flex', alignItems: 'center', gap: '4px', backgroundColor: 'white', padding: '6px', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
@@ -626,9 +699,9 @@ export default function PricingClient() {
                 <thead>
                   <tr style={{ backgroundColor: '#111827' }}>
                     <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: '700', color: 'white', textTransform: 'uppercase', letterSpacing: '0.5px', minWidth: '240px' }}>Feature</th>
-                    <th style={{ padding: '16px 12px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: 'white', minWidth: '90px' }}>Starter<br /><span style={{ fontWeight: '400', fontSize: '11px', opacity: 0.7 }}>{isIndia ? 'Custom' : `${currentPrice.symbol}${currentPrice.starter[cycle]}${getPriceSuffix()}`}</span></th>
-                    <th style={{ padding: '16px 12px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: '#fca5a5', minWidth: '90px', backgroundColor: '#1f2937' }}>Growth<br /><span style={{ fontWeight: '400', fontSize: '11px', opacity: 0.7 }}>{isIndia ? 'Custom' : `${currentPrice.symbol}${currentPrice.growth[cycle]}${getPriceSuffix()}`}</span></th>
-                    <th style={{ padding: '16px 12px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: 'white', minWidth: '90px' }}>Pro<br /><span style={{ fontWeight: '400', fontSize: '11px', opacity: 0.7 }}>{isIndia ? 'Custom' : `${currentPrice.symbol}${currentPrice.pro[cycle]}${getPriceSuffix()}`}</span></th>
+                    <th style={{ padding: '16px 12px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: 'white', minWidth: '90px' }}>Starter<br /><span style={{ fontWeight: '400', fontSize: '11px', opacity: 0.7 }}>{isIndia ? 'Custom' : `${currentPrice.symbol}${fmt(currentPrice.starter[cycle])}${getPriceSuffix()}`}</span></th>
+                    <th style={{ padding: '16px 12px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: '#fca5a5', minWidth: '90px', backgroundColor: '#1f2937' }}>Growth<br /><span style={{ fontWeight: '400', fontSize: '11px', opacity: 0.7 }}>{isIndia ? 'Custom' : `${currentPrice.symbol}${fmt(currentPrice.growth[cycle])}${getPriceSuffix()}`}</span></th>
+                    <th style={{ padding: '16px 12px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: 'white', minWidth: '90px' }}>Pro<br /><span style={{ fontWeight: '400', fontSize: '11px', opacity: 0.7 }}>{isIndia ? 'Custom' : `${currentPrice.symbol}${fmt(currentPrice.pro[cycle])}${getPriceSuffix()}`}</span></th>
                     <th style={{ padding: '16px 12px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: 'white', minWidth: '90px' }}>Enterprise<br /><span style={{ fontWeight: '400', fontSize: '11px', opacity: 0.7 }}>Custom</span></th>
                   </tr>
                 </thead>
