@@ -171,6 +171,9 @@ export default function BooksPage() {
             onGenerateRun={books.handleGeneratePayrollRun}
             onUpdateRun={books.handleUpdatePayrollRun}
             onViewSlips={books.handleViewPaySlips}
+            onSaveAdjustments={books.handleSavePaySlipAdjustments}
+            restaurantId={books.restaurantId}
+            apiClient={books.apiClient}
           />
         )}
         {activeTab === 'advances' && (

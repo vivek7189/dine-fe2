@@ -1,26 +1,17 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { FaPlus, FaStar, FaRegStar, FaTrash, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaPlus, FaStar, FaRegStar, FaTrash, FaChevronDown, FaChevronUp, FaCog } from 'react-icons/fa';
+import useHrSettings, { DEFAULT_CRITERIA, templateForRole } from '../hooks/useHrSettings';
+import { AppraisalSettingsPanel } from './HrSettingsPanels';
 
 /**
  * AppraisalsTab — staff performance reviews. Per-criterion ratings (1–5) + notes.
+ * Criteria come from the restaurant's templates per role (⚙ Settings), recommendations from its
+ * own list. Each review saves the criteria it was rated on, so later template edits never change
+ * old reviews; reviews from before templates existed show the original 5 criteria.
  * Self-contained (fetches its own data), mirrors the Advances/Bonus tabs' pattern.
  */
-const CRITERIA = [
-  { key: 'punctuality', name: 'Punctuality' },
-  { key: 'workQuality', name: 'Work Quality' },
-  { key: 'teamwork', name: 'Teamwork' },
-  { key: 'customerService', name: 'Customer Service' },
-  { key: 'initiative', name: 'Initiative' },
-];
-const RECOMMENDATIONS = [
-  { id: 'none', name: 'No action' },
-  { id: 'raise', name: 'Salary raise' },
-  { id: 'promotion', name: 'Promotion' },
-  { id: 'training', name: 'Needs training' },
-  { id: 'warning', name: 'Warning' },
-];
 
 function Stars({ value }) {
   const v = Math.round(value || 0);
@@ -39,8 +30,13 @@ export default function AppraisalsTab({ restaurantId, apiClient, staffList = [],
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState(null);
-  const emptyForm = { staffId: '', period: '', ratings: {}, strengths: '', improvements: '', goals: '', recommendation: 'none' };
+  const [showSettings, setShowSettings] = useState(false);
+  const { settings: hr, save: saveHr } = useHrSettings(restaurantId, apiClient);
+  const templates = hr.appraisal.templates;
+  const recommendations = hr.appraisal.recommendations;
+  const emptyForm = { staffId: '', templateId: '', period: '', ratings: {}, strengths: '', improvements: '', goals: '', recommendation: 'none' };
   const [form, setForm] = useState(emptyForm);
+  const staffRoles = [...new Set((staffList || []).map(s => String(s.role || '').toLowerCase()).filter(Boolean))];
 
   const load = useCallback(async () => {
     if (!restaurantId) return;
@@ -56,18 +52,28 @@ export default function AppraisalsTab({ restaurantId, apiClient, staffList = [],
   useEffect(() => { load(); }, [load]);
 
   const staffOf = (id) => (staffList || []).find(x => (x.id || x.staffId) === id);
+  // Template for the form: picked by hand, else the staff member's role template.
+  const formTemplate = templates.find(t => t.id === form.templateId)
+    || templateForRole(templates, (staffOf(form.staffId) || {}).role);
+  const formCriteria = formTemplate?.criteria?.length ? formTemplate.criteria : DEFAULT_CRITERIA;
 
   const submit = async () => {
     if (!form.staffId) { setError('Pick a staff member.'); return; }
     setSaving(true); setError('');
     try {
       const s = staffOf(form.staffId);
+      // Only ratings for this template's criteria (switching templates can leave stale keys).
+      const ratings = {};
+      formCriteria.forEach(c => { if (form.ratings[c.key]) ratings[c.key] = form.ratings[c.key]; });
       await apiClient.createStaffAppraisal(restaurantId, {
         staffId: form.staffId,
         staffName: s ? (s.name || s.staffName) : '',
         role: s ? (s.role || null) : null,
         period: form.period || null,
-        ratings: form.ratings,
+        ratings,
+        criteria: formCriteria.map(c => ({ key: c.key, name: c.name, weight: c.weight || 1 })),
+        templateName: formTemplate?.name || null,
+        recommendationLabel: recName(form.recommendation),
         strengths: form.strengths || null,
         improvements: form.improvements || null,
         goals: form.goals || null,
@@ -88,7 +94,8 @@ export default function AppraisalsTab({ restaurantId, apiClient, staffList = [],
   };
 
   const setRating = (key, val) => setForm(f => ({ ...f, ratings: { ...f.ratings, [key]: val } }));
-  const recName = (id) => (RECOMMENDATIONS.find(r => r.id === id) || {}).name || id;
+  // Saved label first (the option may have been renamed/removed since), then the current list.
+  function recName(id, saved) { return saved || (recommendations.find(r => r.id === id) || {}).name || id; }
 
   return (
     <div style={{ padding: isMobile ? '8px' : '4px' }}>
@@ -105,6 +112,9 @@ export default function AppraisalsTab({ restaurantId, apiClient, staffList = [],
             <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600 }}>AVG RATING</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: '#b45309' }}>{summary.avgRating != null ? `${summary.avgRating} / 5` : '—'}</div>
           </div>
+          <button onClick={() => setShowSettings(true)} title="Rating templates & recommendations" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 14px', borderRadius: 10, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 700, cursor: 'pointer' }}>
+            <FaCog size={12} /> Settings
+          </button>
           <button onClick={() => setShowForm(v => !v)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 10, border: 'none', background: '#d97706', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
             <FaPlus size={11} /> New Review
           </button>
@@ -117,7 +127,7 @@ export default function AppraisalsTab({ restaurantId, apiClient, staffList = [],
         <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, marginBottom: 16, background: '#fafafa' }}>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 12, marginBottom: 12 }}>
             <label style={lbl}>Staff member
-              <select value={form.staffId} onChange={e => setForm({ ...form, staffId: e.target.value })} style={inp}>
+              <select value={form.staffId} onChange={e => setForm({ ...form, staffId: e.target.value, templateId: '' })} style={inp}>
                 <option value="">Select staff…</option>
                 {(staffList || []).map(s => { const id = s.id || s.staffId; return <option key={id} value={id}>{s.name || s.staffName}{s.role ? ` · ${s.role}` : ''}</option>; })}
               </select>
@@ -127,11 +137,20 @@ export default function AppraisalsTab({ restaurantId, apiClient, staffList = [],
             </label>
           </div>
 
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', margin: '4px 0 8px' }}>Ratings (1–5)</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', margin: '4px 0 8px' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>Ratings (1–5)</div>
+            {templates.length > 1 && (
+              <label style={{ fontSize: 12, color: '#6b7280', display: 'inline-flex', alignItems: 'center', gap: 6 }}>Template
+                <select value={formTemplate?.id || ''} onChange={e => setForm({ ...form, templateId: e.target.value })} style={{ ...inp, marginTop: 0, width: 'auto', padding: '5px 8px' }}>
+                  {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </label>
+            )}
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 8, marginBottom: 12 }}>
-            {CRITERIA.map(c => (
+            {formCriteria.map(c => (
               <div key={c.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: '6px 10px' }}>
-                <span style={{ fontSize: 12, color: '#374151', fontWeight: 600 }}>{c.name}</span>
+                <span style={{ fontSize: 12, color: '#374151', fontWeight: 600 }}>{c.name}{c.weight && c.weight !== 1 ? <span style={{ color: '#9ca3af', fontWeight: 500 }}> ×{c.weight}</span> : null}</span>
                 <span style={{ display: 'inline-flex', gap: 2 }}>
                   {[1, 2, 3, 4, 5].map(n => (
                     <button key={n} onClick={() => setRating(c.key, n)} title={`${n}`} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, color: (form.ratings[c.key] || 0) >= n ? '#f59e0b' : '#d1d5db' }}>
@@ -152,7 +171,7 @@ export default function AppraisalsTab({ restaurantId, apiClient, staffList = [],
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <label style={{ ...lbl, maxWidth: 240 }}>Recommendation
               <select value={form.recommendation} onChange={e => setForm({ ...form, recommendation: e.target.value })} style={inp}>
-                {RECOMMENDATIONS.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                {recommendations.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
             </label>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -176,12 +195,12 @@ export default function AppraisalsTab({ restaurantId, apiClient, staffList = [],
                 <div style={{ padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, cursor: 'pointer' }} onClick={() => setExpanded(isOpen ? null : a.id)}>
                   <div style={{ minWidth: 160 }}>
                     <div style={{ fontWeight: 700, color: '#111827', fontSize: 14 }}>{a.staffName || (staffOf(a.staffId) || {}).name || 'Staff'}</div>
-                    <div style={{ fontSize: 11, color: '#9ca3af' }}>{a.period || '—'}{a.reviewerName ? ` · by ${a.reviewerName}` : ''}</div>
+                    <div style={{ fontSize: 11, color: '#9ca3af' }}>{a.period || '—'}{a.templateName ? ` · ${a.templateName}` : ''}{a.reviewerName ? ` · by ${a.reviewerName}` : ''}</div>
                   </div>
                   <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Stars value={a.overallRating} /><span style={{ fontWeight: 800, color: '#b45309', fontSize: 13 }}>{a.overallRating != null ? a.overallRating : '—'}</span></div>
                     {a.recommendation && a.recommendation !== 'none' && (
-                      <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: '#eff6ff', color: '#1d4ed8' }}>{recName(a.recommendation)}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: '#eff6ff', color: '#1d4ed8' }}>{recName(a.recommendation, a.recommendationLabel)}</span>
                     )}
                     <button title="Delete" onClick={(e) => { e.stopPropagation(); del(a); }} style={iconBtn('#b91c1c')}><FaTrash size={10} /></button>
                     {isOpen ? <FaChevronUp size={12} color="#9ca3af" /> : <FaChevronDown size={12} color="#9ca3af" />}
@@ -189,8 +208,8 @@ export default function AppraisalsTab({ restaurantId, apiClient, staffList = [],
                 </div>
                 {isOpen && (
                   <div style={{ padding: '0 12px 12px', borderTop: '1px solid #f3f4f6' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(5, 1fr)', gap: 8, margin: '10px 0' }}>
-                      {CRITERIA.map(c => (
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fill, minmax(130px, 1fr))', gap: 8, margin: '10px 0' }}>
+                      {(Array.isArray(a.criteria) && a.criteria.length ? a.criteria : DEFAULT_CRITERIA).map(c => (
                         <div key={c.key} style={{ background: '#fafafa', borderRadius: 8, padding: '6px 8px', textAlign: 'center' }}>
                           <div style={{ fontSize: 10, color: '#9ca3af', fontWeight: 600 }}>{c.name}</div>
                           <div style={{ fontWeight: 800, color: '#f59e0b' }}>{a.ratings?.[c.key] ? `${a.ratings[c.key]}/5` : '—'}</div>
@@ -206,6 +225,10 @@ export default function AppraisalsTab({ restaurantId, apiClient, staffList = [],
             );
           })}
         </div>
+      )}
+
+      {showSettings && (
+        <AppraisalSettingsPanel settings={hr} staffRoles={staffRoles} onSave={saveHr} onClose={() => setShowSettings(false)} />
       )}
     </div>
   );

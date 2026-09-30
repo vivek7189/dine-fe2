@@ -2,7 +2,9 @@
 
 import { useState, Fragment } from 'react';
 import { createPortal } from 'react-dom';
-import { FaPlus, FaPlay, FaCheck, FaEye, FaTimes, FaSave, FaTrash, FaMoneyBillWave, FaUsers, FaCalendarAlt, FaPrint } from 'react-icons/fa';
+import { FaPlus, FaPlay, FaCheck, FaEye, FaTimes, FaSave, FaTrash, FaMoneyBillWave, FaUsers, FaCalendarAlt, FaPrint, FaCog, FaSlidersH } from 'react-icons/fa';
+import useHrSettings from '../hooks/useHrSettings';
+import { PayrollSettingsPanel } from './HrSettingsPanels';
 
 const cardStyle = {
   backgroundColor: 'white', borderRadius: '14px', padding: '20px',
@@ -21,6 +23,9 @@ const btnPrimary = {
   boxShadow: '0 2px 8px rgba(37,99,235,0.3)',
 };
 
+const sumValues = (o) => Object.values(o || {}).reduce((t, v) => t + (Number(v) || 0), 0);
+const escapeHtml = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
 const STATUS_COLORS = {
   draft: { bg: '#fef3c7', color: '#92400e', label: 'Draft' },
   approved: { bg: '#dbeafe', color: '#1e40af', label: 'Approved' },
@@ -29,8 +34,30 @@ const STATUS_COLORS = {
 
 export default function PayrollTab({
   payrollConfig, payrollRuns, loadingPayroll, isMobile, formatCurrency,
-  staffList, onSaveConfig, onDeleteConfig, onGenerateRun, onUpdateRun, onViewSlips,
+  staffList, onSaveConfig, onDeleteConfig, onGenerateRun, onUpdateRun, onViewSlips, onSaveAdjustments,
+  restaurantId, apiClient,
 }) {
+  // Pay components + payment modes are the restaurant's own lists (⚙ Settings; defaults HRA/Travel/
+  // Food, PF/Tax/Other, Cash/Bank/UPI/Cheque). Allowance/deduction maps stay keyed by component.
+  const { settings: hr, save: saveHr } = useHrSettings(restaurantId, apiClient);
+  const earningTypes = hr.payroll.earnings;
+  const deductionTypes = hr.payroll.deductions;
+  const paymentModes = hr.payroll.paymentModes;
+  const [showSettings, setShowSettings] = useState(false);
+  const [adjustSlip, setAdjustSlip] = useState(null);   // slip being adjusted (one-off lines)
+  const [payRun, setPayRun] = useState(null);           // run being marked paid
+  // Name for a component key: current settings → name saved with the salary/payslip → the key.
+  const labelFor = (kind, key, saved) => {
+    const list = kind === 'deduction' ? deductionTypes : earningTypes;
+    return (list.find(x => x.key === key) || {}).name || (saved && saved[key]) || key;
+  };
+  // Components to show in the salary form: the settings list, plus any key already saved on this
+  // salary that is no longer in the list (so nothing is silently dropped).
+  const formKeys = (kind, values) => {
+    const list = (kind === 'deduction' ? deductionTypes : earningTypes).map(x => x.key);
+    const extra = Object.keys(values || {}).filter(k => !list.includes(k));
+    return [...list, ...extra];
+  };
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showSlipsModal, setShowSlipsModal] = useState(false);
   const [editConfig, setEditConfig] = useState(null);
@@ -45,8 +72,7 @@ export default function PayrollTab({
 
   const [form, setForm] = useState({
     staffId: '', staffName: '', role: '', baseSalary: '',
-    allowances: { hra: '', travel: '', food: '' },
-    deductions: { pf: '', tax: '', other: '' },
+    allowances: {}, deductions: {}, componentLabels: {},
     payFrequency: 'monthly', bankAccount: '',
   });
 
@@ -62,15 +88,20 @@ export default function PayrollTab({
     const deduct = slip.deductions || {};
     const att = slip.attendanceSummary || null;
     const rows = [];
+    const adj = (slip.adjustments && Array.isArray(slip.adjustments.items)) ? slip.adjustments.items : [];
     rows.push(['Basic salary', fc(slip.baseSalary), '']);
-    Object.entries(allow).forEach(([k, v]) => { if (Number(v) > 0) rows.push([`Allowance · ${k}`, '+' + fc(v), '']); });
+    Object.entries(allow).forEach(([k, v]) => { if (Number(v) > 0) rows.push([labelFor('earning', k, slip.componentLabels), '+' + fc(v), '']); });
     if (slip.bonusPay > 0) rows.push(['Bonus / incentive', '+' + fc(slip.bonusPay), '']);
     if (slip.overtimePay > 0) rows.push(['Overtime pay', '+' + fc(slip.overtimePay), '']);
-    Object.entries(deduct).forEach(([k, v]) => { if (Number(v) > 0) rows.push([`Deduction · ${k}`, '', '-' + fc(v)]); });
+    adj.filter(a => a.kind === 'earning').forEach(a => rows.push([a.name + (a.reason ? ` — ${a.reason}` : ''), '+' + fc(a.amount), '']));
+    Object.entries(deduct).forEach(([k, v]) => { if (Number(v) > 0) rows.push([labelFor('deduction', k, slip.componentLabels), '', '-' + fc(v)]); });
     if (slip.lopDeduction > 0) rows.push(['Loss of pay (LOP)', '', '-' + fc(slip.lopDeduction)]);
     if (slip.advanceRecovery > 0) rows.push(['Advance recovery', '', '-' + fc(slip.advanceRecovery)]);
+    adj.filter(a => a.kind === 'deduction').forEach(a => rows.push([a.name + (a.reason ? ` — ${a.reason}` : ''), '', '-' + fc(a.amount)]));
+    const pay = slip.payment || run?.payment || null;
+    const payHtml = pay ? `<div class="att">Paid by: ${escapeHtml(pay.modeName || pay.mode)}${pay.reference ? ' · Ref: ' + escapeHtml(pay.reference) : ''}</div>` : '';
     const attHtml = att ? `<div class="att">Working days: ${att.workingDays ?? '-'} · Present: ${att.presentDays ?? '-'} · Paid leave: ${att.paidLeaveDays ?? '-'} · LOP days: ${att.lopDays ?? '-'} · OT hrs: ${att.overtimeHours ?? '-'}</div>` : '';
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Payslip · ${(slip.staffName || 'Staff')}</title>
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Payslip · ${escapeHtml(slip.staffName || 'Staff')}</title>
       <style>
         body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#111827;max-width:640px;margin:24px auto;padding:0 16px;}
         h1{font-size:20px;margin:0 0 2px;} .sub{color:#6b7280;font-size:13px;margin-bottom:16px;}
@@ -82,12 +113,13 @@ export default function PayrollTab({
         @media print{button{display:none;}}
       </style></head><body>
       <h1>Payslip</h1><div class="sub">${run?.month || slip.month || ''}</div>
-      <div class="meta"><div><b>${(slip.staffName || 'Staff')}</b>${slip.role ? ' · ' + slip.role : ''}</div><div>Pay period: ${run?.month || slip.month || ''}</div></div>
+      <div class="meta"><div><b>${escapeHtml(slip.staffName || 'Staff')}</b>${slip.role ? ' · ' + escapeHtml(slip.role) : ''}</div><div>Pay period: ${run?.month || slip.month || ''}</div></div>
       <table><thead><tr><th>Component</th><th>Earnings</th><th>Deductions</th></tr></thead><tbody>
-      ${rows.map(r => `<tr><td>${r[0]}</td><td class="earn">${r[1] || ''}</td><td class="ded">${r[2] || ''}</td></tr>`).join('')}
+      ${rows.map(r => `<tr><td>${escapeHtml(r[0])}</td><td class="earn">${r[1] || ''}</td><td class="ded">${r[2] || ''}</td></tr>`).join('')}
       </tbody></table>
       <div class="net"><span>Net pay</span><span>${fc(slip.netPay)}</span></div>
       ${attHtml}
+      ${payHtml}
       <div class="foot">Generated by DineOpen</div>
       <script>window.onload=function(){setTimeout(function(){window.print();},250);}</script>
       </body></html>`;
@@ -97,7 +129,7 @@ export default function PayrollTab({
 
   const openAdd = () => {
     setEditConfig(null);
-    setForm({ staffId: '', staffName: '', role: '', baseSalary: '', allowances: { hra: '', travel: '', food: '' }, deductions: { pf: '', tax: '', other: '' }, payFrequency: 'monthly', bankAccount: '' });
+    setForm({ staffId: '', staffName: '', role: '', baseSalary: '', allowances: {}, deductions: {}, componentLabels: {}, payFrequency: 'monthly', bankAccount: '' });
     setShowConfigModal(true);
   };
 
@@ -106,8 +138,9 @@ export default function PayrollTab({
     setForm({
       staffId: cfg.staffId, staffName: cfg.staffName, role: cfg.role,
       baseSalary: String(cfg.baseSalary || ''),
-      allowances: { hra: String(cfg.allowances?.hra || ''), travel: String(cfg.allowances?.travel || ''), food: String(cfg.allowances?.food || '') },
-      deductions: { pf: String(cfg.deductions?.pf || ''), tax: String(cfg.deductions?.tax || ''), other: String(cfg.deductions?.other || '') },
+      allowances: Object.fromEntries(Object.entries(cfg.allowances || {}).filter(([, v]) => Number(v) > 0).map(([k, v]) => [k, String(v)])),
+      deductions: Object.fromEntries(Object.entries(cfg.deductions || {}).filter(([, v]) => Number(v) > 0).map(([k, v]) => [k, String(v)])),
+      componentLabels: cfg.componentLabels || {},
       payFrequency: cfg.payFrequency || 'monthly', bankAccount: cfg.bankAccount || '',
     });
     setShowConfigModal(true);
@@ -115,11 +148,22 @@ export default function PayrollTab({
 
   const handleSave = async () => {
     if (!form.staffId || !form.baseSalary) return;
+    // Keep only filled components; remember each one's name for payslips.
+    const pick = (values, kind) => {
+      const out = {};
+      Object.entries(values || {}).forEach(([k, v]) => { const n = parseFloat(v); if (n > 0) out[k] = n; });
+      Object.keys(out).forEach(k => { labels[k] = labelFor(kind, k, form.componentLabels); });
+      return out;
+    };
+    const labels = {};
+    const allowances = pick(form.allowances, 'earning');
+    const deductions = pick(form.deductions, 'deduction');
     await onSaveConfig({
       ...form,
       baseSalary: parseFloat(form.baseSalary),
-      allowances: { hra: parseFloat(form.allowances.hra || 0), travel: parseFloat(form.allowances.travel || 0), food: parseFloat(form.allowances.food || 0) },
-      deductions: { pf: parseFloat(form.deductions.pf || 0), tax: parseFloat(form.deductions.tax || 0), other: parseFloat(form.deductions.other || 0) },
+      allowances,
+      deductions,
+      componentLabels: labels,
     });
     setShowConfigModal(false);
   };
@@ -177,7 +221,10 @@ export default function PayrollTab({
       <div style={cardStyle}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#111827' }}>Salary Configuration</h3>
-          <button onClick={openAdd} style={btnPrimary}><FaPlus size={11} /> Add Staff Salary</button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={() => setShowSettings(true)} title="Allowances, deductions & payment modes" style={{ ...btnPrimary, background: '#fff', color: '#374151', border: '1px solid #e5e7eb', boxShadow: 'none' }}><FaCog size={11} /> Settings</button>
+            <button onClick={openAdd} style={btnPrimary}><FaPlus size={11} /> Add Staff Salary</button>
+          </div>
         </div>
         {configs.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>
@@ -200,8 +247,8 @@ export default function PayrollTab({
                     <td style={{ padding: '12px', fontWeight: 600, color: '#111827' }}>{cfg.staffName}</td>
                     <td style={{ padding: '12px', color: '#6b7280' }}>{cfg.role}</td>
                     <td style={{ padding: '12px', color: '#111827' }}>{formatCurrency(cfg.baseSalary)}</td>
-                    <td style={{ padding: '12px', color: '#059669' }}>+{formatCurrency((cfg.allowances?.hra || 0) + (cfg.allowances?.travel || 0) + (cfg.allowances?.food || 0))}</td>
-                    <td style={{ padding: '12px', color: '#dc2626' }}>-{formatCurrency((cfg.deductions?.pf || 0) + (cfg.deductions?.tax || 0) + (cfg.deductions?.other || 0))}</td>
+                    <td style={{ padding: '12px', color: '#059669' }}>+{formatCurrency(sumValues(cfg.allowances))}</td>
+                    <td style={{ padding: '12px', color: '#dc2626' }}>-{formatCurrency(sumValues(cfg.deductions))}</td>
                     <td style={{ padding: '12px', fontWeight: 700, color: '#111827' }}>{formatCurrency(cfg.netPay)}</td>
                     <td style={{ padding: '12px' }}>
                       <div style={{ display: 'flex', gap: '6px' }}>
@@ -260,6 +307,9 @@ export default function PayrollTab({
                       <td style={{ padding: '12px', fontWeight: 700, color: '#111827' }}>{formatCurrency(run.totalNet)}</td>
                       <td style={{ padding: '12px' }}>
                         <span style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, backgroundColor: st.bg, color: st.color }}>{st.label}</span>
+                        {run.status === 'paid' && run.payment && (
+                          <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>{run.payment.modeName || run.payment.mode}{run.payment.reference ? ` · ${run.payment.reference}` : ''}</div>
+                        )}
                       </td>
                       <td style={{ padding: '12px' }}>
                         <div style={{ display: 'flex', gap: '6px' }}>
@@ -272,7 +322,7 @@ export default function PayrollTab({
                             </button>
                           )}
                           {run.status === 'approved' && (
-                            <button onClick={() => onUpdateRun(run.id, 'paid')} style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #a7f3d0', backgroundColor: '#ecfdf5', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Mark Paid">
+                            <button onClick={() => setPayRun(run)} style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #a7f3d0', backgroundColor: '#ecfdf5', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Mark Paid">
                               <FaMoneyBillWave size={11} color="#059669" />
                             </button>
                           )}
@@ -356,25 +406,28 @@ export default function PayrollTab({
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label style={{ ...labelStyle, color: '#059669' }}>Allowances</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                    {['hra', 'travel', 'food'].map(k => (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '10px' }}>
+                    {formKeys('earning', form.allowances).map(k => (
                       <div key={k}>
-                        <label style={{ ...labelStyle, fontSize: '10px', textTransform: 'capitalize' }}>{k}</label>
-                        <input type="number" value={form.allowances[k]} onChange={e => setForm(f => ({ ...f, allowances: { ...f.allowances, [k]: e.target.value } }))} placeholder="0" style={{ ...inputStyle, padding: '8px 10px', fontSize: '13px' }} />
+                        <label style={{ ...labelStyle, fontSize: '10px', textTransform: 'none' }}>{labelFor('earning', k, form.componentLabels)}</label>
+                        <input type="number" min="0" value={form.allowances[k] ?? ''} onChange={e => setForm(f => ({ ...f, allowances: { ...f.allowances, [k]: e.target.value } }))} placeholder="0" style={{ ...inputStyle, padding: '8px 10px', fontSize: '13px' }} />
                       </div>
                     ))}
                   </div>
+                  {earningTypes.length === 0 && <div style={{ fontSize: 12, color: '#9ca3af' }}>No allowance types — add them in ⚙ Settings.</div>}
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label style={{ ...labelStyle, color: '#dc2626' }}>Deductions</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                    {['pf', 'tax', 'other'].map(k => (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '10px' }}>
+                    {formKeys('deduction', form.deductions).map(k => (
                       <div key={k}>
-                        <label style={{ ...labelStyle, fontSize: '10px', textTransform: 'uppercase' }}>{k}</label>
-                        <input type="number" value={form.deductions[k]} onChange={e => setForm(f => ({ ...f, deductions: { ...f.deductions, [k]: e.target.value } }))} placeholder="0" style={{ ...inputStyle, padding: '8px 10px', fontSize: '13px' }} />
+                        <label style={{ ...labelStyle, fontSize: '10px', textTransform: 'none' }}>{labelFor('deduction', k, form.componentLabels)}</label>
+                        <input type="number" min="0" value={form.deductions[k] ?? ''} onChange={e => setForm(f => ({ ...f, deductions: { ...f.deductions, [k]: e.target.value } }))} placeholder="0" style={{ ...inputStyle, padding: '8px 10px', fontSize: '13px' }} />
                       </div>
                     ))}
                   </div>
+                  {deductionTypes.length === 0 && <div style={{ fontSize: 12, color: '#9ca3af' }}>No deduction types — add them in ⚙ Settings.</div>}
+                  <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 6 }}>Fixed monthly amounts. One-off items (gift, penalty…) go on the payslip after generating a run.</div>
                 </div>
                 <div>
                   <label style={labelStyle}>Pay Frequency</label>
@@ -426,6 +479,11 @@ export default function PayrollTab({
                             <div style={{ fontSize: '16px', fontWeight: 800, color: '#111827' }}>{formatCurrency(slip.netPay)}</div>
                             <div style={{ fontSize: '11px', color: '#9ca3af' }}>Base: {formatCurrency(slip.baseSalary)}</div>
                           </div>
+                          {slipsRun?.status !== 'paid' && onSaveAdjustments && (
+                            <button onClick={() => setAdjustSlip(slip)} title="Add one-off earnings / deductions" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                              <FaSlidersH size={11} /> Adjust
+                            </button>
+                          )}
                           <button onClick={() => printPayslip(slip, slipsRun)} title="Print / save PDF" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
                             <FaPrint size={11} /> Print
                           </button>
@@ -436,6 +494,20 @@ export default function PayrollTab({
                         <div style={{ display: 'flex', gap: '14px', marginTop: '8px', fontSize: '12px', flexWrap: 'wrap' }}>
                           {slip.bonusPay > 0 && <span style={{ color: '#059669', fontWeight: 600 }}>Bonus: +{formatCurrency(slip.bonusPay)}</span>}
                           {slip.advanceRecovery > 0 && <span style={{ color: '#dc2626', fontWeight: 600 }}>Advance recovery: -{formatCurrency(slip.advanceRecovery)}</span>}
+                        </div>
+                      )}
+                      {slip.adjustments?.items?.length > 0 && (
+                        <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
+                          {slip.adjustments.items.map(a => (
+                            <span key={a.id} title={a.reason || ''} style={{ fontSize: '11px', fontWeight: 600, padding: '3px 8px', borderRadius: 999, background: a.kind === 'deduction' ? '#fef2f2' : '#ecfdf5', color: a.kind === 'deduction' ? '#b91c1c' : '#047857' }}>
+                              {a.name}: {a.kind === 'deduction' ? '-' : '+'}{formatCurrency(a.amount)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {(slip.payment || (slipsRun?.status === 'paid' && slipsRun?.payment)) && (
+                        <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '6px' }}>
+                          Paid by {(slip.payment || slipsRun.payment).modeName || (slip.payment || slipsRun.payment).mode}{(slip.payment || slipsRun.payment).reference ? ` · Ref ${(slip.payment || slipsRun.payment).reference}` : ''}
                         </div>
                       )}
                       {slip.attendanceSummary && (
@@ -464,6 +536,192 @@ export default function PayrollTab({
         </div>,
         document.body
       )}
+
+      {adjustSlip && typeof document !== 'undefined' && createPortal(
+        <AdjustmentsModal
+          slip={adjustSlip}
+          earningTypes={earningTypes}
+          deductionTypes={deductionTypes}
+          formatCurrency={formatCurrency}
+          onClose={() => setAdjustSlip(null)}
+          onSave={async (items) => {
+            const res = await onSaveAdjustments(slipsRun.id, adjustSlip.id, items);
+            if (!res?.slip) return false;
+            setSlips(list => list.map(x => (x.id === adjustSlip.id ? { ...x, ...res.slip } : x)));
+            setAdjustSlip(null);
+            return true;
+          }}
+        />,
+        document.body
+      )}
+
+      {payRun && typeof document !== 'undefined' && createPortal(
+        <MarkPaidModal
+          run={payRun}
+          paymentModes={paymentModes}
+          formatCurrency={formatCurrency}
+          loadSlips={onViewSlips}
+          onClose={() => setPayRun(null)}
+          onConfirm={async (extra) => { await onUpdateRun(payRun.id, 'paid', extra); setPayRun(null); }}
+        />,
+        document.body
+      )}
+
+      {showSettings && typeof document !== 'undefined' && createPortal(
+        <PayrollSettingsPanel settings={hr} onSave={saveHr} onClose={() => setShowSettings(false)} />,
+        document.body
+      )}
+    </div>
+  );
+}
+
+// One-off lines on a payslip before the run is paid (gift, compensation, penalty…), each with a reason.
+function AdjustmentsModal({ slip, earningTypes, deductionTypes, formatCurrency, onClose, onSave }) {
+  const [items, setItems] = useState(() => (slip.adjustments?.items || []).map(x => ({ ...x, amount: String(x.amount) })));
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+  const typesFor = (kind) => (kind === 'deduction' ? deductionTypes : earningTypes);
+  const addLine = (kind) => {
+    const first = typesFor(kind)[0];
+    setItems(list => [...list, { id: `new${Date.now()}${list.length}`, kind, key: first ? first.key : '', name: first ? first.name : '', amount: '', reason: '' }]);
+  };
+  const setLine = (i, patch) => setItems(list => list.map((x, k) => (k === i ? { ...x, ...patch } : x)));
+  const netBefore = slip.adjustments && slip.adjustments.netBefore != null ? Number(slip.adjustments.netBefore) : Number(slip.netPay || 0);
+  const earn = items.filter(x => x.kind === 'earning').reduce((t, x) => t + (Number(x.amount) || 0), 0);
+  const ded = items.filter(x => x.kind === 'deduction').reduce((t, x) => t + (Number(x.amount) || 0), 0);
+  const save = async () => {
+    setErr('');
+    const bad = items.find(x => !(Number(x.amount) > 0) || !String(x.name || '').trim());
+    if (bad) { setErr('Every line needs a name and an amount above 0.'); return; }
+    setSaving(true);
+    const ok = await onSave(items.map(x => ({ id: x.id, kind: x.kind, key: x.key || null, name: String(x.name).trim(), amount: Number(x.amount), reason: String(x.reason || '').trim() })));
+    setSaving(false);
+    if (!ok) setErr('Could not save — please try again.');
+  };
+  return (
+    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10004, padding: 12 }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '16px', width: '100%', maxWidth: '640px', maxHeight: '88vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6' }}>
+          <div style={{ fontWeight: 800, fontSize: 16, color: '#111827' }}>Adjust payslip — {slip.staffName}</div>
+          <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>One-off earnings (gift, compensation, extra shift…) or deductions (penalty, breakage…) for this month only.</div>
+        </div>
+        <div style={{ padding: 16, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {items.length === 0 && <div style={{ fontSize: 13, color: '#9ca3af', textAlign: 'center', padding: 12 }}>No adjustments on this payslip.</div>}
+          {items.map((x, i) => {
+            const types = typesFor(x.kind);
+            const known = types.some(t => t.key === x.key);
+            return (
+              <div key={x.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(90px,0.8fr) minmax(130px,1.3fr) minmax(80px,0.7fr) minmax(120px,1.4fr) auto', gap: 6, alignItems: 'center' }}>
+                <select value={x.kind} onChange={e => { const t = typesFor(e.target.value)[0]; setLine(i, { kind: e.target.value, key: t ? t.key : '', name: t ? t.name : '' }); }}
+                  style={{ ...inputStyle, padding: '7px 8px', fontSize: 12, color: x.kind === 'deduction' ? '#b91c1c' : '#047857', fontWeight: 700 }}>
+                  <option value="earning">+ Earning</option>
+                  <option value="deduction">− Deduction</option>
+                </select>
+                {known || !x.key ? (
+                  <select value={known ? x.key : '__other'} onChange={e => {
+                    if (e.target.value === '__other') setLine(i, { key: '', name: '' });
+                    else { const t = types.find(tt => tt.key === e.target.value); setLine(i, { key: t.key, name: t.name }); }
+                  }} style={{ ...inputStyle, padding: '7px 8px', fontSize: 12 }}>
+                    {types.map(t => <option key={t.key} value={t.key}>{t.name}</option>)}
+                    <option value="__other">Other…</option>
+                  </select>
+                ) : (
+                  <input value={x.name} readOnly style={{ ...inputStyle, padding: '7px 8px', fontSize: 12, background: '#f9fafb' }} />
+                )}
+                <input type="number" min="0" value={x.amount} onChange={e => setLine(i, { amount: e.target.value })} placeholder="Amount" style={{ ...inputStyle, padding: '7px 8px', fontSize: 12 }} />
+                {(!known && !x.key) ? (
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <input value={x.name} maxLength={60} onChange={e => setLine(i, { name: e.target.value })} placeholder="Name" style={{ ...inputStyle, padding: '7px 8px', fontSize: 12 }} />
+                    <input value={x.reason} maxLength={160} onChange={e => setLine(i, { reason: e.target.value })} placeholder="Reason" style={{ ...inputStyle, padding: '7px 8px', fontSize: 12 }} />
+                  </div>
+                ) : (
+                  <input value={x.reason} maxLength={160} onChange={e => setLine(i, { reason: e.target.value })} placeholder="Reason (e.g. Diwali gift)" style={{ ...inputStyle, padding: '7px 8px', fontSize: 12 }} />
+                )}
+                <button onClick={() => setItems(list => list.filter((_, k) => k !== i))} title="Remove" style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><FaTrash size={10} /></button>
+              </div>
+            );
+          })}
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <button onClick={() => addLine('earning')} style={{ ...btnPrimary, padding: '7px 12px', fontSize: 12, background: '#059669', boxShadow: 'none' }}><FaPlus size={10} /> Earning</button>
+            <button onClick={() => addLine('deduction')} style={{ ...btnPrimary, padding: '7px 12px', fontSize: 12, background: '#dc2626', boxShadow: 'none' }}><FaPlus size={10} /> Deduction</button>
+          </div>
+        </div>
+        <div style={{ padding: '12px 20px', borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 12, color: '#374151', marginRight: 'auto' }}>
+            Net {formatCurrency(netBefore)} <span style={{ color: '#059669' }}>+{formatCurrency(earn)}</span> <span style={{ color: '#dc2626' }}>−{formatCurrency(ded)}</span> = <b>{formatCurrency(netBefore + earn - ded)}</b>
+            {netBefore + earn - ded < 0 && <span style={{ color: '#b91c1c', fontWeight: 700 }}> (negative!)</span>}
+            {err && <div style={{ color: '#b91c1c', marginTop: 4 }}>{err}</div>}
+          </div>
+          <button onClick={onClose} style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={save} disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1 }}><FaSave size={11} /> {saving ? 'Saving…' : 'Save'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Mark a run paid: payment mode + reference for the run, optional different mode per staff member.
+function MarkPaidModal({ run, paymentModes, formatCurrency, loadSlips, onClose, onConfirm }) {
+  const [mode, setMode] = useState(paymentModes[0]?.id || 'cash');
+  const [reference, setReference] = useState('');
+  const [perStaff, setPerStaff] = useState(false);
+  const [slips, setSlips] = useState(null);
+  const [overrides, setOverrides] = useState({}); // slipId → mode id
+  const [busy, setBusy] = useState(false);
+  const modeName = (id) => (paymentModes.find(m => m.id === id) || {}).name || id;
+  const openPerStaff = async () => {
+    setPerStaff(true);
+    if (!slips) { const d = await loadSlips(run.id); setSlips(d?.slips || []); }
+  };
+  const confirm = async () => {
+    setBusy(true);
+    const payment = { mode, modeName: modeName(mode), reference: reference.trim() };
+    const slipPayments = {};
+    if (perStaff) Object.entries(overrides).forEach(([sid, m]) => { if (m && m !== mode) slipPayments[sid] = { mode: m, modeName: modeName(m) }; });
+    try { await onConfirm({ payment, slipPayments }); } finally { setBusy(false); }
+  };
+  return (
+    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10004, padding: 12 }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '16px', width: '100%', maxWidth: '480px', maxHeight: '88vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '16px 20px', background: 'linear-gradient(135deg,#059669,#10b981)', color: '#fff' }}>
+          <div style={{ fontWeight: 800, fontSize: 16 }}>Mark paid — {run.month}</div>
+          <div style={{ fontSize: 12, opacity: 0.9, marginTop: 2 }}>{run.staffCount} staff · {formatCurrency(run.totalNet)}</div>
+        </div>
+        <div style={{ padding: 18, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label style={labelStyle}>Payment mode</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {paymentModes.map(m => (
+                <button key={m.id} onClick={() => setMode(m.id)} style={{ padding: '7px 12px', borderRadius: 999, border: `1.5px solid ${mode === m.id ? '#059669' : '#e5e7eb'}`, background: mode === m.id ? '#ecfdf5' : '#fff', color: mode === m.id ? '#047857' : '#374151', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>{m.name}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label style={labelStyle}>Reference (optional)</label>
+            <input value={reference} maxLength={80} onChange={e => setReference(e.target.value)} placeholder="UTR / cheque no. / note" style={inputStyle} />
+          </div>
+          {!perStaff ? (
+            <button onClick={openPerStaff} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#2563eb', fontWeight: 700, fontSize: 12, cursor: 'pointer', padding: 0 }}>Some staff paid differently?</button>
+          ) : (
+            <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 6 }}>PER STAFF (blank = {modeName(mode)})</div>
+              {!slips ? <div style={{ fontSize: 12, color: '#9ca3af' }}>Loading…</div> : slips.map(sl => (
+                <div key={sl.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+                  <span style={{ fontSize: 13 }}>{sl.staffName} <span style={{ color: '#9ca3af', fontSize: 11 }}>· {formatCurrency(sl.netPay)}</span></span>
+                  <select value={overrides[sl.id] || ''} onChange={e => setOverrides(o => ({ ...o, [sl.id]: e.target.value }))} style={{ ...inputStyle, width: 'auto', padding: '5px 8px', fontSize: 12 }}>
+                    <option value="">{modeName(mode)}</option>
+                    {paymentModes.filter(m => m.id !== mode).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  </select>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{ padding: '12px 20px', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <button onClick={onClose} style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={confirm} disabled={busy} style={{ ...btnPrimary, background: '#059669', opacity: busy ? 0.6 : 1 }}><FaCheck size={11} /> {busy ? 'Saving…' : 'Mark paid'}</button>
+        </div>
+      </div>
     </div>
   );
 }

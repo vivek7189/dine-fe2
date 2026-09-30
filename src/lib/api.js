@@ -4714,6 +4714,16 @@ class ApiClient {
   async deletePayrollConfig(restaurantId, configId) {
     return this.request(`/api/payroll/${restaurantId}/config/${configId}`, { method: 'DELETE' });
   }
+  async savePaySlipAdjustments(restaurantId, runId, slipId, items) {
+    return this.request(`/api/payroll/${restaurantId}/runs/${runId}/slips/${slipId}/adjustments`, { method: 'PUT', body: { items } });
+  }
+  // HR settings — appraisal templates/recommendations + pay components/payment modes (Books)
+  async getHrSettings(restaurantId) {
+    return this.request(`/api/hr-settings/${restaurantId}`);
+  }
+  async saveHrSettings(restaurantId, settings) {
+    return this.request(`/api/hr-settings/${restaurantId}`, { method: 'PUT', body: { settings } });
+  }
   async getPayrollRuns(restaurantId) {
     return this.request(`/api/payroll/${restaurantId}/runs`);
   }

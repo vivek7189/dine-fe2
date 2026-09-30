@@ -287,12 +287,23 @@ export default function useBooks() {
     } catch (err) { setError(err?.message || 'Failed to generate payroll run'); }
   };
 
-  const handleUpdatePayrollRun = async (runId, status) => {
+  // extra (optional, when marking paid): { payment: { mode, modeName, reference }, slipPayments }
+  const handleUpdatePayrollRun = async (runId, status, extra = {}) => {
     try {
-      await apiClient.updatePayrollRun(restaurantId, runId, { status });
+      await apiClient.updatePayrollRun(restaurantId, runId, { ...extra, status });
       setSuccess(`Payroll run ${status}`);
       fetchPayroll();
     } catch (err) { setError('Failed to update payroll run'); }
+  };
+
+  // One-off earnings / deductions on a payslip (gift, compensation, penalty…) before paying.
+  const handleSavePaySlipAdjustments = async (runId, slipId, items) => {
+    try {
+      const res = await apiClient.savePaySlipAdjustments(restaurantId, runId, slipId, items);
+      setSuccess('Payslip adjustments saved');
+      fetchPayroll();
+      return res;
+    } catch (err) { setError(err?.message || 'Failed to save adjustments'); return null; }
   };
 
   const handleViewPaySlips = async (runId) => {
@@ -415,7 +426,7 @@ export default function useBooks() {
     expenseCategoryFilter, setExpenseCategoryFilter,
     handleAddExpense, handleUpdateExpense, handleDeleteExpense, handleEditExpense,
     handleSavePayrollConfig, handleDeletePayrollConfig,
-    handleGeneratePayrollRun, handleUpdatePayrollRun, handleViewPaySlips,
+    handleGeneratePayrollRun, handleUpdatePayrollRun, handleViewPaySlips, handleSavePaySlipAdjustments,
     handleRecordSupplierPayment,
     fetchOverview, fetchRevenue, fetchExpenses, fetchSupplierDues, fetchPnl, fetchPayroll,
     getModalStyles, getModalContentStyles,
