@@ -3247,9 +3247,11 @@ const MenuManagement = () => {
           name: v.name,
           price: parseFloat(v.price) || 0,
           description: v.description || '',
-          // Cost to make this variant (optional, gross-margin reports). Sent even when empty so
-          // clearing it in the form really clears it.
-          costPrice: v.costPrice === undefined || v.costPrice === null ? '' : v.costPrice,
+          // Recipe multiplier (Half = 0.5) — was dropped here, so every web save reset it to 1.
+          ...(v.recipeMultiplier !== undefined && v.recipeMultiplier !== '' ? { recipeMultiplier: parseFloat(v.recipeMultiplier) || 1 } : {}),
+          // Cost to make (optional). Sent only when the form has it (loaded or typed): '' = cleared.
+          // Absent = unchanged, so a menu copy without costs can never wipe the saved ones.
+          ...(v.costPrice !== undefined ? { costPrice: v.costPrice === null ? '' : v.costPrice } : {}),
         };
         // Per-variant multi-tier prices — keep only numeric ≥ 0; omit when none set.
         const prEntries = Object.entries(v.pricingRules || {})
@@ -3391,6 +3393,7 @@ const MenuManagement = () => {
             kraItemClassCode: itemData.kraItemClassCode || null,
             kraTaxBand: itemData.kraTaxBand || null,
             veg: itemData.veg,
+            ...(itemData.costPrice !== undefined ? { costPrice: itemData.costPrice } : {}),
             variants: itemData.variants,
             customizations: itemData.customizations,
             pricingRules: itemData.pricingRules,
@@ -3667,7 +3670,7 @@ const MenuManagement = () => {
       name: item.name || '',
       description: item.description || '',
       price: item.price?.toString() || '',
-      costPrice: item.costPrice != null ? String(item.costPrice) : '',
+      costPrice: item.costPrice != null ? String(item.costPrice) : undefined, // undefined = don't send (unchanged)
       category: item.category || '',
       subCategory: item.subCategory || '',
       kraItemClassCode: item.kraItemClassCode || '',

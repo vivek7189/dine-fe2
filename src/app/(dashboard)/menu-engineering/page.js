@@ -394,7 +394,7 @@ export default function MenuEngineeringPage() {
                   </div>
                   <span className="text-xs text-gray-500 font-medium uppercase">Gross Margin%</span>
                 </div>
-                <div className="text-xl sm:text-2xl font-bold text-gray-900">{grossMarginPercent != null ? `${Number(grossMarginPercent).toFixed(1)}%` : `${avgMarginPercent.toFixed(1)}%`}</div>
+                <div className="text-xl sm:text-2xl font-bold text-gray-900">{grossMarginPercent != null ? `${Number(grossMarginPercent).toFixed(1)}%` : (costedItems.length ? `${avgMarginPercent.toFixed(1)}%` : '—')}</div>
                 {missingCount > 0 && (
                   <div className="text-[11px] text-amber-600 mt-1">{missingCount} item{missingCount === 1 ? '' : 's'} without a cost — add “Cost to make” in Menu</div>
                 )}
