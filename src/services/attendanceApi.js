@@ -88,6 +88,15 @@ export function approveLeave(restaurantId, leaveId) {
 }
 
 // PATCH /leave/:id/reject
+// Cancel leave (owner / manager: pending or approved; staff: own pending). Approved leave gives the
+// days back to the balance and removes the leave days from attendance.
+export function cancelLeave(restaurantId, leaveId, reason) {
+  return fetchWithAuth(`${base(restaurantId)}/leave/${leaveId}/cancel`, {
+    method: 'PATCH',
+    body: JSON.stringify({ reason: reason || '' }),
+  });
+}
+
 export function rejectLeave(restaurantId, leaveId, reason) {
   return fetchWithAuth(`${base(restaurantId)}/leave/${leaveId}/reject`, {
     method: 'PATCH',

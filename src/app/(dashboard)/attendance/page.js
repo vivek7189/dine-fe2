@@ -119,6 +119,7 @@ const LEAVE_STATUS_COLORS = {
   pending: { bg: '#fef9c3', color: '#854d0e' },
   approved: { bg: '#dcfce7', color: '#166534' },
   rejected: { bg: '#fee2e2', color: '#991b1b' },
+  cancelled: { bg: '#f3f4f6', color: '#6b7280' },
 };
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -621,6 +622,18 @@ export default function AttendancePage() {
       loadLeave();
     } catch (err) {
       showToast(err.message || 'Failed to approve leave', 'error');
+    }
+  };
+
+  const [cancellingLeaveId, setCancellingLeaveId] = useState(null); // "Cancel leave?" confirm
+  const handleCancelLeave = async (leaveId) => {
+    try {
+      const r = await attendanceApi.cancelLeave(restaurantId, leaveId);
+      showToast(r && r.restoredDays ? `Leave cancelled — ${r.restoredDays} day(s) back in the balance` : 'Leave cancelled', 'success');
+      setCancellingLeaveId(null);
+      loadLeave();
+    } catch (err) {
+      showToast(err.message || 'Failed to cancel leave', 'error');
     }
   };
 
@@ -1292,11 +1305,19 @@ export default function AttendancePage() {
                         <td style={{ padding: '10px 12px', fontSize: '13px' }}>
                           {formatDate(req.startDate)} - {formatDate(req.endDate)}
                         </td>
-                        <td style={{ padding: '10px 12px' }}>{req.halfDay ? '0.5' : days}</td>
+                        <td style={{ padding: '10px 12px' }}>{req.totalDays != null ? req.totalDays : (req.halfDay ? '0.5' : days)}</td>
                         <td style={{ padding: '10px 12px' }}>
                           <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, backgroundColor: sc.bg, color: sc.color }}>
                             {req.status}
                           </span>
+                          {isAdmin && req.status === 'approved' && (cancellingLeaveId === req.id ? (
+                            <span style={{ marginLeft: 8, display: 'inline-flex', gap: 6 }}>
+                              <button style={{ ...btnDanger, padding: '3px 10px', fontSize: '12px' }} onClick={() => handleCancelLeave(req.id)}>Cancel leave?</button>
+                              <button style={{ padding: '3px 10px', fontSize: '12px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff', cursor: 'pointer' }} onClick={() => setCancellingLeaveId(null)}>No</button>
+                            </span>
+                          ) : (
+                            <button style={{ marginLeft: 8, padding: '3px 10px', fontSize: '12px', border: '1px solid #fecaca', borderRadius: 6, background: '#fef2f2', color: '#b91c1c', cursor: 'pointer' }} onClick={() => setCancellingLeaveId(req.id)} title="Cancel this approved leave — days go back to the balance">Cancel</button>
+                          ))}
                         </td>
                         <td style={{ padding: '10px 12px', fontSize: '13px', color: '#6b7280' }}>{formatDate(req.appliedOn || req.createdAt)}</td>
                       </tr>
