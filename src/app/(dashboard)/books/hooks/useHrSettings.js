@@ -86,11 +86,16 @@ export function keyFromName(name) {
   return words.map((w, i) => (i ? w[0].toUpperCase() + w.slice(1) : w)).join('').slice(0, 40);
 }
 
-// Pick the appraisal template for a staff role (first template listing the role, else the first one).
+// Pick the appraisal template for a staff role. Roles compare ignoring case and extra spaces
+// ('Dosai  Master ' = 'dosai master', as the server stores template roles). No match → the
+// template that lists no roles (the general one), else the first template.
+const normRole = (r) => String(r || '').trim().replace(/\s+/g, ' ').toLowerCase();
 export function templateForRole(templates, role) {
   const list = templates && templates.length ? templates : DEFAULT_HR_SETTINGS.appraisal.templates;
-  const r = String(role || '').toLowerCase();
-  return (r && list.find(t => (t.roles || []).includes(r))) || list[0];
+  const r = normRole(role);
+  return (r && list.find(t => (t.roles || []).some(x => normRole(x) === r)))
+    || list.find(t => !(t.roles || []).length)
+    || list[0];
 }
 
 export default function useHrSettings(restaurantId, apiClient) {

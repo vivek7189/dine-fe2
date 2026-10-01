@@ -1159,11 +1159,14 @@ export default function AttendancePage() {
                 <select style={selectStyle} value={leaveForm.leaveType} onChange={e => setLeaveForm(p => ({ ...p, leaveType: e.target.value }))}>
                   <option value="">Select Type</option>
                   {(settingsForm.leaveTypes || []).map(lt => (
-                    <option key={lt.shortName} value={lt.shortName}>{lt.name} ({lt.shortName})</option>
+                    <option key={lt.id || lt.shortName} value={lt.id || lt.shortName}>{lt.name} ({lt.shortName})</option>
                   ))}
-                  <option value="CL">Casual Leave</option>
-                  <option value="SL">Sick Leave</option>
-                  <option value="EL">Earned Leave</option>
+                  {/* Built-in list only when the restaurant has no leave types set up (was always added → duplicates) */}
+                  {!(settingsForm.leaveTypes || []).length && (<>
+                    <option value="cl">Casual Leave</option>
+                    <option value="sl">Sick Leave</option>
+                    <option value="el">Earned Leave</option>
+                  </>)}
                   <option value="LWP">Leave Without Pay</option>
                 </select>
               </div>
@@ -1208,7 +1211,7 @@ export default function AttendancePage() {
                       <span style={{
                         padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600,
                         backgroundColor: '#fee2e2', color: '#991b1b', marginTop: '4px', display: 'inline-block'
-                      }}>{req.leaveType}</span>
+                      }}>{((settingsForm.leaveTypes || []).find(t => t.id === req.leaveType) || {}).shortName || req.leaveType}</span>
                     </div>
                     <span style={{ fontSize: '12px', color: '#9ca3af' }}>{formatDate(req.appliedOn || req.createdAt)}</span>
                   </div>
@@ -1279,7 +1282,7 @@ export default function AttendancePage() {
                         <td style={{ padding: '10px 12px' }}>{req.staffName}</td>
                         <td style={{ padding: '10px 12px' }}>
                           <span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: '#fee2e2', color: '#991b1b' }}>
-                            {req.leaveType}
+                            {((settingsForm.leaveTypes || []).find(t => t.id === req.leaveType) || {}).shortName || req.leaveType}
                           </span>
                         </td>
                         <td style={{ padding: '10px 12px', fontSize: '13px' }}>
