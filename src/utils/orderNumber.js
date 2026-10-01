@@ -70,7 +70,7 @@ export function orderDisplayNumber(order) {
 
 // Bill number as PRINTED on a bill (bills only — KOTs and lists keep orderDisplayNumber).
 //   • Made offline and not synced yet (no number from the server): "OFFLINE-CBCF" — the last 4
-//     characters of the offline order id. Clearly temporary, so nobody files it as a real number.
+//     characters of the offline order's idempotency key (else its id). Clearly temporary, so nobody files it as a real number.
 //   • Made offline and synced since: "513 (offline CBCF)" — the real number plus the code the
 //     customer's offline paper shows, so the two papers can be matched.
 //   • Everything else: the normal number (unchanged).
@@ -86,7 +86,9 @@ export function billNumberLabel(order) {
     || (order.dailyOrderId != null && /^\d+$/.test(String(order.dailyOrderId).trim()));
   if (!hasRealNumber) {
     const localId = order.orderId || order.id || '';
-    if (order._offlineGenerated || /-/.test(String(localId))) return `OFFLINE-${last4(localId)}`;
+    // The code is taken from the order's idempotency key when it has one: that is what the server
+    // keeps as offlineRef when it syncs (the desktop app's local id is a different UUID).
+    if (order._offlineGenerated || /-/.test(String(localId))) return `OFFLINE-${last4(order.idempotencyKey || localId)}`;
     return orderDisplayNumber(order);
   }
   const offlineRef = order.offlineRef

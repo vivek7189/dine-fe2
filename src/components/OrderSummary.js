@@ -2454,7 +2454,9 @@ const OrderSummary = ({
   // intact. The KOT+Bill flow prints the bill ~900ms after the order is placed — by then the cart
   // and discount state are cleared, so calling buildTaxData() fresh would return zeros and wipe the
   // discount/total off the bill. Passing the click-time snapshot keeps the bill accurate.
-  const generateInvoice = async (orderId, taxSnapshot = null) => {
+  // orderInfo (optional): what the caller knows about the order (dailyOrderId / orderNumberDisplay
+  // from the place / process result) — used only if the bill has to be built locally.
+  const generateInvoice = async (orderId, taxSnapshot = null, orderInfo = null) => {
     // Try API first (gets formatted invoice with restaurant details)
     // Electron: always try API — localRouter handles bill render from SQLite even when offline
     const _isElectronInvoice = typeof window !== 'undefined' && !!window.electronAPI?.apiRequest;
@@ -2490,9 +2492,21 @@ const OrderSummary = ({
     // Offline fallback: build invoice from local cart + tax data
     try {
       const localTaxData = taxSnapshot || buildTaxData();
+      // An order the server already numbered keeps its real bill number on this fallback bill
+      // (it was printing OFFLINE-xxxx just because bill-render didn't answer).
+      const hasNo = (o) => o && (o.dailyOrderId != null || o.orderNumberDisplay != null);
+      const numbered = (hasNo(orderInfo) ? orderInfo : null)
+        || (currentOrder && (currentOrder.id === orderId || currentOrder.orderId === orderId) ? currentOrder : null);
       const localInvoice = {
         orderId,
         orderNumber: orderId?.slice(-4)?.toUpperCase() || '',
+        ...(numbered ? {
+          dailyOrderId: numbered.dailyOrderId ?? undefined,
+          orderNumberDisplay: numbered.orderNumberDisplay ?? undefined,
+          idempotencyKey: numbered.idempotencyKey || undefined,
+          syncSource: numbered.syncSource || undefined,
+          offlineRef: numbered.offlineRef || undefined,
+        } : {}),
         // Full header identity so the OFFLINE/fallback bill still shows the correct restaurant
         // name + legal name + address + phone + VAT — instead of a bare "RESTAURANT" — whenever
         // the bill-render API is unreachable (common on the local-server / offline POS). Sourced
@@ -2700,7 +2714,7 @@ const OrderSummary = ({
     // Use the click-time tax snapshot — by now the cart is cleared, so re-computing would zero out
     // the discount/total. Snapshot keeps the printed bill accurate (fixes "discount not on bill").
     const billTax = kotBillTaxRef.current;
-    const tid = setTimeout(() => { generateInvoice(oid, billTax); }, 900);
+    const tid = setTimeout(() => { generateInvoice(oid, billTax, orderSuccess?.kotData); }, 900);
     // After the bill prints, settle automatically using the payment method already selected on the
     // billing UI — no confirmation popup (the tender was chosen before clicking KOT + Bill).
     const settleTid = setTimeout(() => {
@@ -2872,7 +2886,7 @@ const OrderSummary = ({
         try {
           const result = await onProcessOrder(buildTaxData());
           if (result && result.orderId) {
-            await generateInvoice(result.orderId);
+            await generateInvoice(result.orderId, null, result);
             // Redeem coupon after successful order
             if (appliedCoupon?.id) {
               apiClient.redeemCoupon(restaurantId, appliedCoupon.id, result.orderId).catch(err => console.warn('Coupon redeem (non-blocking):', err));
@@ -2950,7 +2964,7 @@ const OrderSummary = ({
           if (typeof onProcessOrder === 'function') {
             const result = await onProcessOrder(taxData);
             if (result && result.orderId) {
-              await generateInvoice(result.orderId);
+              await generateInvoice(result.orderId, null, result);
               if (appliedCoupon?.id) {
                 apiClient.redeemCoupon(restaurantId, appliedCoupon.id, result.orderId).catch(err => console.warn('Coupon redeem (non-blocking):', err));
                 setAppliedCoupon(null);
@@ -2973,7 +2987,7 @@ const OrderSummary = ({
         // If order was successful and we have an order ID, generate invoice
         if (result && result.orderId) {
           console.log('Generating invoice for order:', result.orderId);
-          const invoiceGenerated = await generateInvoice(result.orderId);
+          const invoiceGenerated = await generateInvoice(result.orderId, null, result);
           // Redeem coupon after successful order
           if (appliedCoupon?.id) {
             apiClient.redeemCoupon(restaurantId, appliedCoupon.id, result.orderId).catch(err => console.warn('Coupon redeem (non-blocking):', err));

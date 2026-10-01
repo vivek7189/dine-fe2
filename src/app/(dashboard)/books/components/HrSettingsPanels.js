@@ -230,6 +230,11 @@ export function PayrollSettingsPanel({ settings, onSave, onClose }) {
             <span style={{ display: 'block', fontSize: 12, color: '#6b7280', marginTop: 2 }}>Hours worked beyond the basic hours (from attendance / the biometric machine) are paid as overtime. You can also type OT hours when generating a run, or edit them on a payslip.</span>
           </span>
         </label>
+        {!ot0 && !otDirty && (
+          <div style={{ fontSize: 11, color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '6px 10px', marginTop: 8, marginLeft: 26 }}>
+            Not set here yet — payroll follows the overtime setting in Attendance → Settings. Turn this on (or off) to set it for payroll.
+          </div>
+        )}
         {otEnabled && (
           <div style={{ display: 'flex', gap: 12, marginTop: 10, marginLeft: 26, flexWrap: 'wrap' }}>
             <label style={{ fontSize: 12, color: '#374151' }}>Basic hours per day

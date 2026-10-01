@@ -723,6 +723,11 @@ function routeLocally(endpoint, method, body) {
         orderId: p.orderId,
         dailyOrderId: order.dailyOrderId || null,
         orderNumber: order.orderNumber || null,
+        // Offline bill code (billNumberLabel): OFFLINE-<last 4 of the idempotency key> — the same
+        // code the server keeps as offlineRef when this order syncs.
+        idempotencyKey: order.idempotencyKey || null,
+        syncSource: order.syncSource || null,
+        offlineRef: order.offlineRef || null,
         restaurantId: p.restaurantId,
         restaurantName: restaurant.name || 'Restaurant',
         restaurantLegalName: restaurant.legalBusinessName || '',

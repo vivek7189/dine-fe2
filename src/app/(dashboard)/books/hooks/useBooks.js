@@ -328,10 +328,11 @@ export default function useBooks() {
     } catch (err) { setError(err?.message || 'Failed to save adjustments'); return null; }
   };
 
-  const handleViewPaySlips = async (runId) => {
+  // quiet: a background load (e.g. pre-filling payment modes) — no error banner if it fails.
+  const handleViewPaySlips = async (runId, { quiet = false } = {}) => {
     try {
       return await apiClient.getPaySlips(restaurantId, runId);
-    } catch (err) { setError('Failed to fetch pay slips'); return null; }
+    } catch (err) { if (!quiet) setError('Failed to fetch pay slips'); return null; }
   };
 
   // Supplier payment recording

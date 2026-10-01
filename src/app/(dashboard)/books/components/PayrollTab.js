@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { FaPlus, FaPlay, FaCheck, FaEye, FaTimes, FaSave, FaTrash, FaMoneyBillWave, FaUsers, FaCalendarAlt, FaPrint, FaCog, FaSlidersH } from 'react-icons/fa';
 import useHrSettings from '../hooks/useHrSettings';
@@ -798,8 +798,11 @@ function MarkPaidModal({ run, paymentModes, formatCurrency, loadSlips, onClose, 
   const [slips, setSlips] = useState(null);
   const [overrides, setOverrides] = useState({}); // slipId → mode id
   const [busy, setBusy] = useState(false);
+  // Once the user picks anything, the background pre-fill below must not overwrite it.
+  const touched = useRef(false);
   const modeName = (id) => (paymentModes.find(m => m.id === id) || {}).name || id;
   const openPerStaff = async () => {
+    touched.current = true;
     setPerStaff(true);
     if (!slips) { const d = await loadSlips(run.id); setSlips(d?.slips || []); }
   };
@@ -807,10 +810,11 @@ function MarkPaidModal({ run, paymentModes, formatCurrency, loadSlips, onClose, 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const d = await loadSlips(run.id);
-      if (!alive) return;
-      const list = d?.slips || [];
-      setSlips(list);
+      const d = await loadSlips(run.id, { quiet: true });
+      if (!alive || !d) return;
+      const list = d.slips || [];
+      setSlips(prev => prev || list);
+      if (touched.current) return;
       const pre = {};
       list.forEach(sl => { if (sl.paymentMode && paymentModes.some(m => m.id === sl.paymentMode)) pre[sl.id] = sl.paymentMode; });
       if (Object.keys(pre).length) {
@@ -844,7 +848,7 @@ function MarkPaidModal({ run, paymentModes, formatCurrency, loadSlips, onClose, 
             <label style={labelStyle}>Payment mode</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {paymentModes.map(m => (
-                <button key={m.id} onClick={() => setMode(m.id)} style={{ padding: '7px 12px', borderRadius: 999, border: `1.5px solid ${mode === m.id ? '#059669' : '#e5e7eb'}`, background: mode === m.id ? '#ecfdf5' : '#fff', color: mode === m.id ? '#047857' : '#374151', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>{m.name}</button>
+                <button key={m.id} onClick={() => { touched.current = true; setMode(m.id); }} style={{ padding: '7px 12px', borderRadius: 999, border: `1.5px solid ${mode === m.id ? '#059669' : '#e5e7eb'}`, background: mode === m.id ? '#ecfdf5' : '#fff', color: mode === m.id ? '#047857' : '#374151', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>{m.name}</button>
               ))}
             </div>
           </div>
@@ -860,7 +864,7 @@ function MarkPaidModal({ run, paymentModes, formatCurrency, loadSlips, onClose, 
               {!slips ? <div style={{ fontSize: 12, color: '#9ca3af' }}>Loading…</div> : slips.map(sl => (
                 <div key={sl.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '4px 0' }}>
                   <span style={{ fontSize: 13 }}>{sl.staffName} <span style={{ color: '#9ca3af', fontSize: 11 }}>· {formatCurrency(sl.netPay)}</span></span>
-                  <select value={overrides[sl.id] || ''} onChange={e => setOverrides(o => ({ ...o, [sl.id]: e.target.value }))} style={{ ...inputStyle, width: 'auto', padding: '5px 8px', fontSize: 12 }}>
+                  <select value={overrides[sl.id] || ''} onChange={e => { touched.current = true; setOverrides(o => ({ ...o, [sl.id]: e.target.value })); }} style={{ ...inputStyle, width: 'auto', padding: '5px 8px', fontSize: 12 }}>
                     <option value="">{modeName(mode)}</option>
                     {paymentModes.filter(m => m.id !== mode).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                   </select>

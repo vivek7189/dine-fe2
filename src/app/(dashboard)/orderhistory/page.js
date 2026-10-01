@@ -221,6 +221,11 @@ function itemSalesFromOrders(orders, categories) {
   return Object.values(m);
 }
 
+// Role lists from Billing Settings are kept as the owner typed them ('Dosai Master') — compare
+// case- and space-insensitively (same as the backend's roleInList).
+const roleKey = (r) => String(r == null ? '' : r).trim().replace(/\s+/g, ' ').toLowerCase();
+const roleInList = (list, role) => Array.isArray(list) && list.some(r => roleKey(r) === roleKey(role));
+
 const OrderHistory = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -2111,7 +2116,7 @@ const OrderHistory = () => {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       const role = (user.role || '').toLowerCase();
       if (role === 'owner' || role === 'admin') return true;
-      return roles.includes(role);
+      return roleInList(roles, role);
     } catch { return true; }
   };
 
@@ -3386,7 +3391,7 @@ const OrderHistory = () => {
     if (!roles || roles.length === 0) return true; // unset = any staff
     try {
       const userRole = (JSON.parse(localStorage.getItem('user') || '{}').role || 'waiter').toLowerCase();
-      return userRole === 'owner' || userRole === 'admin' || roles.includes(userRole);
+      return userRole === 'owner' || userRole === 'admin' || roleInList(roles, userRole);
     } catch { return true; }
   })();
 
