@@ -358,6 +358,8 @@ const de = {
     outOfService: 'Außer Betrieb',
     cleaning: 'Reinigung',
     makeAvailable: 'Verfügbar machen',
+    markCleaning: 'Als Reinigung markieren',
+    markOutOfService: 'Außer Betrieb',
     tableTypes: {
       small: 'Klein (2)',
       regular: 'Standard (4)',

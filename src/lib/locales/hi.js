@@ -358,6 +358,8 @@ const hi = {
       outOfService: 'सेवा से बाहर',
       cleaning: 'सफाई',
       makeAvailable: 'उपलब्ध करें',
+      markCleaning: 'सफाई चिह्नित करें',
+      markOutOfService: 'सेवा से बाहर',
       tableTypes: {
         small: 'छोटा (2)',
         regular: 'नियमित (4)',

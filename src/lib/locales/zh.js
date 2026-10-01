@@ -358,6 +358,8 @@ const zh = {
     outOfService: '停用',
     cleaning: '清洁中',
     makeAvailable: '设为可用',
+    markCleaning: '标记为清洁中',
+    markOutOfService: '停止使用',
     tableTypes: {
       small: '小桌（2人）',
       regular: '普通桌（4人）',

@@ -358,6 +358,8 @@ const fr = {
     outOfService: 'Hors service',
     cleaning: 'Nettoyage',
     makeAvailable: 'Rendre disponible',
+    markCleaning: 'Marquer en nettoyage',
+    markOutOfService: 'Hors service',
     tableTypes: {
       small: 'Petite (2)',
       regular: 'Standard (4)',

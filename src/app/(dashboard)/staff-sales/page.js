@@ -237,7 +237,7 @@ export default function StaffSalesPage() {
     const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
     const sheetData = [
-      ['Rank', 'Staff Name', 'Orders', 'Total Sales', 'Avg Ticket', 'Tips', 'Revenue Share %'],
+      ['Rank', 'Staff Name', 'Orders Served', 'Sales (served)', 'Avg Ticket', 'Tips', 'Revenue Share %', 'Orders Taken', 'Sales (taken)'],
       ...staffData.map((s, i) => [
         i + 1,
         s.staffName || 'Unknown',
@@ -246,6 +246,8 @@ export default function StaffSalesPage() {
         s.avgTicket || 0,
         s.tipsEarned || 0,
         totalRevenue > 0 ? ((s.totalSales || 0) / totalRevenue * 100).toFixed(1) : '0.0',
+        s.ordersTaken || 0,
+        s.takenSales || 0,
       ]),
     ];
     const ws = XLSX.utils.aoa_to_sheet(sheetData);
@@ -439,6 +441,9 @@ export default function StaffSalesPage() {
                   <span className="text-xs text-gray-400 font-normal ml-2">
                     ({staffData.length} staff members)
                   </span>
+                  <span className="block text-xs text-gray-500 font-normal mt-1">
+                    Sales go to the table&apos;s server (Tables → Assign Server); orders on a table with no server go to whoever took the order. &quot;Orders taken&quot; shows who typed the orders.
+                  </span>
                 </h3>
                 <div className="flex items-center gap-2">
                   <div className="relative">
@@ -469,11 +474,13 @@ export default function StaffSalesPage() {
                       <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase">
                         <th className="px-4 py-2.5 font-semibold text-center">#</th>
                         <th className="px-4 py-2.5 font-semibold">Staff Name</th>
-                        <th className="px-4 py-2.5 font-semibold text-center">Orders Handled</th>
-                        <th className="px-4 py-2.5 font-semibold text-right">Total Sales</th>
+                        <th className="px-4 py-2.5 font-semibold text-center">Orders Served</th>
+                        <th className="px-4 py-2.5 font-semibold text-right">Sales (served)</th>
                         <th className="px-4 py-2.5 font-semibold text-right">Avg Ticket</th>
                         <th className="px-4 py-2.5 font-semibold text-right">Tips Earned</th>
                         <th className="px-4 py-2.5 font-semibold text-right">Revenue Share</th>
+                        <th className="px-4 py-2.5 font-semibold text-center">Orders Taken</th>
+                        <th className="px-4 py-2.5 font-semibold text-right">Sales (taken)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -498,6 +505,8 @@ export default function StaffSalesPage() {
                             <td className="px-4 py-3 text-right text-sm text-gray-600">{formatCurrency(s.avgTicket || 0)}</td>
                             <td className="px-4 py-3 text-right text-sm text-gray-600">{formatCurrency(s.tipsEarned || 0)}</td>
                             <td className="px-4 py-3 text-right text-sm text-gray-600">{revenueShare.toFixed(1)}%</td>
+                            <td className="px-4 py-3 text-center text-sm text-gray-600">{s.ordersTaken || 0}</td>
+                            <td className="px-4 py-3 text-right text-sm text-gray-600">{formatCurrency(s.takenSales || 0)}</td>
                           </tr>
                         );
                       })}
@@ -517,6 +526,8 @@ export default function StaffSalesPage() {
                         </td>
                         <td className="px-4 py-3 text-right text-sm text-gray-600">{formatCurrency(data.summary?.totalTips || 0)}</td>
                         <td className="px-4 py-3 text-right text-sm text-gray-600">100%</td>
+                        <td className="px-4 py-3 text-center text-sm text-gray-600">{staffData.reduce((sum, s) => sum + (s.ordersTaken || 0), 0)}</td>
+                        <td className="px-4 py-3 text-right text-sm text-gray-600">{formatCurrency(staffData.reduce((sum, s) => sum + (s.takenSales || 0), 0))}</td>
                       </tr>
                     </tfoot>
                   </table>

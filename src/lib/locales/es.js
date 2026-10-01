@@ -358,6 +358,8 @@ const es = {
     outOfService: 'Fuera de servicio',
     cleaning: 'En limpieza',
     makeAvailable: 'Marcar disponible',
+    markCleaning: 'Marcar limpieza',
+    markOutOfService: 'Fuera de servicio',
     tableTypes: {
       small: 'Pequena (2)',
       regular: 'Regular (4)',

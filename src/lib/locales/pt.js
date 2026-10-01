@@ -358,6 +358,8 @@ const pt = {
     outOfService: 'Fora de Serviço',
     cleaning: 'Limpeza',
     makeAvailable: 'Tornar Disponível',
+    markCleaning: 'Marcar limpeza',
+    markOutOfService: 'Fora de serviço',
     tableTypes: {
       small: 'Pequena (2)',
       regular: 'Regular (4)',

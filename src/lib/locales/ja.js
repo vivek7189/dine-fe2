@@ -358,6 +358,8 @@ const ja = {
     outOfService: '使用不可',
     cleaning: '清掃中',
     makeAvailable: '利用可能にする',
+    markCleaning: '清掃中にする',
+    markOutOfService: '使用停止',
     tableTypes: {
       small: '小（2名）',
       regular: 'レギュラー（4名）',

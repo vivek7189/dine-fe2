@@ -12,6 +12,13 @@ import {
  * on top, parties render as chips with each check's total, and the Manage/Status actions
  * are laid out in a compact two-column grid. All handlers are owned by the page.
  */
+// Label from the translations, or the English text here when the key is missing (t() returns the
+// key itself then — the sheet showed "tables.markCleaning").
+const label = (t, key, fallback) => {
+  const v = typeof t === 'function' ? t(key) : null;
+  return v && v !== key ? v : fallback;
+};
+
 export default function TableActionsSheet({
   table,
   status,
@@ -40,6 +47,7 @@ export default function TableActionsSheet({
   onMakeAvailable,
   onDelete,
 }) {
+  const tr = (key, fallback) => label(t, key, fallback);
   if (!table) return null;
   const isOccupied = status === 'occupied' || status === 'serving';
   const isAvailable = status === 'available';
@@ -65,14 +73,14 @@ export default function TableActionsSheet({
   if (canEditTable && waitersCount > 0) actions.push({ icon: <FaUser size={13} />, color: '#0d9488', label: table.waiterName ? `Server: ${table.waiterName}` : 'Assign Server', onClick: () => run(onAssignServer) });
   // Hand the running order (and table) to another server — the backend decides who may (Staff Access).
   if (table.currentOrderId && typeof onTransfer === 'function' && waitersCount > 0) actions.push({ icon: <FaUser size={13} />, color: '#7c3aed', label: 'Transfer to another server', onClick: () => run(onTransfer) });
-  if (isAvailable) actions.push({ icon: <FaCalendarAlt size={13} />, color: '#d97706', label: t?.('tables.book') || 'Book Table', onClick: () => run(onBook) });
+  if (isAvailable) actions.push({ icon: <FaCalendarAlt size={13} />, color: '#d97706', label: tr('tables.book', 'Book Table'), onClick: () => run(onBook) });
   if (isAvailable && canEditTableConfig) actions.push({ icon: <FaEdit size={13} />, color: '#2563eb', label: 'Edit Table', onClick: () => run(onEdit) });
-  if (isAvailable && canEditTableConfig && onSplit && !table.isSubTable) actions.push({ icon: <FaColumns size={13} />, color: '#dc2626', label: t?.('tables.split') || 'Split table', sub: 'A/B/C children', onClick: () => run(onSplit) });
+  if (isAvailable && canEditTableConfig && onSplit && !table.isSubTable) actions.push({ icon: <FaColumns size={13} />, color: '#dc2626', label: tr('tables.split', 'Split table'), sub: 'A/B/C children', onClick: () => run(onSplit) });
   if (table.mergeGroupId && canEditTableConfig) actions.push({ icon: <FaLayerGroup size={13} />, color: '#0284c7', label: 'Un-merge', onClick: () => run(onUnmerge) });
   if (posSettings.moveOrderEnabled && isOccupied && table.currentOrderId) actions.push({ icon: <FaExchangeAlt size={13} />, color: '#0891b2', label: 'Move Order', onClick: () => run(onMoveOrder) });
-  if (!isCleaning && canEditTable) actions.push({ icon: <FaTools size={13} />, color: '#64748b', label: t?.('tables.markCleaning') || 'Mark Cleaning', onClick: () => run(onSetCleaning) });
-  if (isAvailable && canEditTable) actions.push({ icon: <FaBan size={13} />, color: '#e11d48', label: t?.('tables.markOutOfService') || 'Out of Service', onClick: () => run(onSetOutOfService) });
-  if (isOccupied || isReserved) actions.push({ icon: <FaCheck size={13} />, color: '#16a34a', label: t?.('tables.free') || 'Free Table', onClick: () => run(onMakeAvailable) });
+  if (!isCleaning && canEditTable) actions.push({ icon: <FaTools size={13} />, color: '#64748b', label: tr('tables.markCleaning', 'Mark Cleaning'), onClick: () => run(onSetCleaning) });
+  if (isAvailable && canEditTable) actions.push({ icon: <FaBan size={13} />, color: '#e11d48', label: tr('tables.markOutOfService', 'Out of Service'), onClick: () => run(onSetOutOfService) });
+  if (isOccupied || isReserved) actions.push({ icon: <FaCheck size={13} />, color: '#16a34a', label: tr('tables.free', 'Free Table'), onClick: () => run(onMakeAvailable) });
 
   const partyChip = (label, running, total, onClick) => (
     <button key={label} onClick={onClick} style={{
@@ -118,17 +126,17 @@ export default function TableActionsSheet({
           {/* Primary action */}
           {(isAvailable || isReserved) && (
             <button onClick={() => run(onTakeOrder)} style={primaryBtn('#059669')}>
-              <FaUtensils size={13} /> {isReserved ? (t?.('tables.seatGuest') || 'Seat Guest') : (t?.('tables.takeOrder') || 'Take Order')}
+              <FaUtensils size={13} /> {isReserved ? (tr('tables.seatGuest', 'Seat Guest')) : (tr('tables.takeOrder', 'Take Order'))}
             </button>
           )}
           {isOccupied && (
             <button onClick={() => run(onViewOrder)} style={primaryBtn('#dc2626')}>
-              <FaEye size={13} /> {t?.('tables.viewOrder') || 'View / Add to Order'}
+              <FaEye size={13} /> {tr('tables.viewOrder', 'View / Add to Order')}
             </button>
           )}
           {(isCleaning || isOutOfService) && (
             <button onClick={() => run(onMakeAvailable)} style={primaryBtn('#16a34a')}>
-              <FaCheck size={13} /> {t?.('tables.makeAvailable') || 'Make Available'}
+              <FaCheck size={13} /> {tr('tables.makeAvailable', 'Make Available')}
             </button>
           )}
 
@@ -187,7 +195,7 @@ export default function TableActionsSheet({
               padding: '11px', border: '1px solid #fecaca', background: '#fef2f2', borderRadius: '12px', cursor: 'pointer',
               color: '#ef4444', fontSize: '13px', fontWeight: 700,
             }}>
-              <FaTrash size={12} /> {t?.('tables.delete') || 'Delete Table'}
+              <FaTrash size={12} /> {tr('tables.delete', 'Delete Table')}
             </button>
           )}
         </div>
