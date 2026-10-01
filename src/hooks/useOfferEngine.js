@@ -8,6 +8,7 @@ import { isLocalServerMode } from '../lib/localServer';
 import { database } from '../../firebase';
 import apiClient from '../lib/api';
 import { toJsDate } from '../utils/dateParse';
+import { restaurantTimeZone } from '../lib/restaurantTime';
 
 /**
  * Normalize a phone number to the last 10 digits for matching.
@@ -23,9 +24,36 @@ const normalizePhone = (phone) => {
 const normalizeCategory = (cat) => String(cat || '').toLowerCase().replace(/[-_\s]+/g, '');
 
 // Check if an item is excluded from a specific offer
+// Variant-level targeting: an offer's targetItems / excludedItems / BOGO lists hold either a menu
+// item id (every variant of it) or `${itemId}::${variantName}` (that one variant only — e.g. a
+// discount on "Jameson - 1 Litter" but not on a Tot of the same item). Same rule as the backend
+// services/offerEngine.js, so the on-screen discount equals the saved bill.
+export const VARIANT_SEP = '::';
+const getItemVariantName = (item) => {
+  const v = item.selectedVariant || item.variant;
+  return (v && typeof v === 'object' ? v.name : v) || null;
+};
+export const matchesItemList = (list, item) => {
+  if (!Array.isArray(list) || list.length === 0) return false;
+  const id = item.menuItemId || item.id;
+  if (list.includes(id)) return true;
+  const v = getItemVariantName(item);
+  return !!v && list.includes(`${id}${VARIANT_SEP}${v}`);
+};
+// Unit price of a line. A POS cart line can still hold the item's BASE price (e.g. the Tot) with
+// the chosen variant's price in selectedVariant — a priced order line (has total) is already right.
+const getItemUnitPrice = (item) => {
+  if (!item.total && item.selectedVariant && typeof item.selectedVariant === 'object') {
+    const vp = Number(item.selectedVariant.price);
+    if (Number.isFinite(vp) && vp > 0) return vp;
+  }
+  return item.price || 0;
+};
+const getItemLineTotal = (item) => item.total || getItemUnitPrice(item) * (item.quantity || 1);
+
 const isItemExcluded = (item, offer) => {
   if (Array.isArray(offer.excludedItems) && offer.excludedItems.length > 0) {
-    if (offer.excludedItems.includes(item.menuItemId || item.id)) return true;
+    if (matchesItemList(offer.excludedItems, item)) return true;
   }
   if (Array.isArray(offer.excludedCategories) && offer.excludedCategories.length > 0) {
     const normalizedExcluded = offer.excludedCategories.map(normalizeCategory);
@@ -107,7 +135,7 @@ const calculateCrossItemBogo = (offer, cart) => {
     const id = item.menuItemId || item.id;
     const cat = (item.category || item.categoryId || '').toString();
     const qty = item.quantity || 0;
-    const matchById = buyItemIds.length > 0 && buyItemIds.includes(id);
+    const matchById = matchesItemList(buyItemIds, item);
     const matchByCat = buyCategoryIds.length > 0 && buyCategoryIds.some(bc => normalizeCategory(bc) === normalizeCategory(cat));
     if (matchById || matchByCat) buyUnits += qty;
   }
@@ -119,9 +147,9 @@ const calculateCrossItemBogo = (offer, cart) => {
   for (const item of cart) {
     if (isItemExcluded(item, offer)) continue;
     const id = item.menuItemId || item.id;
-    if (!getItemIds.includes(id)) continue;
+    if (!matchesItemList(getItemIds, item)) continue;
     const qty = item.quantity || 0;
-    const price = item.price || 0;
+    const price = getItemUnitPrice(item);
     for (let i = 0; i < qty; i++) pool.push({ itemId: id, price });
   }
   pool.sort((a, b) => a.price - b.price);
@@ -166,17 +194,17 @@ export const calculateOfferResult = (offer, subtotal, cart = [], context = {}) =
     applicableSubtotal = cart
       .filter(item => !isItemExcluded(item, offer))
       .filter(item => normalizedTargets.includes(normalizeCategory(item.category || '')))
-      .reduce((sum, item) => sum + (item.total || item.price * item.quantity), 0);
+      .reduce((sum, item) => sum + getItemLineTotal(item), 0);
   } else if (offerScope === 'item' && Array.isArray(offer.targetItems) && offer.targetItems.length > 0) {
     applicableSubtotal = cart
       .filter(item => !isItemExcluded(item, offer))
-      .filter(item => offer.targetItems.includes(item.menuItemId || item.id))
-      .reduce((sum, item) => sum + (item.total || item.price * item.quantity), 0);
+      .filter(item => matchesItemList(offer.targetItems, item))
+      .reduce((sum, item) => sum + getItemLineTotal(item), 0);
   } else {
     // Order-level scope: filter out offer-excluded items
     applicableSubtotal = cart
       .filter(item => !isItemExcluded(item, offer))
-      .reduce((sum, item) => sum + (item.total || item.price * item.quantity), 0);
+      .reduce((sum, item) => sum + getItemLineTotal(item), 0);
   }
 
   // Tier override — if offer has tiers defined but none match, discount is 0
@@ -198,7 +226,7 @@ export const calculateOfferResult = (offer, subtotal, cart = [], context = {}) =
   if (offer.promotionType === 'bogo' && offer.bogoConfig) {
     let bogoItems = cart.filter(item => !isItemExcluded(item, offer));
     if (offerScope === 'item' && offer.targetItems?.length > 0) {
-      bogoItems = cart.filter(item => offer.targetItems.includes(item.menuItemId || item.id));
+      bogoItems = cart.filter(item => matchesItemList(offer.targetItems, item));
     } else if (offerScope === 'category' && offer.targetCategories?.length > 0) {
       const normalizedTargets = offer.targetCategories.map(normalizeCategory);
       bogoItems = cart.filter(item => normalizedTargets.includes(normalizeCategory(item.category || item.categoryId || '')));
@@ -209,7 +237,7 @@ export const calculateOfferResult = (offer, subtotal, cart = [], context = {}) =
     const getDiscount = offer.bogoConfig.getDiscount || 100;
     const sets = Math.floor(totalQty / (buyQty + getQty));
     if (sets > 0 && bogoItems.length > 0) {
-      const cheapestPrice = Math.min(...bogoItems.map(item => item.price || 0));
+      const cheapestPrice = Math.min(...bogoItems.map(item => getItemUnitPrice(item)));
       baseDiscount = Math.round(sets * getQty * cheapestPrice * (getDiscount / 100) * 100) / 100;
     }
   } else if (applicableSubtotal > 0) {
@@ -223,13 +251,13 @@ export const calculateOfferResult = (offer, subtotal, cart = [], context = {}) =
       const applicableItems = cart
         .filter(item => !isItemExcluded(item, offer))
         .filter(item => {
-          if (offerScope === 'item' && offer.targetItems?.length > 0) return offer.targetItems.includes(item.menuItemId || item.id);
+          if (offerScope === 'item' && offer.targetItems?.length > 0) return matchesItemList(offer.targetItems, item);
           if (offerScope === 'category' && offer.targetCategories?.length > 0) return offer.targetCategories.map(normalizeCategory).includes(normalizeCategory(item.category || ''));
           return true;
         });
       let disc = 0;
       for (const it of applicableItems) {
-        disc += Math.min(effectiveDiscountValue, it.price || 0) * (it.quantity || 1);
+        disc += Math.min(effectiveDiscountValue, getItemUnitPrice(it)) * (it.quantity || 1);
       }
       if (offer.maxDiscount && disc > offer.maxDiscount) disc = offer.maxDiscount;
       baseDiscount = Math.round(disc * 100) / 100;
@@ -251,14 +279,31 @@ export const calculateDiscountForOffer = (offer, subtotal, cart = [], context = 
   return calculateOfferResult(offer, subtotal, cart, context).discount;
 };
 
+// Weekday (0 = Sun) and minutes since midnight on the RESTAURANT's clock (the backend checks
+// schedules in the restaurant timezone too); the device clock when no timezone is configured.
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const restaurantNow = (now = new Date()) => {
+  const tz = restaurantTimeZone();
+  if (tz) {
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(now);
+      const get = (t) => (parts.find(p => p.type === t) || {}).value;
+      const day = WEEKDAYS.indexOf(get('weekday'));
+      const h = Number(get('hour')), m = Number(get('minute'));
+      if (day >= 0 && Number.isFinite(h) && Number.isFinite(m)) return { day, minutes: h * 60 + m };
+    } catch { /* unknown timezone → device clock */ }
+  }
+  return { day: now.getDay(), minutes: now.getHours() * 60 + now.getMinutes() };
+};
+
 /**
  * Check if an offer's schedule is currently valid.
  */
 export const isScheduleValid = (offer) => {
   if (!offer.schedule || offer.schedule.type !== 'recurring') return true;
-  const now = new Date();
-  const currentDay = now.getDay();
-  const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const rn = restaurantNow();
+  const currentDay = rn.day;
+  const currentTime = `${String(Math.floor(rn.minutes / 60)).padStart(2, '0')}:${String(rn.minutes % 60).padStart(2, '0')}`;
   const scheduleDays = offer.schedule.days || [];
   const startTime = offer.schedule.startTime || '00:00';
   const endTime = offer.schedule.endTime || '23:59';
@@ -292,8 +337,7 @@ export const isDateValid = (offer) => {
  */
 const getNextScheduleTransition = (offers) => {
   const now = new Date();
-  const currentDay = now.getDay();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const { day: currentDay, minutes: currentMinutes } = restaurantNow(now);
   let minMs = null;
 
   for (const offer of offers) {
@@ -697,7 +741,7 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
       }
       if (offer.scope === 'item' && Array.isArray(offer.targetItems) && offer.targetItems.length > 0) {
         const hasMatchingItem = cart.some(item =>
-          offer.targetItems.includes(item.menuItemId || item.id)
+          matchesItemList(offer.targetItems, item)
         );
         if (!hasMatchingItem) continue;
       }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import {
@@ -31,6 +31,7 @@ import apiClient from '../../../lib/api';
 import { toJsDate } from '../../../utils/dateParse';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { useNotification } from '../../../components/Notification';
+import { VARIANT_SEP } from '../../../hooks/useOfferEngine';
 
 // Lightweight searchable multi-select for menu items
 const ItemMultiPicker = ({ items = [], selected = [], onChange, placeholder = 'Pick items' }) => {
@@ -108,6 +109,31 @@ const ItemMultiPicker = ({ items = [], selected = [], onChange, placeholder = 'P
   );
 };
 
+// Items for the offer pickers: each menu item (= every size) and, for items with variants, one
+// entry per variant — id `${itemId}::${variantName}` — so an offer can target just one size
+// (e.g. "Jameson - 1 Litter", not the Tot). The offer engines match both forms.
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const buildPickerItems = (menuItems) => {
+  const out = [];
+  for (const it of menuItems || []) {
+    const variants = Array.isArray(it.variants) ? it.variants.filter(v => v && v.name) : [];
+    if (!variants.length) { out.push(it); continue; }
+    out.push({ ...it, name: `${it.name} (all sizes)`, price: null });
+    for (const v of variants) {
+      out.push({ id: `${it.id}${VARIANT_SEP}${v.name}`, name: `${it.name} — ${v.name}`, price: typeof v.price === 'number' ? v.price : null, _categoryName: it._categoryName });
+    }
+  }
+  return out;
+};
+// "Mon, Thu · 16:00–19:00" / "Every day · all day" for the offer card.
+const scheduleLabel = (sch) => {
+  if (!sch || sch.type !== 'recurring') return '';
+  const days = [...(sch.days || [])].sort((a, b) => a - b);
+  const dayText = days.length === 7 ? 'Every day' : days.length === 0 ? 'No days' : days.map(d => DAY_NAMES[d]).join(', ');
+  const st = sch.startTime || '00:00', et = sch.endTime || '23:59';
+  return `${dayText} · ${st === '00:00' && et === '23:59' ? 'all day' : `${st}–${et}`}`;
+};
+
 const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = null, restaurants = [] }) => {
   const router = useRouter();
   const { getCurrencySymbol } = useCurrency();
@@ -170,6 +196,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
   const [customersLoaded, setCustomersLoaded] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
   const [menuItems, setMenuItems] = useState([]);
+  const pickerItems = useMemo(() => buildPickerItems(menuItems), [menuItems]);
   const [menuLoaded, setMenuLoaded] = useState(false);
   // Groups sub-view state
   const GROUP_COLORS = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#6b7280'];
@@ -645,6 +672,11 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
   const handleSave = async () => {
     if (!formData.name) {
       showWarning('Please enter an offer name');
+      return;
+    }
+
+    if (formData.schedule && !(formData.schedule.days || []).length) {
+      showWarning('Pick at least one day for the offer, or untick "Only on certain days / hours".');
       return;
     }
 
@@ -2358,6 +2390,9 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                       {toJsDate(offer.validUntil) && (
                         <span>Valid until: {toJsDate(offer.validUntil).toLocaleDateString()}</span>
                       )}
+                      {offer.schedule?.type === 'recurring' && (
+                        <span>Runs: {scheduleLabel(offer.schedule)}</span>
+                      )}
                     </div>
                   </div>
 
@@ -2971,7 +3006,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                   <div style={{ marginBottom: '10px' }}>
                     <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Buy Items</label>
                     <ItemMultiPicker
-                      items={menuItems}
+                      items={pickerItems}
                       selected={formData.crossItemBogo?.buyItemIds || []}
                       onChange={(ids) => setFormData(prev => ({ ...prev, crossItemBogo: { ...prev.crossItemBogo, buyItemIds: ids } }))}
                       placeholder="Pick items customer must buy"
@@ -2980,7 +3015,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                   <div style={{ marginBottom: '8px' }}>
                     <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Get Items (free)</label>
                     <ItemMultiPicker
-                      items={menuItems}
+                      items={pickerItems}
                       selected={formData.crossItemBogo?.getItemIds || []}
                       onChange={(ids) => setFormData(prev => ({ ...prev, crossItemBogo: { ...prev.crossItemBogo, getItemIds: ids } }))}
                       placeholder="Pick free items"
@@ -3127,11 +3162,14 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                     Select Menu Items
                   </label>
                   <ItemMultiPicker
-                    items={menuItems}
+                    items={pickerItems}
                     selected={formData.targetItems || []}
                     onChange={(ids) => setFormData(prev => ({ ...prev, targetItems: ids }))}
                     placeholder="Search menu items..."
                   />
+                  <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px', marginBottom: 0 }}>
+                    For an item with sizes, pick the size (e.g. &quot;— 1 Litre&quot;) to discount only that size, or &quot;(all sizes)&quot; for every size.
+                  </p>
                   {menuItems.length === 0 && (
                     <p style={{ fontSize: '11px', color: '#f59e0b', marginTop: '4px' }}>
                       Loading menu items...
@@ -3254,7 +3292,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                             Exclude Items
                           </label>
                           <ItemMultiPicker
-                            items={menuItems}
+                            items={pickerItems}
                             selected={formData.excludedItems || []}
                             onChange={(ids) => setFormData(prev => ({ ...prev, excludedItems: ids }))}
                             placeholder="Search items to exclude..."
@@ -3266,7 +3304,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                 );
               })()}
 
-              {/* Schedule (Happy Hour) */}
+              {/* Schedule: specific days of the week and/or hours (happy hour) — restaurant time */}
               <div>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', marginBottom: '8px' }}>
                   <input
@@ -3274,16 +3312,25 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                     checked={!!formData.schedule}
                     onChange={(e) => setFormData(prev => ({
                       ...prev,
-                      schedule: e.target.checked ? { type: 'recurring', days: [1,2,3,4,5], startTime: '16:00', endTime: '19:00' } : null
+                      schedule: e.target.checked ? { type: 'recurring', days: [0, 1, 2, 3, 4, 5, 6], startTime: '00:00', endTime: '23:59' } : null
                     }))}
                     style={{ width: '18px', height: '18px', accentColor: '#ec4899' }}
                   />
-                  <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Time-based schedule (Happy Hour)</span>
+                  <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Only on certain days / hours</span>
+                  <span style={{ fontSize: '12px', color: '#6b7280' }}>e.g. every Monday &amp; Thursday, or a 4–7 PM happy hour</span>
                 </label>
                 {formData.schedule && (
                   <div style={{ padding: '12px', backgroundColor: '#fffbeb', borderRadius: '8px', border: '1px solid #fde68a' }}>
                     <div style={{ marginBottom: '8px' }}>
-                      <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Days</label>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                        <label style={{ fontSize: '11px', color: '#6b7280' }}>Days the offer runs (tap to turn a day on / off)</label>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          {[['Every day', [0, 1, 2, 3, 4, 5, 6]], ['Weekdays', [1, 2, 3, 4, 5]], ['Weekend', [0, 6]]].map(([label, days]) => (
+                            <button key={label} type="button" onClick={() => setFormData(prev => ({ ...prev, schedule: { ...prev.schedule, days } }))}
+                              style={{ padding: '3px 8px', borderRadius: '6px', border: '1px solid #fcd34d', background: 'white', color: '#92400e', fontSize: '11px', cursor: 'pointer' }}>{label}</button>
+                          ))}
+                        </div>
+                      </div>
                       <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => (
                           <button
@@ -3310,6 +3357,17 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                         ))}
                       </div>
                     </div>
+                    {(() => {
+                      const allDay = (formData.schedule.startTime || '00:00') === '00:00' && (formData.schedule.endTime || '23:59') === '23:59';
+                      return (
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#374151', cursor: 'pointer', marginBottom: allDay ? 0 : '8px' }}>
+                          <input type="checkbox" checked={allDay} style={{ accentColor: '#f59e0b' }}
+                            onChange={(e) => setFormData(prev => ({ ...prev, schedule: { ...prev.schedule, ...(e.target.checked ? { startTime: '00:00', endTime: '23:59' } : { startTime: '16:00', endTime: '19:00' }) } }))} />
+                          All day on these days
+                        </label>
+                      );
+                    })()}
+                    {!((formData.schedule.startTime || '00:00') === '00:00' && (formData.schedule.endTime || '23:59') === '23:59') && (
                     <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '8px' }}>
                       <div>
                         <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Start Time</label>
@@ -3330,6 +3388,10 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                         />
                       </div>
                     </div>
+                    )}
+                    <p style={{ fontSize: '11px', color: '#92400e', margin: '8px 0 0' }}>
+                      Runs: {scheduleLabel(formData.schedule)} (restaurant time). Outside these days / hours the offer is not shown or applied.
+                    </p>
                   </div>
                 )}
               </div>
