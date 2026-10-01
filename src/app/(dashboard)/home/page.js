@@ -19,6 +19,7 @@ import { t } from '../../../lib/i18n';
 import { setCachedData, getCachedData } from '../../../lib/offlineDb';
 import OfflineBanner from '../../../components/OfflineBanner';
 import UpdateBanner from '../../../components/UpdateBanner';
+import StaffAlertsCard from '../../../components/StaffAlertsCard';
 import { useDineBot } from '../../../components/DineBotProvider';
 
 // Safe hooks that return no-ops when providers are missing (e.g. mobile embed)
@@ -587,6 +588,12 @@ export default function HomePage() {
           </div>
           <div style={{ fontSize: '13px', fontWeight: 700, color: '#b45309', whiteSpace: 'nowrap' }}>Review →</div>
         </div>
+      )}
+
+      {/* Staff alerts — birthdays + annual leave (owner / admins / managers; hidden for others) */}
+      {['owner', 'admin', 'co-owner', 'manager'].includes(String(user?.role || '').toLowerCase()) && (
+        <StaffAlertsCard restaurantId={typeof window !== 'undefined' ? (localStorage.getItem('selectedRestaurantId') || user?.restaurantId) : null} isMobile={isMobile}
+          canEditSettings={['owner', 'admin', 'co-owner'].includes(String(user?.role || '').toLowerCase())} />
       )}
 
       {/* Header */}

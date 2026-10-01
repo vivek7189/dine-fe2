@@ -4812,6 +4812,11 @@ class ApiClient {
   async getHrSettings(restaurantId) {
     return this.request(`/api/hr-settings/${restaurantId}`);
   }
+  // Staff alerts: birthdays + annual leave (owner / admins; managers: their staff).
+  async getStaffAlerts(restaurantId) {
+    return this.request(`/api/staff-alerts/${restaurantId}`);
+  }
+
   async saveHrSettings(restaurantId, settings) {
     return this.request(`/api/hr-settings/${restaurantId}`, { method: 'PUT', body: { settings } });
   }
