@@ -10,7 +10,7 @@ import {
   BILL_LABELS_AR, getBillDualCSS, dualLabel, dualTitle, dualItemName,
   buildCashbackHtml, buildCustomFooterHtml,
 } from '../helpers';
-import { orderDisplayNumber } from '../../orderNumber';
+import { billNumberLabel } from '../../orderNumber';
 
 export const id = 'detailed';
 export const name = 'Detailed';
@@ -127,7 +127,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
     buildSplitBillHtml(invoice, L, cs) +
     // Cashier + date on one line
     `<div class="info-line">` +
-      (bl.showWaiter !== false && waiterInfo ? `<span>${esc(waiterInfo)}</span>` : `<span>#${orderDisplayNumber(invoice)}</span>`) +
+      (bl.showWaiter !== false && waiterInfo ? `<span>${esc(waiterInfo)}</span>` : `<span>#${billNumberLabel(invoice)}</span>`) +
       `<span>${justDate} - ${timeStr}</span>` +
     `</div>` +
     (bl.showTable !== false && invoice.tableNumber ? `<div class="info-line"><span>${dualLabel(L.table, AR.table, showAr)}: ${invoice.tableNumber}${invoice.floorName ? ` - ${invoice.floorName}` : ''}</span>${bl.showPayment !== false ? `<span>${(invoice.paymentMethodLabel || invoice.paymentMethod || 'CASH').toUpperCase()}</span>` : ''}</div>` : '') +
@@ -136,7 +136,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
     '' +
     (bl.showCustomerPhone && invoice.customerPhone ? `<div class="info-line"><span>${dualLabel('Phone', 'هاتف', showAr)}: ${esc(invoice.customerPhone)}</span></div>` : '') +
     (bl.showOrderType !== false && invoice.orderType ? `<div class="info-line"><span>Type: ${invoice.orderType}</span></div>` : '') +
-    (bl.showWaiter !== false && waiterInfo ? `<div class="info-line"><span>#${orderDisplayNumber(invoice)}</span></div>` : '') +
+    (bl.showWaiter !== false && waiterInfo ? `<div class="info-line"><span>#${billNumberLabel(invoice)}</span></div>` : '') +
     deliveryHtml +
     `<div class="divider">- - - - - - - - - - - - - - - - -</div>` +
     // Items
@@ -164,5 +164,5 @@ export function render(invoice, printSettings = {}, labels = {}) {
     `<div class="bill-footer">${buildCustomFooterHtml(bl)}${bl.showFooter !== false ? `<p style="font-weight:bold;text-transform:uppercase;">${showAr ? dualLabel(L.footer, AR.footer, showAr) : L.footer}</p>` : ''}${bl.showPoweredBy !== false ? `<p style="font-size:10px;margin-top:4px;">${showAr ? dualLabel(L.poweredBy, AR.poweredBy, showAr) : L.poweredBy}</p>` : ''}</div>` +
     `<div class="divider">- - - - - - - - - - - - - - - - -</div>`;
 
-  return wrapInDocument(`${L.billLabel} #${orderDisplayNumber(invoice)}`, finalCss, bodyHtml);
+  return wrapInDocument(`${L.billLabel} #${billNumberLabel(invoice)}`, finalCss, bodyHtml);
 }

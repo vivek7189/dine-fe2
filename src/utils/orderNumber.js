@@ -68,4 +68,31 @@ export function orderDisplayNumber(order) {
   return order.id ? String(order.id).slice(-4).toUpperCase() : '—';
 }
 
+// Bill number as PRINTED on a bill (bills only — KOTs and lists keep orderDisplayNumber).
+//   • Made offline and not synced yet (no number from the server): "OFFLINE-CBCF" — the last 4
+//     characters of the offline order id. Clearly temporary, so nobody files it as a real number.
+//   • Made offline and synced since: "513 (offline CBCF)" — the real number plus the code the
+//     customer's offline paper shows, so the two papers can be matched.
+//   • Everything else: the normal number (unchanged).
+// Offline is recognised from the order itself: the server marks synced offline orders
+// syncSource 'offline' (+ offlineRef / idempotencyKey); an unsynced one has an offline-style id
+// (UUID — server ids never contain '-') or the POS's _offlineGenerated flag.
+const last4 = (v) => String(v || '').replace(/[^A-Za-z0-9]/g, '').slice(-4).toUpperCase();
+export function billNumberLabel(order) {
+  if (!order) return '';
+  // A real (server) number: the till-tagged display number, or a numeric daily number. Some screens
+  // fill dailyOrderId with a fallback (an order code / offline code) — that is not a bill number.
+  const hasRealNumber = order.orderNumberDisplay != null
+    || (order.dailyOrderId != null && /^\d+$/.test(String(order.dailyOrderId).trim()));
+  if (!hasRealNumber) {
+    const localId = order.orderId || order.id || '';
+    if (order._offlineGenerated || /-/.test(String(localId))) return `OFFLINE-${last4(localId)}`;
+    return orderDisplayNumber(order);
+  }
+  const offlineRef = order.offlineRef
+    || (String(order.syncSource || '').toLowerCase() === 'offline' && order.idempotencyKey ? last4(order.idempotencyKey) : '');
+  const num = orderDisplayNumber(order);
+  return offlineRef ? `${num} (offline ${offlineRef})` : num;
+}
+
 export default orderDisplayNumber;

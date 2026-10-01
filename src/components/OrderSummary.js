@@ -41,7 +41,7 @@ const splitGstForDisplay = (tb, countryCode) => {
   });
 };
 import { generateBillHTML, generateKOTHTML } from '../utils/printHtmlGenerator';
-import { orderDisplayNumber } from '../utils/orderNumber';
+import { orderDisplayNumber, billNumberLabel } from '../utils/orderNumber';
 import { buildSplitInvoice } from '../utils/printTemplates/helpers';
 import { seatLabel, sanitizeSeat, getOrderItemKey } from '../utils/orderItemKey';
 import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint, buildKotDedupKey } from '../utils/printBridge';
@@ -4256,7 +4256,7 @@ const OrderSummary = ({
                       <div style={{ fontSize: '11px', color: dm ? dm.greenText : '#166534', marginBottom: '1px' }}><strong>Reg#:</strong> {invoice.businessRegistrationNumber}</div>
                     )}
                     <div style={{ textAlign: 'left', marginBottom: '8px', fontSize: '13px', marginTop: '6px' }}>
-                      {invoice?.dailyOrderId != null && <div><strong>{bLabels.billLabel} #:</strong> {orderDisplayNumber(invoice)}</div>}
+                      {(invoice?.dailyOrderId != null || invoice?._offlineGenerated) && <div><strong>{bLabels.billLabel} #:</strong> {billNumberLabel(invoice)}</div>}
                       {invoice?.orderId && <div><strong>{t('invoice.id')}:</strong> {String(invoice.orderId).slice(-8).toUpperCase()}</div>}
                       <div><strong>{t('invoice.date')}:</strong> {invoice?.generatedAt ? fmtDateTime(invoice.generatedAt) : (invoice?.invoiceDate ? new Date(invoice.invoiceDate).toLocaleString() : 'N/A')}</div>
                       {invoice?.tableNumber && <div><strong>{t('invoice.table')}:</strong> {invoice.tableNumber}{invoice?.floorName ? ` · ${invoice.floorName}` : ''}</div>}

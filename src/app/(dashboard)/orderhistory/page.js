@@ -24,7 +24,7 @@ import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '
 import { printKOTByStations } from '../../../utils/printKotStations';
 import { generateBillHTML } from '../../../utils/printHtmlGenerator';
 import { buildBillIdentity } from '../../../utils/printTemplates/helpers';
-import { orderDisplayNumber } from '../../../utils/orderNumber';
+import { orderDisplayNumber, billNumberLabel } from '../../../utils/orderNumber';
 import { useEtimsBillPrint } from '../../../hooks/useEtimsBillPrint';
 import { getCartSubtotal } from '../../../utils/billingPrice';
 import { etimsActiveFor } from '../../../lib/etimsDecision';
@@ -1931,6 +1931,9 @@ const OrderHistory = () => {
       orderId: order.id,
       dailyOrderId: order.dailyOrderId || order.orderNumber,
       orderNumberDisplay: order.orderNumberDisplay || null,
+      // Offline-made orders: the bill shows "513 (offline CBCF)" / "OFFLINE-CBCF" (billNumberLabel).
+      syncSource: order.syncSource || null,
+      idempotencyKey: order.idempotencyKey || null,
       // Correct, template-matching header identity. (Previously used wrong keys —
       // address/phone/legalBusinessName — so reprinted bills dropped the address / phone /
       // legal name. buildBillIdentity emits restaurantAddress/restaurantPhone/restaurantLegalName
@@ -7324,9 +7327,10 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
   const loyaltyDiscountAmt = b?.loyaltyDiscount ?? order.loyaltyDiscount ?? 0;
   const couponDiscountAmt = order.couponDiscount ?? 0;
   const totalDiscount = b?.totalDiscount ?? (offerDiscount + manualDiscountAmt + loyaltyDiscountAmt + couponDiscountAmt);
+  // Same bill number as the printed bill ("513 (offline CBCF)" for offline-made orders).
   const invoiceNumber = (b && (b.orderNumberDisplay || b.dailyOrderId != null || b.orderNumber != null))
-    ? orderDisplayNumber(b)
-    : orderDisplayNumber(order);
+    ? billNumberLabel({ ...order, ...b })
+    : billNumberLabel(order);
   
   return (
     <>
