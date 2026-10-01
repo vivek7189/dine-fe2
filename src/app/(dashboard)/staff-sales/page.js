@@ -15,6 +15,7 @@ import {
   FaSearch,
   FaChartBar,
   FaTrophy,
+  FaUserCheck,
 } from 'react-icons/fa';
 
 export default function StaffSalesPage() {
@@ -393,12 +394,12 @@ export default function StaffSalesPage() {
               <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
-                    <span className="text-purple-600 font-bold text-sm">{getCurrencySymbol()}</span>
+                    <FaUserCheck className="text-purple-600 text-sm" />
                   </div>
-                  <span className="text-xs text-gray-500 font-medium uppercase">Avg Bill</span>
+                  <span className="text-xs text-gray-500 font-medium uppercase">Orders with a server</span>
                 </div>
-                <div className="text-xl sm:text-2xl font-bold text-gray-900">{formatCurrency(avgBill)}</div>
-                <div className="text-[11px] text-gray-400 mt-0.5">{totalOrders} orders</div>
+                <div className="text-xl sm:text-2xl font-bold text-gray-900">{assignedOrders} <span className="text-sm font-medium text-gray-400">of {totalOrders}</span></div>
+                <div className="text-[11px] text-gray-400 mt-0.5">Tables → Assign Server</div>
               </div>
 
               <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
