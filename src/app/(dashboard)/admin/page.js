@@ -11,6 +11,7 @@ import StaffActivityPanel from '../../../components/staff/StaffActivityPanel';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import AdditionalChargesSettings from '../../../components/AdditionalChargesSettings';
 import StaffDocuments from '../../../components/StaffDocuments';
+import StaffProfile from '../../../components/StaffProfile';
 import WhatsAppOrderingTab from '../../../components/WhatsAppOrderingTab';
 import { t, getCurrentLanguage, setLanguage, getAvailableLanguages } from '../../../lib/i18n';
 import NativePrinterSettings from '../../../components/NativePrinterSettings';
@@ -10901,6 +10902,11 @@ const Admin = () => {
                   canEdit={currentUserRole === 'owner' || currentUserRole === 'admin'}
                   isMobile={isClient && isMobile}
                 />
+
+                {/* HR profile: personal & emergency contact, health (confidential), experience — owner / admin only */}
+                {(currentUserRole === 'owner' || currentUserRole === 'admin') && (
+                  <StaffProfile staffId={selectedStaff.id} canEdit isMobile={isClient && isMobile} />
+                )}
 
                 <div style={{
                   backgroundColor: '#f8fafc',

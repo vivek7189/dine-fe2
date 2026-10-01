@@ -2272,6 +2272,14 @@ class ApiClient {
     return this.request(`/api/staff/${staffId}/documents`, { method: 'DELETE', body: { url } });
   }
 
+  // ── Staff HR profile (personal & emergency contact, health, experience) — owner / admin ──
+  async getStaffProfile(staffId) {
+    return this.request(`/api/staff/${staffId}/profile`);
+  }
+  async saveStaffProfile(staffId, profile) {
+    return this.request(`/api/staff/${staffId}/profile`, { method: 'PUT', body: { profile } });
+  }
+
   // ── Staff advances (HR) ──────────────────────────────────────────────
   async getStaffAdvances(restaurantId, options = {}) {
     const q = new URLSearchParams(Object.entries(options).filter(([, v]) => v != null && v !== '')).toString();
