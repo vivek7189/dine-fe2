@@ -44,20 +44,19 @@ export function render(invoice, printSettings = {}, labels = {}) {
 
   const itemsHtml = buildBillItemRows(items, cs, showAr, { showItemTaxBreakup: bl.showItemTaxBreakup === true });
   const taxBreakdown = invoice.taxBreakdown || [];
-  const showIncl = invoice.showInclusiveTaxOnBill !== false;
-  const inclusiveNote = buildInclusiveTaxNote(invoice);
-  // Compact: single-line tax summary if only one tax type
+  const inclusiveNote = buildInclusiveTaxNote(invoice, printSettings);
+  // Compact: single-line tax summary if only one tax type. Only tax added on top is listed here;
+  // tax already inside the prices is shown under the total (inclusiveNote).
   let taxHtml;
   if (bl.showTaxBreakdown === false) {
     taxHtml = '';
   } else {
-    const visibleTaxes = taxBreakdown.filter(t => !t.inclusive || showIncl);
+    const visibleTaxes = taxBreakdown.filter(t => t && !t.inclusive);
     if (visibleTaxes.length === 1) {
       const tax = visibleTaxes[0];
-      const inclLabel = tax.inclusive ? ' (incl.)' : '';
-      taxHtml = `<div style="display:flex;justify-content:space-between;margin:1px 0;"><span>${tax.name} (${tax.rate}%)${inclLabel}:</span><span>${cs}${(tax.amount || 0).toFixed(2)}</span></div>`;
+      taxHtml = `<div style="display:flex;justify-content:space-between;margin:1px 0;"><span>${tax.name} (${tax.rate}%):</span><span>${cs}${(tax.amount || 0).toFixed(2)}</span></div>`;
     } else {
-      taxHtml = visibleTaxes.length > 0 ? `<table style="margin:2px 0;"><tbody>${buildTaxHtml(taxBreakdown, cs, { showInclusiveTax: showIncl }, printSettings)}</tbody></table>` : '';
+      taxHtml = visibleTaxes.length > 0 ? `<table style="margin:2px 0;"><tbody>${buildTaxHtml(taxBreakdown, cs, {}, printSettings)}</tbody></table>` : '';
     }
   }
   const discountHtml = buildDiscountHtml(invoice, L, cs);

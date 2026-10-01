@@ -11,7 +11,7 @@ import { useCurrency } from '../contexts/CurrencyContext';
 import useCustomerLookup, { getPhoneMinLength } from '../hooks/useCustomerLookup';
 import useOfferEngine, { calculateDiscountForOffer } from '../hooks/useOfferEngine';
 import { getKOTPrintCSS, buildTokenSlipHTML, buildTokenSlipsDocumentHTML } from '../utils/printFontSizes';
-import { inclusiveSplit, totalRate } from '../utils/inclusiveTax';
+import { inclusiveSplit, totalRate, inclusiveTaxSummary } from '../utils/inclusiveTax';
 import { attachInclusiveSplits } from '../utils/printTemplates/helpers';
 import { useTerminalLock } from '../contexts/TerminalLockContext';
 
@@ -2388,7 +2388,12 @@ const OrderSummary = ({
     if (localTaxData.couponDiscount != null) invoiceData.couponDiscount = localTaxData.couponDiscount;
     if (localTaxData.couponCode) invoiceData.couponCode = localTaxData.couponCode;
     if (localTaxData.totalDiscountAmount != null) invoiceData.totalDiscount = localTaxData.totalDiscountAmount;
-    if (localTaxData.taxBreakdown?.length) invoiceData.taxBreakdown = localTaxData.taxBreakdown;
+    if (localTaxData.taxBreakdown?.length) {
+      invoiceData.taxBreakdown = localTaxData.taxBreakdown;
+      // Keep the inclusive/exclusive marker in step with the tax lines it describes.
+      if (localTaxData.taxInclusiveMode) invoiceData.taxInclusiveMode = localTaxData.taxInclusiveMode;
+    }
+    if (localTaxData.showInclusiveTaxOnBill != null) invoiceData.showInclusiveTaxOnBill = localTaxData.showInclusiveTaxOnBill;
     if (localTaxData.finalAmount != null) invoiceData.grandTotal = localTaxData.finalAmount;
     invoiceData.totalTax = localTaxData.taxBreakdown?.reduce((s, t) => s + (t.amount || 0), 0) || 0;
     invoiceData.taxAmount = invoiceData.totalTax;
@@ -4321,9 +4326,10 @@ const OrderSummary = ({
                           <span>-{formatCurrency(invoice.couponDiscount)}</span>
                         </div>
                       )}
-                      {splitGstForDisplay(invoice?.taxBreakdown, countryCode).map((tax, idx) => (
+                      {/* Only tax added on top is part of the sum; tax inside the prices is shown under the total. */}
+                      {splitGstForDisplay(invoice?.taxBreakdown, countryCode).filter(tax => tax && !tax.inclusive).map((tax, idx) => (
                         <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
-                          <span>{tax.name} ({tax.rate}%){tax.inclusive ? ' (incl.)' : ''}</span>
+                          <span>{tax.name} ({tax.rate}%)</span>
                           <span>{formatCurrency(tax.amount || 0)}</span>
                         </div>
                       ))}
@@ -4347,8 +4353,25 @@ const OrderSummary = ({
                       )}
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 'bold', borderTop: '2px solid #22c55e', paddingTop: '4px', marginTop: '4px' }}>
                         <span>{t('invoice.total')}:</span>
-                        <span>{formatCurrency(invoice?.grandTotal || ((invoice?.subtotal || 0) - (invoice?.totalDiscount || 0) + (invoice?.taxBreakdown?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0) + (invoice?.serviceChargeAmount || 0) + (invoice?.tipAmount || 0) + (invoice?.roundOffAmount || 0)))}</span>
+                        <span>{formatCurrency(invoice?.grandTotal || ((invoice?.subtotal || 0) - (invoice?.totalDiscount || 0) + (invoice?.taxBreakdown?.filter(t => !t.inclusive).reduce((sum, t) => sum + (t.amount || 0), 0) || 0) + (invoice?.serviceChargeAmount || 0) + (invoice?.tipAmount || 0) + (invoice?.roundOffAmount || 0)))}</span>
                       </div>
+                      {(() => {
+                        // Same "Prices are inclusive of GST" block as the printed bill (utils/inclusiveTax).
+                        const incl = inclusiveTaxSummary({ ...invoice, taxBreakdown: splitGstForDisplay(invoice?.taxBreakdown, countryCode) });
+                        if (!incl) return null;
+                        const showLines = invoice?.showInclusiveTaxOnBill !== false && incl.lines.length > 0;
+                        return (
+                          <div style={{ borderTop: '1px dashed #22c55e', paddingTop: '4px', marginTop: '4px', fontSize: '11px' }}>
+                            <div style={{ textAlign: 'center', fontWeight: 600, marginBottom: '2px' }}>{incl.heading}</div>
+                            {showLines && incl.taxableValue != null && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Taxable value</span><span>{formatCurrency(incl.taxableValue)}</span></div>
+                            )}
+                            {showLines && incl.lines.map((tax, idx) => (
+                              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}><span>{tax.name} ({tax.rate}%)</span><span>{formatCurrency(tax.amount)}</span></div>
+                            ))}
+                          </div>
+                        );
+                      })()}
                       {(invoice?.walletRedeemAmount || 0) > 0 && (
                         <div style={{ borderTop: '1px dashed #22c55e', paddingTop: '4px', marginTop: '4px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px', color: '#2563eb' }}>

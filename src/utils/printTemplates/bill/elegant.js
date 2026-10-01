@@ -40,8 +40,8 @@ export function render(invoice, printSettings = {}, labels = {}) {
   const items = invoice.items || [];
 
   const itemsHtml = buildBillItemRows(items, cs, showAr, { showItemTaxBreakup: bl.showItemTaxBreakup === true });
-  const taxHtml = buildTaxHtml(invoice.taxBreakdown, cs, { showInclusiveTax: invoice.showInclusiveTaxOnBill !== false }, printSettings);
-  const inclusiveNote = buildInclusiveTaxNote(invoice);
+  const taxHtml = buildTaxHtml(invoice.taxBreakdown, cs, {}, printSettings);
+  const inclusiveNote = buildInclusiveTaxNote(invoice, printSettings);
   const discountHtml = buildDiscountHtml(invoice, L, cs);
   const chargesHtml = buildChargesHtml(invoice, L, cs);
   const paymentHtml = buildPaymentHtml(invoice, L, cs);

@@ -142,6 +142,7 @@ import { FEATURE_OPS, OP_LABELS, ADMIN_TAB_LABELS, ADMIN_TAB_ID_TO_KEY, resolveF
 import { PAGE_ACCESS_CONFIG } from '@/lib/pageAccessConfig';
 import { getPrintFontSizes, getPrintFontFamily, PRINT_FONTS, getContentWidthRange } from '../../../utils/printFontSizes';
 import { KOT_TEMPLATE_LIST, BILL_TEMPLATE_LIST, renderKOT, renderBill } from '../../../utils/printTemplates/index';
+import { splitIndiaGst } from '../../../utils/printTemplates/helpers';
 import StaffAccessSettings from '../../../components/admin/StaffAccessSettings';
 import RolesSettings from '../../../components/admin/RolesSettings';
 
@@ -3742,6 +3743,16 @@ const getDownloadPlatform = () => {
 // Print Settings Component
 const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
   const [generatingArabicNames, setGeneratingArabicNames] = useState(false);
+  // The restaurant's own tax settings, so the sample bill preview shows tax the way real bills do
+  // (none / added on top / included in prices) instead of a fixed "5% added on top".
+  const [previewTax, setPreviewTax] = useState(null);
+  useEffect(() => {
+    const rid = selectedRestaurant?.id;
+    if (!rid) return undefined;
+    let alive = true;
+    apiClient.getTaxSettings(rid).then((r) => { if (alive && r?.success) setPreviewTax(r.taxSettings || null); }).catch(() => {});
+    return () => { alive = false; };
+  }, [selectedRestaurant?.id]);
   const [arabicNamesStatus, setArabicNamesStatus] = useState(null);
   const [printSettings, setPrintSettings] = useState({
     // Dashboard UI settings
@@ -5077,8 +5088,25 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                       { name: 'Masala Dosa', quantity: 1, price: 120, total: 120, categoryName: 'South Indian' },
                     ],
                     subtotal: 530,
-                    taxBreakdown: [{ name: selectedRestaurant?.currencySettings?.taxLabel || 'Tax', rate: 5, amount: 26.50 }],
-                    grandTotal: 556.50,
+                    ...(() => {
+                      // Sample tax follows the restaurant's real settings (dine-in sample bill).
+                      const t = previewTax;
+                      const taxes = (t?.enabled && Array.isArray(t.taxes) ? t.taxes : [])
+                        .filter(x => x && x.enabled && Number(x.rate) > 0
+                          && (!Array.isArray(x.orderTypes) || x.orderTypes.length === 0 || x.orderTypes.some(o => String(o).toLowerCase().replace(/[_\s]+/g, '-') === 'dine-in')));
+                      const incl = t?.taxInclusivePricing === true;
+                      const rate = taxes.reduce((s, x) => s + Number(x.rate), 0);
+                      const r2 = (n) => Math.round(n * 100) / 100;
+                      const lines = taxes.map(x => ({ name: x.name || 'Tax', rate: Number(x.rate), amount: r2(incl ? 530 * Number(x.rate) / (100 + rate) : 530 * Number(x.rate) / 100), inclusive: incl }));
+                      const added = incl ? 0 : lines.reduce((s, x) => s + x.amount, 0);
+                      return {
+                        taxBreakdown: lines,
+                        taxInclusiveMode: lines.length ? (incl ? 'inclusive' : 'exclusive') : 'exclusive',
+                        showInclusiveTaxOnBill: t?.showInclusiveTaxOnBill !== false,
+                        grandTotal: r2(530 + added),
+                        changeReturned: r2(600 - (530 + added)),
+                      };
+                    })(),
                     offerDiscount: 0,
                     manualDiscount: 0,
                     loyaltyDiscount: 0,
@@ -5087,11 +5115,10 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                     tipAmount: 0,
                     roundOffAmount: 0,
                     cashReceived: 600,
-                    changeReturned: 43.50,
                   };
 
                   const kotHtml = renderKOT(sampleKotData, printSettings, {});
-                  const billHtml = renderBill(sampleBillData, printSettings, {});
+                  const billHtml = renderBill(splitIndiaGst({ ...sampleBillData, countryCode: selectedRestaurant?.currencySettings?.countryCode || selectedRestaurant?.countryCode }), printSettings, {}); // GST → CGST + SGST like real Indian bills
 
                   // Visual representation of paper vs content area
                   const paperW = printSettings.printerWidth || 80;

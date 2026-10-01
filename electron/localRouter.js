@@ -677,28 +677,42 @@ function routeLocally(endpoint, method, body) {
       const loyaltyDiscount = order.loyaltyDiscount || 0;
       const totalDiscount = discountAmount + manualDiscount + loyaltyDiscount;
 
-      let totalTax = 0;
-      let taxBreakdown = [];
-      if (Array.isArray(order.taxBreakdown) && order.taxBreakdown.length > 0) {
-        taxBreakdown = order.taxBreakdown;
-        totalTax = order.taxAmount || taxBreakdown.reduce((s, t) => s + (t.amount || 0), 0);
-      } else if (taxSettings.enabled) {
-        const taxable = Math.max(0, subtotal - totalDiscount);
-        for (const tax of (taxSettings.taxes || [])) {
-          if (tax.enabled) {
-            const amt = (taxable * (tax.rate || 0)) / 100;
-            taxBreakdown.push({ id: tax.id, name: tax.name, rate: tax.rate, amount: Math.round(amt * 100) / 100 });
-            totalTax += amt;
-          }
+      // The order's saved tax lines are the truth (same rule as dine-backend utils/billTax.js).
+      // Never invent tax from current settings: an order with no tax saved (e.g. GST set for
+      // dine-in only, or placed before tax was switched on) prints no tax. Very old orders that
+      // saved only a tax total get lines rebuilt for their order type, scaled to that total.
+      const _r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+      let taxBreakdown = Array.isArray(order.taxBreakdown) ? order.taxBreakdown.filter(Boolean) : [];
+      if (!taxBreakdown.length && _r2(order.taxAmount) > 0) {
+        const _total = _r2(order.taxAmount);
+        const _canon = (v) => String(v || '').toLowerCase().replace(/[_\s]+/g, '-');
+        const _incl = order.taxInclusiveMode === 'inclusive' || (!order.taxInclusiveMode && taxSettings.taxInclusivePricing === true);
+        const _taxes = (taxSettings.taxes || []).filter((t) => t && t.enabled && Number(t.rate) > 0
+          && (!Array.isArray(t.orderTypes) || !t.orderTypes.length || t.orderTypes.some((x) => _canon(x) === _canon(order.orderType))));
+        const _sum = _taxes.reduce((s, t) => s + Number(t.rate), 0);
+        if (_taxes.length && _sum > 0) {
+          let _left = _total;
+          _taxes.forEach((t, i) => {
+            const amount = i === _taxes.length - 1 ? _r2(_left) : _r2(_total * Number(t.rate) / _sum);
+            _left = _r2(_left - amount);
+            taxBreakdown.push({ id: t.id, name: t.name, rate: Number(t.rate), amount, inclusive: _incl });
+          });
+        } else {
+          taxBreakdown.push({ name: 'Tax', rate: 0, amount: _total, inclusive: _incl });
         }
-        totalTax = Math.round(totalTax * 100) / 100;
       }
+      const totalTax = _r2(order.taxAmount || taxBreakdown.reduce((s, t) => s + (Number(t.amount) || 0), 0));
+      const _exclTax = _r2(taxBreakdown.filter((t) => t.inclusive !== true).reduce((s, t) => s + (Number(t.amount) || 0), 0));
+      const _hasIncl = taxBreakdown.some((t) => t.inclusive === true && Number(t.amount) > 0);
+      const _hasExcl = taxBreakdown.some((t) => t.inclusive !== true && Number(t.amount) > 0);
+      const taxInclusiveMode = order.taxInclusiveMode || (_hasIncl && _hasExcl ? 'mixed' : _hasIncl ? 'inclusive' : 'exclusive');
 
       const serviceChargeAmount = order.serviceChargeAmount || null;
       const tipAmount = order.tipAmount || null;
       const roundOffAmount = order.roundOffAmount != null ? order.roundOffAmount : null;
+      // Fallback only: inclusive tax is already inside the prices.
       const grandTotal = order.finalAmount ||
-        (subtotal - totalDiscount + totalTax + (serviceChargeAmount || 0) + (tipAmount || 0) + (roundOffAmount || 0));
+        (subtotal - totalDiscount + _exclTax + (serviceChargeAmount || 0) + (tipAmount || 0) + (roundOffAmount || 0));
 
       const createdAt = order.createdAt ? new Date(order.createdAt) : new Date();
       const completedAt = order.completedAt ? new Date(order.completedAt) : null;
@@ -740,6 +754,8 @@ function routeLocally(endpoint, method, body) {
         appliedOffers: order.appliedOffers || null,
         selectedOfferName: order.selectedOfferName || null,
         taxBreakdown,
+        taxInclusiveMode,
+        showInclusiveTaxOnBill: taxSettings.showInclusiveTaxOnBill !== false,
         totalTax,
         taxAmount: totalTax,
         grandTotal: Math.round(grandTotal * 100) / 100,

@@ -95,11 +95,10 @@ export function render(invoice, printSettings = {}, labels = {}) {
   }).join('');
 
   // Tax rows
-  const showIncl = invoice.showInclusiveTaxOnBill !== false;
-  const taxRows = bl.showTaxBreakdown === false ? '' : (invoice.taxBreakdown || []).filter(tax => !tax.inclusive || showIncl).map(tax =>
-    `<div class="row"><span>${tax.name} (${tax.rate}%)${tax.inclusive ? ' (incl.)' : ''}:</span><span>${cs}${(tax.amount || 0).toFixed(2)}</span></div>`
+  const taxRows = bl.showTaxBreakdown === false ? '' : (invoice.taxBreakdown || []).filter(tax => tax && !tax.inclusive).map(tax =>
+    `<div class="row"><span>${tax.name} (${tax.rate}%):</span><span>${cs}${(tax.amount || 0).toFixed(2)}</span></div>`
   ).join('');
-  const inclusiveNote = buildInclusiveTaxNote(invoice);
+  const inclusiveNote = buildInclusiveTaxNote(invoice, printSettings);
 
   // Discounts
   const offerName = typeof invoice.appliedOffer === 'string' ? invoice.appliedOffer : (invoice.appliedOffer?.name || '');

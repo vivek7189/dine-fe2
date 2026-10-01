@@ -1354,14 +1354,19 @@ function RestaurantPOSContent() {
     localStorage.setItem('dine_cart', JSON.stringify(cart));
   }, [cart]);
 
-  // Load tax settings for the restaurant (cache-first with 5-min staleness)
-  const loadTaxSettings = useCallback(async (restaurantId) => {
+  // Load tax settings for the restaurant (cache-first with 5-min staleness).
+  // force: skip every cache — used when the owner just changed tax settings (realtime event,
+  // another tab, or the POS coming back into view), so bills never use old settings.
+  const taxLoadedAtRef = useRef(0);
+  const loadTaxSettings = useCallback(async (restaurantId, { force = false } = {}) => {
     if (!restaurantId) return;
+    taxLoadedAtRef.current = Date.now();
 
     // 1. Load from localStorage cache INSTANTLY (synchronous)
     const cacheKey = `dine_tax_${restaurantId}`;
+    if (force) apiClient.invalidateCache(`/api/admin/tax/${restaurantId}`);
     try {
-      const cached = localStorage.getItem(cacheKey);
+      const cached = force ? null : localStorage.getItem(cacheKey);
       if (cached) {
         const { data, timestamp } = JSON.parse(cached);
         if (data) {
@@ -1414,6 +1419,25 @@ function RestaurantPOSContent() {
     if (selectedRestaurant?.id) {
       loadTaxSettings(selectedRestaurant.id);
     }
+  }, [selectedRestaurant?.id, loadTaxSettings]);
+
+  // Pick up tax-setting changes without a page reload: saved in another tab of this browser
+  // (Admin → Tax clears dine_tax_<rid>), or the POS coming back into view after a while.
+  // The realtime 'tax-settings-updated' event (other devices) is handled with the menu events.
+  const loadTaxSettingsRef = useRef(loadTaxSettings);
+  loadTaxSettingsRef.current = loadTaxSettings;
+  useEffect(() => {
+    const rid = selectedRestaurant?.id;
+    if (!rid || typeof window === 'undefined') return undefined;
+    const onStorage = (e) => {
+      if (e.key === `dine_tax_${rid}` && e.newValue === null) loadTaxSettings(rid, { force: true });
+    };
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && Date.now() - taxLoadedAtRef.current > 60 * 1000) loadTaxSettings(rid, { force: true });
+    };
+    window.addEventListener('storage', onStorage);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { window.removeEventListener('storage', onStorage); document.removeEventListener('visibilitychange', onVisible); };
   }, [selectedRestaurant?.id, loadTaxSettings]);
 
   // Load UPI settings from customer app settings
@@ -3276,6 +3300,8 @@ function RestaurantPOSContent() {
     const handleMenuEvent = (data) => {
       if (!data) return;
       console.log(`📡 Dashboard: Received '${data.type}' event:`, data);
+      // Owner changed tax settings — reload them now (not the menu) so the next bill uses them.
+      if (data.type === 'tax-settings-updated') { loadTaxSettingsRef.current?.(restaurantId, { force: true }); return; }
       debouncedMenuRefresh();
     };
     const unsubMenu = subscribeRestaurantEvents(restaurantId, 'menu', handleMenuEvent, { onError: handleRtdbError });

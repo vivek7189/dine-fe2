@@ -4,6 +4,7 @@
 export { getBillPrintCSS, getKOTPrintCSS, getBillHeaderHTML, getPrintFontSizes, getPrintFontFamily, getContentWidth } from '../printFontSizes';
 
 import { seatLabel, sanitizeSeat } from '../orderItemKey';
+import { inclusiveTaxSummary } from '../inclusiveTax';
 
 // HTML-escape a string
 export const esc = (str) => String(str ?? '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -293,19 +294,16 @@ export function buildBillItemRows(items, cs, showAr, opts = {}) {
   }).join('');
 }
 
-// Build tax breakdown rows HTML
-// options.showInclusiveTax: when false, hides inclusive tax lines from the bill
+// Build tax breakdown rows HTML — only tax ADDED ON TOP of the prices. Tax already inside
+// the prices (inclusive) is not part of the Subtotal → Total sum; buildInclusiveTaxNote shows it
+// under the total instead.
 export function buildTaxHtml(taxBreakdown, cs, options, printSettings) {
   const bl = printSettings?.billLayout || {};
   if (bl.showTaxBreakdown === false) return '';
-  const showIncl = !options || options.showInclusiveTax !== false;
   return (taxBreakdown || [])
-    .filter(tax => !tax.inclusive || showIncl)
-    .map(tax => {
-      const inclLabel = tax.inclusive ? ' (incl.)' : '';
-      return `<tr><td colspan="2" style="text-align:left;">${tax.name} (${tax.rate}%)${inclLabel}</td>` +
-        `<td style="text-align:right;">${cs}${(tax.amount || 0).toFixed(2)}</td></tr>`;
-    }).join('');
+    .filter(tax => tax && !tax.inclusive)
+    .map(tax => `<tr><td colspan="2" style="text-align:left;">${tax.name} (${tax.rate}%)</td>` +
+        `<td style="text-align:right;">${cs}${(tax.amount || 0).toFixed(2)}</td></tr>`).join('');
 }
 
 // Build "prices inclusive of GST" footer note
@@ -339,11 +337,26 @@ export function renderOrderStatusQRHtml(url, qrDataUrl) {
     `</div>`;
 }
 
-export function buildInclusiveTaxNote(invoice) {
-  if (invoice.taxInclusiveMode === 'inclusive' || invoice.taxInclusiveMode === 'mixed') {
-    return '<div style="text-align:center;font-size:9px;margin-top:4px;color:#000;">* Prices are inclusive of applicable taxes</div>';
+// Tax already inside the prices, shown under the total the way POS receipts do:
+//   Prices are inclusive of GST
+//   Taxable value   ₹238.10
+//   CGST (2.5%)       ₹5.95
+//   SGST (2.5%)       ₹5.95
+// Heading only when the restaurant hides the inclusive breakdown (showInclusiveTaxOnBill
+// false, or billLayout.showTaxBreakdown false). Display only — totals are untouched.
+export function buildInclusiveTaxNote(invoice, printSettings) {
+  const x = inclusiveTaxSummary(invoice);
+  if (!x) return '';
+  const cs = invoice.currencySymbol || '';
+  const hideLines = invoice.showInclusiveTaxOnBill === false || printSettings?.billLayout?.showTaxBreakdown === false;
+  const row = (label, value) => `<div style="display:flex;justify-content:space-between;margin:1px 0;"><span>${label}</span><span>${value}</span></div>`;
+  let html = `<div style="border-top:1px dashed #000;margin-top:4px;padding-top:3px;color:#000;">` +
+    `<div style="text-align:center;font-weight:bold;margin-bottom:2px;">${esc(x.heading)}</div>`;
+  if (!hideLines && x.lines.length) {
+    if (x.taxableValue != null) html += row('Taxable value', `${cs}${x.taxableValue.toFixed(2)}`);
+    html += x.lines.map(t => row(`${esc(t.name)} (${t.rate}%)`, `${cs}${t.amount.toFixed(2)}`)).join('');
   }
-  return '';
+  return html + '</div>';
 }
 
 // Build discount HTML (offer, manual, loyalty)
