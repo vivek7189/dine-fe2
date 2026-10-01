@@ -2287,6 +2287,11 @@ class ApiClient {
     return this.request('/api/staff/me/profile', { method: 'PUT', body: { profile } });
   }
   // Staff whose profile the caller may open (managers: the staff they manage).
+  // Staff for the Books pickers when the full staff list isn't allowed (managers): only the
+  // people this user may manage.
+  async getPayrollStaff(restaurantId) {
+    return this.request(`/api/payroll/${restaurantId}/staff`);
+  }
   async getStaffProfilesList(restaurantId) {
     return this.request(`/api/staff-profiles/${restaurantId}`);
   }

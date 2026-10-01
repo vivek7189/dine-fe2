@@ -657,7 +657,9 @@ export default function AttendancePage() {
         workEndTime: settingsForm.workingHours.end,
         lateGracePeriod: settingsForm.workingHours.lateGrace,
         leaveTypes: settingsForm.leaveTypes.map(lt => ({
-          id: lt.shortName?.toLowerCase() || lt.id,
+          // Keep a type's id once it has one: balances and leave requests are keyed by it, so renaming
+          // the short name (CL → CAS) must not turn it into a new, unlimited type.
+          id: lt.id || lt.shortName?.toLowerCase(),
           name: lt.name,
           shortName: lt.shortName,
           paidLeaves: lt.paidDays || lt.paidLeaves || 0,

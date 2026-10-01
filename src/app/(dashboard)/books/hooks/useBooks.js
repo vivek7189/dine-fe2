@@ -254,7 +254,9 @@ export default function useBooks() {
       const [configRes, runsRes, staffRes] = await Promise.all([
         apiClient.getPayrollConfig(restaurantId),
         apiClient.getPayrollRuns(restaurantId),
-        apiClient.getStaff(restaurantId).catch(() => ({ staff: [] })),
+        // Owner / admin: the full staff list. Anyone else running the books (managers) isn't
+        // allowed that list → the Books list of staff they may manage.
+        apiClient.getStaff(restaurantId).catch(() => apiClient.getPayrollStaff(restaurantId).catch(() => ({ staff: [] }))),
       ]);
       setPayrollConfig(configRes?.configs || []);
       setPayrollRuns(runsRes?.runs || []);

@@ -157,7 +157,7 @@ export default function MyPayView() {
                         ? <span style={pill('#ecfdf5', '#047857')}>Acknowledged {fmtDate(a.acknowledgedAt)}</span>
                         : <button type="button" disabled={busy === a.id} onClick={() => acknowledge(a)} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: '#4f46e5', color: '#fff', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', opacity: busy === a.id ? 0.6 : 1 }}>{busy === a.id ? 'Saving…' : 'Acknowledge'}</button>}
                     </div>
-                    {[['Strengths', a.strengths], ['To improve', a.improvements], ['Goals', a.goals], ['Comments', a.comments], ['Recommendation', a.recommendation]].filter(([, v]) => v).map(([k, v]) => (
+                    {[['Strengths', a.strengths], ['To improve', a.improvements], ['Goals', a.goals], ['Comments', a.comments], ['Recommendation', a.recommendation && a.recommendation !== 'none' ? (a.recommendationLabel || a.recommendation) : null]].filter(([, v]) => v).map(([k, v]) => (
                       <p key={k} style={{ margin: '6px 0 0', fontSize: 13.5, color: '#374151' }}><b style={{ color: '#111827' }}>{k}:</b> {v}</p>
                     ))}
                   </div>
