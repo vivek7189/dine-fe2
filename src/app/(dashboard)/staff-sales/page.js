@@ -202,6 +202,19 @@ export default function StaffSalesPage() {
 
   const totalRevenue = data?.summary?.totalRevenue || 0;
   const maxSales = staffData.length > 0 ? Math.max(...staffData.map(s => s.totalSales || 0), 1) : 1;
+  // QR / customer self-orders with no table server: not a staff member.
+  const isSelfOrderRow = (s) => /customer self-order/i.test(String(s?.staffId || '')) || /customer self-order/i.test(String(s?.staffName || ''));
+  const displayName = (s) => (isSelfOrderRow(s) ? 'QR / self-orders (no server)' : (s?.staffName || 'Unknown'));
+  // Logins shared at the counter (owner / cashier …) — their row is "orders entered on this login".
+  const SHARED_ROLES = ['owner', 'admin', 'co-owner', 'cashier'];
+  const roleTag = (s) => (!isSelfOrderRow(s) && SHARED_ROLES.includes(String(s?.role || '').toLowerCase()) ? String(s.role).toLowerCase() : null);
+  const totalOrders = staffData.reduce((sum, s) => sum + (s.ordersHandled || 0), 0);
+  const avgBill = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+  const staffRowsCount = staffData.filter(s => !isSelfOrderRow(s)).length;
+  // Orders that have a table server (Tables → Assign Server). The rest are credited to whoever
+  // entered them, so the report can't split them by waiter — say so instead of a misleading average.
+  const assignedOrders = staffData.reduce((sum, s) => sum + (s.assignedOrders || 0), 0);
+  const showServerHint = totalOrders > 0 && assignedOrders / totalOrders < 0.5;
 
   // Filtered staff data for table
   const filteredStaffData = searchTerm
@@ -240,7 +253,7 @@ export default function StaffSalesPage() {
       ['Rank', 'Staff Name', 'Orders Served', 'Sales (served)', 'Avg Ticket', 'Tips', 'Revenue Share %', 'Orders Taken', 'Sales (taken)'],
       ...staffData.map((s, i) => [
         i + 1,
-        s.staffName || 'Unknown',
+        displayName(s),
         s.ordersHandled || 0,
         s.totalSales || 0,
         s.avgTicket || 0,
@@ -362,9 +375,9 @@ export default function StaffSalesPage() {
                   <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
                     <FaUsers className="text-blue-600 text-sm" />
                   </div>
-                  <span className="text-xs text-gray-500 font-medium uppercase">Total Staff</span>
+                  <span className="text-xs text-gray-500 font-medium uppercase">Staff with sales</span>
                 </div>
-                <div className="text-xl sm:text-2xl font-bold text-gray-900">{data.summary?.totalStaff || 0}</div>
+                <div className="text-xl sm:text-2xl font-bold text-gray-900">{staffRowsCount}</div>
               </div>
 
               <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
@@ -382,9 +395,10 @@ export default function StaffSalesPage() {
                   <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
                     <span className="text-purple-600 font-bold text-sm">{getCurrencySymbol()}</span>
                   </div>
-                  <span className="text-xs text-gray-500 font-medium uppercase">Avg Revenue/Staff</span>
+                  <span className="text-xs text-gray-500 font-medium uppercase">Avg Bill</span>
                 </div>
-                <div className="text-xl sm:text-2xl font-bold text-gray-900">{formatCurrency(data.summary?.avgRevenuePerStaff || 0)}</div>
+                <div className="text-xl sm:text-2xl font-bold text-gray-900">{formatCurrency(avgBill)}</div>
+                <div className="text-[11px] text-gray-400 mt-0.5">{totalOrders} orders</div>
               </div>
 
               <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
@@ -398,6 +412,17 @@ export default function StaffSalesPage() {
               </div>
             </div>
 
+            {/* Most orders have no table server → they can't be split by waiter; say why + how. */}
+            {showServerHint && (
+              <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-4 mb-6 text-sm leading-relaxed">
+                <div className="font-semibold mb-1">Sales can&apos;t be split by waiter for this period</div>
+                Only {assignedOrders} of {totalOrders} orders have a server. The rest are credited to the login that entered them
+                {staffData.filter(roleTag).length ? ` (e.g. ${staffData.filter(roleTag).slice(0, 2).map(displayName).join(', ')})` : ''}
+                {staffData.some(isSelfOrderRow) ? ' or are QR self-orders' : ''}. To see each waiter&apos;s sales, assign a server to each table
+                (Tables → table → Assign Server) — every order on that table then counts for that server — or let waiters take orders on their own login.
+              </div>
+            )}
+
             {/* CSS Bar Chart - Top 10 Staff */}
             {staffData.length > 0 && (
               <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
@@ -409,7 +434,7 @@ export default function StaffSalesPage() {
                       <div key={s.staffId || i} className="flex items-center gap-3 group">
                         <div className="w-28 sm:w-36 text-sm text-gray-700 font-medium truncate flex items-center gap-2">
                           {getRankDisplay(i + 1)}
-                          <span className="truncate">{s.staffName || 'Unknown'}</span>
+                          <span className="truncate">{displayName(s)}</span>
                         </div>
                         <div className="flex-1 h-7 bg-gray-100 rounded-full overflow-hidden relative">
                           <div
@@ -494,7 +519,8 @@ export default function StaffSalesPage() {
                               {getRankDisplay(originalRank)}
                             </td>
                             <td className="px-4 py-3">
-                              <span className="font-medium text-gray-800 text-sm">{s.staffName || 'Unknown'}</span>
+                              <span className="font-medium text-gray-800 text-sm">{displayName(s)}</span>
+                              {roleTag(s) && <span className="ml-2 text-[10px] uppercase tracking-wide bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{roleTag(s)} login</span>}
                             </td>
                             <td className="px-4 py-3 text-center">
                               <span className="inline-flex items-center justify-center bg-blue-50 text-blue-700 font-bold text-sm px-3 py-0.5 rounded-full min-w-[40px]">
@@ -522,7 +548,7 @@ export default function StaffSalesPage() {
                         </td>
                         <td className="px-4 py-3 text-right text-emerald-700 text-sm">{formatCurrency(totalRevenue)}</td>
                         <td className="px-4 py-3 text-right text-sm text-gray-600">
-                          {formatCurrency(staffData.length > 0 ? totalRevenue / staffData.length : 0)}
+                          {formatCurrency(avgBill)}
                         </td>
                         <td className="px-4 py-3 text-right text-sm text-gray-600">{formatCurrency(data.summary?.totalTips || 0)}</td>
                         <td className="px-4 py-3 text-right text-sm text-gray-600">100%</td>
