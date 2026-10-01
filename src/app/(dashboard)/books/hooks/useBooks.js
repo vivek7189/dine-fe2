@@ -279,9 +279,9 @@ export default function useBooks() {
     } catch (err) { setError('Failed to delete config'); }
   };
 
-  const handleGeneratePayrollRun = async (month, daysWorked) => {
+  const handleGeneratePayrollRun = async (month, daysWorked, overtimeHours) => {
     try {
-      const res = await apiClient.generatePayrollRun(restaurantId, { month, daysWorked: daysWorked || {} });
+      const res = await apiClient.generatePayrollRun(restaurantId, { month, daysWorked: daysWorked || {}, overtimeHours: overtimeHours || {} });
       // The server names anyone it left out (deleted staff, moved to another outlet).
       setSuccess(res?.skipped?.length ? res.message : `Payroll generated for ${month}`);
       fetchPayroll();
@@ -309,6 +309,16 @@ export default function useBooks() {
   };
 
   // One-off earnings / deductions on a payslip (gift, compensation, penalty…) before paying.
+  // Days present / paid leave / OT hours on one payslip (unpaid run) — LOP, OT pay, net recalculated.
+  const handleSavePaySlipAttendance = async (runId, slipId, data) => {
+    try {
+      const res = await apiClient.savePaySlipAttendance(restaurantId, runId, slipId, data);
+      setSuccess('Payslip updated');
+      fetchPayroll();
+      return res;
+    } catch (err) { setError(err?.message || 'Failed to update payslip'); return null; }
+  };
+
   const handleSavePaySlipAdjustments = async (runId, slipId, items) => {
     try {
       const res = await apiClient.savePaySlipAdjustments(restaurantId, runId, slipId, items);
@@ -438,7 +448,7 @@ export default function useBooks() {
     expenseCategoryFilter, setExpenseCategoryFilter,
     handleAddExpense, handleUpdateExpense, handleDeleteExpense, handleEditExpense,
     handleSavePayrollConfig, handleDeletePayrollConfig,
-    handleGeneratePayrollRun, handleUpdatePayrollRun, handleDeletePayrollRun, handleViewPaySlips, handleSavePaySlipAdjustments,
+    handleGeneratePayrollRun, handleUpdatePayrollRun, handleDeletePayrollRun, handleViewPaySlips, handleSavePaySlipAdjustments, handleSavePaySlipAttendance,
     handleRecordSupplierPayment,
     fetchOverview, fetchRevenue, fetchExpenses, fetchSupplierDues, fetchPnl, fetchPayroll,
     getModalStyles, getModalContentStyles,

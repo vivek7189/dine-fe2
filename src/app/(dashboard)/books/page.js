@@ -173,6 +173,7 @@ export default function BooksPage() {
             onDeleteRun={books.handleDeletePayrollRun}
             onViewSlips={books.handleViewPaySlips}
             onSaveAdjustments={books.handleSavePaySlipAdjustments}
+            onSaveSlipAttendance={books.handleSavePaySlipAttendance}
             restaurantId={books.restaurantId}
             apiClient={books.apiClient}
           />

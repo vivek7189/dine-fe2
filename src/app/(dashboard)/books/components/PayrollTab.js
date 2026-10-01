@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Fragment } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { FaPlus, FaPlay, FaCheck, FaEye, FaTimes, FaSave, FaTrash, FaMoneyBillWave, FaUsers, FaCalendarAlt, FaPrint, FaCog, FaSlidersH } from 'react-icons/fa';
 import useHrSettings from '../hooks/useHrSettings';
@@ -34,7 +34,7 @@ const STATUS_COLORS = {
 
 export default function PayrollTab({
   payrollConfig, payrollRuns, loadingPayroll, isMobile, formatCurrency,
-  staffList, onSaveConfig, onDeleteConfig, onGenerateRun, onUpdateRun, onDeleteRun, onViewSlips, onSaveAdjustments,
+  staffList, onSaveConfig, onDeleteConfig, onGenerateRun, onUpdateRun, onDeleteRun, onViewSlips, onSaveAdjustments, onSaveSlipAttendance,
   restaurantId, apiClient,
 }) {
   // Pay components + payment modes are the restaurant's own lists (⚙ Settings; defaults HRA/Travel/
@@ -72,11 +72,13 @@ export default function PayrollTab({
   });
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [daysWorked, setDaysWorked] = useState({}); // { staffId: '' | number } — blank = full month
+  const [otHours, setOtHours] = useState({});         // { staffId: '' | number } — blank = from attendance / none
+  const [editDaysSlip, setEditDaysSlip] = useState(null); // payslip whose days / OT are being edited
 
   const [form, setForm] = useState({
     staffId: '', staffName: '', role: '', baseSalary: '',
     allowances: {}, deductions: {}, componentLabels: {},
-    payFrequency: 'monthly', bankAccount: '',
+    payFrequency: 'monthly', bankAccount: '', paymentMode: '',
   });
 
   const configs = payrollConfig || [];
@@ -102,8 +104,10 @@ export default function PayrollTab({
     if (slip.advanceRecovery > 0) rows.push(['Advance recovery', '', '-' + fc(slip.advanceRecovery)]);
     adj.filter(a => a.kind === 'deduction').forEach(a => rows.push([a.name + (a.reason ? ` — ${a.reason}` : ''), '', '-' + fc(a.amount)]));
     const pay = slip.payment || run?.payment || null;
-    const payHtml = pay ? `<div class="att">Paid by: ${escapeHtml(pay.modeName || pay.mode)}${pay.reference ? ' · Ref: ' + escapeHtml(pay.reference) : ''}</div>` : '';
-    const attHtml = att ? `<div class="att">Working days: ${att.workingDays ?? '-'} · Present: ${att.presentDays ?? '-'} · Paid leave: ${att.paidLeaveDays ?? '-'} · LOP days: ${att.lopDays ?? '-'} · OT hrs: ${att.overtimeHours ?? '-'}</div>` : '';
+    const plannedMode = !pay && slip.paymentMode ? (paymentModes.find(m => m.id === slip.paymentMode) || {}).name || slip.paymentMode : null;
+    const payHtml = pay ? `<div class="att">Paid by: ${escapeHtml(pay.modeName || pay.mode)}${pay.reference ? ' · Ref: ' + escapeHtml(pay.reference) : ''}</div>`
+      : (plannedMode ? `<div class="att">Payment mode: ${escapeHtml(plannedMode)}</div>` : '');
+    const attHtml = att ? `<div class="att">Working days: ${att.workingDays ?? '-'} · Present: ${att.presentDays ?? '-'} · Paid leave: ${att.paidLeaveDays ?? '-'} · LOP days: ${att.lopDays ?? '-'}${att.hoursWorked != null ? ` · Hours worked: ${att.hoursWorked}` : ''} · OT hrs: ${att.overtimeHours ?? '-'}</div>` : '';
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Payslip · ${escapeHtml(slip.staffName || 'Staff')}</title>
       <style>
         body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#111827;max-width:640px;margin:24px auto;padding:0 16px;}
@@ -132,7 +136,7 @@ export default function PayrollTab({
 
   const openAdd = () => {
     setEditConfig(null);
-    setForm({ staffId: '', staffName: '', role: '', baseSalary: '', allowances: {}, deductions: {}, componentLabels: {}, payFrequency: 'monthly', bankAccount: '' });
+    setForm({ staffId: '', staffName: '', role: '', baseSalary: '', allowances: {}, deductions: {}, componentLabels: {}, payFrequency: 'monthly', bankAccount: '', paymentMode: '' });
     setShowConfigModal(true);
   };
 
@@ -144,7 +148,7 @@ export default function PayrollTab({
       allowances: Object.fromEntries(Object.entries(cfg.allowances || {}).filter(([, v]) => Number(v) > 0).map(([k, v]) => [k, String(v)])),
       deductions: Object.fromEntries(Object.entries(cfg.deductions || {}).filter(([, v]) => Number(v) > 0).map(([k, v]) => [k, String(v)])),
       componentLabels: cfg.componentLabels || {},
-      payFrequency: cfg.payFrequency || 'monthly', bankAccount: cfg.bankAccount || '',
+      payFrequency: cfg.payFrequency || 'monthly', bankAccount: cfg.bankAccount || '', paymentMode: cfg.paymentMode || '',
     });
     setShowConfigModal(true);
   };
@@ -313,10 +317,11 @@ export default function PayrollTab({
                           // Why net ≠ gross − deductions: loss of pay, advance recovery, bonus and one-off
                           // payslip lines are applied per payslip. Show the non-zero ones so the row adds up.
                           const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
-                          const lop = r2(run.totalLopDeduction), adv = r2(run.totalAdvanceRecovery), bonus = r2(run.totalBonus);
-                          const other = r2(r2(run.totalNet) - (r2(run.totalGross) - r2(run.totalDeductions) - lop - adv + bonus));
+                          const lop = r2(run.totalLopDeduction), adv = r2(run.totalAdvanceRecovery), bonus = r2(run.totalBonus), ot = r2(run.totalOvertimePay);
+                          const other = r2(r2(run.totalNet) - (r2(run.totalGross) - r2(run.totalDeductions) - lop - adv + bonus + ot));
                           const parts = [];
                           if (lop) parts.push(`LOP −${formatCurrency(lop)}`);
+                          if (ot) parts.push(`OT +${formatCurrency(ot)}`);
                           if (adv) parts.push(`advances −${formatCurrency(adv)}`);
                           if (bonus) parts.push(`bonus +${formatCurrency(bonus)}`);
                           if (Math.abs(other) >= 1) parts.push(`other ${other > 0 ? '+' : '−'}${formatCurrency(Math.abs(other))}`);
@@ -376,9 +381,10 @@ export default function PayrollTab({
                   : 'Leave “Days worked” blank for full-month pay. Enter days only for staff who were absent — the salary is pro-rated (LOP for the missing days).'}</p>
             </div>
             <div style={{ padding: '12px 20px', overflowY: 'auto' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px 12px', alignItems: 'center' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '8px 12px', alignItems: 'center' }}>
                 <div style={{ fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Staff</div>
                 <div style={{ fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', textAlign: 'right' }}>Days worked</div>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', textAlign: 'right' }} title="Blank = from attendance / biometric hours (Payroll → Settings → Overtime)">OT hours</div>
                 {configs.map(cfg => (
                   <Fragment key={cfg.staffId || cfg.id}>
                     <div style={{ fontSize: '13px', color: '#111827' }}>
@@ -388,6 +394,10 @@ export default function PayrollTab({
                       value={daysWorked[cfg.staffId] ?? ''}
                       onChange={e => setDaysWorked(d => ({ ...d, [cfg.staffId]: e.target.value }))}
                       style={{ ...inputStyle, width: '90px', padding: '8px 10px', fontSize: '13px', textAlign: 'right' }} />
+                    <input type="number" min="0" step="0.5" placeholder="Auto"
+                      value={otHours[cfg.staffId] ?? ''}
+                      onChange={e => setOtHours(d => ({ ...d, [cfg.staffId]: e.target.value }))}
+                      style={{ ...inputStyle, width: '80px', padding: '8px 10px', fontSize: '13px', textAlign: 'right' }} />
                   </Fragment>
                 ))}
               </div>
@@ -397,7 +407,9 @@ export default function PayrollTab({
               <button onClick={() => {
                 const clean = {};
                 Object.entries(daysWorked).forEach(([sid, v]) => { if (v !== '' && v != null && !isNaN(Number(v))) clean[sid] = Number(v); });
-                onGenerateRun(runMonth, clean);
+                const cleanOt = {};
+                Object.entries(otHours).forEach(([sid, v]) => { if (v !== '' && v != null && !isNaN(Number(v))) cleanOt[sid] = Number(v); });
+                onGenerateRun(runMonth, clean, cleanOt);
                 setShowGenerateModal(false);
               }} style={btnPrimary}>
                 <FaPlay size={10} /> Generate
@@ -471,6 +483,13 @@ export default function PayrollTab({
                   <label style={labelStyle}>Bank Account</label>
                   <input value={form.bankAccount} onChange={e => setForm(f => ({ ...f, bankAccount: e.target.value }))} placeholder="Account number" style={inputStyle} />
                 </div>
+                <div>
+                  <label style={labelStyle}>Payment Mode</label>
+                  <select value={form.paymentMode} onChange={e => setForm(f => ({ ...f, paymentMode: e.target.value }))} style={{ ...inputStyle, cursor: 'pointer' }} title="How this person is usually paid — pre-selected when the run is marked paid">
+                    <option value="">Same as the run</option>
+                    {paymentModes.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  </select>
+                </div>
               </div>
             </div>
             <div style={{ padding: '16px 22px', borderTop: '1px solid #e8ecf1', backgroundColor: 'white', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
@@ -509,6 +528,11 @@ export default function PayrollTab({
                             <div style={{ fontSize: '16px', fontWeight: 800, color: '#111827' }}>{formatCurrency(slip.netPay)}</div>
                             <div style={{ fontSize: '11px', color: '#9ca3af' }}>Base: {formatCurrency(slip.baseSalary)}</div>
                           </div>
+                          {slipsRun?.status !== 'paid' && onSaveSlipAttendance && (
+                            <button onClick={() => setEditDaysSlip(slip)} title="Days present, paid leave and OT hours — LOP, OT pay and net recalculate" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                              <FaCalendarAlt size={11} /> Days & OT
+                            </button>
+                          )}
                           {slipsRun?.status !== 'paid' && onSaveAdjustments && (
                             <button onClick={() => setAdjustSlip(slip)} title="Add one-off earnings / deductions" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
                               <FaSlidersH size={11} /> Adjust
@@ -535,6 +559,9 @@ export default function PayrollTab({
                           ))}
                         </div>
                       )}
+                      {!slip.payment && slipsRun?.status !== 'paid' && slip.paymentMode && (
+                        <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '6px' }}>Payment mode: {(paymentModes.find(m => m.id === slip.paymentMode) || {}).name || slip.paymentMode}</div>
+                      )}
                       {(slip.payment || (slipsRun?.status === 'paid' && slipsRun?.payment)) && (
                         <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '6px' }}>
                           Paid by {(slip.payment || slipsRun.payment).modeName || (slip.payment || slipsRun.payment).mode}{(slip.payment || slipsRun.payment).reference ? ` · Ref ${(slip.payment || slipsRun.payment).reference}` : ''}
@@ -549,6 +576,9 @@ export default function PayrollTab({
                             <div><span style={{ color: '#9ca3af' }}>LOP:</span> <span style={{ fontWeight: 600, color: '#dc2626' }}>{slip.attendanceSummary.lopDays}</span></div>
                             <div><span style={{ color: '#9ca3af' }}>OT Hrs:</span> <span style={{ fontWeight: 600, color: '#f59e0b' }}>{slip.attendanceSummary.overtimeHours}</span></div>
                           </div>
+                          {slip.attendanceSummary.hoursWorked != null && (
+                            <div style={{ fontSize: '12px', marginTop: '4px' }}><span style={{ color: '#9ca3af' }}>Hours worked:</span> <span style={{ fontWeight: 600 }}>{slip.attendanceSummary.hoursWorked}</span></div>
+                          )}
                           {(slip.lopDeduction > 0 || slip.overtimePay > 0) && (
                             <div style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '12px' }}>
                               {slip.lopDeduction > 0 && <span style={{ color: '#dc2626' }}>LOP Deduction: -{formatCurrency(slip.lopDeduction)}</span>}
@@ -579,6 +609,22 @@ export default function PayrollTab({
             if (!res?.slip) return false;
             setSlips(list => list.map(x => (x.id === adjustSlip.id ? { ...x, ...res.slip } : x)));
             setAdjustSlip(null);
+            return true;
+          }}
+        />,
+        document.body
+      )}
+
+      {editDaysSlip && typeof document !== 'undefined' && createPortal(
+        <EditDaysModal
+          slip={editDaysSlip}
+          formatCurrency={formatCurrency}
+          onClose={() => setEditDaysSlip(null)}
+          onSave={async (data) => {
+            const res = await onSaveSlipAttendance(slipsRun.id, editDaysSlip.id, data);
+            if (!res?.slip) return false;
+            setSlips(list => list.map(x => (x.id === editDaysSlip.id ? { ...x, ...res.slip } : x)));
+            setEditDaysSlip(null);
             return true;
           }}
         />,
@@ -690,6 +736,56 @@ function AdjustmentsModal({ slip, earningTypes, deductionTypes, formatCurrency, 
   );
 }
 
+// Edit one payslip's days present / paid leave / OT hours before the run is paid. The server
+// recalculates LOP, OT pay and net pay (same maths as generating the run).
+function EditDaysModal({ slip, formatCurrency, onClose, onSave }) {
+  const att = slip.attendanceSummary || {};
+  const wd = Number(att.workingDays) || 0;
+  const [present, setPresent] = useState(String(att.presentDays ?? (wd || '')));
+  const [leave, setLeave] = useState(String(att.paidLeaveDays ?? 0));
+  const [ot, setOt] = useState(String(att.overtimeHours ?? 0));
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+  const save = async () => {
+    setErr('');
+    const p = Number(present), l = Number(leave), o = Number(ot);
+    if (![p, l, o].every(n => Number.isFinite(n) && n >= 0)) { setErr('Enter numbers (0 or more).'); return; }
+    if (wd && p + l > wd) { setErr(`Present + paid leave can't be more than ${wd} working days.`); return; }
+    setSaving(true);
+    const ok = await onSave({ presentDays: p, paidLeaveDays: l, overtimeHours: o });
+    setSaving(false);
+    if (!ok) setErr('Could not save — see the message above.');
+  };
+  const field = (label, value, set, hint) => (
+    <div>
+      <label style={labelStyle}>{label}</label>
+      <input type="number" min="0" step="0.5" value={value} onChange={e => set(e.target.value)} style={inputStyle} />
+      {hint && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 3 }}>{hint}</div>}
+    </div>
+  );
+  return (
+    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10004, padding: 12 }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '16px', width: '100%', maxWidth: '420px', overflow: 'hidden' }}>
+        <div style={{ padding: '16px 20px', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff' }}>
+          <div style={{ fontWeight: 800, fontSize: 16 }}>Days & overtime — {slip.staffName}</div>
+          <div style={{ fontSize: 12, opacity: 0.9, marginTop: 2 }}>{wd ? `${wd} working days this month` : ''}{att.hoursWorked != null ? ` · ${att.hoursWorked} hours worked (attendance)` : ''}</div>
+        </div>
+        <div style={{ padding: 18, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {field('Days present', present, setPresent)}
+          {field('Paid leave days', leave, setLeave)}
+          {field('OT hours', ot, setOt, att.otRate ? `Paid at ${att.otRate}× beyond ${att.otHoursPerDay} h/day` : 'Turn on overtime in ⚙ Settings to pay OT')}
+        </div>
+        <div style={{ padding: '0 20px 6px', fontSize: 12, color: '#6b7280' }}>Now: LOP {formatCurrency(slip.lopDeduction || 0)} · OT pay {formatCurrency(slip.overtimePay || 0)} · Net {formatCurrency(slip.netPay || 0)}</div>
+        {err && <div style={{ padding: '0 20px 6px', fontSize: 12, color: '#b91c1c' }}>{err}</div>}
+        <div style={{ padding: '12px 20px', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <button onClick={onClose} style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={save} disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1 }}><FaSave size={11} /> {saving ? 'Saving…' : 'Save'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Mark a run paid: payment mode + reference for the run, optional different mode per staff member.
 function MarkPaidModal({ run, paymentModes, formatCurrency, loadSlips, onClose, onConfirm }) {
   const [mode, setMode] = useState(paymentModes[0]?.id || 'cash');
@@ -703,6 +799,28 @@ function MarkPaidModal({ run, paymentModes, formatCurrency, loadSlips, onClose, 
     setPerStaff(true);
     if (!slips) { const d = await loadSlips(run.id); setSlips(d?.slips || []); }
   };
+  // Staff with a payment mode on their salary setup: pre-select it (and open "per staff").
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const d = await loadSlips(run.id);
+      if (!alive) return;
+      const list = d?.slips || [];
+      setSlips(list);
+      const pre = {};
+      list.forEach(sl => { if (sl.paymentMode && paymentModes.some(m => m.id === sl.paymentMode)) pre[sl.id] = sl.paymentMode; });
+      if (Object.keys(pre).length) {
+        setOverrides(pre);
+        // Run default = the most common mode, so "per staff" only lists the exceptions.
+        const counts = {}; Object.values(pre).forEach(m => { counts[m] = (counts[m] || 0) + 1; });
+        const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+        setMode(top);
+        setPerStaff(true);
+      }
+    })();
+    return () => { alive = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [run.id]);
   const confirm = async () => {
     setBusy(true);
     const payment = { mode, modeName: modeName(mode), reference: reference.trim() };

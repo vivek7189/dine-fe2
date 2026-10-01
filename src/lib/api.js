@@ -4777,6 +4777,10 @@ class ApiClient {
   async deletePayrollConfig(restaurantId, configId) {
     return this.request(`/api/payroll/${restaurantId}/config/${configId}`, { method: 'DELETE' });
   }
+  // Edit a payslip's days present / paid leave / OT hours before paying (server recalculates).
+  async savePaySlipAttendance(restaurantId, runId, slipId, data) {
+    return this.request(`/api/payroll/${restaurantId}/runs/${runId}/slips/${slipId}/attendance`, { method: 'PUT', body: data });
+  }
   async savePaySlipAdjustments(restaurantId, runId, slipId, items) {
     return this.request(`/api/payroll/${restaurantId}/runs/${runId}/slips/${slipId}/adjustments`, { method: 'PUT', body: { items } });
   }

@@ -193,13 +193,23 @@ export function PayrollSettingsPanel({ settings, onSave, onClose }) {
   const [deductions, setDeductions] = useState(() => clone(settings.payroll.deductions));
   const [modes, setModes] = useState(() => clone(settings.payroll.paymentModes));
   const [lopFromAttendance, setLopFromAttendance] = useState(settings.payroll.lopFromAttendance !== false);
+  // Overtime: saved only once the owner touches it (unset = the older Attendance overtime setting keeps working).
+  const ot0 = settings.payroll.overtime;
+  const [otEnabled, setOtEnabled] = useState(ot0 ? ot0.enabled === true : false);
+  const [otHours, setOtHours] = useState(String(ot0?.hoursPerDay ?? 8));
+  const [otRate, setOtRate] = useState(String(ot0?.rateMultiplier ?? 1.5));
+  const [otDirty, setOtDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
   const save = async () => {
     setErr('');
     if (!modes.some(m => m.name.trim())) { setErr('Add at least one payment mode.'); return; }
     setSaving(true);
-    try { await onSave({ payroll: { earnings, deductions, paymentModes: modes, lopFromAttendance } }); onClose(); }
+    const h = Number(otHours), r = Number(otRate);
+    if (otDirty && otEnabled && (!(h >= 1 && h <= 24) || !(r >= 0.5 && r <= 5))) { setErr('Basic hours: 1–24 · OT rate: 0.5–5×'); setSaving(false); return; }
+    const payroll = { earnings, deductions, paymentModes: modes, lopFromAttendance };
+    if (otDirty) payroll.overtime = { enabled: otEnabled, hoursPerDay: h || 8, rateMultiplier: r || 1.5 };
+    try { await onSave({ payroll }); onClose(); }
     catch (e) { setErr(e?.message || 'Could not save settings.'); }
     finally { setSaving(false); }
   };
@@ -212,6 +222,29 @@ export function PayrollSettingsPanel({ settings, onSave, onClose }) {
           <span style={{ display: 'block', fontSize: 12, color: '#6b7280', marginTop: 2 }}>On: staff who clock in are paid for days present + paid leave (loss of pay for absent days). Staff who never clock in are paid in full. Off: everyone gets full salary unless you type days worked when generating a run.</span>
         </span>
       </label>
+      <div style={{ padding: '12px 14px', border: '1px solid #e5e7eb', borderRadius: 10, marginBottom: 14 }}>
+        <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer' }}>
+          <input type="checkbox" checked={otEnabled} onChange={e => { setOtEnabled(e.target.checked); setOtDirty(true); }} style={{ marginTop: 3 }} />
+          <span>
+            <span style={{ display: 'block', fontWeight: 700, fontSize: 13, color: '#111827' }}>Pay overtime</span>
+            <span style={{ display: 'block', fontSize: 12, color: '#6b7280', marginTop: 2 }}>Hours worked beyond the basic hours (from attendance / the biometric machine) are paid as overtime. You can also type OT hours when generating a run, or edit them on a payslip.</span>
+          </span>
+        </label>
+        {otEnabled && (
+          <div style={{ display: 'flex', gap: 12, marginTop: 10, marginLeft: 26, flexWrap: 'wrap' }}>
+            <label style={{ fontSize: 12, color: '#374151' }}>Basic hours per day
+              <input type="number" min="1" max="24" step="0.5" value={otHours} onChange={e => { setOtHours(e.target.value); setOtDirty(true); }} style={{ display: 'block', width: 110, marginTop: 4, padding: '7px 10px', border: '1px solid #e5e7eb', borderRadius: 8 }} />
+            </label>
+            <label style={{ fontSize: 12, color: '#374151' }}>OT rate
+              <select value={otRate} onChange={e => { setOtRate(e.target.value); setOtDirty(true); }} style={{ display: 'block', width: 130, marginTop: 4, padding: '7px 10px', border: '1px solid #e5e7eb', borderRadius: 8 }}>
+                {['1', '1.25', '1.5', '2'].map(v => <option key={v} value={v}>{v}× hourly pay</option>)}
+                {!['1', '1.25', '1.5', '2'].includes(otRate) && <option value={otRate}>{otRate}× hourly pay</option>}
+              </select>
+            </label>
+            <div style={{ fontSize: 11, color: '#9ca3af', alignSelf: 'flex-end', maxWidth: 240 }}>Hourly pay = monthly salary ÷ working days ÷ basic hours.</div>
+          </div>
+        )}
+      </div>
       <NamedListEditor title="Allowances & earnings" hint="E.g. uniform allowance (monthly), gift or compensation (one-off on a payslip)." items={earnings} idField="key" onChange={setEarnings} suggestions={SUGGESTED_EARNINGS} color="#059669" />
       <NamedListEditor title="Deductions" hint="E.g. uniform recovery (monthly), penalty for misconduct or breakage (one-off on a payslip)." items={deductions} idField="key" onChange={setDeductions} suggestions={SUGGESTED_DEDUCTIONS} color="#dc2626" />
       <NamedListEditor title="Payment modes" hint="Chosen when a payroll run is marked paid (per run, or per staff member)." items={modes} idField="id" onChange={setModes} suggestions={SUGGESTED_PAYMENT_MODES} />
