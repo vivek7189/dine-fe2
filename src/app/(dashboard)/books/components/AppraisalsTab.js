@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { FaPlus, FaStar, FaRegStar, FaTrash, FaChevronDown, FaChevronUp, FaCog } from 'react-icons/fa';
+import { FaPlus, FaStar, FaRegStar, FaTrash, FaChevronDown, FaChevronUp, FaCog, FaIdCard } from 'react-icons/fa';
 import useHrSettings, { DEFAULT_CRITERIA, templateForRole } from '../hooks/useHrSettings';
 import { AppraisalSettingsPanel } from './HrSettingsPanels';
+import StaffProfilesModal from './StaffProfilesModal';
 
 /**
  * AppraisalsTab — staff performance reviews. Per-criterion ratings (1–5) + notes.
@@ -31,6 +32,7 @@ export default function AppraisalsTab({ restaurantId, apiClient, staffList = [],
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showProfiles, setShowProfiles] = useState(false); // staff HR profiles (personal, next of kin, health, experience)
   const { settings: hr, save: saveHr } = useHrSettings(restaurantId, apiClient);
   const templates = hr.appraisal.templates;
   const recommendations = hr.appraisal.recommendations;
@@ -112,6 +114,9 @@ export default function AppraisalsTab({ restaurantId, apiClient, staffList = [],
             <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600 }}>AVG RATING</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: '#b45309' }}>{summary.avgRating != null ? `${summary.avgRating} / 5` : '—'}</div>
           </div>
+          <button onClick={() => setShowProfiles(true)} title="Personal details, next of kin, health and experience" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 14px', borderRadius: 10, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 700, cursor: 'pointer' }}>
+            <FaIdCard size={12} /> Staff profiles
+          </button>
           <button onClick={() => setShowSettings(true)} title="Rating templates & recommendations" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 14px', borderRadius: 10, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 700, cursor: 'pointer' }}>
             <FaCog size={12} /> Settings
           </button>
@@ -230,6 +235,7 @@ export default function AppraisalsTab({ restaurantId, apiClient, staffList = [],
       {showSettings && (
         <AppraisalSettingsPanel settings={hr} staffRoles={staffRoles} onSave={saveHr} onClose={() => setShowSettings(false)} />
       )}
+      {showProfiles && <StaffProfilesModal restaurantId={restaurantId} isMobile={isMobile} onClose={() => setShowProfiles(false)} />}
     </div>
   );
 }

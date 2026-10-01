@@ -4,6 +4,7 @@
 // action is acknowledging an appraisal). Shown when the owner switches "My Pay" on for their role.
 import { useEffect, useState } from 'react';
 import apiClient from '../lib/api';
+import StaffProfile from './StaffProfile';
 import { useCurrency } from '../contexts/CurrencyContext';
 
 const escapeHtml = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -22,6 +23,13 @@ const muted = { color: '#6b7280', fontSize: 13 };
 const pill = (bg, fg) => ({ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: bg, color: fg, whiteSpace: 'nowrap' });
 
 export default function MyPayView() {
+  // Narrow screens (phones / the app) → one-column profile form.
+  const [isNarrow, setIsNarrow] = useState(false);
+  useEffect(() => {
+    const f = () => setIsNarrow(typeof window !== 'undefined' && window.innerWidth < 640);
+    f(); window.addEventListener('resize', f);
+    return () => window.removeEventListener('resize', f);
+  }, []);
   const { formatCurrency } = useCurrency();
   const fc = (n) => formatCurrency(Number(n) || 0);
   const [data, setData] = useState(null);
@@ -157,8 +165,13 @@ export default function MyPayView() {
               </div>
             )}
           </section>
+
         </>
       )}
+
+      {/* My Profile (shown even when My Pay is off for the role): personal details, next of kin and
+          health they can update; experience is the employer's record (view only). */}
+      <StaffProfile self isMobile={isNarrow} />
     </div>
   );
 }

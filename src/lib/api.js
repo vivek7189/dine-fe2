@@ -2279,6 +2279,17 @@ class ApiClient {
   async saveStaffProfile(staffId, profile) {
     return this.request(`/api/staff/${staffId}/profile`, { method: 'PUT', body: { profile } });
   }
+  // The signed-in staff member's own profile (My Pay → My Profile).
+  async getMyStaffProfile() {
+    return this.request('/api/staff/me/profile');
+  }
+  async saveMyStaffProfile(profile) {
+    return this.request('/api/staff/me/profile', { method: 'PUT', body: { profile } });
+  }
+  // Staff whose profile the caller may open (managers: the staff they manage).
+  async getStaffProfilesList(restaurantId) {
+    return this.request(`/api/staff-profiles/${restaurantId}`);
+  }
 
   // ── Staff advances (HR) ──────────────────────────────────────────────
   async getStaffAdvances(restaurantId, options = {}) {
