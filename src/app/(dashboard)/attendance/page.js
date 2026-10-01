@@ -321,7 +321,7 @@ export default function AttendancePage() {
       const attendance = res?.attendance || [];
       const presentCount = attendance.filter(a => a.status === 'present').length;
       const absentCount = attendance.filter(a => a.status === 'absent').length;
-      const lateCount = attendance.filter(a => a.status === 'late').length;
+      const lateCount = attendance.filter(a => a.status === 'late' || Number(a.lateBy) > 0).length;
       const onLeaveCount = attendance.filter(a => a.status === 'on-leave' || a.status === 'leave').length;
       setTodayData({
         attendance,
@@ -992,7 +992,10 @@ export default function AttendancePage() {
                       </td>
                       <td style={{ padding: '12px' }}>{diffHours(a.clockIn, a.clockOut)}</td>
                       <td style={{ padding: '12px', color: a.status === 'late' ? '#854d0e' : '#6b7280' }}>
-                        {lateBy(a.clockIn, settingsForm.workingHours?.start || '09:00')}
+                        {/* Server's lateBy (restaurant clock, against the rota shift when there is one); older rows without it: the work start time */}
+                        {a.lateBy != null
+                          ? (Number(a.lateBy) > 0 ? (Number(a.lateBy) >= 60 ? `${Math.floor(Number(a.lateBy) / 60)}h ${Number(a.lateBy) % 60}m` : `${Number(a.lateBy)}m`) : '-')
+                          : lateBy(a.clockIn, settingsForm.workingHours?.start || '09:00')}
                       </td>
                     </tr>
                   );
@@ -1484,6 +1487,9 @@ export default function AttendancePage() {
                 onChange={e => setSettingsForm(p => ({ ...p, geoFence: { ...p.geoFence, enabled: e.target.checked } }))} />
               <span style={{ fontSize: '13px', color: '#374151' }}>Enable</span>
             </label>
+          </div>
+          <div style={{ fontSize: '12px', color: '#6b7280', margin: '-8px 0 12px', lineHeight: 1.5 }}>
+            When on, staff clock in from the DineOpen app on their phone (location checked against this radius) — clocking in from the web is not possible. A manager can still mark attendance or let someone in with their PIN.
           </div>
           {settingsForm.geoFence.enabled && (
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: '12px' }}>
