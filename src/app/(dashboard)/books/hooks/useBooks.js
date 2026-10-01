@@ -281,8 +281,9 @@ export default function useBooks() {
 
   const handleGeneratePayrollRun = async (month, daysWorked) => {
     try {
-      await apiClient.generatePayrollRun(restaurantId, { month, daysWorked: daysWorked || {} });
-      setSuccess(`Payroll generated for ${month}`);
+      const res = await apiClient.generatePayrollRun(restaurantId, { month, daysWorked: daysWorked || {} });
+      // The server names anyone it left out (deleted staff, moved to another outlet).
+      setSuccess(res?.skipped?.length ? res.message : `Payroll generated for ${month}`);
       fetchPayroll();
     } catch (err) { setError(err?.message || 'Failed to generate payroll run'); }
   };
@@ -295,6 +296,16 @@ export default function useBooks() {
       fetchPayroll();
       return true;
     } catch (err) { setError(err?.message || 'Failed to update payroll run'); return false; }
+  };
+
+  // Delete an unpaid run so it can be generated again (advances/bonuses it used are restored).
+  const handleDeletePayrollRun = async (runId) => {
+    try {
+      await apiClient.deletePayrollRun(restaurantId, runId);
+      setSuccess('Payroll run deleted');
+      fetchPayroll();
+      return true;
+    } catch (err) { setError(err?.message || 'Failed to delete payroll run'); return false; }
   };
 
   // One-off earnings / deductions on a payslip (gift, compensation, penalty…) before paying.
@@ -427,7 +438,7 @@ export default function useBooks() {
     expenseCategoryFilter, setExpenseCategoryFilter,
     handleAddExpense, handleUpdateExpense, handleDeleteExpense, handleEditExpense,
     handleSavePayrollConfig, handleDeletePayrollConfig,
-    handleGeneratePayrollRun, handleUpdatePayrollRun, handleViewPaySlips, handleSavePaySlipAdjustments,
+    handleGeneratePayrollRun, handleUpdatePayrollRun, handleDeletePayrollRun, handleViewPaySlips, handleSavePaySlipAdjustments,
     handleRecordSupplierPayment,
     fetchOverview, fetchRevenue, fetchExpenses, fetchSupplierDues, fetchPnl, fetchPayroll,
     getModalStyles, getModalContentStyles,

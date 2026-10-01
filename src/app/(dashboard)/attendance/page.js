@@ -92,6 +92,9 @@ const STATUS_COLORS = {
   late: { bg: '#fef9c3', color: '#854d0e', label: 'Late' },
   'on-leave': { bg: '#dbeafe', color: '#1e40af', label: 'On Leave' },
   'half-day': { bg: '#fef3c7', color: '#92400e', label: 'Half Day' },
+  // What the backend stores (leave approval, payroll) — older rows may still use the dashed form.
+  leave: { bg: '#dbeafe', color: '#1e40af', label: 'On Leave' },
+  half_day: { bg: '#fef3c7', color: '#92400e', label: 'Half Day' },
   'week-off': { bg: '#f3f4f6', color: '#6b7280', label: 'Week Off' },
   holiday: { bg: '#f3f4f6', color: '#6b7280', label: 'Holiday' },
 };
@@ -102,6 +105,8 @@ const DOT_COLORS = {
   late: '#eab308',
   'half-day': '#f59e0b',
   'on-leave': '#3b82f6',
+  leave: '#3b82f6',
+  half_day: '#f59e0b',
   'week-off': '#9ca3af',
   holiday: '#9ca3af',
 };
@@ -312,7 +317,7 @@ export default function AttendancePage() {
       const presentCount = attendance.filter(a => a.status === 'present').length;
       const absentCount = attendance.filter(a => a.status === 'absent').length;
       const lateCount = attendance.filter(a => a.status === 'late').length;
-      const onLeaveCount = attendance.filter(a => a.status === 'on-leave').length;
+      const onLeaveCount = attendance.filter(a => a.status === 'on-leave' || a.status === 'leave').length;
       setTodayData({
         attendance,
         staffCount: staffList.length,
@@ -902,8 +907,8 @@ export default function AttendancePage() {
                   <option value="present">Present</option>
                   <option value="absent">Absent</option>
                   <option value="late">Late</option>
-                  <option value="half-day">Half Day</option>
-                  <option value="on-leave">On Leave</option>
+                  <option value="half_day">Half Day</option>
+                  <option value="leave">On Leave</option>
                 </select>
               </div>
               <div>

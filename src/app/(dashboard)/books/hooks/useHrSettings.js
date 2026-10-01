@@ -33,6 +33,7 @@ export const DEFAULT_HR_SETTINGS = {
       { id: 'cash', name: 'Cash' }, { id: 'bank', name: 'Bank transfer' },
       { id: 'upi', name: 'UPI' }, { id: 'cheque', name: 'Cheque' },
     ],
+    lopFromAttendance: true, // cut pay for absent days using attendance
   },
 };
 

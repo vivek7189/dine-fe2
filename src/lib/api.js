@@ -4793,6 +4793,10 @@ class ApiClient {
   async generatePayrollRun(restaurantId, data) {
     return this.request(`/api/payroll/${restaurantId}/runs`, { method: 'POST', body: data });
   }
+  // Delete a run that isn't paid yet (advances + bonuses it touched are restored by the server).
+  async deletePayrollRun(restaurantId, runId) {
+    return this.request(`/api/payroll/${restaurantId}/runs/${runId}`, { method: 'DELETE' });
+  }
   async updatePayrollRun(restaurantId, runId, data) {
     return this.request(`/api/payroll/${restaurantId}/runs/${runId}`, { method: 'PATCH', body: data });
   }

@@ -170,6 +170,7 @@ export default function BooksPage() {
             onDeleteConfig={books.handleDeletePayrollConfig}
             onGenerateRun={books.handleGeneratePayrollRun}
             onUpdateRun={books.handleUpdatePayrollRun}
+            onDeleteRun={books.handleDeletePayrollRun}
             onViewSlips={books.handleViewPaySlips}
             onSaveAdjustments={books.handleSavePaySlipAdjustments}
             restaurantId={books.restaurantId}

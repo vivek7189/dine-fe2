@@ -192,18 +192,26 @@ export function PayrollSettingsPanel({ settings, onSave, onClose }) {
   const [earnings, setEarnings] = useState(() => clone(settings.payroll.earnings));
   const [deductions, setDeductions] = useState(() => clone(settings.payroll.deductions));
   const [modes, setModes] = useState(() => clone(settings.payroll.paymentModes));
+  const [lopFromAttendance, setLopFromAttendance] = useState(settings.payroll.lopFromAttendance !== false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
   const save = async () => {
     setErr('');
     if (!modes.some(m => m.name.trim())) { setErr('Add at least one payment mode.'); return; }
     setSaving(true);
-    try { await onSave({ payroll: { earnings, deductions, paymentModes: modes } }); onClose(); }
+    try { await onSave({ payroll: { earnings, deductions, paymentModes: modes, lopFromAttendance } }); onClose(); }
     catch (e) { setErr(e?.message || 'Could not save settings.'); }
     finally { setSaving(false); }
   };
   return (
     <Shell title="Payroll settings" subtitle="Pay components appear in each staff member's salary setup and as one-off lines on a payslip. Removing one here doesn't change saved salaries or payslips." onClose={onClose} onSave={save} saving={saving} err={err}>
+      <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 14px', border: '1px solid #e5e7eb', borderRadius: 10, marginBottom: 14, cursor: 'pointer' }}>
+        <input type="checkbox" checked={lopFromAttendance} onChange={e => setLopFromAttendance(e.target.checked)} style={{ marginTop: 3 }} />
+        <span>
+          <span style={{ display: 'block', fontWeight: 700, fontSize: 13, color: '#111827' }}>Cut pay for absent days using attendance</span>
+          <span style={{ display: 'block', fontSize: 12, color: '#6b7280', marginTop: 2 }}>On: staff who clock in are paid for days present + paid leave (loss of pay for absent days). Staff who never clock in are paid in full. Off: everyone gets full salary unless you type days worked when generating a run.</span>
+        </span>
+      </label>
       <NamedListEditor title="Allowances & earnings" hint="E.g. uniform allowance (monthly), gift or compensation (one-off on a payslip)." items={earnings} idField="key" onChange={setEarnings} suggestions={SUGGESTED_EARNINGS} color="#059669" />
       <NamedListEditor title="Deductions" hint="E.g. uniform recovery (monthly), penalty for misconduct or breakage (one-off on a payslip)." items={deductions} idField="key" onChange={setDeductions} suggestions={SUGGESTED_DEDUCTIONS} color="#dc2626" />
       <NamedListEditor title="Payment modes" hint="Chosen when a payroll run is marked paid (per run, or per staff member)." items={modes} idField="id" onChange={setModes} suggestions={SUGGESTED_PAYMENT_MODES} />

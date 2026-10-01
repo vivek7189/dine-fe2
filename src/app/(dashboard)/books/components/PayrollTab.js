@@ -34,7 +34,7 @@ const STATUS_COLORS = {
 
 export default function PayrollTab({
   payrollConfig, payrollRuns, loadingPayroll, isMobile, formatCurrency,
-  staffList, onSaveConfig, onDeleteConfig, onGenerateRun, onUpdateRun, onViewSlips, onSaveAdjustments,
+  staffList, onSaveConfig, onDeleteConfig, onGenerateRun, onUpdateRun, onDeleteRun, onViewSlips, onSaveAdjustments,
   restaurantId, apiClient,
 }) {
   // Pay components + payment modes are the restaurant's own lists (⚙ Settings; defaults HRA/Travel/
@@ -46,6 +46,7 @@ export default function PayrollTab({
   const [showSettings, setShowSettings] = useState(false);
   const [adjustSlip, setAdjustSlip] = useState(null);   // slip being adjusted (one-off lines)
   const [payRun, setPayRun] = useState(null);           // run being marked paid
+  const [confirmDeleteRun, setConfirmDeleteRun] = useState(null); // run id waiting for "Delete?" confirm
   // Name for a component key: current settings → name saved with the salary/payslip → the key.
   const labelFor = (kind, key, saved) => {
     const list = kind === 'deduction' ? deductionTypes : earningTypes;
@@ -328,6 +329,16 @@ export default function PayrollTab({
                               <FaMoneyBillWave size={11} color="#059669" />
                             </button>
                           )}
+                          {run.status !== 'paid' && onDeleteRun && (confirmDeleteRun === run.id ? (
+                            <>
+                              <button onClick={async () => { await onDeleteRun(run.id); setConfirmDeleteRun(null); }} style={{ height: '32px', padding: '0 10px', borderRadius: '8px', border: '1px solid #fecaca', backgroundColor: '#dc2626', color: 'white', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }} title="Delete this run (advances and bonuses it used are restored)">Delete run?</button>
+                              <button onClick={() => setConfirmDeleteRun(null)} style={{ height: '32px', padding: '0 10px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
+                            </>
+                          ) : (
+                            <button onClick={() => setConfirmDeleteRun(run.id)} style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #fecaca', backgroundColor: '#fef2f2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Delete run (not paid yet) — generate it again after fixing salaries">
+                              <FaTrash size={11} color="#dc2626" />
+                            </button>
+                          ))}
                         </div>
                       </td>
                     </tr>
@@ -345,7 +356,9 @@ export default function PayrollTab({
           <div style={{ backgroundColor: 'white', borderRadius: '16px', width: '92%', maxWidth: '520px', maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: '18px 20px', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: 'white' }}>
               <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>Generate Payroll — {runMonth}</h2>
-              <p style={{ margin: '4px 0 0', fontSize: '12px', opacity: 0.9 }}>Leave “Days worked” blank for full-month pay. Enter days only for staff who were absent — the salary is pro-rated (LOP for the missing days).</p>
+              <p style={{ margin: '4px 0 0', fontSize: '12px', opacity: 0.9 }}>{hr.payroll.lopFromAttendance !== false
+                  ? 'Leave “Days worked” blank to use attendance: staff who clock in are paid for days present + paid leave; staff who never clock in get full pay. Typing days overrides attendance for that person. (Change this in ⚙ Settings.)'
+                  : 'Leave “Days worked” blank for full-month pay. Enter days only for staff who were absent — the salary is pro-rated (LOP for the missing days).'}</p>
             </div>
             <div style={{ padding: '12px 20px', overflowY: 'auto' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px 12px', alignItems: 'center' }}>
