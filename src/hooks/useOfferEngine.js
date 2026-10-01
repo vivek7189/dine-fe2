@@ -43,7 +43,7 @@ export const matchesItemList = (list, item) => {
 // Unit price of a line. A POS cart line can still hold the item's BASE price (e.g. the Tot) with
 // the chosen variant's price in selectedVariant — a priced order line (has total) is already right.
 const getItemUnitPrice = (item) => {
-  if (!item.total && item.selectedVariant && typeof item.selectedVariant === 'object') {
+  if (!item.total && item.priceEdited !== true && item.selectedVariant && typeof item.selectedVariant === 'object') {
     const vp = Number(item.selectedVariant.price);
     if (Number.isFinite(vp) && vp > 0) return vp;
   }
