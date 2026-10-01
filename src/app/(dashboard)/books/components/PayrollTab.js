@@ -307,7 +307,22 @@ export default function PayrollTab({
                       <td style={{ padding: '12px', color: '#6b7280' }}>{run.staffCount}</td>
                       <td style={{ padding: '12px', color: '#111827' }}>{formatCurrency(run.totalGross)}</td>
                       <td style={{ padding: '12px', color: '#dc2626' }}>-{formatCurrency(run.totalDeductions)}</td>
-                      <td style={{ padding: '12px', fontWeight: 700, color: '#111827' }}>{formatCurrency(run.totalNet)}</td>
+                      <td style={{ padding: '12px', fontWeight: 700, color: '#111827' }}>
+                        {formatCurrency(run.totalNet)}
+                        {(() => {
+                          // Why net ≠ gross − deductions: loss of pay, advance recovery, bonus and one-off
+                          // payslip lines are applied per payslip. Show the non-zero ones so the row adds up.
+                          const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+                          const lop = r2(run.totalLopDeduction), adv = r2(run.totalAdvanceRecovery), bonus = r2(run.totalBonus);
+                          const other = r2(r2(run.totalNet) - (r2(run.totalGross) - r2(run.totalDeductions) - lop - adv + bonus));
+                          const parts = [];
+                          if (lop) parts.push(`LOP −${formatCurrency(lop)}`);
+                          if (adv) parts.push(`advances −${formatCurrency(adv)}`);
+                          if (bonus) parts.push(`bonus +${formatCurrency(bonus)}`);
+                          if (Math.abs(other) >= 1) parts.push(`other ${other > 0 ? '+' : '−'}${formatCurrency(Math.abs(other))}`);
+                          return parts.length ? <div style={{ fontSize: '11px', fontWeight: 500, color: '#6b7280', marginTop: '3px' }}>{parts.join(' · ')}</div> : null;
+                        })()}
+                      </td>
                       <td style={{ padding: '12px' }}>
                         <span style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, backgroundColor: st.bg, color: st.color }}>{st.label}</span>
                         {run.status === 'paid' && run.payment && (

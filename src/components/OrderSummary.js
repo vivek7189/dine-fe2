@@ -1563,7 +1563,9 @@ const OrderSummary = ({
     const role = userRole?.toLowerCase();
     if (role === 'owner' || role === 'admin') return true;
     if (!rolesArray || rolesArray.length === 0) return true;
-    return rolesArray.includes(role);
+    // Compare ignoring case / extra spaces — lists can hold custom roles as typed ('Dosai Master').
+    const key = (r) => String(r || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    return rolesArray.some(r => key(r) === key(role));
   }, [userRole]);
 
   // Coupon helpers

@@ -3218,7 +3218,8 @@ const OrderHistory = () => {
     if (!refundsRoles || refundsRoles.length === 0) return true;
     try {
       const userRole = (JSON.parse(localStorage.getItem('user') || '{}').role || 'waiter').toLowerCase();
-      return refundsRoles.includes(userRole);
+      const key = (r) => String(r || '').trim().replace(/\s+/g, ' ').toLowerCase();
+      return refundsRoles.some(r => key(r) === key(userRole)); // case / space-insensitive
     } catch { return true; }
   })();
 
