@@ -618,6 +618,7 @@ export default function PayrollTab({
       {editDaysSlip && typeof document !== 'undefined' && createPortal(
         <EditDaysModal
           slip={editDaysSlip}
+          runWorkingDays={slipsRun?.workingDays}
           formatCurrency={formatCurrency}
           onClose={() => setEditDaysSlip(null)}
           onSave={async (data) => {
@@ -738,17 +739,20 @@ function AdjustmentsModal({ slip, earningTypes, deductionTypes, formatCurrency, 
 
 // Edit one payslip's days present / paid leave / OT hours before the run is paid. The server
 // recalculates LOP, OT pay and net pay (same maths as generating the run).
-function EditDaysModal({ slip, formatCurrency, onClose, onSave }) {
+function EditDaysModal({ slip, runWorkingDays, formatCurrency, onClose, onSave }) {
   const att = slip.attendanceSummary || {};
-  const wd = Number(att.workingDays) || 0;
-  const [present, setPresent] = useState(String(att.presentDays ?? (wd || '')));
+  // A full-pay payslip has no attendance summary: its days default to the whole month (never 0 —
+  // an empty "days present" would otherwise cut the whole salary as LOP).
+  const wd = Number(att.workingDays) || Number(runWorkingDays) || 0;
+  const [present, setPresent] = useState(String(att.presentDays ?? wd));
   const [leave, setLeave] = useState(String(att.paidLeaveDays ?? 0));
   const [ot, setOt] = useState(String(att.overtimeHours ?? 0));
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
   const save = async () => {
     setErr('');
-    const p = Number(present), l = Number(leave), o = Number(ot);
+    if (String(present).trim() === '') { setErr('Enter the days present.'); return; }
+    const p = Number(present), l = Number(leave || 0), o = Number(ot || 0);
     if (![p, l, o].every(n => Number.isFinite(n) && n >= 0)) { setErr('Enter numbers (0 or more).'); return; }
     if (wd && p + l > wd) { setErr(`Present + paid leave can't be more than ${wd} working days.`); return; }
     setSaving(true);
