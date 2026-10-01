@@ -86,6 +86,10 @@ function getCalendarDays(year, month) {
   return days;
 }
 
+// Attendance dates are already 'YYYY-MM-DD' (restaurant day). Parsing them with new Date() reads
+// UTC midnight, which is the PREVIOUS day for viewers west of UTC — use the string as it is.
+const attDateKey = (d) => (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : toISODate(new Date(d)));
+
 const STATUS_COLORS = {
   present: { bg: '#dcfce7', color: '#166534', label: 'Present' },
   absent: { bg: '#fee2e2', color: '#991b1b', label: 'Absent' },
@@ -712,7 +716,7 @@ export default function AttendancePage() {
     const dateStr = toISODate(new Date(y, m, day));
     setSelectedDay(dateStr);
     const details = calendarData.filter(a => {
-      const aDate = toISODate(new Date(a.date));
+      const aDate = attDateKey(a.date);
       return aDate === dateStr;
     });
     setDayDetails(details);
@@ -724,7 +728,7 @@ export default function AttendancePage() {
     const y = calendarMonth.getFullYear();
     const m = calendarMonth.getMonth();
     const dateStr = toISODate(new Date(y, m, day));
-    return calendarData.filter(a => toISODate(new Date(a.date)) === dateStr);
+    return calendarData.filter(a => attDateKey(a.date) === dateStr);
   };
 
   // ── Tab Config ───────────────────────────────────────────────────────────

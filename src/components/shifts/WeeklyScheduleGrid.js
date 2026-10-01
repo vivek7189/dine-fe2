@@ -59,11 +59,14 @@ export default function WeeklyScheduleGrid({
   // Coverage: for every shift type × day, staff needed per role vs assigned (drafts included).
   const shiftTypes = (shiftSettings?.shiftTypes || []).filter(t => t && t.name);
   const coverageFor = (dateKey, type) => {
-    const onType = (shifts || []).filter(s => formatDateISO(s.date) === dateKey && s.staffId && shiftMatchesType(s, type));
+    // Shifts of staff who were deleted / deactivated don't cover anything (they stay on the rota until removed).
+    const onType = (shifts || []).filter(s => formatDateISO(s.date) === dateKey && s.staffId && shiftMatchesType(s, type)
+      && !['deleted', 'inactive', 'disabled'].includes(String(s.staffStatus || '').toLowerCase()));
+    const normRole = (x) => String(x || '').trim().replace(/\s+/g, ' ').toLowerCase();
     const req = type.requiredRoles || {};
     const roles = Object.keys(req).filter(r => req[r] > 0);
     const rows = roles.map(r => {
-      const have = onType.filter(s => String(s.role || '').toLowerCase() === r).length;
+      const have = onType.filter(s => normRole(s.role) === normRole(r)).length; // s.role = the person's current role
       return { role: r, need: req[r], have, short: Math.max(0, req[r] - have) };
     });
     const needTotal = Number(type.requiredEmployees) || rows.reduce((a, x) => a + x.need, 0);
