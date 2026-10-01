@@ -15,7 +15,7 @@ export default function WeeklyScheduleGrid({
 }) {
   const [notice, setNotice] = useState(null); // { type, text }
   const [prefill, setPrefill] = useState(null);
-  const showNotice = (type, text) => { setNotice({ type, text }); setTimeout(() => setNotice(null), 6000); };
+  const showNotice = (type, text) => { setNotice({ type, text }); setTimeout(() => setNotice(null), type === 'warning' ? 15000 : 6000); };
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingShift, setEditingShift] = useState(null);
   const [modalDate, setModalDate] = useState(null);
@@ -194,7 +194,14 @@ export default function WeeklyScheduleGrid({
       const r = await apiClient.publishShifts(restaurantId, formatDateISO(weekStart), formatDateISO(weekEnd));
       const n = r?.notified || {};
       const ch = [n.push ? `${n.push} by app notification` : null, n.whatsapp ? `${n.whatsapp} on WhatsApp` : null].filter(Boolean).join(', ');
-      showNotice('success', `Published ${r?.published || 0} shift(s). ${n.staff || 0} staff sent their schedule${ch ? ` (${ch})` : ''}.` + (n.staff && !n.push && !n.whatsapp ? ' Staff will see it in the DineOpen app → My Shifts (notifications reach phones once they open the updated app).' : ''));
+      // WhatsApp details: sent in English (template not approved in the chosen language), sent as a
+      // plain message (24 h window only), or not sent and why.
+      const wa = [
+        n.whatsappEnglish ? `${n.whatsappEnglish} WhatsApp sent in English — the template isn't approved in your chosen language yet` : null,
+        n.whatsappText ? `${n.whatsappText} WhatsApp sent as a plain message (delivered only if they messaged you in the last 24 hours)` : null,
+        n.whatsappFailed ? `${n.whatsappFailed} WhatsApp not sent: ${n.whatsappError || 'see Settings'}` : null,
+      ].filter(Boolean).join('. ');
+      showNotice(n.whatsappFailed || n.whatsappEnglish ? 'warning' : 'success', `Published ${r?.published || 0} shift(s). ${n.staff || 0} staff sent their schedule${ch ? ` (${ch})` : ''}.` + (wa ? ` ${wa}.` : '') + (n.staff && !n.push && !n.whatsapp ? ' Staff will see it in the DineOpen app → My Shifts (notifications reach phones once they open the updated app).' : ''));
       onReloadShifts();
     } catch (err) {
       showNotice('error', err?.message || 'Failed to publish');
@@ -297,8 +304,9 @@ export default function WeeklyScheduleGrid({
 
   const noticeBar = notice && (
     <div style={{ marginBottom: '14px', padding: '10px 14px', borderRadius: '12px', fontSize: '13px', lineHeight: 1.5,
-      background: notice.type === 'error' ? '#fef2f2' : '#f0fdf4', color: notice.type === 'error' ? '#b91c1c' : '#166534',
-      border: `1px solid ${notice.type === 'error' ? '#fecaca' : '#bbf7d0'}` }}>{notice.text}</div>
+      background: notice.type === 'error' ? '#fef2f2' : notice.type === 'warning' ? '#fffbeb' : '#f0fdf4',
+      color: notice.type === 'error' ? '#b91c1c' : notice.type === 'warning' ? '#92400e' : '#166534',
+      border: `1px solid ${notice.type === 'error' ? '#fecaca' : notice.type === 'warning' ? '#fde68a' : '#bbf7d0'}` }}>{notice.text}</div>
   );
 
   // Coverage chips for one shift type on one day.

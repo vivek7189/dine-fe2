@@ -1,12 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FaCog, FaClock, FaPlus, FaTrash, FaSave, FaSpinner, FaSun, FaMoon, FaBell, FaUsers, FaWhatsapp, FaMobileAlt } from 'react-icons/fa';
 import apiClient from '../../lib/api';
 import { DEFAULT_SHIFT_SETTINGS, DAYS_FULL, rotaRoles, titleCase } from './constants';
 
+// WhatsApp template languages (Meta language codes). A template must be approved by Meta in each
+// language it is sent in; when the chosen one isn't, the server sends the English template instead.
+const WA_LANGUAGES = [
+  ['en', 'English'], ['en_US', 'English (US)'], ['hi', 'Hindi'], ['ta', 'Tamil'], ['te', 'Telugu'], ['kn', 'Kannada'],
+  ['ml', 'Malayalam'], ['mr', 'Marathi'], ['bn', 'Bengali'], ['gu', 'Gujarati'], ['pa', 'Punjabi'], ['ur', 'Urdu'],
+  ['ar', 'Arabic'], ['sw', 'Swahili'], ['fr', 'French'], ['es', 'Spanish'], ['pt_BR', 'Portuguese (Brazil)'], ['id', 'Indonesian'],
+];
+const fmtWhen = (iso) => { try { return new Date(iso).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch { return ''; } };
+
 export default function SettingsTab({ restaurantId, shiftSettings, setShiftSettings, isMobile, staff = [] }) {
   const [newRole, setNewRole] = useState('');
+  // Last WhatsApp result from the server (sent / sent in English / why it failed).
+  const [waStatus, setWaStatus] = useState(null);
+  useEffect(() => {
+    if (!restaurantId) return;
+    let alive = true;
+    apiClient.getShiftSettings(restaurantId).then(r => { if (alive) setWaStatus(r?.whatsappStatus || null); }).catch(() => {});
+    return () => { alive = false; };
+  }, [restaurantId]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const settings = shiftSettings || DEFAULT_SHIFT_SETTINGS;
@@ -240,11 +257,26 @@ export default function SettingsTab({ restaurantId, shiftSettings, setShiftSetti
                   </div>
                   <div>
                     <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Language</label>
-                    <input value={notif.whatsappLanguage || 'en'} onChange={e => setNotif('whatsappLanguage', e.target.value)} style={inputStyle} />
+                    <select value={notif.whatsappLanguage || 'en'} onChange={e => setNotif('whatsappLanguage', e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+                      {WA_LANGUAGES.map(([code, name]) => <option key={code} value={code}>{name} ({code})</option>)}
+                      {!WA_LANGUAGES.some(([c]) => c === (notif.whatsappLanguage || 'en')) && <option value={notif.whatsappLanguage}>{notif.whatsappLanguage}</option>}
+                    </select>
                   </div>
                   <div style={{ gridColumn: '1 / -1', fontSize: '11.5px', color: '#6b7280', lineHeight: 1.5 }}>
-                    Template body with 3 variables, e.g. <i>&quot;Hi {'{{1}}'}, {'{{2}}'}: {'{{3}}'}&quot;</i> — name, restaurant, shift details. Until it is approved, a plain message is tried (WhatsApp only delivers it if the staff member messaged you in the last 24 hours).
+                    Template body with 3 variables, e.g. <i>&quot;Hi {'{{1}}'}, {'{{2}}'}: {'{{3}}'}&quot;</i> — name, restaurant, shift details. Meta must approve the template in this language; if it isn&apos;t approved in it yet, the English template is sent instead. With no approved template at all, a plain message is tried (WhatsApp only delivers it if the staff member messaged you in the last 24 hours).
                   </div>
+                  {(() => {
+                    const st = waStatus || {};
+                    const errNewer = st.lastErrorAt && (!st.lastOkAt || st.lastErrorAt > st.lastOkAt);
+                    const noteRecent = !errNewer && st.lastNote && st.lastNoteAt && st.lastOkAt && st.lastNoteAt >= st.lastOkAt;
+                    if (!st.lastErrorAt && !st.lastOkAt) return null;
+                    const box = (bg, border, color, text) => (
+                      <div style={{ gridColumn: '1 / -1', fontSize: '12px', lineHeight: 1.5, background: bg, border: `1px solid ${border}`, color, borderRadius: '8px', padding: '8px 10px' }}>{text}</div>
+                    );
+                    if (errNewer) return box('#fef2f2', '#fecaca', '#991b1b', <>Last WhatsApp message failed ({fmtWhen(st.lastErrorAt)}): {st.lastError}. Staff still get the app notification.</>);
+                    if (noteRecent) return box('#fffbeb', '#fde68a', '#92400e', <>Last WhatsApp sent {fmtWhen(st.lastOkAt)} — {st.lastNote}. Ask for the template to be approved in this language to send it in that language.</>);
+                    return box('#f0fdf4', '#bbf7d0', '#166534', <>Last WhatsApp sent {fmtWhen(st.lastOkAt)}{st.lastVia === 'text' ? ' as a plain message (delivered only if they messaged you in the last 24 hours)' : ''}.</>);
+                  })()}
                 </div>
               )}
             </div>
