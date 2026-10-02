@@ -14,7 +14,7 @@ const WA_LANGUAGES = [
 ];
 const fmtWhen = (iso) => { try { return new Date(iso).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch { return ''; } };
 
-export default function SettingsTab({ restaurantId, shiftSettings, setShiftSettings, isMobile, staff = [] }) {
+export default function SettingsTab({ restaurantId, shiftSettings, setShiftSettings, settingsLoaded = true, onRetryLoad, isMobile, staff = [] }) {
   const [newRole, setNewRole] = useState('');
   // Last WhatsApp result from the server (sent / sent in English / why it failed).
   const [waStatus, setWaStatus] = useState(null);
@@ -76,6 +76,8 @@ export default function SettingsTab({ restaurantId, shiftSettings, setShiftSetti
 
   const handleSave = async () => {
     if (!restaurantId) return;
+    // Never save the placeholder defaults over settings that failed to load.
+    if (!settingsLoaded) return;
     setSaving(true);
     try {
       const r = await apiClient.updateShiftSettings(restaurantId, settings);
@@ -349,13 +351,22 @@ export default function SettingsTab({ restaurantId, shiftSettings, setShiftSetti
         </div>
       </div>
 
+      {!settingsLoaded && (
+        <div style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: '12px', padding: '12px 14px', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+          <span>Your saved shift settings didn&apos;t load, so saving is off (it would replace them with these defaults).</span>
+          {onRetryLoad && (
+            <button onClick={onRetryLoad} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #fca5a5', background: '#fff', color: '#b91c1c', fontWeight: 700, cursor: 'pointer' }}>Retry</button>
+          )}
+        </div>
+      )}
+
       {/* Save Button */}
-      <button onClick={handleSave} disabled={saving} style={{
+      <button onClick={handleSave} disabled={saving || !settingsLoaded} style={{
         width: '100%', padding: '14px', borderRadius: '12px', border: 'none',
-        background: saved ? '#22c55e' : saving ? '#e5e7eb' : 'linear-gradient(135deg, #ef4444, #dc2626)',
+        background: saved ? '#22c55e' : (saving || !settingsLoaded) ? '#e5e7eb' : 'linear-gradient(135deg, #ef4444, #dc2626)',
         color: 'white', fontWeight: 700, fontSize: '15px',
-        cursor: saving ? 'not-allowed' : 'pointer',
-        boxShadow: saving ? 'none' : '0 4px 12px rgba(239,68,68,0.3)',
+        cursor: (saving || !settingsLoaded) ? 'not-allowed' : 'pointer',
+        boxShadow: (saving || !settingsLoaded) ? 'none' : '0 4px 12px rgba(239,68,68,0.3)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
         transition: 'all 0.2s'
       }}>

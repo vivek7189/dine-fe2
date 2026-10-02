@@ -145,6 +145,7 @@ import { getPrintFontSizes, getPrintFontFamily, PRINT_FONTS, getContentWidthRang
 import { KOT_TEMPLATE_LIST, BILL_TEMPLATE_LIST, renderKOT, renderBill } from '../../../utils/printTemplates/index';
 import { splitIndiaGst } from '../../../utils/printTemplates/helpers';
 import StaffAccessSettings from '../../../components/admin/StaffAccessSettings';
+import { settingsPatch } from '../../../utils/settingsPatch';
 import RolesSettings from '../../../components/admin/RolesSettings';
 
 // Reusable shimmer skeleton for tab content while restaurants load
@@ -6007,6 +6008,12 @@ const Admin = () => {
   const [editCompletedTogglingId, setEditCompletedTogglingId] = useState(null);
   const [currentLang, setCurrentLang] = useState('en');
   const [posSettings, setPosSettings] = useState({});
+  // The posSettings as loaded — saving sends only what was changed since (see handleSaveDashboardSettings).
+  const posSettingsBaseRef = useRef({});
+  const loadPosSettingsFrom = (saved) => {
+    posSettingsBaseRef.current = saved || {};
+    setPosSettings({ hideSearchBar: true, ...(saved || {}) });
+  };
   const [posSettingsSaving, setPosSettingsSaving] = useState(false);
   // Whether THIS device/browser is currently switched to the staff-PIN keypad (localStorage, per-device).
   const [staffPinDeviceOn, setStaffPinDeviceOn] = useState(() => (typeof window !== 'undefined' ? isStaffPinMode() : false));
@@ -6259,7 +6266,18 @@ const Admin = () => {
     if (!selectedRestaurant) return;
     setPosSettingsSaving(true);
     try {
-      await apiClient.updateRestaurant(selectedRestaurant.id, { posSettings, businessType });
+      // Only what was changed on this page: sending the whole object put back anything changed
+      // since the page was opened (Staff Access rules saved elsewhere, another device).
+      const changes = settingsPatch(posSettingsBaseRef.current, posSettings);
+      const saveRes = await apiClient.updateRestaurant(selectedRestaurant.id, {
+        businessType,
+        ...(changes ? { posSettings: changes.topLevel, posSettingsPatch: changes.patch } : {}),
+      });
+      // The server's merged copy (includes changes made elsewhere); older servers don't return it.
+      const savedPos = saveRes?.posSettings || (changes ? { ...(selectedRestaurant.posSettings || {}), ...posSettingsBaseRef.current, ...changes.topLevel } : posSettingsBaseRef.current);
+      posSettingsBaseRef.current = savedPos;
+      const mergedPos = { hideSearchBar: true, ...savedPos };
+      setPosSettings(mergedPos);
       // Also persist billingSettings. The "Allow Price Edit" / "Allow Custom Items" role
       // restrictions (priceEditRoles / customItemRoles) live in billingSettings but are shown
       // on THIS page, so the "Save all POS settings" button must save them too — otherwise the
@@ -6279,11 +6297,11 @@ const Admin = () => {
       // Sync cash drawer settings to Electron local settings
       if (window.electronAPI?.setPrinterConfig) {
         window.electronAPI.setPrinterConfig({
-          cashDrawerMode: posSettings.cashDrawerMode || 'printer',
-          cashDrawerPort: posSettings.cashDrawerPort || null,
+          cashDrawerMode: mergedPos.cashDrawerMode || 'printer',
+          cashDrawerPort: mergedPos.cashDrawerPort || null,
         }).catch(() => {});
       }
-      const updated = { ...selectedRestaurant, posSettings, businessType, ...(billingSettingsLoaded ? { billingSettings: savedBillingSettings } : {}) };
+      const updated = { ...selectedRestaurant, posSettings: savedPos, businessType, ...(billingSettingsLoaded ? { billingSettings: savedBillingSettings } : {}) };
       localStorage.setItem('selectedRestaurant', JSON.stringify(updated));
       setSelectedRestaurant(updated);
       // Notify other pages (dashboard, layout) about the settings change
@@ -6380,7 +6398,7 @@ const Admin = () => {
         const saved = localStorage.getItem('selectedRestaurant');
         if (saved) {
           const r = JSON.parse(saved);
-          setPosSettings({ hideSearchBar: true, ...(r.posSettings || {}) });
+          loadPosSettingsFrom(r.posSettings);
           setBusinessType(r.businessType || 'restaurant');
         }
       } catch {}
@@ -6497,7 +6515,7 @@ const Admin = () => {
                           (defaultId ? response.restaurants.find(function(r) { return r.id === defaultId; }) : null) ||
                           response.restaurants[0];
           setSelectedRestaurant(restaurant);
-          setPosSettings({ hideSearchBar: true, ...(restaurant.posSettings || {}) });
+          loadPosSettingsFrom(restaurant.posSettings);
           setBusinessType(restaurant.businessType || 'restaurant');
           setBookingSettings(restaurant.bookingSettings || { enableCatering: true, enableAdvanceOrder: true, enableVenueBooking: true });
           // Always sync localStorage with resolved restaurant
@@ -6524,7 +6542,7 @@ const Admin = () => {
       const { restaurant } = event.detail || {};
       if (restaurant) {
         setSelectedRestaurant(restaurant);
-        setPosSettings({ hideSearchBar: true, ...(restaurant.posSettings || {}) });
+        loadPosSettingsFrom(restaurant.posSettings);
         setBusinessType(restaurant.businessType || 'restaurant');
         setBookingSettings(restaurant.bookingSettings || { enableCatering: true, enableAdvanceOrder: true, enableVenueBooking: true });
       }
@@ -11428,7 +11446,7 @@ const Admin = () => {
                         key={restaurant.id}
                         onClick={function() {
                           setSelectedRestaurant(restaurant);
-                          setPosSettings({ hideSearchBar: true, ...(restaurant.posSettings || {}) });
+                          loadPosSettingsFrom(restaurant.posSettings);
                           setBusinessType(restaurant.businessType || 'restaurant');
                         }}
                         style={{

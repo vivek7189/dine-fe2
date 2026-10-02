@@ -20,6 +20,9 @@ export default function ShiftsPage() {
   const [staff, setStaff] = useState([]);
   const [shifts, setShifts] = useState([]);
   const [shiftSettings, setShiftSettings] = useState(DEFAULT_SHIFT_SETTINGS);
+  // The saved settings really arrived. Until then the form holds defaults, and saving it would
+  // overwrite the restaurant's real shift types / hours / notifications with them.
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -57,20 +60,31 @@ export default function ShiftsPage() {
     } catch {}
   }, []);
 
+  const loadSettings = useCallback(async () => {
+    if (!restaurantId) return;
+    setSettingsLoaded(false);
+    try {
+      const settingsRes = await apiClient.getShiftSettings(restaurantId);
+      if (settingsRes?.success && settingsRes.settings) {
+        setShiftSettings(settingsRes.settings);
+        setSettingsLoaded(true);
+      }
+    } catch (err) {
+      console.error('Error loading shift settings:', err);
+    }
+  }, [restaurantId]);
+
   // Load staff + settings
   useEffect(() => {
     if (!restaurantId) return;
     const load = async () => {
       setLoading(true);
       try {
-        const [staffRes, settingsRes] = await Promise.all([
+        const [staffRes] = await Promise.all([
           apiClient.getStaff(restaurantId),
-          apiClient.getShiftSettings(restaurantId).catch(() => null),
+          loadSettings(),
         ]);
         setStaff(staffRes?.staff || []);
-        if (settingsRes?.success && settingsRes.settings) {
-          setShiftSettings(settingsRes.settings);
-        }
       } catch (err) {
         console.error('Error loading data:', err);
       } finally {
@@ -78,7 +92,7 @@ export default function ShiftsPage() {
       }
     };
     load();
-  }, [restaurantId]);
+  }, [restaurantId, loadSettings]);
 
   // Load shifts for current week
   const loadShifts = useCallback(async () => {
@@ -247,6 +261,8 @@ export default function ShiftsPage() {
               restaurantId={restaurantId}
               shiftSettings={shiftSettings}
               setShiftSettings={setShiftSettings}
+              settingsLoaded={settingsLoaded}
+              onRetryLoad={loadSettings}
               isMobile={isMobile}
               staff={staff}
             />

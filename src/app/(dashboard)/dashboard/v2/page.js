@@ -559,8 +559,9 @@ function RestaurantPOSContent() {
             // Update localStorage immediately for instant reload
             const updated = { ...rest, posSettings: newPosSettings };
             localStorage.setItem('selectedRestaurant', JSON.stringify(updated));
-            // Save to DB (fire-and-forget)
-            apiClient.updateRestaurant(rest.id, { posSettings: newPosSettings }).catch(() => {});
+            // Save to DB (fire-and-forget) — only these two: this terminal's stored copy of the
+            // other settings can be days old, and sending it put back changes made since.
+            apiClient.updateRestaurant(rest.id, { posSettings: { cardSize, categoryViewMode } }).catch(() => {});
           }
         }
       } catch (e) {

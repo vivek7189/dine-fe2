@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { FaPlus, FaMoneyBillWave, FaCheck, FaTimes, FaTrash } from 'react-icons/fa';
+import { FaPlus, FaMoneyBillWave, FaCheck, FaTimes, FaTrash, FaThumbsUp, FaBan } from 'react-icons/fa';
 
 /**
  * AdvancesTab — record staff cash advances and let payroll auto-recover them.
@@ -95,6 +95,9 @@ export default function AdvancesTab({ restaurantId, apiClient, staffList = [], i
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600 }}>OUTSTANDING</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: '#c2410c' }}>{fmt(summary.outstanding)}</div>
+            {summary.pendingCount > 0 && (
+              <div style={{ fontSize: 11, color: '#b45309', fontWeight: 600 }}>+ {summary.pendingCount} request{summary.pendingCount > 1 ? 's' : ''} awaiting approval ({fmt(summary.pendingAmount)})</div>
+            )}
           </div>
           <button onClick={() => setShowForm(v => !v)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 10, border: 'none', background: '#dc2626', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
             <FaPlus size={11} /> New Advance
@@ -142,7 +145,8 @@ export default function AdvancesTab({ restaurantId, apiClient, staffList = [], i
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {advances.map(a => {
-            const bal = Math.max(0, (a.amount || 0) - (a.amountRecovered || 0));
+            // The server's balance (pending / rejected / cancelled / settled owe nothing).
+            const bal = a.balance != null ? a.balance : (a.status === 'approved' ? Math.max(0, (a.amount || 0) - (a.amountRecovered || 0)) : 0);
             const ss = STATUS_STYLE[a.status] || STATUS_STYLE.approved;
             return (
               <div key={a.id} style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
@@ -156,10 +160,16 @@ export default function AdvancesTab({ restaurantId, apiClient, staffList = [], i
                   <div style={{ textAlign: 'right' }}><div style={{ fontSize: 10, color: '#9ca3af' }}>BALANCE</div><div style={{ fontWeight: 800, color: '#c2410c' }}>{fmt(bal)}</div></div>
                   <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: ss.bg, color: ss.color }}>{ss.label}</span>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    {(a.status === 'approved' || a.status === 'pending') && (
+                    {a.status === 'pending' && (
+                      <button title="Approve (money given — recover from payroll)" onClick={() => act(a, { status: 'approved' }, 'Approve this advance? It will be recovered from payroll.')} style={iconBtn('#047857')}><FaThumbsUp size={11} /></button>
+                    )}
+                    {a.status === 'pending' && (
+                      <button title="Reject" onClick={() => act(a, { status: 'rejected' }, 'Reject this advance request?')} style={iconBtn('#b91c1c')}><FaBan size={11} /></button>
+                    )}
+                    {a.status === 'approved' && (
                       <button title="Mark settled" onClick={() => act(a, { status: 'settled' }, 'Mark this advance as fully settled?')} style={iconBtn('#047857')}><FaCheck size={11} /></button>
                     )}
-                    {(a.status === 'approved' || a.status === 'pending') && (
+                    {a.status === 'approved' && (
                       <button title="Cancel" onClick={() => act(a, { status: 'cancelled' }, 'Cancel this advance? It will stop recovering.')} style={iconBtn('#6b7280')}><FaTimes size={11} /></button>
                     )}
                     <button title="Delete" onClick={() => act(a, 'delete', 'Delete this advance record permanently?')} style={iconBtn('#b91c1c')}><FaTrash size={10} /></button>

@@ -20,6 +20,13 @@ const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString(undefined, { da
 const card = { background: '#fff', border: '1px solid #eef0f3', borderRadius: 12, padding: 16, marginBottom: 14 };
 const h2 = { fontSize: 15, fontWeight: 700, color: '#111827', margin: '0 0 10px' };
 const muted = { color: '#6b7280', fontSize: 13 };
+// Advance status as words (rejected / waiting requests were listed like money owed).
+const ADV_STATUS = {
+  pending: { label: 'Awaiting approval', style: { background: '#fffbeb', color: '#b45309' } },
+  approved: { label: 'Recovering', style: { background: '#ecfdf5', color: '#047857' } },
+  settled: { label: 'Settled', style: { background: '#eff6ff', color: '#1d4ed8' } },
+  rejected: { label: 'Rejected', style: { background: '#fef2f2', color: '#b91c1c' } },
+};
 const pill = (bg, fg) => ({ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: bg, color: fg, whiteSpace: 'nowrap' });
 
 export default function MyPayView() {
@@ -124,7 +131,13 @@ export default function MyPayView() {
                 {data.advances.map(a => (
                   <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13.5, padding: '6px 0', borderBottom: '1px solid #f9fafb', flexWrap: 'wrap' }}>
                     <span>{fmtDate(a.date)}{a.reason ? ` · ${a.reason}` : ''}</span>
-                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fc(a.amount)} · recovered {fc(a.recovered)} · <b>balance {fc(a.balance)}</b></span>
+                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+                      {fc(a.amount)}
+                      {a.status === 'approved' || a.status === 'settled'
+                        ? <> · recovered {fc(a.recovered)} · <b>balance {fc(a.balance)}</b></>
+                        : null}
+                      {' '}<span style={{ fontSize: 11, fontWeight: 700, padding: '1px 8px', borderRadius: 999, marginLeft: 4, ...(ADV_STATUS[a.status] || ADV_STATUS.approved).style }}>{(ADV_STATUS[a.status] || ADV_STATUS.approved).label}</span>
+                    </span>
                   </div>
                 ))}
               </div>
