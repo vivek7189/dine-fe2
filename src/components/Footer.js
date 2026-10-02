@@ -304,7 +304,7 @@ export default function Footer() {
             alignItems: 'center'
           }}>
             <span style={{ fontSize: '13px', color: '#9ca3af' }}>
-              Trusted by 500+ restaurants across Planet Earth
+              Trusted by 50,000+ restaurants worldwide
             </span>
           </div>
         </div>

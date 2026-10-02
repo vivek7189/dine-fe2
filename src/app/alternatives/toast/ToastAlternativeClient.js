@@ -137,7 +137,7 @@ export default function ToastAlternativeClient() {
           >
             Start Free Trial - No Credit Card →
           </Link>
-          <p className="text-gray-500 mt-4">Join 500+ restaurants that switched from Toast to DineOpen</p>
+          <p className="text-gray-500 mt-4">Join restaurants that switched from Toast to DineOpen</p>
         </div>
       </section>
       <InternalLinks currentPath="/alternatives/toast" variant="alternative" />

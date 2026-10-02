@@ -136,7 +136,7 @@ export default function SquareAlternativeClient() {
           >
             Start Free Trial - No Credit Card →
           </Link>
-          <p className="text-gray-500 mt-4">Join 500+ restaurants that switched from Square to DineOpen</p>
+          <p className="text-gray-500 mt-4">Join restaurants that switched from Square to DineOpen</p>
         </div>
       </section>
       <InternalLinks currentPath="/alternatives/square" variant="alternative" />

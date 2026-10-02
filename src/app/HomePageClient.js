@@ -1912,7 +1912,7 @@ export default function LandingPage() {
             gap: isMobile ? '16px' : '24px', marginBottom: isMobile ? '40px' : '56px'
           }}>
             {[
-              { number: '1,000+', label: 'Restaurants', icon: '🍽️' },
+              { number: '50,000+', label: 'Restaurants', icon: '🍽️' },
               { number: '20+', label: 'Countries', icon: '🌍' },
               { number: '50K+', label: 'Orders Daily', icon: '📦' },
               { number: '0%', label: 'Transaction Fees', icon: '💳' }

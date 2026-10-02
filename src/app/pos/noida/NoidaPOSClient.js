@@ -108,7 +108,7 @@ export default function NoidaPOSClient() {
         <section style={{ padding: '80px 20px', background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)', color: 'white', textAlign: 'center' }}>
           <div style={{ maxWidth: '700px', margin: '0 auto' }}>
             <h2 style={{ fontSize: '36px', fontWeight: '700', marginBottom: '16px' }}>Ready to Scale Your Noida Food Business?</h2>
-            <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '32px' }}>Join 100+ restaurants and cloud kitchens in Noida using DineOpen.</p>
+            <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '32px' }}>Join restaurants and cloud kitchens in Noida using DineOpen.</p>
             <Link href="https://dineopen.com/login" style={{ display: 'inline-block', padding: '18px 40px', backgroundColor: 'white', color: '#7c3aed', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>Start Free Trial →</Link>
           </div>
         </section>

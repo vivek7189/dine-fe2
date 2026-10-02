@@ -12,7 +12,7 @@ export const revalidate = false; // Never revalidate - fully static
 // Targeting: US, UK, India, UAE, Singapore, Canada, Australia markets
 export const metadata = {
   title: 'DineOpen | The Global Restaurant Operating System | POS, Inventory & Analytics',
-  description: 'DineOpen powers restaurants worldwide with an all-in-one operating system. Cloud POS, waiter apps, table reservations, inventory management, AI analytics & loyalty programs. Trusted by 1000+ restaurants across 20+ countries. Free trial.',
+  description: 'DineOpen powers restaurants worldwide with an all-in-one operating system. Cloud POS, waiter apps, table reservations, inventory management, AI analytics & loyalty programs. Trusted by 50,000+ restaurants across 20+ countries. Free trial.',
   keywords: 'restaurant operating system, restaurant POS software, cloud POS system, restaurant management platform, waiter ordering app, captain app restaurant, table reservation system, restaurant inventory management, restaurant analytics software, loyalty program restaurant, multi-location restaurant POS, restaurant billing software, kitchen display system, online ordering restaurant, Square alternative, Toast alternative, Petpooja alternative, POSist alternative, best restaurant POS, restaurant technology, food service management, cafe POS, bar POS system, QSR POS, fine dining POS, cloud kitchen software',
   authors: [{ name: 'DineOpen Team' }],
   creator: 'DineOpen',
@@ -30,7 +30,7 @@ export const metadata = {
   },
   openGraph: {
     title: 'DineOpen | Powering Restaurants Worldwide',
-    description: 'The all-in-one restaurant operating system. POS, orders, inventory, analytics & growth tools trusted by 1000+ restaurants globally. Start free trial.',
+    description: 'The all-in-one restaurant operating system. POS, orders, inventory, analytics & growth tools trusted by 50,000+ restaurants globally. Start free trial.',
     url: 'https://www.dineopen.com',
     siteName: 'DineOpen',
     images: [
@@ -47,7 +47,7 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'DineOpen | Powering Restaurants Worldwide',
-    description: 'The all-in-one restaurant operating system. POS • Orders • Inventory • Analytics • Growth. Trusted by 1000+ restaurants globally.',
+    description: 'The all-in-one restaurant operating system. POS • Orders • Inventory • Analytics • Growth. Trusted by 50,000+ restaurants globally.',
     images: ['https://www.dineopen.com/opengraph-image'],
     creator: '@dineopen',
   },
@@ -107,7 +107,7 @@ export default function HomePage() {
           DineOpen powers restaurants worldwide with an all-in-one operating system.
           Cloud POS, AI-powered voice ordering, waiter apps, table reservations,
           inventory management, analytics, and loyalty programs.
-          Trusted by 1000+ restaurants across 20+ countries.
+          Trusted by 50,000+ restaurants across 20+ countries.
         </p>
         <h2>Products</h2>
         <nav aria-label="Products">

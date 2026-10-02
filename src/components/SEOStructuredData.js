@@ -9,7 +9,7 @@ export default function SEOStructuredData() {
     "name": "DineOpen",
     "url": baseUrl,
     "logo": `${baseUrl}/favicon.png`,
-    "description": "The Global Restaurant Operating System. All-in-one platform for Cloud POS, waiter apps, table reservations, inventory management, AI analytics, and loyalty programs. Trusted by 1000+ restaurants across 20+ countries.",
+    "description": "The Global Restaurant Operating System. All-in-one platform for Cloud POS, waiter apps, table reservations, inventory management, AI analytics, and loyalty programs. Trusted by 50,000+ restaurants across 20+ countries.",
     "foundingDate": "2024",
     "contactPoint": {
       "@type": "ContactPoint",
@@ -62,7 +62,7 @@ export default function SEOStructuredData() {
         "eligibleRegion": "IN"
       }
     ],
-    "description": "The all-in-one restaurant operating system powering 1000+ restaurants worldwide. Cloud POS, waiter apps, table reservations, inventory management, AI analytics, and loyalty programs. Free trial available.",
+    "description": "The all-in-one restaurant operating system powering 50,000+ restaurants worldwide. Cloud POS, waiter apps, table reservations, inventory management, AI analytics, and loyalty programs. Free trial available.",
     "featureList": [
       "Lightning-Fast Cloud POS",
       "Waiter & Captain App",
@@ -110,7 +110,7 @@ export default function SEOStructuredData() {
         "name": "What is DineOpen?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen is a cloud-based restaurant operating system that powers restaurants worldwide. It includes a complete POS system, waiter & captain apps, online table reservations, inventory management, AI-powered analytics, kitchen display system, and loyalty programs. It works on any device with internet access and does not require hardware installation. Trusted by 1000+ restaurants across 20+ countries."
+          "text": "DineOpen is a cloud-based restaurant operating system that powers restaurants worldwide. It includes a complete POS system, waiter & captain apps, online table reservations, inventory management, AI-powered analytics, kitchen display system, and loyalty programs. It works on any device with internet access and does not require hardware installation. Trusted by 50,000+ restaurants across 20+ countries."
         }
       },
       {
@@ -257,7 +257,7 @@ export default function SEOStructuredData() {
     "@type": "Service",
     "serviceType": "Restaurant Operating System",
     "name": "DineOpen - The Global Restaurant Operating System",
-    "description": "All-in-one restaurant operating system with Cloud POS, Waiter Apps, Table Reservations, Inventory Management, AI Analytics, and Loyalty Programs. Powering 1000+ restaurants across 20+ countries.",
+    "description": "All-in-one restaurant operating system with Cloud POS, Waiter Apps, Table Reservations, Inventory Management, AI Analytics, and Loyalty Programs. Powering 50,000+ restaurants across 20+ countries.",
     "provider": {
       "@type": "Organization",
       "name": "DineOpen"
@@ -342,7 +342,7 @@ export default function SEOStructuredData() {
     "@context": "https://schema.org",
     "@type": "Product",
     "name": "DineOpen Restaurant Operating System",
-    "description": "The all-in-one restaurant operating system powering restaurants worldwide. Cloud POS (bill in 3 seconds), waiter apps, online table reservations, smart inventory, AI analytics, and loyalty programs. Trusted by 1000+ restaurants globally.",
+    "description": "The all-in-one restaurant operating system powering restaurants worldwide. Cloud POS (bill in 3 seconds), waiter apps, online table reservations, smart inventory, AI analytics, and loyalty programs. Trusted by 50,000+ restaurants globally.",
     "image": `${baseUrl}/favicon.png`,
     "brand": {
       "@type": "Brand",
@@ -393,7 +393,7 @@ export default function SEOStructuredData() {
         "position": 1,
         "name": "DineOpen",
         "url": `${baseUrl}`,
-        "description": "The Global Restaurant Operating System. Cloud POS, waiter apps, reservations, inventory, analytics & loyalty. Trusted by 1000+ restaurants worldwide."
+        "description": "The Global Restaurant Operating System. Cloud POS, waiter apps, reservations, inventory, analytics & loyalty. Trusted by 50,000+ restaurants worldwide."
       },
       {
         "@type": "ListItem",

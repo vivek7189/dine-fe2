@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant Billing App Free Download 2026 — Bill in 3 Sec [Android/iOS] | DineOpen',
-  description: 'Free restaurant billing app for Android, iOS & tablet. Bill in 3 seconds, GST invoices, split bills, UPI/card/cash, KOT printing & offline mode. 1000+ restaurants trust DineOpen. Download free — no credit card.',
+  description: 'Free restaurant billing app for Android, iOS & tablet. Bill in 3 seconds, GST invoices, split bills, UPI/card/cash, KOT printing & offline mode. 50,000+ restaurants trust DineOpen. Download free — no credit card.',
   keywords: 'restaurant billing app, restaurant bill app, restaurant billing app free, billing app for restaurant, restaurant billing app free download, table billing app, restaurant POS app, mobile billing app restaurant, restaurant billing software, best billing app for restaurant India, restaurant bill app free, free billing app restaurant',
   authors: [{ name: 'DineOpen Team' }],
   creator: 'DineOpen',

@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS Software Maharashtra | Mumbai, Pune, Nagpur | DineOpen',
-  description: 'Best restaurant POS software for Maharashtra restaurants. GST billing, Marathi voice ordering, Zomato/Swiggy integration. Trusted by 15,000+ restaurants in Mumbai, Pune, Nagpur.',
+  description: 'Best restaurant POS software for Maharashtra restaurants. GST billing, Marathi voice ordering, Zomato/Swiggy integration. Trusted by restaurants in Mumbai, Pune, Nagpur.',
   keywords: 'restaurant POS Maharashtra, billing software Mumbai, restaurant management Pune, GST billing Maharashtra, Marathi POS, restaurant software Nagpur',
   openGraph: {
     title: 'Restaurant POS Software Maharashtra | DineOpen',
@@ -23,7 +23,7 @@ export const metadata = {
 export default function MaharashtraPage() {
   const stateData = {
     state: 'Maharashtra',
-    tagline: 'Trusted by 15,000+ restaurants across Mumbai, Pune, Nagpur & more',
+    tagline: 'Trusted by restaurants across Mumbai, Pune, Nagpur & more',
     description: 'GST-compliant billing with Maharashtra state codes, Marathi voice ordering, works offline during monsoons. Perfect for vada pav stalls to fine dining.',
     highlights: [
       'GST billing with Maharashtra GSTIN support',

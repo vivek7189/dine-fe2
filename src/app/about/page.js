@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'About DineOpen | Our Mission to Power Every Restaurant',
-  description: 'Learn about DineOpen — the global restaurant operating system powering 1000+ restaurants across 20+ countries. Our mission, story, and team.',
+  description: 'Learn about DineOpen — the global restaurant operating system powering 50,000+ restaurants across 20+ countries. Our mission, story, and team.',
   keywords: 'about DineOpen, DineOpen team, restaurant technology company, DineOpen mission, restaurant software company',
   openGraph: {
     title: 'About DineOpen | Our Mission to Power Every Restaurant',
-    description: 'Learn about DineOpen — the global restaurant operating system powering 1000+ restaurants across 20+ countries.',
+    description: 'Learn about DineOpen — the global restaurant operating system powering 50,000+ restaurants across 20+ countries.',
     url: 'https://www.dineopen.com/about',
     siteName: 'DineOpen',
     type: 'website',
@@ -17,7 +17,7 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'About DineOpen | Our Mission to Power Every Restaurant',
-    description: 'The global restaurant operating system powering 1000+ restaurants across 20+ countries.',
+    description: 'The global restaurant operating system powering 50,000+ restaurants across 20+ countries.',
   },
   alternates: {
     canonical: 'https://www.dineopen.com/about',

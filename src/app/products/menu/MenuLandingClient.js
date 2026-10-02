@@ -158,7 +158,7 @@ export default function MenuLandingClient() {
         <section style={{ backgroundColor: '#111827', padding: '20px' }}>
           <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: isMobile ? '16px' : '40px', flexWrap: 'wrap' }}>
             {[
-              'Trusted by 1,000+ restaurants worldwide',
+              'Trusted by 50,000+ restaurants worldwide',
               'Zero transaction fees',
               '6 beautiful themes',
               'Free forever',
@@ -521,7 +521,7 @@ export default function MenuLandingClient() {
               Your Menu Deserves to Be Online
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.8, marginBottom: '36px', lineHeight: 1.6 }}>
-              Join 1,000+ restaurants using DineOpen Menu. Create your free digital menu with QR codes, 6 beautiful themes, and real-time sync — in under 3 minutes.
+              Join 50,000+ restaurants using DineOpen Menu. Create your free digital menu with QR codes, 6 beautiful themes, and real-time sync — in under 3 minutes.
             </p>
             <Link href="/login?ref=menu" style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '18px 40px', background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white', borderRadius: '12px', fontWeight: '700', textDecoration: 'none', fontSize: '18px', boxShadow: '0 4px 14px rgba(239, 68, 68, 0.4)' }}>
               Create Your Free Menu <FaArrowRight size={14} />

@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS Software Karnataka | Bangalore, Mysore | DineOpen',
-  description: 'Best restaurant POS software for Karnataka restaurants. GST billing, Kannada voice ordering, Zomato/Swiggy integration. Trusted by 10,000+ restaurants in Bangalore, Mysore, Mangalore.',
+  description: 'Best restaurant POS software for Karnataka restaurants. GST billing, Kannada voice ordering, Zomato/Swiggy integration. Trusted by restaurants in Bangalore, Mysore, Mangalore.',
   keywords: 'restaurant POS Karnataka, billing software Bangalore, restaurant management Mysore, GST billing Karnataka, Kannada POS, restaurant software Mangalore',
   openGraph: {
     title: 'Restaurant POS Software Karnataka | DineOpen',
@@ -23,7 +23,7 @@ export const metadata = {
 export default function KarnatakaPage() {
   const stateData = {
     state: 'Karnataka',
-    tagline: 'Trusted by 10,000+ restaurants across Bangalore, Mysore, Mangalore & more',
+    tagline: 'Trusted by restaurants across Bangalore, Mysore, Mangalore & more',
     description: 'GST-compliant billing, Kannada voice ordering, perfect for South Indian cuisine. From darshinis to tech park food courts.',
     highlights: [
       'GST billing with Karnataka GSTIN support',

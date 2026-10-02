@@ -203,7 +203,7 @@ export default function HaridwarPOSClient() {
               Ready to Modernize Your Haridwar Restaurant?
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '32px' }}>
-              Join 50+ restaurants in Haridwar using DineOpen. Start your free trial today.
+              Join restaurants in Haridwar using DineOpen. Start your free trial today.
             </p>
             <Link
               href="https://dineopen.com/login"

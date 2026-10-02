@@ -108,7 +108,7 @@ export default function DehradunPOSClient() {
         <section style={{ padding: '80px 20px', background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', color: 'white', textAlign: 'center' }}>
           <div style={{ maxWidth: '700px', margin: '0 auto' }}>
             <h2 style={{ fontSize: '36px', fontWeight: '700', marginBottom: '16px' }}>Ready to Grow Your Dehradun Restaurant?</h2>
-            <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '32px' }}>Join 30+ restaurants in Dehradun using DineOpen.</p>
+            <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '32px' }}>Join restaurants in Dehradun using DineOpen.</p>
             <Link href="https://dineopen.com/login" style={{ display: 'inline-block', padding: '18px 40px', backgroundColor: 'white', color: '#2563eb', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>Start Free Trial →</Link>
           </div>
         </section>

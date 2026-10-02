@@ -32,7 +32,7 @@ export default function QatarClient() {
   ];
 
   const whyPartner = [
-    { icon: FaGlobe, title: 'Global Technology, Local Support', desc: 'DineOpen powers 1,000+ restaurants in 20+ countries. In Qatar, you get the same world-class platform with local, on-ground support from Retzuky.' },
+    { icon: FaGlobe, title: 'Global Technology, Local Support', desc: 'DineOpen powers 50,000+ restaurants in 20+ countries. In Qatar, you get the same world-class platform with local, on-ground support from Retzuky.' },
     { icon: FaShieldAlt, title: 'Qatar Payment Ready', desc: 'Pre-integrated with Sadad/WiseCashier cloud terminals and NAPS Qatar direct terminals. Accept Visa, Mastercard, and local cards seamlessly.' },
     { icon: FaHeadset, title: 'Full Service — Sales to Support', desc: 'Retzuky handles everything — demo, installation, staff training, CCTV setup, hardware, and ongoing technical support in Doha and across Qatar.' },
     { icon: FaStore, title: 'Built for Every Restaurant Type', desc: 'Fine dining, casual restaurants, cafes, cloud kitchens, QSR chains, food courts, catering — DineOpen adapts to your format.' },

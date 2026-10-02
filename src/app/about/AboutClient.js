@@ -85,7 +85,7 @@ export default function AboutClient() {
                 Small restaurant owners were forced to choose between unaffordable enterprise software and clunky free tools that could not keep up. Meanwhile, AI was transforming every industry except the one that needed it most — hospitality.
               </p>
               <p>
-                We built DineOpen to change that. A single platform where any restaurant can get a cloud POS, AI-powered voice ordering, a waiter app, inventory management, analytics, and loyalty programs — all starting at just $20 per month with zero transaction fees. Today, over 1,000 restaurants across 20+ countries trust DineOpen to run their operations.
+                We built DineOpen to change that. A single platform where any restaurant can get a cloud POS, AI-powered voice ordering, a waiter app, inventory management, analytics, and loyalty programs — all starting at just $20 per month with zero transaction fees. Today, over 50,000 restaurants across 20+ countries trust DineOpen to run their operations.
               </p>
             </div>
           </div>
@@ -208,7 +208,7 @@ export default function AboutClient() {
             Ready to Transform Your Restaurant?
           </h2>
           <p style={{ fontSize: '18px', color: 'rgba(255,255,255,0.9)', marginBottom: '32px' }}>
-            Join 1,000+ restaurants already using DineOpen. Start your free trial today.
+            Join 50,000+ restaurants already using DineOpen. Start your free trial today.
           </p>
           <Link
             href="/pricing"

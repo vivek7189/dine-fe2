@@ -174,7 +174,7 @@ export default function LightspeedAlternativeClient() {
             >
               Start Free Trial - No Credit Card →
             </Link>
-            <p style={{ marginTop: '16px', opacity: 0.8, fontSize: '14px' }}>Join 500+ restaurants that switched from Lightspeed</p>
+            <p style={{ marginTop: '16px', opacity: 0.8, fontSize: '14px' }}>Join restaurants that switched from Lightspeed</p>
           </div>
         </section>
       </div>

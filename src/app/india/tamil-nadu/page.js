@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS Software Tamil Nadu | Chennai, Coimbatore | DineOpen',
-  description: 'Best restaurant POS software for Tamil Nadu restaurants. GST billing, Tamil voice ordering, Zomato/Swiggy integration. Trusted by 8,000+ restaurants in Chennai, Coimbatore, Madurai.',
+  description: 'Best restaurant POS software for Tamil Nadu restaurants. GST billing, Tamil voice ordering, Zomato/Swiggy integration. Trusted by restaurants in Chennai, Coimbatore, Madurai.',
   keywords: 'restaurant POS Tamil Nadu, billing software Chennai, restaurant management Coimbatore, GST billing Tamil Nadu, Tamil POS, restaurant software Madurai',
   openGraph: {
     title: 'Restaurant POS Software Tamil Nadu | DineOpen',
@@ -23,7 +23,7 @@ export const metadata = {
 export default function TamilNaduPage() {
   const stateData = {
     state: 'Tamil Nadu',
-    tagline: 'Trusted by 8,000+ restaurants across Chennai, Coimbatore, Madurai & more',
+    tagline: 'Trusted by restaurants across Chennai, Coimbatore, Madurai & more',
     description: 'GST-compliant billing, Tamil voice ordering, perfect for Chettinad cuisine and filter coffee shops. From mess to fine dining.',
     highlights: [
       'GST billing with Tamil Nadu GSTIN support',

@@ -811,7 +811,7 @@ export const hindiBlogPostContent = {
 <li><strong>Sales Analytics</strong> — कौन सा item कितना बिका, peak hours कौन से, combo suggestions</li>
 <li><strong>Multi-language Support</strong> — Hindi और English दोनों में menu दिखाएं</li>
 </ul>
-<p>Jaipur और Delhi के 500+ restaurants DineOpen का menu management use कर रहे हैं। Free plan में शुरू करें, upgrade बाद में करें।</p>
+<p>Jaipur और Delhi के कई restaurants DineOpen का menu management use कर रहे हैं। Free plan में शुरू करें, upgrade बाद में करें।</p>
 
 <div style="background: linear-gradient(135deg, #111827, #1f2937); border-radius: 16px; padding: 32px; margin: 32px 0; text-align: center;">
   <h3 style="color: white; margin: 0 0 12px 0;">🚀 Free QR Menu बनाएं — अभी!</h3>

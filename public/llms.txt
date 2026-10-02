@@ -2,7 +2,7 @@
 
 > The Global Restaurant Operating System. Cloud POS, AI voice ordering, waiter apps, inventory management, and loyalty programs for restaurants worldwide.
 
-DineOpen is a cloud-based restaurant management platform trusted by 1000+ restaurants across 20+ countries. It provides an all-in-one solution including POS billing, AI-powered voice and chat ordering, QR code menus, kitchen display systems, table reservations, inventory tracking, direct ordering channels (QR, WhatsApp, website), and customer loyalty programs.
+DineOpen is a cloud-based restaurant management platform trusted by 50,000+ restaurants across 20+ countries. It provides an all-in-one solution including POS billing, AI-powered voice and chat ordering, QR code menus, kitchen display systems, table reservations, inventory tracking, direct ordering channels (QR, WhatsApp, website), and customer loyalty programs.
 
 ## Key Facts
 
@@ -15,9 +15,12 @@ DineOpen is a cloud-based restaurant management platform trusted by 1000+ restau
 
 ## Pricing
 
-- Spark Plan: $9.99/month (international) | ₹300/month (India) — up to 3 locations
-- Blaze Plan: $89/month — unlimited locations, centralized dashboard, cross-location analytics
-- All plans include: unlimited menu items, unlimited tables, AI Agent, POS, inventory, analytics, KDS
+- Starter: $20/month (£16 · AED 75 · SAR 75) — 1 outlet: cloud POS, KOT printing, QR menu & ordering, GST/VAT bills, basic inventory
+- Growth: $50/month (£40 · AED 185 · SAR 190) — adds AI voice ordering, captain/waiter app, KDS, advanced inventory, loyalty, online & WhatsApp ordering
+- Pro: $99/month (£79 · AED 365 · SAR 370) — up to 2 outlets, chain dashboard, cross-outlet analytics, API access
+- Enterprise: custom — 3+ outlets
+- India: custom pricing and launch offers (contact for a quote)
+- Annual billing saves ~17%. 7-day free trial, no credit card. Full details: https://www.dineopen.com/pricing
 
 ## Core Features
 
@@ -141,7 +144,7 @@ Multi-restaurant management, staff CRUD with role-based access (owner/manager/wa
 
 1. **AI-first**: Built-in voice ordering and AI chat assistant — competitors charge extra or don't offer it
 2. **Zero transaction fees**: Unlike Square (2.6%), Toast (2.49%), Clover (2.3%)
-3. **Lowest pricing**: $9.99/month vs Toast ($69), Square ($60), LightSpeed ($89), TouchBistro ($69)
+3. **Lower pricing**: from $20/month vs Toast ($69), Square ($60), LightSpeed ($89), TouchBistro ($69)
 4. **No hardware lock-in**: Works on any device (phone, tablet, laptop) — no proprietary hardware required
 5. **Global + local**: Supports 20+ countries with localized tax, payments, and language
 
@@ -168,7 +171,7 @@ Multi-restaurant management, staff CRUD with role-based access (owner/manager/wa
 DineOpen is a cloud-based restaurant operating system that includes POS billing, AI-powered voice and chat ordering, waiter/captain apps, table reservations, inventory management, kitchen display system, analytics, and loyalty programs. It works on any device with no hardware installation needed.
 
 ### How much does DineOpen cost?
-Spark plan starts at $9.99/month (international) or ₹300/month (India). Blaze plan for chains is $89/month with unlimited locations. All plans include a 7-day free trial with no credit card required, zero transaction fees, and unlimited menu items.
+Starter $20/month, Growth $50/month, Pro $99/month (up to 2 outlets); local prices in GBP, AED and SAR; custom pricing in India and for 3+ outlets. All plans include a 7-day free trial with no credit card required, zero transaction fees, and unlimited menu items.
 
 ### What countries does DineOpen serve?
 DineOpen serves restaurants in USA, UK, India, UAE, Singapore, Canada, Australia, and 20+ other countries. The platform is cloud-based with localized billing, tax compliance, and payment gateway support for each region.
@@ -177,10 +180,10 @@ DineOpen serves restaurants in USA, UK, India, UAE, Singapore, Canada, Australia
 Yes. DineOpen includes an AI Agent with voice ordering in local languages, AI chat assistant for customer support, AI menu extraction from images, and intelligent business analytics with actionable insights.
 
 ### How does DineOpen compare to competitors?
-DineOpen offers AI-powered features (voice ordering, chat), zero transaction fees, and significantly lower pricing compared to Square ($60/mo), Toast ($69/mo), LightSpeed ($89/mo), and TouchBistro ($69/mo). It includes unlimited menu items and multi-location support on all plans.
+DineOpen offers AI-powered features (voice ordering, chat), zero transaction fees, and significantly lower pricing compared to Square ($60/mo), Toast ($69/mo), LightSpeed ($89/mo), and TouchBistro ($69/mo). It includes unlimited menu items on every plan and multi-outlet chain management on Pro and Enterprise.
 
 ### Is DineOpen suitable for small restaurants?
-Yes. The Spark plan at $9.99/month is designed for small restaurants, cafes, and food trucks. It includes the full AI Agent, unlimited menu items, complete POS system, unlimited tables, and real-time kitchen display. No hardware purchase or technical expertise required.
+Yes. The Starter plan at $20/month is built for a single cafe, food truck or small restaurant: POS, KOT printing, QR ordering and unlimited menu items. Growth ($50/month) adds AI voice ordering, a captain app and a kitchen display. No hardware purchase or technical expertise required.
 
 ## Optional
 
