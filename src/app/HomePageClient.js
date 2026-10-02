@@ -601,7 +601,7 @@ export default function LandingPage() {
                 <a href="https://apps.apple.com/in/app/dineopen-restaurant-billing/id6761518444" target="_blank" rel="noopener noreferrer" title="Download on App Store" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '8px', color: '#6b7280', transition: 'all 0.2s', textDecoration: 'none' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f3f4f6'; e.currentTarget.style.color = '#111827'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#6b7280'; }}>
                   <FaApple size={16} />
                 </a>
-                <a href="https://github.com/vivek7189/dine-app2/releases/download/android-latest/DineOpen-Waiter.apk" target="_blank" rel="noopener noreferrer" title="Download Android APK" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '8px', color: '#6b7280', transition: 'all 0.2s', textDecoration: 'none' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f3f4f6'; e.currentTarget.style.color = '#111827'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#6b7280'; }}>
+                <a href="https://www.dineopen.com/download/android" target="_blank" rel="noopener noreferrer" title="Download Android APK" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '8px', color: '#6b7280', transition: 'all 0.2s', textDecoration: 'none' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f3f4f6'; e.currentTarget.style.color = '#111827'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#6b7280'; }}>
                   <FaGooglePlay size={14} />
                 </a>
                 <div style={{ width: '1px', height: '20px', backgroundColor: '#e5e7eb', margin: '0 4px' }} />
@@ -2648,7 +2648,7 @@ export default function LandingPage() {
 
             {/* Android — auto-latest APK from GitHub release (same as Admin → App Download) */}
             <a
-              href="https://github.com/vivek7189/dine-app2/releases/download/android-latest/DineOpen-Waiter.apk"
+              href="https://www.dineopen.com/download/android"
               target="_blank" rel="noopener noreferrer"
               style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',

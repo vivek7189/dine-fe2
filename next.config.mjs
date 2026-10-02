@@ -70,6 +70,13 @@ const nextConfig = {
         destination: 'https://www.dineopen.com/:path*',
         permanent: true,
       },
+      // App downloads from our own domain (the page never shows the GitHub address). Temporary
+      // (307) so the target can later move to our own file host without browsers caching GitHub.
+      {
+        source: '/download/android',
+        destination: 'https://github.com/vivek7189/dine-app2/releases/download/android-latest/DineOpen-Waiter.apk',
+        permanent: false,
+      },
       // Legacy product URL redirects → new branded URLs
       {
         source: '/products/pos-software',
