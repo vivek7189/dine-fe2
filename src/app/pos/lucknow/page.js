@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Lucknow | Billing System | DineOpen',
-  description: 'Top-rated restaurant POS software in Lucknow. AI-powered billing, GST compliance, QR code ordering. Perfect for Awadhi cuisine, kebab shops & biryani restaurants. Start free trial.',
+  description: 'Restaurant POS software in Lucknow. AI-powered billing, GST compliance, QR code ordering. Perfect for Awadhi cuisine, kebab shops & biryani restaurants. Start free trial.',
   keywords: 'restaurant POS Lucknow, billing software Lucknow, restaurant software UP, GST billing Lucknow, cloud POS Lucknow, QR menu Lucknow, kebab shop POS, Awadhi restaurant software, biryani restaurant POS',
   openGraph: {
     title: 'Best Restaurant POS Software in Lucknow | DineOpen',
@@ -26,7 +26,6 @@ export default function LucknowPOSPage() {
     country: 'India',
     currency: '₹',
     price: '999',
-    restaurants: '200+',
     highlights: [
       'Hindi & Urdu voice ordering support',
       'GST-compliant billing for Uttar Pradesh',
@@ -70,57 +69,10 @@ export default function LucknowPOSPage() {
     }
   };
 
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": "What is the best restaurant POS software in Lucknow?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen is the top-rated restaurant POS software in Lucknow, offering GST-compliant billing for UP, Hindi and Urdu voice ordering, Awadhi cuisine features, and kebab shop portion management. Plans start at ₹999/month."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Does DineOpen work with Zomato and Swiggy in Lucknow?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen integrates directly with Zomato and Swiggy for Lucknow restaurants. Orders from Hazratganj, Gomti Nagar, Aminabad, and Chowk flow automatically into your POS."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How much does restaurant POS cost in Lucknow?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen restaurant POS starts at ₹999/month for Lucknow restaurants, including GST billing, biryani portion management (half/full/family), QR menus, and delivery integration. All prices are GST-inclusive."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Does DineOpen support Hindi and Urdu voice ordering in Lucknow?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen supports AI-powered voice ordering in Hindi, Urdu, and English, perfect for Lucknow's Nawabi cuisine restaurants and kebab shops. Staff can take orders hands-free during busy hours."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Can I get a free trial of DineOpen in Lucknow?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen offers a 7-day free trial for all Lucknow restaurants and kebab shops. No credit card required. Get full access to Awadhi cuisine features, GST billing, and delivery integrations."
-        }
-      }
-    ]
-  };
 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <CityPOSClient cityData={cityData} />
     </>
   );

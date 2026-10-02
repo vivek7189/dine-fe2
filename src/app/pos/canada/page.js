@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Canada | Toronto, Vancouver | DineOpen',
-  description: 'Top-rated restaurant POS software for Canada. Cloud-based billing, HST/GST compliance, QR ordering, Skip & DoorDash integration. Perfect for Canadian restaurants. CAD 39/month. Free trial.',
+  description: 'Restaurant POS software for Canada. Cloud-based billing, HST/GST compliance, QR ordering, Skip & DoorDash integration. Perfect for Canadian restaurants. From $20/month (USD). Free trial.',
   keywords: 'restaurant POS Canada, POS system Toronto, restaurant software Vancouver, HST billing software, cloud POS Canada, QR menu Canada, Indian restaurant POS Toronto, cafe billing Vancouver, restaurant management Canada',
   openGraph: {
     title: 'Best Restaurant POS Software in Canada | DineOpen',
@@ -34,9 +34,8 @@ export default function CanadaPOSPage() {
     city: 'Canada',
     state: 'Ontario, BC & More',
     country: 'Canada',
-    currency: 'CAD ',
-    price: '39',
-    restaurants: '80+',
+    currency: '$',
+    price: '20',
     deliveryPlatforms: 'Connect with Skip The Dishes, DoorDash & Uber Eats',
     highlights: [
       'HST/GST/PST compliant billing',
@@ -78,8 +77,8 @@ export default function CanadaPOSPage() {
     "operatingSystem": "Web, iOS, Android",
     "offers": {
       "@type": "Offer",
-      "price": "39",
-      "priceCurrency": "CAD",
+      "price": "20",
+      "priceCurrency": "USD",
       "priceValidUntil": "2026-12-31"
     },
     "areaServed": {
@@ -88,57 +87,10 @@ export default function CanadaPOSPage() {
     }
   };
 
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": "What is the best restaurant POS software in Canada?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen is a top-rated restaurant POS for Canada, offering HST/GST/PST compliant billing, English and French language support, Skip The Dishes and DoorDash integration, and tip management. Plans start at CAD 39/month."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Does DineOpen support Skip The Dishes and DoorDash in Canada?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen integrates directly with Skip The Dishes and DoorDash across all Canadian cities. Orders from Toronto, Vancouver, Calgary, and Montreal flow automatically into your POS."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How much does restaurant POS cost in Canada?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen restaurant POS starts at CAD 39/month for Canadian restaurants. This includes HST/GST/PST compliant billing, delivery integration, tip pooling, and multi-province tax configuration. No long-term contracts."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Does DineOpen support English and French voice ordering in Canada?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen supports AI-powered voice ordering in English and French, perfect for Canadian restaurants across all provinces including Quebec. Staff can take orders hands-free in either language."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Can I get a free trial of DineOpen in Canada?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen offers a 7-day free trial for all Canadian restaurants. No credit card required. Get full access to HST/GST billing, delivery integrations, and winter-ready offline mode."
-        }
-      }
-    ]
-  };
 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <CityPOSClient cityData={cityData} />
     </>
   );

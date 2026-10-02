@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Singapore | Cloud POS | DineOpen',
-  description: 'Top-rated restaurant POS software for Singapore. GST-compliant billing, QR ordering, GrabFood & Foodpanda integration. Perfect for hawker stalls, cafes & restaurants. SGD 49/month. Free trial.',
+  description: 'Restaurant POS software for Singapore. GST-compliant billing, QR ordering, GrabFood & Foodpanda integration. Perfect for hawker stalls, cafes & restaurants. From $20/month (USD). Free trial.',
   keywords: 'restaurant POS Singapore, hawker stall POS, cafe billing Singapore, GST POS Singapore, cloud POS Singapore, QR ordering Singapore, GrabFood integration, restaurant software Singapore, kopitiam POS',
   openGraph: {
     title: 'Best Restaurant POS Software in Singapore | DineOpen',
@@ -34,9 +34,8 @@ export default function SingaporePOSPage() {
     city: 'Singapore',
     state: 'Singapore',
     country: 'Singapore',
-    currency: 'SGD ',
-    price: '49',
-    restaurants: '100+',
+    currency: '$',
+    price: '20',
     deliveryPlatforms: 'Connect with GrabFood, Foodpanda & Deliveroo',
     highlights: [
       'GST-compliant billing for Singapore',
@@ -78,8 +77,8 @@ export default function SingaporePOSPage() {
     "operatingSystem": "Web, iOS, Android",
     "offers": {
       "@type": "Offer",
-      "price": "49",
-      "priceCurrency": "SGD",
+      "price": "20",
+      "priceCurrency": "USD",
       "priceValidUntil": "2026-12-31"
     },
     "areaServed": {
@@ -88,57 +87,10 @@ export default function SingaporePOSPage() {
     }
   };
 
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": "What is the best restaurant POS software in Singapore?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen is a top-rated restaurant POS for Singapore, offering GST-compliant billing, GrabFood and Foodpanda integration, hawker stall optimization, and support for English, Mandarin, Malay, and Tamil. Plans start at SGD 49/month."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Does DineOpen support GrabFood and Foodpanda in Singapore?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen integrates directly with GrabFood and Foodpanda across Singapore. Orders from Orchard Road, Marina Bay, Clarke Quay, and Chinatown flow automatically into your POS."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How much does restaurant POS cost in Singapore?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen restaurant POS starts at SGD 49/month for Singapore restaurants and hawker stalls. This includes GST-compliant billing, QR ordering with PayNow/NETS, and multi-outlet chain management. No long-term contracts."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Does DineOpen support multilingual voice ordering in Singapore?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen supports AI-powered voice ordering in English, Mandarin, Malay, and Tamil, perfect for Singapore's multilingual food scene. Staff can take orders in their preferred language."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Can I get a free trial of DineOpen in Singapore?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen offers a 7-day free trial for all Singapore restaurants and hawker stalls. No credit card required. Get full access to GST billing, GrabFood integration, and kopitiam optimized features."
-        }
-      }
-    ]
-  };
 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <CityPOSClient cityData={cityData} />
     </>
   );

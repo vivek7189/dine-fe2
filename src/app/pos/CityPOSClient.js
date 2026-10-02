@@ -15,7 +15,6 @@ export default function CityPOSClient({ cityData }) {
     currency,
     price,
     highlights,
-    restaurants,
     testimonial,
     localKeywords,
     complianceInfo,
@@ -55,7 +54,7 @@ export default function CityPOSClient({ cityData }) {
               Best Restaurant POS in {city}
             </h1>
             <p style={{ fontSize: '20px', opacity: 0.95, marginBottom: '32px' }}>
-              Trusted by {restaurants} restaurants in {city}. AI-powered billing, QR menus, and delivery integrations.
+              Built for restaurants in {city}. AI-powered billing, QR menus, and delivery integrations.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link
@@ -271,7 +270,7 @@ export default function CityPOSClient({ cityData }) {
               Ready to Transform Your {city} Restaurant?
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.9, marginBottom: '32px' }}>
-              Join {restaurants} restaurants in {city} using DineOpen. Free 7-day trial.
+              Start taking orders in {city} with DineOpen. Free 7-day trial.
             </p>
             <Link
               href="https://dineopen.com/login"

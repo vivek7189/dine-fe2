@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS System UK | AI Voice Ordering | EPOS Alternative | DineOpen',
-  description: 'Best restaurant POS for UK restaurants. AI voice ordering, QR menus, VAT-compliant billing. Affordable alternative to Epos Now, Lightspeed. Free 7-day trial. From £8/month.',
+  description: 'Best restaurant POS for UK restaurants. AI voice ordering, QR menus, VAT-compliant billing. Affordable alternative to Epos Now, Lightspeed. Free 7-day trial. From £16/month.',
   keywords: 'restaurant POS UK, restaurant EPOS system, UK restaurant software, Epos Now alternative, Lightspeed alternative, restaurant billing software UK, cafe POS UK, pub POS system, British restaurant POS, QR menu ordering UK, VAT billing restaurant',
   openGraph: {
     title: 'Restaurant POS System UK | AI Voice Ordering | DineOpen',
@@ -37,7 +37,7 @@ export default function UKPOSPage() {
     country: 'UK',
     currency: '£',
     currencyCode: 'GBP',
-    price: '8',
+    price: '16',
     highlights: [
       'VAT-compliant billing for UK restaurants',
       'AI voice ordering with UK accent support',
@@ -45,7 +45,6 @@ export default function UKPOSPage() {
       'Works on any device - iPad, Android, PC',
       'Month-to-month billing, no contracts',
     ],
-    restaurants: '5,000+',
     deliveryPlatforms: 'Connect with Deliveroo, Just Eat & Uber Eats',
     testimonial: {
       quote: 'DineOpen transformed our gastropub in Shoreditch. The QR ordering reduced our wait times and the AI helps during busy weekend rushes.',
@@ -76,64 +75,17 @@ export default function UKPOSPage() {
     "operatingSystem": "Web, iOS, Android",
     "offers": {
       "@type": "Offer",
-      "price": "8",
+      "price": "16",
       "priceCurrency": "GBP",
       "availability": "https://schema.org/InStock"
     },
     "areaServed": { "@type": "Country", "name": "United Kingdom" },
   };
 
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": "What is the best restaurant POS software in the UK?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen is a top-rated restaurant EPOS for the UK, offering VAT-compliant billing, AI voice ordering with UK accent support, and Deliveroo, Just Eat, and Uber Eats integration. Plans start from just \u00a38/month."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Does DineOpen support Deliveroo and Just Eat in the UK?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen integrates directly with Deliveroo, Just Eat, and Uber Eats across all UK cities. Orders flow automatically into your EPOS, streamlining delivery management for London, Manchester, Birmingham, and beyond."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How much does restaurant POS cost in the UK?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen restaurant EPOS starts at just \u00a38/month for UK restaurants. This includes VAT-compliant billing, QR menus, delivery integration, and AI voice ordering. No long-term contracts, cancel anytime."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Does DineOpen support English voice ordering in the UK?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen supports AI-powered voice ordering with UK English accent support, perfect for pubs, gastropubs, and restaurants. Staff can take orders hands-free during busy weekend rushes."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Can I get a free trial of DineOpen in the UK?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen offers a 7-day free trial for all UK restaurants and pubs. No credit card required. You get full access to VAT billing, delivery integrations, and AI voice ordering features."
-        }
-      }
-    ]
-  };
 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <CityPOSClient cityData={cityData} />
     </>
   );

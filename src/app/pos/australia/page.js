@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Australia | Sydney, Melbourne | DineOpen',
-  description: 'Top-rated restaurant POS software for Australia. Cloud-based billing, GST compliance, QR ordering, Uber Eats & Menulog integration. Perfect for Australian restaurants & cafes. AUD 39/month. Free trial.',
+  description: 'Restaurant POS software for Australia. Cloud-based billing, GST compliance, QR ordering, Uber Eats & Menulog integration. Perfect for Australian restaurants & cafes. From $20/month (USD). Free trial.',
   keywords: 'restaurant POS Australia, POS system Sydney, restaurant software Melbourne, GST billing software Australia, cloud POS Australia, QR menu Australia, cafe POS Sydney, restaurant management Melbourne, hospitality POS',
   openGraph: {
     title: 'Best Restaurant POS Software in Australia | DineOpen',
@@ -34,9 +34,8 @@ export default function AustraliaPOSPage() {
     city: 'Australia',
     state: 'NSW, VIC & More',
     country: 'Australia',
-    currency: 'AUD ',
-    price: '39',
-    restaurants: '70+',
+    currency: '$',
+    price: '20',
     deliveryPlatforms: 'Connect with Uber Eats, Menulog & DoorDash',
     highlights: [
       'GST-compliant billing for Australia',
@@ -78,8 +77,8 @@ export default function AustraliaPOSPage() {
     "operatingSystem": "Web, iOS, Android",
     "offers": {
       "@type": "Offer",
-      "price": "39",
-      "priceCurrency": "AUD",
+      "price": "20",
+      "priceCurrency": "USD",
       "priceValidUntil": "2026-12-31"
     },
     "areaServed": {
@@ -88,57 +87,10 @@ export default function AustraliaPOSPage() {
     }
   };
 
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": "What is the best restaurant POS software in Australia?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen is a top-rated restaurant POS for Australia, offering GST-compliant billing, Uber Eats and Menulog integration, cafe culture optimized features, and QR ordering with tap-to-pay. Plans start at AUD 39/month."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Does DineOpen support Uber Eats and Menulog in Australia?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen integrates directly with Uber Eats and Menulog across all Australian cities. Orders from Sydney, Melbourne, Brisbane, and Perth flow automatically into your POS."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How much does restaurant POS cost in Australia?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen restaurant POS starts at AUD 39/month for Australian restaurants and cafes. This includes GST-compliant billing, QR ordering, delivery integration, and multi-venue management. No long-term contracts."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Does DineOpen support English voice ordering in Australia?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen supports AI-powered voice ordering in English, perfect for Australian cafes and restaurants. Staff can take orders hands-free during busy brunch rushes and weekend peaks."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Can I get a free trial of DineOpen in Australia?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen offers a 7-day free trial for all Australian restaurants and cafes. No credit card required. Get full access to GST billing, delivery integrations, and cafe-focused features."
-        }
-      }
-    ]
-  };
 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <CityPOSClient cityData={cityData} />
     </>
   );

@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Jaipur | Billing System | DineOpen',
-  description: 'Top-rated restaurant POS software in Jaipur. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato integration. Perfect for Rajasthani thali restaurants, cafes & hotels. Start free trial.',
+  description: 'Restaurant POS software in Jaipur. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato integration. Perfect for Rajasthani thali restaurants, cafes & hotels. Start free trial.',
   keywords: 'restaurant POS Jaipur, billing software Jaipur, restaurant software Rajasthan, GST billing Jaipur, cloud POS Jaipur, QR menu Jaipur, thali restaurant POS, hotel POS Jaipur, cafe billing Jaipur',
   openGraph: {
     title: 'Best Restaurant POS Software in Jaipur | DineOpen',
@@ -26,7 +26,6 @@ export default function JaipurPOSPage() {
     country: 'India',
     currency: '₹',
     price: '999',
-    restaurants: '250+',
     highlights: [
       'Hindi & Rajasthani language voice ordering',
       'GST-compliant billing for Rajasthan',
@@ -70,57 +69,10 @@ export default function JaipurPOSPage() {
     }
   };
 
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": "What is the best restaurant POS software in Jaipur?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen is the top-rated restaurant POS software in Jaipur, offering GST-compliant billing for Rajasthan, Hindi and Rajasthani voice ordering, Rajasthani thali support, and tourist-friendly multi-currency display. Plans start at ₹999/month."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Does DineOpen work with Zomato and Swiggy in Jaipur?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen integrates directly with Zomato and Swiggy for Jaipur restaurants. Orders from MI Road, C-Scheme, Vaishali Nagar, and Malviya Nagar flow automatically into your POS."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How much does restaurant POS cost in Jaipur?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen restaurant POS starts at ₹999/month for Jaipur restaurants, including GST billing, thali management, QR menus for tourists, and delivery integration. All prices are GST-inclusive."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Does DineOpen support Hindi voice ordering in Jaipur?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen supports AI-powered voice ordering in Hindi and Rajasthani, perfect for Jaipur's heritage haveli restaurants and Rajasthani thali eateries. QR menus also work for international tourists."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Can I get a free trial of DineOpen in Jaipur?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen offers a 7-day free trial for all Jaipur restaurants and rooftop cafes. No credit card required. Get full access to GST billing, thali management, and tourist-friendly features."
-        }
-      }
-    ]
-  };
 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <CityPOSClient cityData={cityData} />
     </>
   );

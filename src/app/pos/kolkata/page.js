@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Kolkata | Billing System | DineOpen',
-  description: 'Top-rated restaurant POS software in Kolkata. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato integration. Trusted by 350+ Kolkata restaurants. Start free trial.',
+  description: 'Restaurant POS software in Kolkata. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato integration. Trusted by 350+ Kolkata restaurants. Start free trial.',
   keywords: 'restaurant POS Kolkata, billing software Kolkata, restaurant software West Bengal, GST billing Kolkata, cloud POS Kolkata, QR menu Kolkata, sweet shop POS, restaurant management Kolkata',
   openGraph: {
     title: 'Best Restaurant POS Software in Kolkata | DineOpen',
@@ -26,7 +26,6 @@ export default function KolkataPOSPage() {
     country: 'India',
     currency: '₹',
     price: '999',
-    restaurants: '350+',
     highlights: [
       'Bengali language voice ordering support',
       'GST-compliant billing for West Bengal',
@@ -70,57 +69,10 @@ export default function KolkataPOSPage() {
     }
   };
 
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": "What is the best restaurant POS software in Kolkata?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen is the top-rated restaurant POS software in Kolkata, offering GST-compliant billing for West Bengal, Swiggy and Zomato integration, and AI voice ordering in Bengali. Plans start at ₹999/month."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Does DineOpen work with Zomato and Swiggy in Kolkata?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen integrates directly with Zomato and Swiggy for Kolkata restaurants. Orders from Park Street, Salt Lake, New Town, and Ballygunge flow automatically into your POS."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How much does restaurant POS cost in Kolkata?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen restaurant POS starts at ₹999/month for Kolkata restaurants, including GST billing, QR menus, and delivery integration. Perfect for sweet shops and roll counters. All prices are GST-inclusive."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Does DineOpen support Bengali voice ordering in Kolkata?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen supports AI-powered voice ordering in Bengali and English, ideal for Kolkata restaurants and sweet shops. Staff can manage mishti inventory and take orders hands-free during Durga Puja rushes."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Can I get a free trial of DineOpen in Kolkata?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen offers a 7-day free trial for all Kolkata restaurants and sweet shops. No credit card required. Get full access to Bengali language support, GST billing, and delivery integrations."
-        }
-      }
-    ]
-  };
 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <CityPOSClient cityData={cityData} />
     </>
   );
