@@ -2509,6 +2509,9 @@ const MenuManagement = () => {
   const [showBarcodeTab, setShowBarcodeTab] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
+  useEffect(() => {
+    try { if (new URLSearchParams(window.location.search).get('upload') === '1') setShowBulkUpload(true); } catch { /* ignore */ }
+  }, []);
   const [showBulkModifier, setShowBulkModifier] = useState(false);
   const [showMoreActions, setShowMoreActions] = useState(false);
   const moreActionsRef = useRef(null);

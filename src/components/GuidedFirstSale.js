@@ -33,6 +33,10 @@ export default function GuidedFirstSale({ cartCount = 0, orderPlaced = false }) 
     if (typeof window === 'undefined') return;
     try {
       if (localStorage.getItem(DONE_KEY) === 'true') return;
+      // Armed by Home's GetStartedCard from SERVER data (restaurant < 30 days old, no order yet),
+      // so it works on any device and any day — not only on the signup device.
+      const rid = localStorage.getItem('selectedRestaurantId');
+      if (rid && localStorage.getItem('activationFirstSaleRid') === rid) { setActive(true); return; }
       const raw = localStorage.getItem('onboardingChecklist');
       if (!raw) return; // never onboarded on this device → don't show
       const data = JSON.parse(raw);
