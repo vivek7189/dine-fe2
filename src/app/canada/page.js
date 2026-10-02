@@ -4,7 +4,7 @@ export const dynamic = 'force-static';
 export const revalidate = false;
 
 export const metadata = {
-  title: 'Restaurant POS System Canada | GST/HST & Bilingual | DineOpen',
+  title: 'Restaurant POS for Canada: GST/HST & French Receipts',
   description: 'Modern restaurant POS for Canadian restaurants — GST/HST + QST (Quebec), Bill 72 tipping, bilingual (French) receipts, Interac, Apple Pay, SkipTheDishes/Uber Eats/DoorDash. Zero transaction fees, no lock-in. A Lightspeed & TouchBistro alternative from C$14/mo.',
   keywords: 'restaurant POS Canada, best restaurant POS Canada, Lightspeed alternative, TouchBistro alternative, restaurant POS Ontario, POS Quebec, GST HST POS, bilingual restaurant POS, Canadian restaurant software',
   alternates: {

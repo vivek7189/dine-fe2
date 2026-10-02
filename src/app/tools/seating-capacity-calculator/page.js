@@ -4,7 +4,7 @@ export const dynamic = 'force-static';
 export const revalidate = false;
 
 export const metadata = {
-  title: 'Restaurant Seating Capacity Calculator | Seats Per Sq Ft | DineOpen',
+  title: 'Restaurant Seating Capacity Calculator (Free)',
   description: 'Free calculator to determine optimal restaurant seating capacity. Calculate seats per square foot based on layout style - fine dining, casual, QSR, cafe.',
   keywords: 'restaurant seating capacity calculator, seats per square foot, restaurant layout planning, how many seats restaurant, seating capacity formula',
   openGraph: {
