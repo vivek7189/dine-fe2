@@ -421,6 +421,22 @@ export default function CommonHeader() {
             >
               Pricing
             </Link>
+            <Link
+              href="/partners"
+              style={{
+                fontSize: '15px',
+                fontWeight: '600',
+                color: '#111827',
+                textDecoration: 'none',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => { e.target.style.backgroundColor = '#f3f4f6'; }}
+              onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; }}
+            >
+              Partners
+            </Link>
           </div>
         )}
 
@@ -642,10 +658,25 @@ export default function CommonHeader() {
                 color: '#374151',
                 textDecoration: 'none',
                 fontWeight: '600',
-                fontSize: '15px'
+                fontSize: '15px',
+                borderBottom: '1px solid #f3f4f6'
               }}
             >
               Pricing
+            </Link>
+            <Link
+              href="/partners"
+              onClick={() => setShowMobileMenu(false)}
+              style={{
+                display: 'block',
+                padding: '12px 0',
+                color: '#374151',
+                textDecoration: 'none',
+                fontWeight: '600',
+                fontSize: '15px'
+              }}
+            >
+              Partners
             </Link>
           </div>
 

@@ -591,6 +591,20 @@ export default function LandingPage() {
             >
               Pricing
             </Link>
+            <Link href="/partners" style={{
+              fontSize: '15px',
+              fontWeight: '600',
+              color: '#111827',
+              textDecoration: 'none',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => { e.target.style.backgroundColor = '#f3f4f6'; }}
+            onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; }}
+            >
+              Partners
+            </Link>
             </div>
           )}
 
