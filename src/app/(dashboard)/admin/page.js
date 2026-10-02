@@ -238,9 +238,24 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
   // against this (settingsPatch), so a stale page never puts back values changed elsewhere.
   // null = not loaded (save is blocked so the empty defaults can never overwrite real settings).
   const taxBaseRef = useRef(null);
+  // Legacy taxes saved without an `id` make the new backend reject a full-body save (400) —
+  // give them a stable generated id: tax_<name-slug>_<rate>, made unique within the list.
+  // Deterministic, so the loaded baseline and a fresh copy get the same ids (no false diffs).
+  const withTaxIds = (taxes) => {
+    const used = new Set(taxes.map(t => t && t.id).filter(Boolean).map(String));
+    return taxes.map(t => {
+      if (!t || typeof t !== 'object' || t.id) return t;
+      const slug = String(t.name || 'tax').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'tax';
+      const base = `tax_${slug}_${String(Number(t.rate) || 0).replace('.', '_')}`;
+      let id = base, n = 2;
+      while (used.has(id)) id = `${base}_${n++}`;
+      used.add(id);
+      return { ...t, id };
+    });
+  };
   const normalizeTaxSettings = (ts) => ({
     ...ts,
-    taxes: Array.isArray(ts?.taxes) ? ts.taxes : [],
+    taxes: Array.isArray(ts?.taxes) ? withTaxIds(ts.taxes) : [],
     taxGroups: Array.isArray(ts?.taxGroups) ? ts.taxGroups : [],
     additionalCharges: Array.isArray(ts?.additionalCharges) ? ts.additionalCharges : [],
   });

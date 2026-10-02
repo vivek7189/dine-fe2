@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
@@ -49,7 +49,7 @@ import { isElectron } from '../utils/platform';
 import { resolveVariantTierPrice, resolveItemTierPrice } from '../utils/variantPricing';
 import { isItemTaxInclusive as engineIsItemTaxInclusive, resolveTaxesForItem as engineResolveTaxesForItem, calculatePerItemTax as engineCalculatePerItemTax } from '../utils/taxEngine';
 import { resolveAdditionalCharges } from '../utils/additionalCharges';
-import { calcPricingAdjustment, findTableFloor, orderZoneSurchargeFor } from '../utils/areaCharge';
+import { calcPricingAdjustment, findTableFloor, orderZoneSurchargeFor, serverPricingRuleId } from '../utils/areaCharge';
 
 const NO_ADDITIONAL_CHARGES = { charges: [], total: 0, foldTaxableTotal: 0, ownTaxTotal: 0, taxLines: [] };
 
@@ -243,6 +243,8 @@ const OrderSummary = ({
   setSelectedChair,
   // Floors (with their tables) — used to mirror the server's floor area charge on a new order.
   floors = [],
+  // Full pricing settings ({ multiPricing, zonePricing }) as the server reads them.
+  pricingSettings = null,
   // Wide 2-column order panel (desktop only; controlled by dashboard, persisted in localStorage)
   expanded = false,
   onToggleExpanded,
@@ -668,16 +670,21 @@ const OrderSummary = ({
           .find(r => r && (r.type === 'floor_area_charge' || r.type === 'zone'));
         return { amount: amt, rule: rule || null };
       }
-      if (multiPricingEnabled && activePricingRuleId) return { amount: 0, rule: null };
-      if (locationType === 'room' || selectedTable?.isRoom) return { amount: 0, rule: null };
+      // A room order is sent without a table number (dashboard isRoomOrder) → no table, no charge.
+      if ((inRoomDiningEnabled && locationType === 'room') || selectedTable?.isRoom) return { amount: 0, rule: null };
       const tableName = String(tableNumber || selectedTable?.name || '').trim();
       if (!tableName) return { amount: 0, rule: null };
       const hit = findTableFloor(floors, selectedTable, tableName);
       if (!hit) return { amount: 0, rule: null };
+      const ps = pricingSettings || restaurant?.pricingSettings || null;
+      // The server skips the surcharge whenever it resolves a pricing rule: table floor mapping →
+      // the client's pricingRuleId (an active rule) → the order-type rule.
+      const mp = ps?.multiPricing || (multiPricingEnabled ? { enabled: true, rules: pricingRules } : null);
+      if (serverPricingRuleId(mp, hit.floor?.name, activePricingRuleId, orderType, posSettings?.orderTypes)) return { amount: 0, rule: null };
       const adj = calcPricingAdjustment({
         floorData: hit.floor,
         tableSection: hit.table?.section || hit.floor?.section || null,
-        pricingSettings: restaurant?.pricingSettings,
+        pricingSettings: ps,
         subtotal: itemsSub,
       });
       return { amount: adj.zoneSurcharge, rule: adj.rule };
@@ -689,6 +696,16 @@ const OrderSummary = ({
     const base = r?.type === 'zone' ? (r.zoneName || 'Zone charge') : (t('tables.areaCharge') || 'Area charge');
     return r?.markupType === 'percentage' && Number(r.markupValue) > 0 ? `${base} (${r.markupValue}%)` : base;
   };
+
+  // Cart as the offer engine sees it on the server: a line is "no discount" when the line says so,
+  // else when its menu item does (server offerDiscountApplicable). Memoised — the hook's effects
+  // depend on the cart reference.
+  const offerCart = useMemo(() => (cart || []).map(ci => {
+    if (ci?.discountApplicable === false) return ci;
+    const id = ci?.menuItemId || ci?.id;
+    const mi = id != null ? menuItems.find(m => m && m.id === id) : null;
+    return (mi && mi.discountApplicable === false) ? { ...ci, discountApplicable: false } : ci;
+  }), [cart, menuItems]);
 
   // Offer Engine Hook
   const {
@@ -702,7 +719,7 @@ const OrderSummary = ({
     customerGroups: customerOfferGroups,
   } = useOfferEngine({
     restaurantId,
-    cart,
+    cart: offerCart,
     // Server evaluates offers on items + area surcharge (subtotalForDiscount).
     subtotal: getTotalAmount() + areaCharge,
     customerInfo: customerData,
@@ -2384,7 +2401,11 @@ const OrderSummary = ({
   // discounts, tax, charges and total on the bill so the printed bill matches the saved order.
   const applyLocalTaxOverrides = (invoiceData, localTaxData, { keepServerMoney = false } = {}) => {
     if (!keepServerMoney) {
-      if (localTaxData.subtotal) invoiceData.subtotal = localTaxData.subtotal;
+      // Printed subtotal = items only when the area charge prints as its own line.
+      if (localTaxData.subtotal) {
+        invoiceData.subtotal = (localTaxData.zoneSurcharge > 0 && localTaxData.itemsSubtotal != null)
+          ? localTaxData.itemsSubtotal : localTaxData.subtotal;
+      }
       if (localTaxData.offerDiscount != null) invoiceData.discountAmount = localTaxData.offerDiscount;
       if (localTaxData.manualDiscount != null) invoiceData.manualDiscount = localTaxData.manualDiscount;
       if (localTaxData.loyaltyDiscount != null) invoiceData.loyaltyDiscount = localTaxData.loyaltyDiscount;
@@ -2959,7 +2980,11 @@ const OrderSummary = ({
       taxInclusiveMode,
       showInclusiveTaxOnBill: taxSettings?.showInclusiveTaxOnBill !== false,
       finalAmount: settleFinalAmount(),
-      subtotal: getTotalAmount(),
+      // Server meaning: items + area surcharge (it checks the client subtotal against that, and a
+      // later edit keeps the surcharge only when order.subtotal carries it). The printed bill uses
+      // itemsSubtotal + a separate area-charge line (applyLocalTaxOverrides).
+      subtotal: Math.round((getTotalAmount() + areaCharge) * 100) / 100,
+      itemsSubtotal: getTotalAmount(),
       specialInstructions: specialInstructions.trim() || null,
       offerIds: allOfferIds,
       manualDiscount: getManualDiscountAmount(),
@@ -4462,6 +4487,12 @@ const OrderSummary = ({
                         <span>{t('invoice.subtotal')}:</span>
                         <span>{formatCurrency(invoice?.subtotal || 0)}</span>
                       </div>
+                      {invoice?.zoneSurchargeLabel && Number(invoice?.zoneSurcharge) > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
+                          <span>{invoice.zoneSurchargeLabel}:</span>
+                          <span>{formatCurrency(Number(invoice.zoneSurcharge))}</span>
+                        </div>
+                      )}
                       {(invoice?.discountAmount || 0) > 0 && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px', color: '#16a34a' }}>
                           <span>{t('invoice.offer')}{(() => { const n = typeof invoice?.appliedOffer === 'string' ? invoice.appliedOffer : (invoice?.appliedOffer?.name || invoice?.selectedOfferName); return n ? ` (${n})` : ''; })()}:</span>
@@ -7717,7 +7748,8 @@ const OrderSummary = ({
                     const saveOfferIds = offerSettings?.allowMultipleOffers && selectedOfferIds.length > 0
                       ? selectedOfferIds : (selectedOfferId ? [selectedOfferId] : []);
                     const taxData = {
-                      taxBreakdown, totalTax, finalAmount: settleFinalAmount(), subtotal: getTotalAmount(),
+                      taxBreakdown, totalTax, finalAmount: settleFinalAmount(),
+                      subtotal: Math.round((getTotalAmount() + areaCharge) * 100) / 100, itemsSubtotal: getTotalAmount(), // items + area charge (server meaning)
                       specialInstructions: specialInstructions.trim() || null,
                       offerIds: saveOfferIds,
                       manualDiscount: getManualDiscountAmount(),
@@ -8421,7 +8453,7 @@ const OrderSummary = ({
                       const oid = offer.id || offer._id;
                       const isMulti = offerSettings?.allowMultipleOffers;
                       const isSelected = isMulti ? selectedOfferIds.includes(oid) : selectedOfferId === oid;
-                      const saves = calculateDiscountForOffer(offer, getTotalAmount(), cart);
+                      const saves = calculateDiscountForOffer(offer, getTotalAmount() + areaCharge, offerCart);
                       return (
                         <button
                           key={oid}
@@ -8481,7 +8513,7 @@ const OrderSummary = ({
                           const oid = offer.id || offer._id;
                           const isMulti = offerSettings?.allowMultipleOffers;
                           const isSelected = isMulti ? selectedOfferIds.includes(oid) : selectedOfferId === oid;
-                          const saves = calculateDiscountForOffer(offer, getTotalAmount(), cart);
+                          const saves = calculateDiscountForOffer(offer, getTotalAmount() + areaCharge, offerCart);
                           const offerGroupIds = offer.audience?.groupIds || [];
                           const matchedGroup = customerOfferGroups?.find(g => offerGroupIds.includes(g.id));
                           return (

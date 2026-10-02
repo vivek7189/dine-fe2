@@ -57,7 +57,7 @@ const isItemExcluded = (item, offer) => {
   }
   if (Array.isArray(offer.excludedCategories) && offer.excludedCategories.length > 0) {
     const normalizedExcluded = offer.excludedCategories.map(normalizeCategory);
-    if (normalizedExcluded.includes(normalizeCategory(item.category || item.categoryId || ''))) return true;
+    if (normalizedExcluded.includes(normalizeCategory((item.category || item.categoryId || '').toString()))) return true;
   }
   return false;
 };
@@ -111,9 +111,18 @@ const resolveTier = (offer, subtotal) => {
   return matched;
 };
 
-/**
- * Cross-item BOGO calculator — returns { discount, freeItems }.
- */
+// ── Discount calculation: a LINE-FOR-LINE copy of the backend services/offerEngine.js
+// (calculateCrossItemBogo + calculateDiscountForOffer) so the on-screen discount equals the saved
+// bill. Lines with discountApplicable === false are skipped in every scope, flat_per_item and the
+// BOGO / cross-BOGO pools — exactly like the server, which fills the flag from the menu item.
+// Keep in sync with the server file.
+const getItemId = (item) => item.menuItemId || item.id;
+const getItemCategory = (item) => (item.category || item.categoryId || '').toString();
+
+// ---------- cross-item BOGO ----------
+
+// Calculates cross-item BOGO "Buy X get Y free" where X and Y are different items.
+// Returns { discount, freeItems }.
 const calculateCrossItemBogo = (offer, cart) => {
   const cfg = offer.crossItemBogo;
   if (!cfg || !cfg.enabled) return { discount: 0, freeItems: [] };
@@ -129,11 +138,13 @@ const calculateCrossItemBogo = (offer, cart) => {
     return { discount: 0, freeItems: [] };
   }
 
+  // Count qualifying buy units (skip non-discountable and excluded items)
   let buyUnits = 0;
   for (const item of cart) {
+    if (item.discountApplicable === false) continue;
     if (isItemExcluded(item, offer)) continue;
-    const id = item.menuItemId || item.id;
-    const cat = (item.category || item.categoryId || '').toString();
+    const id = getItemId(item);
+    const cat = getItemCategory(item);
     const qty = item.quantity || 0;
     const matchById = matchesItemList(buyItemIds, item);
     const matchByCat = buyCategoryIds.length > 0 && buyCategoryIds.some(bc => normalizeCategory(bc) === normalizeCategory(cat));
@@ -143,10 +154,12 @@ const calculateCrossItemBogo = (offer, cart) => {
   const applications = Math.min(Math.floor(buyUnits / buyQty), maxApps);
   if (applications <= 0) return { discount: 0, freeItems: [] };
 
+  // Build available "get" units pool (sorted by price asc — pick cheapest free units)
   const pool = [];
   for (const item of cart) {
+    if (item.discountApplicable === false) continue;
     if (isItemExcluded(item, offer)) continue;
-    const id = item.menuItemId || item.id;
+    const id = getItemId(item);
     if (!matchesItemList(getItemIds, item)) continue;
     const qty = item.quantity || 0;
     const price = getItemUnitPrice(item);
@@ -158,6 +171,7 @@ const calculateCrossItemBogo = (offer, cart) => {
   const taken = pool.slice(0, totalFreeUnitsWanted);
   if (taken.length === 0) return { discount: 0, freeItems: [] };
 
+  // Aggregate taken back into {itemId, qty, unitPrice}
   const agg = new Map();
   let discount = 0;
   for (const u of taken) {
@@ -173,41 +187,43 @@ const calculateCrossItemBogo = (offer, cart) => {
   };
 };
 
-/**
- * Calculate discount for a single offer against the given cart/subtotal.
- * Pure function — no side effects.
- *
- * Back-compat: returns a Number by default (legacy callers) but exposes
- * freeItems + appliedTier via the `.freeItems` / `.appliedTier` props on the
- * returned Number wrapper-object behavior — to keep perfect back-compat we
- * return a primitive Number and provide a sibling helper `calculateOfferResult`
- * that returns the full object shape.
- */
+// ---------- core discount calculation ----------
+
 export const calculateOfferResult = (offer, subtotal, cart = [], context = {}) => {
+  // Cashback offers credit the customer's wallet AFTER payment — they never
+  // reduce the current bill
+  if (offer && offer.promotionType === 'cashback') {
+    return { discount: 0, freeItems: [], appliedTier: null };
+  }
   if (!offer || subtotal <= 0) return { discount: 0, freeItems: [], appliedTier: null };
 
   const offerScope = offer.scope || 'order';
   let applicableSubtotal = subtotal;
 
+  // Scope filtering (category / item) — also exclude non-discountable and offer-excluded items
   if (offerScope === 'category' && Array.isArray(offer.targetCategories) && offer.targetCategories.length > 0) {
     const normalizedTargets = offer.targetCategories.map(normalizeCategory);
     applicableSubtotal = cart
+      .filter(item => item.discountApplicable !== false)
       .filter(item => !isItemExcluded(item, offer))
-      .filter(item => normalizedTargets.includes(normalizeCategory(item.category || '')))
+      .filter(item => normalizedTargets.includes(normalizeCategory(getItemCategory(item))))
       .reduce((sum, item) => sum + getItemLineTotal(item), 0);
   } else if (offerScope === 'item' && Array.isArray(offer.targetItems) && offer.targetItems.length > 0) {
     applicableSubtotal = cart
+      .filter(item => item.discountApplicable !== false)
       .filter(item => !isItemExcluded(item, offer))
       .filter(item => matchesItemList(offer.targetItems, item))
       .reduce((sum, item) => sum + getItemLineTotal(item), 0);
   } else {
-    // Order-level scope: filter out offer-excluded items
+    // Order-level scope: filter out non-discountable and offer-excluded items
     applicableSubtotal = cart
+      .filter(item => item.discountApplicable !== false)
       .filter(item => !isItemExcluded(item, offer))
       .reduce((sum, item) => sum + getItemLineTotal(item), 0);
   }
 
-  // Tier override — if offer has tiers defined but none match, discount is 0
+  // Resolve tier (if any). When tiers match, tier overrides discountType/discountValue.
+  // If offer has tiers defined but none match (subtotal below all tiers), discount is 0.
   const appliedTier = resolveTier(offer, subtotal);
   const hasTiers = Array.isArray(offer.tiers) && offer.tiers.length > 0;
   if (hasTiers && !appliedTier) return { discount: 0, freeItems: [], appliedTier: null };
@@ -222,14 +238,14 @@ export const calculateOfferResult = (offer, subtotal, cart = [], context = {}) =
     return { discount: cross.discount, freeItems: cross.freeItems, appliedTier };
   }
 
-  // Legacy same-item BOGO
+  // Legacy simple BOGO (same-item) — skip non-discountable and excluded items
   if (offer.promotionType === 'bogo' && offer.bogoConfig) {
-    let bogoItems = cart.filter(item => !isItemExcluded(item, offer));
+    let bogoItems = cart.filter(item => item.discountApplicable !== false && !isItemExcluded(item, offer));
     if (offerScope === 'item' && offer.targetItems?.length > 0) {
-      bogoItems = cart.filter(item => matchesItemList(offer.targetItems, item));
+      bogoItems = bogoItems.filter(item => matchesItemList(offer.targetItems, item));
     } else if (offerScope === 'category' && offer.targetCategories?.length > 0) {
       const normalizedTargets = offer.targetCategories.map(normalizeCategory);
-      bogoItems = cart.filter(item => normalizedTargets.includes(normalizeCategory(item.category || item.categoryId || '')));
+      bogoItems = bogoItems.filter(item => normalizedTargets.includes(normalizeCategory(getItemCategory(item))));
     }
     const totalQty = bogoItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
     const buyQty = offer.bogoConfig.buyQty || 2;
@@ -246,13 +262,14 @@ export const calculateOfferResult = (offer, subtotal, cart = [], context = {}) =
       if (offer.maxDiscount && disc > offer.maxDiscount) disc = offer.maxDiscount;
       baseDiscount = Math.round(disc * 100) / 100;
     } else if (effectiveDiscountType === 'flat_per_item') {
-      // Fixed amount off EACH qualifying unit (must match backend offerEngine so the
-      // on-screen preview equals the saved/printed bill). e.g. 76 off × 3 beers = 228.
+      // Fixed amount off EACH qualifying unit (e.g. "KSh 76 off every beer").
+      // Sum per-unit: min(value, unitPrice) x qty across the scoped items, so 3
+      // beers = 3 x 76 automatically. Never discounts a unit below its own price.
       const applicableItems = cart
-        .filter(item => !isItemExcluded(item, offer))
+        .filter(item => item.discountApplicable !== false && !isItemExcluded(item, offer))
         .filter(item => {
           if (offerScope === 'item' && offer.targetItems?.length > 0) return matchesItemList(offer.targetItems, item);
-          if (offerScope === 'category' && offer.targetCategories?.length > 0) return offer.targetCategories.map(normalizeCategory).includes(normalizeCategory(item.category || ''));
+          if (offerScope === 'category' && offer.targetCategories?.length > 0) return offer.targetCategories.map(normalizeCategory).includes(normalizeCategory(getItemCategory(item)));
           return true;
         });
       let disc = 0;
@@ -268,7 +285,11 @@ export const calculateOfferResult = (offer, subtotal, cart = [], context = {}) =
 
   const totalDiscount = baseDiscount;
 
-  return { discount: totalDiscount, freeItems: cross.freeItems, appliedTier };
+  return {
+    discount: totalDiscount,
+    freeItems: cross.freeItems,
+    appliedTier,
+  };
 };
 
 /**

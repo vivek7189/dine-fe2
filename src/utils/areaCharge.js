@@ -50,6 +50,35 @@ export function findTableFloor(floors, selectedTable, tableNumber) {
   return null;
 }
 
+// The pricing rule the server resolves for a new order (POST /api/orders): only when multiPricing
+// is enabled — the table floor's mapping (resolveTablePricingRule: floor name CONTAINS the mapping)
+// → the client's pricingRuleId if it is an active rule → the order-type rule
+// (resolveOrderTypePricingRule: order type id / label ⇄ rule name, normalised). null = none.
+export function serverPricingRuleId(multiPricing, floorName, clientRuleId, orderType, orderTypesList) {
+  if (!multiPricing?.enabled) return null;
+  const rules = Array.isArray(multiPricing.rules) ? multiPricing.rules : [];
+  if (floorName) {
+    const fl = String(floorName).toLowerCase();
+    for (const rule of rules) {
+      if (!rule?.isActive) continue;
+      for (const m of (rule.tableMappings || [])) {
+        if (m && fl.includes(String(m).toLowerCase())) return rule.id;
+      }
+    }
+  }
+  if (clientRuleId) {
+    const r = rules.find(x => x && x.id === clientRuleId && x.isActive);
+    if (r) return r.id;
+  }
+  if (!orderType) return null;
+  const norm = (x) => (x || '').toLowerCase().replace(/[\s_-]+/g, '');
+  const list = Array.isArray(orderTypesList) ? orderTypesList : [];
+  const otObj = list.find(o => o && o.id === orderType);
+  const candidates = new Set([norm(orderType), norm(otObj?.label)].filter(Boolean));
+  const rule = rules.find(r => r && r.isActive && candidates.has(norm(r.name)));
+  return rule ? rule.id : null;
+}
+
 // Server orderZoneSurchargeFor(): the surcharge an EXISTING order keeps on edit/billing.
 export function orderZoneSurchargeFor(order, newItemsSubtotal) {
   const prev = Number(order && order.zoneSurcharge) || 0;

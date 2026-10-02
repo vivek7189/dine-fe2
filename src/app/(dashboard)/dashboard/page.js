@@ -179,6 +179,8 @@ function RestaurantPOSContent() {
   // Multi-tier pricing state
   const [multiPricingEnabled, setMultiPricingEnabled] = useState(false);
   const [pricingRules, setPricingRules] = useState([]);
+  // Full pricing settings (multiPricing + zonePricing) — OrderSummary mirrors the server's area/zone surcharge with it.
+  const [pricingSettingsData, setPricingSettingsData] = useState(null);
   const [pricingRulesLoading, setPricingRulesLoading] = useState(false);
   const [activePricingRuleId, setActivePricingRuleId] = useState(null);
   const [autoSelectedRule, setAutoSelectedRule] = useState(false);
@@ -1638,6 +1640,7 @@ function RestaurantPOSContent() {
             setPricingRulesLoading(true);
             apiClient.getPricingSettings(restaurant.id).then(pricingResponse => {
               const mp = pricingResponse?.settings?.multiPricing;
+              setPricingSettingsData(pricingResponse?.settings || null);
               if (mp?.enabled) {
                 setMultiPricingEnabled(true);
                 setPricingRules((mp.rules || []).filter(r => r.isActive));
@@ -1706,6 +1709,7 @@ function RestaurantPOSContent() {
             try {
               const pricingResponse = await apiClient.getPricingSettings(restaurant.id);
               const mp = pricingResponse?.settings?.multiPricing;
+              setPricingSettingsData(pricingResponse?.settings || null);
               if (mp?.enabled) {
                 setMultiPricingEnabled(true);
                 setPricingRules((mp.rules || []).filter(r => r.isActive));
@@ -1814,6 +1818,7 @@ function RestaurantPOSContent() {
           try {
             const pricingResponse = await apiClient.getPricingSettings(restaurant.id);
             const mp = pricingResponse?.settings?.multiPricing;
+            setPricingSettingsData(pricingResponse?.settings || null);
             if (mp?.enabled) {
               setMultiPricingEnabled(true);
               setPricingRules((mp.rules || []).filter(r => r.isActive));
@@ -2295,7 +2300,8 @@ function RestaurantPOSContent() {
       const floorName = selectedTable.floor;
       const matchedRule = pricingRules.find(rule =>
         (rule.tableMappings || []).some(m =>
-          floorName.toLowerCase().trim() === m.toLowerCase().trim()
+          // Server rule (resolveTablePricingRule): the floor name CONTAINS the mapping.
+          !!m && floorName.toLowerCase().includes(String(m).toLowerCase())
         )
       );
       if (matchedRule) {
@@ -2317,7 +2323,13 @@ function RestaurantPOSContent() {
   useEffect(() => {
     if (!multiPricingEnabled || pricingRules.length === 0) return;
     // When a table is chosen, the floor-mapping effect above owns the pricing rule — don't fight it.
-    if (selectedTable?.floor) return;
+    // Only when the table's floor actually maps to a rule — otherwise the server falls back to the
+    // order-type rule (resolveOrderTypePricingRule), so the POS must too (it used to keep no rule
+    // and charge base prices while the server re-priced at the order-type tier).
+    if (selectedTable?.floor) {
+      const fl = String(selectedTable.floor).toLowerCase();
+      if (pricingRules.some(r => (r.tableMappings || []).some(m => !!m && fl.includes(String(m).toLowerCase())))) return;
+    }
 
     // Normalize aggressively: lowercase + strip spaces/underscores/hyphens, so "Take Away",
     // "take-away", "take_away", "takeaway" — and ANY custom multi-word name vs its rule — all match.
@@ -2338,7 +2350,8 @@ function RestaurantPOSContent() {
     // 2) Dine-in with no table and no dedicated dine-in rule → fall back to the first dining-AREA
     //    rule (AC/Non-AC). Exclude any rule that maps to a defined order type (e.g. Talabat) so a
     //    walk-in dine-in can never accidentally inherit aggregator pricing.
-    if (candidates.has('dinein')) {
+    // (At a table on an unmapped floor there is no area fallback — the server would not pick one.)
+    if (candidates.has('dinein') && !selectedTable?.floor) {
       const reserved = new Set([
         'dinein', 'takeaway', 'delivery',
         ...orderTypesList.map((o) => norm(o.label)),
@@ -9541,6 +9554,7 @@ function RestaurantPOSContent() {
             getTotalAmount={getTotalAmount}
             onTotalsChange={setBillTotals}
             floors={floors}
+            pricingSettings={pricingSettingsData}
             tableNumber={tableNumber}
             selectedTable={selectedTable}
             customerName={customerName}
@@ -9657,6 +9671,7 @@ function RestaurantPOSContent() {
                     getTotalAmount={getTotalAmount}
                     onTotalsChange={setBillTotals}
                     floors={floors}
+                    pricingSettings={pricingSettingsData}
                     tableNumber={tableNumber}
                     selectedTable={selectedTable}
                     customerName={customerName}

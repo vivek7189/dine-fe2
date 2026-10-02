@@ -5,6 +5,15 @@ import { orderDisplayNumber } from '../../utils/orderNumber';
 import { resolveItemTierPrice, resolveOrderTypeRuleId } from '../../utils/variantPricing';
 import { resolveAdditionalCharges } from '../../utils/additionalCharges';
 import { calculatePerItemTax } from '../../utils/taxEngine';
+
+// Cart lines as the server's offer engine sees them: "no discount" when the line says so, else
+// when its menu item does (server offerDiscountApplicable) — offers skip those lines.
+const withOfferFlags = (cartLines, menuItems) => (cartLines || []).map(ci => {
+  if (ci?.discountApplicable === false) return ci;
+  const id = ci?.menuItemId || ci?.id;
+  const mi = id != null && Array.isArray(menuItems) ? menuItems.find(m => m && m.id === id) : null;
+  return (mi && mi.discountApplicable === false) ? { ...ci, discountApplicable: false } : ci;
+});
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   FaSearch, FaShoppingCart, FaPlus, FaMinus, FaTrash, FaArrowLeft,
@@ -687,7 +696,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       .filter(offer => subtotal >= (offer.minOrderValue || 0))
       // Same shared engine as getOfferDiscount / dashboard / BE — so "best offer" is ranked by the
       // REAL tier-aware discount (a below-tier offer scores 0 and won't be auto-picked over a live one).
-      .map(offer => ({ ...offer, calculatedDiscount: calculateDiscountForOffer(offer, subtotal, cart, {}) || 0 }))
+      .map(offer => ({ ...offer, calculatedDiscount: calculateDiscountForOffer(offer, subtotal, withOfferFlags(cart, menu), {}) || 0 }))
       .sort((a, b) => b.calculatedDiscount - a.calculatedDiscount);
 
     // Select best offer(s) based on settings
@@ -752,7 +761,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       // the shared engine handles scope (order/category/item), TIERS (incl. below-lowest-tier → 0),
       // percentage / flat / flat_per_item / BOGO, and maxDiscount — so the public checkout shows
       // EXACTLY what the server will charge (no more tier-ignored over-discounting).
-      totalDiscount += calculateDiscountForOffer(offer, subtotal, cart, {}) || 0;
+      totalDiscount += calculateDiscountForOffer(offer, subtotal, withOfferFlags(cart, menu), {}) || 0;
     }
 
     return Math.round(Math.min(totalDiscount, subtotal) * 100) / 100;
