@@ -45,8 +45,8 @@ export default function SEOStructuredData() {
     "offers": [
       {
         "@type": "Offer",
-        "name": "Spark Plan",
-        "price": "9.99",
+        "name": "Starter Plan",
+        "price": "20",
         "priceCurrency": "USD",
         "priceValidUntil": "2027-12-31",
         "availability": "https://schema.org/InStock",
@@ -54,7 +54,7 @@ export default function SEOStructuredData() {
       },
       {
         "@type": "Offer",
-        "name": "Spark Plan (India)",
+        "name": "Starter Plan (India)",
         "price": "300",
         "priceCurrency": "INR",
         "priceValidUntil": "2027-12-31",
@@ -100,110 +100,6 @@ export default function SEOStructuredData() {
     ]
   };
 
-  // FAQ Schema (Single unified FAQ - covers global + India context)
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": "What is DineOpen?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen is a cloud-based restaurant operating system that powers restaurants worldwide. It includes a complete POS system, waiter & captain apps, online table reservations, inventory management, AI-powered analytics, kitchen display system, and loyalty programs. It works on any device with internet access and does not require hardware installation. Trusted by 50,000+ restaurants across 20+ countries."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How much does DineOpen cost?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen starts at $9.99/month (Spark plan) for international users, with localized pricing available in each region. The Blaze plan for restaurant chains is $89/month. All plans include a 7-day free trial with no credit card required, zero transaction fees, and unlimited menu items."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "What features does DineOpen include?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen includes: AI Agent with voice and chat ordering, Lightning-Fast Cloud POS (bill in 3 seconds), Waiter & Captain App for tableside ordering, Online Table Reservations (24/7 booking), Smart Inventory with auto low-stock alerts, AI Analytics for business insights, Kitchen Display System, Loyalty & Rewards, and integrations with delivery platforms like Zomato and Swiggy."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Which countries does DineOpen serve?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen is a global platform serving restaurants in USA, UK, India, UAE, Singapore, Canada, Australia, and 20+ other countries. Our cloud-based system works anywhere with internet access, with localized billing, tax support, and payment gateways for each region."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Is there a free trial available?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen offers a 7-day free trial for all new users. No credit card required. You get access to all features during the trial period including AI Agent, POS, inventory management, and analytics."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Does DineOpen support multiple restaurant locations?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen supports multi-restaurant management. The Spark plan supports up to 3 locations, and the Blaze plan offers unlimited locations with a centralized chain dashboard, cross-location analytics, and centralized menu management."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Can I use DineOpen on mobile devices?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen is fully responsive and works seamlessly on phones, tablets, and computers. The dedicated Waiter App allows tableside ordering, and managers can monitor operations from anywhere with an internet connection."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Does DineOpen charge transaction fees?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "No, DineOpen charges zero transaction fees on all plans. You only pay the monthly subscription. Payment processing fees from your payment gateway (Razorpay, Dodo Payments, etc.) apply as standard, but DineOpen does not add any additional fees on top."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Does DineOpen have AI features?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen includes comprehensive AI features: AI-powered voice ordering where customers can place orders by speaking, AI chat assistant for customer queries, AI menu extraction from images (snap a photo of your menu to digitize it), and intelligent analytics for business insights."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How does DineOpen compare to other restaurant POS systems?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen stands out with AI-powered features (voice ordering, chat assistant), zero transaction fees, and significantly lower pricing compared to alternatives like Square, Toast, Petpooja, and POSist. DineOpen also includes unlimited menu items and multi-location support at no extra cost in most plans."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "What payment methods does DineOpen support?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen integrates with multiple payment gateways. International users get Dodo Payments supporting cards and PayPal. Indian users get Razorpay supporting UPI, cards, and netbanking. Cash payments are also supported. No additional transaction fees from DineOpen."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Is DineOpen suitable for small restaurants?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, DineOpen is designed for restaurants of all sizes. The Spark plan at $9.99/month is perfect for small cafes and restaurants, offering AI Agent, unlimited menu items, complete POS system, unlimited tables, and real-time kitchen display. No hardware installation or technical expertise required."
-        }
-      }
-    ]
-  };
-
   // WebSite Schema with SearchAction (for better SEO)
   const websiteSchema = {
     "@context": "https://schema.org",
@@ -234,7 +130,7 @@ export default function SEOStructuredData() {
     "offers": [
       {
         "@type": "Offer",
-        "price": "9.99",
+        "price": "20",
         "priceCurrency": "USD",
         "priceValidUntil": "2027-12-31",
         "availability": "https://schema.org/InStock",
@@ -274,7 +170,7 @@ export default function SEOStructuredData() {
     "offers": [
       {
         "@type": "Offer",
-        "price": "9.99",
+        "price": "20",
         "priceCurrency": "USD",
         "availability": "https://schema.org/InStock",
         "url": "https://www.dineopen.com/pricing"
@@ -352,7 +248,7 @@ export default function SEOStructuredData() {
     "offers": [
       {
         "@type": "Offer",
-        "price": "9.99",
+        "price": "20",
         "priceCurrency": "USD",
         "priceValidUntil": "2027-12-31",
         "availability": "https://schema.org/InStock",
@@ -443,10 +339,6 @@ export default function SEOStructuredData() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
       <script
         type="application/ld+json"
