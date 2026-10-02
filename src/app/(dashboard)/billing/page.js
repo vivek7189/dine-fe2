@@ -46,6 +46,8 @@ function BillingContent() {
   const [billingHistory, setBillingHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' or 'yearly'
+  // Special prices set for this account in dine-admin (Razorpay / INR only).
+  const [customPlans, setCustomPlans] = useState([]);
 
   const API_BASE_URL = getApiBase();
   const RAZORPAY_KEY = process.env.NEXT_PUBLIC_RAZORPAY_KEY || 'rzp_live_lMZVjvewP7tKIL';
@@ -532,6 +534,18 @@ function BillingContent() {
           }
 
           setUser(parsedUser);
+
+          // Special prices for this account (never blocks the page; none → standard plans only)
+          if (parsedUser.uid || parsedUser.id) {
+            fetch(`${API_BASE_URL}/api/payments/custom-plans/${parsedUser.uid || parsedUser.id}`)
+              .then(r => (r.ok ? r.json() : null))
+              .then(d => {
+                const list = Array.isArray(d?.plans) ? d.plans : [];
+                setCustomPlans(list);
+                if (list.length) setCurrency('INR'); // special prices are Razorpay (INR)
+              })
+              .catch(() => {});
+          }
 
           // Fetch subscription data from backend
           if (parsedUser.uid || parsedUser.id) {
@@ -1059,7 +1073,26 @@ function BillingContent() {
       const list = indianPlanData.INR[billingCycle] || indianPlanData.INR.monthly;
       // Hide the retired INR Starter plan (₹299/mo, ₹250/mo yearly) from the UI — display-only,
       // backend/plan data untouched. USD Starter is unaffected.
-      return list.filter(p => p.name !== 'Starter');
+      const standard = list.filter(p => p.name !== 'Starter');
+      // Special prices for this account (dine-admin): shown after the free trial, with the tier's
+      // features. "Only these prices" (exclusive) hides the standard paid plans for this customer.
+      const cycle = billingCycle === 'yearly' ? 'yearly' : 'monthly';
+      const tierFeatures = (tier) => (indianPlanData.INR.monthly.find(p => p.id === `${tier}-monthly`) || {}).features || [];
+      const mine = customPlans.filter(cp => cp.period === cycle).map(cp => ({
+        id: cp.id,
+        name: cp.name,
+        price: cp.amount,
+        period: cycle === 'yearly' ? 'year' : 'month',
+        ...(cycle === 'yearly' ? { monthlyEquivalent: Math.round(cp.amount / 12) } : {}),
+        description: 'Special price for your account',
+        popular: false,
+        custom: true,
+        features: tierFeatures(cp.tier),
+      }));
+      if (!mine.length) return standard;
+      const trial = standard.filter(p => p.price === 0);
+      const paid = standard.filter(p => p.price > 0);
+      return customPlans.some(cp => cp.exclusive) ? [...trial, ...mine] : [...trial, ...mine, ...paid];
     }
     return internationalPlanData.USD[billingCycle] || internationalPlanData.USD.monthly;
   })();
@@ -1816,6 +1849,16 @@ function BillingContent() {
                       textTransform: 'uppercase', whiteSpace: 'nowrap'
                     }}>
                       Popular
+                    </div>
+                  )}
+                  {plan.custom && !isCurrentPlan && (
+                    <div style={{
+                      position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)',
+                      backgroundColor: '#7c3aed', color: 'white', padding: '4px 12px',
+                      borderRadius: '12px', fontSize: '10px', fontWeight: '600',
+                      textTransform: 'uppercase', whiteSpace: 'nowrap'
+                    }}>
+                      Special price
                     </div>
                   )}
 
