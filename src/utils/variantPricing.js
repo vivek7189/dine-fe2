@@ -23,6 +23,16 @@ export function resolveVariantTierPrice(variant, activeRuleId, rules) {
     const di = findDineInRule(rules);
     if (di && typeof variant.pricingRules?.[di.id] === 'number') return variant.pricingRules[di.id];
   }
+  // Rule default markup off the variant's base price — same as the server's variant branch
+  // (resolveItemPriceForRule priority 3), which only applies it for an ACTIVE rule.
+  if (rule && rule.isActive !== false) {
+    if (rule.defaultMarkupType === 'percentage' && rule.defaultMarkupValue) {
+      return Math.round(base * (1 + rule.defaultMarkupValue / 100) * 100) / 100;
+    }
+    if (rule.defaultMarkupType === 'flat' && rule.defaultMarkupValue) {
+      return Math.round((base + rule.defaultMarkupValue) * 100) / 100;
+    }
+  }
   return base;
 }
 

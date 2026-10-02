@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
 import { orderDisplayNumber } from '../../utils/orderNumber';
 import { resolveItemTierPrice, resolveOrderTypeRuleId } from '../../utils/variantPricing';
 import { resolveAdditionalCharges } from '../../utils/additionalCharges';
+import { calculatePerItemTax } from '../../utils/taxEngine';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   FaSearch, FaShoppingCart, FaPlus, FaMinus, FaTrash, FaArrowLeft,
@@ -230,6 +231,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   const [restaurant, setRestaurant] = useState(null);
   const [menu, setMenu] = useState([]);
   const [categories, setCategories] = useState([]);
+  // Full category objects (id/name/taxGroupId) — per-category tax groups for the bill (server parity)
+  const [menuCategoryObjs, setMenuCategoryObjs] = useState([]);
   const [cart, setCart] = useState([]);
   const [customerInfo, setCustomerInfo] = useState({
     phone: '',
@@ -507,6 +510,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
           setRestaurant(cachedMenu.data.restaurant);
           setMenu(cachedMenu.data.menu);
           setCategories(['all', ...orderCategoryNames(cachedMenu.data.categories, cachedMenu.data.menu)]);
+          setMenuCategoryObjs(Array.isArray(cachedMenu.data.categories) ? cachedMenu.data.categories : []);
           hasCachedMenu = true;
           // End loading immediately if we have cached menu
           setLoading(false);
@@ -525,6 +529,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
           setRestaurant(response.restaurant);
           setMenu(response.menu);
           setCategories(['all', ...orderCategoryNames(response.categories, response.menu)]);
+          setMenuCategoryObjs(Array.isArray(response.categories) ? response.categories : []);
 
           // Cache the fresh menu data (incl. categories so the ordered tabs survive a reload)
           setCachedData(restaurantId, 'menu', {
@@ -771,8 +776,56 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     return Math.min(maxFromPercent, maxFromPoints, afterOffer);
   };
 
+  // Tax config from the public customer-app-settings. NEW shape (full config, mirrors the server):
+  // { enabled, taxInclusivePricing, defaultTaxRate, taxes:[{id,name,rate,enabled,orderTypes}], taxGroups,
+  //   additionalCharges } — detected by `defaultTaxRate` / `taxGroups` being present. OLD shape (minimal):
+  // { enabled, taxes:[{name,rate}] (already enabled-filtered), taxInclusivePricing } → legacy path below.
+  const getPublicTaxConfig = () => {
+    const ts = customerAppSettings?.taxSettings;
+    if (!ts || typeof ts !== 'object') return null;
+    const isFull = Object.prototype.hasOwnProperty.call(ts, 'defaultTaxRate') || Array.isArray(ts.taxGroups);
+    return isFull ? ts : null;
+  };
+
+  // The order type exactly as sent to the server (tax.orderTypes / charge scope match on it).
+  const getServerOrderType = () => (pricingOrderType === 'dine-in' ? 'dine_in' : pricingOrderType);
+
   // Calculate tax based on pre-tax total (after discounts)
   const getTaxBreakdown = () => {
+    const fullTax = getPublicTaxConfig();
+    if (fullTax) {
+      // EXACT mirror of the server's public order create: lines enriched from the menu item
+      // (taxGroupId, discountApplicable, taxInclusive), then calculatePerItemTax with the offer +
+      // loyalty discount spread only over discount-applicable items and NO service charge in the
+      // tax base (the server passes 0 for public orders).
+      if (!fullTax.enabled) return { taxAmount: 0, taxLines: [], exclusiveTaxAmount: 0, inclusiveTaxAmount: 0 };
+      const lines = cart.map(item => {
+        const mi = (menu || []).find(m => m.id === item.id) || item;
+        const qty = Number(item.quantity) || 0;
+        const price = Number(item.price) || 0;
+        const line = {
+          price,
+          quantity: qty,
+          total: price * qty,
+          category: mi.category || item.category || '',
+          categoryId: mi.categoryId || mi.category || item.category || '',
+          discountApplicable: mi.discountApplicable !== false,
+        };
+        if (mi.taxGroupId) line.taxGroupId = mi.taxGroupId;
+        if (mi.taxInclusive != null) line.taxInclusive = mi.taxInclusive;
+        return line;
+      });
+      const totalDiscount = getOfferDiscount() + getLoyaltyDiscount();
+      const r = calculatePerItemTax(lines, fullTax, menuCategoryObjs, totalDiscount, 0, getServerOrderType());
+      return {
+        taxAmount: r.totalTaxAmount,
+        taxLines: r.taxBreakdown,
+        exclusiveTaxAmount: r.exclusiveTaxAmount,
+        inclusiveTaxAmount: r.inclusiveTaxAmount,
+      };
+    }
+
+    // ── Legacy (old minimal settings shape) — unchanged behaviour ──
     const taxSettings = customerAppSettings?.taxSettings;
     if (!taxSettings?.enabled || !taxSettings?.taxes?.length) {
       return { taxAmount: 0, taxLines: [], exclusiveTaxAmount: 0, inclusiveTaxAmount: 0 };
@@ -784,9 +837,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     // Ditto with dashboard billing (OrderSummary) + backend (calculatePerItemTax): respect
     // TAX-INCLUSIVE pricing. For an inclusive item the tax is EXTRACTED from the price
     // (rate/(100+totalRate)) and is ALREADY in the subtotal — it must NOT be added on top; only
-    // EXCLUSIVE tax is added. Previously this always added tax on top, so an inclusive-priced menu
-    // showed a total higher than the dashboard/receipt (and risked overcharging online payments).
-    // Per-item override (item.taxInclusive) wins over the global taxInclusivePricing flag.
+    // EXCLUSIVE tax is added. Per-item override (item.taxInclusive) wins over the global flag.
     const enabledTaxes = taxSettings.taxes.filter(t => t.enabled !== false && (Number(t.rate) || 0) > 0);
     const totRate = enabledTaxes.reduce((s, t) => s + (Number(t.rate) || 0), 0);
     const globalInclusive = taxSettings.taxInclusivePricing === true;
@@ -840,11 +891,13 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   // Per-order-type additional charges (packaging / delivery / service fee). Uses the SAME order
   // type sent with the order + the same resolver as the server, so the payable total matches
   // exactly. Reads the charge config exposed on the public menu payload.
-  const getAdditionalChargesResult = () => resolveAdditionalCharges(
-    { additionalCharges: restaurant?.additionalCharges },
-    (pricingOrderType === 'dine-in' ? 'dine_in' : pricingOrderType),
-    getPreTaxTotal()
-  );
+  // Prefer the full tax config's charge list (same source the server reads: taxSettings.additionalCharges);
+  // fall back to the copy on the public menu payload for older backends.
+  const getAdditionalChargesResult = () => {
+    const fullTax = getPublicTaxConfig();
+    const list = fullTax && Array.isArray(fullTax.additionalCharges) ? fullTax.additionalCharges : restaurant?.additionalCharges;
+    return resolveAdditionalCharges({ additionalCharges: list }, getServerOrderType(), getPreTaxTotal());
+  };
 
   const getFinalTotal = () => {
     const preTaxTotal = getPreTaxTotal();
@@ -1574,6 +1627,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         setCustomTipInput={setCustomTipInput}
         getServiceCharge={getServiceCharge}
         getPreTaxTotal={getPreTaxTotal}
+        getAdditionalChargesResult={getAdditionalChargesResult}
       />
     );
   }
@@ -3762,6 +3816,7 @@ const CheckoutView = ({
   setCustomTipInput,
   getServiceCharge,
   getPreTaxTotal,
+  getAdditionalChargesResult,
 }) => {
   const cs = restaurant?.currencySymbol || '₹';
   const tier = customerData?.loyaltyTier || loyaltyHistory?.summary?.currentTier || 'bronze';
@@ -4705,9 +4760,28 @@ const CheckoutView = ({
                     <span style={{ color: '#374151' }}>{cs}{getServiceCharge().toFixed(2)}</span>
                   </div>
                 )}
-                {/* Additional-charge line items are rendered by the parent (OnlineOrderContent),
-                    not here — CartModal doesn't have getAdditionalChargesResult in scope. The
-                    per-order-type charges are still included in the order total. */}
+                {/* Per-order-type additional charges (packaging / delivery fee) + their own tax —
+                    the same amounts the order total includes (and the server charges). */}
+                {(() => {
+                  const addl = typeof getAdditionalChargesResult === 'function' ? getAdditionalChargesResult() : null;
+                  if (!addl || !addl.charges?.length) return null;
+                  return (
+                    <>
+                      {addl.charges.map((c) => (
+                        <div key={`chg-${c.id}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
+                          <span style={{ color: '#6b7280' }}>{c.name}{c.type === 'percent' ? ` (${c.value}%)` : ''}</span>
+                          <span style={{ color: '#374151' }}>{cs}{c.amount.toFixed(2)}</span>
+                        </div>
+                      ))}
+                      {addl.taxLines.map((tl, i) => (
+                        <div key={`chgtax-${i}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
+                          <span style={{ color: '#6b7280' }}>{tl.name} ({tl.rate}%)</span>
+                          <span style={{ color: '#374151' }}>{cs}{tl.amount.toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </>
+                  );
+                })()}
                 {/* Tip */}
                 {tipAmount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>

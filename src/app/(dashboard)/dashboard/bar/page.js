@@ -38,6 +38,8 @@ import {
   FaUsers
 } from 'react-icons/fa';
 import useTimedMenu from '../../../../hooks/useTimedMenu';
+import { calculatePerItemTax } from '../../../../utils/taxEngine';
+import { resolveAdditionalCharges } from '../../../../utils/additionalCharges';
 
 // Capitalize first character, keep rest as-is
 const capitalizeFirst = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
@@ -66,6 +68,8 @@ function BarPOSContent() {
 
   // Settings
   const [taxSettings, setTaxSettings] = useState(null);
+  // Restaurant categories (carry taxGroupId) — needed for per-category tax groups.
+  const [menuCategories, setMenuCategories] = useState([]);
   const [printSettings, setPrintSettings] = useState(null);
 
   // UI state
@@ -206,6 +210,7 @@ function BarPOSContent() {
     try {
       const response = await apiClient.getMenu(restaurantId);
       const realItems = response.menuItems || [];
+      setMenuCategories(Array.isArray(response.categories) ? response.categories : []);
       if (realItems.length === 0) {
         const { getDefaultMenu } = await import('../../../../lib/defaultMenus');
         setMenuItems(getDefaultMenu('bar'));
@@ -322,25 +327,50 @@ function BarPOSContent() {
 
   // ─── Tax Calculation ────────────────────────────────────
 
-  const calculateTax = useCallback((subtotal) => {
-    if (!taxSettings?.enabled || subtotal === 0) return { taxBreakdown: [], totalTax: 0 };
-    const taxes = [];
-    let total = 0;
-    if (taxSettings.taxes?.length > 0) {
-      taxSettings.taxes.forEach(tax => {
-        if (tax.enabled) {
-          const amount = subtotal * (tax.rate / 100);
-          taxes.push({ name: tax.name, rate: tax.rate, amount });
-          total += amount;
-        }
-      });
-    } else if (taxSettings.defaultTaxRate) {
-      const amount = subtotal * (taxSettings.defaultTaxRate / 100);
-      taxes.push({ name: selectedRestaurant?.currencySettings?.taxLabel || 'Tax', rate: taxSettings.defaultTaxRate, amount });
-      total = amount;
+  // Same engine as the server (PATCH /api/orders → calculatePerItemTax + resolveAdditionalCharges):
+  // per-item inclusive / tax groups / order-type gating / discount spread over discountApplicable
+  // items, plus additional charges (taxable-no-rate folded into the tax base, own-rate taxed on top).
+  // Previously every item was taxed ON TOP at the global rate, so inclusive items were overcharged.
+  // Items are enriched from the menu exactly like the server does (item value wins, else menu).
+  const calculateTax = useCallback((items, totalDiscount = 0) => {
+    const list = Array.isArray(items) ? items : [];
+    const subtotal = list.reduce((sum, i) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0);
+    const disc = Math.min(Math.max(0, Number(totalDiscount) || 0), subtotal);
+    const preTax = Math.max(0, subtotal - disc);
+    const empty = { taxBreakdown: [], totalTax: 0, exclusiveTax: 0, additionalCharges: [], chargesTotal: 0, finalAmount: preTax };
+    if (subtotal === 0) return empty;
+    const orderType = 'dine-in';
+    const addl = resolveAdditionalCharges(taxSettings, orderType, preTax);
+    const chargesTotal = addl.total + addl.ownTaxTotal;
+    if (!taxSettings?.enabled || preTax <= 0) {
+      const ownTax = Math.round(addl.ownTaxTotal * 100) / 100;
+      return { ...empty, taxBreakdown: addl.taxLines, totalTax: ownTax, exclusiveTax: ownTax, additionalCharges: addl.charges, chargesTotal,
+        finalAmount: Math.round((preTax + chargesTotal) * 100) / 100 };
     }
-    return { taxBreakdown: taxes, totalTax: total };
-  }, [taxSettings, selectedRestaurant]);
+    const lines = list.map(i => {
+      const mi = i.isCustomItem ? null : menuItemsRaw.find(m => m.id === i.menuItemId);
+      return {
+        ...i,
+        total: (Number(i.price) || 0) * (Number(i.quantity) || 0),
+        taxGroupId: i.taxGroupId != null ? i.taxGroupId : (mi?.taxGroupId || null),
+        taxInclusive: i.taxInclusive != null ? i.taxInclusive : mi?.taxInclusive,
+        discountApplicable: i.discountApplicable != null ? i.discountApplicable : (mi ? mi.discountApplicable !== false : true),
+        category: i.category || mi?.category || '',
+        categoryId: i.categoryId || mi?.categoryId || null,
+      };
+    });
+    const r = calculatePerItemTax(lines, taxSettings, menuCategories, disc, addl.foldTaxableTotal, orderType);
+    const totalTax = Math.round((r.totalTaxAmount + addl.ownTaxTotal) * 100) / 100;
+    const exclusiveTax = r.exclusiveTaxAmount + addl.ownTaxTotal;
+    return {
+      taxBreakdown: [...r.taxBreakdown, ...addl.taxLines],
+      totalTax,
+      exclusiveTax,
+      additionalCharges: addl.charges,
+      chargesTotal,
+      finalAmount: Math.round((preTax + r.exclusiveTaxAmount + chargesTotal) * 100) / 100,
+    };
+  }, [taxSettings, menuItemsRaw, menuCategories]);
 
   // ─── Tab Functions ──────────────────────────────────────
 
@@ -425,7 +455,7 @@ function BarPOSContent() {
     }
 
     const subtotal = updatedItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
-    const { taxBreakdown, totalTax } = calculateTax(subtotal);
+    const { taxBreakdown, totalTax, finalAmount } = calculateTax(updatedItems);
 
     // Optimistic local update
     setTabs(prev => prev.map(t => t.id === currentTabId ? {
@@ -434,7 +464,7 @@ function BarPOSContent() {
       totalAmount: subtotal,
       taxBreakdown,
       taxAmount: totalTax,
-      finalAmount: subtotal + totalTax
+      finalAmount
     } : t));
 
     // Debounced API call
@@ -443,7 +473,7 @@ function BarPOSContent() {
       totalAmount: subtotal,
       taxBreakdown,
       taxAmount: totalTax,
-      finalAmount: subtotal + totalTax
+      finalAmount
     };
     pendingUpdateRef.current = { tabId: currentTabId, data: updateData };
     if (updateTimerRef.current) clearTimeout(updateTimerRef.current);
@@ -476,7 +506,7 @@ function BarPOSContent() {
     }).filter(Boolean);
 
     const subtotal = updatedItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
-    const { taxBreakdown, totalTax } = calculateTax(subtotal);
+    const { taxBreakdown, totalTax, finalAmount } = calculateTax(updatedItems);
 
     setTabs(prev => prev.map(t => t.id === currentTabId ? {
       ...t,
@@ -484,10 +514,10 @@ function BarPOSContent() {
       totalAmount: subtotal,
       taxBreakdown,
       taxAmount: totalTax,
-      finalAmount: subtotal + totalTax
+      finalAmount
     } : t));
 
-    const updateData = { items: updatedItems, totalAmount: subtotal, taxBreakdown, taxAmount: totalTax, finalAmount: subtotal + totalTax };
+    const updateData = { items: updatedItems, totalAmount: subtotal, taxBreakdown, taxAmount: totalTax, finalAmount };
     pendingUpdateRef.current = { tabId: currentTabId, data: updateData };
     if (updateTimerRef.current) clearTimeout(updateTimerRef.current);
     updateTimerRef.current = setTimeout(async () => {
@@ -516,7 +546,7 @@ function BarPOSContent() {
     }
 
     const subtotal = updatedItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
-    const { taxBreakdown, totalTax } = calculateTax(subtotal);
+    const { taxBreakdown, totalTax, finalAmount } = calculateTax(updatedItems);
 
     setTabs(prev => prev.map(t => t.id === currentTabId ? {
       ...t,
@@ -524,10 +554,10 @@ function BarPOSContent() {
       totalAmount: subtotal,
       taxBreakdown,
       taxAmount: totalTax,
-      finalAmount: subtotal + totalTax
+      finalAmount
     } : t));
 
-    const updateData = { items: updatedItems, totalAmount: subtotal, taxBreakdown, taxAmount: totalTax, finalAmount: subtotal + totalTax };
+    const updateData = { items: updatedItems, totalAmount: subtotal, taxBreakdown, taxAmount: totalTax, finalAmount };
     pendingUpdateRef.current = { tabId: currentTabId, data: updateData };
     if (updateTimerRef.current) clearTimeout(updateTimerRef.current);
     updateTimerRef.current = setTimeout(async () => {
@@ -561,8 +591,7 @@ function BarPOSContent() {
       const manualDiscountAmt = getManualDiscountAmount();
       const loyaltyDiscountAmt = getLoyaltyDiscount();
       const totalDiscount = offerDiscountAmt + manualDiscountAmt + loyaltyDiscountAmt;
-      const afterDiscount = Math.max(0, subtotal - totalDiscount);
-      const { taxBreakdown, totalTax } = calculateTax(afterDiscount);
+      const { taxBreakdown, totalTax, finalAmount, additionalCharges } = calculateTax(tab.items, totalDiscount);
 
       // Step 1: Update order to completed with discounts
       const updatePayload = {
@@ -573,13 +602,22 @@ function BarPOSContent() {
         completedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         totalAmount: subtotal,
-        discountAmount: Math.round(totalDiscount * 100) / 100,
-        offerDiscount: offerDiscountAmt > 0 ? { offerId: selectedOfferId, amount: offerDiscountAmt, offerName: availableOffers.find(o => o.id === selectedOfferId)?.name || '' } : null,
-        manualDiscount: manualDiscountAmt > 0 ? { type: manualDiscountType, value: manualDiscount, amount: manualDiscountAmt } : null,
-        loyaltyDiscount: loyaltyDiscountAmt > 0 ? { pointsRedeemed: redeemLoyaltyPoints, amount: loyaltyDiscountAmt } : null,
+        // Discounts as NUMBERS (the server parseFloat()s manualDiscount and re-validates the
+        // offer from offerIds; objects here were read as 0 and the discounts silently dropped).
+        offerIds: offerDiscountAmt > 0 && selectedOfferId ? [selectedOfferId] : [],
+        selectedOfferName: offerDiscountAmt > 0 ? (availableOffers.find(o => o.id === selectedOfferId)?.name || '') : null,
+        discountAmount: Math.round(offerDiscountAmt * 100) / 100,
+        offerDiscount: Math.round(offerDiscountAmt * 100) / 100,
+        manualDiscount: Math.round(manualDiscountAmt * 100) / 100,
+        manualDiscountType: manualDiscountAmt > 0 ? manualDiscountType : null,
+        manualDiscountValue: manualDiscountAmt > 0 ? (Number(manualDiscount) || 0) : null,
+        loyaltyDiscount: Math.round(loyaltyDiscountAmt * 100) / 100,
+        redeemLoyaltyPoints: loyaltyDiscountAmt > 0 ? (parseInt(redeemLoyaltyPoints) || 0) : 0,
+        ...(loyaltyDiscountAmt > 0 && (customerData?.id || customerData?._id) ? { customerId: customerData.id || customerData._id } : {}),
+        totalDiscountAmount: Math.round(totalDiscount * 100) / 100,
         taxBreakdown,
         taxAmount: totalTax,
-        finalAmount: Math.round((afterDiscount + totalTax) * 100) / 100,
+        finalAmount,
         lastUpdatedBy: { name: user.name, id: user.id, role: user.role }
       };
       await apiClient.updateOrder(activeTabId, updatePayload);
@@ -588,7 +626,7 @@ function BarPOSContent() {
       await apiClient.verifyPayment({
         orderId: activeTabId,
         paymentMethod,
-        amount: subtotal + totalTax,
+        amount: finalAmount,
         userId: user.id,
         restaurantId: selectedRestaurant.id,
         paymentStatus: 'completed'
@@ -596,7 +634,7 @@ function BarPOSContent() {
 
       // Step 3: Print bill
       if (printSettings?.showBillSummaryAfterBilling !== false) {
-        printBill(tab, subtotal, taxBreakdown, totalTax, { offerDiscount: offerDiscountAmt, manualDiscount: manualDiscountAmt, loyaltyDiscount: loyaltyDiscountAmt, totalDiscount });
+        printBill(tab, subtotal, taxBreakdown, totalTax, { offerDiscount: offerDiscountAmt, manualDiscount: manualDiscountAmt, loyaltyDiscount: loyaltyDiscountAmt, totalDiscount, finalAmount, additionalCharges });
       }
       // Server print (only if KOT printer is explicitly enabled)
       if (printSettings?.kotPrinterEnabled === true) {
@@ -667,7 +705,7 @@ function BarPOSContent() {
       return `<tr><td style="text-align:left;">${(item.name || '').replace(/</g, '&lt;')}${sub ? `<div style="font-size:9px;color:#6b7280;">${sub}</div>` : ''}</td><td style="text-align:center;">${item.quantity}</td><td style="text-align:right;">${currencySymbol}${(item.price * item.quantity).toFixed(2)}</td></tr>`;
     }).join('');
     const taxHtml = (taxBreakdown || []).map(tax =>
-      `<tr><td colspan="2" style="text-align:left;">${tax.name} (${tax.rate}%)</td><td style="text-align:right;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td></tr>`
+      `<tr><td colspan="2" style="text-align:left;">${tax.name} (${tax.rate}%${tax.inclusive ? ' incl.' : ''})</td><td style="text-align:right;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td></tr>`
     ).join('');
     const tabName = tab.customerInfo?.name || (tab.tabNumber ? `Tab #${tab.tabNumber}` : 'Tab');
     // Build discount lines
@@ -675,8 +713,12 @@ function BarPOSContent() {
     if (discounts.offerDiscount > 0) discountHtml += `<div><span>Offer Discount:</span><span>-${currencySymbol}${discounts.offerDiscount.toFixed(2)}</span></div>`;
     if (discounts.manualDiscount > 0) discountHtml += `<div><span>Discount:</span><span>-${currencySymbol}${discounts.manualDiscount.toFixed(2)}</span></div>`;
     if (discounts.loyaltyDiscount > 0) discountHtml += `<div><span>Loyalty Points:</span><span>-${currencySymbol}${discounts.loyaltyDiscount.toFixed(2)}</span></div>`;
+    (discounts.additionalCharges || []).forEach(c => {
+      discountHtml += `<div><span>${String(c.name || 'Charge').replace(/</g, '&lt;')}:</span><span>${currencySymbol}${(Number(c.amount) || 0).toFixed(2)}</span></div>`;
+    });
     const afterDiscount = Math.max(0, subtotal - (discounts.totalDiscount || 0));
-    const grandTotal = afterDiscount + totalTax;
+    // Inclusive tax is already inside the prices — the computed final amount is the true total.
+    const grandTotal = typeof discounts.finalAmount === 'number' ? discounts.finalAmount : afterDiscount + totalTax;
     const barHeaderHtml = getBillHeaderHTML((selectedRestaurant?.name || 'Bar').replace(/</g, '&lt;'), '', printSettings?.receiptLogo || null, '--- BAR TAB ---');
     const html = `<!DOCTYPE html><html><head><title>Tab - ${tabName}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily, printSettings?.printerWidth, printSettings)}</style></head><body>${barHeaderHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div><span>Tab:</span><span><strong>${tabName.replace(/</g, '&lt;')}</strong></span></div><div><span>Date:</span><span>${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span></div><div><span>Payment:</span><span>${paymentMethod.toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;width:55%;">Drink / Item</th><th style="text-align:center;width:15%;">Qty</th><th style="text-align:right;width:30%;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>Subtotal:</span><span>${currencySymbol}${subtotal.toFixed(2)}</span></div>${discountHtml}</div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}<div class="total-row"><span>TOTAL:</span><span>${currencySymbol}${grandTotal.toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer"><p>Thank you for visiting! Cheers!</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
 
@@ -701,9 +743,7 @@ function BarPOSContent() {
   };
 
   const getTabTotal = (tab) => {
-    const subtotal = (tab.items || []).reduce((sum, i) => sum + i.price * i.quantity, 0);
-    const { totalTax } = calculateTax(subtotal);
-    return subtotal + totalTax;
+    return calculateTax(tab.items).finalAmount;
   };
 
   const getTabItemCount = (tab) => {
@@ -786,8 +826,8 @@ function BarPOSContent() {
 
   const activeTabItems = activeTab?.items || [];
   const activeSubtotal = activeTabItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const { taxBreakdown: activeTaxBreakdown, totalTax: activeTotalTax } = calculateTax(activeSubtotal);
-  const activeGrandTotal = activeSubtotal + activeTotalTax;
+  const activeDiscountTotal = getOfferDiscount() + getManualDiscountAmount() + getLoyaltyDiscount();
+  const { taxBreakdown: activeTaxBreakdown, finalAmount: activeGrandTotal, additionalCharges: activeCharges } = calculateTax(activeTabItems, activeDiscountTotal);
   const activeItemCount = activeTabItems.reduce((sum, i) => sum + i.quantity, 0);
 
   // ─── Render ─────────────────────────────────────────────
@@ -1476,9 +1516,21 @@ function BarPOSContent() {
                     <span>Subtotal</span>
                     <span style={{ fontWeight: '600' }}>{formatCurrency(activeSubtotal)}</span>
                   </div>
+                  {activeDiscountTotal > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#059669', marginBottom: '2px' }}>
+                      <span>Discount</span>
+                      <span>-{formatCurrency(activeDiscountTotal)}</span>
+                    </div>
+                  )}
+                  {(activeCharges || []).map((c, idx) => (
+                    <div key={`chg-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#6b7280', marginBottom: '2px' }}>
+                      <span>{c.name}</span>
+                      <span>{formatCurrency(c.amount)}</span>
+                    </div>
+                  ))}
                   {activeTaxBreakdown.map((tax, idx) => (
                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#9ca3af', marginBottom: '2px' }}>
-                      <span>{tax.name} ({tax.rate}%)</span>
+                      <span>{tax.name} ({tax.rate}%{tax.inclusive ? ' incl.' : ''})</span>
                       <span>{formatCurrency(tax.amount)}</span>
                     </div>
                   ))}
@@ -1564,7 +1616,7 @@ function BarPOSContent() {
                 }}>
                   <span style={{ fontSize: '14px', fontWeight: '700', color: '#374151' }}>Total</span>
                   <span style={{ fontSize: '20px', fontWeight: '800', color: '#dc2626' }}>
-                    {formatCurrency(Math.max(0, activeGrandTotal - getOfferDiscount() - getManualDiscountAmount() - getLoyaltyDiscount()))}
+                    {formatCurrency(Math.max(0, activeGrandTotal))}
                   </span>
                 </div>
 

@@ -93,6 +93,9 @@ import { useDineBot } from '../../../../components/DineBotProvider';
 import { parseScaleBarcode, isScaleBarcode } from '../../../../utils/scaleBarcode';
 import { printDocument } from '../../../../utils/printBridge';
 import useTimedMenu from '../../../../hooks/useTimedMenu';
+import { resolveVariantTierPrice, resolveItemTierPrice } from '../../../../utils/variantPricing';
+import { calculatePerItemTax } from '../../../../utils/taxEngine';
+import { resolveAdditionalCharges } from '../../../../utils/additionalCharges';
 
 // Safe wrappers for contexts that may not be available in mobile embed mode
 function useSafeLoading() {
@@ -473,6 +476,8 @@ function RestaurantPOSContent() {
   const displaySenderRef = useRef(null);
   const lastDisplayTotalRef = useRef(0);
   const [customerDisplayOpen, setCustomerDisplayOpen] = useState(false);
+  // Bill totals reported by OrderSummary (see onTotalsChange) — mirrored on the customer display.
+  const [billTotals, setBillTotals] = useState(null);
 
   // Customer display sync — send cart data to secondary screen
   useEffect(() => {
@@ -494,27 +499,68 @@ function RestaurantPOSContent() {
       return;
     }
     const cs = selectedRestaurant?.currencySettings?.symbol || '₹';
-    const items = cart.map(item => ({
-      name: item.name,
-      quantity: item.quantity || 1,
-      unitPrice: item.price || 0,
-      lineTotal: (item.price || 0) * (item.quantity || 1),
-    }));
-    const subtotal = items.reduce((s, i) => s + i.lineTotal, 0);
-    lastDisplayTotalRef.current = subtotal;
+    // Same unit price / weight math as the cart & order payload (tier pricing, variants,
+    // toppings, manual edits) — previously item.price × qty, which missed toppings and weights.
+    const lineTotalOf = (item, unit) => (item.soldByWeight && item.itemWeight)
+      ? unit * (item.priceUnit === 'per_100g' ? item.itemWeight / 100 : item.itemWeight)
+      : unit * (item.quantity || 1);
+    const items = cart.map(item => {
+      const unit = getEffectiveItemPrice(item);
+      return {
+        name: item.name,
+        quantity: item.quantity || 1,
+        unitPrice: unit,
+        lineTotal: Math.round(lineTotalOf(item, unit) * 100) / 100,
+      };
+    });
+    const subtotal = Math.round(items.reduce((s, i) => s + i.lineTotal, 0) * 100) / 100;
+    // Tax + additional charges with the server's engine (inclusive items are not taxed on top).
+    // Discounts / service charge are chosen inside OrderSummary and aren't known here.
+    let displayTax = 0;
+    let displayTotal = subtotal;
+    try {
+      const addl = resolveAdditionalCharges(taxSettings, orderType, subtotal);
+      let exclusiveTax = 0;
+      if (taxSettings?.enabled) {
+        const lines = cart.map((item, idx) => {
+          const mi = item.isCustomItem ? null : (menuItems || []).find(m => m.id === item.id);
+          return {
+            total: items[idx].lineTotal,
+            taxGroupId: item.taxGroupId || mi?.taxGroupId || null,
+            taxInclusive: item.taxInclusive != null ? item.taxInclusive : mi?.taxInclusive,
+            discountApplicable: item.discountApplicable != null ? item.discountApplicable : mi?.discountApplicable,
+            category: item.category || mi?.category || '',
+            categoryId: item.categoryId || mi?.categoryId || null,
+          };
+        });
+        const r = calculatePerItemTax(lines, taxSettings, menuCategories, 0, addl.foldTaxableTotal, orderType);
+        displayTax = r.totalTaxAmount;
+        exclusiveTax = r.exclusiveTaxAmount;
+      }
+      displayTax = Math.round((displayTax + addl.ownTaxTotal) * 100) / 100;
+      displayTotal = Math.round((subtotal + exclusiveTax + addl.total + addl.ownTaxTotal) * 100) / 100;
+    } catch (e) { /* display only — fall back to subtotal */ }
+    // Prefer OrderSummary's own totals (discount / service charge / tax / total exactly as the
+    // cart shows them) when they belong to this cart.
+    const bt = billTotals && Math.abs((billTotals.subtotal || 0) - subtotal) < 0.01 ? billTotals : null;
+    if (bt) displayTotal = bt.total;
+    lastDisplayTotalRef.current = displayTotal;
     displaySenderRef.current.send({
       status: 'active',
       items,
       subtotal,
-      discount: 0,
-      tax: 0,
-      total: subtotal,
+      discount: bt ? bt.discount : 0,
+      tax: bt ? bt.exclusiveTax : displayTax,
+      taxIncluded: bt ? Math.round(((bt.tax || 0) - (bt.exclusiveTax || 0)) * 100) / 100 : 0,
+      serviceCharge: bt ? (bt.serviceCharge || 0) + (bt.additionalCharges || 0) : 0,
+      total: displayTotal,
       currencySymbol: cs,
       storeName: selectedRestaurant?.name,
       tableNumber: tableNumber || selectedTable?.name || null,
       lastAddedItem: items.length > 0 ? items[items.length - 1] : null,
     });
-  }, [cart, selectedRestaurant, tableNumber, selectedTable]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart, selectedRestaurant, tableNumber, selectedTable, taxSettings, orderType, menuCategories, multiPricingEnabled, activePricingRuleId, pricingRules, billTotals]);
 
   useEffect(() => {
     if (!displaySenderRef.current) return;
@@ -2221,8 +2267,32 @@ function RestaurantPOSContent() {
   useEffect(() => {
     if (!multiPricingEnabled || cart.length === 0) return;
     setCart(prevCart => prevCart.map(item => {
-      // Find the original menu item to get pricingRules overrides
-      const menuItem = menuItems.find(m => m.id === item.id || m._id === item._id);
+      // Manually price-edited lines keep the price the cashier typed (same as v1).
+      if (item.priceEdited === true) return item;
+      // Find the original menu item to get pricingRules overrides. Guard `_id` so it can't
+      // match on undefined === undefined (would collapse every line to menuItems[0]).
+      const menuItem = menuItems.find(m =>
+        (item.id != null && m.id === item.id) ||
+        (item._id != null && m._id === item._id)
+      );
+      // Variant lines: re-resolve the VARIANT's tier price for the active zone (v1 parity).
+      if (item.selectedVariant) {
+        const freshVariant = menuItem?.variants?.find(v => v.name === item.selectedVariant.name);
+        if (!freshVariant) return item;
+        const vBase = typeof freshVariant.price === 'number' ? freshVariant.price : item.selectedVariant.price;
+        const vPrice = resolveVariantTierPrice(freshVariant, activePricingRuleId, pricingRules);
+        return {
+          ...item,
+          price: vPrice,
+          basePrice: vBase,
+          selectedVariant: {
+            ...item.selectedVariant,
+            price: vPrice,
+            ...(freshVariant.pricingRules ? { pricingRules: freshVariant.pricingRules } : {}),
+          },
+          appliedPricingRuleId: activePricingRuleId || null,
+        };
+      }
       // Resolve true base price: the authoritative source is the menu item's
       // original price. Cart-stored basePrice can become stale or corrupted
       // (e.g. set to a pricing-rule price instead of the original), so we
@@ -2267,7 +2337,7 @@ function RestaurantPOSContent() {
       };
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePricingRuleId, multiPricingEnabled, menuItems]);
+  }, [activePricingRuleId, multiPricingEnabled, menuItems, pricingRules]);
 
   // Apply display prices to filtered items for rendering
   // IMPORTANT: Always spread-copy each item to avoid shared object references.
@@ -2583,17 +2653,28 @@ function RestaurantPOSContent() {
   // Returns the effective per-unit price for a cart item (variant + customizations included)
   const getEffectiveItemPrice = (item) => {
     let base;
-    if (item?.selectedVariant?.price != null) {
-      base = item.selectedVariant.price;
+    if (item?.priceEdited === true && typeof item?.price === 'number') {
+      // Manual price edit wins over any pricing rule / variant tier.
+      base = item.price;
+    } else if (item?.selectedVariant?.price != null) {
+      // Variant lines: the variant's own tier price for the active rule (per-variant price →
+      // Dine-In inherit → rule default markup → variant base). Ported from v1.
+      const freshVariant = (multiPricingEnabled && activePricingRuleId)
+        ? (menuItems || []).find(m => m.id === item.id)?.variants?.find(v => v.name === item.selectedVariant.name)
+        : null;
+      base = freshVariant
+        ? resolveVariantTierPrice(freshVariant, activePricingRuleId, pricingRules)
+        : item.selectedVariant.price;
     } else if (multiPricingEnabled && activePricingRuleId) {
-      const perItemPrice = item?.pricingRules?.[activePricingRuleId];
-      const parsed = perItemPrice != null ? Number(perItemPrice) : NaN;
-      if (!isNaN(parsed) && parsed >= 0) {
-        base = parsed;
-      } else {
-        base = typeof item?.basePrice === 'number' ? item.basePrice
-          : typeof item?.price === 'number' ? item.price : 0;
-      }
+      // Shared resolver (per-item → zone Dine-In inherit → rule default markup → base) on the
+      // authoritative base, so the total/payload match the menu card. Ported from v1.
+      const freshMenuItem = item?.id != null ? (menuItems || []).find(m => m.id === item.id) : undefined;
+      const trueBase = typeof freshMenuItem?.price === 'number' ? freshMenuItem.price
+        : typeof item?._originalPrice === 'number' ? item._originalPrice
+        : typeof item?.basePrice === 'number' ? item.basePrice
+        : typeof item?.price === 'number' ? item.price : 0;
+      const mergedRules = { ...(item?.pricingRules || {}), ...(freshMenuItem?.pricingRules || {}) };
+      base = resolveItemTierPrice({ pricingRules: mergedRules }, trueBase, activePricingRuleId, pricingRules);
     } else {
       base = typeof item?.price === 'number' ? item.price : 0;
     }
@@ -2615,6 +2696,11 @@ function RestaurantPOSContent() {
   // Builds a standardized item payload for all API calls (POST/PATCH)
   const buildItemPayload = (item) => {
     const effectivePrice = getEffectiveItemPrice(item);
+    // Per-item tax fields from the cart line, else the menu item (bill/reports/tax need them).
+    const menuForTax = item.isCustomItem ? null : (menuItems || []).find(m => m.id === item.id);
+    const taxInclusiveVal = item.taxInclusive != null ? item.taxInclusive : menuForTax?.taxInclusive;
+    const discountApplicableVal = item.discountApplicable != null ? item.discountApplicable : menuForTax?.discountApplicable;
+    const hsnCodeVal = item.hsnCode || menuForTax?.hsnCode || null;
     // Weight-based total: price × weight (adjusted for unit)
     let total;
     if (item.soldByWeight && item.itemWeight) {
@@ -2639,7 +2725,10 @@ function RestaurantPOSContent() {
       seat: sanitizeSeat(item.seat),
       category: item.category || '',
       categoryId: item.categoryId || null,
-      taxGroupId: item.taxGroupId || null,
+      taxGroupId: item.taxGroupId || menuForTax?.taxGroupId || null,
+      ...(taxInclusiveVal != null ? { taxInclusive: taxInclusiveVal } : {}),
+      ...(discountApplicableVal != null ? { discountApplicable: discountApplicableVal } : {}),
+      ...(hsnCodeVal ? { hsnCode: hsnCodeVal } : {}),
       selectedVariant: item.selectedVariant || null,
       selectedCustomizations: Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [],
       basePrice: typeof item.basePrice === 'number' ? item.basePrice : item.price,
@@ -8832,6 +8921,7 @@ function RestaurantPOSContent() {
             setOrderSuccess={setOrderSuccess}
             error={error}
             getTotalAmount={getTotalAmount}
+            onTotalsChange={setBillTotals}
             tableNumber={tableNumber}
             selectedTable={selectedTable}
             customerName={customerName}
@@ -8939,6 +9029,7 @@ function RestaurantPOSContent() {
                     setOrderSuccess={setOrderSuccess}
                     error={error}
                     getTotalAmount={getTotalAmount}
+                    onTotalsChange={setBillTotals}
                     tableNumber={tableNumber}
                     selectedTable={selectedTable}
                     customerName={customerName}

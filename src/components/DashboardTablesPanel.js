@@ -20,6 +20,7 @@ import { printHtmlInHiddenFrame, printDocument, supportsNativeAutoPrint } from '
 import { useEtimsBillPrint } from '../hooks/useEtimsBillPrint';
 import { printKOTByStations } from '../utils/printKotStations';
 import { seatLabel } from '../utils/orderItemKey';
+import { lineTaxFlags, savedLineBasePrice } from '../utils/taxEngine';
 
 export default function DashboardTablesPanel({
   floors = [],
@@ -254,20 +255,33 @@ export default function DashboardTablesPanel({
         const order = response.orders[0];
         setSelectedOrder(order);
         
-        const cartItems = (order.items || []).map(item => ({
+        const cartItems = (order.items || []).map(item => {
+          const menuItem = (menuItems || []).find(m => m.id === (item.menuItemId || item.id));
+          // Saved line price = billed base + toppings; the cart keeps the base (toppings are
+          // added back once from selectedCustomizations).
+          const savedBase = savedLineBasePrice(item);
+          return {
           id: item.menuItemId || item.id,
           name: item.name,
-          price: item.price || 0,
+          price: savedBase != null ? savedBase : 0,
           quantity: item.quantity || 1,
           selectedVariant: item.selectedVariant,
           selectedCustomizations: item.selectedCustomizations,
-          basePrice: item.basePrice || item.price || 0,
+          basePrice: savedBase != null ? savedBase : (item.basePrice || 0),
+          priceEdited: item.priceEdited === true,
+          ...(typeof item.menuPrice === 'number' ? { menuPrice: item.menuPrice } : {}),
+          isCustomItem: item.isCustomItem || false,
+          category: item.category || menuItem?.category || '',
+          taxGroupId: item.taxGroupId || menuItem?.taxGroupId || null,
+          // Per-item tax flags (order line, else menu) — an inclusive item must not be taxed on top.
+          ...lineTaxFlags(item, menuItem),
           notes: item.notes || '',
           // Seat-level ordering: seat must survive the order→cart round-trip,
           // otherwise editing a running order silently wipes seat assignments
           ...(item.seat != null ? { seat: item.seat } : {}),
           cartId: `${item.menuItemId || item.id}-${Date.now()}-${Math.random()}`
-        }));
+          };
+        });
         
         setCart(cartItems);
         setCurrentOrder(order);

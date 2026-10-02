@@ -11,11 +11,16 @@ import { resolveVariantTierPrice, resolveItemTierPrice } from './variantPricing'
 
 export function getEffectiveItemPrice(item, { multiPricingEnabled = false, activePricingRuleId = null, pricingRules = [], menuItems = [] } = {}) {
   let base;
-  if (item?.selectedVariant?.price != null) {
+  if (item?.priceEdited === true && typeof item?.price === 'number') {
+    // A manually edited price is the line's base — never re-priced by a variant / tier rule.
+    base = item.price;
+  } else if (item?.selectedVariant?.price != null) {
     if (multiPricingEnabled && activePricingRuleId) {
       const freshVariant = (menuItems || []).find(m => m.id === item.id)
         ?.variants?.find(v => v.name === item.selectedVariant.name);
-      base = resolveVariantTierPrice(freshVariant || item.selectedVariant, activePricingRuleId, pricingRules);
+      // No fresh menu variant → the line's stored variant price is already the resolved price;
+      // re-resolving it would apply the rule's default markup a second time.
+      base = freshVariant ? resolveVariantTierPrice(freshVariant, activePricingRuleId, pricingRules) : item.selectedVariant.price;
     } else {
       base = item.selectedVariant.price;
     }

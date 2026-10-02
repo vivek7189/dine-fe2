@@ -82,7 +82,7 @@ function taxLabelOf(lines) {
 }
 
 // Total rate of one slab: CGST 2.5 + SGST 2.5 = 5. Several different slabs → 0 (unknown).
-function combinedRate(lines) {
+export function combinedRate(lines) {
   const byName = {};
   for (const t of lines) {
     const k = String(t.name || '').toUpperCase();

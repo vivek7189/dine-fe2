@@ -4,7 +4,7 @@
 export { getBillPrintCSS, getKOTPrintCSS, getBillHeaderHTML, getPrintFontSizes, getPrintFontFamily, getContentWidth } from '../printFontSizes';
 
 import { seatLabel, sanitizeSeat } from '../orderItemKey';
-import { inclusiveTaxSummary } from '../inclusiveTax';
+import { inclusiveTaxSummary, combinedRate } from '../inclusiveTax';
 
 // HTML-escape a string
 export const esc = (str) => String(str ?? '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -166,22 +166,31 @@ export function splitIndiaGst(invoice) {
 // breakdown so it works identically for a live bill and a reprinted history bill.
 export function attachInclusiveSplits(invoice) {
   if (!invoice || !Array.isArray(invoice.items)) return invoice;
-  const tb = invoice.taxBreakdown || [];
-  const inclTaxes = tb.filter(t => t && t.inclusive);
-  const globalInclusive = invoice.taxInclusiveMode === 'inclusive' || inclTaxes.length > 0;
-  const inclusiveRate = inclTaxes.reduce((s, t) => s + (Number(t.rate) || 0), 0)
-    || (globalInclusive ? tb.reduce((s, t) => s + (Number(t.rate) || 0), 0) : 0);
-  if (!globalInclusive && !invoice.items.some(it => it && it.taxInclusive === true)) return invoice;
+  // Item tax lines only (an additional charge's own tax is not inside any item price).
+  const tb = (invoice.taxBreakdown || []).filter(t => t && !t.isChargeTax);
+  const inclTaxes = tb.filter(t => t.inclusive);
+  const hasExclusive = tb.some(t => !t.inclusive && Number(t.amount) > 0);
+  // Items WITHOUT their own flag (older orders) are treated as inclusive only when the whole bill is.
+  const wholeBillInclusive = invoice.taxInclusiveMode === 'inclusive' || (inclTaxes.length > 0 && !hasExclusive);
+  if (!inclTaxes.length && invoice.taxInclusiveMode !== 'inclusive' && !invoice.items.some(it => it && it.taxInclusive === true)) return invoice;
+  // Rate of the single inclusive slab (CGST 2.5 + SGST 2.5 = 5). Several slabs (5% and 18% items
+  // on one bill) → 0 = unknown: then only items that carry their own rate get a split.
+  const slabRate = combinedRate(inclTaxes.length ? inclTaxes : (invoice.taxInclusiveMode === 'inclusive' ? tb : []));
   const cs = invoice.currencySymbol || '';
   const taxName = inclTaxes.length === 1 ? (inclTaxes[0].name || 'Tax') : 'Tax';
   invoice.items = invoice.items.map(it => {
     if (!it || it.taxSplit) return it; // preserve an already-computed split
-    const isIncl = it.taxInclusive === true || (it.taxInclusive !== false && globalInclusive);
-    if (!isIncl || inclusiveRate <= 0) return it;
+    const isIncl = it.taxInclusive === true || (it.taxInclusive == null && wholeBillInclusive);
+    if (!isIncl) return it;
+    // The server records each item's tax: an inclusive item with none (tax-exempt group) has no split.
+    if (typeof it.itemTaxAmount === 'number' && it.itemTaxAmount <= 0) return it;
+    const ownRate = Number(it.taxRate);
+    const rate = ownRate > 0 ? ownRate : slabRate;
+    if (!(rate > 0)) return it;
     const line = _lineTotalOf(it);
-    const tax = _round2(line * inclusiveRate / (100 + inclusiveRate));
+    const tax = _round2(line * rate / (100 + rate));
     const base = _round2(line - tax);
-    return { ...it, taxSplit: { base, tax, rate: inclusiveRate }, taxSplitLabel: `MRP ${cs}${base.toFixed(2)} + ${taxName} ${inclusiveRate}% ${cs}${tax.toFixed(2)}` };
+    return { ...it, taxSplit: { base, tax, rate }, taxSplitLabel: `MRP ${cs}${base.toFixed(2)} + ${taxName} ${rate}% ${cs}${tax.toFixed(2)}` };
   });
   return invoice;
 }
@@ -663,8 +672,22 @@ export function buildSplitInvoice(fullInvoice, splitIndex) {
   guestInvoice.paymentMethod = split.paymentMethod || 'cash';
   guestInvoice.cashReceived = split.cashReceived || null;
   guestInvoice.changeReturned = split.changeReturned || null;
+  // One discount line = the guest's share (the order-level offer/manual/loyalty/coupon lines
+  // would otherwise print the WHOLE order's discount on every guest bill).
   guestInvoice.discountAmount = split.discountAmount || 0;
   guestInvoice.totalDiscountAmount = split.discountAmount || 0;
+  guestInvoice.totalDiscount = split.discountAmount || 0;
+  guestInvoice.manualDiscount = 0;
+  guestInvoice.loyaltyDiscount = 0;
+  guestInvoice.couponDiscount = 0;
+  // Guest's share of additional charges / round-off (older split data has none → nothing printed).
+  guestInvoice.additionalCharges = Array.isArray(split.additionalCharges) ? split.additionalCharges : null;
+  guestInvoice.additionalChargesTotal = split.additionalChargesTotal || 0;
+  guestInvoice.roundOffAmount = split.roundOffAmount || 0;
+  // Wallet / partial payments belong to the whole order, not to one guest's slice.
+  guestInvoice.walletRedeemAmount = 0;
+  guestInvoice.paidAmount = null;
+  guestInvoice.outstandingAmount = null;
   // For by-item, replace items with guest's items
   if (sb.method === 'by-item' && split.items) {
     guestInvoice.items = split.items;

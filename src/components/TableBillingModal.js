@@ -7,6 +7,7 @@ import { FaReceipt, FaTimes, FaSpinner, FaBed } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
 import { getCartSubtotal } from '../utils/billingPrice';
+import { lineTaxFlags, savedLineBasePrice } from '../utils/taxEngine';
 import dynamic from 'next/dynamic';
 // Hotel feature — code-split so it isn't downloaded by non-hotel restaurants and
 // stays isolated (only loaded when a hotel account opens the charge-to-room modal).
@@ -39,6 +40,10 @@ export default function TableBillingModal({
   onOptimisticTableUpdate,
 }) {
   const [order, setOrder] = useState(null);
+  // Pricing rule of THIS order (not the dashboard's current zone/order-type rule): the order's
+  // lines were priced under it, so billing must resolve tier prices with the same rule.
+  const [orderRuleId, setOrderRuleId] = useState(null);
+  const effectiveRuleId = order ? orderRuleId : activePricingRuleId;
   const [loading, setLoading] = useState(false);
   const [modalCart, setModalCart] = useState([]);
   const [modalPaymentMethod, setModalPaymentMethod] = useState('cash');
@@ -78,25 +83,30 @@ export default function TableBillingModal({
         if (response.orders && response.orders.length > 0) {
           const ord = response.orders[0];
           setOrder(ord);
+          setOrderRuleId(ord.pricingRuleId || null);
 
           const cartItems = (ord.items || []).map(item => {
             const menuItem = menuItems?.find(m => m.id === (item.menuItemId || item.id));
-            // Refresh price from current menu to avoid stale pricing
-            const refreshedPrice = item.selectedVariant?.price != null
-              ? item.selectedVariant.price
-              : (menuItem?.price ?? item.price ?? 0);
-            // Same as the dashboard's saved-order → cart mapping: a manually edited price is kept
-            // as saved (never refreshed from the menu).
-            const savedPrice = (item.price != null && !isNaN(parseFloat(item.price))) ? parseFloat(item.price) : 0;
-            // basePrice should use variant price when variant is selected
+            // Keep the price this order was placed at (tier / zone / edited price) — same as
+            // OrderEditModal. The server stores line price = billed base + toppings; the cart keeps
+            // the BASE (toppings stay in selectedCustomizations and are added back exactly once).
+            // Re-pricing to today's base menu price lost tier prices, and edited lines with
+            // toppings counted the toppings twice.
+            const savedBase = savedLineBasePrice(item);
             const variantPriceVal = item.selectedVariant?.price;
-            const itemBasePrice = variantPriceVal != null
-              ? variantPriceVal
-              : (menuItem?.price ?? item.basePrice ?? item.price ?? 0);
+            const linePrice = savedBase != null
+              ? savedBase
+              : (variantPriceVal != null ? variantPriceVal : (menuItem?.price ?? 0));
+            // basePrice = the line base the server uses for settled / price-edited lines.
+            const itemBasePrice = savedBase != null
+              ? savedBase
+              : (variantPriceVal != null
+                ? variantPriceVal
+                : (item.basePrice != null ? item.basePrice : (menuItem?.price ?? 0)));
             return {
               id: item.menuItemId || item.id,
               name: menuItem?.name || item.name,
-              price: item.priceEdited === true ? savedPrice : refreshedPrice,
+              price: linePrice,
               quantity: item.quantity || 1,
               selectedVariant: item.selectedVariant,
               selectedCustomizations: item.selectedCustomizations,
@@ -107,6 +117,9 @@ export default function TableBillingModal({
               pricingRules: menuItem?.pricingRules || item.pricingRules || {},
               category: item.category || menuItem?.category || '',
               taxGroupId: menuItem?.taxGroupId || item.taxGroupId || null,
+              // Per-item tax flags (order line, else menu) — an inclusive item must not be taxed on top.
+              ...lineTaxFlags(item, menuItem),
+              ...(item.soldByWeight ? { soldByWeight: true, itemWeight: item.itemWeight || 0, priceUnit: item.priceUnit || 'per_kg', weightUnit: item.weightUnit || 'kg' } : {}),
               notes: item.notes || '',
               // Seat-level ordering: seat must survive the billing round-trip
               ...(item.seat != null ? { seat: item.seat } : {}),
@@ -147,7 +160,7 @@ export default function TableBillingModal({
   // getEffectiveItemPrice/getTotalAmount): variant/zone price + toppings (× weight). Previously
   // summed item.price × qty only, which dropped toppings from the subtotal, tax and saved totals.
   const getModalTotalAmount = () =>
-    getCartSubtotal(modalCart, { multiPricingEnabled, activePricingRuleId, pricingRules, menuItems });
+    getCartSubtotal(modalCart, { multiPricingEnabled, activePricingRuleId: effectiveRuleId, pricingRules, menuItems });
 
   const isManualPrintEnabled = () => {
     return printSettings?.manualPrintEnabled !== false;
@@ -529,8 +542,8 @@ export default function TableBillingModal({
               billingSettings={billingSettings}
               multiPricingEnabled={multiPricingEnabled}
               pricingRules={pricingRules}
-              activePricingRuleId={activePricingRuleId}
-              setActivePricingRuleId={setActivePricingRuleId || (() => {})}
+              activePricingRuleId={effectiveRuleId}
+              setActivePricingRuleId={(id) => { if (order) setOrderRuleId(id || null); else if (setActivePricingRuleId) setActivePricingRuleId(id); }}
               countryCode={countryCode}
               businessType={businessType}
               upiSettings={upiSettings}

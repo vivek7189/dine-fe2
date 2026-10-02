@@ -548,6 +548,42 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant, onTablesChange
   );
 };
 
+// Quick-print bill summary from a SAVED order: pre-discount subtotal (sum of the lines), then the
+// discount, service charge, additional charges, tax added on top, tip and round-off — the same
+// rows the full bill shows — so the quick print adds up to the saved finalAmount.
+function quickBillSummary(order) {
+  const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+  const items = order?.items || [];
+  const lineTotal = (it) => r2(Number(it.total) || (Number(it.price) || 0) * (Number(it.quantity) || 1));
+  const subtotal = r2(items.reduce((s, it) => s + lineTotal(it), 0)) || r2(order?.subtotal || order?.totalAmount);
+  const discount = r2(order?.totalDiscountAmount != null ? order.totalDiscountAmount
+    : (Number(order?.discountAmount) || 0) + (Number(order?.manualDiscount) || 0) + (Number(order?.loyaltyDiscount) || 0) + (Number(order?.couponDiscount) || 0));
+  const serviceCharge = r2(order?.serviceChargeAmount);
+  const charges = (Array.isArray(order?.additionalCharges) ? order.additionalCharges : []).filter(c => c && Number(c.amount) > 0);
+  const chargesTotal = r2(charges.reduce((s, c) => s + (Number(c.amount) || 0), 0));
+  // Only tax added on top is part of the sum; tax inside the prices prints under the total.
+  const taxLines = (order?.taxBreakdown || []).filter(t => t && !t.inclusive);
+  const taxTotal = r2(taxLines.reduce((s, t) => s + (Number(t.amount) || 0), 0));
+  const tip = r2(order?.tipAmount);
+  const roundOff = r2(order?.roundOffAmount);
+  const total = r2(order?.finalAmount || (subtotal - discount + serviceCharge + chargesTotal + taxTotal + tip + roundOff));
+  return { items, lineTotal, subtotal, discount, serviceCharge, serviceChargeRate: order?.serviceChargeRate, charges, taxLines, tip, roundOff, total };
+}
+
+// The summary rows (between Subtotal and TOTAL) as bill HTML.
+function quickBillRowsHtml(q, cs) {
+  const esc = (v) => String(v == null ? '' : v).replace(/</g, '&lt;');
+  const row = (label, amt) => `<div class="total-row"><span>${label}</span><span>${amt}</span></div>`;
+  let h = '';
+  if (q.discount > 0) h += row('Discount', `-${cs}${q.discount.toFixed(2)}`);
+  if (q.serviceCharge > 0) h += row(`Service Charge${q.serviceChargeRate ? ` (${q.serviceChargeRate}%)` : ''}`, `${cs}${q.serviceCharge.toFixed(2)}`);
+  for (const c of q.charges) h += row(`${esc(c.name || 'Charge')}${c.type === 'percent' && c.value ? ` (${c.value}%)` : ''}`, `${cs}${(Number(c.amount) || 0).toFixed(2)}`);
+  for (const t of q.taxLines) h += row(`${esc(t.name)} (${t.rate}%)`, `${cs}${(Number(t.amount) || 0).toFixed(2)}`);
+  if (q.tip > 0) h += row('Tip', `${cs}${q.tip.toFixed(2)}`);
+  if (q.roundOff !== 0) h += row('Round Off', `${q.roundOff > 0 ? '+' : ''}${cs}${q.roundOff.toFixed(2)}`);
+  return h;
+}
+
 const TableManagement = () => {
   const router = useRouter();
   const { isLoading } = useLoading();
@@ -2003,16 +2039,12 @@ const TableManagement = () => {
       // "Send to KRA?" if configured); a pre-bill / non-Kenya / eTIMS-off prints as before.
       const plainPrint = async () => {
       if (supportsNativeAutoPrint()) {
-        const items = order.items || [];
-        const subtotal = order.totalAmount || items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
-        // Only tax added on top is part of the sum; tax inside the prices prints under the total.
-        const taxBreakdown = (order.taxBreakdown || []).filter(tax => tax && !tax.inclusive);
-        const taxTotal = taxBreakdown.reduce((sum, tax) => sum + (tax.amount || 0), 0);
-        const total = order.finalAmount || (subtotal + taxTotal);
+        const q = quickBillSummary(order);
+        const { items, subtotal, total } = q;
         const currencySymbol = getCurrencySymbol();
 
         const itemsHtml = items.map(item =>
-          `<tr><td style="text-align:left;">${(item.name || '').replace(/</g, '&lt;')}</td><td style="text-align:center;">${item.quantity || 1}</td><td style="text-align:right;">${currencySymbol}${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`
+          `<tr><td style="text-align:left;">${(item.name || '').replace(/</g, '&lt;')}</td><td style="text-align:center;">${item.quantity || 1}</td><td style="text-align:right;">${currencySymbol}${q.lineTotal(item).toFixed(2)}</td></tr>`
         ).join('');
 
         const _tpIdLines = [];
@@ -2033,7 +2065,7 @@ const TableManagement = () => {
         const _tpIdHtml = _tpIdLines.map(l => `<div style="font-size:11px;">${l}</div>`).join('');
         const _tpHeaderHtml = getBillHeaderHTML(restaurantName.replace(/</g, '&lt;'), _tpIdHtml, printSettings?.receiptLogo || null, '--- BILL ---');
 
-        const billContent = `<!DOCTYPE html><html><head><title>Bill</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily, printSettings?.printerWidth, printSettings)}</style></head><body>${_tpHeaderHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div>Bill #${billNumberLabel(order)}</div><div>Table: ${order.tableNumber || table?.name || '-'}</div></div><div class="divider">--------------------------------</div><table class="items-table"><tr><th style="text-align:left;width:55%;">Item</th><th style="text-align:center;width:15%;">Qty</th><th style="text-align:right;width:30%;">Amt</th></tr>${itemsHtml}</table><div class="divider">--------------------------------</div><div class="total-section"><div class="total-row"><span>Subtotal</span><span>${currencySymbol}${subtotal.toFixed(2)}</span></div>${taxBreakdown.map(tax => `<div class="total-row"><span>${tax.name} (${tax.rate}%)</span><span>${currencySymbol}${(tax.amount || 0).toFixed(2)}</span></div>`).join('')}<div class="total-row" style="font-weight:bold;font-size:16px;"><span>TOTAL</span><span>${currencySymbol}${total.toFixed(2)}</span></div>${buildInclusiveTaxNote({ ...order, currencySymbol }, printSettings)}</div><div class="divider">================================</div><div class="bill-footer">Thank you!</div></body></html>`;
+        const billContent = `<!DOCTYPE html><html><head><title>Bill</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily, printSettings?.printerWidth, printSettings)}</style></head><body>${_tpHeaderHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div>Bill #${billNumberLabel(order)}</div><div>Table: ${order.tableNumber || table?.name || '-'}</div></div><div class="divider">--------------------------------</div><table class="items-table"><tr><th style="text-align:left;width:55%;">Item</th><th style="text-align:center;width:15%;">Qty</th><th style="text-align:right;width:30%;">Amt</th></tr>${itemsHtml}</table><div class="divider">--------------------------------</div><div class="total-section"><div class="total-row"><span>Subtotal</span><span>${currencySymbol}${subtotal.toFixed(2)}</span></div>${quickBillRowsHtml(q, currencySymbol)}<div class="total-row" style="font-weight:bold;font-size:16px;"><span>TOTAL</span><span>${currencySymbol}${total.toFixed(2)}</span></div>${buildInclusiveTaxNote({ ...order, currencySymbol }, printSettings)}</div><div class="divider">================================</div><div class="bill-footer">Thank you!</div></body></html>`;
 
         await printDocument({ html: billContent, type: 'bill', printSettings: printSettings || {} });
       } else {
@@ -2161,19 +2193,15 @@ const TableManagement = () => {
   const openManualPrintWindow = (order, table) => {
     const win = window.open('', '_blank', 'width=800,height=600');
     if (!win) { alert('Please allow popups to print'); return; }
-    const items = order.items || [];
-    const subtotal = order.totalAmount || items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
-    // Only tax added on top is part of the sum; tax inside the prices prints under the total.
-    const taxBreakdown = (order.taxBreakdown || []).filter(tax => tax && !tax.inclusive);
-    const taxTotal = taxBreakdown.reduce((sum, tax) => sum + (tax.amount || 0), 0);
-    const total = order.finalAmount || (subtotal + taxTotal);
+    const q = quickBillSummary(order);
+    const { items, subtotal, total } = q;
     const currencySymbol = getCurrencySymbol();
     const restaurantName = selectedRestaurant?.name || 'Restaurant';
     // Respect the Bill Sections toggles (custom footer / thank-you line / powered by) on this manual print path too
     const bl = printSettings?.billLayout || {};
 
-    const itemsHtml = items.map(item => `<tr><td style="text-align:left;">${(item.name || '').replace(/</g, '&lt;')}</td><td style="text-align:center;">${item.quantity || 1}</td><td style="text-align:right;">${currencySymbol}${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`).join('');
-    const taxHtml = taxBreakdown.map(tax => `<tr><td colspan="2" style="text-align:left;">${tax.name} (${tax.rate}%)</td><td style="text-align:right;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td></tr>`).join('');
+    const itemsHtml = items.map(item => `<tr><td style="text-align:left;">${(item.name || '').replace(/</g, '&lt;')}</td><td style="text-align:center;">${item.quantity || 1}</td><td style="text-align:right;">${currencySymbol}${q.lineTotal(item).toFixed(2)}</td></tr>`).join('');
+    const rowsHtml = quickBillRowsHtml(q, currencySymbol);
 
     const _tpIdLines = [];
     if (selectedRestaurant?.legalBusinessName && selectedRestaurant.legalBusinessName !== restaurantName) _tpIdLines.push(selectedRestaurant.legalBusinessName.replace(/</g, '&lt;'));
@@ -2183,7 +2211,7 @@ const TableManagement = () => {
     const _tpIdHtml = _tpIdLines.map(l => `<div style="font-size:11px;">${l}</div>`).join('');
     const _tpHeaderHtml = getBillHeaderHTML(restaurantName.replace(/</g, '&lt;'), _tpIdHtml, printSettings?.receiptLogo || null, '--- BILL ---');
 
-    const billContent = `<!DOCTYPE html><html><head><title>Bill #${billNumberLabel(order)}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily, printSettings?.printerWidth, printSettings)}</style></head><body>${_tpHeaderHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div><span>Bill#:</span><span><strong>${billNumberLabel(order)}</strong></span></div><div><span>Date:</span><span>${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span></div>${order.tableNumber || table?.name ? `<div><span>Table:</span><span>${order.tableNumber || table?.name}${order.floorName || table?.floor ? ` · ${order.floorName || table?.floor}` : ''}</span></div>` : ''}${order.customerInfo?.name ? `<div><span>Customer:</span><span>${(order.customerInfo.name || '').replace(/</g, '&lt;')}</span></div>` : ''}<div><span>Payment:</span><span>${(order.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;width:55%;">Item</th><th style="text-align:center;width:15%;">Qty</th><th style="text-align:right;width:30%;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>Subtotal:</span><span>${currencySymbol}${subtotal.toFixed(2)}</span></div></div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}<div class="total-row"><span>TOTAL:</span><span>${currencySymbol}${total.toFixed(2)}</span></div>${buildInclusiveTaxNote({ ...order, currencySymbol }, printSettings)}</div><div class="divider">================================</div><div class="bill-footer">${buildCustomFooterHtml(bl)}${bl.showFooter !== false ? `<p>Thank you for dining with us!</p>` : ''}${bl.showPoweredBy !== false ? `<p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p>` : ''}</div></body></html>`;
+    const billContent = `<!DOCTYPE html><html><head><title>Bill #${billNumberLabel(order)}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily, printSettings?.printerWidth, printSettings)}</style></head><body>${_tpHeaderHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div><span>Bill#:</span><span><strong>${billNumberLabel(order)}</strong></span></div><div><span>Date:</span><span>${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span></div>${order.tableNumber || table?.name ? `<div><span>Table:</span><span>${order.tableNumber || table?.name}${order.floorName || table?.floor ? ` · ${order.floorName || table?.floor}` : ''}</span></div>` : ''}${order.customerInfo?.name ? `<div><span>Customer:</span><span>${(order.customerInfo.name || '').replace(/</g, '&lt;')}</span></div>` : ''}<div><span>Payment:</span><span>${(order.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;width:55%;">Item</th><th style="text-align:center;width:15%;">Qty</th><th style="text-align:right;width:30%;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>Subtotal:</span><span>${currencySymbol}${subtotal.toFixed(2)}</span></div></div>${rowsHtml}<div class="total-row"><span>TOTAL:</span><span>${currencySymbol}${total.toFixed(2)}</span></div>${buildInclusiveTaxNote({ ...order, currencySymbol }, printSettings)}</div><div class="divider">================================</div><div class="bill-footer">${buildCustomFooterHtml(bl)}${bl.showFooter !== false ? `<p>Thank you for dining with us!</p>` : ''}${bl.showPoweredBy !== false ? `<p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p>` : ''}</div></body></html>`;
 
     win.document.write(billContent);
     win.document.close();

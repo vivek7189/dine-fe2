@@ -96,6 +96,7 @@ import { useDineBot } from '../../../components/DineBotProvider';
 import { parseScaleBarcode, isScaleBarcode } from '../../../utils/scaleBarcode';
 import { printDocument } from '../../../utils/printBridge';
 import { resolveVariantTierPrice, resolveItemTierPrice } from '../../../utils/variantPricing';
+import { lineTaxFlags, savedLineBasePrice } from '../../../utils/taxEngine';
 import useTimedMenu from '../../../hooks/useTimedMenu';
 
 // Safe wrappers for contexts that may not be available in mobile embed mode
@@ -654,6 +655,9 @@ function RestaurantPOSContent() {
   const displaySenderRef = useRef(null);
   const lastDisplayTotalRef = useRef(0);
   const [customerDisplayOpen, setCustomerDisplayOpen] = useState(false);
+  // Bill totals as computed by OrderSummary (tax / discount / SC / charges / total) — mirrored
+  // on the customer-facing display so it matches the cart exactly.
+  const [billTotals, setBillTotals] = useState(null);
 
   // Customer display sync — send cart data to secondary screen
   useEffect(() => {
@@ -676,27 +680,41 @@ function RestaurantPOSContent() {
       return;
     }
     const cs = selectedRestaurant?.currencySettings?.symbol || '₹';
-    const items = cart.map(item => ({
-      name: item.name,
-      quantity: item.quantity || 1,
-      unitPrice: item.price || 0,
-      lineTotal: (item.price || 0) * (item.quantity || 1),
-    }));
-    const subtotal = items.reduce((s, i) => s + i.lineTotal, 0);
-    lastDisplayTotalRef.current = subtotal;
+    // Same line price as the cart / bill (variant, tier, toppings, edits; weight for weighed items).
+    const items = cart.map(item => {
+      const unit = getEffectiveItemPrice(item);
+      const factor = (item.soldByWeight && item.itemWeight)
+        ? (item.priceUnit === 'per_100g' ? item.itemWeight / 100 : item.itemWeight)
+        : (item.quantity || 1);
+      return {
+        name: item.name,
+        quantity: item.quantity || 1,
+        unitPrice: Math.round(unit * 100) / 100,
+        lineTotal: Math.round(unit * factor * 100) / 100,
+      };
+    });
+    const subtotal = Math.round(items.reduce((s, i) => s + i.lineTotal, 0) * 100) / 100;
+    // Totals from OrderSummary when they belong to this cart (same subtotal); else the subtotal.
+    const bt = billTotals && Math.abs((billTotals.subtotal || 0) - subtotal) < 0.01 ? billTotals : null;
+    const total = bt ? bt.total : subtotal;
+    lastDisplayTotalRef.current = total;
     displaySenderRef.current.send({
       status: 'active',
       items,
       subtotal,
-      discount: 0,
-      tax: 0,
-      total: subtotal,
+      discount: bt ? bt.discount : 0,
+      // Tax ADDED to the bill; tax already inside inclusive prices is shown as 'incl.'.
+      tax: bt ? bt.exclusiveTax : 0,
+      taxIncluded: bt ? Math.round(((bt.tax || 0) - (bt.exclusiveTax || 0)) * 100) / 100 : 0,
+      serviceCharge: bt ? (bt.serviceCharge || 0) + (bt.additionalCharges || 0) : 0,
+      total,
       currencySymbol: cs,
       storeName: selectedRestaurant?.name,
       tableNumber: tableNumber || selectedTable?.name || null,
       lastAddedItem: items.length > 0 ? items[items.length - 1] : null,
     });
-  }, [cart, selectedRestaurant, tableNumber, selectedTable]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart, selectedRestaurant, tableNumber, selectedTable, billTotals]);
 
   // Send completed signal to customer display when billing finishes
   useEffect(() => {
@@ -2564,6 +2582,8 @@ function RestaurantPOSContent() {
   useEffect(() => {
     if (!multiPricingEnabled || cart.length === 0) return;
     setCart(prevCart => prevCart.map(item => {
+      // Manually price-edited lines keep the price the cashier typed.
+      if (item.priceEdited === true) return item;
       // Find the original menu item to get pricingRules overrides.
       // NOTE: menu items from Firestore only have `id` (never `_id`). Guard the
       // `_id` fallback so it can't match on `undefined === undefined`, which
@@ -2578,7 +2598,10 @@ function RestaurantPOSContent() {
       // payload and display all agree after an order-type/zone switch. Manually
       // edited lines are left untouched.
       if (item.selectedVariant && !item.priceEdited) {
-        const freshVariant = menuItem?.variants?.find(v => v.name === item.selectedVariant.name) || item.selectedVariant;
+        const freshVariant = menuItem?.variants?.find(v => v.name === item.selectedVariant.name);
+        // Variant no longer on the menu: its stored price is already resolved — leave it as is
+        // (re-resolving would stack the rule's default markup on an already marked-up price).
+        if (!freshVariant) return item;
         const vBase = typeof freshVariant?.price === 'number' ? freshVariant.price : item.selectedVariant.price;
         const vPrice = resolveVariantTierPrice(freshVariant, activePricingRuleId, pricingRules);
         return {
@@ -3031,14 +3054,19 @@ function RestaurantPOSContent() {
   // Returns the effective per-unit price for a cart item (variant + customizations included)
   const getEffectiveItemPrice = (item) => {
     let base;
-    if (item?.selectedVariant?.price != null) {
+    if (item?.priceEdited === true && typeof item?.price === 'number') {
+      // A manually edited price is the line's base — honored even when a pricing rule is
+      // active (the tier/variant resolvers below would silently undo the edit).
+      base = item.price;
+    } else if (item?.selectedVariant?.price != null) {
       // Variant lines: resolve the variant's own tier price for the active zone
       // (per-variant pricingRules → Dine-In inherit → variant base). Falls back to
       // the stored variant price when multi-pricing is off or no rule is active.
       if (multiPricingEnabled && activePricingRuleId) {
         const freshVariant = (menuItems || []).find(m => m.id === item.id)
           ?.variants?.find(v => v.name === item.selectedVariant.name);
-        base = resolveVariantTierPrice(freshVariant || item.selectedVariant, activePricingRuleId, pricingRules);
+        // No fresh menu variant → the stored variant price is already resolved (avoid a 2nd markup).
+        base = freshVariant ? resolveVariantTierPrice(freshVariant, activePricingRuleId, pricingRules) : item.selectedVariant.price;
       } else {
         base = item.selectedVariant.price;
       }
@@ -3079,6 +3107,8 @@ function RestaurantPOSContent() {
   // Builds a standardized item payload for all API calls (POST/PATCH)
   const buildItemPayload = (item) => {
     const effectivePrice = getEffectiveItemPrice(item);
+    const _menuForTax = (!item.isCustomItem && item.id != null) ? (menuItems || []).find(m => m.id === item.id) : null;
+    const _taxFlags = lineTaxFlags(item, _menuForTax);
     // Weight-based total: price × weight (adjusted for unit)
     let total;
     if (item.soldByWeight && item.itemWeight) {
@@ -3102,11 +3132,13 @@ function RestaurantPOSContent() {
       notes: item.notes || '',
       seat: sanitizeSeat(item.seat),
       category: item.category || '',
-      categoryId: item.categoryId || null,
-      taxGroupId: item.taxGroupId || null,
-      // Carry per-item tax fields onto the order so the bill/reports have them
-      ...(item.taxInclusive != null ? { taxInclusive: item.taxInclusive } : {}),
-      ...(item.hsnCode ? { hsnCode: item.hsnCode } : {}),
+      categoryId: _taxFlags.categoryId || null,
+      taxGroupId: item.taxGroupId || _menuForTax?.taxGroupId || null,
+      // Carry per-item tax fields onto the order so the bill/reports have them — from the cart
+      // line, else the menu item (cart lines restored from older orders/carts may lack them).
+      ...(_taxFlags.taxInclusive != null ? { taxInclusive: _taxFlags.taxInclusive } : {}),
+      ...(_taxFlags.discountApplicable != null ? { discountApplicable: _taxFlags.discountApplicable } : {}),
+      ...(_taxFlags.hsnCode ? { hsnCode: _taxFlags.hsnCode } : {}),
       selectedVariant: item.selectedVariant || null,
       selectedCustomizations: Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [],
       basePrice: typeof item.basePrice === 'number' ? item.basePrice : item.price,
@@ -3461,10 +3493,13 @@ function RestaurantPOSContent() {
           const cartItem = {
             id: id,
             name: matchedMenu?.name || name,
-            price: item.priceEdited === true ? price : refreshedPrice,
+            // Edited lines keep the saved price minus toppings (the cart adds toppings back once).
+            price: item.priceEdited === true ? (savedLineBasePrice(item) ?? price) : refreshedPrice,
             quantity: parseInt(item.quantity) || 1,
             category: item.category || item.menuItem?.category || matchedMenu?.category || '',
             taxGroupId: matchedMenu?.taxGroupId || item.taxGroupId || null,
+            // Per-item tax flags (order line, else menu) — without them an inclusive item is taxed on top.
+            ...lineTaxFlags(item, matchedMenu),
             selectedVariant: item.selectedVariant || null,
             selectedCustomizations: Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [],
             basePrice: effectiveBasePrice,
@@ -4900,6 +4935,7 @@ function RestaurantPOSContent() {
           isCustomItem: item.isCustomItem || false,
           category: item.category || matchedMenu?.category || '',
           taxGroupId: matchedMenu?.taxGroupId || item.taxGroupId || null,
+          ...lineTaxFlags(item, matchedMenu),
           pricingRules: matchedMenu?.pricingRules || item.pricingRules || {},
         };
       }) || [];
@@ -9486,6 +9522,7 @@ function RestaurantPOSContent() {
             setOrderSuccess={setOrderSuccess}
             error={error}
             getTotalAmount={getTotalAmount}
+            onTotalsChange={setBillTotals}
             tableNumber={tableNumber}
             selectedTable={selectedTable}
             customerName={customerName}
@@ -9600,6 +9637,7 @@ function RestaurantPOSContent() {
                     setOrderSuccess={setOrderSuccess}
                     error={error}
                     getTotalAmount={getTotalAmount}
+                    onTotalsChange={setBillTotals}
                     tableNumber={tableNumber}
                     selectedTable={selectedTable}
                     customerName={customerName}

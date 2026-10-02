@@ -318,10 +318,22 @@ function ActiveOrderScreen({ displayData, storeName, storeLogo, currentTime, for
             <span style={{ ...S.totalValue, color: '#4ade80' }}>-{formatCurrency(displayData.discount)}</span>
           </div>
         )}
+        {(displayData.serviceCharge || 0) > 0 && (
+          <div style={S.totalRow}>
+            <span style={S.totalLabel}>Service &amp; charges</span>
+            <span style={S.totalValue}>{formatCurrency(displayData.serviceCharge)}</span>
+          </div>
+        )}
         {(displayData.tax || 0) > 0 && (
           <div style={S.totalRow}>
             <span style={S.totalLabel}>Tax</span>
             <span style={S.totalValue}>{formatCurrency(displayData.tax)}</span>
+          </div>
+        )}
+        {(displayData.taxIncluded || 0) > 0 && (
+          <div style={S.totalRow}>
+            <span style={S.totalLabel}>Tax (incl.)</span>
+            <span style={S.totalValue}>{formatCurrency(displayData.taxIncluded)}</span>
           </div>
         )}
         <div style={S.grandTotalRow}>

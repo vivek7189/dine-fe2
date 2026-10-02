@@ -47,6 +47,10 @@ import { seatLabel, sanitizeSeat, getOrderItemKey } from '../utils/orderItemKey'
 import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint, buildKotDedupKey } from '../utils/printBridge';
 import { isElectron } from '../utils/platform';
 import { resolveVariantTierPrice, resolveItemTierPrice } from '../utils/variantPricing';
+import { isItemTaxInclusive as engineIsItemTaxInclusive, resolveTaxesForItem as engineResolveTaxesForItem, calculatePerItemTax as engineCalculatePerItemTax } from '../utils/taxEngine';
+import { resolveAdditionalCharges } from '../utils/additionalCharges';
+
+const NO_ADDITIONAL_CHARGES = { charges: [], total: 0, foldTaxableTotal: 0, ownTaxTotal: 0, taxLines: [] };
 
 const CustomerDetailModal = dynamic(() => import('./CustomerDetailModal'), { ssr: false });
 const DiscountApprovalModal = dynamic(() => import('./DiscountApprovalModal'), { ssr: false });
@@ -127,6 +131,8 @@ const OrderSummary = ({
   onProcessOrder,
   onSaveOrder,
   onPlaceOrder,
+  // Optional: receives the computed bill totals (customer-facing display etc.).
+  onTotalsChange,
   onRemoveFromCart,
   onAddToCart,
   onUpdateCartItemQuantity,
@@ -731,6 +737,15 @@ const OrderSummary = ({
   const [tipAmount, setTipAmount] = useState(0);
   const [tipPercentage, setTipPercentage] = useState(null);
   const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
+  // Additional charges (packaging etc.) resolved for the current cart — see calculateTax.
+  const [additionalChargesInfo, setAdditionalChargesInfo] = useState(NO_ADDITIONAL_CHARGES);
+  // Warning shown when the server saved a different bill total than the cart computed.
+  const [billMismatchNote, setBillMismatchNote] = useState(null);
+  useEffect(() => {
+    if (!billMismatchNote) return;
+    const tid = setTimeout(() => setBillMismatchNote(null), 8000);
+    return () => clearTimeout(tid);
+  }, [billMismatchNote]);
   const [serviceChargeOverride, setServiceChargeOverride] = useState(() => readScOverride()); // persisted per device
   const [serviceChargeRateOverride, setServiceChargeRateOverride] = useState(null); // null=use billingSettings rate
 
@@ -1618,13 +1633,18 @@ const OrderSummary = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const getItemUnitPrice = useCallback((cartItem) => {
     let unitPrice;
-    if (cartItem?.selectedVariant?.price != null) {
+    if (cartItem?.priceEdited === true && typeof cartItem?.price === 'number') {
+      // A manually edited price is the line's base (toppings still added below) — honored even
+      // when a pricing rule is active; the variant/tier resolvers would silently undo the edit.
+      unitPrice = cartItem.price;
+    } else if (cartItem?.selectedVariant?.price != null) {
       // Variant selected — resolve its per-variant tier price for the active rule (prefer the
       // fresh menu variant so newly-set tier prices apply; falls back to the variant base).
       if (multiPricingEnabled && activePricingRuleId) {
         const freshItem = cartItem?.id != null ? menuItems.find(m => m.id === cartItem.id) : undefined;
         const freshVariant = freshItem?.variants?.find(v => v.name === cartItem.selectedVariant.name);
-        unitPrice = resolveVariantTierPrice(freshVariant || cartItem.selectedVariant, activePricingRuleId, pricingRules);
+        // No fresh menu variant → the stored variant price is already resolved (avoid a 2nd markup).
+        unitPrice = freshVariant ? resolveVariantTierPrice(freshVariant, activePricingRuleId, pricingRules) : cartItem.selectedVariant.price;
       } else {
         unitPrice = cartItem.selectedVariant.price;
       }
@@ -1674,53 +1694,34 @@ const OrderSummary = ({
     return (unitPrice || 0) + (extras || 0);
   }, [multiPricingEnabled, activePricingRuleId, menuItems, pricingRules]);
   
-  // Determine if an item's price includes tax (inclusive pricing)
-  const isItemTaxInclusive = useCallback((item, settings) => {
-    if (item.taxInclusive === true) return true;
-    if (item.taxInclusive === false) return false;
-    return settings?.taxInclusivePricing === true;
-  }, []);
-
-  // Resolve which taxes apply to a given item (per-item > category > restaurant default)
-  // When a tax group has alsoApplyGlobalTax: true, both group taxes AND global taxes apply.
-  const resolveTaxesForItem = useCallback((item, settings, categories) => {
-    if (!settings?.enabled) return [];
-    const groups = settings.taxGroups || [];
-    const globalTaxes = (settings.taxes && settings.taxes.length > 0)
-      ? settings.taxes.filter(tx => tx.enabled)
-      : (settings.defaultTaxRate
-        ? [{ name: 'Tax', rate: settings.defaultTaxRate, type: 'percentage' }]
-        : []);
-
-    const resolveGroup = (group) => {
-      const groupTaxes = group.taxes || [];
-      if (group.alsoApplyGlobalTax && globalTaxes.length > 0) {
-        const merged = [...groupTaxes];
-        for (const gt of globalTaxes) {
-          if (!merged.some(t => t.name === gt.name && t.rate === gt.rate)) merged.push(gt);
-        }
-        return merged;
-      }
-      return groupTaxes;
+  // Per-item tax fields: the cart line's own value, else the menu item's (saved-order → cart
+  // mappings and older carts often lack taxInclusive / discountApplicable / taxGroupId — without
+  // the fallback a tax-INCLUSIVE item was taxed on top: ₹30 → ₹31.50). Custom items have no menu.
+  const withMenuTaxFields = useCallback((item) => {
+    if (!item || item.isCustomItem || item.id == null) return item;
+    const mi = menuItems.find(m => m.id === item.id);
+    if (!mi) return item;
+    return {
+      ...item,
+      taxInclusive: item.taxInclusive ?? mi.taxInclusive,
+      discountApplicable: item.discountApplicable ?? mi.discountApplicable,
+      taxGroupId: item.taxGroupId || mi.taxGroupId || null,
+      category: item.category || mi.category,
+      categoryId: item.categoryId || mi.categoryId,
     };
+  }, [menuItems]);
 
-    // Priority 1: Item-level tax group
-    if (item.taxGroupId) {
-      const g = groups.find(gr => gr.id === item.taxGroupId);
-      if (g) return resolveGroup(g);
-    }
-    // Priority 2: Category-level tax group
-    const catId = item.category || item.categoryId;
-    if (catId && categories && categories.length > 0) {
-      const cat = categories.find(c => c.id === catId || c.name === catId);
-      if (cat?.taxGroupId) {
-        const g = groups.find(gr => gr.id === cat.taxGroupId);
-        if (g) return resolveGroup(g);
-      }
-    }
-    // Priority 3: Restaurant default taxes (global)
-    return globalTaxes;
-  }, []);
+  // Quantity factor of a line: weight for sold-by-weight lines (same as getTotalAmount), else qty.
+  const lineQtyFactor = (ci) => ((ci?.soldByWeight && ci?.itemWeight)
+    ? (ci.priceUnit === 'per_100g' ? ci.itemWeight / 100 : ci.itemWeight)
+    : (ci?.quantity || 1));
+
+  // Determine if an item's price includes tax (inclusive pricing) — shared engine (= backend).
+  const isItemTaxInclusive = useCallback((item, settings) => engineIsItemTaxInclusive(withMenuTaxFields(item), settings), [withMenuTaxFields]);
+
+  // Resolve which taxes apply to a given item (per-item > category > restaurant default) —
+  // shared engine, identical to the backend resolveTaxesForItem.
+  const resolveTaxesForItem = useCallback((item, settings, categories) => engineResolveTaxesForItem(withMenuTaxFields(item), settings, categories), [withMenuTaxFields]);
 
   // Per-item tax-inclusive split (base "MRP" + tax) — used on the cart line, the
   // bill and order history so all three show identical numbers. Returns null
@@ -1728,10 +1729,11 @@ const OrderSummary = ({
   const getItemTaxSplit = (cartItem) => {
     if (!taxSettings?.enabled) return null;
     if (!isItemTaxInclusive(cartItem, taxSettings)) return null;
-    const taxes = resolveTaxesForItem(cartItem, taxSettings, restaurantCategories);
+    const taxes = resolveTaxesForItem(cartItem, taxSettings, restaurantCategories)
+      .filter(tax => taxAppliesToOrderType(tax, orderType));
     const rate = totalRate(taxes);
     if (rate <= 0) return null;
-    const lineTotal = getItemUnitPrice(cartItem) * (cartItem.quantity || 1);
+    const lineTotal = getItemUnitPrice(cartItem) * lineQtyFactor(cartItem);
     const label = taxes.map(t => t.name).filter(Boolean).join(' + ') || 'Tax';
     return { ...inclusiveSplit(lineTotal, rate), lineTotal, label };
   };
@@ -1741,27 +1743,8 @@ const OrderSummary = ({
     if (cart.length === 0 || !restaurantId) {
       setTaxBreakdown([]);
       setTotalTax(0);
+      setAdditionalChargesInfo(NO_ADDITIONAL_CHARGES);
       setGrandTotal(getTotalAmount());
-      return;
-    }
-
-    // Use cached tax settings instead of calling API
-    if (!taxSettings?.enabled) {
-      // Tax not enabled — skip tax calculation
-      setTaxBreakdown([]);
-      setTotalTax(0);
-      // Apply discounts even if tax is disabled
-      const subtotal = getTotalAmount();
-      const loyaltyDiscAmt = getLoyaltyDiscountAmount();
-      const discTotal = effectiveOfferDiscount + getManualDiscountAmount() + loyaltyDiscAmt + getCouponDiscountAmount();
-      const discountedAmt = Math.max(0, subtotal - discTotal);
-      const sc = calcServiceCharge(discountedAmt);
-      setServiceChargeAmount(sc);
-      const afterTax = discountedAmt + sc;
-      const withTip = afterTax + tipAmount;
-      const ro = calcRoundOff(withTip);
-      setRoundOffAmount(ro);
-      setGrandTotal(withTip + ro);
       return;
     }
 
@@ -1775,6 +1758,26 @@ const OrderSummary = ({
     // Service charge (after discounts, before tax)
     const sc = calcServiceCharge(discountedAmt);
     setServiceChargeAmount(sc);
+
+    // Additional charges (packaging, container, …) — same resolver + base (post-discount
+    // pre-tax subtotal) as the server, which adds them to every POS order. Taxable charges with
+    // no own rate are folded into the item tax base (like service charge); charges with their own
+    // rate add their own tax lines on top. Inert unless taxSettings.additionalCharges is set.
+    const addl = resolveAdditionalCharges(taxSettings, orderType, discountedAmt);
+    setAdditionalChargesInfo(addl);
+
+    // Use cached tax settings instead of calling API
+    if (!taxSettings?.enabled) {
+      // Tax not enabled — no item tax (charge taxes with their own rate still apply, as on the server)
+      setTaxBreakdown(addl.taxLines);
+      setTotalTax(addl.ownTaxTotal);
+      const afterTax = discountedAmt + sc + addl.total + addl.ownTaxTotal;
+      const withTip = afterTax + tipAmount;
+      const ro = calcRoundOff(withTip);
+      setRoundOffAmount(ro);
+      setGrandTotal(withTip + ro);
+      return;
+    }
 
     // Check if per-item tax is needed (taxGroups exist)
     const hasTaxGroups = taxSettings.taxGroups && taxSettings.taxGroups.length > 0;
@@ -1791,55 +1794,21 @@ const OrderSummary = ({
     let totalTaxAmount = 0;
 
     if (hasTaxGroups || hasMixedInclusive) {
-      // Per-item tax calculation with discountApplicable support
-      // Discountable subtotal: only items where discountApplicable !== false
-      const discountableSubtotal = cart.reduce((sum, cartItem) => {
-        if (cartItem.discountApplicable === false) return sum;
-        return sum + getItemUnitPrice(cartItem) * (cartItem.quantity || 1);
-      }, 0);
-
-      const taxTotals = {};
-      for (const cartItem of cart) {
-        const itemUnitPrice = getItemUnitPrice(cartItem);
-        const itemTotal = itemUnitPrice * (cartItem.quantity || 1);
-        const isDiscountable = cartItem.discountApplicable !== false;
-        const isInclusive = isItemTaxInclusive(cartItem, taxSettings);
-        // Proportional discount share: only among discountable items
-        const itemDiscShare = (isDiscountable && discountableSubtotal > 0)
-          ? (itemTotal / discountableSubtotal) * discTotal
-          : 0;
-        const itemTaxable = Math.max(0, itemTotal - itemDiscShare);
-        // Service charge distributed proportional to post-discount taxable amount
-        const postDiscSubtotal = Math.max(0, subtotal - discTotal);
-        const itemSCShare = postDiscSubtotal > 0
-          ? (itemTaxable / postDiscSubtotal) * sc
-          : (subtotal > 0 ? (itemTotal / subtotal) * sc : 0);
-        const itemTaxableWithSC = itemTaxable + itemSCShare;
-        // Resolve taxes for this item, then drop taxes that don't apply to this
-        // order type (order-type gating; unset = applies to all).
-        const itemTaxes = resolveTaxesForItem(cartItem, taxSettings, restaurantCategories)
-          .filter(tax => taxAppliesToOrderType(tax, orderType));
-        const totalRate = itemTaxes.reduce((sum, t) => sum + (t.rate || 0), 0);
-        for (const tax of itemTaxes) {
-          // Inclusive: back-calculate tax from price. Exclusive: add on top.
-          // Accumulate raw (unrounded) values — round only final slab totals
-          const amt = isInclusive
-            ? (itemTaxableWithSC * (tax.rate || 0) / (100 + totalRate))
-            : (itemTaxableWithSC * (tax.rate || 0) / 100);
-          const key = `${tax.name || 'Tax'}|${tax.rate || 0}|${isInclusive}`;
-          if (!taxTotals[key]) taxTotals[key] = { name: tax.name || 'Tax', rate: tax.rate || 0, amount: 0, inclusive: isInclusive };
-          taxTotals[key].amount += amt;
-          totalTaxAmount += amt;
-        }
-      }
-      calculatedTaxes = Object.values(taxTotals).map(tx => ({
-        ...tx,
-        amount: Math.round(tx.amount * 100) / 100
-      }));
-      totalTaxAmount = Math.round(totalTaxAmount * 100) / 100;
+      // Per-item tax — the shared engine, an exact mirror of the backend calculatePerItemTax
+      // (discount spread only over discountApplicable items, SC + folded charges spread by
+      // post-discount amount, order-type gating, inclusive back-calculation). Weighed lines use
+      // their weight (same as getTotalAmount), not the quantity.
+      const lines = cart.map(ci => {
+        const unit = getItemUnitPrice(ci);
+        const factor = lineQtyFactor(ci);
+        return { ...withMenuTaxFields(ci), price: unit, quantity: factor, total: unit * factor };
+      });
+      const r = engineCalculatePerItemTax(lines, taxSettings, restaurantCategories, discTotal, sc + addl.foldTaxableTotal, orderType);
+      calculatedTaxes = r.taxBreakdown;
+      totalTaxAmount = r.totalTaxAmount;
     } else {
       // Flat tax calculation (original behavior — no tax groups)
-      const taxableAmount = discountedAmt + sc;
+      const taxableAmount = discountedAmt + sc + addl.foldTaxableTotal;
       const isGlobalInclusive = taxSettings.taxInclusivePricing === true;
       if (taxSettings.taxes && taxSettings.taxes.length > 0) {
         const enabledTaxes = taxSettings.taxes.filter(tax => tax.enabled && taxAppliesToOrderType(tax, orderType));
@@ -1856,7 +1825,10 @@ const OrderSummary = ({
             });
             totalTaxAmount += taxAmount;
         });
-      } else if (taxSettings.defaultTaxRate && !Array.isArray(taxSettings.taxes)) {
+      } else if (taxSettings.defaultTaxRate) {
+        // Same rule as the backend (and the per-item path): `taxes` empty OR missing → the
+        // restaurant's defaultTaxRate. (This path used to require `taxes` to be missing, so an
+        // empty list showed no tax while the server still charged defaultTaxRate.)
         const taxAmount = isGlobalInclusive
           ? taxableAmount * (taxSettings.defaultTaxRate / (100 + taxSettings.defaultTaxRate))
           : taxableAmount * (taxSettings.defaultTaxRate / 100);
@@ -1870,19 +1842,25 @@ const OrderSummary = ({
       }
     }
 
+    // On-top charge taxes (their own rate) — added to the breakdown exactly like the server.
+    if (addl.taxLines.length > 0) {
+      calculatedTaxes = [...calculatedTaxes, ...addl.taxLines];
+      totalTaxAmount = Math.round((totalTaxAmount + addl.ownTaxTotal) * 100) / 100;
+    }
+
     // Tax calculation complete
     setTaxBreakdown(calculatedTaxes);
     setTotalTax(totalTaxAmount);
 
     // After tax, add tip and round-off — only add exclusive tax (inclusive is already in discountedAmt)
     const exclusiveTax = calculatedTaxes.filter(t => !t.inclusive).reduce((sum, t) => sum + (t.amount || 0), 0);
-    const afterTax = discountedAmt + sc + Math.round(exclusiveTax * 100) / 100;
+    const afterTax = discountedAmt + sc + addl.total + Math.round(exclusiveTax * 100) / 100;
     const withTip = afterTax + tipAmount;
     const ro = calcRoundOff(withTip);
     setRoundOffAmount(ro);
     setGrandTotal(withTip + ro);
 
-  }, [cart, restaurantId, getTotalAmount, taxSettings, orderType, effectiveOfferDiscount, getManualDiscountAmount, getLoyaltyDiscountAmount, appliedCoupon, tipAmount, calcServiceCharge, calcRoundOff, resolveTaxesForItem, isItemTaxInclusive, restaurantCategories]);
+  }, [cart, restaurantId, getTotalAmount, taxSettings, orderType, effectiveOfferDiscount, getManualDiscountAmount, getLoyaltyDiscountAmount, appliedCoupon, tipAmount, calcServiceCharge, calcRoundOff, resolveTaxesForItem, isItemTaxInclusive, restaurantCategories, getItemUnitPrice, withMenuTaxFields]);
   
   // Flag that pre-fill is needed when entering edit mode (prevents amount flicker)
   // Must run BEFORE the tax calculation useLayoutEffect to prevent wrong totals
@@ -2382,35 +2360,44 @@ const OrderSummary = ({
   };
 
   // Apply local tax data overrides to an invoice object (shared by online + offline paths)
-  const applyLocalTaxOverrides = (invoiceData, localTaxData) => {
-    if (localTaxData.subtotal) invoiceData.subtotal = localTaxData.subtotal;
-    if (localTaxData.offerDiscount != null) invoiceData.discountAmount = localTaxData.offerDiscount;
-    if (localTaxData.manualDiscount != null) invoiceData.manualDiscount = localTaxData.manualDiscount;
-    if (localTaxData.loyaltyDiscount != null) invoiceData.loyaltyDiscount = localTaxData.loyaltyDiscount;
-    if (localTaxData.couponDiscount != null) invoiceData.couponDiscount = localTaxData.couponDiscount;
-    if (localTaxData.couponCode) invoiceData.couponCode = localTaxData.couponCode;
-    if (localTaxData.totalDiscountAmount != null) invoiceData.totalDiscount = localTaxData.totalDiscountAmount;
-    if (localTaxData.taxBreakdown?.length) {
-      invoiceData.taxBreakdown = localTaxData.taxBreakdown;
-      // Keep the inclusive/exclusive marker in step with the tax lines it describes.
-      if (localTaxData.taxInclusiveMode) invoiceData.taxInclusiveMode = localTaxData.taxInclusiveMode;
+  // keepServerMoney: the server saved different money values than this cart computed (it
+  // recomputes and rejects a client tax breakdown that disagrees) — keep the SERVER's subtotal,
+  // discounts, tax, charges and total on the bill so the printed bill matches the saved order.
+  const applyLocalTaxOverrides = (invoiceData, localTaxData, { keepServerMoney = false } = {}) => {
+    if (!keepServerMoney) {
+      if (localTaxData.subtotal) invoiceData.subtotal = localTaxData.subtotal;
+      if (localTaxData.offerDiscount != null) invoiceData.discountAmount = localTaxData.offerDiscount;
+      if (localTaxData.manualDiscount != null) invoiceData.manualDiscount = localTaxData.manualDiscount;
+      if (localTaxData.loyaltyDiscount != null) invoiceData.loyaltyDiscount = localTaxData.loyaltyDiscount;
+      if (localTaxData.couponDiscount != null) invoiceData.couponDiscount = localTaxData.couponDiscount;
+      if (localTaxData.couponCode) invoiceData.couponCode = localTaxData.couponCode;
+      if (localTaxData.totalDiscountAmount != null) invoiceData.totalDiscount = localTaxData.totalDiscountAmount;
+      if (localTaxData.taxBreakdown?.length) {
+        invoiceData.taxBreakdown = localTaxData.taxBreakdown;
+        // Keep the inclusive/exclusive marker in step with the tax lines it describes.
+        if (localTaxData.taxInclusiveMode) invoiceData.taxInclusiveMode = localTaxData.taxInclusiveMode;
+      }
+      if (localTaxData.showInclusiveTaxOnBill != null) invoiceData.showInclusiveTaxOnBill = localTaxData.showInclusiveTaxOnBill;
+      if (localTaxData.finalAmount != null) invoiceData.grandTotal = localTaxData.finalAmount;
+      invoiceData.totalTax = localTaxData.taxBreakdown?.reduce((s, t) => s + (t.amount || 0), 0) || 0;
+      invoiceData.taxAmount = invoiceData.totalTax;
+      if (localTaxData.serviceChargeAmount != null) invoiceData.serviceChargeAmount = localTaxData.serviceChargeAmount;
+      if (localTaxData.serviceChargeRate != null) invoiceData.serviceChargeRate = localTaxData.serviceChargeRate;
+      if (localTaxData.additionalCharges) {
+        invoiceData.additionalCharges = localTaxData.additionalCharges;
+        invoiceData.additionalChargesTotal = localTaxData.additionalChargesTotal || 0;
+      }
+      if (localTaxData.tipAmount != null) invoiceData.tipAmount = localTaxData.tipAmount;
+      if (localTaxData.tipPercentage != null) invoiceData.tipPercentage = localTaxData.tipPercentage;
+      if (localTaxData.roundOffAmount != null) invoiceData.roundOffAmount = localTaxData.roundOffAmount;
     }
-    if (localTaxData.showInclusiveTaxOnBill != null) invoiceData.showInclusiveTaxOnBill = localTaxData.showInclusiveTaxOnBill;
-    if (localTaxData.finalAmount != null) invoiceData.grandTotal = localTaxData.finalAmount;
-    invoiceData.totalTax = localTaxData.taxBreakdown?.reduce((s, t) => s + (t.amount || 0), 0) || 0;
-    invoiceData.taxAmount = invoiceData.totalTax;
-    if (localTaxData.serviceChargeAmount != null) invoiceData.serviceChargeAmount = localTaxData.serviceChargeAmount;
-    if (localTaxData.serviceChargeRate != null) invoiceData.serviceChargeRate = localTaxData.serviceChargeRate;
-    if (localTaxData.tipAmount != null) invoiceData.tipAmount = localTaxData.tipAmount;
-    if (localTaxData.tipPercentage != null) invoiceData.tipPercentage = localTaxData.tipPercentage;
-    if (localTaxData.roundOffAmount != null) invoiceData.roundOffAmount = localTaxData.roundOffAmount;
     if (localTaxData.splitPayments) invoiceData.splitPayments = localTaxData.splitPayments;
     if (localTaxData.splitBill) invoiceData.splitBill = localTaxData.splitBill;
     if (localTaxData.cashReceived != null) invoiceData.cashReceived = localTaxData.cashReceived;
     if (localTaxData.changeReturned != null) invoiceData.changeReturned = localTaxData.changeReturned;
     if (localTaxData.partialPayAmount != null) {
       invoiceData.paidAmount = localTaxData.partialPayAmount;
-      invoiceData.outstandingAmount = Math.round(((localTaxData.finalAmount || 0) - localTaxData.partialPayAmount) * 100) / 100;
+      invoiceData.outstandingAmount = Math.round((((keepServerMoney ? Number(invoiceData.grandTotal) : localTaxData.finalAmount) || 0) - localTaxData.partialPayAmount) * 100) / 100;
     }
     if (useWallet && parseFloat(walletRedeemAmount) > 0) {
       invoiceData.walletRedeemAmount = parseFloat(walletRedeemAmount);
@@ -2466,7 +2453,25 @@ const OrderSummary = ({
         if (response?.success) {
           const invoiceData = response.invoice || response.bill;
           const localTaxData = taxSnapshot || buildTaxData();
-          applyLocalTaxOverrides(invoiceData, localTaxData);
+          // The server is the source of truth for money: if what it saved differs from this cart's
+          // totals by more than ₹0.5 (total or tax), print the SERVER values and warn the cashier.
+          let keepServerMoney = false;
+          try {
+            const sumTax = (tb) => (Array.isArray(tb) ? tb.reduce((a, t) => a + (Number(t?.amount) || 0), 0) : 0);
+            const serverTotal = Number(invoiceData.grandTotal ?? invoiceData.finalAmount);
+            const localTotal = Number(localTaxData?.finalAmount);
+            if (Number.isFinite(serverTotal) && Number.isFinite(localTotal)) {
+              const totalOff = Math.abs(serverTotal - localTotal) > 0.5;
+              const taxOff = Array.isArray(invoiceData.taxBreakdown) && Array.isArray(localTaxData?.taxBreakdown)
+                && Math.abs(sumTax(invoiceData.taxBreakdown) - sumTax(localTaxData.taxBreakdown)) > 0.5;
+              keepServerMoney = totalOff || taxOff;
+              if (keepServerMoney && Number(localTaxData?.subtotal) > 0) {
+                console.warn(`⚠️ Saved bill differs from POS cart (server ${serverTotal}, POS ${localTotal}) — printing server values`);
+                setBillMismatchNote(`Bill total saved by the server (${formatCurrency(serverTotal)}) differs from the POS screen (${formatCurrency(localTotal)}). The bill shows the saved amount.`);
+              }
+            }
+          } catch (_) { /* never block billing */ }
+          applyLocalTaxOverrides(invoiceData, localTaxData, { keepServerMoney });
           if (!invoiceData.orderId) invoiceData.orderId = orderId; // guarantee the DB id for eTIMS fiscalise
           if (!invoiceData.currencySymbol) invoiceData.currencySymbol = getCurrencySymbol();
           if (!invoiceData.countryCode) invoiceData.countryCode = countryCode;
@@ -2529,11 +2534,19 @@ const OrderSummary = ({
           // getItemUnitPrice. item.price alone is the BASE menu price, so using it here would
           // drop the add-on from the OFFLINE bill line + subtotal (line 15 vs base 12).
           const unit = getItemUnitPrice(item);
+          // Per-item inclusive flag + own total rate so attachInclusiveSplits splits only the
+          // items that really are inclusive, each at its own rate.
+          const incl = !!taxSettings?.enabled && isItemTaxInclusive(item, taxSettings);
+          const itemRate = incl
+            ? totalRate(resolveTaxesForItem(item, taxSettings, restaurantCategories).filter(tx => taxAppliesToOrderType(tx, orderType)))
+            : 0;
           return {
             name: item.name,
             quantity: item.quantity || 1,
             price: unit,
-            total: Math.round(unit * (item.quantity || 1) * 100) / 100,
+            total: Math.round(unit * lineQtyFactor(item) * 100) / 100,
+            taxInclusive: incl,
+            ...(itemRate > 0 ? { taxRate: itemRate } : (incl ? { itemTaxAmount: 0 } : {})),
             variant: item.selectedVariant?.name,
             customizations: item.selectedCustomizations,
           };
@@ -2592,105 +2605,163 @@ const OrderSummary = ({
   } = useEcr(ecrSettings);
   const ecrEnabled = !!ecrSettings?.enabled;
 
-  // Calculate split bill splits with proportional tax/charges distribution
+  // Calculate split bill splits. Every guest bill is a slice of the FINAL order total and the
+  // guest totals always add up to it:
+  //   • equal / by-amount — the guest's share p of the final total; subtotal, discount, tax lines,
+  //     service charge, charges and tip are the same share p of the order's (no tax on tax).
+  //   • by-item — each guest gets their own lines at the real line price (getItemUnitPrice:
+  //     variant / tier / toppings / weight), their share of the discount (discountApplicable
+  //     items only), service charge / charges / tip by post-discount amount, and ONLY the
+  //     exclusive tax of their items (an inclusive item's tax is already inside its price).
   const calculateSplitBillData = useCallback(() => {
     if (!splitBillMode) return null;
     const total = grandTotal ?? getTotalAmount();
     if (!total || total <= 0) return null;
     const method = splitBillMode;
+    const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
     // For by-item, guest count is derived from max assignment index
     const guestCount = method === 'by-item'
       ? Math.max(2, ...Object.values(splitBillItemAssignments).map(g => g + 1), splitBillGuests)
       : splitBillGuests;
 
-    // Build per-guest subtotals based on method
-    const guestSubtotals = [];
-    if (method === 'equal') {
-      const perGuest = Math.floor((total / guestCount) * 100) / 100;
-      for (let i = 0; i < guestCount; i++) {
-        guestSubtotals.push(i === guestCount - 1 ? Math.round((total - perGuest * (guestCount - 1)) * 100) / 100 : perGuest);
-      }
-    } else if (method === 'by-item') {
-      // Group cart items by guest assignment
-      for (let i = 0; i < guestCount; i++) guestSubtotals.push(0);
-      const cartItems = cart || [];
-      cartItems.forEach((item, idx) => {
-        const guest = splitBillItemAssignments[idx];
-        if (guest !== undefined && guest >= 0 && guest < guestCount) {
-          guestSubtotals[guest] += (item.price || 0) * (item.quantity || 1);
+    const discTotal = (effectiveOfferDiscount || 0) + getManualDiscountAmount() + getLoyaltyDiscountAmount() + getCouponDiscountAmount();
+    const sc = serviceChargeAmount || 0;
+    const tip = tipAmount || 0;
+    const ro = roundOffAmount || 0;
+    const addlTotal = additionalChargesInfo?.total || 0;
+    const orderSubtotal = getTotalAmount();
+    const tb = taxBreakdown || [];
+    const sumAmt = (list) => list.reduce((a, t) => a + (Number(t.amount) || 0), 0);
+    const itemInclTotal = sumAmt(tb.filter(t => t.inclusive && !t.isChargeTax));
+    const itemExclTotal = sumAmt(tb.filter(t => !t.inclusive && !t.isChargeTax));
+    const chargeTaxTotal = sumAmt(tb.filter(t => t.isChargeTax));
+
+    // Per-guest raw figures before rounding: { sub, disc, sc, addl, chargeTax, exclTax, inclTax, tip, ro, items }
+    const guests = [];
+    for (let i = 0; i < guestCount; i++) guests.push(null);
+
+    if (method === 'equal' || method === 'by-amount') {
+      const amounts = [];
+      if (method === 'equal') {
+        const perGuest = Math.floor((total / guestCount) * 100) / 100;
+        for (let i = 0; i < guestCount; i++) {
+          amounts.push(i === guestCount - 1 ? r2(total - perGuest * (guestCount - 1)) : perGuest);
         }
-      });
-      // Round
-      for (let i = 0; i < guestCount; i++) guestSubtotals[i] = Math.round(guestSubtotals[i] * 100) / 100;
-    } else if (method === 'by-amount') {
-      for (let i = 0; i < guestCount; i++) {
-        guestSubtotals.push(parseFloat(splitBillAmounts[i]) || 0);
+      } else {
+        for (let i = 0; i < guestCount; i++) amounts.push(parseFloat(splitBillAmounts[i]) || 0);
       }
+      amounts.forEach((amt, i) => {
+        if (!(amt > 0)) return;
+        const p = amt / total;
+        guests[i] = {
+          p, amount: amt,
+          sub: orderSubtotal * p, disc: discTotal * p, sc: sc * p, addl: addlTotal * p,
+          chargeTax: chargeTaxTotal * p, exclTax: itemExclTotal * p, inclTax: itemInclTotal * p,
+          tip: tip * p, ro: ro * p, items: null,
+        };
+      });
+    } else if (method === 'by-item') {
+      const cartItems = cart || [];
+      const lines = cartItems.map(ci => {
+        const unit = getItemUnitPrice(ci);
+        const factor = lineQtyFactor(ci);
+        return { ...withMenuTaxFields(ci), price: unit, quantity: factor, total: unit * factor };
+      });
+      const linesSub = lines.reduce((a, l) => a + l.total, 0);
+      const discountableSub = lines.reduce((a, l) => a + (l.discountApplicable === false ? 0 : l.total), 0);
+      const postDisc = Math.max(0, linesSub - discTotal);
+      const taxRes = taxSettings?.enabled
+        ? engineCalculatePerItemTax(lines, taxSettings, restaurantCategories, discTotal, sc + (additionalChargesInfo?.foldTaxableTotal || 0), orderType)
+        : null;
+      cartItems.forEach((ci, idx) => {
+        const g = splitBillItemAssignments[idx];
+        if (g === undefined || g < 0 || g >= guestCount) return;
+        const l = lines[idx];
+        const disc = (l.discountApplicable !== false && discountableSub > 0) ? (l.total / discountableSub) * discTotal : 0;
+        const net = Math.max(0, l.total - disc);
+        const share = postDisc > 0 ? net / postDisc : (linesSub > 0 ? l.total / linesSub : 0);
+        const pi = taxRes?.perItem?.[idx];
+        if (!guests[g]) guests[g] = { p: 0, sub: 0, disc: 0, sc: 0, addl: 0, chargeTax: 0, exclTax: 0, inclTax: 0, tip: 0, ro: 0, items: [] };
+        const G = guests[g];
+        G.p += share;
+        G.sub += l.total;
+        G.disc += disc;
+        G.sc += share * sc;
+        G.addl += share * addlTotal;
+        G.chargeTax += share * chargeTaxTotal;
+        if (pi) { if (pi.taxInclusive) G.inclTax += pi.itemTaxAmount; else G.exclTax += pi.itemTaxAmount; }
+        G.tip += share * tip;
+        G.ro += share * ro;
+        G.items.push({
+          name: ci.name,
+          quantity: ci.quantity || 1,
+          price: r2(l.price),
+          total: r2(l.total),
+          selectedVariant: ci.selectedVariant || null,
+          selectedCustomizations: ci.selectedCustomizations || [],
+          ...(pi ? { taxInclusive: pi.taxInclusive } : {}),
+        });
+      });
+      guests.forEach(G => {
+        if (!G) return;
+        G.amount = G.sub - G.disc + G.sc + G.addl + G.chargeTax + G.exclTax + G.tip + G.ro;
+      });
     }
 
-    const subtotalSum = guestSubtotals.reduce((a, b) => a + b, 0);
-    if (subtotalSum <= 0) return null;
-
     // Filter out guests with 0 or negative amounts (unassigned in by-item, blank in by-amount)
-    const validGuestIndices = guestSubtotals.map((v, i) => ({ v, i })).filter(g => g.v > 0);
-    if (validGuestIndices.length < 2) return null; // Need at least 2 valid splits
+    const valid = guests.map((G, i) => ({ G, i })).filter(({ G }) => G && G.amount > 0);
+    if (valid.length < 2) return null; // Need at least 2 valid splits
 
-    // Proportionally distribute tax, service charge, tip, discount
-    const orderSubtotal = getTotalAmount();
-    const splits = validGuestIndices.map(({ v: gSub, i }) => {
-      const proportion = orderSubtotal > 0 ? gSub / orderSubtotal : 1 / guestCount;
-      const gTax = Math.round((totalTax || 0) * proportion * 100) / 100;
-      const gSc = Math.round((serviceChargeAmount || 0) * proportion * 100) / 100;
-      const gTip = Math.round((tipAmount || 0) * proportion * 100) / 100;
-      const gDiscount = Math.round(((effectiveOfferDiscount || 0) + getManualDiscountAmount() + getLoyaltyDiscountAmount() + getCouponDiscountAmount()) * proportion * 100) / 100;
-      const gTaxBreakdown = (taxBreakdown || []).map(t => ({
-        name: t.name,
-        rate: t.rate,
-        amount: Math.round((t.amount || 0) * proportion * 100) / 100,
-        inclusive: t.inclusive,
-      }));
-      let gTotal = Math.round((gSub + gTax + gSc + gTip - gDiscount) * 100) / 100;
-      // For by-amount, use the custom amount directly as totalAmount
-      if (method === 'by-amount') {
-        gTotal = parseFloat(splitBillAmounts[i]) || 0;
-      }
+    // Scale a tax line for a guest: item lines by the guest's share of that kind of item tax,
+    // charge-tax lines by the guest's charge share.
+    const scaleLine = (t, G) => {
+      let f;
+      if (t.isChargeTax) f = chargeTaxTotal > 0 ? G.chargeTax / chargeTaxTotal : 0;
+      else if (t.inclusive) f = itemInclTotal > 0 ? G.inclTax / itemInclTotal : 0;
+      else f = itemExclTotal > 0 ? G.exclTax / itemExclTotal : 0;
+      return { name: t.name, rate: t.rate, amount: r2((t.amount || 0) * f), inclusive: t.inclusive, ...(t.isChargeTax ? { isChargeTax: true } : {}) };
+    };
+    const addlCharges = additionalChargesInfo?.charges || [];
+
+    const splits = valid.map(({ G, i }) => {
       const pm = splitBillPaymentMethods[i] || 'cash';
+      const gTaxBreakdown = tb.map(t => scaleLine(t, G)).filter(t => t.amount !== 0);
+      const addlF = addlTotal > 0 ? G.addl / addlTotal : 0;
       return {
         guestIndex: i,
         guestLabel: splitBillGuestNames[i]?.trim() || `Guest ${i + 1}`,
         guestName: splitBillGuestNames[i]?.trim() || null,
-        items: method === 'by-item' ? (cart || []).filter((_, idx) => splitBillItemAssignments[idx] === i).map(item => ({
-          name: item.name,
-          quantity: item.quantity || 1,
-          price: item.price || 0,
-          total: (item.price || 0) * (item.quantity || 1),
-          selectedVariant: item.selectedVariant || null,
-          selectedCustomizations: item.selectedCustomizations || [],
-        })) : null,
-        subtotal: gSub,
-        proportion: Math.round(proportion * 10000) / 10000,
-        taxAmount: gTax,
+        items: G.items,
+        subtotal: r2(G.sub),
+        proportion: Math.round(G.p * 10000) / 10000,
+        taxAmount: r2(G.exclTax + G.inclTax + G.chargeTax),
         taxBreakdown: gTaxBreakdown,
-        serviceChargeAmount: gSc,
-        tipAmount: gTip,
-        discountAmount: gDiscount,
-        totalAmount: gTotal,
+        serviceChargeAmount: r2(G.sc),
+        additionalCharges: addlCharges.length ? addlCharges.map(c => ({ ...c, amount: r2((c.amount || 0) * addlF) })) : null,
+        additionalChargesTotal: r2(G.addl),
+        tipAmount: r2(G.tip),
+        roundOffAmount: r2(G.ro),
+        discountAmount: r2(G.disc),
+        totalAmount: method === 'by-item' ? r2(G.amount) : G.amount,
         paymentMethod: pm,
         paid: false,
       };
     });
 
-    // Absorb rounding remainder in last guest for equal/by-item
+    // Absorb the rounding remainder in the last guest for equal/by-item so the guest bills add up
+    // to the order total exactly (by-amount uses the typed amounts as they are).
     if (method !== 'by-amount') {
-      const splitsTotal = splits.reduce((s, sp) => s + sp.totalAmount, 0);
-      const diff = Math.round((total - splitsTotal) * 100) / 100;
+      const splitsTotal = splits.reduce((sum, sp) => sum + sp.totalAmount, 0);
+      const diff = r2(total - splitsTotal);
       if (Math.abs(diff) > 0 && splits.length > 0) {
-        splits[splits.length - 1].totalAmount = Math.round((splits[splits.length - 1].totalAmount + diff) * 100) / 100;
+        const last = splits[splits.length - 1];
+        last.totalAmount = r2(last.totalAmount + diff);
+        last.roundOffAmount = r2((last.roundOffAmount || 0) + diff);
       }
     }
 
     return { method, guestCount: splits.length, splits };
-  }, [splitBillMode, splitBillGuests, splitBillItemAssignments, splitBillAmounts, splitBillPaymentMethods, splitBillGuestNames, grandTotal, cart, totalTax, taxBreakdown, serviceChargeAmount, tipAmount, effectiveOfferDiscount]);
+  }, [splitBillMode, splitBillGuests, splitBillItemAssignments, splitBillAmounts, splitBillPaymentMethods, splitBillGuestNames, grandTotal, cart, totalTax, taxBreakdown, serviceChargeAmount, tipAmount, roundOffAmount, effectiveOfferDiscount, additionalChargesInfo, taxSettings, restaurantCategories, orderType, getItemUnitPrice, withMenuTaxFields]);
 
   // Terminal PIN lock: after an order is placed (+ its print fires), re-lock the POS
   // so the next staff must enter their PIN. No-op unless the lock is enabled with an
@@ -2766,10 +2837,30 @@ const OrderSummary = ({
       const disc = (effectiveOfferDiscount || 0) + getManualDiscountAmount() + getLoyaltyDiscountAmount() + getCouponDiscountAmount();
       if (disc <= 0) return gt;
       const exclTax = Array.isArray(taxBreakdown) ? taxBreakdown.filter(t => !t.inclusive).reduce((s, t) => s + (t.amount || 0), 0) : 0;
-      const ceiling = Math.max(0, Math.round((Math.max(0, sub - disc) + (serviceChargeAmount || 0) + exclTax + (tipAmount || 0) + (roundOffAmount || 0)) * 100) / 100);
+      const ceiling = Math.max(0, Math.round((Math.max(0, sub - disc) + (serviceChargeAmount || 0) + (additionalChargesInfo?.total || 0) + exclTax + (tipAmount || 0) + (roundOffAmount || 0)) * 100) / 100);
       return (gt > ceiling + 0.5) ? ceiling : gt;
     } catch (_) { return gt; }
   };
+
+  // Report the bill totals to the parent (customer-facing display) — the SAME figures the cart
+  // shows, so the display never shows a different tax / discount / total.
+  useEffect(() => {
+    if (typeof onTotalsChange !== 'function') return;
+    try {
+      const tb = Array.isArray(taxBreakdown) ? taxBreakdown : [];
+      onTotalsChange({
+        subtotal: Math.round(getTotalAmount() * 100) / 100,
+        discount: Math.round(totalDiscountAmount * 100) / 100,
+        serviceCharge: serviceChargeAmount || 0,
+        additionalCharges: additionalChargesInfo?.total || 0,
+        tax: Math.round(tb.reduce((a, t) => a + (Number(t.amount) || 0), 0) * 100) / 100,
+        exclusiveTax: Math.round(tb.filter(t => !t.inclusive).reduce((a, t) => a + (Number(t.amount) || 0), 0) * 100) / 100,
+        tip: tipAmount || 0,
+        roundOff: roundOffAmount || 0,
+        total: Math.round(settleFinalAmount() * 100) / 100,
+      });
+    } catch (_) { /* display only */ }
+  }, [grandTotal, taxBreakdown, serviceChargeAmount, additionalChargesInfo, tipAmount, roundOffAmount, totalDiscountAmount, cart]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Wallet "Use" = cover the bill: when items/discounts change the bill after "Use" (e.g. more
   // items added to a KOT in edit mode), move the wallet amount with it — min(balance, bill).
@@ -2842,6 +2933,10 @@ const OrderSummary = ({
       couponId: appliedCoupon?.id || null,
       serviceChargeRate: serviceChargeAmount > 0 ? (serviceChargeRateOverride !== null ? serviceChargeRateOverride : billingSettings.serviceChargeRate) : null,
       serviceChargeAmount: serviceChargeAmount > 0 ? serviceChargeAmount : null,
+      // Additional charges as computed for this cart (display/print snapshot — the server
+      // recomputes and stores its own).
+      additionalCharges: additionalChargesInfo?.charges?.length ? additionalChargesInfo.charges : null,
+      additionalChargesTotal: additionalChargesInfo?.total > 0 ? additionalChargesInfo.total : null,
       serviceChargeEnabled: serviceChargeOverride,
       manualDiscountType: manualDiscountTypeState,
       manualDiscountValue: manualDiscountValue !== '' && !manualDiscountPendingOtp ? parseFloat(manualDiscountValue) : null,
@@ -3037,6 +3132,12 @@ const OrderSummary = ({
       ...(isMobile && !billingMode ? { paddingTop: 'env(safe-area-inset-top, 0px)' } : {}),
       ...(billingMode ? {} : { overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' })
     }}>
+      {billMismatchNote && createPortal(
+        <div role="alert" onClick={() => setBillMismatchNote(null)} style={{ position: 'fixed', top: '16px', left: '50%', transform: 'translateX(-50%)', zIndex: 100000, maxWidth: '92vw', width: '440px', background: '#fffbeb', color: '#92400e', border: '1px solid #f59e0b', borderRadius: '10px', padding: '10px 14px', fontSize: '13px', fontWeight: 600, boxShadow: '0 8px 24px rgba(0,0,0,0.18)', cursor: 'pointer' }}>
+          ⚠️ {billMismatchNote}
+        </div>,
+        document.body
+      )}
       {/* Header - More Compact, even smaller in billing mode */}
       <div style={{
         background: billingMode
@@ -4355,6 +4456,12 @@ const OrderSummary = ({
                           <span>{formatCurrency(invoice.serviceChargeAmount)}</span>
                         </div>
                       )}
+                      {(Array.isArray(invoice?.additionalCharges) ? invoice.additionalCharges : []).filter(c => (Number(c?.amount) || 0) > 0).map((c, idx) => (
+                        <div key={`addl-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
+                          <span>{c.name || 'Charge'}{c.type === 'percent' && c.value ? ` (${c.value}%)` : ''}:</span>
+                          <span>{formatCurrency(c.amount)}</span>
+                        </div>
+                      ))}
                       {(invoice?.tipAmount > 0) && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
                           <span>{t('invoice.tip')}{invoice?.tipPercentage ? ` (${invoice.tipPercentage}%)` : ''}:</span>
@@ -5126,10 +5233,15 @@ const OrderSummary = ({
                             autoFocus
                             defaultValue={getItemUnitPrice(item)}
                             onBlur={(e) => {
-                              const newPrice = parseFloat(e.target.value);
-                              if (!isNaN(newPrice) && newPrice >= 0) {
+                              const typedPrice = parseFloat(e.target.value);
+                              if (!isNaN(typedPrice) && typedPrice >= 0) {
                                 setCart(prev => prev.map(c => {
                                   if (cartLineId(c) !== cartLineId(item)) return c;
+                                  // The field shows the unit price WITH toppings; the line stores
+                                  // its base (toppings are added on top by getItemUnitPrice and the
+                                  // server), so take the topping total off the typed price.
+                                  const toppingExtras = Math.max(0, getItemUnitPrice(c) - getItemUnitPrice({ ...c, selectedCustomizations: [], customizationPrice: undefined }));
+                                  const newPrice = Math.max(0, Math.round((typedPrice - toppingExtras) * 100) / 100);
                                   // Preserve original menu price on first edit; keep it on subsequent edits
                                   const originalMenuPrice = c.menuPrice != null
                                     ? c.menuPrice
@@ -5531,6 +5643,9 @@ const OrderSummary = ({
                     {serviceChargeAmount > 0 && (
                       <span>{billingSettings.serviceChargeLabel || 'Service Charge'} ({serviceChargeRateOverride !== null ? serviceChargeRateOverride : billingSettings.serviceChargeRate}%): {formatCurrency(serviceChargeAmount)}</span>
                     )}
+                    {(additionalChargesInfo?.charges || []).map((c, index) => (
+                      <span key={`addl-${c.id || index}`}>{c.name}{c.type === 'percent' ? ` (${c.value}%)` : ''}: {formatCurrency(c.amount || 0)}</span>
+                    ))}
                     {splitGstForDisplay(taxBreakdown, countryCode).map((tax, index) => (
                       <span key={index}>{tax.name} ({tax.rate}%){tax.inclusive ? ' (incl.)' : ''}: {formatCurrency(tax.amount || 0)}</span>
                     ))}
@@ -6792,9 +6907,12 @@ const OrderSummary = ({
                       cartItems.forEach((item, idx) => {
                         const g = splitBillItemAssignments[idx];
                         if (g !== undefined) {
-                          guestTotals[g] = (guestTotals[g] || 0) + (item.price || 0) * (item.quantity || 1);
+                          guestTotals[g] = (guestTotals[g] || 0) + getItemUnitPrice(item) * lineQtyFactor(item);
                         }
                       });
+                      // Show what each guest will actually pay (tax / charges / discount share included) —
+                      // the same figure the guest's printed bill carries.
+                      (calculateSplitBillData()?.splits || []).forEach(sp => { guestTotals[sp.guestIndex] = sp.totalAmount; });
                       const allAssigned = cartItems.length > 0 && cartItems.every((_, idx) => splitBillItemAssignments[idx] !== undefined);
                       const unassignedCount = cartItems.filter((_, idx) => splitBillItemAssignments[idx] === undefined).length;
                       const safeActive = Math.min(activeAssignGuest, guestCount - 1);
@@ -6870,7 +6988,7 @@ const OrderSummary = ({
                                     {item.name} {item.quantity > 1 ? `x${item.quantity}` : ''}
                                   </span>
                                   <span style={{ fontSize: '11px', fontWeight: 600, color: '#0c4a6e', flexShrink: 0 }}>
-                                    {formatCurrency((item.price || 0) * (item.quantity || 1))}
+                                    {formatCurrency(getItemUnitPrice(item) * lineQtyFactor(item))}
                                   </span>
                                   {isAssigned && (
                                     <button onClick={(e) => {
@@ -9101,9 +9219,12 @@ const OrderSummary = ({
                 cartItems.forEach((item, idx) => {
                   const g = splitBillItemAssignments[idx];
                   if (g !== undefined) {
-                    guestTotals[g] = (guestTotals[g] || 0) + (item.price || 0) * (item.quantity || 1);
+                    guestTotals[g] = (guestTotals[g] || 0) + getItemUnitPrice(item) * lineQtyFactor(item);
                   }
                 });
+                // Show what each guest will actually pay (tax / charges / discount share included) —
+                // the same figure the guest's printed bill carries.
+                (calculateSplitBillData()?.splits || []).forEach(sp => { guestTotals[sp.guestIndex] = sp.totalAmount; });
                 const allAssigned = cartItems.length > 0 && cartItems.every((_, idx) => splitBillItemAssignments[idx] !== undefined);
                 const unassignedCount = cartItems.filter((_, idx) => splitBillItemAssignments[idx] === undefined).length;
                 const safeActive = Math.min(activeAssignGuest, guestCount - 1);
@@ -9178,7 +9299,7 @@ const OrderSummary = ({
                               )}
                             </div>
                             <span style={{ fontSize: '13px', fontWeight: 600, color: '#111827', flexShrink: 0 }}>
-                              {formatCurrency((item.price || 0) * (item.quantity || 1))}
+                              {formatCurrency(getItemUnitPrice(item) * lineQtyFactor(item))}
                             </span>
                             {isAssigned && (
                               <button onClick={(e) => {

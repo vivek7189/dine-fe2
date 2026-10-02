@@ -234,11 +234,28 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
   const [countryCode, setCountryCode] = useState('IN');
 
   const restaurantId = selectedRestaurant?.id;
+  // Tax settings exactly as last loaded from / saved to the server. Saves send only what changed
+  // against this (settingsPatch), so a stale page never puts back values changed elsewhere.
+  // null = not loaded (save is blocked so the empty defaults can never overwrite real settings).
+  const taxBaseRef = useRef(null);
+  const normalizeTaxSettings = (ts) => ({
+    ...ts,
+    taxes: Array.isArray(ts?.taxes) ? ts.taxes : [],
+    taxGroups: Array.isArray(ts?.taxGroups) ? ts.taxGroups : [],
+    additionalCharges: Array.isArray(ts?.additionalCharges) ? ts.additionalCharges : [],
+  });
+  // In-page confirm (the page avoids native confirm()).
+  const [taxConfirm, setTaxConfirm] = useState({ open: false, title: '', message: '', confirmText: 'Delete', onConfirm: null });
+  const closeTaxConfirm = () => setTaxConfirm(prev => ({ ...prev, open: false }));
 
   // Load tax settings
   const loadTaxSettings = async (rid) => {
     if (!rid) return;
     setLoading(true);
+    taxBaseRef.current = null;
+    // Always read fresh when the tab opens — the GET is cached for 30 min, and a save built on a
+    // stale copy would diff against the wrong baseline.
+    apiClient.invalidateCache(`/api/admin/tax/${rid}`);
     try {
       const [taxRes, catsRes, menuRes] = await Promise.all([
         apiClient.getTaxSettings(rid),
@@ -246,12 +263,9 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
         apiClient.getMenu(rid).catch(() => ({ menuItems: [] })),
       ]);
       if (taxRes.success) {
-        setTaxSettings({
-          ...taxRes.taxSettings,
-          taxes: Array.isArray(taxRes.taxSettings.taxes) ? taxRes.taxSettings.taxes : [],
-          taxGroups: taxRes.taxSettings.taxGroups || [],
-          additionalCharges: Array.isArray(taxRes.taxSettings.additionalCharges) ? taxRes.taxSettings.additionalCharges : [],
-        });
+        const loaded = normalizeTaxSettings(taxRes.taxSettings || {});
+        taxBaseRef.current = loaded;
+        setTaxSettings(loaded);
       }
       setCategories(catsRes?.categories || []);
       setMenuItems(menuRes?.menuItems || []);
@@ -280,8 +294,15 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
   }, [restaurantId]);
 
   // Tax save
-  const saveTaxSettings = async () => {
-    if (!restaurantId) return;
+  // `override` (optional): save this tax-settings object instead of the current state (used when
+  // a group must be persisted before a category is pointed at it).
+  const saveTaxSettings = async (override, { silent = false, adoptState = true } = {}) => {
+    if (!restaurantId) return false;
+    if (!taxBaseRef.current) {
+      showError('Tax settings are not loaded yet — please reload the page and try again.');
+      return false;
+    }
+    const current = (override && typeof override === 'object' && !override.nativeEvent) ? override : taxSettings;
     setSaving(true);
     try {
       // The backend rejects the whole save with 400 unless `taxes` is an array.
@@ -289,17 +310,34 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
       // which would make EVERY save here fail — including the Discount Settings
       // (e.g. adding "cashier" to who-can-apply-discounts). Guarantee arrays so
       // discountSettings always persists regardless of tax configuration.
-      const payload = {
-        ...taxSettings,
-        taxes: Array.isArray(taxSettings.taxes) ? taxSettings.taxes : [],
-        taxGroups: Array.isArray(taxSettings.taxGroups) ? taxSettings.taxGroups : [],
-        additionalCharges: Array.isArray(taxSettings.additionalCharges) ? taxSettings.additionalCharges : [],
-      };
-      const response = await apiClient.updateTaxSettings(restaurantId, payload);
-      if (response.success) showSuccess('Tax settings saved successfully!');
+      const payload = normalizeTaxSettings(current);
+      // Send ONLY what changed since the settings were loaded (nested diff; arrays whole). The
+      // server deep-merges this into its saved copy, so changes made elsewhere are kept.
+      const changes = settingsPatch(taxBaseRef.current, payload);
+      if (!changes) {
+        if (!silent) showSuccess('No changes to save');
+        return true;
+      }
+      const response = await apiClient.updateTaxSettings(restaurantId, changes.patch);
+      if (response.success) {
+        // Adopt the server's merged copy as the new baseline (and state) when it returns the full
+        // object; otherwise what we just saved is the baseline.
+        const serverTs = response.taxSettings;
+        if (serverTs && typeof serverTs === 'object' && Array.isArray(serverTs.taxes)) {
+          const merged = normalizeTaxSettings(serverTs);
+          taxBaseRef.current = merged;
+          if (adoptState) setTaxSettings(merged);
+        } else {
+          taxBaseRef.current = payload;
+        }
+        if (!silent) showSuccess('Tax settings saved successfully!');
+        return true;
+      }
+      return false;
     } catch (error) {
       console.error('Error saving tax settings:', error);
       showError('Error saving tax settings');
+      return false;
     } finally { setSaving(false); }
   };
 
@@ -403,22 +441,104 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
     if (exists) return;
     setTaxSettings(prev => ({ ...prev, taxGroups: [...(prev.taxGroups || []), { id: 'tax-exempt', name: 'Tax Exempt', taxes: [] }] }));
   };
-  const removeTaxGroup = (groupId) => {
+  const dropTaxGroupFromState = (groupId) => {
     setTaxSettings(prev => ({ ...prev, taxGroups: (prev.taxGroups || []).filter(g => g.id !== groupId) }));
   };
+  // Removing a group that categories/items still point at (or the built-in Tax Exempt group)
+  // changes how those items are taxed, so it needs an explicit confirm, and the references are
+  // cleared so nothing is left pointing at a deleted group.
+  const removeTaxGroup = (groupId) => {
+    const group = (taxSettings.taxGroups || []).find(g => g.id === groupId);
+    const usedCats = categories.filter(c => c.taxGroupId === groupId);
+    const usedItems = menuItems.filter(i => i.taxGroupId === groupId);
+    const isExempt = groupId === 'tax-exempt';
+    if (!isExempt && usedCats.length === 0 && usedItems.length === 0) {
+      dropTaxGroupFromState(groupId);
+      return;
+    }
+    const parts = [];
+    if (usedCats.length) parts.push(`${usedCats.length} categor${usedCats.length === 1 ? 'y' : 'ies'}`);
+    if (usedItems.length) parts.push(`${usedItems.length} item${usedItems.length === 1 ? '' : 's'}`);
+    const usage = parts.length
+      ? ` It is used by ${parts.join(' and ')}; they will be unlinked and taxed with your default taxes instead.`
+      : '';
+    const exemptNote = isExempt ? ' Items marked Tax Exempt will start being charged tax.' : '';
+    setTaxConfirm({
+      open: true,
+      title: `Remove "${group?.name || 'tax group'}"?`,
+      message: `${usage}${exemptNote} Remember to click Save afterwards.`.trim(),
+      confirmText: 'Remove',
+      onConfirm: async () => {
+        closeTaxConfirm();
+        let failed = 0;
+        for (const cat of usedCats) {
+          try {
+            await apiClient.updateCategory(selectedRestaurant.id, cat.id, { taxGroupId: null });
+            setCategories(prev => prev.map(c => c.id === cat.id ? { ...c, taxGroupId: null } : c));
+          } catch (_) { failed++; }
+        }
+        for (const item of usedItems) {
+          try {
+            await apiClient.updateMenuItem(item.id, { taxGroupId: null }, selectedRestaurant.id);
+            setMenuItems(prev => prev.map(i => i.id === item.id ? { ...i, taxGroupId: null } : i));
+          } catch (_) { failed++; }
+        }
+        if (failed > 0) {
+          // Keep the group so nothing is left pointing at a deleted group; owner can retry.
+          showError(`Could not unlink ${failed} categor${failed === 1 ? 'y/item' : 'ies/items'} — the tax was not removed. Please try again.`);
+          return;
+        }
+        dropTaxGroupFromState(groupId);
+      },
+    });
+  };
   const updateTaxGroup = (groupId, updatedGroup) => {
-    setTaxSettings(prev => ({ ...prev, taxGroups: (prev.taxGroups || []).map(g => g.id === groupId ? { ...g, ...updatedGroup } : g) }));
+    setTaxSettings(prev => ({
+      ...prev,
+      taxGroups: (prev.taxGroups || []).map(g => {
+        if (g.id !== groupId) return g;
+        const next = { ...g, ...updatedGroup };
+        // Renaming a group renames its tax line too (the bill prints the line's name). A single-line
+        // group always follows the group name; in multi-line groups only lines that carried the old
+        // group name are renamed.
+        if (typeof updatedGroup?.name === 'string' && updatedGroup.name.trim() && updatedGroup.name !== g.name && Array.isArray(next.taxes)) {
+          const newName = updatedGroup.name.trim();
+          next.name = newName;
+          next.taxes = next.taxes.length === 1
+            ? [{ ...next.taxes[0], name: newName }]
+            : next.taxes.map(t => (t?.name === g.name ? { ...t, name: newName } : t));
+        }
+        return next;
+      }),
+    }));
     setEditingGroup(null);
+  };
+  // A group added on this page exists only locally until Save. Pointing a category/item at it
+  // before then would store a reference to a group the server doesn't know (the item would be
+  // taxed with the default taxes). Persist JUST that group first (baseline + group, so other
+  // unsaved edits on the page stay unsaved and are still sent by the next Save).
+  const ensureTaxGroupSaved = async (groupId) => {
+    if (!groupId) return true;
+    const base = taxBaseRef.current;
+    if (!base) { showError('Tax settings are not loaded yet — please reload the page and try again.'); return false; }
+    if ((base.taxGroups || []).some(g => g.id === groupId)) return true;
+    const group = (taxSettings.taxGroups || []).find(g => g.id === groupId);
+    if (!group) return false;
+    const ok = await saveTaxSettings({ ...base, taxGroups: [...(base.taxGroups || []), group] }, { silent: true, adoptState: false });
+    if (!ok) showError('Could not save the new tax first — please click Save, then assign it.');
+    return ok;
   };
   const toggleCategoryTaxGroup = async (catId, groupId) => {
     const cat = categories.find(c => c.id === catId);
     const newTaxGroupId = cat?.taxGroupId === groupId ? null : groupId;
+    if (newTaxGroupId && !(await ensureTaxGroupSaved(newTaxGroupId))) return;
     try {
       await apiClient.updateCategory(selectedRestaurant.id, catId, { taxGroupId: newTaxGroupId });
       setCategories(prev => prev.map(c => c.id === catId ? { ...c, taxGroupId: newTaxGroupId } : c));
     } catch (error) { showError('Failed to update category tax group'); }
   };
   const setItemTaxGroup = async (itemId, groupId) => {
+    if (groupId && !(await ensureTaxGroupSaved(groupId))) return;
     try {
       await apiClient.updateMenuItem(itemId, { taxGroupId: groupId || null }, selectedRestaurant.id);
       setMenuItems(prev => prev.map(item => item.id === itemId ? { ...item, taxGroupId: groupId || null } : item));
@@ -438,6 +558,7 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
   return (
     <div>
       <TaxNotifications />
+      <ConfirmModal open={taxConfirm.open} title={taxConfirm.title} message={taxConfirm.message} confirmText={taxConfirm.confirmText} onConfirm={taxConfirm.onConfirm} onCancel={closeTaxConfirm} />
 
       {/* Kenya KRA eTIMS — shown ONLY for Kenya (KES) stores; dormant elsewhere */}
       {(selectedRestaurant?.currencySettings?.countryCode === 'KE' || selectedRestaurant?.currencySettings?.currencyCode === 'KES') && restaurantId && (
@@ -927,7 +1048,7 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
 
                 {/* Save Tax Button — always visible so user can save disabled state */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-                  <button onClick={saveTaxSettings} disabled={saving}
+                  <button onClick={() => saveTaxSettings()} disabled={saving}
                     style={{
                       backgroundColor: saving ? '#9ca3af' : '#ef4444', color: 'white', padding: '10px 20px', borderRadius: '8px',
                       fontWeight: '600', fontSize: '13px', border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
@@ -1069,7 +1190,7 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
 
                   {/* Save Discount Settings */}
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
-                    <button onClick={saveTaxSettings} disabled={saving}
+                    <button onClick={() => saveTaxSettings()} disabled={saving}
                       style={{
                         backgroundColor: saving ? '#9ca3af' : '#ef4444', color: 'white', padding: '8px 16px', borderRadius: '8px',
                         border: 'none', fontSize: '12px', fontWeight: '600', cursor: saving ? 'not-allowed' : 'pointer',
@@ -6214,6 +6335,23 @@ const Admin = () => {
   // True only once billingSettings has been fetched for the current restaurant. Guards the
   // POS-page save from overwriting real billing config with the empty default (data-loss guard).
   const [billingSettingsLoaded, setBillingSettingsLoaded] = useState(false);
+  // billingSettings exactly as last loaded from / saved to the server — saves send only the keys
+  // changed against it (the server deep-merges), so a stale tab can't revert changes made elsewhere.
+  const billingBaseRef = useRef(null);
+  // Save only what changed. Returns the server's merged settings (or null when nothing changed).
+  const saveBillingChanges = async () => {
+    const base = billingBaseRef.current;
+    if (!base) throw new Error('Billing settings are not loaded yet — please reload and try again.');
+    const changes = settingsPatch(base, billingSettings);
+    if (!changes) return null;
+    const result = await apiClient.updateBillingSettings(selectedRestaurant.id, changes.patch);
+    const saved = (result?.settings && typeof result.settings === 'object')
+      ? result.settings
+      : { ...base, ...changes.topLevel };
+    billingBaseRef.current = saved;
+    setBillingSettings(saved);
+    return saved;
+  };
 
   // Load billingSettings on BOTH the Billing tab and the Features tab — the Features tab renders
   // the "Allow Price Edit"/"Allow Custom Items" role restrictions which live in billingSettings,
@@ -6222,11 +6360,15 @@ const Admin = () => {
     if ((activeTab === 'billing-settings' || activeTab === 'features') && selectedRestaurant?.id) {
       setBillingLoading(true);
       setBillingSettingsLoaded(false);
+      billingBaseRef.current = null;
       (async () => {
         try {
           const data = await apiClient.getBillingSettings(selectedRestaurant.id);
-          if (data.settings) setBillingSettings(data.settings);
-          setBillingSettingsLoaded(true);
+          if (data.settings) {
+            billingBaseRef.current = data.settings;
+            setBillingSettings(data.settings);
+            setBillingSettingsLoaded(true);
+          }
         } catch (err) {
           console.error('Failed to load billing settings:', err);
         } finally {
@@ -6244,9 +6386,12 @@ const Admin = () => {
     setBillingSaving(true);
     setBillingMessage({ type: '', text: '' });
     try {
-      const result = await apiClient.updateBillingSettings(selectedRestaurant.id, billingSettings);
-      if (result.settings) setBillingSettings(result.settings);
-      const updated = { ...selectedRestaurant, billingSettings: result.settings || billingSettings };
+      const saved = await saveBillingChanges();
+      if (!saved) {
+        setBillingMessage({ type: 'success', text: 'No changes to save' });
+        return;
+      }
+      const updated = { ...selectedRestaurant, billingSettings: saved };
       localStorage.setItem('selectedRestaurant', JSON.stringify(updated));
       setSelectedRestaurant(updated);
       setBillingMessage({ type: 'success', text: 'Billing settings saved successfully!' });
@@ -6287,9 +6432,8 @@ const Admin = () => {
       let savedBillingSettings = selectedRestaurant.billingSettings;
       if (billingSettingsLoaded) {
         try {
-          const bsResult = await apiClient.updateBillingSettings(selectedRestaurant.id, billingSettings);
-          savedBillingSettings = bsResult?.settings || billingSettings;
-          if (bsResult?.settings) setBillingSettings(bsResult.settings);
+          const bsSaved = await saveBillingChanges();
+          savedBillingSettings = bsSaved || billingBaseRef.current || savedBillingSettings;
         } catch (bsErr) {
           console.error('Failed to save billingSettings from POS page:', bsErr);
         }

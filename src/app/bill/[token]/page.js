@@ -79,7 +79,13 @@ export default function PublicBillPage() {
   const items = inv.items || [];
   const itemsTotal = items.reduce((s, it) => s + (it.price || 0) * (it.quantity || 1), 0);
   const subtotal = r2(inv.subtotal || itemsTotal);
-  const totalDiscount = r2((inv.discountAmount || 0) + (inv.manualDiscount || 0) + (inv.loyaltyDiscount || 0));
+  // Coupon discount: explicit field when the API sends it, else the part of totalDiscountAmount
+  // (which the server stores incl. the coupon) not covered by offer + manual + loyalty.
+  const knownDiscounts = (inv.discountAmount || 0) + (inv.manualDiscount || 0) + (inv.loyaltyDiscount || 0);
+  const couponDiscount = r2(Number(inv.couponDiscount) > 0
+    ? Number(inv.couponDiscount)
+    : Math.max(0, (Number(inv.totalDiscountAmount) || 0) - knownDiscounts));
+  const totalDiscount = r2(knownDiscounts + couponDiscount);
   const hasDiscount = totalDiscount > 0;
   const taxBreakdown = inv.taxBreakdown || [];
   const hasTax = (inv.taxAmount || 0) > 0;
@@ -188,13 +194,16 @@ export default function PublicBillPage() {
                 {(inv.loyaltyDiscount || 0) > 0 && (
                   <SummaryRow label="Loyalty Discount" value={`-${cs}${r2(inv.loyaltyDiscount)}`} color="#16a34a" />
                 )}
+                {couponDiscount > 0.009 && (
+                  <SummaryRow label={inv.couponCode ? `Coupon (${inv.couponCode})` : 'Coupon Discount'} value={`-${cs}${r2(couponDiscount)}`} color="#16a34a" />
+                )}
               </>
             )}
 
             {/* Tax breakdown */}
             {hasTax && taxBreakdown.length > 0 ? (
               taxBreakdown.map((t, i) => (
-                <SummaryRow key={i} label={`${t.name} (${t.rate}%)`} value={`${cs}${r2(t.amount)}`} />
+                <SummaryRow key={i} label={`${t.name} (${t.rate}%)${t.inclusive ? ' (incl.)' : ''}`} value={`${cs}${r2(t.amount)}`} />
               ))
             ) : hasTax ? (
               <SummaryRow label="Tax" value={`${cs}${r2(inv.taxAmount)}`} />

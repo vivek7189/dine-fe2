@@ -7,6 +7,7 @@ import { FaTimes, FaSearch, FaSpinner, FaUtensils } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
 import { getCartSubtotal, getEffectiveItemPrice } from '../utils/billingPrice';
+import { lineTaxFlags } from '../utils/taxEngine';
 import CategorySubRow from './CategorySubRow';
 import { buildCategoryIndex, isAncestorOrSelf } from '../utils/categoryTree';
 import MenuItemCard from './MenuItemCard';
@@ -184,6 +185,8 @@ const OrderEditModal = ({
               pricingRules: menuItem?.pricingRules || item.pricingRules || {},
               category: item.category || menuItem?.category || '',
               taxGroupId: menuItem?.taxGroupId || item.taxGroupId || null,
+              // Per-item tax flags (order line, else menu) — an inclusive item must not be taxed on top.
+              ...lineTaxFlags(item, menuItem),
               notes: item.notes || '',
               ...(item.seat != null ? { seat: item.seat } : {}),
               cartId: `${item.menuItemId || item.id}-${Date.now()}-${Math.random()}`
@@ -314,6 +317,9 @@ const OrderEditModal = ({
       category: item.category || '',
       categoryId: item.categoryId || null,
       taxGroupId: item.taxGroupId || null,
+      ...(item.taxInclusive != null ? { taxInclusive: item.taxInclusive } : {}),
+      ...(item.discountApplicable != null ? { discountApplicable: item.discountApplicable } : {}),
+      ...(item.hsnCode ? { hsnCode: item.hsnCode } : {}),
       selectedVariant: item.selectedVariant || null,
       selectedCustomizations: Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [],
       basePrice: typeof item.basePrice === 'number' ? item.basePrice : price,

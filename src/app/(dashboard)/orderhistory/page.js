@@ -27,6 +27,7 @@ import { buildBillIdentity } from '../../../utils/printTemplates/helpers';
 import { orderDisplayNumber, billNumberLabel } from '../../../utils/orderNumber';
 import { useEtimsBillPrint } from '../../../hooks/useEtimsBillPrint';
 import { getCartSubtotal } from '../../../utils/billingPrice';
+import { lineTaxFlags, savedLineBasePrice } from '../../../utils/taxEngine';
 import { etimsActiveFor } from '../../../lib/etimsDecision';
 import { fiscaliseCreditNote, fiscaliseOrder, isEtimsCapable } from '../../../lib/etims';
 // KRA §4.16 Credit Note Reason Codes (rfdRsnCd) — shown in the refund dialog for Kenya eTIMS.
@@ -1417,22 +1418,24 @@ const OrderHistory = () => {
 
     const cartItems = (order.items || []).map(item => {
       const menuItem = menuItems?.find(m => m.id === (item.menuItemId || item.id));
-      // Use variant price for refreshedPrice when variant is selected
-      const refreshedPrice = item.selectedVariant?.price != null
-        ? item.selectedVariant.price
-        : (menuItem?.price ?? item.price ?? 0);
-      // Same as the dashboard's saved-order → cart mapping: a manually edited price is kept as
-      // saved (never refreshed from the menu), otherwise the variant/menu price is used.
-      const savedPrice = (item.price != null && !isNaN(parseFloat(item.price))) ? parseFloat(item.price) : 0;
-      // basePrice should use variant price when variant is selected
+      // Keep the price this order was placed at (tier / zone / edited price) — same as
+      // OrderEditModal. The server stores line price = billed base + toppings; the cart keeps the
+      // BASE (toppings stay in selectedCustomizations and are added back exactly once). Re-pricing
+      // to today's base menu price lost tier prices; edited lines with toppings counted them twice.
+      const savedBase = savedLineBasePrice(item);
       const variantPriceVal = item.selectedVariant?.price;
-      const itemBasePrice = variantPriceVal != null
-        ? variantPriceVal
-        : (menuItem?.price ?? item.basePrice ?? item.price ?? 0);
+      const linePrice = savedBase != null
+        ? savedBase
+        : (variantPriceVal != null ? variantPriceVal : (menuItem?.price ?? 0));
+      const itemBasePrice = savedBase != null
+        ? savedBase
+        : (variantPriceVal != null
+          ? variantPriceVal
+          : (item.basePrice != null ? item.basePrice : (menuItem?.price ?? 0)));
       return {
         id: item.menuItemId || item.id,
         name: menuItem?.name || item.name,
-        price: item.priceEdited === true ? savedPrice : refreshedPrice,
+        price: linePrice,
         quantity: item.quantity || 1,
         selectedVariant: item.selectedVariant,
         selectedCustomizations: item.selectedCustomizations,
@@ -1443,6 +1446,9 @@ const OrderHistory = () => {
         pricingRules: menuItem?.pricingRules || item.pricingRules || {},
         category: item.category || menuItem?.category || '',
         taxGroupId: item.taxGroupId || menuItem?.taxGroupId || null,
+        // Per-item tax flags (order line, else menu) — an inclusive item must not be taxed on top.
+        ...lineTaxFlags(item, menuItem),
+        ...(item.soldByWeight ? { soldByWeight: true, itemWeight: item.itemWeight || 0, priceUnit: item.priceUnit || 'per_kg', weightUnit: item.weightUnit || 'kg' } : {}),
         notes: item.notes || '',
         // Seat-level ordering: seat must survive the billing round-trip
         ...(item.seat != null ? { seat: item.seat } : {}),
@@ -1451,6 +1457,8 @@ const OrderHistory = () => {
     });
 
     setBillingModalCart(cartItems);
+    // Bill under the ORDER's pricing rule (its lines were priced with it).
+    setActivePricingRuleId(order.pricingRuleId || null);
     setBillingModalPaymentMethod(order.paymentMethod || 'cash');
     setBillingCustomerName(order.customerInfo?.name || '');
     setBillingCustomerMobile(order.customerInfo?.phone || '');
