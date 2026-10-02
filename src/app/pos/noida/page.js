@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS Software Noida | Cloud Kitchen & Cafe Billing | DineOpen',
-  description: 'Best restaurant POS for Noida & Greater Noida. Perfect for cloud kitchens, corporate cafeterias, malls, and IT park restaurants. Delivery-first features, Swiggy/Zomato integration. ₹999/month.',
+  description: 'Best restaurant POS for Noida & Greater Noida. Perfect for cloud kitchens, corporate cafeterias, malls, and IT park restaurants. Delivery-first features, Swiggy/Zomato integration. ₹899/month.',
   keywords: 'restaurant POS Noida, cloud kitchen software Noida, Greater Noida restaurant billing, IT park cafe POS, corporate cafeteria software, mall food court POS, Noida restaurant management',
   openGraph: {
     title: 'Restaurant POS Software Noida | Cloud Kitchen & Cafe | DineOpen',
@@ -22,7 +22,7 @@ export default function NoidaPOSPage() {
     "@context": "https://schema.org", "@type": "SoftwareApplication",
     "name": "DineOpen Restaurant POS - Noida",
     "description": "Restaurant POS for Noida's cloud kitchens, corporate cafes, and modern restaurants.",
-    "offers": { "@type": "Offer", "price": "999", "priceCurrency": "INR" },
+    "offers": { "@type": "Offer", "price": "899", "priceCurrency": "INR" },
     "areaServed": { "@type": "City", "name": "Noida" }
   };
 

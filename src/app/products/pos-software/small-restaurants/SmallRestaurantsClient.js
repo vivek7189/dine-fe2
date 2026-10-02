@@ -41,7 +41,7 @@ export default function SmallRestaurantsClient() {
             Is DineOpen POS good for small restaurants in India?
           </h1>
           <p style={{ fontSize: isMobile ? '18px' : '22px', color: '#4b5563', lineHeight: '1.7', maxWidth: '800px', margin: '0 auto 40px' }}>
-            Yes, DineOpen POS software is specifically designed for small restaurants in India. It offers affordable pricing starting at ₹300 one-time, making it accessible for small businesses with limited budgets. The system includes all essential features: POS billing, menu management, inventory tracking, GST billing, and online orders.
+            Yes, DineOpen POS software is specifically designed for small restaurants in India. It offers affordable pricing starting at ₹899/month, making it accessible for small businesses with limited budgets. The system includes all essential features: POS billing, menu management, inventory tracking, GST billing, and online orders.
           </p>
           <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button onClick={handleLogin} style={{ padding: '16px 32px', fontSize: '16px', fontWeight: '700', borderRadius: '12px', background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', border: 'none', cursor: 'pointer' }}>Start Free Trial</button>
@@ -57,7 +57,7 @@ export default function SmallRestaurantsClient() {
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '24px', marginBottom: '48px' }}>
             {[
-              { icon: <FaStore />, title: 'Affordable Pricing', desc: 'Starting at ₹300 one-time payment. No monthly fees for basic plan. Perfect for small restaurants with limited budgets.' },
+              { icon: <FaStore />, title: 'Affordable Pricing', desc: 'Starting at ₹899/month. Perfect for small restaurants with limited budgets.' },
               { icon: <FaMobile />, title: 'No Hardware Required', desc: 'Works on smartphones, tablets, or computers. No expensive POS hardware installation needed.' },
               { icon: <FaCloud />, title: 'Easy to Use', desc: 'Simple interface designed for small restaurants. No technical expertise required. Start using immediately.' },
               { icon: <FaCheckCircle />, title: 'All Essential Features', desc: 'POS billing, menu management, inventory tracking, GST billing, and online orders included.' }

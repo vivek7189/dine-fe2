@@ -122,7 +122,7 @@ export default function IndiaHubClient() {
                 Book Demo
               </Link>
             </div>
-            <p style={{ marginTop: '20px', opacity: 0.8 }}>Starting at ₹999/month • 7-day free trial • No credit card</p>
+            <p style={{ marginTop: '20px', opacity: 0.8 }}>Starting at ₹899/month • 7-day free trial • No credit card</p>
           </div>
         </div>
 

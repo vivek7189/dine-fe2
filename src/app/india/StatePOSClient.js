@@ -61,7 +61,7 @@ export default function StatePOSClient({ stateData }) {
                 View Pricing
               </Link>
             </div>
-            <p style={{ marginTop: '16px', opacity: 0.8 }}>Starting at ₹999/month • No credit card required</p>
+            <p style={{ marginTop: '16px', opacity: 0.8 }}>Starting at ₹899/month • No credit card required</p>
           </div>
         </div>
 

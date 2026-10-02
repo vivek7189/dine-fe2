@@ -355,7 +355,7 @@ export default function PricingClient() {
           </h1>
           <p style={{ fontSize: '20px', color: '#6b7280', maxWidth: '680px', margin: '0 auto 32px' }}>
             {isIndia ? (
-              <>🇮🇳 <strong style={{ color: '#ef4444' }}>Custom pricing & exclusive offers</strong> for restaurants in India. Talk to us for the best deal.</>
+              <>🇮🇳 Plans from <strong style={{ color: '#ef4444' }}>₹899/month</strong>, plus custom pricing & exclusive offers for restaurants in India. Talk to us for the best deal.</>
             ) : (
               <>Plans start from <strong style={{ color: '#ef4444' }}>{currentPrice.symbol}{fmt(showYearlyTotal ? currentPrice.starter.annualBilled : currentPrice.starter[cycle])}{getPriceSuffix()}</strong>. AI features included. Zero transaction fees. No hidden costs. Cancel anytime.</>
             )}

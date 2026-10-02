@@ -35,7 +35,7 @@ const faqSchema = {
       "name": "Is DineOpen better than Reelo?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen is a complete POS + loyalty platform, while Reelo is loyalty-only. DineOpen at ₹300/month includes POS, billing, inventory, and all loyalty features in one platform."
+        "text": "DineOpen is a complete POS + loyalty platform, while Reelo is loyalty-only. DineOpen at ₹899/month includes POS, billing, inventory, and all loyalty features in one platform."
       }
     },
     {
@@ -51,7 +51,7 @@ const faqSchema = {
       "name": "How much does DineOpen cost vs Reelo?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen costs ₹300/month for a full POS + loyalty platform. Reelo charges separately for loyalty-only features, making DineOpen a more complete and cost-effective solution."
+        "text": "DineOpen costs ₹899/month for a full POS + loyalty platform. Reelo charges separately for loyalty-only features, making DineOpen a more complete and cost-effective solution."
       }
     },
     {

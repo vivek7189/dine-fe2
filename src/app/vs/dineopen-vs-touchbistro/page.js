@@ -122,7 +122,7 @@ export default function DineOpenVsTouchBistroPage() {
 
             <h3 style={h3}>Real billing features</h3>
             <p style={p}>
-              Split bills, partial payments, tips, round-off, service charge, multi-rate tax, voids, refunds, audit log, customer khata/credit, multi-tier pricing per item. <Link href="/pricing" style={linkStyle}>All on Spark.</Link>
+              Split bills, partial payments, tips, round-off, service charge, multi-rate tax, voids, refunds, audit log, customer khata/credit, multi-tier pricing per item. <Link href="/pricing" style={linkStyle}>All included.</Link>
             </p>
 
             <h3 style={h3}>KDS + Android KOT printer app</h3>

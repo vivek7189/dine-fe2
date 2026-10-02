@@ -28,7 +28,7 @@ export default function InvoicesPage() {
     "url": "https://www.dineopen.com/products/billing/invoices",
     "offers": [
       { "@type": "Offer", "price": "9.99", "priceCurrency": "USD" },
-      { "@type": "Offer", "price": "300", "priceCurrency": "INR" }
+      { "@type": "Offer", "price": "899", "priceCurrency": "INR" }
     ],
   };
 

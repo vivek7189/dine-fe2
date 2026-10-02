@@ -55,7 +55,7 @@ export default function IndiaPage() {
     "url": "https://www.dineopen.com/india",
     "offers": {
       "@type": "Offer",
-      "price": "999",
+      "price": "899",
       "priceCurrency": "INR",
       "priceValidUntil": "2026-12-31"
     },

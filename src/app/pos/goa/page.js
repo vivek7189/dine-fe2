@@ -25,7 +25,7 @@ export default function GoaPOSPage() {
     state: 'Goa',
     country: 'India',
     currency: '₹',
-    price: '999',
+    price: '899',
     highlights: [
       'Multi-currency display (₹, $, €, £)',
       'Beach shack seasonal business support',
@@ -55,7 +55,7 @@ export default function GoaPOSPage() {
     "operatingSystem": "Web, iOS, Android",
     "offers": {
       "@type": "Offer",
-      "price": "999",
+      "price": "899",
       "priceCurrency": "INR",
       "priceValidUntil": "2026-12-31"
     },

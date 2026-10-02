@@ -126,7 +126,7 @@ export default function POSSoftwareClient() {
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '24px' }}>
             <Link href="/products/pos-software/small-restaurants" style={{ background: 'white', padding: '32px', borderRadius: '16px', border: '1px solid #e5e7eb', textDecoration: 'none', color: 'inherit', display: 'block' }}>
               <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '12px' }}>Small Restaurants</h3>
-              <p style={{ fontSize: '16px', lineHeight: '1.7', color: '#374151' }}>Ideal for restaurants with 1-20 tables. Affordable pricing starting at ₹300 one-time. Simple interface, no technical expertise required.</p>
+              <p style={{ fontSize: '16px', lineHeight: '1.7', color: '#374151' }}>Ideal for restaurants with 1-20 tables. Affordable pricing starting at ₹899/month. Simple interface, no technical expertise required.</p>
             </Link>
             <Link href="/products/pos-software/cafes" style={{ background: 'white', padding: '32px', borderRadius: '16px', border: '1px solid #e5e7eb', textDecoration: 'none', color: 'inherit', display: 'block' }}>
               <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '12px' }}>Cafes</h3>
@@ -149,7 +149,7 @@ export default function POSSoftwareClient() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
             {[
               { q: 'What is POS software for restaurants?', a: 'POS software for restaurants is a system that processes orders, generates bills, manages menus, tracks inventory, and handles payments. DineOpen POS software is cloud-based and works on any device with internet access.' },
-              { q: 'Is DineOpen POS software suitable for small restaurants?', a: 'Yes, DineOpen POS software is specifically designed for small and mid-sized restaurants in India. It offers affordable pricing starting at ₹300 one-time, making it accessible for small businesses.' },
+              { q: 'Is DineOpen POS software suitable for small restaurants?', a: 'Yes, DineOpen POS software is specifically designed for small and mid-sized restaurants in India. It offers affordable pricing starting at ₹899/month, making it accessible for small businesses.' },
               { q: 'Does DineOpen POS require hardware installation?', a: 'No, DineOpen POS software is cloud-based and does not require hardware installation. It works on any device with internet access, including computers, tablets, and smartphones.' },
               { q: 'Can I use DineOpen POS on multiple devices?', a: 'Yes, DineOpen POS software can be accessed from multiple devices simultaneously. All data is synced in real-time across all devices.' }
             ].map((faq, i) => (

@@ -6,7 +6,7 @@ import Footer from '../../../components/Footer';
 import InternalLinks from '../../../components/InternalLinks';
 
 const comparisonData = [
-  { feature: 'Monthly Price', dineopen: '₹300/month', petpooja: '₹1,000+/month', winner: 'dineopen' },
+  { feature: 'Monthly Price', dineopen: '₹899/month', petpooja: '₹1,000+/month', winner: 'dineopen' },
   { feature: 'Transaction Fees', dineopen: '0%', petpooja: '1.5-2%', winner: 'dineopen' },
   { feature: 'AI Voice Ordering', dineopen: '✓', petpooja: '✗', winner: 'dineopen' },
   { feature: 'AI Chat Assistant', dineopen: '✓', petpooja: '✗', winner: 'dineopen' },
@@ -18,7 +18,7 @@ const comparisonData = [
   { feature: 'Waiter App', dineopen: '✓', petpooja: '✓', winner: 'tie' },
   { feature: 'Inventory Management', dineopen: '✓', petpooja: '✓', winner: 'tie' },
   { feature: 'Loyalty Program', dineopen: '✓ Advanced', petpooja: 'Basic', winner: 'dineopen' },
-  { feature: 'Multi-Location', dineopen: 'Unlimited (Blaze)', petpooja: 'Extra cost', winner: 'dineopen' },
+  { feature: 'Multi-Location', dineopen: 'Unlimited (multi-outlet)', petpooja: 'Extra cost', winner: 'dineopen' },
   { feature: 'Offline Mode', dineopen: '✓', petpooja: '✓', winner: 'tie' },
   { feature: 'Free Trial', dineopen: '7 days', petpooja: '14 days', winner: 'dineopen' },
   { feature: 'Countries Supported', dineopen: '20+', petpooja: 'India only', winner: 'dineopen' },
@@ -122,7 +122,7 @@ export default function CompareClient() {
               <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#2563eb', marginBottom: '16px' }}>DineOpen</h3>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {[
-                  '₹300/month starting price',
+                  '₹899/month starting price',
                   'AI-powered (voice ordering, chat, menu extraction)',
                   'Zero transaction fees',
                   'Available in 20+ countries',
@@ -232,7 +232,7 @@ export default function CompareClient() {
             {[
               { title: 'AI Features', desc: 'Voice ordering, chat assistant, and menu extraction that automate operations and reduce staff workload.' },
               { title: 'Zero Transaction Fees', desc: 'Keep 100% of your revenue. No hidden per-transaction charges eating into your margins.' },
-              { title: 'Lower Price', desc: 'Starting at ₹300/month — less than a third of Petpooja, with more features included.' },
+              { title: 'Lower Price', desc: 'Starting at ₹899/month — less than a third of Petpooja, with more features included.' },
               { title: 'Global Availability', desc: 'Available in 20+ countries with multi-currency support. Not limited to India.' },
             ].map((card, i) => (
               <div key={i} style={{
@@ -466,7 +466,7 @@ export default function CompareClient() {
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '20px' }}>
               {[
-                { label: 'Total cost (1 year)', dineopen: '₹3,600', petpooja: '₹20,000+' },
+                { label: 'Total cost (1 year)', dineopen: '₹10,788', petpooja: '₹20,000+' },
                 { label: 'Features included', dineopen: 'All features', petpooja: 'Base only' },
                 { label: 'Setup time', dineopen: '15 minutes', petpooja: '1-3 days' },
                 { label: 'Hardware needed', dineopen: 'Any phone/tablet', petpooja: 'Often proprietary' },

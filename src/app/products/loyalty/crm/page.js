@@ -35,8 +35,8 @@ export default function CrmPage() {
     "operatingSystem": "Web, iOS, Android",
     "url": "https://www.dineopen.com/products/loyalty/crm",
     "offers": [
-      { "@type": "Offer", "price": "9.99", "priceCurrency": "USD", "description": "Included with Spark Plan" },
-      { "@type": "Offer", "price": "300", "priceCurrency": "INR", "description": "Included with Spark Plan India" }
+      { "@type": "Offer", "price": "9.99", "priceCurrency": "USD", "description": "Included in all plans" },
+      { "@type": "Offer", "price": "899", "priceCurrency": "INR", "description": "Included in all plans (India)" }
     ],
     "featureList": [
       "Customer contact database",

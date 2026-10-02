@@ -27,7 +27,7 @@ export default function DelhiPOSPage() {
     country: 'India',
     currency: '₹',
     currencyCode: 'INR',
-    price: '999',
+    price: '899',
     highlights: [
       'GST-compliant billing for Delhi',
       'Zomato & Swiggy direct integration',

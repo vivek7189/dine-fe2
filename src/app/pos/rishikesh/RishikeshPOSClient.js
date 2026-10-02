@@ -30,7 +30,7 @@ export default function RishikeshPOSClient() {
               Running a yoga cafe, vegan restaurant, or rooftop cafe in Rishikesh? DineOpen handles international tourists, organic menus, and retreat packages seamlessly.
             </p>
             <p style={{ fontSize: '28px', fontWeight: '700', marginBottom: '32px' }}>
-              Just ₹999/month <span style={{ opacity: 0.8, fontSize: '16px' }}>• Multi-currency • Tourist-ready</span>
+              Just ₹899/month <span style={{ opacity: 0.8, fontSize: '16px' }}>• Multi-currency • Tourist-ready</span>
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="https://dineopen.com/login" style={{ padding: '16px 32px', backgroundColor: 'white', color: '#059669', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>

@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS Software Dehradun | Cafe & Restaurant Billing | DineOpen',
-  description: 'Best restaurant POS for Dehradun. Perfect for cafes, restaurants, bakeries & cloud kitchens. Student-friendly pricing, delivery integration for ISBT & Rajpur Road area. ₹999/month.',
+  description: 'Best restaurant POS for Dehradun. Perfect for cafes, restaurants, bakeries & cloud kitchens. Student-friendly pricing, delivery integration for ISBT & Rajpur Road area. ₹899/month.',
   keywords: 'restaurant POS Dehradun, cafe billing Dehradun, restaurant software Uttarakhand, Dehradun cafe POS, Rajpur Road restaurant, cloud kitchen Dehradun, bakery billing software',
   openGraph: {
     title: 'Restaurant POS Software Dehradun | Cafe Billing | DineOpen',
@@ -22,7 +22,7 @@ export default function DehradunPOSPage() {
     "@context": "https://schema.org", "@type": "SoftwareApplication",
     "name": "DineOpen Restaurant POS - Dehradun",
     "description": "Restaurant POS for Dehradun cafes, restaurants, and food businesses in Uttarakhand capital.",
-    "offers": { "@type": "Offer", "price": "999", "priceCurrency": "INR" },
+    "offers": { "@type": "Offer", "price": "899", "priceCurrency": "INR" },
     "areaServed": { "@type": "City", "name": "Dehradun" }
   };
 

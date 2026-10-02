@@ -8,7 +8,7 @@ import InternalLinks from '../../../components/InternalLinks';
 
 const comparisonData = [
   { category: 'Pricing & Fees', features: [
-    { feature: 'Starting Price', dineopen: '$20/month (₹300 in India)', posist: '₹2,000-5,000+/month (custom quote)', winner: 'dineopen' },
+    { feature: 'Starting Price', dineopen: '$20/month (₹899 in India)', posist: '₹2,000-5,000+/month (custom quote)', winner: 'dineopen' },
     { feature: 'Transaction Fees', dineopen: '0% — zero transaction fees', posist: 'Varies by plan', winner: 'dineopen' },
     { feature: 'Setup Fee', dineopen: '₹0', posist: '₹15,000-50,000 (typical)', winner: 'dineopen' },
     { feature: 'Pricing Transparency', dineopen: 'Published on website', posist: 'Contact sales for custom quote', winner: 'dineopen' },
@@ -64,7 +64,7 @@ const faqs = [
   },
   {
     q: 'Which POS is better for a single restaurant in India?',
-    a: 'For a single-outlet restaurant, DineOpen is almost always the better choice. At Rs 300/month with all features included, zero transaction fees, and 15-minute self-setup, it is dramatically more affordable than POSist which starts at Rs 2,000-5,000/month and is designed for chains. POSist is enterprise software — powerful, but expensive and complex for a single restaurant.'
+    a: 'For a single-outlet restaurant, DineOpen is almost always the better choice. At Rs 899/month with all features included, zero transaction fees, and 15-minute self-setup, it is dramatically more affordable than POSist which starts at Rs 2,000-5,000/month and is designed for chains. POSist is enterprise software — powerful, but expensive and complex for a single restaurant.'
   },
 ];
 
@@ -171,7 +171,7 @@ export default function CompareClient() {
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
             {[
-              { stat: '₹300/mo', label: 'DineOpen starting price', sublabel: 'vs ₹2,000-5,000+/mo POSist' },
+              { stat: '₹899/mo', label: 'DineOpen starting price', sublabel: 'vs ₹2,000-5,000+/mo POSist' },
               { stat: '0%', label: 'DineOpen transaction fees', sublabel: 'Zero hidden charges' },
               { stat: '15 min', label: 'DineOpen setup time', sublabel: 'vs days/weeks with POSist' },
               { stat: '20+', label: 'Countries supported', sublabel: 'POSist: India & select markets' },
@@ -210,7 +210,7 @@ export default function CompareClient() {
               <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '16px', fontStyle: 'italic' }}>Best for: Small-to-medium restaurants, 1-5 outlets</p>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {[
-                  '$20/month Starter plan (₹300 in India) | $99/month Pro plan',
+                  '$20/month Starter plan (₹899 in India) | $99/month Pro plan',
                   'AI voice ordering, chat assistant, menu extraction',
                   'Zero transaction fees on all plans',
                   '15-minute self-setup, works on any device',
@@ -329,7 +329,7 @@ export default function CompareClient() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
             {[
               { title: 'AI-Powered Features', desc: 'Voice ordering in 10+ Indian languages, AI chat assistant, and menu extraction from photos. POSist has no equivalent AI capabilities.' },
-              { title: 'Dramatically Lower Cost', desc: 'Starting at ₹300/month vs POSist\'s ₹2,000-5,000+/month. For a single outlet, that\'s ₹20,000-56,000+ saved per year.' },
+              { title: 'Dramatically Lower Cost', desc: 'Starting at ₹899/month vs POSist\'s ₹2,000-5,000+/month. For a single outlet, that\'s ₹20,000-56,000+ saved per year.' },
               { title: 'Zero Transaction Fees', desc: 'Keep 100% of your revenue. No hidden per-transaction charges eating into your margins on any plan.' },
               { title: 'Self-Setup in 15 Minutes', desc: 'No waiting for technicians, no installation appointments. Download, photograph your menu, start billing. Works on any phone or tablet.' },
               { title: 'No Annual Contracts', desc: 'Month-to-month billing, cancel anytime. POSist typically requires annual contracts with significant upfront commitments.' },

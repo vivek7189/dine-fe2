@@ -45,7 +45,7 @@ export default function MultiRestaurantPage() {
       },
       {
         "@type": "Offer",
-        "price": "999",
+        "price": "899",
         "priceCurrency": "INR",
         "description": "Per outlet per month",
         "eligibleRegion": "IN"

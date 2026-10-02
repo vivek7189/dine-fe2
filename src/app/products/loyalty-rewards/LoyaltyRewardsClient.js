@@ -256,7 +256,7 @@ export default function LoyaltyRewardsClient() {
 
             <div style={{ display: 'grid', gap: '16px' }}>
               {[
-                { q: 'Is the loyalty program really free?', a: 'Yes! Unlike Reelo (₹2,500+/mo) or Bingage, DineOpen includes loyalty & rewards FREE with all POS plans starting at ₹999/month.' },
+                { q: 'Is the loyalty program really free?', a: 'Yes! Unlike Reelo (₹2,500+/mo) or Bingage, DineOpen includes loyalty & rewards FREE with all POS plans starting at ₹899/month.' },
                 { q: 'Do customers need to download an app?', a: 'No app needed. Customers enroll with their phone number. They get WhatsApp notifications and can check/redeem points anytime.' },
                 { q: 'Can I customize the rewards structure?', a: 'Absolutely. Set your own points-per-rupee ratio, redemption rules, expiry dates, and special offers. Full flexibility.' },
                 { q: 'Does it work with online orders?', a: 'Yes! Loyalty works across dine-in, takeaway, QR orders, and third-party delivery (Zomato/Swiggy orders can be manually added).' },

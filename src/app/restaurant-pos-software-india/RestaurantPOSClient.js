@@ -166,11 +166,11 @@ export default function RestaurantPOSClient() {
   const faqs = [
     {
       question: 'Which is the best restaurant POS software in India?',
-      answer: 'It depends on your outlet size and budget. A single restaurant or cafe needs GST billing, KOT printing, UPI payments and something that runs on a phone or tablet without paid add-ons. DineOpen covers all of these from ₹300/month with zero transaction fees and a 7-day free trial. Petpooja and POSist are established alternatives, usually with higher entry prices and modules sold separately.'
+      answer: 'It depends on your outlet size and budget. A single restaurant or cafe needs GST billing, KOT printing, UPI payments and something that runs on a phone or tablet without paid add-ons. DineOpen covers all of these from ₹899/month with zero transaction fees and a 7-day free trial. Petpooja and POSist are established alternatives, usually with higher entry prices and modules sold separately.'
     },
     {
       question: 'How much does restaurant POS software cost in India?',
-      answer: 'Restaurant POS software in India typically costs from about ₹300 to ₹3,000+ per month, and older systems often add one-time setup and hardware charges. DineOpen starts at ₹300/month with no setup fee and no transaction fees; pricing for multiple outlets is shared on request.'
+      answer: 'Restaurant POS software in India typically costs from under ₹1,000 to ₹3,000+ per month, and older systems often add one-time setup and hardware charges. DineOpen starts at ₹899/month with no setup fee and no transaction fees, including AI voice ordering, KDS and loyalty; pricing for multiple outlets is shared on request.'
     },
     {
       question: 'Can I run DineOpen on my phone?',
@@ -178,7 +178,7 @@ export default function RestaurantPOSClient() {
     },
     {
       question: 'Does DineOpen work with Zomato and Swiggy orders?',
-      answer: 'Yes. On the Pro plan, Zomato and Swiggy orders sync into the same POS, so delivery and dine-in orders go to one kitchen screen and one sales report.'
+      answer: 'Yes. Zomato and Swiggy orders sync into the same POS, so delivery and dine-in orders go to one kitchen screen and one sales report.'
     },
     {
       question: 'Is there a free trial?',
@@ -186,7 +186,7 @@ export default function RestaurantPOSClient() {
     },
     {
       question: 'Can I manage more than one outlet?',
-      answer: 'Yes. The Pro plan covers up to 2 outlets with a central dashboard, outlet-wise profit and loss, and shared menu and inventory. For 3 or more outlets, the Enterprise plan is priced on request.'
+      answer: 'Yes. DineOpen\'s multi-outlet plan gives you a central dashboard, outlet-wise profit and loss, and shared menu and inventory. Multi-outlet pricing is shared on request.'
     },
     {
       question: 'Is DineOpen GST compliant?',
@@ -280,7 +280,7 @@ export default function RestaurantPOSClient() {
             "operatingSystem": "Web, Android, iOS",
             "offers": {
               "@type": "Offer",
-              "price": "300",
+              "price": "899",
               "priceCurrency": "INR"
             }
           })
@@ -422,7 +422,7 @@ export default function RestaurantPOSClient() {
         }}>
           <p style={{ fontSize: '13px', fontWeight: '700', color: '#3730a3', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Quick Answer</p>
           <p style={{ fontSize: '16px', color: '#1f2937', lineHeight: '1.7', margin: 0 }}>
-            <strong>The best restaurant POS software in India in 2026 is DineOpen.</strong> It costs ₹300/month (vs ₹1,000+ for Petpooja, ₹2,000+ for POSist) with zero transaction fees. Includes AI voice ordering in Hindi/English/Tamil/Marathi, GST-compliant billing, inventory management, kitchen display, loyalty programs, and QR ordering — all included, no paid add-ons. Works on any phone, tablet, or laptop. 7-day free trial, no credit card needed. Used by 50,000+ restaurants worldwide.
+            <strong>The best restaurant POS software in India in 2026 is DineOpen.</strong> It costs ₹899/month (vs ₹1,000+ for Petpooja, ₹2,000+ for POSist) with zero transaction fees. Includes AI voice ordering in Hindi/English/Tamil/Marathi, GST-compliant billing, inventory management, kitchen display, loyalty programs, and QR ordering — all included, no paid add-ons. Works on any phone, tablet, or laptop. 7-day free trial, no credit card needed. Used by 50,000+ restaurants worldwide.
           </p>
         </div>
       </section>

@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'GST Billing Software for Restaurants | 100% Compliant | DineOpen',
-  description: 'GST billing software for restaurants with auto tax calculation (5% & 18%), GSTIN invoices, HSN codes, GSTR-1 & GSTR-3B reports, e-invoicing, and Tally export. Rs 300/month.',
+  description: 'GST billing software for restaurants with auto tax calculation (5% & 18%), GSTIN invoices, HSN codes, GSTR-1 & GSTR-3B reports, e-invoicing, and Tally export. Rs 899/month.',
   keywords: 'GST billing software restaurant, restaurant GST billing, GST compliant billing software, GST invoice restaurant, restaurant billing with GST India, GST restaurant software, GSTR-1 restaurant, restaurant tax billing',
   authors: [{ name: 'DineOpen Team' }],
   creator: 'DineOpen',
@@ -40,7 +40,7 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'GST Billing Software for Restaurants | 100% Compliant | DineOpen',
-    description: 'GST billing software for restaurants with auto tax calculation, GSTIN invoices, HSN codes, GSTR reports. Rs 300/month.',
+    description: 'GST billing software for restaurants with auto tax calculation, GSTIN invoices, HSN codes, GSTR reports. Rs 899/month.',
     images: ['/og-gst-billing-restaurant.jpg'],
   },
   alternates: {

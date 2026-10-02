@@ -25,7 +25,7 @@ export default function FloorPlanPage() {
     "url": "https://www.dineopen.com/products/tables/floor-plan",
     "offers": [
       { "@type": "Offer", "price": "9.99", "priceCurrency": "USD" },
-      { "@type": "Offer", "price": "300", "priceCurrency": "INR" }
+      { "@type": "Offer", "price": "899", "priceCurrency": "INR" }
     ],
   };
 

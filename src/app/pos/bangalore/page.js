@@ -27,7 +27,7 @@ export default function BangalorePOSPage() {
     country: 'India',
     currency: '₹',
     currencyCode: 'INR',
-    price: '999',
+    price: '899',
     highlights: [
       'GST-compliant billing for Karnataka',
       'Zomato & Swiggy direct integration',

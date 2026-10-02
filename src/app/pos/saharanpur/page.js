@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS Software Saharanpur | Sweet Shop & Canteen Billing | DineOpen',
-  description: 'Best restaurant POS for Saharanpur. Perfect for sweet shops, industrial canteens, market restaurants & highway dhabas. Quick billing, inventory management. ₹999/month.',
+  description: 'Best restaurant POS for Saharanpur. Perfect for sweet shops, industrial canteens, market restaurants & highway dhabas. Quick billing, inventory management. ₹899/month.',
   keywords: 'restaurant POS Saharanpur, sweet shop billing software, canteen POS Saharanpur, dhaba billing software, Saharanpur restaurant software, namkeen shop POS',
   openGraph: {
     title: 'Restaurant POS Software Saharanpur | Sweet Shop & Canteen | DineOpen',
@@ -22,7 +22,7 @@ export default function SaharanpurPOSPage() {
     "@context": "https://schema.org", "@type": "SoftwareApplication",
     "name": "DineOpen Restaurant POS - Saharanpur",
     "description": "Restaurant POS for Saharanpur's sweet shops, restaurants, and industrial canteens.",
-    "offers": { "@type": "Offer", "price": "999", "priceCurrency": "INR" },
+    "offers": { "@type": "Offer", "price": "899", "priceCurrency": "INR" },
     "areaServed": { "@type": "City", "name": "Saharanpur" }
   };
 

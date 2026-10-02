@@ -27,7 +27,7 @@ export default function CoimbatorePOSPage() {
     country: 'India',
     currency: '₹',
     currencyCode: 'INR',
-    price: '999',
+    price: '899',
     highlights: [
       'GST-compliant billing for Tamil Nadu',
       'Tamil voice ordering & menu display',

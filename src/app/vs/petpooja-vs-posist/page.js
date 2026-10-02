@@ -74,7 +74,7 @@ const faqSchema = {
       "name": "Are there better alternatives to both Petpooja and POSist for restaurants in India?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes. DineOpen is a modern alternative offering AI-powered features (voice ordering, chat assistant, menu extraction) at ₹300/month with zero transaction fees. It is ideal for restaurants that want cutting-edge technology at a fraction of the cost. Other alternatives include Square (better for international businesses) and Toast (popular in the US market)."
+        "text": "Yes. DineOpen is a modern alternative offering AI-powered features (voice ordering, chat assistant, menu extraction) at ₹899/month with zero transaction fees. It is ideal for restaurants that want cutting-edge technology at a fraction of the cost. Other alternatives include Square (better for international businesses) and Toast (popular in the US market)."
       }
     }
   ]

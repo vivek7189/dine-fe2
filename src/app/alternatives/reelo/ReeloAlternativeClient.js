@@ -8,7 +8,7 @@ import { FaCheck, FaTimes, FaGift, FaWhatsapp, FaRupeeSign } from 'react-icons/f
 
 const comparisonData = [
   { feature: 'Loyalty & Rewards', dineopen: '✓ Included FREE', reelo: '✓ Core feature', winner: 'dineopen' },
-  { feature: 'Monthly Price', dineopen: '₹999/mo (all-in-one)', reelo: '₹2,500+/mo (loyalty only)', winner: 'dineopen' },
+  { feature: 'Monthly Price', dineopen: '₹899/mo (all-in-one)', reelo: '₹2,500+/mo (loyalty only)', winner: 'dineopen' },
   { feature: 'POS Billing System', dineopen: '✓ Included', reelo: '✗ Need separate POS', winner: 'dineopen' },
   { feature: 'WhatsApp Campaigns', dineopen: '✓ Included', reelo: '✓ Included', winner: 'tie' },
   { feature: 'AI Voice Ordering', dineopen: '✓ Included', reelo: '✗ Not available', winner: 'dineopen' },
@@ -39,7 +39,7 @@ export default function ReeloAlternativeClient() {
               Get <span style={{ color: '#7c3aed' }}>Reelo Features FREE</span><br />with DineOpen POS
             </h1>
             <p style={{ fontSize: '20px', color: '#6b7280', marginBottom: '32px' }}>
-              Why pay ₹2,500+/month for just loyalty when DineOpen gives you loyalty, POS, AI ordering, QR menus, and inventory - all for ₹999/month?
+              Why pay ₹2,500+/month for just loyalty when DineOpen gives you loyalty, POS, AI ordering, QR menus, and inventory - all for ₹899/month?
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="https://dineopen.com/login" style={{ padding: '16px 32px', backgroundColor: '#7c3aed', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
@@ -66,7 +66,7 @@ export default function ReeloAlternativeClient() {
               </div>
               <div style={{ padding: '28px', backgroundColor: 'white', borderRadius: '16px', textAlign: 'center', border: '2px solid #10b981' }}>
                 <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>With DineOpen (All-in-One)</p>
-                <p style={{ fontSize: '14px', color: '#9ca3af', marginBottom: '16px' }}>POS + Loyalty + AI + QR = ₹999/mo</p>
+                <p style={{ fontSize: '14px', color: '#9ca3af', marginBottom: '16px' }}>POS + Loyalty + AI + QR = ₹899/mo</p>
                 <p style={{ fontSize: '36px', fontWeight: '800', color: '#10b981' }}>₹11,988/year</p>
               </div>
             </div>
@@ -166,7 +166,7 @@ export default function ReeloAlternativeClient() {
         <section style={{ padding: '60px 20px', backgroundColor: '#ede9fe' }}>
           <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
             <p style={{ fontSize: '22px', color: '#5b21b6', fontStyle: 'italic', marginBottom: '24px', lineHeight: 1.6 }}>
-              &quot;We were paying ₹4,000/month for Reelo + our old POS. Switched to DineOpen and now pay ₹999 for everything - loyalty, billing, inventory. The AI ordering is a bonus we didn&apos;t expect!&quot;
+              &quot;We were paying ₹4,000/month for Reelo + our old POS. Switched to DineOpen and now pay ₹899 for everything - loyalty, billing, inventory. The AI ordering is a bonus we didn&apos;t expect!&quot;
             </p>
             <p style={{ fontWeight: '700', color: '#111827' }}>Amit Patel</p>
             <p style={{ fontSize: '14px', color: '#6b7280' }}>Owner, Chai Point Cafe, Ahmedabad</p>

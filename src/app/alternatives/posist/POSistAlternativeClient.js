@@ -7,7 +7,7 @@ import InternalLinks from '../../../components/InternalLinks';
 import { FaRupeeSign, FaMicrophone, FaHeadset, FaStore, FaArrowRight } from 'react-icons/fa';
 
 const comparisonData = [
-  { feature: 'Monthly Price', dineopen: '₹999/month', competitor: '₹2,500-5,000/month', winner: 'dineopen' },
+  { feature: 'Monthly Price', dineopen: '₹899/month', competitor: '₹2,500-5,000/month', winner: 'dineopen' },
   { feature: 'Setup Fee', dineopen: '₹0', competitor: '₹15,000-50,000', winner: 'dineopen' },
   { feature: 'AI Voice Ordering', dineopen: '✓', competitor: '✗', winner: 'dineopen' },
   { feature: 'Multi-language Support', dineopen: '10+ Indian languages', competitor: 'Limited', winner: 'dineopen' },
@@ -34,7 +34,7 @@ export default function POSistAlternativeClient() {
               Looking for a <span style={{ color: '#fcd34d' }}>POSist Alternative</span>?
             </h1>
             <p style={{ fontSize: '20px', opacity: 0.95, marginBottom: '32px', maxWidth: '700px', margin: '0 auto 32px' }}>
-              DineOpen offers everything POSist does plus AI voice ordering in Indian languages. 60% lower cost, no setup fees, no annual contracts.
+              DineOpen offers everything POSist does plus AI voice ordering in Indian languages. Over 50% lower cost, no setup fees, no annual contracts.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="https://dineopen.com/login" style={{ padding: '16px 32px', backgroundColor: 'white', color: '#ea580c', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
@@ -62,7 +62,7 @@ export default function POSistAlternativeClient() {
                 <div>
                   <p style={{ color: '#6b7280', fontSize: '14px' }}>DineOpen</p>
                   <p style={{ fontSize: '32px', fontWeight: '800', color: '#059669' }}>₹11,988/year</p>
-                  <p style={{ fontSize: '12px', color: '#9ca3af' }}>(₹0 setup + ₹999/month)</p>
+                  <p style={{ fontSize: '12px', color: '#9ca3af' }}>(₹0 setup + ₹899/month)</p>
                 </div>
               </div>
               <div style={{ padding: '16px', backgroundColor: '#dcfce7', borderRadius: '8px' }}>
@@ -115,7 +115,7 @@ export default function POSistAlternativeClient() {
               <div style={{ padding: '32px', backgroundColor: '#f9fafb', borderRadius: '16px' }}>
                 <FaRupeeSign size={32} style={{ color: '#ea580c', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px' }}>60% Lower Cost</h3>
-                <p style={{ color: '#6b7280', lineHeight: 1.7 }}>POSist charges ₹2,500-5,000/month plus setup fees. DineOpen is ₹999/month with zero setup cost.</p>
+                <p style={{ color: '#6b7280', lineHeight: 1.7 }}>POSist charges ₹2,500-5,000/month plus setup fees. DineOpen is ₹899/month with zero setup cost.</p>
               </div>
               <div style={{ padding: '32px', backgroundColor: '#f9fafb', borderRadius: '16px' }}>
                 <FaMicrophone size={32} style={{ color: '#ea580c', marginBottom: '16px' }} />

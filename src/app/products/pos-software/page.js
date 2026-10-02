@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS Software India | POS System for Restaurants | DineOpen',
-  description: 'DineOpen POS software for restaurants in India. Cloud-based POS system with billing, menu management, inventory tracking, and online orders. Affordable pricing from ₹300. Best POS for small restaurants, cafes, and cloud kitchens.',
+  description: 'DineOpen POS software for restaurants in India. Cloud-based POS system with billing, menu management, inventory tracking, and online orders. Affordable pricing from ₹899. Best POS for small restaurants, cafes, and cloud kitchens.',
   keywords: 'restaurant POS software, POS system for restaurants, restaurant POS India, cloud POS software, restaurant billing software, POS for small restaurants, restaurant management system',
   openGraph: {
     title: 'Restaurant POS Software India | DineOpen',

@@ -157,7 +157,7 @@ export const hindiBlogPostContent = {
     categoryColor: '#ef4444',
     tags: ['billing software', 'GST billing', 'POS system', 'restaurant software', 'DineOpen'],
     faqs: [
-      { question: 'रेस्टोरेंट बिलिंग सॉफ्टवेयर की कीमत कितनी होती है?', answer: 'बिलिंग सॉफ्टवेयर ₹0 से ₹5,000/month तक होता है। DineOpen का free plan उपलब्ध है जिसमें GST billing, KOT, और basic inventory शामिल है। Paid plans ₹999/month से शुरू होते हैं।' },
+      { question: 'रेस्टोरेंट बिलिंग सॉफ्टवेयर की कीमत कितनी होती है?', answer: 'बिलिंग सॉफ्टवेयर ₹0 से ₹5,000/month तक होता है। DineOpen का free plan उपलब्ध है जिसमें GST billing, KOT, और basic inventory शामिल है। Paid plans ₹899/month से शुरू होते हैं।' },
       { question: 'क्या बिलिंग सॉफ्टवेयर में GST automatic calculate होता है?', answer: 'हाँ, अच्छे billing software जैसे DineOpen में GST automatically calculate होता है। आपको बस अपना GSTIN और GST rate (5% या 18%) set करना है, बाकी software handle करता है।' },
       { question: 'Cloud billing software और offline software में क्या फ़र्क है?', answer: 'Cloud billing software आपका data online save करता है — कहीं से भी access कर सकते हैं। Offline software सिर्फ एक computer पर चलता है। 2026 में cloud software recommend है क्योंकि data safe रहता है और mobile से भी देख सकते हैं।' },
       { question: 'क्या छोटे restaurant को भी billing software चाहिए?', answer: 'बिल्कुल। GST compliance के लिए proper billing ज़रूरी है। छोटे restaurant DineOpen के free plan से शुरू कर सकते हैं — कोई setup cost नहीं, कोई monthly charge नहीं।' },

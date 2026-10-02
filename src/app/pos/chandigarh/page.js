@@ -25,7 +25,7 @@ export default function ChandigarhPOSPage() {
     state: 'Punjab/Haryana',
     country: 'India',
     currency: '₹',
-    price: '999',
+    price: '899',
     highlights: [
       'Hindi & Punjabi voice ordering support',
       'GST-compliant for Punjab & Haryana',
@@ -55,7 +55,7 @@ export default function ChandigarhPOSPage() {
     "operatingSystem": "Web, iOS, Android",
     "offers": {
       "@type": "Offer",
-      "price": "999",
+      "price": "899",
       "priceCurrency": "INR",
       "priceValidUntil": "2026-12-31"
     },

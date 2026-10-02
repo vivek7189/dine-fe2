@@ -55,7 +55,7 @@ export default function HaridwarPOSClient() {
               Serving millions of pilgrims visiting Har Ki Pauri? DineOpen understands Haridwar&apos;s unique needs - pure vegetarian menus, ashram bhojanalayas, and managing pilgrimage crowds.
             </p>
             <p style={{ fontSize: '28px', fontWeight: '700', marginBottom: '32px' }}>
-              Just ₹999/month <span style={{ opacity: 0.8, fontSize: '16px' }}>• No setup fee • Pure Veg features included</span>
+              Just ₹899/month <span style={{ opacity: 0.8, fontSize: '16px' }}>• No setup fee • Pure Veg features included</span>
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="https://dineopen.com/login" style={{ padding: '16px 32px', backgroundColor: 'white', color: '#ea580c', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>

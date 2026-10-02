@@ -63,7 +63,7 @@ export default function AIAgentProductPage() {
     },
     "offers": {
       "@type": "Offer",
-      "price": "999",
+      "price": "899",
       "priceCurrency": "INR",
       "availability": "https://schema.org/InStock",
       "url": "https://www.dineopen.com/products/ai-agent"
@@ -119,7 +119,7 @@ export default function AIAgentProductPage() {
         "name": "Is AI voice ordering included in DineOpen pricing?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes! AI Voice Ordering is included in all DineOpen plans at no extra cost. You get unlimited voice orders starting at just ₹999/month."
+          "text": "Yes! AI Voice Ordering is included in all DineOpen plans at no extra cost. You get unlimited voice orders starting at just ₹899/month."
         }
       }
     ]

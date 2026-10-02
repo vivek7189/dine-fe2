@@ -27,7 +27,7 @@ export default function IndorePOSPage() {
     country: 'India',
     currency: '₹',
     currencyCode: 'INR',
-    price: '999',
+    price: '899',
     highlights: [
       'GST-compliant billing for MP',
       'Hindi voice ordering & menu',

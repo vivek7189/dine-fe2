@@ -27,7 +27,7 @@ export default function MumbaiPOSPage() {
     country: 'India',
     currency: '₹',
     currencyCode: 'INR',
-    price: '999',
+    price: '899',
     highlights: [
       'GST-compliant billing for Maharashtra',
       'Zomato & Swiggy direct integration',

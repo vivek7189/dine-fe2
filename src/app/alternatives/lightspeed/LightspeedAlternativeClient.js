@@ -34,7 +34,7 @@ export default function LightspeedAlternativeClient() {
               Looking for a <span style={{ color: '#fcd34d' }}>Lightspeed Alternative</span>?
             </h1>
             <p style={{ fontSize: '20px', opacity: 0.95, marginBottom: '32px', maxWidth: '700px', margin: '0 auto 32px' }}>
-              DineOpen gives you everything Lightspeed offers plus AI voice ordering at 70% lower cost. No annual contracts, no expensive hardware required.
+              DineOpen gives you everything Lightspeed offers plus AI voice ordering at a fraction of the cost. No annual contracts, no expensive hardware required.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="https://dineopen.com/login" style={{ padding: '16px 32px', backgroundColor: 'white', color: '#4f46e5', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>

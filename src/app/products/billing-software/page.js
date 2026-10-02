@@ -4,7 +4,7 @@ export const dynamic = 'force-static';
 
 export const metadata = {
   title: 'Restaurant Billing Software India | GST Billing System | DineOpen',
-  description: 'Restaurant billing software with GST support for restaurants in India. Generate compliant invoices, calculate taxes automatically, and maintain tax records. Affordable pricing from ₹300.',
+  description: 'Restaurant billing software with GST support for restaurants in India. Generate compliant invoices, calculate taxes automatically, and maintain tax records. Affordable pricing from ₹899.',
   keywords: 'restaurant billing software, GST billing software, restaurant invoice software, billing system for restaurants, GST compliant billing',
   openGraph: {
     title: 'Restaurant Billing Software India | DineOpen',

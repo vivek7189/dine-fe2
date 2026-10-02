@@ -42,7 +42,7 @@ const faqSchema = {
       "name": "What is the main difference between DineOpen and POSist (Restroworks)?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen is built for small-to-medium restaurants with AI-powered features (voice ordering, chat assistant, menu extraction) at an affordable price starting at Rs 300/month with zero transaction fees. POSist (now Restroworks) targets enterprise restaurant chains with 10+ outlets, offering custom pricing typically ranging from Rs 2,000-5,000+/month per outlet with dedicated account managers and on-ground support."
+        "text": "DineOpen is built for small-to-medium restaurants with AI-powered features (voice ordering, chat assistant, menu extraction) at an affordable price starting at Rs 899/month with zero transaction fees. POSist (now Restroworks) targets enterprise restaurant chains with 10+ outlets, offering custom pricing typically ranging from Rs 2,000-5,000+/month per outlet with dedicated account managers and on-ground support."
       }
     },
     {
@@ -50,7 +50,7 @@ const faqSchema = {
       "name": "Is DineOpen cheaper than POSist?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, significantly. DineOpen Starter plan is $20/month (about Rs 300 in India) with all features included and zero transaction fees. POSist uses custom enterprise pricing that typically ranges from Rs 2,000-5,000+ per month per outlet, plus setup fees of Rs 15,000-50,000. For a single-outlet restaurant, DineOpen costs Rs 3,600/year vs POSist at Rs 24,000-60,000+/year. However, POSist includes enterprise-grade features like delivery aggregator integration that DineOpen does not have."
+        "text": "Yes, significantly. DineOpen Starter plan is $20/month (Rs 899 in India) with all features included and zero transaction fees. POSist uses custom enterprise pricing that typically ranges from Rs 2,000-5,000+ per month per outlet, plus setup fees of Rs 15,000-50,000. For a single-outlet restaurant, DineOpen costs Rs 10,788/year vs POSist at Rs 24,000-60,000+/year. However, POSist includes enterprise-grade features like delivery aggregator integration that DineOpen does not have."
       }
     },
     {
@@ -97,7 +97,7 @@ const softwareSchemas = [
     "operatingSystem": "Web, Android, iOS",
     "offers": {
       "@type": "Offer",
-      "price": "300",
+      "price": "899",
       "priceCurrency": "INR",
       "priceValidUntil": "2026-12-31"
     },

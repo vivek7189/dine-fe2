@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS Rishikesh | Yoga Cafe & Vegan Restaurant Billing | DineOpen',
-  description: 'Best restaurant POS for Rishikesh. Perfect for yoga cafes, vegan restaurants, rooftop cafes & ashram kitchens. Multi-currency for international tourists, organic menu tagging. ₹999/month.',
+  description: 'Best restaurant POS for Rishikesh. Perfect for yoga cafes, vegan restaurants, rooftop cafes & ashram kitchens. Multi-currency for international tourists, organic menu tagging. ₹899/month.',
   keywords: 'restaurant POS Rishikesh, yoga cafe software, vegan restaurant POS, organic cafe billing, Rishikesh cafe POS, tourist restaurant software, rooftop cafe billing, ashram kitchen software',
   openGraph: {
     title: 'Restaurant POS Rishikesh | Yoga Cafe & Vegan Billing | DineOpen',
@@ -26,7 +26,7 @@ export default function RishikeshPOSPage() {
     "name": "DineOpen Restaurant POS - Rishikesh",
     "description": "Restaurant POS for Rishikesh yoga cafes, vegan restaurants, and tourist-facing food businesses.",
     "applicationCategory": "BusinessApplication",
-    "offers": { "@type": "Offer", "price": "999", "priceCurrency": "INR" },
+    "offers": { "@type": "Offer", "price": "899", "priceCurrency": "INR" },
     "areaServed": { "@type": "City", "name": "Rishikesh" }
   };
 

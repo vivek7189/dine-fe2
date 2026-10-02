@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS Software Agra | Taj Mahal Area & Tourist Restaurant | DineOpen',
-  description: 'Best restaurant POS for Agra. Perfect for Taj Mahal area restaurants, rooftop cafes, tourist dining. Multi-currency, multi-language menus, tour group billing. ₹999/month.',
+  description: 'Best restaurant POS for Agra. Perfect for Taj Mahal area restaurants, rooftop cafes, tourist dining. Multi-currency, multi-language menus, tour group billing. ₹899/month.',
   keywords: 'restaurant POS Agra, Taj Mahal restaurant software, tourist restaurant billing, Agra cafe POS, rooftop restaurant software, petha shop billing, Agra hotel restaurant',
   openGraph: {
     title: 'Restaurant POS Software Agra | Tourist Restaurant Billing | DineOpen',
@@ -22,7 +22,7 @@ export default function AgraPOSPage() {
     "@context": "https://schema.org", "@type": "SoftwareApplication",
     "name": "DineOpen Restaurant POS - Agra",
     "description": "Restaurant POS for Agra's tourist restaurants, Taj Mahal area cafes, and hospitality businesses.",
-    "offers": { "@type": "Offer", "price": "999", "priceCurrency": "INR" },
+    "offers": { "@type": "Offer", "price": "899", "priceCurrency": "INR" },
     "areaServed": { "@type": "City", "name": "Agra" }
   };
 

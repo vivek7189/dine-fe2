@@ -25,7 +25,7 @@ export default function KolkataPOSPage() {
     state: 'West Bengal',
     country: 'India',
     currency: '₹',
-    price: '999',
+    price: '899',
     highlights: [
       'Bengali language voice ordering support',
       'GST-compliant billing for West Bengal',
@@ -55,7 +55,7 @@ export default function KolkataPOSPage() {
     "operatingSystem": "Web, iOS, Android",
     "offers": {
       "@type": "Offer",
-      "price": "999",
+      "price": "899",
       "priceCurrency": "INR",
       "priceValidUntil": "2026-12-31"
     },

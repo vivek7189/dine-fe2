@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS Software Mussoorie | Hill Station Cafe & Hotel | DineOpen',
-  description: 'Best restaurant POS for Mussoorie. Perfect for Mall Road cafes, hotel restaurants, bakeries & tourist eateries. Valley view seating, seasonal rush management. ₹999/month.',
+  description: 'Best restaurant POS for Mussoorie. Perfect for Mall Road cafes, hotel restaurants, bakeries & tourist eateries. Valley view seating, seasonal rush management. ₹899/month.',
   keywords: 'restaurant POS Mussoorie, Mall Road cafe software, hill station restaurant billing, hotel POS Mussoorie, tourist restaurant software, bakery POS Uttarakhand',
   openGraph: {
     title: 'Restaurant POS Software Mussoorie | Hill Station Cafe & Hotel | DineOpen',
@@ -22,7 +22,7 @@ export default function MussooriePOSPage() {
     "@context": "https://schema.org", "@type": "SoftwareApplication",
     "name": "DineOpen Restaurant POS - Mussoorie",
     "description": "Restaurant POS for Mussoorie's hill station cafes, hotel restaurants, and tourist eateries.",
-    "offers": { "@type": "Offer", "price": "999", "priceCurrency": "INR" },
+    "offers": { "@type": "Offer", "price": "899", "priceCurrency": "INR" },
     "areaServed": { "@type": "City", "name": "Mussoorie" }
   };
 

@@ -36,7 +36,7 @@ const faqSchema = {
       "name": "Is DineOpen free like Zomato Base?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at ₹300/month with a 7-day free trial. Unlike Zomato Base, you get an independent platform with no ecosystem lock-in, AI features, and full data ownership."
+        "text": "DineOpen starts at ₹899/month with a 7-day free trial. Unlike Zomato Base, you get an independent platform with no ecosystem lock-in, AI features, and full data ownership."
       }
     },
     {

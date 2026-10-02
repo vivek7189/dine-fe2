@@ -32,7 +32,7 @@ export default function BestPOSIndiaPage() {
         "name": "What is the best POS system for restaurants in India in 2026?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "The best POS system depends on your restaurant type. For small to mid-size restaurants wanting an affordable all-in-one solution with AI features, DineOpen (starting at ₹300/month) is the most cost-effective. For restaurants that rely heavily on Zomato/Swiggy orders, Petpooja offers the strongest aggregator integration. For large chains with 10+ outlets, POSist (Restroworks) provides enterprise-grade features. Gofrugal suits retail-restaurant hybrid businesses, and Marg ERP is ideal if your priority is accounting and GST compliance over POS features."
+          "text": "The best POS system depends on your restaurant type. For small to mid-size restaurants wanting an affordable all-in-one solution with AI features, DineOpen (starting at ₹899/month) is a cost-effective. For restaurants that rely heavily on Zomato/Swiggy orders, Petpooja offers the strongest aggregator integration. For large chains with 10+ outlets, POSist (Restroworks) provides enterprise-grade features. Gofrugal suits retail-restaurant hybrid businesses, and Marg ERP is ideal if your priority is accounting and GST compliance over POS features."
         }
       },
       {
@@ -40,7 +40,7 @@ export default function BestPOSIndiaPage() {
         "name": "How much does restaurant POS software cost in India?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Restaurant POS pricing in India ranges widely: DineOpen starts at ₹300/month with all features included, Petpooja starts at ₹1,000+/month with additional costs for add-ons, POSist (Restroworks) ranges from ₹2,000-5,000+/month for enterprise features, Gofrugal charges a one-time license fee of ₹15,000-30,000 for desktop software, and Marg ERP costs approximately ₹4,500/year. Most vendors also charge for hardware, installation, and premium support separately."
+          "text": "Restaurant POS pricing in India ranges widely: DineOpen starts at ₹899/month with all features included, Petpooja starts at ₹1,000+/month with additional costs for add-ons, POSist (Restroworks) ranges from ₹2,000-5,000+/month for enterprise features, Gofrugal charges a one-time license fee of ₹15,000-30,000 for desktop software, and Marg ERP costs approximately ₹4,500/year. Most vendors also charge for hardware, installation, and premium support separately."
         }
       },
       {
@@ -56,7 +56,7 @@ export default function BestPOSIndiaPage() {
         "name": "Which POS system works best for small dhabas and budget restaurants in India?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "For small dhabas and budget restaurants, DineOpen is the most practical choice at ₹300/month with no per-transaction fees. It works on any Android phone or tablet, requires no special hardware, and offers offline billing for areas with unreliable internet. Marg ERP at ₹4,500/year is another budget option but requires a desktop computer and has a steeper learning curve. Many small restaurants also start with Petpooja but find the add-on costs accumulate beyond the base price."
+          "text": "For small dhabas and budget restaurants, DineOpen is the most practical choice at ₹899/month with no per-transaction fees. It works on any Android phone or tablet, requires no special hardware, and offers offline billing for areas with unreliable internet. Marg ERP at ₹4,500/year is another budget option but requires a desktop computer and has a steeper learning curve. Many small restaurants also start with Petpooja but find the add-on costs accumulate beyond the base price."
         }
       },
       {

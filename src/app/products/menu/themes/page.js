@@ -43,8 +43,8 @@ export default function ThemesPage() {
     "operatingSystem": "Web, iOS, Android",
     "url": "https://www.dineopen.com/products/menu/themes",
     "offers": [
-      { "@type": "Offer", "price": "9.99", "priceCurrency": "USD", "description": "All themes included in Spark Plan" },
-      { "@type": "Offer", "price": "89", "priceCurrency": "USD", "description": "All themes included in Blaze Plan" }
+      { "@type": "Offer", "price": "9.99", "priceCurrency": "USD", "description": "All themes included in every plan" },
+      { "@type": "Offer", "price": "89", "priceCurrency": "USD", "description": "All themes included in every plan" }
     ],
     "featureList": [
       "Default theme - Clean modern layout",

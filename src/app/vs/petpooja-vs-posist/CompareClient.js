@@ -415,7 +415,7 @@ export default function CompareClient() {
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
               {[
-                { label: 'Monthly Price', value: '₹300/month' },
+                { label: 'Monthly Price', value: '₹899/month' },
                 { label: 'Transaction Fees', value: '0% (Zero)' },
                 { label: 'AI Features', value: 'Voice ordering, Chat assistant, Menu extraction' },
                 { label: 'Free Trial', value: '7 days, full access' },
@@ -427,7 +427,7 @@ export default function CompareClient() {
               ))}
             </div>
             <p style={{ fontSize: '15px', color: '#4b5563', lineHeight: '1.7', margin: '0 0 20px 0' }}>
-              DineOpen is especially worth considering if you want cutting-edge AI automation (voice ordering, WhatsApp ordering) without the high costs of traditional POS platforms. At ₹300/month with zero transaction fees, it&apos;s a fraction of the cost of either Petpooja or POSist.
+              DineOpen is especially worth considering if you want cutting-edge AI automation (voice ordering, WhatsApp ordering) without the high costs of traditional POS platforms. At ₹899/month with zero transaction fees, it&apos;s a fraction of the cost of either Petpooja or POSist.
             </p>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
               <Link href="/alternatives/petpooja" style={{
@@ -499,7 +499,7 @@ export default function CompareClient() {
               },
               {
                 q: 'Are there alternatives to both Petpooja and POSist?',
-                a: 'Yes. DineOpen offers AI-powered features at ₹300/month with zero transaction fees. It is a modern alternative for restaurants wanting automation at a lower price point.',
+                a: 'Yes. DineOpen offers AI-powered features at ₹899/month with zero transaction fees. It is a modern alternative for restaurants wanting automation at a lower price point.',
               },
             ].map((faq, i) => (
               <div key={i} style={{

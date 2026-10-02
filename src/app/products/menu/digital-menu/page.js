@@ -43,8 +43,8 @@ export default function DigitalMenuPage() {
     "operatingSystem": "Web, iOS, Android",
     "url": "https://www.dineopen.com/products/menu/digital-menu",
     "offers": [
-      { "@type": "Offer", "price": "9.99", "priceCurrency": "USD", "description": "Spark Plan" },
-      { "@type": "Offer", "price": "89", "priceCurrency": "USD", "description": "Blaze Plan" }
+      { "@type": "Offer", "price": "20", "priceCurrency": "USD", "description": "Starter Plan" },
+      { "@type": "Offer", "price": "99", "priceCurrency": "USD", "description": "Pro Plan" }
     ],
     "featureList": [
       "6 menu themes",

@@ -21,7 +21,7 @@ export default function StockPage() {
     "applicationCategory": "BusinessApplication",
     "description": "Real-time restaurant stock tracking with barcode support, low stock alerts, expiry tracking, and usage analytics.",
     "url": "https://www.dineopen.com/products/inventory/stock",
-    "offers": [{ "@type": "Offer", "price": "9.99", "priceCurrency": "USD" }, { "@type": "Offer", "price": "300", "priceCurrency": "INR" }],
+    "offers": [{ "@type": "Offer", "price": "9.99", "priceCurrency": "USD" }, { "@type": "Offer", "price": "899", "priceCurrency": "INR" }],
   };
   const faqSchema = {
     "@context": "https://schema.org", "@type": "FAQPage",

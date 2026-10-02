@@ -19,7 +19,7 @@ DineOpen is a cloud-based restaurant management platform trusted by 50,000+ rest
 - Growth: $50/month (£40 · AED 185 · SAR 190) — adds AI voice ordering, captain/waiter app, KDS, advanced inventory, loyalty, online & WhatsApp ordering
 - Pro: $99/month (£79 · AED 365 · SAR 370) — up to 2 outlets, chain dashboard, cross-outlet analytics, API access
 - Enterprise: custom — 3+ outlets
-- India: custom pricing and launch offers (contact for a quote)
+- India: plans from ₹899/month (includes AI voice ordering, KDS, loyalty); multi-outlet pricing on request
 - Annual billing saves ~17%. 7-day free trial, no credit card. Full details: https://www.dineopen.com/pricing
 
 ## Core Features
@@ -171,7 +171,7 @@ Multi-restaurant management, staff CRUD with role-based access (owner/manager/wa
 DineOpen is a cloud-based restaurant operating system that includes POS billing, AI-powered voice and chat ordering, waiter/captain apps, table reservations, inventory management, kitchen display system, analytics, and loyalty programs. It works on any device with no hardware installation needed.
 
 ### How much does DineOpen cost?
-Starter $20/month, Growth $50/month, Pro $99/month (up to 2 outlets); local prices in GBP, AED and SAR; custom pricing in India and for 3+ outlets. All plans include a 7-day free trial with no credit card required, zero transaction fees, and unlimited menu items.
+Starter $20/month, Growth $50/month, Pro $99/month (up to 2 outlets); local prices in GBP, AED and SAR; India from ₹899/month; custom pricing for 3+ outlets. All plans include a 7-day free trial with no credit card required, zero transaction fees, and unlimited menu items.
 
 ### What countries does DineOpen serve?
 DineOpen serves restaurants in USA, UK, India, UAE, Singapore, Canada, Australia, and 20+ other countries. The platform is cloud-based with localized billing, tax compliance, and payment gateway support for each region.

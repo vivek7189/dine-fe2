@@ -25,7 +25,7 @@ export default function HyderabadPOSPage() {
     state: 'Telangana',
     country: 'India',
     currency: '₹',
-    price: '999',
+    price: '899',
     highlights: [
       'Telugu & Urdu language voice ordering',
       'GST-compliant billing for Telangana',
@@ -55,7 +55,7 @@ export default function HyderabadPOSPage() {
     "operatingSystem": "Web, iOS, Android",
     "offers": {
       "@type": "Offer",
-      "price": "999",
+      "price": "899",
       "priceCurrency": "INR",
       "priceValidUntil": "2026-12-31"
     },

@@ -22,7 +22,7 @@ export default function ShimlaPOSPage() {
     "@context": "https://schema.org", "@type": "SoftwareApplication",
     "name": "DineOpen Restaurant POS - Shimla",
     "description": "Restaurant POS for Shimla's Mall Road cafes, heritage restaurants, and hotel dining.",
-    "offers": { "@type": "Offer", "price": "999", "priceCurrency": "INR" },
+    "offers": { "@type": "Offer", "price": "899", "priceCurrency": "INR" },
     "areaServed": { "@type": "City", "name": "Shimla" }
   };
 

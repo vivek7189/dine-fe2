@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS Software Haridwar | Pure Veg Billing | Ashram & Dharamshala | DineOpen',
-  description: 'Best restaurant POS for Haridwar. Perfect for pure vegetarian restaurants, ashram bhojanalayas, dharamshala canteens & pilgrimage cafes. No onion-garlic tagging, sattvic menu support. ₹999/month.',
+  description: 'Best restaurant POS for Haridwar. Perfect for pure vegetarian restaurants, ashram bhojanalayas, dharamshala canteens & pilgrimage cafes. No onion-garlic tagging, sattvic menu support. ₹899/month.',
   keywords: 'restaurant POS Haridwar, vegetarian restaurant software, ashram billing software, dharamshala POS, Haridwar cafe billing, pure veg POS, sattvic restaurant software, pilgrimage restaurant POS, bhojanshala billing',
   openGraph: {
     title: 'Restaurant POS Software Haridwar | Pure Veg & Ashram Billing | DineOpen',
@@ -29,7 +29,7 @@ export default function HaridwarPOSPage() {
     "operatingSystem": "Web, iOS, Android",
     "offers": {
       "@type": "Offer",
-      "price": "999",
+      "price": "899",
       "priceCurrency": "INR"
     },
     "areaServed": {
