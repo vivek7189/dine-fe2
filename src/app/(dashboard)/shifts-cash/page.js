@@ -28,8 +28,9 @@ import {
   LuChevronUp,
   LuPrinter,
 } from 'react-icons/lu';
-import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '@/utils/printBridge';
 import { buildShiftSummaryHtml } from '@/utils/printTemplates/shift/summary';
+import { buildReportSlip } from '@/utils/printTemplates/report';
+import { printReport } from '@/utils/printReport';
 import { fmtTime, fmtDate } from '../../../lib/restaurantTime';
 
 // ── Styles ──────────────────────────────────────────────────────────────────
@@ -426,11 +427,20 @@ export default function ShiftsCashPage() {
         notes: closeNotes?.trim() || undefined,
       }, printSettings);
 
-      if (supportsNativeAutoPrint()) {
-        await printDocument({ html, type: 'bill', printSettings });
-      } else {
-        await printHtmlInHiddenFrame(html);
-      }
+      // Same slip as text for the mobile app's thermal printer (it printed a 'data unavailable'
+      // placeholder before — the app gets no HTML for a "bill" with no order).
+      const money = (n) => `${getCurrencySymbol ? getCurrencySymbol() : ''}${(Number(n) || 0).toFixed(2)}`;
+      const { text } = buildReportSlip({
+        restaurantName: printSettings.receiptName || user.restaurantName || user.restaurant?.name || 'Restaurant',
+        title: 'END OF SHIFT REPORT',
+        subLines: [shift?.cashierName || shift?.userName || user.name || ''],
+        sections: [
+          { rows: [['Opened', shift?.openedAt ? `${fmtDate(shift.openedAt)} ${fmtTime(shift.openedAt)}` : '-'], ['Closed', `${fmtDate(s.closedAt || Date.now())} ${fmtTime(s.closedAt || Date.now())}`]] },
+          { title: 'Sales', rows: [['Cash', money(s.cashSales)], ['Card', money(s.cardSales)], ['UPI', money(s.upiSales)], ['Total Sales', money(s.totalSales), true]] },
+          { title: 'Cash Drawer', rows: [['Opening Cash', money(s.openingCash)], ['Cash In', money(s.cashIn)], ['Cash Out', money(s.cashOut)], ['Expected Cash', money(s.expectedCash), true], ['Closing Cash', money(s.closingCash), true], ['Difference', money(s.cashDifference), true], ['Total Orders', String(s.orderCount ?? '-')]] },
+        ],
+      }, printSettings);
+      await printReport({ html, text }, { printSettings, label: 'Shift summary' });
     } catch (err) {
       setError('Could not print shift report: ' + (err?.message || 'unknown error'));
     } finally {
@@ -1279,6 +1289,68 @@ function DownloadReportSection({ restaurantId, formatCurrency: fmtCurrency }) {
   const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
   const isOwnerAdmin = ['owner', 'admin'].includes((user.role || '').toLowerCase());
 
+  // ── Print Report: same shifts + filters as the download, printed the way this device prints
+  // bills (desktop app → bill printer silently, mobile app → its printer, web → print dialog).
+  const [printing, setPrinting] = useState(null); // 'my' | 'all' | null
+  const [printMsg, setPrintMsg] = useState(null); // { ok, text }
+  const handlePrint = async (staffId) => {
+    if (!restaurantId || printing) return;
+    setPrinting(staffId ? 'my' : 'all');
+    setPrintMsg(null);
+    try {
+      let printSettings = {};
+      try { const ps = await apiClient.getPrintSettings(restaurantId); printSettings = ps?.printSettings || {}; } catch { /* defaults */ }
+      const res = await apiClient.getShiftReportData(restaurantId, { startDate: reportStartDate, endDate: reportEndDate, staffId });
+      const shifts = Array.isArray(res?.shifts) ? res.shifts : [];
+      const money = (n) => fmtCurrency(Number(n) || 0);
+      const sum = (k) => shifts.reduce((t, x) => t + (Number(x[k]) || 0), 0);
+      const closed = shifts.filter(x => x.status !== 'open' && x.closingCash != null);
+      const nameOf = (x) => x.openedBy?.name || x.cashierName || x.userName || 'Staff';
+      const range = reportStartDate === reportEndDate
+        ? fmtDate(reportStartDate + 'T12:00:00')
+        : `${fmtDate(reportStartDate + 'T12:00:00')} - ${fmtDate(reportEndDate + 'T12:00:00')}`;
+      const other = sum('aggregatorSales') + sum('otherSales');
+      const summaryRows = [
+        ['Shifts', String(shifts.length)],
+        ['Orders', String(sum('orderCount'))],
+        ['Total Sales', money(sum('totalSales')), true],
+        ['Cash', money(sum('cashSales'))],
+        ['Card', money(sum('cardSales'))],
+        ['UPI', money(sum('upiSales'))],
+        ...(other > 0 ? [['Other', money(other)]] : []),
+        ['Cash In', money(sum('cashIn'))],
+        ['Cash Out', money(sum('cashOut'))],
+        ...(closed.length ? [['Cash Difference', money(closed.reduce((t, x) => t + (Number(x.cashDifference) || 0), 0)), true]] : []),
+      ];
+      const shiftSections = shifts.slice(0, 40).map(x => ({
+        title: `${nameOf(x)}${x.status === 'open' ? ' (open)' : ''}`,
+        rows: [
+          `${fmtDate(x.openedAt)} ${fmtTime(x.openedAt)} - ${x.closedAt ? fmtTime(x.closedAt) : 'now'}`,
+          ['Sales', money(x.totalSales), true],
+          ['Cash / Card / UPI', `${money(x.cashSales)} / ${money(x.cardSales)} / ${money(x.upiSales)}`],
+          ['Orders', String(x.orderCount || 0)],
+          ['Expected Cash', money(x.expectedCash)],
+          ...(x.closingCash != null ? [['Counted Cash', money(x.closingCash)], ['Difference', money(x.cashDifference), true]] : []),
+        ],
+      }));
+      const slip = buildReportSlip({
+        restaurantName: printSettings.receiptName || user.restaurantName || user.restaurant?.name || 'Restaurant',
+        title: 'SHIFT REPORT',
+        subLines: [range, staffId ? `Staff: ${shifts[0] ? nameOf(shifts[0]) : (user.name || 'Me')}` : 'All staff'],
+        sections: shifts.length
+          ? [{ title: 'Summary', rows: summaryRows }, ...shiftSections]
+          : [{ rows: ['No shifts in this period.'] }],
+        footerNote: shifts.length > 40 ? `Showing 40 of ${shifts.length} shifts — download the report for all.` : '',
+      }, printSettings);
+      const r = await printReport(slip, { printSettings, label: 'Shift report' });
+      setPrintMsg({ ok: true, text: r.method === 'dialog' ? 'Print dialog opened' : 'Sent to printer' });
+    } catch (err) {
+      setPrintMsg({ ok: false, text: err?.message || 'Could not print the report' });
+    } finally {
+      setPrinting(null);
+    }
+  };
+
   const handleDownload = async (staffId) => {
     if (!restaurantId) return;
     setDownloading(true);
@@ -1438,6 +1510,29 @@ function DownloadReportSection({ restaurantId, formatCurrency: fmtCurrency }) {
           >
             {downloading && downloadType === 'all' ? 'Downloading...' : `All Staff Report (${reportFormat.toUpperCase()})`}
           </button>
+        )}
+      </div>
+
+      {/* Print buttons — same period / staff as the downloads */}
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '10px', alignItems: 'center' }}>
+        <button
+          onClick={() => handlePrint(user.userId || user.id)}
+          disabled={!!printing}
+          style={{ ...btnBase, background: 'white', color: '#1e293b', border: '1px solid #cbd5e1', padding: '11px 20px', fontSize: '14px', fontWeight: '700', borderRadius: '12px', cursor: printing ? 'not-allowed' : 'pointer', opacity: printing && printing !== 'my' ? 0.6 : 1 }}
+        >
+          {printing === 'my' ? 'Printing...' : '🖨 Print My Report'}
+        </button>
+        {isOwnerAdmin && (
+          <button
+            onClick={() => handlePrint(null)}
+            disabled={!!printing}
+            style={{ ...btnBase, background: 'white', color: '#1e293b', border: '1px solid #cbd5e1', padding: '11px 20px', fontSize: '14px', fontWeight: '700', borderRadius: '12px', cursor: printing ? 'not-allowed' : 'pointer', opacity: printing && printing !== 'all' ? 0.6 : 1 }}
+          >
+            {printing === 'all' ? 'Printing...' : '🖨 Print All Staff Report'}
+          </button>
+        )}
+        {printMsg && (
+          <span style={{ fontSize: '12px', fontWeight: 600, color: printMsg.ok ? '#16a34a' : '#dc2626' }}>{printMsg.text}</span>
         )}
       </div>
 

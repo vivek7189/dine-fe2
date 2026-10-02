@@ -2720,6 +2720,15 @@ class ApiClient {
   shiftCashInOut(shiftId, data) { return this.request(`/api/shifts-cash/${shiftId}/cash-in-out`, { method: 'POST', body: data }); }
   getAllActiveShifts(restaurantId) { return this.request(`/api/shifts-cash/${restaurantId}/active-all`); }
   getShiftHistory(restaurantId, params) { const qs = params ? '?' + new URLSearchParams(params).toString() : ''; return this.request(`/api/shifts-cash/${restaurantId}/history${qs}`); }
+  // Same shifts as the xlsx/csv, as data — for Shifts & Cash → Print Report.
+  async getShiftReportData(restaurantId, opts = {}) {
+    const params = new URLSearchParams({ format: 'json' });
+    if (opts.startDate) params.set('startDate', opts.startDate);
+    if (opts.endDate) params.set('endDate', opts.endDate);
+    if (opts.staffId) params.set('staffId', opts.staffId);
+    return this.request(`/api/shifts-cash/${restaurantId}/report?${params.toString()}`);
+  }
+
   async downloadShiftReport(restaurantId, opts = {}) {
     const params = new URLSearchParams();
     if (opts.format) params.set('format', opts.format);

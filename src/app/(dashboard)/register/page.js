@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import apiClient from '@/lib/api';
+import { buildReportSlip } from '@/utils/printTemplates/report';
+import { printReport } from '@/utils/printReport';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import ProvisionalSyncBanner from '@/components/ProvisionalSyncBanner';
 import { getDenominationLabels, buildDenomState, getQuickPresets, computeDenomTotal } from '@/lib/denominationData';
@@ -405,54 +407,50 @@ export default function RegisterPage() {
     }
   };
 
-  // ── Print Z-Report ───────────────────────────────────────────────────
-  const handlePrintReport = (summary, reportTitle = 'Z-REPORT / EOD SUMMARY') => {
-    const s = summary;
+  // ── Print X / Z report ───────────────────────────────────────────────
+  // Printed the way this device prints bills: desktop app → bill printer (silent), mobile app →
+  // its connected printer, web → print dialog (was a popup window everywhere).
+  const [reportPrintMsg, setReportPrintMsg] = useState(null);
+  const handlePrintReport = async (summary, reportTitle = 'Z-REPORT / EOD SUMMARY') => {
+    const s = summary || {};
     const fc = formatCurrency;
     const diff = s.cashDifference ?? ((s.closingCash || 0) - (s.expectedCash || 0));
-    const html = `<!DOCTYPE html><html><head><title>${reportTitle}</title>
-<style>
-body{font-family:'Courier New',monospace;width:300px;margin:0 auto;padding:16px;font-size:12px;color:#000;}
-.center{text-align:center;}.bold{font-weight:bold;}
-.line{border-top:1px dashed #000;margin:8px 0;}
-.row{display:flex;justify-content:space-between;padding:2px 0;}
-@media print{body{margin:0;padding:8px;}}
-</style></head><body>
-<div class="center bold">${reportTitle}</div>
-<div class="center">${restaurantName}</div>
-<div class="center">${fmtDateTime(s.closedAt || s.reportGeneratedAt || new Date())}</div>
-<div class="center">Operator: ${s.operatorName || register?.operatorName || register?.openedByName || '-'}</div>
-<div class="line"></div>
-<div class="bold">SALES</div>
-<div class="row"><span>Total Sales</span><span>${fc(s.totalSales || 0)}</span></div>
-<div class="row"><span>Cash Sales</span><span>${fc(s.cashSales || 0)}</span></div>
-<div class="row"><span>Card Sales</span><span>${fc(s.cardSales || 0)}</span></div>
-<div class="row"><span>UPI Sales</span><span>${fc(s.upiSales || 0)}</span></div>
-<div class="row"><span>Aggregator</span><span>${fc(s.aggregatorSales || 0)}</span></div>
-<div class="row"><span>Other</span><span>${fc(s.otherSales || 0)}</span></div>
-<div class="line"></div>
-<div class="row"><span>Total Orders</span><span>${s.orderCount || 0}</span></div>
-<div class="line"></div>
-<div class="bold">TIPS & CHARGES</div>
-<div class="row"><span>Cash Tips</span><span>${fc(s.cashTips || 0)}</span></div>
-<div class="row"><span>Card/UPI Tips</span><span>${fc(s.cardTips || 0)}</span></div>
-<div class="row"><span>Service Charge</span><span>${fc(s.serviceChargeCollected || 0)}</span></div>
-<div class="line"></div>
-<div class="bold">CASH FLOW</div>
-<div class="row"><span>Opening Cash</span><span>${fc(s.openingCash || 0)}</span></div>
-<div class="row"><span>+ Cash In</span><span>${fc(s.cashIn || 0)}</span></div>
-<div class="row"><span>- Cash Out</span><span>${fc(s.cashOut || 0)}</span></div>
-<div class="row"><span>- Cash Drops</span><span>${fc(s.cashDrops || 0)}</span></div>
-<div class="line"></div>
-<div class="bold">RECONCILIATION</div>
-<div class="row bold"><span>Expected Cash</span><span>${fc(s.expectedCash || 0)}</span></div>
-${s.closingCash !== undefined ? `<div class="row bold"><span>Closing Cash</span><span>${fc(s.closingCash || 0)}</span></div>` : ''}
-<div class="line"></div>
-${s.closingCash !== undefined ? `<div class="row bold"><span>Difference</span><span>${diff >= 0 ? '+' : ''}${fc(diff)}</span></div><div class="line"></div>` : ''}
-<div class="center" style="margin-top:16px;font-size:10px;">Powered by DineOpen</div>
-</body></html>`;
-    const w = window.open('', '_blank', 'width=350,height=700');
-    if (w) { w.document.write(html); w.document.close(); w.print(); }
+    let printSettings = {};
+    try { const ps = await apiClient.getPrintSettings(restaurantId); printSettings = ps?.printSettings || {}; } catch { /* defaults */ }
+    const hasClosing = s.closingCash !== undefined && s.closingCash !== null;
+    const slip = buildReportSlip({
+      restaurantName: printSettings.receiptName || restaurantName,
+      title: reportTitle,
+      subLines: [
+        fmtDateTime(s.closedAt || s.reportGeneratedAt || new Date()),
+        `Operator: ${s.operatorName || register?.operatorName || register?.openedByName || '-'}`,
+      ],
+      sections: [
+        { title: 'Sales', rows: [
+          ['Total Sales', fc(s.totalSales || 0), true], ['Cash Sales', fc(s.cashSales || 0)], ['Card Sales', fc(s.cardSales || 0)],
+          ['UPI Sales', fc(s.upiSales || 0)], ['Aggregator', fc(s.aggregatorSales || 0)], ['Other', fc(s.otherSales || 0)],
+          ['Total Orders', String(s.orderCount || 0)],
+        ] },
+        { title: 'Tips & Charges', rows: [
+          ['Cash Tips', fc(s.cashTips || 0)], ['Card/UPI Tips', fc(s.cardTips || 0)], ['Service Charge', fc(s.serviceChargeCollected || 0)],
+        ] },
+        { title: 'Cash Flow', rows: [
+          ['Opening Cash', fc(s.openingCash || 0)], ['+ Cash In', fc(s.cashIn || 0)], ['- Cash Out', fc(s.cashOut || 0)], ['- Cash Drops', fc(s.cashDrops || 0)],
+        ] },
+        { title: 'Reconciliation', rows: [
+          ['Expected Cash', fc(s.expectedCash || 0), true],
+          ...(hasClosing ? [['Closing Cash', fc(s.closingCash || 0), true], ['Difference', `${diff >= 0 ? '+' : ''}${fc(diff)}`, true]] : []),
+        ] },
+      ],
+    }, printSettings);
+    setReportPrintMsg(null);
+    try {
+      const r = await printReport(slip, { printSettings, label: reportTitle });
+      setReportPrintMsg({ ok: true, text: r.method === 'dialog' ? 'Print dialog opened' : 'Sent to printer' });
+    } catch (err) {
+      setReportPrintMsg({ ok: false, text: err?.message || 'Could not print the report' });
+    }
+    setTimeout(() => setReportPrintMsg(null), 6000);
   };
 
   // ── Computed values ─────────────────────────────────────────────────────
@@ -482,6 +480,11 @@ ${s.closingCash !== undefined ? `<div class="row bold"><span>Difference</span><s
 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', padding: '24px 16px' }}>
+      {reportPrintMsg && (
+        <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 10050, padding: '10px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, background: reportPrintMsg.ok ? '#f0fdf4' : '#fef2f2', color: reportPrintMsg.ok ? '#166534' : '#b91c1c', border: `1px solid ${reportPrintMsg.ok ? '#bbf7d0' : '#fecaca'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }}>
+          {reportPrintMsg.text}
+        </div>
+      )}
       {/* Header */}
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a', margin: '0 0 4px' }}>
