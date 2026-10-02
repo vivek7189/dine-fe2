@@ -5,6 +5,12 @@ import { FaClock, FaCheck, FaTimes, FaSpinner, FaSave } from 'react-icons/fa';
 import apiClient from '../../lib/api';
 import { getRoleColor, DAYS_OF_WEEK, DAYS_FULL } from './constants';
 
+// The server stores weekdays as mon … sun (one spelling for the app, this grid and the rota check).
+// This grid keeps its Monday … Sunday keys internally and converts when loading / saving.
+const SHORT = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+const fromServer = (a = {}) => Object.fromEntries(DAYS_FULL.map((D, i) => [D, a[SHORT[i]] || a[D] || a[D.toLowerCase()]]).filter(([, v]) => v));
+const toServer = (grid = {}) => Object.fromEntries(DAYS_FULL.map((D, i) => [SHORT[i], grid[D]]).filter(([, v]) => v));
+
 const DEFAULT_AVAILABILITY = DAYS_FULL.reduce((acc, day) => {
   acc[day.toLowerCase()] = { available: true, startTime: '09:00', endTime: '22:00' };
   return acc;
@@ -35,7 +41,7 @@ export default function AvailabilityTab({ restaurantId, staff, isMobile, onAvail
       const res = await apiClient.getAllStaffAvailability(restaurantId);
       const all = res?.availability || {};
       for (const member of activeStaff) {
-        avail[member.id] = { ...DEFAULT_AVAILABILITY, ...(all[member.id]?.availability || {}) };
+        avail[member.id] = { ...DEFAULT_AVAILABILITY, ...fromServer(all[member.id]?.availability || {}) };
         off[member.id] = all[member.id]?.unavailableDates || [];
       }
     } catch {
@@ -70,7 +76,7 @@ export default function AvailabilityTab({ restaurantId, staff, isMobile, onAvail
     setSaving(staffId);
     try {
       const updated = { ...(availability[staffId] || DEFAULT_AVAILABILITY), [day]: editForm };
-      await apiClient.updateStaffAvailability(staffId, { availability: updated });
+      await apiClient.updateStaffAvailability(staffId, { availability: toServer(updated) });
       setAvailability(prev => ({ ...prev, [staffId]: updated }));
       setEditingCell(null);
       if (onAvailabilityChanged) onAvailabilityChanged();
