@@ -46,11 +46,6 @@ export default function BakeriesClient() {
     'Festival season bulk order management'
   ];
 
-  const testimonial = {
-    quote: 'Last Diwali we had 500+ advance orders. DineOpen helped us track every single one with delivery dates. Not a single order was missed!',
-    author: 'Meena Patel',
-    business: 'Sweet Delights Bakery, Ahmedabad'
-  };
 
   const faqs = [
     {
@@ -90,7 +85,6 @@ export default function BakeriesClient() {
       heroDescription="From daily bread sales to custom wedding cakes - DineOpen helps bakeries manage orders, track perishable inventory, and never miss a birthday reminder with smart bakery software."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Bake Up Better Business?"
       ctaDescription="Join bakeries using DineOpen for organized orders and happy customers."

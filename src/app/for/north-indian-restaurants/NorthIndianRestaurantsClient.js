@@ -46,11 +46,6 @@ export default function NorthIndianRestaurantsClient() {
     'Item-wise profitability tracking'
   ];
 
-  const testimonial = {
-    quote: 'Our tandoor used to be the bottleneck. DineOpen queues naan orders intelligently - kitchen knows exactly what\'s coming. No more cold rotis, no more angry customers. Dinner service is finally smooth.',
-    author: 'Harpreet Singh',
-    business: 'Punjab Da Dhaba, Delhi'
-  };
 
   const faqs = [
     {
@@ -90,7 +85,6 @@ export default function NorthIndianRestaurantsClient() {
       heroDescription="Tandoor management, butter chicken by the half, dal makhani alerts - DineOpen understands North Indian restaurants. From Punjabi dhabas to Mughlai fine dining, features built for how you actually cook and serve."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Serve North Indian Perfection?"
       ctaDescription="Join hundreds of North Indian restaurants using DineOpen for smoother kitchen operations."

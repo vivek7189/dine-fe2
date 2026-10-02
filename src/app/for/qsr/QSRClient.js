@@ -46,11 +46,6 @@ export default function QSRClient() {
     'Real-time sales & productivity analytics'
   ];
 
-  const testimonial = {
-    quote: 'Speed is everything in QSR. DineOpen cut our average order time from 2 minutes to 45 seconds. Self-ordering QR codes handle 40% of our lunch rush now. Game changer!',
-    author: 'Amit Jain',
-    business: 'Burger Barn, Delhi'
-  };
 
   const faqs = [
     {
@@ -90,7 +85,6 @@ export default function QSRClient() {
       heroDescription="Quick service restaurants need quick systems. DineOpen is optimized for high-volume, fast-paced operations with self-ordering, combo meals, and lightning-fast checkout."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Speed Up Your Service?"
       ctaDescription="Join QSR brands using DineOpen to serve more customers, faster."

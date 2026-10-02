@@ -48,11 +48,6 @@ export default function PubsBreweriesClient() {
     'Late-night staff management'
   ];
 
-  const testimonial = {
-    quote: 'We have 12 beers on tap. DineOpen tracks every pour and tells us keg levels. Happy hour prices switch automatically. Inventory shrinkage dropped 30%!',
-    author: 'Rohit Kapoor',
-    business: 'Toit Brewpub, Bangalore'
-  };
 
   const faqs = [
     {
@@ -92,7 +87,6 @@ export default function PubsBreweriesClient() {
       heroDescription="Draft beers, craft cocktails, open tabs - DineOpen helps pubs and microbreweries manage kegs, happy hours, inventory, and late-night operations flawlessly."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Pour Smarter?"
       ctaDescription="Join leading pubs and breweries across India using DineOpen for better bar management."

@@ -48,11 +48,6 @@ export default function SweetShopsClient() {
     'Daily production tracking'
   ];
 
-  const testimonial = {
-    quote: 'During Diwali, we used to have 2-hour queues. With DineOpen weighing scale integration, we bill in seconds. Our festival sales doubled because we could serve more customers!',
-    author: 'Ramesh Halwai',
-    business: 'Shree Krishna Sweets, Ahmedabad'
-  };
 
   const faqs = [
     {
@@ -92,7 +87,6 @@ export default function SweetShopsClient() {
       heroDescription="From weight-based billing to festival rush management - DineOpen helps halwais, mithai shops, and namkeen stores serve faster with accurate billing and GST compliance."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Sweeten Your Business?"
       ctaDescription="Join thousands of sweet shops across India using DineOpen for faster billing."

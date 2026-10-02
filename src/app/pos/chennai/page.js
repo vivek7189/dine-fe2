@@ -34,11 +34,6 @@ export default function ChennaiPOSPage() {
       'Beach-side QR ordering for outdoor venues',
       'South Indian thali management features',
     ],
-    testimonial: {
-      quote: 'DineOpen understands Chennai restaurants. The Tamil voice ordering feature is amazing - our staff picked it up in one day. GST billing is automatic and accurate.',
-      author: 'Karthik Rajan',
-      business: 'Namma Saapadu Restaurant',
-    },
     localKeywords: [
       'T. Nagar', 'Anna Nagar', 'Adyar', 'Velachery', 'OMR', 'ECR',
       'Mylapore', 'Besant Nagar', 'Porur', 'Vadapalani', 'Guindy',

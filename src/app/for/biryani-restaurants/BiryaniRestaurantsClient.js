@@ -46,11 +46,6 @@ export default function BiryaniRestaurantsClient() {
     'Rice & meat inventory tracking per batch'
   ];
 
-  const testimonial = {
-    quote: 'We serve 300 biryanis on weekends. DineOpen batch tracking ensures every biryani is fresh from dum. Portion management saved us hours of billing confusion. Perfect for biryani restaurants.',
-    author: 'Mohammed Farhan',
-    business: 'Bawarchi Biryani House, Hyderabad'
-  };
 
   const faqs = [
     {
@@ -90,7 +85,6 @@ export default function BiryaniRestaurantsClient() {
       heroDescription="From Hyderabadi dum to Lucknowi awadhi, Kolkata to Ambur - DineOpen understands biryani restaurants. Portion management, batch cooking, high-volume handling built for how biryani joints actually work."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Serve Perfect Biryani?"
       ctaDescription="Join hundreds of biryani restaurants using DineOpen for smoother operations and happier customers."

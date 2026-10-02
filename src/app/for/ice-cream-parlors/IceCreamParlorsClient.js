@@ -48,11 +48,6 @@ export default function IceCreamParlorsClient() {
     'Queue-busting mobile ordering'
   ];
 
-  const testimonial = {
-    quote: 'Summer weekends we serve 500+ customers. DineOpen visual menu lets even new staff bill perfectly. Our birthday club has 3000+ kids who get free scoops annually!',
-    author: 'Priya Malhotra',
-    business: 'Cream Stone, Bangalore'
-  };
 
   const faqs = [
     {
@@ -101,7 +96,6 @@ export default function IceCreamParlorsClient() {
       quickAnswer={<><strong>The best POS system for ice cream parlors in 2026 is DineOpen.</strong> It handles scoop/cone/cup combinations with visual menus, manages seasonal rush with quick billing (3 seconds per order), tracks ice cream inventory with temperature-sensitive alerts, and builds repeat customers with built-in loyalty rewards. Starts at $20/month (₹299 in India) with zero transaction fees. Works on any phone or tablet — no expensive hardware. 7-day free trial.</>}
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Scoop Up More Sales?"
       ctaDescription="Join ice cream shops worldwide using DineOpen — the best POS system for ice cream parlors. Free 7-day trial."

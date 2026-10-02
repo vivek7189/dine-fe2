@@ -22,7 +22,6 @@ export default function IndustryPageTemplate({
   painPoints,
   benefits,
   features,
-  testimonial,
   faqs,
   ctaTitle,
   ctaDescription,
@@ -330,28 +329,6 @@ export default function IndustryPageTemplate({
         </div>
       </section>
 
-      {/* Testimonial Section */}
-      {testimonial && (
-        <section style={{ padding: isMobile ? '60px 20px' : '80px 32px', backgroundColor: '#111827' }}>
-          <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-            <div style={{
-              fontSize: isMobile ? '20px' : '24px',
-              color: 'white',
-              lineHeight: '1.7',
-              marginBottom: '24px',
-              fontStyle: 'italic'
-            }}>
-              &ldquo;{testimonial.quote}&rdquo;
-            </div>
-            <div style={{ color: '#ef4444', fontWeight: '700', fontSize: '16px' }}>
-              {testimonial.author}
-            </div>
-            <div style={{ color: '#9ca3af', fontSize: '14px' }}>
-              {testimonial.business}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* FAQ Section */}
       <section style={{ padding: isMobile ? '60px 20px' : '80px 32px', backgroundColor: '#f9fafb' }}>

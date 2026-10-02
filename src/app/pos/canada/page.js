@@ -45,11 +45,6 @@ export default function CanadaPOSPage() {
       'Multi-province tax configuration',
       'Winter-ready offline mode',
     ],
-    testimonial: {
-      quote: 'As an Indian restaurant in Toronto, we needed a POS that understands our cuisine. DineOpen handles our complex menu perfectly and the Skip integration doubled our delivery orders.',
-      author: 'Harpreet Kaur',
-      business: 'Punjab Grill, Toronto',
-    },
     localKeywords: [
       'Toronto Downtown', 'Brampton', 'Mississauga', 'Vancouver Downtown', 'Surrey',
       'Calgary', 'Edmonton', 'Montreal', 'Ottawa', 'Winnipeg',

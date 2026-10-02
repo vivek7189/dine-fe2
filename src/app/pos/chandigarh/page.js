@@ -34,11 +34,6 @@ export default function ChandigarhPOSPage() {
       'High-income market premium features',
       'Cafe culture optimized quick billing',
     ],
-    testimonial: {
-      quote: 'Chandigarh has a vibrant cafe and bar scene. DineOpen handles our bar tabs perfectly and the quick billing is essential for our busy weekend nights in Sector 26.',
-      author: 'Gurpreet Singh',
-      business: 'The Brew Estate',
-    },
     localKeywords: [
       'Sector 17', 'Sector 26', 'Sector 35', 'Sector 22', 'Sector 7',
       'Elante Mall', 'Industrial Area Phase 1', 'Mohali Phase 5', 'Mohali Phase 7',

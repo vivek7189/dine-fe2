@@ -46,11 +46,6 @@ export default function SmallBusinessClient() {
     'Track sales, inventory & profits in real-time'
   ];
 
-  const testimonial = {
-    quote: 'I run a small 20-seat restaurant. Before DineOpen, I was billing on paper. Now my billing is faster, I track every rupee of inventory, and my GST filing takes minutes instead of hours.',
-    author: 'Rajesh Patel',
-    business: 'Rajesh Kitchen, Ahmedabad'
-  };
 
   const faqs = [
     {
@@ -92,7 +87,6 @@ export default function SmallBusinessClient() {
       heroDescription="The affordable POS system built for small restaurants, cafes, and food stalls. Free plan available. Works on your phone — no expensive hardware needed. Set up in 5 minutes."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Start Free — No Credit Card Needed"
       ctaDescription="Join thousands of small business owners using DineOpen. Free plan forever, paid plans from $20/month."

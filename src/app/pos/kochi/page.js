@@ -34,11 +34,6 @@ export default function KochiPOSPage() {
       'Toddy shop & traditional restaurant support',
       'Beach cafe & Fort Kochi heritage area features',
     ],
-    testimonial: {
-      quote: 'Our seafood restaurant in Fort Kochi serves tourists from around the world. DineOpen QR menus work in multiple languages and the fresh catch inventory tracking is exactly what we needed.',
-      author: 'Thomas Varghese',
-      business: 'Fusion Bay Seafood Restaurant',
-    },
     localKeywords: [
       'Fort Kochi', 'MG Road', 'Marine Drive', 'Edappally', 'Kakkanad',
       'Vytilla', 'Palarivattom', 'Kaloor', 'Ernakulam', 'Mattancherry',

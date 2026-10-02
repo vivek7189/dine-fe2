@@ -110,17 +110,6 @@ export default function RishikeshPOSClient() {
           </div>
         </section>
 
-        {/* Testimonial */}
-        <section style={{ padding: '60px 20px', backgroundColor: '#ecfdf5' }}>
-          <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
-            <FaQuoteLeft style={{ fontSize: '32px', color: '#059669', marginBottom: '20px' }} />
-            <p style={{ fontSize: '20px', color: '#374151', fontStyle: 'italic', marginBottom: '24px', lineHeight: 1.7 }}>
-              &quot;80% of our customers are international. DineOpen&apos;s multi-language QR menu is perfect - German tourists read in German, French in French. The vegan tagging saves us from constant questions. Best investment for our cafe.&quot;
-            </p>
-            <p style={{ fontWeight: '700', color: '#111827' }}>Maria & Ankit</p>
-            <p style={{ fontSize: '14px', color: '#6b7280' }}>Ganga View Organic Cafe, Tapovan, Rishikesh</p>
-          </div>
-        </section>
 
         {/* Nearby Cities */}
         <section style={{ padding: '60px 20px', backgroundColor: '#f3f4f6' }}>

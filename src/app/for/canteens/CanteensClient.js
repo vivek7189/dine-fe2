@@ -48,11 +48,6 @@ export default function CanteensClient() {
     'Daily menu management'
   ];
 
-  const testimonial = {
-    quote: 'Our factory canteen serves 800 workers across 3 shifts. DineOpen prepaid cards eliminated cash handling. HR gets auto-reports. Billing time reduced by 70%!',
-    author: 'Suresh Kumar',
-    business: 'Tata Motors Canteen, Pune'
-  };
 
   const faqs = [
     {
@@ -92,7 +87,6 @@ export default function CanteensClient() {
       heroDescription="Corporate offices, factories, schools, hospitals - DineOpen powers canteens with prepaid cards, subsidy management, and lightning-fast billing for hundreds of meals daily."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Modernize Your Canteen?"
       ctaDescription="Join leading corporates and institutions using DineOpen for canteen management."

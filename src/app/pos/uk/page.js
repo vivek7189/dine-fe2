@@ -46,11 +46,6 @@ export default function UKPOSPage() {
       'Month-to-month billing, no contracts',
     ],
     deliveryPlatforms: 'Connect with Deliveroo, Just Eat & Uber Eats',
-    testimonial: {
-      quote: 'DineOpen transformed our gastropub in Shoreditch. The QR ordering reduced our wait times and the AI helps during busy weekend rushes.',
-      author: 'James Williams',
-      business: 'The Crafty Fox Pub',
-    },
     localKeywords: ['London', 'Manchester', 'Birmingham', 'Edinburgh', 'Liverpool', 'Bristol', 'Leeds', 'Glasgow', 'Cardiff', 'Brighton'],
     complianceInfo: [
       { title: 'VAT 20% Ready', desc: 'Automatic VAT calculation at 20% standard rate. Handles zero-rated food vs hot takeaway distinctions.' },

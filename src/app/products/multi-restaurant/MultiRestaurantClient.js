@@ -241,16 +241,6 @@ export default function MultiRestaurantClient() {
           </div>
         </section>
 
-        {/* Testimonial */}
-        <section style={{ padding: '60px 20px', backgroundColor: '#d1fae5' }}>
-          <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
-            <p style={{ fontSize: '22px', color: '#065f46', fontStyle: 'italic', marginBottom: '24px', lineHeight: 1.6 }}>
-              &quot;We manage 12 outlets across 4 cities with DineOpen. The central dashboard saves our management team hours every day. And at ₹999/outlet, it costs less than what we paid for just our main branch before.&quot;
-            </p>
-            <p style={{ fontWeight: '700', color: '#111827' }}>Vikram Mehta</p>
-            <p style={{ fontSize: '14px', color: '#6b7280' }}>CEO, Urban Dhaba Chain (12 outlets)</p>
-          </div>
-        </section>
 
         {/* CTA */}
         <section style={{ padding: '80px 20px', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', textAlign: 'center' }}>

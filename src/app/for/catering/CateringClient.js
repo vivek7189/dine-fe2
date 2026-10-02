@@ -48,11 +48,6 @@ export default function CateringClient() {
     'GST-compliant invoicing'
   ];
 
-  const testimonial = {
-    quote: 'During wedding season, we handle 20+ events. DineOpen\'s booking calendar and payment tracking saved us from double-bookings and missed payments. Revenue up 40%!',
-    author: 'Rajesh Sharma',
-    business: 'Royal Caterers, Delhi'
-  };
 
   const faqs = [
     {
@@ -92,7 +87,6 @@ export default function CateringClient() {
       heroDescription="From wedding banquets to corporate lunches - DineOpen helps catering businesses manage bookings, custom menus, payments, and operations seamlessly."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Scale Your Catering Business?"
       ctaDescription="Join successful caterers across India using DineOpen for event management."

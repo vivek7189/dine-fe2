@@ -34,11 +34,6 @@ export default function AhmedabadPOSPage() {
       'Jain food filtering & labeling',
       'Fasting menu management features',
     ],
-    testimonial: {
-      quote: 'We run a busy Gujarati thali restaurant. DineOpen helps us track unlimited items per thali and manage our Jain/non-Jain menu perfectly. Customers love the QR ordering.',
-      author: 'Hiren Patel',
-      business: 'Gordhan Thal',
-    },
     localKeywords: [
       'SG Highway', 'C.G. Road', 'Navrangpura', 'Prahlad Nagar', 'Satellite',
       'Vastrapur', 'Bodakdev', 'Thaltej', 'Maninagar', 'Ashram Road',

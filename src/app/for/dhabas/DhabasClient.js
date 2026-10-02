@@ -48,11 +48,6 @@ export default function DhabasClient() {
     'Runs on basic Android tablets'
   ];
 
-  const testimonial = {
-    quote: 'Our dhaba is on NH-8 with patchy internet. DineOpen works offline perfectly. We now have 2000+ truckers in our loyalty program who stop specifically at our dhaba!',
-    author: 'Balwinder Singh',
-    business: 'Punjab Da Dhaba, NH-8 Rajasthan'
-  };
 
   const faqs = [
     {
@@ -92,7 +87,6 @@ export default function DhabasClient() {
       heroDescription="Highway dhabas, roadside restaurants, truck stops - DineOpen works offline, runs on basic tablets, and helps you build loyalty with traveling customers."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Modernize Your Dhaba?"
       ctaDescription="Join dhabas across India's highways using DineOpen for reliable billing."

@@ -45,11 +45,6 @@ export default function UAEPOSPage() {
       'Indian restaurant specialized features',
       'Mall food court & free zone support',
     ],
-    testimonial: {
-      quote: 'We run an Indian restaurant in Dubai Marina. DineOpen understands our cuisine, handles VAT perfectly, and the Arabic-English menu switching is seamless for our diverse customers.',
-      author: 'Rajesh Nair',
-      business: 'Saffron Indian Kitchen, Dubai',
-    },
     localKeywords: [
       'Dubai Marina', 'JBR', 'Downtown Dubai', 'Deira', 'Bur Dubai',
       'Business Bay', 'DIFC', 'JLT', 'Abu Dhabi Corniche', 'Yas Island',

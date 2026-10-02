@@ -35,11 +35,6 @@ export default function MumbaiPOSPage() {
       'AI voice ordering in Hindi & Marathi',
       'Works offline during monsoons',
     ],
-    testimonial: {
-      quote: 'DineOpen helped us manage our 3 outlets in Andheri, Bandra, and Colaba from one dashboard. The GST reports save us hours every month.',
-      author: 'Rahul Sharma',
-      business: 'Cafe Mumbai Chain',
-    },
     localKeywords: ['Andheri', 'Bandra', 'Colaba', 'Juhu', 'Lower Parel', 'BKC', 'Powai', 'Thane'],
   };
 

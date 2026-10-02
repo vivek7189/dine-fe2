@@ -34,11 +34,6 @@ export default function JaipurPOSPage() {
       'Hotel restaurant & rooftop cafe support',
       'Swiggy & Zomato integration for Pink City',
     ],
-    testimonial: {
-      quote: 'We run a heritage haveli restaurant in Jaipur. DineOpen handles our thali service perfectly and the QR ordering works great for international tourists who visit us.',
-      author: 'Vikram Singh Shekhawat',
-      business: 'Haveli Restaurant',
-    },
     localKeywords: [
       'MI Road', 'C-Scheme', 'Vaishali Nagar', 'Malviya Nagar', 'Mansarovar',
       'Raja Park', 'Tonk Road', 'Ajmer Road', 'Sindhi Camp', 'Hawa Mahal',

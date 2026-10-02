@@ -54,11 +54,6 @@ export default function GujaratPage() {
       { name: 'Jain Restaurants', href: '/for/indian-restaurants', desc: 'Pure Jain food' },
       { name: 'Cafes', href: '/for/cafes', desc: 'Modern cafes' },
     ],
-    testimonial: {
-      quote: 'Our unlimited thali restaurant serves 400 customers daily. DineOpen tracks every sabzi refill perfectly. Gujarati menu makes staff training easy.',
-      author: 'Bhavesh Patel',
-      business: 'Rajwadi Thali House, Ahmedabad',
-    },
     compliance: [
       { name: 'Gujarat FSSAI Guide', href: '/resources/fssai-registration' },
       { name: 'GST for Restaurants', href: '/resources/gst-restaurants' },

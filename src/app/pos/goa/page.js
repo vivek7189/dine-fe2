@@ -34,11 +34,6 @@ export default function GoaPOSPage() {
       'Seafood catch-of-the-day pricing',
       'Outdoor/beach WiFi-independent mode',
     ],
-    testimonial: {
-      quote: 'Running a beach shack in Goa means dealing with tourists from everywhere. DineOpen shows prices in their currency, works without WiFi on the beach, and handles our bar tabs perfectly.',
-      author: 'Anthony Fernandes',
-      business: 'Curlies Beach Shack, Anjuna',
-    },
     localKeywords: [
       'Baga', 'Calangute', 'Anjuna', 'Vagator', 'Candolim', 'Panjim',
       'Margao', 'Mapusa', 'Palolem', 'Arambol', 'Morjim', 'Ashwem',

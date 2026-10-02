@@ -46,11 +46,6 @@ export default function ChineseRestaurantsClient() {
     'Sauce & ingredient consumption tracking'
   ];
 
-  const testimonial = {
-    quote: 'We do 300+ takeaway orders daily. DineOpen handles our wok stations perfectly - each chef sees their queue. Spice level and gravy type show clearly on every KOT. No more confusion!',
-    author: 'Wong Chen',
-    business: 'Dragon Palace, Bangalore'
-  };
 
   const faqs = [
     {
@@ -90,7 +85,6 @@ export default function ChineseRestaurantsClient() {
       heroDescription="From noodles to manchurian, fried rice to momos - DineOpen handles high-volume Chinese restaurants with ease. Fast billing, wok station management, and customization tracking built-in."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Wok & Roll?"
       ctaDescription="Join hundreds of Chinese restaurants using DineOpen for faster service and better kitchen coordination."

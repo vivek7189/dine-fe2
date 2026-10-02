@@ -318,18 +318,6 @@ export default function IndianRestaurantPOSClient() {
         </div>
       </section>
 
-      {/* Testimonial */}
-      <section className="py-16 px-4 bg-orange-50">
-        <div className="max-w-3xl mx-auto text-center">
-          <div className="text-5xl mb-6">&ldquo;</div>
-          <blockquote className="text-xl md:text-2xl text-gray-800 font-medium mb-6 leading-relaxed">
-            As an Indian restaurant owner in Toronto, I tried 3 different POS systems before DineOpen. None of them could handle our thali combos or spice level customizations properly. Orders kept going to the kitchen wrong. DineOpen fixed all of that in the first week.
-          </blockquote>
-          <div className="text-gray-600">
-            <span className="font-bold text-gray-900">Rajesh P.</span> — Owner, Masala Kitchen, Toronto
-          </div>
-        </div>
-      </section>
 
       {/* CTA */}
       <section className="py-16 px-4">

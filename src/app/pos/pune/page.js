@@ -34,11 +34,6 @@ export default function PunePOSPage() {
       'IT Park delivery zone optimization',
       'Multi-outlet support for growing chains',
     ],
-    testimonial: {
-      quote: 'Pune has so many IT professionals ordering lunch. DineOpen QR ordering handles our rush hours perfectly. We serve 3x more customers now without adding staff.',
-      author: 'Sneha Kulkarni',
-      business: 'Chitale Bandhu Modern Kitchen',
-    },
     localKeywords: [
       'Koregaon Park', 'Kalyani Nagar', 'Viman Nagar', 'Hinjewadi', 'Baner',
       'Aundh', 'Kothrud', 'Wakad', 'FC Road', 'JM Road', 'Shivaji Nagar',

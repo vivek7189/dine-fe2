@@ -36,11 +36,6 @@ export default function NagpurPOSPage() {
       'UPI, GPay, PhonePe payments',
       'Tarri poha shop quick billing',
     ],
-    testimonial: {
-      quote: 'Nagpur\'s Saoji cuisine needs spice level customization. DineOpen handles all variants perfectly. Our kitchen display shows spice preferences clearly.',
-      author: 'Pramod Meshram',
-      business: 'Authentic Saoji House, Nagpur',
-    },
     localKeywords: ['Sitabuldi', 'Dharampeth', 'Sadar', 'Civil Lines', 'Pratap Nagar', 'Manish Nagar', 'Hingna', 'Wardhaman Nagar'],
   };
 

@@ -46,11 +46,6 @@ export default function BarsPubsClient() {
     'Sales analytics by day, time, and item'
   ];
 
-  const testimonial = {
-    quote: 'Friday nights used to be chaos at the bar. Now customers order via QR from their tables. Our bartenders focus on making great drinks, not taking orders.',
-    author: 'Arun Mehta',
-    business: 'The Hangout Pub, Pune'
-  };
 
   const faqs = [
     {
@@ -90,7 +85,6 @@ export default function BarsPubsClient() {
       heroDescription="From happy hour rushes to late-night tabs - DineOpen helps bars and pubs serve faster, track inventory better, and build a loyal customer base with smart POS features."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Pour Profits, Not Losses?"
       ctaDescription="Join bars and pubs using DineOpen for smarter operations and happier customers."

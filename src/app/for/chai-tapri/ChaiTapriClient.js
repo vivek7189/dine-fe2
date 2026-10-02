@@ -46,11 +46,6 @@ export default function ChaiTapriClient() {
     'Daily cup count and inventory alerts'
   ];
 
-  const testimonial = {
-    quote: 'My tapri serves 400 cups daily. Before DineOpen, billing was mental math. Now one tap does everything. UPI sound tells me payment done. Finally know exactly how much chai I sell daily.',
-    author: 'Raju Chaiwala',
-    business: 'Sharma Chai Point, Noida'
-  };
 
   const faqs = [
     {
@@ -90,7 +85,6 @@ export default function ChaiTapriClient() {
       heroDescription="Cutting chai, kadak chai, special masala - DineOpen understands chai tapris. One-tap billing, rush hour handling, inventory tracking built for tea stalls across India."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Serve Chai Faster?"
       ctaDescription="Join hundreds of chai tapris using DineOpen for quicker billing and better business insights."

@@ -54,11 +54,6 @@ export default function DelhiNCRPage() {
       { name: 'Cafes', href: '/for/cafes', desc: 'Coffee shops, bakeries' },
       { name: 'Bars & Pubs', href: '/for/bars-pubs', desc: 'Nightlife venues' },
     ],
-    testimonial: {
-      quote: 'Managing 3 outlets across Delhi, Noida and Gurgaon was a nightmare with different state GST. DineOpen handles it all automatically. Best decision we made.',
-      author: 'Vikram Singh',
-      business: 'Punjab Grill Express (3 outlets)',
-    },
     compliance: [
       { name: 'Delhi FSSAI Guide', href: '/resources/fssai-registration' },
       { name: 'GST for Restaurants', href: '/resources/gst-restaurants' },

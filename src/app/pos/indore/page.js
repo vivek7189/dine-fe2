@@ -36,11 +36,6 @@ export default function IndorePOSPage() {
       'UPI, GPay, PhonePe payments',
       'Namkeen shop weight-based billing',
     ],
-    testimonial: {
-      quote: 'Indore\'s street food scene is unique. DineOpen handles our breakfast rush of poha-jalebi perfectly. Quick billing keeps queues moving.',
-      author: 'Rakesh Jain',
-      business: 'Sarafa Chaat Corner, Indore',
-    },
     localKeywords: ['Sarafa Bazaar', 'Chappan Dukan', 'Vijay Nagar', 'Palasia', 'MG Road', 'Rau', 'Rajwada', 'Sapna Sangeeta'],
   };
 

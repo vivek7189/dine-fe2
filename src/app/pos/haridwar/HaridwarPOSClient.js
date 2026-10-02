@@ -131,17 +131,6 @@ export default function HaridwarPOSClient() {
           </div>
         </section>
 
-        {/* Testimonial */}
-        <section style={{ padding: '60px 20px', backgroundColor: '#fff7ed' }}>
-          <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
-            <FaQuoteLeft style={{ fontSize: '32px', color: '#ea580c', marginBottom: '20px' }} />
-            <p style={{ fontSize: '20px', color: '#374151', fontStyle: 'italic', marginBottom: '24px', lineHeight: 1.7 }}>
-              &quot;During Kanwar Yatra, we serve 2000+ pilgrims daily. DineOpen&apos;s quick billing and pure veg tagging made our operations smooth. The Hindi voice ordering is perfect for our staff. Best decision for our bhojanshala.&quot;
-            </p>
-            <p style={{ fontWeight: '700', color: '#111827' }}>Pandit Ramesh Sharma</p>
-            <p style={{ fontSize: '14px', color: '#6b7280' }}>Ganga Bhojanshala, Har Ki Pauri, Haridwar</p>
-          </div>
-        </section>
 
         {/* Pricing */}
         <section style={{ padding: '60px 20px' }}>

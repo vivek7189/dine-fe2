@@ -36,11 +36,6 @@ export default function CoimbatorePOSPage() {
       'UPI, GPay, PhonePe payments',
       'Filter coffee shop management',
     ],
-    testimonial: {
-      quote: 'Our Kongunadu restaurant serves authentic Coimbatore cuisine. DineOpen Tamil menu and voice ordering made our operations smoother.',
-      author: 'Senthil Kumar',
-      business: 'Sree Annapoorna, Coimbatore',
-    },
     localKeywords: ['RS Puram', 'Gandhipuram', 'Peelamedu', 'Saibaba Colony', 'Race Course', 'Town Hall', 'Ukkadam', 'Singanallur'],
   };
 

@@ -46,11 +46,6 @@ export default function MithaiShopsClient() {
     'Ingredient cost tracking per sweet'
   ];
 
-  const testimonial = {
-    quote: 'Diwali used to be chaos. Now with DineOpen, our 4 billing counters handle the rush smoothly. Gift box builder saves 2 minutes per order. Festival revenue doubled because we could serve more customers.',
-    author: 'Ramesh Halwai',
-    business: 'Gulab Sweets, Jaipur'
-  };
 
   const faqs = [
     {
@@ -90,7 +85,6 @@ export default function MithaiShopsClient() {
       heroDescription="Ladoo, barfi, rasgulla, gulab jamun - DineOpen understands mithai shops. Weight-based billing, gift box building, festival rush handling built for halwai shops across India."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Sweeten Your Business?"
       ctaDescription="Join hundreds of mithai shops using DineOpen for faster billing and better inventory control."

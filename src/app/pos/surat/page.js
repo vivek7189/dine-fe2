@@ -36,11 +36,6 @@ export default function SuratPOSPage() {
       'UPI, GPay, PhonePe payments',
       'Farsan shop weight-based billing',
     ],
-    testimonial: {
-      quote: 'Our farsan shop handles 200+ customers during evening rush. DineOpen weight-based billing is perfect. Gujarati menu makes it easy for staff.',
-      author: 'Nilesh Shah',
-      business: 'Famous Farsan Mart, Surat',
-    },
     localKeywords: ['Adajan', 'Vesu', 'Piplod', 'Athwa', 'Ring Road', 'Varachha', 'Katargam', 'Udhna'],
   };
 

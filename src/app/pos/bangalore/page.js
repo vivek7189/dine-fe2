@@ -35,11 +35,6 @@ export default function BangalorePOSPage() {
       'AI voice ordering in English & Kannada',
       'Cloud-first for tech-savvy restaurants',
     ],
-    testimonial: {
-      quote: 'As a cloud kitchen in HSR Layout, DineOpen\'s Swiggy integration and real-time analytics helped us optimize our menu and increase orders by 40%.',
-      author: 'Priya Menon',
-      business: 'Bowl & Spoon Cloud Kitchen',
-    },
     localKeywords: ['Indiranagar', 'Koramangala', 'HSR Layout', 'Whitefield', 'MG Road', 'JP Nagar', 'Marathahalli', 'Electronic City'],
   };
 

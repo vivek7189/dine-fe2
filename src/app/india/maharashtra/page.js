@@ -55,11 +55,6 @@ export default function MaharashtraPage() {
       { name: 'Cloud Kitchens', href: '/for/cloud-kitchens', desc: 'Delivery-only kitchens' },
       { name: 'Bars & Pubs', href: '/for/bars-pubs', desc: 'Nightlife venues' },
     ],
-    testimonial: {
-      quote: 'We have 5 outlets across Mumbai suburbs. DineOpen helps us manage all from one dashboard. The Marathi voice ordering feature is loved by our staff. GST filing is now a breeze.',
-      author: 'Sachin Patil',
-      business: 'Swaad Restaurant Chain, Mumbai',
-    },
     compliance: [
       { name: 'Maharashtra FSSAI Guide', href: '/resources/fssai-registration' },
       { name: 'GST for Restaurants', href: '/resources/gst-restaurants' },

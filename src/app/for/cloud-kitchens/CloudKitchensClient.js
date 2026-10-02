@@ -46,11 +46,6 @@ export default function CloudKitchensClient() {
     'Direct WhatsApp ordering channel'
   ];
 
-  const testimonial = {
-    quote: 'We run 3 brands from one kitchen. DineOpen unified everything - orders, inventory, reporting. And the direct ordering saves us lakhs in commissions.',
-    author: 'Vikram Singh',
-    business: 'Cloud Bites Kitchen, Delhi NCR'
-  };
 
   const faqs = [
     {
@@ -90,7 +85,6 @@ export default function CloudKitchensClient() {
       heroDescription="Stop giving away 25-30% to aggregators. Build your direct ordering channel, manage multiple brands from one kitchen, and own your customer relationships with DineOpen."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Keep More of Your Revenue?"
       ctaDescription="Join smart cloud kitchens using DineOpen for direct orders and better margins."

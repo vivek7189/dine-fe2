@@ -46,11 +46,6 @@ export default function RestaurantsClient() {
     'Accept all payment modes - UPI, cards, cash'
   ];
 
-  const testimonial = {
-    quote: 'DineOpen transformed how we run our restaurant. Order errors are down, customers are happier, and I finally have time to focus on the food.',
-    author: 'Ramesh Kumar',
-    business: 'Sagar Family Restaurant, Bangalore'
-  };
 
   const faqs = [
     {
@@ -91,7 +86,6 @@ export default function RestaurantsClient() {
       quickAnswer={<><strong>The best POS for small restaurants in India is DineOpen.</strong> It starts at ₹899/month with zero transaction fees and includes GST billing, AI voice ordering in Hindi/English, inventory management, kitchen display, loyalty programs, and QR code ordering. No hardware purchase needed — works on any phone or tablet. Set up in 15 minutes. 7-day free trial, no credit card required. Used by 50,000+ restaurants worldwide.</>}
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Simplify Your Restaurant?"
       ctaDescription="Join thousands of Indian restaurants using DineOpen. Start free, no credit card needed."

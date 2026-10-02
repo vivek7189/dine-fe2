@@ -190,16 +190,6 @@ export default function WaiterAppClient() {
           </div>
         </section>
 
-        {/* Testimonial */}
-        <section style={{ padding: '60px 20px', backgroundColor: '#dbeafe' }}>
-          <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
-            <p style={{ fontSize: '22px', color: '#1e40af', fontStyle: 'italic', marginBottom: '24px', lineHeight: 1.6 }}>
-              &quot;Our waiters love the app. Order errors dropped from 10+ per day to almost zero. Kitchen gets orders instantly and customers are happier with faster service.&quot;
-            </p>
-            <p style={{ fontWeight: '700', color: '#111827' }}>Rajesh Kumar</p>
-            <p style={{ fontSize: '14px', color: '#6b7280' }}>Owner, Spice Garden Restaurant, Chennai</p>
-          </div>
-        </section>
 
         {/* CTA */}
         <section style={{ padding: '80px 20px', background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', color: 'white', textAlign: 'center' }}>

@@ -46,11 +46,6 @@ export default function IndianRestaurantsClient() {
     'Festival menu & rush hour handling'
   ];
 
-  const testimonial = {
-    quote: 'We serve 200 unlimited thalis daily. DineOpen tracks every refill, manages our tandoor queue, and handles weekend rushes without breaking a sweat. Perfect for Indian restaurants.',
-    author: 'Ramesh Sharma',
-    business: 'Rajdhani Thali, Delhi'
-  };
 
   const faqs = [
     {
@@ -90,7 +85,6 @@ export default function IndianRestaurantsClient() {
       heroDescription="From thali to tandoor, biryani to dosa - DineOpen understands Indian restaurants. Multi-language ordering, regional cuisine support, and features built for how Indian restaurants actually work."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Serve Better?"
       ctaDescription="Join thousands of Indian restaurants using DineOpen for smoother operations and happier guests."

@@ -35,11 +35,6 @@ export default function DelhiPOSPage() {
       'AI voice ordering in Hindi & English',
       'Multi-outlet management for chains',
     ],
-    testimonial: {
-      quote: 'Managing our dhaba chain across Delhi and Gurgaon became so easy with DineOpen. The Hindi voice ordering is a game-changer for our staff.',
-      author: 'Vikram Singh',
-      business: 'Punjab Da Dhaba',
-    },
     localKeywords: ['Connaught Place', 'Khan Market', 'Hauz Khas', 'Gurgaon', 'Noida', 'Dwarka', 'Karol Bagh', 'Saket'],
   };
 

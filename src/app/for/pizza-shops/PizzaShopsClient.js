@@ -46,11 +46,6 @@ export default function PizzaShopsClient() {
     'Topping inventory with alerts'
   ];
 
-  const testimonial = {
-    quote: 'We were losing orders because of topping errors. DineOpen shows every customization clearly - in the app, on the kitchen screen, and on the box sticker. Errors dropped to near zero!',
-    author: 'Ravi Mehta',
-    business: 'Cheesy Crust Pizza, Pune'
-  };
 
   const faqs = [
     {
@@ -90,7 +85,6 @@ export default function PizzaShopsClient() {
       heroDescription="From topping customizations to half-half pizzas, delivery zones to combo deals - DineOpen handles everything pizza shops need. Reduce errors, speed up service, track every slice."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Slice Up Better Business?"
       ctaDescription="Join pizza shops across India using DineOpen for faster, error-free orders."

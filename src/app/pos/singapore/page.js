@@ -45,11 +45,6 @@ export default function SingaporePOSPage() {
       'QR ordering with PayNow/NETS support',
       'Multi-outlet chain management',
     ],
-    testimonial: {
-      quote: 'We started with one hawker stall and now have 5 outlets. DineOpen scaled with us perfectly. The multi-outlet dashboard saves hours of work and GST filing is automatic.',
-      author: 'David Tan',
-      business: 'Lucky Chicken Rice Chain',
-    },
     localKeywords: [
       'Orchard Road', 'Marina Bay', 'Clarke Quay', 'Chinatown', 'Little India',
       'Bugis', 'Tanjong Pagar', 'Holland Village', 'Tiong Bahru', 'Katong',

@@ -46,11 +46,6 @@ export default function ThaliRestaurantsClient() {
     'Cost analysis per thali with refill data'
   ];
 
-  const testimonial = {
-    quote: 'We serve 400 unlimited thalis daily. Before DineOpen, tracking refills was chaos. Now every sabzi refill goes to kitchen display, staff knows exactly what to serve. Our food cost dropped 12% because we finally know actual consumption.',
-    author: 'Bhavesh Mehta',
-    business: 'Gordhan Thal, Ahmedabad'
-  };
 
   const faqs = [
     {
@@ -90,7 +85,6 @@ export default function ThaliRestaurantsClient() {
       heroDescription="Gujarati thali, Rajasthani thali, South Indian meals - DineOpen understands unlimited dining. Refill tracking, high-volume service, and cost analysis built for thali restaurants."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Serve Unlimited Smiles?"
       ctaDescription="Join hundreds of thali restaurants using DineOpen for smoother service and better margins."

@@ -46,11 +46,6 @@ export default function FoodTrucksClient() {
     'See your best selling spots and items'
   ];
 
-  const testimonial = {
-    quote: 'I move my truck between 3 spots daily. DineOpen works on my phone, even offline. I finally know which location makes the most money.',
-    author: 'Raju Yadav',
-    business: 'Raju Momos Truck, Gurugram'
-  };
 
   const faqs = [
     {
@@ -90,7 +85,6 @@ export default function FoodTrucksClient() {
       heroDescription="Mobile, offline-ready, and phone-based - DineOpen is built for food trucks that move. Bill fast, track locations, and grow your business on the go."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Roll with Better Tech?"
       ctaDescription="Join food trucks using DineOpen for mobile, reliable billing anywhere."

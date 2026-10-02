@@ -48,11 +48,6 @@ export default function JuiceBarsClient() {
     'WhatsApp ordering integration'
   ];
 
-  const testimonial = {
-    quote: 'Our juice bar near IT Park gets 200+ orders before 10 AM. DineOpen pre-order feature means juices are ready when customers arrive. Zero waiting, happy customers!',
-    author: 'Kiran Rao',
-    business: 'Fresh Press Juicery, Hyderabad'
-  };
 
   const faqs = [
     {
@@ -92,7 +87,6 @@ export default function JuiceBarsClient() {
       heroDescription="Fresh juices, smoothies, health drinks - DineOpen helps juice bars handle customizations, pre-orders, perishable inventory, and health-conscious customers."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Blend Better Business?"
       ctaDescription="Join juice bars across India using DineOpen for faster, fresher service."

@@ -46,7 +46,6 @@ export default function USAPOSPage() {
       'Month-to-month billing, no contracts',
     ],
     deliveryPlatforms: 'Connect with DoorDash, Uber Eats & Grubhub',
-    testimonial: null,
     localKeywords: ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Miami', 'San Francisco', 'Seattle', 'Austin', 'Denver', 'Boston'],
     complianceInfo: [
       { title: 'State Sales Tax', desc: 'Automatic sales tax calculation for all 50 states. Handles complex rules like food vs prepared food rates.' },

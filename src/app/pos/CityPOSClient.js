@@ -15,7 +15,6 @@ export default function CityPOSClient({ cityData }) {
     currency,
     price,
     highlights,
-    testimonial,
     localKeywords,
     complianceInfo,
     paymentMethods,
@@ -187,21 +186,6 @@ export default function CityPOSClient({ cityData }) {
           </div>
         )}
 
-        {/* Testimonial */}
-        {testimonial && (
-          <div style={{ padding: '60px 20px', backgroundColor: '#fef2f2' }}>
-            <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
-              <FaQuoteLeft style={{ fontSize: '32px', color: '#ef4444', marginBottom: '20px' }} />
-              <p style={{ fontSize: '20px', color: '#374151', fontStyle: 'italic', marginBottom: '24px', lineHeight: 1.6 }}>
-                &quot;{testimonial.quote}&quot;
-              </p>
-              <div>
-                <p style={{ fontWeight: '700', color: '#111827' }}>{testimonial.author}</p>
-                <p style={{ fontSize: '14px', color: '#6b7280' }}>{testimonial.business}, {city}</p>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Local Areas */}
         <div style={{ padding: '60px 20px' }}>

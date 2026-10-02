@@ -45,11 +45,6 @@ export default function AustraliaPOSPage() {
       'Multi-venue management for groups',
       'QR ordering with tap-to-pay support',
     ],
-    testimonial: {
-      quote: 'Melbourne cafe culture demands speed and style. DineOpen gives us both - beautiful QR menus our customers love and fast billing that keeps the queue moving.',
-      author: 'Sarah Chen',
-      business: 'Flat White Cafe, Melbourne',
-    },
     localKeywords: [
       'Sydney CBD', 'Melbourne CBD', 'Brisbane', 'Perth', 'Adelaide',
       'Surry Hills', 'Fitzroy', 'Newtown', 'South Yarra', 'Bondi',

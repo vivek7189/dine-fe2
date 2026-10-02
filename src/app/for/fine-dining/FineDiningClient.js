@@ -46,11 +46,6 @@ export default function FineDiningClient() {
     'Service timing & quality analytics'
   ];
 
-  const testimonial = {
-    quote: 'DineOpen transformed our service. We now track every VIP\'s preferences - their favorite table, wine choices, dietary needs. Our guests feel truly remembered. That\'s fine dining.',
-    author: 'Chef Vikram Arora',
-    business: 'The Grand Pavilion, Mumbai'
-  };
 
   const faqs = [
     {
@@ -90,7 +85,6 @@ export default function FineDiningClient() {
       heroDescription="Sophisticated POS for restaurants where every detail matters. Course timing, wine pairing, guest preferences, and elegant service - all managed seamlessly."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Elevate Your Service?"
       ctaDescription="Join premium restaurants using DineOpen to deliver exceptional dining experiences."

@@ -54,11 +54,6 @@ export default function KarnatakaPage() {
       { name: 'Cloud Kitchens', href: '/for/cloud-kitchens', desc: 'Delivery-only kitchens' },
       { name: 'Bars & Breweries', href: '/for/pubs-breweries', desc: 'Craft beer scene' },
     ],
-    testimonial: {
-      quote: 'Our darshini serves 500+ customers during breakfast rush. DineOpen token system handles the crowd perfectly. Kannada menu makes it easy for our staff.',
-      author: 'Rajesh Kumar',
-      business: 'Vidyarthi Bhavan Style Darshini, Bangalore',
-    },
     compliance: [
       { name: 'Karnataka FSSAI Guide', href: '/resources/fssai-registration' },
       { name: 'GST for Restaurants', href: '/resources/gst-restaurants' },

@@ -34,11 +34,6 @@ export default function LucknowPOSPage() {
       'Sweet shop (mithai) inventory tracking',
       'Swiggy & Zomato integration for Nawabi city',
     ],
-    testimonial: {
-      quote: 'Lucknow is the food capital of North India. DineOpen understands our kebab and biryani business perfectly. The portion management feature saves us from order confusion every day.',
-      author: 'Mohammed Farhan',
-      business: 'Tunday Kababi Style Restaurant',
-    },
     localKeywords: [
       'Hazratganj', 'Gomti Nagar', 'Aminabad', 'Chowk', 'Alambagh',
       'Aliganj', 'Indira Nagar', 'Mahanagar', 'Kaiserbagh', 'Charbagh',

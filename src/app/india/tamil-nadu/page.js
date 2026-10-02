@@ -54,11 +54,6 @@ export default function TamilNaduPage() {
       { name: 'Biryanis', href: '/for/biryani-restaurants', desc: 'Ambur, Dindigul style' },
       { name: 'Sweet Shops', href: '/for/sweet-shops', desc: 'Mysore pak, halwa' },
     ],
-    testimonial: {
-      quote: 'Our mess serves 300 meals daily. DineOpen handles unlimited meals perfectly - tracks every refill. Tamil menu makes billing fast.',
-      author: 'Murugan Shanmugam',
-      business: 'Annapoorna Mess, Chennai',
-    },
     compliance: [
       { name: 'Tamil Nadu FSSAI Guide', href: '/resources/fssai-registration' },
       { name: 'GST for Restaurants', href: '/resources/gst-restaurants' },

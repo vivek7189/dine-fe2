@@ -46,11 +46,6 @@ export default function StreetFoodClient() {
     'Daily sales tracking and reports'
   ];
 
-  const testimonial = {
-    quote: 'My chaat counter does 300 orders on weekends. Before, it was chaos. Now token numbers keep everything organized. Customers know when their order is ready. Sales doubled because I can serve faster.',
-    author: 'Pappu Chaatwala',
-    business: 'Sharma Chaat Bhandar, Delhi'
-  };
 
   const faqs = [
     {
@@ -90,7 +85,6 @@ export default function StreetFoodClient() {
       heroDescription="Chaat, vada pav, pav bhaji, golgappa - DineOpen understands street food. Quick billing, token system, customization handling built for the evening rush."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Serve Street Food Faster?"
       ctaDescription="Join hundreds of street food vendors using DineOpen for organized operations and better earnings."

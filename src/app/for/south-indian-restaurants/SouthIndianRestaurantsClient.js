@@ -46,11 +46,6 @@ export default function SouthIndianRestaurantsClient() {
     'Sambar/chutney consumption analytics'
   ];
 
-  const testimonial = {
-    quote: 'Our darshini serves 500 dosas during breakfast. DineOpen token system handles the crowd perfectly. Tamil menu makes billing fast. Filter coffee tracking finally makes sense.',
-    author: 'Suresh Iyer',
-    business: 'Vidyarthi Bhavan Style Restaurant, Bangalore'
-  };
 
   const faqs = [
     {
@@ -90,7 +85,6 @@ export default function SouthIndianRestaurantsClient() {
       heroDescription="From crispy dosas to filter coffee, idli-vada to Chettinad specials - DineOpen understands South Indian restaurants. Variant management, token system, and regional language support built for how you actually work."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Serve South Indian Excellence?"
       ctaDescription="Join hundreds of South Indian restaurants using DineOpen for faster service and happier customers."

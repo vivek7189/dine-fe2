@@ -48,11 +48,6 @@ export default function FoodCourtsClient() {
     'Peak hour queue management'
   ];
 
-  const testimonial = {
-    quote: 'We have 12 vendors in our food court. DineOpen centralized everything - one bill, auto-settlement, token system. Weekend rush is now manageable!',
-    author: 'Vikram Mehta',
-    business: 'Food Plaza, Phoenix Mall, Pune'
-  };
 
   const faqs = [
     {
@@ -92,7 +87,6 @@ export default function FoodCourtsClient() {
       heroDescription="Manage multiple vendors, centralized billing, token systems, and automated settlements - DineOpen makes food court operations smooth even during peak rush hours."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Streamline Your Food Court?"
       ctaDescription="Join leading malls across India using DineOpen for food court management."

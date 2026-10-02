@@ -162,16 +162,6 @@ export default function ReeloAlternativeClient() {
           </div>
         </section>
 
-        {/* Testimonial */}
-        <section style={{ padding: '60px 20px', backgroundColor: '#ede9fe' }}>
-          <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
-            <p style={{ fontSize: '22px', color: '#5b21b6', fontStyle: 'italic', marginBottom: '24px', lineHeight: 1.6 }}>
-              &quot;We were paying ₹4,000/month for Reelo + our old POS. Switched to DineOpen and now pay ₹899 for everything - loyalty, billing, inventory. The AI ordering is a bonus we didn&apos;t expect!&quot;
-            </p>
-            <p style={{ fontWeight: '700', color: '#111827' }}>Amit Patel</p>
-            <p style={{ fontSize: '14px', color: '#6b7280' }}>Owner, Chai Point Cafe, Ahmedabad</p>
-          </div>
-        </section>
 
         {/* Migration */}
         <section style={{ padding: '60px 20px' }}>

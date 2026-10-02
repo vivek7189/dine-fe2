@@ -46,11 +46,6 @@ export default function CafesClient() {
     'Pre-order system for takeaways'
   ];
 
-  const testimonial = {
-    quote: 'Our morning rush used to be chaotic. With DineOpen QR ordering, customers order from their phones while waiting. No more long queues!',
-    author: 'Priya Sharma',
-    business: 'Brew & Bite Cafe, Mumbai'
-  };
 
   const faqs = [
     {
@@ -90,7 +85,6 @@ export default function CafesClient() {
       heroDescription="From morning coffee rushes to evening hangouts - DineOpen helps cafes serve faster, build loyal customers, and run smoother operations with QR ordering and smart billing."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Brew Up Better Business?"
       ctaDescription="Join hundreds of cafes using DineOpen for faster service and happier customers."

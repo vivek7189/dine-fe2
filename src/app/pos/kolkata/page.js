@@ -34,11 +34,6 @@ export default function KolkataPOSPage() {
       'Durga Puja rush hour handling',
       'Roll & street food quick billing',
     ],
-    testimonial: {
-      quote: 'During Durga Puja, our sweet shop gets 10x orders. DineOpen handled everything smoothly - billing, inventory alerts, and delivery coordination. Essential for Kolkata businesses.',
-      author: 'Arindam Chatterjee',
-      business: 'Balaram Mullick & Radharaman Mullick',
-    },
     localKeywords: [
       'Park Street', 'Salt Lake', 'New Town', 'Ballygunge', 'Gariahat',
       'Howrah', 'Esplanade', 'College Street', 'Behala', 'Jadavpur',

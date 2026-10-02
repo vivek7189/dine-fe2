@@ -46,11 +46,6 @@ export default function HotelsClient() {
     'Consolidated F&B analytics'
   ];
 
-  const testimonial = {
-    quote: 'Managing 3 restaurants and room service was a nightmare before DineOpen. Now everything is in one system. Room charges post automatically. Guest checkout is smooth.',
-    author: 'Sameer Khanna',
-    business: 'Grand Plaza Hotel, Jaipur'
-  };
 
   const faqs = [
     {
@@ -90,7 +85,6 @@ export default function HotelsClient() {
       heroDescription="From fine dining to room service to poolside cafe - DineOpen unifies all your hotel F&B operations with seamless room charge integration and multi-outlet management."
       painPoints={painPoints}
       benefits={benefits}
-      testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Elevate Your Hotel F&B?"
       ctaDescription="Join hotels using DineOpen for seamless F&B operations and guest satisfaction."

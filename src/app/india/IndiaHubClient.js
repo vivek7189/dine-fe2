@@ -281,19 +281,6 @@ export default function IndiaHubClient() {
           </div>
         </div>
 
-        {/* Testimonial */}
-        <div style={{ padding: '80px 20px', backgroundColor: '#111827', color: 'white' }}>
-          <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', marginBottom: '24px' }}>&ldquo;</div>
-            <p style={{ fontSize: '24px', fontStyle: 'italic', marginBottom: '32px', lineHeight: 1.6 }}>
-              DineOpen transformed our restaurant operations. GST billing is automatic, Zomato orders come directly to kitchen, and the Hindi voice ordering feature is loved by our staff. Best investment we made.
-            </p>
-            <div>
-              <p style={{ fontWeight: '700', fontSize: '18px' }}>Priya Patel</p>
-              <p style={{ opacity: 0.8 }}>Owner, Spice Garden - Mumbai (3 outlets)</p>
-            </div>
-          </div>
-        </div>
 
         {/* CTA */}
         <div style={{ padding: '80px 20px', textAlign: 'center', background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white' }}>

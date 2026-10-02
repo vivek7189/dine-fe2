@@ -34,11 +34,6 @@ export default function HyderabadPOSPage() {
       'High-volume order management for Ramadan',
       'Irani cafe billing optimization',
     ],
-    testimonial: {
-      quote: 'Running a busy biryani restaurant in Hyderabad means handling 500+ orders daily. DineOpen handles the rush effortlessly. The voice ordering in Telugu is a game-changer for us.',
-      author: 'Mohammed Ismail',
-      business: 'Paradise Biryani Express',
-    },
     localKeywords: [
       'Banjara Hills', 'Jubilee Hills', 'HITEC City', 'Madhapur', 'Gachibowli',
       'Kukatpally', 'Secunderabad', 'Ameerpet', 'Kondapur', 'Begumpet',
