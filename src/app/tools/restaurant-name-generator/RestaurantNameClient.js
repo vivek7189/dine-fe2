@@ -1,5 +1,6 @@
 'use client';
 
+import ToolCTA from '../../../components/ToolCTA';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
@@ -401,6 +402,14 @@ export default function RestaurantNameClient() {
                   ))}
                 </div>
               </div>
+            )}
+
+            {parsedNames.length > 0 && (
+              <ToolCTA
+                tool="restaurant-name-generator"
+                title="Picked a name? Get your restaurant ready to take orders"
+                text="Set up your menu, QR ordering and GST billing in DineOpen — most restaurants are running within 30 minutes."
+              />
             )}
 
             {/* Empty state */}

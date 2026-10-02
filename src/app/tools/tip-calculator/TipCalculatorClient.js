@@ -175,7 +175,7 @@ export default function TipCalculatorClient() {
               AI-powered billing, QR menus, tip tracking & more. Free 7-day trial.
             </p>
             <Link
-              href="https://dineopen.com/login"
+              href="/login?utm_source=dineopen&utm_medium=tool&utm_campaign=tip-calculator"
               style={{ display: 'inline-block', padding: '14px 32px', backgroundColor: 'white', color: '#ef4444', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}
             >
               Start Free Trial →

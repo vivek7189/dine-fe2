@@ -1,5 +1,6 @@
 'use client';
 
+import ToolCTA from '../../../components/ToolCTA';
 import { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -397,6 +398,11 @@ export default function InvoiceGeneratorClient() {
                     </p>
                   </div>
                 </div>
+                <ToolCTA
+                  tool="restaurant-invoice-generator"
+                  title="Print GST bills automatically from your POS"
+                  text="DineOpen creates a GST invoice for every order, prints it on any thermal printer and sends it on WhatsApp — zero transaction fees."
+                />
               </div>
             )}
           </div>

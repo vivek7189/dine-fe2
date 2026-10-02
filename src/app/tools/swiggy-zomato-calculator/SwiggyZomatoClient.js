@@ -1,5 +1,6 @@
 'use client';
 
+import ToolCTA from '../../../components/ToolCTA';
 import { useState } from 'react';
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
@@ -248,6 +249,11 @@ export default function SwiggyZomatoClient() {
                         Build direct ordering with QR menus and WhatsApp to save on commissions
                       </p>
                     </div>
+                    <ToolCTA
+                      tool="swiggy-zomato-calculator"
+                      title="Keep the commission on your direct orders"
+                      text="Take orders through your own QR menu, website and WhatsApp with DineOpen — 0% commission, and the customer data stays yours."
+                    />
                   </>
                 ) : (
                   <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
