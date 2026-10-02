@@ -165,6 +165,30 @@ export default function RestaurantPOSClient() {
 
   const faqs = [
     {
+      question: 'Which is the best restaurant POS software in India?',
+      answer: 'It depends on your outlet size and budget. A single restaurant or cafe needs GST billing, KOT printing, UPI payments and something that runs on a phone or tablet without paid add-ons. DineOpen covers all of these from ₹300/month with zero transaction fees and a 7-day free trial. Petpooja and POSist are established alternatives, usually with higher entry prices and modules sold separately.'
+    },
+    {
+      question: 'How much does restaurant POS software cost in India?',
+      answer: 'Restaurant POS software in India typically costs from about ₹300 to ₹3,000+ per month, and older systems often add one-time setup and hardware charges. DineOpen starts at ₹300/month with no setup fee and no transaction fees; pricing for multiple outlets is shared on request.'
+    },
+    {
+      question: 'Can I run DineOpen on my phone?',
+      answer: 'Yes. DineOpen runs in any web browser and on Android phones and tablets, and the captain/waiter app works on Android and iOS. You can start billing on the phone you already have and add a thermal printer later.'
+    },
+    {
+      question: 'Does DineOpen work with Zomato and Swiggy orders?',
+      answer: 'Yes. On the Pro plan, Zomato and Swiggy orders sync into the same POS, so delivery and dine-in orders go to one kitchen screen and one sales report.'
+    },
+    {
+      question: 'Is there a free trial?',
+      answer: 'Yes. Every plan comes with a 7-day free trial with full features and no credit card required.'
+    },
+    {
+      question: 'Can I manage more than one outlet?',
+      answer: 'Yes. The Pro plan covers up to 2 outlets with a central dashboard, outlet-wise profit and loss, and shared menu and inventory. For 3 or more outlets, the Enterprise plan is priced on request.'
+    },
+    {
       question: 'Is DineOpen GST compliant?',
       answer: 'Yes, DineOpen generates GST-compliant invoices with proper GSTIN, HSN codes, and tax breakdowns. You can also export reports for easy tax filing.'
     },
@@ -228,16 +252,15 @@ export default function RestaurantPOSClient() {
           <FaChevronDown size={16} color="#6b7280" />
         )}
       </button>
-      {expandedFaq === index && (
-        <p style={{
-          marginTop: '12px',
-          fontSize: '15px',
-          color: '#6b7280',
-          lineHeight: '1.7'
-        }}>
-          {faq.answer}
-        </p>
-      )}
+      {/* Always in the HTML (hidden until opened) so search engines can read the answers */}
+      <p hidden={expandedFaq !== index} style={{
+        marginTop: '12px',
+        fontSize: '15px',
+        color: '#6b7280',
+        lineHeight: '1.7'
+      }}>
+        {faq.answer}
+      </p>
     </div>
   );
 
@@ -260,6 +283,33 @@ export default function RestaurantPOSClient() {
               "price": "300",
               "priceCurrency": "INR"
             }
+          })
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": faqs.map((f) => ({
+              "@type": "Question",
+              "name": f.question,
+              "acceptedAnswer": { "@type": "Answer", "text": f.answer },
+            })),
+          })
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.dineopen.com/" },
+              { "@type": "ListItem", "position": 2, "name": "Restaurant POS Software India", "item": "https://www.dineopen.com/restaurant-pos-software-india" },
+            ],
           })
         }}
       />
