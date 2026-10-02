@@ -85,6 +85,7 @@ export default function Footer() {
 
   const companyLinks = [
     { name: 'Pricing', href: '/pricing' },
+    { name: 'Become a Partner', href: '/partners' },
     { name: 'About Us', href: '/about' },
     { name: 'Blog', href: '/blog' },
     { name: 'Security', href: '/security' },

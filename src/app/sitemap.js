@@ -316,6 +316,12 @@ export default function sitemap() {
       priority: 0.95,
     },
     {
+      url: `${baseUrl}/partners`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
       url: `${baseUrl}/glossary`,
       lastModified: currentDate,
       changeFrequency: 'monthly',
