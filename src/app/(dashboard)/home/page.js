@@ -10,7 +10,7 @@ import {
   FaFire, FaReceipt, FaPlus, FaShoppingCart,
   FaChartLine, FaArrowRight, FaStore,
   FaClock, FaUsers, FaCircle, FaStar,
-  FaHashtag, FaTrophy, FaRocket
+  FaHashtag, FaTrophy, FaRocket, FaCashRegister, FaMoneyBillWave
 } from 'react-icons/fa';
 import { useLoading } from '../../../contexts/LoadingContext';
 import { useCurrency } from '../../../contexts/CurrencyContext';
@@ -307,6 +307,8 @@ export default function HomePage() {
   const [user, setUser] = useState(null);
   const [pageAccess, setPageAccess] = useState(null);
   const [notAllowedPages, setNotAllowedPages] = useState([]);
+  // Cash systems this restaurant uses (posSettings) — for the Shifts & Cash / Register shortcuts.
+  const [cashFlags, setCashFlags] = useState({ shifts: false, register: false });
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileEmbed, setIsMobileEmbed] = useState(false); // true inside dine-app WebView
   const [restaurantName, setRestaurantName] = useState('');
@@ -350,10 +352,12 @@ export default function HomePage() {
         const r = JSON.parse(savedRestaurant);
         setRestaurantName(r.name || '');
         if (r.businessType === 'bar') setIsBar(true);
+        setCashFlags({ shifts: !!r.posSettings?.enableShiftsCash, register: !!r.posSettings?.requireRegisterOpen });
       } catch {}
     } else if (parsed.restaurant) {
       setRestaurantName(parsed.restaurant.name || '');
       if (parsed.restaurant.businessType === 'bar') setIsBar(true);
+      setCashFlags({ shifts: !!parsed.restaurant.posSettings?.enableShiftsCash, register: !!parsed.restaurant.posSettings?.requireRegisterOpen });
     }
     setCurrencySymbol(getCurrencySymbol());
 
@@ -485,6 +489,19 @@ export default function HomePage() {
   const todayDate = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', ...(_homeTz ? { timeZone: _homeTz } : {}) });
   const posPath = isBar ? '/dashboard/bar' : '/dashboard';
 
+  // Same rule as the page guard (layout canAccessPage): owner/admin always; waiters may open these
+  // pages (not owner-lockable for waiters); other staff by their page access ('shifts' = Shifts &
+  // Cash, 'completeBill' = Register).
+  const canOpenPage = (key, pageId) => {
+    if (!user) return false;
+    if (notAllowedPages?.includes(key) || (pageId && notAllowedPages?.includes(pageId))) return false;
+    if (user.role === 'owner' || user.role === 'admin') return true;
+    if (user.role === 'waiter') return true;
+    const v = pageAccess ? pageAccess[key] : undefined;
+    if (v && typeof v === 'object') return Object.values(v).some(Boolean);
+    return !!v;
+  };
+
   const quickActions = [
     canAccess('dashboard') && {
       icon: FaReceipt, label: isBar ? t('home.barPOS') : t('home.startOrder'),
@@ -505,6 +522,16 @@ export default function HomePage() {
     canAccess('history') && {
       icon: FaClipboardList, label: t('home.orders'),
       gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', href: '/orderhistory',
+    },
+    // Open / close your shift and cash drawer — only where the restaurant uses Shifts & Cash.
+    cashFlags.shifts && canOpenPage('shifts', 'shifts-cash') && {
+      icon: FaMoneyBillWave, label: 'Shifts & Cash',
+      gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)', href: '/shifts-cash',
+    },
+    // Open / close the cash register — only where billing needs an open register.
+    cashFlags.register && canOpenPage('completeBill', 'register') && {
+      icon: FaCashRegister, label: 'Register',
+      gradient: 'linear-gradient(135deg, #16a34a, #15803d)', href: '/register',
     },
   ].filter(Boolean);
 
