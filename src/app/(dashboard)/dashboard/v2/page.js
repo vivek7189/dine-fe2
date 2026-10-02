@@ -94,7 +94,7 @@ import { parseScaleBarcode, isScaleBarcode } from '../../../../utils/scaleBarcod
 import { printDocument } from '../../../../utils/printBridge';
 import useTimedMenu from '../../../../hooks/useTimedMenu';
 import { resolveVariantTierPrice, resolveItemTierPrice } from '../../../../utils/variantPricing';
-import { calculatePerItemTax } from '../../../../utils/taxEngine';
+import { calculatePerItemTax, savedLineBasePrice } from '../../../../utils/taxEngine';
 import { resolveAdditionalCharges } from '../../../../utils/additionalCharges';
 
 // Safe wrappers for contexts that may not be available in mobile embed mode
@@ -477,7 +477,17 @@ function RestaurantPOSContent() {
   const lastDisplayTotalRef = useRef(0);
   const [customerDisplayOpen, setCustomerDisplayOpen] = useState(false);
   // Bill totals reported by OrderSummary (see onTotalsChange) — mirrored on the customer display.
-  const [billTotals, setBillTotals] = useState(null);
+  const [billTotals, setBillTotalsRaw] = useState(null);
+  // Bail out when the reported figures are unchanged (shallow) — a new object with the same
+  // numbers would re-render the POS and feed a render loop with OrderSummary's totals effect.
+  const setBillTotals = useCallback((next) => setBillTotalsRaw(prev => {
+    if (prev === next) return prev;
+    if (prev && next && typeof prev === 'object' && typeof next === 'object') {
+      const ka = Object.keys(prev), kb = Object.keys(next);
+      if (ka.length === kb.length && ka.every(k => prev[k] === next[k])) return prev;
+    }
+    return next;
+  }), []);
 
   // Customer display sync — send cart data to secondary screen
   useEffect(() => {
@@ -2653,9 +2663,14 @@ function RestaurantPOSContent() {
   // Returns the effective per-unit price for a cart item (variant + customizations included)
   const getEffectiveItemPrice = (item) => {
     let base;
-    if (item?.priceEdited === true && typeof item?.price === 'number') {
-      // Manual price edit wins over any pricing rule / variant tier.
+    if (item?.priceEdited === true && typeof item?.price === 'number' && item?.selectedVariant?.price == null) {
+      // Manual price edit wins over any pricing rule (not on variant lines — the server
+      // re-prices those from the menu variant).
       base = item.price;
+    } else if (item?.selectedVariant?.price != null && item?.priceEdited === true) {
+      // Server: a variant line flagged as edited gets the plain menu variant price (no tier).
+      const fv = (menuItems || []).find(m => m.id === item.id)?.variants?.find(v => v.name === item.selectedVariant.name);
+      base = typeof fv?.price === 'number' ? fv.price : item.selectedVariant.price;
     } else if (item?.selectedVariant?.price != null) {
       // Variant lines: the variant's own tier price for the active rule (per-variant price →
       // Dine-In inherit → rule default markup → variant base). Ported from v1.
@@ -3067,13 +3082,16 @@ function RestaurantPOSContent() {
           const cartItem = {
             id: id,
             name: matchedMenu?.name || name,
-            price: item.priceEdited === true ? price : refreshedPrice,
+            // Edited lines keep the saved price minus toppings (the cart adds toppings back once).
+            price: item.priceEdited === true ? (savedLineBasePrice(item) ?? price) : refreshedPrice,
             quantity: parseInt(item.quantity) || 1,
             category: item.category || item.menuItem?.category || matchedMenu?.category || '',
             taxGroupId: matchedMenu?.taxGroupId || item.taxGroupId || null,
             selectedVariant: item.selectedVariant || null,
             selectedCustomizations: Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [],
-            basePrice: effectiveBasePrice,
+            // A price-edited (non-variant) line keeps its EDITED base (sent as basePrice).
+            basePrice: (item.priceEdited === true && item.selectedVariant?.price == null)
+              ? (savedLineBasePrice(item) ?? effectiveBasePrice) : effectiveBasePrice,
             isCustomItem: item.isCustomItem || false,
             pricingRules: matchedMenu?.pricingRules || item.pricingRules || {},
             priceEdited: item.priceEdited === true,
@@ -8922,6 +8940,7 @@ function RestaurantPOSContent() {
             error={error}
             getTotalAmount={getTotalAmount}
             onTotalsChange={setBillTotals}
+            floors={floors}
             tableNumber={tableNumber}
             selectedTable={selectedTable}
             customerName={customerName}
@@ -9030,6 +9049,7 @@ function RestaurantPOSContent() {
                     error={error}
                     getTotalAmount={getTotalAmount}
                     onTotalsChange={setBillTotals}
+                    floors={floors}
                     tableNumber={tableNumber}
                     selectedTable={selectedTable}
                     customerName={customerName}

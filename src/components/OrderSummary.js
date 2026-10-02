@@ -49,8 +49,18 @@ import { isElectron } from '../utils/platform';
 import { resolveVariantTierPrice, resolveItemTierPrice } from '../utils/variantPricing';
 import { isItemTaxInclusive as engineIsItemTaxInclusive, resolveTaxesForItem as engineResolveTaxesForItem, calculatePerItemTax as engineCalculatePerItemTax } from '../utils/taxEngine';
 import { resolveAdditionalCharges } from '../utils/additionalCharges';
+import { calcPricingAdjustment, findTableFloor, orderZoneSurchargeFor } from '../utils/areaCharge';
 
 const NO_ADDITIONAL_CHARGES = { charges: [], total: 0, foldTaxableTotal: 0, ownTaxTotal: 0, taxLines: [] };
+
+// Content equality for small plain values (tax lines, charge info). Used so the tax effect never
+// replaces state with a NEW array/object holding the same figures — a fresh reference re-renders,
+// and the re-render re-runs the effect (getTotalAmount is a fresh function each parent render),
+// which was an endless render loop even with an empty cart.
+const sameJson = (a, b) => {
+  if (a === b) return true;
+  try { return JSON.stringify(a) === JSON.stringify(b); } catch (_) { return false; }
+};
 
 const CustomerDetailModal = dynamic(() => import('./CustomerDetailModal'), { ssr: false });
 const DiscountApprovalModal = dynamic(() => import('./DiscountApprovalModal'), { ssr: false });
@@ -231,6 +241,8 @@ const OrderSummary = ({
   chairModeEnabled = false,
   selectedChair = null,
   setSelectedChair,
+  // Floors (with their tables) — used to mirror the server's floor area charge on a new order.
+  floors = [],
   // Wide 2-column order panel (desktop only; controlled by dashboard, persisted in localStorage)
   expanded = false,
   onToggleExpanded,
@@ -393,7 +405,9 @@ const OrderSummary = ({
   }, [kraPrompt, runEtims]);
   const [invoice, setInvoice] = useState(null);
   const [showInvoicePermanently, setShowInvoicePermanently] = useState(false);
-  const [taxBreakdown, setTaxBreakdown] = useState([]);
+  const [taxBreakdown, setTaxBreakdownRaw] = useState([]);
+  // Keep the same array when the figures did not change (see sameJson).
+  const setTaxBreakdown = useCallback((next) => setTaxBreakdownRaw(prev => (sameJson(prev, next) ? prev : next)), []);
   const [totalTax, setTotalTax] = useState(0);
   const [grandTotal, setGrandTotal] = useState(null);
   const [restaurantCategories, setRestaurantCategories] = useState([]); // For per-item tax resolution
@@ -640,6 +654,42 @@ const OrderSummary = ({
     window.open('/customers/' + id, '_blank', 'noopener');
   }, [customerData?.id, router]);
 
+  // Area / zone surcharge — the server's rule exactly (utils/areaCharge): an EXISTING order keeps
+  // its own surcharge (percentage re-applied to the current items); a NEW order at a table gets
+  // the table floor's area charge (else zone pricing by section) unless a multi-tier pricing rule
+  // is active. It is part of the subtotal the server bills (base for offers, service charge and
+  // additional charges) and is taxed with the items (folded into the tax base).
+  const areaChargeInfo = (() => {
+    try {
+      const itemsSub = getTotalAmount();
+      if (currentOrder && (currentOrder.id || currentOrder.orderId)) {
+        const amt = orderZoneSurchargeFor(currentOrder, itemsSub);
+        const rule = (Array.isArray(currentOrder.appliedPricingRules) ? currentOrder.appliedPricingRules : [])
+          .find(r => r && (r.type === 'floor_area_charge' || r.type === 'zone'));
+        return { amount: amt, rule: rule || null };
+      }
+      if (multiPricingEnabled && activePricingRuleId) return { amount: 0, rule: null };
+      if (locationType === 'room' || selectedTable?.isRoom) return { amount: 0, rule: null };
+      const tableName = String(tableNumber || selectedTable?.name || '').trim();
+      if (!tableName) return { amount: 0, rule: null };
+      const hit = findTableFloor(floors, selectedTable, tableName);
+      if (!hit) return { amount: 0, rule: null };
+      const adj = calcPricingAdjustment({
+        floorData: hit.floor,
+        tableSection: hit.table?.section || hit.floor?.section || null,
+        pricingSettings: restaurant?.pricingSettings,
+        subtotal: itemsSub,
+      });
+      return { amount: adj.zoneSurcharge, rule: adj.rule };
+    } catch (_) { return { amount: 0, rule: null }; }
+  })();
+  const areaCharge = areaChargeInfo.amount || 0;
+  const areaChargeLabel = () => {
+    const r = areaChargeInfo.rule;
+    const base = r?.type === 'zone' ? (r.zoneName || 'Zone charge') : (t('tables.areaCharge') || 'Area charge');
+    return r?.markupType === 'percentage' && Number(r.markupValue) > 0 ? `${base} (${r.markupValue}%)` : base;
+  };
+
   // Offer Engine Hook
   const {
     applicableOffers, genericOffers, personalizedOffers,
@@ -653,7 +703,8 @@ const OrderSummary = ({
   } = useOfferEngine({
     restaurantId,
     cart,
-    subtotal: getTotalAmount(),
+    // Server evaluates offers on items + area surcharge (subtotalForDiscount).
+    subtotal: getTotalAmount() + areaCharge,
     customerInfo: customerData,
     taxSettings,
     customerContext: customerData ? {
@@ -738,7 +789,8 @@ const OrderSummary = ({
   const [tipPercentage, setTipPercentage] = useState(null);
   const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
   // Additional charges (packaging etc.) resolved for the current cart — see calculateTax.
-  const [additionalChargesInfo, setAdditionalChargesInfo] = useState(NO_ADDITIONAL_CHARGES);
+  const [additionalChargesInfo, setAdditionalChargesInfoRaw] = useState(NO_ADDITIONAL_CHARGES);
+  const setAdditionalChargesInfo = useCallback((next) => setAdditionalChargesInfoRaw(prev => (sameJson(prev, next) ? prev : next)), []);
   // Warning shown when the server saved a different bill total than the cart computed.
   const [billMismatchNote, setBillMismatchNote] = useState(null);
   useEffect(() => {
@@ -1583,6 +1635,10 @@ const OrderSummary = ({
     return rolesArray.some(r => key(r) === key(role));
   }, [userRole]);
 
+  // Variant (size) lines are priced from the menu variant by the server — an edited price there
+  // would be ignored and the bill would differ, so their price is not editable.
+  const canEditLinePrice = (line) => !!(posSettings.allowPriceEdit && isRoleAllowed(billingSettings?.priceEditRoles) && line?.selectedVariant?.price == null);
+
   // Coupon helpers
   const couponsEnabled = offerSettings?.couponsEnabled === true;
 
@@ -1633,10 +1689,16 @@ const OrderSummary = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const getItemUnitPrice = useCallback((cartItem) => {
     let unitPrice;
-    if (cartItem?.priceEdited === true && typeof cartItem?.price === 'number') {
+    if (cartItem?.priceEdited === true && typeof cartItem?.price === 'number' && cartItem?.selectedVariant?.price == null) {
       // A manually edited price is the line's base (toppings still added below) — honored even
-      // when a pricing rule is active; the variant/tier resolvers would silently undo the edit.
+      // when a pricing rule is active; the tier resolver would silently undo the edit. Not for
+      // variant lines: the server re-prices those from the menu variant.
       unitPrice = cartItem.price;
+    } else if (cartItem?.selectedVariant?.price != null && cartItem?.priceEdited === true) {
+      // Server: a variant line flagged as edited gets the plain menu variant price (no tier).
+      const fi = cartItem?.id != null ? menuItems.find(m => m.id === cartItem.id) : undefined;
+      const fv = fi?.variants?.find(v => v.name === cartItem.selectedVariant.name);
+      unitPrice = typeof fv?.price === 'number' ? fv.price : cartItem.selectedVariant.price;
     } else if (cartItem?.selectedVariant?.price != null) {
       // Variant selected — resolve its per-variant tier price for the active rule (prefer the
       // fresh menu variant so newly-set tier prices apply; falls back to the variant base).
@@ -1753,7 +1815,8 @@ const OrderSummary = ({
     const loyaltyDiscAmt = getLoyaltyDiscountAmount();
     const couponDiscAmt = getCouponDiscountAmount();
     const discTotal = effectiveOfferDiscount + getManualDiscountAmount() + loyaltyDiscAmt + couponDiscAmt;
-    const discountedAmt = Math.max(0, subtotal - discTotal);
+    // Area surcharge is part of the server's subtotal (preTaxTotal = items + surcharge − discounts).
+    const discountedAmt = Math.max(0, subtotal + areaCharge - discTotal);
 
     // Service charge (after discounts, before tax)
     const sc = calcServiceCharge(discountedAmt);
@@ -1779,68 +1842,22 @@ const OrderSummary = ({
       return;
     }
 
-    // Check if per-item tax is needed (taxGroups exist)
-    const hasTaxGroups = taxSettings.taxGroups && taxSettings.taxGroups.length > 0;
-
-    // Per-ITEM tax-inclusive override: if any item's effective inclusive setting differs
-    // from the restaurant default, the flat (whole-order) path below can't represent it —
-    // it would tax an INCLUSIVE item on top (₹30 incl-tax → ₹31.50). Route such carts
-    // through the per-item path, which splits inclusive items and adds only exclusive tax.
-    // Carts where EVERY item matches the global setting keep the original flat path (unchanged).
-    const globalInclusive = taxSettings.taxInclusivePricing === true;
-    const hasMixedInclusive = cart.some(ci => isItemTaxInclusive(ci, taxSettings) !== globalInclusive);
-
-    let calculatedTaxes = [];
-    let totalTaxAmount = 0;
-
-    if (hasTaxGroups || hasMixedInclusive) {
-      // Per-item tax — the shared engine, an exact mirror of the backend calculatePerItemTax
-      // (discount spread only over discountApplicable items, SC + folded charges spread by
-      // post-discount amount, order-type gating, inclusive back-calculation). Weighed lines use
-      // their weight (same as getTotalAmount), not the quantity.
-      const lines = cart.map(ci => {
-        const unit = getItemUnitPrice(ci);
-        const factor = lineQtyFactor(ci);
-        return { ...withMenuTaxFields(ci), price: unit, quantity: factor, total: unit * factor };
-      });
-      const r = engineCalculatePerItemTax(lines, taxSettings, restaurantCategories, discTotal, sc + addl.foldTaxableTotal, orderType);
-      calculatedTaxes = r.taxBreakdown;
-      totalTaxAmount = r.totalTaxAmount;
-    } else {
-      // Flat tax calculation (original behavior — no tax groups)
-      const taxableAmount = discountedAmt + sc + addl.foldTaxableTotal;
-      const isGlobalInclusive = taxSettings.taxInclusivePricing === true;
-      if (taxSettings.taxes && taxSettings.taxes.length > 0) {
-        const enabledTaxes = taxSettings.taxes.filter(tax => tax.enabled && taxAppliesToOrderType(tax, orderType));
-        const totalRate = enabledTaxes.reduce((sum, t) => sum + (t.rate || 0), 0);
-        enabledTaxes.forEach(tax => {
-            const taxAmount = isGlobalInclusive
-              ? taxableAmount * (tax.rate / (100 + totalRate))
-              : taxableAmount * (tax.rate / 100);
-            calculatedTaxes.push({
-              name: tax.name,
-              rate: tax.rate,
-              amount: taxAmount,
-              inclusive: isGlobalInclusive
-            });
-            totalTaxAmount += taxAmount;
-        });
-      } else if (taxSettings.defaultTaxRate) {
-        // Same rule as the backend (and the per-item path): `taxes` empty OR missing → the
-        // restaurant's defaultTaxRate. (This path used to require `taxes` to be missing, so an
-        // empty list showed no tax while the server still charged defaultTaxRate.)
-        const taxAmount = isGlobalInclusive
-          ? taxableAmount * (taxSettings.defaultTaxRate / (100 + taxSettings.defaultTaxRate))
-          : taxableAmount * (taxSettings.defaultTaxRate / 100);
-        calculatedTaxes.push({
-          name: defaultTaxName,
-          rate: taxSettings.defaultTaxRate,
-          amount: taxAmount,
-          inclusive: isGlobalInclusive
-        });
-        totalTaxAmount = taxAmount;
-      }
-    }
+    // Item tax — ALWAYS the shared engine, an exact mirror of the backend calculatePerItemTax
+    // (discount spread only over discountApplicable items, SC + folded charges spread by
+    // post-discount amount, order-type gating, inclusive back-calculation, defaultTaxRate when
+    // `taxes` is empty). The old whole-order "flat" shortcut differed from the server when the
+    // discount exceeded the discountable items' subtotal, so it is gone. Weighed lines use their
+    // weight (same as getTotalAmount), not the quantity.
+    const lines = cart.map(ci => {
+      const unit = getItemUnitPrice(ci);
+      const factor = lineQtyFactor(ci);
+      return { ...withMenuTaxFields(ci), price: unit, quantity: factor, total: unit * factor };
+    });
+    const r = engineCalculatePerItemTax(lines, taxSettings, restaurantCategories, discTotal, sc + addl.foldTaxableTotal + areaCharge, orderType);
+    // The server names the defaultTaxRate line 'Tax'; show the restaurant's own label instead.
+    const usesDefaultRate = !(Array.isArray(taxSettings.taxes) && taxSettings.taxes.length > 0);
+    let calculatedTaxes = r.taxBreakdown.map(t => (usesDefaultRate && t.name === 'Tax' && defaultTaxName ? { ...t, name: defaultTaxName } : t));
+    let totalTaxAmount = r.totalTaxAmount;
 
     // On-top charge taxes (their own rate) — added to the breakdown exactly like the server.
     if (addl.taxLines.length > 0) {
@@ -1853,14 +1870,16 @@ const OrderSummary = ({
     setTotalTax(totalTaxAmount);
 
     // After tax, add tip and round-off — only add exclusive tax (inclusive is already in discountedAmt)
-    const exclusiveTax = calculatedTaxes.filter(t => !t.inclusive).reduce((sum, t) => sum + (t.amount || 0), 0);
+    // Exactly the server's figure: the engine's exclusive tax (rounded once, on the raw sum — not
+    // the sum of the rounded lines, which could differ by a cent) + the charges' own tax.
+    const exclusiveTax = r.exclusiveTaxAmount + addl.ownTaxTotal;
     const afterTax = discountedAmt + sc + addl.total + Math.round(exclusiveTax * 100) / 100;
     const withTip = afterTax + tipAmount;
     const ro = calcRoundOff(withTip);
     setRoundOffAmount(ro);
     setGrandTotal(withTip + ro);
 
-  }, [cart, restaurantId, getTotalAmount, taxSettings, orderType, effectiveOfferDiscount, getManualDiscountAmount, getLoyaltyDiscountAmount, appliedCoupon, tipAmount, calcServiceCharge, calcRoundOff, resolveTaxesForItem, isItemTaxInclusive, restaurantCategories, getItemUnitPrice, withMenuTaxFields]);
+  }, [cart, restaurantId, getTotalAmount, taxSettings, orderType, effectiveOfferDiscount, getManualDiscountAmount, getLoyaltyDiscountAmount, appliedCoupon, tipAmount, calcServiceCharge, calcRoundOff, resolveTaxesForItem, isItemTaxInclusive, restaurantCategories, getItemUnitPrice, withMenuTaxFields, areaCharge, defaultTaxName, setTaxBreakdown, setAdditionalChargesInfo]);
   
   // Flag that pre-fill is needed when entering edit mode (prevents amount flicker)
   // Must run BEFORE the tax calculation useLayoutEffect to prevent wrong totals
@@ -2387,6 +2406,10 @@ const OrderSummary = ({
         invoiceData.additionalCharges = localTaxData.additionalCharges;
         invoiceData.additionalChargesTotal = localTaxData.additionalChargesTotal || 0;
       }
+      if (localTaxData.zoneSurcharge > 0) {
+        invoiceData.zoneSurcharge = localTaxData.zoneSurcharge;
+        invoiceData.zoneSurchargeLabel = localTaxData.zoneSurchargeLabel || null;
+      }
       if (localTaxData.tipAmount != null) invoiceData.tipAmount = localTaxData.tipAmount;
       if (localTaxData.tipPercentage != null) invoiceData.tipPercentage = localTaxData.tipPercentage;
       if (localTaxData.roundOffAmount != null) invoiceData.roundOffAmount = localTaxData.roundOffAmount;
@@ -2629,6 +2652,7 @@ const OrderSummary = ({
     const tip = tipAmount || 0;
     const ro = roundOffAmount || 0;
     const addlTotal = additionalChargesInfo?.total || 0;
+    const zone = areaCharge || 0;
     const orderSubtotal = getTotalAmount();
     const tb = taxBreakdown || [];
     const sumAmt = (list) => list.reduce((a, t) => a + (Number(t.amount) || 0), 0);
@@ -2655,7 +2679,7 @@ const OrderSummary = ({
         const p = amt / total;
         guests[i] = {
           p, amount: amt,
-          sub: orderSubtotal * p, disc: discTotal * p, sc: sc * p, addl: addlTotal * p,
+          sub: orderSubtotal * p, disc: discTotal * p, sc: sc * p, addl: addlTotal * p, zone: zone * p,
           chargeTax: chargeTaxTotal * p, exclTax: itemExclTotal * p, inclTax: itemInclTotal * p,
           tip: tip * p, ro: ro * p, items: null,
         };
@@ -2671,7 +2695,7 @@ const OrderSummary = ({
       const discountableSub = lines.reduce((a, l) => a + (l.discountApplicable === false ? 0 : l.total), 0);
       const postDisc = Math.max(0, linesSub - discTotal);
       const taxRes = taxSettings?.enabled
-        ? engineCalculatePerItemTax(lines, taxSettings, restaurantCategories, discTotal, sc + (additionalChargesInfo?.foldTaxableTotal || 0), orderType)
+        ? engineCalculatePerItemTax(lines, taxSettings, restaurantCategories, discTotal, sc + (additionalChargesInfo?.foldTaxableTotal || 0) + zone, orderType)
         : null;
       cartItems.forEach((ci, idx) => {
         const g = splitBillItemAssignments[idx];
@@ -2681,13 +2705,14 @@ const OrderSummary = ({
         const net = Math.max(0, l.total - disc);
         const share = postDisc > 0 ? net / postDisc : (linesSub > 0 ? l.total / linesSub : 0);
         const pi = taxRes?.perItem?.[idx];
-        if (!guests[g]) guests[g] = { p: 0, sub: 0, disc: 0, sc: 0, addl: 0, chargeTax: 0, exclTax: 0, inclTax: 0, tip: 0, ro: 0, items: [] };
+        if (!guests[g]) guests[g] = { p: 0, sub: 0, disc: 0, sc: 0, addl: 0, zone: 0, chargeTax: 0, exclTax: 0, inclTax: 0, tip: 0, ro: 0, items: [] };
         const G = guests[g];
         G.p += share;
         G.sub += l.total;
         G.disc += disc;
         G.sc += share * sc;
         G.addl += share * addlTotal;
+        G.zone += share * zone;
         G.chargeTax += share * chargeTaxTotal;
         if (pi) { if (pi.taxInclusive) G.inclTax += pi.itemTaxAmount; else G.exclTax += pi.itemTaxAmount; }
         G.tip += share * tip;
@@ -2704,7 +2729,7 @@ const OrderSummary = ({
       });
       guests.forEach(G => {
         if (!G) return;
-        G.amount = G.sub - G.disc + G.sc + G.addl + G.chargeTax + G.exclTax + G.tip + G.ro;
+        G.amount = G.sub + G.zone - G.disc + G.sc + G.addl + G.chargeTax + G.exclTax + G.tip + G.ro;
       });
     }
 
@@ -2737,6 +2762,7 @@ const OrderSummary = ({
         taxAmount: r2(G.exclTax + G.inclTax + G.chargeTax),
         taxBreakdown: gTaxBreakdown,
         serviceChargeAmount: r2(G.sc),
+        zoneSurcharge: r2(G.zone || 0),
         additionalCharges: addlCharges.length ? addlCharges.map(c => ({ ...c, amount: r2((c.amount || 0) * addlF) })) : null,
         additionalChargesTotal: r2(G.addl),
         tipAmount: r2(G.tip),
@@ -2748,12 +2774,18 @@ const OrderSummary = ({
       };
     });
 
-    // Absorb the rounding remainder in the last guest for equal/by-item so the guest bills add up
-    // to the order total exactly (by-amount uses the typed amounts as they are).
-    if (method !== 'by-amount') {
+    // Absorb the ROUNDING remainder in the last guest for equal/by-item so the guest bills add up
+    // to the order total exactly (by-amount uses the typed amounts as they are). By-item: only once
+    // EVERY item is assigned — otherwise the gap is unassigned items' value, never a guest's to pay —
+    // and only a rounding-sized gap (±₹1).
+    const allItemsAssigned = method !== 'by-item' || (cart || []).every((_, idx) => {
+      const g = splitBillItemAssignments[idx];
+      return g !== undefined && g >= 0 && g < guestCount;
+    });
+    if (method !== 'by-amount' && allItemsAssigned) {
       const splitsTotal = splits.reduce((sum, sp) => sum + sp.totalAmount, 0);
       const diff = r2(total - splitsTotal);
-      if (Math.abs(diff) > 0 && splits.length > 0) {
+      if (Math.abs(diff) > 0 && Math.abs(diff) <= 1 && splits.length > 0) {
         const last = splits[splits.length - 1];
         last.totalAmount = r2(last.totalAmount + diff);
         last.roundOffAmount = r2((last.roundOffAmount || 0) + diff);
@@ -2761,7 +2793,7 @@ const OrderSummary = ({
     }
 
     return { method, guestCount: splits.length, splits };
-  }, [splitBillMode, splitBillGuests, splitBillItemAssignments, splitBillAmounts, splitBillPaymentMethods, splitBillGuestNames, grandTotal, cart, totalTax, taxBreakdown, serviceChargeAmount, tipAmount, roundOffAmount, effectiveOfferDiscount, additionalChargesInfo, taxSettings, restaurantCategories, orderType, getItemUnitPrice, withMenuTaxFields]);
+  }, [splitBillMode, splitBillGuests, splitBillItemAssignments, splitBillAmounts, splitBillPaymentMethods, splitBillGuestNames, grandTotal, cart, totalTax, taxBreakdown, serviceChargeAmount, tipAmount, roundOffAmount, effectiveOfferDiscount, additionalChargesInfo, taxSettings, restaurantCategories, orderType, getItemUnitPrice, withMenuTaxFields, areaCharge]);
 
   // Terminal PIN lock: after an order is placed (+ its print fires), re-lock the POS
   // so the next staff must enter their PIN. No-op unless the lock is enabled with an
@@ -2837,21 +2869,25 @@ const OrderSummary = ({
       const disc = (effectiveOfferDiscount || 0) + getManualDiscountAmount() + getLoyaltyDiscountAmount() + getCouponDiscountAmount();
       if (disc <= 0) return gt;
       const exclTax = Array.isArray(taxBreakdown) ? taxBreakdown.filter(t => !t.inclusive).reduce((s, t) => s + (t.amount || 0), 0) : 0;
-      const ceiling = Math.max(0, Math.round((Math.max(0, sub - disc) + (serviceChargeAmount || 0) + (additionalChargesInfo?.total || 0) + exclTax + (tipAmount || 0) + (roundOffAmount || 0)) * 100) / 100);
+      const ceiling = Math.max(0, Math.round((Math.max(0, sub + areaCharge - disc) + (serviceChargeAmount || 0) + (additionalChargesInfo?.total || 0) + exclTax + (tipAmount || 0) + (roundOffAmount || 0)) * 100) / 100);
       return (gt > ceiling + 0.5) ? ceiling : gt;
     } catch (_) { return gt; }
   };
 
   // Report the bill totals to the parent (customer-facing display) — the SAME figures the cart
-  // shows, so the display never shows a different tax / discount / total.
+  // shows, so the display never shows a different tax / discount / total. Emits ONLY when one of
+  // the figures changed (a new object every render made the parent re-render, which re-ran this
+  // effect — an endless loop).
+  const lastTotalsKeyRef = useRef(null);
   useEffect(() => {
     if (typeof onTotalsChange !== 'function') return;
     try {
       const tb = Array.isArray(taxBreakdown) ? taxBreakdown : [];
-      onTotalsChange({
+      const totals = ({
         subtotal: Math.round(getTotalAmount() * 100) / 100,
         discount: Math.round(totalDiscountAmount * 100) / 100,
         serviceCharge: serviceChargeAmount || 0,
+        areaCharge: areaCharge || 0,
         additionalCharges: additionalChargesInfo?.total || 0,
         tax: Math.round(tb.reduce((a, t) => a + (Number(t.amount) || 0), 0) * 100) / 100,
         exclusiveTax: Math.round(tb.filter(t => !t.inclusive).reduce((a, t) => a + (Number(t.amount) || 0), 0) * 100) / 100,
@@ -2859,8 +2895,12 @@ const OrderSummary = ({
         roundOff: roundOffAmount || 0,
         total: Math.round(settleFinalAmount() * 100) / 100,
       });
+      const key = JSON.stringify(totals);
+      if (key === lastTotalsKeyRef.current) return;
+      lastTotalsKeyRef.current = key;
+      onTotalsChange(totals);
     } catch (_) { /* display only */ }
-  }, [grandTotal, taxBreakdown, serviceChargeAmount, additionalChargesInfo, tipAmount, roundOffAmount, totalDiscountAmount, cart]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [grandTotal, taxBreakdown, serviceChargeAmount, additionalChargesInfo, tipAmount, roundOffAmount, totalDiscountAmount, cart, areaCharge]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Wallet "Use" = cover the bill: when items/discounts change the bill after "Use" (e.g. more
   // items added to a KOT in edit mode), move the wallet amount with it — min(balance, bill).
@@ -2937,6 +2977,9 @@ const OrderSummary = ({
       // recomputes and stores its own).
       additionalCharges: additionalChargesInfo?.charges?.length ? additionalChargesInfo.charges : null,
       additionalChargesTotal: additionalChargesInfo?.total > 0 ? additionalChargesInfo.total : null,
+      // Area / zone surcharge (display/print — the server computes its own from the table floor).
+      zoneSurcharge: areaCharge > 0 ? areaCharge : null,
+      zoneSurchargeLabel: areaCharge > 0 ? areaChargeLabel() : null,
       serviceChargeEnabled: serviceChargeOverride,
       manualDiscountType: manualDiscountTypeState,
       manualDiscountValue: manualDiscountValue !== '' && !manualDiscountPendingOtp ? parseFloat(manualDiscountValue) : null,
@@ -5226,7 +5269,7 @@ const OrderSummary = ({
                             );
                           })()}
                         </span>
-                        {posSettings.allowPriceEdit && isRoleAllowed(billingSettings?.priceEditRoles) && editingPriceId === cartLineId(item) ? (
+                        {canEditLinePrice(item) && editingPriceId === cartLineId(item) ? (
                           <input
                             type="text"
                             inputMode="decimal"
@@ -5271,15 +5314,16 @@ const OrderSummary = ({
                           <span
                             style={{
                               fontSize: '12px', fontWeight: 'bold', color: '#ef4444',
-                              cursor: posSettings.allowPriceEdit && isRoleAllowed(billingSettings?.priceEditRoles) ? 'pointer' : 'default',
+                              cursor: canEditLinePrice(item) ? 'pointer' : 'default',
                               display: 'inline-flex', alignItems: 'center', gap: '3px',
                             }}
+                            title={posSettings.allowPriceEdit && isRoleAllowed(billingSettings?.priceEditRoles) && !canEditLinePrice(item) ? 'Size (variant) prices come from the menu and cannot be edited here' : undefined}
                             onClick={() => {
-                              if (posSettings.allowPriceEdit && isRoleAllowed(billingSettings?.priceEditRoles)) setEditingPriceId(cartLineId(item));
+                              if (canEditLinePrice(item)) setEditingPriceId(cartLineId(item));
                             }}
                           >
                             {formatCurrency(getItemUnitPrice(item))}
-                            {posSettings.allowPriceEdit && isRoleAllowed(billingSettings?.priceEditRoles) && (
+                            {canEditLinePrice(item) && (
                               <FaPencilAlt size={7} style={{ color: '#94a3b8', flexShrink: 0 }} />
                             )}
                           </span>
@@ -5642,6 +5686,9 @@ const OrderSummary = ({
                     )}
                     {serviceChargeAmount > 0 && (
                       <span>{billingSettings.serviceChargeLabel || 'Service Charge'} ({serviceChargeRateOverride !== null ? serviceChargeRateOverride : billingSettings.serviceChargeRate}%): {formatCurrency(serviceChargeAmount)}</span>
+                    )}
+                    {areaCharge > 0 && (
+                      <span>{areaChargeLabel()}: {formatCurrency(areaCharge)}</span>
                     )}
                     {(additionalChargesInfo?.charges || []).map((c, index) => (
                       <span key={`addl-${c.id || index}`}>{c.name}{c.type === 'percent' ? ` (${c.value}%)` : ''}: {formatCurrency(c.amount || 0)}</span>

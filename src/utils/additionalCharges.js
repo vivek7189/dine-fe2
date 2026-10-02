@@ -1,6 +1,6 @@
 // Shared "additional charges" resolver — a faithful mirror of the backend
-// resolveAdditionalCharges() (dine-backend index.js). Used by the public/customer
-// online-order page so the price the customer PAYS matches what the server computes.
+// resolveAdditionalCharges() (dine-backend index.js). Used by the POS (OrderSummary) and the
+// public/customer online-order page so the price shown/paid matches what the server computes.
 //
 // Charge model (taxSettings.additionalCharges[]):
 //   { id, name, type:'fixed'|'percent', value, appliesTo:[orderTypeIds]|[]|['all'],
@@ -9,8 +9,9 @@
 // Returns { charges, total, foldTaxableTotal, ownTaxTotal, taxLines }.
 // - total          = sum of charge amounts
 // - ownTaxTotal    = tax on charges that carry their own taxRate (added on top)
-// - foldTaxableTotal = taxable charges with NO own rate (POS folds these into item tax; the
-//   public page keeps them at face value so FE and server totals always match exactly)
+// - foldTaxableTotal = taxable charges with NO own rate — folded into the item tax base (with the
+//   service charge) by the POS AND the public online-order page, exactly as the server does for
+//   both POS and public orders (calculatePerItemTax(..., serviceCharge + foldTaxableTotal, ...))
 
 // Order-type scope matching — EXACT mirror of the backend taxAppliesToOrderType(): lowercase +
 // collapse underscores/spaces to hyphens, then compare. The 'all' sentinel is a plain lowercase

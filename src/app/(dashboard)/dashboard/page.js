@@ -657,7 +657,17 @@ function RestaurantPOSContent() {
   const [customerDisplayOpen, setCustomerDisplayOpen] = useState(false);
   // Bill totals as computed by OrderSummary (tax / discount / SC / charges / total) — mirrored
   // on the customer-facing display so it matches the cart exactly.
-  const [billTotals, setBillTotals] = useState(null);
+  const [billTotals, setBillTotalsRaw] = useState(null);
+  // Bail out when the reported figures are unchanged (shallow) — a new object with the same
+  // numbers would re-render the POS and feed a render loop with OrderSummary's totals effect.
+  const setBillTotals = useCallback((next) => setBillTotalsRaw(prev => {
+    if (prev === next) return prev;
+    if (prev && next && typeof prev === 'object' && typeof next === 'object') {
+      const ka = Object.keys(prev), kb = Object.keys(next);
+      if (ka.length === kb.length && ka.every(k => prev[k] === next[k])) return prev;
+    }
+    return next;
+  }), []);
 
   // Customer display sync — send cart data to secondary screen
   useEffect(() => {
@@ -3054,17 +3064,21 @@ function RestaurantPOSContent() {
   // Returns the effective per-unit price for a cart item (variant + customizations included)
   const getEffectiveItemPrice = (item) => {
     let base;
-    if (item?.priceEdited === true && typeof item?.price === 'number') {
+    if (item?.priceEdited === true && typeof item?.price === 'number' && item?.selectedVariant?.price == null) {
       // A manually edited price is the line's base — honored even when a pricing rule is
-      // active (the tier/variant resolvers below would silently undo the edit).
+      // active (the tier resolver below would silently undo the edit). Not for variant lines:
+      // the server re-prices those from the menu variant.
       base = item.price;
     } else if (item?.selectedVariant?.price != null) {
       // Variant lines: resolve the variant's own tier price for the active zone
       // (per-variant pricingRules → Dine-In inherit → variant base). Falls back to
       // the stored variant price when multi-pricing is off or no rule is active.
-      if (multiPricingEnabled && activePricingRuleId) {
-        const freshVariant = (menuItems || []).find(m => m.id === item.id)
-          ?.variants?.find(v => v.name === item.selectedVariant.name);
+      const freshVariant = (menuItems || []).find(m => m.id === item.id)
+        ?.variants?.find(v => v.name === item.selectedVariant.name);
+      if (item?.priceEdited === true) {
+        // Server: a variant line flagged as edited gets the plain menu variant price (no tier).
+        base = typeof freshVariant?.price === 'number' ? freshVariant.price : item.selectedVariant.price;
+      } else if (multiPricingEnabled && activePricingRuleId) {
         // No fresh menu variant → the stored variant price is already resolved (avoid a 2nd markup).
         base = freshVariant ? resolveVariantTierPrice(freshVariant, activePricingRuleId, pricingRules) : item.selectedVariant.price;
       } else {
@@ -3502,7 +3516,10 @@ function RestaurantPOSContent() {
             ...lineTaxFlags(item, matchedMenu),
             selectedVariant: item.selectedVariant || null,
             selectedCustomizations: Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [],
-            basePrice: effectiveBasePrice,
+            // A price-edited (non-variant) line keeps its EDITED base — buildItemPayload sends
+            // basePrice, and the menu price here re-sent the unedited price on reopen.
+            basePrice: (item.priceEdited === true && item.selectedVariant?.price == null)
+              ? (savedLineBasePrice(item) ?? effectiveBasePrice) : effectiveBasePrice,
             isCustomItem: item.isCustomItem || false,
             pricingRules: matchedMenu?.pricingRules || item.pricingRules || {},
             priceEdited: item.priceEdited === true,
@@ -9523,6 +9540,7 @@ function RestaurantPOSContent() {
             error={error}
             getTotalAmount={getTotalAmount}
             onTotalsChange={setBillTotals}
+            floors={floors}
             tableNumber={tableNumber}
             selectedTable={selectedTable}
             customerName={customerName}
@@ -9638,6 +9656,7 @@ function RestaurantPOSContent() {
                     error={error}
                     getTotalAmount={getTotalAmount}
                     onTotalsChange={setBillTotals}
+                    floors={floors}
                     tableNumber={tableNumber}
                     selectedTable={selectedTable}
                     customerName={customerName}

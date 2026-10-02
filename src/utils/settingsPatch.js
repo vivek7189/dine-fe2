@@ -28,4 +28,23 @@ export function settingsPatch(base, cur) {
   return { patch, topLevel };
 }
 
+// Apply a settingsPatch() `patch` onto a FRESH copy of the saved settings and return the full
+// merged object. `cur` is the page's full current object: where the fresh copy has no plain
+// object to merge a nested change into, the page's whole current value is taken.
+// Sending this FULL object works on every backend: new ones (partial deep-merge) and old ones
+// still running on local-server hubs (tax PUT replaces the whole object and needs `taxes`;
+// billing PUT rebuilds from the body with defaults) — while changes saved elsewhere since the
+// page loaded are kept, because the base is the fresh server copy, not the page's stale one.
+export function applySettingsPatch(fresh, patch, cur) {
+  const out = isObj(fresh) ? { ...fresh } : {};
+  for (const k of Object.keys(patch || {})) {
+    const p = patch[k];
+    const c = cur ? cur[k] : undefined;
+    if (isObj(p) && isObj(c) && isObj(out[k])) out[k] = applySettingsPatch(out[k], p, c);
+    else if (isObj(p) && isObj(c)) out[k] = c;
+    else out[k] = p;
+  }
+  return out;
+}
+
 export default settingsPatch;

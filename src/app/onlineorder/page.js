@@ -767,7 +767,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     const offerDiscount = getOfferDiscount();
     const afterOffer = subtotal - offerDiscount;
 
-    const redemptionRate = customerAppSettings.loyaltySettings.redemptionRate || 1;
+    const redemptionRate = Math.max(1, Number(customerAppSettings.loyaltySettings.redemptionRate) || 1); // server: max(1, rate)
     const maxRedemptionPercent = customerAppSettings.loyaltySettings.maxRedemptionPercent || 20;
 
     const maxFromPercent = (afterOffer * maxRedemptionPercent) / 100;
@@ -796,8 +796,9 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     if (fullTax) {
       // EXACT mirror of the server's public order create: lines enriched from the menu item
       // (taxGroupId, discountApplicable, taxInclusive), then calculatePerItemTax with the offer +
-      // loyalty discount spread only over discount-applicable items and NO service charge in the
-      // tax base (the server passes 0 for public orders).
+      // loyalty discount spread only over discount-applicable items, and the service charge plus
+      // the taxable no-own-rate additional charges folded into the tax base (the server passes
+      // serviceCharge + additionalCharges.foldTaxableTotal for public orders, like the POS).
       if (!fullTax.enabled) return { taxAmount: 0, taxLines: [], exclusiveTaxAmount: 0, inclusiveTaxAmount: 0 };
       const lines = cart.map(item => {
         const mi = (menu || []).find(m => m.id === item.id) || item;
@@ -816,7 +817,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         return line;
       });
       const totalDiscount = getOfferDiscount() + getLoyaltyDiscount();
-      const r = calculatePerItemTax(lines, fullTax, menuCategoryObjs, totalDiscount, 0, getServerOrderType());
+      const fold = getServiceCharge() + getAdditionalChargesResult().foldTaxableTotal;
+      const r = calculatePerItemTax(lines, fullTax, menuCategoryObjs, totalDiscount, fold, getServerOrderType());
       return {
         taxAmount: r.totalTaxAmount,
         taxLines: r.taxBreakdown,
@@ -881,11 +883,14 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     return Math.max(0, subtotal - offerDiscount - loyaltyDiscount);
   };
 
+  // Server rule exactly: customerAppSettings.billingSettings — enabled AND rate > 0 — on the
+  // post-discount subtotal (preTaxTotal), rounded to 2 decimals.
   const getServiceCharge = () => {
     const bs = customerAppSettings?.billingSettings;
-    if (!bs?.serviceChargeEnabled || !bs?.serviceChargeRate) return 0;
+    const rate = (bs?.serviceChargeEnabled && Number(bs?.serviceChargeRate) > 0) ? Number(bs.serviceChargeRate) : 0;
+    if (!(rate > 0)) return 0;
     const preTaxTotal = getPreTaxTotal();
-    return Math.round((preTaxTotal * bs.serviceChargeRate / 100) * 100) / 100;
+    return Math.round((preTaxTotal * rate / 100) * 100) / 100;
   };
 
   // Per-order-type additional charges (packaging / delivery / service fee). Uses the SAME order
@@ -905,8 +910,9 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     // (preTaxTotal). Matches the backend's finalTotal = preTaxTotal + exclusiveTaxAmount + sc + tip.
     const { exclusiveTaxAmount } = getTaxBreakdown();
     const serviceCharge = getServiceCharge();
-    // Additional charges added at face value + their own tax — matches the public order-create
-    // path exactly (charges are NOT folded into item tax on the customer page, so FE == server).
+    // Additional charges added at face value + their own tax; taxable no-own-rate charges and the
+    // service charge are taxed with the items (folded into the tax base in getTaxBreakdown) —
+    // the public order-create path exactly (finalTotal = preTax + exclTax + SC + tip + charges + charge tax).
     const addl = getAdditionalChargesResult();
     return Math.round((preTaxTotal + exclusiveTaxAmount + serviceCharge + tipAmount + addl.total + addl.ownTaxTotal) * 100) / 100;
   };

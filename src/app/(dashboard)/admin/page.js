@@ -145,7 +145,7 @@ import { getPrintFontSizes, getPrintFontFamily, PRINT_FONTS, getContentWidthRang
 import { KOT_TEMPLATE_LIST, BILL_TEMPLATE_LIST, renderKOT, renderBill } from '../../../utils/printTemplates/index';
 import { splitIndiaGst } from '../../../utils/printTemplates/helpers';
 import StaffAccessSettings from '../../../components/admin/StaffAccessSettings';
-import { settingsPatch } from '../../../utils/settingsPatch';
+import { settingsPatch, applySettingsPatch } from '../../../utils/settingsPatch';
 import RolesSettings from '../../../components/admin/RolesSettings';
 
 // Reusable shimmer skeleton for tab content while restaurants load
@@ -311,25 +311,33 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
       // (e.g. adding "cashier" to who-can-apply-discounts). Guarantee arrays so
       // discountSettings always persists regardless of tax configuration.
       const payload = normalizeTaxSettings(current);
-      // Send ONLY what changed since the settings were loaded (nested diff; arrays whole). The
-      // server deep-merges this into its saved copy, so changes made elsewhere are kept.
+      // Deleting the LAST tax must mean "no tax": with `taxes` empty the server (and the POS)
+      // fall back to defaultTaxRate, so that is zeroed too.
+      if (payload.taxes.length === 0 && (taxBaseRef.current.taxes || []).length > 0 && Number(payload.defaultTaxRate) !== 0) {
+        payload.defaultTaxRate = 0;
+      }
+      // What this page changed since the settings were loaded (nested diff; arrays whole).
       const changes = settingsPatch(taxBaseRef.current, payload);
       if (!changes) {
         if (!silent) showSuccess('No changes to save');
         return true;
       }
-      const response = await apiClient.updateTaxSettings(restaurantId, changes.patch);
+      // Apply those changes onto a FRESH server copy and send the FULL object: keeps changes made
+      // elsewhere since the page loaded, and works on old backends (local-server hubs) whose PUT
+      // needs `taxes` and replaces the whole object, as well as on new ones (deep-merge).
+      apiClient.invalidateCache(`/api/admin/tax/${restaurantId}`);
+      const freshRes = await apiClient.getTaxSettings(restaurantId);
+      if (!freshRes?.success) throw new Error('Could not read the latest tax settings');
+      const merged = normalizeTaxSettings(applySettingsPatch(normalizeTaxSettings(freshRes.taxSettings || {}), changes.patch, payload));
+      const response = await apiClient.updateTaxSettings(restaurantId, merged);
       if (response.success) {
-        // Adopt the server's merged copy as the new baseline (and state) when it returns the full
+        // Adopt the server's copy as the new baseline (and state) when it returns the full
         // object; otherwise what we just saved is the baseline.
         const serverTs = response.taxSettings;
-        if (serverTs && typeof serverTs === 'object' && Array.isArray(serverTs.taxes)) {
-          const merged = normalizeTaxSettings(serverTs);
-          taxBaseRef.current = merged;
-          if (adoptState) setTaxSettings(merged);
-        } else {
-          taxBaseRef.current = payload;
-        }
+        const saved = (serverTs && typeof serverTs === 'object' && Array.isArray(serverTs.taxes))
+          ? normalizeTaxSettings(serverTs) : merged;
+        taxBaseRef.current = saved;
+        if (adoptState) setTaxSettings(saved);
         if (!silent) showSuccess('Tax settings saved successfully!');
         return true;
       }
@@ -6344,10 +6352,14 @@ const Admin = () => {
     if (!base) throw new Error('Billing settings are not loaded yet — please reload and try again.');
     const changes = settingsPatch(base, billingSettings);
     if (!changes) return null;
-    const result = await apiClient.updateBillingSettings(selectedRestaurant.id, changes.patch);
-    const saved = (result?.settings && typeof result.settings === 'object')
-      ? result.settings
-      : { ...base, ...changes.topLevel };
+    // Apply the changes onto a FRESH server copy and send the FULL object — keeps changes saved
+    // elsewhere since the page loaded, and works on old backends (local-server hubs) whose PUT
+    // rebuilds the settings from the body with defaults, as well as on new ones (deep-merge).
+    const freshRes = await apiClient.getBillingSettings(selectedRestaurant.id);
+    if (!freshRes?.settings || typeof freshRes.settings !== 'object') throw new Error('Could not read the latest billing settings');
+    const merged = applySettingsPatch(freshRes.settings, changes.patch, billingSettings);
+    const result = await apiClient.updateBillingSettings(selectedRestaurant.id, merged);
+    const saved = (result?.settings && typeof result.settings === 'object') ? result.settings : merged;
     billingBaseRef.current = saved;
     setBillingSettings(saved);
     return saved;

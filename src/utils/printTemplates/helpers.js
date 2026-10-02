@@ -382,6 +382,9 @@ export function buildDiscountHtml(invoice, L, cs) {
 
 // Build service charge, tip, round-off HTML
 export function buildChargesHtml(invoice, L, cs) {
+  // Area / zone surcharge (POS-built bills carry it apart from the item subtotal).
+  const zoneHtml = (Number(invoice.zoneSurcharge) > 0 && invoice.zoneSurchargeLabel)
+    ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${esc(invoice.zoneSurchargeLabel)}:</span><span>${cs}${Number(invoice.zoneSurcharge).toFixed(2)}</span></div>` : '';
   const serviceChargeHtml = (invoice.serviceChargeAmount > 0)
     ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.serviceCharge}${invoice.serviceChargeRate ? ` (${invoice.serviceChargeRate}%)` : ''}:</span><span>${cs}${invoice.serviceChargeAmount.toFixed(2)}</span></div>` : '';
   // Additional charges (packaging, etc.) — each shown as its own line, using its configured name.
@@ -393,7 +396,7 @@ export function buildChargesHtml(invoice, L, cs) {
     ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.tip}${invoice.tipPercentage ? ` (${invoice.tipPercentage}%)` : ''}:</span><span>${cs}${invoice.tipAmount.toFixed(2)}</span></div>` : '';
   const roundOffHtml = (invoice.roundOffAmount != null && invoice.roundOffAmount !== 0)
     ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${L.roundOff}:</span><span>${invoice.roundOffAmount > 0 ? '+' : ''}${cs}${invoice.roundOffAmount.toFixed(2)}</span></div>` : '';
-  return serviceChargeHtml + additionalChargesHtml + tipHtml + roundOffHtml;
+  return zoneHtml + serviceChargeHtml + additionalChargesHtml + tipHtml + roundOffHtml;
 }
 
 // Build payment details HTML (split, cash, partial, wallet)
@@ -443,6 +446,7 @@ export function calcGrandTotal(invoice) {
   return invoice.grandTotal || (
     (invoice.subtotal || 0) - totalDiscount +
     (invoice.taxBreakdown?.filter(tax => !tax.inclusive).reduce((sum, tax) => sum + (tax.amount || 0), 0) || 0) +
+    (invoice.zoneSurchargeLabel ? (Number(invoice.zoneSurcharge) || 0) : 0) +
     (invoice.serviceChargeAmount || 0) + (invoice.additionalChargesTotal || 0) + (invoice.tipAmount || 0) + (invoice.roundOffAmount || 0)
   );
 }
@@ -666,6 +670,7 @@ export function buildSplitInvoice(fullInvoice, splitIndex) {
   guestInvoice.totalTax = split.taxAmount;
   guestInvoice.taxBreakdown = split.taxBreakdown || [];
   guestInvoice.serviceChargeAmount = split.serviceChargeAmount || 0;
+  guestInvoice.zoneSurcharge = split.zoneSurcharge || 0;
   guestInvoice.tipAmount = split.tipAmount || 0;
   guestInvoice.grandTotal = split.totalAmount;
   guestInvoice.finalAmount = split.totalAmount;

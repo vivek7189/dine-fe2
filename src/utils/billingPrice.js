@@ -11,13 +11,17 @@ import { resolveVariantTierPrice, resolveItemTierPrice } from './variantPricing'
 
 export function getEffectiveItemPrice(item, { multiPricingEnabled = false, activePricingRuleId = null, pricingRules = [], menuItems = [] } = {}) {
   let base;
-  if (item?.priceEdited === true && typeof item?.price === 'number') {
-    // A manually edited price is the line's base — never re-priced by a variant / tier rule.
+  if (item?.priceEdited === true && typeof item?.price === 'number' && item?.selectedVariant?.price == null) {
+    // A manually edited price is the line's base — never re-priced by a tier rule. Variant lines
+    // are NOT editable: the server re-prices them from the menu variant (see below).
     base = item.price;
   } else if (item?.selectedVariant?.price != null) {
-    if (multiPricingEnabled && activePricingRuleId) {
-      const freshVariant = (menuItems || []).find(m => m.id === item.id)
-        ?.variants?.find(v => v.name === item.selectedVariant.name);
+    const freshVariant = (menuItems || []).find(m => m.id === item.id)
+      ?.variants?.find(v => v.name === item.selectedVariant.name);
+    if (item?.priceEdited === true) {
+      // Server: a variant line flagged as edited gets the plain menu variant price (no tier).
+      base = typeof freshVariant?.price === 'number' ? freshVariant.price : item.selectedVariant.price;
+    } else if (multiPricingEnabled && activePricingRuleId) {
       // No fresh menu variant → the line's stored variant price is already the resolved price;
       // re-resolving it would apply the rule's default markup a second time.
       base = freshVariant ? resolveVariantTierPrice(freshVariant, activePricingRuleId, pricingRules) : item.selectedVariant.price;
