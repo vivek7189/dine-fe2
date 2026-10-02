@@ -45,7 +45,7 @@ export default function HotelLandingClient() {
     { feature: 'Restaurant POS Integration', dineopen: 'Built-in', comp1: 'Third-party', comp2: 'Third-party', comp3: 'Add-on' },
     { feature: 'Room Service to Kitchen', dineopen: 'Direct KOT', comp1: 'Manual', comp2: 'Separate module', comp3: 'Not available' },
     { feature: 'Setup Time', dineopen: '10 minutes', comp1: '1-2 days', comp2: '1 day', comp3: '2-3 hours' },
-    { feature: 'Free Trial', dineopen: '30 days', comp1: '14 days', comp2: '14 days', comp3: '30 days' },
+    { feature: 'Free Trial', dineopen: '7 days', comp1: '14 days', comp2: '14 days', comp3: '30 days' },
     { feature: 'Bulk Room Add', dineopen: 'Yes', comp1: 'Yes', comp2: 'Yes', comp3: 'No' },
     { feature: 'Cloud-Based', dineopen: 'Yes', comp1: 'Yes', comp2: 'Yes', comp3: 'Yes' },
   ];

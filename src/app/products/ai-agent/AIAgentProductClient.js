@@ -697,7 +697,7 @@ export default function AIAgentProductClient() {
                   }}
                 >
                   <FaRocket size={20} />
-                  <span>Start 1 Month Free Trial</span>
+                  <span>Start 7-Day Free Trial</span>
                 </button>
                 <button
                   onClick={() => setShowDemoModal(true)}
@@ -1132,7 +1132,7 @@ export default function AIAgentProductClient() {
               }}
             >
               <FaRocket size={20} />
-              <span>Start 1 Month Free Trial</span>
+              <span>Start 7-Day Free Trial</span>
             </button>
             <button
               onClick={() => setShowDemoModal(true)}

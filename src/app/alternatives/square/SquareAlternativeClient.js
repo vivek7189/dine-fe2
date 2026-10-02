@@ -11,7 +11,7 @@ const comparisonData = [
   { feature: 'Multi-Location', dineopen: 'Unlimited (included)', square: 'Extra cost', winner: 'dineopen' },
   { feature: 'Kitchen Display (KDS)', dineopen: '✓', square: '✓ (extra cost)', winner: 'dineopen' },
   { feature: 'GST Billing (India)', dineopen: '✓', square: '✗', winner: 'dineopen' },
-  { feature: 'Free Trial', dineopen: '30 days', square: '30 days', winner: 'tie' },
+  { feature: 'Free Trial', dineopen: '7 days', square: '30 days', winner: 'tie' },
   { feature: 'Hardware Required', dineopen: 'No (works on any device)', square: 'Square hardware', winner: 'dineopen' },
 ];
 

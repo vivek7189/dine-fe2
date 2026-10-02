@@ -161,7 +161,7 @@ export default function RestaurantManagementClient() {
                 }}
               >
                 <FaRocket size={20} />
-                <span>Start 1 Month Free Trial</span>
+                <span>Start 7-Day Free Trial</span>
               </button>
             </div>
           </div>
@@ -296,7 +296,7 @@ export default function RestaurantManagementClient() {
             }}
           >
             <FaRocket size={20} />
-            <span>Start 1 Month Free Trial</span>
+            <span>Start 7-Day Free Trial</span>
           </button>
         </div>
       </section>

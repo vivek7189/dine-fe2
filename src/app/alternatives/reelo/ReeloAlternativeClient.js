@@ -21,7 +21,7 @@ const comparisonData = [
   { feature: 'Zomato/Swiggy Integration', dineopen: '✓ Included', reelo: '✓ Available', winner: 'tie' },
   { feature: 'Customer Analytics', dineopen: '✓', reelo: '✓', winner: 'tie' },
   { feature: 'SMS Campaigns', dineopen: '✓', reelo: '✓', winner: 'tie' },
-  { feature: 'Free Trial', dineopen: '30 days', reelo: '14 days', winner: 'dineopen' },
+  { feature: 'Free Trial', dineopen: '7 days', reelo: '14 days', winner: 'dineopen' },
 ];
 
 export default function ReeloAlternativeClient() {

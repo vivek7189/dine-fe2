@@ -10,7 +10,7 @@ DineOpen is a cloud-based restaurant management platform trusted by 1000+ restau
 - Website: https://www.dineopen.com
 - Contact: support@dineopen.com
 - Countries: USA, UK, India, UAE, Singapore, Canada, Australia, and 20+ more
-- Free Trial: 30 days, no credit card required
+- Free Trial: 7 days, no credit card required
 - Transaction Fees: Zero (only monthly subscription)
 
 ## Pricing
@@ -168,7 +168,7 @@ Multi-restaurant management, staff CRUD with role-based access (owner/manager/wa
 DineOpen is a cloud-based restaurant operating system that includes POS billing, AI-powered voice and chat ordering, waiter/captain apps, table reservations, inventory management, kitchen display system, analytics, and loyalty programs. It works on any device with no hardware installation needed.
 
 ### How much does DineOpen cost?
-Spark plan starts at $9.99/month (international) or ₹300/month (India). Blaze plan for chains is $89/month with unlimited locations. All plans include a 30-day free trial with no credit card required, zero transaction fees, and unlimited menu items.
+Spark plan starts at $9.99/month (international) or ₹300/month (India). Blaze plan for chains is $89/month with unlimited locations. All plans include a 7-day free trial with no credit card required, zero transaction fees, and unlimited menu items.
 
 ### What countries does DineOpen serve?
 DineOpen serves restaurants in USA, UK, India, UAE, Singapore, Canada, Australia, and 20+ other countries. The platform is cloud-based with localized billing, tax compliance, and payment gateway support for each region.

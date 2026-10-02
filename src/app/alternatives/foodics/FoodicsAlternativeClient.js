@@ -15,7 +15,7 @@ const comparisonData = [
   { feature: 'VAT 5% Compliant', dineopen: '\u2713', foodics: '\u2713', winner: 'tie' },
   { feature: 'Hardware Required', dineopen: 'No (any device)', foodics: 'Foodics hardware', winner: 'dineopen' },
   { feature: 'Contract Length', dineopen: 'Month-to-month', foodics: 'Annual', winner: 'dineopen' },
-  { feature: 'Free Trial', dineopen: '30 days', foodics: 'Demo only', winner: 'dineopen' },
+  { feature: 'Free Trial', dineopen: '7 days', foodics: 'Demo only', winner: 'dineopen' },
   { feature: 'QR Ordering', dineopen: 'Included', foodics: 'Extra cost', winner: 'dineopen' },
   { feature: 'Multi-location', dineopen: '\u2713', foodics: '\u2713 (extra)', winner: 'dineopen' },
 ];

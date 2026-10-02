@@ -418,7 +418,7 @@ export default function CompareClient() {
                 { label: 'Monthly Price', value: '₹300/month' },
                 { label: 'Transaction Fees', value: '0% (Zero)' },
                 { label: 'AI Features', value: 'Voice ordering, Chat assistant, Menu extraction' },
-                { label: 'Free Trial', value: '30 days, full access' },
+                { label: 'Free Trial', value: '7 days, full access' },
               ].map((item, i) => (
                 <div key={i} style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '10px', textAlign: 'center' }}>
                   <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '6px' }}>{item.label}</div>

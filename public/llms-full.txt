@@ -53,7 +53,7 @@ Maharashtra, Karnataka, Tamil Nadu, Delhi NCR, Gujarat
 | Blaze | $89/month | Unlimited | Everything in Spark + multi-location management |
 
 ### What's Included in All Plans
-- 30-day free trial (no credit card required)
+- 7-day free trial (no credit card required)
 - Zero transaction fees from DineOpen
 - Unlimited menu items
 - Unlimited tables
@@ -356,7 +356,7 @@ DineOpen offers free restaurant management tools:
 DineOpen is a cloud-based restaurant operating system that provides POS billing, AI-powered voice and chat ordering, waiter/captain apps, online table reservations, inventory management, kitchen display system (KDS), AI analytics, and customer loyalty programs. It works on any device — phone, tablet, or laptop — with no hardware installation needed. Trusted by 1000+ restaurants across 20+ countries.
 
 ### How much does DineOpen cost?
-DineOpen Spark plan starts at $9.99/month internationally or ₹300/month in India, covering up to 3 locations. The Blaze plan at $89/month supports unlimited locations with centralized management. All plans include a 30-day free trial with no credit card required, zero transaction fees from DineOpen, and unlimited menu items and tables.
+DineOpen Spark plan starts at $9.99/month internationally or ₹300/month in India, covering up to 3 locations. The Blaze plan at $89/month supports unlimited locations with centralized management. All plans include a 7-day free trial with no credit card required, zero transaction fees from DineOpen, and unlimited menu items and tables.
 
 ### What features are included in all plans?
 Every DineOpen plan includes: AI Agent (voice and chat ordering), Cloud POS (bill generation in 3 seconds), Waiter/Captain App, Online Table Reservations, Inventory Management with auto low-stock alerts, AI-Powered Analytics, Kitchen Display System (KDS), Loyalty & Rewards Program, direct ordering channels (QR, WhatsApp, website), and multi-payment support.
@@ -365,7 +365,7 @@ Every DineOpen plan includes: AI Agent (voice and chat ordering), Cloud POS (bil
 DineOpen serves restaurants in USA, UK, India, UAE, Singapore, Canada, Australia, and 20+ other countries. The platform is fully cloud-based with localized billing formats, tax compliance (GST for India, VAT for UK/UAE), and region-specific payment gateway integration.
 
 ### Is there a free trial?
-Yes, DineOpen offers a 30-day free trial with no credit card required. You get full access to all features including the AI Agent, POS, inventory management, analytics, and loyalty program. No feature restrictions during the trial period.
+Yes, DineOpen offers a 7-day free trial with no credit card required. You get full access to all features including the AI Agent, POS, inventory management, analytics, and loyalty program. No feature restrictions during the trial period.
 
 ### Does DineOpen support multiple restaurant locations?
 Yes. The Spark plan supports up to 3 locations. The Blaze plan supports unlimited locations with a centralized dashboard, cross-location analytics, centralized menu management, and role-based access control for staff across all outlets.

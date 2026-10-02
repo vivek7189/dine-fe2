@@ -12,7 +12,7 @@ const comparisonData = [
   { feature: 'QR Code Menus', dineopen: '✓', toast: '✓', winner: 'tie' },
   { feature: 'Online Ordering', dineopen: '✓ (included)', toast: '✓ (extra cost)', winner: 'dineopen' },
   { feature: 'Kitchen Display (KDS)', dineopen: '✓', toast: '✓', winner: 'tie' },
-  { feature: 'Free Trial', dineopen: '30 days', toast: 'Demo only', winner: 'dineopen' },
+  { feature: 'Free Trial', dineopen: '7 days', toast: 'Demo only', winner: 'dineopen' },
   { feature: 'Global Availability', dineopen: 'US, UK, India & more', toast: 'US only', winner: 'dineopen' },
 ];
 

@@ -17,7 +17,7 @@ const comparisonData = [
   { feature: 'Multi-Location Support', dineopen: '\u2713 Transparent pricing', restroworks: '\u2713 Custom pricing', winner: 'dineopen' },
   { feature: 'Delivery Integration', dineopen: '\u2713 Built-in', restroworks: '\u2713 Available', winner: 'tie' },
   { feature: 'Contract Length', dineopen: 'Month-to-month', restroworks: 'Annual contract', winner: 'dineopen' },
-  { feature: 'Free Trial', dineopen: '30 days', restroworks: 'Demo only', winner: 'dineopen' },
+  { feature: 'Free Trial', dineopen: '7 days', restroworks: 'Demo only', winner: 'dineopen' },
 ];
 
 const pricingScenarios = [

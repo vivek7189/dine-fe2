@@ -93,7 +93,7 @@ export default function InventoryManagementClient() {
               onMouseEnter={(e) => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 25px rgba(239, 68, 68, 0.4)'; }}
               onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.3)'; }}>
               <FaRocket size={20} />
-              <span>Start 1 Month Free Trial</span>
+              <span>Start 7-Day Free Trial</span>
             </button>
           </div>
         </div>
@@ -132,7 +132,7 @@ export default function InventoryManagementClient() {
             onMouseEnter={(e) => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 25px rgba(239, 68, 68, 0.4)'; }}
             onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.3)'; }}>
             <FaRocket size={20} />
-            <span>Start 1 Month Free Trial</span>
+            <span>Start 7-Day Free Trial</span>
           </button>
         </div>
       </section>

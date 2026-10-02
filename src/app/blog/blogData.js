@@ -3103,7 +3103,7 @@ export const blogPostContent = {
                 </tr>
                 <tr>
                   <td style="padding: 12px; border: 1px solid #e5e7eb;"><strong>Free Trial</strong></td>
-                  <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">✅ 1 Month Free</td>
+                  <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">✅ 7-Day Free Trial</td>
                   <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">✅ 30 Days</td>
                   <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">✅ 15 Days</td>
                 </tr>
@@ -3342,7 +3342,7 @@ export const blogPostContent = {
         <p>Starting your cafe POS journey with DineOpen is simple:</p>
         
         <ol>
-          <li><strong>Sign up for free trial:</strong> Get 1 month free—no credit card required</li>
+          <li><strong>Sign up for free trial:</strong> Get 7 days free—no credit card required</li>
           <li><strong>Set up your menu:</strong> Use our AI to extract menu items from photos or add manually</li>
           <li><strong>Configure customizations:</strong> Set up sizes, milk types, syrups, and add-ons</li>
           <li><strong>Train your staff:</strong> Our intuitive interface requires minimal training</li>
@@ -3354,7 +3354,7 @@ export const blogPostContent = {
             <h3 style="color: white; margin-bottom: 12px; font-size: 28px;">Ready to Transform Your Cafe?</h3>
             <p style="font-size: 18px; margin-bottom: 24px; opacity: 0.95;">Join hundreds of cafe owners using DineOpen to boost sales and streamline operations</p>
             <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-              <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #ef4444; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 1 Month Free Trial →</a>
+              <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #ef4444; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 7-Day Free Trial →</a>
               <a href="/#contact" style="display: inline-block; padding: 16px 32px; background: rgba(255,255,255,0.2); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid white;">Book Demo</a>
             </div>
           </div>
@@ -3703,7 +3703,7 @@ export const blogPostContent = {
             <h3 style="color: white; margin-bottom: 12px; font-size: 28px;">Ready to Reduce Your Operating Costs?</h3>
             <p style="font-size: 18px; margin-bottom: 24px; opacity: 0.95;">Join restaurants using DineOpen to cut costs while improving operations</p>
             <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-              <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #10b981; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 1 Month Free Trial →</a>
+              <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #10b981; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 7-Day Free Trial →</a>
               <a href="/#contact" style="display: inline-block; padding: 16px 32px; background: rgba(255,255,255,0.2); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid white;">Book Demo</a>
             </div>
           </div>
@@ -3797,7 +3797,7 @@ export const blogPostContent = {
             <h3 style="color: white; margin-bottom: 12px; font-size: 28px;">Ready to Optimize Your Inventory?</h3>
             <p style="font-size: 18px; margin-bottom: 24px; opacity: 0.95;">Join restaurants using DineOpen for smart inventory management</p>
             <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-              <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #10b981; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 1 Month Free Trial →</a>
+              <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #10b981; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 7-Day Free Trial →</a>
               <a href="/#contact" style="display: inline-block; padding: 16px 32px; background: rgba(255,255,255,0.2); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid white;">Book Demo</a>
             </div>
           </div>
@@ -5120,7 +5120,7 @@ export const blogPostContent = {
             <h3 style="color: white; margin-bottom: 12px; font-size: 28px;">Ready to Attract More Customers?</h3>
             <p style="font-size: 18px; margin-bottom: 24px; opacity: 0.95;">Join restaurants using DineOpen to deliver exceptional experiences that attract and retain customers</p>
             <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-              <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #ef4444; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 1 Month Free Trial →</a>
+              <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #ef4444; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 7-Day Free Trial →</a>
               <a href="/#contact" style="display: inline-block; padding: 16px 32px; background: rgba(255,255,255,0.2); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid white;">Book Demo</a>
             </div>
           </div>
@@ -5381,7 +5381,7 @@ export const blogPostContent = {
               <p style="margin: 8px 0 0 0; color: #6b7280;">₹999/month starting price - no hidden costs, no sales calls needed</p>
             </div>
             <div style="padding: 16px; background: white; border-radius: 8px; border-left: 4px solid #8b5cf6;">
-              <strong style="color: #1f2937;">🎁 1 Month Free Trial</strong>
+              <strong style="color: #1f2937;">🎁 7-Day Free Trial</strong>
               <p style="margin: 8px 0 0 0; color: #6b7280;">Longest free trial in the market - test everything risk-free</p>
             </div>
             <div style="padding: 16px; background: white; border-radius: 8px; border-left: 4px solid #ec4899;">
@@ -5395,7 +5395,7 @@ export const blogPostContent = {
         <p>Setting up your ice cream shop with DineOpen is quick and easy:</p>
         
         <ol>
-          <li><strong>Sign up for free trial:</strong> Get 1 month free—no credit card required</li>
+          <li><strong>Sign up for free trial:</strong> Get 7 days free—no credit card required</li>
           <li><strong>Set up your menu:</strong> Use AI to extract menu items from photos or add manually with all variations</li>
           <li><strong>Configure variations:</strong> Set up sizes, flavors, containers, and add-ons with pricing</li>
           <li><strong>Set expiry dates:</strong> Enter stock expiry dates for automatic monitoring</li>
@@ -5408,7 +5408,7 @@ export const blogPostContent = {
             <h3 style="color: white; margin-bottom: 12px; font-size: 28px;">Ready to Transform Your Ice Cream Shop?</h3>
             <p style="font-size: 18px; margin-bottom: 24px; opacity: 0.95;">Join ice cream shop owners using DineOpen to boost sales and streamline operations</p>
             <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-              <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #ef4444; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 1 Month Free Trial →</a>
+              <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #ef4444; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 7-Day Free Trial →</a>
               <a href="/#contact" style="display: inline-block; padding: 16px 32px; background: rgba(255,255,255,0.2); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid white;">Book Demo</a>
             </div>
           </div>
@@ -5557,7 +5557,7 @@ export const blogPostContent = {
             <h3 style="color: white; margin-bottom: 12px; font-size: 28px;">Ready to Attract More Customers?</h3>
             <p style="font-size: 18px; margin-bottom: 24px; opacity: 0.95;">DineOpen helps you implement these tricks effortlessly with smart customer management and fast service</p>
             <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-              <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #ef4444; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 1 Month Free Trial →</a>
+              <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #ef4444; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 7-Day Free Trial →</a>
               <a href="/#contact" style="display: inline-block; padding: 16px 32px; background: rgba(255,255,255,0.2); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid white;">Book Demo</a>
             </div>
           </div>
@@ -5834,7 +5834,7 @@ export const blogPostContent = {
               <p style="margin: 8px 0 0 0; color: #6b7280;">₹999/month starting price—no hidden costs, no sales calls needed. PetPooja requires contacting sales.</p>
             </div>
             <div style="padding: 16px; background: white; border-radius: 8px; border-left: 4px solid #8b5cf6;">
-              <strong style="color: #1f2937;">🎁 1 Month Free Trial</strong>
+              <strong style="color: #1f2937;">🎁 7-Day Free Trial</strong>
               <p style="margin: 8px 0 0 0; color: #6b7280;">Longest free trial in the market—test everything risk-free. Toast doesn't offer trials.</p>
             </div>
             <div style="padding: 16px; background: white; border-radius: 8px; border-left: 4px solid #ec4899;">
@@ -5883,7 +5883,7 @@ export const blogPostContent = {
         <p>Setting up your bar with DineOpen is quick and easy:</p>
         
         <ol>
-          <li><strong>Sign up for free trial:</strong> Get 1 month free—no credit card required</li>
+          <li><strong>Sign up for free trial:</strong> Get 7 days free—no credit card required</li>
           <li><strong>Set up your menu:</strong> Add drinks, food items, and happy hour specials</li>
           <li><strong>Configure terminals:</strong> Set up multiple billing stations for bar and food</li>
           <li><strong>Set up inventory:</strong> Add alcohol inventory with tracking enabled</li>
@@ -5896,7 +5896,7 @@ export const blogPostContent = {
             <h3 style="color: white; margin-bottom: 12px; font-size: 28px;">Ready to Maximize Your Bar Profits?</h3>
             <p style="font-size: 18px; margin-bottom: 24px; opacity: 0.95;">Join bar owners using DineOpen to streamline operations and increase revenue</p>
             <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-              <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #ef4444; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 1 Month Free Trial →</a>
+              <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #ef4444; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 7-Day Free Trial →</a>
               <a href="/#contact" style="display: inline-block; padding: 16px 32px; background: rgba(255,255,255,0.2); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid white;">Book Demo</a>
             </div>
           </div>
@@ -7565,7 +7565,7 @@ export const blogPostContent = {
           <h3 style="color: white; margin-bottom: 16px; font-size: 28px;">⚡ Serve Customers 40% Faster</h3>
           <p style="font-size: 18px; margin-bottom: 24px; opacity: 0.95; line-height: 1.7;">DineOpen's AI-powered voice ordering and express tablet billing reduce order processing time by 40%. Your staff can serve more customers during peak hours, increasing revenue without adding more staff.</p>
           <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-top: 24px;">
-            <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #ef4444; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 1 Month Free Trial →</a>
+            <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #ef4444; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 7-Day Free Trial →</a>
             <a href="/#contact" style="display: inline-block; padding: 16px 32px; background: rgba(255,255,255,0.2); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid white;">Book Demo</a>
           </div>
         </div>
@@ -7602,7 +7602,7 @@ export const blogPostContent = {
             <div style="font-size: 32px; font-weight: bold; color: #ef4444; min-width: 40px;">1</div>
             <div>
               <h4 style="color: #1f2937; margin-bottom: 8px;">Sign Up for Free Trial</h4>
-              <p style="color: #6b7280; margin: 0;">Get 1 month free—no credit card required. Start using DineOpen immediately.</p>
+              <p style="color: #6b7280; margin: 0;">Get 7 days free—no credit card required. Start using DineOpen immediately.</p>
             </div>
           </div>
 
@@ -7628,7 +7628,7 @@ export const blogPostContent = {
             <h3 style="color: white; margin-bottom: 12px; font-size: 28px;">Ready to Boost Your Ice Cream Sales?</h3>
             <p style="font-size: 18px; margin-bottom: 24px; opacity: 0.95;">Join ice cream parlor owners using DineOpen to increase sales and streamline operations</p>
             <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-              <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #10b981; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 1 Month Free Trial →</a>
+              <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #10b981; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 7-Day Free Trial →</a>
               <a href="/#contact" style="display: inline-block; padding: 16px 32px; background: rgba(255,255,255,0.2); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid white;">Book Demo</a>
             </div>
           </div>
@@ -8215,7 +8215,7 @@ export const blogPostContent = {
           <h3 style="color: white; margin-bottom: 16px; font-size: 28px;">⚡ Increase Revenue by 25%</h3>
           <p style="font-size: 18px; margin-bottom: 24px; opacity: 0.95; line-height: 1.7;">Bakery owners using DineOpen report 25% revenue increase through better inventory management, reduced waste, smart upselling, and faster service. Join them today!</p>
           <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-top: 24px;">
-            <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #ef4444; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 1 Month Free Trial →</a>
+            <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #ef4444; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 7-Day Free Trial →</a>
             <a href="/#contact" style="display: inline-block; padding: 16px 32px; background: rgba(255,255,255,0.2); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid white;">Book Demo</a>
           </div>
         </div>
@@ -8277,7 +8277,7 @@ export const blogPostContent = {
             <h3 style="color: white; margin-bottom: 12px; font-size: 28px;">Ready to Transform Your Bakery?</h3>
             <p style="font-size: 18px; margin-bottom: 24px; opacity: 0.95;">Join bakery owners using DineOpen to streamline operations and increase revenue</p>
             <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-              <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #10b981; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 1 Month Free Trial →</a>
+              <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #10b981; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 7-Day Free Trial →</a>
               <a href="/#contact" style="display: inline-block; padding: 16px 32px; background: rgba(255,255,255,0.2); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid white;">Book Demo</a>
             </div>
           </div>
@@ -8551,7 +8551,7 @@ export const blogPostContent = {
             <div style="font-size: 32px; font-weight: bold; color: #3b82f6; min-width: 40px;">1</div>
             <div>
               <h4 style="color: #1f2937; margin-bottom: 8px;">Sign Up for DineOpen Free Trial</h4>
-              <p style="color: #6b7280; margin: 0;">Start your 1-month free trial — no credit card required. You get full access to DineOpen POS, including the AI Agent feature.</p>
+              <p style="color: #6b7280; margin: 0;">Start your 7-day free trial — no credit card required. You get full access to DineOpen POS, including the AI Agent feature.</p>
             </div>
           </div>
           <div style="display: flex; align-items: flex-start; gap: 20px; margin-bottom: 24px;">
@@ -8578,7 +8578,7 @@ export const blogPostContent = {
             <p style="font-size: 18px; margin-bottom: 8px; opacity: 0.95;">Join forward-thinking restaurants using DineOpen's AI Agent to take orders faster, more accurately, and in any language.</p>
             <p style="font-size: 16px; margin-bottom: 24px; opacity: 0.85;">No credit card required. Full AI features included in your free trial.</p>
             <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-              <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #3b82f6; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 1 Month Free Trial</a>
+              <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #3b82f6; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 7-Day Free Trial</a>
               <a href="/products/ai-agent" style="display: inline-block; padding: 16px 32px; background: rgba(255,255,255,0.2); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid white;">Learn More About AI Agent</a>
             </div>
           </div>
@@ -8938,7 +8938,7 @@ export const blogPostContent = {
           <div style="display: flex; gap: 20px; align-items: start; padding: 24px; background: white; border-radius: 12px; border: 2px solid #e5e7eb;">
             <div style="font-size: 32px; font-weight: bold; color: #16a34a; min-width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; background: #f0fdf4; border-radius: 12px;">2</div>
             <div>
-              <h4 style="color: #1f2937; margin-bottom: 8px; font-size: 18px;">Start Your Free Trial — 30 Days, No Card Required</h4>
+              <h4 style="color: #1f2937; margin-bottom: 8px; font-size: 18px;">Start Your Free Trial — 7 Days, No Card Required</h4>
               <p style="color: #6b7280; margin: 0; font-size: 16px;">Sign up for DineOpen and get a full 7-day free trial with all features unlocked. No credit card required. No commitment. Just sign up and start exploring.</p>
             </div>
           </div>

@@ -7,7 +7,7 @@ import { FaCheck, FaMapMarkerAlt, FaStar, FaCity, FaUtensils, FaFileAlt, FaTools
 
 export default function IndiaHubClient() {
   const stats = [
-    { value: '50,000+', label: 'Restaurants in India' },
+    { value: '50,000+', label: 'Restaurants Worldwide' },
     { value: '25+', label: 'Cities Covered' },
     { value: '99.9%', label: 'Uptime' },
     { value: '0%', label: 'Transaction Fees' },

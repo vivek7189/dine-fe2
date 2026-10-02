@@ -20,7 +20,7 @@ const comparisonData = [
   { feature: 'Loyalty Program', dineopen: '✓ Advanced', petpooja: 'Basic', winner: 'dineopen' },
   { feature: 'Multi-Location', dineopen: 'Unlimited (Blaze)', petpooja: 'Extra cost', winner: 'dineopen' },
   { feature: 'Offline Mode', dineopen: '✓', petpooja: '✓', winner: 'tie' },
-  { feature: 'Free Trial', dineopen: '30 days', petpooja: '14 days', winner: 'dineopen' },
+  { feature: 'Free Trial', dineopen: '7 days', petpooja: '14 days', winner: 'dineopen' },
   { feature: 'Countries Supported', dineopen: '20+', petpooja: 'India only', winner: 'dineopen' },
   { feature: 'WhatsApp Ordering', dineopen: '✓', petpooja: '✗', winner: 'dineopen' },
 ];

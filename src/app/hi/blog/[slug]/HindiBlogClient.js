@@ -346,7 +346,7 @@ export default function HindiBlogClient({ blogPost }) {
             🚀 अपने रेस्टोरेंट को Transform करने के लिए तैयार?
           </h3>
           <p style={{ color: '#9ca3af', fontSize: '16px', marginBottom: '24px', lineHeight: '1.6' }}>
-            DineOpen का 30-दिन Free Trial शुरू करें — कोई credit card नहीं चाहिए
+            DineOpen का 7-दिन Free Trial शुरू करें — कोई credit card नहीं चाहिए
           </p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href="/#pricing" style={{
