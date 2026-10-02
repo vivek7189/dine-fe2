@@ -19,8 +19,10 @@ if (typeof window !== 'undefined' && !window.__posthogInitialized && POSTHOG_KEY
       recordCrossOriginIframes: false,
     },
     persistence: 'localStorage',
-    // Don't track in Electron app (local POS) — only track on web
-    disable_session_recording: typeof window !== 'undefined' && !!window.electronAPI,
+    capture_exceptions: true, // JS errors show up in PostHog (and the daily report)
+    // Replays start only for logged-in users and the login/onboarding pages (see
+    // PostHogPageView) — recording every marketing visit used up the replay quota.
+    disable_session_recording: true,
   });
   window.__posthogInitialized = true;
 }
@@ -30,6 +32,20 @@ function PostHogPageView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const ph = usePostHog();
+
+  useEffect(() => {
+    if (!ph || typeof window === 'undefined' || window.electronAPI) return;
+    let user = null;
+    try { user = JSON.parse(localStorage.getItem('user') || 'null'); } catch { /* ignore */ }
+    const loggedIn = !!(user && localStorage.getItem('authToken'));
+    // Tie the session to the logged-in owner/staff (IDs and role only, no contact details).
+    const id = user && (user.id || user.userId || user._id || user.uid);
+    if (loggedIn && id && ph.get_distinct_id() !== String(id)) {
+      ph.identify(String(id), { role: user.role || null, restaurant_id: user.restaurantId || null });
+    }
+    const journeyPage = /^\/(login|onboard|onboarding|signup|setup)(\/|$)/.test(pathname || '');
+    if ((loggedIn || journeyPage) && !ph.sessionRecordingStarted()) ph.startSessionRecording();
+  }, [pathname, ph]);
 
   useEffect(() => {
     if (pathname && ph) {

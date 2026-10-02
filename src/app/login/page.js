@@ -1,5 +1,6 @@
 'use client';
 
+import { trackAuth } from '../../lib/analytics';
 import { useState, useEffect } from 'react';
 import { getApiBase, DEFAULT_API_BASE, getGcpBackend } from '@/lib/apiBase';
 import { useRouter } from 'next/navigation';
@@ -725,6 +726,7 @@ const Login = () => {
 
             apiClient.setToken(data.token);
             if (data.user) apiClient.setUser(data.user);
+            trackAuth(data, 'desktop_session');
             // Pin the backend the token was actually issued by (resolved per-user on the
             // desktop-auth page), so token + routing agree — a GCP-native user stays on GCP
             // instead of splitting to Vercel. Old sessions omit backendUrl → '' → Vercel default.
@@ -1307,6 +1309,7 @@ const Login = () => {
           // Store auth token and user data in both cookie (for cross-subdomain) and localStorage
           apiClient.setToken(firebaseData.token); // Stores in both cookie and localStorage
           apiClient.setUser(firebaseData.user); // Stores in both cookie and localStorage
+          trackAuth(firebaseData, 'phone_otp');
           if (selectedCountry?.code) localStorage.setItem('selectedCountryCode', selectedCountry.code);
           triggerDashboardPrefetch();
 
@@ -1367,6 +1370,7 @@ const Login = () => {
           // Store auth token in both cookie (for cross-subdomain) and localStorage
           apiClient.setToken(data.token); // Stores in both cookie and localStorage
           apiClient.setUser(data.user); // Stores in both cookie and localStorage
+          trackAuth(data, 'phone_otp_backend');
           if (selectedCountry?.code) localStorage.setItem('selectedCountryCode', selectedCountry.code);
           triggerDashboardPrefetch();
 
@@ -1547,6 +1551,7 @@ const Login = () => {
       if (registerData.token) {
         apiClient.setToken(registerData.token);
         apiClient.setUser(registerData.user);
+        trackAuth(registerData, 'email_register');
         if (selectedCountry?.code) localStorage.setItem('selectedCountryCode', selectedCountry.code);
         triggerDashboardPrefetch();
 
@@ -1638,6 +1643,7 @@ const Login = () => {
       if (loginData.token) {
         apiClient.setToken(loginData.token);
         apiClient.setUser(loginData.user);
+        trackAuth(loginData, 'email_login');
         if (selectedCountry?.code) localStorage.setItem('selectedCountryCode', selectedCountry.code);
         triggerDashboardPrefetch();
 
@@ -1712,6 +1718,7 @@ const Login = () => {
       const data = await apiClient.pinLogin(pinId, pinCode);
       if (data.success) {
         apiClient.setUser(data.user);
+        trackAuth(data, 'staff_pin');
         triggerDashboardPrefetch();
 
         // Pre-fetch currency settings before redirect
@@ -1831,6 +1838,7 @@ const Login = () => {
         // Store auth token and user data in both cookie (for cross-subdomain) and localStorage
         apiClient.setToken(googleData.token); // Stores in both cookie and localStorage
         apiClient.setUser(googleData.user); // Stores in both cookie and localStorage
+        trackAuth(googleData, 'google');
         if (selectedCountry?.code) localStorage.setItem('selectedCountryCode', selectedCountry.code);
         triggerDashboardPrefetch();
 
@@ -2036,6 +2044,7 @@ const Login = () => {
           owner: data.owner
         };
         apiClient.setUser(userData); // Stores in both cookie and localStorage
+        trackAuth({ ...data, user: userData }, 'staff_login');
         // Set selectedRestaurantId for staff (needed by CurrencyContext and other dashboard components)
         const staffRestaurantId = data.user?.restaurantId || data.restaurant?.id;
         if (staffRestaurantId) {

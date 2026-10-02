@@ -1,3 +1,4 @@
+import { track, trackOnce, identifyUser, resetAnalytics, trackApiError } from './analytics';
 import { reportNetworkFailure, reportNetworkSuccess } from '../hooks/useNetworkStatus';
 import { setCachedData, getCachedData } from './offlineDb';
 import { getLocalServerUrl, setLocalServerUrl, isServerApp } from './localServer';
@@ -419,6 +420,7 @@ class ApiClient {
         response = await fetch(url, _timeoutCtrl ? { ...config, signal: _timeoutCtrl.signal } : config);
       } catch (fetchErr) {
         // Our own timeout fired → surface a clear, cashier-safe timeout error.
+        trackApiError(endpoint, 0, options.method || 'GET');
         if (_timeoutCtrl && _timeoutCtrl.signal.aborted) {
           reportNetworkFailure();
           throw new RequestTimeoutError(`Request timed out after ${Math.round(_timeoutMs / 1000)}s. Please check before retrying.`);
@@ -464,6 +466,7 @@ class ApiClient {
       }
 
       if (!response.ok) {
+        trackApiError(endpoint, response.status, options.method || 'GET');
         // Roles "Needs manager PIN": ask for the PIN (ManagerPinPrompt) and retry with it; a wrong PIN
         // asks again. Cancel → the action fails with a clear message. Only when a prompt is mounted.
         if ((data?.code === 'MANAGER_PIN_REQUIRED' || data?.code === 'MANAGER_PIN_INVALID')
@@ -1048,6 +1051,7 @@ class ApiClient {
   // Force logout - clears all auth data completely
   forceLogout() {
     if (typeof window === 'undefined') return;
+    if (!window.__DINEOPEN_MOBILE_EMBED__) resetAnalytics();
 
     // In mobile WebView embed, don't clear auth — the native app manages auth.
     // Clearing localStorage would destroy the injected token/user from dine-app.
@@ -1136,6 +1140,7 @@ class ApiClient {
 
   setUser(userData) {
     // Store in both cookie (for cross-subdomain) and localStorage (for backward compatibility)
+    identifyUser(userData);
     const userJson = JSON.stringify(userData);
     if (typeof document !== 'undefined') {
       this.setCookie('dine_user_data', encodeURIComponent(userJson), 30, '.dineopen.com');
@@ -5233,6 +5238,33 @@ class ApiClient {
     });
   }
 }
+
+// Activation funnel events (see src/lib/analytics.js). Wraps the methods so the events fire
+// only after the API call succeeded; "first_*" events fire once per restaurant.
+const _afterSuccess = (name, fn) => {
+  const orig = ApiClient.prototype[name];
+  if (typeof orig !== 'function') return;
+  ApiClient.prototype[name] = async function (...args) {
+    const result = await orig.apply(this, args);
+    try { fn(result, ...args); } catch { /* analytics must never break the app */ }
+    return result;
+  };
+};
+const _rid = (r, fallback) => r?.restaurant?.id || r?.restaurantId || r?.id || fallback || null;
+_afterSuccess('createRestaurant', (r) => track('restaurant_created', { restaurant_id: _rid(r) }));
+_afterSuccess('createMenuItem', (r, restaurantId) => trackOnce('first_menu_item_added', restaurantId, { restaurant_id: restaurantId, method: 'manual' }));
+_afterSuccess('bulkUploadMenu', (r, restaurantId) => trackOnce('first_menu_item_added', restaurantId, { restaurant_id: restaurantId, method: 'bulk_upload' }));
+_afterSuccess('createOrder', (r, orderData) => {
+  const rid = orderData?.restaurantId || (typeof window !== 'undefined' && localStorage.getItem('selectedRestaurantId')) || null;
+  trackOnce('first_order_created', rid, { restaurant_id: rid, order_type: orderData?.orderType || null });
+  // One "active day" per restaurant per calendar day — cheap retention signal.
+  trackOnce('pos_active_day', rid && `${rid}_${new Date().toISOString().slice(0, 10)}`, { restaurant_id: rid });
+});
+_afterSuccess('completeOrder', () => {
+  const rid = (typeof window !== 'undefined' && localStorage.getItem('selectedRestaurantId')) || 'unknown';
+  trackOnce('first_order_completed', rid, { restaurant_id: rid });
+});
+_afterSuccess('verifyPayment', () => track('subscription_payment_verified'));
 
 const apiClient = new ApiClient();
 
