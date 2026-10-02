@@ -230,6 +230,7 @@ export default function AttendancePage() {
 
   // Settings tab
   const [leaveConfig, setLeaveConfig] = useState(null);
+  const [savingBiometric, setSavingBiometric] = useState(false);
   const [settingsForm, setSettingsForm] = useState({
     workingHours: { start: '09:00', end: '22:00', lateGrace: 15 },
     leaveTypes: [],
@@ -280,7 +281,7 @@ export default function AttendancePage() {
       }
       if (uData) {
         setUserRole(uData.role || '');
-        setUserId(uData.staffId || uData._id || '');
+        setUserId(uData.staffId || uData._id || uData.id || uData.userId || '');
       }
     } catch {}
   }, []);
@@ -295,7 +296,7 @@ export default function AttendancePage() {
     return () => window.removeEventListener('restaurantChanged', handler);
   }, []);
 
-  const isAdmin = ['admin', 'owner', 'manager'].includes(userRole);
+  const isAdmin = ['admin', 'owner', 'co-owner', 'manager'].includes(String(userRole || '').toLowerCase());
 
   // Load staff
   useEffect(() => {
@@ -319,13 +320,14 @@ export default function AttendancePage() {
     try {
       const res = await attendanceApi.getTodayAttendance(restaurantId);
       const attendance = res?.attendance || [];
-      const presentCount = attendance.filter(a => a.status === 'present').length;
-      const absentCount = attendance.filter(a => a.status === 'absent').length;
+      // The server's team-wide counts (staff see only their own row, so a recount here was wrong for them).
+      const presentCount = res?.presentCount ?? attendance.filter(a => a.status === 'present').length;
+      const absentCount = res?.absentCount ?? attendance.filter(a => a.status === 'absent').length;
       const lateCount = attendance.filter(a => a.status === 'late' || Number(a.lateBy) > 0).length;
       const onLeaveCount = attendance.filter(a => a.status === 'on-leave' || a.status === 'leave').length;
       setTodayData({
         attendance,
-        staffCount: staffList.length,
+        staffCount: res?.staffCount ?? staffList.length,
         presentCount,
         absentCount,
         lateCount,
@@ -349,7 +351,7 @@ export default function AttendancePage() {
       const params = { startDate, endDate };
       if (selectedStaffFilter !== 'all') params.staffId = selectedStaffFilter;
       const res = await attendanceApi.getAttendanceHistory(restaurantId, params);
-      setCalendarData(res?.history || res?.attendance || []);
+      setCalendarData(res?.records || res?.history || res?.attendance || []);
     } catch (err) {
       console.error('Error loading calendar:', err);
     } finally {
@@ -558,25 +560,27 @@ export default function AttendancePage() {
 
   // ── Action Handlers ──────────────────────────────────────────────────────
 
+  const handleToggleBiometric = async (on) => {
+    setSavingBiometric(true);
+    try {
+      await attendanceApi.saveLeaveConfig(restaurantId, { biometricEnabled: on });
+      setLeaveConfig(p => ({ ...(p || {}), biometricEnabled: on }));
+      showToast(on ? 'Biometric attendance switched on' : 'Biometric attendance switched off', 'success');
+    } catch (err) {
+      showToast(err.message || 'Could not save', 'error');
+    } finally {
+      setSavingBiometric(false);
+    }
+  };
+
   const handleManualEntry = async () => {
     if (!manualForm.staffId || !manualForm.date) return showToast('Staff and date are required', 'error');
     try {
       const staff = staffList.find(s => s._id === manualForm.staffId);
-      // Convert time strings (e.g., "11:34") to full ISO datetime using the selected date
-      let clockInISO = null;
-      let clockOutISO = null;
-      if (manualForm.clockIn) {
-        const [h, m] = manualForm.clockIn.split(':').map(Number);
-        const d = new Date(manualForm.date + 'T00:00:00');
-        d.setHours(h, m, 0, 0);
-        clockInISO = d.toISOString();
-      }
-      if (manualForm.clockOut) {
-        const [h, m] = manualForm.clockOut.split(':').map(Number);
-        const d = new Date(manualForm.date + 'T00:00:00');
-        d.setHours(h, m, 0, 0);
-        clockOutISO = d.toISOString();
-      }
+      // Send the typed "HH:mm" — the server reads it on the restaurant's clock (converting with this
+      // browser's clock was hours off for anyone viewing from another time zone).
+      const clockInISO = manualForm.clockIn || null;
+      const clockOutISO = manualForm.clockOut || null;
       await attendanceApi.addManualEntry(restaurantId, {
         staffId: manualForm.staffId,
         date: manualForm.date,
@@ -1388,8 +1392,25 @@ export default function AttendancePage() {
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        {/* Biometric attendance — owner/admin only */}
-        {['owner', 'admin'].includes(userRole) && (
+        {/* Biometric attendance — owner/admin only, and only once switched on for this restaurant */}
+        {['owner', 'admin', 'co-owner'].includes(String(userRole || '').toLowerCase()) && (
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+              <div>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: 0 }}>Biometric device</h3>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0 0' }}>
+                  Fingerprint / face reader for clock-in. While off, punches from a device are kept but not applied.
+                </p>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: savingBiometric ? 'wait' : 'pointer', flexShrink: 0 }}>
+                <input type="checkbox" checked={leaveConfig?.biometricEnabled === true} disabled={savingBiometric}
+                  onChange={e => handleToggleBiometric(e.target.checked)} />
+                <span style={{ fontSize: '13px', color: '#374151' }}>Use a biometric device</span>
+              </label>
+            </div>
+          </div>
+        )}
+        {['owner', 'admin', 'co-owner'].includes(String(userRole || '').toLowerCase()) && leaveConfig?.biometricEnabled === true && (
           <BiometricSettings restaurantId={restaurantId} staffList={staffList} isMobile={isMobile} />
         )}
         {/* Working Hours */}
