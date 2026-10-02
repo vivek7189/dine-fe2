@@ -9,7 +9,6 @@ DineOpen is a cloud-based restaurant management platform trusted by 1000+ restau
 - Founded: 2024
 - Website: https://www.dineopen.com
 - Contact: support@dineopen.com
-- Rating: 4.8/5 (1000+ reviews)
 - Countries: USA, UK, India, UAE, Singapore, Canada, Australia, and 20+ more
 - Free Trial: 30 days, no credit card required
 - Transaction Fees: Zero (only monthly subscription)

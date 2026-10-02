@@ -73,7 +73,6 @@ const softwareSchemas = [{
   name: 'DineOpen', applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web, iOS, Android, Windows, macOS',
   offers: { '@type': 'Offer', price: '20', priceCurrency: 'USD', priceValidUntil: '2027-12-31' },
-  aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', ratingCount: '500' },
   description: 'AI-powered cloud restaurant POS with voice ordering, QR menus, KDS, and zero per-transaction fees.'
 }];
 

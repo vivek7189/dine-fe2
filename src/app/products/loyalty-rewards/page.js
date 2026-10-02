@@ -50,12 +50,7 @@ export default function LoyaltyRewardsPage() {
       "Birthday & anniversary rewards",
       "Referral program",
       "Digital loyalty cards"
-    ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "reviewCount": "320"
-    }
+    ]
   };
 
   const faqStructuredData = {

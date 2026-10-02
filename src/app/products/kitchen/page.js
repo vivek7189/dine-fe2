@@ -59,12 +59,7 @@ export default function KitchenPage() {
       "Print receipt functionality",
       "Real-time updates via Pusher",
       "Date-based order filtering"
-    ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.7",
-      "reviewCount": "380"
-    }
+    ]
   };
 
   const faqSchema = {

@@ -119,7 +119,6 @@ const softwareSchemas = [
       priceCurrency: 'USD',
       priceValidUntil: '2027-12-31',
     },
-    aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', ratingCount: '500' },
     description: 'AI-powered cloud restaurant POS with voice ordering, QR menus, KDS, and zero per-transaction fees. Used in 20+ countries.',
   },
 ];

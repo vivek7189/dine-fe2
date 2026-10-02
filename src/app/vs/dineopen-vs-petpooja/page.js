@@ -125,11 +125,6 @@ const softwareSchemas = [
       "priceCurrency": "INR",
       "priceValidUntil": "2026-12-31"
     },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "ratingCount": "500"
-    },
     "description": "AI-powered restaurant POS with voice ordering, zero transaction fees, and cloud-based management across 20+ countries."
   },
   {
@@ -143,11 +138,6 @@ const softwareSchemas = [
       "price": "1000",
       "priceCurrency": "INR",
       "priceValidUntil": "2026-12-31"
-    },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.3",
-      "ratingCount": "1200"
     },
     "description": "Established India-focused restaurant POS with billing, inventory management, and aggregator integrations."
   }

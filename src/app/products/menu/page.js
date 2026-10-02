@@ -59,12 +59,7 @@ export default function MenuPage() {
       "Header image customization",
       "Short codes for quick ordering",
       "Availability toggle per item"
-    ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.9",
-      "reviewCount": "480"
-    }
+    ]
   };
 
   const faqStructuredData = {

@@ -59,12 +59,6 @@ export default function IndiaPage() {
       "priceCurrency": "INR",
       "priceValidUntil": "2026-12-31"
     },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "ratingCount": "2500",
-      "bestRating": "5"
-    },
     "areaServed": {
       "@type": "Country",
       "name": "India"

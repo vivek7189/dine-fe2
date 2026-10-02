@@ -46,12 +46,7 @@ export default function IntegrationsPage() {
       "Unified order dashboard",
       "Inventory sync across platforms",
       "Settlement tracking and reconciliation"
-    ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "reviewCount": "480"
-    }
+    ]
   };
 
   const faqSchema = {

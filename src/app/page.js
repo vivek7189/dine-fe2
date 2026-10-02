@@ -102,7 +102,7 @@ export default function HomePage() {
         }}
         aria-hidden="false"
       >
-        <h1>DineOpen - The Global Restaurant Operating System</h1>
+        <h2>DineOpen - The Global Restaurant Operating System</h2>
         <p>
           DineOpen powers restaurants worldwide with an all-in-one operating system.
           Cloud POS, AI-powered voice ordering, waiter apps, table reservations,

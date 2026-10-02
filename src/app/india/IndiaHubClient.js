@@ -10,7 +10,7 @@ export default function IndiaHubClient() {
     { value: '50,000+', label: 'Restaurants in India' },
     { value: '25+', label: 'Cities Covered' },
     { value: '99.9%', label: 'Uptime' },
-    { value: '4.8/5', label: 'Customer Rating' },
+    { value: '0%', label: 'Transaction Fees' },
   ];
 
   const whyIndia = [

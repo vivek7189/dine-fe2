@@ -4,7 +4,6 @@ Allow: /
 Disallow: /dashboard/
 Disallow: /api/
 Disallow: /admin/
-Disallow: /_next/
 # Thin / app-shell / auth pages (no SEO value, avoid duplicate-title dilution)
 Disallow: /login
 Disallow: /local-login

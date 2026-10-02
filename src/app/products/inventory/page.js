@@ -49,8 +49,7 @@ export default function InventoryPage() {
       "Invoice OCR processing",
       "AI reorder suggestions",
       "Voice recognition for item entry"
-    ],
-    "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "reviewCount": "620" }
+    ]
   };
 
   const faqSchema = {

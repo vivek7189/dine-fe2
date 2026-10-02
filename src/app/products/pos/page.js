@@ -63,12 +63,7 @@ export default function PosPage() {
       "Tax calculations",
       "Multi-location restaurant switching",
       "Demo mode"
-    ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "reviewCount": "520"
-    }
+    ]
   };
 
   const faqSchema = {

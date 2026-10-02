@@ -95,11 +95,6 @@ const softwareSchema = {
     "price": "149",
     "priceCurrency": "AED",
     "priceValidUntil": "2026-12-31"
-  },
-  "aggregateRating": {
-    "@type": "AggregateRating",
-    "ratingValue": "4.8",
-    "reviewCount": "500"
   }
 };
 

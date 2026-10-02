@@ -50,12 +50,7 @@ export default function WaiterAppPage() {
       "Item modifiers",
       "Special instructions",
       "Multi-device sync"
-    ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "reviewCount": "450"
-    }
+    ]
   };
 
   const faqSchema = {

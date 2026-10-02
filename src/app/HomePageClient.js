@@ -387,22 +387,6 @@ export default function LandingPage() {
           
           {!isMobile && (
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: 1, justifyContent: 'center', maxWidth: '800px' }}>
-              <Link 
-                href="/restaurants" 
-                style={{ 
-                  fontSize: '15px', 
-                  fontWeight: '600', 
-                  color: '#111827', 
-                  textDecoration: 'none',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => { e.target.style.backgroundColor = '#f3f4f6'; }}
-                onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; }}
-              >
-                Restaurants
-              </Link>
               
               <div
                 style={{ position: 'relative' }}
@@ -1931,7 +1915,7 @@ export default function LandingPage() {
               { number: '1,000+', label: 'Restaurants', icon: '🍽️' },
               { number: '20+', label: 'Countries', icon: '🌍' },
               { number: '50K+', label: 'Orders Daily', icon: '📦' },
-              { number: '4.8/5', label: 'Rating', icon: '⭐' }
+              { number: '0%', label: 'Transaction Fees', icon: '💳' }
             ].map((stat, i) => (
               <div key={i} style={{
                 textAlign: 'center', padding: isMobile ? '20px 12px' : '28px 20px',

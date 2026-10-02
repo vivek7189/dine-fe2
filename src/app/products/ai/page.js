@@ -61,12 +61,7 @@ export default function AiPage() {
       "URL content ingestion",
       "Greeting customization",
       "Real-time and cost-optimized voice modes"
-    ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.6",
-      "reviewCount": "290"
-    }
+    ]
   };
 
   const faqSchema = {

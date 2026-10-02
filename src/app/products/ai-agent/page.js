@@ -68,11 +68,6 @@ export default function AIAgentProductPage() {
       "availability": "https://schema.org/InStock",
       "url": "https://www.dineopen.com/products/ai-agent"
     },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "reviewCount": "127"
-    },
     "featureList": [
       "Voice Order Taking",
       "Chat Support",

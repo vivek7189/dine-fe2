@@ -12,7 +12,6 @@
 - **Contact**: support@dineopen.com
 - **Category**: Restaurant Technology / SaaS
 - **Tagline**: The Global Restaurant Operating System
-- **Rating**: 4.8/5 based on 1000+ reviews
 - **Social Media**:
   - Twitter: https://twitter.com/dineopenoffice
   - LinkedIn: https://linkedin.com/company/dineopen

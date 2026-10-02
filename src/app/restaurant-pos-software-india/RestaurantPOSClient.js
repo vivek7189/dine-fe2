@@ -259,11 +259,6 @@ export default function RestaurantPOSClient() {
               "@type": "Offer",
               "price": "300",
               "priceCurrency": "INR"
-            },
-            "aggregateRating": {
-              "@type": "AggregateRating",
-              "ratingValue": "4.8",
-              "reviewCount": "500"
             }
           })
         }}

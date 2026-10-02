@@ -59,12 +59,7 @@ export default function OrdersPage() {
       "Invoice generation",
       "Order printing",
       "Real-time updates"
-    ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "reviewCount": "520"
-    }
+    ]
   };
 
   const faqSchema = {

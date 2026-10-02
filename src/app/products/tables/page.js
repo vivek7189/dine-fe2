@@ -49,12 +49,7 @@ export default function TablesPage() {
       "Floor-wise table grouping",
       "Availability statistics",
       "Visual status indicators"
-    ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.7",
-      "reviewCount": "380"
-    }
+    ]
   };
 
   const faqSchema = {

@@ -44,12 +44,7 @@ const softwareSchema = {
     "priceCurrency": "USD",
     "priceValidUntil": "2026-12-31"
   },
-  "description": "Best POS system for cloud kitchens and ghost kitchens. Multi-brand management, delivery platform integration, and virtual brand support.",
-  "aggregateRating": {
-    "@type": "AggregateRating",
-    "ratingValue": "4.8",
-    "ratingCount": "320"
-  }
+  "description": "Best POS system for cloud kitchens and ghost kitchens. Multi-brand management, delivery platform integration, and virtual brand support."
 };
 
 const faqSchema = {

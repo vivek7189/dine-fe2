@@ -109,8 +109,38 @@ const hindiStaticBlogSlugs = new Set([
   'zomato-swiggy-par-restaurant-kaise-register-kare',
 ]);
 
+// English static posts whose <link rel="canonical"> is the clean URL (no .html).
+// Their .html address 308-redirects to the clean one so Google sees a single URL.
+// (All Hindi posts are canonical-clean too.) Posts whose canonical is the .html
+// URL are left alone — those .html URLs are what Google has indexed.
+const cleanCanonicalBlogSlugs = new Set([
+  'best-pos-food-truck-2026',
+  'best-pos-system-pubs-uk-2026',
+  'best-restaurant-pos-canada-2026',
+  'dineopen-vs-petpooja-vs-toast-ordering-pricing-comparison',
+  'food-delivery-commission-comparison-canada-2026',
+  'how-to-open-restaurant-canada-2026',
+  'how-to-open-restaurant-dubai-2026',
+  'how-to-open-restaurant-uk-2026',
+  'qr-code-menu-complete-guide-2026',
+  'ramadan-restaurant-guide-uae-2026',
+  'restaurant-business-rates-uk-2026',
+  'restaurant-grants-funding-canada-2026',
+  'restaurant-sales-tax-guide-usa-2026',
+  'restaurant-vat-guide-uae-2026',
+  'tipping-guide-usa-canada-uk-2026',
+]);
+
 export function middleware(request) {
   const { pathname } = request.nextUrl;
+
+  // Single URL per post: /blog/<slug>.html → /blog/<slug> (canonical-clean posts), /hi/blog/<slug>.html → /hi/blog/<slug>
+  const htmlPost = pathname.match(/^\/(hi\/)?blog\/([a-z0-9-]+)\.html$/);
+  if (htmlPost && (htmlPost[1] ? hindiStaticBlogSlugs.has(htmlPost[2]) : cleanCanonicalBlogSlugs.has(htmlPost[2]))) {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname.slice(0, -'.html'.length);
+    return NextResponse.redirect(url, 308);
+  }
 
   // --- Geo detection: read Vercel's x-vercel-ip-country header and set cookie ---
   // This header is provided free by Vercel Edge Network on every request.

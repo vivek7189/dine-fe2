@@ -48,8 +48,7 @@ export default function AdminPage() {
       "Printer settings",
       "Shift scheduling",
       "Google Reviews integration"
-    ],
-    "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.8", "reviewCount": "490" }
+    ]
   };
 
   const faqSchema = {

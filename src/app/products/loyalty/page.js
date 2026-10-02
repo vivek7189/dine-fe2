@@ -50,12 +50,7 @@ export default function LoyaltyPage() {
       "Customer order history tracking",
       "Customer segmentation and analytics",
       "Automated engagement campaigns"
-    ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "reviewCount": "320"
-    }
+    ]
   };
 
   const faqStructuredData = {

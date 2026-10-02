@@ -44,12 +44,6 @@ const softwareSchema = {
     "price": "10",
     "priceCurrency": "USD",
     "priceValidUntil": "2026-12-31"
-  },
-  "aggregateRating": {
-    "@type": "AggregateRating",
-    "ratingValue": "4.8",
-    "ratingCount": "320",
-    "bestRating": "5"
   }
 };
 

@@ -15,6 +15,16 @@ function htmlSlugs(dir) {
   }
 }
 
+// The URL a static post declares as canonical (falls back to the .html address).
+function canonicalUrl(baseUrl, dir, urlPrefix, slug) {
+  try {
+    const html = fs.readFileSync(path.join(process.cwd(), dir, `${slug}.html`), 'utf8').slice(0, 40000);
+    const m = html.match(/<link[^>]+rel="canonical"[^>]+href="([^"]+)"/) || html.match(/<link[^>]+href="([^"]+)"[^>]+rel="canonical"/);
+    if (m && m[1].startsWith(`${baseUrl}${urlPrefix}${slug}`)) return m[1];
+  } catch { /* fall through */ }
+  return `${baseUrl}${urlPrefix}${slug}.html`;
+}
+
 function subdirs(dir) {
   try {
     return fs.readdirSync(path.join(process.cwd(), dir), { withFileTypes: true })
@@ -381,7 +391,7 @@ export default function sitemap() {
   // Blog posts served as static HTML from public/blog/ — read from the
   // filesystem so newly-added posts are always included (no manual drift).
   const blogPostsHTML = htmlSlugs('public/blog').map((slug) => ({
-    url: `${baseUrl}/blog/${slug}.html`,
+    url: canonicalUrl(baseUrl, 'public/blog', '/blog/', slug),
     lastModified: currentDate,
     changeFrequency: 'monthly',
     priority: 0.7,
@@ -389,7 +399,7 @@ export default function sitemap() {
 
   // Hindi static blog posts — read from the filesystem (all posts, no drift).
   const hindiBlogPosts = htmlSlugs('public/hi/blog').map((slug) => ({
-    url: `${baseUrl}/hi/blog/${slug}.html`,
+    url: canonicalUrl(baseUrl, 'public/hi/blog', '/hi/blog/', slug),
     lastModified: currentDate,
     changeFrequency: 'monthly',
     priority: 0.65,

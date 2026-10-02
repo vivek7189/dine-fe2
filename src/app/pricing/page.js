@@ -69,12 +69,7 @@ export default function PricingPage() {
         "availability": "https://schema.org/InStock",
         "url": "https://www.dineopen.com/pricing"
       }
-    ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "reviewCount": "500"
-    }
+    ]
   };
 
   const faqSchema = {

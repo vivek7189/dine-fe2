@@ -48,12 +48,7 @@ export default function BillingPage() {
       "Tax record maintenance for GST filing",
       "Subscription management",
       "Payment gateway support (Razorpay, Dodo)"
-    ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "reviewCount": "540"
-    }
+    ]
   };
 
   const faqSchema = {
