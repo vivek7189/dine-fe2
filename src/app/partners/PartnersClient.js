@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import CommonHeader from '../../components/CommonHeader';
 import Footer from '../../components/Footer';
 import { FaCheck, FaHandshake, FaTools, FaRupeeSign, FaCalendarCheck, FaWhatsapp, FaSpinner, FaCheckCircle } from 'react-icons/fa';
@@ -19,6 +19,30 @@ const card = { backgroundColor: 'white', border: `1px solid ${BORDER}`, borderRa
 const input = { width: '100%', padding: '12px 14px', borderRadius: '10px', border: `1px solid ${BORDER}`, fontSize: '15px', color: INK, backgroundColor: 'white', boxSizing: 'border-box' };
 const label = { display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px' };
 
+// Plans per market — same monthly prices as /pricing. India has one starting price.
+const MARKETS = {
+  IN: { label: 'India (₹)', sym: '₹', loc: 'en-IN', plans: [['From ₹899 plan', 899]] },
+  US: { label: 'USA & others ($)', sym: '$', loc: 'en-US', plans: [['Starter', 20], ['Growth', 50], ['Pro', 99]] },
+  GB: { label: 'UK (£)', sym: '£', loc: 'en-GB', plans: [['Starter', 16], ['Growth', 40], ['Pro', 79]] },
+  AE: { label: 'UAE (AED)', sym: 'AED ', loc: 'en-US', plans: [['Starter', 75], ['Growth', 185], ['Pro', 365]] },
+  SA: { label: 'Saudi Arabia (SAR)', sym: 'SAR ', loc: 'en-US', plans: [['Starter', 75], ['Growth', 190], ['Pro', 370]] },
+  KW: { label: 'Kuwait (KWD)', sym: 'KWD ', loc: 'en-US', dec: 1, plans: [['Starter', 6], ['Growth', 15], ['Pro', 30]] },
+  BH: { label: 'Bahrain (BHD)', sym: 'BHD ', loc: 'en-US', dec: 1, plans: [['Starter', 8], ['Growth', 19], ['Pro', 37]] },
+  OM: { label: 'Oman (OMR)', sym: 'OMR ', loc: 'en-US', dec: 1, plans: [['Starter', 8], ['Growth', 19], ['Pro', 38]] },
+};
+const TZ_MARKET = { 'Asia/Kolkata': 'IN', 'Asia/Calcutta': 'IN', 'Europe/London': 'GB', 'Asia/Dubai': 'AE', 'Asia/Riyadh': 'SA', 'Asia/Kuwait': 'KW', 'Asia/Bahrain': 'BH', 'Asia/Muscat': 'OM' };
+function detectMarket() {
+  try {
+    const m = document.cookie.match(/(?:^|; )geo_country=([A-Z]{2})/); // set by middleware from Vercel's IP country
+    if (m && MARKETS[m[1]]) return m[1];
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (TZ_MARKET[tz]) return TZ_MARKET[tz];
+  } catch { /* fall back to USD */ }
+  return 'US';
+}
+const COMMISSION = 0.2;
+const MAX_MESSAGE = 2000;
+
 const audiences = [
   'POS, printer and hardware dealers',
   'Accountants and CAs who serve restaurants',
@@ -36,7 +60,17 @@ const steps = [
 ];
 
 export default function PartnersClient() {
-  const [form, setForm] = useState({ name: '', phone: '', email: '', company: '', location: '', type: 'Referral partner', reach: '', message: '' });
+  const [market, setMarket] = useState('US');
+  const [planIdx, setPlanIdx] = useState(1);
+  const [count, setCount] = useState(10);
+  useEffect(() => { const m = detectMarket(); setMarket(m); setPlanIdx(MARKETS[m].plans.length > 1 ? 1 : 0); }, []);
+  const mk = MARKETS[market];
+  const plan = mk.plans[Math.min(planIdx, mk.plans.length - 1)];
+  const money = (n) => mk.sym + Number(n).toLocaleString(mk.loc, { maximumFractionDigits: mk.dec || 0 });
+  const perRestaurant = plan[1] * COMMISSION;
+  const perMonth = perRestaurant * count;
+
+  const [form, setForm] = useState({ name: '', phone: '', email: '', message: '' });
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
@@ -52,14 +86,11 @@ export default function PartnersClient() {
     setSubmitting(true);
     setError('');
     const comment = [
-      `Restaurant: PARTNER APPLICATION — ${form.company.trim() || form.name.trim()}`,
+      `Restaurant: PARTNER APPLICATION — ${form.name.trim()}`,
       `Name: ${form.name.trim()}`,
-      `Partner type: ${form.type}`,
-      form.company.trim() && `Company: ${form.company.trim()}`,
-      form.location.trim() && `City / country: ${form.location.trim()}`,
-      form.reach.trim() && `Restaurants they can reach: ${form.reach.trim()}`,
+      `Market: ${mk.label}`,
       form.email.trim() && form.phone.trim() && `Email: ${form.email.trim()}`,
-      form.message.trim() && `Message: ${form.message.trim()}`,
+      form.message.trim() && `Message: ${form.message.trim().slice(0, MAX_MESSAGE)}`,
     ].filter(Boolean).join('\n');
     try {
       const usePhone = !!form.phone.trim();
@@ -98,22 +129,42 @@ export default function PartnersClient() {
           </div>
         </section>
 
-        {/* Earnings example */}
+        {/* Earnings calculator (currency follows the visitor's country) */}
         <section style={{ ...section, paddingTop: 0 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-            {[
-              { big: '₹180 / month', small: 'per restaurant on the ₹899/month plan in India — about ₹2,160 over 12 months' },
-              { big: '≈ ₹54,000', small: 'over 12 months if you bring 25 restaurants on that plan' },
-              { big: '$10 / month', small: 'per restaurant on the $50/month Growth plan outside India — $120 over 12 months' },
-            ].map((x) => (
-              <div key={x.big} style={card}>
-                <div style={{ fontSize: '28px', fontWeight: 800, color: INK, fontVariantNumeric: 'tabular-nums' }}>{x.big}</div>
-                <div style={{ fontSize: '14px', color: MUTED, marginTop: '6px', lineHeight: 1.5 }}>{x.small}</div>
+          <div style={{ ...card, padding: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', alignItems: 'end' }}>
+              <div>
+                <label htmlFor="calc-market" style={label}>Your market</label>
+                <select id="calc-market" style={input} value={market} onChange={(e) => { setMarket(e.target.value); setPlanIdx(MARKETS[e.target.value].plans.length > 1 ? 1 : 0); }}>
+                  {Object.entries(MARKETS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                </select>
               </div>
-            ))}
+              <div>
+                <label htmlFor="calc-plan" style={label}>Plan the restaurant picks</label>
+                <select id="calc-plan" style={input} value={Math.min(planIdx, mk.plans.length - 1)} onChange={(e) => setPlanIdx(Number(e.target.value))} disabled={mk.plans.length === 1}>
+                  {mk.plans.map(([n, p], i) => <option key={n} value={i}>{n} — {mk.sym}{p.toLocaleString(mk.loc)}/month</option>)}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="calc-count" style={label}>Restaurants you bring: <strong style={{ color: INK }}>{count}</strong></label>
+                <input id="calc-count" type="range" min="1" max="100" value={count} onChange={(e) => setCount(Number(e.target.value))} style={{ width: '100%', accentColor: RED }} />
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginTop: '22px' }}>
+              {[
+                { big: money(perRestaurant), small: 'per restaurant, per month' },
+                { big: money(perMonth), small: `per month from ${count} restaurant${count === 1 ? '' : 's'}` },
+                { big: money(perMonth * 12), small: 'total over 12 months' },
+              ].map((x) => (
+                <div key={x.small} style={{ backgroundColor: '#f9fafb', borderRadius: '12px', padding: '16px 18px' }}>
+                  <div style={{ fontSize: '28px', fontWeight: 800, color: INK, fontVariantNumeric: 'tabular-nums' }}>{x.big}</div>
+                  <div style={{ fontSize: '14px', color: MUTED, marginTop: '4px' }}>{x.small}</div>
+                </div>
+              ))}
+            </div>
           </div>
           <p style={{ fontSize: '13px', color: MUTED, textAlign: 'center', marginTop: '14px' }}>
-            Examples only. Commission is 20% of subscription revenue we receive, excluding taxes, refunds and free trials.
+            Estimate only. Commission is 20% of subscription revenue we receive, excluding taxes, refunds and free trials.
           </p>
         </section>
 
@@ -188,21 +239,14 @@ export default function PartnersClient() {
             ) : (
               <form onSubmit={submit} noValidate>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-                  <div><label htmlFor="p-name" style={label}>Your name *</label><input id="p-name" style={input} value={form.name} onChange={set('name')} autoComplete="name" /></div>
-                  <div><label htmlFor="p-company" style={label}>Company (optional)</label><input id="p-company" style={input} value={form.company} onChange={set('company')} autoComplete="organization" /></div>
-                  <div><label htmlFor="p-phone" style={label}>WhatsApp number</label><input id="p-phone" style={input} value={form.phone} onChange={set('phone')} inputMode="tel" autoComplete="tel" placeholder="+91 98765 43210" /></div>
+                  <div style={{ gridColumn: '1 / -1' }}><label htmlFor="p-name" style={label}>Your name *</label><input id="p-name" style={input} value={form.name} onChange={set('name')} autoComplete="name" /></div>
+                  <div><label htmlFor="p-phone" style={label}>WhatsApp / phone</label><input id="p-phone" style={input} value={form.phone} onChange={set('phone')} inputMode="tel" autoComplete="tel" placeholder="+91 98765 43210" /></div>
                   <div><label htmlFor="p-email" style={label}>Email</label><input id="p-email" type="email" style={input} value={form.email} onChange={set('email')} autoComplete="email" /></div>
-                  <div><label htmlFor="p-location" style={label}>City and country</label><input id="p-location" style={input} value={form.location} onChange={set('location')} placeholder="Pune, India" /></div>
-                  <div>
-                    <label htmlFor="p-type" style={label}>Partner type</label>
-                    <select id="p-type" style={input} value={form.type} onChange={set('type')}>
-                      <option>Referral partner</option>
-                      <option>Reseller partner</option>
-                      <option>Not sure yet</option>
-                    </select>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label htmlFor="p-message" style={label}>Tell us about you</label>
+                    <textarea id="p-message" rows={5} maxLength={MAX_MESSAGE} style={{ ...input, resize: 'vertical' }} value={form.message} onChange={set('message')} placeholder="Your company (if any), city/country, what you do today and how many restaurants you can reach" />
+                    <div style={{ fontSize: '12px', color: MUTED, textAlign: 'right', marginTop: '4px', fontVariantNumeric: 'tabular-nums' }}>{form.message.length}/{MAX_MESSAGE}</div>
                   </div>
-                  <div style={{ gridColumn: '1 / -1' }}><label htmlFor="p-reach" style={label}>How many restaurants can you reach? (approx.)</label><input id="p-reach" style={input} value={form.reach} onChange={set('reach')} placeholder="e.g. 20–50" /></div>
-                  <div style={{ gridColumn: '1 / -1' }}><label htmlFor="p-message" style={label}>Anything else we should know?</label><textarea id="p-message" rows={3} style={{ ...input, resize: 'vertical' }} value={form.message} onChange={set('message')} placeholder="What you do today and which restaurants you work with" /></div>
                 </div>
                 {error && <p role="alert" style={{ color: '#b91c1c', fontSize: '14px', marginTop: '14px' }}>{error}</p>}
                 <button type="submit" disabled={submitting} style={{ marginTop: '20px', width: '100%', backgroundColor: RED, color: 'white', padding: '14px', borderRadius: '12px', border: 'none', fontWeight: 700, fontSize: '16px', cursor: submitting ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: submitting ? 0.8 : 1 }}>

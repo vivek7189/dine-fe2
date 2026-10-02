@@ -186,6 +186,7 @@ export const config = {
     '/',
     '/blog/:slug*',
     '/hi/blog/:slug*',
+    '/partners',
     '/login',
     '/local-login',
     '/onboard-login',
