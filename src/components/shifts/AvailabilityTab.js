@@ -6,10 +6,12 @@ import apiClient from '../../lib/api';
 import { getRoleColor, DAYS_OF_WEEK, DAYS_FULL } from './constants';
 
 // The server stores weekdays as mon … sun (one spelling for the app, this grid and the rota check).
-// This grid keeps its Monday … Sunday keys internally and converts when loading / saving.
+// This grid keys days in lowercase ('monday' … — see DEFAULT_AVAILABILITY / avail[day.toLowerCase()])
+// and converts when loading / saving.
 const SHORT = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-const fromServer = (a = {}) => Object.fromEntries(DAYS_FULL.map((D, i) => [D, a[SHORT[i]] || a[D] || a[D.toLowerCase()]]).filter(([, v]) => v));
-const toServer = (grid = {}) => Object.fromEntries(DAYS_FULL.map((D, i) => [SHORT[i], grid[D]]).filter(([, v]) => v));
+const LONG = DAYS_FULL.map(D => D.toLowerCase());
+const fromServer = (a = {}) => Object.fromEntries(LONG.map((d, i) => [d, a[SHORT[i]] || a[d] || a[DAYS_FULL[i]]]).filter(([, v]) => v));
+const toServer = (grid = {}) => Object.fromEntries(LONG.map((d, i) => [SHORT[i], grid[d]]).filter(([, v]) => v));
 
 const DEFAULT_AVAILABILITY = DAYS_FULL.reduce((acc, day) => {
   acc[day.toLowerCase()] = { available: true, startTime: '09:00', endTime: '22:00' };
