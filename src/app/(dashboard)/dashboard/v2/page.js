@@ -4035,7 +4035,7 @@ function RestaurantPOSContent() {
           floorName: selectedTable?.floor || null,
           tableId: selectedTable?.id || null,
         orderType,
-        paymentMethod,
+        paymentMethod: splitBillData ? 'split-bill' : paymentMethod,
           status: 'completed', // Set status to completed since payment is processed immediately
         staffInfo: {
             userId: currentUser?.id || null,
@@ -4095,6 +4095,8 @@ function RestaurantPOSContent() {
         cashReceived: cashReceived || null,
         changeReturned: changeReturned || null,
         splitPayments: splitPay || null,
+        // A NEW bill split and completed in one go never sent its split (saved as one payment).
+        splitBill: splitBillData || null,
         roundOffAmount: roundOff || null,
         partialPayAmount: partialPay != null ? partialPay : null,
         paidAmount: partialPay != null ? Math.round(Number(partialPay) * 100) / 100 : null,
@@ -4145,7 +4147,7 @@ function RestaurantPOSContent() {
           try {
             const paymentAmount = finalAmount || (subtotal || getTotalAmount()) + totalTax;
             const paymentData = {
-              paymentMethod: paymentMethod,
+              paymentMethod: splitBillData ? 'split-bill' : paymentMethod,
               amount: paymentAmount,
               userId: currentUser.id,
               restaurantId: selectedRestaurant.id,
@@ -4219,7 +4221,19 @@ function RestaurantPOSContent() {
       // Process payment based on method (use finalAmount which includes tax)
         const paymentAmount = finalAmount || (subtotal || getTotalAmount()) + totalTax;
         console.log('💳 Processing payment for order:', orderId, 'Method:', paymentMethod, 'Amount:', paymentAmount);
-      if (paymentMethod === 'cash') {
+      if (splitBillData) {
+          // Split bill: each guest pays separately — record the order's payment as 'split-bill'
+          // (was the cart's default method, e.g. UPI, so reports showed the whole bill as UPI).
+          const paymentResult = await apiClient.verifyPayment({
+            orderId,
+            paymentMethod: 'split-bill',
+            amount: paymentAmount,
+            userId: currentUser.id,
+            restaurantId: selectedRestaurant.id,
+            paymentStatus: partialPay != null ? (partialPay === 0 ? 'due' : 'partial') : 'completed'
+          });
+          console.log('✅ Split-bill payment recorded:', paymentResult);
+      } else if (paymentMethod === 'cash') {
           const paymentResult = await apiClient.verifyPayment({
           orderId,
             paymentMethod: 'cash',
