@@ -2,7 +2,7 @@
 // Chosen on the POS order panel by a counter login (owner / manager / cashier) and remembered on
 // THIS terminal, per restaurant, until changed or cleared. Sent with every new order as
 // `servedBy: { id, name }`; the backend validates it and stores it as the order's server
-// (waiterId), ahead of the table's assigned server.
+// (waiterId) — unless the table has its own assigned server, which keeps priority.
 
 const KEY = (rid) => `dineopen_served_by_${rid}`;
 export const SERVED_BY_EVENT = 'servedByChanged';
