@@ -6,13 +6,22 @@ import { resolveItemTierPrice, resolveOrderTypeRuleId } from '../../utils/varian
 import { resolveAdditionalCharges } from '../../utils/additionalCharges';
 import { calculatePerItemTax } from '../../utils/taxEngine';
 
-// Cart lines as the server's offer engine sees them: "no discount" when the line says so, else
-// when its menu item does (server offerDiscountApplicable) — offers skip those lines.
+// Cart lines as the server's offer engine sees them on a public order: priced lines (price = the
+// line's unit price, total = price × qty), the menu item's category, and "no discount" when the
+// line or its menu item says so (server offerDiscountApplicable) — offers skip those lines.
 const withOfferFlags = (cartLines, menuItems) => (cartLines || []).map(ci => {
-  if (ci?.discountApplicable === false) return ci;
   const id = ci?.menuItemId || ci?.id;
   const mi = id != null && Array.isArray(menuItems) ? menuItems.find(m => m && m.id === id) : null;
-  return (mi && mi.discountApplicable === false) ? { ...ci, discountApplicable: false } : ci;
+  const price = Number(ci?.price) || 0;
+  const qty = Number(ci?.quantity) || 0;
+  return {
+    ...ci,
+    menuItemId: id,
+    price,
+    total: price * qty,
+    category: mi ? (mi.category || '') : (ci?.category || ''),
+    discountApplicable: !(ci?.discountApplicable === false || (mi && mi.discountApplicable === false)),
+  };
 });
 import { useRouter, useSearchParams } from 'next/navigation';
 import {

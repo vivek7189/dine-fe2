@@ -564,7 +564,8 @@ function RestaurantPOSContent() {
       discount: bt ? bt.discount : 0,
       tax: bt ? bt.exclusiveTax : displayTax,
       taxIncluded: bt ? Math.round(((bt.tax || 0) - (bt.exclusiveTax || 0)) * 100) / 100 : 0,
-      serviceCharge: bt ? (bt.serviceCharge || 0) + (bt.additionalCharges || 0) : 0,
+      // 'Service & charges' row: service charge + additional charges + area / zone charge.
+      serviceCharge: bt ? Math.round(((bt.serviceCharge || 0) + (bt.additionalCharges || 0) + (bt.areaCharge || 0)) * 100) / 100 : 0,
       total: displayTotal,
       currencySymbol: cs,
       storeName: selectedRestaurant?.name,
@@ -2066,15 +2067,6 @@ function RestaurantPOSContent() {
   // resolve exactly as before.
   useEffect(() => {
     if (!multiPricingEnabled || pricingRules.length === 0) return;
-    // When a table is chosen, the floor-mapping effect above owns the pricing rule — don't fight it.
-    // Only when the table's floor actually maps to a rule — otherwise the server falls back to the
-    // order-type rule (resolveOrderTypePricingRule), so the POS must too (it used to keep no rule
-    // and charge base prices while the server re-priced at the order-type tier).
-    if (selectedTable?.floor) {
-      const fl = String(selectedTable.floor).toLowerCase();
-      if (pricingRules.some(r => (r.tableMappings || []).some(m => !!m && fl.includes(String(m).toLowerCase())))) return;
-    }
-
     // Normalize aggressively: lowercase + strip spaces/underscores/hyphens, so "Take Away",
     // "take-away", "take_away", "takeaway" — and ANY custom multi-word name vs its rule — all match.
     // No hard-coded alias table needed: matching is purely order-type label/id ⇄ rule name.
@@ -2082,6 +2074,21 @@ function RestaurantPOSContent() {
     const orderTypesList = Array.isArray(posSettings?.orderTypes) ? posSettings.orderTypes : [];
     const otObj = orderTypesList.find((o) => o.id === orderType);
     const candidates = new Set([norm(orderType), norm(otObj?.label)].filter(Boolean));
+
+    // At a table: a floor that maps to a rule is owned by the floor-mapping effect above. On an
+    // UNMAPPED floor pick in the server's order — the running order's rule, else the current /
+    // cashier-picked rule (kept as is, as before), else the order-type rule — and never reset to
+    // "no rule" (the server would still price at one of those).
+    if (selectedTable?.floor) {
+      const fl = String(selectedTable.floor).toLowerCase();
+      if (pricingRules.some(r => (r.tableMappings || []).some(m => !!m && fl.includes(String(m).toLowerCase())))) return;
+      const fromOrder = currentOrder?.pricingRuleId ? pricingRules.find(r => r.id === currentOrder.pricingRuleId) : null;
+      if (fromOrder) { setActivePricingRuleId(fromOrder.id); setAutoSelectedRule(false); return; }
+      if (activePricingRuleId && pricingRules.some(r => r.id === activePricingRuleId)) return;
+      const otRule = pricingRules.find((r) => candidates.has(norm(r.name)));
+      if (otRule) { setActivePricingRuleId(otRule.id); setAutoSelectedRule(true); }
+      return;
+    }
 
     // 1) A pricing rule whose name matches this order type (by label or id) wins.
     const matched = pricingRules.find((r) => candidates.has(norm(r.name)));
@@ -2094,8 +2101,7 @@ function RestaurantPOSContent() {
     // 2) Dine-in with no table and no dedicated dine-in rule → fall back to the first dining-AREA
     //    rule (AC/Non-AC). Exclude any rule that maps to a defined order type (e.g. Talabat) so a
     //    walk-in dine-in can never accidentally inherit aggregator pricing.
-    // (At a table on an unmapped floor there is no area fallback — the server would not pick one.)
-    if (candidates.has('dinein') && !selectedTable?.floor) {
+    if (candidates.has('dinein')) {
       const reserved = new Set([
         'dinein', 'takeaway', 'delivery',
         ...orderTypesList.map((o) => norm(o.label)),
@@ -2106,11 +2112,26 @@ function RestaurantPOSContent() {
       return;
     }
 
-    // 3) No rule for this order type → base price.
-    setActivePricingRuleId(null);
+    // 3) No rule for this order type → base price — except a running order keeps its own rule
+    //    (the server re-prices an update without a sent rule at the order's rule).
+    const keepOrderRule = currentOrder?.pricingRuleId && pricingRules.some(r => r.id === currentOrder.pricingRuleId);
+    setActivePricingRuleId(keepOrderRule ? currentOrder.pricingRuleId : null);
     setAutoSelectedRule(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderType, multiPricingEnabled, pricingRules, selectedTable, posSettings]);
+
+  // A running order loaded into the cart keeps ITS pricing rule (the server re-prices an update at
+  // the sent rule, else the order's own) — unless its table floor maps to a rule (effect above).
+  useEffect(() => {
+    if (!multiPricingEnabled || !currentOrder?.pricingRuleId) return;
+    if (!pricingRules.some(r => r.id === currentOrder.pricingRuleId)) return;
+    if (selectedTable?.floor) {
+      const fl = String(selectedTable.floor).toLowerCase();
+      if (pricingRules.some(r => (r.tableMappings || []).some(m => !!m && fl.includes(String(m).toLowerCase())))) return;
+    }
+    setActivePricingRuleId(currentOrder.pricingRuleId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentOrder?.id, currentOrder?.pricingRuleId, multiPricingEnabled, pricingRules]);
 
   // Handle view parameter from URL (for view state persistence)
   useEffect(() => {

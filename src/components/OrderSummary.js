@@ -656,6 +656,100 @@ const OrderSummary = ({
     window.open('/customers/' + id, '_blank', 'noopener');
   }, [customerData?.id, router]);
 
+  // Compute unit price for an item considering variant and selected customizations
+  // Uses item.price (which reflects the active pricing rule) over item.basePrice
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const getItemUnitPrice = useCallback((cartItem) => {
+    let unitPrice;
+    if (cartItem?.priceEdited === true && typeof cartItem?.price === 'number' && cartItem?.selectedVariant?.price == null) {
+      // A manually edited price is the line's base (toppings still added below) — honored even
+      // when a pricing rule is active; the tier resolver would silently undo the edit. Not for
+      // variant lines: the server re-prices those from the menu variant.
+      unitPrice = cartItem.price;
+    } else if (cartItem?.selectedVariant?.price != null && cartItem?.priceEdited === true) {
+      // Server: a variant line flagged as edited gets the plain menu variant price (no tier).
+      const fi = cartItem?.id != null ? menuItems.find(m => m.id === cartItem.id) : undefined;
+      const fv = fi?.variants?.find(v => v.name === cartItem.selectedVariant.name);
+      unitPrice = typeof fv?.price === 'number' ? fv.price : cartItem.selectedVariant.price;
+    } else if (cartItem?.selectedVariant?.price != null) {
+      // Variant selected — resolve its per-variant tier price for the active rule (prefer the
+      // fresh menu variant so newly-set tier prices apply; falls back to the variant base).
+      if (multiPricingEnabled && activePricingRuleId) {
+        const freshItem = cartItem?.id != null ? menuItems.find(m => m.id === cartItem.id) : undefined;
+        const freshVariant = freshItem?.variants?.find(v => v.name === cartItem.selectedVariant.name);
+        // No fresh menu variant → the stored variant price is already resolved (avoid a 2nd markup).
+        unitPrice = freshVariant ? resolveVariantTierPrice(freshVariant, activePricingRuleId, pricingRules) : cartItem.selectedVariant.price;
+      } else {
+        unitPrice = cartItem.selectedVariant.price;
+      }
+    } else if (multiPricingEnabled && activePricingRuleId) {
+      // Resolve the item's tier price via the SHARED resolver so the cart line/total
+      // matches the menu card exactly: per-item override → zone Dine-In inherit →
+      // rule default markup (e.g. Delivery +20%) → base. Previously this branch only
+      // handled the per-item override and fell straight to base, so a rule's default
+      // markup was applied on the card but NOT in the cart total (card 238.80 / cart 199).
+      // Prefer the CURRENT menu item's pricingRules (fresh) over the cart's snapshot,
+      // and use the authoritative base price (fresh menu price → original → basePrice).
+      const freshMenuItem = cartItem?.id != null ? menuItems.find(m => m.id === cartItem.id) : undefined;
+      const base = typeof freshMenuItem?.price === 'number' ? freshMenuItem.price
+        : typeof cartItem?._originalPrice === 'number' ? cartItem._originalPrice
+        : typeof cartItem?.basePrice === 'number' ? cartItem.basePrice
+        : typeof cartItem?.price === 'number' ? cartItem.price : 0;
+      const mergedRules = { ...(cartItem?.pricingRules || {}), ...(freshMenuItem?.pricingRules || {}) };
+      unitPrice = resolveItemTierPrice({ pricingRules: mergedRules }, base, activePricingRuleId, pricingRules);
+    } else {
+      // No multi-pricing — use price as-is
+      unitPrice = typeof cartItem?.price === 'number' ? cartItem.price
+        : typeof cartItem?.basePrice === 'number' ? cartItem.basePrice : 0;
+    }
+    // Validate customization prices against current menu when possible
+    let extras = 0;
+    if (Array.isArray(cartItem?.selectedCustomizations) && cartItem.selectedCustomizations.length > 0) {
+      const menuItem = menuItems.find(m => m.id === cartItem.id);
+      const menuCustomizations = menuItem?.customizations || [];
+      extras = cartItem.selectedCustomizations.reduce((sum, c) => {
+        // Try to find the matching customization in current menu for price validation
+        if (menuCustomizations.length > 0) {
+          const menuCust = menuCustomizations.find(mc => mc.id === c.id || mc.name === c.name);
+          if (menuCust && typeof menuCust.price === 'number') return sum + menuCust.price;
+        }
+        // Fallback: search modifierGroups if menu item has them
+        if (menuItem?.modifierGroups) {
+          for (const group of menuItem.modifierGroups) {
+            const match = (group.items || []).find(gi => gi.id === c.id || gi.name === c.name);
+            if (match && typeof match.price === 'number') return sum + match.price;
+          }
+        }
+        return sum + (c?.price || 0);
+      }, 0);
+    } else if (typeof cartItem?.customizationPrice === 'number') {
+      extras = cartItem.customizationPrice;
+    }
+    return (unitPrice || 0) + (extras || 0);
+  }, [multiPricingEnabled, activePricingRuleId, menuItems, pricingRules]);
+  
+  // Per-item tax fields: the cart line's own value, else the menu item's (saved-order → cart
+  // mappings and older carts often lack taxInclusive / discountApplicable / taxGroupId — without
+  // the fallback a tax-INCLUSIVE item was taxed on top: ₹30 → ₹31.50). Custom items have no menu.
+  const withMenuTaxFields = useCallback((item) => {
+    if (!item || item.isCustomItem || item.id == null) return item;
+    const mi = menuItems.find(m => m.id === item.id);
+    if (!mi) return item;
+    return {
+      ...item,
+      taxInclusive: item.taxInclusive ?? mi.taxInclusive,
+      discountApplicable: item.discountApplicable ?? mi.discountApplicable,
+      taxGroupId: item.taxGroupId || mi.taxGroupId || null,
+      category: item.category || mi.category,
+      categoryId: item.categoryId || mi.categoryId,
+    };
+  }, [menuItems]);
+
+  // Quantity factor of a line: weight for sold-by-weight lines (same as getTotalAmount), else qty.
+  const lineQtyFactor = (ci) => ((ci?.soldByWeight && ci?.itemWeight)
+    ? (ci.priceUnit === 'per_100g' ? ci.itemWeight / 100 : ci.itemWeight)
+    : (ci?.quantity || 1));
+
   // Area / zone surcharge — the server's rule exactly (utils/areaCharge): an EXISTING order keeps
   // its own surcharge (percentage re-applied to the current items); a NEW order at a table gets
   // the table floor's area charge (else zone pricing by section) unless a multi-tier pricing rule
@@ -700,12 +794,16 @@ const OrderSummary = ({
   // Cart as the offer engine sees it on the server: a line is "no discount" when the line says so,
   // else when its menu item does (server offerDiscountApplicable). Memoised — the hook's effects
   // depend on the cart reference.
+  // Lines are PRICED like the server's (price = the line's unit price incl. variant / tier /
+  // toppings / edit, total = unit × quantity or weight) — a raw cart line holds the base price.
   const offerCart = useMemo(() => (cart || []).map(ci => {
-    if (ci?.discountApplicable === false) return ci;
+    const unit = getItemUnitPrice(ci);
+    const line = { ...withMenuTaxFields(ci), price: unit, total: unit * lineQtyFactor(ci) };
+    if (ci?.discountApplicable === false) return { ...line, discountApplicable: false };
     const id = ci?.menuItemId || ci?.id;
     const mi = id != null ? menuItems.find(m => m && m.id === id) : null;
-    return (mi && mi.discountApplicable === false) ? { ...ci, discountApplicable: false } : ci;
-  }), [cart, menuItems]);
+    return { ...line, discountApplicable: !(mi && mi.discountApplicable === false) };
+  }), [cart, menuItems, getItemUnitPrice, withMenuTaxFields]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Offer Engine Hook
   const {
@@ -1700,100 +1798,6 @@ const OrderSummary = ({
       .then(res => setCustomerCoupons(res.coupons || []))
       .catch(() => setCustomerCoupons([]));
   }, [couponsEnabled, customerMobile, lookupStatus, restaurantId]);
-
-  // Compute unit price for an item considering variant and selected customizations
-  // Uses item.price (which reflects the active pricing rule) over item.basePrice
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const getItemUnitPrice = useCallback((cartItem) => {
-    let unitPrice;
-    if (cartItem?.priceEdited === true && typeof cartItem?.price === 'number' && cartItem?.selectedVariant?.price == null) {
-      // A manually edited price is the line's base (toppings still added below) — honored even
-      // when a pricing rule is active; the tier resolver would silently undo the edit. Not for
-      // variant lines: the server re-prices those from the menu variant.
-      unitPrice = cartItem.price;
-    } else if (cartItem?.selectedVariant?.price != null && cartItem?.priceEdited === true) {
-      // Server: a variant line flagged as edited gets the plain menu variant price (no tier).
-      const fi = cartItem?.id != null ? menuItems.find(m => m.id === cartItem.id) : undefined;
-      const fv = fi?.variants?.find(v => v.name === cartItem.selectedVariant.name);
-      unitPrice = typeof fv?.price === 'number' ? fv.price : cartItem.selectedVariant.price;
-    } else if (cartItem?.selectedVariant?.price != null) {
-      // Variant selected — resolve its per-variant tier price for the active rule (prefer the
-      // fresh menu variant so newly-set tier prices apply; falls back to the variant base).
-      if (multiPricingEnabled && activePricingRuleId) {
-        const freshItem = cartItem?.id != null ? menuItems.find(m => m.id === cartItem.id) : undefined;
-        const freshVariant = freshItem?.variants?.find(v => v.name === cartItem.selectedVariant.name);
-        // No fresh menu variant → the stored variant price is already resolved (avoid a 2nd markup).
-        unitPrice = freshVariant ? resolveVariantTierPrice(freshVariant, activePricingRuleId, pricingRules) : cartItem.selectedVariant.price;
-      } else {
-        unitPrice = cartItem.selectedVariant.price;
-      }
-    } else if (multiPricingEnabled && activePricingRuleId) {
-      // Resolve the item's tier price via the SHARED resolver so the cart line/total
-      // matches the menu card exactly: per-item override → zone Dine-In inherit →
-      // rule default markup (e.g. Delivery +20%) → base. Previously this branch only
-      // handled the per-item override and fell straight to base, so a rule's default
-      // markup was applied on the card but NOT in the cart total (card 238.80 / cart 199).
-      // Prefer the CURRENT menu item's pricingRules (fresh) over the cart's snapshot,
-      // and use the authoritative base price (fresh menu price → original → basePrice).
-      const freshMenuItem = cartItem?.id != null ? menuItems.find(m => m.id === cartItem.id) : undefined;
-      const base = typeof freshMenuItem?.price === 'number' ? freshMenuItem.price
-        : typeof cartItem?._originalPrice === 'number' ? cartItem._originalPrice
-        : typeof cartItem?.basePrice === 'number' ? cartItem.basePrice
-        : typeof cartItem?.price === 'number' ? cartItem.price : 0;
-      const mergedRules = { ...(cartItem?.pricingRules || {}), ...(freshMenuItem?.pricingRules || {}) };
-      unitPrice = resolveItemTierPrice({ pricingRules: mergedRules }, base, activePricingRuleId, pricingRules);
-    } else {
-      // No multi-pricing — use price as-is
-      unitPrice = typeof cartItem?.price === 'number' ? cartItem.price
-        : typeof cartItem?.basePrice === 'number' ? cartItem.basePrice : 0;
-    }
-    // Validate customization prices against current menu when possible
-    let extras = 0;
-    if (Array.isArray(cartItem?.selectedCustomizations) && cartItem.selectedCustomizations.length > 0) {
-      const menuItem = menuItems.find(m => m.id === cartItem.id);
-      const menuCustomizations = menuItem?.customizations || [];
-      extras = cartItem.selectedCustomizations.reduce((sum, c) => {
-        // Try to find the matching customization in current menu for price validation
-        if (menuCustomizations.length > 0) {
-          const menuCust = menuCustomizations.find(mc => mc.id === c.id || mc.name === c.name);
-          if (menuCust && typeof menuCust.price === 'number') return sum + menuCust.price;
-        }
-        // Fallback: search modifierGroups if menu item has them
-        if (menuItem?.modifierGroups) {
-          for (const group of menuItem.modifierGroups) {
-            const match = (group.items || []).find(gi => gi.id === c.id || gi.name === c.name);
-            if (match && typeof match.price === 'number') return sum + match.price;
-          }
-        }
-        return sum + (c?.price || 0);
-      }, 0);
-    } else if (typeof cartItem?.customizationPrice === 'number') {
-      extras = cartItem.customizationPrice;
-    }
-    return (unitPrice || 0) + (extras || 0);
-  }, [multiPricingEnabled, activePricingRuleId, menuItems, pricingRules]);
-  
-  // Per-item tax fields: the cart line's own value, else the menu item's (saved-order → cart
-  // mappings and older carts often lack taxInclusive / discountApplicable / taxGroupId — without
-  // the fallback a tax-INCLUSIVE item was taxed on top: ₹30 → ₹31.50). Custom items have no menu.
-  const withMenuTaxFields = useCallback((item) => {
-    if (!item || item.isCustomItem || item.id == null) return item;
-    const mi = menuItems.find(m => m.id === item.id);
-    if (!mi) return item;
-    return {
-      ...item,
-      taxInclusive: item.taxInclusive ?? mi.taxInclusive,
-      discountApplicable: item.discountApplicable ?? mi.discountApplicable,
-      taxGroupId: item.taxGroupId || mi.taxGroupId || null,
-      category: item.category || mi.category,
-      categoryId: item.categoryId || mi.categoryId,
-    };
-  }, [menuItems]);
-
-  // Quantity factor of a line: weight for sold-by-weight lines (same as getTotalAmount), else qty.
-  const lineQtyFactor = (ci) => ((ci?.soldByWeight && ci?.itemWeight)
-    ? (ci.priceUnit === 'per_100g' ? ci.itemWeight / 100 : ci.itemWeight)
-    : (ci?.quantity || 1));
 
   // Determine if an item's price includes tax (inclusive pricing) — shared engine (= backend).
   const isItemTaxInclusive = useCallback((item, settings) => engineIsItemTaxInclusive(withMenuTaxFields(item), settings), [withMenuTaxFields]);
