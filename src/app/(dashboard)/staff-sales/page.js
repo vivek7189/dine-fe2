@@ -493,7 +493,7 @@ export default function StaffSalesPage() {
                     ({staffData.length} staff members)
                   </span>
                   <span className="block text-xs text-gray-500 font-normal mt-1">
-                    Sales go to the waiter chosen in &quot;Served by&quot; on the POS, else the table&apos;s server (Tables → Assign Server), else whoever took the order. Orders typed on a counter login (owner / manager / cashier) with no waiter go to &quot;Counter (no waiter)&quot;. &quot;Orders taken&quot; shows who typed the orders.
+                    Sales go to the table&apos;s server (Tables → Assign Server), else the waiter chosen in &quot;Served by&quot; on the POS, else whoever took the order. Orders typed on a counter login (owner / manager / cashier) with no waiter go to &quot;Counter (no waiter)&quot;. &quot;Orders taken&quot; shows who typed the orders.
                   </span>
                 </h3>
                 <div className="flex items-center gap-2">

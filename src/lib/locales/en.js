@@ -2136,7 +2136,7 @@ const en = {
     choose: 'Choose waiter',
     search: 'Search staff…',
     clear: 'Clear — counter sale',
-    hint: 'Remembered on this device. Sales go to this person in Staff Sales.',
+    hint: 'Remembered on this device. Takeaway and no-table orders count as this person\'s sales (a table\'s own server keeps its orders).',
     empty: 'No staff found',
   },
 };
