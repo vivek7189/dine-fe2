@@ -8,6 +8,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import apiClient from '../../../lib/api';
 import StaffActivityPanel from '../../../components/staff/StaffActivityPanel';
+import { useStaffSort, SortableTh, StaffSortFilterBar } from '../../../components/staff/StaffSortControls';
+import CalendarSettingsPanel from '../../../components/calendar/CalendarSettingsPanel';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import AdditionalChargesSettings from '../../../components/AdditionalChargesSettings';
 import StaffDocuments from '../../../components/StaffDocuments';
@@ -140,7 +142,7 @@ import { getAllCountriesWithCurrency, getCurrencyByCountryCode } from '../../../
 import { getTaxRegime, TAX_FREE_PRESET } from '../../../config/taxRegimes';
 import EtimsSettings from '../../../components/EtimsSettings';
 import { FEATURE_OPS, OP_LABELS, ADMIN_TAB_LABELS, ADMIN_TAB_ID_TO_KEY, resolveFeaturePermissions } from '@/lib/permissions';
-import { PAGE_ACCESS_CONFIG } from '@/lib/pageAccessConfig';
+import { PAGE_ACCESS_CONFIG, withDefaultOnAccess } from '@/lib/pageAccessConfig';
 import { getPrintFontSizes, getPrintFontFamily, PRINT_FONTS, getContentWidthRange } from '../../../utils/printFontSizes';
 import { KOT_TEMPLATE_LIST, BILL_TEMPLATE_LIST, renderKOT, renderBill } from '../../../utils/printTemplates/index';
 import { splitIndiaGst } from '../../../utils/printTemplates/helpers';
@@ -6048,13 +6050,13 @@ const Admin = () => {
 
   // SYNC: Keep in sync with dine-backend/index.js and dine-app/components/StaffManagement.js
   const ROLE_DEFAULT_PAGE_ACCESS = {
-    admin:    { dashboard:true, history:true, tables:true, menu:true, analytics:true, inventory:true, kot:true, admin:{ settings:true, tax:true, pricing:true, payments:true, billingSettings:true, currency:true, print:true, features:true, restaurants:true, staff:true, orderManagement:true, offers:true, loyalty:true, googleReviews:true, whatsapp:true }, completeBill:true, invoice:true, customers:true, offers:true, printer:true },
-    manager:  { dashboard:true, history:true, tables:true, menu:true, analytics:true, inventory:{ read:true, add:true, update:true, delete:false }, kot:true, admin:false, completeBill:true, invoice:true, customers:true, offers:true, printer:true },
-    waiter:   { dashboard:true, history:true, tables:{ read:true, add:false, update:true, delete:false, reset:false }, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:false, invoice:false, customers:false, offers:false, printer:true, orders:{ read:true, update:true, cancel:true, refund:false, completeBill:false } },
-    cashier:  { dashboard:true, history:true, tables:false, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:true, invoice:true, customers:false, offers:false, printer:true },
-    employee: { dashboard:true, history:true, tables:{ read:true, add:false, update:false, delete:false, reset:false }, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:false, invoice:false, customers:false, offers:false, printer:true },
-    captain:  { dashboard:true, history:true, tables:{ read:true, add:false, update:true, delete:false, reset:true }, menu:true, analytics:false, inventory:false, kot:true, admin:false, completeBill:true, invoice:false, customers:false, offers:false, printer:true, orders:{ read:true, update:true, cancel:true, refund:true, completeBill:true } },
-    sales:    { dashboard:true, history:true, tables:false, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:false, invoice:false, customers:true, offers:true, printer:true },
+    admin:    { dashboard:true, history:true, tables:true, menu:true, analytics:true, inventory:true, kot:true, admin:{ settings:true, tax:true, pricing:true, payments:true, billingSettings:true, currency:true, print:true, features:true, restaurants:true, staff:true, orderManagement:true, offers:true, loyalty:true, googleReviews:true, whatsapp:true }, completeBill:true, invoice:true, customers:true, offers:true, printer:true, calendar:true },
+    manager:  { dashboard:true, history:true, tables:true, menu:true, analytics:true, inventory:{ read:true, add:true, update:true, delete:false }, kot:true, admin:false, completeBill:true, invoice:true, customers:true, offers:true, printer:true, calendar:true },
+    waiter:   { dashboard:true, history:true, tables:{ read:true, add:false, update:true, delete:false, reset:false }, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:false, invoice:false, customers:false, offers:false, printer:true, calendar:true, orders:{ read:true, update:true, cancel:true, refund:false, completeBill:false } },
+    cashier:  { dashboard:true, history:true, tables:false, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:true, invoice:true, customers:false, offers:false, printer:true, calendar:true },
+    employee: { dashboard:true, history:true, tables:{ read:true, add:false, update:false, delete:false, reset:false }, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:false, invoice:false, customers:false, offers:false, printer:true, calendar:true },
+    captain:  { dashboard:true, history:true, tables:{ read:true, add:false, update:true, delete:false, reset:true }, menu:true, analytics:false, inventory:false, kot:true, admin:false, completeBill:true, invoice:false, customers:false, offers:false, printer:true, calendar:true, orders:{ read:true, update:true, cancel:true, refund:true, completeBill:true } },
+    sales:    { dashboard:true, history:true, tables:false, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:false, invoice:false, customers:true, offers:true, printer:true, calendar:true },
   };
 
   const ROLE_DESCRIPTIONS = {
@@ -6511,6 +6513,8 @@ const Admin = () => {
       { id: 'offers', label: 'Offers & Discounts', icon: FaTag },
       { id: 'loyalty', label: 'Loyalty Program', icon: FaStar },
       { id: 'feedback-settings', label: 'Feedback Forms', icon: FaCommentDots },
+      // Event calendar settings — owner / admin (co-owner) / manager only
+      ...(['owner', 'admin', 'co-owner', 'manager'].includes(String(currentUserRole || '').toLowerCase()) ? [{ id: 'calendar', label: t('eventCalendar.settings.tab'), icon: FaCalendarAlt }] : []),
     ]},
     { label: 'INTEGRATIONS', items: [
       { id: 'google-reviews', label: 'Google Reviews', icon: FaGoogle },
@@ -7160,7 +7164,7 @@ const Admin = () => {
       isDeliveryPartner: selectedStaff.isDeliveryPartner || false,
       assignedFloorIds: selectedStaff.assignedFloorIds || [],
       assignedWaiterIds: selectedStaff.assignedWaiterIds || [],
-      pageAccess: JSON.parse(JSON.stringify(selectedStaff.pageAccess || ROLE_DEFAULT_PAGE_ACCESS[selectedStaff.role] || ROLE_DEFAULT_PAGE_ACCESS.employee)),
+      pageAccess: withDefaultOnAccess(JSON.parse(JSON.stringify(selectedStaff.pageAccess || ROLE_DEFAULT_PAGE_ACCESS[selectedStaff.role] || ROLE_DEFAULT_PAGE_ACCESS.employee))),
     });
     setEditingStaff(true);
     // Ensure floors are loaded for captain assignment UI
@@ -7374,6 +7378,9 @@ const Admin = () => {
     (member.email && member.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (member.role && member.role.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+  // Sorted + role/status-filtered copy for the table and card views (persisted per user).
+  const staffSortCtl = useStaffSort(filteredStaff);
+  const sortedStaff = staffSortCtl.items;
 
   const formatDateTime = (dateInput) => {
     if (!dateInput) return 'Never';
@@ -8103,6 +8110,20 @@ const Admin = () => {
           </div>
         )}
 
+        {/* Staff sort + role/status filter chips (table + card views) */}
+        {activeTab === 'staff' && filteredStaff.length > 0 && (
+          <>
+            <StaffSortFilterBar ctl={staffSortCtl} total={sortedStaff.length} showSortPicker={staffViewMode !== 'table'}
+              roleLabel={(r) => getRoleInfo(r).label} statusLabel={(st) => getStatusInfo(st).label || st} />
+            {sortedStaff.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '32px 16px', color: '#6b7280', fontSize: 14, background: 'white', borderRadius: 12, border: '1px solid #e5e7eb', marginBottom: 16 }}>
+                {t('staffList.noMatches')}{' '}
+                <button type="button" onClick={staffSortCtl.clearFilters} style={{ border: 'none', background: 'transparent', color: '#ef4444', fontWeight: 600, cursor: 'pointer' }}>{t('staffList.clearFilters')}</button>
+              </div>
+            )}
+          </>
+        )}
+
         {/* Content Area — only show restaurants/staff grids when on those tabs */}
         {(activeTab === 'restaurants' || activeTab === 'staff') && (activeTab === 'restaurants' ? (
           // Restaurants Grid
@@ -8299,18 +8320,18 @@ const Admin = () => {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e5e7eb' }}>
-                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Name</th>
+                    <SortableTh label={t('staffList.col.name')} sortKey="name" sort={staffSortCtl.sort} onSort={staffSortCtl.setSort} />
                     <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Phone</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Role</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Status</th>
+                    <SortableTh label={t('staffList.col.role')} sortKey="role" sort={staffSortCtl.sort} onSort={staffSortCtl.setSort} />
+                    <SortableTh label={t('staffList.col.status')} sortKey="status" sort={staffSortCtl.sort} onSort={staffSortCtl.setSort} align="center" />
                     <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Restaurants</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>User ID</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Last Login</th>
+                    <SortableTh label={t('staffList.col.userId')} sortKey="userId" sort={staffSortCtl.sort} onSort={staffSortCtl.setSort} />
+                    <SortableTh label={t('staffList.col.lastLogin')} sortKey="lastLogin" sort={staffSortCtl.sort} onSort={staffSortCtl.setSort} />
                     <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredStaff.map((member) => {
+                  {sortedStaff.map((member) => {
                     const roleInfo = getRoleInfo(member.role);
                     const isInactive = member.status === 'inactive';
                     return (
@@ -8381,7 +8402,7 @@ const Admin = () => {
                                   phone: member.phone || '',
                                   email: member.email || '',
                                   role: member.role || 'employee',
-                                  pageAccess: JSON.parse(JSON.stringify(member.pageAccess || ROLE_DEFAULT_PAGE_ACCESS[member.role] || ROLE_DEFAULT_PAGE_ACCESS.employee)),
+                                  pageAccess: withDefaultOnAccess(JSON.parse(JSON.stringify(member.pageAccess || ROLE_DEFAULT_PAGE_ACCESS[member.role] || ROLE_DEFAULT_PAGE_ACCESS.employee))),
                                 });
                                 setEditingStaff(true);
                               }}
@@ -8429,7 +8450,7 @@ const Admin = () => {
             gridTemplateColumns: isClient && isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))',
             gap: '16px'
           }}>
-            {filteredStaff.map((member) => {
+            {sortedStaff.map((member) => {
               const roleInfo = getRoleInfo(member.role);
               const statusInfo = getStatusInfo(member.status);
               const RoleIcon = roleInfo.icon;
@@ -8853,7 +8874,7 @@ const Admin = () => {
                           phone: member.phone || '',
                           email: member.email || '',
                           role: member.role || 'employee',
-                          pageAccess: JSON.parse(JSON.stringify(member.pageAccess || ROLE_DEFAULT_PAGE_ACCESS[member.role] || ROLE_DEFAULT_PAGE_ACCESS.employee)),
+                          pageAccess: withDefaultOnAccess(JSON.parse(JSON.stringify(member.pageAccess || ROLE_DEFAULT_PAGE_ACCESS[member.role] || ROLE_DEFAULT_PAGE_ACCESS.employee))),
                         });
                         setEditingStaff(true);
                       }}
@@ -9958,7 +9979,7 @@ const Admin = () => {
                       onChange={(e) => {
                         const src = staff.find(m => m.id === e.target.value);
                         if (src) {
-                          const pa = JSON.parse(JSON.stringify(src.pageAccess || ROLE_DEFAULT_PAGE_ACCESS[src.role] || ROLE_DEFAULT_PAGE_ACCESS.employee));
+                          const pa = withDefaultOnAccess(JSON.parse(JSON.stringify(src.pageAccess || ROLE_DEFAULT_PAGE_ACCESS[src.role] || ROLE_DEFAULT_PAGE_ACCESS.employee)));
                           setNewStaff(prev => ({ ...prev, pageAccess: pa }));
                         }
                       }}
@@ -15613,6 +15634,11 @@ const Admin = () => {
             </div>
           )}
         </div>
+      )}
+
+      {/* Event Calendar settings tab */}
+      {activeTab === 'calendar' && ['owner', 'admin', 'co-owner', 'manager'].includes(String(currentUserRole || '').toLowerCase()) && (
+        <CalendarSettingsPanel restaurantId={selectedRestaurant?.id || null} isMobile={isClient && isMobile} />
       )}
 
       {/* Feedback Settings Tab */}

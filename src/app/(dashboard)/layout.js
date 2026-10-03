@@ -30,7 +30,7 @@ import apiClient from '../../lib/api';
 import { preferLoopbackIfLocal } from '../../lib/localServer';
 import { reconnectLan } from '../../lib/lanRealtime';
 import { initPrintDiagnostics } from '../../lib/printDiagnostics';
-import { ROUTE_TO_ACCESS_KEY, ALWAYS_ACCESSIBLE, WAITER_ENFORCEABLE_KEYS } from '../../lib/pageAccessConfig';
+import { ROUTE_TO_ACCESS_KEY, ALWAYS_ACCESSIBLE, WAITER_ENFORCEABLE_KEYS, DEFAULT_ON_ACCESS_KEYS, defaultOnAccessAllowed } from '../../lib/pageAccessConfig';
 import { rolesAllowsPath } from '../../lib/rolesRouteMap';
 import ManagerPinPrompt from '../../components/ManagerPinPrompt';
 import { FaCloudUploadAlt, FaArrowRight, FaUtensils, FaSyncAlt } from 'react-icons/fa';
@@ -49,6 +49,9 @@ function checkRouteAccess(pathname, user, pageAccess) {
   const routeSegment = '/' + pathname.split('/').filter(Boolean)[0];
   const accessKey = ROUTE_TO_ACCESS_KEY[routeSegment];
   if (!accessKey) return true; // Unknown routes default to accessible (profile, etc.)
+
+  // Newer pages (e.g. Calendar): allowed unless explicitly turned off, for every staff role.
+  if (DEFAULT_ON_ACCESS_KEYS.has(accessKey)) return defaultOnAccessAllowed(pageAccess, accessKey);
 
   // Waiters historically bypassed pageAccess entirely. Now HONOR the owner's setting, but ONLY for
   // pages a waiter normally has (WAITER_ENFORCEABLE_KEYS) and only when explicitly set — so a waiter

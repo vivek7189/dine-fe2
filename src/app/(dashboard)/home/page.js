@@ -20,6 +20,7 @@ import { setCachedData, getCachedData } from '../../../lib/offlineDb';
 import OfflineBanner from '../../../components/OfflineBanner';
 import UpdateBanner from '../../../components/UpdateBanner';
 import StaffAlertsCard from '../../../components/StaffAlertsCard';
+import UpcomingEventsCard from '../../../components/calendar/UpcomingEventsCard';
 import GetStartedCard from '../../../components/GetStartedCard';
 import { useDineBot } from '../../../components/DineBotProvider';
 
@@ -357,6 +358,8 @@ export default function HomePage() {
     return (
       <>
         <GetStartedCard />
+        <UpcomingEventsCard restaurantId={typeof window !== 'undefined' ? (localStorage.getItem('selectedRestaurantId') || user?.restaurantId) : null}
+          style={{ margin: isMobile ? '12px 12px 0' : '20px 24px 0' }} />
         <HeadquartersContent embedded />
       </>
     );
@@ -501,6 +504,9 @@ export default function HomePage() {
         <StaffAlertsCard restaurantId={typeof window !== 'undefined' ? (localStorage.getItem('selectedRestaurantId') || user?.restaurantId) : null} isMobile={isMobile}
           canEditSettings={['owner', 'admin', 'co-owner'].includes(String(user?.role || '').toLowerCase())} />
       )}
+
+      {/* Upcoming festivals / holidays / own events (hidden when the calendar isn't available) */}
+      <UpcomingEventsCard restaurantId={typeof window !== 'undefined' ? (localStorage.getItem('selectedRestaurantId') || user?.restaurantId) : null} />
 
       {/* Header */}
       <div className="animate-in" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>

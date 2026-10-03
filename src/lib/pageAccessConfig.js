@@ -33,6 +33,7 @@ export const PAGE_ACCESS_CONFIG = [
   { key: 'shifts', label: 'Shifts', icon: 'FaClock', category: 'more' },
   { key: 'books', label: 'Books & Accounting', icon: 'FaBook', category: 'more' },
   { key: 'feedback', label: 'Feedback', icon: 'FaCommentDots', category: 'more' },
+  { key: 'calendar', label: 'Event Calendar', icon: 'FaCalendarAlt', category: 'more' },
 ];
 
 // ─── Route segment → pageAccess key mapping ───
@@ -67,6 +68,7 @@ export const ROUTE_TO_ACCESS_KEY = {
   '/bookings': 'bookings',
   '/phone-agent': 'analytics',
   '/google-reviews': 'admin',
+  '/calendar': 'calendar',
 };
 
 // ─── Pages accessible without any permission check ───
@@ -78,6 +80,27 @@ export const ALWAYS_ACCESSIBLE = ['/profile', '/home', '/more'];
 // etc. — false in the waiter default) stay visible exactly as before, so no existing waiter loses
 // access by default. An owner opting a waiter OUT of one of these keys is honored.
 export const WAITER_ENFORCEABLE_KEYS = new Set(['dashboard', 'history', 'tables', 'menu']);
+
+// Keys added after staff records already existed: ON unless the owner explicitly turned them off
+// (a missing key = allowed). The server still decides — e.g. the calendar API answers 403 to staff
+// when the owner switched "Staff can view" off, and the nav entry then hides itself.
+export const DEFAULT_ON_ACCESS_KEYS = new Set(['calendar']);
+
+// Resolve a default-on key: undefined/null → true; otherwise the usual truthiness rules.
+export function defaultOnAccessAllowed(pageAccess, key) {
+  const v = pageAccess ? pageAccess[key] : undefined;
+  if (v === undefined || v === null) return true;
+  if (typeof v === 'object') return Object.values(v).some(Boolean);
+  return !!v;
+}
+
+// Copy of a pageAccess map with missing default-on keys filled in as true (staff editors).
+export function withDefaultOnAccess(pageAccess) {
+  if (!pageAccess || typeof pageAccess !== 'object') return pageAccess;
+  const out = { ...pageAccess };
+  for (const k of DEFAULT_ON_ACCESS_KEYS) if (out[k] === undefined || out[k] === null) out[k] = true;
+  return out;
+}
 
 // ─── Helper: check if a pageAccess key has granular sub-operations ───
 export function hasGranularOps(key) {
@@ -117,4 +140,5 @@ export const NAV_ID_TO_ACCESS_KEY = {
   'parking': 'parking',
   'bookings': 'bookings',
   'feedback': 'admin',
+  'calendar': 'calendar',
 };

@@ -554,12 +554,16 @@ class ApiClient {
 
           // Not a token issue - regular 403 forbidden (role/permission based)
           console.log('🚫 403 Forbidden - Access denied');
-          throw new Error(data.message || data.error || 'Access denied.');
+          const forbidden = new Error(data.message || data.error || 'Access denied.');
+          forbidden.status = 403; forbidden.code = data && data.code; forbidden.data = data;
+          throw forbidden;
         }
 
         // Provide more specific error message for 404
         if (response.status === 404) {
-          throw new Error(data.message || data.error || `Endpoint ${endpoint} not found`);
+          const notFound = new Error(data.message || data.error || `Endpoint ${endpoint} not found`);
+          notFound.status = 404; notFound.code = data && data.code;
+          throw notFound;
         }
         const apiErr = new Error(data.message || data.error || `API request failed (${response.status})`);
         apiErr.status = response.status; // e.g. 423 / 403 with data.code 'STAFF_ACCESS_…'
@@ -4829,6 +4833,36 @@ class ApiClient {
   // Staff alerts: birthdays + annual leave (owner / admins; managers: their staff).
   async getStaffAlerts(restaurantId) {
     return this.request(`/api/staff-alerts/${restaurantId}`);
+  }
+
+  // ── Event Calendar (festivals, public holidays, custom events) ──
+  // View: any staff when calendarSettings.staffCanView !== false (else 403 for non-managers).
+  // Manage (settings, custom events): owner / admin / co-owner / manager.
+  async getCalendar(restaurantId, { from, to, lang } = {}) {
+    const q = new URLSearchParams();
+    if (from) q.set('from', from);
+    if (to) q.set('to', to);
+    if (lang) q.set('lang', lang);
+    const qs = q.toString();
+    return this.request(`/api/calendar/${restaurantId}${qs ? `?${qs}` : ''}`);
+  }
+  async getUpcomingEvents(restaurantId, { days = 45, lang } = {}) {
+    const q = new URLSearchParams({ days: String(days) });
+    if (lang) q.set('lang', lang);
+    return this.request(`/api/calendar/${restaurantId}/upcoming?${q.toString()}`);
+  }
+  // Partial settings — the server deep-merges (send only what changed).
+  async updateCalendarSettings(restaurantId, partial) {
+    return this.request(`/api/calendar/${restaurantId}/settings`, { method: 'PUT', body: partial });
+  }
+  async createCalendarEvent(restaurantId, event) {
+    return this.request(`/api/calendar/${restaurantId}/events`, { method: 'POST', body: event });
+  }
+  async updateCalendarEvent(restaurantId, eventId, changes) {
+    return this.request(`/api/calendar/${restaurantId}/events/${encodeURIComponent(eventId)}`, { method: 'PATCH', body: changes });
+  }
+  async deleteCalendarEvent(restaurantId, eventId) {
+    return this.request(`/api/calendar/${restaurantId}/events/${encodeURIComponent(eventId)}`, { method: 'DELETE' });
   }
 
   async saveHrSettings(restaurantId, settings) {

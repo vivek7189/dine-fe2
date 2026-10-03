@@ -28,6 +28,7 @@ import {
   FaSearch,
   FaTimes,
 } from 'react-icons/fa';
+import { getCachedCalendarAccess } from '../../../lib/calendar';
 
 const features = [
   {
@@ -37,6 +38,14 @@ const features = [
     icon: FaCashRegister,
     gradient: 'linear-gradient(135deg, #059669, #10b981)',
     href: '/my-pay',
+  },
+  {
+    id: 'calendar',
+    name: 'Event Calendar',
+    description: 'Festivals, public holidays and your own events — plan for busy days',
+    icon: FaCalendarCheck,
+    gradient: 'linear-gradient(135deg, #6366f1, #818cf8)',
+    href: '/calendar',
   },
   {
     id: 'shifts',
@@ -257,7 +266,10 @@ export default function MorePage() {
     const rp = JSON.parse(localStorage.getItem('navRolePermissions') || 'null');
     myPayAllowed = !!(rp && rp.rid === localStorage.getItem('selectedRestaurantId') && rp.permissions && rp.permissions['page.myPay'] === 'allow');
   } catch {}
-  const allowedFeatures = features.filter(f => !notAllowedPages.includes(f.id) && (f.id !== 'my-pay' || myPayAllowed));
+  // Event Calendar: hide when the calendar API refused this person (cached by Sidebar / Home).
+  let calendarDenied = false;
+  try { calendarDenied = getCachedCalendarAccess(localStorage.getItem('selectedRestaurantId'))?.state === 'denied'; } catch {}
+  const allowedFeatures = features.filter(f => !notAllowedPages.includes(f.id) && (f.id !== 'my-pay' || myPayAllowed) && (f.id !== 'calendar' || !calendarDenied));
   // Search: every typed word must appear in the card's name or description ("staff sales", "audit")
   const words = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const visibleFeatures = words.length

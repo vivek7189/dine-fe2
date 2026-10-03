@@ -48,7 +48,8 @@ import { t } from '../lib/i18n';
 import { performLogout } from '../lib/logout';
 import { useLoading } from '../contexts/LoadingContext';
 import { isElectron } from '../utils/platform';
-import { NAV_ID_TO_ACCESS_KEY, WAITER_ENFORCEABLE_KEYS } from '../lib/pageAccessConfig';
+import { NAV_ID_TO_ACCESS_KEY, WAITER_ENFORCEABLE_KEYS, DEFAULT_ON_ACCESS_KEYS, defaultOnAccessAllowed } from '../lib/pageAccessConfig';
+import { getCachedCalendarAccess, probeCalendarAccess } from '../lib/calendar';
 
 export default function Sidebar({ isDashboardPage = false }) {
   const pathname = usePathname();
@@ -108,6 +109,25 @@ export default function Sidebar({ isDashboardPage = false }) {
     }
     return [];
   });
+
+  // Event Calendar: shown unless the calendar API refused this person (403 — staff viewing is off)
+  // or the backend doesn't have it (404). Cached per restaurant; refreshed in the background.
+  const [calendarAccess, setCalendarAccessState] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    try { return getCachedCalendarAccess(localStorage.getItem('selectedRestaurantId'))?.state || null; } catch { return null; }
+  });
+  useEffect(() => {
+    let rid = null;
+    try { rid = localStorage.getItem('selectedRestaurantId'); } catch { /* ignore */ }
+    if (rid) probeCalendarAccess(rid).then((st) => { if (st) setCalendarAccessState(st); }).catch(() => {});
+    const onChange = (e) => {
+      let cur = null;
+      try { cur = localStorage.getItem('selectedRestaurantId'); } catch { /* ignore */ }
+      if (!e?.detail?.restaurantId || e.detail.restaurantId === cur) setCalendarAccessState(e?.detail?.state || null);
+    };
+    window.addEventListener('calendarAccessChanged', onChange);
+    return () => window.removeEventListener('calendarAccessChanged', onChange);
+  }, [selectedRestaurant?.id]);
 
   // Navigation is ready immediately if we have cached data
   const [isNavigationReady, setIsNavigationReady] = useState(() => {
@@ -298,6 +318,7 @@ export default function Sidebar({ isDashboardPage = false }) {
     { id: 'menu', name: t('nav.menu'), icon: FaUtensils, href: '/menu', color: '#10b981', roles: ['owner', 'admin', 'manager'] },
     { id: 'inventory', name: t('nav.inventory'), icon: FaBoxes, href: '/inventory', color: '#059669', roles: ['owner', 'admin', 'manager'] },
     { id: 'customers', name: t('nav.customers'), icon: FaUsers, href: '/customers', color: '#8b5cf6', roles: ['owner', 'admin', 'manager'] },
+    { id: 'calendar', name: t('nav.calendar'), icon: FaCalendarAlt, href: '/calendar', color: '#6366f1', roles: ['owner', 'admin', 'manager', 'waiter', 'employee', 'cashier', 'sales'] },
     { id: 'attendance', name: t('nav.attendance'), icon: FaUserClock, href: '/attendance', color: '#ef4444', roles: ['owner', 'admin', 'manager'] },
     ...(selectedRestaurant?.posSettings?.enableShiftsCash ? [{ id: 'shifts-cash', name: 'Shifts & Cash', icon: FaCashRegister, href: '/shifts-cash', color: '#3b82f6', roles: ['owner', 'admin', 'manager', 'cashier'] }] : []),
     { id: 'billing', name: t('nav.billing'), icon: FaCreditCard, href: '/billing', color: '#06b6d4', roles: ['owner', 'admin'] },
@@ -328,6 +349,14 @@ export default function Sidebar({ isDashboardPage = false }) {
     // Skip for always-visible pages
     if (notAllowedPages && notAllowedPages.includes(item.id) && !alwaysVisibleIds.includes(item.id)) {
       return false;
+    }
+
+    // Calendar: hidden when the API refused (403/404); otherwise on unless explicitly turned off.
+    if (item.id === 'calendar') {
+      if (calendarAccess === 'denied') return false;
+      if (['owner', 'admin'].includes(user.role)) return true;
+      const key = NAV_ID_TO_ACCESS_KEY[item.id];
+      return DEFAULT_ON_ACCESS_KEYS.has(key) ? defaultOnAccessAllowed(pageAccess, key) : true;
     }
 
     // Home and Profile are always accessible to all users (bypass role check)
