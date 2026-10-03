@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FaTimes, FaClock, FaUser, FaStickyNote, FaCalendarAlt, FaExclamationTriangle, FaUserPlus } from 'react-icons/fa';
-import { getRoleColor, BREAK_OPTIONS, formatDateISO, rotaRoles, titleCase, availabilityOn } from './constants';
+import { FaTimes, FaClock, FaUser, FaStickyNote, FaCalendarAlt, FaExclamationTriangle, FaUserPlus, FaGift } from 'react-icons/fa';
+import { getRoleColor, BREAK_OPTIONS, formatDateISO, rotaRoles, titleCase, availabilityOn, fitsAvailability, slotsLabel, memberRoles } from './constants';
+import TimeSelect from './TimeSelect';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 const field = {
   width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e5e7eb',
@@ -18,7 +20,10 @@ export default function ShiftFormModal({
   const blank = {
     staffId: '', date: '', startTime: '09:00', endTime: '17:00', breakMinutes: 30,
     role: 'employee', notes: '', status: 'draft', isOpen: false, shiftName: '', color: '',
+    incentiveAmount: '', incentiveNote: '',
   };
+  const { getCurrencySymbol } = useCurrency();
+  const currency = getCurrencySymbol() || '';
   const [form, setForm] = useState(blank);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -39,6 +44,8 @@ export default function ShiftFormModal({
         isOpen: !!shift.isOpen && !shift.staffId,
         shiftName: shift.shiftName || '',
         color: shift.color || '',
+        incentiveAmount: shift.incentive?.amount ? String(shift.incentive.amount) : '',
+        incentiveNote: shift.incentive?.note || '',
       });
     } else {
       const member = staff?.find(s => s.id === staffId);
@@ -64,8 +71,13 @@ export default function ShiftFormModal({
   const activeStaff = (staff || []).filter(s => s.status === 'active');
   const selectedStaff = staff?.find(s => s.id === form.staffId);
   const avail = form.staffId && form.date ? availabilityOn(availability[form.staffId], form.date) : null;
-  const outsideHours = avail?.available && avail.startTime && avail.endTime &&
-    (form.startTime < avail.startTime || form.endTime > avail.endTime);
+  const outsideHours = avail?.available && avail.slots?.length && form.startTime && form.endTime &&
+    !fitsAvailability(avail, form.startTime, form.endTime);
+  // Roles the chosen person can work (main + trained-for) — they pick which one this shift is.
+  const personRoles = selectedStaff && !form.isOpen ? memberRoles(selectedStaff) : [];
+  const roleOptions = personRoles.length > 1
+    ? [...new Set([...personRoles, form.role].filter(Boolean))]
+    : [...new Set([...roles, form.role].filter(Boolean))];
 
   const pickType = (name) => {
     const t = shiftTypes.find(x => x.name === name);
@@ -79,7 +91,13 @@ export default function ShiftFormModal({
     setSaving(true);
     setError('');
     try {
-      await onSave({ ...form, staffId: form.isOpen ? null : form.staffId, id: shift?.id || shift?._id });
+      const amt = Number(form.incentiveAmount);
+      if (form.isOpen && form.incentiveAmount !== '' && !(amt >= 0)) { setError('Incentive must be a number'); setSaving(false); return; }
+      await onSave({
+        ...form, staffId: form.isOpen ? null : form.staffId, id: shift?.id || shift?._id,
+        // Only an open shift carries an incentive; clearing the amount removes it.
+        incentive: form.isOpen ? (amt > 0 ? { amount: amt, note: form.incentiveNote.trim() } : null) : undefined,
+      });
       onClose();
     } catch (err) {
       setError(err?.message || 'Could not save the shift');
@@ -135,11 +153,15 @@ export default function ShiftFormModal({
             <div style={{ marginBottom: '14px' }}>
               <label style={label}><FaUser size={12} color="#6b7280" /> Staff member</label>
               <select value={form.staffId} style={field}
-                onChange={e => { const m = staff?.find(s => s.id === e.target.value); setForm(f => ({ ...f, staffId: e.target.value, role: m?.role || f.role })); }}>
+                onChange={e => {
+                  const m = staff?.find(s => s.id === e.target.value);
+                  // Keep the role already chosen (e.g. a takeaway gap) when this person can work it.
+                  setForm(f => ({ ...f, staffId: e.target.value, role: m ? (memberRoles(m).some(r => r.toLowerCase() === String(f.role || '').toLowerCase()) ? f.role : m.role) : f.role }));
+                }}>
                 <option value="">Select staff member…</option>
                 {activeStaff.map(s => {
                   const a = form.date ? availabilityOn(availability[s.id], form.date) : null;
-                  return <option key={s.id} value={s.id}>{s.name} ({s.role}){a && !a.available ? ' — unavailable' : ''}</option>;
+                  return <option key={s.id} value={s.id}>{s.name} ({memberRoles(s).join(', ')}){a && !a.available ? ' — unavailable' : ''}</option>;
                 })}
               </select>
               {avail && !avail.available && (
@@ -149,7 +171,7 @@ export default function ShiftFormModal({
               )}
               {outsideHours && (
                 <div style={{ marginTop: '6px', fontSize: '12px', color: '#b45309', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <FaExclamationTriangle size={11} /> Available only {avail.startTime}–{avail.endTime} this day.
+                  <FaExclamationTriangle size={11} /> Available only {slotsLabel(avail.slots)} this day.
                 </div>
               )}
             </div>
@@ -178,11 +200,11 @@ export default function ShiftFormModal({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
             <div>
               <label style={label}><FaClock size={12} color="#6b7280" /> Start</label>
-              <input type="time" value={form.startTime} onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))} required style={field} />
+              <TimeSelect value={form.startTime} onChange={v => setForm(f => ({ ...f, startTime: v }))} required style={field} ariaLabel="Start time" />
             </div>
             <div>
               <label style={label}><FaClock size={12} color="#6b7280" /> End</label>
-              <input type="time" value={form.endTime} onChange={e => setForm(f => ({ ...f, endTime: e.target.value }))} required style={field} />
+              <TimeSelect value={form.endTime} onChange={v => setForm(f => ({ ...f, endTime: v }))} required style={field} ariaLabel="End time" />
             </div>
           </div>
           {form.endTime && form.startTime && form.endTime < form.startTime && (
@@ -197,12 +219,28 @@ export default function ShiftFormModal({
               </select>
             </div>
             <div>
-              <label style={{ ...label, display: 'block' }}>Role{form.isOpen ? ' *' : ''}</label>
+              <label style={{ ...label, display: 'block' }}>{personRoles.length > 1 ? 'Works as' : 'Role'}{form.isOpen ? ' *' : ''}</label>
               <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} style={field}>
-                {[...new Set([...roles, form.role].filter(Boolean))].map(r => <option key={r} value={r}>{titleCase(r)}</option>)}
+                {roleOptions.map(r => <option key={r} value={r}>{titleCase(r)}</option>)}
               </select>
             </div>
           </div>
+
+          {form.isOpen && (
+            <div style={{ marginBottom: '14px', padding: '12px', borderRadius: '12px', border: '1px solid #fde68a', background: '#fffbeb' }}>
+              <label style={{ ...label, color: '#92400e' }}><FaGift size={12} color="#d97706" /> Incentive (optional)</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '8px' }}>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: '#6b7280' }}>{currency}</span>
+                  <input type="number" min="0" step="1" inputMode="decimal" value={form.incentiveAmount} placeholder="0"
+                    onChange={e => setForm(f => ({ ...f, incentiveAmount: e.target.value }))} style={{ ...field, paddingLeft: currency.length > 1 ? '38px' : '24px' }} />
+                </div>
+                <input type="text" maxLength={120} value={form.incentiveNote} placeholder="e.g. Rush hour, festival day"
+                  onChange={e => setForm(f => ({ ...f, incentiveNote: e.target.value }))} style={field} />
+              </div>
+              <div style={{ fontSize: '11.5px', color: '#92400e', marginTop: '6px' }}>Extra pay for whoever takes this shift — added to their next payroll as a bonus when you approve them.</div>
+            </div>
+          )}
 
           <div style={{ marginBottom: '14px' }}>
             <label style={label}><FaStickyNote size={12} color="#6b7280" /> Notes</label>

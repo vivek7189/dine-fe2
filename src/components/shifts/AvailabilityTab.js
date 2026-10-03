@@ -3,7 +3,12 @@
 import { useState, useEffect } from 'react';
 import { FaClock, FaCheck, FaTimes, FaSpinner, FaSave } from 'react-icons/fa';
 import apiClient from '../../lib/api';
-import { getRoleColor, DAYS_OF_WEEK, DAYS_FULL } from './constants';
+import { getRoleColor, DAYS_OF_WEEK, DAYS_FULL, dayAvailabilitySlots } from './constants';
+import TimeSelect from './TimeSelect';
+
+// "09:00-13:00 17:00-22:00" — one line per slot in the small cells.
+const cellTimes = (d) => dayAvailabilitySlots(d).map(s => `${s.startTime.slice(0, 5)}-${s.endTime.slice(0, 5)}`);
+const timeField = { width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '14px', outline: 'none', background: 'white' };
 
 // The server stores weekdays as mon … sun (one spelling for the app, this grid and the rota check).
 // This grid keys days in lowercase ('monday' … — see DEFAULT_AVAILABILITY / avail[day.toLowerCase()])
@@ -23,7 +28,8 @@ export default function AvailabilityTab({ restaurantId, staff, isMobile, onAvail
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(null);
   const [editingCell, setEditingCell] = useState(null); // { staffId, day }
-  const [editForm, setEditForm] = useState({ available: true, startTime: '09:00', endTime: '22:00' });
+  const [editForm, setEditForm] = useState({ available: true, slots: [{ startTime: '09:00', endTime: '22:00' }] });
+  const [editError, setEditError] = useState('');
 
   const activeStaff = (staff || []).filter(s => s.status === 'active');
 
@@ -68,7 +74,8 @@ export default function AvailabilityTab({ restaurantId, staff, isMobile, onAvail
 
   const openEdit = (staffId, day) => {
     const current = availability[staffId]?.[day] || { available: true, startTime: '09:00', endTime: '22:00' };
-    setEditForm({ ...current });
+    setEditForm({ available: current.available !== false, slots: dayAvailabilitySlots(current).map(x => ({ ...x })) });
+    setEditError('');
     setEditingCell({ staffId, day });
   };
 
@@ -76,14 +83,20 @@ export default function AvailabilityTab({ restaurantId, staff, isMobile, onAvail
     if (!editingCell) return;
     const { staffId, day } = editingCell;
     setSaving(staffId);
+    setEditError('');
     try {
-      const updated = { ...(availability[staffId] || DEFAULT_AVAILABILITY), [day]: editForm };
-      await apiClient.updateStaffAvailability(staffId, { availability: toServer(updated) });
-      setAvailability(prev => ({ ...prev, [staffId]: updated }));
+      const slots = editForm.slots.slice(0, 2);
+      // startTime / endTime = first slot, so older readers still see a sensible range.
+      const dayValue = { available: editForm.available, startTime: slots[0].startTime, endTime: slots[0].endTime, slots };
+      const updated = { ...(availability[staffId] || DEFAULT_AVAILABILITY), [day]: dayValue };
+      const res = await apiClient.updateStaffAvailability(staffId, { availability: toServer(updated) });
+      const saved = res?.availability?.availability ? { ...DEFAULT_AVAILABILITY, ...fromServer(res.availability.availability) } : updated;
+      setAvailability(prev => ({ ...prev, [staffId]: saved }));
       setEditingCell(null);
       if (onAvailabilityChanged) onAvailabilityChanged();
     } catch (err) {
       console.error('Error saving availability:', err);
+      setEditError(err?.message || 'Could not save');
     } finally {
       setSaving(null);
     }
@@ -158,7 +171,7 @@ export default function AvailabilityTab({ restaurantId, staff, isMobile, onAvail
                       fontSize: '10px', fontWeight: 600, cursor: 'pointer', textAlign: 'center'
                     }}>
                       <div>{DAYS_OF_WEEK[i]}</div>
-                      {isAvailable ? <div style={{ fontSize: '9px' }}>{d?.startTime?.slice(0,5)}-{d?.endTime?.slice(0,5)}</div> : <FaTimes size={8} />}
+                      {isAvailable ? cellTimes(d).map(t => <div key={t} style={{ fontSize: '9px' }}>{t}</div>) : <FaTimes size={8} />}
                     </button>
                   );
                 })}
@@ -213,27 +226,34 @@ export default function AvailabilityTab({ restaurantId, staff, isMobile, onAvail
           </div>
 
           {editForm.available && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
-              <div>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: '4px' }}>From</label>
-                <input type="time" value={editForm.startTime}
-                  onChange={e => setEditForm(f => ({ ...f, startTime: e.target.value }))}
-                  style={{
-                    width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e5e7eb',
-                    fontSize: '14px', outline: 'none'
-                  }} />
-              </div>
-              <div>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: '4px' }}>To</label>
-                <input type="time" value={editForm.endTime}
-                  onChange={e => setEditForm(f => ({ ...f, endTime: e.target.value }))}
-                  style={{
-                    width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e5e7eb',
-                    fontSize: '14px', outline: 'none'
-                  }} />
-              </div>
+            <div style={{ marginBottom: '20px' }}>
+              {editForm.slots.map((slot, idx) => (
+                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '10px', alignItems: 'end', marginBottom: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: '4px' }}>{editForm.slots.length > 1 ? `Slot ${idx + 1} · From` : 'From'}</label>
+                    <TimeSelect value={slot.startTime} style={timeField} ariaLabel={`Slot ${idx + 1} start`}
+                      onChange={v => setEditForm(f => ({ ...f, slots: f.slots.map((x, j) => (j === idx ? { ...x, startTime: v } : x)) }))} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: '4px' }}>To</label>
+                    <TimeSelect value={slot.endTime} style={timeField} ariaLabel={`Slot ${idx + 1} end`}
+                      onChange={v => setEditForm(f => ({ ...f, slots: f.slots.map((x, j) => (j === idx ? { ...x, endTime: v } : x)) }))} />
+                  </div>
+                  {idx > 0 ? (
+                    <button type="button" title="Remove this slot" onClick={() => setEditForm(f => ({ ...f, slots: f.slots.filter((_, j) => j !== idx) }))}
+                      style={{ border: 'none', background: '#fee2e2', color: '#b91c1c', borderRadius: '8px', width: '32px', height: '40px', cursor: 'pointer' }}><FaTimes size={11} /></button>
+                  ) : <span style={{ width: '32px' }} />}
+                </div>
+              ))}
+              {editForm.slots.length < 2 && (
+                <button type="button" onClick={() => setEditForm(f => ({ ...f, slots: [...f.slots, { startTime: '17:00', endTime: '22:00' }] }))}
+                  style={{ border: '1px dashed #d1d5db', background: 'white', color: '#374151', borderRadius: '10px', padding: '8px 12px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}>
+                  + Add 2nd time slot (split shift)
+                </button>
+              )}
             </div>
           )}
+          {editError && <div style={{ marginBottom: '12px', padding: '8px 10px', borderRadius: '8px', background: '#fef2f2', color: '#b91c1c', fontSize: '12.5px' }}>{editError}</div>}
 
           <div style={{ display: 'flex', gap: '10px' }}>
             <button onClick={() => setEditingCell(null)} style={{
@@ -320,9 +340,7 @@ export default function AvailabilityTab({ restaurantId, staff, isMobile, onAvail
                           {isAvailable ? (
                             <div>
                               <FaCheck size={10} style={{ marginBottom: '2px' }} />
-                              <div style={{ fontSize: '10px' }}>
-                                {d?.startTime?.slice(0,5)} - {d?.endTime?.slice(0,5)}
-                              </div>
+                              {cellTimes(d).map(t => <div key={t} style={{ fontSize: '10px' }}>{t}</div>)}
                             </div>
                           ) : (
                             <div><FaTimes size={10} /><div style={{ fontSize: '10px' }}>Off</div></div>

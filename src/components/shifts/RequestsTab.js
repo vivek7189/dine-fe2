@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { FaCheck, FaTimes, FaSpinner, FaUserPlus, FaExchangeAlt, FaInbox } from 'react-icons/fa';
 import apiClient from '../../lib/api';
 import { formatDateISO, formatTime, titleCase } from './constants';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 const card = { backgroundColor: 'white', borderRadius: '16px', border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', marginBottom: '16px' };
 const btn = (bg, color) => ({ padding: '7px 12px', borderRadius: '9px', border: 'none', background: bg, color, fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' });
@@ -13,6 +14,8 @@ const when = (s) => `${new Date(s.date + 'T00:00:00').toLocaleDateString('en-IN'
 
 export default function RequestsTab({ restaurantId, onChanged, isMobile }) {
   const [data, setData] = useState(null);
+  const { getCurrencySymbol } = useCurrency();
+  const currencySymbol = getCurrencySymbol() || '';
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState('');
@@ -55,7 +58,9 @@ export default function RequestsTab({ restaurantId, onChanged, isMobile }) {
           <div style={{ padding: '22px 18px', fontSize: '13px', color: '#9ca3af' }}>No requests. Add an <b>open shift</b> on the Schedule and staff of that role can ask for it from their app.</div>
         ) : claims.map(s => (
           <div key={s.id} style={{ padding: '12px 18px', borderBottom: '1px solid #f9fafb' }}>
-            <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#111827' }}>{when(s)} <span style={{ color: '#6b7280', fontWeight: 500 }}>· {titleCase(s.role)}</span></div>
+            <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#111827' }}>{when(s)} <span style={{ color: '#6b7280', fontWeight: 500 }}>· {titleCase(s.role)}</span>
+              {Number(s.incentive?.amount) > 0 && <span style={{ marginLeft: '6px', fontSize: '11.5px', fontWeight: 700, color: '#b45309', background: '#fef3c7', padding: '1px 7px', borderRadius: '8px' }}>+{currencySymbol}{s.incentive.amount} incentive</span>}
+            </div>
             {(s.claims || []).filter(c => c.status === 'pending').map(c => (
               <div key={c.staffId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginTop: '8px', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '13px', color: '#374151' }}>{c.staffName || 'Staff member'} wants this shift</span>

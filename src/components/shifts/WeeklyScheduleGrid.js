@@ -6,7 +6,8 @@ import {
   FaTrash, FaEdit, FaSpinner, FaCalendarAlt, FaClock, FaUserPlus, FaCheckCircle, FaExclamationTriangle
 } from 'react-icons/fa';
 import apiClient from '../../lib/api';
-import { getRoleColor, DAYS_OF_WEEK, formatTime, getWeekStart, getWeekEnd, getWeekDates, formatDateISO, isSameDay, shiftMatchesType, availabilityOn, titleCase } from './constants';
+import { getRoleColor, DAYS_OF_WEEK, formatTime, getWeekStart, getWeekEnd, getWeekDates, formatDateISO, isSameDay, shiftMatchesType, availabilityOn, titleCase, slotsLabel } from './constants';
+import { useCurrency } from '../../contexts/CurrencyContext';
 import ShiftFormModal from './ShiftFormModal';
 
 export default function WeeklyScheduleGrid({
@@ -14,6 +15,8 @@ export default function WeeklyScheduleGrid({
   onReloadShifts, shiftSettings, isMobile, availability = {}
 }) {
   const [notice, setNotice] = useState(null); // { type, text }
+  const { getCurrencySymbol } = useCurrency();
+  const currencySymbol = getCurrencySymbol() || '';
   const [prefill, setPrefill] = useState(null);
   const showNotice = (type, text) => { setNotice({ type, text }); setTimeout(() => setNotice(null), type === 'warning' ? 15000 : 6000); };
   const [showAddModal, setShowAddModal] = useState(false);
@@ -128,6 +131,7 @@ export default function WeeklyScheduleGrid({
       status: formData.status,
       shiftName: formData.shiftName || null,
       color: formData.color || null,
+      ...(formData.incentive !== undefined && { incentive: formData.incentive }),
     });
     setPrefill(null);
     onReloadShifts();
@@ -272,6 +276,11 @@ export default function WeeklyScheduleGrid({
         </div>
         {(shift.shiftName || shift.isOpen) && (
           <div style={{ fontSize: '10px', color: rc.text, opacity: 0.85 }}>{shift.isOpen ? `Open · ${titleCase(shift.role)}` : shift.shiftName}</div>
+        )}
+        {Number(shift.incentive?.amount) > 0 && (
+          <div title={shift.incentive.note || 'Incentive for whoever takes this shift'} style={{ fontSize: '10px', fontWeight: 700, color: '#b45309' }}>
+            +{currencySymbol}{shift.incentive.amount}{shift.incentive.note ? ` · ${shift.incentive.note}` : ''}
+          </div>
         )}
         {(shift.claims || []).some(c => c.status === 'pending') && (
           <div style={{ fontSize: '10px', fontWeight: 700, color: '#1d4ed8' }}>{(shift.claims || []).filter(c => c.status === 'pending').length} request(s)</div>
@@ -470,6 +479,9 @@ export default function WeeklyScheduleGrid({
                       fontSize: '10px', fontWeight: 600, padding: '1px 6px', borderRadius: '6px',
                       backgroundColor: rc.bg, color: rc.text, textTransform: 'capitalize'
                     }}>{member.role}</span>
+                        {Array.isArray(member.extraRoles) && member.extraRoles.length > 0 && (
+                          <span title={`Also works as ${member.extraRoles.join(', ')}`} style={{ fontSize: '10px', color: '#6b7280', marginLeft: '4px' }}>+{member.extraRoles.map(titleCase).join(', ')}</span>
+                        )}
                   </div>
                 </div>
                 {memberShifts.map(s => renderShiftBlock(s))}
@@ -689,6 +701,9 @@ export default function WeeklyScheduleGrid({
                           fontSize: '10px', fontWeight: 600, padding: '1px 6px', borderRadius: '6px',
                           backgroundColor: rc.bg, color: rc.text, textTransform: 'capitalize'
                         }}>{member.role}</span>
+                        {Array.isArray(member.extraRoles) && member.extraRoles.length > 0 && (
+                          <span title={`Also works as ${member.extraRoles.join(', ')}`} style={{ fontSize: '10px', color: '#6b7280', marginLeft: '4px' }}>+{member.extraRoles.map(titleCase).join(', ')}</span>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -704,7 +719,7 @@ export default function WeeklyScheduleGrid({
                     return (
                       <td
                         key={i}
-                        title={!av.available ? av.reason : (av.startTime ? `Available ${av.startTime}–${av.endTime}` : undefined)}
+                        title={!av.available ? av.reason : (av.slots?.length ? `Available ${slotsLabel(av.slots)}` : undefined)}
                         onClick={() => handleCellClick(member.id, date)}
                         style={{
                           padding: '6px', borderBottom: '1px solid #f9fafb',

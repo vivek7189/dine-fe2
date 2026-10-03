@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { FaUsers, FaPlus, FaTimes, FaTrash, FaEdit, FaSearch, FaPhone, FaEnvelope, FaUserTag } from 'react-icons/fa';
 import apiClient from '../../lib/api';
-import { getRoleColor, ALL_ROLES } from './constants';
+import { getRoleColor, ALL_ROLES, rotaRoles, titleCase } from './constants';
+import AlsoWorksAs from '../staff/AlsoWorksAs';
 
 export default function TeamTab({ restaurantId, staff, setStaff, isMobile }) {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -24,13 +25,13 @@ export default function TeamTab({ restaurantId, staff, setStaff, isMobile }) {
 
   const openAdd = () => {
     setEditingStaff(null);
-    setForm({ name: '', phone: '', email: '', role: 'employee', startDate: new Date().toISOString().split('T')[0] });
+    setForm({ name: '', phone: '', email: '', role: 'employee', startDate: new Date().toISOString().split('T')[0], extraRoles: [] });
     setShowAddModal(true);
   };
 
   const openEdit = (member) => {
     setEditingStaff(member);
-    setForm({ name: member.name || '', phone: member.phone || '', email: member.email || '', role: member.role || 'employee', startDate: member.startDate || '' });
+    setForm({ name: member.name || '', phone: member.phone || '', email: member.email || '', role: member.role || 'employee', startDate: member.startDate || '', extraRoles: Array.isArray(member.extraRoles) ? member.extraRoles : [] });
     setShowAddModal(true);
   };
 
@@ -271,6 +272,8 @@ export default function TeamTab({ restaurantId, staff, setStaff, isMobile }) {
                     }}>{r}</button>
                   ))}
                 </div>
+                <AlsoWorksAs value={form.extraRoles || []} mainRole={form.role} roleOptions={rotaRoles(staff)} labelFor={titleCase}
+                  onChange={(extraRoles) => setForm(f => ({ ...f, extraRoles }))} />
               </div>
 
               <div style={{ marginBottom: '20px' }}>

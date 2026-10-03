@@ -148,6 +148,7 @@ import { KOT_TEMPLATE_LIST, BILL_TEMPLATE_LIST, renderKOT, renderBill } from '..
 import { splitIndiaGst } from '../../../utils/printTemplates/helpers';
 import StaffAccessSettings from '../../../components/admin/StaffAccessSettings';
 import { settingsPatch, applySettingsPatch } from '../../../utils/settingsPatch';
+import AlsoWorksAs from '../../../components/staff/AlsoWorksAs';
 import RolesSettings from '../../../components/admin/RolesSettings';
 
 // Reusable shimmer skeleton for tab content while restaurants load
@@ -6078,6 +6079,7 @@ const Admin = () => {
     role: 'employee',
     startDate: new Date().toISOString().split('T')[0],
     additionalRestaurantIds: [],
+    extraRoles: [],
     pageAccess: {
       dashboard: true,
       history: true,
@@ -7093,6 +7095,7 @@ const Admin = () => {
         role: 'employee',
         startDate: new Date().toISOString().split('T')[0],
         additionalRestaurantIds: [],
+        extraRoles: [],
         pageAccess: {
           dashboard: true,
           history: true,
@@ -7164,6 +7167,7 @@ const Admin = () => {
       isDeliveryPartner: selectedStaff.isDeliveryPartner || false,
       assignedFloorIds: selectedStaff.assignedFloorIds || [],
       assignedWaiterIds: selectedStaff.assignedWaiterIds || [],
+      extraRoles: Array.isArray(selectedStaff.extraRoles) ? selectedStaff.extraRoles : [],
       pageAccess: withDefaultOnAccess(JSON.parse(JSON.stringify(selectedStaff.pageAccess || ROLE_DEFAULT_PAGE_ACCESS[selectedStaff.role] || ROLE_DEFAULT_PAGE_ACCESS.employee))),
     });
     setEditingStaff(true);
@@ -7201,6 +7205,7 @@ const Admin = () => {
       // Always send pageAccess (user may have customized it)
       updateData.pageAccess = editStaffForm.pageAccess;
       updateData.isDeliveryPartner = !!editStaffForm.isDeliveryPartner;
+      updateData.extraRoles = (editStaffForm.extraRoles || []).filter(r => String(r).toLowerCase() !== String(role).toLowerCase());
 
       // Captain-specific fields
       if (role === 'captain') {
@@ -9894,6 +9899,9 @@ const Admin = () => {
                     </select>
                   </div>
                 </div>
+                <AlsoWorksAs value={newStaff.extraRoles || []} mainRole={newStaff.role} roleOptions={staffRoleOptions}
+                  labelFor={(r) => roleLabel(r)}
+                  onChange={(extraRoles) => setNewStaff(prev => ({ ...prev, extraRoles }))} />
                 {ROLE_DESCRIPTIONS[newStaff.role] && (
                   <div style={{
                     marginTop: '10px', padding: '10px 14px',
@@ -10983,6 +10991,9 @@ const Admin = () => {
                           })}
                         </div>
                       </div>
+                      <AlsoWorksAs value={editStaffForm.extraRoles || []} mainRole={editStaffForm.role} roleOptions={staffRoleOptions}
+                        labelFor={(r) => getRoleInfo(r)?.label || r}
+                        onChange={(extraRoles) => setEditStaffForm(f => ({ ...f, extraRoles }))} />
                       <div style={{ marginTop: '8px', fontSize: '13px', color: '#6b7280' }}>
                         <strong>Status:</strong> {getStatusInfo(selectedStaff.status || 'active').label}
                       </div>

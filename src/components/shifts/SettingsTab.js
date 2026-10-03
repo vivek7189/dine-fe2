@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { FaCog, FaClock, FaPlus, FaTrash, FaSave, FaSpinner, FaSun, FaMoon, FaBell, FaUsers, FaWhatsapp, FaMobileAlt } from 'react-icons/fa';
 import apiClient from '../../lib/api';
+import TimeSelect from './TimeSelect';
 import { DEFAULT_SHIFT_SETTINGS, DAYS_FULL, rotaRoles, titleCase } from './constants';
 
 // WhatsApp template languages (Meta language codes). A template must be approved by Meta in each
@@ -126,16 +127,16 @@ export default function SettingsTab({ restaurantId, shiftSettings, setShiftSetti
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '4px', display: 'block' }}>
               <FaSun size={10} style={{ marginRight: '4px' }} />Opens
             </label>
-            <input type="time" value={settings.operatingHours?.start || '06:00'}
-              onChange={e => update('operatingHours', { ...settings.operatingHours, start: e.target.value })}
+            <TimeSelect value={settings.operatingHours?.start || '06:00'} ariaLabel="Opens"
+              onChange={v => update('operatingHours', { ...settings.operatingHours, start: v })}
               style={inputStyle} />
           </div>
           <div>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '4px', display: 'block' }}>
               <FaMoon size={10} style={{ marginRight: '4px' }} />Closes
             </label>
-            <input type="time" value={settings.operatingHours?.end || '23:00'}
-              onChange={e => update('operatingHours', { ...settings.operatingHours, end: e.target.value })}
+            <TimeSelect value={settings.operatingHours?.end || '23:00'} ariaLabel="Closes"
+              onChange={v => update('operatingHours', { ...settings.operatingHours, end: v })}
               style={inputStyle} />
           </div>
         </div>
@@ -170,11 +171,11 @@ export default function SettingsTab({ restaurantId, shiftSettings, setShiftSetti
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr', gap: '8px' }}>
               <div>
                 <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Start</label>
-                <input type="time" value={st.startTime} onChange={e => updateShiftType(i, 'startTime', e.target.value)} style={inputStyle} />
+                <TimeSelect value={st.startTime} onChange={v => updateShiftType(i, 'startTime', v)} style={inputStyle} ariaLabel="Shift start" />
               </div>
               <div>
                 <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>End</label>
-                <input type="time" value={st.endTime} onChange={e => updateShiftType(i, 'endTime', e.target.value)} style={inputStyle} />
+                <TimeSelect value={st.endTime} onChange={v => updateShiftType(i, 'endTime', v)} style={inputStyle} ariaLabel="Shift end" />
               </div>
               <div>
                 <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Total staff</label>

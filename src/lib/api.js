@@ -2693,6 +2693,14 @@ class ApiClient {
     return this.request(`/api/shift-scheduling/my-shifts/${restaurantId}${q.toString() ? '?' + q.toString() : ''}`);
   }
 
+  // Incentive on an open shift (owner / admin / manager). amount 0 / null removes it.
+  async setShiftIncentive(restaurantId, shiftId, { amount, note }) {
+    return this.request(`/api/shift-scheduling/shifts/${restaurantId}/${shiftId}/incentive`, {
+      method: 'POST',
+      body: { amount, note },
+    });
+  }
+
   async decideShiftClaim(restaurantId, shiftId, staffId, approve) {
     return this.request(`/api/shift-scheduling/shifts/${restaurantId}/${shiftId}/claims/${staffId}/decide`, { method: 'POST', body: { approve } });
   }

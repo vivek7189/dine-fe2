@@ -50,7 +50,7 @@ export const ALL_ROLES = [
 // "cleaner" before any cleaner is hired) + the common ones. Owner/admin aren't rostered.
 export const rotaRoles = (staff = [], extraRoles = []) => {
   const set = new Set(['manager', 'supervisor', 'chef', 'cook', 'waiter', 'cashier', 'captain', 'cleaner']);
-  (staff || []).forEach(s => { const r = String(s.role || '').toLowerCase(); if (r) set.add(r); });
+  (staff || []).forEach(s => [s.role, ...(Array.isArray(s.extraRoles) ? s.extraRoles : [])].forEach(x => { const r = String(x || '').trim().toLowerCase(); if (r) set.add(r); }));
   (extraRoles || []).forEach(r => { const x = String(r || '').trim().toLowerCase(); if (x) set.add(x); });
   ['owner', 'admin', 'co-owner', 'customer', 'super-admin'].forEach(r => set.delete(r));
   return [...set].sort();
@@ -73,8 +73,28 @@ export const availabilityOn = (avail, dateStr) => {
   const day = avail.availability?.[WEEKDAY_KEYS[idx]] || avail.availability?.[WEEKDAY_FULL[idx]]; // 'mon' or 'monday'
   if (!day) return { known: false, available: true };
   if (day.available === false) return { known: true, available: false, reason: 'Not available this day' };
-  return { known: true, available: true, startTime: day.startTime, endTime: day.endTime };
+  const slots = dayAvailabilitySlots(day);
+  return { known: true, available: true, startTime: slots[0]?.startTime, endTime: slots[0]?.endTime, slots };
 };
+
+// A day's time slots (up to 2). Days saved before slots existed have one: startTime–endTime.
+export const dayAvailabilitySlots = (day) => {
+  if (!day) return [];
+  const ok = (s) => s && /^\d{2}:\d{2}$/.test(s.startTime || '') && /^\d{2}:\d{2}$/.test(s.endTime || '');
+  const list = Array.isArray(day.slots) && day.slots.filter(ok).length ? day.slots.filter(ok) : [{ startTime: day.startTime || '09:00', endTime: day.endTime || '22:00' }];
+  return list.slice(0, 2);
+};
+export const slotsLabel = (slots) => (slots || []).map(s => `${s.startTime}–${s.endTime}`).join(' & ');
+// Does a shift (HH:MM–HH:MM, may run past midnight) fit inside one of the person's slots that day?
+const _m = (t) => { const [h, m] = String(t || '').split(':').map(Number); return (h || 0) * 60 + (m || 0); };
+const _span = (a, b) => { const x = _m(a); let y = _m(b); if (y <= x) y += 1440; return [x, y]; };
+export const fitsAvailability = (av, startTime, endTime) => {
+  if (!av || !av.available || !av.slots || !av.slots.length) return true;
+  const [a, b] = _span(startTime, endTime);
+  return av.slots.some(s => { const [x, y] = _span(s.startTime, s.endTime); return x <= a && b <= y; });
+};
+// Every role a staff member can be rostered as: main role + roles they're trained for.
+export const memberRoles = (m) => [m?.role, ...((m && Array.isArray(m.extraRoles)) ? m.extraRoles : [])].filter(Boolean);
 
 // Format time for display (24h → 12h short)
 export const formatTime = (time24) => {
