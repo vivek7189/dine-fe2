@@ -268,7 +268,11 @@ export default function MorePage() {
   } catch {}
   // Event Calendar: hide when the calendar API refused this person (cached by Sidebar / Home).
   let calendarDenied = false;
-  try { calendarDenied = getCachedCalendarAccess(localStorage.getItem('selectedRestaurantId'))?.state === 'denied'; } catch {}
+  try {
+    const role = JSON.parse(localStorage.getItem('user') || '{}').role;
+    calendarDenied = !['owner', 'admin', 'manager'].includes(role)
+      && getCachedCalendarAccess(localStorage.getItem('selectedRestaurantId'))?.state === 'denied';
+  } catch {}
   const allowedFeatures = features.filter(f => !notAllowedPages.includes(f.id) && (f.id !== 'my-pay' || myPayAllowed) && (f.id !== 'calendar' || !calendarDenied));
   // Search: every typed word must appear in the card's name or description ("staff sales", "audit")
   const words = search.trim().toLowerCase().split(/\s+/).filter(Boolean);

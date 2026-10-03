@@ -351,10 +351,11 @@ export default function Sidebar({ isDashboardPage = false }) {
       return false;
     }
 
-    // Calendar: hidden when the API refused (403/404); otherwise on unless explicitly turned off.
+    // Calendar: owners/managers always see it; others hidden when the API refused them
+    // (CALENDAR_NOT_ALLOWED), otherwise on unless explicitly turned off.
     if (item.id === 'calendar') {
+      if (['owner', 'admin', 'manager'].includes(user.role)) return true;
       if (calendarAccess === 'denied') return false;
-      if (['owner', 'admin'].includes(user.role)) return true;
       const key = NAV_ID_TO_ACCESS_KEY[item.id];
       return DEFAULT_ON_ACCESS_KEYS.has(key) ? defaultOnAccessAllowed(pageAccess, key) : true;
     }

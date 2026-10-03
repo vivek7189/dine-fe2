@@ -119,8 +119,9 @@ export function currentRestaurantId() {
 }
 
 // ── Access cache (drives the Sidebar entry) ────────────────────────────────────────────────
-// 'allowed' | 'denied'. 403 (staff can't view) or 404 (backend without the calendar yet) →
-// denied; network errors leave the previous answer. Cached 6 h per restaurant.
+// 'allowed' | 'denied'. Only the server's explicit "you can't view the calendar" answer
+// (403 CALENDAR_NOT_ALLOWED) means denied — a "can't change it" 403, a 404 or a 5xx / network
+// error leaves the previous answer. Cached 6 h per restaurant.
 const ACCESS_TTL = 6 * 3600 * 1000;
 const accessKey = (rid) => `calendarAccess:${rid}`;
 
@@ -146,7 +147,7 @@ export function setCalendarAccess(rid, state) {
 // Record the outcome of any calendar API call.
 export function noteCalendarResult(rid, err) {
   if (!err) { setCalendarAccess(rid, 'allowed'); return; }
-  if (err.status === 403 || err.status === 404) setCalendarAccess(rid, 'denied');
+  if (err.status === 403 && (err.code || err.data?.code) === 'CALENDAR_NOT_ALLOWED') setCalendarAccess(rid, 'denied');
 }
 
 export async function probeCalendarAccess(rid, { force = false } = {}) {

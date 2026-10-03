@@ -6,7 +6,7 @@ import { FaCalendarAlt } from 'react-icons/fa';
 import apiClient from '../../lib/api';
 import { t } from '../../lib/i18n';
 import { useCurrency } from '../../contexts/CurrencyContext';
-import { calendarLang, categoryStyle, countdownLabel, fmtRange, noteCalendarResult, todayKey } from '../../lib/calendar';
+import { calendarLang, categoryStyle, countdownLabel, fmtRange, getCachedCalendarAccess, noteCalendarResult, todayKey } from '../../lib/calendar';
 
 /**
  * Home → "Upcoming events": the next few festivals / holidays / own events with a countdown and,
@@ -21,6 +21,9 @@ export default function UpcomingEventsCard({ restaurantId, limit = 3, style }) {
 
   useEffect(() => {
     if (!restaurantId) return undefined;
+    // Already refused for this person (staff viewing off) — don't ask again on every visit.
+    const cached = getCachedCalendarAccess(restaurantId);
+    if (cached?.state === 'denied' && Date.now() - cached.at < 6 * 3600 * 1000) { setEvents([]); return undefined; }
     let cancelled = false;
     apiClient.getUpcomingEvents(restaurantId, { days: 45, lang: calendarLang() })
       .then((res) => {
