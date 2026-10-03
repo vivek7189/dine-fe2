@@ -4554,7 +4554,7 @@ const MenuManagement = () => {
     const files = Array.from(event.target.files);
     if (files.length === 0) return;
 
-        const maxFileSize = 300 * 1024 * 1024; // 300MB max
+        const maxFileSize = 25 * 1024 * 1024; // direct (multipart) upload limit on the server — bigger files go through AI Menu Upload
         const supportedTypes = [
           'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/bmp', 'image/tiff',
           'application/pdf',

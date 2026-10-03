@@ -1549,6 +1549,10 @@ class ApiClient {
     });
   }
 
+  async getMenuUploadStatus(restaurantId, jobId) {
+    return this.request(`/api/menus/upload-status/${restaurantId}/${jobId}`, { baseOverride: this.cloudBase() });
+  }
+
   async getMenuUploadResult(restaurantId, jobId) {
     return this.request(`/api/menus/upload-result/${restaurantId}/${jobId}`, { baseOverride: this.cloudBase() });
   }

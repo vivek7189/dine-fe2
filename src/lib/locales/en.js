@@ -1717,7 +1717,7 @@ const en = {
     recipeSavedSuccess: 'Recipe saved for "{{name}}"',
     failedUploadImages: 'Failed to upload images: {{error}}',
     failedDeleteImage: 'Failed to delete image. Please try again.',
-    fileTooLarge: '{{fileName}}: File too large ({{size}}MB). Maximum 300MB per file.',
+    fileTooLarge: '{{fileName}}: File too large ({{size}}MB). Maximum 25MB here — use AI Menu Upload for files up to 100MB.',
     emptyFile: '{{fileName}}: Empty file.',
     uploadTryAgain: 'Please try uploading:\n• Clear photos of printed menus\n• PDF menu files\n• Excel/CSV with item data',
     noFilesProcessed: 'No files were processed. Please try uploading menu files.',

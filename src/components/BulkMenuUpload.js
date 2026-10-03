@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
   FaUpload,
   FaTimes,
@@ -17,7 +17,11 @@ import { useCurrency } from '../contexts/CurrencyContext';
 import { useFirebaseRealtime } from '../hooks/useFirebaseRealtime';
 
 const SUPPORTED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'tiff', 'pdf', 'csv', 'xls', 'xlsx', 'doc', 'docx', 'txt'];
-const MAX_FILE_SIZE = 300 * 1024 * 1024; // 300MB (GCS direct upload supports large files)
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB per file (large files go straight to cloud storage)
+const DIRECT_FILE_LIMIT = 25 * 1024 * 1024; // the server's own (multipart) limit per file
+const JOB_POLL_MS = 4000;
+const JOB_TIMEOUT_MS = 20 * 60 * 1000;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const MAX_TOTAL_SIZE = 300 * 1024 * 1024;
 const MAX_FILES = 10;
 // Vercel serverless body limit — files above this use signed URL flow
@@ -76,35 +80,25 @@ const BulkMenuUpload = ({
           total: event.totalPages,
         }));
         break;
-      case 'bulk-upload-complete':
-        fetchResultAndShow(event.jobId);
-        break;
-      case 'bulk-upload-failed':
-        setError(event.error || 'Processing failed. Please try again.');
-        setProcessingPhase(null);
-        setProcessing(false);
+      // 'bulk-upload-complete' / 'bulk-upload-failed' are handled by waitForJob (status polling),
+      // so a missed realtime event can't leave the upload hanging or save the menu twice.
+      default:
         break;
     }
   }, [currentJobId]), processingPhase === 'extracting');
 
-  // ─── Fetch extraction result from backend (signed URL flow) ───────────────
-  const fetchResultAndShow = async (jobId) => {
-    try {
-      const result = await apiClient.getMenuUploadResult(restaurantId, jobId);
-      const categories = result.extractedCategories || result.categories || [];
-      const menuItems = result.menuItems || [];
-      if (menuItems.length > 0) {
-        handleExtractionSuccess([{ file: 'Uploaded Menu', menuItems, extractionStatus: 'success' }], categories, menuItems);
-      } else {
-        setError('No menu items were extracted. Please try with clearer files.');
-      }
-    } catch (err) {
-      console.error('Failed to fetch results:', err);
-      setError('Failed to fetch extraction results. Please try again.');
-    } finally {
-      setProcessingPhase(null);
-      setProcessing(false);
+  // ─── Wait for a cloud extraction job, then fetch its result (signed URL flow) ──
+  const waitForJob = async (jobId) => {
+    const started = Date.now();
+    while (Date.now() - started < JOB_TIMEOUT_MS) {
+      await sleep(JOB_POLL_MS);
+      let st;
+      try { st = await apiClient.getMenuUploadStatus(restaurantId, jobId); }
+      catch (e) { if (e?.status === 403 || e?.status === 404) throw e; continue; } // network blip → keep waiting
+      if (st?.status === 'complete') return apiClient.getMenuUploadResult(restaurantId, jobId);
+      if (st?.status === 'failed') throw new Error(st.error || 'Processing failed. Please try again.');
     }
+    throw new Error('Reading the menu is taking too long. Please try again with fewer pages.');
   };
 
   // ─── Shared: handle successful extraction (used by both flows) ────────────
@@ -160,9 +154,10 @@ const BulkMenuUpload = ({
   };
 
   // ─── Signed URL upload (GCP / large files) ───────────────────────────────
+  // Returns { menuItems, categories } once the cloud has read the file.
   const uploadViaSignedUrl = async (file) => {
     // Step 1: Get signed URL from backend
-    const { jobId, uploadUrl, gcsPath } = await apiClient.getMenuUploadUrl(restaurantId, {
+    const { jobId, uploadUrl, gcsPath, uploadHeaders } = await apiClient.getMenuUploadUrl(restaurantId, {
       fileName: file.name,
       fileType: file.type || 'application/octet-stream',
       fileSize: file.size,
@@ -178,6 +173,7 @@ const BulkMenuUpload = ({
       const xhr = new XMLHttpRequest();
       xhr.open('PUT', uploadUrl, true);
       xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+      Object.entries(uploadHeaders || {}).forEach(([k, v]) => xhr.setRequestHeader(k, v));
 
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
@@ -188,7 +184,7 @@ const BulkMenuUpload = ({
         if (xhr.status >= 200 && xhr.status < 300) resolve();
         else reject(new Error(`Upload failed with status ${xhr.status}`));
       };
-      xhr.onerror = () => reject(new Error('Network error during upload'));
+      xhr.onerror = () => reject(Object.assign(new Error('Network error during upload'), { storageUpload: true }));
       xhr.send(file);
     });
 
@@ -203,7 +199,32 @@ const BulkMenuUpload = ({
       fileType: file.type || 'application/octet-stream',
     });
 
-    // Now RTDB events handle progress + completion via useFirebaseRealtime above
+    // Progress arrives over RTDB (useFirebaseRealtime above); completion via status polling.
+    const result = await waitForJob(jobId);
+    return {
+      menuItems: result?.menuItems || [],
+      categories: result?.extractedCategories || result?.categories || [],
+    };
+  };
+
+  // Large files: send each one through cloud storage in turn, then save everything together.
+  const uploadLargeFiles = async () => {
+    const menus = [];
+    const categories = [];
+    const seenCats = new Set();
+    for (const file of uploadedFiles) {
+      const { menuItems, categories: cats } = await uploadViaSignedUrl(file);
+      menus.push({ file: file.name, menuItems, extractionStatus: 'success' });
+      for (const c of cats) {
+        const key = String(c?.name || '').trim().toLowerCase();
+        if (key && !seenCats.has(key)) { seenCats.add(key); categories.push(c); }
+      }
+    }
+    setProcessingPhase(null);
+    setCurrentJobId(null);
+    const allItems = menus.flatMap((m) => m.menuItems);
+    if (allItems.length > 0) await handleExtractionSuccess(menus, categories, allItems);
+    else setError('No menu items were extracted. Please try with clearer files.');
   };
 
   // ─── Multipart upload (Vercel / small files) ─────────────────────────────
@@ -248,15 +269,16 @@ const BulkMenuUpload = ({
         // Large files — try signed URL (GCP async processing)
         // If signed URL endpoint doesn't exist (Vercel), fall back to multipart
         try {
-          // For signed URL flow, process first file (most users upload one PDF/image)
-          await uploadViaSignedUrl(uploadedFiles[0]);
-          // Async flow — RTDB events handle the rest, don't setProcessing(false) here
-          return;
+          await uploadLargeFiles();
         } catch (signedUrlError) {
-          console.warn('Signed URL upload not available, falling back to multipart:', signedUrlError.message);
-          // Signed URL endpoints don't exist on this backend — fall back to multipart
           setProcessingPhase(null);
           setCurrentJobId(null);
+          // Only the storage step itself (or a backend without the signed-URL route) is worth
+          // retrying through the server — and only if every file fits the server's own limit.
+          const retryable = signedUrlError?.storageUpload || signedUrlError?.status === 404;
+          const fitsDirect = uploadedFiles.every((f) => f.size <= DIRECT_FILE_LIMIT);
+          if (!retryable || !fitsDirect) throw signedUrlError;
+          console.warn('Cloud upload not available, falling back to direct upload:', signedUrlError.message);
           await uploadViaMultipart();
         }
       }
@@ -266,47 +288,17 @@ const BulkMenuUpload = ({
       if (error.message) {
         if (error.message.includes('Network')) errorMessage = 'Network error. Please check your connection.';
         else if (error.message.includes('timeout')) errorMessage = 'Request timed out. The file may be too large for this server. Try a smaller file or fewer pages.';
-        else if (error.message.includes('413') || error.message.includes('too large') || error.message.includes('payload')) errorMessage = 'File too large for this server. Try a smaller file or fewer pages.';
+        else if (/too large|max \d+ ?MB/i.test(error.message)) errorMessage = error.message; // server's own clear message
+        else if (error.message.includes('413') || error.message.includes('payload')) errorMessage = 'File too large. Max 100 MB per file.';
         else errorMessage = error.message;
       }
       setError(errorMessage);
       setProcessingPhase(null);
     } finally {
-      // Only clear processing if not in async signed URL flow
-      if (processingPhase !== 'extracting') {
-        setProcessing(false);
-      }
+      // Both flows are awaited end to end now (cloud jobs are polled to completion).
+      setProcessing(false);
     }
   };
-
-  // ─── Fallback: poll for result if RTDB event missed (signed URL flow) ─────
-  useEffect(() => {
-    if (processingPhase !== 'extracting' || !currentJobId) return;
-
-    const pollInterval = setInterval(async () => {
-      try {
-        const result = await apiClient.getMenuUploadResult(restaurantId, currentJobId);
-        if (result && result.menuItems) {
-          clearInterval(pollInterval);
-          fetchResultAndShow(currentJobId);
-        }
-      } catch {
-        // Not ready yet — keep polling
-      }
-    }, 10000);
-
-    // Timeout after 5 minutes
-    const timeout = setTimeout(() => {
-      clearInterval(pollInterval);
-      if (processingPhase === 'extracting') {
-        setError('Processing is taking longer than expected. Please check back later.');
-        setProcessingPhase(null);
-        setProcessing(false);
-      }
-    }, 5 * 60 * 1000);
-
-    return () => { clearInterval(pollInterval); clearTimeout(timeout); };
-  }, [processingPhase, currentJobId, restaurantId]);
 
   const validateAndAddFiles = useCallback((files) => {
     const fileList = Array.from(files);
@@ -670,7 +662,7 @@ const BulkMenuUpload = ({
                         {isDragging ? 'Drop files here!' : 'Click to upload or drag & drop'}
                       </div>
                       <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>
-                        Photos, PDFs, Excel, CSV — up to {MAX_FILES} files, {MAX_TOTAL_SIZE / (1024 * 1024)}MB
+                        Photos, PDFs, Excel, CSV — up to {MAX_FILES} files, {MAX_FILE_SIZE / (1024 * 1024)}MB each
                       </div>
                     </div>
                   </div>
