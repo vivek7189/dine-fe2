@@ -129,15 +129,16 @@ export default function GetStartedCard() {
 
   return (
     <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', padding: '20px 22px', margin: '20px 20px 0', position: 'relative' }}>
-      <button onClick={dismiss} aria-label="Hide" title="Hide" style={{ position: 'absolute', top: '12px', right: '12px', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px' }}>
-        <FaTimes size={14} />
-      </button>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px', paddingRight: '28px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px', paddingRight: '44px', flexWrap: 'wrap' }}>
         <FaRocket size={16} color="#ef4444" />
         <span style={{ fontSize: '16px', fontWeight: 800, color: '#111827' }}>Get ready for your first customer</span>
         <span style={{ marginLeft: 'auto', fontSize: '12px', fontWeight: 700, padding: '2px 10px', borderRadius: '10px', background: '#fef3c7', color: '#b45309', whiteSpace: 'nowrap' }}>
           {doneCount} of {items.length} done
         </span>
+        {/* Inline (not top-right corner) so the floating notification bell never covers it. */}
+        <button onClick={dismiss} aria-label="Hide" title="Hide" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px', display: 'inline-flex' }}>
+          <FaTimes size={14} />
+        </button>
       </div>
       <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 14px' }}>A few minutes now and DineOpen is ready for real customers.</p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>

@@ -972,12 +972,14 @@ function OnboardingContent() {
             )}
           </div>
 
-          <button onClick={skipEntireSetup} style={{
-            color: '#9ca3af', fontSize: '13px', cursor: 'pointer',
-            border: 'none', background: 'none', fontWeight: '600',
-          }}>
-            {ob('skipAll')}
-          </button>
+          {(step !== 2 || restaurantId) && (
+            <button onClick={skipEntireSetup} style={{
+              color: '#9ca3af', fontSize: '13px', cursor: 'pointer',
+              border: 'none', background: 'none', fontWeight: '600',
+            }}>
+              {ob('skipAll')}
+            </button>
+          )}
         </div>
       </div>
 
