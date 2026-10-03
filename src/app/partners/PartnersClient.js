@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import CommonHeader from '../../components/CommonHeader';
 import Footer from '../../components/Footer';
-import { FaCheck, FaHandshake, FaTools, FaRupeeSign, FaCalendarCheck, FaWhatsapp, FaSpinner, FaCheckCircle } from 'react-icons/fa';
+import { FaCheck, FaHandshake, FaTools, FaWallet, FaCalendarCheck, FaWhatsapp, FaSpinner, FaCheckCircle } from 'react-icons/fa';
 import apiClient from '../../lib/api';
 import { PARTNER_FAQS } from './faqs';
 
@@ -19,10 +19,11 @@ const card = { backgroundColor: 'white', border: `1px solid ${BORDER}`, borderRa
 const input = { width: '100%', padding: '12px 14px', borderRadius: '10px', border: `1px solid ${BORDER}`, fontSize: '15px', color: INK, backgroundColor: 'white', boxSizing: 'border-box' };
 const label = { display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px' };
 
-// Plans per market — same monthly prices as /pricing. India has one starting price.
+// Plans per market — same monthly prices as /pricing. US is the default; India uses the
+// typical billing plan restaurants take (₹2,500/month).
 const MARKETS = {
-  IN: { label: 'India (₹)', sym: '₹', loc: 'en-IN', plans: [['From ₹899 plan', 899]] },
   US: { label: 'USA & others ($)', sym: '$', loc: 'en-US', plans: [['Starter', 20], ['Growth', 50], ['Pro', 99]] },
+  IN: { label: 'India (₹)', sym: '₹', loc: 'en-IN', plans: [['Standard', 2500]] },
   GB: { label: 'UK (£)', sym: '£', loc: 'en-GB', plans: [['Starter', 16], ['Growth', 40], ['Pro', 79]] },
   AE: { label: 'UAE (AED)', sym: 'AED ', loc: 'en-US', plans: [['Starter', 75], ['Growth', 185], ['Pro', 365]] },
   SA: { label: 'Saudi Arabia (SAR)', sym: 'SAR ', loc: 'en-US', plans: [['Starter', 75], ['Growth', 190], ['Pro', 370]] },
@@ -30,16 +31,6 @@ const MARKETS = {
   BH: { label: 'Bahrain (BHD)', sym: 'BHD ', loc: 'en-US', dec: 1, plans: [['Starter', 8], ['Growth', 19], ['Pro', 37]] },
   OM: { label: 'Oman (OMR)', sym: 'OMR ', loc: 'en-US', dec: 1, plans: [['Starter', 8], ['Growth', 19], ['Pro', 38]] },
 };
-const TZ_MARKET = { 'Asia/Kolkata': 'IN', 'Asia/Calcutta': 'IN', 'Europe/London': 'GB', 'Asia/Dubai': 'AE', 'Asia/Riyadh': 'SA', 'Asia/Kuwait': 'KW', 'Asia/Bahrain': 'BH', 'Asia/Muscat': 'OM' };
-function detectMarket() {
-  try {
-    const m = document.cookie.match(/(?:^|; )geo_country=([A-Z]{2})/); // set by middleware from Vercel's IP country
-    if (m && MARKETS[m[1]]) return m[1];
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (TZ_MARKET[tz]) return TZ_MARKET[tz];
-  } catch { /* fall back to USD */ }
-  return 'US';
-}
 const COMMISSION = 0.2;
 const MAX_MESSAGE = 2000;
 
@@ -56,14 +47,13 @@ const steps = [
   { icon: FaHandshake, title: 'Apply', text: 'Fill in the short form below. Our team reviews every application and replies within 2–3 business days.' },
   { icon: FaCalendarCheck, title: 'Register your leads', text: 'Introduce a restaurant and register it with us within 48 hours of first contact, so it is counted as yours.' },
   { icon: FaTools, title: 'We do the rest', text: 'We run the demo, set up the menu, train the staff and support the restaurant. You do not need to install anything.' },
-  { icon: FaRupeeSign, title: 'Get paid monthly', text: '20% of what the restaurant pays (excluding taxes), every month for 12 months, with a statement each month.' },
+  { icon: FaWallet, title: 'Get paid monthly', text: '20% of what the restaurant pays (excluding taxes), every month the restaurant stays with us, with a monthly statement.' },
 ];
 
 export default function PartnersClient() {
   const [market, setMarket] = useState('US');
   const [planIdx, setPlanIdx] = useState(1);
   const [count, setCount] = useState(10);
-  useEffect(() => { const m = detectMarket(); setMarket(m); setPlanIdx(MARKETS[m].plans.length > 1 ? 1 : 0); }, []);
   const mk = MARKETS[market];
   const plan = mk.plans[Math.min(planIdx, mk.plans.length - 1)];
   const money = (n) => mk.sym + Number(n).toLocaleString(mk.loc, { maximumFractionDigits: mk.dec || 0 });
@@ -114,10 +104,10 @@ export default function PartnersClient() {
             DINEOPEN PARTNER PROGRAM
           </div>
           <h1 style={{ fontSize: 'clamp(32px, 6vw, 50px)', fontWeight: 800, color: INK, lineHeight: 1.1, margin: '0 auto 18px', maxWidth: '820px' }}>
-            Earn <span style={{ color: RED }}>20% every month</span> for every restaurant you bring
+            Grow with DineOpen. Earn <span style={{ color: RED }}>20% every month</span>
           </h1>
           <p style={{ ...lede, marginBottom: '28px' }}>
-            Introduce restaurants to DineOpen. We demo, set up and support them, and you earn 20% of their subscription every month for 12 months. Free to join, no targets.
+            Introduce restaurants to DineOpen. We take care of the demo, setup and support. You receive 20% of their subscription every month, for as long as they stay with us.
           </p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <a href="#apply" style={{ backgroundColor: RED, color: 'white', padding: '14px 28px', borderRadius: '12px', fontWeight: 700, fontSize: '16px', textDecoration: 'none' }}>
@@ -134,7 +124,7 @@ export default function PartnersClient() {
           <div style={{ ...card, padding: '24px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', alignItems: 'end' }}>
               <div>
-                <label htmlFor="calc-market" style={label}>Your market</label>
+                <label htmlFor="calc-market" style={label}>Country</label>
                 <select id="calc-market" style={input} value={market} onChange={(e) => { setMarket(e.target.value); setPlanIdx(MARKETS[e.target.value].plans.length > 1 ? 1 : 0); }}>
                   {Object.entries(MARKETS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                 </select>
@@ -154,7 +144,7 @@ export default function PartnersClient() {
               {[
                 { big: money(perRestaurant), small: 'per restaurant, per month' },
                 { big: money(perMonth), small: `per month from ${count} restaurant${count === 1 ? '' : 's'}` },
-                { big: money(perMonth * 12), small: 'total over 12 months' },
+                { big: money(perMonth * 12), small: 'per year' },
               ].map((x) => (
                 <div key={x.small} style={{ backgroundColor: '#f9fafb', borderRadius: '12px', padding: '16px 18px' }}>
                   <div style={{ fontSize: '28px', fontWeight: 800, color: INK, fontVariantNumeric: 'tabular-nums' }}>{x.big}</div>
@@ -164,7 +154,7 @@ export default function PartnersClient() {
             </div>
           </div>
           <p style={{ fontSize: '13px', color: MUTED, textAlign: 'center', marginTop: '14px' }}>
-            Estimate only. Commission is 20% of subscription revenue we receive, excluding taxes, refunds and free trials.
+            Estimate only. Based on 20% of subscription revenue received, excluding taxes, refunds and free trials.
           </p>
         </section>
 
@@ -176,7 +166,7 @@ export default function PartnersClient() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
               <div style={{ ...card, border: `2px solid ${RED}` }}>
                 <h3 style={{ fontSize: '22px', fontWeight: 800, color: INK, marginBottom: '6px' }}>Referral partner</h3>
-                <p style={{ color: RED, fontWeight: 700, marginBottom: '14px' }}>20% recurring for 12 months</p>
+                <p style={{ color: RED, fontWeight: 700, marginBottom: '14px' }}>20% recurring, every month</p>
                 {['You introduce the restaurant', 'We demo, onboard and support it', 'No technical knowledge needed', 'Monthly commission statement'].map((t) => (
                   <div key={t} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '8px', color: '#374151' }}><FaCheck style={{ color: '#16a34a', marginTop: '4px', flexShrink: 0 }} />{t}</div>
                 ))}

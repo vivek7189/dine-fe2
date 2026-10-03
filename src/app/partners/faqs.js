@@ -6,7 +6,7 @@ export const PARTNER_FAQS = [
   },
   {
     q: 'How much can I earn?',
-    a: '20% of the subscription revenue we receive from each restaurant you bring (excluding taxes), every month, for 12 months from their first payment. Free trials, refunds and chargebacks do not earn commission.',
+    a: '20% of the subscription revenue we receive from each restaurant you bring (excluding taxes), every month for as long as the restaurant stays with DineOpen. Free trials, refunds and chargebacks are not included.',
   },
   {
     q: 'When and how am I paid?',

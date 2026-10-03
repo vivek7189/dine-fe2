@@ -302,7 +302,7 @@ function OnboardingContent() {
       return;
     }
     // If already completed onboarding, redirect to home
-    if (localStorage.getItem('onboarding_completed') === 'true') {
+    if (localStorage.getItem('onboarding_completed') === 'true' && !window.location.search.includes('step=')) {
       router.replace('/home');
       return;
     }
@@ -447,35 +447,16 @@ function OnboardingContent() {
   const businessLabel = businessType === 'other' ? 'Business' : (BUSINESS_TYPES.find(b => b.id === businessType)?.label || 'Restaurant');
 
   // ─── Skip Entire Setup ──────────────────────────────────────
-  const skipEntireSetup = async () => {
+  // Never invents a restaurant ("Delicious Bites", Indian cuisine, no tax/timezone). Before the
+  // restaurant exists, skipping goes to the name screen (the only required field); after, it
+  // finishes setup properly so Home's Get Started card + first-sale coach still guide them.
+  const skipEntireSetup = () => {
     if (isTestMode) { router.replace('/home'); return; }
-    try {
-      if (!restaurantId) {
-        const randomNames = ['My Restaurant', 'Delicious Bites', 'Flavor Junction', 'Taste Paradise', 'Spice Garden'];
-        const name = randomNames[Math.floor(Math.random() * randomNames.length)];
-        const response = await apiClient.createRestaurant({
-          name, businessType: 'restaurant', address: '', phone: '', email: '',
-          cuisine: ['Indian'], description: '', operatingHours: { open: '09:00', close: '22:00' }
-        });
-        localStorage.setItem('selectedRestaurantId', response.restaurant.id);
-        localStorage.setItem('selectedRestaurant', JSON.stringify(response.restaurant));
-        const countryCode = selectedCountry?.code || localStorage.getItem('selectedCountryCode') || 'IN';
-        try { await apiClient.seedDefaultMenu(response.restaurant.id, countryCode); } catch {}
-        try {
-          const currencyData = getCurrencyByCountryCode(countryCode);
-          await apiClient.updateCurrencySettings(response.restaurant.id, currencyData);
-        } catch {}
-      }
-      localStorage.setItem('onboarding_completed', 'true');
-      router.replace('/home');
-    } catch (err) {
-      console.error('Skip setup error:', err);
-      localStorage.setItem('onboarding_completed', 'true');
-      router.replace('/home');
-    }
+    if (restaurantId) { completeOnboarding('/home'); return; }
+    if (!businessType) setBusinessType('restaurant');
+    if (step !== 2) goTo(2);
   };
 
-  // ─── Step 2: Create Restaurant ───────────────────────────────
   const handleCreateRestaurant = async () => {
     if (!restaurantName.trim()) return;
     setCreating(true);
@@ -689,40 +670,6 @@ function OnboardingContent() {
       apiClient.seedDefaultMenu(restaurantId, selectedCountry?.code || localStorage.getItem('selectedCountryCode') || 'IN').catch(() => {});
     }
     goNext();
-  };
-
-  // ─── Step 2 skip ─────────────────────────────────────────────
-  const handleSkipStep2 = async () => {
-    if (restaurantId) { goNext(); return; }
-    setCreating(true);
-    if (isTestMode) {
-      setRestaurantId('test-restaurant-id');
-      setTimeout(() => { setCreating(false); goNext(); }, 400);
-      return;
-    }
-    try {
-      const randomNames = ['My Restaurant', 'Delicious Bites', 'Flavor Junction', 'Taste Paradise'];
-      const name = randomNames[Math.floor(Math.random() * randomNames.length)];
-      const response = await apiClient.createRestaurant({
-        name, businessType: businessType || 'restaurant', address: '', phone: '', email: '',
-        cuisine: ['Indian'], description: '', operatingHours: { open: '09:00', close: '22:00' }
-      });
-      setRestaurantId(response.restaurant.id);
-      if (response.restaurant.urlSlug) setRestaurantSlug(response.restaurant.urlSlug);
-      localStorage.setItem('selectedRestaurantId', response.restaurant.id);
-      localStorage.setItem('selectedRestaurant', JSON.stringify(response.restaurant));
-      const countryCode = selectedCountry?.code || localStorage.getItem('selectedCountryCode') || 'IN';
-      try {
-        const currencyData = getCurrencyByCountryCode(countryCode);
-        await apiClient.updateCurrencySettings(response.restaurant.id, currencyData);
-      } catch {}
-      apiClient.seedDefaultMenu(response.restaurant.id, selectedCountry?.code || localStorage.getItem('selectedCountryCode') || 'IN').then(() => setMenuSeeded(true)).catch(() => {});
-      goNext();
-    } catch (err) {
-      alert('Failed: ' + (err.message || 'Unknown error'));
-    } finally {
-      setCreating(false);
-    }
   };
 
   // ─── Step 5: QR helpers ───────────────────────────────────────
@@ -1025,12 +972,14 @@ function OnboardingContent() {
             )}
           </div>
 
-          <button onClick={skipEntireSetup} style={{
-            color: '#9ca3af', fontSize: '13px', cursor: 'pointer',
-            border: 'none', background: 'none', fontWeight: '600',
-          }}>
-            {ob('skipAll')}
-          </button>
+          {(step !== 2 || restaurantId) && (
+            <button onClick={skipEntireSetup} style={{
+              color: '#9ca3af', fontSize: '13px', cursor: 'pointer',
+              border: 'none', background: 'none', fontWeight: '600',
+            }}>
+              {ob('skipAll')}
+            </button>
+          )}
         </div>
       </div>
 
@@ -1527,9 +1476,6 @@ function OnboardingContent() {
                 </div>
               </div>
 
-              <div style={{ textAlign: 'center', marginTop: '8px' }}>
-                <button onClick={handleSkipStep2} style={skipLink}>{ob('skipThisStep')}</button>
-              </div>
             </div>
 
             {/* Right: Receipt + Feature Highlights */}
