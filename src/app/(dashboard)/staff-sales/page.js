@@ -195,23 +195,32 @@ export default function StaffSalesPage() {
     }
   };
 
-  // Derive staff data sorted by totalSales descending
+  // QR / customer self-orders with no table server: not a staff member.
+  const isSelfOrderRow = (s) => !!s?.isSelfOrder || s?.staffId === '__self_order'
+    || /customer self-order/i.test(String(s?.staffId || '')) || /customer self-order/i.test(String(s?.staffName || ''));
+  // Orders typed on a counter login (owner / manager / cashier) with no waiter chosen: not a person.
+  const isCounterRow = (s) => !!s?.isCounter || s?.staffId === '__counter';
+  const isPseudoRow = (s) => isSelfOrderRow(s) || isCounterRow(s);
+
+  // Derive staff data sorted by totalSales descending — people first, then the counter /
+  // self-order totals (never ranked).
   const staffData = (() => {
     if (!data?.staff || !Array.isArray(data.staff)) return [];
-    return [...data.staff].sort((a, b) => (b.totalSales || 0) - (a.totalSales || 0));
+    const bySales = (a, b) => (b.totalSales || 0) - (a.totalSales || 0);
+    return [...data.staff.filter(s => !isPseudoRow(s)).sort(bySales), ...data.staff.filter(isPseudoRow).sort(bySales)];
   })();
+  const rankedStaff = staffData.filter(s => !isPseudoRow(s) && (s.totalSales || 0) > 0);
+  const pseudoRows = staffData.filter(isPseudoRow).filter(s => (s.ordersHandled || 0) > 0);
 
   const totalRevenue = data?.summary?.totalRevenue || 0;
-  const maxSales = staffData.length > 0 ? Math.max(...staffData.map(s => s.totalSales || 0), 1) : 1;
-  // QR / customer self-orders with no table server: not a staff member.
-  const isSelfOrderRow = (s) => /customer self-order/i.test(String(s?.staffId || '')) || /customer self-order/i.test(String(s?.staffName || ''));
-  const displayName = (s) => (isSelfOrderRow(s) ? 'QR / self-orders (no server)' : (s?.staffName || 'Unknown'));
+  const maxSales = rankedStaff.length > 0 ? Math.max(...rankedStaff.map(s => s.totalSales || 0), 1) : 1;
+  const displayName = (s) => (isCounterRow(s) ? 'Counter (no waiter)' : isSelfOrderRow(s) ? 'QR / self-orders (no server)' : (s?.staffName || 'Unknown'));
   // Logins shared at the counter (owner / cashier …) — their row is "orders entered on this login".
   const SHARED_ROLES = ['owner', 'admin', 'co-owner', 'cashier'];
-  const roleTag = (s) => (!isSelfOrderRow(s) && SHARED_ROLES.includes(String(s?.role || '').toLowerCase()) ? String(s.role).toLowerCase() : null);
+  const roleTag = (s) => (!isPseudoRow(s) && SHARED_ROLES.includes(String(s?.role || '').toLowerCase()) ? String(s.role).toLowerCase() : null);
   const totalOrders = staffData.reduce((sum, s) => sum + (s.ordersHandled || 0), 0);
   const avgBill = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-  const staffRowsCount = staffData.filter(s => !isSelfOrderRow(s)).length;
+  const staffRowsCount = staffData.filter(s => !isPseudoRow(s)).length;
   // Orders that have a table server (Tables → Assign Server). The rest are credited to whoever
   // entered them, so the report can't split them by waiter — say so instead of a misleading average.
   const assignedOrders = staffData.reduce((sum, s) => sum + (s.assignedOrders || 0), 0);
@@ -252,8 +261,8 @@ export default function StaffSalesPage() {
     const wb = XLSX.utils.book_new();
     const sheetData = [
       ['Rank', 'Staff Name', 'Orders Served', 'Sales (served)', 'Avg Ticket', 'Tips', 'Revenue Share %', 'Orders Taken', 'Sales (taken)'],
-      ...staffData.map((s, i) => [
-        i + 1,
+      ...staffData.map((s) => [
+        isPseudoRow(s) ? '-' : staffData.filter(x => !isPseudoRow(x)).indexOf(s) + 1,
         displayName(s),
         s.ordersHandled || 0,
         s.totalSales || 0,
@@ -417,19 +426,22 @@ export default function StaffSalesPage() {
             {showServerHint && (
               <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-4 mb-6 text-sm leading-relaxed">
                 <div className="font-semibold mb-1">Sales can&apos;t be split by waiter for this period</div>
-                Only {assignedOrders} of {totalOrders} orders have a server. The rest are credited to the login that entered them
-                {staffData.filter(roleTag).length ? ` (e.g. ${staffData.filter(roleTag).slice(0, 2).map(displayName).join(', ')})` : ''}
-                {staffData.some(isSelfOrderRow) ? ' or are QR self-orders' : ''}. To see each waiter&apos;s sales, assign a server to each table
-                (Tables → table → Assign Server) — every order on that table then counts for that server — or let waiters take orders on their own login.
+                Only {assignedOrders} of {totalOrders} orders have a server. Orders typed at the counter with no waiter chosen are in
+                &quot;Counter (no waiter)&quot;{staffData.some(isSelfOrderRow) ? ', QR self-orders in their own line' : ''} — neither is ranked as a person.
+                To credit a waiter: pick <b>Served by</b> on the POS order panel (remembered on that till until changed), assign a server
+                to the table (Tables → table → Assign Server), or let waiters take orders on their own login.
               </div>
             )}
 
             {/* CSS Bar Chart - Top 10 Staff */}
-            {staffData.length > 0 && (
+            {(rankedStaff.length > 0 || pseudoRows.length > 0) && (
               <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
                 <h3 className="text-sm font-semibold text-gray-700 mb-4">Top Staff by Sales</h3>
+                {rankedStaff.length === 0 && (
+                  <p className="text-sm text-gray-500 mb-3">No waiter has sales yet for this period.</p>
+                )}
                 <div className="space-y-2.5">
-                  {staffData.slice(0, 10).map((s, i) => {
+                  {rankedStaff.slice(0, 10).map((s, i) => {
                     const widthPercent = maxSales > 0 ? Math.max(((s.totalSales || 0) / maxSales) * 100, 2) : 0;
                     return (
                       <div key={s.staffId || i} className="flex items-center gap-3 group">
@@ -456,6 +468,19 @@ export default function StaffSalesPage() {
                     );
                   })}
                 </div>
+                {pseudoRows.length > 0 && (
+                  <div className="mt-4 pt-3 border-t border-dashed border-gray-200 space-y-1.5">
+                    {pseudoRows.map((s) => (
+                      <div key={s.staffId} className="flex items-center justify-between text-sm text-gray-500">
+                        <span className="truncate">{displayName(s)} · {s.ordersHandled || 0} orders</span>
+                        <span className="font-medium text-gray-600">{formatCurrency(s.totalSales || 0)}</span>
+                      </div>
+                    ))}
+                    {pseudoRows.some(isCounterRow) && (
+                      <p className="text-xs text-gray-400">Orders typed at the counter with no waiter chosen — pick &quot;Served by&quot; on the POS to credit a waiter.</p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -468,7 +493,7 @@ export default function StaffSalesPage() {
                     ({staffData.length} staff members)
                   </span>
                   <span className="block text-xs text-gray-500 font-normal mt-1">
-                    Sales go to the table&apos;s server (Tables → Assign Server); orders on a table with no server go to whoever took the order. &quot;Orders taken&quot; shows who typed the orders.
+                    Sales go to the waiter chosen in &quot;Served by&quot; on the POS, else the table&apos;s server (Tables → Assign Server), else whoever took the order. Orders typed on a counter login (owner / manager / cashier) with no waiter go to &quot;Counter (no waiter)&quot;. &quot;Orders taken&quot; shows who typed the orders.
                   </span>
                 </h3>
                 <div className="flex items-center gap-2">
@@ -511,16 +536,18 @@ export default function StaffSalesPage() {
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                       {filteredStaffData.map((s, i) => {
-                        // Find original rank (before filtering)
-                        const originalRank = staffData.indexOf(s) + 1;
+                        // Rank among people only — counter / self-order lines are totals, not ranked.
+                        const pseudo = isPseudoRow(s);
+                        const originalRank = pseudo ? null : staffData.filter(x => !isPseudoRow(x)).indexOf(s) + 1;
                         const revenueShare = totalRevenue > 0 ? ((s.totalSales || 0) / totalRevenue * 100) : 0;
                         return (
-                          <tr key={s.staffId || i} className="hover:bg-gray-50/80 transition-colors">
+                          <tr key={s.staffId || i} className={pseudo ? 'bg-gray-50 text-gray-500' : 'hover:bg-gray-50/80 transition-colors'}>
                             <td className="px-4 py-3 text-center">
-                              {getRankDisplay(originalRank)}
+                              {pseudo ? <span className="text-gray-300">—</span> : getRankDisplay(originalRank)}
                             </td>
                             <td className="px-4 py-3">
-                              <span className="font-medium text-gray-800 text-sm">{displayName(s)}</span>
+                              <span className={`font-medium text-sm ${pseudo ? 'text-gray-500 italic' : 'text-gray-800'}`}>{displayName(s)}</span>
+                              {isCounterRow(s) && <span className="block text-[11px] text-gray-400">Typed at the counter with no waiter chosen — pick &quot;Served by&quot; on the POS to credit a waiter</span>}
                               {roleTag(s) && <span className="ml-2 text-[10px] uppercase tracking-wide bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{roleTag(s)} login</span>}
                             </td>
                             <td className="px-4 py-3 text-center">

@@ -2130,6 +2130,15 @@ const en = {
       "userId": "User ID"
     }
   },
+  servedBy: {
+    label: 'Served by',
+    none: 'No waiter',
+    choose: 'Choose waiter',
+    search: 'Search staff…',
+    clear: 'Clear — counter sale',
+    hint: 'Remembered on this device. Sales go to this person in Staff Sales.',
+    empty: 'No staff found',
+  },
 };
 
 export default en;

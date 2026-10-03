@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import { stampServedBy } from './servedBy';
 import {
   saveOfflineOrder,
   getPendingOrders,
@@ -132,6 +133,7 @@ export function generateIdempotencyKey() {
  * Queue an action for offline sync.
  */
 export async function queueOfflineOrder(orderData) {
+  if (!orderData._offlineAction || orderData._offlineAction === 'create_order') stampServedBy(orderData);
   const idempotencyKey = orderData.idempotencyKey || generateIdempotencyKey();
   const orderWithKey = { ...orderData, idempotencyKey, syncSource: 'offline' };
 

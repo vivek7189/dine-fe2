@@ -14,6 +14,7 @@ import { getKOTPrintCSS, buildTokenSlipHTML, buildTokenSlipsDocumentHTML } from 
 import { inclusiveSplit, totalRate, inclusiveTaxSummary } from '../utils/inclusiveTax';
 import { attachInclusiveSplits } from '../utils/printTemplates/helpers';
 import { useTerminalLock } from '../contexts/TerminalLockContext';
+import ServedByPicker from './ServedByPicker';
 
 // Order-type tax gating (Phase 3). A tax with NO `orderTypes` (absent/empty)
 // applies to ALL order types — exactly today's behavior. When the list is set,
@@ -3380,6 +3381,9 @@ const OrderSummary = ({
             </div>
               );
             })()}
+
+            {/* Served by — counter logins pick whose sales this is (remembered on this terminal) */}
+            <ServedByPicker restaurantId={restaurantId} billingMode={billingMode} isMobile={isMobile} />
             
             {/* QR Code Button - Temporarily hidden
             {!isMobile && (

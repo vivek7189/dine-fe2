@@ -6,6 +6,7 @@ import { getApiBase, getCloudApiBase, setApiBase, clearApiBase, refreshRemoteBac
 import { detectMultiTerminal } from '../utils/orderNumber';
 import { getStableTerminalId } from '../utils/terminalId';
 import { isElectron } from '../utils/platform';
+import { stampServedBy } from './servedBy';
 
 // Default cloud backend + the persisted-backend key both come from the SINGLE source
 // of truth (lib/apiBase.js). Never hardcode a backend URL or read the env directly
@@ -1623,6 +1624,9 @@ class ApiClient {
         if (op && op.id) { orderData.operatorId = op.id; orderData.operatorName = op.name || null; }
       } catch {}
     }
+    // "Served by" (counter orders → the chosen waiter's sales). Not on offline replays: those were
+    // stamped when the order was taken, not with whatever this terminal has chosen now.
+    if (!(extraOptions && extraOptions.headers && extraOptions.headers['x-sync-source'])) stampServedBy(orderData);
     // Multi-terminal print ownership: stamp WHICH terminal created this order (header) so the
     // backend can route each KOT to exactly one terminal. ONLY a real desktop printing station
     // (Electron) claims ownership — tablets / phones / web / dine-app do NOT, so their orders
