@@ -162,3 +162,26 @@ export async function probeCalendarAccess(rid, { force = false } = {}) {
     return getCachedCalendarAccess(rid)?.state || null;
   }
 }
+
+// ── Per-restaurant date / name overrides for festival & public-holiday occurrences ────────────
+// settings.overrides[ev.key] may carry { date, endDate, name } (plus expectedCrowd / notes).
+// The key always keeps the ORIGINAL date: `${source}:${id}:${date}`.
+export function eventOverride(ev, settings) {
+  const o = settings?.overrides?.[ev?.key];
+  return o && typeof o === 'object' ? o : null;
+}
+
+export function isEventEdited(ev, settings) {
+  if (!ev || ev.source === 'custom') return false;
+  if (ev.overridden === true || ev.edited === true) return true;
+  const o = eventOverride(ev, settings);
+  return !!(o && (o.date || o.endDate || o.name));
+}
+
+// Default (un-overridden) start date of an occurrence, read from its key.
+export function defaultDateFromKey(ev) {
+  if (ev?.original?.date) return ev.original.date;
+  if (ev?.originalDate) return ev.originalDate;
+  const m = String(ev?.key || '').match(/(\d{4}-\d{2}-\d{2})$/);
+  return m ? m[1] : null;
+}

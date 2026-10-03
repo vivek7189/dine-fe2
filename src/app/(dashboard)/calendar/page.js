@@ -1,16 +1,17 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FaChevronLeft, FaChevronRight, FaPlus, FaCalendarAlt, FaList, FaExclamationTriangle, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight, FaPlus, FaCalendarAlt, FaList, FaExclamationTriangle, FaLock, FaEye, FaEyeSlash, FaFileImport, FaPen } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 import { t } from '../../../lib/i18n';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import {
   CALENDAR_CATEGORIES, CATEGORY_STYLE, addDays, calendarLang, categoryLabel, categoryStyle, countdownLabel,
-  currentRestaurantId, dayMs, eventCategory, eventEnd, eventOnDay, fmtDay, fmtRange, noteCalendarResult, todayKey,
+  currentRestaurantId, dayMs, eventCategory, eventEnd, eventOnDay, eventOverride, fmtDay, fmtRange, isEventEdited, noteCalendarResult, todayKey,
 } from '../../../lib/calendar';
 import EventDrawer from '../../../components/calendar/EventDrawer';
 import EventFormModal from '../../../components/calendar/EventFormModal';
+import ImportEventsModal from '../../../components/calendar/ImportEventsModal';
 
 const VIEW_KEY = 'dineCalendarView';
 
@@ -44,6 +45,7 @@ export default function CalendarPage() {
   const [form, setForm] = useState(null); // { initial?, defaultDate? }
   const [hiddenCats, setHiddenCats] = useState([]);
   const [showHidden, setShowHidden] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const cacheRef = useRef(new Map());
   const reqRef = useRef(0);
 
@@ -112,6 +114,9 @@ export default function CalendarPage() {
 
   const canManage = !!data?.canManage;
   const allEvents = useMemo(() => (Array.isArray(data?.events) ? data.events : []), [data]);
+  const isEdited = (e) => isEventEdited(e, data?.settings);
+  // Own events already loaded — the import preview flags exact repeats (name + date).
+  const existingCustom = useMemo(() => allEvents.filter((e) => e.source === 'custom').map((e) => ({ name: e.name, date: e.date })), [allEvents]);
   const hiddenCount = allEvents.filter((e) => e.hidden).length;
   const events = useMemo(() => sortEvents(allEvents.filter((e) =>
     (!e.hidden || (canManage && showHidden)) && !hiddenCats.includes(eventCategory(e)))), [allEvents, canManage, showHidden, hiddenCats]);
@@ -162,6 +167,20 @@ export default function CalendarPage() {
     setForm(null);
     setOpenEvent(null);
     await load({ fresh: true });
+  };
+  // Festival / public-holiday occurrence moved or renamed for this restaurant only.
+  const saveDateOverride = async (ev, { date, endDate, name }) => {
+    await apiClient.updateCalendarSettings(restaurantId, { overrides: { [ev.key]: { date, endDate, name } } });
+    await load({ fresh: true });
+  };
+  const resetDateOverride = async (ev) => {
+    await apiClient.updateCalendarSettings(restaurantId, { overrides: { [ev.key]: { date: null, endDate: null, name: null } } });
+    await load({ fresh: true });
+  };
+  const importEvents = async (list) => {
+    const res = await apiClient.bulkCreateCalendarEvents(restaurantId, list);
+    await load({ fresh: true });
+    return res;
   };
   const deleteEvent = async (ev) => {
     await apiClient.deleteCalendarEvent(restaurantId, ev.id);
@@ -220,6 +239,7 @@ export default function CalendarPage() {
             <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{e.name}</span>
             {e.tentative && <span className="dcal-badge-exp">{t('eventCalendar.expected')}</span>}
             {e.public && <span className="dcal-badge-pub">{t('eventCalendar.holiday')}</span>}
+            {isEdited(e) && <span className="dcal-badge-edit" title={t('eventCalendar.override.editedNote')}><FaPen size={7} /> {t('eventCalendar.edited')}</span>}
             {e.hidden && <FaEyeSlash size={11} color="#94a3b8" title={t('eventCalendar.hidden')} />}
           </div>
           <div style={{ fontSize: 12, color: '#64748b', marginTop: 3, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -273,10 +293,10 @@ export default function CalendarPage() {
                     {list.slice(0, max).map((e) => {
                       const st = categoryStyle(e);
                       return (
-                        <span key={e.key} className="dcal-chip" title={e.name}
+                        <span key={e.key} className="dcal-chip" title={isEdited(e) ? `${e.name} · ${t('eventCalendar.edited')}` : e.name}
                           onClick={(ev) => { ev.stopPropagation(); setOpenEvent(e); }}
                           style={{ background: st.bg, color: st.color, borderColor: st.border, opacity: e.hidden ? 0.5 : 1, borderStyle: e.tentative ? 'dashed' : 'solid' }}>
-                          {e.name}
+                          {isEdited(e) && <FaPen size={7} style={{ marginRight: 4, verticalAlign: 'baseline' }} />}{e.name}
                         </span>
                       );
                     })}
@@ -359,6 +379,7 @@ export default function CalendarPage() {
         .dcal-countdown { font-size: 12px; font-weight: 700; color: #334155; white-space: nowrap; background: #f1f5f9; border-radius: 999px; padding: 3px 9px; flex-shrink: 0; }
         .dcal-badge-exp { font-size: 10px; font-weight: 700; color: #92400e; background: #fffbeb; border: 1px dashed #f59e0b; border-radius: 999px; padding: 1px 7px; }
         .dcal-badge-pub { font-size: 10px; font-weight: 700; color: #1d4ed8; background: #eff6ff; border-radius: 999px; padding: 1px 7px; }
+        .dcal-badge-edit { font-size: 10px; font-weight: 700; color: #4338ca; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 999px; padding: 1px 7px; display: inline-flex; align-items: center; gap: 3px; }
         .dcal-ly { font-size: 11px; font-weight: 600; color: #047857; background: #ecfdf5; border-radius: 999px; padding: 1px 8px; }
         .dcal-group { font-size: 12px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: .05em; margin: 0 0 8px 4px; }
         .dcal-linkbtn { display: inline-flex; align-items: center; gap: 6px; border: none; background: transparent; color: #4f46e5; font-weight: 700; font-size: 13px; cursor: pointer; }
@@ -367,6 +388,7 @@ export default function CalendarPage() {
         .dcal-seg button.on { background: #fff; color: #0f172a; box-shadow: 0 1px 3px rgba(15,23,42,.12); }
         .dcal-iconbtn { width: 34px; height: 34px; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff; color: #334155; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
         .dcal-btn { padding: 8px 14px; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff; color: #0f172a; font-weight: 600; font-size: 13px; cursor: pointer; }
+        .dcal-btn-ic { display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; }
         .dcal-primary { padding: 9px 14px; border-radius: 10px; border: none; background: #0f172a; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
         .dcal-legend { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 14px; }
         .dcal-legend button { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #334155; background: #fff; border: 1px solid #e2e8f0; border-radius: 999px; padding: 4px 10px; cursor: pointer; font-family: inherit; }
@@ -397,6 +419,7 @@ export default function CalendarPage() {
             <button role="tab" aria-selected={view === 'month'} className={view === 'month' ? 'on' : ''} onClick={() => changeView('month')}><FaCalendarAlt size={11} /> {t('eventCalendar.month')}</button>
             <button role="tab" aria-selected={view === 'list'} className={view === 'list' ? 'on' : ''} onClick={() => changeView('list')}><FaList size={11} /> {t('eventCalendar.list')}</button>
           </div>
+          {canManage && <button className="dcal-btn dcal-btn-ic" onClick={() => setImportOpen(true)}><FaFileImport size={12} /> {t('eventCalendar.import.button')}</button>}
           {canManage && <button className="dcal-primary" onClick={() => setForm({ defaultDate: selectedDay || today })}><FaPlus size={11} /> {t('eventCalendar.addEvent')}</button>}
         </div>
       </div>
@@ -430,7 +453,12 @@ export default function CalendarPage() {
       {openEvent && (
         <EventDrawer event={openEvent} canManage={canManage} isMobile={isMobile} formatCurrency={formatCurrency}
           onClose={() => setOpenEvent(null)} onSaveOverride={saveOverride} onToggleHidden={toggleHidden}
-          onEdit={(e) => setForm({ initial: e })} onDelete={deleteEvent} />
+          onEdit={(e) => setForm({ initial: e })} onDelete={deleteEvent}
+          edited={isEdited(openEvent)} override={eventOverride(openEvent, data?.settings)}
+          onSaveDateOverride={saveDateOverride} onResetOverride={resetDateOverride} />
+      )}
+      {importOpen && (
+        <ImportEventsModal existing={existingCustom} onClose={() => setImportOpen(false)} onImport={importEvents} />
       )}
       {form && (
         <EventFormModal initial={form.initial} defaultDate={form.defaultDate} onClose={() => setForm(null)} onSubmit={submitForm} />

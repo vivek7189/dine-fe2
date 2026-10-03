@@ -1,17 +1,123 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { FaTimes, FaEyeSlash, FaEye, FaEdit, FaTrash, FaRedo, FaHistory } from 'react-icons/fa';
+import { FaTimes, FaEyeSlash, FaEye, FaEdit, FaTrash, FaRedo, FaHistory, FaPen, FaUndo } from 'react-icons/fa';
 import { t } from '../../lib/i18n';
-import { categoryLabel, categoryStyle, countdownLabel, eventCategory, fmtDay, fmtRange } from '../../lib/calendar';
+import { addDays, categoryLabel, categoryStyle, countdownLabel, daysBetween, defaultDateFromKey, eventCategory, fmtDay, fmtRange } from '../../lib/calendar';
 
 const CROWDS = ['normal', 'busy', 'very_busy'];
 
+const endOf = (ev) => (ev?.endDate && ev.endDate !== ev.date ? ev.endDate : '');
+
+/**
+ * Change the date / name of a festival or public-holiday occurrence for this restaurant only
+ * (settings.overrides[ev.key] = { date, endDate, name }); "Reset to default" clears it.
+ */
+function DateNameOverride({ event, override, edited, onSave, onReset }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(event.name || '');
+  const [date, setDate] = useState(event.date || '');
+  const [end, setEnd] = useState(endOf(event));
+  const [busy, setBusy] = useState('');
+  const [msg, setMsg] = useState(null);
+
+  useEffect(() => {
+    setName(event.name || ''); setDate(event.date || ''); setEnd(endOf(event)); setMsg(null);
+  }, [event.key, event.name, event.date, event.endDate]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const ov = override || {};
+  const baseDate = defaultDateFromKey(event);
+  const baseName = event.originalName ?? event.original?.name ?? event.defaultName ?? (ov.name ? null : event.name);
+  const initialEnd = endOf(event);
+  const dirty = name.trim() !== (event.name || '') || date !== event.date || end !== initialEnd;
+
+  const save = async () => {
+    const nameT = name.trim();
+    if (!nameT) { setMsg({ ok: false, text: t('eventCalendar.form.nameRequired') }); return; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { setMsg({ ok: false, text: t('eventCalendar.form.dateRequired') }); return; }
+    if (end && end < date) { setMsg({ ok: false, text: t('eventCalendar.form.endBeforeStart') }); return; }
+    let endDate;
+    if (end !== initialEnd) endDate = end || date; // cleared → single day
+    else if (initialEnd && date !== event.date) endDate = addDays(initialEnd, daysBetween(event.date, date)); // keep the length when moved
+    else endDate = ov.endDate || null;
+    const payload = {
+      date: date === baseDate ? null : date,
+      // null = keep the default end; a single-day value is only needed to shorten a multi-day event.
+      endDate: !endDate ? null : (endDate !== date || initialEnd ? endDate : null),
+      name: baseName != null && nameT === baseName ? null : nameT,
+    };
+    setBusy('save'); setMsg(null);
+    try { await onSave(event, payload); setOpen(false); setMsg({ ok: true, text: t('eventCalendar.saved') }); }
+    catch (e) { setMsg({ ok: false, text: e?.message || t('eventCalendar.saveFailed') }); }
+    finally { setBusy(''); }
+  };
+  const reset = async () => {
+    setBusy('reset'); setMsg(null);
+    try { await onReset(event); setOpen(false); setMsg({ ok: true, text: t('eventCalendar.override.resetDone') }); }
+    catch (e) { setMsg({ ok: false, text: e?.message || t('eventCalendar.saveFailed') }); }
+    finally { setBusy(''); }
+  };
+
+  const input = { width: '100%', padding: '9px 11px', borderRadius: 10, border: '1px solid #cbd5e1', fontSize: 14, boxSizing: 'border-box', background: '#fff', color: '#0f172a', fontFamily: 'inherit' };
+  const label = { display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 5 };
+  const smallBtn = { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', color: '#334155', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' };
+
+  return (
+    <div style={{ border: '1px solid #e2e8f0', borderRadius: 12, padding: 12 }}>
+      {!open ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <button type="button" disabled={!!busy} onClick={() => { setOpen(true); setMsg(null); }} style={{ ...smallBtn, border: 'none', padding: '4px 0', color: '#4f46e5', fontWeight: 700 }}>
+            <FaPen size={11} /> {t('eventCalendar.override.button')}
+          </button>
+          {edited && (
+            <button type="button" disabled={!!busy} onClick={reset} style={{ ...smallBtn, marginLeft: 'auto' }}>
+              <FaUndo size={11} /> {busy === 'reset' ? t('eventCalendar.saving') : t('eventCalendar.override.reset')}
+            </button>
+          )}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>{t('eventCalendar.override.title')}</div>
+          <div style={{ fontSize: 12, color: '#64748b', marginTop: -4 }}>{t('eventCalendar.override.hint')}</div>
+          <div>
+            <label htmlFor="dcal-o-name" style={label}>{t('eventCalendar.form.name')}</label>
+            <input id="dcal-o-name" value={name} maxLength={120} onChange={(e) => setName(e.target.value)} style={input} />
+          </div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ flex: '1 1 140px' }}>
+              <label htmlFor="dcal-o-date" style={label}>{t('eventCalendar.form.date')}</label>
+              <input id="dcal-o-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} style={input} />
+            </div>
+            <div style={{ flex: '1 1 140px' }}>
+              <label htmlFor="dcal-o-end" style={label}>{t('eventCalendar.form.endDate')}</label>
+              <input id="dcal-o-end" type="date" value={end} min={date || undefined} onChange={(e) => setEnd(e.target.value)} style={input} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            {edited && (
+              <button type="button" disabled={!!busy} onClick={reset} style={{ ...smallBtn, marginRight: 'auto' }}>
+                <FaUndo size={11} /> {busy === 'reset' ? t('eventCalendar.saving') : t('eventCalendar.override.reset')}
+              </button>
+            )}
+            <button type="button" disabled={!!busy} onClick={() => { setOpen(false); setMsg(null); setName(event.name || ''); setDate(event.date || ''); setEnd(initialEnd); }} style={smallBtn}>{t('common.cancel')}</button>
+            <button type="button" disabled={!dirty || !!busy} onClick={save}
+              style={{ ...smallBtn, border: 'none', background: dirty ? '#0f172a' : '#cbd5e1', color: '#fff', fontWeight: 700, cursor: dirty && !busy ? 'pointer' : 'default' }}>
+              {busy === 'save' ? t('eventCalendar.saving') : t('common.save')}
+            </button>
+          </div>
+        </div>
+      )}
+      {msg && <div role="status" style={{ marginTop: 8, fontSize: 13, fontWeight: 600, color: msg.ok ? '#047857' : '#b91c1c' }}>{msg.text}</div>}
+    </div>
+  );
+}
+
 /**
  * Side drawer (desktop) / bottom sheet (phone) with one event's details.
- * Managers can set expected crowd + notes, hide/show it, and edit/delete their own (custom) events.
+ * Managers can set expected crowd + notes, hide/show it, change a festival's date / name for
+ * their restaurant, and edit/delete their own (custom) events.
  */
-export default function EventDrawer({ event, canManage, isMobile, formatCurrency, onClose, onSaveOverride, onToggleHidden, onEdit, onDelete }) {
+export default function EventDrawer({ event, canManage, isMobile, formatCurrency, onClose, onSaveOverride, onToggleHidden, onEdit, onDelete, edited = false, override = null, onSaveDateOverride, onResetOverride }) {
   const [crowd, setCrowd] = useState(event?.expectedCrowd || 'normal');
   const [notes, setNotes] = useState(event?.notes || '');
   const [busy, setBusy] = useState('');
@@ -60,6 +166,7 @@ export default function EventDrawer({ event, canManage, isMobile, formatCurrency
               {event.public && <span style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8', background: '#eff6ff', borderRadius: 999, padding: '2px 9px' }}>{t('eventCalendar.publicHoliday')}</span>}
               {event.tentative && <span style={{ fontSize: 11, fontWeight: 700, color: '#92400e', background: '#fffbeb', border: '1px dashed #f59e0b', borderRadius: 999, padding: '2px 9px' }}>{t('eventCalendar.expected')}</span>}
               {event.hidden && <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', background: '#f1f5f9', borderRadius: 999, padding: '2px 9px' }}>{t('eventCalendar.hidden')}</span>}
+              {edited && <span title={t('eventCalendar.override.editedNote')} style={{ fontSize: 11, fontWeight: 700, color: '#4338ca', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 999, padding: '2px 9px', display: 'inline-flex', alignItems: 'center', gap: 4 }}><FaPen size={8} /> {t('eventCalendar.edited')}</span>}
             </div>
             <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#0f172a', lineHeight: 1.25 }}>{event.name}</h2>
             <div style={{ marginTop: 6, fontSize: 14, color: '#475569' }}>
@@ -68,6 +175,12 @@ export default function EventDrawer({ event, canManage, isMobile, formatCurrency
               <span style={{ fontWeight: 600, color: '#0f172a' }}>{countdownLabel(event)}</span>
             </div>
             {event.tentative && <div style={{ marginTop: 6, fontSize: 12, color: '#92400e' }}>{t('eventCalendar.tentativeNote')}</div>}
+            {edited && (() => {
+              const base = defaultDateFromKey(event);
+              const baseName = event.originalName ?? event.original?.name ?? event.defaultName;
+              const parts = [baseName && baseName !== event.name ? baseName : null, base && base !== event.date ? fmtDay(base, { day: 'numeric', month: 'short', year: 'numeric' }) : null].filter(Boolean);
+              return parts.length ? <div style={{ marginTop: 6, fontSize: 12, color: '#64748b' }}>{t('eventCalendar.override.defaultWas', { value: parts.join(' · ') })}</div> : null;
+            })()}
             {isCustom && event.repeatYearly && <div style={{ marginTop: 6, fontSize: 12, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}><FaRedo size={10} /> {t('eventCalendar.repeatsYearly')}</div>}
           </div>
           <button onClick={onClose} aria-label={t('common.close')} style={{ border: 'none', background: '#f1f5f9', borderRadius: 10, width: 34, height: 34, cursor: 'pointer', color: '#475569', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaTimes /></button>
@@ -134,6 +247,10 @@ export default function EventDrawer({ event, canManage, isMobile, formatCurrency
           )}
 
           {msg && <div role="status" style={{ fontSize: 13, fontWeight: 600, color: msg.ok ? '#047857' : '#b91c1c' }}>{msg.text}</div>}
+
+          {canManage && !isCustom && onSaveDateOverride && (
+            <DateNameOverride event={event} override={override} edited={edited} onSave={onSaveDateOverride} onReset={onResetOverride} />
+          )}
 
           {canManage && (
             <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>

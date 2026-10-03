@@ -4861,6 +4861,11 @@ class ApiClient {
   async updateCalendarEvent(restaurantId, eventId, changes) {
     return this.request(`/api/calendar/${restaurantId}/events/${encodeURIComponent(eventId)}`, { method: 'PATCH', body: changes });
   }
+  // { events: [{ name, date, endDate?, repeatYearly?, category?, expectedCrowd?, notes? }] } (≤500)
+  // → { created, skipped, errors: [{ row, message }] }
+  async bulkCreateCalendarEvents(restaurantId, events) {
+    return this.request(`/api/calendar/${restaurantId}/events/bulk`, { method: 'POST', body: { events } });
+  }
   async deleteCalendarEvent(restaurantId, eventId) {
     return this.request(`/api/calendar/${restaurantId}/events/${encodeURIComponent(eventId)}`, { method: 'DELETE' });
   }
