@@ -9,6 +9,7 @@ import { database } from '../../../../firebase';
 import { subscribeRestaurantEvents } from '../../../lib/realtimeSubscribe';
 import { isLocalServerMode } from '../../../lib/localServer';
 import apiClient from '../../../lib/api';
+import StatementModal from '../../../components/customers/StatementModal';
 import { fmtTime, fmtDate, fmtDateTime, restaurantDateKey } from '../../../lib/restaurantTime';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
 import { getCachedOrderHistoryData, setCachedOrderHistoryData } from '../../../utils/dashboardCache';
@@ -83,6 +84,7 @@ import {
   FaCloudUploadAlt,
   FaMoneyBillWave,
   FaWallet,
+  FaListAlt,
   FaCreditCard,
   FaMobileAlt,
   FaGlobe,
@@ -299,6 +301,7 @@ const OrderHistory = () => {
   const [billingCustomerMobile, setBillingCustomerMobile] = useState('');
   const [billingTableNumber, setBillingTableNumber] = useState('');
   const [markPaidOrderId, setMarkPaidOrderId] = useState(null);
+  const [statementFor, setStatementFor] = useState(null); // { id, name, phone } — customer statement from a due order
   const [markPaidSubmitting, setMarkPaidSubmitting] = useState(false);
 
   // Bookings tab state
@@ -4274,6 +4277,15 @@ const OrderHistory = () => {
                                     <FaWallet size={11} />
                                   </button>
                                 )}
+                                {order.customerId && (order.paymentStatus === 'partial' || order.paymentStatus === 'due' || order.outstandingAmount > 0) && (
+                                  <button
+                                    onClick={() => setStatementFor({ id: order.customerId, name: order.customerInfo?.name || order.customerDisplay?.name || '', phone: order.customerInfo?.phone || order.customerDisplay?.phone || '', email: order.customerInfo?.email || '' })}
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors"
+                                    title="Customer statement"
+                                  >
+                                    <FaListAlt size={11} />
+                                  </button>
+                                )}
                                 <div style={{ position: 'relative' }}>
                                   <button
                                     onClick={(e) => {
@@ -4817,6 +4829,15 @@ const OrderHistory = () => {
                                 <FaWallet size={isMobile ? 11 : 12} /> {!isMobile && t('orderHistory.markPaid')}
                               </button>
                             )}
+                            {order.customerId && (order.paymentStatus === 'partial' || order.paymentStatus === 'due' || order.outstandingAmount > 0) && (
+                              <button
+                                onClick={() => setStatementFor({ id: order.customerId, name: order.customerInfo?.name || order.customerDisplay?.name || '', phone: order.customerInfo?.phone || order.customerDisplay?.phone || '', email: order.customerInfo?.email || '' })}
+                                className={`${isMobile ? 'p-1.5 text-[10px]' : 'px-3 py-1.5 text-xs'} font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-all flex items-center gap-1 whitespace-nowrap flex-shrink-0`}
+                                title="Customer statement"
+                              >
+                                <FaListAlt size={isMobile ? 11 : 12} /> {!isMobile && 'Statement'}
+                              </button>
+                            )}
                             <button
                               onClick={() => handleViewOrder(order)}
                               className={`${isMobile ? 'p-1.5 text-[10px]' : 'px-3 py-1.5 text-xs'} font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-all flex items-center gap-1 whitespace-nowrap flex-shrink-0`}
@@ -5211,6 +5232,10 @@ const OrderHistory = () => {
         document.body
       )}
 
+      {statementFor && (
+        <StatementModal customerId={statementFor.id} customerName={statementFor.name} customerPhone={statementFor.phone}
+          customerEmail={statementFor.email} onClose={() => setStatementFor(null)} />
+      )}
       {/* Mark as Fully Paid confirmation modal */}
       {markPaidOrderId && typeof document !== 'undefined' && createPortal((() => {
         const paidOrder = orders.find(o => o.id === markPaidOrderId);

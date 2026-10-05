@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import * as XLSX from 'xlsx';
 import apiClient from '../../../../lib/api';
+import StatementModal from '../../../../components/customers/StatementModal';
 import { fmtDate, fmtTime } from '../../../../lib/restaurantTime'; // order / payment moments in the restaurant's timezone
 import { useCurrency } from '../../../../contexts/CurrencyContext';
 import {
@@ -97,6 +98,7 @@ var CustomerDetail = function() {
   });
   var [formErrors, setFormErrors] = useState({});
   var [creditData, setCreditData] = useState({ outstandingBalance: 0, creditHistory: [] });
+  var [showStatement, setShowStatement] = useState(false);
   var [creditLoading, setCreditLoading] = useState(false);
   var [settlingCredit, setSettlingCredit] = useState(null);
   var [walletData, setWalletData] = useState({ walletBalance: 0, walletHistory: [] });
@@ -935,7 +937,15 @@ var CustomerDetail = function() {
                     <FaHandHoldingUsd size={13} style={{ color: 'white' }} />
                   </div>
                   Credit History (Khata)
+                  <button type="button" onClick={function() { setShowStatement(true); }}
+                    style={{ marginLeft: 'auto', padding: '6px 12px', borderRadius: '8px', border: '1px solid #fecaca', background: '#fef2f2', color: '#b91c1c', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}>
+                    Send statement
+                  </button>
                 </h3>
+                {showStatement && (
+                  <StatementModal customerId={customerId} customerName={customer.name} customerPhone={customer.phone} customerEmail={customer.email}
+                    onClose={function() { setShowStatement(false); }} />
+                )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
                   {creditData.creditHistory.map(function(entry, index) {
                     var isSettled = entry.settledAt || entry.outstandingAmount <= 0;

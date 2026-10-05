@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import Head from 'next/head';
 import * as XLSX from 'xlsx';
 import apiClient from '../../../lib/api';
+import StatementSettings from '../../../components/customers/StatementSettings';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
 import { getCachedCustomersData, setCachedCustomersData } from '../../../utils/dashboardCache';
@@ -1045,6 +1046,7 @@ const Customers = () => {
 
   // Bulk import state
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
+  const [showStatementSettings, setShowStatementSettings] = useState(false);
 
   // Bulk delete state
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
@@ -2321,6 +2323,15 @@ const Customers = () => {
 
             {engagementTab === 'customers' && canAddCustomer && (
             <div style={{ display: 'flex', gap: '8px' }}>
+              {['owner', 'admin', 'co-owner', 'manager'].includes(String(custUserData.role || '').toLowerCase()) && (
+                <button
+                  onClick={() => setShowStatementSettings(true)}
+                  title="Customer statements — automatic email"
+                  style={{ backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px', padding: isMobile ? '8px 12px' : '10px 14px', fontSize: isMobile ? '12px' : '14px', fontWeight: '600', cursor: 'pointer' }}
+                >
+                  {isMobile ? 'Stmt' : 'Statements'}
+                </button>
+              )}
               <button
                 onClick={() => isOnline && setShowBulkImportModal(true)}
                 disabled={!isOnline}
@@ -4199,6 +4210,9 @@ const Customers = () => {
           onClose={closeAddModal}
           isMobile={isMobile}
         />
+      )}
+      {showStatementSettings && (
+        <StatementSettings restaurantId={restaurantId} onClose={() => setShowStatementSettings(false)} />
       )}
       {showBulkImportModal && (
         <BulkImportModal

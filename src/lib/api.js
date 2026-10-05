@@ -3675,6 +3675,31 @@ class ApiClient {
     return this.request(url);
   }
 
+  // ── Customer credit statement (Khatabook-style) ──
+  async getCustomerStatement(customerId, { from, to } = {}) {
+    const q = new URLSearchParams();
+    if (from) q.set('from', from);
+    if (to) q.set('to', to);
+    const qs = q.toString();
+    return this.request(`/api/customers/${customerId}/statement${qs ? `?${qs}` : ''}`);
+  }
+
+  async shareCustomerStatement(customerId, { from, to } = {}) {
+    return this.request(`/api/customers/${customerId}/statement/share`, { method: 'POST', body: { from, to } });
+  }
+
+  async emailCustomerStatement(customerId, { from, to } = {}) {
+    return this.request(`/api/customers/${customerId}/statement/email`, { method: 'POST', body: { from, to } });
+  }
+
+  async getStatementSettings(restaurantId) {
+    return this.request(`/api/customer-statements/settings/${restaurantId}`);
+  }
+
+  async saveStatementSettings(restaurantId, settings) {
+    return this.request(`/api/customer-statements/settings/${restaurantId}`, { method: 'PUT', body: settings });
+  }
+
   async getCustomer(customerId) {
     return this.request(`/api/customers/detail/${customerId}`);
   }
