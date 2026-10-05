@@ -1,7 +1,7 @@
 name: Deploy website to AWS box
 
 # Builds the Next.js site on a GitHub-hosted runner (standalone output) and deploys it to the
-# AWS box through the self-hosted runner there (label aws-box) with a zero-downtime blue/green
+# AWS box (handover via private S3, OIDC write-only role) through the self-hosted runner there (label aws-box) with a zero-downtime blue/green
 # switch (/opt/deploy-web.sh). Vercel keeps deploying as before until DNS moves to the box.
 on:
   push:
@@ -16,6 +16,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      id-token: write
+      contents: read
     env:
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
       NEXT_TELEMETRY_DISABLED: '1'
@@ -43,18 +46,19 @@ jobs:
           cp .env.production out/.env.production
           tar czf web.tgz -C out .
           ls -lh web.tgz
-      - uses: actions/upload-artifact@v4
+      - name: AWS login (short-lived, write-only to the build folder)
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          name: web
-          path: web.tgz
-          retention-days: 1
+          role-to-assume: arn:aws:iam::009293460996:role/github-web-build-upload
+          aws-region: ap-south-1
+      - name: Hand the build to the box (private S3, auto-deleted after 14 days)
+        run: aws s3 cp web.tgz s3://dineopen-db-backups-009293460996/web-builds/dine/${{ github.sha }}.tgz --only-show-errors
 
   deploy:
     needs: build
     runs-on: [self-hosted, aws-box]
     steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: web
+      - name: Fetch the build (box role can read the bucket)
+        run: aws s3 cp s3://dineopen-db-backups-009293460996/web-builds/dine/${{ github.sha }}.tgz "$RUNNER_TEMP/web.tgz" --only-show-errors
       - name: Blue/green switch on the box
-        run: sudo /opt/deploy-web.sh dine "$PWD/web.tgz"
+        run: sudo /opt/deploy-web.sh dine "$RUNNER_TEMP/web.tgz" && rm -f "$RUNNER_TEMP/web.tgz"
