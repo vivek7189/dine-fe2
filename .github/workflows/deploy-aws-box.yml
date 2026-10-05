@@ -1,0 +1,60 @@
+name: Deploy website to AWS box
+
+# Builds the Next.js site on a GitHub-hosted runner (standalone output) and deploys it to the
+# AWS box through the self-hosted runner there (label aws-box) with a zero-downtime blue/green
+# switch (/opt/deploy-web.sh). Vercel keeps deploying as before until DNS moves to the box.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: aws-web-deploy
+  cancel-in-progress: true   # a newer push supersedes an older build
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Write build settings
+        run: printf '%s\n' "$WEB_ENV" > .env.production
+        env:
+          WEB_ENV: ${{ secrets.WEB_ENV_PRODUCTION }}
+      - name: Build (standalone)
+        run: npm run build
+        env:
+          BUILD_STANDALONE: 'true'
+      - name: Package
+        run: |
+          mkdir -p out/.next
+          cp -r .next/standalone/. out/
+          cp -r .next/static out/.next/static
+          cp -r public out/public
+          cp .env.production out/.env.production
+          tar czf web.tgz -C out .
+          ls -lh web.tgz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: web.tgz
+          retention-days: 1
+
+  deploy:
+    needs: build
+    runs-on: [self-hosted, aws-box]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: web
+      - name: Blue/green switch on the box
+        run: sudo /opt/deploy-web.sh dine "$PWD/web.tgz"
