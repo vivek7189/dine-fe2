@@ -2176,6 +2176,9 @@ class ApiClient {
   deleteBiometricMapping(restaurantId, deviceUserId) { return this.request(`/api/biometric/mappings/${restaurantId}/${deviceUserId}`, { method: 'DELETE' }); }
   getBiometricDiagnostics(restaurantId, sn) { return this.request(`/api/biometric/diagnostics/${restaurantId}/${sn}`); }
   getBiometricDeviceLogs(restaurantId, sn, limit = 100) { return this.request(`/api/biometric/devices/${restaurantId}/${sn}/logs?limit=${limit}`); }
+  getBiometricDeviceUsers(restaurantId) { return this.request(`/api/biometric/device-users/${restaurantId}`); }
+  refreshBiometricDeviceUsers(restaurantId) { return this.request(`/api/biometric/device-users/${restaurantId}/refresh`, { method: 'POST', body: {} }); }
+  getBiometricPunchesDay(restaurantId, date) { return this.request(`/api/biometric/punches-day/${restaurantId}?date=${encodeURIComponent(date)}`); }
 
   async deleteFloor(floorId, restaurantId) {
     const result = await this.request(`/api/floors/${floorId}?restaurantId=${restaurantId}`, {

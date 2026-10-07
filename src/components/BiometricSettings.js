@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaFingerprint, FaCircle, FaTrash, FaSync, FaPlus, FaStethoscope, FaTimes, FaCopy, FaCheckCircle } from 'react-icons/fa';
 import apiClient from '../lib/api';
+import BiometricDeviceUsers from './BiometricDeviceUsers';
 
 // Owner/admin-only panel to connect + monitor biometric attendance terminals
 // (ZKTeco / eSSL / Realtime). Talks to /api/biometric/* — see routes/biometric.js.
@@ -182,29 +183,23 @@ export default function BiometricSettings({ restaurantId, staffList = [], isMobi
           </div>}
       </div>
 
-      {/* ── Staff mapping ── */}
+      {/* ── Staff mapping: device users table + punches by day ── */}
       <div>
-        <div style={{ fontSize: '12px', fontWeight: 700, color: '#374151', marginBottom: '8px' }}>③ Map device user-IDs to staff</div>
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr auto', gap: '10px', alignItems: 'end', marginBottom: '10px' }}>
-          <div><label style={label}>Device User-ID (as enrolled on the device)</label><input style={input} value={mapForm.deviceUserId} onChange={e => setMapForm(p => ({ ...p, deviceUserId: e.target.value }))} placeholder="e.g. 1" /></div>
-          <div><label style={label}>Staff member</label>
-            <select style={input} value={mapForm.staffId} onChange={e => setMapForm(p => ({ ...p, staffId: e.target.value }))}>
-              <option value="">Select staff…</option>
-              {staffList.map(s => <option key={s._id || s.id} value={s._id || s.id}>{s.name || s.staffName} {s.role ? `(${s.role})` : ''}</option>)}
-            </select>
+        <div style={{ fontSize: '12px', fontWeight: 700, color: '#374151', marginBottom: '4px' }}>③ Link machine users to staff</div>
+        <BiometricDeviceUsers key={mappings.map(m => m.deviceUserId).join(',')} restaurantId={restaurantId} isMobile={isMobile} />
+        <details style={{ marginTop: '14px' }}>
+          <summary style={{ fontSize: '12px', color: '#6b7280', cursor: 'pointer' }}>Link by ID manually (if a user is not in the list yet)</summary>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr auto', gap: '10px', alignItems: 'end', marginTop: '10px' }}>
+            <div><label style={label}>Device User-ID (as enrolled on the device)</label><input style={input} value={mapForm.deviceUserId} onChange={e => setMapForm(p => ({ ...p, deviceUserId: e.target.value }))} placeholder="e.g. 1" /></div>
+            <div><label style={label}>Staff member</label>
+              <select style={input} value={mapForm.staffId} onChange={e => setMapForm(p => ({ ...p, staffId: e.target.value }))}>
+                <option value="">Select staff…</option>
+                {staffList.map(s => <option key={s._id || s.id} value={s._id || s.id}>{s.name || s.staffName} {s.role ? `(${s.role})` : ''}</option>)}
+              </select>
+            </div>
+            <button onClick={addMapping} disabled={busy} style={{ padding: '10px 16px', borderRadius: '8px', border: 'none', background: '#059669', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer', height: '40px' }}>Link</button>
           </div>
-          <button onClick={addMapping} disabled={busy} style={{ padding: '10px 16px', borderRadius: '8px', border: 'none', background: '#059669', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer', height: '40px' }}>Map</button>
-        </div>
-        {mappings.length > 0 && (
-          <div style={{ border: '1px solid #eef0f2', borderRadius: '10px', overflow: 'hidden' }}>
-            {mappings.map(m => (
-              <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '9px 12px', borderBottom: '1px solid #f3f4f6', fontSize: '13px' }}>
-                <span><b style={{ fontFamily: 'monospace' }}>#{m.deviceUserId}</b> → {m.staffName || m.staffId} {m.role ? <span style={{ color: '#9ca3af' }}>({m.role})</span> : null}</span>
-                <button onClick={() => delMapping(m.deviceUserId)} style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fff', color: '#ef4444', cursor: 'pointer', fontSize: '11px' }}><FaTrash size={10} /></button>
-              </div>
-            ))}
-          </div>
-        )}
+        </details>
       </div>
 
       {/* ── Diagnostics modal (debug: is it connected? getting data?) ── */}
