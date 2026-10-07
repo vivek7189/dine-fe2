@@ -47,6 +47,17 @@ function ownCloudBase(url) {
   const h = _hostOf(url);
   return h && ALLOWED_CLOUD_HOSTS.has(h) ? url : PG_API_BASE;
 }
+// The sslip address and api.dineopen.com are two names for the same backend. A saved pin on either
+// follows the remote config (backend.json), so the host switch (e.g. off the GCP forwarder straight
+// to AWS) reaches already-logged-in users too — and flipping backend.json back reverts everyone.
+const SAME_BOX_HOSTS = new Set(['34-93-129-104.sslip.io', 'api.dineopen.com']);
+function followRemoteForSameBox(url) {
+  try {
+    if (!SAME_BOX_HOSTS.has(_hostOf(url))) return url;
+    const remote = window.localStorage.getItem(REMOTE_DEFAULT_KEY);
+    return remote && SAME_BOX_HOSTS.has(_hostOf(remote)) ? remote : url;
+  } catch (_) { return url; }
+}
 
 // ── Remote backend config (for a one-flip, zero-rebuild cutover) ──────────────
 // A tiny always-up JSON (hosted OFF Vercel, e.g. Google Cloud Storage) that says
@@ -68,7 +79,7 @@ const norm = (u) => (u ? String(u).replace(/\/+$/, '') : u); // strip trailing s
 // stored in localStorage/cookie, so it can never clobber a logged-in staff member's real
 // pin and it resets on reload/unmount. Cleared with setPublicBackend('').
 let _publicBackend = null;
-export function setPublicBackend(url) { _publicBackend = url ? norm(ownCloudBase(url)) : null; }
+export function setPublicBackend(url) { _publicBackend = url ? norm(followRemoteForSameBox(ownCloudBase(url))) : null; }
 export function getPublicBackend() { return _publicBackend; }
 
 // NOTE: isServerApp() (NEXT_PUBLIC_APP_KIND === 'server') lives in ./localServer and is
@@ -114,7 +125,7 @@ export function getCloudApiBase() {
   try {
     // per-user / pgBackendUrl pin wins over the remote default
     const persisted = window.localStorage.getItem(BACKEND_URL_KEY);
-    if (persisted) return norm(ownCloudBase(persisted));
+    if (persisted) return norm(followRemoteForSameBox(ownCloudBase(persisted)));
     // remote-config default (cached from BACKEND_CONFIG_URL at startup) — the cutover switch.
     const remote = window.localStorage.getItem(REMOTE_DEFAULT_KEY);
     if (remote && !/localhost|127\.0\.0\.1/.test(DEFAULT_API_BASE)) return norm(ownCloudBase(remote));
