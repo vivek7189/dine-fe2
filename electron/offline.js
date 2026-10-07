@@ -232,16 +232,30 @@ function isImageUpload(endpoint, headers) {
 
 // ─── Main API Request Handler ───────────────────────────────────────────────
 
+// Role + user id from the bearer token's payload. NOT a verification (the cloud verifies every
+// request) — only used to limit what the local offline copy will show this user.
+function callerFromToken(header) {
+  try {
+    const tok = String(header).replace(/^Bearer\s+/i, '');
+    const part = tok.split('.')[1];
+    if (!part) return null;
+    const p = JSON.parse(Buffer.from(part.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'));
+    return { role: String(p.role || '').toLowerCase(), userId: String(p.userId || p.id || p.uid || '') };
+  } catch (_) { return null; }
+}
+
 async function handleApiRequest({ endpoint, method, body, headers }) {
   const m = (method || 'GET').toUpperCase();
 
   // 1. Persist auth token for sync daemon
+  let caller = null; // { role, userId } of the logged-in user — gates what the LOCAL copy may answer
   if (headers) {
     const authKey = Object.keys(headers).find(
       (k) => k.toLowerCase() === 'authorization'
     );
     if (authKey && headers[authKey]) {
       storeAuthToken(headers[authKey]);
+      caller = callerFromToken(headers[authKey]);
     }
   }
 
@@ -338,9 +352,15 @@ async function handleApiRequest({ endpoint, method, body, headers }) {
           return cloudResult;
         }
         debugLog(`ONLINE WRITE failed (${cloudResult.status_code}), falling back to local`);
+      } else if (cloudResult.status_code < 500 && cloudResult.status_code !== 408 && cloudResult.status_code !== 429) {
+        // A refused / invalid read (401, 403, 404 …) IS the cloud's answer — return it. Answering it
+        // from the local copy bypassed permissions (a cashier refused sales analytics was shown the
+        // restaurant's all-time sales from the local cache — MFC, 2026-10-07).
+        debugLog(`ONLINE READ refused (${cloudResult.status_code}), returning cloud answer`);
+        return cloudResult;
       } else {
-        // For reads, try local fallback
-        const localFallback = routeLocally(endpoint, m, parsedBody);
+        // Server error (5xx) / timeout (408) / rate-limited (429) on a read → local copy as an outage fallback
+        const localFallback = routeLocally(endpoint, m, parsedBody, caller);
         if (localFallback.handled) {
           return {
             data: localFallback.data,
@@ -364,7 +384,7 @@ async function handleApiRequest({ endpoint, method, body, headers }) {
   debugLog(`OFFLINE: routing ${m} ${endpoint} locally`);
 
   if (m === 'GET') {
-    const localResult = routeLocally(endpoint, m, parsedBody);
+    const localResult = routeLocally(endpoint, m, parsedBody, caller);
     if (localResult.handled) {
       return {
         data: localResult.data,
@@ -389,7 +409,7 @@ async function handleApiRequest({ endpoint, method, body, headers }) {
   // ── OFFLINE WRITES: local-first + queue for sync ────────────────────────
   try {
     debugLog(`OFFLINE WRITE: calling routeLocally for ${m} ${endpoint}`);
-    const localResult = routeLocally(endpoint, m, parsedBody);
+    const localResult = routeLocally(endpoint, m, parsedBody, caller);
     debugLog(`OFFLINE WRITE: routeLocally returned handled=${localResult.handled}, statusCode=${localResult.statusCode || 'n/a'}`);
 
     if (localResult.handled) {

@@ -122,7 +122,13 @@ const NOT_HANDLED = { handled: false };
 // Router
 // ---------------------------------------------------------------------------
 
-function routeLocally(endpoint, method, body) {
+const FULL_ANALYTICS_ROLES = new Set(['owner', 'admin', 'co-owner', 'super_admin']);
+function analyticsScope(caller) {
+  if (caller && FULL_ANALYTICS_ROLES.has(caller.role)) return {};
+  return { ownerId: (caller && caller.userId) || '__none__' }; // unknown caller → nothing
+}
+
+function routeLocally(endpoint, method, body, caller) {
   const m = method.toUpperCase();
   const query = parseQuery(endpoint);
   const path = endpoint.split('?')[0];
@@ -553,11 +559,13 @@ function routeLocally(endpoint, method, body) {
   }
 
   // ── ANALYTICS ──
+  // Restaurant-wide sales only for owner / admin / co-owner; everyone else (cashier, waiter …) sees
+  // just their own orders — the same rule the cloud applies to staff without analytics access.
   if (m === 'GET' && (p = match('/api/analytics/:restaurantId/daily-summary', path))) {
-    return safe(() => ok({ analytics: entityStore.getAnalytics(p.restaurantId, { daily: true, ...query }), success: true }));
+    return safe(() => ok({ analytics: entityStore.getAnalytics(p.restaurantId, { period: 'today', ...query, ...analyticsScope(caller) }), success: true }));
   }
   if (m === 'GET' && (p = match('/api/analytics/:restaurantId', path))) {
-    return safe(() => ok({ analytics: entityStore.getAnalytics(p.restaurantId, query), success: true }));
+    return safe(() => ok({ analytics: entityStore.getAnalytics(p.restaurantId, { ...query, ...analyticsScope(caller) }), success: true }));
   }
 
   // ── USER (read-only, pass-through for writes) ──

@@ -1457,50 +1457,80 @@ function deleteEntity(entityType, id, restaurantId) {
 // ============================================
 // Analytics (computed locally from orders)
 // ============================================
-function getAnalytics(restaurantId, dateRange) {
-  const db = getLocalDb();
-  let query = 'SELECT data FROM orders WHERE restaurant_id = ?';
-  const params = [restaurantId];
-
-  if (dateRange) {
-    if (dateRange.startDate) {
-      query += ' AND created_at >= ?';
-      params.push(new Date(dateRange.startDate).getTime());
-    }
-    if (dateRange.endDate) {
-      query += ' AND created_at <= ?';
-      params.push(new Date(dateRange.endDate).getTime());
-    }
-    if (dateRange.daily || dateRange.today) {
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
-      query += ' AND created_at >= ?';
-      params.push(startOfDay.getTime());
-    }
+// Who an order belongs to — same fields as the cloud's staffAccess.orderOwnerIds().
+function orderOwnerIds(o) {
+  const s = (o && o.staffInfo) || {};
+  if (Array.isArray(o && o.transferHistory) && o.transferHistory.length) {
+    return [o.waiterId, s.userId, s.waiterId].filter(v => v !== undefined && v !== null && v !== '').map(String);
   }
+  return [o && o.waiterId, s.userId, s.waiterId, o && o.operatorId, o && o.assignedStaff && o.assignedStaff.id, o && o.createdBy]
+    .filter(v => v !== undefined && v !== null && v !== '').map(String);
+}
 
-  const rows = db.prepare(query).all(...params);
-  const orders = parseRows(rows);
+// Local (offline) sales analytics. Range: startDate/endDate if given, else `period`
+// (today [default] | 24h | 7d | 30d). `ownerId` limits it to that user's own orders.
+// Returns the same fields the cloud's /api/analytics does for the stat cards.
+function getAnalytics(restaurantId, opts = {}) {
+  const db = getLocalDb();
+  const now = Date.now();
+  let from;
+  let to = now;
+  if (opts.startDate) {
+    from = new Date(opts.startDate).getTime();
+    if (opts.endDate) to = new Date(opts.endDate).getTime();
+  } else {
+    const period = String(opts.period || 'today');
+    if (period === '24h' || period === 'last24hours') from = now - 24 * 3600 * 1000;
+    else if (period === '7d' || period === 'last7days') from = now - 7 * 24 * 3600 * 1000;
+    else if (period === '30d' || period === 'last30days') from = now - 30 * 24 * 3600 * 1000;
+    else { const d = new Date(); d.setHours(0, 0, 0, 0); from = d.getTime(); } // today (and anything unknown)
+  }
+  if (!Number.isFinite(from)) { const d = new Date(); d.setHours(0, 0, 0, 0); from = d.getTime(); }
+  if (!Number.isFinite(to)) to = now;
 
-  const totalOrders = orders.length;
-  let totalRevenue = 0;
+  const rows = db.prepare('SELECT data FROM orders WHERE restaurant_id = ? AND created_at >= ? AND created_at <= ?')
+    .all(restaurantId, from, to);
+  let orders = parseRows(rows);
+  if (opts.ownerId) orders = orders.filter(o => orderOwnerIds(o).includes(String(opts.ownerId)));
+
+  const amt = (o) => Number(o.finalAmount || o.totalAmount || 0) || 0;
+  const REALIZED = new Set(['completed', 'paid', 'settled']);
+  const OPEN = new Set(['pending', 'confirmed', 'preparing', 'ready', 'served']);
+  let totalRevenue = 0, completedOrders = 0, openCount = 0, openTotal = 0;
+  let cancelledCount = 0, cancelledTotal = 0, refundedCount = 0, refundedTotal = 0;
   const statusCounts = {};
   const typeCounts = {};
-
-  for (const order of orders) {
-    totalRevenue += order.finalAmount || order.totalAmount || 0;
-    const status = order.status || 'unknown';
+  const paymentBreakdown = {};
+  for (const o of orders) {
+    const status = String(o.status || 'unknown').toLowerCase();
     statusCounts[status] = (statusCounts[status] || 0) + 1;
-    const type = order.orderType || order.type || 'unknown';
+    const type = o.orderType || o.type || 'unknown';
     typeCounts[type] = (typeCounts[type] || 0) + 1;
+    if (REALIZED.has(status)) {
+      completedOrders += 1;
+      totalRevenue += amt(o);
+      const pm = String(o.paymentMethod || 'cash').toLowerCase();
+      if (!paymentBreakdown[pm]) paymentBreakdown[pm] = { count: 0, total: 0 };
+      paymentBreakdown[pm].count += 1;
+      paymentBreakdown[pm].total += amt(o);
+    } else if (OPEN.has(status)) { openCount += 1; openTotal += amt(o); }
+    else if (status === 'cancelled') { cancelledCount += 1; cancelledTotal += amt(o); }
+    else if (status === 'refunded') { refundedCount += 1; refundedTotal += amt(o); }
   }
-
+  const placedCount = completedOrders + openCount;
   return {
-    totalOrders,
+    totalOrders: placedCount,
     totalRevenue,
-    averageOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+    totalRevenueWithTax: totalRevenue,
+    completedOrders,
+    placedCount,
+    averageOrderValue: completedOrders > 0 ? totalRevenue / completedOrders : 0,
+    openCount, openTotal, cancelledCount, cancelledTotal, refundedCount, refundedTotal,
+    paymentBreakdown,
     orderCountByStatus: statusCounts,
     orderCountByType: typeCounts,
+    scope: opts.ownerId ? 'own' : 'restaurant',
+    source: 'local',
   };
 }
 
