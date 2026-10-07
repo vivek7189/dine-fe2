@@ -294,7 +294,7 @@ export default function ShiftsCashPage() {
     try {
       setSendingReport(true);
       setReportSent(false);
-      await apiClient.updateEmailPreferences(emailPreferences);
+      // Test only sends — never saves (saving here could store the switch as "off").
       const reportType = emailPreferences.morningSummary?.enabled ? 'morning' : 'closing';
       await apiClient.sendTestReport(emails, getCurrencySymbol(), emailPreferences.reportFrequency || 'daily', reportType);
       setReportSent(true);

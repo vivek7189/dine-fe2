@@ -1171,8 +1171,8 @@ export function HeadquartersContent({ embedded = false }) {
     try {
       setSendingTestEmail(true);
       setTestEmailSent(false);
-      // Auto-save preferences when sending test email
-      await apiClient.updateEmailPreferences(prefs);
+      // Test only sends — it must not save: saving here stored the switch as "off" whenever the
+      // window showed off, silently turning daily reports off. "Save Settings" is the only save.
       // Determine report type: prefer morning if enabled, else closing
       const reportType = prefs.morningSummary?.enabled ? 'morning' : 'closing';
       await apiClient.sendTestReport(emails, getCurrencySymbol(), prefs.reportFrequency || 'daily', reportType);
