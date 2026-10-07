@@ -169,7 +169,7 @@ function startBackend(databaseUrl) {
     // API-based cloud sync (hub → cloud). The worker reads its sync token + restaurant from the
     // hub's server-config.json (SYNC_CONFIG_PATH) so a freshly-issued token is picked up without a
     // restart; CLOUD_API_URL is the GCP backend. Dormant until a token is written to that config.
-    CLOUD_API_URL: P('CLOUD_API_URL', 'https://34-93-129-104.sslip.io'),
+    CLOUD_API_URL: P('CLOUD_API_URL', 'https://api.dineopen.com'),
     SYNC_CONFIG_PATH: configFile(),
     LOCAL_UPLOAD_DIR: P('LOCAL_UPLOAD_DIR', path.join(dataRoot(), 'uploads')),
     JWT_SECRET: P('JWT_SECRET', 'dineopen-offline-local-secret'),

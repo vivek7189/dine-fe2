@@ -127,7 +127,7 @@ function run() {
       stdio: 'inherit',
       env: {
         ...process.env,
-        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://34-93-129-104.sslip.io',
+        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://api.dineopen.com',
       },
     });
 

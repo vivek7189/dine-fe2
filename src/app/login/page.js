@@ -306,7 +306,7 @@ const Login = () => {
   // backend, same Cloud SQL as Cloud Run but no cold starts), so a fresh offline customer's
   // first-time setup (OTP / email / MPIN) authenticates and provisions end-to-end on GCP,
   // matching the local Postgres the server mode runs on.
-  const GCP_CLOUD_URL = 'https://34-93-129-104.sslip.io';
+  const GCP_CLOUD_URL = 'https://api.dineopen.com';
 
   // After an OWNER logs in (OTP/Google/email) on the local-server app, decide how this terminal
   // should route — and, first time, pull the restaurant DOWN into the local DB (provisioning). The

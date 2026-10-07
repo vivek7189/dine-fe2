@@ -32,11 +32,11 @@ export const BACKEND_OVERRIDE_KEY = 'dineopen_backend_override';
 
 // Default cloud backend (existing users / fallback). Built at deploy time.
 export const DEFAULT_API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || 'https://34-93-129-104.sslip.io';
+  process.env.NEXT_PUBLIC_API_URL || 'https://api.dineopen.com';
 
 // New-user (Postgres/GCP) backend. Overridable per environment; falls back to the VM.
 export const PG_API_BASE =
-  process.env.NEXT_PUBLIC_PG_API_URL || 'https://34-93-129-104.sslip.io';
+  process.env.NEXT_PUBLIC_PG_API_URL || 'https://api.dineopen.com';
 
 // The cloud backend is ONLY our own GCP box. A saved per-user pin or remote config pointing anywhere
 // else (the retired Vercel / Cloud Run backends — old pins survive in localStorage) → the GCP box.

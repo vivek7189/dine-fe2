@@ -35,7 +35,7 @@ function cloudTarget() {
     const pin = window.localStorage.getItem('dineopen_backend_url');
     if (pin && !/127\.0\.0\.1|localhost|\.local|:3003/.test(pin)) return pin.replace(/\/+$/, '');
   } catch (_) {}
-  return (process.env.NEXT_PUBLIC_PG_API_URL || 'https://34-93-129-104.sslip.io').replace(/\/+$/, '');
+  return (process.env.NEXT_PUBLIC_PG_API_URL || 'https://api.dineopen.com').replace(/\/+$/, '');
 }
 
 async function reachable(url, ms) {

@@ -17,7 +17,7 @@ export default function DeliveryTrackingPage() {
 
   const fetchTracking = async () => {
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://34-93-129-104.sslip.io';
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.dineopen.com';
       const res = await fetch(`${apiBase}/api/delivery/track/${token}`);
       const json = await res.json();
       if (json.success) {

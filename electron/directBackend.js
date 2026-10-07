@@ -51,7 +51,7 @@ function isAllowedBackend(currentBase, headerVal) {
     const u = new URL(headerVal);
     if (u.protocol !== 'https:') return false;
     const host = u.hostname.toLowerCase();
-    const ok = /(^|\.)sslip\.io$/.test(host) || envAllowedHosts().includes(host);
+    const ok = /(^|\.)sslip\.io$/.test(host) || host === 'api.dineopen.com' || envAllowedHosts().includes(host);
     if (!ok) return false;
     if (u.host === cur.host) return false; // already there / avoid self-loop
     return true;

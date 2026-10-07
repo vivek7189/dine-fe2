@@ -77,7 +77,7 @@ const LOOPBACK_URL = 'http://127.0.0.1:3003';
 // (dineopen_backend_url — this account's real backend, e.g. GCP/Postgres) if set, else the baked
 // Postgres/GCP default. NEVER Vercel for the local-server app. Read from localStorage/env directly
 // so this module never imports apiBase (which imports us — would be circular).
-const PG_DEFAULT_URL = (process.env.NEXT_PUBLIC_PG_API_URL || 'https://34-93-129-104.sslip.io').replace(/\/+$/, '');
+const PG_DEFAULT_URL = (process.env.NEXT_PUBLIC_PG_API_URL || 'https://api.dineopen.com').replace(/\/+$/, '');
 function cloudTarget() {
   try {
     const pin = window.localStorage.getItem('dineopen_backend_url');

@@ -2686,7 +2686,7 @@ export default function LandingPage() {
 
             {/* Windows — auto-latest installer via backend resolver (same as Admin → App Download) */}
             <a
-              href={`${process.env.NEXT_PUBLIC_API_URL || 'https://34-93-129-104.sslip.io'}/api/download/desktop?app=online&platform=win`}
+              href={`${process.env.NEXT_PUBLIC_API_URL || 'https://api.dineopen.com'}/api/download/desktop?app=online&platform=win`}
               target="_blank" rel="noopener noreferrer"
               style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
@@ -2710,7 +2710,7 @@ export default function LandingPage() {
 
             {/* Mac — auto-latest installer via backend resolver (same as Admin → App Download) */}
             <a
-              href={`${process.env.NEXT_PUBLIC_API_URL || 'https://34-93-129-104.sslip.io'}/api/download/desktop?app=online&platform=mac`}
+              href={`${process.env.NEXT_PUBLIC_API_URL || 'https://api.dineopen.com'}/api/download/desktop?app=online&platform=mac`}
               target="_blank" rel="noopener noreferrer"
               style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
