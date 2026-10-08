@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { FaTimes, FaQrcode, FaMobileAlt, FaCopy, FaCheck, FaSpinner, FaCheckCircle } from 'react-icons/fa';
+import { canUseUpiPayLink, upiPayUri } from '../utils/upi';
 
 const UpiPaymentModal = ({
   isOpen,
@@ -22,9 +23,10 @@ const UpiPaymentModal = ({
   const displayName = upiDisplayName || restaurantName || 'Restaurant';
   const formattedAmount = formatCurrency ? formatCurrency(amount) : `₹${amount}`;
 
-  // Build UPI deep link
-  const upiDeepLink = upiId
-    ? `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(displayName)}&am=${amount}&cu=INR`
+  // "Pay via UPI app" link — personal UPI IDs only; merchant IDs / an uploaded QR are paid by scan
+  // or by the UPI ID below (UPI apps block unsigned links to merchant IDs — see utils/upi).
+  const upiDeepLink = canUseUpiPayLink({ upiId, upiQrCodeUrl })
+    ? upiPayUri({ upiId, name: displayName, amount })
     : null;
 
   const handleCopyUpi = () => {

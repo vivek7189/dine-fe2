@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import QRCode from 'qrcode';
 import { DEFAULT_API_BASE, PG_API_BASE } from '../../../lib/apiBase';
+import { canUseUpiPayLink, upiPayUri } from '../../../utils/upi';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
@@ -23,6 +24,7 @@ export default function PublicStatementPage() {
   const [state, setState] = useState('loading'); // loading | ok | expired | missing | error
   const [open, setOpen] = useState({});
   const [qr, setQr] = useState('');
+  const [copied, setCopied] = useState('');
 
   useEffect(() => {
     if (!token) return undefined;
@@ -54,13 +56,20 @@ export default function PublicStatementPage() {
   }, [st]);
 
   const due = st ? st.totals.closingBalance : 0;
-  const upi = st && st.restaurant.upiId && st.restaurant.currencyCode === 'INR' && due > 0
-    ? `upi://pay?pa=${encodeURIComponent(st.restaurant.upiId)}&pn=${encodeURIComponent(st.restaurant.name)}&am=${due.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Statement')}`
-    : null;
+  // UPI pay (INR only): the restaurant's own uploaded QR when there is one, else a QR we draw from
+  // its UPI ID; the UPI ID + amount to copy; a tap-to-pay link only for personal UPI IDs (UPI apps
+  // block links to merchant IDs — see utils/upi).
+  const payUpi = !!(st && st.restaurant.currencyCode === 'INR' && due > 0 && (st.restaurant.upiId || st.restaurant.upiQrCodeUrl));
+  const upiUri = payUpi && st.restaurant.upiId ? upiPayUri({ upiId: st.restaurant.upiId, name: st.restaurant.name, amount: due, note: 'Statement' }) : null;
+  const payLink = payUpi && canUseUpiPayLink({ upiId: st.restaurant.upiId, upiQrCodeUrl: st.restaurant.upiQrCodeUrl }) ? upiUri : null;
   useEffect(() => {
-    if (!upi) return;
-    QRCode.toDataURL(upi, { width: 180, margin: 1 }).then(setQr).catch(() => {});
-  }, [upi]);
+    if (!upiUri || (st && st.restaurant.upiQrCodeUrl)) return;
+    QRCode.toDataURL(upiUri, { width: 200, margin: 1 }).then(setQr).catch(() => {});
+  }, [upiUri, st]);
+  const copy = (what, text) => {
+    try { navigator.clipboard.writeText(text); } catch { /* ignore */ }
+    setCopied(what); setTimeout(() => setCopied(''), 1800);
+  };
 
   if (state !== 'ok') {
     const text = state === 'loading' ? 'Loading statement…'
@@ -152,10 +161,34 @@ export default function PublicStatementPage() {
             })}
           </div>
 
-          {upi && (
-            <div className="no-print" style={{ marginTop: 16, textAlign: 'center' }}>
-              <a href={upi} style={{ display: 'inline-block', background: '#16a34a', color: '#fff', padding: '12px 20px', borderRadius: 12, fontWeight: 800, textDecoration: 'none' }}>Pay {money(due)} via UPI</a>
-              {qr && <div style={{ marginTop: 10 }}><img src={qr} alt="UPI QR" style={{ width: 160, height: 160 }} /><div style={{ fontSize: 11, color: '#64748b' }}>{r.upiId}</div></div>}
+          {payUpi && (
+            <div className="no-print" style={{ marginTop: 16, border: '1px solid #bbf7d0', background: '#f0fdf4', borderRadius: 14, padding: 14, textAlign: 'center' }}>
+              <div style={{ fontWeight: 800, fontSize: 15 }}>Pay {money(due)} by UPI</div>
+              <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>Scan with any UPI app (Google Pay, PhonePe, Paytm…) and enter the amount.</div>
+              {(r.upiQrCodeUrl || qr) && (
+                <img src={r.upiQrCodeUrl || qr} alt="UPI QR code" style={{ display: 'block', margin: '12px auto 0', width: 200, maxWidth: '100%', height: 'auto', borderRadius: 10, background: '#fff' }} />
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12, maxWidth: 340, marginLeft: 'auto', marginRight: 'auto' }}>
+                {r.upiId && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '8px 10px' }}>
+                    <span style={{ fontSize: 11, color: '#64748b' }}>UPI ID</span>
+                    <span style={{ flex: 1, fontFamily: 'monospace', fontWeight: 700, fontSize: 14, textAlign: 'left', overflowWrap: 'anywhere' }}>{r.upiId}</span>
+                    <button type="button" onClick={() => copy('id', r.upiId)} style={{ border: 'none', background: '#eef2ff', color: '#4338ca', borderRadius: 8, padding: '5px 10px', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>{copied === 'id' ? 'Copied' : 'Copy'}</button>
+                  </div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '8px 10px' }}>
+                  <span style={{ fontSize: 11, color: '#64748b' }}>Amount</span>
+                  <span style={{ flex: 1, fontWeight: 800, fontSize: 14, textAlign: 'left' }}>{money(due)}</span>
+                  <button type="button" onClick={() => copy('amt', due.toFixed(2))} style={{ border: 'none', background: '#eef2ff', color: '#4338ca', borderRadius: 8, padding: '5px 10px', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>{copied === 'amt' ? 'Copied' : 'Copy'}</button>
+                </div>
+              </div>
+              {payLink && (
+                <a href={payLink} style={{ display: 'inline-block', marginTop: 12, background: '#16a34a', color: '#fff', padding: '11px 20px', borderRadius: 12, fontWeight: 800, textDecoration: 'none' }}>Open UPI app to pay {money(due)}</a>
+              )}
+              <div style={{ fontSize: 11, color: '#64748b', marginTop: 10 }}>
+                Viewing this on your phone? Copy the UPI ID and pay to it from your UPI app, or save the QR and use “scan from gallery”.
+                After paying, please tell {r.name} so they can mark it paid.
+              </div>
             </div>
           )}
           <div className="no-print" style={{ marginTop: 16, display: 'flex', justifyContent: 'center' }}>
