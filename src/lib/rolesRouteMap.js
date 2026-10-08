@@ -36,6 +36,7 @@ export const ROLES_MOBILE_PERMISSION = {
   offers: 'offers.view',
   orderhistory: 'page.history',
   'sales-summary': 'page.analytics',
+  'open-orders': 'orders.view',
   tables: 'tables.view',
   'my-pay': 'page.myPay',
 };
