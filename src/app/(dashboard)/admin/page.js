@@ -13519,6 +13519,34 @@ const Admin = () => {
                 <span style={{ fontSize: '13px', color: '#374151' }}>Covers (number of guests)</span>
               </div>
 
+              {/* Customer details before billing (Svadhaa ask) — off by default */}
+              <div style={{ marginTop: '14px' }}>
+                <span style={{ fontSize: '13px', color: '#374151', display: 'block', marginBottom: '6px' }}>Ask for customer details before billing</span>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {[['off', 'Off'], ['remind', 'Remind'], ['required', 'Required']].map(([val, label]) => {
+                    const cur = ['remind', 'required'].includes(posSettings.customerDetailsPrompt) ? posSettings.customerDetailsPrompt : 'off';
+                    const on = cur === val;
+                    return (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setPosSettings(prev => ({ ...prev, customerDetailsPrompt: val }))}
+                        style={{ padding: '6px 14px', borderRadius: '999px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: on ? '1px solid #ef4444' : '1px solid #e5e7eb', background: on ? '#fef2f2' : '#fff', color: on ? '#b91c1c' : '#374151' }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p style={{ fontSize: '11px', color: '#6b7280', margin: '6px 0 0' }}>
+                  {posSettings.customerDetailsPrompt === 'required'
+                    ? `A bill can't be completed until the customer's ${posSettings.hideMobile ? 'name' : 'phone number'} is entered (web, Android and iPhone app).`
+                    : posSettings.customerDetailsPrompt === 'remind'
+                      ? 'When no customer details were entered, staff see a reminder before the bill is completed — they can add them or continue.'
+                      : 'Bills can be completed without customer details.'}
+                </p>
+              </div>
+
               {/* Kitchen Notes / Special Instructions — #13 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
                 <button type="button" onClick={() => setPosSettings(prev => ({ ...prev, hideSpecialInstructions: !prev.hideSpecialInstructions }))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}>

@@ -3107,8 +3107,40 @@ const OrderSummary = ({
   const dueCustomerReady = lookupStatus === 'found'
     || (customerMobile || '').replace(/\D/g, '').length >= getPhoneMinLength(countryCode);
 
+  // Customer details before billing (Admin → POS Settings → "Ask for customer details before
+  // billing": off by default). remind = a one-time reminder when nothing was entered (continue is
+  // allowed, not asked again for this cart); required = phone (or a found customer; the name when the
+  // mobile field is hidden) before the bill can be completed. Every completion path runs through
+  // handleProcessOrder, so this one check covers Complete Billing, Bill & Print and retries.
+  const customerDetailsMode = ['remind', 'required'].includes(posSettings?.customerDetailsPrompt) ? posSettings.customerDetailsPrompt : 'off';
+  const customerPromptContinuedRef = useRef(false);
+  useEffect(() => { if (cart.length === 0) customerPromptContinuedRef.current = false; }, [cart.length]);
+  const customerDetailsOk = () => {
+    if (customerDetailsMode === 'off') return true;
+    const phoneOk = (customerMobile || '').replace(/\D/g, '').length >= getPhoneMinLength(countryCode);
+    const found = lookupStatus === 'found';
+    const nameOk = !!String(customerName || '').trim();
+    if (customerDetailsMode === 'required') {
+      if (found || phoneOk || (posSettings?.hideMobile && nameOk)) return true;
+      alert(posSettings?.hideMobile
+        ? "Please enter the customer's name before completing the bill."
+        : "Please enter the customer's phone number before completing the bill.");
+      return false;
+    }
+    if (found || phoneOk || nameOk || customerPromptContinuedRef.current) return true;
+    if (window.confirm('No customer details entered for this bill.\n\nOK = continue without them\nCancel = go back and add the customer')) {
+      customerPromptContinuedRef.current = true;
+      return true;
+    }
+    return false;
+  };
+
   const handleProcessOrder = async () => {
     if (orderBusy) return; // Prevent double-tap while order is processing
+    if (!customerDetailsOk()) {
+      if (typeof window !== 'undefined') window.__autoPrintBill = false; // Bill & Print was armed — don't print the next bill
+      return;
+    }
     if (fullDueMode && !dueCustomerReady) {
       alert('Customer phone number is required for due (udhar) orders. Please enter a valid customer phone first.');
       return;
