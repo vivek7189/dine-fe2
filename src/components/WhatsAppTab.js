@@ -36,9 +36,11 @@ export default function WhatsAppTab({ selectedRestaurant }) {
   const restaurantIdRef = useRef(null);
 
   const FACEBOOK_APP_ID = '1591044548986175';
-  // Config ID from Meta App → Facebook Login for Business → Configurations
-  // Created using "WhatsApp Embedded Signup" template
-  const EMBEDDED_SIGNUP_CONFIG_ID = process.env.NEXT_PUBLIC_WA_EMBEDDED_SIGNUP_CONFIG_ID || '1503970314508774';
+  // Config ID from Meta App → Facebook Login for Business → Configurations: the "Tech Provider
+  // Embedded Signup config" with Embedded Signup v4 (what Meta's Embedded Signup Builder uses).
+  // The older "60-day expiry token" config (1503970314508774, no ES version) shows "Feature
+  // unavailable" since Oct 2026. New env name on purpose, so an old build setting can't override it.
+  const EMBEDDED_SIGNUP_CONFIG_ID = process.env.NEXT_PUBLIC_WA_TECH_PROVIDER_CONFIG_ID || '1297353665849277';
 
   const restaurantId = selectedRestaurant?.id;
   restaurantIdRef.current = restaurantId; // keep the listener's id current without re-binding
@@ -53,7 +55,7 @@ export default function WhatsAppTab({ selectedRestaurant }) {
         appId: FACEBOOK_APP_ID,
         cookie: true,
         xfbml: true,
-        version: 'v22.0',
+        version: 'v26.0',
       });
       setFbSdkReady(true);
     };
@@ -72,10 +74,12 @@ export default function WhatsAppTab({ selectedRestaurant }) {
       try {
         const data = JSON.parse(event.data);
         if (data.type === 'WA_EMBEDDED_SIGNUP') {
-          if (data.event === 'FINISH') {
+          // ES v4 finish events: FINISH (number added), FINISH_ONLY_WABA (account, no number yet),
+          // FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING (number kept on the WhatsApp Business app)
+          if (typeof data.event === 'string' && data.event.startsWith('FINISH')) {
             wabaDataRef.current = {
-              phone_number_id: data.data.phone_number_id,
-              waba_id: data.data.waba_id,
+              phone_number_id: data.data?.phone_number_id,
+              waba_id: data.data?.waba_id,
             };
           } else if (data.event === 'CANCEL') {
             console.log('Embedded Signup cancelled at step:', data.data?.current_step);
@@ -238,7 +242,10 @@ export default function WhatsAppTab({ selectedRestaurant }) {
         response_type: 'code',
         override_default_response_type: true,
         extras: {
-          sessionInfoVersion: 3,
+          setup: {},
+          featureType: '',
+          sessionInfoVersion: '3',
+          version: 'v4',
         },
       }
     );
