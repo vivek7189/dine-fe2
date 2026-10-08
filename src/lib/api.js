@@ -4933,6 +4933,17 @@ class ApiClient {
   async getPaySlips(restaurantId, runId) {
     return this.request(`/api/payroll/${restaurantId}/runs/${runId}/slips`);
   }
+  // Salary sheet: the month's salary for every staff member, live from attendance (Books → Payroll).
+  async getSalarySheet(restaurantId, month) {
+    return this.request(`/api/payroll/${restaurantId}/sheet${month ? `?month=${encodeURIComponent(month)}` : ''}`);
+  }
+  // Change one person's salary for that month: { days, otHours, salary, extra, extraNote, deduct, deductNote, netPay, netNote } or { reset }.
+  async saveSalarySheetRow(restaurantId, month, staffId, data) {
+    return this.request(`/api/payroll/${restaurantId}/sheet/${month}/${staffId}`, { method: 'PUT', body: data });
+  }
+  async savePayrollConfig(restaurantId, data) {
+    return this.request(`/api/payroll/${restaurantId}/config`, { method: 'POST', body: data });
+  }
 
   // ─── GST Reports ──────────────────────────────────────────────────────
   // Tax report for any country (each tax by name + rate) — non-India Books tab

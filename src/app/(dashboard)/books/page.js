@@ -176,6 +176,7 @@ export default function BooksPage() {
             onSaveSlipAttendance={books.handleSavePaySlipAttendance}
             restaurantId={books.restaurantId}
             apiClient={books.apiClient}
+            onReload={books.fetchPayroll}
           />
         )}
         {activeTab === 'advances' && (

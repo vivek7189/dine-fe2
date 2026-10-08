@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { FaPlus, FaPlay, FaCheck, FaEye, FaTimes, FaSave, FaTrash, FaMoneyBillWave, FaUsers, FaCalendarAlt, FaPrint, FaCog, FaSlidersH } from 'react-icons/fa';
 import useHrSettings from '../hooks/useHrSettings';
 import { PayrollSettingsPanel } from './HrSettingsPanels';
+import SalarySheet from './SalarySheet';
 
 const cardStyle = {
   backgroundColor: 'white', borderRadius: '14px', padding: '20px',
@@ -35,7 +36,7 @@ const STATUS_COLORS = {
 export default function PayrollTab({
   payrollConfig, payrollRuns, loadingPayroll, isMobile, formatCurrency,
   staffList, onSaveConfig, onDeleteConfig, onGenerateRun, onUpdateRun, onDeleteRun, onViewSlips, onSaveAdjustments, onSaveSlipAttendance,
-  restaurantId, apiClient,
+  restaurantId, apiClient, onReload,
 }) {
   // Pay components + payment modes are the restaurant's own lists (⚙ Settings; defaults HRA/Travel/
   // Food, PF/Tax/Other, Cash/Bank/UPI/Cheque). Allowance/deduction maps stay keyed by component.
@@ -193,6 +194,9 @@ export default function PayrollTab({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Salary sheet — this month's salary, live from attendance; click to change; mark paid */}
+      <SalarySheet restaurantId={restaurantId} apiClient={apiClient} formatCurrency={formatCurrency}
+        paymentModes={paymentModes} payrollConfig={configs} isMobile={isMobile} onChanged={onReload} />
       {/* Summary Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: '12px' }}>
         <div style={{ ...cardStyle, padding: '14px 18px' }}>
